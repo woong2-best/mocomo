@@ -7,6 +7,7 @@ import { WATERMARK_QUADRANT_KEYS } from "@/lib/watermark/config";
 import {
   decodeWatermarkCodeword,
   fromBase64,
+  comparePayloadIntegrity,
   validateDecodedPayload,
 } from "@/lib/watermark/crypto/payload";
 import {
@@ -38,6 +39,8 @@ export type VerifyWatermarkFrameInput = {
   opaqueWatermarkId: string;
   contentId: string;
   phase?: number;
+  /** Client path: server-provided integrity bytes (no master secret in browser). */
+  expectedIntegrityB64?: string;
 };
 
 export type VerifyWatermarkFrameResult = WatermarkDetectionResult & {
@@ -90,7 +93,9 @@ export function verifyWatermarkFrame(input: VerifyWatermarkFrameInput): VerifyWa
   const decoded = decodeWatermarkCodeword(merged);
   const integrityValid =
     decoded.ok && decoded.core
-      ? validateDecodedPayload(decoded.core, input.opaqueWatermarkId)
+      ? input.expectedIntegrityB64
+        ? comparePayloadIntegrity(decoded.core, fromBase64(input.expectedIntegrityB64))
+        : validateDecodedPayload(decoded.core, input.opaqueWatermarkId)
       : false;
 
   const centralScore =

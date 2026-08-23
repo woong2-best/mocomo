@@ -11,6 +11,7 @@ import {
 export type ForensicClientVerification = {
   opaqueWatermarkId: string;
   contentId: string;
+  expectedIntegrityB64: string;
 };
 
 export function useForensicWatermarkSession(
@@ -69,10 +70,13 @@ export function useForensicWatermarkSession(
         if (!cancelled) {
           setConfig(renderConfig);
           setClientVerification(
-            verification?.opaqueWatermarkId && verification?.contentId
+            verification?.opaqueWatermarkId &&
+              verification?.contentId &&
+              verification?.expectedIntegrityB64
               ? {
                   opaqueWatermarkId: verification.opaqueWatermarkId,
                   contentId: verification.contentId,
+                  expectedIntegrityB64: verification.expectedIntegrityB64,
                 }
               : null
           );

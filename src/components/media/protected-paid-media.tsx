@@ -212,7 +212,8 @@ export function ProtectedPaidMedia({
   const showForensicCanvas =
     useForensicPipeline &&
     Boolean(forensicRenderConfig) &&
-    Boolean(clientVerification) &&
+    Boolean(clientVerification?.opaqueWatermarkId) &&
+    Boolean(clientVerification?.expectedIntegrityB64) &&
     !canvasFailed &&
     !sessionError;
 

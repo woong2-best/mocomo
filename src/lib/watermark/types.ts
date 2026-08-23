@@ -68,6 +68,8 @@ export type WatermarkSessionClientResponse = {
   clientVerification: {
     opaqueWatermarkId: string;
     contentId: string;
+    /** Precomputed HMAC integrity — avoids exposing WATERMARK_MASTER_SECRET to the browser. */
+    expectedIntegrityB64: string;
   };
 };
 

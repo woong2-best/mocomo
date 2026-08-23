@@ -73,6 +73,7 @@ async function fixture() {
       renderConfig: config,
       opaqueWatermarkId: built.opaqueWatermarkId,
       contentId: "media_lightbox",
+      expectedIntegrityB64: toBase64(built.core.integrity),
       phase: 0,
     });
   };

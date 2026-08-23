@@ -133,6 +133,20 @@ export function validateDecodedPayload(
   });
 }
 
+/** Client-safe integrity gate — compares recovered bytes to server-provided expected value. */
+export function comparePayloadIntegrity(
+  core: WatermarkPayloadCore,
+  expectedIntegrity: Uint8Array
+): boolean {
+  if (core.version !== WATERMARK_PROTOCOL_VERSION) return false;
+  if (core.integrity.length !== expectedIntegrity.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expectedIntegrity.length; i++) {
+    diff |= core.integrity[i] ^ expectedIntegrity[i];
+  }
+  return diff === 0;
+}
+
 export function toBase64(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("base64");
 }

@@ -10,7 +10,7 @@ import {
   getWatermarkModulationStrength,
   WATERMARK_MODULATION_STRENGTH,
 } from "@/lib/watermark/config";
-import { encodeWatermarkPayload, toBase64 } from "@/lib/watermark/crypto/payload";
+import { buildWatermarkPayload, toBase64 } from "@/lib/watermark/crypto/payload";
 import { isWatermarkSecretConfigured } from "@/lib/watermark/crypto/secrets";
 import type { ForensicRenderConfig, WatermarkSessionClientResponse } from "@/lib/watermark/types";
 import type { WatermarkContentKind } from "@/lib/paid-media-playback";
@@ -202,7 +202,7 @@ export async function createWatermarkSession(
     },
   });
 
-  const encoded = encodeWatermarkPayload({
+  const built = buildWatermarkPayload({
     contentId: access.contentId,
     sessionId: session.id,
     userId,
@@ -213,16 +213,16 @@ export async function createWatermarkSession(
   await db.watermarkSession.update({
     where: { id: session.id },
     data: {
-      opaqueWatermarkId: encoded.opaqueWatermarkId,
-      sessionNonce: encoded.sessionNonce,
+      opaqueWatermarkId: built.opaqueWatermarkId,
+      sessionNonce: built.sessionNonce,
     },
   });
 
   const renderConfig: ForensicRenderConfig = {
     watermarkVersion,
     sessionId: session.id,
-    spreadSeedB64: toBase64(encoded.spreadSeed),
-    codewordB64: toBase64(encoded.codeword),
+    spreadSeedB64: toBase64(built.spreadSeed),
+    codewordB64: toBase64(built.codeword),
     temporalPeriod: WATERMARK_TEMPORAL_PERIOD,
     modulationStrength: getWatermarkModulationStrength(),
   };
@@ -232,8 +232,9 @@ export async function createWatermarkSession(
     watermarkVersion,
     renderConfig,
     clientVerification: {
-      opaqueWatermarkId: encoded.opaqueWatermarkId,
+      opaqueWatermarkId: built.opaqueWatermarkId,
       contentId: access.contentId,
+      expectedIntegrityB64: toBase64(built.core.integrity),
     },
   };
 }

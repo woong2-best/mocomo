@@ -242,7 +242,7 @@ export function ForensicImageCanvas({
       applyCaptureResilienceLayers(frame, preEmbed, config, 0);
       recorder.record({ stage: "WATERMARK_EMBEDDED", mediaId, sessionId: config.sessionId, attempt });
 
-      if (!clientVerification?.opaqueWatermarkId) {
+      if (!clientVerification?.opaqueWatermarkId || !clientVerification.expectedIntegrityB64) {
         recorder.recordPaintAttempt({
           attempt,
           computedWidth: computed.cssWidth,
@@ -268,6 +268,7 @@ export function ForensicImageCanvas({
         renderConfig: config,
         opaqueWatermarkId: clientVerification.opaqueWatermarkId,
         contentId: clientVerification.contentId,
+        expectedIntegrityB64: clientVerification.expectedIntegrityB64,
         phase: 0,
       });
 
