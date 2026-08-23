@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import {
   alignPaintSizeToDisplay,
   drawSourceFit,
-  isForensicDisplaySizeReady,
+  isForensicEmbedSizeReady,
   resolveForensicPaintSize,
 } from "@/components/media/forensic-canvas-fit";
 
@@ -113,20 +113,19 @@ export function ForensicImageCanvas({
       onFailed?.(message);
     };
 
+    const schedulePaint = (delayMs = 16) => {
+      if (cancelled || failedRef.current || readyRef.current) return;
+      window.clearTimeout(retryTimer);
+      retryTimer = window.setTimeout(paint, delayMs);
+    };
+
     const paint = () => {
       if (cancelled || failedRef.current) return;
       const wrap = wrapRef.current;
       const canvas = canvasRef.current;
       const bitmap = bitmapRef.current;
       if (!wrap || !canvas || !bitmap) {
-        console.warn("[forensic-debug] paint early-return", {
-          hasWrap: !!wrap,
-          hasCanvas: !!canvas,
-          hasBitmap: !!bitmap,
-          cancelled,
-          failed: failedRef.current,
-          timestamp: Date.now(),
-        });
+        schedulePaint(50);
         return;
       }
 
@@ -144,20 +143,21 @@ export function ForensicImageCanvas({
           verifyRun: false,
           retryReason: "resolveForensicPaintSize_null",
         });
-        retryTimer = window.setTimeout(paint, 50);
+        schedulePaint(50);
         return;
       }
 
       const wrapMode = fillParent && objectFit === "cover" ? "fill" : "fixed";
       const alignedRaw = alignPaintSizeToDisplay(wrap, canvas, computed, wrapMode);
       const rect = canvas.getBoundingClientRect();
-      const sizingReady = alignedRaw
-        ? isForensicDisplaySizeReady(computed, alignedRaw)
-        : false;
+      const rectArea = Math.max(1, Math.round(rect.width) * Math.round(rect.height));
+      const sizingReady = alignedRaw ? isForensicEmbedSizeReady(alignedRaw) : false;
 
       const computedArea = computed.cssWidth * computed.cssHeight;
-      const rectArea = Math.max(1, Math.round(rect.width) * Math.round(rect.height));
-      const areaRatio = computedArea > 0 ? rectArea / computedArea : 0;
+      const displayedArea = alignedRaw
+        ? alignedRaw.cssWidth * alignedRaw.cssHeight
+        : rectArea;
+      const areaRatio = computedArea > 0 ? displayedArea / computedArea : 0;
       const computedLong = Math.max(computed.cssWidth, computed.cssHeight);
       const rectLong = Math.max(Math.round(rect.width), Math.round(rect.height));
       const longEdgeRatio = computedLong > 0 ? rectLong / computedLong : 0;
@@ -177,9 +177,9 @@ export function ForensicImageCanvas({
           longEdgeRatio,
           sizingReady: false,
           verifyRun: false,
-          retryReason: !alignedRaw ? "alignPaintSizeToDisplay_null" : "isForensicDisplaySizeReady_false",
+          retryReason: !alignedRaw ? "alignPaintSizeToDisplay_null" : "isForensicEmbedSizeReady_false",
         });
-        retryTimer = window.setTimeout(paint, 50);
+        schedulePaint(50);
         return;
       }
 
@@ -301,9 +301,11 @@ export function ForensicImageCanvas({
           detectionStatus: verifyResult.status,
         });
         if (readyRef.current) return;
-        retryTimer = window.setTimeout(paint, 50);
+        schedulePaint(50);
         return;
       }
+
+      window.clearTimeout(failTimer);
 
       recorder.recordPaintAttempt({
         attempt,
@@ -374,7 +376,6 @@ export function ForensicImageCanvas({
         });
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            console.warn("[forensic-debug] double-rAF fired", { cancelled, timestamp: Date.now() });
             if (!cancelled) paint();
           });
         });
@@ -382,10 +383,10 @@ export function ForensicImageCanvas({
         if (wrap) {
           const onLayoutChange = () => {
             if (readyRef.current && fillParent && objectFit === "cover") {
-              paint();
+              schedulePaint(0);
               return;
             }
-            if (!readyRef.current) paint();
+            if (!readyRef.current) schedulePaint(16);
           };
           layoutHandlerRef.current = onLayoutChange;
           ro = new ResizeObserver(onLayoutChange);

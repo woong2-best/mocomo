@@ -36,6 +36,13 @@ export function isForensicDisplaySizeReady(
   return true;
 }
 
+/** Client embed gate: use the aligned/on-screen box only (avoids max-h/max-w deadlock). */
+export function isForensicEmbedSizeReady(displayed: ForensicPaintSize): boolean {
+  if (displayed.cssWidth < 8 || displayed.cssHeight < 8) return false;
+  const displayedLong = Math.max(displayed.cssWidth, displayed.cssHeight);
+  return displayedLong >= MIN_FORENSIC_VERIFY_LONG_EDGE;
+}
+
 function findContainBounds(wrap: HTMLElement): { maxW: number; maxH: number } {
   let maxW =
     typeof window !== "undefined" ? Math.min(window.innerWidth, 1920) : 1920;
@@ -189,7 +196,7 @@ export function alignPaintSizeToDisplayWhenReady(
 ): ForensicPaintSize | null {
   const aligned = alignPaintSizeToDisplay(wrap, canvas, computed, wrapMode);
   if (!aligned) return null;
-  if (!isForensicDisplaySizeReady(computed, aligned)) return null;
+  if (!isForensicEmbedSizeReady(aligned)) return null;
   return aligned;
 }
 
