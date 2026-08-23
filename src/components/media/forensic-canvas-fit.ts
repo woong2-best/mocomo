@@ -60,18 +60,15 @@ function flushLayout(...elements: HTMLElement[]) {
 }
 
 function findContainBounds(wrap: HTMLElement): { maxW: number; maxH: number } {
-  let maxW =
+  const viewportW =
     typeof window !== "undefined" ? Math.min(window.innerWidth, 1920) : 1920;
-  let maxH =
+  const viewportH =
     typeof window !== "undefined" ? Math.min(window.innerHeight, 1080) : 1080;
+  let maxW = viewportW;
+  let maxH = viewportH;
 
   let el: HTMLElement | null = wrap;
-  for (let depth = 0; depth < 10 && el; depth += 1) {
-    const w = el.clientWidth;
-    const h = el.clientHeight;
-    if (w >= 8) maxW = Math.min(maxW, w);
-    if (h >= 8) maxH = Math.min(maxH, h);
-
+  for (let depth = 0; depth < 12 && el; depth += 1) {
     if (typeof window !== "undefined") {
       const style = window.getComputedStyle(el);
       const cssMaxW = readComputedMaxPx(style, "maxWidth");
@@ -80,12 +77,19 @@ function findContainBounds(wrap: HTMLElement): { maxW: number; maxH: number } {
       if (cssMaxH) maxH = Math.min(maxH, cssMaxH);
     }
 
+    const w = el.clientWidth;
+    const h = el.clientHeight;
+    // Ignore collapsed/stub boxes (e.g. lightbox spinner min-size siblings).
+    if (w >= MIN_FORENSIC_VERIFY_LONG_EDGE) maxW = Math.min(maxW, w);
+    if (h >= MIN_FORENSIC_VERIFY_LONG_EDGE) maxH = Math.min(maxH, h);
+
     el = el.parentElement;
   }
 
+  const padding = 32;
   return {
-    maxW: Math.max(8, maxW - 32),
-    maxH: Math.max(8, maxH - 32),
+    maxW: Math.max(MIN_FORENSIC_VERIFY_LONG_EDGE, maxW - padding),
+    maxH: Math.max(MIN_FORENSIC_VERIFY_LONG_EDGE, maxH - padding),
   };
 }
 
@@ -151,9 +155,21 @@ export function resolveForensicPaintSize(
   fit: "cover" | "contain" = "contain",
   options?: { fillParent?: boolean }
 ): ForensicPaintSize | null {
-  if (options?.fillParent && fit === "cover") {
+  if (options?.fillParent) {
     const parentBox = readParentBox(wrap);
-    if (parentBox) return toBackingStoreSize(parentBox.cssWidth, parentBox.cssHeight);
+    if (parentBox) {
+      if (fit === "cover") {
+        return toBackingStoreSize(parentBox.cssWidth, parentBox.cssHeight);
+      }
+      const fitted = fitIntrinsicSize(
+        intrinsicWidth,
+        intrinsicHeight,
+        parentBox.cssWidth,
+        parentBox.cssHeight,
+        "contain"
+      );
+      return toBackingStoreSize(fitted.cssWidth, fitted.cssHeight);
+    }
   }
 
   if (intrinsicWidth >= 8 && intrinsicHeight >= 8) {
@@ -258,7 +274,16 @@ export function alignPaintSizeToDisplay(
     displayed = readAppliedPaintSize(canvas, displayed);
   }
 
-  if (!isForensicEmbedSizeReady(displayed)) return null;
+  if (!isForensicEmbedSizeReady(displayed)) {
+    if (!isForensicEmbedSizeReady(computed)) return null;
+    displayed = computed;
+    applyForensicWrapSize(wrap, displayed, wrapMode === "contain" ? "fixed" : wrapMode);
+    applyForensicCanvasSize(canvas, displayed);
+    flushLayout(wrap, canvas);
+    displayed = readAppliedPaintSize(canvas, displayed);
+    if (!isForensicEmbedSizeReady(displayed)) return null;
+  }
+
   return displayed;
 }
 

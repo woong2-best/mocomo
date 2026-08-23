@@ -216,6 +216,9 @@ export function ProtectedPaidMedia({
     !canvasFailed &&
     !sessionError;
 
+  const lightboxForensic =
+    blockUntilForensicReady && !fillsTile && objectFit === "contain" && !isVideo;
+
   const plainImage = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -232,12 +235,14 @@ export function ProtectedPaidMedia({
     <div
       className={cn(
         "relative",
-        fillsTile
-          ? "size-full"
-          : cn(
-              "inline-flex max-w-full max-h-full items-center justify-center",
-              className
-            )
+        lightboxForensic
+          ? cn("flex size-full max-h-full max-w-full items-center justify-center", className)
+          : fillsTile
+            ? "size-full"
+            : cn(
+                "inline-flex max-w-full max-h-full items-center justify-center",
+                className
+              )
       )}
     >
       {!useForensicPipeline ? (
@@ -247,7 +252,11 @@ export function ProtectedPaidMedia({
           {showForensicCanvas && forensicRenderConfig ? (
             <div
               className={cn(
-                fillsTile ? "absolute inset-0 size-full" : "relative inline-flex max-h-full max-w-full"
+                lightboxForensic
+                  ? "relative flex size-full min-h-0 max-h-full max-w-full items-center justify-center"
+                  : fillsTile
+                    ? "absolute inset-0 size-full"
+                    : "relative inline-flex max-h-full max-w-full"
               )}
             >
               <ForensicImageCanvas
@@ -255,8 +264,8 @@ export function ProtectedPaidMedia({
                 alt={alt}
                 mediaId={mediaId}
                 objectFit={objectFit}
-                fillParent={fillsTile}
-                className={fillsTile ? "size-full" : "max-h-full max-w-full"}
+                fillParent={fillsTile || lightboxForensic}
+                className={fillsTile || lightboxForensic ? "max-h-full max-w-full" : "max-h-full max-w-full"}
                 config={forensicRenderConfig}
                 clientVerification={clientVerification}
                 onMarked={handleCanvasMarked}
@@ -269,7 +278,7 @@ export function ProtectedPaidMedia({
               className={cn(
                 "flex items-center justify-center",
                 blockUntilForensicReady && !fillsTile
-                  ? cn("min-h-[160px] min-w-[240px]", className)
+                  ? "pointer-events-none absolute inset-0 z-[3]"
                   : "pointer-events-none absolute inset-0 z-[3] bg-black/25"
               )}
             >
@@ -308,10 +317,17 @@ export function ProtectedPaidMedia({
     <PaidMediaProtectionShell
       className={cn(
         "overflow-hidden",
-        fillsTile ? "size-full" : "inline-flex max-w-full max-h-full"
+        fillsTile || lightboxForensic
+          ? "size-full max-w-full"
+          : "inline-flex max-w-full max-h-full"
       )}
     >
-      <div className={cn("relative", fillsTile ? "size-full" : "inline-flex max-w-full max-h-full")}>
+      <div
+        className={cn(
+          "relative",
+          fillsTile || lightboxForensic ? "size-full max-w-full" : "inline-flex max-w-full max-h-full"
+        )}
+      >
         {imageNode}
         <div
           className="absolute inset-0 z-[1]"

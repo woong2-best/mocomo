@@ -134,7 +134,7 @@ export function ForensicImageCanvas({
       const dpr = typeof window !== "undefined" ? window.devicePixelRatio : 1;
 
       const computed = resolveForensicPaintSize(wrap, bitmap.width, bitmap.height, objectFit, {
-        fillParent: fillParent && objectFit === "cover",
+        fillParent: fillParent,
       });
 
       if (!computed) {
@@ -148,7 +148,13 @@ export function ForensicImageCanvas({
       }
 
       const wrapMode: ForensicWrapMode =
-        fillParent && objectFit === "cover" ? "fill" : objectFit === "contain" ? "contain" : "fixed";
+        fillParent && objectFit === "cover"
+          ? "fill"
+          : fillParent && objectFit === "contain"
+            ? "fixed"
+            : objectFit === "contain"
+              ? "contain"
+              : "fixed";
       const alignedRaw = alignPaintSizeToDisplayWhenReady(wrap, canvas, computed, wrapMode);
       const rect = canvas.getBoundingClientRect();
       const rectArea = Math.max(1, Math.round(rect.width) * Math.round(rect.height));
@@ -448,9 +454,11 @@ export function ForensicImageCanvas({
         "relative overflow-hidden",
         fillParent && objectFit === "cover"
           ? "size-full"
-          : objectFit === "contain"
-            ? "inline-block max-h-full max-w-full shrink"
-            : "inline-block shrink-0",
+          : fillParent && objectFit === "contain"
+            ? "size-full max-h-full max-w-full"
+            : objectFit === "contain"
+              ? "inline-block max-h-full max-w-full shrink"
+              : "inline-block shrink-0",
         className
       )}
     >
