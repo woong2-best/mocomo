@@ -228,7 +228,12 @@ export function ProtectedPaidMedia({
     <div
       className={cn(
         "relative",
-        fillsTile ? "size-full" : "inline-flex max-w-full max-h-full items-center justify-center"
+        fillsTile
+          ? "size-full"
+          : cn(
+              "inline-flex max-w-full max-h-full items-center justify-center",
+              className
+            )
       )}
     >
       {!useForensicPipeline ? (
@@ -268,8 +273,8 @@ export function ProtectedPaidMedia({
           ) : null}
           {forensicBlocked ? (
             blockUntilForensicReady ? (
-              <div className="flex min-h-[160px] min-w-[240px] items-center justify-center p-4 text-center">
-                <p className="text-sm text-muted-foreground">
+              <div className="flex min-h-[160px] min-w-[240px] max-w-md items-center justify-center rounded-lg bg-black/70 p-6 text-center">
+                <p className="text-sm text-white/85">
                   {sessionError
                     ? "워터마크 세션을 불러올 수 없습니다. 새로고침 후 다시 시도해 주세요."
                     : "워터마크 적용에 실패했습니다. 새로고침 후 다시 시도해 주세요."}

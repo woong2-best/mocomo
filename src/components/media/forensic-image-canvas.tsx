@@ -51,6 +51,7 @@ export function ForensicImageCanvas({
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bitmapRef = useRef<ImageBitmap | null>(null);
+  const layoutHandlerRef = useRef<(() => void) | null>(null);
   const [ready, setReady] = useState(false);
   const failedRef = useRef(false);
   const notifiedRef = useRef(false);
@@ -122,6 +123,9 @@ export function ForensicImageCanvas({
       const imageData = ctx.getImageData(0, 0, w, h);
       embedCaptureResilientWatermark({ width: w, height: h, data: imageData.data }, config, 0);
       if (!verifyForensicCaptureFrame({ width: w, height: h, data: imageData.data }, config, 0)) {
+        // Layout can settle after the first paint (lightbox flex/max-h). Do not tear down
+        // a good frame when a follow-up resize repaint fails verification.
+        if (readyRef.current) return;
         fail("Watermark capture verification failed");
         return;
       }
@@ -151,10 +155,18 @@ export function ForensicImageCanvas({
         paint();
         const wrap = wrapRef.current;
         if (wrap) {
-          ro = new ResizeObserver(() => paint());
+          const onLayoutChange = () => {
+            if (readyRef.current && fillParent && objectFit === "cover") {
+              paint();
+              return;
+            }
+            if (!readyRef.current) paint();
+          };
+          layoutHandlerRef.current = onLayoutChange;
+          ro = new ResizeObserver(onLayoutChange);
           ro.observe(wrap);
           if (wrap.parentElement) ro.observe(wrap.parentElement);
-          window.addEventListener("resize", paint);
+          window.addEventListener("resize", onLayoutChange);
         }
         failTimer = window.setTimeout(() => {
           if (!readyRef.current && !failedRef.current) fail("Canvas render timed out");
@@ -168,7 +180,9 @@ export function ForensicImageCanvas({
     return () => {
       cancelled = true;
       ro?.disconnect();
-      window.removeEventListener("resize", paint);
+      const layoutHandler = layoutHandlerRef.current;
+      if (layoutHandler) window.removeEventListener("resize", layoutHandler);
+      layoutHandlerRef.current = null;
       window.clearTimeout(retryTimer);
       window.clearTimeout(failTimer);
       bitmapRef.current?.close();

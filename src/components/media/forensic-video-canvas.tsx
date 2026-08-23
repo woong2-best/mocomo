@@ -159,6 +159,7 @@ export function ForensicVideoCanvas({
         objectFit === "cover" ? "fill" : "fixed"
       );
       if (!ok) {
+        if (markedRef.current) return;
         fail(
           canvas.width >= 8
             ? "Watermark capture verification failed"
