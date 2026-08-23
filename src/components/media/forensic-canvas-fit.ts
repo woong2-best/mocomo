@@ -8,6 +8,8 @@ export type ForensicPaintSize = {
   devicePixelRatio: number;
 };
 
+export type ForensicWrapMode = "fixed" | "fill" | "contain";
+
 /** Forensic embed uses 1:1 backing/CSS pixels so OS screenshots match embed coordinates. */
 export function getForensicDevicePixelRatio(): number {
   return 1;
@@ -43,18 +45,41 @@ export function isForensicEmbedSizeReady(displayed: ForensicPaintSize): boolean 
   return displayedLong >= MIN_FORENSIC_VERIFY_LONG_EDGE;
 }
 
+function readComputedMaxPx(style: CSSStyleDeclaration, prop: "maxWidth" | "maxHeight"): number | null {
+  const value = style[prop];
+  if (!value || value === "none") return null;
+  const px = Number.parseFloat(value);
+  return Number.isFinite(px) && px > 0 ? px : null;
+}
+
+function flushLayout(...elements: HTMLElement[]) {
+  for (const el of elements) {
+    void el.offsetHeight;
+    void el.getBoundingClientRect();
+  }
+}
+
 function findContainBounds(wrap: HTMLElement): { maxW: number; maxH: number } {
   let maxW =
     typeof window !== "undefined" ? Math.min(window.innerWidth, 1920) : 1920;
   let maxH =
     typeof window !== "undefined" ? Math.min(window.innerHeight, 1080) : 1080;
 
-  let el: HTMLElement | null = wrap.parentElement;
-  for (let depth = 0; depth < 8 && el; depth += 1) {
+  let el: HTMLElement | null = wrap;
+  for (let depth = 0; depth < 10 && el; depth += 1) {
     const w = el.clientWidth;
     const h = el.clientHeight;
     if (w >= 8) maxW = Math.min(maxW, w);
     if (h >= 8) maxH = Math.min(maxH, h);
+
+    if (typeof window !== "undefined") {
+      const style = window.getComputedStyle(el);
+      const cssMaxW = readComputedMaxPx(style, "maxWidth");
+      const cssMaxH = readComputedMaxPx(style, "maxHeight");
+      if (cssMaxW) maxW = Math.min(maxW, cssMaxW);
+      if (cssMaxH) maxH = Math.min(maxH, cssMaxH);
+    }
+
     el = el.parentElement;
   }
 
@@ -151,13 +176,49 @@ function toBackingStoreSize(cssWidth: number, cssHeight: number): ForensicPaintS
   };
 }
 
+function readStylePx(element: HTMLElement, prop: "width" | "height"): number | null {
+  const raw = element.style[prop];
+  if (!raw) return null;
+  const px = Number.parseFloat(raw);
+  return Number.isFinite(px) && px >= 4 ? Math.round(px) : null;
+}
+
 /** On-screen box after layout — OS screenshots sample these CSS pixels. */
 export function readDisplayedPaintSize(element: HTMLElement): ForensicPaintSize | null {
   const rect = element.getBoundingClientRect();
-  const cssWidth = Math.max(8, Math.round(rect.width));
-  const cssHeight = Math.max(8, Math.round(rect.height));
-  if (rect.width < 4 || rect.height < 4) return null;
-  return toBackingStoreSize(cssWidth, cssHeight);
+  if (rect.width >= 4 && rect.height >= 4) {
+    return toBackingStoreSize(Math.round(rect.width), Math.round(rect.height));
+  }
+
+  if (element.clientWidth >= 4 && element.clientHeight >= 4) {
+    return toBackingStoreSize(element.clientWidth, element.clientHeight);
+  }
+
+  if (element.offsetWidth >= 4 && element.offsetHeight >= 4) {
+    return toBackingStoreSize(element.offsetWidth, element.offsetHeight);
+  }
+
+  const styleW = readStylePx(element, "width");
+  const styleH = readStylePx(element, "height");
+  if (styleW && styleH) {
+    return toBackingStoreSize(styleW, styleH);
+  }
+
+  if (element instanceof HTMLCanvasElement && element.width >= 4 && element.height >= 4) {
+    return toBackingStoreSize(element.width, element.height);
+  }
+
+  return null;
+}
+
+function readAppliedPaintSize(
+  canvas: HTMLCanvasElement,
+  computed: ForensicPaintSize
+): ForensicPaintSize {
+  return (
+    readDisplayedPaintSize(canvas) ??
+    toBackingStoreSize(computed.cssWidth, computed.cssHeight)
+  );
 }
 
 /**
@@ -168,13 +229,24 @@ export function alignPaintSizeToDisplay(
   wrap: HTMLElement,
   canvas: HTMLCanvasElement,
   computed: ForensicPaintSize,
-  wrapMode: "fixed" | "fill" = "fixed"
+  wrapMode: ForensicWrapMode = "fixed"
 ): ForensicPaintSize | null {
   applyForensicWrapSize(wrap, computed, wrapMode);
   applyForensicCanvasSize(canvas, computed);
+  flushLayout(wrap, canvas);
 
-  const displayed = readDisplayedPaintSize(canvas);
-  if (!displayed) return null;
+  let displayed = readAppliedPaintSize(canvas, computed);
+
+  if (wrapMode === "contain") {
+    const wrapBox = readDisplayedPaintSize(wrap);
+    if (wrapBox) {
+      const wrapLong = Math.max(wrapBox.cssWidth, wrapBox.cssHeight);
+      const displayLong = Math.max(displayed.cssWidth, displayed.cssHeight);
+      if (wrapLong > 0 && wrapLong < displayLong) {
+        displayed = wrapBox;
+      }
+    }
+  }
 
   if (
     displayed.cssWidth !== computed.cssWidth ||
@@ -182,8 +254,11 @@ export function alignPaintSizeToDisplay(
   ) {
     applyForensicWrapSize(wrap, displayed, wrapMode);
     applyForensicCanvasSize(canvas, displayed);
+    flushLayout(wrap, canvas);
+    displayed = readAppliedPaintSize(canvas, displayed);
   }
 
+  if (!isForensicEmbedSizeReady(displayed)) return null;
   return displayed;
 }
 
@@ -192,12 +267,9 @@ export function alignPaintSizeToDisplayWhenReady(
   wrap: HTMLElement,
   canvas: HTMLCanvasElement,
   computed: ForensicPaintSize,
-  wrapMode: "fixed" | "fill" = "fixed"
+  wrapMode: ForensicWrapMode = "fixed"
 ): ForensicPaintSize | null {
-  const aligned = alignPaintSizeToDisplay(wrap, canvas, computed, wrapMode);
-  if (!aligned) return null;
-  if (!isForensicEmbedSizeReady(aligned)) return null;
-  return aligned;
+  return alignPaintSizeToDisplay(wrap, canvas, computed, wrapMode);
 }
 
 /** Backing store must match on-screen CSS pixels; style size matches layout box. */
@@ -213,15 +285,27 @@ export function applyForensicCanvasSize(canvas: HTMLCanvasElement, size: Forensi
 export function applyForensicWrapSize(
   wrap: HTMLElement,
   size: ForensicPaintSize,
-  mode: "fixed" | "fill" = "fixed"
+  mode: ForensicWrapMode = "fixed"
 ) {
   if (mode === "fill") {
     wrap.style.width = "100%";
     wrap.style.height = "100%";
+    wrap.style.maxWidth = "";
+    wrap.style.maxHeight = "";
     return;
   }
+
   wrap.style.width = `${size.cssWidth}px`;
   wrap.style.height = `${size.cssHeight}px`;
+
+  if (mode === "contain") {
+    wrap.style.maxWidth = "100%";
+    wrap.style.maxHeight = "100%";
+    wrap.style.boxSizing = "border-box";
+  } else {
+    wrap.style.maxWidth = "";
+    wrap.style.maxHeight = "";
+  }
 }
 
 export function drawSourceFit(

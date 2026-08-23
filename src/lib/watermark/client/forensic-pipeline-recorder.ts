@@ -11,6 +11,7 @@ export type ForensicPipelineStage =
   | "SESSION_FAILED"
   | "CANVAS_CREATED"
   | "CANVAS_SIZED"
+  | "SIZING_WAIT"
   | "SOURCE_DRAWN"
   | "WATERMARK_EMBEDDED"
   | "VERIFICATION_STARTED"
@@ -229,7 +230,7 @@ export class ForensicPipelineRecorder {
     if (this.paintAttempts.length > MAX_ATTEMPTS) this.paintAttempts.shift();
 
     this.record({
-      stage: attempt.verifyRun ? "VERIFICATION_STARTED" : "CANVAS_SIZED",
+      stage: attempt.verifyRun ? "VERIFICATION_STARTED" : "SIZING_WAIT",
       attempt: attempt.attempt,
       computedWidth: attempt.computedWidth,
       computedHeight: attempt.computedHeight,

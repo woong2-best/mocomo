@@ -19,10 +19,10 @@ import {
 } from "@/lib/watermark/verify-watermark-frame";
 import { cn } from "@/lib/utils";
 import {
-  alignPaintSizeToDisplay,
+  alignPaintSizeToDisplayWhenReady,
   drawSourceFit,
-  isForensicEmbedSizeReady,
   resolveForensicPaintSize,
+  type ForensicWrapMode,
 } from "@/components/media/forensic-canvas-fit";
 
 type Props = {
@@ -147,11 +147,12 @@ export function ForensicImageCanvas({
         return;
       }
 
-      const wrapMode = fillParent && objectFit === "cover" ? "fill" : "fixed";
-      const alignedRaw = alignPaintSizeToDisplay(wrap, canvas, computed, wrapMode);
+      const wrapMode: ForensicWrapMode =
+        fillParent && objectFit === "cover" ? "fill" : objectFit === "contain" ? "contain" : "fixed";
+      const alignedRaw = alignPaintSizeToDisplayWhenReady(wrap, canvas, computed, wrapMode);
       const rect = canvas.getBoundingClientRect();
       const rectArea = Math.max(1, Math.round(rect.width) * Math.round(rect.height));
-      const sizingReady = alignedRaw ? isForensicEmbedSizeReady(alignedRaw) : false;
+      const sizingReady = Boolean(alignedRaw);
 
       const computedArea = computed.cssWidth * computed.cssHeight;
       const displayedArea = alignedRaw
@@ -177,7 +178,7 @@ export function ForensicImageCanvas({
           longEdgeRatio,
           sizingReady: false,
           verifyRun: false,
-          retryReason: !alignedRaw ? "alignPaintSizeToDisplay_null" : "isForensicEmbedSizeReady_false",
+          retryReason: !alignedRaw ? "alignPaintSizeToDisplayWhenReady_null" : "sizing_not_ready",
         });
         schedulePaint(50);
         return;
@@ -445,7 +446,11 @@ export function ForensicImageCanvas({
       ref={wrapRef}
       className={cn(
         "relative overflow-hidden",
-        fillParent && objectFit === "cover" ? "size-full" : "inline-block shrink-0",
+        fillParent && objectFit === "cover"
+          ? "size-full"
+          : objectFit === "contain"
+            ? "inline-block max-h-full max-w-full shrink"
+            : "inline-block shrink-0",
         className
       )}
     >
@@ -454,7 +459,7 @@ export function ForensicImageCanvas({
         data-forensic-canvas={ready ? "ready" : "loading"}
         data-forensic-media-id={mediaId ?? undefined}
         data-forensic-session-id={config.sessionId}
-        className={cn("block", !ready && "opacity-0")}
+        className={cn("block", !ready && "invisible")}
         aria-label={alt}
         role="img"
       />

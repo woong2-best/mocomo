@@ -256,7 +256,7 @@ export function ProtectedPaidMedia({
                 mediaId={mediaId}
                 objectFit={objectFit}
                 fillParent={fillsTile}
-                className={fillsTile ? "size-full" : undefined}
+                className={fillsTile ? "size-full" : "max-h-full max-w-full"}
                 config={forensicRenderConfig}
                 clientVerification={clientVerification}
                 onMarked={handleCanvasMarked}
