@@ -119,7 +119,7 @@ export function ProtectedPaidMedia({
   });
   const forensicRequired = protect && !locked && Boolean(mediaId) && !skipForensic;
   const viewResetKey = `${mediaId ?? ""}:${resolvedSrc}`;
-  const { config: forensicRenderConfig, error: sessionError, loading: sessionLoading } =
+  const { config: forensicRenderConfig, clientVerification, error: sessionError, loading: sessionLoading } =
     useForensicWatermarkSession(mediaId, forensicRequired, contentKind);
   const authorForensicExempt = isAuthorForensicExempt(sessionError);
   const useForensicPipeline = forensicRequired && !authorForensicExempt;
@@ -254,6 +254,7 @@ export function ProtectedPaidMedia({
                 fillParent={fillsTile}
                 className={fillsTile ? "size-full" : undefined}
                 config={forensicRenderConfig}
+                clientVerification={clientVerification}
                 onMarked={handleCanvasMarked}
                 onFailed={handleCanvasFailed}
               />

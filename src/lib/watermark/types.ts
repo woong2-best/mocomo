@@ -64,6 +64,11 @@ export type WatermarkSessionClientResponse = {
   sessionId: string;
   watermarkVersion: number;
   renderConfig: ForensicRenderConfig;
+  /** Opaque ids for client-side canonical verification (no userId). */
+  clientVerification: {
+    opaqueWatermarkId: string;
+    contentId: string;
+  };
 };
 
 export type AdminWatermarkDetectionResponse = WatermarkDetectionResult & {

@@ -231,6 +231,10 @@ export async function createWatermarkSession(
     sessionId: session.id,
     watermarkVersion,
     renderConfig,
+    clientVerification: {
+      opaqueWatermarkId: encoded.opaqueWatermarkId,
+      contentId: access.contentId,
+    },
   };
 }
 

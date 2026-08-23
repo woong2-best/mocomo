@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import type { WatermarkContentKind } from "@/lib/paid-media-playback";
-import { emitForensicCanvasEvent } from "@/lib/watermark/client/forensic-diagnostics";
+import {
+  emitForensicCanvasEvent,
+  getForensicPipelineRecorder,
+} from "@/lib/watermark/client/forensic-diagnostics";
+
+export type ForensicClientVerification = {
+  opaqueWatermarkId: string;
+  contentId: string;
+};
 
 export function useForensicWatermarkSession(
   mediaId: string | null | undefined,
@@ -11,18 +19,25 @@ export function useForensicWatermarkSession(
   contentKind: WatermarkContentKind = "POST_MEDIA"
 ) {
   const [config, setConfig] = useState<ForensicRenderConfig | null>(null);
+  const [clientVerification, setClientVerification] =
+    useState<ForensicClientVerification | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const recorder = getForensicPipelineRecorder(mediaId ?? null);
+    recorder.bindMedia(mediaId ?? null);
+
     if (!enabled || !mediaId) {
       setConfig(null);
+      setClientVerification(null);
       return;
     }
 
     let cancelled = false;
     setLoading(true);
     setError(null);
+    recorder.record({ stage: "SESSION_LOADING", mediaId });
 
     void (async () => {
       try {
@@ -33,31 +48,60 @@ export function useForensicWatermarkSession(
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
+          const message = data.error ?? "Watermark session unavailable";
           if (!cancelled) {
-            setError(data.error ?? "Watermark session unavailable");
+            setError(message);
+            recorder.record({
+              stage: "SESSION_FAILED",
+              mediaId,
+              error: message,
+            });
             emitForensicCanvasEvent({
               phase: "SESSION_FAILED",
               mediaId: mediaId ?? undefined,
-              message: data.error ?? "Watermark session unavailable",
+              message,
             });
           }
           return;
         }
-        if (!cancelled) setConfig(data.renderConfig ?? null);
-        if (!cancelled && data.renderConfig) {
+        const renderConfig = data.renderConfig ?? null;
+        const verification = data.clientVerification ?? null;
+        if (!cancelled) {
+          setConfig(renderConfig);
+          setClientVerification(
+            verification?.opaqueWatermarkId && verification?.contentId
+              ? {
+                  opaqueWatermarkId: verification.opaqueWatermarkId,
+                  contentId: verification.contentId,
+                }
+              : null
+          );
+        }
+        if (!cancelled && renderConfig) {
+          recorder.setSessionMeta({
+            sessionId: data.sessionId ?? renderConfig.sessionId,
+            opaqueWatermarkId: verification?.opaqueWatermarkId ?? null,
+          });
+          recorder.record({
+            stage: "SESSION_READY",
+            mediaId,
+            sessionId: data.sessionId ?? renderConfig.sessionId,
+          });
           emitForensicCanvasEvent({
             phase: "SESSION_LOADED",
             mediaId: mediaId ?? undefined,
-            sessionId: data.sessionId ?? data.renderConfig?.sessionId,
+            sessionId: data.sessionId ?? renderConfig.sessionId,
           });
         }
       } catch {
+        const message = "Watermark session request failed";
         if (!cancelled) {
-          setError("Watermark session request failed");
+          setError(message);
+          recorder.record({ stage: "SESSION_FAILED", mediaId, error: message });
           emitForensicCanvasEvent({
             phase: "SESSION_FAILED",
             mediaId: mediaId ?? undefined,
-            message: "Watermark session request failed",
+            message,
           });
         }
       } finally {
@@ -70,5 +114,5 @@ export function useForensicWatermarkSession(
     };
   }, [enabled, mediaId, contentKind]);
 
-  return { config, loading, error };
+  return { config, clientVerification, loading, error };
 }
