@@ -14,8 +14,8 @@ export function getForensicDevicePixelRatio(): number {
 }
 
 const MIN_DISPLAY_LONG_EDGE = 480;
-/** Smaller embeds cannot recover enough quadrant bits to pass client verification. */
-export const MIN_FORENSIC_VERIFY_LONG_EDGE = 160;
+/** Smaller embeds cannot recover enough quadrant bits to pass canonical verify. */
+export const MIN_FORENSIC_VERIFY_LONG_EDGE = 320;
 
 export function isForensicDisplaySizeReady(
   computed: ForensicPaintSize,

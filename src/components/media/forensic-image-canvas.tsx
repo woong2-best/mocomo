@@ -331,6 +331,11 @@ export function ForensicImageCanvas({
 
       ctx.putImageData(imageData, 0, 0);
       readyRef.current = true;
+      ro?.disconnect();
+      ro = null;
+      const layoutHandler = layoutHandlerRef.current;
+      if (layoutHandler) window.removeEventListener("resize", layoutHandler);
+      layoutHandlerRef.current = null;
       setReady(true);
       recorder.record({
         stage: "READY",

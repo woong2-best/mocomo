@@ -210,7 +210,11 @@ export function ProtectedPaidMedia({
     !forensicReady &&
     (sessionLoading || !canvasReady);
   const showForensicCanvas =
-    useForensicPipeline && Boolean(forensicRenderConfig) && !canvasFailed && !sessionError;
+    useForensicPipeline &&
+    Boolean(forensicRenderConfig) &&
+    Boolean(clientVerification) &&
+    !canvasFailed &&
+    !sessionError;
 
   const plainImage = (
     // eslint-disable-next-line @next/next/no-img-element
