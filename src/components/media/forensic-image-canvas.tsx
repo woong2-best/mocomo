@@ -118,7 +118,17 @@ export function ForensicImageCanvas({
       const wrap = wrapRef.current;
       const canvas = canvasRef.current;
       const bitmap = bitmapRef.current;
-      if (!wrap || !canvas || !bitmap) return;
+      if (!wrap || !canvas || !bitmap) {
+        console.warn("[forensic-debug] paint early-return", {
+          hasWrap: !!wrap,
+          hasCanvas: !!canvas,
+          hasBitmap: !!bitmap,
+          cancelled,
+          failed: failedRef.current,
+          timestamp: Date.now(),
+        });
+        return;
+      }
 
       attemptRef.current += 1;
       const attempt = attemptRef.current;
@@ -364,6 +374,7 @@ export function ForensicImageCanvas({
         });
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
+            console.warn("[forensic-debug] double-rAF fired", { cancelled, timestamp: Date.now() });
             if (!cancelled) paint();
           });
         });
