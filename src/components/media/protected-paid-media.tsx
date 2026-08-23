@@ -254,11 +254,12 @@ export function ProtectedPaidMedia({
             <div
               className={cn(
                 lightboxForensic
-                  ? "relative flex size-full min-h-0 max-h-full max-w-full items-center justify-center"
+                  ? "relative z-[2] flex size-full min-h-0 max-h-full max-w-full items-center justify-center"
                   : fillsTile
-                    ? "absolute inset-0 size-full"
-                    : "relative inline-flex max-h-full max-w-full"
+                    ? "absolute inset-0 z-[2] size-full"
+                    : "relative z-[2] inline-flex max-h-full max-w-full"
               )}
+              onContextMenu={(e) => e.preventDefault()}
             >
               <ForensicImageCanvas
                 src={resolvedSrc}
@@ -331,9 +332,8 @@ export function ProtectedPaidMedia({
       >
         {imageNode}
         <div
-          className="absolute inset-0 z-[1]"
+          className="absolute inset-0 z-[1] pointer-events-none"
           aria-hidden
-          onContextMenu={(e) => e.preventDefault()}
         />
       </div>
     </PaidMediaProtectionShell>

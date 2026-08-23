@@ -338,7 +338,12 @@ export function ForensicImageCanvas({
       });
 
       ctx.putImageData(imageData, 0, 0);
+      canvas.style.visibility = "visible";
       readyRef.current = true;
+      if (!notifiedRef.current) {
+        notifiedRef.current = true;
+        onMarked?.();
+      }
       ro?.disconnect();
       ro = null;
       const layoutHandler = layoutHandlerRef.current;
@@ -453,6 +458,7 @@ export function ForensicImageCanvas({
       ref={wrapRef}
       className={cn(
         "relative overflow-hidden",
+        ready && "z-[2]",
         fillParent && objectFit === "cover"
           ? "size-full"
           : fillParent && objectFit === "contain"
@@ -468,7 +474,8 @@ export function ForensicImageCanvas({
         data-forensic-canvas={ready ? "ready" : "loading"}
         data-forensic-media-id={mediaId ?? undefined}
         data-forensic-session-id={config.sessionId}
-        className={cn("block", !ready && "invisible")}
+        className="block"
+        style={{ visibility: ready ? "visible" : "hidden" }}
         aria-label={alt}
         role="img"
       />
