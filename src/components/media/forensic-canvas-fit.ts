@@ -14,6 +14,27 @@ export function getForensicDevicePixelRatio(): number {
 }
 
 const MIN_DISPLAY_LONG_EDGE = 480;
+/** Smaller embeds cannot recover enough quadrant bits to pass client verification. */
+export const MIN_FORENSIC_VERIFY_LONG_EDGE = 160;
+
+export function isForensicDisplaySizeReady(
+  computed: ForensicPaintSize,
+  displayed: ForensicPaintSize
+): boolean {
+  const computedLong = Math.max(computed.cssWidth, computed.cssHeight);
+  const displayedLong = Math.max(displayed.cssWidth, displayed.cssHeight);
+  const minLong = Math.min(
+    MIN_FORENSIC_VERIFY_LONG_EDGE,
+    Math.max(96, Math.round(computedLong * 0.35))
+  );
+  if (displayedLong < minLong) return false;
+
+  const computedArea = computed.cssWidth * computed.cssHeight;
+  const displayedArea = displayed.cssWidth * displayed.cssHeight;
+  if (computedArea > 0 && displayedArea / computedArea < 0.2) return false;
+
+  return true;
+}
 
 function findContainBounds(wrap: HTMLElement): { maxW: number; maxH: number } {
   let maxW =
@@ -157,6 +178,19 @@ export function alignPaintSizeToDisplay(
   }
 
   return displayed;
+}
+
+/** Like alignPaintSizeToDisplay, but waits until layout is large enough to verify. */
+export function alignPaintSizeToDisplayWhenReady(
+  wrap: HTMLElement,
+  canvas: HTMLCanvasElement,
+  computed: ForensicPaintSize,
+  wrapMode: "fixed" | "fill" = "fixed"
+): ForensicPaintSize | null {
+  const aligned = alignPaintSizeToDisplay(wrap, canvas, computed, wrapMode);
+  if (!aligned) return null;
+  if (!isForensicDisplaySizeReady(computed, aligned)) return null;
+  return aligned;
 }
 
 /** Backing store must match on-screen CSS pixels; style size matches layout box. */

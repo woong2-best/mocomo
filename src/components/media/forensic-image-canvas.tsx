@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import {
-  embedCaptureResilientWatermark,
+  embedInvisibleWatermark,
+  applyCaptureResilienceLayers,
   verifyForensicCaptureFrame,
 } from "@/lib/watermark/encoder/spread-spectrum";
 import {
@@ -12,7 +13,7 @@ import {
 } from "@/lib/watermark/client/forensic-diagnostics";
 import { cn } from "@/lib/utils";
 import {
-  alignPaintSizeToDisplay,
+  alignPaintSizeToDisplayWhenReady,
   drawSourceFit,
   resolveForensicPaintSize,
 } from "@/components/media/forensic-canvas-fit";
@@ -106,7 +107,7 @@ export function ForensicImageCanvas({
       }
 
       const wrapMode = fillParent && objectFit === "cover" ? "fill" : "fixed";
-      const aligned = alignPaintSizeToDisplay(wrap, canvas, size, wrapMode);
+      const aligned = alignPaintSizeToDisplayWhenReady(wrap, canvas, size, wrapMode);
       if (!aligned) {
         retryTimer = window.setTimeout(paint, 50);
         return;
@@ -121,14 +122,15 @@ export function ForensicImageCanvas({
 
       drawSourceFit(ctx, bitmap, bitmap.width, bitmap.height, w, h, objectFit);
       const imageData = ctx.getImageData(0, 0, w, h);
-      embedCaptureResilientWatermark({ width: w, height: h, data: imageData.data }, config, 0);
-      if (!verifyForensicCaptureFrame({ width: w, height: h, data: imageData.data }, config, 0)) {
-        // Layout can settle after the first paint (lightbox flex/max-h). Do not tear down
-        // a good frame when a follow-up resize repaint fails verification.
+      const frame = { width: w, height: h, data: imageData.data };
+      const preEmbed = new Uint8ClampedArray(imageData.data);
+      embedInvisibleWatermark(frame, config, 0);
+      if (!verifyForensicCaptureFrame(frame, config, 0)) {
         if (readyRef.current) return;
-        fail("Watermark capture verification failed");
+        retryTimer = window.setTimeout(paint, 50);
         return;
       }
+      applyCaptureResilienceLayers(frame, preEmbed, config, 0);
       ctx.putImageData(imageData, 0, 0);
       readyRef.current = true;
       setReady(true);
@@ -152,7 +154,11 @@ export function ForensicImageCanvas({
           return;
         }
         bitmapRef.current = bitmap;
-        paint();
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (!cancelled) paint();
+          });
+        });
         const wrap = wrapRef.current;
         if (wrap) {
           const onLayoutChange = () => {

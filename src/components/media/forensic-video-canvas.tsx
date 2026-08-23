@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import {
-  alignPaintSizeToDisplay,
+  alignPaintSizeToDisplayWhenReady,
   drawSourceFit,
   resolveForensicPaintSize,
 } from "@/components/media/forensic-canvas-fit";
@@ -43,7 +43,7 @@ function renderMarkedFrame2d(
   fit: "cover" | "contain",
   wrapMode: "fixed" | "fill" = "fixed"
 ): boolean {
-  const aligned = alignPaintSizeToDisplay(wrap, canvas, size, wrapMode);
+  const aligned = alignPaintSizeToDisplayWhenReady(wrap, canvas, size, wrapMode);
   if (!aligned) return false;
 
   const ctx = canvas.getContext("2d", { willReadFrequently: true });

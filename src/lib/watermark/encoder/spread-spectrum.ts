@@ -384,6 +384,19 @@ function mergeSubgridLayer(
   }
 }
 
+export function applyCaptureResilienceLayers(
+  image: ImageLike,
+  preEmbedPixels: Uint8ClampedArray,
+  config: ForensicRenderConfig,
+  frameIndex = 0,
+  subScales: number[] = [0.82, 0.72]
+): void {
+  for (const subScale of subScales) {
+    if (subScale >= 0.98) continue;
+    mergeSubgridLayer(image, preEmbedPixels, subScale, config, frameIndex, 0.9);
+  }
+}
+
 /**
  * Full-resolution embed for OS screenshots plus subgrid layers for phone photos
  * of a screen captured at lower effective resolution.
@@ -396,10 +409,7 @@ export function embedCaptureResilientWatermark(
 ): void {
   const base = new Uint8ClampedArray(image.data);
   embedInvisibleWatermark(image, config, frameIndex);
-  for (const subScale of subScales) {
-    if (subScale >= 0.98) continue;
-    mergeSubgridLayer(image, base, subScale, config, frameIndex, 0.9);
-  }
+  applyCaptureResilienceLayers(image, base, config, frameIndex, subScales);
 }
 
 /** Client-side sanity check after embed — rejects silent no-op renders. */
