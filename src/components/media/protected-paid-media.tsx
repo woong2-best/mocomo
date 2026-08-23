@@ -237,7 +237,7 @@ export function ProtectedPaidMedia({
       className={cn(
         "relative",
         lightboxForensic
-          ? cn("flex size-full max-h-full max-w-full items-center justify-center", className)
+          ? cn("relative flex h-full w-full max-h-full max-w-full items-center justify-center", className)
           : fillsTile
             ? "size-full"
             : cn(

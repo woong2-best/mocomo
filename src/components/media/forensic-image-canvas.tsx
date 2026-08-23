@@ -66,6 +66,7 @@ export function ForensicImageCanvas({
   const failedRef = useRef(false);
   const notifiedRef = useRef(false);
   const readyRef = useRef(false);
+  const revealedRef = useRef(false);
 
   useEffect(() => {
     registerForensicDebug();
@@ -80,9 +81,15 @@ export function ForensicImageCanvas({
 
     setReady(false);
     readyRef.current = false;
+    revealedRef.current = false;
     failedRef.current = false;
     notifiedRef.current = false;
     attemptRef.current = 0;
+
+    const bootstrapCanvas = canvasRef.current;
+    const bootstrapWrap = wrapRef.current;
+    if (bootstrapCanvas) bootstrapCanvas.style.visibility = "hidden";
+    if (bootstrapWrap) bootstrapWrap.style.zIndex = "";
 
     recorder.record({
       stage: "CANVAS_CREATED",
@@ -150,11 +157,9 @@ export function ForensicImageCanvas({
       const wrapMode: ForensicWrapMode =
         fillParent && objectFit === "cover"
           ? "fill"
-          : fillParent && objectFit === "contain"
-            ? "fixed"
-            : objectFit === "contain"
-              ? "contain"
-              : "fixed";
+          : objectFit === "contain"
+            ? "contain"
+            : "fixed";
       const alignedRaw = alignPaintSizeToDisplayWhenReady(wrap, canvas, computed, wrapMode);
       const rect = canvas.getBoundingClientRect();
       const rectArea = Math.max(1, Math.round(rect.width) * Math.round(rect.height));
@@ -338,7 +343,9 @@ export function ForensicImageCanvas({
       });
 
       ctx.putImageData(imageData, 0, 0);
+      revealedRef.current = true;
       canvas.style.visibility = "visible";
+      wrap.style.zIndex = "2";
       readyRef.current = true;
       if (!notifiedRef.current) {
         notifiedRef.current = true;
@@ -458,7 +465,7 @@ export function ForensicImageCanvas({
       ref={wrapRef}
       className={cn(
         "relative overflow-hidden",
-        ready && "z-[2]",
+        (ready || revealedRef.current) && "z-[2]",
         fillParent && objectFit === "cover"
           ? "size-full"
           : fillParent && objectFit === "contain"
@@ -474,8 +481,7 @@ export function ForensicImageCanvas({
         data-forensic-canvas={ready ? "ready" : "loading"}
         data-forensic-media-id={mediaId ?? undefined}
         data-forensic-session-id={config.sessionId}
-        className="block"
-        style={{ visibility: ready ? "visible" : "hidden" }}
+        className="block max-h-full max-w-full"
         aria-label={alt}
         role="img"
       />
