@@ -59,7 +59,7 @@ export function PaidMediaCheckoutDialog({
             {isSub
               ? "이 콘텐츠는 구독자만 볼 수 있습니다."
               : variant === "photo"
-                ? "유료 사진은 피드에서 공개되지 않습니다. 전체 사진을 보려면 결제해 주세요."
+                ? "전체 사진을 보려면 결제해 주세요."
                 : "미리보기가 끝났습니다. 이어서 보려면 결제해 주세요."}
           </DialogDescription>
         </DialogHeader>

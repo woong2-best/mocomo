@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isSalePricedMedia } from "@/lib/paid-media-protection";
@@ -74,11 +74,27 @@ export function PaidFeedMediaSurface({
   });
   const [phase, setPhase] = useState<Phase>("idle");
   const [payOpen, setPayOpen] = useState(false);
+  const suppressTileClickRef = useRef(false);
 
   useEffect(() => {
     setPhase("idle");
     setPayOpen(false);
+    suppressTileClickRef.current = false;
   }, [mediaId, locked, src]);
+
+  const handlePayOpenChange = useCallback((open: boolean) => {
+    setPayOpen(open);
+    if (!open) {
+      if (isVideo) {
+        setPhase((p) => (p === "pay" ? "idle" : p));
+      }
+      // Radix 닫기 클릭이 아래 타일로 관통해 결제창이 즉시 다시 열리는 것 방지
+      suppressTileClickRef.current = true;
+      window.setTimeout(() => {
+        suppressTileClickRef.current = false;
+      }, 400);
+    }
+  }, [isVideo]);
 
   const { config: forensicRenderConfig, error: sessionError } =
     useForensicWatermarkSession(
@@ -107,6 +123,7 @@ export function PaidFeedMediaSurface({
   }, [purchased]);
 
   const openPay = useCallback(() => {
+    if (suppressTileClickRef.current) return;
     setPayOpen(true);
     setPhase((p) => (p === "idle" || p === "preview" ? "pay" : p));
   }, []);
@@ -193,10 +210,7 @@ export function PaidFeedMediaSurface({
 
         <PaidMediaCheckoutDialog
           open={payOpen}
-          onOpenChange={(open) => {
-            setPayOpen(open);
-            if (!open && phase === "pay") setPhase("idle");
-          }}
+          onOpenChange={handlePayOpenChange}
           mediaId={mediaId}
           priceKrw={priceKrw}
           paymentsEnabled={paymentsEnabled}
@@ -219,6 +233,7 @@ export function PaidFeedMediaSurface({
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (suppressTileClickRef.current || payOpen) return;
         if (purchased) {
           openPurchasedPhoto();
           return;
@@ -242,7 +257,7 @@ export function PaidFeedMediaSurface({
       </div>
       <PaidMediaCheckoutDialog
         open={payOpen}
-        onOpenChange={setPayOpen}
+        onOpenChange={handlePayOpenChange}
         mediaId={mediaId}
         priceKrw={priceKrw}
         paymentsEnabled={paymentsEnabled}
