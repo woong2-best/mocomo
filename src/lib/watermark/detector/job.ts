@@ -15,6 +15,8 @@ const MAX_FRAME_BYTES = 12 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 80 * 1024 * 1024;
 export const MAX_DETECT_FRAMES = 24;
 const ALLOWED_MIMES = ["image/jpeg", "image/png", "image/webp"];
+/** Keep below route maxDuration so the job row always reaches a terminal state. */
+const DETECTION_JOB_TIMEOUT_MS = 105_000;
 
 export async function enrichDetectionResult(
   base: Awaited<ReturnType<typeof detectWatermarkInFrames>>
@@ -149,15 +151,28 @@ export async function runDetectionJob(jobId: string, input: {
       );
     }
 
-    const frames =
-      input.sourceKind === "video"
-        ? await Promise.all(input.buffers.map(decodeImageToFrame))
-        : (
-            await Promise.all(input.buffers.map(decodeCaptureFrames))
-          ).flat();
-    const detection = detectWatermarkInFrames(frames, candidates, {
-      exhaustive: input.sourceKind !== "video",
-    });
+    const scopedSearch = Boolean(input.contentId || input.sessionId);
+    const detectionWork = async () => {
+      const frames =
+        input.sourceKind === "video"
+          ? await Promise.all(input.buffers.map(decodeImageToFrame))
+          : (
+              await Promise.all(input.buffers.map(decodeCaptureFrames))
+            ).flat();
+      return detectWatermarkInFrames(frames, candidates, {
+        exhaustive: input.sourceKind !== "video" && scopedSearch,
+      });
+    };
+
+    const detection = await Promise.race([
+      detectionWork(),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Detection timed out on server")),
+          DETECTION_JOB_TIMEOUT_MS
+        )
+      ),
+    ]);
     const enriched = await enrichDetectionResult(detection);
 
     await db.watermarkDetectionLog.create({

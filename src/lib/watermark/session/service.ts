@@ -246,7 +246,7 @@ export async function loadDetectionCandidates(options: {
 }) {
   const limit = Math.min(Math.max(options.limit ?? 500, 1), 2000);
   if (options.sessionId) {
-    return db.watermarkSession.findMany({
+    const rows = await db.watermarkSession.findMany({
       where: { id: options.sessionId },
       take: 1,
       select: {
@@ -261,6 +261,10 @@ export async function loadDetectionCandidates(options: {
         opaqueWatermarkId: true,
       },
     });
+    if (!rows.length) {
+      throw new Error("Session ID not found");
+    }
+    return rows;
   }
   return db.watermarkSession.findMany({
     where: options.contentId ? { contentId: options.contentId } : undefined,

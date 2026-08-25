@@ -8,6 +8,7 @@ import {
   extractVideoFrames,
   hashFile,
 } from "@/lib/watermark/client/extract-frames";
+import { normalizeWatermarkSessionIdInput } from "@/lib/watermark/detector/session-id-input";
 
 type SystemStatus = {
   enabled: boolean;
@@ -31,6 +32,20 @@ function humanizeDetectionError(message: string, contentId: string) {
       "해당 사진·영상을 구매한 다른 계정으로 연 뒤, 그 화면을 캡처해 다시 시도하세요.",
     ].join(" ");
   }
+  if (message === "Session ID not found") {
+    return [
+      "Session ID를 찾을 수 없습니다.",
+      "DevTools에서 __mocomoForensicDebug.canvases()[0].sessionId 처럼 실제 값을 복사해 넣으세요.",
+      "placeholder 문장(DevTools canvases()[0].sessionId)을 그대로 붙여넣으면 안 됩니다.",
+    ].join(" ");
+  }
+  if (message === "Detection timed out on server") {
+    return [
+      "서버 분석 시간이 초과되었습니다.",
+      "Media ID를 입력하면 훨씬 빠릅니다.",
+      "Session ID 필드는 비우거나, DevTools에서 복사한 c… 형식 ID만 넣으세요.",
+    ].join(" ");
+  }
   return message;
 }
 
@@ -49,6 +64,20 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
     setError(null);
     setResult(null);
     try {
+      const normalizedSessionId = normalizeWatermarkSessionIdInput(sessionId);
+      if (sessionId.trim() && !normalizedSessionId) {
+        setError(
+          "Session ID 형식이 올바르지 않습니다. DevTools placeholder 문장이 아니라 __mocomoForensicDebug.canvases()[0].sessionId 실행 결과(c…로 시작)를 넣거나, 필드를 비우고 Media ID만 사용하세요."
+        );
+        return;
+      }
+      if (!contentId.trim() && !normalizedSessionId) {
+        setError(
+          "Media ID(권장) 또는 유효한 Session ID를 입력하세요. 둘 다 없으면 전체 세션 63건을 검색해 시간이 오래 걸리거나 타임아웃될 수 있습니다."
+        );
+        return;
+      }
+
       const isVideo = file.type.startsWith("video/");
       setStage(isVideo ? "Decoding video frames…" : "Reading image…");
 
@@ -67,7 +96,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       form.append("sourceKind", isVideo ? "video" : "image");
       form.append("clientFileHash", clientFileHash);
       if (contentId.trim()) form.append("contentId", contentId.trim());
-      if (sessionId.trim()) form.append("sessionId", sessionId.trim());
+      if (normalizedSessionId) form.append("sessionId", normalizedSessionId);
 
       const res = await fetch("/api/admin/watermark/detect", {
         method: "POST",
@@ -80,13 +109,18 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       }
 
       setStage("Matching against viewing sessions…");
-      const deadline = Date.now() + 120_000;
+      const deadline = Date.now() + 180_000;
       while (Date.now() < deadline) {
         const poll = await fetch(`/api/admin/watermark/detect/${started.jobId}`);
         const body = await poll.json();
         if (!poll.ok) {
           setError(body.error ?? "Job lookup failed");
           return;
+        }
+        if (body.status === "PENDING") {
+          setStage("Waiting for analysis worker…");
+        } else if (body.status === "RUNNING") {
+          setStage("Matching against viewing sessions…");
         }
         if (body.status === "FAILED") {
           setError(humanizeDetectionError(body.error ?? "Analysis failed", contentId));
@@ -114,7 +148,13 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
         }
         await new Promise((r) => setTimeout(r, 400));
       }
-      setError("Analysis timed out");
+      setError(
+        [
+          "Analysis timed out",
+          "Media ID를 입력했는지 확인하세요.",
+          "Session ID는 __mocomoForensicDebug.canvases()[0].sessionId 실행 결과만 넣으세요.",
+        ].join(" ")
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis request failed");
     } finally {
@@ -192,11 +232,13 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
               type="text"
               value={sessionId}
               onChange={(e) => setSessionId(e.target.value)}
-              placeholder="DevTools canvases()[0].sessionId"
+              placeholder="예: clxyz… (DevTools에서 복사)"
               className="mt-1 block w-full rounded-lg border px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
             />
             <span className="mt-1 block text-xs text-muted-foreground">
-              알고 있으면 입력하세요. 없어도 Media ID만으로 일반 스크린샷·사진 분석이 가능합니다.
+              콘솔에서{" "}
+              <code className="rounded bg-muted px-1">__mocomoForensicDebug.canvases()[0].sessionId</code>
+              를 실행한 <strong>결과값</strong>만 붙여넣으세요. placeholder 문장 자체는 ID가 아닙니다.
             </span>
           </label>
 

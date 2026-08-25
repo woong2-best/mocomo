@@ -5,6 +5,7 @@ import { rateLimitPublicApi, verifyApiOrigin } from "@/lib/api-security";
 import { db } from "@/lib/db";
 import { prismaErrorMessage } from "@/lib/prisma-user-error";
 import { readDetectionFrames, runDetectionJob } from "@/lib/watermark/detector/job";
+import { normalizeWatermarkSessionIdInput } from "@/lib/watermark/detector/session-id-input";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
     const parsed = await readDetectionFrames(form);
+    const sessionId = normalizeWatermarkSessionIdInput(parsed.sessionId);
     const job = await db.watermarkDetectionJob.create({
       data: {
         actorId: actor.id,
@@ -56,15 +58,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const work = runDetectionJob(job.id, {
-      buffers: parsed.buffers,
-      contentId: parsed.contentId,
-      sessionId: parsed.sessionId,
-      sourceKind: parsed.sourceKind,
-      clientFileHash: parsed.clientFileHash,
-      actorId: actor.id,
+    after(async () => {
+      await runDetectionJob(job.id, {
+        buffers: parsed.buffers,
+        contentId: parsed.contentId,
+        sessionId,
+        sourceKind: parsed.sourceKind,
+        clientFileHash: parsed.clientFileHash,
+        actorId: actor.id,
+      });
     });
-    after(() => work);
 
     return NextResponse.json({ ok: true, jobId: job.id, status: "PENDING" }, { status: 202 });
   } catch (e) {
