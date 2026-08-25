@@ -12,14 +12,6 @@ export function SupportTierTable() {
           <OreTierButton key={t.level} tier={t.level} showAmount className="w-full" />
         ))}
       </div>
-      <div className="rounded-xl border border-border/60 p-4 space-y-2 text-sm">
-        {SUPPORT_TIERS.filter((t) => t.perks.length).map((t) => (
-          <div key={t.level} className="flex gap-2 items-start border-b border-border/30 pb-2 last:border-0">
-            <OreTierButton tier={t.level} showAmount className="shrink-0" />
-            <p className="text-muted-foreground text-xs pt-2">{t.perks.join(" · ")}</p>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
