@@ -100,7 +100,7 @@ export type PostShareCard = {
     image: string | null;
     displayName: string;
   };
-  media: { url: string; type: string } | null;
+  media: { url: string; type: string; posterUrl: string | null } | null;
   href: string;
 };
 

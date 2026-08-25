@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { PostShareCard } from "@/api/messages";
@@ -114,6 +115,12 @@ export function ChatSharedPostCard({
     );
   }
 
+  const previewUri =
+    post.media?.type === "VIDEO"
+      ? post.media.posterUrl?.trim() || null
+      : post.media?.url ?? null;
+  const isVideo = post.media?.type === "VIDEO";
+
   return (
     <Pressable
       style={styles.card}
@@ -128,22 +135,39 @@ export function ChatSharedPostCard({
           </Text>
         </View>
       </Pressable>
-      {post.media?.url ? (
+      {post.media ? (
         <View style={styles.mediaWrap}>
-          <Image
-            source={{ uri: post.media.url }}
-            style={styles.media}
-            contentFit="cover"
-            cachePolicy={IMAGE_CACHE_POLICY}
-            transition={0}
-            pointerEvents="none"
-          />
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => onOpenImage?.(post.media!.url, post.id)}
-            accessibilityRole="button"
-            accessibilityLabel="사진 크게 보기"
-          />
+          {previewUri ? (
+            <Image
+              source={{ uri: previewUri }}
+              style={styles.media}
+              contentFit="cover"
+              cachePolicy={IMAGE_CACHE_POLICY}
+              transition={0}
+              pointerEvents="none"
+            />
+          ) : (
+            <View style={[styles.media, styles.mediaPlaceholder]}>
+              <Ionicons
+                name={isVideo ? "play-circle-outline" : "image-outline"}
+                size={40}
+                color={colors.textMuted}
+              />
+            </View>
+          )}
+          {isVideo ? (
+            <View style={styles.videoBadge}>
+              <Text style={styles.videoBadgeText}>동영상</Text>
+            </View>
+          ) : null}
+          {!isVideo && previewUri ? (
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => onOpenImage?.(previewUri, post.id)}
+              accessibilityRole="button"
+              accessibilityLabel="사진 크게 보기"
+            />
+          ) : null}
         </View>
       ) : null}
       <Pressable onPress={() => navigation.navigate("PostDetail", { id: post.id })}>
@@ -178,6 +202,25 @@ function createStyles(colors: ThemeColors, mine: boolean) {
       overflow: "hidden",
     },
     media: { width: "100%", height: "100%" },
+    mediaPlaceholder: {
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surface,
+    },
+    videoBadge: {
+      position: "absolute",
+      left: 6,
+      bottom: 6,
+      borderRadius: 6,
+      backgroundColor: "rgba(0,0,0,0.65)",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    videoBadgeText: {
+      fontSize: 10,
+      fontWeight: "700",
+      color: "#fff",
+    },
     body: { fontSize: 13, lineHeight: 18, color: colors.text },
     title: { fontWeight: "800", color: colors.text },
     muted: { fontSize: 12, color: colors.textMuted },

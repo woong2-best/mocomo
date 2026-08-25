@@ -35,7 +35,7 @@ export async function GET(
         where: { priceKrw: 0 },
         take: 1,
         orderBy: { order: "asc" },
-        select: { url: true, type: true },
+        select: { url: true, type: true, posterUrl: true },
       },
     },
   });
@@ -45,7 +45,11 @@ export async function GET(
   }
 
   const media = post.media[0]
-    ? { url: post.media[0].url, type: post.media[0].type }
+    ? {
+        url: post.media[0].url,
+        type: post.media[0].type,
+        posterUrl: post.media[0].posterUrl,
+      }
     : null;
 
   return NextResponse.json({

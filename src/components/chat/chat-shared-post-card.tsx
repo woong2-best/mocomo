@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ImageIcon, Loader2 } from "lucide-react";
+import { ImageIcon, Loader2, Play } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { PostShareCardPayload } from "@/app/api/posts/[id]/share-card/route";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,50 @@ type Props = {
   isMine?: boolean;
   className?: string;
 };
+
+type ShareCardMedia = NonNullable<PostShareCardPayload["media"]>;
+
+function shareCardMediaPreviewSrc(media: ShareCardMedia): string | null {
+  if (media.type === "VIDEO") {
+    return media.posterUrl?.trim() || null;
+  }
+  return media.url;
+}
+
+function SharedPostMediaPreview({ media }: { media: ShareCardMedia }) {
+  const previewSrc = shareCardMediaPreviewSrc(media);
+  const [failed, setFailed] = useState(false);
+  const isVideo = media.type === "VIDEO";
+  const showPlaceholder = !previewSrc || failed;
+
+  return (
+    <div className="relative mt-1 overflow-hidden rounded-xl border border-border/50 bg-muted aspect-[16/10]">
+      {showPlaceholder ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted">
+          {isVideo ? (
+            <Play className="h-10 w-10 text-muted-foreground/70" aria-hidden />
+          ) : (
+            <ImageIcon className="h-8 w-8 text-muted-foreground/70" aria-hidden />
+          )}
+        </div>
+      ) : (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={previewSrc}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      )}
+      {isVideo ? (
+        <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+          동영상
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 export function ChatSharedPostCard({ postId, isMine = false, className }: Props) {
   const [post, setPost] = useState<PostShareCardPayload | null>(null);
@@ -128,20 +172,7 @@ export function ChatSharedPostCard({ postId, isMine = false, className }: Props)
           {preview}
         </p>
         {mediaIsImage && post.media ? (
-          <div className="relative mt-1 overflow-hidden rounded-xl border border-border/50 bg-muted aspect-[16/10]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={post.media.url}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-              loading="lazy"
-            />
-            {post.media.type === "VIDEO" ? (
-              <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                동영상
-              </span>
-            ) : null}
-          </div>
+          <SharedPostMediaPreview media={post.media} />
         ) : null}
         {!mediaIsImage ? (
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
