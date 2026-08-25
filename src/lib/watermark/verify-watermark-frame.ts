@@ -56,6 +56,8 @@ export type VerifyWatermarkFrameResult = WatermarkDetectionResult & {
   rsDecodeOk: boolean;
   /** RS ECC on merged stream (before client embed gate). */
   rsEccValid: boolean;
+  /** Final decode pass after client embed gate (if applicable). */
+  decodeOk: boolean;
   /** Client embed gate used intended codeword + merged spatial evidence. */
   clientEmbedPass: boolean;
 };
