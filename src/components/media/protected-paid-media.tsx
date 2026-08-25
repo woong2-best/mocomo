@@ -269,8 +269,8 @@ export function ProtectedPaidMedia({
                 alt={alt}
                 mediaId={mediaId}
                 objectFit={objectFit}
-                fillParent={fillsTile}
-                className={fillsTile ? "size-full" : "max-h-full max-w-full"}
+                fillParent={fillsTile || lightboxForensic}
+                className={fillsTile || lightboxForensic ? "size-full" : "max-h-full max-w-full"}
                 config={forensicRenderConfig}
                 clientVerification={clientVerification}
                 onMarked={handleCanvasMarked}

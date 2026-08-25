@@ -98,11 +98,14 @@ function fitIntrinsicSize(
   intrinsicHeight: number,
   maxW: number,
   maxH: number,
-  fit: "cover" | "contain"
+  fit: "cover" | "contain",
+  allowUpscale = false
 ): { cssWidth: number; cssHeight: number } {
   const scale =
     fit === "contain"
-      ? Math.min(maxW / intrinsicWidth, maxH / intrinsicHeight, 1)
+      ? allowUpscale
+        ? Math.min(maxW / intrinsicWidth, maxH / intrinsicHeight)
+        : Math.min(maxW / intrinsicWidth, maxH / intrinsicHeight, 1)
       : Math.max(maxW / intrinsicWidth, maxH / intrinsicHeight);
   let cssWidth = Math.max(8, Math.round(intrinsicWidth * scale));
   let cssHeight = Math.max(8, Math.round(intrinsicHeight * scale));
@@ -153,11 +156,12 @@ export function resolveForensicPaintSize(
   intrinsicWidth: number,
   intrinsicHeight: number,
   fit: "cover" | "contain" = "contain",
-  options?: { fillParent?: boolean }
+  options?: { fillParent?: boolean; allowUpscale?: boolean }
 ): ForensicPaintSize | null {
   if (options?.fillParent) {
     const parentBox = readParentBox(wrap);
     if (parentBox) {
+      const allowUpscale = options.allowUpscale ?? fit === "contain";
       if (fit === "cover") {
         return toBackingStoreSize(parentBox.cssWidth, parentBox.cssHeight);
       }
@@ -166,7 +170,8 @@ export function resolveForensicPaintSize(
         intrinsicHeight,
         parentBox.cssWidth,
         parentBox.cssHeight,
-        "contain"
+        "contain",
+        allowUpscale
       );
       return toBackingStoreSize(fitted.cssWidth, fitted.cssHeight);
     }
@@ -174,7 +179,14 @@ export function resolveForensicPaintSize(
 
   if (intrinsicWidth >= 8 && intrinsicHeight >= 8) {
     const { maxW, maxH } = findContainBounds(wrap);
-    const fitted = fitIntrinsicSize(intrinsicWidth, intrinsicHeight, maxW, maxH, fit);
+    const fitted = fitIntrinsicSize(
+      intrinsicWidth,
+      intrinsicHeight,
+      maxW,
+      maxH,
+      fit,
+      options?.allowUpscale ?? false
+    );
     return toBackingStoreSize(fitted.cssWidth, fitted.cssHeight);
   }
 

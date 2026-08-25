@@ -8,5 +8,5 @@ test("forensicModulationScaleForSize boosts only at 320px pixel budget floor", (
   assert.equal(forensicModulationScaleForSize(400, 400), 1);
   assert.equal(forensicModulationScaleForSize(360, 360), 1);
   assert.ok(forensicModulationScaleForSize(320, 320) > 1);
-  assert.ok(forensicModulationScaleForSize(320, 320) <= 1.5);
+  assert.ok(forensicModulationScaleForSize(320, 320) <= 1.2);
 });

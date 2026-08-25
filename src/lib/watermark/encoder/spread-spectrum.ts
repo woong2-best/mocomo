@@ -54,7 +54,8 @@ function minCentralSlotsPerBit(width: number, height: number): number {
 export function forensicModulationScaleForSize(width: number, height: number): number {
   const minSlots = minCentralSlotsPerBit(width, height);
   if (minSlots > 5) return 1;
-  return Math.min(1.5, Math.sqrt(IDEAL_SLOTS_PER_BIT / minSlots));
+  // Keep boost conservative — visible artifacts appear well before the ≤8 luma gate on flat UI.
+  return Math.min(1.2, Math.sqrt(IDEAL_SLOTS_PER_BIT / minSlots));
 }
 
 function captureResiliencePlan(width: number, height: number, subScales: number[]) {

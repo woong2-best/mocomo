@@ -152,7 +152,8 @@ export function ForensicImageCanvas({
       const dpr = typeof window !== "undefined" ? window.devicePixelRatio : 1;
 
       const computed = resolveForensicPaintSize(wrap, bitmap.width, bitmap.height, objectFit, {
-        fillParent: fillParent,
+        fillParent,
+        allowUpscale: fillParent && objectFit === "contain",
       });
 
       if (!computed) {
