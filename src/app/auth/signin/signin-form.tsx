@@ -12,7 +12,8 @@ import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { BRAND } from "@/lib/brand";
 import { loginErrorMessage } from "@/lib/auth-login-errors";
 import { useLocale } from "@/components/providers/locale-provider";
-import { signIn, getSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
+import { waitForClientSession } from "@/lib/auth-session-retry";
 import { finishAddAccountFlow, setAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
 import { persistOAuthFlowIntent } from "@/lib/oauth-flow-cookie";
 
@@ -137,10 +138,13 @@ export function SignInForm({
       return;
     }
 
-    await getSession();
+    const session = await waitForClientSession();
+    if (!session?.user?.id) {
+      setError("로그인 세션이 생성되지 않았습니다. 다시 시도해 주세요.");
+      return;
+    }
     await finishAddAccountFlow();
-    router.refresh();
-    router.replace(callbackUrl);
+    window.location.assign(callbackUrl);
   }
 
   return (

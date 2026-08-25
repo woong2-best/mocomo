@@ -3,9 +3,47 @@ import type { OAuthConfig } from "next-auth/providers";
 import Google from "next-auth/providers/google";
 import Discord from "next-auth/providers/discord";
 import Twitter from "next-auth/providers/twitter";
-import Naver from "next-auth/providers/naver";
 import Credentials from "next-auth/providers/credentials";
 import { getRequestIp } from "@/lib/request-ip";
+
+/** Naver 웹 로그인 — Auth.js 기본 PKCE/OIDC scope 제거 (모바일 authorize 빈 화면·콜백 실패 방지) */
+type NaverProfile = {
+  response: {
+    id: string;
+    nickname?: string;
+    email?: string;
+    profile_image?: string;
+  };
+};
+
+function NaverOAuth(options: {
+  clientId: string;
+  clientSecret: string;
+}): OAuthConfig<NaverProfile> {
+  return {
+    id: "naver",
+    name: "Naver",
+    type: "oauth",
+    clientId: options.clientId,
+    clientSecret: options.clientSecret,
+    authorization: {
+      url: "https://nid.naver.com/oauth2.0/authorize",
+      params: { response_type: "code" },
+    },
+    token: "https://nid.naver.com/oauth2.0/token",
+    userinfo: "https://openapi.naver.com/v1/nid/me",
+    checks: ["state"],
+    profile(profile) {
+      return {
+        id: profile.response.id,
+        name: profile.response.nickname,
+        email: profile.response.email,
+        image: profile.response.profile_image ?? null,
+      };
+    },
+    style: { bg: "#03C75A", text: "#fff" },
+  };
+}
 
 /** LINE 웹 로그인 — OIDC discovery(ES256)와 실제 id_token(HS256) 불일치 회피용 OAuth */
 type LineProfile = {
@@ -150,7 +188,7 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
       // No allowDangerousEmailAccountLinking here: matching on email alone lets
       // anyone who controls a Naver account with a member's address take over
       // that member's account without proving they own it.
-      Naver({
+      NaverOAuth({
         clientId: naverId,
         clientSecret: naverSecret,
       })

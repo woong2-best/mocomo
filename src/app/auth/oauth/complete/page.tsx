@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import {
-  readOAuthFlowCookie,
   signupRedirectForUnregistered,
 } from "@/lib/oauth-flow-cookie";
 import { OAuthCompleteClient } from "./oauth-complete-client";
@@ -31,7 +30,6 @@ export default async function OAuthCompletePage({
   const dest = safeDest(sp.dest);
   const addAccount = sp.addAccount === "1";
   const signupUrl = signupFallback(addAccount);
-  const flow = (await readOAuthFlowCookie()) ?? (sp.flow === "signup" ? "signup" : "signin");
 
   const session = await auth();
   if (session?.user?.id) {
@@ -45,9 +43,6 @@ export default async function OAuthCompletePage({
     }
   }
 
-  if (flow === "signin") {
-    redirect(signupUrl);
-  }
-
+  // signin·signup 모두 클라이언트에서 세션 재확인 (모바일 OAuth 콜백 직후 서버 auth() 미스 방지)
   return <OAuthCompleteClient dest={dest} signupUrl={signupUrl} />;
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { waitForClientSession } from "@/lib/auth-session-retry";
 
-/** Waits for client session hydration after OAuth signup redirect. */
+/** Waits for client session hydration after OAuth redirect (mobile Safari cookie lag). */
 export function OAuthCompleteClient({
   dest,
   signupUrl,
@@ -16,10 +17,28 @@ export function OAuthCompleteClient({
 }) {
   const router = useRouter();
   const { status } = useSession();
+  const resolvedRef = useRef(false);
 
   useEffect(() => {
-    if (status === "loading") return;
-    router.replace(status === "authenticated" ? dest : signupUrl);
+    if (status === "loading" || resolvedRef.current) return;
+
+    if (status === "authenticated") {
+      resolvedRef.current = true;
+      router.replace(dest);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const session = await waitForClientSession();
+      if (cancelled || resolvedRef.current) return;
+      resolvedRef.current = true;
+      router.replace(session?.user?.id ? dest : signupUrl);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [status, dest, signupUrl, router]);
 
   return (

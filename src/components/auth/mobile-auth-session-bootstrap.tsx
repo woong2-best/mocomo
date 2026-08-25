@@ -15,13 +15,14 @@ export function MobileAuthSessionBootstrap() {
 
   useEffect(() => {
     if (params.get("from") !== "mobile") return;
-    document.cookie = `${MOBILE_OAUTH_COOKIE}=1; Path=/; Max-Age=1800; SameSite=Lax`;
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${MOBILE_OAUTH_COOKIE}=1; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
     const redirectUri = sanitizeMobileRedirectUri(params.get("redirect_uri"));
     if (redirectUri) {
-      document.cookie = `${MOBILE_OAUTH_REDIRECT_COOKIE}=${encodeURIComponent(redirectUri)}; Path=/; Max-Age=1800; SameSite=Lax`;
+      document.cookie = `${MOBILE_OAUTH_REDIRECT_COOKIE}=${encodeURIComponent(redirectUri)}; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
     }
     const platform = params.get("platform") === "ios" ? "ios" : "android";
-    document.cookie = `mocomo_mobile_platform=${platform}; Path=/; Max-Age=1800; SameSite=Lax`;
+    document.cookie = `mocomo_mobile_platform=${platform}; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
 
     if (params.get("addAccount") === "1") {
       setAddAccountFlowCookie();
