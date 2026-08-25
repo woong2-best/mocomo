@@ -353,3 +353,45 @@ export function drawSourceFit(
   const dy = (height - dh) / 2;
   ctx.drawImage(source, dx, dy, dw, dh);
 }
+
+export type SourceDrawValidation = {
+  ok: boolean;
+  centerRgba: [number, number, number, number];
+  sampledOpaque: number;
+  sampleCount: number;
+};
+
+/**
+ * After drawSourceFit, failed drawImage leaves cleared (transparent) pixels.
+ * Self-verify alone cannot catch this — embed still passes on an empty canvas.
+ */
+export function validateDrawnSourcePixels(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number
+): SourceDrawValidation {
+  const cx = Math.min(width - 1, Math.floor(width / 2));
+  const cy = Math.min(height - 1, Math.floor(height / 2));
+  const center = ctx.getImageData(cx, cy, 1, 1).data;
+  const centerRgba: [number, number, number, number] = [
+    center[0] ?? 0,
+    center[1] ?? 0,
+    center[2] ?? 0,
+    center[3] ?? 0,
+  ];
+
+  let sampledOpaque = 0;
+  const sampleCount = 9;
+  for (let yi = 0; yi < 3; yi++) {
+    for (let xi = 0; xi < 3; xi++) {
+      const x = Math.min(width - 1, Math.floor(((xi + 0.5) / 3) * width));
+      const y = Math.min(height - 1, Math.floor(((yi + 0.5) / 3) * height));
+      const alpha = ctx.getImageData(x, y, 1, 1).data[3] ?? 0;
+      if (alpha >= 200) sampledOpaque += 1;
+    }
+  }
+
+  // Letterboxed contain leaves transparent margins; require most sample points painted.
+  const ok = sampledOpaque >= Math.min(3, sampleCount);
+  return { ok, centerRgba, sampledOpaque, sampleCount };
+}

@@ -22,6 +22,7 @@ import {
   alignPaintSizeToDisplayWhenReady,
   drawSourceFit,
   resolveForensicPaintSize,
+  validateDrawnSourcePixels,
   type ForensicWrapMode,
 } from "@/components/media/forensic-canvas-fit";
 
@@ -41,8 +42,24 @@ type Props = {
 async function loadBitmap(src: string): Promise<ImageBitmap> {
   const res = await fetch(src, { credentials: "include", cache: "no-store" });
   if (!res.ok) throw new Error(`Paid media fetch failed (${res.status})`);
+  const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
+  if (
+    contentType.includes("json") ||
+    contentType.startsWith("text/html") ||
+    contentType.startsWith("text/plain")
+  ) {
+    throw new Error(`Paid media fetch returned non-image (${contentType})`);
+  }
   const blob = await res.blob();
-  return createImageBitmap(blob);
+  if (blob.size < 64) {
+    throw new Error(`Paid media fetch empty (${blob.size} bytes)`);
+  }
+  const bitmap = await createImageBitmap(blob);
+  if (bitmap.width < 8 || bitmap.height < 8) {
+    bitmap.close();
+    throw new Error(`Paid media decode too small (${bitmap.width}x${bitmap.height})`);
+  }
+  return bitmap;
 }
 
 export function ForensicImageCanvas({
@@ -221,7 +238,34 @@ export function ForensicImageCanvas({
         return;
       }
 
-      drawSourceFit(ctx, bitmap, bitmap.width, bitmap.height, w, h, objectFit);
+      try {
+        drawSourceFit(ctx, bitmap, bitmap.width, bitmap.height, w, h, objectFit);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "drawImage failed";
+        recorder.recordPaintAttempt({
+          attempt,
+          computedWidth: computed.cssWidth,
+          computedHeight: computed.cssHeight,
+          rectWidth: Math.round(rect.width),
+          rectHeight: Math.round(rect.height),
+          canvasWidth: w,
+          canvasHeight: h,
+          clientWidth: canvas.clientWidth,
+          clientHeight: canvas.clientHeight,
+          areaRatio,
+          longEdgeRatio,
+          sizingReady: true,
+          verifyRun: false,
+          retryReason: "source_draw_threw",
+        });
+        if (attempt >= 24) {
+          fail("Source image did not paint to canvas", `source_draw_threw:${message}`);
+          return;
+        }
+        schedulePaint(50);
+        return;
+      }
+      const sourceDraw = validateDrawnSourcePixels(ctx, w, h);
       recorder.record({
         stage: "SOURCE_DRAWN",
         mediaId,
@@ -231,7 +275,41 @@ export function ForensicImageCanvas({
         sourceHeight: bitmap.height,
         canvasWidth: w,
         canvasHeight: h,
+        meta: {
+          sourceDrawOk: sourceDraw.ok,
+          centerR: sourceDraw.centerRgba[0],
+          centerG: sourceDraw.centerRgba[1],
+          centerB: sourceDraw.centerRgba[2],
+          centerA: sourceDraw.centerRgba[3],
+          sampledOpaque: sourceDraw.sampledOpaque,
+          sampleCount: sourceDraw.sampleCount,
+        },
       });
+
+      if (!sourceDraw.ok) {
+        recorder.recordPaintAttempt({
+          attempt,
+          computedWidth: computed.cssWidth,
+          computedHeight: computed.cssHeight,
+          rectWidth: Math.round(rect.width),
+          rectHeight: Math.round(rect.height),
+          canvasWidth: w,
+          canvasHeight: h,
+          clientWidth: canvas.clientWidth,
+          clientHeight: canvas.clientHeight,
+          areaRatio,
+          longEdgeRatio,
+          sizingReady: true,
+          verifyRun: false,
+          retryReason: "source_draw_empty",
+        });
+        if (attempt >= 24) {
+          fail("Source image did not paint to canvas", "source_draw_empty");
+          return;
+        }
+        schedulePaint(50);
+        return;
+      }
 
       const imageData = ctx.getImageData(0, 0, w, h);
       const frame = { width: w, height: h, data: imageData.data };
