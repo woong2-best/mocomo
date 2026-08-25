@@ -66,7 +66,6 @@ export function ForensicImageCanvas({
   const failedRef = useRef(false);
   const notifiedRef = useRef(false);
   const readyRef = useRef(false);
-  const revealedRef = useRef(false);
 
   useEffect(() => {
     registerForensicDebug();
@@ -81,15 +80,9 @@ export function ForensicImageCanvas({
 
     setReady(false);
     readyRef.current = false;
-    revealedRef.current = false;
     failedRef.current = false;
     notifiedRef.current = false;
     attemptRef.current = 0;
-
-    const bootstrapCanvas = canvasRef.current;
-    const bootstrapWrap = wrapRef.current;
-    if (bootstrapCanvas) bootstrapCanvas.style.visibility = "hidden";
-    if (bootstrapWrap) bootstrapWrap.style.zIndex = "";
 
     recorder.record({
       stage: "CANVAS_CREATED",
@@ -127,7 +120,7 @@ export function ForensicImageCanvas({
     };
 
     const paint = () => {
-      if (cancelled || failedRef.current) return;
+      if (cancelled || failedRef.current || readyRef.current) return;
       const wrap = wrapRef.current;
       const canvas = canvasRef.current;
       const bitmap = bitmapRef.current;
@@ -343,9 +336,6 @@ export function ForensicImageCanvas({
       });
 
       ctx.putImageData(imageData, 0, 0);
-      revealedRef.current = true;
-      canvas.style.visibility = "visible";
-      wrap.style.zIndex = "2";
       readyRef.current = true;
       if (!notifiedRef.current) {
         notifiedRef.current = true;
@@ -465,7 +455,7 @@ export function ForensicImageCanvas({
       ref={wrapRef}
       className={cn(
         "relative overflow-hidden",
-        (ready || revealedRef.current) && "z-[2]",
+        ready && "z-[2]",
         fillParent && objectFit === "cover"
           ? "size-full"
           : fillParent && objectFit === "contain"

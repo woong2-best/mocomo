@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { shouldProtectPaidMediaView } from "@/lib/paid-media-protection";
@@ -126,7 +127,9 @@ export function ProtectedPaidMedia({
   const [canvasFailed, setCanvasFailed] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
 
-  const handleCanvasMarked = useCallback(() => setCanvasReady(true), []);
+  const handleCanvasMarked = useCallback(() => {
+    flushSync(() => setCanvasReady(true));
+  }, []);
   const handleCanvasFailed = useCallback(() => setCanvasFailed(true), []);
 
   useEffect(() => {
@@ -266,8 +269,8 @@ export function ProtectedPaidMedia({
                 alt={alt}
                 mediaId={mediaId}
                 objectFit={objectFit}
-                fillParent={fillsTile || lightboxForensic}
-                className={fillsTile || lightboxForensic ? "max-h-full max-w-full" : "max-h-full max-w-full"}
+                fillParent={fillsTile}
+                className={fillsTile ? "size-full" : "max-h-full max-w-full"}
                 config={forensicRenderConfig}
                 clientVerification={clientVerification}
                 onMarked={handleCanvasMarked}
@@ -278,11 +281,10 @@ export function ProtectedPaidMedia({
           {(forensicLoading || (blockUntilForensicReady && !forensicReady && !forensicBlocked)) ? (
             <div
               className={cn(
-                "flex items-center justify-center",
-                blockUntilForensicReady && !fillsTile
-                  ? "pointer-events-none absolute inset-0 z-[3]"
-                  : "pointer-events-none absolute inset-0 z-[3] bg-black/25"
+                "absolute inset-0 z-[10] flex items-center justify-center",
+                blockUntilForensicReady && !fillsTile ? "bg-black" : "bg-black/25"
               )}
+              aria-hidden={!forensicLoading}
             >
               <Loader2 className="h-8 w-8 animate-spin text-white/80" aria-hidden />
             </div>
