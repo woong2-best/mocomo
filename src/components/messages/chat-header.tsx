@@ -68,7 +68,7 @@ export function ChatHeader({
           <div className="min-w-0">
             <DisplayNameWithSupportTier
               name={displayName}
-              tier={supportTierSent ?? "PEBBLE"}
+              tier={supportTierSent ?? "SEED"}
               nameClassName="font-semibold text-sm"
               compact
             />
@@ -90,7 +90,7 @@ export function ChatHeader({
           </Avatar>
           <DisplayNameWithSupportTier
             name={displayName}
-            tier={supportTierSent ?? "PEBBLE"}
+            tier={supportTierSent ?? "SEED"}
             nameClassName="font-semibold text-sm"
             compact
           />

@@ -40,23 +40,23 @@ export type RuleEvalContext = {
 };
 
 const TIER_ORDER = [
-  "PEBBLE",
+  "SEED",
   "STONE",
-  "COAL",
-  "IRON",
   "BRONZE",
   "SILVER",
   "GOLD",
-  "PLATINUM",
-  "SAPPHIRE",
+  "CRYSTAL",
   "EMERALD",
+  "SAPPHIRE",
   "RUBY",
   "DIAMOND",
-  "OBSIDIAN",
-  "MYTHIC",
-  "LEGEND",
-  "CELESTIAL",
-  "ETERNAL",
+  "MYTHRIL",
+  "ORICHALCUM",
+  "LUNA",
+  "TERRA",
+  "JUPITER",
+  "ASTRAL",
+  "COSMIC",
 ];
 
 function tierRank(tier: string): number {

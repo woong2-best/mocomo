@@ -372,7 +372,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
               name={listing.seller.name || listing.seller.username}
 
-              tier={listing.seller.supportTierSent ?? "PEBBLE"}
+              tier={listing.seller.supportTierSent ?? "SEED"}
 
               nameClassName="font-semibold text-sm"
 

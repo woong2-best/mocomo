@@ -96,7 +96,7 @@ export function FeedTextPostCard({
             >
               <DisplayNameWithSupportTier
                 name={displayName}
-                tier={post.author.supportTierSent ?? "PEBBLE"}
+                tier={post.author.supportTierSent ?? "SEED"}
                 nameClassName="font-semibold text-sm"
                 compact
               />

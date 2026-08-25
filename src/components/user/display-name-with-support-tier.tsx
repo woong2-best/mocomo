@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 /** 닉네임 옆 총 후원금액(누적 후원) 등급 — 참여 제한 없이 표시만 */
 export function DisplayNameWithSupportTier({
   name,
-  tier = "PEBBLE",
+  tier = "SEED",
   className,
   nameClassName,
   compact = false,

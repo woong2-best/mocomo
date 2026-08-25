@@ -226,7 +226,7 @@ export function PostCollabManageDialog({
                     <div className="min-w-0 flex-1">
                       <DisplayNameWithSupportTier
                         name={userDisplayName(u)}
-                        tier={u.supportTierSent ?? "PEBBLE"}
+                        tier={u.supportTierSent ?? "SEED"}
                         className="text-sm"
                       />
                       <p className="text-xs text-muted-foreground">

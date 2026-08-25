@@ -87,7 +87,7 @@ export async function TextChannelView({
           userId={session?.user?.id ?? "guest"}
           username={session?.user?.username || "게스트"}
           userImage={me?.image ?? session?.user?.image ?? null}
-          userSupportTier={me?.supportTierSent ?? "PEBBLE"}
+          userSupportTier={me?.supportTierSent ?? "SEED"}
           initialMessages={initialMessages}
           header={{
             displayName: channelName,

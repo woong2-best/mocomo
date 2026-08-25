@@ -73,7 +73,7 @@ export async function buildRuleContext(userId: string): Promise<RuleEvalContext>
       isPremium: false,
       isPartner: false,
       adminApproved: false,
-      supportTierReceived: "PEBBLE",
+      supportTierReceived: "SEED",
       role: "USER",
       countryCode: null,
       locale: null,

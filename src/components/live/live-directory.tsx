@@ -64,7 +64,7 @@ function LiveCard({ ch, host }: { ch: LiveChannelCard; host?: LiveHost }) {
               <User className="h-3 w-3 shrink-0" />
               <DisplayNameWithSupportTier
                 name={host.username}
-                tier={host.supportTierSent ?? "PEBBLE"}
+                tier={host.supportTierSent ?? "SEED"}
                 compact
                 className="min-w-0"
               />

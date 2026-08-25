@@ -43,7 +43,7 @@ async function assertDmAccess(userId: string, otherUserId: string) {
   if (block) return false;
 
   if (cosplayer?.dmEnabled) {
-    const userTier = (support?.tier ?? "PEBBLE") as SupportTierLevel;
+    const userTier = (support?.tier ?? "SEED") as SupportTierLevel;
     if (!canAccessDm(userTier, cosplayer.minChatTier)) {
       return false;
     }

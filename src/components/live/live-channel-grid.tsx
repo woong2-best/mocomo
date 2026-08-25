@@ -69,7 +69,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
             <p className="text-sm font-semibold truncate">
               <DisplayNameWithSupportTier
                 name={host.username}
-                tier={(host.supportTierSent ?? "PEBBLE") as SupportTierLevel}
+                tier={(host.supportTierSent ?? "SEED") as SupportTierLevel}
                 compact
                 className="min-w-0"
               />

@@ -104,7 +104,7 @@ export function ConversationList({
                       <div className="flex items-baseline justify-between gap-2">
                         <DisplayNameWithSupportTier
                           name={meta.displayName}
-                          tier={meta.supportTierSent ?? "PEBBLE"}
+                          tier={meta.supportTierSent ?? "SEED"}
                           nameClassName={cn("font-semibold text-sm", active && "text-foreground")}
                           compact
                           className="min-w-0 flex-1"

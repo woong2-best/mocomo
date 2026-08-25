@@ -182,7 +182,7 @@ export async function fetchLiveTipsForChannel(
       tipRanking: tipRanking.map((t) => ({
         amount: t._sum.amount ?? 0,
         username: senderMap[t.senderId]?.username ?? "?",
-        tier: senderMap[t.senderId]?.supportTierSent ?? "PEBBLE",
+        tier: senderMap[t.senderId]?.supportTierSent ?? "SEED",
       })),
     };
   } catch (e) {

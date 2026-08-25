@@ -49,7 +49,7 @@ export async function getOrCreateDM(otherUserId: string) {
     const support = await db.creatorSupport.findUnique({
       where: { supporterId_creatorId: { supporterId: user.id, creatorId: otherUserId } },
     });
-    const userTier = (support?.tier ?? "PEBBLE") as SupportTierLevel;
+    const userTier = (support?.tier ?? "SEED") as SupportTierLevel;
     if (!canAccessDm(userTier, cosplayer.minChatTier)) {
       return {
         error: `DM은 ${cosplayer.minChatTier} 등급 이상 후원 시 이용 가능합니다.`,

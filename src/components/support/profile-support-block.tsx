@@ -109,7 +109,7 @@ export function ProfileSupportBlock({
                 </Avatar>
                 <DisplayNameWithSupportTier
                   name={s.supporter.name || s.supporter.username}
-                  tier={s.supporter.supportTierSent ?? "PEBBLE"}
+                  tier={s.supporter.supportTierSent ?? "SEED"}
                   nameClassName="font-medium truncate max-w-[80px]"
                   compact
                 />
@@ -127,7 +127,7 @@ export function ProfileSupportBlock({
               <Link href={`/u/${t.sender.username}`} className="shrink-0">
                 <DisplayNameWithSupportTier
                   name={`@${t.sender.username}`}
-                  tier={t.sender.supportTierSent ?? "PEBBLE"}
+                  tier={t.sender.supportTierSent ?? "SEED"}
                   nameClassName="font-medium text-primary"
                   compact
                 />

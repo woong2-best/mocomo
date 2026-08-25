@@ -155,7 +155,7 @@ export function PostCollaboratorsHeader({
             <Link href={`/u/${author.username}`} className="hover:underline min-w-0">
               <DisplayNameWithSupportTier
                 name={userDisplayName(author)}
-                tier={author.supportTierSent ?? "PEBBLE"}
+                tier={author.supportTierSent ?? "SEED"}
                 nameClassName="font-bold"
                 compact
               />

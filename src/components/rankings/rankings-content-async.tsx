@@ -35,7 +35,7 @@ export async function RankingsContentAsync() {
                   <Link href={`/u/${t.user.username}`} className="hover:underline min-w-0">
                     <DisplayNameWithSupportTier
                       name={`@${t.user.username}`}
-                      tier={t.user.supportTierSent ?? "PEBBLE"}
+                      tier={t.user.supportTierSent ?? "SEED"}
                       nameClassName="font-medium"
                       compact
                     />

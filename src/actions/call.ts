@@ -83,7 +83,7 @@ async function assertDmAccess(userId: string, otherUserId: string) {
   if (block) throw new Error("BLOCKED");
 
   if (cosplayer?.dmEnabled) {
-    const userTier = (support?.tier ?? "PEBBLE") as SupportTierLevel;
+    const userTier = (support?.tier ?? "SEED") as SupportTierLevel;
     if (!canAccessDm(userTier, cosplayer.minChatTier)) {
       throw new Error("DM_TIER_REQUIRED");
     }

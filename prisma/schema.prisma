@@ -180,9 +180,9 @@ model User {
   sanctionPendingApproval  Boolean @default(false)
   priorSanctionCount       Int     @default(0)
   totalSupportSent     Int              @default(0)
-  supportTierSent      SupportTierLevel @default(PEBBLE)
+  supportTierSent      SupportTierLevel @default(SEED)
   totalSupportReceived Int              @default(0)
-  supportTierReceived  SupportTierLevel @default(PEBBLE)
+  supportTierReceived  SupportTierLevel @default(SEED)
   locale        String    @default("ko")
   countryCode   String    @default("KR")
   /** IANA Time Zone (e.g. America/New_York) — calendar / day boundaries; not derived from country alone */
@@ -483,6 +483,8 @@ model User {
   followRecommendationsAsCandidate FollowRecommendation[] @relation("FollowRecCandidate")
   recommendationEventsAsViewer RecommendationEvent[] @relation("RecEventViewer")
   recommendationEventsAsCandidate RecommendationEvent[] @relation("RecEventCandidate")
+  feedRecommendations FeedRecommendation[] @relation("FeedRecViewer")
+  commerceRecommendations CommerceRecommendation[] @relation("CommerceRecViewer")
 }
 
 model Account {
@@ -857,25 +859,23 @@ enum PostType {
 }
 
 enum SupportTierLevel {
-  PEBBLE
+  SEED
   STONE
-  COAL
-  IRON
   BRONZE
   SILVER
   GOLD
-  PLATINUM
+  CRYSTAL
   EMERALD
   SAPPHIRE
   RUBY
   DIAMOND
-  CRYSTAL
   MYTHRIL
   ORICHALCUM
-  CELESTITE
+  LUNA
+  TERRA
+  JUPITER
   ASTRAL
   COSMIC
-  ETERNAL
 }
 
 model Post {
@@ -911,6 +911,7 @@ model Post {
   poll      PostPoll?
   collaborators PostCollaborator[]
   postViewEvents   PostViewEvent[]
+  feedRecommendations FeedRecommendation[]
   videoWatchEvents VideoWatchEvent[]
   featuredAsProfileMain User[] @relation("ProfileMainPost")
 
@@ -2686,7 +2687,7 @@ model CreatorSupport {
   id          String   @id @default(cuid())
   supporterId String
   creatorId   String
-  tier        SupportTierLevel @default(PEBBLE)
+  tier        SupportTierLevel @default(SEED)
   totalAmount Int      @default(0)
   updatedAt   DateTime @updatedAt
   createdAt   DateTime @default(now())
@@ -6077,6 +6078,64 @@ model RecommendationEvent {
   @@index([candidateId, eventType, createdAt(sort: Desc)])
   @@index([eventType, createdAt(sort: Desc)])
   @@index([source, createdAt(sort: Desc)])
+}
+
+enum FeedBucket {
+  IN_NETWORK
+  TRENDING
+  DISCOVERY
+  INTEREST
+  MIXED
+}
+
+/** 사용자별 캐시된 For You 피드 랭킹 */
+model FeedRecommendation {
+  id         String     @id @default(cuid())
+  userId     String
+  postId     String
+  score      Float
+  bucket     FeedBucket @default(MIXED)
+  inNetwork  Boolean    @default(false)
+  /** { signals: [{ signalId, score, label? }], sourceId? } */
+  reasons    Json
+  rank       Int
+  computedAt DateTime   @default(now())
+  expiresAt  DateTime
+
+  user User @relation("FeedRecViewer", fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId, rank])
+  @@index([userId, expiresAt])
+  @@index([computedAt])
+}
+
+enum CommerceRecommendationKind {
+  STAR_MARKET
+  USED_MARKET
+}
+
+/** 사용자별 마켓·중고 랭킹 캐시 */
+model CommerceRecommendation {
+  id         String                     @id @default(cuid())
+  userId     String
+  kind       CommerceRecommendationKind
+  listingId  String
+  score      Float
+  bucket     String                     @default("MIXED")
+  /** { signals: [{ signalId, score, label? }], sourceId? } */
+  reasons    Json
+  rank       Int
+  computedAt DateTime                   @default(now())
+  expiresAt  DateTime
+
+  user User @relation("CommerceRecViewer", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, listingId])
+  @@index([userId, kind, rank])
+  @@index([userId, kind, expiresAt])
+  @@index([computedAt])
 }
 
 /** 계좌 1원 인증 감사 로그 — PII·계좌번호 원문 미저장 */

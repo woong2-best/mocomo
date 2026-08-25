@@ -55,7 +55,7 @@ export async function ChatMessagesAsync({ roomId }: { roomId: string }) {
         userId={session.user.id}
         username={session.user.username || "user"}
         userImage={me?.image ?? session.user.image ?? null}
-        userSupportTier={me?.supportTierSent ?? "PEBBLE"}
+        userSupportTier={me?.supportTierSent ?? "SEED"}
         initialMessages={initialMessages}
       />
     </div>

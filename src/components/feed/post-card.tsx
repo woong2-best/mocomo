@@ -57,7 +57,7 @@ export function PostCard({ post, paymentsEnabled = false }: PostCardProps) {
         <PostCollaboratorsHeader
           author={{
             ...post.author,
-            supportTierSent: post.author.supportTierSent ?? "PEBBLE",
+            supportTierSent: post.author.supportTierSent ?? "SEED",
           }}
           collaborators={post.collaborators}
           trailing={

@@ -33,13 +33,13 @@ export type ServerComment = {
 };
 
 function safeTier(tier: string | null | undefined): SupportTierLevel {
-  if (!tier) return "PEBBLE";
+  if (!tier) return "SEED";
   const allowed = [
-    "PEBBLE", "STONE", "COAL", "IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM",
-    "EMERALD", "SAPPHIRE", "RUBY", "DIAMOND", "CRYSTAL", "MYTHRIL", "ORICHALCUM",
-    "CELESTITE", "ASTRAL", "COSMIC", "ETERNAL",
+    "SEED", "STONE", "BRONZE", "SILVER", "GOLD", "CRYSTAL",
+    "EMERALD", "SAPPHIRE", "RUBY", "DIAMOND", "MYTHRIL", "ORICHALCUM",
+    "LUNA", "TERRA", "JUPITER", "ASTRAL", "COSMIC",
   ];
-  return allowed.includes(tier) ? (tier as SupportTierLevel) : "PEBBLE";
+  return allowed.includes(tier) ? (tier as SupportTierLevel) : "SEED";
 }
 
 function toOptimistic(c: ServerComment): OptimisticComment {

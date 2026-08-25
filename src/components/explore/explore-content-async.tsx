@@ -117,7 +117,7 @@ export async function ExploreContentAsync() {
                     <div className="flex items-center gap-2 text-sm">
                       <DisplayNameWithSupportTier
                         name={userDisplayName(p.author)}
-                        tier={p.author.supportTierSent ?? "PEBBLE"}
+                        tier={p.author.supportTierSent ?? "SEED"}
                         nameClassName="font-medium"
                         compact
                       />
@@ -152,7 +152,7 @@ export async function ExploreContentAsync() {
                   <div className="min-w-0">
                     <DisplayNameWithSupportTier
                       name={u.name || u.username}
-                      tier={u.supportTierSent ?? "PEBBLE"}
+                      tier={u.supportTierSent ?? "SEED"}
                       nameClassName="font-medium"
                       compact
                     />

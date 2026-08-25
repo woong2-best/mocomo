@@ -94,7 +94,7 @@ export function FeedPostCard({
             <Link href={`/u/${post.author.username}`} className="hover:text-primary block min-w-0">
               <DisplayNameWithSupportTier
                 name={displayName}
-                tier={post.author.supportTierSent ?? "PEBBLE"}
+                tier={post.author.supportTierSent ?? "SEED"}
                 nameClassName="font-semibold text-sm"
                 compact
               />

@@ -20,7 +20,7 @@ export async function getSupporterTierToCreator(
     });
     return tierFromAmount(sum._sum.amount ?? 0);
   } catch {
-    return "PEBBLE";
+    return "SEED";
   }
 }
 

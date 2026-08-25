@@ -185,7 +185,7 @@ function LiveChatInner({
                 <DisplayNameWithSupportTier
                   name={<span className="font-semibold text-xs text-primary">@{m.username}</span>}
                   profileUsername={m.username}
-                  tier={m.supportTierSent ?? "PEBBLE"}
+                  tier={m.supportTierSent ?? "SEED"}
                   compact
                   className="flex-wrap"
                 />

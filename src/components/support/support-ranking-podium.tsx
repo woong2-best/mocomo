@@ -73,7 +73,7 @@ function PodiumSlot({
           </motion.div>
           <DisplayNameWithSupportTier
             name={entry.user.username}
-            tier={entry.user.supportTierSent ?? "PEBBLE"}
+            tier={entry.user.supportTierSent ?? "SEED"}
             compact
             className="text-xs font-semibold truncate max-w-full group-hover:underline"
           />

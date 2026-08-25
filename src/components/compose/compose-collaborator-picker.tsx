@@ -150,7 +150,7 @@ export function ComposeCollaboratorPicker({
                     <div className="min-w-0 flex-1">
                       <DisplayNameWithSupportTier
                         name={userDisplayName(u)}
-                        tier={u.supportTierSent ?? "PEBBLE"}
+                        tier={u.supportTierSent ?? "SEED"}
                         className="text-sm font-medium"
                       />
                       <p className="truncate text-xs text-muted-foreground">

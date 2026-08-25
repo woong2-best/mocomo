@@ -39,7 +39,7 @@ export function ChatRoomClient({
   userId,
   username,
   userImage = null,
-  userSupportTier = "PEBBLE",
+  userSupportTier = "SEED",
   initialMessages = [],
   readOnly = false,
   communityId,
@@ -446,7 +446,7 @@ export function ChatRoomClient({
                     <DisplayNameWithSupportTier
                       name={m.sender.username}
                       profileUsername={m.sender.username}
-                      tier={m.sender.supportTierSent ?? "PEBBLE"}
+                      tier={m.sender.supportTierSent ?? "SEED"}
                       nameClassName="text-[11px] font-medium text-muted-foreground"
                       compact
                       className="mb-1 ml-1"
