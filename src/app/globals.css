@@ -420,7 +420,8 @@ html[data-client="app"] .native-live-pad {
 
   /* RN SideDrawer parity — smartphone/tablet hamburger menu */
   .mobile-drawer-scrim {
-    @apply fixed inset-0 z-[200] bg-black/58;
+    @apply fixed inset-0 z-[200];
+    background-color: rgba(0, 0, 0, 0.58);
   }
   .mobile-drawer-panel {
     @apply fixed inset-y-0 left-0 z-[201] flex flex-col bg-background shadow-2xl;
