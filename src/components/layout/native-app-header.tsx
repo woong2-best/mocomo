@@ -14,6 +14,8 @@ import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { pressTap } from "@/lib/motion-presets";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { isMobileHubChromePath } from "@/lib/floating-tab-nav";
+import { MobileHubHeader } from "@/components/layout/mobile-hub-header";
 
 const ROOT_PATHS = new Set([
   "/",
@@ -130,7 +132,7 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
 }
 
 export function NativeAppHeader() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const router = useRouter();
   const { t } = useLocale();
   const reduced = usePrefersReducedMotion();
@@ -138,6 +140,10 @@ export function NativeAppHeader() {
   const isRoot = ROOT_PATHS.has(pathname);
   const title = titleForPath(pathname, t);
   const showBack = !isRoot && !!title && !isSearchPage;
+
+  if (isMobileHubChromePath(pathname)) {
+    return <MobileHubHeader className="lg:hidden" />;
+  }
 
   if (isSearchPage) {
     return (

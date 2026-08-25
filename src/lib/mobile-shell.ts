@@ -6,7 +6,7 @@
 import { APT_GAME_PATH, REELS_PATH } from "@/lib/site-routes";
 
 export const HEADER_REM = "3.5rem";
-export const MOBILE_NAV_REM = "3.5rem";
+export const MOBILE_NAV_REM = "calc(92px + max(env(safe-area-inset-bottom, 0px), 8px))";
 
 const USED_SECTION_PATHS = new Set(["new", "my", "verify", "adult-verify"]);
 

@@ -11,7 +11,7 @@ export function isNativeTabRoot(pathname: string): boolean {
   return isFastHubPath(pathname);
 }
 
-export const NATIVE_APP_NAV_REM = "3.25rem";
+export const NATIVE_APP_NAV_REM = "calc(92px + max(env(safe-area-inset-bottom, 0px), 8px))";
 
 function isImmersiveGamePath(pathname: string): boolean {
   return /^\/play\/[^/]+\/[^/]+$/.test(pathname) || /^\/sketch-quiz\/[^/]+$/.test(pathname);

@@ -9,8 +9,10 @@ import { BRAND } from "@/lib/brand";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { HeaderAuth } from "@/components/layout/header-auth";
 import { MobileDrawerNav, MobileMenuButton } from "@/components/layout/mobile-drawer-nav";
+import { MobileHubHeader } from "@/components/layout/mobile-hub-header";
 import { SidebarToggleButton } from "@/components/layout/sidebar-toggle-button";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { isMobileHubChromePath } from "@/lib/floating-tab-nav";
 import { scrollMainToTop } from "@/lib/scroll-main";
 import { cn } from "@/lib/utils";
 
@@ -31,12 +33,31 @@ export function Header() {
   const isSearchPage = pathname === "/search";
   const isHome =
     pathname === DEFAULT_LANDING_PATH || pathname.startsWith(`${DEFAULT_LANDING_PATH}/`);
+  const isHubChrome = isMobileHubChromePath(pathname);
 
   function onBrandClick(e: MouseEvent<HTMLAnchorElement>) {
     if (!isHome) return;
     e.preventDefault();
     scrollMainToTop();
     router.refresh();
+  }
+
+  if (isHubChrome) {
+    return (
+      <>
+        <div className="lg:hidden">
+          <MobileHubHeader />
+        </div>
+        <header className="sticky top-0 z-[150] hidden lg:flex min-h-14 items-center gap-2 sm:gap-3 border-b border-border bg-background/95 backdrop-blur-md px-3 sm:px-5 pt-safe pb-1">
+          <SidebarToggleButton />
+          <HeaderSearchSlot className="app-header-interactive flex flex-1 justify-center max-w-2xl mx-auto min-w-0" />
+          <div className="app-header-interactive flex items-center gap-0.5 sm:gap-1.5 shrink-0">
+            <ThemeToggle />
+            <HeaderAuth />
+          </div>
+        </header>
+      </>
+    );
   }
 
   return (

@@ -10,6 +10,7 @@ import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { SuspendedAccountBanner } from "@/components/account/suspended-account-banner";
 import { FolkArtStage } from "@/components/brand/folk-decor";
 import { mainScrollPaddingClass, shouldHideMobileNav } from "@/lib/mobile-shell";
+import { isMobileHubChromePath } from "@/lib/floating-tab-nav";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { isAptImmersivePath } from "@/lib/apt-route";
 import { isFastHubPath } from "@/lib/hub-fast-path";
@@ -35,6 +36,7 @@ function AppShellInner({
   const isReelsImmersive =
     pathname === REELS_PATH || pathname.startsWith(`${REELS_PATH}/`);
   const hideMobileNav = shouldHideMobileNav(pathname);
+  const isHubChrome = isMobileHubChromePath(pathname);
   const mainPb = mainScrollPaddingClass(pathname);
   const showRightPanel = shouldShowRightPanel(pathname);
   const reduced = usePrefersReducedMotion();
@@ -126,7 +128,12 @@ function AppShellInner({
       </div>
       {!hideMobileNav && <MobileNav />}
       {!isMessagesRoute && (
-        <footer className="border-t border-border py-3 px-4 lg:px-6 bg-muted/20 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:pb-3">
+        <footer
+          className={cn(
+            "border-t border-border py-3 px-4 lg:px-6 bg-muted/20 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:pb-3",
+            isHubChrome && "hidden lg:block"
+          )}
+        >
           <LegalFooterLinks />
         </footer>
       )}

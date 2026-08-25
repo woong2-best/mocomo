@@ -17,9 +17,11 @@ const SEARCH_PREVIEW_Z = 220;
 export function HeaderSearch({
   variant = "header",
   defaultQuery = "",
+  className,
 }: {
-  variant?: "header" | "page";
+  variant?: "header" | "page" | "pill";
   defaultQuery?: string;
+  className?: string;
 }) {
   const router = useRouter();
   const { t } = useLocale();
@@ -216,7 +218,7 @@ export function HeaderSearch({
     <>
       <div
         ref={wrapRef}
-        className={cn("relative w-full min-w-0", variant === "page" && "z-[1]")}
+        className={cn("relative w-full min-w-0", variant === "page" && "z-[1]", className)}
       >
         <form onSubmit={goFullSearch} className="relative w-full" role="search">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />

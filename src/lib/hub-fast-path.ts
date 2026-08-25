@@ -6,6 +6,7 @@ export function isFastHubPath(pathname: string): boolean {
   if (pathname === "/" || pathname === DEFAULT_LANDING_PATH || pathname === "/feed") return true;
   if (pathname === EXPLORE_PATH || pathname === "/discover") return true;
   if (pathname === "/games" || pathname === "/used") return true;
+  if (pathname === "/market" || pathname === "/messages") return true;
   if (pathname === "/rankings" || pathname === "/notifications") return true;
   if (pathname === "/voice" || pathname === "/live") return true;
   return /^\/u\/[^/]+$/.test(pathname);
