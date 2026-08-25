@@ -248,10 +248,16 @@ export function shouldTrackFetch(input: RequestInfo | URL, init?: RequestInit): 
 
   try {
     const url = new URL(resolveUrl(input), window.location.origin);
-    if (url.pathname.startsWith("/_next/")) return false;
-    if (url.pathname.startsWith("/api/auth/")) return false;
-    if (url.pathname.startsWith("/api/socket-auth")) return false;
-    if (url.pathname.startsWith("/api/health")) return false;
+    const { pathname } = url;
+    if (pathname.startsWith("/_next/")) return false;
+    if (pathname.startsWith("/api/auth/")) return false;
+    if (pathname.startsWith("/api/socket-auth")) return false;
+    if (pathname.startsWith("/api/health")) return false;
+    // Background telemetry — not user-initiated (scroll view counts, visits, bootstrap).
+    if (/^\/api\/posts\/[^/]+\/view$/.test(pathname)) return false;
+    if (/^\/api\/anime\/[^/]+\/view$/.test(pathname)) return false;
+    if (pathname.startsWith("/api/signals/")) return false;
+    if (pathname === "/api/platform/bootstrap") return false;
     // Same-origin mutations + cross-origin uploads
     return true;
   } catch {

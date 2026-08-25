@@ -30,7 +30,10 @@ export async function recordPostViewOnce(postId: string): Promise<boolean> {
   writeViewed(viewed);
 
   try {
-    const res = await fetch(`/api/posts/${postId}/view`, { method: "POST" });
+    const res = await fetch(`/api/posts/${postId}/view`, {
+      method: "POST",
+      headers: { "X-Moco-No-Progress": "1" },
+    });
     if (!res.ok) {
       viewed.delete(postId);
       writeViewed(viewed);
