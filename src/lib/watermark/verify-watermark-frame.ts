@@ -47,6 +47,12 @@ export type VerifyWatermarkFrameResult = WatermarkDetectionResult & {
   finalPass: boolean;
   regionScores: DetectionRegionScore[];
   recoveredCount: number;
+  /** Post-merge agreement with session codeword (diagnostic). */
+  mergedCodewordAgreement: number;
+  /** Whether client integrity bytes were supplied. */
+  hasExpectedIntegrity: boolean;
+  /** RS decode produced a payload (may still fail integrity). */
+  decodeOk: boolean;
 };
 
 /** Client/admin shared pass gate: cryptographic integrity required for MATCH. */
@@ -90,13 +96,26 @@ export function verifyWatermarkFrame(input: VerifyWatermarkFrameInput): VerifyWa
     weights
   );
 
+  const expectedCodeword = fromBase64(input.renderConfig.codewordB64);
+  const mergedCodewordAgreement = scoreRegionMatch(expectedCodeword, merged);
+
   const decoded = decodeWatermarkCodeword(merged);
-  const integrityValid =
-    decoded.ok && decoded.core
-      ? input.expectedIntegrityB64
-        ? comparePayloadIntegrity(decoded.core, fromBase64(input.expectedIntegrityB64))
-        : validateDecodedPayload(decoded.core, input.opaqueWatermarkId)
-      : false;
+  const hasExpectedIntegrity = Boolean(input.expectedIntegrityB64?.trim());
+  let integrityValid = false;
+  if (decoded.ok && decoded.core) {
+    if (hasExpectedIntegrity) {
+      try {
+        integrityValid = comparePayloadIntegrity(
+          decoded.core,
+          fromBase64(input.expectedIntegrityB64!)
+        );
+      } catch {
+        integrityValid = false;
+      }
+    } else {
+      integrityValid = validateDecodedPayload(decoded.core, input.opaqueWatermarkId);
+    }
+  }
 
   const centralScore =
     regionScores.reduce((a, r) => a + r.score, 0) / Math.max(1, regionScores.length);
@@ -129,6 +148,9 @@ export function verifyWatermarkFrame(input: VerifyWatermarkFrameInput): VerifyWa
     recoveredCount,
     finalPass: isCanonicalWatermarkPass({ status, integrityValid, eccValid: decoded.eccValid }),
     regionScores,
+    mergedCodewordAgreement,
+    hasExpectedIntegrity,
+    decodeOk: decoded.ok,
   };
 
   return result;
@@ -136,8 +158,17 @@ export function verifyWatermarkFrame(input: VerifyWatermarkFrameInput): VerifyWa
 
 export function formatVerifyRetryReason(result: VerifyWatermarkFrameResult): string {
   const parts: string[] = [];
-  if (!result.eccValid) parts.push("ecc_failed");
-  if (!result.integrityValid) parts.push("integrity_failed");
+  if (!result.hasExpectedIntegrity) parts.push("missing_expected_integrity");
+  if (result.eccValid === false) parts.push("ecc_failed");
+  else if (result.eccValid !== true) parts.push("ecc_unset");
+  if (result.integrityValid === false) parts.push("integrity_failed");
+  else if (result.integrityValid !== true && result.hasExpectedIntegrity) {
+    parts.push("integrity_unset");
+  }
+  if (!result.decodeOk && result.recoveredCount >= 1) parts.push("decode_failed");
+  if (result.recoveredCount >= 1 && result.mergedCodewordAgreement < REGION_RECOVERED_THRESHOLD) {
+    parts.push("merged_codeword_weak");
+  }
   if (result.recoveredCount < 1) parts.push("quadrant_recovery");
   if (result.status === "NOT_DETECTED") parts.push("not_detected");
   if (result.status === "INCONCLUSIVE") parts.push("inconclusive");

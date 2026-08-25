@@ -72,6 +72,25 @@ function clamp(v: number): number {
   return Math.max(0, Math.min(255, Math.round(v)));
 }
 
+/** Apply paired +/- delta without clipping either sample — keeps embed/extract symmetric. */
+function applyPairDelta(
+  data: Uint8ClampedArray,
+  aIdx: number,
+  bIdx: number,
+  delta: number
+): void {
+  for (let c = 0; c < 3; c++) {
+    const ai = aIdx + c;
+    const bi = bIdx + c;
+    const headroomA = Math.min(data[ai], 255 - data[ai]);
+    const headroomB = Math.min(data[bi], 255 - data[bi]);
+    const safe = Math.min(Math.abs(delta), headroomA, headroomB);
+    const d = delta >= 0 ? safe : -safe;
+    data[ai] = clamp(data[ai] + d);
+    data[bi] = clamp(data[bi] - d);
+  }
+}
+
 function luma(data: Uint8ClampedArray, idx: number): number {
   return data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
 }
@@ -149,10 +168,7 @@ function embedBitsInRegion(
     for (let s = 0; s < perBit; s++) {
       const aIdx = pairIndex(image, region, plan, slot++);
       const bIdx = aIdx + 4;
-      for (let c = 0; c < 3; c++) {
-        data[aIdx + c] = clamp(data[aIdx + c] + delta);
-        data[bIdx + c] = clamp(data[bIdx + c] - delta);
-      }
+      applyPairDelta(data, aIdx, bIdx, delta);
     }
   }
 }

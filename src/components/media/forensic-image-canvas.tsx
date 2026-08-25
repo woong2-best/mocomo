@@ -282,6 +282,12 @@ export function ForensicImageCanvas({
       const scores = quadrantScoresFromResult(verifyResult);
       const recoveredCount = verifyResult.regionScores.filter((r) => r.recovered).length;
 
+      const verifyDiag = {
+        mergedCodewordAgreement: verifyResult.mergedCodewordAgreement,
+        hasExpectedIntegrity: verifyResult.hasExpectedIntegrity,
+        decodeOk: verifyResult.decodeOk,
+      };
+
       if (!verifyResult.finalPass) {
         const retryReason = formatVerifyRetryReason(verifyResult);
         recorder.recordPaintAttempt({
@@ -305,6 +311,7 @@ export function ForensicImageCanvas({
           eccValid: verifyResult.eccValid,
           integrityValid: verifyResult.integrityValid,
           detectionStatus: verifyResult.status,
+          ...verifyDiag,
         });
         if (readyRef.current) return;
         schedulePaint(50);
@@ -333,6 +340,9 @@ export function ForensicImageCanvas({
         eccValid: verifyResult.eccValid,
         integrityValid: verifyResult.integrityValid,
         detectionStatus: verifyResult.status,
+        mergedCodewordAgreement: verifyResult.mergedCodewordAgreement,
+        hasExpectedIntegrity: verifyResult.hasExpectedIntegrity,
+        decodeOk: verifyResult.decodeOk,
       });
 
       ctx.putImageData(imageData, 0, 0);

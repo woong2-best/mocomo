@@ -83,6 +83,9 @@ export type ForensicPaintAttempt = {
   eccValid?: boolean;
   integrityValid?: boolean;
   detectionStatus?: WatermarkDetectionStatus;
+  mergedCodewordAgreement?: number;
+  hasExpectedIntegrity?: boolean;
+  decodeOk?: boolean;
 };
 
 export type ForensicPipelineSnapshot = {
@@ -244,12 +247,18 @@ export class ForensicPipelineRecorder {
       longEdgeRatio: attempt.longEdgeRatio,
       quadrantScores: attempt.quadrantScores,
       recoveredCount: attempt.recoveredCount,
+      eccValid: attempt.eccValid,
+      integrityValid: attempt.integrityValid,
+      detectionStatus: attempt.detectionStatus,
       verifyRun: attempt.verifyRun,
       retryReason: attempt.retryReason,
       error: attempt.verifyPass === false ? attempt.retryReason : undefined,
       meta: {
         sizingReady: attempt.sizingReady ?? null,
         verifyPass: attempt.verifyPass ?? null,
+        mergedCodewordAgreement: attempt.mergedCodewordAgreement ?? null,
+        hasExpectedIntegrity: attempt.hasExpectedIntegrity ?? null,
+        decodeOk: attempt.decodeOk ?? null,
       },
     });
   }
