@@ -5,6 +5,10 @@ import { rateLimitPublicApi, verifyApiOrigin } from "@/lib/api-security";
 import { db } from "@/lib/db";
 import { prismaErrorMessage } from "@/lib/prisma-user-error";
 import { readDetectionFrames, runDetectionJob } from "@/lib/watermark/detector/job";
+import {
+  normalizeCreatorUsernameInput,
+  resolveCreatorUserId,
+} from "@/lib/watermark/detector/creator-scope";
 import { normalizeWatermarkSessionIdInput } from "@/lib/watermark/detector/session-id-input";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +52,24 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
     const parsed = await readDetectionFrames(form);
     const sessionId = normalizeWatermarkSessionIdInput(parsed.sessionId);
+    const creatorUsername = normalizeCreatorUsernameInput(parsed.creatorUsername);
+    let creatorId: string | null = null;
+    if (parsed.creatorUsername?.trim()) {
+      if (!creatorUsername) {
+        return NextResponse.json({ error: "Creator username is invalid" }, { status: 400 });
+      }
+      creatorId = await resolveCreatorUserId(creatorUsername);
+      if (!creatorId) {
+        return NextResponse.json({ error: "Creator not found" }, { status: 404 });
+      }
+    }
+    if (!parsed.contentId && !sessionId && !creatorId) {
+      return NextResponse.json(
+        { error: "Creator username, Media ID, or Session ID is required" },
+        { status: 400 }
+      );
+    }
+
     const job = await db.watermarkDetectionJob.create({
       data: {
         actorId: actor.id,
@@ -63,6 +85,7 @@ export async function POST(req: NextRequest) {
         buffers: parsed.buffers,
         contentId: parsed.contentId,
         sessionId,
+        creatorId,
         sourceKind: parsed.sourceKind,
         clientFileHash: parsed.clientFileHash,
         actorId: actor.id,

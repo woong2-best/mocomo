@@ -17,7 +17,19 @@ type SystemStatus = {
   watermarkVersion: number;
 };
 
-function humanizeDetectionError(message: string, contentId: string) {
+function humanizeDetectionError(message: string, contentId: string, creatorUsername: string) {
+  if (message === "Creator not found" || message === "Creator username is invalid") {
+    return "크리에이터 @아이디를 찾을 수 없습니다. 프로필 URL의 username을 확인하세요.";
+  }
+  if (message === "No watermark sessions recorded for this creator") {
+    return [
+      `@${creatorUsername.trim().replace(/^@+/, "") || "해당 크리에이터"}의 유료 사진·영상 시청 세션이 없습니다.`,
+      "다른 계정으로 해당 크리에이터의 유료 콘텐츠를 연 뒤, 그 화면을 캡처해 다시 시도하세요.",
+    ].join(" ");
+  }
+  if (message === "Creator username, Media ID, or Session ID is required") {
+    return "판매 크리에이터 @아이디를 입력하세요.";
+  }
   if (message === "No watermark sessions recorded yet") {
     return [
       "아직 기록된 유료 미디어 시청 세션이 없습니다.",
@@ -42,8 +54,8 @@ function humanizeDetectionError(message: string, contentId: string) {
   if (message === "Detection timed out on server") {
     return [
       "서버 분석 시간이 초과되었습니다.",
-      "Media ID를 입력하면 훨씬 빠릅니다.",
-      "Session ID 필드는 비우거나, DevTools에서 복사한 c… 형식 ID만 넣으세요.",
+      "크리에이터 @아이디를 입력했는지 확인하세요.",
+      "특정 사진만 비교하려면 Media ID를 추가로 넣으면 더 빠릅니다.",
     ].join(" ");
   }
   return message;
@@ -51,8 +63,10 @@ function humanizeDetectionError(message: string, contentId: string) {
 
 export function WatermarkForensicsClient({ systemStatus }: { systemStatus: SystemStatus }) {
   const [file, setFile] = useState<File | null>(null);
+  const [creatorUsername, setCreatorUsername] = useState("");
   const [contentId, setContentId] = useState("");
   const [sessionId, setSessionId] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -67,14 +81,13 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       const normalizedSessionId = normalizeWatermarkSessionIdInput(sessionId);
       if (sessionId.trim() && !normalizedSessionId) {
         setError(
-          "Session ID 형식이 올바르지 않습니다. DevTools placeholder 문장이 아니라 __mocomoForensicDebug.canvases()[0].sessionId 실행 결과(c…로 시작)를 넣거나, 필드를 비우고 Media ID만 사용하세요."
+          "Session ID 형식이 올바르지 않습니다. 고급 필드는 비우거나 DevTools에서 복사한 c… 값만 넣으세요."
         );
         return;
       }
-      if (!contentId.trim() && !normalizedSessionId) {
-        setError(
-          "Media ID(권장) 또는 유효한 Session ID를 입력하세요. 둘 다 없으면 전체 세션 63건을 검색해 시간이 오래 걸리거나 타임아웃될 수 있습니다."
-        );
+      const creatorHandle = creatorUsername.trim().replace(/^@+/, "");
+      if (!creatorHandle && !contentId.trim() && !normalizedSessionId) {
+        setError("유출된 콘텐츠를 판매한 크리에이터 @아이디를 입력하세요.");
         return;
       }
 
@@ -95,6 +108,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       frames.forEach((blob, i) => form.append("frames", blob, `frame-${i}.png`));
       form.append("sourceKind", isVideo ? "video" : "image");
       form.append("clientFileHash", clientFileHash);
+      if (creatorHandle) form.append("creatorUsername", creatorHandle);
       if (contentId.trim()) form.append("contentId", contentId.trim());
       if (normalizedSessionId) form.append("sessionId", normalizedSessionId);
 
@@ -123,7 +137,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
           setStage("Matching against viewing sessions…");
         }
         if (body.status === "FAILED") {
-          setError(humanizeDetectionError(body.error ?? "Analysis failed", contentId));
+          setError(humanizeDetectionError(body.error ?? "Analysis failed", contentId, creatorUsername));
           return;
         }
         if (body.status === "COMPLETED" && body.result) {
@@ -138,7 +152,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
                   ? `공간 비트 일치 ${(r.centralScore * 100).toFixed(0)}%는 압축·텍스처 노이즈 수준이며, 워터마크가 아닙니다.`
                   : null,
                 "노트북·폰 스크린샷은 유료 미디어가 완전히 로드된 뒤 캡처하세요.",
-                "노트북 화면을 다른 폰으로 찍은 사진은 흔들림·각도·밝기에 따라 실패할 수 있습니다 — Media ID를 입력하고 선명한 정면 캡처를 사용하세요.",
+                "노트북 화면을 다른 폰으로 찍은 사진은 흔들림·각도·밝기에 따라 실패할 수 있습니다 — 크리에이터 @아이디를 확인하고 선명한 정면 캡처를 사용하세요.",
               ]
                 .filter(Boolean)
                 .join(" ")
@@ -151,8 +165,8 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       setError(
         [
           "Analysis timed out",
-          "Media ID를 입력했는지 확인하세요.",
-          "Session ID는 __mocomoForensicDebug.canvases()[0].sessionId 실행 결과만 넣으세요.",
+          "크리에이터 @아이디가 맞는지 확인하세요.",
+          "특정 사진만 대상으로 하려면 Media ID를 추가하세요.",
         ].join(" ")
       );
     } catch (e) {
@@ -201,7 +215,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
             DevTools <code className="rounded bg-muted px-1">exportPng()</code>는 개발용 진단입니다.
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
-            유료 사진·영상이 화면에 완전히 표시된 뒤 캡처하세요. Media ID를 넣으면 훨씬 빠르고 정확합니다.
+            유료 사진·영상이 화면에 완전히 표시된 뒤 캡처하세요. 판매 크리에이터 @아이디만으로도 분석할 수 있습니다.
           </p>
           </>
         )}
@@ -227,34 +241,51 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
           </p>
 
           <label className="block text-sm">
-            <span className="text-muted-foreground">Session ID (선택 — 있으면 더 정확)</span>
+            <span className="font-medium">판매 크리에이터 @아이디</span>
             <input
               type="text"
-              value={sessionId}
-              onChange={(e) => setSessionId(e.target.value)}
-              placeholder="예: clxyz… (DevTools에서 복사)"
-              className="mt-1 block w-full rounded-lg border px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
+              value={creatorUsername}
+              onChange={(e) => setCreatorUsername(e.target.value)}
+              placeholder="예: creator_handle"
+              className="mt-1 block w-full rounded-lg border px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
             />
             <span className="mt-1 block text-xs text-muted-foreground">
-              콘솔에서{" "}
-              <code className="rounded bg-muted px-1">__mocomoForensicDebug.canvases()[0].sessionId</code>
-              를 실행한 <strong>결과값</strong>만 붙여넣으세요. placeholder 문장 자체는 ID가 아닙니다.
+              유출된 사진·영상을 <strong>판매한 사람</strong>의 프로필 username (@ 없이 또는 @ 포함 모두 가능).
+              이 크리에이터 유료 콘텐츠 시청 세션만 검색합니다.
             </span>
           </label>
 
-          <label className="block text-sm">
-            <span className="text-muted-foreground">Media ID (권장)</span>
-            <input
-              type="text"
-              value={contentId}
-              onChange={(e) => setContentId(e.target.value)}
-              placeholder="PostMedia id of the leaked content"
-              className="mt-1 block w-full rounded-lg border px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
-            />
-            <span className="mt-1 block text-xs text-muted-foreground">
-              Without this, only recent sessions across all content are searched.
-            </span>
-          </label>
+          <details
+            className="rounded-lg border px-3 py-2 dark:border-zinc-700"
+            open={showAdvanced}
+            onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}
+          >
+            <summary className="cursor-pointer text-sm text-muted-foreground">
+              고급 (선택) — 특정 사진·DevTools Session ID
+            </summary>
+            <div className="mt-3 space-y-3">
+              <label className="block text-sm">
+                <span className="text-muted-foreground">Media ID</span>
+                <input
+                  type="text"
+                  value={contentId}
+                  onChange={(e) => setContentId(e.target.value)}
+                  placeholder="특정 PostMedia id (더 빠름)"
+                  className="mt-1 block w-full rounded-lg border px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-muted-foreground">Session ID</span>
+                <input
+                  type="text"
+                  value={sessionId}
+                  onChange={(e) => setSessionId(e.target.value)}
+                  placeholder="DevTools sessionId (개발용)"
+                  className="mt-1 block w-full rounded-lg border px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
+                />
+              </label>
+            </div>
+          </details>
 
           <button
             type="button"

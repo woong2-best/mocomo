@@ -92,6 +92,7 @@ export async function readDetectionFrames(form: FormData): Promise<{
   buffers: Buffer[];
   contentId: string | null;
   sessionId: string | null;
+  creatorUsername: string | null;
   sourceKind: string;
   clientFileHash: string | null;
 }> {
@@ -103,6 +104,7 @@ export async function readDetectionFrames(form: FormData): Promise<{
 
   const contentId = (form.get("contentId") as string | null)?.trim() || null;
   const sessionId = (form.get("sessionId") as string | null)?.trim() || null;
+  const creatorUsername = (form.get("creatorUsername") as string | null)?.trim() || null;
   const sourceKind = (form.get("sourceKind") as string | null)?.trim() || "image";
   const clientFileHash = (form.get("clientFileHash") as string | null)?.trim() || null;
 
@@ -121,13 +123,14 @@ export async function readDetectionFrames(form: FormData): Promise<{
     buffers.push(buf);
   }
 
-  return { buffers, contentId, sessionId, sourceKind, clientFileHash };
+  return { buffers, contentId, sessionId, creatorUsername, sourceKind, clientFileHash };
 }
 
 export async function runDetectionJob(jobId: string, input: {
   buffers: Buffer[];
   contentId: string | null;
   sessionId: string | null;
+  creatorId: string | null;
   sourceKind: string;
   clientFileHash: string | null;
   actorId: string;
@@ -142,16 +145,19 @@ export async function runDetectionJob(jobId: string, input: {
     const candidates = await loadDetectionCandidates({
       contentId: input.contentId,
       sessionId: input.sessionId,
+      creatorId: input.creatorId,
     });
     if (!candidates.length) {
       throw new Error(
         input.contentId
           ? "No watermark sessions recorded for this content"
-          : "No watermark sessions recorded yet"
+          : input.creatorId
+            ? "No watermark sessions recorded for this creator"
+            : "No watermark sessions recorded yet"
       );
     }
 
-    const scopedSearch = Boolean(input.contentId || input.sessionId);
+    const scopedSearch = Boolean(input.contentId || input.sessionId || input.creatorId);
     const detectionWork = async () => {
       const frames =
         input.sourceKind === "video"
@@ -196,6 +202,7 @@ export async function runDetectionJob(jobId: string, input: {
           candidateFrames: enriched.analysisLog?.candidateFrames,
           candidatesSearched: candidates.length,
           scopedToContentId: input.contentId,
+          scopedToCreatorId: input.creatorId,
           clientReportedFileHash: input.clientFileHash,
         },
       },

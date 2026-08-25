@@ -242,6 +242,7 @@ export async function createWatermarkSession(
 export async function loadDetectionCandidates(options: {
   contentId?: string | null;
   sessionId?: string | null;
+  creatorId?: string | null;
   limit?: number;
 }) {
   const limit = Math.min(Math.max(options.limit ?? 500, 1), 2000);
@@ -266,8 +267,28 @@ export async function loadDetectionCandidates(options: {
     }
     return rows;
   }
+
+  let where: {
+    contentId?: string;
+    OR?: Array<
+      | { media: { post: { authorId: string } } }
+      | { episode: { authorId: string } }
+    >;
+  } | undefined;
+
+  if (options.contentId) {
+    where = { contentId: options.contentId };
+  } else if (options.creatorId) {
+    where = {
+      OR: [
+        { media: { post: { authorId: options.creatorId } } },
+        { episode: { authorId: options.creatorId } },
+      ],
+    };
+  }
+
   return db.watermarkSession.findMany({
-    where: options.contentId ? { contentId: options.contentId } : undefined,
+    where,
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {
