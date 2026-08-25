@@ -655,7 +655,8 @@ html[data-visible-animations="off"] [class*="animate-folk-"] {
 html[data-visible-animations="off"] .konvajs-content,
 html[data-visible-animations="off"] .konvajs-content canvas,
 html[data-visible-animations="off"] [data-functional-canvas],
-html[data-visible-animations="off"] [data-functional-canvas] canvas {
+html[data-visible-animations="off"] [data-functional-canvas] canvas,
+html[data-visible-animations="off"] canvas[data-forensic-canvas] {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;

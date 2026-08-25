@@ -232,14 +232,14 @@ export function ForensicVideoCanvas({
   if (!active || !config) return null;
 
   return (
-    <div ref={wrapRef} className={cn("relative size-full overflow-hidden", className)}>
+    <div ref={wrapRef} data-functional-canvas className={cn("relative size-full overflow-hidden", className)}>
       <canvas
         ref={canvasRef}
         data-forensic-canvas={ready ? "ready" : "loading"}
         data-forensic-media-id={mediaId ?? undefined}
         data-forensic-session-id={config.sessionId}
-        className={cn("block", !ready && "opacity-0")}
-        aria-hidden
+        className="block size-full max-h-full max-w-full"
+        aria-hidden={!ready}
       />
     </div>
   );

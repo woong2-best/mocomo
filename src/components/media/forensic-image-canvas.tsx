@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import type { ForensicClientVerification } from "@/components/media/use-forensic-watermark-session";
 import {
@@ -427,9 +428,9 @@ export function ForensicImageCanvas({
       });
 
       ctx.putImageData(imageData, 0, 0);
-      wrap.style.zIndex = "2";
-      canvas.setAttribute("data-forensic-canvas", "ready");
       readyRef.current = true;
+      wrap.style.zIndex = "2";
+      flushSync(() => setReady(true));
       if (!notifiedRef.current) {
         notifiedRef.current = true;
         onMarked?.();
@@ -439,7 +440,6 @@ export function ForensicImageCanvas({
       const layoutHandler = layoutHandlerRef.current;
       if (layoutHandler) window.removeEventListener("resize", layoutHandler);
       layoutHandlerRef.current = null;
-      setReady(true);
       recorder.record({
         stage: "READY",
         mediaId,
@@ -546,6 +546,7 @@ export function ForensicImageCanvas({
   return (
     <div
       ref={wrapRef}
+      data-functional-canvas
       className={cn(
         "relative overflow-hidden",
         ready && "z-[2]",
