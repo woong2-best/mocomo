@@ -3,9 +3,9 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, Menu } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { MobileDrawerNav } from "@/components/layout/mobile-drawer-nav";
+import { MobileDrawerNav, MobileMenuButton } from "@/components/layout/mobile-drawer-nav";
 import { HeaderSearch } from "@/components/search/header-search";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -38,14 +38,7 @@ export function MobileHubHeader({ className }: { className?: string }) {
           className
         )}
       >
-        <button
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-muted/60"
-          aria-label="메뉴"
-        >
-          <Menu className="h-6 w-6" strokeWidth={2} />
-        </button>
+        <MobileMenuButton onClick={() => setMenuOpen(true)} />
 
         <SearchPill />
 

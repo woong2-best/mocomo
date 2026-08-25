@@ -1,16 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { mainNavItems } from "@/lib/nav-items";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
@@ -18,15 +15,22 @@ import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { isNavItemActive, resolveMyPageHref } from "@/lib/nav-active";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { springSnappy } from "@/lib/motion-presets";
+
 type MobileDrawerNavProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
+const PANEL_WIDTH = "min(86vw, 360px)";
+
 export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const { data: session } = useSession();
   const { t } = useLocale();
+  const reduced = usePrefersReducedMotion();
+  const [mounted, setMounted] = useState(false);
   const ownProfilePath = session?.user?.username ? `/u/${session.user.username}` : null;
 
   const items = (isLiveFeatureEnabled()
@@ -39,63 +43,103 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
   );
   const navHrefs = items.map((item) => item.href);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed inset-y-0 left-0 right-auto top-0 z-[60] flex h-[100dvh] max-h-[100dvh] w-[min(100vw-3rem,20rem)] max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-r-2 border-folk-cobalt/30 bg-folk-cream p-0 [&>button]:hidden">
-        <DialogHeader className="flex flex-row items-center justify-between gap-2 border-b-2 border-folk-cobalt/20 px-4 py-3 pt-safe shrink-0 bg-folk-gold/10">
-          <DialogTitle className="flex items-center gap-2 text-base font-display font-bold text-folk-cobalt">
-            <BrandLogo size={28} />
-            {BRAND.name}
-          </DialogTitle>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="rounded-xl shrink-0"
-            onClick={() => onOpenChange(false)}
-            aria-label="메뉴 닫기"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </DialogHeader>
-        <div className="flex min-h-0 flex-1 flex-col">
-          <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 space-y-1">
-            {items.map(({ href, icon: Icon, labelKey }) => {
-              const active = isNavItemActive(pathname, href, navHrefs, ownProfilePath);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-              return (
-                <Link
-                  key={href}
-                  href={href}
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  const drawer =
+    mounted &&
+    createPortal(
+      <AnimatePresence>
+        {open ? (
+          <>
+            <motion.button
+              type="button"
+              aria-label="메뉴 닫기"
+              className="mobile-drawer-scrim"
+              initial={reduced ? false : { opacity: 0 }}
+              animate={reduced ? undefined : { opacity: 1 }}
+              exit={reduced ? undefined : { opacity: 0 }}
+              transition={{ duration: reduced ? 0 : 0.22 }}
+              onClick={() => onOpenChange(false)}
+            />
+            <motion.aside
+              role="dialog"
+              aria-modal="true"
+              aria-label="사이드 메뉴"
+              className="mobile-drawer-panel"
+              style={{ width: PANEL_WIDTH }}
+              initial={reduced ? false : { x: "-100%" }}
+              animate={reduced ? undefined : { x: 0 }}
+              exit={reduced ? undefined : { x: "-100%" }}
+              transition={springSnappy}
+            >
+              <div className="mobile-drawer-header">
+                <div className="flex min-w-0 items-center gap-2">
+                  <BrandLogo size={28} />
+                  <span className="truncate font-display text-base font-bold text-[hsl(var(--folk-cobalt))] dark:text-[hsl(var(--folk-cream))]">
+                    {BRAND.name}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 rounded-full"
                   onClick={() => onOpenChange(false)}
-                  className={cn(
-                    "sidebar-block",
-                    active && "sidebar-block-active"
-                  )}
+                  aria-label="메뉴 닫기"
                 >
-                  <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
-                  <span className="truncate">{t(labelKey)}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <nav className="mobile-drawer-nav" aria-label="주요 메뉴">
+                {items.map(({ href, icon: Icon, labelKey }) => {
+                  const active = isNavItemActive(pathname, href, navHrefs, ownProfilePath);
+
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => onOpenChange(false)}
+                      className={cn("mobile-drawer-item", active && "mobile-drawer-item-active")}
+                    >
+                      <Icon className="h-[22px] w-[22px] shrink-0 text-muted-foreground" strokeWidth={2} />
+                      <span className="truncate">{t(labelKey)}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </motion.aside>
+          </>
+        ) : null}
+      </AnimatePresence>,
+      document.body
+    );
+
+  return drawer;
 }
 
 export function MobileMenuButton({ onClick }: { onClick: () => void }) {
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="ghost"
       size="icon"
-      className="lg:hidden h-9 w-9 rounded-xl shrink-0"
+      className="lg:hidden h-10 w-10 rounded-full shrink-0"
       onClick={onClick}
       aria-label="메뉴 보기"
     >
-      <Menu className="h-5 w-5" />
+      <Menu className="h-6 w-6" strokeWidth={2} />
       <span className="sr-only">메뉴</span>
     </Button>
   );

@@ -418,6 +418,54 @@ html[data-client="app"] .native-live-pad {
     background-color: hsl(var(--folk-gold) / 0.18);
   }
 
+  /* RN SideDrawer parity — smartphone/tablet hamburger menu */
+  .mobile-drawer-scrim {
+    @apply fixed inset-0 z-[200] bg-black/58;
+  }
+  .mobile-drawer-panel {
+    @apply fixed inset-y-0 left-0 z-[201] flex flex-col bg-background shadow-2xl;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-right: 1px solid hsl(var(--border) / 0.55);
+  }
+  .dark .mobile-drawer-panel {
+    background-color: #0f1524;
+    border-right-color: rgba(255, 255, 255, 0.08);
+  }
+  .mobile-drawer-header {
+    @apply flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3;
+    border-color: hsl(var(--border) / 0.55);
+  }
+  .dark .mobile-drawer-header {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .mobile-drawer-nav {
+    @apply min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3;
+  }
+  .mobile-drawer-item {
+    @apply flex min-w-0 items-center gap-3 rounded-[14px] border px-4 py-3.5 text-[15px] font-bold text-foreground transition-colors;
+    border-color: hsl(var(--border) / 0.65);
+    background-color: hsl(var(--card) / 0.82);
+  }
+  .mobile-drawer-item:hover {
+    background-color: hsl(var(--card));
+  }
+  .mobile-drawer-item-active {
+    border-color: hsl(var(--folk-cobalt) / 0.45);
+    background-color: hsl(var(--folk-cobalt) / 0.1);
+  }
+  .dark .mobile-drawer-item {
+    border-color: rgba(255, 255, 255, 0.1);
+    background-color: #18243a;
+  }
+  .dark .mobile-drawer-item:hover {
+    background-color: #1c2a44;
+  }
+  .dark .mobile-drawer-item-active {
+    border-color: hsl(var(--folk-terracotta) / 0.45);
+    background-color: hsl(var(--folk-terracotta) / 0.12);
+  }
+
   .live-page-shell {
     @apply -m-4 lg:-m-6 min-h-screen p-4 lg:p-6 text-foreground;
     background-color: hsl(var(--folk-cream));
