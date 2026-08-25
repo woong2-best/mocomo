@@ -286,6 +286,9 @@ export function ForensicImageCanvas({
         mergedCodewordAgreement: verifyResult.mergedCodewordAgreement,
         hasExpectedIntegrity: verifyResult.hasExpectedIntegrity,
         decodeOk: verifyResult.decodeOk,
+        rsDecodeOk: verifyResult.rsDecodeOk,
+        rsEccValid: verifyResult.rsEccValid,
+        clientEmbedPass: verifyResult.clientEmbedPass,
       };
 
       if (!verifyResult.finalPass) {

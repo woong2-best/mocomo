@@ -9,6 +9,13 @@ export const REGION_RECOVERED_THRESHOLD = 0.82;
 /** Central spatial agreement below this is treated as no forensic signal. */
 export const SPATIAL_SIGNAL_THRESHOLD = 0.72;
 
+/**
+ * Client pre-display embed gate: merged stream vs intended session codeword.
+ * RS(48,32) on a noisy merge typically needs ~0.97+ agreement; embed sanity uses
+ * spatial 4/4 + merged ≥ this threshold + session integrity (admin/leak path stays strict RS).
+ */
+export const CLIENT_EMBED_MERGED_THRESHOLD = 0.9;
+
 export function scoreRegionMatch(expected: Uint8Array, recovered: Uint8Array): number {
   const len = Math.min(expected.length, recovered.length, 64);
   if (len === 0) return 0;

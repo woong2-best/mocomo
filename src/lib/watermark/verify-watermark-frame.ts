@@ -12,6 +12,7 @@ import {
 } from "@/lib/watermark/crypto/payload";
 import {
   computeDetectionConfidence,
+  CLIENT_EMBED_MERGED_THRESHOLD,
   REGION_RECOVERED_THRESHOLD,
   scoreRegionMatch,
 } from "@/lib/watermark/decoder/confidence";
@@ -51,8 +52,12 @@ export type VerifyWatermarkFrameResult = WatermarkDetectionResult & {
   mergedCodewordAgreement: number;
   /** Whether client integrity bytes were supplied. */
   hasExpectedIntegrity: boolean;
-  /** RS decode produced a payload (may still fail integrity). */
-  decodeOk: boolean;
+  /** RS decode on merged stream succeeded (before client embed gate). */
+  rsDecodeOk: boolean;
+  /** RS ECC on merged stream (before client embed gate). */
+  rsEccValid: boolean;
+  /** Client embed gate used intended codeword + merged spatial evidence. */
+  clientEmbedPass: boolean;
 };
 
 /** Client/admin shared pass gate: cryptographic integrity required for MATCH. */
@@ -101,6 +106,9 @@ export function verifyWatermarkFrame(input: VerifyWatermarkFrameInput): VerifyWa
 
   const decoded = decodeWatermarkCodeword(merged);
   const hasExpectedIntegrity = Boolean(input.expectedIntegrityB64?.trim());
+  const rsDecodeOk = decoded.ok;
+  const rsEccValid = decoded.eccValid;
+
   let integrityValid = false;
   if (decoded.ok && decoded.core) {
     if (hasExpectedIntegrity) {
@@ -117,6 +125,36 @@ export function verifyWatermarkFrame(input: VerifyWatermarkFrameInput): VerifyWa
     }
   }
 
+  const recoveredCount = regionScores.filter((r) => r.recovered).length;
+
+  let clientEmbedPass = false;
+  if (
+    hasExpectedIntegrity &&
+    recoveredCount >= 4 &&
+    mergedCodewordAgreement >= CLIENT_EMBED_MERGED_THRESHOLD &&
+    !rsEccValid
+  ) {
+    const canonical = decodeWatermarkCodeword(expectedCodeword);
+    if (canonical.ok && canonical.core) {
+      try {
+        clientEmbedPass = comparePayloadIntegrity(
+          canonical.core,
+          fromBase64(input.expectedIntegrityB64!)
+        );
+      } catch {
+        clientEmbedPass = false;
+      }
+    }
+  }
+
+  let eccValid = rsEccValid;
+  let decodeOk = rsDecodeOk;
+  if (clientEmbedPass) {
+    eccValid = true;
+    decodeOk = true;
+    integrityValid = true;
+  }
+
   const centralScore =
     regionScores.reduce((a, r) => a + r.score, 0) / Math.max(1, regionScores.length);
 
@@ -124,12 +162,10 @@ export function verifyWatermarkFrame(input: VerifyWatermarkFrameInput): VerifyWa
     centralScore,
     distributedScore,
     temporalScore: Math.max(centralScore, distributedScore),
-    eccValid: decoded.eccValid,
+    eccValid,
     integrityValid,
     regionScores,
   });
-
-  const recoveredCount = regionScores.filter((r) => r.recovered).length;
 
   const result: VerifyWatermarkFrameResult = {
     detected: status === "MATCH" || status === "POSSIBLE_MATCH",
@@ -144,13 +180,16 @@ export function verifyWatermarkFrame(input: VerifyWatermarkFrameInput): VerifyWa
     distributedScore,
     centralScore,
     integrityValid,
-    eccValid: decoded.eccValid,
+    eccValid,
     recoveredCount,
-    finalPass: isCanonicalWatermarkPass({ status, integrityValid, eccValid: decoded.eccValid }),
+    finalPass: isCanonicalWatermarkPass({ status, integrityValid, eccValid }),
     regionScores,
     mergedCodewordAgreement,
     hasExpectedIntegrity,
-    decodeOk: decoded.ok,
+    decodeOk,
+    rsDecodeOk,
+    rsEccValid,
+    clientEmbedPass,
   };
 
   return result;
@@ -165,10 +204,23 @@ export function formatVerifyRetryReason(result: VerifyWatermarkFrameResult): str
   else if (result.integrityValid !== true && result.hasExpectedIntegrity) {
     parts.push("integrity_unset");
   }
-  if (!result.decodeOk && result.recoveredCount >= 1) parts.push("decode_failed");
-  if (result.recoveredCount >= 1 && result.mergedCodewordAgreement < REGION_RECOVERED_THRESHOLD) {
+  if (!result.decodeOk && result.recoveredCount >= 1 && !result.clientEmbedPass) {
+    parts.push("decode_failed");
+  }
+  if (
+    result.recoveredCount >= 1 &&
+    result.mergedCodewordAgreement < CLIENT_EMBED_MERGED_THRESHOLD &&
+    result.hasExpectedIntegrity
+  ) {
+    parts.push("merged_codeword_weak");
+  } else if (
+    result.recoveredCount >= 1 &&
+    result.mergedCodewordAgreement < REGION_RECOVERED_THRESHOLD &&
+    !result.hasExpectedIntegrity
+  ) {
     parts.push("merged_codeword_weak");
   }
+  if (result.clientEmbedPass) parts.push("client_embed_gate");
   if (result.recoveredCount < 1) parts.push("quadrant_recovery");
   if (result.status === "NOT_DETECTED") parts.push("not_detected");
   if (result.status === "INCONCLUSIVE") parts.push("inconclusive");

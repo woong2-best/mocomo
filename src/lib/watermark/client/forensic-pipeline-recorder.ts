@@ -86,6 +86,9 @@ export type ForensicPaintAttempt = {
   mergedCodewordAgreement?: number;
   hasExpectedIntegrity?: boolean;
   decodeOk?: boolean;
+  rsDecodeOk?: boolean;
+  rsEccValid?: boolean;
+  clientEmbedPass?: boolean;
 };
 
 export type ForensicPipelineSnapshot = {
@@ -259,6 +262,9 @@ export class ForensicPipelineRecorder {
         mergedCodewordAgreement: attempt.mergedCodewordAgreement ?? null,
         hasExpectedIntegrity: attempt.hasExpectedIntegrity ?? null,
         decodeOk: attempt.decodeOk ?? null,
+        rsDecodeOk: attempt.rsDecodeOk ?? null,
+        rsEccValid: attempt.rsEccValid ?? null,
+        clientEmbedPass: attempt.clientEmbedPass ?? null,
       },
     });
   }
