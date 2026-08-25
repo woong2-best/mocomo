@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { validateBufferMime } from "@/lib/file-magic";
 import { hashFileSha256 } from "@/lib/watermark/crypto/secrets";
 import { formatDetectionMessage } from "@/lib/watermark/decoder/confidence";
-import { decodeCaptureFrames } from "@/lib/watermark/decoder/capture-frames";
+import { decodeCaptureFrames, decodeCaptureFramesFast } from "@/lib/watermark/decoder/capture-frames";
 import { decodeImageToFrame, detectWatermarkInFrames } from "@/lib/watermark/decoder/pipeline";
 import {
   loadDetectionCandidates,
@@ -158,15 +158,18 @@ export async function runDetectionJob(jobId: string, input: {
     }
 
     const scopedSearch = Boolean(input.contentId || input.sessionId || input.creatorId);
+    const creatorOnlyScope =
+      Boolean(input.creatorId) && !input.contentId && !input.sessionId;
     const detectionWork = async () => {
       const frames =
         input.sourceKind === "video"
           ? await Promise.all(input.buffers.map(decodeImageToFrame))
-          : (
-              await Promise.all(input.buffers.map(decodeCaptureFrames))
-            ).flat();
+          : creatorOnlyScope
+            ? await decodeCaptureFramesFast(input.buffers[0]!)
+            : (await Promise.all(input.buffers.map(decodeCaptureFrames))).flat();
       return detectWatermarkInFrames(frames, candidates, {
-        exhaustive: input.sourceKind !== "video" && scopedSearch,
+        exhaustive: input.sourceKind !== "video" && scopedSearch && !creatorOnlyScope,
+        fast: creatorOnlyScope,
       });
     };
 

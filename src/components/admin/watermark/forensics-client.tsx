@@ -103,7 +103,6 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       setStage("Hashing source…");
       const clientFileHash = await hashFile(file);
 
-      setStage("Queuing analysis job…");
       const form = new FormData();
       frames.forEach((blob, i) => form.append("frames", blob, `frame-${i}.png`));
       form.append("sourceKind", isVideo ? "video" : "image");
@@ -112,13 +111,39 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       if (contentId.trim()) form.append("contentId", contentId.trim());
       if (normalizedSessionId) form.append("sessionId", normalizedSessionId);
 
+      setStage("Analyzing against creator sessions…");
       const res = await fetch("/api/admin/watermark/detect", {
         method: "POST",
         body: form,
       });
       const started = await res.json();
       if (!res.ok || !started.jobId) {
-        setError(started.error ?? "Analysis failed");
+        setError(humanizeDetectionError(started.error ?? "Analysis failed", contentId, creatorUsername));
+        return;
+      }
+
+      if (started.status === "COMPLETED" && started.result) {
+        setResult(started.result as AdminWatermarkDetectionResponse);
+        const r = started.result as AdminWatermarkDetectionResponse;
+        if (r.status === "NOT_DETECTED") {
+          const noiseLike = r.centralScore > 0.45 && r.centralScore < 0.58;
+          setError(
+            [
+              "워터마크 신호를 찾지 못했습니다.",
+              noiseLike
+                ? `공간 비트 일치 ${(r.centralScore * 100).toFixed(0)}%는 압축·텍스처 노이즈 수준이며, 워터마크가 아닙니다.`
+                : null,
+              "유료 미디어가 완전히 로드된 뒤 캡처했는지, 크리에이터 @아이디가 맞는지 확인하세요.",
+            ]
+              .filter(Boolean)
+              .join(" ")
+          );
+        }
+        return;
+      }
+
+      if (started.status === "FAILED") {
+        setError(humanizeDetectionError(started.error ?? "Analysis failed", contentId, creatorUsername));
         return;
       }
 

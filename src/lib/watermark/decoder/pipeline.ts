@@ -8,7 +8,7 @@ import {
 } from "@/lib/watermark/crypto/payload";
 import { REGION_RECOVERED_THRESHOLD } from "@/lib/watermark/decoder/confidence";
 import { verifyWatermarkFrame, type PixelFrame } from "@/lib/watermark/verify-watermark-frame";
-import { centerCropVariants, cropFrame, MIN_CROP, scaleFrameVariants } from "@/lib/watermark/decoder/crop-search";
+import { centerCropVariants, centerCropVariantsFast, cropFrame, MIN_CROP, scaleFrameVariants, scaleFrameVariantsFast } from "@/lib/watermark/decoder/crop-search";
 import {
   probeRegionBits,
 } from "@/lib/watermark/encoder/spread-spectrum";
@@ -134,6 +134,12 @@ function verifyCandidate(
   return result;
 }
 
+export type DetectFrameOptions = {
+  exhaustive?: boolean;
+  /** Creator-scoped admin path — fewer crops/scales/phases. */
+  fast?: boolean;
+};
+
 /**
  * Two-stage search: a short probe rejects the vast majority of
  * (session, frame phase) combinations, and only survivors pay for a full
@@ -143,8 +149,13 @@ function verifyCandidate(
 export function detectWatermarkInFrame(
   frame: PixelFrame,
   prepared: PreparedCandidate[],
-  exhaustive = false
+  options: boolean | DetectFrameOptions = false
 ): WatermarkDetectionResult {
+  const opts: DetectFrameOptions =
+    typeof options === "boolean" ? { exhaustive: options } : options;
+  const exhaustive = opts.exhaustive ?? false;
+  const fast = opts.fast ?? false;
+
   let best: WatermarkDetectionResult | null = null;
 
   const tryCandidate = (
@@ -157,8 +168,40 @@ export function detectWatermarkInFrame(
     return verifyCandidate(target, candidate, phase);
   };
 
-  for (const candidate of prepared) {
-    for (let phase = 0; phase < WATERMARK_TEMPORAL_PERIOD; phase++) {
+  const searchPhases = (target: PixelFrame, phases: number[]): boolean => {
+    for (const phase of phases) {
+      for (const candidate of prepared) {
+        const candidateResult = tryCandidate(candidate, phase, target);
+        if (candidateResult) {
+          const currentBest = best;
+          if (!currentBest || candidateResult.confidence > currentBest.confidence) {
+            best = candidateResult;
+          }
+        }
+        if (isStrongMatch(best)) return true;
+      }
+    }
+    return isStrongMatch(best);
+  };
+
+  // Client embed always uses phase 0.
+  if (searchPhases(frame, [0])) return best!;
+
+  if (fast) {
+    for (const scaled of scaleFrameVariantsFast(frame)) {
+      if (searchPhases(scaled, [0])) return best!;
+    }
+    for (const crop of centerCropVariantsFast(frame)) {
+      if (crop.width === frame.width && crop.height === frame.height) continue;
+      if (searchPhases(crop, [0])) return best!;
+    }
+    if (searchPhases(frame, [1, 2, 3, 4])) return best!;
+    if (meetsConfidenceThreshold(best, 0.55)) return best!;
+    return best ?? emptyResult();
+  }
+
+  for (let phase = 1; phase < WATERMARK_TEMPORAL_PERIOD; phase++) {
+    for (const candidate of prepared) {
       const candidateResult = tryCandidate(candidate, phase, frame);
       if (candidateResult) {
         const currentBest = best;
@@ -241,15 +284,18 @@ export function detectWatermarkInFrame(
 export function detectWatermarkInFrames(
   frames: PixelFrame[],
   candidates: DetectionCandidate[],
-  options?: { exhaustive?: boolean }
+  options?: { exhaustive?: boolean; fast?: boolean }
 ): WatermarkDetectionResult & { framesAnalyzed: number; candidateFrames: number } {
   const prepared = candidates.map(prepareCandidate);
-  const exhaustive = options?.exhaustive ?? frames.length === 1;
+  const frameOptions: DetectFrameOptions = {
+    exhaustive: options?.fast ? false : (options?.exhaustive ?? frames.length === 1),
+    fast: options?.fast ?? false,
+  };
   let best: WatermarkDetectionResult | null = null;
   let candidateFrames = 0;
 
   for (const frame of frames) {
-    const result = detectWatermarkInFrame(frame, prepared, exhaustive);
+    const result = detectWatermarkInFrame(frame, prepared, frameOptions);
     if (result.confidence > 0.35) candidateFrames++;
     if (!best || result.confidence > best.confidence) best = result;
     if (result.status === "MATCH" && result.integrityValid) {

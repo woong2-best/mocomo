@@ -72,6 +72,69 @@ export function centerCropVariants(frame: PixelFrame): PixelFrame[] {
   return out;
 }
 
+const FAST_SCALE_FACTORS = [1.25, 1.5] as const;
+
+function scaleFrameTo(frame: PixelFrame, scale: number): PixelFrame | null {
+  const width = Math.max(MIN_CROP, Math.round(frame.width * scale));
+  const height = Math.max(MIN_CROP, Math.round(frame.height * scale));
+  if (width === frame.width && height === frame.height) return null;
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    const sy = ((y + 0.5) / height) * frame.height - 0.5;
+    const y0 = Math.max(0, Math.floor(sy));
+    const y1 = Math.min(frame.height - 1, y0 + 1);
+    const fy = sy - y0;
+    for (let x = 0; x < width; x++) {
+      const sx = ((x + 0.5) / width) * frame.width - 0.5;
+      const x0 = Math.max(0, Math.floor(sx));
+      const x1 = Math.min(frame.width - 1, x0 + 1);
+      const fx = sx - x0;
+      const dst = (y * width + x) * 4;
+      for (let c = 0; c < 3; c++) {
+        const v00 = frame.data[(y0 * frame.width + x0) * 4 + c];
+        const v10 = frame.data[(y0 * frame.width + x1) * 4 + c];
+        const v01 = frame.data[(y1 * frame.width + x0) * 4 + c];
+        const v11 = frame.data[(y1 * frame.width + x1) * 4 + c];
+        const v0 = v00 * (1 - fx) + v10 * fx;
+        const v1 = v01 * (1 - fx) + v11 * fx;
+        data[dst + c] = Math.round(v0 * (1 - fy) + v1 * fy);
+      }
+      data[dst + 3] = 255;
+    }
+  }
+  return { width, height, data };
+}
+
+/** Few upscale variants for creator-scoped admin fast path. */
+export function scaleFrameVariantsFast(frame: PixelFrame): PixelFrame[] {
+  const out: PixelFrame[] = [];
+  for (const scale of FAST_SCALE_FACTORS) {
+    const scaled = scaleFrameTo(frame, scale);
+    if (scaled) out.push(scaled);
+  }
+  return out;
+}
+
+/** Few center crops for lightbox-style full-screen screenshots. */
+export function centerCropVariantsFast(frame: PixelFrame): PixelFrame[] {
+  const { width, height } = frame;
+  const out: PixelFrame[] = [frame];
+  const seen = new Set<string>([`${width}x${height}`]);
+  for (const cover of [0.42, 0.55, 0.68]) {
+    pushCrop(out, seen, frame, Math.round(width * cover), Math.round(height * cover));
+  }
+  for (const [aw, ah] of [
+    [16, 9],
+    [4, 3],
+  ] as const) {
+    const aspect = aw / ah;
+    const w = Math.round(width * 0.58);
+    const h = Math.round(w / aspect);
+    pushCrop(out, seen, frame, w, h);
+  }
+  return out;
+}
+
 /** Upscale variants for captures sampled below embed resolution (screenshots / phone photos). */
 export function scaleFrameVariants(frame: PixelFrame): PixelFrame[] {
   const scales = [
@@ -79,34 +142,8 @@ export function scaleFrameVariants(frame: PixelFrame): PixelFrame[] {
   ];
   const out: PixelFrame[] = [];
   for (const scale of scales) {
-    const width = Math.max(MIN_CROP, Math.round(frame.width * scale));
-    const height = Math.max(MIN_CROP, Math.round(frame.height * scale));
-    if (width === frame.width && height === frame.height) continue;
-    const data = new Uint8ClampedArray(width * height * 4);
-    for (let y = 0; y < height; y++) {
-      const sy = ((y + 0.5) / height) * frame.height - 0.5;
-      const y0 = Math.max(0, Math.floor(sy));
-      const y1 = Math.min(frame.height - 1, y0 + 1);
-      const fy = sy - y0;
-      for (let x = 0; x < width; x++) {
-        const sx = ((x + 0.5) / width) * frame.width - 0.5;
-        const x0 = Math.max(0, Math.floor(sx));
-        const x1 = Math.min(frame.width - 1, x0 + 1);
-        const fx = sx - x0;
-        const dst = (y * width + x) * 4;
-        for (let c = 0; c < 3; c++) {
-          const v00 = frame.data[(y0 * frame.width + x0) * 4 + c];
-          const v10 = frame.data[(y0 * frame.width + x1) * 4 + c];
-          const v01 = frame.data[(y1 * frame.width + x0) * 4 + c];
-          const v11 = frame.data[(y1 * frame.width + x1) * 4 + c];
-          const v0 = v00 * (1 - fx) + v10 * fx;
-          const v1 = v01 * (1 - fx) + v11 * fx;
-          data[dst + c] = Math.round(v0 * (1 - fy) + v1 * fy);
-        }
-        data[dst + 3] = 255;
-      }
-    }
-    out.push({ width, height, data });
+    const scaled = scaleFrameTo(frame, scale);
+    if (scaled) out.push(scaled);
   }
   return out;
 }

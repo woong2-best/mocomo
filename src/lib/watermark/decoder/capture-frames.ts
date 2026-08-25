@@ -5,13 +5,58 @@ import { decodeImageToFrame } from "@/lib/watermark/decoder/pipeline";
 /** Upscale factors for phone photos of a laptop screen and downscaled screenshots. */
 const CAPTURE_UPSCALE_FACTORS = [1.08, 1.12, 1.18, 1.25, 1.33, 1.42, 1.5, 1.75, 2];
 
+/** Admin creator-scope path — fewer variants, sub-second decode. */
+const FAST_CAPTURE_UPSCALE_FACTORS = [1.25, 1.5];
+
 const MAX_CAPTURE_FRAMES = 16;
+const MAX_FAST_CAPTURE_FRAMES = 3;
 
 function pushUnique(frames: PixelFrame[], seen: Set<string>, frame: PixelFrame) {
   const key = `${frame.width}x${frame.height}`;
   if (seen.has(key)) return;
   seen.add(key);
   frames.push(frame);
+}
+
+async function upscaleCaptureFrame(
+  buf: Buffer,
+  base: PixelFrame,
+  factor: number
+): Promise<PixelFrame | null> {
+  const sharp = (await import("sharp")).default;
+  const width = Math.max(MIN_CROP, Math.round(base.width * factor));
+  const height = Math.max(MIN_CROP, Math.round(base.height * factor));
+  if (width === base.width && height === base.height) return null;
+
+  const { data, info } = await sharp(buf)
+    .rotate()
+    .resize(width, height, { kernel: sharp.kernel.lanczos3 })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  return {
+    width: info.width,
+    height: info.height,
+    data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.byteLength),
+  };
+}
+
+/**
+ * Fast decode for creator-scoped admin search — base + 1–2 upscales only.
+ */
+export async function decodeCaptureFramesFast(buf: Buffer): Promise<PixelFrame[]> {
+  const base = await decodeImageToFrame(buf);
+  const frames: PixelFrame[] = [base];
+  const seen = new Set<string>([`${base.width}x${base.height}`]);
+
+  for (const factor of FAST_CAPTURE_UPSCALE_FACTORS) {
+    if (frames.length >= MAX_FAST_CAPTURE_FRAMES) break;
+    const upscaled = await upscaleCaptureFrame(buf, base, factor);
+    if (upscaled) pushUnique(frames, seen, upscaled);
+  }
+
+  return frames;
 }
 
 /**
@@ -26,22 +71,8 @@ export async function decodeCaptureFrames(buf: Buffer): Promise<PixelFrame[]> {
 
   for (const factor of CAPTURE_UPSCALE_FACTORS) {
     if (frames.length >= MAX_CAPTURE_FRAMES) break;
-    const width = Math.max(MIN_CROP, Math.round(base.width * factor));
-    const height = Math.max(MIN_CROP, Math.round(base.height * factor));
-    if (width === base.width && height === base.height) continue;
-
-    const { data, info } = await sharp(buf)
-      .rotate()
-      .resize(width, height, { kernel: sharp.kernel.lanczos3 })
-      .ensureAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-
-    pushUnique(frames, seen, {
-      width: info.width,
-      height: info.height,
-      data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.byteLength),
-    });
+    const upscaled = await upscaleCaptureFrame(buf, base, factor);
+    if (upscaled) pushUnique(frames, seen, upscaled);
   }
 
   if (frames.length < MAX_CAPTURE_FRAMES) {

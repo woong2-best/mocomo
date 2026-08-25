@@ -80,16 +80,46 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    const jobInput = {
+      buffers: parsed.buffers,
+      contentId: parsed.contentId,
+      sessionId,
+      creatorId,
+      sourceKind: parsed.sourceKind,
+      clientFileHash: parsed.clientFileHash,
+      actorId: actor.id,
+    };
+
+    const runInline =
+      Boolean(creatorId) &&
+      !parsed.contentId &&
+      !sessionId &&
+      parsed.sourceKind === "image";
+
+    if (runInline) {
+      await runDetectionJob(job.id, jobInput);
+      const finished = await db.watermarkDetectionJob.findUnique({ where: { id: job.id } });
+      if (finished?.status === "COMPLETED") {
+        return NextResponse.json({
+          ok: true,
+          jobId: job.id,
+          status: "COMPLETED",
+          result: finished.result,
+        });
+      }
+      return NextResponse.json(
+        {
+          ok: false,
+          jobId: job.id,
+          status: finished?.status ?? "FAILED",
+          error: finished?.error ?? "Analysis failed",
+        },
+        { status: 422 }
+      );
+    }
+
     after(async () => {
-      await runDetectionJob(job.id, {
-        buffers: parsed.buffers,
-        contentId: parsed.contentId,
-        sessionId,
-        creatorId,
-        sourceKind: parsed.sourceKind,
-        clientFileHash: parsed.clientFileHash,
-        actorId: actor.id,
-      });
+      await runDetectionJob(job.id, jobInput);
     });
 
     return NextResponse.json({ ok: true, jobId: job.id, status: "PENDING" }, { status: 202 });
