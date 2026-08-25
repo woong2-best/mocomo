@@ -188,12 +188,12 @@ export function detectWatermarkInFrame(
   if (searchPhases(frame, [0])) return best!;
 
   if (fast) {
-    for (const scaled of scaleFrameVariantsFast(frame)) {
-      if (searchPhases(scaled, [0])) return best!;
-    }
     for (const crop of centerCropVariantsFast(frame)) {
       if (crop.width === frame.width && crop.height === frame.height) continue;
       if (searchPhases(crop, [0])) return best!;
+    }
+    for (const scaled of scaleFrameVariantsFast(frame)) {
+      if (searchPhases(scaled, [0])) return best!;
     }
     if (searchPhases(frame, [1, 2, 3, 4])) return best!;
     if (meetsConfidenceThreshold(best, 0.55)) return best!;

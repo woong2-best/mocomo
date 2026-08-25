@@ -4,10 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import type { ForensicClientVerification } from "@/components/media/use-forensic-watermark-session";
-import {
-  embedInvisibleWatermark,
-  applyCaptureResilienceLayers,
-} from "@/lib/watermark/encoder/spread-spectrum";
+import { embedInvisibleWatermark } from "@/lib/watermark/encoder/spread-spectrum";
 import {
   emitForensicCanvasEvent,
   getForensicPipelineRecorder,
@@ -315,9 +312,7 @@ export function ForensicImageCanvas({
 
       const imageData = ctx.getImageData(0, 0, w, h);
       const frame = { width: w, height: h, data: imageData.data };
-      const preEmbed = new Uint8ClampedArray(imageData.data);
       embedInvisibleWatermark(frame, config, 0);
-      applyCaptureResilienceLayers(frame, preEmbed, config, 0);
       recorder.record({ stage: "WATERMARK_EMBEDDED", mediaId, sessionId: config.sessionId, attempt });
 
       if (!clientVerification?.opaqueWatermarkId || !clientVerification.expectedIntegrityB64) {

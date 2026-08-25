@@ -35,7 +35,7 @@ function syntheticImage(width: number, height: number): TestImage {
 
 async function fixture() {
   const { buildWatermarkPayload, toBase64 } = await import("@/lib/watermark/crypto/payload");
-  const { embedInvisibleWatermark, applyCaptureResilienceLayers } = await import(
+  const { embedInvisibleWatermark } = await import(
     "@/lib/watermark/encoder/spread-spectrum"
   );
   const { WATERMARK_TEMPORAL_PERIOD, WATERMARK_MODULATION_STRENGTH } = await import(
@@ -65,9 +65,7 @@ async function fixture() {
   const paintAtDisplaySize = (w: number, h: number) => {
     assert.equal(isForensicEmbedSizeReady({ cssWidth: w, cssHeight: h, width: w, height: h, devicePixelRatio: 1 }), true);
     const img = syntheticImage(w, h);
-    const preEmbed = new Uint8ClampedArray(img.data);
     embedInvisibleWatermark(img, config, 0);
-    applyCaptureResilienceLayers(img, preEmbed, config, 0);
     return verifyWatermarkFrame({
       frame: img,
       renderConfig: config,

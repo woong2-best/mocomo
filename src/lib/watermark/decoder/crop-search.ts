@@ -120,7 +120,7 @@ export function centerCropVariantsFast(frame: PixelFrame): PixelFrame[] {
   const { width, height } = frame;
   const out: PixelFrame[] = [frame];
   const seen = new Set<string>([`${width}x${height}`]);
-  for (const cover of [0.42, 0.55, 0.68]) {
+  for (const cover of [0.42, 0.55, 0.68, 0.75]) {
     pushCrop(out, seen, frame, Math.round(width * cover), Math.round(height * cover));
   }
   for (const [aw, ah] of [

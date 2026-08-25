@@ -175,13 +175,13 @@ async function main() {
   const config = makeConfig(built);
 
   const cases: Array<{ label: string; frame: Frame }> = [];
-  for (const size of [320, 360, 400]) {
+  for (const size of [320, 360, 400, 854, 960]) {
     cases.push({ label: `synthetic-${size}`, frame: synthetic(size, size) });
     cases.push({ label: `flat128-${size}`, frame: flat(size, size, 128) });
     cases.push({ label: `flat200-${size}`, frame: flat(size, size, 200) });
   }
 
-  console.log("Invisibility probe — gate: maxAbsLumaDelta <= 8 (embed-only, matches unit test)\n");
+  console.log("Invisibility probe — display path: embed-only maxAbsLumaDelta <= 8\n");
 
   let fail = false;
   for (const { label, frame } of cases) {
@@ -195,14 +195,15 @@ async function main() {
     const boostSsim = await ssim(frame, boostedEmbed);
 
     const ok = boostM.maxDelta <= 8 + 1e-6;
-    if (!ok) fail = true;
+    const flatOk = !label.startsWith("flat") || boostM.maxDelta <= (frame.width >= 854 ? 2.5 : 8);
+    if (!ok || !flatOk) fail = true;
 
     console.log(
       `${label} scale=${scale.toFixed(2)}`,
       `\n  legacy-embed  maxΔ=${legM.maxDelta.toFixed(2)} PSNR=${legM.psnr.toFixed(1)}dB`,
       `\n  boosted-embed maxΔ=${boostM.maxDelta.toFixed(2)} PSNR=${boostM.psnr.toFixed(1)}dB SSIM=${boostSsim.toFixed(5)}`,
       `\n  boosted+resil maxΔ=${fullM.maxDelta.toFixed(2)} PSNR=${fullM.psnr.toFixed(1)}dB`,
-      ok ? " PASS" : " FAIL"
+      ok && flatOk ? " PASS" : " FAIL"
     );
 
     if (label.startsWith("flat128-320") || label.startsWith("synthetic-320")) {

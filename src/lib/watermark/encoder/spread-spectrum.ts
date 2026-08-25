@@ -64,9 +64,10 @@ function captureResiliencePlan(width: number, height: number, subScales: number[
     return { scales: [] as number[], layerWeight: 0 };
   }
   if (longEdge < 480) {
-    return { scales: subScales.filter((s) => s >= 0.8).slice(0, 1), layerWeight: 0.55 };
+    return { scales: subScales.filter((s) => s >= 0.85).slice(0, 1), layerWeight: 0.15 };
   }
-  return { scales: subScales, layerWeight: 0.9 };
+  // One light subgrid layer — full 0.9 weight + nearest upscale creates visible blotches.
+  return { scales: [subScales[0] ?? 0.85], layerWeight: 0.2 };
 }
 
 function clamp(v: number): number {
@@ -95,6 +96,34 @@ function applyPairDelta(
 function luma(data: Uint8ClampedArray, idx: number): number {
   return data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
 }
+
+/** Reference luma variance for a typical photo region (~13–14 std dev). */
+const TEXTURE_VARIANCE_REF = 180;
+
+/**
+ * Scale embed strength by local texture — flat UI backgrounds get a much weaker
+ * delta so spread-spectrum noise stays below human perception.
+ */
+function regionTextureScale(data: Uint8ClampedArray, width: number, region: QuadrantRegion): number {
+  let sum = 0;
+  let sumSq = 0;
+  let n = 0;
+  const step = Math.max(2, Math.floor(Math.min(region.w, region.h) / 32));
+  for (let y = region.y; y < region.y + region.h; y += step) {
+    for (let x = region.x; x < region.x + region.w; x += step) {
+      const idx = (y * width + x) * 4;
+      const lv = luma(data, idx);
+      sum += lv;
+      sumSq += lv * lv;
+      n++;
+    }
+  }
+  if (n < 2) return 1;
+  const mean = sum / n;
+  const variance = Math.max(0, sumSq / n - mean * mean);
+  return Math.max(0.32, Math.min(1, Math.sqrt(variance / TEXTURE_VARIANCE_REF)));
+}
+
 
 function gcd(a: number, b: number): number {
   while (b) {
@@ -253,13 +282,16 @@ export function embedRegionPixels(
   temporalShift: number
 ): void {
   const quadrants = splitCodewordToQuadrants(fromBase64(config.codewordB64));
-  const strength = (config.modulationStrength || getWatermarkModulationStrength()) * plan.strengthScale;
+  const sizeScale = forensicModulationScaleForSize(pixels.width, pixels.height);
+  const baseStrength = (config.modulationStrength || getWatermarkModulationStrength()) * sizeScale;
+  const region = { key: plan.region.key, x: 0, y: 0, w: plan.region.w, h: plan.region.h };
+  const textureScale = regionTextureScale(pixels.data, pixels.width, region);
   embedBitsInRegion(
     pixels,
-    { key: plan.region.key, x: 0, y: 0, w: plan.region.w, h: plan.region.h },
+    region,
     bytesToBits(quadrants[plan.region.key]),
     fromBase64(config.spreadSeedB64),
-    strength,
+    baseStrength * plan.strengthScale * textureScale,
     temporalShift,
     plan.salt
   );
@@ -282,12 +314,13 @@ export function embedInvisibleWatermark(
   );
 
   for (const plan of regions) {
+    const textureScale = regionTextureScale(image.data, image.width, plan.region);
     embedBitsInRegion(
       image,
       plan.region,
       bytesToBits(quadrants[plan.region.key]),
       spreadSeed,
-      strength * plan.strengthScale,
+      strength * plan.strengthScale * textureScale,
       temporalShift,
       plan.salt
     );
