@@ -86,6 +86,7 @@ const LIGHTBOX_SIZES: Array<[number, number]> = [
   [854, 480],
   [640, 360],
   [480, 360],
+  [320, 320],
   [320, 240],
 ];
 

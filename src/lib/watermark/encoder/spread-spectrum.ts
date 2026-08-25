@@ -30,6 +30,43 @@ export const WATERMARK_STREAM_BITS = WATERMARK_CODEWORD_BYTES * 8;
  *  stay invisible. */
 const PAIRS_PER_REPEAT = 12;
 const REPEATS_PER_BIT = 4;
+const IDEAL_SLOTS_PER_BIT = PAIRS_PER_REPEAT * REPEATS_PER_BIT;
+
+function minCentralSlotsPerBit(width: number, height: number): number {
+  let min = IDEAL_SLOTS_PER_BIT;
+  for (const region of centralQuadrantRegions(width, height)) {
+    const cellsX = Math.max(1, Math.floor(region.w / 2));
+    const cellsY = Math.max(1, region.h);
+    const cells = cellsX * cellsY;
+    const perBit = Math.max(
+      1,
+      Math.min(IDEAL_SLOTS_PER_BIT, Math.floor(cells / WATERMARK_STREAM_BITS))
+    );
+    min = Math.min(min, perBit);
+  }
+  return min;
+}
+
+/**
+ * Boost luminance delta only at the 320px floor where slots/bit drops to ~5.
+ * Cap stays conservative so max luma delta remains within the invisibility gate (≤8).
+ */
+export function forensicModulationScaleForSize(width: number, height: number): number {
+  const minSlots = minCentralSlotsPerBit(width, height);
+  if (minSlots > 5) return 1;
+  return Math.min(1.5, Math.sqrt(IDEAL_SLOTS_PER_BIT / minSlots));
+}
+
+function captureResiliencePlan(width: number, height: number, subScales: number[]) {
+  const longEdge = Math.max(width, height);
+  if (longEdge < 360) {
+    return { scales: [] as number[], layerWeight: 0 };
+  }
+  if (longEdge < 480) {
+    return { scales: subScales.filter((s) => s >= 0.8).slice(0, 1), layerWeight: 0.55 };
+  }
+  return { scales: subScales, layerWeight: 0.9 };
+}
 
 function clamp(v: number): number {
   return Math.max(0, Math.min(255, Math.round(v)));
@@ -218,7 +255,8 @@ export function embedInvisibleWatermark(
 ): void {
   const quadrants = splitCodewordToQuadrants(fromBase64(config.codewordB64));
   const spreadSeed = fromBase64(config.spreadSeedB64);
-  const strength = config.modulationStrength || getWatermarkModulationStrength();
+  const sizeScale = forensicModulationScaleForSize(image.width, image.height);
+  const strength = (config.modulationStrength || getWatermarkModulationStrength()) * sizeScale;
   const { temporalShift, regions } = forensicFrameRegions(
     image.width,
     image.height,
@@ -391,9 +429,10 @@ export function applyCaptureResilienceLayers(
   frameIndex = 0,
   subScales: number[] = [0.82, 0.72]
 ): void {
-  for (const subScale of subScales) {
+  const { scales, layerWeight } = captureResiliencePlan(image.width, image.height, subScales);
+  for (const subScale of scales) {
     if (subScale >= 0.98) continue;
-    mergeSubgridLayer(image, preEmbedPixels, subScale, config, frameIndex, 0.9);
+    mergeSubgridLayer(image, preEmbedPixels, subScale, config, frameIndex, layerWeight);
   }
 }
 
