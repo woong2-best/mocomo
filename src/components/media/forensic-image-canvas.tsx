@@ -349,6 +349,8 @@ export function ForensicImageCanvas({
       });
 
       ctx.putImageData(imageData, 0, 0);
+      wrap.style.zIndex = "2";
+      canvas.setAttribute("data-forensic-canvas", "ready");
       readyRef.current = true;
       if (!notifiedRef.current) {
         notifiedRef.current = true;

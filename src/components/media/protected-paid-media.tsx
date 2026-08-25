@@ -278,13 +278,12 @@ export function ProtectedPaidMedia({
               />
             </div>
           ) : null}
-          {(forensicLoading || (blockUntilForensicReady && !forensicReady && !forensicBlocked)) ? (
+          {forensicLoading ? (
             <div
               className={cn(
                 "absolute inset-0 z-[10] flex items-center justify-center",
                 blockUntilForensicReady && !fillsTile ? "bg-black" : "bg-black/25"
               )}
-              aria-hidden={!forensicLoading}
             >
               <Loader2 className="h-8 w-8 animate-spin text-white/80" aria-hidden />
             </div>
