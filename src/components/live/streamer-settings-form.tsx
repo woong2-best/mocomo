@@ -35,7 +35,9 @@ export function StreamerSettingsForm({
         />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground">스트리머 공지</label>
+        <label className="text-xs text-muted-foreground">
+          라이브 고정 메시지 (채팅 상단에 표시 · 링크·#태그 가능)
+        </label>
         <textarea
           value={announcement}
           onChange={(e) => setAnnouncement(e.target.value)}

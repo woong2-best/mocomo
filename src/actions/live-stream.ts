@@ -265,7 +265,7 @@ export async function getLiveChannelRoomMeta(channelId: string, viewerId?: strin
     const needFollow =
       !!viewerId && viewerId !== channel.createdBy;
 
-    const [host, tips, followRow] = await Promise.all([
+    const [host, tips, followRow, streamerProfile] = await Promise.all([
       db.user.findUnique({
         where: { id: channel.createdBy },
         select: {
@@ -289,6 +289,10 @@ export async function getLiveChannelRoomMeta(channelId: string, viewerId?: strin
             select: { followerId: true },
           })
         : Promise.resolve(null),
+      db.streamerProfile.findUnique({
+        where: { userId: channel.createdBy },
+        select: { announcement: true },
+      }),
     ]);
 
     if (!host) return null;
@@ -299,6 +303,7 @@ export async function getLiveChannelRoomMeta(channelId: string, viewerId?: strin
       tipTotalKrw: tips.tipTotalKrw,
       tipRanking: tips.tipRanking,
       hostFollowing: !!followRow,
+      hostPinnedMessage: streamerProfile?.announcement?.trim() || null,
     };
   } catch (e) {
     console.error("[getLiveChannelRoomMeta]", e);

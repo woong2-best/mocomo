@@ -115,7 +115,7 @@ export default async function VoiceRoomPage({
     );
   }
 
-  const { channel, host, tipTotalKrw, tipRanking, hostFollowing } = meta;
+  const { channel, host, tipTotalKrw, tipRanking, hostFollowing, hostPinnedMessage } = meta;
   const paymentsEnabled = isPaymentsConfigured();
 
   const isExternal =
@@ -155,7 +155,7 @@ export default async function VoiceRoomPage({
           watchUrl={channel.externalWatchUrl || resolved.watchUrl}
           embedSupported={resolved.embedSupported}
           category={channel.category}
-          tags={channel.tags}
+          pinnedMessage={hostPinnedMessage}
           donationGoalKrw={channel.donationGoalKrw}
           tipTotalKrw={tipTotalKrw}
           tipRanking={ensureArray<{ username: string; amount: number }>(tipRanking)}

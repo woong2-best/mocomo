@@ -24,7 +24,7 @@ type Props = {
   watchUrl: string;
   embedSupported: boolean;
   category?: LiveStreamCategory;
-  tags?: string[];
+  pinnedMessage?: string | null;
   donationGoalKrw?: number | null;
   tipTotalKrw?: number;
   tipRanking?: { username: string; amount: number }[];
@@ -76,7 +76,7 @@ export function ExternalLiveRoom({
   watchUrl,
   embedSupported,
   category,
-  tags = [],
+  pinnedMessage,
   donationGoalKrw,
   tipTotalKrw,
   tipRanking,
@@ -169,7 +169,7 @@ export function ExternalLiveRoom({
                 paymentsEnabled={paymentsEnabled}
                 viewerSupportTier={viewerSupportTier ?? undefined}
                 viewerSupportTotal={viewerSupportTotal}
-                tags={tags}
+                pinnedMessage={pinnedMessage}
                 variant="external"
               />
             </LiveSupportProvider>

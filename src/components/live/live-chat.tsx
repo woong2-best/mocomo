@@ -17,7 +17,7 @@ import { ensureArray } from "@/lib/ensure-array";
 import { LiveDonationToolbar } from "@/components/live/live-donation-toolbar";
 import { ExternalLiveDonationBar } from "@/components/live/external-live-donation-bar";
 import { LiveSupportSidebar } from "@/components/live/live-support-sidebar";
-import { LiveRoomTagsBar } from "@/components/live/live-room-tags-bar";
+import { LivePinnedMessageBar } from "@/components/live/live-pinned-message-bar";
 
 export type LiveChatMessage = {
   id: string;
@@ -42,7 +42,7 @@ function LiveChatInner({
   viewerSupportTier,
   viewerSupportTotal,
   paymentsEnabled,
-  tags,
+  pinnedMessage,
   variant = "default",
 }: {
   channelId: string;
@@ -56,8 +56,8 @@ function LiveChatInner({
   viewerSupportTier?: SupportTierLevel;
   viewerSupportTotal?: number;
   paymentsEnabled?: boolean;
-  tags?: string[];
-  /** external = sidebar layout for YouTube/Twitch/Chzzk viewer (theme-aware) */
+  /** Streamer pinned notice (links OK) — external live chat header */
+  pinnedMessage?: string | null;
   variant?: "default" | "external";
 }) {
   const { data: session } = useSession();
@@ -170,9 +170,9 @@ function LiveChatInner({
           {viewerCount}
         </span>
       </div>
-      {isExternal && tags && tags.length > 0 ? (
+      {isExternal ? (
         <div className="shrink-0 px-2 pt-2">
-          <LiveRoomTagsBar tags={tags} />
+          <LivePinnedMessageBar message={pinnedMessage} />
         </div>
       ) : null}
       {(!isExternal || isHost) && (
