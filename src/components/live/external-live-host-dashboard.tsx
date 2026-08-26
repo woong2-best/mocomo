@@ -1,15 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Copy,
-  MessageSquare,
-  Monitor,
-  Radio,
-} from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Copy, Monitor, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { mintLiveOverlayUrls } from "@/actions/live-external";
 import { useLiveChatOptional } from "@/components/live/live-chat-provider";
@@ -25,30 +17,27 @@ type Props = {
   externalId: string;
 };
 
-type CopyKind = "chat" | "donation";
-
 function StatusDot({ ok }: { ok: boolean | null }) {
   const color =
     ok === true ? "bg-green-500" : ok === false ? "bg-amber-500" : "bg-muted-foreground/40";
   return <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${color}`} aria-hidden />;
 }
 
-/** Host-only panel: platform/chat/OBS status for external live rooms. */
+/** Host-only panel: OBS chat URL + live status. */
 export function ExternalLiveHostDashboard({ channelId, provider, externalId }: Props) {
   const chat = useLiveChatOptional();
   const platform = usePlatformChat();
-  const isYoutube = provider === "YOUTUBE";
-  const [expanded, setExpanded] = useState(isYoutube);
+  const [expanded, setExpanded] = useState(true);
   const [platformOnAir, setPlatformOnAir] = useState<boolean | null>(null);
-  const [overlayUrls, setOverlayUrls] = useState<{ chat: string; donation: string } | null>(
-    null
-  );
-  const [copied, setCopied] = useState<CopyKind | null>(null);
+  const [obsChatUrl, setObsChatUrl] = useState<string | null>(null);
+  const [donationUrl, setDonationUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState<"chat" | "donation" | null>(null);
 
   const platformLabel = providerDisplayName(provider);
   const mocomoCount = chat?.messages.length ?? 0;
   const platformCount = platform.messages.length;
   const videoId = externalId.trim();
+  const isYoutube = provider === "YOUTUBE";
 
   useEffect(() => {
     let cancelled = false;
@@ -80,17 +69,15 @@ export function ExternalLiveHostDashboard({ channelId, provider, externalId }: P
     void mintLiveOverlayUrls(channelId).then((res) => {
       if (cancelled || "error" in res) return;
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      setOverlayUrls({
-        chat: `${origin}${res.chatUrl}`,
-        donation: `${origin}${res.donationUrl}`,
-      });
+      setObsChatUrl(`${origin}${res.chatUrl}`);
+      setDonationUrl(`${origin}${res.donationUrl}`);
     });
     return () => {
       cancelled = true;
     };
   }, [channelId]);
 
-  const copyText = useCallback(async (text: string, kind: CopyKind) => {
+  const copyText = useCallback(async (text: string, kind: "chat" | "donation") => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(kind);
@@ -126,44 +113,6 @@ export function ExternalLiveHostDashboard({ channelId, provider, externalId }: P
     [chat?.connected, platform.platformConnected, platformLabel, platformOnAir]
   );
 
-  const mocomoOverlaySection = (opts?: { youtubeEasy?: boolean }) => (
-    <div className="space-y-2">
-      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Monitor className="h-3.5 w-3.5" />
-        {opts?.youtubeEasy ? "MoCoMo 통합 채팅 OBS (간편 · 추천)" : "MoCoMo OBS 브라우저 소스"}
-      </p>
-      {overlayUrls ? (
-        <div className="space-y-2">
-          <OverlayUrlRow
-            label={
-              opts?.youtubeEasy
-                ? "통합 채팅 URL — OBS URL란에만 붙여넣기 (CSS 불필요)"
-                : "통합 채팅 (MoCoMo + 플랫폼)"
-            }
-            url={overlayUrls.chat}
-            copied={copied === "chat"}
-            onCopy={() => void copyText(overlayUrls.chat, "chat")}
-            highlight={opts?.youtubeEasy}
-          />
-          <OverlayUrlRow
-            label="후원 알림"
-            url={overlayUrls.donation}
-            copied={copied === "donation"}
-            onCopy={() => void copyText(overlayUrls.donation, "donation")}
-          />
-        </div>
-      ) : (
-        <p className="text-xs text-muted-foreground">오버레이 URL 불러오는 중…</p>
-      )}
-      <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
-        <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        {opts?.youtubeEasy
-          ? "YouTube + MoCoMo 채팅이 한 화면에 나옵니다. 네이티브 방식이 안 될 때 이 URL만 쓰면 됩니다. 크기 450×700 · 배경 투명 ✓"
-          : `MoCoMo 통합 오버레이는 DB 채팅 + ${platformLabel} 채팅을 한 타임라인에 표시합니다.`}
-      </p>
-    </div>
-  );
-
   return (
     <div className="mb-3 rounded-xl border bg-card">
       <button
@@ -176,7 +125,6 @@ export function ExternalLiveHostDashboard({ channelId, provider, externalId }: P
           <span className="text-sm font-medium">호스트 대시보드</span>
           <span className="truncate text-xs text-muted-foreground">
             MoCoMo {mocomoCount} · {UNIFIED_CHAT_SOURCE_LABEL[provider]} {platformCount}
-            {isYoutube ? " · OBS 설정" : ""}
           </span>
         </div>
         {expanded ? (
@@ -188,6 +136,39 @@ export function ExternalLiveHostDashboard({ channelId, provider, externalId }: P
 
       {expanded ? (
         <div className="space-y-3 border-t px-3 pb-3 pt-2">
+          <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-3">
+            <p className="flex items-center gap-1.5 text-sm font-semibold">
+              <Monitor className="h-4 w-4 text-primary" />
+              OBS 채팅 URL (댓글만)
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+              OBS → 브라우저 소스 → <strong className="text-foreground">URL란에 아래 주소만</strong>{" "}
+              붙여넣기. MoCoMo 사이트 화면이 아니라 <strong className="text-foreground">채팅
+              댓글만</strong> 나옵니다. CSS 불필요 · 450×700 · 배경 투명 ✓
+            </p>
+            {obsChatUrl ? (
+              <>
+                <Button
+                  type="button"
+                  className="mt-3 h-11 w-full gap-2 text-sm font-semibold"
+                  onClick={() => void copyText(obsChatUrl, "chat")}
+                >
+                  {copied === "chat" ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  {copied === "chat" ? "URL 복사됨 — OBS URL란에 붙여넣기" : "OBS 채팅 URL 복사"}
+                </Button>
+                <p className="mt-2 break-all rounded-md bg-background/80 px-2 py-1.5 font-mono text-[10px] text-muted-foreground">
+                  {obsChatUrl}
+                </p>
+              </>
+            ) : (
+              <p className="mt-2 text-xs text-muted-foreground">URL 불러오는 중…</p>
+            )}
+          </div>
+
           <div className="grid gap-2 sm:grid-cols-3">
             {statusRows.map((row) => (
               <div
@@ -203,56 +184,40 @@ export function ExternalLiveHostDashboard({ channelId, provider, externalId }: P
             ))}
           </div>
 
-          {isYoutube ? (
-            <>
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
-                {mocomoOverlaySection({ youtubeEasy: true })}
-              </div>
-              {videoId ? (
-                <details className="rounded-lg border bg-muted/20 px-2.5 py-2">
-                  <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
-                    YouTube 네이티브 채팅 (이모지·슈퍼챗 · 고급)
-                  </summary>
-                  <div className="mt-2">
-                    <YoutubeObsQuickSetup videoId={videoId} />
+          <details className="rounded-lg border bg-muted/20 px-2.5 py-2 text-[11px]">
+            <summary className="cursor-pointer font-medium text-muted-foreground hover:text-foreground">
+              후원 알림 · YouTube 네이티브 (선택)
+            </summary>
+            <div className="mt-2 space-y-2">
+              {donationUrl ? (
+                <div className="rounded-lg border bg-background/60 p-2">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium">후원 알림 URL</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1 px-2"
+                      onClick={() => void copyText(donationUrl, "donation")}
+                    >
+                      {copied === "donation" ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                      {copied === "donation" ? "복사됨" : "복사"}
+                    </Button>
                   </div>
-                </details>
+                  <p className="break-all font-mono text-[10px] text-muted-foreground">
+                    {donationUrl}
+                  </p>
+                </div>
               ) : null}
-            </>
-          ) : (
-            mocomoOverlaySection()
-          )}
+              {isYoutube && videoId ? <YoutubeObsQuickSetup videoId={videoId} /> : null}
+            </div>
+          </details>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function OverlayUrlRow({
-  label,
-  url,
-  copied,
-  onCopy,
-  highlight,
-}: {
-  label: string;
-  url: string;
-  copied: boolean;
-  onCopy: () => void;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-lg border bg-background/60 p-2 ${highlight ? "border-primary/40 ring-1 ring-primary/20" : ""}`}
-    >
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="text-xs font-medium">{label}</span>
-        <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2" onClick={onCopy}>
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          {copied ? "복사됨" : "복사"}
-        </Button>
-      </div>
-      <p className="break-all font-mono text-[10px] text-muted-foreground">{url}</p>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-/** Minimal chrome for OBS browser sources — transparent page. */
-export default function OverlayLayout({ children }: { children: ReactNode }) {
+/** OBS browser source — no site chrome, transparent background. */
+export default function ObsLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <style

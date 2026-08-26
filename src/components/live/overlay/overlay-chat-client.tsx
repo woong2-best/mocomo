@@ -14,10 +14,7 @@ export function OverlayChatClient({
   channelId: string;
   token: string;
 }) {
-  const { messages, meta, platformConnected, streamEnded } = useOverlayUnifiedChat(
-    channelId,
-    token
-  );
+  const { messages, streamEnded } = useOverlayUnifiedChat(channelId, token);
 
   return (
     <div
@@ -43,21 +40,6 @@ export function OverlayChatClient({
         >
           방송이 종료되었습니다.
         </p>
-      ) : null}
-      {meta ? (
-        <div
-          style={{
-            position: "fixed",
-            top: 8,
-            right: 8,
-            fontSize: 11,
-            color: "rgba(255,255,255,0.55)",
-            textShadow: "0 1px 2px rgba(0,0,0,0.85)",
-          }}
-        >
-          MoCoMo + {UNIFIED_CHAT_SOURCE_LABEL[meta.provider]}
-          {platformConnected ? " · 연결됨" : ""}
-        </div>
       ) : null}
       {messages.map((m) => (
         <div

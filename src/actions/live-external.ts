@@ -176,7 +176,7 @@ export async function createExternalLiveStream(data: {
       embedSupported: parsed.provider === "CHZZK" ? chzzkEmbedOk : parsed.embedSupported,
       overlay: {
         chatUrl: chatToken
-          ? `/overlay/chat/${channel.id}?token=${encodeURIComponent(chatToken)}`
+          ? `/obs/chat/${channel.id}?token=${encodeURIComponent(chatToken)}`
           : null,
         donationUrl: donationToken
           ? `/overlay/donation/${channel.id}?token=${encodeURIComponent(donationToken)}`
@@ -224,7 +224,7 @@ export async function mintLiveOverlayUrls(channelId: string) {
       : null;
 
   return {
-    chatUrl: `/overlay/chat/${channelId}?token=${encodeURIComponent(chatToken)}`,
+    chatUrl: `/obs/chat/${channelId}?token=${encodeURIComponent(chatToken)}`,
     donationUrl: `/overlay/donation/${channelId}?token=${encodeURIComponent(donationToken)}`,
     youtubeNative,
   };

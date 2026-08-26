@@ -28,7 +28,13 @@ function ShellSwitch({
   const pathname = usePathname();
   const { isNativeApp } = useClientPlatform();
 
-  if (pathname?.startsWith("/studio") || pathname?.startsWith("/admin") || isStudioHost) {
+  if (
+    pathname?.startsWith("/studio") ||
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/overlay") ||
+    pathname?.startsWith("/obs") ||
+    isStudioHost
+  ) {
     return <>{children}</>;
   }
 

@@ -210,7 +210,7 @@ export async function POST(req: NextRequest) {
       embedSupported: parsed.provider === "CHZZK" ? chzzkEmbedOk : parsed.embedSupported,
       overlay: {
         chatUrl: chatToken
-          ? `/overlay/chat/${channel.id}?token=${encodeURIComponent(chatToken)}`
+          ? `/obs/chat/${channel.id}?token=${encodeURIComponent(chatToken)}`
           : null,
       },
     });

@@ -72,8 +72,8 @@ export function ExternalLiveNewForm({ accounts }: Props) {
         <p className="text-sm text-muted-foreground">
           영상은 해당 플랫폼 플레이어로만 보여 줍니다. 채팅·후원은 MoCoMo에서 제공됩니다.
           {selected?.platform === "YOUTUBE"
-            ? " YouTube는 방 시작 후 호스트 대시보드에서 OBS 채팅 설정을 한 번에 복사할 수 있습니다."
-            : " OBS 채팅 오버레이는 MoCoMo + 플랫폼 채팅을 합쳐 표시합니다."}{" "}
+            ? " 방 시작 후 호스트 대시보드에서 OBS 채팅 URL(댓글만)을 복사해 OBS에 넣으면 됩니다."
+            : " OBS 채팅은 호스트 대시보드에서 URL 복사 → OBS 브라우저 소스 URL란."}{" "}
           후원은 인증된 본인 계정의 방송에서만 받을 수 있습니다.
         </p>
       </CardHeader>
