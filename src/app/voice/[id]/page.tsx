@@ -1,6 +1,6 @@
 import { getCachedSession } from "@/lib/auth";
 import { LiveRoomEntry } from "@/components/live/live-room-entry";
-import { ExternalLiveRoom } from "@/components/live/external-live-room";
+import { ExternalLiveRoomClient } from "@/components/live/external-live-room-client";
 import { getCachedLiveRoomMeta } from "@/lib/cached-live-meta";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
@@ -145,7 +145,7 @@ export default async function VoiceRoomPage({
     return (
       <LiveRoomPageShell isHost={isHost}>
         {!isHost && <LiveVoiceViewerBackLink />}
-        <ExternalLiveRoom
+        <ExternalLiveRoomClient
           channelId={id}
           title={channel.name}
           platformTitle={platformMeta.title}

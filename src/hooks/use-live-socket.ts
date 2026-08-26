@@ -78,3 +78,18 @@ export function subscribeLiveChat(
     socket.off("live_viewers", onViewersEvt);
   };
 }
+
+export function subscribeLiveEnded(
+  socket: Socket | null,
+  channelId: string,
+  onEnded: () => void
+) {
+  if (!socket) return () => {};
+  const handler = (payload: { channelId?: string }) => {
+    if (payload.channelId === channelId) onEnded();
+  };
+  socket.on("live_ended", handler);
+  return () => {
+    socket.off("live_ended", handler);
+  };
+}

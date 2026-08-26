@@ -51,7 +51,11 @@ export function ExternalLiveNewForm({ accounts }: Props) {
         goLive: true,
       });
       if ("error" in result && result.error) {
-        setError(result.error);
+        const suffix =
+          "existingChannelId" in result && result.existingChannelId
+            ? ` (이전 방송: /voice/${result.existingChannelId})`
+            : "";
+        setError(`${result.error}${suffix}`);
         return;
       }
       if ("channel" in result && result.channel) {

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ExternalLivePlayer } from "@/components/live/external-live-player";
 import { ExternalLiveStreamInfo } from "@/components/live/external-live-stream-info";
 import { LiveChat } from "@/components/live/live-chat";
-import { LiveChatProvider } from "@/components/live/live-chat-provider";
+import { LiveChatProvider, useLiveChatOptional } from "@/components/live/live-chat-provider";
 import { LiveSupportProvider } from "@/components/live/live-support-provider";
 import { LiveDonationBar } from "@/components/live/live-donation-bar";
 import { ensureArray } from "@/lib/ensure-array";
@@ -12,6 +12,7 @@ import type { LiveExternalProvider } from "@/lib/live-external/types";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { formatUsd } from "@/lib/money";
 import { Trophy } from "lucide-react";
+import { subscribeLiveEnded } from "@/hooks/use-live-socket";
 
 type Props = {
   channelId: string;
@@ -41,7 +42,25 @@ type Props = {
   hostFollowing?: boolean;
   viewerSupportTier?: SupportTierLevel | null;
   viewerSupportTotal?: number;
+  onPlatformEnded?: () => void;
 };
+
+function ExternalLiveEndWatcher({
+  channelId,
+  onEnded,
+}: {
+  channelId: string;
+  onEnded?: () => void;
+}) {
+  const chat = useLiveChatOptional();
+
+  useEffect(() => {
+    if (!onEnded) return;
+    return subscribeLiveEnded(chat?.socket ?? null, channelId, onEnded);
+  }, [chat?.socket, channelId, onEnded]);
+
+  return null;
+}
 
 /**
  * External live viewer v2 — Twitch-style grid: embed + metadata | chat sidebar.
@@ -68,6 +87,7 @@ export function ExternalLiveRoom({
   hostFollowing,
   viewerSupportTier,
   viewerSupportTotal,
+  onPlatformEnded,
 }: Props) {
   const [viewerCount, setViewerCount] = useState(0);
   const displayTitle = platformTitle?.trim() || title;
@@ -87,6 +107,7 @@ export function ExternalLiveRoom({
             isHost={isHost}
             hostImage={host.image}
             hostUsername={host.username}
+            onPlatformEnded={onPlatformEnded}
           />
           <ExternalLiveStreamInfo
             channelId={channelId}
@@ -129,6 +150,7 @@ export function ExternalLiveRoom({
             onViewerCount={setViewerCount}
             chatOverlayInitial={false}
           >
+            <ExternalLiveEndWatcher channelId={channelId} onEnded={onPlatformEnded} />
             <LiveSupportProvider
               channelId={channelId}
               isHost={isHost}

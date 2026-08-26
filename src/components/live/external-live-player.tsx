@@ -5,12 +5,17 @@
  * Works for YouTube, Twitch, and Chzzk embeds.
  */
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { ExternalLink, Link2, Maximize2, Radio } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { YoutubeEmbedGuide } from "@/components/live/youtube-embed-guide";
 import { providerDisplayName } from "@/lib/live-external/platform-metadata";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
+
+const YT_EMBED_ORIGINS = new Set([
+  "https://www.youtube.com",
+  "https://www.youtube-nocookie.com",
+]);
 
 type Props = {
   provider: LiveExternalProvider;
@@ -21,6 +26,7 @@ type Props = {
   isHost?: boolean;
   hostImage?: string | null;
   hostUsername?: string;
+  onPlatformEnded?: () => void;
 };
 
 export function ExternalLivePlayer({
@@ -32,9 +38,53 @@ export function ExternalLivePlayer({
   isHost = false,
   hostImage,
   hostUsername,
+  onPlatformEnded,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const sawLiveRef = useRef(false);
+  const endedRef = useRef(false);
   const showIframe = embedSupported && !!embedUrl;
+
+  const signalEnded = useCallback(() => {
+    if (endedRef.current || !onPlatformEnded) return;
+    endedRef.current = true;
+    onPlatformEnded();
+  }, [onPlatformEnded]);
+
+  useEffect(() => {
+    if (provider !== "YOUTUBE" || !onPlatformEnded) return;
+
+    function onMessage(event: MessageEvent) {
+      if (!YT_EMBED_ORIGINS.has(event.origin)) return;
+      if (typeof event.data !== "string" || !event.data.startsWith("{")) return;
+      try {
+        const data = JSON.parse(event.data) as {
+          event?: string;
+          info?: Record<string, unknown> & {
+            isLive?: boolean;
+            videoData?: { isLive?: boolean };
+            playerState?: number;
+          };
+        };
+
+        if (data.event === "infoDelivery" && data.info) {
+          const liveFlag =
+            data.info.isLive ?? data.info.videoData?.isLive;
+          if (liveFlag === true) sawLiveRef.current = true;
+          if (liveFlag === false && sawLiveRef.current) signalEnded();
+        }
+
+        if (data.event === "onStateChange" && data.info === 0 && sawLiveRef.current) {
+          signalEnded();
+        }
+      } catch {
+        /* ignore non-JSON postMessages */
+      }
+    }
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [provider, onPlatformEnded, signalEnded]);
 
   const toggleFullscreen = useCallback(async () => {
     const el = containerRef.current;

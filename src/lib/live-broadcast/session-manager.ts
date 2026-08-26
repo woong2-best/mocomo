@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { liveViewerCutoff } from "@/lib/live-presence";
+import { autoEndExternalPlatformOffForHost } from "@/lib/live-external/sync-platform-end";
 import {
   hostBroadcastChannelWhere,
   hostBroadcastSelect,
@@ -7,6 +8,7 @@ import {
 } from "@/lib/live-broadcast/session-queries";
 import { resolveBroadcastPhase, SESSION_END_DATA } from "@/lib/live-broadcast/session-lifecycle";
 import { teardownObsIngress } from "@/lib/obs-ingress-service";
+import { relayLiveEndedToSocket } from "@/lib/live-end-socket-relay";
 import type {
   HostBroadcastSession,
   PrepareBroadcastResult,
@@ -94,6 +96,8 @@ export async function releaseBroadcastSession(
     console.warn("[live-broadcast] ingress teardown failed", { channelId, err });
   });
 
+  void relayLiveEndedToSocket(channelId);
+
   logSession("release", { channelId, hostUserId, reason, name: channel.name });
   return true;
 }
@@ -173,6 +177,8 @@ export async function releaseAllHostBroadcastSessions(
 export async function prepareHostForNewBroadcast(
   hostUserId: string
 ): Promise<PrepareBroadcastResult> {
+  await autoEndExternalPlatformOffForHost(hostUserId);
+
   const released = await releaseAllHostBroadcastSessions(hostUserId, "HOST_PREPARE");
 
   const blocking = await db.voiceChannel.findFirst({

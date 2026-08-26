@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { autoEndAbandonedLiveChannels } from "@/lib/live-abandon";
+import { autoEndExternalPlatformOffChannels } from "@/lib/live-external/sync-platform-end";
 import { isProduction, verifyInternalSecret } from "@/lib/api-security";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const ended = await autoEndAbandonedLiveChannels();
-  return NextResponse.json({ ok: true, ended });
+  const [ended, externalEnded] = await Promise.all([
+    autoEndAbandonedLiveChannels(),
+    autoEndExternalPlatformOffChannels(),
+  ]);
+  return NextResponse.json({ ok: true, ended, externalEnded });
 }

@@ -10,7 +10,8 @@ export type SessionReleaseReason =
   | "AUTO_REPLACE"
   | "HOST_PREPARE"
   | "ADMIN_FORCE"
-  | "ABANDONED";
+  | "ABANDONED"
+  | "AUTO_PLATFORM_END";
 
 export type HostBroadcastSession = {
   channelId: string;
