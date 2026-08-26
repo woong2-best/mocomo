@@ -51,7 +51,13 @@ export async function GET(
     return NextResponse.json({ error: "방송이 종료되었습니다." }, { status: 410 });
   }
 
-  const result = await handlePlatformChatRequest(channel, {
+  const result = await handlePlatformChatRequest(
+    {
+      externalProvider: channel.externalProvider,
+      externalId: channel.externalId,
+      connectedStreamingAccountId: channel.connectedStreamingAccountId,
+    },
+    {
     pageToken: req.nextUrl.searchParams.get("pageToken"),
     liveChatId: req.nextUrl.searchParams.get("liveChatId"),
     kind: req.nextUrl.searchParams.get("kind"),

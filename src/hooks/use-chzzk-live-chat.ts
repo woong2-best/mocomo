@@ -142,10 +142,12 @@ export function useChzzkLiveChat(
     }
 
     async function fetchSession(): Promise<ChzzkSession | null> {
+      const key = channelKey?.trim();
+      if (!key) return null;
       try {
         const url =
-          options?.sessionUrl?.(channelKey.trim()) ??
-          `/api/live/${encodeURIComponent(channelKey.trim())}/platform-chat?kind=session`;
+          options?.sessionUrl?.(key) ??
+          `/api/live/${encodeURIComponent(key)}/platform-chat?kind=session`;
         const res = await fetch(url, { credentials: "include", cache: "no-store" });
         if (res.status === 410) return null;
         if (!res.ok) return null;

@@ -14,12 +14,14 @@ export type OverlayBroadcastRow = {
   connectedStreamingAccountId: string | null;
 };
 
+export type OverlayBroadcastAccess =
+  | { ok: true; channel: OverlayBroadcastRow }
+  | { ok: false; error: string; status: number };
+
 export async function assertOverlayBroadcastAccess(
   channelId: string,
   tokenPayload: OverlayTokenPayload
-):
-  | { ok: true; channel: OverlayBroadcastRow }
-  | { ok: false; error: string; status: number } {
+): Promise<OverlayBroadcastAccess> {
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
     select: {
