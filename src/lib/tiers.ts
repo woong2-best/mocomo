@@ -15,7 +15,7 @@ export type TierDefinition = {
 export const SUPPORT_TIERS: TierDefinition[] = [
   { level: "SEED", label: "Seed", labelKo: "씨앗", minAmount: 0, color: "#84cc16", gradient: ["#d9f99d", "#65a30d"], iconSrc: "/support/tiers/seed.png" },
   { level: "STONE", label: "Stone", labelKo: "스톤", minAmount: 5_000, color: "#78716c", gradient: ["#a8a29e", "#57534e"], iconSrc: "/support/tiers/stone.png" },
-  { level: "BRONZE", label: "Bronze", labelKo: "브론즈", minAmount: 10_000, color: "#b45309", gradient: ["#d97706", "#92400e"] },
+  { level: "BRONZE", label: "Bronze", labelKo: "브론즈", minAmount: 10_000, color: "#b45309", gradient: ["#d97706", "#92400e"], iconSrc: "/support/tiers/bronze.png" },
   { level: "SILVER", label: "Silver", labelKo: "실버", minAmount: 100_000, color: "#94a3b8", gradient: ["#e2e8f0", "#64748b"] },
   { level: "GOLD", label: "Gold", labelKo: "골드", minAmount: 500_000, color: "#eab308", gradient: ["#fde047", "#ca8a04"] },
   { level: "CRYSTAL", label: "Crystal", labelKo: "크리스탈", minAmount: 1_000_000, color: "#ec4899", gradient: ["#fbcfe8", "#db2777"] },
