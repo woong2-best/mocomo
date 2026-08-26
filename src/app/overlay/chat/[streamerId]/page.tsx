@@ -4,7 +4,7 @@ import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
 export const dynamic = "force-dynamic";
 
 /**
- * OBS Browser Source — transparent chat overlay.
+ * OBS Browser Source — transparent unified chat overlay (MoCoMo + platform).
  * Example: /overlay/chat/{channelId}?token=...
  * Never embeds the stream player.
  */

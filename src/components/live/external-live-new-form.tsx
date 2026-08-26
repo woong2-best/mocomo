@@ -77,8 +77,8 @@ export function ExternalLiveNewForm({ accounts }: Props) {
       <CardHeader>
         <CardTitle className="text-lg">인증된 계정으로 방송 시작</CardTitle>
         <p className="text-sm text-muted-foreground">
-          영상은 해당 플랫폼 플레이어로만 보여 줍니다. 채팅·후원은 MoCoMo에서 제공되며, 후원은
-          인증된 본인 계정의 방송에서만 받을 수 있습니다.
+          영상은 해당 플랫폼 플레이어로만 보여 줍니다. 채팅·후원은 MoCoMo에서 제공되며, OBS 채팅 오버레이는
+          MoCoMo + 플랫폼 채팅을 합쳐 표시합니다. 후원은 인증된 본인 계정의 방송에서만 받을 수 있습니다.
         </p>
       </CardHeader>
       <CardContent>

@@ -21,6 +21,7 @@ type Props = {
   platformTitle?: string | null;
   platformDescription?: string | null;
   provider: LiveExternalProvider;
+  externalId: string;
   embedUrl: string | null;
   watchUrl: string;
   embedSupported: boolean;

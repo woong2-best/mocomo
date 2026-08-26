@@ -13,7 +13,7 @@ import { revalidateLiveHubCache } from "@/lib/live-hub-data";
 import { isExternalLiveEnabled } from "@/lib/live-feature";
 import { checkYoutubeMadeForKids } from "@/lib/live-external/youtube-kids";
 import { probeChzzkEmbed } from "@/lib/live-external/chzzk-probe";
-import { mintOverlayToken } from "@/lib/live-external/overlay-token";
+import { mintOverlayToken, overlayBroadcastSid } from "@/lib/live-external/overlay-token";
 import { platformToLiveExternal } from "@/lib/streaming-accounts/types";
 import {
   getAccountTokens,
@@ -164,8 +164,9 @@ export async function createExternalLiveStream(data: {
     revalidateLiveHubCache();
     revalidateTag(liveRoomCacheTag(channel.id));
 
-    const chatToken = mintOverlayToken(channel.id, "chat");
-    const donationToken = mintOverlayToken(channel.id, "donation");
+    const broadcastSid = overlayBroadcastSid(channel.createdAt);
+    const chatToken = mintOverlayToken(channel.id, "chat", { broadcastSid });
+    const donationToken = mintOverlayToken(channel.id, "donation", { broadcastSid });
 
     return {
       channel,
@@ -195,13 +196,14 @@ export async function mintLiveOverlayUrls(channelId: string) {
   const user = await requireAuthMinimal();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true },
+    select: { createdBy: true, createdAt: true },
   });
   if (!channel || channel.createdBy !== user.id) {
     return { error: "호스트만 오버레이 URL을 발급할 수 있습니다." };
   }
-  const chatToken = mintOverlayToken(channelId, "chat");
-  const donationToken = mintOverlayToken(channelId, "donation");
+  const broadcastSid = overlayBroadcastSid(channel.createdAt);
+  const chatToken = mintOverlayToken(channelId, "chat", { broadcastSid });
+  const donationToken = mintOverlayToken(channelId, "donation", { broadcastSid });
   if (!chatToken || !donationToken) {
     return { error: "LIVE_OVERLAY_SECRET 또는 AUTH_SECRET이 필요합니다." };
   }

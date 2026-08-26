@@ -13,6 +13,8 @@ import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { formatUsd } from "@/lib/money";
 import { Trophy } from "lucide-react";
 import { subscribeLiveEnded } from "@/hooks/use-live-socket";
+import { ExternalLiveHostDashboard } from "@/components/live/external-live-host-dashboard";
+import { PlatformChatProvider } from "@/components/live/platform-chat-provider";
 
 type Props = {
   channelId: string;
@@ -20,6 +22,7 @@ type Props = {
   platformTitle?: string | null;
   platformDescription?: string | null;
   provider: LiveExternalProvider;
+  externalId: string;
   embedUrl: string | null;
   watchUrl: string;
   embedSupported: boolean;
@@ -72,6 +75,7 @@ export function ExternalLiveRoom({
   platformTitle,
   platformDescription,
   provider,
+  externalId,
   embedUrl,
   watchUrl,
   embedSupported,
@@ -95,9 +99,24 @@ export function ExternalLiveRoom({
   const ranking = ensureArray<{ username: string; amount: number }>(tipRanking);
 
   return (
-    <div className="live-studio-twitch mx-auto w-full max-w-[1400px] space-y-3 px-1 sm:px-0">
-      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_340px] xl:gap-4">
-        <div className="min-w-0">
+    <LiveChatProvider
+      channelId={channelId}
+      userId={currentUserId}
+      onViewerCount={setViewerCount}
+      chatOverlayInitial={false}
+    >
+      <PlatformChatProvider
+        channelId={channelId}
+        provider={provider}
+        externalId={externalId}
+      >
+        <ExternalLiveEndWatcher channelId={channelId} onEnded={onPlatformEnded} />
+        {isHost ? (
+          <ExternalLiveHostDashboard channelId={channelId} provider={provider} />
+        ) : null}
+        <div className="live-studio-twitch mx-auto w-full max-w-[1400px] space-y-3 px-1 sm:px-0">
+        <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_340px] xl:gap-4">
+          <div className="min-w-0">
           <ExternalLivePlayer
             provider={provider}
             embedUrl={embedUrl}
@@ -143,14 +162,7 @@ export function ExternalLiveRoom({
           ) : null}
         </div>
 
-        <div className="min-h-[min(70vh,560px)] xl:sticky xl:top-16">
-          <LiveChatProvider
-            channelId={channelId}
-            userId={currentUserId}
-            onViewerCount={setViewerCount}
-            chatOverlayInitial={false}
-          >
-            <ExternalLiveEndWatcher channelId={channelId} onEnded={onPlatformEnded} />
+          <div className="min-h-[min(70vh,560px)] xl:sticky xl:top-16">
             <LiveSupportProvider
               channelId={channelId}
               isHost={isHost}
@@ -170,12 +182,15 @@ export function ExternalLiveRoom({
                 viewerSupportTier={viewerSupportTier ?? undefined}
                 viewerSupportTotal={viewerSupportTotal}
                 pinnedMessage={pinnedMessage}
+                externalProvider={provider}
+                externalId={externalId}
                 variant="external"
               />
             </LiveSupportProvider>
-          </LiveChatProvider>
+          </div>
         </div>
       </div>
-    </div>
+      </PlatformChatProvider>
+    </LiveChatProvider>
   );
 }

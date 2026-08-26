@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
 import { rateLimitPublicApi } from "@/lib/api-security";
+import { assertOverlayBroadcastAccess } from "@/lib/live-external/overlay-access";
 
 /** Read-only recent tips for OBS donation overlay (token auth). */
 export async function GET(
@@ -18,6 +19,11 @@ export async function GET(
   const verified = verifyOverlayToken(token, { channelId, kind: "donation" });
   if (!verified.ok) {
     return NextResponse.json({ error: verified.error }, { status: 401 });
+  }
+
+  const access = await assertOverlayBroadcastAccess(channelId, verified.payload);
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
   const channel = await db.voiceChannel.findUnique({

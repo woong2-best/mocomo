@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
 import { rateLimitPublicApi } from "@/lib/api-security";
+import {
+  assertOverlayBroadcastAccess,
+  overlayChatMeta,
+} from "@/lib/live-external/overlay-access";
 
 /** Read-only chat feed for OBS overlay (token auth, no session). */
 export async function GET(
@@ -18,6 +22,11 @@ export async function GET(
   const verified = verifyOverlayToken(token, { channelId, kind: "chat" });
   if (!verified.ok) {
     return NextResponse.json({ error: verified.error }, { status: 401 });
+  }
+
+  const access = await assertOverlayBroadcastAccess(channelId, verified.payload);
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
   const sinceDate = since ? new Date(since) : new Date(Date.now() - 5 * 60_000);
@@ -41,11 +50,13 @@ export async function GET(
   });
 
   return NextResponse.json({
+    live: true,
     messages: messages.map((m) => ({
       id: m.id,
       username: m.user.username,
       content: m.content,
       at: m.createdAt.toISOString(),
     })),
+    meta: overlayChatMeta(access.channel),
   });
 }

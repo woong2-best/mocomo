@@ -151,6 +151,7 @@ export default async function VoiceRoomPage({
           platformTitle={platformMeta.title}
           platformDescription={platformMeta.description}
           provider={resolved.provider}
+          externalId={resolved.externalId}
           embedUrl={resolved.embedUrl}
           watchUrl={channel.externalWatchUrl || resolved.watchUrl}
           embedSupported={resolved.embedSupported}

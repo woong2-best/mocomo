@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
-type Msg = { id: string; username: string; content: string; at: string };
+import { useOverlayUnifiedChat } from "@/hooks/use-overlay-unified-chat";
+import {
+  OVERLAY_SOURCE_USERNAME_COLOR,
+  UNIFIED_CHAT_SOURCE_LABEL,
+  type UnifiedChatSource,
+} from "@/lib/live-external/platform-chat/merge-messages";
 
 export function OverlayChatClient({
   channelId,
@@ -11,40 +14,10 @@ export function OverlayChatClient({
   channelId: string;
   token: string;
 }) {
-  const [messages, setMessages] = useState<Msg[]>([]);
-  const sinceRef = useRef(new Date(Date.now() - 60_000).toISOString());
-
-  useEffect(() => {
-    let cancelled = false;
-    async function tick() {
-      try {
-        const q = new URLSearchParams({
-          token,
-          since: sinceRef.current,
-        });
-        const res = await fetch(`/api/overlay/${channelId}/chat?${q}`);
-        if (!res.ok) return;
-        const data = (await res.json()) as { messages: Msg[] };
-        if (cancelled || !data.messages?.length) return;
-        setMessages((prev) => {
-          const map = new Map(prev.map((m) => [m.id, m]));
-          for (const m of data.messages) map.set(m.id, m);
-          const next = [...map.values()].slice(-40);
-          const last = next[next.length - 1];
-          if (last) sinceRef.current = last.at;
-          return next;
-        });
-      } catch {
-        /* ignore */
-      }
-    }
-    void tick();
-    const id = setInterval(() => void tick(), 2000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [channelId, token]);
+  const { messages, meta, platformConnected, streamEnded } = useOverlayUnifiedChat(
+    channelId,
+    token
+  );
 
   return (
     <div
@@ -59,6 +32,33 @@ export function OverlayChatClient({
         fontFamily: "system-ui, sans-serif",
       }}
     >
+      {streamEnded ? (
+        <p
+          style={{
+            color: "rgba(255,255,255,0.65)",
+            textAlign: "center",
+            fontSize: 14,
+            textShadow: "0 1px 2px rgba(0,0,0,0.85)",
+          }}
+        >
+          방송이 종료되었습니다.
+        </p>
+      ) : null}
+      {meta ? (
+        <div
+          style={{
+            position: "fixed",
+            top: 8,
+            right: 8,
+            fontSize: 11,
+            color: "rgba(255,255,255,0.55)",
+            textShadow: "0 1px 2px rgba(0,0,0,0.85)",
+          }}
+        >
+          MoCoMo + {UNIFIED_CHAT_SOURCE_LABEL[meta.provider]}
+          {platformConnected ? " · 연결됨" : ""}
+        </div>
+      ) : null}
       {messages.map((m) => (
         <div
           key={m.id}
@@ -70,10 +70,29 @@ export function OverlayChatClient({
             wordBreak: "break-word",
           }}
         >
-          <strong style={{ color: "#7dd3fc" }}>{m.username}</strong>
+          {m.source !== "MOCOMO" ? (
+            <span
+              style={{
+                display: "inline-block",
+                marginRight: 6,
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.02em",
+                color: OVERLAY_SOURCE_USERNAME_COLOR[m.source],
+                opacity: 0.95,
+              }}
+            >
+              {UNIFIED_CHAT_SOURCE_LABEL[m.source]}
+            </span>
+          ) : null}
+          <strong style={{ color: usernameColor(m.source) }}>{m.username}</strong>
           <span style={{ marginLeft: 8 }}>{m.content}</span>
         </div>
       ))}
     </div>
   );
+}
+
+function usernameColor(source: UnifiedChatSource): string {
+  return OVERLAY_SOURCE_USERNAME_COLOR[source];
 }

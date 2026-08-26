@@ -1,7 +1,9 @@
 "use client";
 
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
+import { usePlatformChat } from "@/components/live/platform-chat-provider";
+import type { LiveExternalProvider } from "@/lib/live-external/types";
 import { Send, Users, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +29,8 @@ export type LiveChatMessage = {
   at: number;
   image?: string | null;
   supportTierSent?: SupportTierLevel;
+  /** MoCoMo DB chat vs imported platform chat */
+  source?: "MOCOMO" | "TWITCH" | "YOUTUBE" | "CHZZK";
 };
 
 export const LiveChat = memo(LiveChatInner);
@@ -43,6 +47,8 @@ function LiveChatInner({
   viewerSupportTotal,
   paymentsEnabled,
   pinnedMessage,
+  externalProvider,
+  externalId,
   variant = "default",
 }: {
   channelId: string;
@@ -58,6 +64,8 @@ function LiveChatInner({
   paymentsEnabled?: boolean;
   /** Streamer pinned notice (links OK) — external live chat header */
   pinnedMessage?: string | null;
+  externalProvider?: LiveExternalProvider | null;
+  externalId?: string | null;
   variant?: "default" | "external";
 }) {
   const { data: session } = useSession();
@@ -78,11 +86,37 @@ function LiveChatInner({
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const pendingIdRef = useRef(0);
+  const isExternal = variant === "external";
+  const { messages: platformMessages, platformConnected } = usePlatformChat();
+
+  const displayMessages = useMemo(() => {
+    if (!isExternal || !externalProvider) {
+      return messages.map((m) => ({ ...m, source: m.source ?? ("MOCOMO" as const) }));
+    }
+    const mocomo = messages.map((m) => ({ ...m, source: m.source ?? ("MOCOMO" as const) }));
+    const platform = platformMessages.map((m) => ({
+      id: m.id,
+      userId: m.userId,
+      username: m.username,
+      content: m.content,
+      at: m.at,
+      image: m.image,
+      source: m.source,
+    }));
+    const ids = new Set<string>();
+    const merged: LiveChatMessage[] = [];
+    for (const m of [...mocomo, ...platform].sort((a, b) => a.at - b.at)) {
+      if (ids.has(m.id)) continue;
+      ids.add(m.id);
+      merged.push(m);
+    }
+    return merged.slice(-150);
+  }, [isExternal, externalProvider, messages, platformMessages]);
 
   useEffect(() => {
     if (!stickToBottomRef.current) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [displayMessages]);
 
   function onScroll() {
     const el = scrollRef.current;
@@ -145,7 +179,14 @@ function LiveChatInner({
     removeFromFeed(messageId);
   }
 
-  const isExternal = variant === "external";
+  const platformLabel =
+    externalProvider === "TWITCH"
+      ? "Twitch"
+      : externalProvider === "YOUTUBE"
+        ? "YouTube"
+        : externalProvider === "CHZZK"
+          ? "치지직"
+          : null;
 
   return (
     <div className="flex h-full min-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-border/60 bg-background">
@@ -154,14 +195,19 @@ function LiveChatInner({
           채팅
           {isExternal ? (
             <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">
-              호스트 실시간
+              MoCoMo{platformLabel ? ` + ${platformLabel}` : ""}
             </span>
           ) : isHost ? (
             <span className="ml-1 text-[10px] font-normal text-muted-foreground">호스트</span>
           ) : null}
           {connected && (
             <span className="ml-1 text-[10px] font-normal text-green-600 dark:text-green-400">
-              실시간
+              MoCoMo 실시간
+            </span>
+          )}
+          {isExternal && platformConnected && platformLabel && (
+            <span className="ml-1 text-[10px] font-normal text-violet-600 dark:text-violet-400">
+              {platformLabel} 연결
             </span>
           )}
         </span>
@@ -194,53 +240,82 @@ function LiveChatInner({
         {historyError && (
           <p className="text-xs text-destructive text-center py-2 px-2">{historyError}</p>
         )}
-        {messages.length === 0 && !historyError && (
+        {displayMessages.length === 0 && !historyError && (
           <p className="py-8 text-center text-xs text-muted-foreground">
-            채팅은 DB에 저장됩니다. 첫 메시지를 남겨 보세요.
+            {isExternal && platformLabel
+              ? `${platformLabel} 채팅과 MoCoMo 채팅이 여기에 표시됩니다.`
+              : "채팅은 DB에 저장됩니다. 첫 메시지를 남겨 보세요."}
           </p>
         )}
-        {ensureArray<LiveChatMessage>(messages).map((m) => (
-          <div key={m.id} className="flex gap-2 text-sm group">
-            <UserProfileLink username={m.username} className="shrink-0 rounded-full">
-              <Avatar className="h-7 w-7">
-                <AvatarImage src={m.image ?? undefined} />
-                <AvatarFallback className="text-[10px]">{m.username[0]?.toUpperCase()}</AvatarFallback>
-              </Avatar>
-            </UserProfileLink>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1 flex-wrap">
-                <DisplayNameWithSupportTier
-                  name={<span className="font-semibold text-xs text-primary">@{m.username}</span>}
-                  profileUsername={m.username}
-                  tier={m.supportTierSent ?? "SEED"}
-                  compact
-                  className="flex-wrap"
-                />
-                {canModerate && !m.id.startsWith("pending-") && (
-                  <button
-                    type="button"
-                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-0.5"
-                    onClick={() => void removeMessage(m.id)}
-                    aria-label="채팅 삭제"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                )}
-                {session?.user && m.userId !== session.user.id && !m.id.startsWith("pending-") && (
-                  <ReportButton
-                    targetType="LIVE_CHAT"
-                    targetId={m.id}
-                    reportedUserId={m.userId}
-                    label="신고"
-                    variant="ghost"
-                    size="sm"
-                  />
-                )}
+        {ensureArray<LiveChatMessage>(displayMessages).map((m) => {
+          const isPlatform = !!m.source && m.source !== "MOCOMO";
+          return (
+            <div key={m.id} className="flex gap-2 text-sm group">
+              {isPlatform ? (
+                <Avatar className="h-7 w-7 shrink-0">
+                  <AvatarImage src={m.image ?? undefined} />
+                  <AvatarFallback className="text-[10px]">
+                    {m.username[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <UserProfileLink username={m.username} className="shrink-0 rounded-full">
+                  <Avatar className="h-7 w-7">
+                    <AvatarImage src={m.image ?? undefined} />
+                    <AvatarFallback className="text-[10px]">
+                      {m.username[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </UserProfileLink>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1 flex-wrap">
+                  {isPlatform ? (
+                    <>
+                      <span className="font-semibold text-xs">{m.username}</span>
+                      <PlatformSourceBadge source={m.source!} />
+                    </>
+                  ) : (
+                    <>
+                      <DisplayNameWithSupportTier
+                        name={
+                          <span className="font-semibold text-xs text-primary">@{m.username}</span>
+                        }
+                        profileUsername={m.username}
+                        tier={m.supportTierSent ?? "SEED"}
+                        compact
+                        className="flex-wrap"
+                      />
+                      {canModerate && !m.id.startsWith("pending-") && (
+                        <button
+                          type="button"
+                          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-0.5"
+                          onClick={() => void removeMessage(m.id)}
+                          aria-label="채팅 삭제"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      )}
+                      {session?.user &&
+                        m.userId !== session.user.id &&
+                        !m.id.startsWith("pending-") && (
+                          <ReportButton
+                            targetType="LIVE_CHAT"
+                            targetId={m.id}
+                            reportedUserId={m.userId}
+                            label="신고"
+                            variant="ghost"
+                            size="sm"
+                          />
+                        )}
+                    </>
+                  )}
+                </div>
+                <p className="text-sm break-words leading-snug mt-0.5">{m.content}</p>
               </div>
-              <p className="text-sm break-words leading-snug mt-0.5">{m.content}</p>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={bottomRef} />
       </div>
       {session?.user ? (
@@ -291,5 +366,22 @@ function LiveChatInner({
         </p>
       )}
     </div>
+  );
+}
+
+function PlatformSourceBadge({ source }: { source: NonNullable<LiveChatMessage["source"]> }) {
+  if (source === "MOCOMO") return null;
+  const label =
+    source === "TWITCH" ? "Twitch" : source === "YOUTUBE" ? "YouTube" : "치지직";
+  const tone =
+    source === "TWITCH"
+      ? "bg-[#9146FF]/15 text-[#9146FF] dark:text-[#bf94ff]"
+      : source === "YOUTUBE"
+        ? "bg-red-500/15 text-red-600 dark:text-red-400"
+        : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+  return (
+    <span className={`rounded px-1 py-0.5 text-[9px] font-medium leading-none ${tone}`}>
+      {label}
+    </span>
   );
 }

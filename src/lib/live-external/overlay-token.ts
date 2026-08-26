@@ -14,7 +14,12 @@ export type OverlayTokenPayload = {
   kind: "chat" | "donation";
   /** unix seconds */
   exp: number;
+  /** VoiceChannel.createdAt unix sec — binds token to one broadcast session */
+  broadcastSid?: number;
 };
+
+const CHAT_TTL_SEC = 48 * 3600;
+const DONATION_TTL_SEC = 7 * 24 * 3600;
 
 function b64url(buf: Buffer | string): string {
   const b = typeof buf === "string" ? Buffer.from(buf, "utf8") : buf;
@@ -30,18 +35,24 @@ function fromB64url(s: string): Buffer {
   return Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/") + pad, "base64");
 }
 
-/** Signed read-only token for OBS browser sources (default 90 days). */
+export function overlayBroadcastSid(createdAt: Date): number {
+  return Math.floor(createdAt.getTime() / 1000);
+}
+
+/** Signed read-only token for OBS browser sources. */
 export function mintOverlayToken(
   channelId: string,
   kind: "chat" | "donation",
-  ttlSec = 90 * 24 * 3600
+  opts?: { broadcastSid?: number; ttlSec?: number }
 ): string | null {
   const sec = secret();
   if (!sec) return null;
+  const ttl = opts?.ttlSec ?? (kind === "chat" ? CHAT_TTL_SEC : DONATION_TTL_SEC);
   const payload: OverlayTokenPayload = {
     channelId,
     kind,
-    exp: Math.floor(Date.now() / 1000) + ttlSec,
+    exp: Math.floor(Date.now() / 1000) + ttl,
+    ...(opts?.broadcastSid != null ? { broadcastSid: opts.broadcastSid } : {}),
   };
   const body = b64url(JSON.stringify(payload));
   const sig = b64url(createHmac("sha256", sec).update(body).digest());
