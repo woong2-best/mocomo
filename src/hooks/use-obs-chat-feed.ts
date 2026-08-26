@@ -15,6 +15,7 @@ export function useObsChatFeed(channelId: string, token: string) {
   const [messages, setMessages] = useState<UnifiedChatMessage[]>([]);
   const [meta, setMeta] = useState<FeedMeta>(null);
   const [platformReady, setPlatformReady] = useState(false);
+  const [platformError, setPlatformError] = useState<string | null>(null);
   const [state, setState] = useState<FeedState>("loading");
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +53,7 @@ export function useObsChatFeed(channelId: string, token: string) {
           messages?: UnifiedChatMessage[];
           meta?: FeedMeta;
           platformReady?: boolean;
+          platformError?: string | null;
           nextPageToken?: string | null;
           liveChatId?: string | null;
           pollingIntervalMs?: number;
@@ -60,6 +62,7 @@ export function useObsChatFeed(channelId: string, token: string) {
 
         if (data.meta) setMeta(data.meta);
         setPlatformReady(!!data.platformReady);
+        setPlatformError(data.platformError ?? null);
         setState("live");
         setError(null);
 
@@ -97,5 +100,5 @@ export function useObsChatFeed(channelId: string, token: string) {
     };
   }, [channelId, token]);
 
-  return { messages, meta, platformReady, state, error };
+  return { messages, meta, platformReady, platformError, state, error };
 }

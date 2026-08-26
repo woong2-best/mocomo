@@ -12,6 +12,7 @@ import {
 type ExternalChannelRow = {
   externalProvider: string;
   externalId: string;
+  externalChannelId?: string | null;
   connectedStreamingAccountId: string | null;
 };
 
@@ -31,6 +32,7 @@ export type PlatformChatHandlerResult =
       nextPageToken: string | null;
       liveChatId: string | null;
       pollingIntervalMs: number;
+      platformError?: string | null;
       session?: Awaited<ReturnType<typeof resolveChzzkChatSession>>;
     }
   | { ok: false; error: string; status: number };
@@ -110,6 +112,7 @@ export async function handlePlatformChatRequest(
     const result = await fetchYoutubeLiveChatMessages({
       videoId: channel.externalId,
       accessToken,
+      youtubeChannelId: channel.externalChannelId,
       pageToken,
       liveChatId,
     });
@@ -121,6 +124,7 @@ export async function handlePlatformChatRequest(
       nextPageToken: result.nextPageToken,
       liveChatId: result.liveChatId,
       pollingIntervalMs: result.pollingIntervalMs,
+      platformError: result.platformError,
     };
   }
 

@@ -32,6 +32,7 @@ export async function GET(
     select: {
       externalProvider: true,
       externalId: true,
+      externalChannelId: true,
       connectedStreamingAccountId: true,
       broadcastMode: true,
       mediaSourceType: true,
@@ -55,6 +56,7 @@ export async function GET(
     {
       externalProvider: channel.externalProvider,
       externalId: channel.externalId,
+      externalChannelId: channel.externalChannelId,
       connectedStreamingAccountId: channel.connectedStreamingAccountId,
     },
     {

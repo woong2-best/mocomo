@@ -11,6 +11,7 @@ export type OverlayBroadcastRow = {
   mediaSourceType: string;
   externalProvider: string | null;
   externalId: string | null;
+  externalChannelId: string | null;
   connectedStreamingAccountId: string | null;
 };
 
@@ -32,6 +33,7 @@ export async function assertOverlayBroadcastAccess(
       mediaSourceType: true,
       externalProvider: true,
       externalId: true,
+      externalChannelId: true,
       connectedStreamingAccountId: true,
     },
   });

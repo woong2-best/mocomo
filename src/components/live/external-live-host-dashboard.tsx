@@ -59,7 +59,8 @@ export function ExternalLiveHostDashboard({ channelId }: Props) {
         <p className="mt-2 text-xs text-muted-foreground">URL 불러오는 중…</p>
       )}
       <p className="mt-2 text-[10px] text-muted-foreground">
-        YouTube·MoCoMo 댓글이 이 URL 하나로 OBS에 표시됩니다. CSS나 다른 URL은 필요 없습니다.
+        YouTube·MoCoMo 댓글이 이 URL로 OBS에 표시됩니다. 다른 브라우저 소스(YouTube live_chat)는
+        삭제하세요.
       </p>
     </div>
   );

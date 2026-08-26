@@ -35,6 +35,7 @@ export async function GET(
     {
       externalProvider: channel.externalProvider,
       externalId: channel.externalId,
+      externalChannelId: channel.externalChannelId,
       connectedStreamingAccountId: channel.connectedStreamingAccountId,
     },
     {

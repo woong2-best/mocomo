@@ -100,7 +100,7 @@ async function checkYoutubeVideoLiveFromWatchPage(
   }
 }
 
-async function findYoutubeChannelLiveVideoId(
+export async function findYoutubeChannelLiveVideoId(
   channelId: string,
   accessToken?: string | null
 ): Promise<string | null | undefined> {
