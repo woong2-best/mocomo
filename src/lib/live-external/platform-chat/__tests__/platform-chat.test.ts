@@ -95,6 +95,7 @@ test("overlayChatMeta exposes externalId only for Twitch", () => {
     liveStatus: "LIVE",
     broadcastMode: "EXTERNAL",
     mediaSourceType: "EXTERNAL",
+    externalChannelId: null,
     connectedStreamingAccountId: null,
   };
   assert.deepEqual(
