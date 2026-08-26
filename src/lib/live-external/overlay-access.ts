@@ -74,7 +74,10 @@ export function overlayChatMeta(channel: OverlayBroadcastRow): {
   if (!isExternal || !channel.externalProvider) return null;
 
   const provider = channel.externalProvider.toUpperCase() as LiveExternalProvider;
-  if (provider === "TWITCH" && channel.externalId) {
+  if (
+    (provider === "TWITCH" || provider === "CHZZK") &&
+    channel.externalId
+  ) {
     return { provider, externalId: channel.externalId };
   }
   return { provider };

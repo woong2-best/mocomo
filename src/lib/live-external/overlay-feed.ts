@@ -14,7 +14,7 @@ export type OverlayFeedResult =
       ok: true;
       live: true;
       messages: UnifiedChatMessage[];
-      meta: { provider: LiveExternalProvider } | null;
+      meta: { provider: LiveExternalProvider; externalId?: string } | null;
       platformReady: boolean;
       platformError: string | null;
       nextPageToken: string | null;
@@ -95,9 +95,7 @@ export async function buildOverlayChatFeed(params: {
       liveChatId = platformResult.liveChatId;
       pollingIntervalMs = Math.min(platformResult.pollingIntervalMs, 5000);
       platformReady =
-        platformResult.provider === "TWITCH" ||
-        !!platformResult.liveChatId ||
-        platformResult.messages.length > 0;
+        !!platformResult.liveChatId || platformResult.messages.length > 0;
       platformError = platformResult.platformError ?? null;
       platformUnified = platformToUnified(platformResult.messages);
     }
@@ -109,7 +107,7 @@ export async function buildOverlayChatFeed(params: {
     ok: true,
     live: true,
     messages,
-    meta: meta ? { provider: meta.provider } : null,
+    meta,
     platformReady,
     platformError,
     nextPageToken,

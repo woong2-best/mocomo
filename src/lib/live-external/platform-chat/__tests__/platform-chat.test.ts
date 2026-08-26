@@ -88,7 +88,7 @@ test("chzzkChatWsServerId is stable for same chatChannelId", () => {
   assert.ok(a >= 1 && a <= 9);
 });
 
-test("overlayChatMeta exposes externalId only for Twitch", () => {
+test("overlayChatMeta exposes externalId for Twitch and Chzzk", () => {
   const base = {
     createdAt: new Date(),
     isLive: true,
@@ -105,6 +105,14 @@ test("overlayChatMeta exposes externalId only for Twitch", () => {
       externalId: "mylogin",
     }),
     { provider: "TWITCH", externalId: "mylogin" }
+  );
+  assert.deepEqual(
+    overlayChatMeta({
+      ...base,
+      externalProvider: "CHZZK",
+      externalId: "channel123",
+    }),
+    { provider: "CHZZK", externalId: "channel123" }
   );
   assert.deepEqual(
     overlayChatMeta({

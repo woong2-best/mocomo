@@ -71,10 +71,9 @@ export function ExternalLiveNewForm({ accounts }: Props) {
         <CardTitle className="text-lg">인증된 계정으로 방송 시작</CardTitle>
         <p className="text-sm text-muted-foreground">
           영상은 해당 플랫폼 플레이어로만 보여 줍니다. 채팅·후원은 MoCoMo에서 제공됩니다.
-          {selected?.platform === "YOUTUBE"
-            ? " 방 시작 후 호스트 대시보드에서 OBS 채팅 URL(댓글만)을 복사해 OBS에 넣으면 됩니다."
-            : " OBS 채팅은 호스트 대시보드에서 URL 복사 → OBS 브라우저 소스 URL란."}{" "}
-          후원은 인증된 본인 계정의 방송에서만 받을 수 있습니다.
+          방 시작 후 호스트 대시보드에서 OBS 채팅 URL(댓글만)을 복사해 OBS 브라우저 소스에
+          넣으면 됩니다 (YouTube·Twitch·치지직 공통). 후원은 인증된 본인 계정의 방송에서만
+          받을 수 있습니다.
         </p>
       </CardHeader>
       <CardContent>

@@ -1,20 +1,32 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
-import type { UnifiedChatMessage } from "@/lib/live-external/platform-chat/merge-messages";
+import {
+  mergeUnifiedChatMessages,
+  platformToUnified,
+  type UnifiedChatMessage,
+} from "@/lib/live-external/platform-chat/merge-messages";
+import { useTwitchLiveChat } from "@/hooks/use-twitch-live-chat";
+import { useChzzkLiveChat } from "@/hooks/use-chzzk-live-chat";
 
 const MAX_MESSAGES = 200;
 
-type FeedMeta = { provider: LiveExternalProvider } | null;
+type FeedMeta = {
+  provider: LiveExternalProvider;
+  externalId?: string;
+} | null;
 
 type FeedState = "loading" | "live" | "ended" | "error";
 
-/** OBS browser source — single feed API for MoCoMo + platform chat. */
+/**
+ * OBS browser source — one URL for MoCoMo + YouTube/Twitch/Chzzk chat.
+ * YouTube: server poll via /feed. Twitch/Chzzk: client WS after meta from /feed.
+ */
 export function useObsChatFeed(channelId: string, token: string) {
-  const [messages, setMessages] = useState<UnifiedChatMessage[]>([]);
+  const [feedMessages, setFeedMessages] = useState<UnifiedChatMessage[]>([]);
   const [meta, setMeta] = useState<FeedMeta>(null);
-  const [platformReady, setPlatformReady] = useState(false);
+  const [feedPlatformReady, setFeedPlatformReady] = useState(false);
   const [platformError, setPlatformError] = useState<string | null>(null);
   const [state, setState] = useState<FeedState>("loading");
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +36,23 @@ export function useObsChatFeed(channelId: string, token: string) {
     pageToken: null as string | null,
     liveChatId: null as string | null,
     intervalMs: 3000,
+  });
+
+  const streamEnded = state === "ended";
+
+  const twitch = useTwitchLiveChat(
+    meta?.provider === "TWITCH" ? meta.externalId ?? null : null,
+    meta?.provider === "TWITCH" && !streamEnded
+  );
+
+  const chzzkSessionUrl = useCallback(
+    (id: string) =>
+      `/api/overlay/${encodeURIComponent(id)}/platform-chat?token=${encodeURIComponent(token)}&kind=session`,
+    [token]
+  );
+
+  const chzzk = useChzzkLiveChat(channelId, meta?.provider === "CHZZK" && !streamEnded, {
+    sessionUrl: chzzkSessionUrl,
   });
 
   useEffect(() => {
@@ -61,7 +90,7 @@ export function useObsChatFeed(channelId: string, token: string) {
         if (cancelled) return;
 
         if (data.meta) setMeta(data.meta);
-        setPlatformReady(!!data.platformReady);
+        setFeedPlatformReady(!!data.platformReady);
         setPlatformError(data.platformError ?? null);
         setState("live");
         setError(null);
@@ -71,7 +100,7 @@ export function useObsChatFeed(channelId: string, token: string) {
         if (data.pollingIntervalMs) pollRef.current.intervalMs = data.pollingIntervalMs;
 
         if (data.messages?.length) {
-          setMessages((prev) => {
+          setFeedMessages((prev) => {
             const map = new Map(prev.map((m) => [m.id, m]));
             for (const m of data.messages!) map.set(m.id, m);
             const next = [...map.values()]
@@ -99,6 +128,23 @@ export function useObsChatFeed(channelId: string, token: string) {
       if (timer) clearTimeout(timer);
     };
   }, [channelId, token]);
+
+  const platformMessages = useMemo(() => {
+    if (meta?.provider === "TWITCH") return platformToUnified(twitch.messages);
+    if (meta?.provider === "CHZZK") return platformToUnified(chzzk.messages);
+    return [] as UnifiedChatMessage[];
+  }, [meta?.provider, twitch.messages, chzzk.messages]);
+
+  const messages = useMemo(
+    () => mergeUnifiedChatMessages([feedMessages, platformMessages]),
+    [feedMessages, platformMessages]
+  );
+
+  const platformReady = useMemo(() => {
+    if (meta?.provider === "TWITCH") return twitch.connected;
+    if (meta?.provider === "CHZZK") return chzzk.connected;
+    return feedPlatformReady;
+  }, [meta?.provider, twitch.connected, chzzk.connected, feedPlatformReady]);
 
   return { messages, meta, platformReady, platformError, state, error };
 }
