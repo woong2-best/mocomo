@@ -55,6 +55,60 @@ export function getNextTierInfo(totalAmount: number) {
   };
 }
 
+export function getTierAfter(level: SupportTierLevel): TierDefinition | null {
+  const idx = SUPPORT_TIERS.findIndex((t) => t.level === level);
+  return SUPPORT_TIERS[idx + 1] ?? null;
+}
+
+export function parseSupportTierSlug(raw: string): SupportTierLevel | null {
+  const level = raw.trim().toUpperCase();
+  return SUPPORT_TIERS.some((t) => t.level === level) ? (level as SupportTierLevel) : null;
+}
+
+export function supportTierPath(level: SupportTierLevel): string {
+  return `/support/tiers/${level.toLowerCase()}`;
+}
+
+/** 등급 상세 — 이 등급 기준 다음 목표·진행률 */
+export function getTierDetailProgress(viewedLevel: SupportTierLevel, userTotal: number) {
+  const viewed = getTierInfo(viewedLevel);
+  const next = getTierAfter(viewedLevel);
+
+  if (userTotal < viewed.minAmount) {
+    const goal = viewed.minAmount;
+    return {
+      message: `${viewed.labelKo} 광석까지 ${formatTierUsd(viewed.minAmount - userTotal)} 남음`,
+      progress: goal <= 0 ? 0 : Math.min(1, userTotal / goal),
+      target: viewed,
+    };
+  }
+
+  if (!next) {
+    return {
+      message: "최고 등급에 도달했습니다",
+      progress: 1,
+      target: viewed,
+    };
+  }
+
+  const span = next.minAmount - viewed.minAmount;
+  const done = userTotal - viewed.minAmount;
+  return {
+    message: `다음 ${next.labelKo} 광석까지 ${formatTierUsd(Math.max(0, next.minAmount - userTotal))} 남음`,
+    progress: span <= 0 ? 1 : Math.min(1, Math.max(0, done / span)),
+    target: next,
+  };
+}
+
+function formatTierUsd(cents: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
 export function canAccessDm(userTier: SupportTierLevel, required: SupportTierLevel): boolean {
   const order = SUPPORT_TIERS.map((t) => t.level);
   return order.indexOf(userTier) >= order.indexOf(required);

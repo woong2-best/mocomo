@@ -9,7 +9,7 @@ export function SupportTierTable() {
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {SUPPORT_TIERS.map((t) => (
-          <OreTierButton key={t.level} tier={t.level} showAmount className="w-full" />
+          <OreTierButton key={t.level} tier={t.level} showAmount linkToDetail className="w-full" />
         ))}
       </div>
     </div>
