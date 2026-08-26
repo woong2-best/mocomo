@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink } from "lucide-react";
+import { YoutubeEmbedGuide } from "@/components/live/youtube-embed-guide";
 
 const PLATFORM_LABELS: Record<string, string> = {
   YOUTUBE: "YouTube",
@@ -129,6 +130,8 @@ export function ExternalLiveNewForm({ accounts }: Props) {
               </Link>
             </p>
           </div>
+
+          {selected?.platform === "YOUTUBE" ? <YoutubeEmbedGuide variant="full" /> : null}
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {overlayHint ? (

@@ -59,6 +59,7 @@ export function ExternalLiveRoom({
           watchUrl={watchUrl}
           title={title}
           embedSupported={embedSupported}
+          isHost={isHost}
         />
         <p className="mt-2 text-sm text-muted-foreground">
           @{host.username}
