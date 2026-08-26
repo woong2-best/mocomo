@@ -28,7 +28,7 @@ export const SUPPORT_TIERS: TierDefinition[] = [
   { level: "LUNA", label: "Luna", labelKo: "루나", minAmount: 500_000_000, color: "#cbd5e1", gradient: ["#f1f5f9", "#64748b"], iconSrc: "/support/tiers/luna.png" },
   { level: "TERRA", label: "Terra", labelKo: "테라", minAmount: 1_000_000_000, color: "#65a30d", gradient: ["#bef264", "#365314"], iconSrc: "/support/tiers/terra.png" },
   { level: "JUPITER", label: "Jupiter", labelKo: "주피터", minAmount: 3_000_000_000, color: "#ea580c", gradient: ["#fdba74", "#9a3412"], iconSrc: "/support/tiers/jupiter.png" },
-  { level: "ASTRAL", label: "Astral", labelKo: "아스트랄", minAmount: 5_000_000_000, color: "#8b5cf6", gradient: ["#ddd6fe", "#6d28d9"] },
+  { level: "ASTRAL", label: "Astral", labelKo: "아스트랄", minAmount: 5_000_000_000, color: "#8b5cf6", gradient: ["#ddd6fe", "#6d28d9"], iconSrc: "/support/tiers/astral.png" },
   { level: "COSMIC", label: "Cosmic", labelKo: "코스믹", minAmount: 10_000_000_000, color: "#06b6d4", gradient: ["#67e8f9", "#0e7490"] },
 ];
 
