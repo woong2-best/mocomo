@@ -7,7 +7,6 @@ import { LiveSupportPollBar } from "@/components/live/live-support-poll-bar";
 import { LiveVideoDonationPanel } from "@/components/live/live-video-donation-panel";
 import { VideoTipWizardDialog } from "@/components/support/video-tip-wizard-dialog";
 import { useLiveSupport } from "@/components/live/live-support-provider";
-import { cn } from "@/lib/utils";
 
 export function LiveSupportSidebar({
   channelId,
@@ -31,12 +30,7 @@ export function LiveSupportSidebar({
   const { data: session } = useSession();
 
   return (
-    <div
-      className={cn(
-        "space-y-2 px-2 pb-2 border-b",
-        hideTopActions ? "border-white/10" : "border-border/40"
-      )}
-    >
+    <div className="space-y-2 border-b border-border/40 px-2 pb-2">
       {!isHost && !hideTopActions && (
         <div className="flex justify-end gap-1.5 pt-2 flex-wrap">
           <LiveSupportDialog

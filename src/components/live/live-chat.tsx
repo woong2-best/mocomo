@@ -57,7 +57,7 @@ function LiveChatInner({
   viewerSupportTotal?: number;
   paymentsEnabled?: boolean;
   tags?: string[];
-  /** external = v2 dark sidebar for YouTube/Twitch/Chzzk viewer */
+  /** external = sidebar layout for YouTube/Twitch/Chzzk viewer (theme-aware) */
   variant?: "default" | "external";
 }) {
   const { data: session } = useSession();
@@ -148,34 +148,24 @@ function LiveChatInner({
   const isExternal = variant === "external";
 
   return (
-    <div
-      className={
-        isExternal
-          ? "external-live-chat flex h-full min-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#12151f] text-white"
-          : "flex flex-col h-full min-h-[min(70vh,560px)] rounded-xl border border-border/60 bg-background overflow-hidden"
-      }
-    >
-      <div
-        className={
-          isExternal
-            ? "flex shrink-0 items-center justify-between border-b border-white/10 px-3 py-2.5"
-            : "px-3 py-2.5 border-b border-border/60 flex justify-between items-center bg-muted/30 shrink-0"
-        }
-      >
-        <span className={`font-semibold text-sm ${isExternal ? "text-white" : ""}`}>
+    <div className="flex h-full min-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-border/60 bg-background">
+      <div className="flex shrink-0 items-center justify-between border-b border-border/60 bg-muted/30 px-3 py-2.5">
+        <span className="text-sm font-semibold">
           채팅
-          {isHost && (
-            <span className={`text-[10px] ml-1 ${isExternal ? "text-white/50" : "text-muted-foreground"}`}>
-              호스트
+          {isExternal ? (
+            <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">
+              호스트 실시간
+            </span>
+          ) : isHost ? (
+            <span className="ml-1 text-[10px] font-normal text-muted-foreground">호스트</span>
+          ) : null}
+          {connected && (
+            <span className="ml-1 text-[10px] font-normal text-green-600 dark:text-green-400">
+              실시간
             </span>
           )}
-          {connected && (
-            <span className={`text-[10px] ml-1 ${isExternal ? "text-emerald-400" : "text-green-600"}`}>실시간</span>
-          )}
         </span>
-        <span
-          className={`flex items-center gap-1 text-xs tabular-nums ${isExternal ? "text-white/60" : "text-muted-foreground"}`}
-        >
+        <span className="flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
           <Users className="h-3.5 w-3.5" />
           {viewerCount}
         </span>
@@ -185,15 +175,17 @@ function LiveChatInner({
           <LiveRoomTagsBar tags={tags} />
         </div>
       ) : null}
-      <LiveSupportSidebar
-        channelId={channelId}
-        isHost={!!isHost}
-        hostDisplayName={hostDisplayName ?? hostUsername ?? "스트리머"}
-        hostUserId={hostUserId}
-        hostUsername={hostUsername}
-        paymentsEnabled={paymentsEnabled}
-        hideTopActions={isExternal}
-      />
+      {(!isExternal || isHost) && (
+        <LiveSupportSidebar
+          channelId={channelId}
+          isHost={!!isHost}
+          hostDisplayName={hostDisplayName ?? hostUsername ?? "스트리머"}
+          hostUserId={hostUserId}
+          hostUsername={hostUsername}
+          paymentsEnabled={paymentsEnabled}
+          hideTopActions={isExternal}
+        />
+      )}
       <div
         ref={scrollRef}
         onScroll={onScroll}
@@ -203,9 +195,7 @@ function LiveChatInner({
           <p className="text-xs text-destructive text-center py-2 px-2">{historyError}</p>
         )}
         {messages.length === 0 && !historyError && (
-          <p
-            className={`text-xs text-center py-8 ${isExternal ? "text-white/45" : "text-muted-foreground"}`}
-          >
+          <p className="py-8 text-center text-xs text-muted-foreground">
             채팅은 DB에 저장됩니다. 첫 메시지를 남겨 보세요.
           </p>
         )}
@@ -254,13 +244,7 @@ function LiveChatInner({
         <div ref={bottomRef} />
       </div>
       {session?.user ? (
-        <div
-          className={
-            isExternal
-              ? "shrink-0 space-y-2 border-t border-white/10 p-2.5"
-              : "p-2.5 border-t border-border/60 shrink-0 space-y-1"
-          }
-        >
+        <div className="shrink-0 space-y-2 border-t border-border/60 p-2.5">
           {isExternal ? (
             <ExternalLiveDonationBar
               channelId={channelId}
@@ -286,17 +270,13 @@ function LiveChatInner({
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void send()}
               placeholder="채팅 입력…"
-              className={
-                isExternal
-                  ? "h-9 rounded-lg border-white/15 bg-[#0f1219] text-sm text-white placeholder:text-white/40"
-                  : "rounded-lg text-sm h-9"
-              }
+              className="h-9 rounded-lg text-sm"
               maxLength={200}
               disabled={sending}
             />
             <Button
               size="sm"
-              className={`shrink-0 rounded-lg px-3 h-9 ${isExternal ? "bg-folk-terracotta hover:bg-folk-terracotta/90" : ""}`}
+              className="h-9 shrink-0 rounded-lg bg-folk-terracotta px-3 hover:bg-folk-terracotta/90"
               onClick={() => void send()}
               disabled={sending || !text.trim()}
             >
@@ -306,9 +286,7 @@ function LiveChatInner({
           {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
       ) : (
-        <p
-          className={`shrink-0 p-3 text-center text-xs ${isExternal ? "text-white/45" : "text-muted-foreground"}`}
-        >
+        <p className="shrink-0 p-3 text-center text-xs text-muted-foreground">
           채팅하려면 로그인하세요
         </p>
       )}
