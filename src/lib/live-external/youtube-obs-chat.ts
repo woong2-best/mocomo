@@ -1,7 +1,7 @@
 /** YouTube live chat popout for OBS Browser Source (native UI + custom CSS). */
 export function youtubeLiveChatPopoutUrl(videoId: string): string {
   const id = videoId.trim();
-  return `https://www.youtube.com/live_chat?v=${encodeURIComponent(id)}&is_popout=1`;
+  return `https://www.youtube.com/live_chat?is_popout=1&v=${encodeURIComponent(id)}`;
 }
 
 /** Public path — same stylesheet hosts copy in dashboard. */
@@ -35,16 +35,16 @@ export function buildYoutubeNativeObsChatSetup(
 
 /** One clipboard block: URL + instructions + full CSS for OBS custom CSS field. */
 export function buildYoutubeObsSetupClipboard(popoutUrl: string, css: string): string {
-  return `[MoCoMo · YouTube OBS 채팅]
+  return `[MoCoMo · YouTube OBS 네이티브 채팅]
 
-① OBS → 소스(+) → 브라우저 추가
-② URL (아래 한 줄):
+※ URL과 CSS는 OBS에서 서로 다른 칸에 넣으세요.
+
+[URL란 — 아래 한 줄만]
 ${popoutUrl}
 
-③ 브라우저 소스 우클릭 → 속성 → 「사용자 정의 CSS」에 아래 전체 붙여넣기:
------ CSS -----
+[사용자 정의 CSS란 — 아래 CSS 전체]
 ${css}
------ /CSS -----
 
-④ 배경 투명 ✓ · 너비 450 · 높이 700`;
+설정: 배경 투명 ✓ · 450×700 · OBS 30.2.3+
+채팅 안 보이면: 소스 우클릭 → 새로고침`;
 }

@@ -52,12 +52,22 @@ yt-live-chat-legacy-paid-message-renderer #content {
   overflow: initial !important;
 }
 
+yt-live-chat-item-list-renderer {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+
 yt-live-chat-item-list-renderer #items {
   overflow: hidden !important;
 }
 
 yt-live-chat-item-list-renderer #item-scroller {
   overflow: hidden !important;
+  max-height: none !important;
+}
+
+yt-live-chat-item-list-renderer #item-offset {
+  bottom: 0 !important;
 }
 
 yt-live-chat-header-renderer,
@@ -212,7 +222,11 @@ yt-live-chat-banner-manager {
 }
 
 yt-live-chat-action-panel-renderer,
-yt-live-chat-renderer #action-panel {
+yt-live-chat-renderer #action-panel,
+yt-live-chat-cta-renderer,
+yt-live-chat-viewer-engagement-message-renderer,
+ytd-consent-bump-v2-lightbox,
+tp-yt-iron-overlay-backdrop {
   display: none !important;
 }
 

@@ -152,7 +152,7 @@ export function ExternalLiveRoomClient(props: Props) {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2">
           <p className="text-xs text-muted-foreground">
             {props.provider === "YOUTUBE"
-              ? "OBS YouTube 채팅 → 아래 호스트 대시보드에서 「한 번에 복사」. 플랫폼에서 방송 종료 시 MoCoMo도 자동 종료됩니다."
+              ? "OBS 채팅 → 호스트 대시보드 「통합 채팅 URL」 복사 (가장 쉬움). 플랫폼 방송 종료 시 MoCoMo도 자동 종료."
               : "YouTube·Twitch·치지직에서 방송을 종료하면 MoCoMo 방송도 자동으로 종료됩니다."}
           </p>
           <Button

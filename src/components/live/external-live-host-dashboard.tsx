@@ -126,19 +126,24 @@ export function ExternalLiveHostDashboard({ channelId, provider, externalId }: P
     [chat?.connected, platform.platformConnected, platformLabel, platformOnAir]
   );
 
-  const mocomoOverlaySection = (
+  const mocomoOverlaySection = (opts?: { youtubeEasy?: boolean }) => (
     <div className="space-y-2">
       <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <Monitor className="h-3.5 w-3.5" />
-        MoCoMo OBS 브라우저 소스
+        {opts?.youtubeEasy ? "MoCoMo 통합 채팅 OBS (간편 · 추천)" : "MoCoMo OBS 브라우저 소스"}
       </p>
       {overlayUrls ? (
         <div className="space-y-2">
           <OverlayUrlRow
-            label="통합 채팅 (MoCoMo + 플랫폼)"
+            label={
+              opts?.youtubeEasy
+                ? "통합 채팅 URL — OBS URL란에만 붙여넣기 (CSS 불필요)"
+                : "통합 채팅 (MoCoMo + 플랫폼)"
+            }
             url={overlayUrls.chat}
             copied={copied === "chat"}
             onCopy={() => void copyText(overlayUrls.chat, "chat")}
+            highlight={opts?.youtubeEasy}
           />
           <OverlayUrlRow
             label="후원 알림"
@@ -152,8 +157,9 @@ export function ExternalLiveHostDashboard({ channelId, provider, externalId }: P
       )}
       <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
         <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        MoCoMo 통합 오버레이는 DB 채팅 + {platformLabel} 채팅을 한 타임라인에 표시합니다.
-        {isYoutube ? " YouTube는 위 네이티브 방식이 이모지·슈퍼챗 면에서 더 좋습니다." : null}
+        {opts?.youtubeEasy
+          ? "YouTube + MoCoMo 채팅이 한 화면에 나옵니다. 네이티브 방식이 안 될 때 이 URL만 쓰면 됩니다. 크기 450×700 · 배경 투명 ✓"
+          : `MoCoMo 통합 오버레이는 DB 채팅 + ${platformLabel} 채팅을 한 타임라인에 표시합니다.`}
       </p>
     </div>
   );
@@ -197,17 +203,24 @@ export function ExternalLiveHostDashboard({ channelId, provider, externalId }: P
             ))}
           </div>
 
-          {isYoutube && videoId ? <YoutubeObsQuickSetup videoId={videoId} /> : null}
-
           {isYoutube ? (
-            <details className="rounded-lg border bg-muted/20 px-2.5 py-2">
-              <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
-                MoCoMo 통합 오버레이 (선택)
-              </summary>
-              <div className="mt-2">{mocomoOverlaySection}</div>
-            </details>
+            <>
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
+                {mocomoOverlaySection({ youtubeEasy: true })}
+              </div>
+              {videoId ? (
+                <details className="rounded-lg border bg-muted/20 px-2.5 py-2">
+                  <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
+                    YouTube 네이티브 채팅 (이모지·슈퍼챗 · 고급)
+                  </summary>
+                  <div className="mt-2">
+                    <YoutubeObsQuickSetup videoId={videoId} />
+                  </div>
+                </details>
+              ) : null}
+            </>
           ) : (
-            mocomoOverlaySection
+            mocomoOverlaySection()
           )}
         </div>
       ) : null}
@@ -220,14 +233,18 @@ function OverlayUrlRow({
   url,
   copied,
   onCopy,
+  highlight,
 }: {
   label: string;
   url: string;
   copied: boolean;
   onCopy: () => void;
+  highlight?: boolean;
 }) {
   return (
-    <div className="rounded-lg border bg-background/60 p-2">
+    <div
+      className={`rounded-lg border bg-background/60 p-2 ${highlight ? "border-primary/40 ring-1 ring-primary/20" : ""}`}
+    >
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="text-xs font-medium">{label}</span>
         <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2" onClick={onCopy}>
