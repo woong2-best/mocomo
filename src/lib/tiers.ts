@@ -25,7 +25,7 @@ export const SUPPORT_TIERS: TierDefinition[] = [
   { level: "DIAMOND", label: "Diamond", labelKo: "다이아", minAmount: 50_000_000, color: "#a855f7", gradient: ["#e9d5ff", "#7c3aed"], iconSrc: "/support/tiers/diamond.png" },
   { level: "MYTHRIL", label: "Mythril", labelKo: "미스릴", minAmount: 100_000_000, color: "#6366f1", gradient: ["#c7d2fe", "#4338ca"], iconSrc: "/support/tiers/mythril.png" },
   { level: "ORICHALCUM", label: "Orichalcum", labelKo: "오리하르콘", minAmount: 300_000_000, color: "#f97316", gradient: ["#fdba74", "#c2410c"], iconSrc: "/support/tiers/orichalcum.png" },
-  { level: "LUNA", label: "Luna", labelKo: "루나", minAmount: 500_000_000, color: "#cbd5e1", gradient: ["#f1f5f9", "#64748b"] },
+  { level: "LUNA", label: "Luna", labelKo: "루나", minAmount: 500_000_000, color: "#cbd5e1", gradient: ["#f1f5f9", "#64748b"], iconSrc: "/support/tiers/luna.png" },
   { level: "TERRA", label: "Terra", labelKo: "테라", minAmount: 1_000_000_000, color: "#65a30d", gradient: ["#bef264", "#365314"] },
   { level: "JUPITER", label: "Jupiter", labelKo: "주피터", minAmount: 3_000_000_000, color: "#ea580c", gradient: ["#fdba74", "#9a3412"] },
   { level: "ASTRAL", label: "Astral", labelKo: "아스트랄", minAmount: 5_000_000_000, color: "#8b5cf6", gradient: ["#ddd6fe", "#6d28d9"] },
