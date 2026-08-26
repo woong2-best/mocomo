@@ -37,6 +37,7 @@ async function resolveAccessToken(
       verificationMethod: true,
       verifiedAt: true,
       revokedAt: true,
+      verificationCode: true,
       encryptedTokenData: true,
       encryptionIv: true,
       encryptionAuthTag: true,

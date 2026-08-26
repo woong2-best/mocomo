@@ -60,16 +60,15 @@ export function ExternalLivePlayer({
       try {
         const data = JSON.parse(event.data) as {
           event?: string;
-          info?: Record<string, unknown> & {
-            isLive?: boolean;
-            videoData?: { isLive?: boolean };
-            playerState?: number;
-          };
+          info?: unknown;
         };
 
-        if (data.event === "infoDelivery" && data.info) {
-          const liveFlag =
-            data.info.isLive ?? data.info.videoData?.isLive;
+        if (data.event === "infoDelivery" && data.info && typeof data.info === "object") {
+          const info = data.info as {
+            isLive?: boolean;
+            videoData?: { isLive?: boolean };
+          };
+          const liveFlag = info.isLive ?? info.videoData?.isLive;
           if (liveFlag === true) sawLiveRef.current = true;
           if (liveFlag === false && sawLiveRef.current) signalEnded();
         }
