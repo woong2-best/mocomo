@@ -35,6 +35,7 @@ export function useExternalPlatformChat(params: {
   );
 
   const [polled, setPolled] = useState<PlatformChatMessage[]>([]);
+  const [youtubeReady, setYoutubeReady] = useState(false);
   const pollRef = useRef<PollState>({
     pageToken: null,
     liveChatId: null,
@@ -44,6 +45,7 @@ export function useExternalPlatformChat(params: {
   useEffect(() => {
     if (!active || provider !== "YOUTUBE") {
       setPolled([]);
+      setYoutubeReady(false);
       pollRef.current = { pageToken: null, liveChatId: null, intervalMs: 5000 };
       return;
     }
@@ -80,7 +82,10 @@ export function useExternalPlatformChat(params: {
         };
         if (!body.ok || cancelled) return;
 
-        if (body.liveChatId) pollRef.current.liveChatId = body.liveChatId;
+        if (body.liveChatId) {
+          pollRef.current.liveChatId = body.liveChatId;
+          setYoutubeReady(true);
+        }
         if (body.nextPageToken) pollRef.current.pageToken = body.nextPageToken;
         if (body.pollingIntervalMs) pollRef.current.intervalMs = body.pollingIntervalMs;
 
@@ -117,7 +122,10 @@ export function useExternalPlatformChat(params: {
   }
 
   if (provider === "YOUTUBE") {
-    return { messages: polled, platformConnected: polled.length > 0 || !!pollRef.current.liveChatId };
+    return {
+      messages: polled,
+      platformConnected: polled.length > 0 || youtubeReady,
+    };
   }
 
   if (provider === "CHZZK") {

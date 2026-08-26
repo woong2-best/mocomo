@@ -151,9 +151,7 @@ export function ExternalLiveRoomClient(props: Props) {
       {isHost ? (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2">
           <p className="text-xs text-muted-foreground">
-            {props.provider === "YOUTUBE"
-              ? "OBS → 호스트 대시보드 「OBS 채팅 URL 복사」→ 브라우저 소스 URL란에 붙여넣기 (댓글만 나옴)."
-              : "OBS → 호스트 대시보드 「OBS 채팅 URL 복사」→ 브라우저 소스 URL란에 붙여넣기."}
+            OBS 채팅 → 호스트 대시보드에서 URL 복사 → OBS 브라우저 소스에 붙여넣기.
           </p>
           <Button
             type="button"

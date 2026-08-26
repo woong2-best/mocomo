@@ -1,6 +1,6 @@
 "use client";
 
-import { useOverlayUnifiedChat } from "@/hooks/use-overlay-unified-chat";
+import { useObsChatFeed } from "@/hooks/use-obs-chat-feed";
 import {
   OVERLAY_SOURCE_USERNAME_COLOR,
   UNIFIED_CHAT_SOURCE_LABEL,
@@ -14,7 +14,7 @@ export function OverlayChatClient({
   channelId: string;
   token: string;
 }) {
-  const { messages, streamEnded } = useOverlayUnifiedChat(channelId, token);
+  const { messages, meta, platformReady, state, error } = useObsChatFeed(channelId, token);
 
   return (
     <div
@@ -29,18 +29,23 @@ export function OverlayChatClient({
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      {streamEnded ? (
-        <p
-          style={{
-            color: "rgba(255,255,255,0.65)",
-            textAlign: "center",
-            fontSize: 14,
-            textShadow: "0 1px 2px rgba(0,0,0,0.85)",
-          }}
-        >
-          방송이 종료되었습니다.
-        </p>
+      {state === "loading" ? (
+        <StatusLine text="채팅 연결 중…" />
       ) : null}
+      {state === "error" ? <StatusLine text={error ?? "오류"} dim /> : null}
+      {state === "ended" ? <StatusLine text="방송이 종료되었습니다." dim /> : null}
+      {state === "live" && messages.length === 0 ? (
+        <StatusLine
+          text={
+            platformReady
+              ? "연결됨 · 채팅이 오면 여기에 표시됩니다"
+              : meta
+                ? `${UNIFIED_CHAT_SOURCE_LABEL[meta.provider]} 채팅 연결 중…`
+                : "채팅 대기 중…"
+          }
+        />
+      ) : null}
+
       {messages.map((m) => (
         <div
           key={m.id}
@@ -72,6 +77,22 @@ export function OverlayChatClient({
         </div>
       ))}
     </div>
+  );
+}
+
+function StatusLine({ text, dim }: { text: string; dim?: boolean }) {
+  return (
+    <p
+      style={{
+        color: dim ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.75)",
+        textAlign: "center",
+        fontSize: 13,
+        textShadow: "0 1px 2px rgba(0,0,0,0.85)",
+        margin: "8px 0",
+      }}
+    >
+      {text}
+    </p>
   );
 }
 
