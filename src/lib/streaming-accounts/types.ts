@@ -7,12 +7,12 @@ import type { LiveExternalProvider, ParsedExternalLiveSource } from "@/lib/live-
 
 export type { StreamingPlatform, StreamingVerificationMethod };
 
-/** OAuth 가능 플랫폼 (초기 구현) */
-export const OAUTH_STREAMING_PLATFORMS = ["YOUTUBE", "TWITCH"] as const;
+/** OAuth 가능 플랫폼 */
+export const OAUTH_STREAMING_PLATFORMS = ["YOUTUBE", "TWITCH", "CHZZK"] as const;
 export type OAuthStreamingPlatform = (typeof OAUTH_STREAMING_PLATFORMS)[number];
 
 /** 수동 검증 플랫폼 */
-export const MANUAL_STREAMING_PLATFORMS = ["CHZZK", "KICK"] as const;
+export const MANUAL_STREAMING_PLATFORMS = ["KICK"] as const;
 export type ManualStreamingPlatform = (typeof MANUAL_STREAMING_PLATFORMS)[number];
 
 export const CONNECTABLE_STREAMING_PLATFORMS = [
@@ -88,7 +88,8 @@ export interface StreamingPlatformProvider {
   /** OAuth code → tokens + channel info */
   exchangeOAuthCode(
     code: string,
-    redirectUri: string
+    redirectUri: string,
+    opts?: { state?: string }
   ): Promise<{ tokens: StreamingTokenPayload; channel: StreamingChannelInfo }>;
 
   /** 수동 연결 — 채널 URL/ID 파싱 (검증 전) */

@@ -31,7 +31,7 @@ export const twitchStreamingProvider: StreamingPlatformProvider = {
     return `https://id.twitch.tv/oauth2/authorize?${q}`;
   },
 
-  async exchangeOAuthCode(code, redirectUri) {
+  async exchangeOAuthCode(code, redirectUri, _opts?) {
     const creds = twitchCreds();
     if (!creds) throw new Error("Twitch OAuth가 설정되지 않았습니다.");
 

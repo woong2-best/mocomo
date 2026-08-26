@@ -18,7 +18,7 @@ export async function GET(
   if (oauthError) {
     const message =
       oauthError === "access_denied"
-        ? "Google OAuth가 테스트 모드라 승인된 테스터만 연결할 수 있습니다. 아래 ‘채널 설명으로 인증’을 사용하거나, Google Cloud 동의 화면을 프로덕션으로 게시해 주세요."
+        ? "로그인이 취소되었거나 앱 승인이 필요합니다. 다시 시도해 주세요."
         : oauthError;
     settingsUrl.searchParams.set("error", message);
     return NextResponse.redirect(settingsUrl);

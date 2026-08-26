@@ -149,7 +149,7 @@ export async function completeOAuthConnect(
   let tokens: StreamingTokenPayload;
   let channel;
   try {
-    const result = await provider.exchangeOAuthCode(code, redirectUri);
+    const result = await provider.exchangeOAuthCode(code, redirectUri, { state });
     tokens = result.tokens;
     channel = result.channel;
   } catch (e) {

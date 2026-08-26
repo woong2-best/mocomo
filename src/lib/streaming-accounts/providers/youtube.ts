@@ -278,7 +278,7 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
     return `https://accounts.google.com/o/oauth2/v2/auth?${q}`;
   },
 
-  async exchangeOAuthCode(code, redirectUri) {
+  async exchangeOAuthCode(code, redirectUri, _opts?) {
     const creds = googleClientCreds();
     if (!creds) throw new Error("YouTube OAuth가 설정되지 않았습니다.");
 

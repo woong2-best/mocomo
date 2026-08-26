@@ -163,6 +163,7 @@ export function StreamingAccountsManager({
                   </a>
                   {acc.pendingVerification &&
                   acc.platform !== "YOUTUBE" &&
+                  acc.platform !== "CHZZK" &&
                   acc.verificationCode ? (
                     <p className="text-xs text-muted-foreground">
                       채널 설명에 추가:{" "}
@@ -173,17 +174,28 @@ export function StreamingAccountsManager({
                   ) : null}
                   {acc.platform === "YOUTUBE" && !acc.verified ? (
                     <p className="text-xs text-muted-foreground">
-                      Google 로그인으로 다시 연결하면 Twitch처럼 바로 인증됩니다.
+                      Google 로그인으로 다시 연결하면 바로 인증됩니다.
+                    </p>
+                  ) : null}
+                  {acc.platform === "CHZZK" && !acc.verified ? (
+                    <p className="text-xs text-muted-foreground">
+                      치지직 OAuth로 다시 연결하면 바로 인증됩니다.
                     </p>
                   ) : null}
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  {acc.platform === "YOUTUBE" && !acc.verified ? (
-                    <Button size="sm" disabled={pending} onClick={() => onOAuthConnect("YOUTUBE")}>
-                      Google로 연결
+                  {(acc.platform === "YOUTUBE" || acc.platform === "CHZZK") && !acc.verified ? (
+                    <Button
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => onOAuthConnect(acc.platform)}
+                    >
+                      {acc.platform === "YOUTUBE" ? "Google로 연결" : "치지직으로 연결"}
                     </Button>
                   ) : null}
-                  {acc.pendingVerification && acc.platform !== "YOUTUBE" ? (
+                  {acc.pendingVerification &&
+                  acc.platform !== "YOUTUBE" &&
+                  acc.platform !== "CHZZK" ? (
                     <Button size="sm" disabled={pending} onClick={() => onVerify(acc.id)}>
                       소유권 확인
                     </Button>
@@ -226,11 +238,15 @@ export function StreamingAccountsManager({
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
                 {selectedPlatform === "YOUTUBE"
-                  ? "Google 계정으로 로그인하면 채널이 바로 인증됩니다. (채널 설명에 코드를 넣을 필요 없음)"
-                  : `${PLATFORM_LABELS[selectedPlatform]} 계정으로 로그인하여 채널 소유권을 확인합니다.`}
+                  ? "Google 계정으로 로그인하면 채널이 바로 인증됩니다."
+                  : selectedPlatform === "CHZZK"
+                    ? "네이버(치지직) 계정으로 로그인하면 본인 채널이 바로 인증됩니다. URL·검증 코드는 필요 없습니다."
+                    : `${PLATFORM_LABELS[selectedPlatform]} 계정으로 로그인하여 채널 소유권을 확인합니다.`}
               </p>
               <Button disabled={pending} onClick={() => onOAuthConnect(selectedPlatform)}>
-                {PLATFORM_LABELS[selectedPlatform]} 연결
+                {selectedPlatform === "CHZZK"
+                  ? "치지직 연결"
+                  : `${PLATFORM_LABELS[selectedPlatform]} 연결`}
               </Button>
               {selectedPlatform === "YOUTUBE" ? (
                 <p className="text-xs text-muted-foreground">
@@ -241,21 +257,16 @@ export function StreamingAccountsManager({
             </div>
           ) : null}
 
-          {selectedPlatform === "CHZZK" || selectedPlatform === "KICK" ? (
+          {selectedPlatform === "KICK" ? (
             <form onSubmit={onManualConnect} className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                {selectedPlatform === "CHZZK"
-                  ? "치지직 채널 URL을 입력하면 검증 코드가 발급됩니다. 채널 설명에 코드를 넣고 저장한 뒤 ‘소유권 확인’을 누르세요."
-                  : "채널 URL을 입력하면 검증 코드가 발급됩니다. 채널 설명(프로필)에 코드를 넣고 소유권 확인을 진행하세요."}
+                채널 URL을 입력하면 검증 코드가 발급됩니다. 채널 설명(프로필)에 코드를 넣고
+                소유권 확인을 진행하세요.
               </p>
               <Input
                 value={channelInput}
                 onChange={(e) => setChannelInput(e.target.value)}
-                placeholder={
-                  selectedPlatform === "CHZZK"
-                    ? "https://chzzk.naver.com/채널ID"
-                    : "https://kick.com/사용자명"
-                }
+                placeholder="https://kick.com/사용자명"
                 required
               />
               {pendingCode ? (
