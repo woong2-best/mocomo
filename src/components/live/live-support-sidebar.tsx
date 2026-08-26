@@ -7,6 +7,7 @@ import { LiveSupportPollBar } from "@/components/live/live-support-poll-bar";
 import { LiveVideoDonationPanel } from "@/components/live/live-video-donation-panel";
 import { VideoTipWizardDialog } from "@/components/support/video-tip-wizard-dialog";
 import { useLiveSupport } from "@/components/live/live-support-provider";
+import { cn } from "@/lib/utils";
 
 export function LiveSupportSidebar({
   channelId,
@@ -15,6 +16,7 @@ export function LiveSupportSidebar({
   hostUserId,
   hostUsername,
   paymentsEnabled,
+  hideTopActions = false,
 }: {
   channelId: string;
   isHost: boolean;
@@ -22,13 +24,20 @@ export function LiveSupportSidebar({
   hostUserId?: string;
   hostUsername?: string;
   paymentsEnabled?: boolean;
+  /** External v2 viewer moves donation buttons to chat footer */
+  hideTopActions?: boolean;
 }) {
   const { socket, connected, missions, poll, upsertMission, setPoll, pushAlert } = useLiveSupport();
   const { data: session } = useSession();
 
   return (
-    <div className="space-y-2 px-2 pb-2 border-b border-border/40">
-      {!isHost && (
+    <div
+      className={cn(
+        "space-y-2 px-2 pb-2 border-b",
+        hideTopActions ? "border-white/10" : "border-border/40"
+      )}
+    >
+      {!isHost && !hideTopActions && (
         <div className="flex justify-end gap-1.5 pt-2 flex-wrap">
           <LiveSupportDialog
             channelId={channelId}

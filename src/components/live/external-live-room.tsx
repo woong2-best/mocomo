@@ -2,40 +2,50 @@
 
 import { useState } from "react";
 import { ExternalLivePlayer } from "@/components/live/external-live-player";
+import { ExternalLiveStreamInfo } from "@/components/live/external-live-stream-info";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveChatProvider } from "@/components/live/live-chat-provider";
 import { LiveSupportProvider } from "@/components/live/live-support-provider";
-import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
+import { LiveDonationBar } from "@/components/live/live-donation-bar";
+import { ensureArray } from "@/lib/ensure-array";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
-import type { SupportTierLevel } from "@prisma/client";
+import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import { formatUsd } from "@/lib/money";
+import { Trophy } from "lucide-react";
 
 type Props = {
   channelId: string;
   title: string;
-  /** YouTube stream title from the platform (preferred over MoCoMo room title) */
   platformTitle?: string | null;
-  /** YouTube stream description from the platform */
   platformDescription?: string | null;
   provider: LiveExternalProvider;
   embedUrl: string | null;
   watchUrl: string;
   embedSupported: boolean;
+  category?: LiveStreamCategory;
+  tags?: string[];
+  donationGoalKrw?: number | null;
+  tipTotalKrw?: number;
+  tipRanking?: { username: string; amount: number }[];
   host: {
     id: string;
     username: string;
     image: string | null;
     displayName?: string | null;
+    tier?: SupportTierLevel;
+    totalSupport?: number;
   };
   currentUserId: string;
   isHost: boolean;
   paymentsEnabled: boolean;
+  hostFollowing?: boolean;
   viewerSupportTier?: SupportTierLevel | null;
   viewerSupportTotal?: number;
 };
 
 /**
- * Layout: video (no overlays) | chat + tip panel beside.
- * Never mounts chat/donation on top of the iframe.
+ * External live viewer v2 — Twitch-style grid: embed + metadata | chat sidebar.
+ * YouTube · Twitch · Chzzk share the same layout.
  */
 export function ExternalLiveRoom({
   channelId,
@@ -46,62 +56,79 @@ export function ExternalLiveRoom({
   embedUrl,
   watchUrl,
   embedSupported,
+  category,
+  tags = [],
+  donationGoalKrw,
+  tipTotalKrw,
+  tipRanking,
   host,
   currentUserId,
   isHost,
   paymentsEnabled,
+  hostFollowing,
   viewerSupportTier,
   viewerSupportTotal,
 }: Props) {
   const [viewerCount, setViewerCount] = useState(0);
   const displayTitle = platformTitle?.trim() || title;
+  const displayDescription = platformDescription?.trim() || null;
+  const ranking = ensureArray<{ username: string; amount: number }>(tipRanking);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-3 md:flex-row md:items-start">
-      <div className="min-w-0 flex-1">
-        <h1 className="mb-2 text-lg font-semibold leading-snug">{displayTitle}</h1>
-        <ExternalLivePlayer
-          provider={provider}
-          embedUrl={embedUrl}
-          watchUrl={watchUrl}
-          title={displayTitle}
-          embedSupported={embedSupported}
-          isHost={isHost}
-        />
-        {platformDescription?.trim() ? (
-          <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">
-            {platformDescription.trim()}
-          </p>
-        ) : null}
-        <p className="mt-2 text-sm text-muted-foreground">
-          @{host.username}
-          {isHost ? " · 호스트" : ""}
-          {viewerCount > 0 ? ` · ${viewerCount}명` : ""}
-        </p>
-      </div>
-
-      <aside className="flex w-full flex-col gap-3 md:w-[360px] md:shrink-0">
-        {paymentsEnabled && !isHost ? (
-          <TipCreatorDialog
-            creatorId={host.id}
-            username={host.username}
-            displayName={host.displayName ?? host.username}
-            paymentsEnabled={paymentsEnabled}
-            channelId={channelId}
-            returnPath={`/voice/${channelId}`}
-            currentTier={viewerSupportTier}
-            currentTotal={viewerSupportTotal}
-            triggerClassName="w-full"
+    <div className="live-studio-twitch mx-auto w-full max-w-[1400px] space-y-3 px-1 sm:px-0">
+      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_340px] xl:gap-4">
+        <div className="min-w-0">
+          <ExternalLivePlayer
+            provider={provider}
+            embedUrl={embedUrl}
+            watchUrl={watchUrl}
+            title={displayTitle}
+            embedSupported={embedSupported}
+            isHost={isHost}
+            hostImage={host.image}
+            hostUsername={host.username}
           />
-        ) : null}
-        <div className="flex min-h-[420px] flex-1 flex-col overflow-hidden rounded-xl border bg-card">
+          <ExternalLiveStreamInfo
+            channelId={channelId}
+            title={displayTitle}
+            description={displayDescription}
+            hostUserId={host.id}
+            hostUsername={host.username}
+            hostDisplayName={host.displayName ?? host.username}
+            hostTier={host.tier}
+            hostTotalSupport={host.totalSupport}
+            isHost={isHost}
+            category={category}
+            paymentsEnabled={paymentsEnabled}
+            hostFollowing={hostFollowing}
+          />
+          {(donationGoalKrw != null && donationGoalKrw > 0) || (tipTotalKrw ?? 0) > 0 ? (
+            <div className="mt-3">
+              <LiveDonationBar goalKrw={donationGoalKrw ?? null} totalKrw={tipTotalKrw ?? 0} />
+            </div>
+          ) : null}
+          {ranking.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className="flex items-center gap-1 font-medium text-muted-foreground">
+                <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                이번 방송 후원 TOP
+              </span>
+              {ranking.map((t, i) => (
+                <span key={`${t.username}-${i}`} className="rounded-full bg-muted px-2 py-0.5">
+                  @{t.username} {formatUsd(t.amount)}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="min-h-[min(70vh,560px)] xl:sticky xl:top-16">
           <LiveChatProvider
             channelId={channelId}
             userId={currentUserId}
             onViewerCount={setViewerCount}
             chatOverlayInitial={false}
           >
-            {/* LiveChat → LiveSupportSidebar needs this provider (first-party rooms wrap it higher up). */}
             <LiveSupportProvider
               channelId={channelId}
               isHost={isHost}
@@ -120,11 +147,13 @@ export function ExternalLiveRoom({
                 paymentsEnabled={paymentsEnabled}
                 viewerSupportTier={viewerSupportTier ?? undefined}
                 viewerSupportTotal={viewerSupportTotal}
+                tags={tags}
+                variant="external"
               />
             </LiveSupportProvider>
           </LiveChatProvider>
         </div>
-      </aside>
+      </div>
     </div>
   );
 }

@@ -15,7 +15,7 @@ import { LiveVoiceViewerBackLink } from "@/components/live/mobile/live-voice-vie
 import { LiveRoomPageShell } from "@/components/live/live-room-page-shell";
 import { LiveRoomErrorState } from "@/components/live/live-room-error-state";
 import { resolveExternalEmbed } from "@/lib/live-external/parse";
-import { fetchYoutubeVideoMetadata } from "@/lib/live-external/youtube-metadata";
+import { fetchExternalPlatformMetadata } from "@/lib/live-external/platform-metadata";
 import { isFirstPartyLiveEnabled } from "@/lib/live-feature";
 import { LiveFeatureDisabledNotice } from "@/components/live/live-feature-disabled";
 
@@ -137,10 +137,10 @@ export default async function VoiceRoomPage({
       );
     }
 
-    const youtubeMeta =
-      resolved.provider === "YOUTUBE"
-        ? await fetchYoutubeVideoMetadata(resolved.externalId)
-        : null;
+    const platformMeta = await fetchExternalPlatformMetadata(
+      resolved.provider,
+      resolved.externalId
+    );
 
     return (
       <LiveRoomPageShell isHost={isHost}>
@@ -148,21 +148,29 @@ export default async function VoiceRoomPage({
         <ExternalLiveRoom
           channelId={id}
           title={channel.name}
-          platformTitle={youtubeMeta?.title}
-          platformDescription={youtubeMeta?.description}
+          platformTitle={platformMeta.title}
+          platformDescription={platformMeta.description}
           provider={resolved.provider}
           embedUrl={resolved.embedUrl}
           watchUrl={channel.externalWatchUrl || resolved.watchUrl}
           embedSupported={resolved.embedSupported}
+          category={channel.category}
+          tags={channel.tags}
+          donationGoalKrw={channel.donationGoalKrw}
+          tipTotalKrw={tipTotalKrw}
+          tipRanking={ensureArray<{ username: string; amount: number }>(tipRanking)}
           host={{
             id: host.id,
             username: host.username,
             image: host.image,
             displayName: host.username,
+            tier: host.supportTierSent,
+            totalSupport: host.totalSupportReceived,
           }}
           currentUserId={session.user.id}
           isHost={isHost}
           paymentsEnabled={paymentsEnabled}
+          hostFollowing={hostFollowing}
           viewerSupportTier={host.supportTierReceived}
           viewerSupportTotal={host.totalSupportReceived}
         />

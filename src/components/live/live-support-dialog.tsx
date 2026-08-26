@@ -52,6 +52,9 @@ export function LiveSupportDialog({
   triggerClassName,
   trigger,
   triggerLabel = "응원 CP",
+  initialTab = "GENERAL",
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: {
   channelId: string;
   hostDisplayName: string;
@@ -62,9 +65,14 @@ export function LiveSupportDialog({
   triggerClassName?: string;
   trigger?: ReactNode;
   triggerLabel?: string;
+  initialTab?: LiveSupportEventType | "MISSION";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<string>("GENERAL");
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
+  const [tab, setTab] = useState<string>(initialTab);
   const [amount, setAmount] = useState(1_000);
   const [custom, setCustom] = useState("");
   const [message, setMessage] = useState("");
@@ -135,14 +143,16 @@ export function LiveSupportDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
+      {trigger ? (
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
+      ) : controlledOpen === undefined ? (
+        <DialogTrigger asChild>
           <Button variant={triggerVariant} size={triggerSize} className={triggerClass} disabled={!connected}>
             <Music2 className="h-4 w-4" />
             {triggerLabel}
           </Button>
-        )}
-      </DialogTrigger>
+        </DialogTrigger>
+      ) : null}
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>라이브 응원 (가상 CP)</DialogTitle>

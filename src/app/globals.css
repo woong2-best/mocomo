@@ -528,6 +528,31 @@ html[data-client="app"] .native-live-pad {
     @apply flex items-center gap-1 px-2 py-1 rounded-md bg-background/90 border-2 border-[hsl(var(--folk-cobalt)/0.2)] text-xs font-medium tabular-nums text-foreground;
   }
 
+  .external-live-chat {
+    @apply text-white;
+  }
+
+  .external-live-chat .bg-muted {
+    @apply bg-white/10 text-white/90;
+  }
+
+  .external-live-chat .text-muted-foreground {
+    @apply text-white/55;
+  }
+
+  .external-live-chat .border-border\/40,
+  .external-live-chat .border-border\/60 {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .external-live-player:fullscreen {
+    @apply rounded-none ring-0;
+  }
+
+  .external-live-player:fullscreen .aspect-video {
+    min-height: 100vh;
+  }
+
   .folk-hero-banner {
     @apply relative overflow-hidden rounded-2xl border border-border bg-muted/30 p-6 sm:p-8 mb-6;
   }

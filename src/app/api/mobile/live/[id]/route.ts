@@ -4,7 +4,7 @@ import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { db } from "@/lib/db";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { resolveExternalEmbed } from "@/lib/live-external/parse";
-import { fetchYoutubeVideoMetadata } from "@/lib/live-external/youtube-metadata";
+import { fetchExternalPlatformMetadata } from "@/lib/live-external/platform-metadata";
 import { isPaymentsConfigured } from "@/lib/payments";
 import {
   canViewerEnterLiveRoom,
@@ -92,17 +92,17 @@ export async function GET(
       externalId: channel.externalId,
     });
     if (resolved) {
-      const youtubeMeta =
-        resolved.provider === "YOUTUBE"
-          ? await fetchYoutubeVideoMetadata(resolved.externalId)
-          : null;
+      const platformMeta = await fetchExternalPlatformMetadata(
+        resolved.provider,
+        resolved.externalId
+      );
       external = {
         provider: resolved.provider,
         embedUrl: resolved.embedUrl,
         watchUrl: channel.externalWatchUrl || resolved.watchUrl,
         embedSupported: resolved.embedSupported,
-        platformTitle: youtubeMeta?.title ?? null,
-        platformDescription: youtubeMeta?.description ?? null,
+        platformTitle: platformMeta.title ?? null,
+        platformDescription: platformMeta.description ?? null,
       };
     }
   }
