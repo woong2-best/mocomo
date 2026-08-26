@@ -181,6 +181,10 @@ export async function createExternalLiveStream(data: {
         donationUrl: donationToken
           ? `/overlay/donation/${channel.id}?token=${encodeURIComponent(donationToken)}`
           : null,
+        youtubeNative:
+          parsed.provider === "YOUTUBE"
+            ? buildYoutubeNativeObsChatSetup(parsed.externalId, "")
+            : null,
       },
     };
   } catch (e) {

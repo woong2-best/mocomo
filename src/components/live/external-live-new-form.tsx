@@ -36,7 +36,6 @@ export function ExternalLiveNewForm({ accounts }: Props) {
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id ?? "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [overlayHint, setOverlayHint] = useState<string | null>(null);
 
   const selected = accounts.find((a) => a.id === selectedAccountId);
 
@@ -59,12 +58,6 @@ export function ExternalLiveNewForm({ accounts }: Props) {
         return;
       }
       if ("channel" in result && result.channel) {
-        const chat = result.overlay?.chatUrl;
-        if (chat) {
-          setOverlayHint(
-            `OBS 브라우저 소스: ${typeof window !== "undefined" ? window.location.origin : ""}${chat}`
-          );
-        }
         router.push(`/voice/${result.channel.id}`);
       }
     } finally {
@@ -77,8 +70,11 @@ export function ExternalLiveNewForm({ accounts }: Props) {
       <CardHeader>
         <CardTitle className="text-lg">인증된 계정으로 방송 시작</CardTitle>
         <p className="text-sm text-muted-foreground">
-          영상은 해당 플랫폼 플레이어로만 보여 줍니다. 채팅·후원은 MoCoMo에서 제공되며, OBS 채팅 오버레이는
-          MoCoMo + 플랫폼 채팅을 합쳐 표시합니다. 후원은 인증된 본인 계정의 방송에서만 받을 수 있습니다.
+          영상은 해당 플랫폼 플레이어로만 보여 줍니다. 채팅·후원은 MoCoMo에서 제공됩니다.
+          {selected?.platform === "YOUTUBE"
+            ? " YouTube는 방 시작 후 호스트 대시보드에서 OBS 채팅 설정을 한 번에 복사할 수 있습니다."
+            : " OBS 채팅 오버레이는 MoCoMo + 플랫폼 채팅을 합쳐 표시합니다."}{" "}
+          후원은 인증된 본인 계정의 방송에서만 받을 수 있습니다.
         </p>
       </CardHeader>
       <CardContent>
@@ -138,9 +134,6 @@ export function ExternalLiveNewForm({ accounts }: Props) {
           {selected?.platform === "YOUTUBE" ? <YoutubeEmbedGuide variant="full" /> : null}
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          {overlayHint ? (
-            <p className="break-all text-xs text-muted-foreground">{overlayHint}</p>
-          ) : null}
           <Button type="submit" className="w-full" disabled={busy || !selectedAccountId}>
             {busy ? "연결 중…" : "방송 연결하고 시작"}
           </Button>
