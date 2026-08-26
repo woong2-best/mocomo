@@ -7,11 +7,13 @@ export type TierDefinition = {
   minAmount: number;
   color: string;
   gradient: [string, string];
+  /** Custom tier badge art under /public */
+  iconSrc?: string;
 };
 
 /** 사이트 전체 누적 · 크리에이터별 개별 후원 공통 등급표 (USD cents) */
 export const SUPPORT_TIERS: TierDefinition[] = [
-  { level: "SEED", label: "Seed", labelKo: "씨앗", minAmount: 0, color: "#84cc16", gradient: ["#d9f99d", "#65a30d"] },
+  { level: "SEED", label: "Seed", labelKo: "씨앗", minAmount: 0, color: "#84cc16", gradient: ["#d9f99d", "#65a30d"], iconSrc: "/support/tiers/seed.png" },
   { level: "STONE", label: "Stone", labelKo: "스톤", minAmount: 5_000, color: "#78716c", gradient: ["#a8a29e", "#57534e"] },
   { level: "BRONZE", label: "Bronze", labelKo: "브론즈", minAmount: 10_000, color: "#b45309", gradient: ["#d97706", "#92400e"] },
   { level: "SILVER", label: "Silver", labelKo: "실버", minAmount: 100_000, color: "#94a3b8", gradient: ["#e2e8f0", "#64748b"] },

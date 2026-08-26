@@ -2,7 +2,7 @@ import { SupportTierLevel } from "@prisma/client";
 import { getTierInfo } from "@/lib/tiers";
 import { cn } from "@/lib/utils";
 
-/** 광석 일러스트 SVG (등급별) */
+/** 등급 뱃지 — 커스텀 PNG 우선, 없으면 SVG fallback */
 export function OreIcon({
   tier,
   size = 20,
@@ -13,6 +13,22 @@ export function OreIcon({
   className?: string;
 }) {
   const info = getTierInfo(tier);
+
+  if (info.iconSrc) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={info.iconSrc}
+        alt=""
+        width={size}
+        height={size}
+        className={cn("shrink-0 object-contain drop-shadow-sm", className)}
+        aria-hidden
+        draggable={false}
+      />
+    );
+  }
+
   const [c1, c2] = info.gradient;
   const s = size;
 
