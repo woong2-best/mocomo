@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Monitor,
   Radio,
+  Youtube,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { mintLiveOverlayUrls } from "@/actions/live-external";
@@ -17,11 +18,16 @@ import { usePlatformChat } from "@/components/live/platform-chat-provider";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
 import { UNIFIED_CHAT_SOURCE_LABEL } from "@/lib/live-external/platform-chat/merge-messages";
 import { providerDisplayName } from "@/lib/live-external/platform-metadata";
+import type { YoutubeNativeObsChatSetup } from "@/lib/live-external/youtube-obs-chat";
+import { YOUTUBE_OBS_CHAT_CSS_PATH } from "@/lib/live-external/youtube-obs-chat";
 
 type Props = {
   channelId: string;
   provider: LiveExternalProvider;
+  externalId: string;
 };
+
+type CopyKind = "chat" | "donation" | "yt-popout" | "yt-css";
 
 function StatusDot({ ok }: { ok: boolean | null }) {
   const color =
@@ -30,13 +36,16 @@ function StatusDot({ ok }: { ok: boolean | null }) {
 }
 
 /** Host-only panel: platform/chat/OBS status for external live rooms. */
-export function ExternalLiveHostDashboard({ channelId, provider }: Props) {
+export function ExternalLiveHostDashboard({ channelId, provider, externalId }: Props) {
   const chat = useLiveChatOptional();
   const platform = usePlatformChat();
   const [expanded, setExpanded] = useState(false);
   const [platformOnAir, setPlatformOnAir] = useState<boolean | null>(null);
-  const [overlayUrls, setOverlayUrls] = useState<{ chat: string; donation: string } | null>(null);
-  const [copied, setCopied] = useState<"chat" | "donation" | null>(null);
+  const [overlayUrls, setOverlayUrls] = useState<{ chat: string; donation: string } | null>(
+    null
+  );
+  const [youtubeNative, setYoutubeNative] = useState<YoutubeNativeObsChatSetup | null>(null);
+  const [copied, setCopied] = useState<CopyKind | null>(null);
 
   const platformLabel = providerDisplayName(provider);
   const mocomoCount = chat?.messages.length ?? 0;
@@ -76,13 +85,20 @@ export function ExternalLiveHostDashboard({ channelId, provider }: Props) {
         chat: `${origin}${res.chatUrl}`,
         donation: `${origin}${res.donationUrl}`,
       });
+      if (res.youtubeNative && provider === "YOUTUBE") {
+        setYoutubeNative({
+          ...res.youtubeNative,
+          cssPublicUrl: `${origin}${YOUTUBE_OBS_CHAT_CSS_PATH}`,
+          popoutUrl: res.youtubeNative.popoutUrl || "",
+        });
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [channelId]);
+  }, [channelId, provider]);
 
-  const copy = useCallback(async (text: string, kind: "chat" | "donation") => {
+  const copyText = useCallback(async (text: string, kind: CopyKind) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(kind);
@@ -91,6 +107,25 @@ export function ExternalLiveHostDashboard({ channelId, provider }: Props) {
       /* ignore */
     }
   }, []);
+
+  const copyYoutubeCss = useCallback(async () => {
+    try {
+      const res = await fetch(YOUTUBE_OBS_CHAT_CSS_PATH, { cache: "force-cache" });
+      if (!res.ok) return;
+      const css = await res.text();
+      await copyText(css, "yt-css");
+    } catch {
+      /* ignore */
+    }
+  }, [copyText]);
+
+  const ytPopoutUrl = useMemo(() => {
+    if (provider !== "YOUTUBE" || !externalId.trim()) return null;
+    return (
+      youtubeNative?.popoutUrl ||
+      `https://www.youtube.com/live_chat?v=${encodeURIComponent(externalId.trim())}&is_popout=1`
+    );
+  }, [provider, externalId, youtubeNative?.popoutUrl]);
 
   const statusRows = useMemo(
     () => [
@@ -156,10 +191,52 @@ export function ExternalLiveHostDashboard({ channelId, provider }: Props) {
             ))}
           </div>
 
+          {provider === "YOUTUBE" && ytPopoutUrl ? (
+            <div className="space-y-2 rounded-lg border border-red-500/20 bg-red-500/5 p-2.5">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                <Youtube className="h-3.5 w-3.5 text-red-500" />
+                YouTube 네이티브 채팅 (OBS · 추천)
+              </p>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                YouTube 공식 채팅 팝아웃 + 투명 CSS. 이모지·슈퍼챗·멤버십 색이 그대로
+                나옵니다. MoCoMo 통합 오버레이와 함께 쓰거나 YouTube 전용으로 쓸 수
+                있습니다.
+              </p>
+              <OverlayUrlRow
+                label="1. OBS 브라우저 URL (YouTube 채팅 팝아웃)"
+                url={ytPopoutUrl}
+                copied={copied === "yt-popout"}
+                onCopy={() => void copyText(ytPopoutUrl, "yt-popout")}
+              />
+              <div className="rounded-lg border bg-background/60 p-2">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium">2. OBS 「사용자 정의 CSS」 붙여넣기</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 px-2"
+                    onClick={() => void copyYoutubeCss()}
+                  >
+                    {copied === "yt-css" ? (
+                      <Check className="h-3.5 w-3.5" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                    {copied === "yt-css" ? "복사됨" : "CSS 복사"}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  브라우저 소스 속성 → 사용자 정의 CSS 필드에 붙여넣기 · 배경 투명 ON
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Monitor className="h-3.5 w-3.5" />
-              OBS 브라우저 소스
+              MoCoMo OBS 브라우저 소스
             </p>
             {overlayUrls ? (
               <div className="space-y-2">
@@ -167,13 +244,13 @@ export function ExternalLiveHostDashboard({ channelId, provider }: Props) {
                   label="통합 채팅 (MoCoMo + 플랫폼)"
                   url={overlayUrls.chat}
                   copied={copied === "chat"}
-                  onCopy={() => void copy(overlayUrls.chat, "chat")}
+                  onCopy={() => void copyText(overlayUrls.chat, "chat")}
                 />
                 <OverlayUrlRow
                   label="후원 알림"
                   url={overlayUrls.donation}
                   copied={copied === "donation"}
-                  onCopy={() => void copy(overlayUrls.donation, "donation")}
+                  onCopy={() => void copyText(overlayUrls.donation, "donation")}
                 />
               </div>
             ) : (
@@ -181,8 +258,8 @@ export function ExternalLiveHostDashboard({ channelId, provider }: Props) {
             )}
             <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
               <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              채팅 오버레이는 MoCoMo DB 채팅과 {platformLabel} 채팅을 시간순으로 합쳐
-              표시합니다. Twitch·치지직은 WebSocket, YouTube는 서버 폴링을 사용합니다.
+              MoCoMo 통합 오버레이는 DB 채팅 + {platformLabel} 채팅을 한 타임라인에
+              표시합니다. YouTube는 위 네이티브 방식이 화질·이모지 면에서 더 좋습니다.
             </p>
           </div>
         </div>

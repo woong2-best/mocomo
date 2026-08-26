@@ -14,6 +14,7 @@ import { isExternalLiveEnabled } from "@/lib/live-feature";
 import { checkYoutubeMadeForKids } from "@/lib/live-external/youtube-kids";
 import { probeChzzkEmbed } from "@/lib/live-external/chzzk-probe";
 import { mintOverlayToken, overlayBroadcastSid } from "@/lib/live-external/overlay-token";
+import { buildYoutubeNativeObsChatSetup } from "@/lib/live-external/youtube-obs-chat";
 import { platformToLiveExternal } from "@/lib/streaming-accounts/types";
 import {
   getAccountTokens,
@@ -196,7 +197,12 @@ export async function mintLiveOverlayUrls(channelId: string) {
   const user = await requireAuthMinimal();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, createdAt: true },
+    select: {
+      createdBy: true,
+      createdAt: true,
+      externalProvider: true,
+      externalId: true,
+    },
   });
   if (!channel || channel.createdBy !== user.id) {
     return { error: "호스트만 오버레이 URL을 발급할 수 있습니다." };
@@ -207,9 +213,16 @@ export async function mintLiveOverlayUrls(channelId: string) {
   if (!chatToken || !donationToken) {
     return { error: "LIVE_OVERLAY_SECRET 또는 AUTH_SECRET이 필요합니다." };
   }
+
+  const youtubeNative =
+    channel.externalProvider === "YOUTUBE" && channel.externalId
+      ? buildYoutubeNativeObsChatSetup(channel.externalId, "")
+      : null;
+
   return {
     chatUrl: `/overlay/chat/${channelId}?token=${encodeURIComponent(chatToken)}`,
     donationUrl: `/overlay/donation/${channelId}?token=${encodeURIComponent(donationToken)}`,
+    youtubeNative,
   };
 }
 

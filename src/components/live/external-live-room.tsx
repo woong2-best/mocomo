@@ -112,7 +112,11 @@ export function ExternalLiveRoom({
       >
         <ExternalLiveEndWatcher channelId={channelId} onEnded={onPlatformEnded} />
         {isHost ? (
-          <ExternalLiveHostDashboard channelId={channelId} provider={provider} />
+          <ExternalLiveHostDashboard
+            channelId={channelId}
+            provider={provider}
+            externalId={externalId}
+          />
         ) : null}
         <div className="live-studio-twitch mx-auto w-full max-w-[1400px] space-y-3 px-1 sm:px-0">
         <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_340px] xl:gap-4">
