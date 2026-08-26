@@ -15,6 +15,7 @@ import { LiveVoiceViewerBackLink } from "@/components/live/mobile/live-voice-vie
 import { LiveRoomPageShell } from "@/components/live/live-room-page-shell";
 import { LiveRoomErrorState } from "@/components/live/live-room-error-state";
 import { resolveExternalEmbed } from "@/lib/live-external/parse";
+import { fetchYoutubeVideoMetadata } from "@/lib/live-external/youtube-metadata";
 import { isFirstPartyLiveEnabled } from "@/lib/live-feature";
 import { LiveFeatureDisabledNotice } from "@/components/live/live-feature-disabled";
 
@@ -135,12 +136,20 @@ export default async function VoiceRoomPage({
         />
       );
     }
+
+    const youtubeMeta =
+      resolved.provider === "YOUTUBE"
+        ? await fetchYoutubeVideoMetadata(resolved.externalId)
+        : null;
+
     return (
       <LiveRoomPageShell isHost={isHost}>
         {!isHost && <LiveVoiceViewerBackLink />}
         <ExternalLiveRoom
           channelId={id}
           title={channel.name}
+          platformTitle={youtubeMeta?.title}
+          platformDescription={youtubeMeta?.description}
           provider={resolved.provider}
           embedUrl={resolved.embedUrl}
           watchUrl={channel.externalWatchUrl || resolved.watchUrl}

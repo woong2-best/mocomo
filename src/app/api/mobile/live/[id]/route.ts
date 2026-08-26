@@ -4,6 +4,7 @@ import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { db } from "@/lib/db";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { resolveExternalEmbed } from "@/lib/live-external/parse";
+import { fetchYoutubeVideoMetadata } from "@/lib/live-external/youtube-metadata";
 import { isPaymentsConfigured } from "@/lib/payments";
 import {
   canViewerEnterLiveRoom,
@@ -81,6 +82,8 @@ export async function GET(
     embedUrl: string | null;
     watchUrl: string;
     embedSupported: boolean;
+    platformTitle?: string | null;
+    platformDescription?: string | null;
   } | null = null;
 
   if (isExternal) {
@@ -89,20 +92,29 @@ export async function GET(
       externalId: channel.externalId,
     });
     if (resolved) {
+      const youtubeMeta =
+        resolved.provider === "YOUTUBE"
+          ? await fetchYoutubeVideoMetadata(resolved.externalId)
+          : null;
       external = {
         provider: resolved.provider,
         embedUrl: resolved.embedUrl,
         watchUrl: channel.externalWatchUrl || resolved.watchUrl,
         embedSupported: resolved.embedSupported,
+        platformTitle: youtubeMeta?.title ?? null,
+        platformDescription: youtubeMeta?.description ?? null,
       };
     }
   }
 
+  const platformTitle = external?.platformTitle?.trim() || null;
+  const platformDescription = external?.platformDescription?.trim() || null;
+
   return NextResponse.json({
     item: {
       id: channel.id,
-      title: channel.name,
-      description: channel.description,
+      title: platformTitle || channel.name,
+      description: platformDescription || channel.description,
       thumbnailUrl: channel.thumbnailUrl,
       viewerCount: channel.members.length,
       category: channel.category,

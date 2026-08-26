@@ -12,6 +12,10 @@ import type { SupportTierLevel } from "@prisma/client";
 type Props = {
   channelId: string;
   title: string;
+  /** YouTube stream title from the platform (preferred over MoCoMo room title) */
+  platformTitle?: string | null;
+  /** YouTube stream description from the platform */
+  platformDescription?: string | null;
   provider: LiveExternalProvider;
   embedUrl: string | null;
   watchUrl: string;
@@ -36,6 +40,8 @@ type Props = {
 export function ExternalLiveRoom({
   channelId,
   title,
+  platformTitle,
+  platformDescription,
   provider,
   embedUrl,
   watchUrl,
@@ -48,19 +54,25 @@ export function ExternalLiveRoom({
   viewerSupportTotal,
 }: Props) {
   const [viewerCount, setViewerCount] = useState(0);
+  const displayTitle = platformTitle?.trim() || title;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-3 md:flex-row md:items-start">
       <div className="min-w-0 flex-1">
-        <h1 className="mb-2 truncate text-lg font-semibold">{title}</h1>
+        <h1 className="mb-2 text-lg font-semibold leading-snug">{displayTitle}</h1>
         <ExternalLivePlayer
           provider={provider}
           embedUrl={embedUrl}
           watchUrl={watchUrl}
-          title={title}
+          title={displayTitle}
           embedSupported={embedSupported}
           isHost={isHost}
         />
+        {platformDescription?.trim() ? (
+          <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">
+            {platformDescription.trim()}
+          </p>
+        ) : null}
         <p className="mt-2 text-sm text-muted-foreground">
           @{host.username}
           {isHost ? " · 호스트" : ""}

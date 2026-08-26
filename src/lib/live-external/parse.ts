@@ -99,7 +99,12 @@ export function twitchParentHosts(): string[] {
 }
 
 export function buildYoutubeEmbedUrl(videoId: string): string {
-  const q = new URLSearchParams({ rel: "0", modestbranding: "1" });
+  const q = new URLSearchParams({
+    rel: "0",
+    modestbranding: "1",
+    autoplay: "1",
+    playsinline: "1",
+  });
   return `https://www.youtube-nocookie.com/embed/${videoId}?${q}`;
 }
 
