@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { Film, ImagePlus, Loader2, Plus, X } from "lucide-react";
 import { updateCommunity } from "@/actions/community-hub";
 import { ProfileBannerMedia } from "@/components/profile/profile-banner-media";
@@ -11,7 +10,9 @@ import { uploadVideoBlob } from "@/lib/client-upload";
 import { isGalleryVideoFile, normalizeGalleryVideoFile } from "@/lib/gallery-video-upload";
 import {
   MAX_PROFILE_BANNER_VIDEO_DURATION_SEC,
+  bannerVideoMimeWarning,
   probeVideoDurationSec,
+  probeVideoPlayable,
   profileBannerHasVideo,
   profileBannerImageUrl,
 } from "@/lib/profile-banner";
@@ -30,7 +31,6 @@ type Props = {
 };
 
 export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl }: Props) {
-  const router = useRouter();
   const { isOwner, permissions } = useCommunityMembership();
   const canEdit =
     isOwner ||
@@ -39,6 +39,8 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
 
   const imageRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
+  const [localBannerUrl, setLocalBannerUrl] = useState(bannerUrl);
+  const [localBannerVideoUrl, setLocalBannerVideoUrl] = useState(bannerVideoUrl);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pickingImage, setPickingImage] = useState(false);
@@ -47,8 +49,14 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
   const [cropOpen, setCropOpen] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    setLocalBannerUrl(bannerUrl);
+    setLocalBannerVideoUrl(bannerVideoUrl);
+  }, [bannerUrl, bannerVideoUrl]);
+
   const hasMedia = Boolean(
-    profileBannerImageUrl(bannerUrl, bannerVideoUrl) || profileBannerHasVideo(bannerVideoUrl)
+    profileBannerImageUrl(localBannerUrl, localBannerVideoUrl) ||
+      profileBannerHasVideo(localBannerVideoUrl)
   );
 
   async function persist(next: { bannerUrl?: string; bannerVideoUrl?: string }) {
@@ -60,7 +68,8 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
       setSaving(false);
       return false;
     }
-    router.refresh();
+    if (next.bannerUrl !== undefined) setLocalBannerUrl(next.bannerUrl || null);
+    if (next.bannerVideoUrl !== undefined) setLocalBannerVideoUrl(next.bannerVideoUrl || null);
     setSaving(false);
     setEditing(false);
     return true;
@@ -92,6 +101,11 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
     setError("");
     try {
       const file = normalizeGalleryVideoFile(raw);
+      const mimeWarning = bannerVideoMimeWarning(file.type, file.name);
+      if (mimeWarning) {
+        setError(mimeWarning);
+        return;
+      }
       const duration = await probeVideoDurationSec(file);
       if (duration <= 0) {
         setError("영상 길이를 확인할 수 없습니다.");
@@ -99,6 +113,11 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
       }
       if (duration > MAX_PROFILE_BANNER_VIDEO_DURATION_SEC + 0.25) {
         setError(`배너 동영상은 ${MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초 이하여야 합니다.`);
+        return;
+      }
+      const playable = await probeVideoPlayable(file);
+      if (!playable) {
+        setError("이 브라우저에서 재생할 수 없는 영상입니다. MP4(H.264)로 변환 후 올려 주세요.");
         return;
       }
       const url = await uploadVideoBlob(file, file.name);
@@ -126,11 +145,15 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
       <div
         className={cn(
           "relative overflow-hidden rounded-md",
-          hasMedia ? "aspect-[2/1] border border-border/50 bg-muted/30" : "min-h-[4.75rem]"
+          hasMedia ? "aspect-[2/1] w-full border border-border/50 bg-muted/30" : "min-h-[4.75rem]"
         )}
       >
         {hasMedia ? (
-          <ProfileBannerMedia bannerUrl={bannerUrl} bannerVideoUrl={bannerVideoUrl} active />
+          <ProfileBannerMedia
+            bannerUrl={localBannerUrl}
+            bannerVideoUrl={localBannerVideoUrl}
+            active={!editing}
+          />
         ) : (
           <button
             type="button"
@@ -212,7 +235,7 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
               ) : null}
             </div>
             <p className="text-[10px] leading-snug text-muted-foreground">
-              영상은 무음 자동 재생 · 최대 {MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초
+              MP4(H.264) 권장 · 무음 자동 재생 · 최대 {MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초
             </p>
             <Button
               type="button"

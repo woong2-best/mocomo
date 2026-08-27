@@ -10,7 +10,9 @@ import { uploadVideoBlob } from "@/lib/client-upload";
 import { isGalleryVideoFile, normalizeGalleryVideoFile } from "@/lib/gallery-video-upload";
 import {
   MAX_PROFILE_BANNER_VIDEO_DURATION_SEC,
+  bannerVideoMimeWarning,
   probeVideoDurationSec,
+  probeVideoPlayable,
   profileBannerHasVideo,
   profileBannerVideoTooLong,
 } from "@/lib/profile-banner";
@@ -73,6 +75,11 @@ export function ProfileBannerField({
     setUploadingVideo(true);
     try {
       const file = normalizeGalleryVideoFile(raw);
+      const mimeWarning = bannerVideoMimeWarning(file.type, file.name);
+      if (mimeWarning) {
+        setError(mimeWarning);
+        return;
+      }
       const duration = await probeVideoDurationSec(file);
       if (duration <= 0) {
         setError("영상 길이를 확인할 수 없습니다.");
@@ -80,6 +87,11 @@ export function ProfileBannerField({
       }
       if (profileBannerVideoTooLong(duration)) {
         setError(`배너 동영상은 ${MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초 이하여야 합니다.`);
+        return;
+      }
+      const playable = await probeVideoPlayable(file);
+      if (!playable) {
+        setError("이 브라우저에서 재생할 수 없는 영상입니다. MP4(H.264)로 변환 후 올려 주세요.");
         return;
       }
       const url = await uploadVideoBlob(file, file.name);
