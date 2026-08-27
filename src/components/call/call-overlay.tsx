@@ -228,14 +228,16 @@ export function CallOverlay({
   }
 
   const peer = callState.phase === "preparing" ? callState.peer : callState.peer;
+  const ringingPhase: "preparing" | "incoming" | "outgoing" =
+    callState.phase === "preparing"
+      ? "preparing"
+      : callState.phase === "incoming"
+        ? "incoming"
+        : "outgoing";
 
   return (
     <div className="fixed inset-0 z-[200] flex flex-col bg-gradient-to-b from-zinc-900 via-black to-zinc-950 text-white">
-      <CallRingingStage
-        peer={peer}
-        isVideo={isVideo}
-        phase={callState.phase === "preparing" ? "preparing" : callState.phase}
-      />
+      <CallRingingStage peer={peer} isVideo={isVideo} phase={ringingPhase} />
 
       {callState.phase === "incoming" && (
         <div className="absolute inset-x-6 top-[calc(50%+6rem)] z-10">

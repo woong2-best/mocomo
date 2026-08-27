@@ -6,6 +6,7 @@ import { usePeerCall } from "@/lib/peer-call/use-peer-call";
 import { PeerCallControlBar } from "@/components/call/peer-call-control-bar";
 import { CallTopBar } from "@/components/call/call-top-bar";
 import { CallRingingStage } from "@/components/call/call-overlay";
+import { CallInviteSheet } from "@/components/call/call-invite-sheet";
 import { CallSettingsSheet } from "@/components/call/call-settings-sheet";
 import type { CallParticipant } from "@/lib/call-types";
 import type { Socket } from "socket.io-client";
