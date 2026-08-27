@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Film, ImagePlus, Loader2, Pencil, X } from "lucide-react";
+import { Film, ImagePlus, Loader2, Plus, X } from "lucide-react";
 import { updateCommunity } from "@/actions/community-hub";
 import { ProfileBannerMedia } from "@/components/profile/profile-banner-media";
 import { ImageEditorDialog } from "@/components/media/editor/image-editor-dialog";
@@ -33,7 +33,9 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
   const router = useRouter();
   const { isOwner, permissions } = useCommunityMembership();
   const canEdit =
-    isOwner || hasPermission(permissions, "editBanner") || hasPermission(permissions, "editIcon");
+    isOwner ||
+    hasPermission(permissions, "editBanner") ||
+    hasPermission(permissions, "manageServer");
 
   const imageRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
@@ -120,37 +122,41 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
   if (!hasMedia && !canEdit) return null;
 
   return (
-    <div className="hidden sm:block shrink-0 px-2 pb-3 pt-1">
+    <div className="hidden sm:block shrink-0 px-2 pb-2 pt-0">
       <div
         className={cn(
-          "relative overflow-hidden rounded-lg border border-border/50 bg-muted/30",
-          hasMedia ? "aspect-[2/1]" : "min-h-[5.5rem]"
+          "relative overflow-hidden rounded-md",
+          hasMedia ? "aspect-[2/1] border border-border/50 bg-muted/30" : "min-h-[4.75rem]"
         )}
       >
         {hasMedia ? (
           <ProfileBannerMedia bannerUrl={bannerUrl} bannerVideoUrl={bannerVideoUrl} active />
         ) : (
-          <div className="flex h-full min-h-[5.5rem] flex-col items-center justify-center gap-1 px-2 text-center">
-            <ImagePlus className="h-5 w-5 text-muted-foreground/70" />
-            <p className="text-[11px] leading-snug text-muted-foreground">사이드바 배너</p>
-          </div>
-        )}
-
-        {canEdit && !editing && (
           <button
             type="button"
             onClick={openEditor}
             className={cn(
-              "absolute inset-0 flex items-end justify-end p-1.5 transition-opacity",
-              hasMedia
-                ? "bg-black/0 hover:bg-black/25 opacity-0 hover:opacity-100 focus-visible:opacity-100"
-                : "hover:bg-muted/40"
+              "flex w-full min-h-[4.75rem] flex-col items-center justify-center gap-1.5",
+              "rounded-md border border-dashed border-muted-foreground/35 bg-muted/20",
+              "text-muted-foreground transition-colors hover:border-muted-foreground/55 hover:bg-muted/35"
             )}
+            aria-label="배너 추가"
+          >
+            <Plus className="h-5 w-5 text-muted-foreground/70" strokeWidth={2} />
+            <span className="text-[11px] font-medium text-muted-foreground/80">배너 추가</span>
+          </button>
+        )}
+
+        {canEdit && hasMedia && !editing && (
+          <button
+            type="button"
+            onClick={openEditor}
+            className="absolute inset-0 flex items-end justify-end bg-black/0 p-1.5 opacity-0 transition-opacity hover:bg-black/25 hover:opacity-100 focus-visible:opacity-100"
             aria-label="배너 편집"
           >
             <span className="inline-flex items-center gap-1 rounded-md bg-background/90 px-2 py-1 text-[10px] font-medium shadow-sm">
-              <Pencil className="h-3 w-3" />
-              {hasMedia ? "편집" : "추가"}
+              <ImagePlus className="h-3 w-3" />
+              편집
             </span>
           </button>
         )}

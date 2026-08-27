@@ -184,6 +184,7 @@ export function rbacDefaultsForRole(type: CommunityRoleType): Record<CommunityPe
     case "MODERATOR":
       return {
         ...MEMBER_PERMS,
+        editBanner: true,
         createChannel: true,
         renameChannel: true,
         reorderChannels: true,

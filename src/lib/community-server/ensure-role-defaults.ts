@@ -3,6 +3,7 @@ import type { CommunityPermissionKey } from "@/lib/community-server/types";
 import { defaultPermissionsForRole, parsePermissions } from "@/lib/community-server/permissions";
 
 const MODERATOR_CHANNEL_KEYS: CommunityPermissionKey[] = [
+  "editBanner",
   "createChannel",
   "renameChannel",
   "reorderChannels",
