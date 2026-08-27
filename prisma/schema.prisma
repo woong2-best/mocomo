@@ -1593,7 +1593,7 @@ model VoiceCall {
   callerId    String
   calleeId    String
   chatRoomId  String?
-  livekitRoom String     @unique
+  signalingRoomId String @unique @map("livekitRoom")
   callType    CallType   @default(AUDIO)
   status      CallStatus @default(RINGING)
   startedAt   DateTime?

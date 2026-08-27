@@ -206,6 +206,84 @@ const httpServer = createServer((req, res) => {
     });
     return;
   }
+  if (req.method === "POST" && req.url === "/relay/live-support-event") {
+    if (!RELAY_SECRET || req.headers["x-relay-secret"] !== RELAY_SECRET) {
+      res.writeHead(401);
+      res.end();
+      return;
+    }
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      try {
+        const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as {
+          channelId?: string;
+          event?: { id?: string; username?: string };
+        };
+        if (body.channelId && body.event?.id) {
+          io.to(`live:${body.channelId}`).emit("live_support_event", body.event);
+        }
+        res.writeHead(204);
+        res.end();
+      } catch {
+        res.writeHead(400);
+        res.end();
+      }
+    });
+    return;
+  }
+  if (req.method === "POST" && req.url === "/relay/live-mission-updated") {
+    if (!RELAY_SECRET || req.headers["x-relay-secret"] !== RELAY_SECRET) {
+      res.writeHead(401);
+      res.end();
+      return;
+    }
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      try {
+        const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as {
+          channelId?: string;
+          mission?: { id?: string };
+        };
+        if (body.channelId && body.mission?.id) {
+          io.to(`live:${body.channelId}`).emit("live_mission_updated", body.mission);
+        }
+        res.writeHead(204);
+        res.end();
+      } catch {
+        res.writeHead(400);
+        res.end();
+      }
+    });
+    return;
+  }
+  if (req.method === "POST" && req.url === "/relay/live-poll-updated") {
+    if (!RELAY_SECRET || req.headers["x-relay-secret"] !== RELAY_SECRET) {
+      res.writeHead(401);
+      res.end();
+      return;
+    }
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      try {
+        const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as {
+          channelId?: string;
+          poll?: { id?: string };
+        };
+        if (body.channelId && body.poll?.id) {
+          io.to(`live:${body.channelId}`).emit("live_poll_updated", body.poll);
+        }
+        res.writeHead(204);
+        res.end();
+      } catch {
+        res.writeHead(400);
+        res.end();
+      }
+    });
+    return;
+  }
   res.writeHead(404);
   res.end();
 });
@@ -546,7 +624,7 @@ io.on("connection", (socket: AuthedSocket) => {
       callId: string;
       call?: {
         id: string;
-        livekitRoom: string;
+        signalingRoomId: string;
         chatRoomId: string | null;
         callType: string;
         status: string;
@@ -570,7 +648,7 @@ io.on("connection", (socket: AuthedSocket) => {
           where: { id: data.callId },
           select: {
             id: true,
-            livekitRoom: true,
+            signalingRoomId: true,
             chatRoomId: true,
             callType: true,
             status: true,
@@ -582,7 +660,7 @@ io.on("connection", (socket: AuthedSocket) => {
         if (!call || call.caller.id !== userId || call.status !== "RINGING") return;
         io.to(`user:${call.calleeId}`).emit("call_incoming", {
           id: call.id,
-          livekitRoom: call.livekitRoom,
+          signalingRoomId: call.signalingRoomId,
           chatRoomId: call.chatRoomId,
           callType: call.callType,
           status: call.status,
@@ -613,6 +691,30 @@ io.on("connection", (socket: AuthedSocket) => {
     if (!data.callId || !data.peerId || data.peerId === userId) return;
     io.to(`user:${data.peerId}`).emit("call_ended", { callId: data.callId });
   });
+
+  socket.on(
+    "call_signal",
+    async (data: { callId?: string; toUserId?: string; payload?: unknown }) => {
+      if (!data.callId || !data.toUserId || !data.payload) return;
+      try {
+        const call = await prisma.voiceCall.findUnique({
+          where: { id: data.callId },
+          select: { callerId: true, calleeId: true, status: true },
+        });
+        if (!call) return;
+        if (call.callerId !== userId && call.calleeId !== userId) return;
+        if (call.callerId !== data.toUserId && call.calleeId !== data.toUserId) return;
+        if (call.status !== "RINGING" && call.status !== "ACTIVE") return;
+        io.to(`user:${data.toUserId}`).emit("call_signal", {
+          callId: data.callId,
+          fromUserId: userId,
+          payload: data.payload,
+        });
+      } catch {
+        socket.emit("error", { message: "Failed to relay call signal" });
+      }
+    }
+  );
 
   /** DM/Community Activity — invite / sync (채팅 화면을 벗어나지 않음) */
   socket.on(

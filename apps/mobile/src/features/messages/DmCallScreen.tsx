@@ -10,36 +10,51 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  AudioSession,
-  LiveKitRoom,
-  VideoTrack,
-  useTracks,
-  isTrackReference,
-} from "@livekit/react-native";
-import { Track } from "livekit-client";
+import { RTCView } from "react-native-webrtc";
+import type { Socket } from "socket.io-client";
 import { ApiError } from "@/api/client";
 import { endDmCall, initiateDmCall } from "@/api/calls";
 import { joinCallBooking } from "@/api/call-bookings";
-import { ensureLiveKitGlobals } from "@/native/livekit-bootstrap";
+import { emitCallInvite, getCallSocket } from "@/lib/call-socket";
+import { useMobilePeerCall } from "@/lib/use-mobile-peer-call";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
-function CallTracks({ video }: { video: boolean }) {
+function PeerCallStage({
+  callId,
+  peerUserId,
+  isCaller,
+  video,
+  socket,
+}: {
+  callId: string;
+  peerUserId: string;
+  isCaller: boolean;
+  video: boolean;
+  socket: Socket;
+}) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const tracks = useTracks(
-    video ? [Track.Source.Camera, Track.Source.Microphone] : [Track.Source.Microphone],
-    { onlySubscribed: false }
-  );
-  const remoteVideo = tracks.find(
-    (t) => isTrackReference(t) && t.source === Track.Source.Camera && !t.participant.isLocal
-  );
+  const peer = useMobilePeerCall({
+    callId,
+    peerUserId,
+    isCaller,
+    video,
+    enabled: true,
+    socket,
+    onFailed: (msg) => Alert.alert("연결 오류", msg),
+  });
 
-  if (video && remoteVideo && isTrackReference(remoteVideo)) {
-    return <VideoTrack trackRef={remoteVideo} style={styles.fullVideo} objectFit="cover" />;
+  if (video && peer.remoteStream) {
+    return (
+      <RTCView
+        streamURL={peer.remoteStream.toURL()}
+        style={styles.fullVideo}
+        objectFit="cover"
+      />
+    );
   }
 
   return (
@@ -63,15 +78,21 @@ export function DmCallScreen() {
   const [status, setStatus] = useState<"connecting" | "live" | "error">("connecting");
   const [error, setError] = useState<string | null>(null);
   const [callId, setCallId] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [serverUrl, setServerUrl] = useState<string | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        await ensureLiveKitGlobals();
+        const sock = await getCallSocket();
         if (cancelled) return;
+        if (!sock) {
+          setError("실시간 서버에 연결할 수 없습니다.");
+          setStatus("error");
+          return;
+        }
+        setSocket(sock);
+
         const res = bookingId
           ? await joinCallBooking(bookingId)
           : await initiateDmCall({
@@ -84,8 +105,7 @@ export function DmCallScreen() {
           return;
         }
         setCallId(res.call.id);
-        setToken(res.livekit.token);
-        setServerUrl(res.livekit.serverUrl);
+        emitCallInvite(sock, res.call);
         setStatus("live");
       } catch (e) {
         if (cancelled) return;
@@ -107,20 +127,6 @@ export function DmCallScreen() {
     };
   }, [bookingId, calleeId, callType, roomId]);
 
-  useEffect(() => {
-    let active = true;
-    void (async () => {
-      await ensureLiveKitGlobals();
-      if (!active) return;
-      await AudioSession.startAudioSession();
-      if (!active) await AudioSession.stopAudioSession();
-    })();
-    return () => {
-      active = false;
-      void AudioSession.stopAudioSession();
-    };
-  }, []);
-
   const hangUp = useCallback(async () => {
     if (callId) {
       try {
@@ -129,8 +135,9 @@ export function DmCallScreen() {
         /* ignore */
       }
     }
+    socket?.disconnect();
     navigation.goBack();
-  }, [callId, navigation]);
+  }, [callId, navigation, socket]);
 
   if (status === "error") {
     return (
@@ -146,7 +153,7 @@ export function DmCallScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {status === "connecting" || !token || !serverUrl ? (
+      {status === "connecting" || !callId || !socket ? (
         <View style={styles.center}>
           <FolkAvatar uri={displayImage} name={displayName} size={96} />
           <Text style={styles.name}>{displayName}</Text>
@@ -155,24 +162,18 @@ export function DmCallScreen() {
         </View>
       ) : (
         <View style={styles.room}>
-          <LiveKitRoom
-            serverUrl={serverUrl}
-            token={token}
-            connect
-            audio
+          <PeerCallStage
+            callId={callId}
+            peerUserId={calleeId}
+            isCaller
             video={isVideo}
-            onError={(e) => {
-              Alert.alert("연결 오류", e.message);
-              void hangUp();
-            }}
-          >
-            <CallTracks video={isVideo} />
-            <View style={[styles.overlayTop, { paddingTop: insets.top + 12 }]}>
-              <FolkAvatar uri={displayImage} name={displayName} size={44} />
-              <Text style={styles.name}>{displayName}</Text>
-              <Text style={styles.sub}>{isVideo ? "영상 통화" : "음성 통화"}</Text>
-            </View>
-          </LiveKitRoom>
+            socket={socket}
+          />
+          <View style={[styles.overlayTop, { paddingTop: insets.top + 12 }]}>
+            <FolkAvatar uri={displayImage} name={displayName} size={44} />
+            <Text style={styles.name}>{displayName}</Text>
+            <Text style={styles.sub}>{isVideo ? "영상 통화" : "음성 통화"}</Text>
+          </View>
         </View>
       )}
 

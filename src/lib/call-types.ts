@@ -8,7 +8,7 @@ export type CallType = "AUDIO" | "VIDEO";
 
 export type CallPayload = {
   id: string;
-  livekitRoom: string;
+  signalingRoomId: string;
   chatRoomId: string | null;
   callType: CallType;
   status: string;

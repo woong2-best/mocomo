@@ -69,6 +69,11 @@ export type RootStackParamList = {
   CommunityList: undefined;
   CommunityDetail: { slug: string };
   CommunityCreate: undefined;
+  CommunityVoice: {
+    channelName: string;
+    voiceChannelId: string;
+    channelType: "VOICE" | "VIDEO";
+  };
   EventsList: undefined;
   EventDetail: { id: string };
   EventsMap: undefined;

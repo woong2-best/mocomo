@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { CallStatus } from "@prisma/client";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { issueCallLivekitCredentials } from "@/lib/call-livekit-credentials";
 import { db } from "@/lib/db";
 
 /** POST /api/mobile/calls/[callId]/accept — callee accepts ringing call. */
@@ -47,26 +46,15 @@ export async function POST(
     return NextResponse.json({ error: "통화를 찾을 수 없습니다." }, { status: 404 });
   }
 
-  const livekit = await issueCallLivekitCredentials(
-    call.livekitRoom,
-    user.id,
-    user.username,
-    call.callType
-  );
-  if (!livekit) {
-    return NextResponse.json({ error: "통화 서버 연결에 실패했습니다." }, { status: 503 });
-  }
-
   return NextResponse.json({
     call: {
       id: call.id,
-      livekitRoom: call.livekitRoom,
+      signalingRoomId: call.signalingRoomId,
       chatRoomId: call.chatRoomId,
       callType: call.callType,
       status: call.status,
       caller: call.caller,
       callee: call.callee,
     },
-    livekit,
   });
 }

@@ -2,7 +2,6 @@
 
 import { randomUUID } from "crypto";
 import { notifyIncomingCall } from "@/lib/notifications";
-import { issueCallLivekitCredentials } from "@/lib/call-livekit-credentials";
 import { db } from "@/lib/db";
 import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { canAccessDm } from "@/lib/tiers";
@@ -19,7 +18,7 @@ export type CallParticipant = {
 
 export type CallPayload = {
   id: string;
-  livekitRoom: string;
+  signalingRoomId: string;
   chatRoomId: string | null;
   callType: CallType;
   status: CallStatus;
@@ -29,7 +28,7 @@ export type CallPayload = {
 
 function serializeCall(call: {
   id: string;
-  livekitRoom: string;
+  signalingRoomId: string;
   chatRoomId: string | null;
   callType: CallType;
   status: CallStatus;
@@ -38,7 +37,7 @@ function serializeCall(call: {
 }): CallPayload {
   return {
     id: call.id,
-    livekitRoom: call.livekitRoom,
+    signalingRoomId: call.signalingRoomId,
     chatRoomId: call.chatRoomId,
     callType: call.callType,
     status: call.status,
@@ -134,7 +133,7 @@ export async function initiateCall(data: {
       callerId: user.id,
       calleeId: data.calleeId,
       chatRoomId: data.chatRoomId,
-      livekitRoom: `call-${randomUUID()}`,
+      signalingRoomId: `call-${randomUUID()}`,
       callType,
       status: CallStatus.RINGING,
     },
@@ -146,14 +145,7 @@ export async function initiateCall(data: {
 
   void notifyIncomingCall(data.calleeId, user.id, callType, call.id, data.chatRoomId);
 
-  const livekit = await issueCallLivekitCredentials(
-    call.livekitRoom,
-    user.id,
-    user.username,
-    callType
-  );
-
-  return { call: serializeCall(call), livekit };
+  return { call: serializeCall(call) };
 }
 
 export async function acceptCall(callId: string) {
@@ -176,14 +168,7 @@ export async function acceptCall(callId: string) {
   const updated = await getCallWithUsers(callId);
   if (!updated) return { error: "통화를 찾을 수 없습니다." };
 
-  const livekit = await issueCallLivekitCredentials(
-    updated.livekitRoom,
-    user.id,
-    user.username,
-    updated.callType
-  );
-
-  return { call: serializeCall(updated), livekit };
+  return { call: serializeCall(updated) };
 }
 
 export async function declineCall(callId: string) {

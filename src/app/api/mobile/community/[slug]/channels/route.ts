@@ -6,6 +6,7 @@ import { ensureCommunityServerProvisioned } from "@/lib/community-server/provisi
 import { db } from "@/lib/db";
 
 const TEXT_TYPES = new Set(["TEXT", "ANNOUNCEMENT", "QA"]);
+const VOICE_TYPES = new Set(["VOICE", "VIDEO"]);
 
 export async function GET(
   req: NextRequest,
@@ -30,26 +31,45 @@ export async function GET(
 
   await ensureCommunityServerProvisioned(community.id).catch(() => undefined);
 
-  const channels = await db.communityChannel.findMany({
-    where: {
-      communityId: community.id,
-      type: { in: ["TEXT", "ANNOUNCEMENT", "QA"] },
-    },
-    orderBy: [{ category: { position: "asc" } }, { position: "asc" }],
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      type: true,
-      position: true,
-      chatRoomId: true,
-      category: { select: { id: true, name: true } },
-    },
-  });
+  const [textChannels, voiceChannels] = await Promise.all([
+    db.communityChannel.findMany({
+      where: {
+        communityId: community.id,
+        type: { in: ["TEXT", "ANNOUNCEMENT", "QA"] },
+      },
+      orderBy: [{ category: { position: "asc" } }, { position: "asc" }],
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        type: true,
+        position: true,
+        chatRoomId: true,
+        category: { select: { id: true, name: true } },
+      },
+    }),
+    db.communityChannel.findMany({
+      where: {
+        communityId: community.id,
+        type: { in: ["VOICE", "VIDEO"] },
+        voiceChannelId: { not: null },
+      },
+      orderBy: [{ category: { position: "asc" } }, { position: "asc" }],
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        type: true,
+        position: true,
+        voiceChannelId: true,
+        category: { select: { id: true, name: true } },
+      },
+    }),
+  ]);
 
   return NextResponse.json({
     community: { id: community.id, slug: community.slug, name: community.name },
-    items: channels
+    items: textChannels
       .filter((c) => TEXT_TYPES.has(c.type) && c.chatRoomId)
       .map((c) => ({
         id: c.id,
@@ -58,6 +78,17 @@ export async function GET(
         type: c.type,
         position: c.position,
         chatRoomId: c.chatRoomId,
+        categoryName: c.category?.name ?? null,
+      })),
+    voiceItems: voiceChannels
+      .filter((c) => VOICE_TYPES.has(c.type) && c.voiceChannelId)
+      .map((c) => ({
+        id: c.id,
+        slug: c.slug,
+        name: c.name,
+        type: c.type,
+        position: c.position,
+        voiceChannelId: c.voiceChannelId!,
         categoryName: c.category?.name ?? null,
       })),
   });

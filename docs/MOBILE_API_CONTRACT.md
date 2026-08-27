@@ -63,8 +63,12 @@ Web cookie JWT **unchanged**.
 | GET | `/api/mobile/community` | Optional Bearer — public communities (`?q=&take=`) |
 | GET | `/api/mobile/community/:slug` | Optional Bearer — detail + recent posts + membership |
 | POST | `/api/mobile/community/:slug/join` | Bearer — OPEN / APPROVE / INVITE (`inviteCode?`) |
-| GET | `/api/mobile/community/:slug/channels` | Optional Bearer — TEXT/ANNOUNCEMENT/QA channels |
+| GET | `/api/mobile/community/:slug/channels` | Optional Bearer — TEXT channels + `voiceItems` (VOICE/VIDEO) |
 | POST | `/api/mobile/community/:slug/channels` | Bearer — `{ channelSlug }` → upsert member + `roomId` |
+| GET | `/api/mobile/webrtc/ice-servers` | Bearer — STUN + TURN ICE config for DM P2P |
+| GET | `/api/mobile/jitsi/community-room?channelId=` | Bearer — Jitsi room + `joinUrl` for voice channels |
+| GET | `/api/mobile/socket-auth` | Bearer — Socket.IO token (DM P2P signaling) |
+| POST | `/api/mobile/calls` | Bearer — start DM call (P2P, no LiveKit token) |
 | GET | `/api/mobile/events` | Optional Bearer — published upcoming |
 | GET | `/api/mobile/events/map` | Optional Bearer — subculture pins (`?global=1&country=`) |
 | GET | `/api/mobile/events/:id` | Optional Bearer — detail + `joined` |

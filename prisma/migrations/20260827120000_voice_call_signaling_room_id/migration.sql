@@ -1,0 +1,2 @@
+-- VoiceCall: application field renamed to signalingRoomId (DB column livekitRoom retained via @map).
+-- No column rename required for existing deployments; index name unchanged.

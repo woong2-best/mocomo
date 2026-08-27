@@ -4,9 +4,8 @@ import { z } from "zod";
 import { CallStatus, CallType, SupportTierLevel } from "@prisma/client";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { issueCallLivekitCredentials } from "@/lib/call-livekit-credentials";
-import { db } from "@/lib/db";
 import { notifyIncomingCall } from "@/lib/notifications";
+import { db } from "@/lib/db";
 import { canAccessDm } from "@/lib/tiers";
 
 const ACTIVE_STATUSES: CallStatus[] = [CallStatus.RINGING, CallStatus.ACTIVE];
@@ -124,7 +123,7 @@ export async function POST(req: NextRequest) {
       callerId: user.id,
       calleeId,
       chatRoomId,
-      livekitRoom: `call-${randomUUID()}`,
+      signalingRoomId: `call-${randomUUID()}`,
       callType,
       status: CallStatus.RINGING,
     },
@@ -136,34 +135,15 @@ export async function POST(req: NextRequest) {
 
   void notifyIncomingCall(calleeId, user.id, callType, call.id, chatRoomId);
 
-  const livekit = await issueCallLivekitCredentials(
-    call.livekitRoom,
-    user.id,
-    user.username,
-    callType
-  );
-
-  if (!livekit) {
-    await db.voiceCall.update({
-      where: { id: call.id },
-      data: { status: CallStatus.ENDED, endedAt: new Date() },
-    });
-    return NextResponse.json(
-      { error: "통화 서버가 설정되지 않았습니다. LiveKit을 확인해 주세요." },
-      { status: 503 }
-    );
-  }
-
   return NextResponse.json({
     call: {
       id: call.id,
-      livekitRoom: call.livekitRoom,
+      signalingRoomId: call.signalingRoomId,
       chatRoomId: call.chatRoomId,
       callType: call.callType,
       status: call.status,
       caller: call.caller,
       callee: call.callee,
     },
-    livekit,
   });
 }

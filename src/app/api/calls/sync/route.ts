@@ -13,7 +13,7 @@ const TERMINAL: CallStatus[] = [
 
 function serializeCall(call: {
   id: string;
-  livekitRoom: string;
+  signalingRoomId: string;
   chatRoomId: string | null;
   callType: CallType;
   status: CallStatus;
@@ -22,7 +22,7 @@ function serializeCall(call: {
 }) {
   return {
     id: call.id,
-    livekitRoom: call.livekitRoom,
+    signalingRoomId: call.signalingRoomId,
     chatRoomId: call.chatRoomId,
     callType: call.callType,
     status: call.status,

@@ -5,7 +5,7 @@ export type DmCallType = "AUDIO" | "VIDEO";
 
 export type DmCallPayload = {
   id: string;
-  livekitRoom: string;
+  signalingRoomId: string;
   chatRoomId: string | null;
   callType: DmCallType;
   status: string;
@@ -18,10 +18,7 @@ export async function initiateDmCall(input: {
   chatRoomId: string;
   callType: DmCallType;
 }) {
-  return apiRequest<{
-    call: DmCallPayload;
-    livekit: { token: string; serverUrl: string };
-  }>(MobileApi.calls, {
+  return apiRequest<{ call: DmCallPayload }>(MobileApi.calls, {
     method: "POST",
     body: input,
   });
@@ -35,10 +32,7 @@ export async function endDmCall(callId: string) {
 }
 
 export async function acceptDmCall(callId: string) {
-  return apiRequest<{
-    call: DmCallPayload;
-    livekit: { token: string; serverUrl: string };
-  }>(MobileApi.callAccept(callId), {
+  return apiRequest<{ call: DmCallPayload }>(MobileApi.callAccept(callId), {
     method: "POST",
     body: {},
   });
@@ -46,4 +40,10 @@ export async function acceptDmCall(callId: string) {
 
 export async function declineDmCall(callId: string) {
   return endDmCall(callId);
+}
+
+export async function fetchMobileSocketAuthToken() {
+  return apiRequest<{ token: string; expiresIn: number }>("/api/mobile/socket-auth", {
+    method: "GET",
+  });
 }
