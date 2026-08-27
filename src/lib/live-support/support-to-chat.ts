@@ -154,25 +154,17 @@ export function missionToChatMessage(m: {
 }
 
 export function supportLineToUnified(
-  line: {
-    id: string;
-    username: string;
-    content: string;
-    at: number;
-    messageKind: SupportChatKind;
-    supportAmount?: number;
-    eventType?: string;
-    rouletteLabel?: string;
-  },
+  line: LiveChatMessage,
   source: UnifiedChatMessage["source"] = "MOCOMO"
 ): UnifiedChatMessage {
+  const messageKind = (line.messageKind ?? "support") as SupportChatKind;
   return {
     id: line.id,
     username: line.username,
     content: line.content,
     at: line.at,
     source,
-    messageKind: line.messageKind,
+    messageKind,
     supportAmount: line.supportAmount,
     eventType: line.eventType,
     rouletteLabel: line.rouletteLabel,

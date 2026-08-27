@@ -193,23 +193,25 @@ export function MemberListContent({
                       </li>
                     ))}
                   </ul>
-                  {canAdd && group.role && (
+                  {canAdd && group.role ? (
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        const role = group.role;
+                        if (!role) return;
                         setAddTarget({
                           roleType: group.roleType,
-                          roleId: group.role.id,
-                          roleName: group.role.name,
-                        })
-                      }
+                          roleId: role.id,
+                          roleName: role.name,
+                        });
+                      }}
                       className="mt-1 flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
                       aria-label={`${group.label}에 멤버 추가`}
                     >
                       <Plus className="h-3.5 w-3.5 shrink-0" />
                       <span>멤버 추가</span>
                     </button>
-                  )}
+                  ) : null}
                 </div>
               );
             })
