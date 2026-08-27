@@ -227,7 +227,13 @@ export function PeerCallRoom({
       />
 
       <CallInviteSheet open={inviteOpen} onClose={() => setInviteOpen(false)} peer={peer} />
-      <CallSettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {settingsOpen ? (
+        <CallSettingsSheet
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          localStream={peerCall.localStream}
+        />
+      ) : null}
     </div>
   );
 }

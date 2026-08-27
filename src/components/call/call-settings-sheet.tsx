@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useLocalParticipant } from "@livekit/components-react";
 import { AudioLines, Waves } from "lucide-react";
 import { CallBottomSheet } from "@/components/call/call-bottom-sheet";
 import { cn } from "@/lib/utils";
@@ -44,30 +43,45 @@ function SettingRow({
   );
 }
 
+async function applyAudioTrackOptions(
+  stream: MediaStream | null,
+  opts: { noiseSuppression: boolean; echoCancellation: boolean; autoGainControl: boolean }
+) {
+  for (const track of stream?.getAudioTracks() ?? []) {
+    try {
+      await track.applyConstraints({
+        noiseSuppression: opts.noiseSuppression,
+        echoCancellation: opts.echoCancellation,
+        autoGainControl: opts.autoGainControl,
+      });
+    } catch {
+      /* browser may reject mid-call constraint changes */
+    }
+  }
+}
+
+/** DM P2P call settings — no LiveKit Room context. */
 export function CallSettingsSheet({
   open,
   onClose,
+  localStream,
 }: {
   open: boolean;
   onClose: () => void;
+  localStream?: MediaStream | null;
 }) {
-  const { localParticipant } = useLocalParticipant();
   const [noiseSuppression, setNoiseSuppression] = useState(true);
   const [audioEnhance, setAudioEnhance] = useState(true);
 
   const applyAudioOptions = useCallback(
     async (noise: boolean, enhance: boolean) => {
-      const wasOn = localParticipant.isMicrophoneEnabled;
-      if (wasOn) await localParticipant.setMicrophoneEnabled(false);
-      if (wasOn) {
-        await localParticipant.setMicrophoneEnabled(true, {
-          echoCancellation: enhance,
-          noiseSuppression: noise,
-          autoGainControl: enhance,
-        });
-      }
+      await applyAudioTrackOptions(localStream ?? null, {
+        noiseSuppression: noise,
+        echoCancellation: enhance,
+        autoGainControl: enhance,
+      });
     },
-    [localParticipant]
+    [localStream]
   );
 
   const onNoiseChange = (next: boolean) => {
@@ -79,6 +93,8 @@ export function CallSettingsSheet({
     setAudioEnhance(next);
     void applyAudioOptions(noiseSuppression, next);
   };
+
+  if (!open) return null;
 
   return (
     <CallBottomSheet open={open} onClose={onClose} title="설정">
