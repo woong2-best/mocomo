@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Users, Signal } from "lucide-react";
+import { Users, Signal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCommunityVoice } from "@/components/community-server/community-voice-context";
 import { useCommunityMembership } from "@/components/community-server/community-membership-context";
-import { CommunityJitsiRoom } from "@/components/community-server/channels/community-jitsi-room";
+import { CommunityVoiceRoom } from "@/components/community-server/channels/community-voice-room";
 
 export function VoiceChannelView({
   channelId,
@@ -23,13 +23,12 @@ export function VoiceChannelView({
   communityId?: string;
   readOnly?: boolean;
 }) {
-  const { voice, connect, disconnect } = useCommunityVoice();
+  const { voice, connect, disconnect, setMuted, setDeafened } = useCommunityVoice();
   const { isMember, isOwner } = useCommunityMembership();
   const readOnly = serverReadOnly && !isMember && !isOwner;
   const isInChannel = voice.channelId === channelId;
   const [joinError, setJoinError] = useState<string | null>(null);
   const [liveConnected, setLiveConnected] = useState(false);
-  const [cameraOn, setCameraOn] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -41,7 +40,6 @@ export function VoiceChannelView({
     if (readOnly) return;
     setJoinError(null);
     setLiveConnected(false);
-    setCameraOn(false);
     connect({
       channelId,
       channelName,
@@ -53,7 +51,7 @@ export function VoiceChannelView({
   }, [channelId, channelName, channelPageSlug, connect, readOnly]);
 
   const setVoiceActivity = useCallback(
-    (activity: "VOICE" | "VIDEO" | null) => {
+    (activity: "VOICE" | null) => {
       if (!communityId) return;
       void fetch(`/api/community/${communityId}/presence`, {
         method: "POST",
@@ -66,14 +64,13 @@ export function VoiceChannelView({
 
   useEffect(() => {
     if (!isInChannel || !liveConnected) return;
-    setVoiceActivity(cameraOn ? "VIDEO" : "VOICE");
+    setVoiceActivity("VOICE");
     return () => setVoiceActivity(null);
-  }, [isInChannel, liveConnected, cameraOn, setVoiceActivity]);
+  }, [isInChannel, liveConnected, setVoiceActivity]);
 
   const handleLeave = useCallback(() => {
     setLiveConnected(false);
     setJoinError(null);
-    setCameraOn(false);
     disconnect();
   }, [disconnect]);
 
@@ -84,7 +81,7 @@ export function VoiceChannelView({
           <h1 className="font-semibold text-sm truncate">{channelName}</h1>
           <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
             <Users className="h-3 w-3 shrink-0" />
-            <span>최대 {maxUsers ?? 25}명</span>
+            <span>최대 {maxUsers ?? 25}명 · 음성만</span>
             {isInChannel && liveConnected && (
               <>
                 <span className="text-border">·</span>
@@ -107,50 +104,38 @@ export function VoiceChannelView({
         )}
       </header>
 
-      <div className="flex-1 min-h-0 flex flex-col">
-        <div className="flex-1 min-h-0 overflow-y-auto flex items-stretch justify-center p-4 sm:p-5">
-          {!isInChannel ? (
-            <div className="w-full max-w-md m-auto rounded-2xl border border-dashed border-border/50 bg-background/60 backdrop-blur-sm px-6 py-14 text-center space-y-4">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Users className="h-7 w-7" />
-              </div>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                {readOnly
-                  ? "커뮤니티에 참여하면 음성·영상 채널을 이용할 수 있습니다."
-                  : "참가 후 Jitsi 패널에서 마이크·카메라·화면 공유를 사용할 수 있습니다."}
-              </p>
-              {joinError && <p className="text-sm text-destructive">{joinError}</p>}
-              <Button className="rounded-xl" onClick={handleJoin} disabled={readOnly}>
-                {readOnly ? "참여 후 이용" : "참가하기"}
-              </Button>
+      <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-5">
+        {!isInChannel ? (
+          <div className="w-full max-w-md m-auto rounded-2xl border border-dashed border-border/50 bg-background/60 backdrop-blur-sm px-6 py-14 text-center space-y-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Users className="h-7 w-7" />
             </div>
-          ) : (
-            <div className="w-full max-w-3xl flex flex-col min-h-0">
-              <CommunityJitsiRoom
-                channelId={channelId}
-                channelName={channelName}
-                muted={voice.muted}
-                deafened={voice.deafened}
-                cameraOn={cameraOn}
-                onConnected={() => setLiveConnected(true)}
-                onDisconnected={handleLeave}
-                onError={(msg) => {
-                  setJoinError(msg);
-                  disconnect();
-                }}
-              />
-            </div>
-          )}
-        </div>
-
-        {isInChannel && !liveConnected && (
-          <div className="shrink-0 border-t border-border/25 bg-background/60 backdrop-blur-md pb-safe">
-            <div className="mx-auto flex max-w-lg items-center justify-center px-4 py-3">
-              <span className="text-xs text-muted-foreground flex items-center">
-                <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
-                Jitsi 연결 중…
-              </span>
-            </div>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              {readOnly
+                ? "커뮤니티에 참여하면 음성 채널을 이용할 수 있습니다."
+                : "참가하면 마이크로 음성 채팅을 할 수 있습니다. (영상 없음)"}
+            </p>
+            {joinError && <p className="text-sm text-destructive">{joinError}</p>}
+            <Button className="rounded-xl" onClick={handleJoin} disabled={readOnly}>
+              {readOnly ? "참여 후 이용" : "참가하기"}
+            </Button>
+          </div>
+        ) : (
+          <div className="w-full max-w-lg mx-auto flex flex-col min-h-0 flex-1">
+            <CommunityVoiceRoom
+              channelId={channelId}
+              channelName={channelName}
+              muted={voice.muted}
+              deafened={voice.deafened}
+              onMutedChange={setMuted}
+              onDeafenedChange={setDeafened}
+              onConnected={() => setLiveConnected(true)}
+              onDisconnected={handleLeave}
+              onError={(msg) => {
+                setJoinError(msg);
+                disconnect();
+              }}
+            />
           </div>
         )}
       </div>

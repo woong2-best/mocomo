@@ -453,6 +453,42 @@ io.on("connection", (socket: AuthedSocket) => {
     });
   });
 
+  socket.on("join_voice", async (data: string | { channelId?: string; displayName?: string }) => {
+    const channelId = typeof data === "string" ? data : data?.channelId;
+    const displayName = typeof data === "object" ? data?.displayName : undefined;
+    if (!channelId) return;
+
+    const room = `voice:${channelId}`;
+    const existing = await io.in(room).fetchSockets();
+    const peerIds = existing
+      .map((s) => (s as AuthedSocket).data.userId)
+      .filter((id): id is string => !!id && id !== userId);
+
+    socket.join(room);
+    socket.emit("voice_peers", { channelId, peerIds });
+    socket.to(room).emit("voice_peer_joined", { channelId, userId, displayName });
+  });
+
+  socket.on("leave_voice", (channelId: string) => {
+    if (!channelId) return;
+    socket.leave(`voice:${channelId}`);
+    socket.to(`voice:${channelId}`).emit("voice_peer_left", { channelId, userId });
+  });
+
+  socket.on(
+    "community_voice_signal",
+    (data: { channelId?: string; toUserId?: string; payload?: unknown }) => {
+      const channelId = data.channelId?.trim();
+      const toUserId = data.toUserId?.trim();
+      if (!channelId || !toUserId || toUserId === userId || !data.payload) return;
+      io.to(`user:${toUserId}`).emit("community_voice_signal", {
+        channelId,
+        fromUserId: userId,
+        payload: data.payload,
+      });
+    }
+  );
+
   socket.on("voice_state", (data: {
     channelId: string;
     isMuted?: boolean;
@@ -467,14 +503,6 @@ io.on("connection", (socket: AuthedSocket) => {
       cameraOn: data.cameraOn,
       screenOn: data.screenOn,
     });
-  });
-
-  socket.on("join_voice", (channelId: string) => {
-    if (channelId) socket.join(`voice:${channelId}`);
-  });
-
-  socket.on("leave_voice", (channelId: string) => {
-    socket.leave(`voice:${channelId}`);
   });
 
   const liveRoomCounts = new Map<string, number>();

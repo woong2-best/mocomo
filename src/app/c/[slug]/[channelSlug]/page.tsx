@@ -102,7 +102,7 @@ export default async function CommunityChannelPage({
         <VoiceChannelView
           channelId={channel.voiceChannelId}
           channelPageSlug={channel.slug}
-          channelName={channel.type === "VIDEO" ? "음성/영상" : channel.name}
+          channelName={channel.name}
           maxUsers={channel.maxUsers}
           communityId={ctx.communityId}
           readOnly={!ctx.isMember && !ctx.isOwner}

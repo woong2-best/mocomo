@@ -53,7 +53,7 @@ function groupChannels(channels: CommunityChannelView[]) {
     );
   const groups = new Map<string, CommunityChannelView[]>();
   for (const ch of visible) {
-    const key = ch.type === "VOICE" ? "음성·영상" : (ch.categoryName ?? "채널");
+    const key = ch.type === "VOICE" ? "음성" : (ch.categoryName ?? "채널");
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(ch);
   }

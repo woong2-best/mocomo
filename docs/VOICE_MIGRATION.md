@@ -1,14 +1,14 @@
-# Voice Migration: LiveKit → PeerJS P2P + Jitsi SFU
+# Voice: Cloudflare TURN + WebRTC (no Jitsi)
 
-DM 1:1 calls and community voice/video use a hybrid open-source stack. **Live streaming** (`/live/*`, mobile `LiveKitViewer`) still uses LiveKit.
+DM 1:1 and **community voice (audio only)** use WebRTC with **Cloudflare TURN**. Live streaming still uses LiveKit.
 
 ## Architecture
 
 | Feature | Stack | ICE / Access |
 |---------|-------|--------------|
-| DM 1:1 (web + mobile) | WebRTC P2P | `GET /api/webrtc/ice-servers` or `/api/mobile/webrtc/ice-servers` |
-| Community voice/video (web) | Jitsi Meet SFU | `GET /api/jitsi/community-room?channelId=` |
-| Community voice/video (mobile) | Jitsi (browser / app) | `GET /api/mobile/jitsi/community-room?channelId=` |
+| DM 1:1 (web + mobile) | WebRTC P2P | `GET /api/webrtc/ice-servers` — Cloudflare TURN |
+| Community voice (web) | WebRTC mesh, audio only | Socket.IO + `GET /api/community-voice/join` |
+| Community voice (mobile) | Web for now | Open mocomo.net in browser |
 | Live broadcast | LiveKit (unchanged) | `GET /api/livekit/token?room=` |
 
 ---
@@ -148,21 +148,18 @@ LIVEKIT_API_SECRET=
 NEXT_PUBLIC_LIVEKIT_URL=
 ```
 
-### Community voice — do not use public meet.jit.si
+### Community voice (audio only)
 
-Since 2023, **meet.jit.si** requires Google/GitHub login to create rooms. Embedded MoCoMo voice channels get stuck in **membersOnly lobby** (`conference.connectionError.membersOnly`).
-
-Use **8x8 JaaS** (free tier at [jaas.8x8.vc](https://jaas.8x8.vc)) or **self-hosted Jitsi**:
+WebRTC mesh + Cloudflare TURN — no third-party conference server:
 
 ```env
-NEXT_PUBLIC_JITSI_DOMAIN=8x8.vc
-JITSI_APP_ID=vpaas-magic-cookie-xxxxxxxx
-JITSI_API_KEY=vpaas-magic-cookie-xxxxxxxx/yyyyyy
-JITSI_APP_SECRET=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----
-NEXT_PUBLIC_JITSI_ROOM_PREFIX=mocomo-
+TURN_PROVIDER=cloudflare
+CLOUDFLARE_TURN_KEY_ID=...
+CLOUDFLARE_TURN_KEY_TOKEN=...
+NEXT_PUBLIC_SOCKET_URL=https://your-socket.railway.app
 ```
 
-MoCoMo signs JWT server-side (`src/lib/jitsi-jwt.ts`) so members join without the Jitsi login screen.
+Optional: remove unused `NEXT_PUBLIC_JITSI_*` / `JITSI_*` env vars from Vercel.
 
 ### Mobile (Expo)
 
