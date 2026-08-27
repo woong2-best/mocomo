@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePeerCall } from "@/lib/peer-call/use-peer-call";
 import { PeerCallControlBar } from "@/components/call/peer-call-control-bar";
@@ -144,6 +144,7 @@ export function PeerCallRoom({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const onPeerFailed = useCallback((msg: string) => setError(msg), []);
 
   const peerCall = usePeerCall({
     callId,
@@ -153,7 +154,7 @@ export function PeerCallRoom({
     video,
     enabled,
     socket,
-    onFailed: (msg) => setError(msg),
+    onFailed: onPeerFailed,
   });
 
   useEffect(() => {

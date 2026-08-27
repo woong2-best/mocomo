@@ -627,6 +627,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
             peerCallSlot={
               connectPeer && isCallPhase(callState) && userId ? (
                 <PeerCallRoom
+                  key={callState.call.id}
                   callId={callState.call.id}
                   userId={userId}
                   peerUserId={callState.peer.id}

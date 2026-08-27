@@ -37,6 +37,13 @@ export function usePeerCall({
   const makingOfferRef = useRef(false);
   const ignoreOfferRef = useRef(false);
   const politeRef = useRef(!isCaller);
+  const initSessionRef = useRef<string | null>(null);
+  const onConnectedRef = useRef(onConnected);
+  const onFailedRef = useRef(onFailed);
+  const socketRef = useRef(socket);
+  const callIdRef = useRef(callId);
+  const peerUserIdRef = useRef(peerUserId);
+  const videoRef = useRef(video);
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -44,23 +51,42 @@ export function usePeerCall({
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(video);
 
-  const emitSignal = useCallback(
-    (payload: CallSignalPayload) => {
-      if (!socket?.connected) return;
-      socket.emit("call_signal", { callId, toUserId: peerUserId, payload });
-    },
-    [socket, callId, peerUserId]
-  );
+  useEffect(() => {
+    onConnectedRef.current = onConnected;
+    onFailedRef.current = onFailed;
+    socketRef.current = socket;
+    callIdRef.current = callId;
+    peerUserIdRef.current = peerUserId;
+    videoRef.current = video;
+    politeRef.current = !isCaller;
+  });
+
+  const emitSignal = useCallback((payload: CallSignalPayload) => {
+    const sock = socketRef.current;
+    if (!sock?.connected) return;
+    sock.emit("call_signal", {
+      callId: callIdRef.current,
+      toUserId: peerUserIdRef.current,
+      payload,
+    });
+  }, []);
 
   const cleanup = useCallback(() => {
-    pcRef.current?.close();
+    const pc = pcRef.current;
     pcRef.current = null;
+    if (pc) {
+      pc.onicecandidate = null;
+      pc.ontrack = null;
+      pc.onconnectionstatechange = null;
+      pc.close();
+    }
     for (const track of localStreamRef.current?.getTracks() ?? []) {
       track.stop();
     }
     localStreamRef.current = null;
     remoteStreamRef.current = null;
     rtcConfigRef.current = null;
+    initSessionRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
     setState("closed");
@@ -68,18 +94,24 @@ export function usePeerCall({
 
   const ensureLocalStream = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
+    const wantsVideo = videoRef.current;
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
-      video: video ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false,
+      video: wantsVideo
+        ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
+        : false,
     });
     localStreamRef.current = stream;
     setLocalStream(stream);
-    setCameraEnabled(video && stream.getVideoTracks().some((t) => t.enabled));
+    setCameraEnabled(wantsVideo && stream.getVideoTracks().some((t) => t.enabled));
     return stream;
-  }, [video]);
+  }, []);
 
   const createPeerConnection = useCallback(async (rtcConfiguration?: RTCConfiguration) => {
-    if (pcRef.current) return pcRef.current;
+    const existing = pcRef.current;
+    if (existing && existing.connectionState !== "closed") {
+      return existing;
+    }
 
     const cfg =
       rtcConfiguration ??
@@ -113,10 +145,10 @@ export function usePeerCall({
       const cs = pc.connectionState;
       if (cs === "connected") {
         setState("connected");
-        onConnected?.();
+        onConnectedRef.current?.();
       } else if (cs === "failed") {
         setState("failed");
-        onFailed?.("P2P 연결에 실패했습니다.");
+        onFailedRef.current?.("P2P 연결에 실패했습니다.");
       } else if (cs === "disconnected" || cs === "closed") {
         setState("closed");
       }
@@ -128,7 +160,7 @@ export function usePeerCall({
     }
 
     return pc;
-  }, [emitSignal, ensureLocalStream, onConnected, onFailed]);
+  }, [emitSignal, ensureLocalStream]);
 
   const handleRemoteSignal = useCallback(
     async (payload: CallSignalPayload) => {
@@ -180,7 +212,7 @@ export function usePeerCall({
       if (data.callId !== callId || data.fromUserId !== peerUserId) return;
       void handleRemoteSignal(data.payload).catch(() => {
         setState("failed");
-        onFailed?.("시그널 처리 중 오류가 발생했습니다.");
+        onFailedRef.current?.("시그널 처리 중 오류가 발생했습니다.");
       });
     };
 
@@ -188,10 +220,18 @@ export function usePeerCall({
     return () => {
       socket.off("call_signal", onSignal);
     };
-  }, [enabled, socket, callId, peerUserId, handleRemoteSignal, onFailed]);
+  }, [enabled, socket, callId, peerUserId, handleRemoteSignal]);
+
+  const createPeerConnectionRef = useRef(createPeerConnection);
+  createPeerConnectionRef.current = createPeerConnection;
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !callId) return;
+
+    const sessionKey = `${callId}:${isCaller ? "caller" : "callee"}`;
+    if (initSessionRef.current === sessionKey) return;
+    initSessionRef.current = sessionKey;
+
     let cancelled = false;
 
     void (async () => {
@@ -199,7 +239,7 @@ export function usePeerCall({
         setState("connecting");
         const rtcConfiguration = await fetchWebRtcIceConfiguration();
         if (cancelled) return;
-        const pc = await createPeerConnection(rtcConfiguration);
+        const pc = await createPeerConnectionRef.current(rtcConfiguration);
         if (cancelled) return;
 
         if (isCaller) {
@@ -211,17 +251,22 @@ export function usePeerCall({
         }
       } catch (e) {
         if (cancelled) return;
+        initSessionRef.current = null;
         setState("failed");
-        onFailed?.(e instanceof Error ? e.message : "미디어 연결에 실패했습니다.");
+        onFailedRef.current?.(
+          e instanceof Error ? e.message : "미디어 연결에 실패했습니다."
+        );
       }
     })();
 
     return () => {
       cancelled = true;
-      emitSignal({ type: "hangup" });
+      if (initSessionRef.current === sessionKey) {
+        initSessionRef.current = null;
+      }
       cleanup();
     };
-  }, [enabled, isCaller, createPeerConnection, emitSignal, cleanup, onFailed]);
+  }, [enabled, callId, isCaller, emitSignal, cleanup]);
 
   const setMic = useCallback((on: boolean) => {
     for (const track of localStreamRef.current?.getAudioTracks() ?? []) {
