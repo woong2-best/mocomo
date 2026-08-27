@@ -14,6 +14,8 @@ type SearchParams = {
   platform?: string;
   redirect_uri?: string;
   addAccount?: string;
+  pickAccount?: string;
+  loggedOut?: string;
 };
 
 export default async function SignInPage({
@@ -48,6 +50,8 @@ export default async function SignInPage({
         platform={platform}
         addAccount={sp.addAccount === "1"}
         mobileRedirectUri={sanitizeMobileRedirectUri(sp.redirect_uri)}
+        pickAccount={sp.pickAccount === "1"}
+        loggedOutUserId={sp.loggedOut?.trim() || null}
       />
     </>
   );

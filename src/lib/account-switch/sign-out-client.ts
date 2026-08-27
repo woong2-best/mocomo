@@ -1,40 +1,81 @@
 "use client";
 
 import { signOut as nextAuthSignOut } from "next-auth/react";
-import { removeSavedAccount } from "@/lib/account-switch/client";
+import { exportCurrentAccount, listSavedAccounts } from "@/lib/account-switch/client";
 import { clearAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
-import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+
+function signOutLandingPath(userId?: string): string {
+  const saved = listSavedAccounts();
+  const hasSaved = saved.length > 0 || Boolean(userId);
+  if (!hasSaved) return "/auth/signin";
+  const params = new URLSearchParams({ pickAccount: "1" });
+  if (userId) params.set("loggedOut", userId);
+  return `/auth/signin?${params.toString()}`;
+}
+
+async function purgeServerSession() {
+  const res = await fetch("/api/auth/logout", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error("LOGOUT_FAILED");
+}
+
+async function confirmLoggedOut(): Promise<boolean> {
+  try {
+    const res = await fetch("/api/auth/session", { credentials: "include" });
+    if (!res.ok) return true;
+    const data = (await res.json()) as { user?: unknown };
+    return !data.user;
+  } catch {
+    return true;
+  }
+}
 
 /**
- * Web logout — purge server cookies (incl. legacy/chunks), sync client session, hard navigate.
- * next-auth/react signOut alone can leave stale session cookies that restore login on refresh.
+ * Web logout — export account for picker, purge server cookies, sync client session, hard navigate.
+ * Keeps saved accounts (logged-out account stays in the list) and lands on the account picker.
  */
 export async function performWebSignOut(options?: {
   callbackUrl?: string;
   userId?: string;
 }) {
-  const callbackUrl = options?.callbackUrl ?? DEFAULT_LANDING_PATH;
-
-  if (options?.userId) {
-    removeSavedAccount(options.userId);
-  }
+  const callbackUrl = options?.callbackUrl ?? signOutLandingPath(options?.userId);
 
   clearAddAccountFlowCookie();
 
+  // Save switch token before session is destroyed so the account stays switchable.
   try {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-    });
+    await exportCurrentAccount();
   } catch {
-    // Best-effort server purge; client signOut + navigation still run.
+    // Continue — account may already be in localStorage.
+  }
+
+  try {
+    await purgeServerSession();
+  } catch {
+    // Retry once; client signOut + hard navigation still run.
+    try {
+      await purgeServerSession();
+    } catch {
+      // Best-effort server purge.
+    }
   }
 
   try {
     await nextAuthSignOut({ redirect: false });
   } catch {
     // Hard navigation below is the source of truth for logged-out UI.
+  }
+
+  if (!(await confirmLoggedOut())) {
+    try {
+      await purgeServerSession();
+      await nextAuthSignOut({ redirect: false });
+    } catch {
+      // Proceed with hard navigation.
+    }
   }
 
   window.location.replace(callbackUrl);

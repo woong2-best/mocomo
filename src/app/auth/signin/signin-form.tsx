@@ -16,6 +16,8 @@ import { signIn } from "next-auth/react";
 import { waitForClientSession } from "@/lib/auth-session-retry";
 import { finishAddAccountFlow, setAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
 import { persistOAuthFlowIntent } from "@/lib/oauth-flow-cookie";
+import { SignInAccountPicker } from "@/components/auth/signin-account-picker";
+import { listSavedAccounts } from "@/lib/account-switch/client";
 
 function safeCallbackUrl(raw: string): string {
   const path = raw.trim();
@@ -42,6 +44,8 @@ export function SignInForm({
   platform = "android",
   addAccount = false,
   mobileRedirectUri = null,
+  pickAccount = false,
+  loggedOutUserId = null,
 }: {
   googleOAuth: boolean;
   discordOAuth: boolean;
@@ -55,6 +59,8 @@ export function SignInForm({
   platform?: "android" | "ios";
   addAccount?: boolean;
   mobileRedirectUri?: string | null;
+  pickAccount?: boolean;
+  loggedOutUserId?: string | null;
 }) {
   const router = useRouter();
   const { t } = useLocale();
@@ -80,6 +86,9 @@ export function SignInForm({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showLoginForm, setShowLoginForm] = useState(
+    () => !pickAccount || listSavedAccounts().length === 0
+  );
 
   useEffect(() => {
     void persistOAuthFlowIntent("signin").catch(() => undefined);
@@ -149,6 +158,12 @@ export function SignInForm({
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">
+      {!showLoginForm ? (
+        <SignInAccountPicker
+          loggedOutUserId={loggedOutUserId}
+          onShowSignInForm={() => setShowLoginForm(true)}
+        />
+      ) : (
       <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-3 pb-2">
           <div className="mx-auto h-14 w-14 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
@@ -237,6 +252,7 @@ export function SignInForm({
           </p>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

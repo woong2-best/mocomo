@@ -222,6 +222,9 @@ export type MessageKey =
   | "accountSwitch.createNew"
   | "accountSwitch.addExisting"
   | "accountSwitch.switchFailed"
+  | "accountSwitch.loggedOut"
+  | "accountSwitch.pickPrompt"
+  | "accountSwitch.useOtherLogin"
   | "settings.title"
   | "settings.localeTitle"
   | "settings.localeDesc"
@@ -681,6 +684,9 @@ const ko: Record<MessageKey, string> = {
   "accountSwitch.createNew": "새 계정 만들기",
   "accountSwitch.addExisting": "기존 계정 추가하기",
   "accountSwitch.switchFailed": "계정을 전환할 수 없습니다. 다시 로그인해 주세요.",
+  "accountSwitch.loggedOut": "로그아웃됨",
+  "accountSwitch.pickPrompt": "전환할 계정을 선택하세요",
+  "accountSwitch.useOtherLogin": "다른 방법으로 로그인",
   "settings.title": "설정",
   "settings.localeTitle": "국가 · 언어 · 시간대",
   "settings.localeDesc":
@@ -1143,6 +1149,9 @@ const en: Record<MessageKey, string> = {
   "accountSwitch.createNew": "Create new account",
   "accountSwitch.addExisting": "Add existing account",
   "accountSwitch.switchFailed": "Could not switch accounts. Please sign in again.",
+  "accountSwitch.loggedOut": "Logged out",
+  "accountSwitch.pickPrompt": "Choose an account to switch to",
+  "accountSwitch.useOtherLogin": "Sign in another way",
   "settings.title": "Settings",
   "settings.localeTitle": "Country, language & time zone",
   "settings.localeDesc":
@@ -1605,6 +1614,9 @@ const ja: Record<MessageKey, string> = {
   "accountSwitch.createNew": "新規アカウント作成",
   "accountSwitch.addExisting": "既存アカウントを追加",
   "accountSwitch.switchFailed": "アカウントを切り替えられません。再度ログインしてください。",
+  "accountSwitch.loggedOut": "ログアウト済み",
+  "accountSwitch.pickPrompt": "切り替えるアカウントを選択",
+  "accountSwitch.useOtherLogin": "別の方法でログイン",
   "settings.title": "設定",
   "settings.localeTitle": "国・言語・タイムゾーン",
   "settings.localeDesc":
@@ -2067,6 +2079,9 @@ const zh: Record<MessageKey, string> = {
   "accountSwitch.createNew": "创建新账户",
   "accountSwitch.addExisting": "添加已有账户",
   "accountSwitch.switchFailed": "无法切换账户，请重新登录。",
+  "accountSwitch.loggedOut": "已退出",
+  "accountSwitch.pickPrompt": "选择要切换的账户",
+  "accountSwitch.useOtherLogin": "使用其他方式登录",
   "settings.title": "设置",
   "settings.localeTitle": "国家、语言与时区",
   "settings.localeDesc":
