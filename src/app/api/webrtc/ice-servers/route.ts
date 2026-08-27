@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  const limited = await rateLimitPublicApi(req, `webrtc-ice:${session.user.id}`, 60);
+  const limited = await rateLimitPublicApi(req, `webrtc-ice:${session.user.id}`, 120);
   if (limited) return limited;
 
   const config = await resolveIceServersForCall(session.user.id);

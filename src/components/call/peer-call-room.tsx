@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePeerCall } from "@/lib/peer-call/use-peer-call";
 import { PeerCallControlBar } from "@/components/call/peer-call-control-bar";
 import { CallTopBar } from "@/components/call/call-top-bar";
-import { CallInviteSheet } from "@/components/call/call-invite-sheet";
+import { CallRingingStage } from "@/components/call/call-overlay";
 import { CallSettingsSheet } from "@/components/call/call-settings-sheet";
 import type { CallParticipant } from "@/lib/call-types";
 import type { Socket } from "socket.io-client";
@@ -174,11 +173,29 @@ export function PeerCallRoom({
     );
   }
 
-  if (enabled && peerCall.state === "connecting" && phase === "outgoing") {
+  if (enabled && peerCall.state === "connecting") {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 bg-black text-white/70">
-        <Loader2 className="h-7 w-7 animate-spin" />
-        <p className="text-sm">{video ? "영상 연결 중…" : "음성 연결 중…"}</p>
+      <div className="relative flex h-full min-h-0 flex-col bg-gradient-to-b from-zinc-900 via-black to-zinc-950 text-white">
+        <CallRingingStage
+          peer={peer}
+          isVideo={video}
+          phase="outgoing"
+          subtitle={video ? "영상 연결 중…" : "음성 연결 중…"}
+        />
+        <div className="absolute inset-x-0 bottom-0 z-20 pb-safe pt-4">
+          <PeerCallControlBar
+            video={video}
+            micEnabled={peerCall.micEnabled}
+            cameraEnabled={peerCall.cameraEnabled}
+            onToggleMic={() => peerCall.setMic(!peerCall.micEnabled)}
+            onToggleCamera={() => peerCall.setCamera(!peerCall.cameraEnabled)}
+            onFlipCamera={() => void peerCall.flipCamera()}
+            onHangup={() => {
+              peerCall.hangup();
+              onHangup();
+            }}
+          />
+        </div>
       </div>
     );
   }

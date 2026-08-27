@@ -1,3 +1,5 @@
+"use client";
+
 import type { ResolvedIceConfig } from "@/lib/webrtc-turn/types";
 import {
   getIceTransportPolicyFromEnv,
@@ -24,25 +26,57 @@ export function getClientFallbackIceConfig(): ResolvedIceConfig {
   };
 }
 
+const ICE_CACHE_TTL_MS = 5 * 60 * 1000;
+let iceCache: { config: RTCConfiguration; expiresAt: number } | null = null;
+let iceInflight: Promise<RTCConfiguration> | null = null;
+
+function toRtcConfiguration(data: ResolvedIceConfig): RTCConfiguration {
+  return {
+    iceServers: data.iceServers,
+    ...(data.iceTransportPolicy ? { iceTransportPolicy: data.iceTransportPolicy } : {}),
+  };
+}
+
 export async function fetchWebRtcIceConfiguration(): Promise<RTCConfiguration> {
-  try {
-    const res = await fetch("/api/webrtc/ice-servers", { credentials: "include", cache: "no-store" });
-    if (res.ok) {
-      const data = (await res.json()) as ResolvedIceConfig;
-      return {
-        iceServers: data.iceServers,
-        ...(data.iceTransportPolicy ? { iceTransportPolicy: data.iceTransportPolicy } : {}),
-      };
-    }
-  } catch {
-    /* fallback */
+  const now = Date.now();
+  if (iceCache && iceCache.expiresAt > now) {
+    return iceCache.config;
   }
 
-  const fallback = getClientFallbackIceConfig();
-  return {
-    iceServers: fallback.iceServers,
-    ...(fallback.iceTransportPolicy ? { iceTransportPolicy: fallback.iceTransportPolicy } : {}),
-  };
+  if (iceInflight) return iceInflight;
+
+  iceInflight = (async () => {
+    try {
+      const res = await fetch("/api/webrtc/ice-servers", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = (await res.json()) as ResolvedIceConfig;
+        const config = toRtcConfiguration(data);
+        iceCache = { config, expiresAt: Date.now() + ICE_CACHE_TTL_MS };
+        return config;
+      }
+    } catch {
+      /* fallback */
+    }
+
+    const fallback = getClientFallbackIceConfig();
+    const config = toRtcConfiguration(fallback);
+    iceCache = { config, expiresAt: Date.now() + 30_000 };
+    return config;
+  })();
+
+  try {
+    return await iceInflight;
+  } finally {
+    iceInflight = null;
+  }
+}
+
+/** Warm ICE credentials before the peer connection starts (call ring phase). */
+export function prefetchWebRtcIceConfiguration() {
+  void fetchWebRtcIceConfiguration();
 }
 
 /** @deprecated use fetchWebRtcIceConfiguration */

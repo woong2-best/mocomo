@@ -20,6 +20,7 @@ import {
 } from "@/lib/camera";
 import { CallOverlay } from "@/components/call/call-overlay";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
+import { prefetchWebRtcIceConfiguration } from "@/lib/webrtc-ice-config";
 
 const PeerCallRoom = dynamic(
   () => import("@/components/call/peer-call-room").then((m) => m.PeerCallRoom),
@@ -454,6 +455,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
         image: null,
       };
       const gen = ++startCallGenRef.current;
+      prefetchWebRtcIceConfiguration();
       setCallState({ phase: "preparing", peer, callType, chatRoomId });
 
       const micPromise = quickMicrophoneCheck().then((r) => {
@@ -577,11 +579,15 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     }
   }, [callState, acceptIncoming, declineIncoming]);
 
+  useEffect(() => {
+    if (callState.phase === "incoming") {
+      prefetchWebRtcIceConfiguration();
+    }
+  }, [callState.phase === "incoming" ? callState.call.id : null]);
+
   const value = useMemo(() => ({ startCall }), [startCall]);
   const busy = callState.phase !== "idle";
-  const connectPeer =
-    isCallPhase(callState) &&
-    (callState.phase === "active" || callState.phase === "outgoing");
+  const connectPeer = isCallPhase(callState) && callState.phase === "active";
   const activeVideo =
     callState.phase === "active" && isVideoCall(callState.call);
 
@@ -618,7 +624,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
             onHangup={() => {
               if (callState.phase === "active") hangup(callState.call.id);
             }}
-            livekitSlot={
+            peerCallSlot={
               connectPeer && isCallPhase(callState) && userId ? (
                 <PeerCallRoom
                   callId={callState.call.id}
@@ -630,11 +636,9 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
                   socket={socket}
                   peer={callState.peer}
                   selfPeer={selfPeer}
-                  phase={callState.phase === "active" ? "active" : "outgoing"}
+                  phase="active"
                   onHangup={() => {
-                    if (callState.phase === "active" || callState.phase === "outgoing") {
-                      hangup(callState.call.id);
-                    }
+                    hangup(callState.call.id);
                   }}
                 />
               ) : undefined
