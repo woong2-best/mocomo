@@ -31,6 +31,7 @@ export function getCachedMobileCommunities(take: number, q?: string) {
           description: true,
           iconUrl: true,
           bannerUrl: true,
+          coverUrl: true,
           category: true,
           isNsfw: true,
           memberCount: true,
@@ -38,7 +39,7 @@ export function getCachedMobileCommunities(take: number, q?: string) {
         },
       });
     },
-    ["mobile-communities-v1", String(take), keyQ || "__all__"],
+    ["mobile-communities-v2", String(take), keyQ || "__all__"],
     { revalidate: 30 }
   )();
 }

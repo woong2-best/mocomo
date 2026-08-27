@@ -10,12 +10,17 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import {
+  fetchLiveAlerts,
   fetchLiveChat,
   sendLiveChat,
   type LiveChatMessage,
 } from "@/api/live";
 import { ApiError } from "@/api/client";
+import { alertToChatLine } from "@/lib/live-support";
+import { LiveSupportPanels } from "@/features/live/LiveSupportPanels";
+import { LiveSupportSheet } from "@/features/live/LiveSupportSheet";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { LinkifiedText } from "@/ui/LinkifiedText";
 import { useTheme } from "@/theme/ThemeContext";
@@ -25,9 +30,29 @@ type Props = {
   channelId: string;
   viewerCount: number;
   onViewerCount?: (n: number) => void;
+  isHost?: boolean;
+  paymentsEnabled?: boolean;
+  hostDisplayName?: string;
+  hostUserId?: string;
+  pinnedMessage?: string | null;
+  currentUserId?: string;
+  onTipPress?: () => void;
+  streamStartedAt?: string;
 };
 
-export function LiveChatPanel({ channelId, viewerCount, onViewerCount }: Props) {
+export function LiveChatPanel({
+  channelId,
+  viewerCount,
+  onViewerCount,
+  isHost,
+  paymentsEnabled,
+  hostDisplayName,
+  hostUserId,
+  pinnedMessage,
+  currentUserId,
+  onTipPress,
+  streamStartedAt,
+}: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
@@ -35,8 +60,23 @@ export function LiveChatPanel({ channelId, viewerCount, onViewerCount }: Props) 
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [missionOpen, setMissionOpen] = useState(false);
   const sinceRef = useRef(0);
+  const alertSinceRef = useRef(
+    streamStartedAt ? new Date(streamStartedAt).getTime() - 2000 : Date.now() - 60_000
+  );
+  const seenSupportRef = useRef(new Set<string>());
   const listRef = useRef<FlatList<LiveChatMessage>>(null);
+
+  const mergeSupportLine = useCallback((line: LiveChatMessage) => {
+    if (seenSupportRef.current.has(line.id)) return;
+    seenSupportRef.current.add(line.id);
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === line.id)) return prev;
+      return [...prev, line].sort((a, b) => a.at - b.at).slice(-120);
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +130,34 @@ export function LiveChatPanel({ channelId, viewerCount, onViewerCount }: Props) 
     };
   }, [channelId, onViewerCount]);
 
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    async function pollAlerts() {
+      try {
+        const res = await fetchLiveAlerts(channelId, alertSinceRef.current);
+        if (cancelled) return;
+        for (const alert of res.alerts) {
+          mergeSupportLine(alertToChatLine(alert));
+          alertSinceRef.current = Math.max(
+            alertSinceRef.current,
+            new Date(alert.at).getTime()
+          );
+        }
+      } catch {
+        /* ignore */
+      }
+      if (!cancelled) timer = setTimeout(pollAlerts, 3000);
+    }
+
+    void pollAlerts();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [channelId, mergeSupportLine]);
+
   const onSend = useCallback(async () => {
     const content = draft.trim();
     if (!content || sending) return;
@@ -119,6 +187,16 @@ export function LiveChatPanel({ channelId, viewerCount, onViewerCount }: Props) 
     }
   }, [channelId, draft, sending]);
 
+  const onSupportRefresh = useCallback(() => {
+    void fetchLiveAlerts(channelId, alertSinceRef.current)
+      .then((res) => {
+        for (const alert of res.alerts) mergeSupportLine(alertToChatLine(alert));
+      })
+      .catch(() => undefined);
+  }, [channelId, mergeSupportLine]);
+
+  const showDonationActions = !isHost && !!hostUserId;
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -129,6 +207,22 @@ export function LiveChatPanel({ channelId, viewerCount, onViewerCount }: Props) 
         <Text style={styles.headerTitle}>채팅</Text>
         <Text style={styles.headerSub}>{viewerCount}명 시청</Text>
       </View>
+
+      {pinnedMessage?.trim() ? (
+        <View style={styles.pinned}>
+          <Ionicons name="pin" size={12} color={colors.cobalt} />
+          <Text style={styles.pinnedText} numberOfLines={3}>
+            {pinnedMessage.trim()}
+          </Text>
+        </View>
+      ) : null}
+
+      <LiveSupportPanels
+        channelId={channelId}
+        isHost={isHost}
+        currentUserId={currentUserId}
+        onSupportEvent={onSupportRefresh}
+      />
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 24 }} color={colors.terracotta} />
@@ -143,19 +237,42 @@ export function LiveChatPanel({ channelId, viewerCount, onViewerCount }: Props) 
           ListEmptyComponent={
             <Text style={styles.empty}>아직 채팅이 없습니다. 첫 메시지를 남겨 보세요.</Text>
           }
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <FolkAvatar uri={item.image} name={item.username} size={28} framed={false} />
-              <View style={styles.bubble}>
-                <Text style={styles.user}>@{item.username}</Text>
-                <LinkifiedText text={item.content} style={styles.content} />
+          renderItem={({ item }) =>
+            item.messageKind ? (
+              <SupportLine message={item} colors={colors} />
+            ) : (
+              <View style={styles.row}>
+                <FolkAvatar uri={item.image} name={item.username} size={28} framed={false} />
+                <View style={styles.bubble}>
+                  <Text style={styles.user}>@{item.username}</Text>
+                  <LinkifiedText text={item.content} style={styles.content} />
+                </View>
               </View>
-            </View>
-          )}
+            )
+          }
         />
       )}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      {showDonationActions ? (
+        <View style={styles.actionRow}>
+          <Pressable style={styles.actionBtn} onPress={() => setSupportOpen(true)}>
+            <Ionicons name="heart" size={14} color="#eab308" />
+            <Text style={styles.actionText}>채팅후원</Text>
+          </Pressable>
+          {paymentsEnabled ? (
+            <Pressable style={styles.actionBtn} onPress={onTipPress}>
+              <Ionicons name="cash" size={14} color={colors.cobalt} />
+              <Text style={styles.actionText}>후원</Text>
+            </Pressable>
+          ) : null}
+          <Pressable style={styles.actionBtn} onPress={() => setMissionOpen(true)}>
+            <Ionicons name="flag" size={14} color={colors.terracotta} />
+            <Text style={styles.actionText}>미션</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={styles.composer}>
         <TextInput
@@ -181,15 +298,68 @@ export function LiveChatPanel({ channelId, viewerCount, onViewerCount }: Props) 
           )}
         </Pressable>
       </View>
+
+      {hostDisplayName ? (
+        <>
+          <LiveSupportSheet
+            visible={supportOpen}
+            onClose={() => setSupportOpen(false)}
+            channelId={channelId}
+            hostDisplayName={hostDisplayName}
+            onSuccess={onSupportRefresh}
+          />
+          <LiveSupportSheet
+            visible={missionOpen}
+            onClose={() => setMissionOpen(false)}
+            channelId={channelId}
+            hostDisplayName={hostDisplayName}
+            initialTab="MISSION"
+            onSuccess={onSupportRefresh}
+          />
+        </>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
+
+function SupportLine({ message, colors }: { message: LiveChatMessage; colors: ThemeColors }) {
+  const kind = message.messageKind ?? "support";
+  const tone =
+    kind === "tip"
+      ? { bg: "#fef3c714", border: "#fbbf2433" }
+      : kind === "mission"
+        ? { bg: "#ede9fe33", border: "#a78bfa44" }
+        : message.eventType === "ROULETTE"
+          ? { bg: "#d1fae533", border: "#34d39944" }
+          : { bg: "#fef9c314", border: "#eab30844" };
+
+  return (
+    <View style={[supportStyles.line, { backgroundColor: tone.bg, borderColor: tone.border }]}>
+      <Text style={[supportStyles.label, { color: colors.textMuted }]}>
+        {kind === "tip" ? "후원" : kind === "mission" ? "미션" : message.eventType === "ROULETTE" ? "룰렛" : "응원"}
+      </Text>
+      <Text style={[supportStyles.content, { color: colors.text }]}>{message.content}</Text>
+    </View>
+  );
+}
+
+const supportStyles = StyleSheet.create({
+  line: {
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  label: { fontSize: 10, fontWeight: "800", textTransform: "uppercase", marginBottom: 2 },
+  content: { fontSize: 13, fontWeight: "700", lineHeight: 18 },
+});
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: {
       flex: 1,
-      minHeight: 320,
+      minHeight: 360,
       borderRadius: radii.lg,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
@@ -207,6 +377,17 @@ function createStyles(colors: ThemeColors) {
     },
     headerTitle: { fontWeight: "800", color: colors.text, fontSize: 14 },
     headerSub: { fontWeight: "600", color: colors.textMuted, fontSize: 12 },
+    pinned: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 6,
+      marginHorizontal: 10,
+      marginTop: 8,
+      padding: 8,
+      borderRadius: radii.md,
+      backgroundColor: `${colors.cobalt}12`,
+    },
+    pinnedText: { flex: 1, fontSize: 12, fontWeight: "600", color: colors.text, lineHeight: 17 },
     list: { flex: 1 },
     listPad: { padding: 10, gap: 8 },
     emptyList: { flexGrow: 1, justifyContent: "center", padding: 20 },
@@ -222,6 +403,25 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 12,
       paddingBottom: 4,
     },
+    actionRow: {
+      flexDirection: "row",
+      gap: 8,
+      paddingHorizontal: 10,
+      paddingBottom: 6,
+    },
+    actionBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+      borderRadius: radii.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      paddingVertical: 8,
+      backgroundColor: colors.surface,
+    },
+    actionText: { fontSize: 11, fontWeight: "800", color: colors.text },
     composer: {
       flexDirection: "row",
       alignItems: "center",

@@ -43,7 +43,9 @@ export async function SettingsChannelView({
       category: true,
       isNsfw: true,
       iconUrl: true,
+      coverUrl: true,
       bannerUrl: true,
+      bannerVideoUrl: true,
       isPublic: true,
       joinMode: true,
     },
@@ -92,7 +94,9 @@ export async function SettingsChannelView({
             slug={communitySlug}
             initial={{
               iconUrl: community.iconUrl,
+              coverUrl: community.coverUrl,
               bannerUrl: community.bannerUrl,
+              bannerVideoUrl: community.bannerVideoUrl,
               isPublic: community.isPublic,
             }}
           />

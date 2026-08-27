@@ -25,6 +25,7 @@ import type { CommunityChannelType } from "@prisma/client";
 import type { CommunityChannelView } from "@/lib/community-server/types";
 import { Button } from "@/components/ui/button";
 import { ChannelCreateDialog } from "@/components/community-server/channel-create-dialog";
+import { CommunitySidebarBanner } from "@/components/community-server/community-sidebar-banner";
 
 const CHANNEL_ICONS: Record<CommunityChannelType, typeof Hash> = {
   POSTS: MessageSquare,
@@ -63,6 +64,8 @@ export function ChannelSidebar({
   slug,
   communityId,
   communityName,
+  bannerUrl,
+  bannerVideoUrl,
   channels,
   isOwner,
   canManageChannels,
@@ -71,6 +74,8 @@ export function ChannelSidebar({
   slug: string;
   communityId: string;
   communityName: string;
+  bannerUrl: string | null;
+  bannerVideoUrl: string | null;
   channels: CommunityChannelView[];
   isOwner: boolean;
   canManageChannels: boolean;
@@ -95,6 +100,12 @@ export function ChannelSidebar({
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground hidden sm:block" />
           </Link>
         </div>
+
+        <CommunitySidebarBanner
+          communityId={communityId}
+          bannerUrl={bannerUrl}
+          bannerVideoUrl={bannerVideoUrl}
+        />
 
         <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="p-1 sm:p-2 space-y-4">

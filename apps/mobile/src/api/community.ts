@@ -7,6 +7,7 @@ export type CommunityListItem = {
   name: string;
   description: string | null;
   iconUrl: string | null;
+  coverUrl: string | null;
   bannerUrl: string | null;
   category: string;
   isNsfw: boolean;
@@ -108,12 +109,14 @@ export async function fetchCommunityDetail(slug: string) {
 
 export async function updateCommunityBranding(
   slug: string,
-  data: { iconUrl?: string | null; bannerUrl?: string | null }
+  data: { iconUrl?: string | null; coverUrl?: string | null; bannerUrl?: string | null; bannerVideoUrl?: string | null }
 ) {
   return apiRequest<{
     success: boolean;
     iconUrl: string | null;
+    coverUrl: string | null;
     bannerUrl: string | null;
+    bannerVideoUrl: string | null;
   }>(`${MobileApi.community}/${encodeURIComponent(slug)}`, {
     method: "PATCH",
     body: data,

@@ -130,7 +130,7 @@ const mobileFeedMediaPreview = {
   },
 } as const;
 
-const mobileFeedPostSelect = {
+export const mobileFeedPostSelect = {
   id: true,
   title: true,
   content: true,
@@ -195,4 +195,40 @@ export function getCachedMobileFeedPostsPage(cursor: string | null, limit: numbe
     ["mobile-feed-page-v2-views", cacheKey, String(limit)],
     { revalidate: 20, tags: [FEED_POSTS_CACHE_TAG] }
   )();
+}
+
+/** ID 순서를 유지하며 피드 포스트 fetch (For You 랭킹용) */
+export async function fetchWebFeedPostsByIds(postIds: string[]): Promise<FeedPostRow[]> {
+  if (!postIds.length) return [];
+  const posts = await db.post.findMany({
+    where: { id: { in: postIds } },
+    select: feedPostListSelect,
+  });
+  const byId = new Map(posts.map((p) => [p.id, p]));
+  return postIds
+    .map((id) => byId.get(id))
+    .filter((p): p is NonNullable<typeof p> => p != null)
+    .map(mapFeedPost);
+}
+
+export async function fetchMobileFeedPostsByIds(
+  postIds: string[]
+): Promise<Awaited<ReturnType<typeof fetchMobileFeedPostsPage>>> {
+  if (!postIds.length) return [];
+  const posts = await db.post.findMany({
+    where: { id: { in: postIds } },
+    select: mobileFeedPostSelect,
+  });
+  const byId = new Map(posts.map((p) => [p.id, p]));
+  return postIds
+    .map((id) => byId.get(id))
+    .filter((p): p is NonNullable<typeof p> => p != null)
+    .map((p) => trimFeedPostContent(p));
+}
+
+/** @deprecated fetchWebFeedPostsByIds / fetchMobileFeedPostsByIds 사용 */
+export async function fetchFeedPostsByIds(postIds: string[], variant: "web" | "mobile" = "web") {
+  return variant === "mobile"
+    ? fetchMobileFeedPostsByIds(postIds)
+    : fetchWebFeedPostsByIds(postIds);
 }

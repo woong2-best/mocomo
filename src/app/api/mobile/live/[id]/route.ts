@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { resolveExternalEmbed } from "@/lib/live-external/parse";
 import { fetchExternalPlatformMetadata } from "@/lib/live-external/platform-metadata";
+import { getCachedLiveTipsForChannel } from "@/lib/cached-live-tips";
 import { isPaymentsConfigured } from "@/lib/payments";
 import {
   canViewerEnterLiveRoom,
@@ -43,6 +44,7 @@ export async function GET(
       externalWatchUrl: true,
       description: true,
       createdAt: true,
+      donationGoalKrw: true,
       donationAlertsOnStream: true,
       members: {
         where: { lastSeenAt: { gte: liveViewerCutoff() } },
@@ -110,6 +112,26 @@ export async function GET(
   const platformTitle = external?.platformTitle?.trim() || null;
   const platformDescription = external?.platformDescription?.trim() || null;
 
+  const needFollow = !!viewerId && channel.createdBy !== viewerId;
+  const [{ tipTotalKrw, tipRanking }, followRow, streamerProfile] = await Promise.all([
+    getCachedLiveTipsForChannel(channel.createdBy, channel.createdAt),
+    needFollow
+      ? db.follow.findUnique({
+          where: {
+            followerId_followingId: {
+              followerId: viewerId!,
+              followingId: channel.createdBy,
+            },
+          },
+          select: { followerId: true },
+        })
+      : Promise.resolve(null),
+    db.streamerProfile.findUnique({
+      where: { userId: channel.createdBy },
+      select: { announcement: true },
+    }),
+  ]);
+
   return NextResponse.json({
     item: {
       id: channel.id,
@@ -130,6 +152,11 @@ export async function GET(
       paymentsEnabled: isPaymentsConfigured(),
       streamStartedAt: channel.createdAt.toISOString(),
       donationAlertsOnStream: channel.donationAlertsOnStream === true,
+      donationGoalKrw: channel.donationGoalKrw,
+      tipTotalKrw,
+      tipRanking,
+      pinnedMessage: streamerProfile?.announcement?.trim() || null,
+      hostFollowing: !!followRow,
       host: host
         ? {
             id: host.id,

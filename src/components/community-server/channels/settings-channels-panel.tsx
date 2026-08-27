@@ -9,7 +9,7 @@ import {
   createCommunityChannel,
   reorderCommunityChannels,
 } from "@/actions/community-server";
-import { Loader2, Pencil, Trash2, Lock, Unlock, ChevronUp, ChevronDown } from "lucide-react";
+import { Loader2, Pencil, Trash2, Lock, Unlock, ChevronUp, ChevronDown, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ChannelPermissionOverridesDialog } from "@/components/community-server/channel-permission-overrides-dialog";
 
 type ChannelRow = {
   id: string;
@@ -58,6 +59,7 @@ export function CommunityChannelsPanel({
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<CommunityChannelType>("TEXT");
   const [saving, setSaving] = useState(false);
+  const [permChannel, setPermChannel] = useState<ChannelRow | null>(null);
 
   async function load() {
     setLoading(true);
@@ -134,7 +136,7 @@ export function CommunityChannelsPanel({
         <div>
           <h2 className="font-semibold">채널 관리</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            채널 생성·이름 변경·슬로우 모드·잠금·삭제
+            채널 생성·이름 변경·슬로우 모드·잠금·권한 덮어쓰기·삭제
           </p>
         </div>
         <Button type="button" size="sm" onClick={() => setCreateOpen(true)}>
@@ -172,6 +174,15 @@ export function CommunityChannelsPanel({
                 </Button>
                 <Button type="button" size="icon" variant="ghost" onClick={() => void moveChannel(ch.id, 1)}>
                   <ChevronDown className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  title="채널 권한"
+                  onClick={() => setPermChannel(ch)}
+                >
+                  <Shield className="h-4 w-4" />
                 </Button>
                 <Button type="button" size="icon" variant="ghost" onClick={() => setEdit({ ...ch })}>
                   <Pencil className="h-4 w-4" />
@@ -278,6 +289,15 @@ export function CommunityChannelsPanel({
           </div>
         </DialogContent>
       </Dialog>
+
+      {permChannel && (
+        <ChannelPermissionOverridesDialog
+          open={!!permChannel}
+          onOpenChange={(o) => !o && setPermChannel(null)}
+          channelId={permChannel.id}
+          channelName={permChannel.name}
+        />
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
     </section>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
-import { getCachedMobileFeedPostsPage } from "@/lib/feed-query";
+import { resolveFeedPage, type FeedMode } from "@/lib/feed-ranking";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
@@ -16,12 +16,22 @@ export async function GET(req: NextRequest) {
 
     const cursor = req.nextUrl.searchParams.get("cursor");
     const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "10", 10), 24);
+    const modeParam = req.nextUrl.searchParams.get("mode");
+    const mode: FeedMode =
+      modeParam === "latest" || modeParam === "following" || modeParam === "for_you"
+        ? modeParam
+        : "for_you";
 
-    // Auth + cached posts in parallel (JWT verify must not block DB cache read).
-    const [viewerId, posts] = await Promise.all([
-      getMobileUserId(req),
-      getCachedMobileFeedPostsPage(cursor, limit),
-    ]);
+    const viewerId = await getMobileUserId(req);
+    const effectiveMode: FeedMode = viewerId ? mode : "latest";
+
+    const posts = await resolveFeedPage({
+      userId: viewerId,
+      mode: effectiveMode,
+      cursor,
+      limit,
+      variant: "mobile",
+    });
 
     const visible = await filterPostsByAudienceLock(
       posts.map((p) => ({ ...p, authorId: p.author.id })),
@@ -56,6 +66,7 @@ export async function GET(req: NextRequest) {
           };
         }),
         nextCursor: posts.length === limit ? posts[posts.length - 1]?.id ?? null : null,
+        mode: effectiveMode,
         likedIds: engagement.likedIds,
         starredIds: engagement.starredIds,
         repostedIds: engagement.repostedIds,

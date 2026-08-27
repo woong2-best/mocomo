@@ -43,7 +43,7 @@ function CommunityThumb({
   size: number;
 }) {
   const meta = communityCategoryMeta(community.category);
-  const uri = community.iconUrl || community.bannerUrl;
+  const uri = community.iconUrl || community.coverUrl;
   if (uri) {
     return (
       <Image
@@ -71,7 +71,7 @@ function FeaturedCard({
   onPress: () => void;
 }) {
   const meta = communityCategoryMeta(community.category);
-  const cover = community.bannerUrl || community.iconUrl;
+  const cover = community.coverUrl || community.iconUrl;
   return (
     <Pressable style={[stylesShared.featuredCard, { width }]} onPress={onPress}>
       {cover ? (

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCachedSession } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { getCachedFeedPostsPage } from "@/lib/feed-query";
+import { resolveFeedPage, type FeedMode } from "@/lib/feed-ranking";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
@@ -14,8 +14,21 @@ export async function GET(req: NextRequest) {
     const session = await getCachedSession();
     const cursor = req.nextUrl.searchParams.get("cursor");
     const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "12", 10), 30);
+    const modeParam = req.nextUrl.searchParams.get("mode");
+    const mode: FeedMode =
+      modeParam === "latest" || modeParam === "following" || modeParam === "for_you"
+        ? modeParam
+        : session?.user?.id
+          ? "for_you"
+          : "latest";
 
-    const posts = await getCachedFeedPostsPage(cursor, limit);
+    const posts = await resolveFeedPage({
+      userId: session?.user?.id ?? null,
+      mode,
+      cursor,
+      limit,
+      variant: "web",
+    });
     const visible = await filterPostsByAudienceLock(
       posts.map((p) => ({ ...p, authorId: p.author.id })),
       session?.user?.id ?? null
@@ -41,6 +54,7 @@ export async function GET(req: NextRequest) {
           data: { ...item.data, createdAt: item.data.createdAt.toISOString() },
         })),
         nextCursor,
+        mode,
         likedIds: engagement.likedIds,
         starredIds: engagement.starredIds,
         repostedIds: engagement.repostedIds,

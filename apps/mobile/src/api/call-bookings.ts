@@ -103,7 +103,6 @@ export async function rejectCallBooking(id: string, note?: string) {
 export async function joinCallBooking(id: string) {
   return apiRequest<{
     call: { id: string; callType: "AUDIO" | "VIDEO"; status: string };
-    livekit: { token: string; serverUrl: string };
     role: "fan" | "creator";
   }>(MobileApi.callBookingJoin(id), { method: "POST" });
 }

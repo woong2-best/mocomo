@@ -30,11 +30,9 @@ export async function fetchLivekitCredentials(
 
   if (!res.ok) {
     const msg = body.error ?? `연결 실패 (${res.status})`;
-    const retry403 =
-      res.status === 403 && body.reason === "CALL_NOT_ACTIVE" && attempt < 2;
     const retry5xx = res.status >= 500 && attempt < 2;
-    if (retry403 || retry5xx) {
-      await new Promise((r) => setTimeout(r, retry403 ? 100 : 500));
+    if (retry5xx) {
+      await new Promise((r) => setTimeout(r, 500));
       return fetchLivekitCredentials(roomName, attempt + 1);
     }
     throw new Error(msg);

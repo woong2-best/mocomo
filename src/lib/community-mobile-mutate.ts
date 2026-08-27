@@ -125,14 +125,28 @@ export async function getCommunityBrandingPermissions(
 export async function updateCommunityBrandingForUser(
   userId: string,
   slug: string,
-  data: { iconUrl?: string | null; bannerUrl?: string | null }
+  data: { iconUrl?: string | null; coverUrl?: string | null; bannerUrl?: string | null; bannerVideoUrl?: string | null }
 ): Promise<
-  | { success: true; iconUrl: string | null; bannerUrl: string | null }
+  | {
+      success: true;
+      iconUrl: string | null;
+      coverUrl: string | null;
+      bannerUrl: string | null;
+      bannerVideoUrl: string | null;
+    }
   | { error: string; status?: number }
 > {
   const community = await db.community.findUnique({
     where: { slug },
-    select: { id: true, slug: true, creatorId: true, iconUrl: true, bannerUrl: true },
+    select: {
+      id: true,
+      slug: true,
+      creatorId: true,
+      iconUrl: true,
+      coverUrl: true,
+      bannerUrl: true,
+      bannerVideoUrl: true,
+    },
   });
   if (!community) return { error: "커뮤니티를 찾을 수 없습니다.", status: 404 };
 
@@ -145,22 +159,49 @@ export async function updateCommunityBrandingForUser(
   if (data.iconUrl !== undefined && !branding.canEditIcon) {
     return { error: "대표 이미지 변경 권한이 없습니다.", status: 403 };
   }
+  if (data.coverUrl !== undefined && !branding.canEditIcon) {
+    return { error: "카드 커버 변경 권한이 없습니다.", status: 403 };
+  }
   if (data.bannerUrl !== undefined && !branding.canEditBanner) {
     return { error: "배너 변경 권한이 없습니다.", status: 403 };
   }
-  if (data.iconUrl === undefined && data.bannerUrl === undefined) {
+  if (data.bannerVideoUrl !== undefined && !branding.canEditBanner) {
+    return { error: "배너 변경 권한이 없습니다.", status: 403 };
+  }
+  if (
+    data.iconUrl === undefined &&
+    data.coverUrl === undefined &&
+    data.bannerUrl === undefined &&
+    data.bannerVideoUrl === undefined
+  ) {
     return { error: "변경할 이미지가 없습니다.", status: 400 };
   }
+
+  const bannerUrl = data.bannerUrl !== undefined ? data.bannerUrl || null : undefined;
+  const bannerVideoUrl =
+    data.bannerVideoUrl !== undefined ? data.bannerVideoUrl || null : undefined;
 
   const updated = await db.community.update({
     where: { id: community.id },
     data: {
       ...(data.iconUrl !== undefined ? { iconUrl: data.iconUrl || null } : {}),
-      ...(data.bannerUrl !== undefined ? { bannerUrl: data.bannerUrl || null } : {}),
+      ...(data.coverUrl !== undefined ? { coverUrl: data.coverUrl || null } : {}),
+      ...(bannerUrl !== undefined
+        ? { bannerUrl, ...(bannerUrl ? { bannerVideoUrl: null } : {}) }
+        : {}),
+      ...(bannerVideoUrl !== undefined
+        ? { bannerVideoUrl, ...(bannerVideoUrl ? { bannerUrl: null } : {}) }
+        : {}),
     },
-    select: { iconUrl: true, bannerUrl: true },
+    select: { iconUrl: true, coverUrl: true, bannerUrl: true, bannerVideoUrl: true },
   });
 
   revalidateCommunitiesList(community.slug);
-  return { success: true, iconUrl: updated.iconUrl, bannerUrl: updated.bannerUrl };
+  return {
+    success: true,
+    iconUrl: updated.iconUrl,
+    coverUrl: updated.coverUrl,
+    bannerUrl: updated.bannerUrl,
+    bannerVideoUrl: updated.bannerVideoUrl,
+  };
 }

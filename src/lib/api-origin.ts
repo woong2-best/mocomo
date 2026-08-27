@@ -56,6 +56,7 @@ export const MUTATING_API_ORIGIN_EXEMPT_PREFIXES = [
   "/api/auth/signin",
   "/api/auth/signout",
   "/api/auth/logout",
+  "/api/auth/accounts/",
   "/api/auth/session",
   "/api/auth/providers",
   "/api/auth/csrf",

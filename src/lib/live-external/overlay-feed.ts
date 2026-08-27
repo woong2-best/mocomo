@@ -8,6 +8,7 @@ import {
   type UnifiedChatMessage,
 } from "@/lib/live-external/platform-chat/merge-messages";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
+import { cheerRowToUnified, tipRowToUnified } from "@/lib/live-support/support-to-chat";
 
 export type OverlayFeedResult =
   | {
@@ -45,6 +46,11 @@ export async function buildOverlayChatFeed(params: {
 
   const channel = access.channel;
   const meta = overlayChatMeta(channel);
+
+  const channelSettings = await db.voiceChannel.findUnique({
+    where: { id: params.channelId },
+    select: { createdBy: true, createdAt: true, donationAlertsOnStream: true },
+  });
 
   const dbMessages = await db.liveChatMessage.findMany({
     where: {
@@ -103,10 +109,55 @@ export async function buildOverlayChatFeed(params: {
 
   const messages = mergeUnifiedChatMessages([mocomoUnified, platformUnified]);
 
+  let supportUnified: UnifiedChatMessage[] = [];
+  if (channelSettings?.donationAlertsOnStream) {
+    const sinceForSupport = new Date(
+      Math.max(sinceDate.getTime(), channelSettings.createdAt.getTime())
+    );
+    const [tips, cheers] = await Promise.all([
+      db.tip.findMany({
+        where: {
+          receiverId: channelSettings.createdBy,
+          channelId: params.channelId,
+          createdAt: { gt: sinceForSupport },
+        },
+        orderBy: { createdAt: "asc" },
+        take: 20,
+        select: {
+          id: true,
+          amount: true,
+          message: true,
+          createdAt: true,
+          sender: { select: { username: true } },
+        },
+      }),
+      db.liveSupportEvent.findMany({
+        where: { channelId: params.channelId, createdAt: { gt: sinceForSupport } },
+        orderBy: { createdAt: "asc" },
+        take: 20,
+        select: {
+          id: true,
+          type: true,
+          amount: true,
+          message: true,
+          metadata: true,
+          createdAt: true,
+          sender: { select: { username: true } },
+        },
+      }),
+    ]);
+    supportUnified = [
+      ...tips.map(tipRowToUnified),
+      ...cheers.map(cheerRowToUnified),
+    ];
+  }
+
+  const allMessages = mergeUnifiedChatMessages([messages, supportUnified]);
+
   return {
     ok: true,
     live: true,
-    messages,
+    messages: allMessages,
     meta,
     platformReady,
     platformError,

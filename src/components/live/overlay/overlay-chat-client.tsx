@@ -2,9 +2,8 @@
 
 import { useObsChatFeed } from "@/hooks/use-obs-chat-feed";
 import {
-  OVERLAY_SOURCE_USERNAME_COLOR,
   UNIFIED_CHAT_SOURCE_LABEL,
-  type UnifiedChatSource,
+  chatUsernameColor,
 } from "@/lib/live-external/platform-chat/merge-messages";
 
 export function OverlayChatClient({
@@ -47,35 +46,42 @@ export function OverlayChatClient({
         <StatusLine text={waitingText} warn={!!platformError} />
       ) : null}
 
-      {messages.map((m) => (
+      {messages.map((m) => {
+        const isSupport = !!m.messageKind;
+        const supportColor =
+          m.messageKind === "tip"
+            ? "#fcd34d"
+            : m.messageKind === "mission"
+              ? "#c4b5fd"
+              : m.eventType === "ROULETTE"
+                ? "#6ee7b7"
+                : "#fde047";
+        return (
         <div
           key={m.id}
           style={{
-            color: "#fff",
+            color: isSupport ? supportColor : "#fff",
             textShadow: "0 2px 4px rgba(0,0,0,0.95)",
-            fontSize: 26,
+            fontSize: isSupport ? 24 : 26,
             lineHeight: 1.4,
             wordBreak: "break-word",
+            fontWeight: isSupport ? 700 : 400,
+            padding: isSupport ? "4px 0" : undefined,
+            borderLeft: isSupport ? `4px solid ${supportColor}` : undefined,
+            paddingLeft: isSupport ? 10 : undefined,
           }}
         >
-          {m.source !== "MOCOMO" ? (
-            <span
-              style={{
-                display: "inline-block",
-                marginRight: 8,
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: "0.02em",
-                color: OVERLAY_SOURCE_USERNAME_COLOR[m.source],
-              }}
-            >
-              {UNIFIED_CHAT_SOURCE_LABEL[m.source]}
-            </span>
-          ) : null}
-          <strong style={{ color: usernameColor(m.source) }}>{m.username}</strong>
-          <span style={{ marginLeft: 10 }}>{m.content}</span>
+          {!isSupport ? (
+            <>
+              <strong style={{ color: chatUsernameColor(m.source) }}>{m.username}</strong>
+              <span style={{ marginLeft: 10, color: "#fff" }}>{m.content}</span>
+            </>
+          ) : (
+            <span>{m.content}</span>
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -108,8 +114,4 @@ function StatusLine({
       {text}
     </p>
   );
-}
-
-function usernameColor(source: UnifiedChatSource): string {
-  return OVERLAY_SOURCE_USERNAME_COLOR[source];
 }

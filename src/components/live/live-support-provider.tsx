@@ -11,6 +11,7 @@ import { useSession } from "next-auth/react";
 import type { LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
 import { LiveSupportBridge } from "@/components/live/live-support-bridge";
 import { useLiveChat } from "@/components/live/live-chat-provider";
+import { useSupportChatHandlers } from "@/components/live/live-support-chat-bridge";
 import type { LiveSupportMissionPayload, LiveSupportPollPayload } from "@/lib/live-support/types";
 import type { Socket } from "socket.io-client";
 
@@ -30,17 +31,21 @@ export function LiveSupportProvider({
   channelId,
   isHost,
   onAlert,
+  feedChat = false,
   children,
 }: {
   channelId: string;
   isHost: boolean;
   onAlert: (alert: LiveTipAlert) => void;
+  /** 후원·룰렛·미션을 채팅 피드에도 표시 (외부 라이브 OBS 대체) */
+  feedChat?: boolean;
   children: ReactNode;
 }) {
   const { socket, connected } = useLiveChat();
   const { data: session } = useSession();
   const [missions, setMissions] = useState<LiveSupportMissionPayload[]>([]);
   const [poll, setPoll] = useState<LiveSupportPollPayload | null>(null);
+  const chatHandlers = useSupportChatHandlers();
 
   const upsertMission = useCallback((m: LiveSupportMissionPayload) => {
     setMissions((prev) => {
@@ -57,8 +62,17 @@ export function LiveSupportProvider({
   const pushAlert = useCallback(
     (alert: LiveTipAlert) => {
       onAlert(alert);
+      if (feedChat) chatHandlers.onAlert(alert);
     },
-    [onAlert]
+    [onAlert, feedChat, chatHandlers]
+  );
+
+  const handleMission = useCallback(
+    (m: LiveSupportMissionPayload) => {
+      upsertMission(m);
+      if (feedChat) chatHandlers.onMission(m);
+    },
+    [upsertMission, feedChat, chatHandlers]
   );
 
   const value: LiveSupportContextValue = {
@@ -80,7 +94,7 @@ export function LiveSupportProvider({
         socket={socket}
         isHost={isHost}
         onAlert={pushAlert}
-        onMission={upsertMission}
+        onMission={handleMission}
         onPoll={setPoll}
       />
       {children}

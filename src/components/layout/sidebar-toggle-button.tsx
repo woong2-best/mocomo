@@ -9,12 +9,14 @@ import { BRAND } from "@/lib/brand";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { scrollMainToTop } from "@/lib/scroll-main";
 import { useSidebarToggle } from "@/components/providers/sidebar-toggle-provider";
+import { isCommunityServerPath } from "@/lib/community-server/path";
 import { cn } from "@/lib/utils";
 
 export function SidebarToggleButton() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const router = useRouter();
   const isHome = pathname === DEFAULT_LANDING_PATH || pathname.startsWith(`${DEFAULT_LANDING_PATH}/`);
+  const isCommunityServer = isCommunityServerPath(pathname);
   const { open: sidebarOpen, toggle: toggleSidebar } = useSidebarToggle();
 
   function onBrandClick(e: MouseEvent<HTMLAnchorElement>) {
@@ -26,45 +28,47 @@ export function SidebarToggleButton() {
 
   return (
     <div className="app-header-interactive hidden lg:flex items-center gap-2 shrink-0 min-w-0">
-      <button
-        type="button"
-        onClick={toggleSidebar}
-        aria-label={sidebarOpen ? "사이드바 숨기기" : "사이드바 보이기"}
-        aria-expanded={sidebarOpen}
-        className={cn(
-          "rounded-xl p-1 transition-colors",
-          "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-folk-terracotta/50",
-          !sidebarOpen && "bg-muted/30 ring-2 ring-folk-terracotta/35"
-        )}
-      >
-        <span
+      {!isCommunityServer && (
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label={sidebarOpen ? "사이드바 숨기기" : "사이드바 보이기"}
+          aria-expanded={sidebarOpen}
           className={cn(
-            "relative h-9 w-9 rounded-lg shrink-0 overflow-hidden border-2 shadow-folk-sm transition-colors block",
-            sidebarOpen
-              ? "border-folk-cobalt/40 ring-2 ring-folk-terracotta/30 bg-folk-cream"
-              : "border-folk-cobalt/25"
+            "rounded-xl p-1 transition-colors",
+            "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-folk-terracotta/50",
+            !sidebarOpen && "bg-muted/30 ring-2 ring-folk-terracotta/35"
           )}
         >
           <span
             className={cn(
-              "absolute inset-0 flex items-center justify-center bg-[hsl(224,38%,16%)] transition-opacity duration-200",
-              sidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+              "relative h-9 w-9 rounded-lg shrink-0 overflow-hidden border-2 shadow-folk-sm transition-colors block",
+              sidebarOpen
+                ? "border-folk-cobalt/40 ring-2 ring-folk-terracotta/30 bg-folk-cream"
+                : "border-folk-cobalt/25"
             )}
-            aria-hidden={sidebarOpen}
           >
-            <Menu className="h-4 w-4 text-white" strokeWidth={2.25} />
+            <span
+              className={cn(
+                "absolute inset-0 flex items-center justify-center bg-[hsl(224,38%,16%)] transition-opacity duration-200",
+                sidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+              )}
+              aria-hidden={sidebarOpen}
+            >
+              <Menu className="h-4 w-4 text-white" strokeWidth={2.25} />
+            </span>
+            <span
+              className={cn(
+                "absolute inset-0 flex items-center justify-center bg-folk-cream p-0.5 transition-opacity duration-200",
+                sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
+              aria-hidden={!sidebarOpen}
+            >
+              <BrandLogo size={30} priority />
+            </span>
           </span>
-          <span
-            className={cn(
-              "absolute inset-0 flex items-center justify-center bg-folk-cream p-0.5 transition-opacity duration-200",
-              sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-            )}
-            aria-hidden={!sidebarOpen}
-          >
-            <BrandLogo size={30} priority />
-          </span>
-        </span>
-      </button>
+        </button>
+      )}
 
       <Link
         href={DEFAULT_LANDING_PATH}

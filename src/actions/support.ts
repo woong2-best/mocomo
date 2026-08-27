@@ -4,9 +4,11 @@ import { cache } from "react";
 import { db } from "@/lib/db";
 import { getCachedSession } from "@/lib/auth";
 import { getTipRanking } from "@/actions/monetization";
-import { bondeeFromAptRow } from "@/lib/apt/bondee/bondee-profile";
-import type { ChibiAvatarConfig } from "@/lib/apt/bondee/types";
-import { chibiAvatarFromSeed } from "@/components/apt/chibi-avatar-svg";
+import {
+  mergeSupportRankingWithDemo,
+  SUPPORT_RANKING_DEMO_ENTRIES,
+  type SupportRankingRow,
+} from "@/lib/support-ranking";
 import { getTierInfo, getNextTierInfo, tierFromAmount } from "@/lib/tiers";
 import { revalidatePath } from "next/cache";
 import { SupportTierLevel } from "@prisma/client";
@@ -107,29 +109,38 @@ export const getViewerPlatformSupport = cache(async function getViewerPlatformSu
 });
 
 export async function getSupportRankingWithAvatars(limit = 20) {
-  const ranking = await getTipRanking(limit);
-  const userIds = ranking.map((r) => r.user?.id).filter((id): id is string => Boolean(id));
+  const [users, surpassCounts] = await Promise.all([
+    db.user.findMany({
+      where: { totalSupportSent: { gt: 0 } },
+      orderBy: { totalSupportSent: "desc" },
+      take: limit + SUPPORT_RANKING_DEMO_ENTRIES.length,
+      select: {
+        id: true,
+        username: true,
+        image: true,
+        supportTierSent: true,
+        totalSupportSent: true,
+      },
+    }),
+    Promise.all(
+      SUPPORT_RANKING_DEMO_ENTRIES.map((demo) =>
+        db.user.count({ where: { totalSupportSent: { gte: demo.total } } })
+      )
+    ),
+  ]);
 
-  const aptRows =
-    userIds.length > 0
-      ? await db.aptProfile.findMany({
-          where: { userId: { in: userIds } },
-          select: { userId: true, simulationState: true, homeFloor: true, floorPlans: true },
-        })
-      : [];
-
-  const avatarByUser = new Map<string, ChibiAvatarConfig>();
-  for (const row of aptRows) {
-    const { home } = bondeeFromAptRow(row, row.homeFloor ?? undefined);
-    avatarByUser.set(row.userId, home.avatar);
-  }
-
-  return ranking.map((r) => ({
-    ...r,
-    chibiAvatar: r.user
-      ? (avatarByUser.get(r.user.id) ?? chibiAvatarFromSeed(r.user.username))
-      : chibiAvatarFromSeed(`rank-${r.rank}`),
+  const real: SupportRankingRow[] = users.map((user) => ({
+    total: user.totalSupportSent,
+    user: {
+      id: user.id,
+      username: user.username,
+      image: user.image,
+      supportTierSent: user.supportTierSent,
+    },
   }));
+
+  const activeDemos = SUPPORT_RANKING_DEMO_ENTRIES.filter((_, index) => surpassCounts[index] === 0);
+  return mergeSupportRankingWithDemo(real, activeDemos, limit);
 }
 
 export async function getSupportDashboard() {

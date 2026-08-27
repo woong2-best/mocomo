@@ -8,7 +8,7 @@ import { Send, Users, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { SupportTierLevel } from "@prisma/client";
+import type { LiveSupportEventType, SupportTierLevel } from "@prisma/client";
 import { deleteLiveChatMessage } from "@/actions/live-stream";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { UserProfileLink } from "@/components/user/user-profile-link";
@@ -20,6 +20,13 @@ import { LiveDonationToolbar } from "@/components/live/live-donation-toolbar";
 import { ExternalLiveDonationBar } from "@/components/live/external-live-donation-bar";
 import { LiveSupportSidebar } from "@/components/live/live-support-sidebar";
 import { LivePinnedMessageBar } from "@/components/live/live-pinned-message-bar";
+import { Heart, Target, Sparkles } from "lucide-react";
+import {
+  CHAT_SOURCE_USERNAME_COLOR,
+  type UnifiedChatSource,
+} from "@/lib/live-external/platform-chat/merge-messages";
+
+export type LiveChatMessageKind = "chat" | "support" | "tip" | "mission";
 
 export type LiveChatMessage = {
   id: string;
@@ -31,6 +38,11 @@ export type LiveChatMessage = {
   supportTierSent?: SupportTierLevel;
   /** MoCoMo DB chat vs imported platform chat */
   source?: "MOCOMO" | "TWITCH" | "YOUTUBE" | "CHZZK";
+  /** 후원·룰렛·미션 등 시스템 라인 (DB 저장 없음) */
+  messageKind?: LiveChatMessageKind;
+  supportAmount?: number;
+  eventType?: LiveSupportEventType;
+  rouletteLabel?: string;
 };
 
 export const LiveChat = memo(LiveChatInner);
@@ -221,17 +233,15 @@ function LiveChatInner({
           <LivePinnedMessageBar message={pinnedMessage} />
         </div>
       ) : null}
-      {(!isExternal || isHost) && (
-        <LiveSupportSidebar
-          channelId={channelId}
-          isHost={!!isHost}
-          hostDisplayName={hostDisplayName ?? hostUsername ?? "스트리머"}
-          hostUserId={hostUserId}
-          hostUsername={hostUsername}
-          paymentsEnabled={paymentsEnabled}
-          hideTopActions={isExternal}
-        />
-      )}
+      <LiveSupportSidebar
+        channelId={channelId}
+        isHost={!!isHost}
+        hostDisplayName={hostDisplayName ?? hostUsername ?? "스트리머"}
+        hostUserId={hostUserId}
+        hostUsername={hostUsername}
+        paymentsEnabled={paymentsEnabled}
+        hideTopActions={isExternal}
+      />
       <div
         ref={scrollRef}
         onScroll={onScroll}
@@ -249,6 +259,12 @@ function LiveChatInner({
         )}
         {ensureArray<LiveChatMessage>(displayMessages).map((m) => {
           const isPlatform = !!m.source && m.source !== "MOCOMO";
+          const isSupportLine = !!m.messageKind && m.messageKind !== "chat";
+          if (isSupportLine) {
+            return (
+              <SupportChatLine key={m.id} message={m} />
+            );
+          }
           return (
             <div key={m.id} className="flex gap-2 text-sm group">
               {isPlatform ? (
@@ -271,15 +287,22 @@ function LiveChatInner({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1 flex-wrap">
                   {isPlatform ? (
-                    <>
-                      <span className="font-semibold text-xs">{m.username}</span>
-                      <PlatformSourceBadge source={m.source!} />
-                    </>
+                    <span
+                      className="font-semibold text-xs"
+                      style={{ color: chatSourceColor(m.source!) }}
+                    >
+                      {m.username}
+                    </span>
                   ) : (
                     <>
                       <DisplayNameWithSupportTier
                         name={
-                          <span className="font-semibold text-xs text-primary">@{m.username}</span>
+                          <span
+                            className="font-semibold text-xs"
+                            style={{ color: CHAT_SOURCE_USERNAME_COLOR.MOCOMO }}
+                          >
+                            @{m.username}
+                          </span>
                         }
                         profileUsername={m.username}
                         tier={m.supportTierSent ?? "SEED"}
@@ -369,19 +392,46 @@ function LiveChatInner({
   );
 }
 
-function PlatformSourceBadge({ source }: { source: NonNullable<LiveChatMessage["source"]> }) {
-  if (source === "MOCOMO") return null;
-  const label =
-    source === "TWITCH" ? "Twitch" : source === "YOUTUBE" ? "YouTube" : "치지직";
+function chatSourceColor(source: NonNullable<LiveChatMessage["source"]>): string {
+  return CHAT_SOURCE_USERNAME_COLOR[source as UnifiedChatSource];
+}
+
+function SupportChatLine({ message }: { message: LiveChatMessage }) {
+  const kind = message.messageKind ?? "support";
+  const Icon =
+    kind === "tip" ? Sparkles : kind === "mission" ? Target : Heart;
   const tone =
-    source === "TWITCH"
-      ? "bg-[#9146FF]/15 text-[#9146FF] dark:text-[#bf94ff]"
-      : source === "YOUTUBE"
-        ? "bg-red-500/15 text-red-600 dark:text-red-400"
-        : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+    kind === "tip"
+      ? "border-amber-400/35 bg-amber-500/10"
+      : kind === "mission"
+        ? "border-violet-400/35 bg-violet-500/10"
+        : message.eventType === "ROULETTE"
+          ? "border-emerald-400/35 bg-emerald-500/10"
+          : "border-yellow-400/35 bg-yellow-500/10";
+  const label =
+    kind === "tip"
+      ? "후원"
+      : kind === "mission"
+        ? "미션"
+        : message.eventType === "ROULETTE"
+          ? "룰렛"
+          : message.eventType === "TTS"
+            ? "TTS"
+            : message.eventType === "SOUND"
+              ? "사운드"
+              : message.eventType === "VOTE"
+                ? "투표"
+                : "응원";
+
   return (
-    <span className={`rounded px-1 py-0.5 text-[9px] font-medium leading-none ${tone}`}>
-      {label}
-    </span>
+    <div
+      className={`rounded-lg border px-2.5 py-2 text-sm leading-snug ${tone}`}
+    >
+      <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <Icon className="h-3 w-3 shrink-0" />
+        {label}
+      </div>
+      <p className="break-words font-medium">{message.content}</p>
+    </div>
   );
 }

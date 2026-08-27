@@ -54,6 +54,7 @@ export function FeedInfinite({
   const [loadError, setLoadError] = useState("");
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
+  const autoLoadBlockedRef = useRef(false);
   const postOffsetRef = useRef(
     initialItems.filter((i) => i.type === "post").length
   );
@@ -72,6 +73,7 @@ export function FeedInfinite({
     postOffsetRef.current = initialItems.filter((i) => i.type === "post").length;
     setLoadError("");
     loadingRef.current = false;
+    autoLoadBlockedRef.current = false;
     // feedSeed만 의존 — 배열 참조 변경으로 스크롤 리셋 방지
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedSeed]);
@@ -102,10 +104,14 @@ export function FeedInfinite({
     });
   }, []);
 
-  const loadMore = useCallback(async () => {
+  const loadMore = useCallback(async (opts?: { manual?: boolean }) => {
     if (!cursor || loadingRef.current || done) return;
+    if (autoLoadBlockedRef.current && !opts?.manual) return;
     loadingRef.current = true;
     setLoading(true);
+    if (opts?.manual) {
+      autoLoadBlockedRef.current = false;
+    }
     setLoadError("");
     try {
       const postOffset = postOffsetRef.current;
@@ -123,14 +129,17 @@ export function FeedInfinite({
       try {
         json = await res.json();
       } catch {
+        autoLoadBlockedRef.current = true;
         setLoadError("응답을 해석하지 못했습니다.");
         return;
       }
       if (!res.ok) {
+        autoLoadBlockedRef.current = true;
         setLoadError(json.error ?? "피드를 더 불러오지 못했습니다.");
         return;
       }
       if (!Array.isArray(json.items)) {
+        autoLoadBlockedRef.current = true;
         setLoadError("피드 형식이 올바르지 않습니다.");
         return;
       }
@@ -152,6 +161,7 @@ export function FeedInfinite({
       setCursor(json.nextCursor ?? null);
       if (!json.nextCursor) setDone(true);
     } catch {
+      autoLoadBlockedRef.current = true;
       setLoadError("네트워크 오류가 발생했습니다.");
     } finally {
       loadingRef.current = false;
@@ -164,7 +174,7 @@ export function FeedInfinite({
 
   useEffect(() => {
     const el = sentinelRef.current;
-    if (!el || done) return;
+    if (!el || done || autoLoadBlockedRef.current) return;
     const io = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) void loadMoreRef.current();
@@ -197,7 +207,7 @@ export function FeedInfinite({
         {loadError && (
           <>
             <p className="text-sm text-destructive">{loadError}</p>
-            <Button type="button" variant="secondary" size="sm" onClick={() => loadMore()}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => loadMore({ manual: true })}>
               다시 시도
             </Button>
           </>

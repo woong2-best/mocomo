@@ -72,6 +72,11 @@ export type LiveDetail = LiveListItem & {
   paymentsEnabled?: boolean;
   streamStartedAt?: string;
   donationAlertsOnStream?: boolean;
+  donationGoalKrw?: number | null;
+  tipTotalKrw?: number;
+  tipRanking?: { username: string; amount: number }[];
+  pinnedMessage?: string | null;
+  hostFollowing?: boolean;
 };
 
 export type LiveToken = {
@@ -91,6 +96,8 @@ export type LiveChatMessage = {
   at: number;
   image: string | null;
   supportTierSent?: string;
+  messageKind?: "support" | "tip" | "mission";
+  eventType?: string;
 };
 
 export type StreamingAccount = {
@@ -186,5 +193,82 @@ export async function createExternalLive(input: {
     method: "POST",
     auth: true,
     body: input,
+  });
+}
+
+export type LiveSupportEventResult = {
+  id: string;
+  channelId: string;
+  type: string;
+  amount: number;
+  message: string | null;
+  metadata: Record<string, unknown> | null;
+  username: string;
+  at: number;
+};
+
+export async function sendLiveSupportCheer(
+  channelId: string,
+  body: {
+    type: string;
+    amount: number;
+    message?: string;
+    metadata?: Record<string, unknown>;
+  }
+) {
+  return apiRequest<{ ok: boolean; event: LiveSupportEventResult; error?: string }>(
+    `${MobileApi.live}/${channelId}/support/cheer`,
+    { method: "POST", auth: true, body }
+  );
+}
+
+export async function fetchLiveSupportMissions(channelId: string) {
+  return apiRequest<{ ok: boolean; missions: import("@/lib/live-support").LiveSupportMission[] }>(
+    `${MobileApi.live}/${channelId}/support/missions`,
+    { auth: true }
+  );
+}
+
+export async function createLiveSupportMission(
+  channelId: string,
+  body: { title: string; rewardAmount: number; deadlineMinutes?: number }
+) {
+  return apiRequest<{ ok: boolean; mission: import("@/lib/live-support").LiveSupportMission; error?: string }>(
+    `${MobileApi.live}/${channelId}/support/missions`,
+    { method: "POST", auth: true, body }
+  );
+}
+
+export async function resolveLiveSupportMission(
+  channelId: string,
+  missionId: string,
+  status: "ACCEPTED" | "COMPLETED" | "FAILED" | "CANCELLED"
+) {
+  return apiRequest<{ ok: boolean; mission: import("@/lib/live-support").LiveSupportMission; error?: string }>(
+    `${MobileApi.live}/${channelId}/support/missions/${missionId}`,
+    { method: "POST", auth: true, body: { status } }
+  );
+}
+
+export async function fetchLiveSupportPoll(channelId: string) {
+  return apiRequest<{ ok: boolean; poll: import("@/lib/live-support").LiveSupportPoll | null }>(
+    `${MobileApi.live}/${channelId}/support/polls`,
+    { auth: true }
+  );
+}
+
+export async function voteLiveSupportPoll(
+  channelId: string,
+  body: { pollId: string; optionId: string; amount?: number }
+) {
+  return apiRequest<{
+    ok: boolean;
+    poll: import("@/lib/live-support").LiveSupportPoll;
+    event: LiveSupportEventResult;
+    error?: string;
+  }>(`${MobileApi.live}/${channelId}/support/polls/vote`, {
+    method: "POST",
+    auth: true,
+    body,
   });
 }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,18 +11,17 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  fetchLiveDetail,
-  fetchLiveToken,
-  type LiveToken,
-} from "@/api/live";
+import { fetchLiveDetail, fetchLiveToken, type LiveToken } from "@/api/live";
+import { toggleFollowUser } from "@/api/social";
 import { ApiError } from "@/api/client";
+import { useAuth } from "@/auth/AuthContext";
 import { ExternalLivePlayer } from "@/features/live/ExternalLivePlayer";
 import { LiveChatPanel } from "@/features/live/LiveChatPanel";
+import { LiveDonationBar } from "@/features/live/LiveDonationBar";
 import { LiveKitConnecting, LiveKitViewer } from "@/features/live/LiveKitViewer";
 import { liveCategoryLabel, providerLabel } from "@/features/live/live-categories";
 import { FolkAvatar } from "@/ui/FolkAvatar";
@@ -32,6 +31,7 @@ import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { LiveDonationAlertOverlay } from "@/features/live/LiveDonationAlertOverlay";
 import { TipCreatorSheet } from "@/payments/TipCreatorSheet";
+import { formatUsd } from "@/lib/money";
 
 export function LiveDetailScreen() {
   const { colors } = useTheme();
@@ -39,12 +39,16 @@ export function LiveDetailScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "LiveDetail">>();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [watchingFirstParty, setWatchingFirstParty] = useState(false);
   const [creds, setCreds] = useState<LiveToken | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [tipOpen, setTipOpen] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
 
   const query = useQuery({
     queryKey: ["mobile-live", route.params.id],
@@ -53,6 +57,10 @@ export function LiveDetailScreen() {
     refetchInterval: (q) => (q.state.data?.item?.isLive ? 5_000 : false),
   });
   const item = query.data?.item;
+
+  useEffect(() => {
+    if (item) setFollowing(!!item.hostFollowing);
+  }, [item?.hostFollowing, item?.id]);
 
   const onViewerCount = useCallback((n: number) => setViewerCount(n), []);
 
@@ -77,6 +85,26 @@ export function LiveDetailScreen() {
       setTokenLoading(false);
     }
   };
+
+  async function onToggleFollow() {
+    if (!item?.host.id || item.isHost) return;
+    setFollowBusy(true);
+    try {
+      const res = await toggleFollowUser(item.host.id);
+      if (res.error) {
+        Alert.alert("팔로우", res.error);
+        return;
+      }
+      setFollowing(!!res.following);
+      void queryClient.invalidateQueries({ queryKey: ["mobile-live", route.params.id] });
+    } catch {
+      Alert.alert("팔로우", "처리하지 못했습니다.");
+    } finally {
+      setFollowBusy(false);
+    }
+  }
+
+  const ranking = item?.tipRanking ?? [];
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -117,7 +145,7 @@ export function LiveDetailScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.playerBlock}>
-            {item.isLive && item.paymentsEnabled && item.donationAlertsOnStream ? (
+            {item.isLive && item.donationAlertsOnStream ? (
               <LiveDonationAlertOverlay
                 channelId={item.id}
                 streamStartedAt={item.streamStartedAt}
@@ -155,43 +183,56 @@ export function LiveDetailScreen() {
 
           <View style={styles.body}>
             <Text style={styles.title}>{item.title}</Text>
-            <Pressable
-              style={styles.hostRow}
-              onPress={() => navigation.navigate("UserProfile", { username: item.host.username })}
-            >
-              <FolkAvatar uri={item.host.image} name={item.host.username} size={40} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.hostName}>@{item.host.username}</Text>
-                <Text style={styles.sub}>
-                  {liveCategoryLabel(item.category)}
-                  {item.isExternal && item.external
-                    ? ` · ${providerLabel(item.external.provider)}`
-                    : ""}
-                  {` · ${viewerCount || item.viewerCount}명`}
-                  {item.isHost ? " · 호스트" : ""}
-                </Text>
-              </View>
-            </Pressable>
+
+            <View style={styles.hostRow}>
+              <Pressable
+                style={styles.hostPress}
+                onPress={() => navigation.navigate("UserProfile", { username: item.host.username })}
+              >
+                <FolkAvatar uri={item.host.image} name={item.host.username} size={40} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.hostName}>@{item.host.username}</Text>
+                  <Text style={styles.sub}>
+                    {liveCategoryLabel(item.category)}
+                    {item.isExternal && item.external
+                      ? ` · ${providerLabel(item.external.provider)}`
+                      : ""}
+                    {` · ${viewerCount || item.viewerCount}명`}
+                    {item.isHost ? " · 호스트" : ""}
+                  </Text>
+                </View>
+              </Pressable>
+              {!item.isHost ? (
+                <Pressable
+                  style={[styles.followBtn, following && styles.followBtnActive]}
+                  disabled={followBusy}
+                  onPress={() => void onToggleFollow()}
+                >
+                  <Text style={[styles.followText, following && styles.followTextActive]}>
+                    {following ? "팔로잉" : "팔로우"}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
 
             {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
 
-            {item.paymentsEnabled && !item.isHost ? (
-              <Pressable style={styles.tipBtn} onPress={() => setTipOpen(true)}>
-                <Ionicons name="heart" size={16} color="#fff" />
-                <Text style={styles.primaryBtnText}>후원하기</Text>
-              </Pressable>
+            {(item.donationGoalKrw != null && item.donationGoalKrw > 0) ||
+            (item.tipTotalKrw ?? 0) > 0 ? (
+              <LiveDonationBar goalKrw={item.donationGoalKrw} totalKrw={item.tipTotalKrw ?? 0} />
             ) : null}
 
-            {item.paymentsEnabled && !item.isHost ? (
-              <TipCreatorSheet
-                visible={tipOpen}
-                onClose={() => setTipOpen(false)}
-                creatorId={item.host.id}
-                username={item.host.username}
-                displayName={item.host.name || item.host.username}
-                channelId={item.id}
-                onSuccess={() => Alert.alert("후원 완료", "라이브 후원이 완료되었습니다.")}
-              />
+            {ranking.length > 0 ? (
+              <View style={styles.ranking}>
+                <Text style={styles.rankingTitle}>이번 방송 후원 TOP</Text>
+                <View style={styles.rankingRow}>
+                  {ranking.slice(0, 5).map((t, i) => (
+                    <Text key={`${t.username}-${i}`} style={styles.rankingChip}>
+                      @{t.username} {formatUsd(t.amount)}
+                    </Text>
+                  ))}
+                </View>
+              </View>
             ) : null}
 
             {!item.isExternal ? (
@@ -236,9 +277,29 @@ export function LiveDetailScreen() {
                   channelId={item.id}
                   viewerCount={viewerCount || item.viewerCount}
                   onViewerCount={onViewerCount}
+                  isHost={item.isHost}
+                  paymentsEnabled={item.paymentsEnabled}
+                  hostDisplayName={item.host.name || item.host.username}
+                  hostUserId={item.host.id}
+                  pinnedMessage={item.pinnedMessage}
+                  currentUserId={user?.id}
+                  streamStartedAt={item.streamStartedAt}
+                  onTipPress={() => setTipOpen(true)}
                 />
               </View>
             )}
+
+            {item.paymentsEnabled && !item.isHost ? (
+              <TipCreatorSheet
+                visible={tipOpen}
+                onClose={() => setTipOpen(false)}
+                creatorId={item.host.id}
+                username={item.host.username}
+                displayName={item.host.name || item.host.username}
+                channelId={item.id}
+                onSuccess={() => Alert.alert("후원 완료", "라이브 후원이 완료되었습니다.")}
+              />
+            ) : null}
           </View>
         </ScrollView>
       )}
@@ -290,10 +351,33 @@ function createStyles(colors: ThemeColors) {
     heroFallback: { alignItems: "center", justifyContent: "center" },
     body: { padding: spacing.md, gap: 10 },
     title: { fontSize: 20, fontWeight: "900", color: colors.text },
-    hostRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+    hostRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+    hostPress: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
     hostName: { fontWeight: "800", color: colors.cobalt, fontSize: 14 },
     sub: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: "600" },
+    followBtn: {
+      borderRadius: radii.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.cobalt,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    followBtnActive: { backgroundColor: colors.cobalt },
+    followText: { color: colors.cobalt, fontWeight: "800", fontSize: 12 },
+    followTextActive: { color: "#fff" },
     desc: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, fontWeight: "600" },
+    ranking: { gap: 6 },
+    rankingTitle: { fontSize: 12, fontWeight: "800", color: colors.textMuted },
+    rankingRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+    rankingChip: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.text,
+      backgroundColor: colors.muted,
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
     primaryBtn: {
       backgroundColor: colors.terracotta,
       borderRadius: radii.md,
@@ -301,15 +385,6 @@ function createStyles(colors: ThemeColors) {
       alignItems: "center",
     },
     primaryBtnText: { color: "#fff", fontWeight: "800" },
-    tipBtn: {
-      backgroundColor: colors.cobalt,
-      borderRadius: radii.md,
-      paddingVertical: 12,
-      alignItems: "center",
-      justifyContent: "center",
-      flexDirection: "row",
-      gap: 6,
-    },
     secondaryBtn: {
       borderRadius: radii.md,
       paddingVertical: 12,
@@ -323,7 +398,7 @@ function createStyles(colors: ThemeColors) {
     },
     secondaryBtnText: { color: colors.cobalt, fontWeight: "800" },
     btnDisabled: { opacity: 0.5 },
-    chatWrap: { marginTop: 8, minHeight: 360 },
+    chatWrap: { marginTop: 8, minHeight: 420 },
     ended: { padding: spacing.lg, alignItems: "center", gap: 10, marginTop: 40 },
     endedTitle: { fontSize: 18, fontWeight: "900", color: colors.text },
     endedSub: { color: colors.textMuted, fontWeight: "600" },

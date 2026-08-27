@@ -45,7 +45,7 @@ export function ExternalLiveHostDashboard({ channelId }: Props) {
       </p>
       <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
         ① 아래 버튼으로 URL 복사 → ② OBS 브라우저 소스 URL란에 붙여넣기 → ③ 450×700 · 배경
-        투명 ✓
+        투명 ✓ · 채팅·후원·룰렛이 함께 표시됩니다
       </p>
       {obsChatUrl ? (
         <>
@@ -59,8 +59,8 @@ export function ExternalLiveHostDashboard({ channelId }: Props) {
         <p className="mt-2 text-xs text-muted-foreground">URL 불러오는 중…</p>
       )}
       <p className="mt-2 text-[10px] text-muted-foreground">
-        YouTube·Twitch·치지직·MoCoMo 댓글이 이 URL 하나로 OBS에 표시됩니다. 다른 브라우저
-        소스는 삭제하세요.
+        YouTube·Twitch·치지직·MoCoMo 댓글 + 채팅후원·룰렛·유료후원 알림이 이 URL 하나로 OBS에
+        표시됩니다. 방송 설정에서 「후원 알림」이 켜져 있어야 후원이 표시됩니다.
       </p>
     </div>
   );

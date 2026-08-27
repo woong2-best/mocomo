@@ -276,6 +276,7 @@ const communityListSelect = {
   memberCount: true,
   iconUrl: true,
   bannerUrl: true,
+  coverUrl: true,
   category: true,
   isNsfw: true,
   children: {
@@ -291,7 +292,7 @@ export const getCachedCommunities = unstable_cache(
       orderBy: [{ memberCount: "desc" }, { createdAt: "desc" }],
       select: communityListSelect,
     }),
-  ["communities-list-v4"],
+  ["communities-list-v5"],
   { revalidate: 60, tags: [COMMUNITIES_LIST_CACHE_TAG] }
 );
 

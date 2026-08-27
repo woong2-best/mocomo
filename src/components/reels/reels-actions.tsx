@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
 import { cn, formatNumber } from "@/lib/utils";
+import { prefetchPostComments } from "@/lib/comments-prefetch-cache";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import type { ReelItem } from "@/lib/reels/types";
 
@@ -102,6 +103,7 @@ export function ReelsActions({
           type="button"
           className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
           aria-label="Comments"
+          onPointerDown={() => prefetchPostComments(reel.postId)}
           onClick={onComment}
         >
           <MessageSquare className="h-7 w-7 drop-shadow-md" />

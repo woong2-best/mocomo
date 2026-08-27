@@ -47,6 +47,14 @@
       "schedule": "0 22 * * *"
     },
     {
+      "path": "/api/cron/feed-ranking",
+      "schedule": "30 22 * * *"
+    },
+    {
+      "path": "/api/cron/commerce-ranking",
+      "schedule": "45 22 * * *"
+    },
+    {
       "path": "/api/cron/post-media-hls",
       "schedule": "0 23 * * *"
     }
@@ -86,6 +94,12 @@
       "maxDuration": 60
     },
     "src/app/api/cron/follow-recommendations/route.ts": {
+      "maxDuration": 120
+    },
+    "src/app/api/cron/feed-ranking/route.ts": {
+      "maxDuration": 120
+    },
+    "src/app/api/cron/commerce-ranking/route.ts": {
       "maxDuration": 120
     },
     "src/app/api/cron/post-media-hls/route.ts": {

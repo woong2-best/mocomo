@@ -14,6 +14,7 @@ import { isMobileHubChromePath } from "@/lib/floating-tab-nav";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { isAptImmersivePath } from "@/lib/apt-route";
 import { isFastHubPath } from "@/lib/hub-fast-path";
+import { isCommunityServerPath } from "@/lib/community-server/path";
 import { REELS_PATH } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
 import { pageVariants } from "@/lib/motion-presets";
@@ -30,7 +31,7 @@ function AppShellInner({
   const isAuthRoute = pathname.startsWith("/auth");
   const isLegalRoute = pathname.startsWith("/legal");
   const isMessagesRoute = pathname.startsWith("/messages");
-  const isCommunityServerRoute = /^\/c\/[^/]+/.test(pathname);
+  const isCommunityServerRoute = isCommunityServerPath(pathname);
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
   const isAptImmersive = isAptImmersivePath(pathname ?? "");
   const isReelsImmersive =
@@ -52,7 +53,7 @@ function AppShellInner({
   // 같은 커뮤니티 서버 안에서 채널만 바꿀 때는 셸 애니/전체 remount 키를 고정해 사이드바 유지
   const sameCommunityNav =
     isCommunityServerRoute &&
-    /^\/c\/[^/]+/.test(prevPath) &&
+    isCommunityServerPath(prevPath) &&
     prevPath.split("/")[2] === pathname.split("/")[2];
   const motionKey = sameCommunityNav ? `/c/${pathname.split("/")[2]}` : pathname;
 
@@ -103,20 +104,20 @@ function AppShellInner({
       <Header />
       <SuspendedAccountBanner />
       <div className="flex h-app overflow-hidden">
-        <Sidebar />
+        {!isCommunityServerRoute && <Sidebar />}
         <main
           id="mocomo-main-scroll"
           className={cn(
             "flex-1 min-w-0 min-h-0 bg-background",
             showRightPanel && "shell-col-divider-r",
-            isMessagesRoute
+            isMessagesRoute || isCommunityServerRoute
               ? `overflow-hidden ${mainPb}`
               : isProfileRoute
                 ? `overflow-y-auto ${mainPb}`
                 : `overflow-y-auto overflow-x-hidden ${mainPb}`
           )}
         >
-          {isMessagesRoute ? (
+          {isMessagesRoute || isCommunityServerRoute ? (
             pageMotion
           ) : (
             <FolkArtStage dense className="min-h-full">
@@ -127,7 +128,7 @@ function AppShellInner({
         {showRightPanel ? rightPanel : null}
       </div>
       {!hideMobileNav && <MobileNav />}
-      {!isMessagesRoute && (
+      {!isMessagesRoute && !isCommunityServerRoute && (
         <footer
           className={cn(
             "border-t border-border py-3 px-4 lg:px-6 bg-muted/20 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:pb-3",

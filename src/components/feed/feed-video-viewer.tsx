@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import type { ReelItem } from "@/lib/reels/types";
 import type { FeedVideoGroup } from "@/lib/feed-video-viewer";
 import { REELS_PREFETCH_REMAINING } from "@/lib/reels/constants";
+import { prefetchPostComments } from "@/lib/comments-prefetch-cache";
 import {
   ReelsContextMenu,
   type ReelsMenuAction,
@@ -146,6 +147,11 @@ export function FeedVideoViewer({
       onNearEnd?.();
     }
   }, [activeIndex, groups.length, onNearEnd]);
+
+  useEffect(() => {
+    const postId = groups[activeIndex]?.postId;
+    if (postId) prefetchPostComments(postId);
+  }, [activeIndex, groups]);
 
   const syncActiveFromScroll = useCallback(() => {
     const root = scrollerRef.current;

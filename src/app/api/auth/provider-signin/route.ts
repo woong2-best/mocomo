@@ -13,11 +13,18 @@ export async function GET(req: NextRequest) {
   const flow = sp.get("flow") === "signup" ? "signup" : "signin";
   const addAccount = sp.get("addAccount") === "1";
 
-  await startOAuthProviderSignin({
-    provider,
-    flow,
-    callbackUrl: sp.get("callbackUrl"),
-    addAccount,
-    mobile: false,
-  });
+  try {
+    await startOAuthProviderSignin({
+      provider,
+      flow,
+      callbackUrl: sp.get("callbackUrl"),
+      addAccount,
+      mobile: false,
+    });
+  } catch (e) {
+    console.error("[api/auth/provider-signin]", e);
+    return NextResponse.redirect(new URL("/auth/error?error=Configuration", req.url));
+  }
+
+  return NextResponse.redirect(new URL("/auth/signin?error=Configuration", req.url));
 }

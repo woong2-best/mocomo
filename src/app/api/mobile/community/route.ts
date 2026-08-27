@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
         name: c.name,
         description: c.description,
         iconUrl: c.iconUrl,
+        coverUrl: c.coverUrl,
         bannerUrl: c.bannerUrl,
         category: c.category,
         isNsfw: c.isNsfw,

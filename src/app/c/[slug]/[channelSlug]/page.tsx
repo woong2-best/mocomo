@@ -10,7 +10,7 @@ import { EventsChannelView } from "@/components/community-server/channels/events
 import { ActivitiesChannelView } from "@/components/community-server/channels/activities-channel";
 import { GalleryChannelView } from "@/components/community-server/channels/gallery-channel";
 import { FileChannelView } from "@/components/community-server/channels/file-channel";
-import { hasPermission } from "@/lib/community-server/permissions";
+import { hasPermission, hasAdministrator } from "@/lib/community-server/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +60,7 @@ export default async function CommunityChannelPage({
   if (
     channel.vipOnly &&
     !ctx.isOwner &&
+    !hasAdministrator(ctx.permissions) &&
     !hasPermission(ctx.permissions, "vipChannels") &&
     !hasPermission(ctx.permissions, "vipBadge") &&
     !hasPermission(ctx.permissions, "manageChannels")

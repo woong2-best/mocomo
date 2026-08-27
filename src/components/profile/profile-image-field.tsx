@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 
-export type ProfileImageFieldKind = "avatar" | "banner";
+export type ProfileImageFieldKind = "avatar" | "banner" | "cover";
 
 const CONFIG: Record<
   ProfileImageFieldKind,
@@ -42,6 +42,15 @@ const CONFIG: Record<
     uploadFilename: "profile-banner.jpg",
     cropTitle: "배너 자르기",
     cropDescription: "가로 3:1 영역에 맞게 드래그·확대·회전·뒤집기 후 적용하세요.",
+  },
+  cover: {
+    label: "목록 카드 커버",
+    aspect: 4 / 3,
+    maxWidth: 960,
+    maxHeight: 720,
+    uploadFilename: "community-cover.jpg",
+    cropTitle: "카드 커버 자르기",
+    cropDescription: "커뮤니티 목록 카드(4:3)에 맞게 조정한 뒤 적용하세요.",
   },
 };
 
@@ -95,10 +104,11 @@ export function ProfileImageField({ kind, name, value, onChange, previewClassNam
         </Button>
       </div>
 
-      {kind === "banner" ? (
+      {kind === "banner" || kind === "cover" ? (
         <div
           className={cn(
-            "relative h-32 sm:h-36 rounded-xl overflow-hidden border border-border bg-gradient-to-r from-violet-500/20 via-fuchsia-500/15 to-cyan-500/20",
+            "relative overflow-hidden border border-border bg-gradient-to-r from-violet-500/20 via-fuchsia-500/15 to-cyan-500/20",
+            kind === "banner" ? "h-32 sm:h-36 rounded-xl" : "aspect-[4/3] w-full max-w-xs rounded-xl",
             previewClassName
           )}
           style={

@@ -1,15 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { Crown, Mic, MoreHorizontal, Video } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Crown, Mic, MoreHorizontal, Plus, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CommunityPresenceStatus, CommunityRoleType } from "@prisma/client";
 import type { CommunityMemberView } from "@/lib/community-server/types";
 import { ROLE_GROUP_LABELS, ROLE_GROUP_ORDER } from "@/lib/community-server/rbac-defaults";
+import { canAssignRoleType } from "@/lib/community-server/role-assign-policy";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MemberModerationMenu } from "@/components/community-server/member-moderation-menu";
+import { MemberRoleAddDialog } from "@/components/community-server/member-role-add-dialog";
 import { useCommunityMembership } from "@/components/community-server/community-membership-context";
 import { hasPermission } from "@/lib/community-server/permissions";
+import { getCommunityRoles } from "@/actions/community-roles";
 
 const PRESENCE_DOT: Record<CommunityPresenceStatus, string> = {
   ONLINE: "bg-emerald-500",
@@ -106,17 +110,45 @@ export function MemberListContent({
   welcomePending?: boolean;
   compact?: boolean;
 }) {
-  const { permissions } = useCommunityMembership();
+  const { permissions, isOwner } = useCommunityMembership();
+  const [roles, setRoles] = useState<
+    Awaited<ReturnType<typeof getCommunityRoles>>
+  >([]);
+  const [addTarget, setAddTarget] = useState<{
+    roleType: CommunityRoleType;
+    roleId: string;
+    roleName: string;
+  } | null>(null);
+
   const canModerate =
     hasPermission(permissions, "kickMembers") ||
     hasPermission(permissions, "banMembers") ||
     hasPermission(permissions, "timeoutMembers");
 
+  const canAssignAny = useMemo(
+    () => ROLE_GROUP_ORDER.some((t) => canAssignRoleType(permissions, isOwner, t)),
+    [permissions, isOwner]
+  );
+
+  useEffect(() => {
+    if (!canAssignAny) return;
+    void getCommunityRoles(communityId).then(setRoles);
+  }, [communityId, canAssignAny]);
+
+  const roleByType = useMemo(() => {
+    const map = new Map<CommunityRoleType, (typeof roles)[number]>();
+    for (const r of roles) {
+      if (!map.has(r.type)) map.set(r.type, r);
+    }
+    return map;
+  }, [roles]);
+
   const grouped = ROLE_GROUP_ORDER.map((roleType: CommunityRoleType) => ({
     roleType,
     label: ROLE_GROUP_LABELS[roleType],
     items: members.filter((m) => m.primaryRoleType === roleType),
-  })).filter((g) => g.items.length > 0);
+    role: roleByType.get(roleType),
+  }));
 
   const count = memberCount ?? members.length;
 
@@ -136,35 +168,66 @@ export function MemberListContent({
       </button>
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-2 space-y-4">
-          {grouped.length === 0 ? (
-            <p className="px-2 text-xs text-muted-foreground">
-              {count > 0 && members.length === 0
-                ? "멤버 목록을 불러오는 중…"
-                : "표시할 멤버가 없습니다."}
-            </p>
+          {count > 0 && members.length === 0 ? (
+            <p className="px-2 text-xs text-muted-foreground">멤버 목록을 불러오는 중…</p>
           ) : (
-            grouped.map((group) => (
-              <div key={group.roleType}>
-                <p className="px-2 text-[11px] font-semibold text-muted-foreground mb-1">
-                  {group.label} — {group.items.length}
-                </p>
-                <ul className="space-y-0.5">
-                  {group.items.map((m) => (
-                    <li key={m.id}>
-                      <MemberRow
-                        member={m}
-                        communityId={communityId}
-                        canModerate={canModerate}
-                        compact={compact}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))
+            grouped.map((group) => {
+              const canAdd =
+                group.role &&
+                canAssignRoleType(permissions, isOwner, group.roleType);
+
+              return (
+                <div key={group.roleType}>
+                  <p className="px-2 text-[11px] font-semibold text-muted-foreground mb-1">
+                    {group.label} — {group.items.length}
+                  </p>
+                  <ul className="space-y-0.5">
+                    {group.items.map((m) => (
+                      <li key={m.id}>
+                        <MemberRow
+                          member={m}
+                          communityId={communityId}
+                          canModerate={canModerate}
+                          compact={compact}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                  {canAdd && group.role && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setAddTarget({
+                          roleType: group.roleType,
+                          roleId: group.role.id,
+                          roleName: group.role.name,
+                        })
+                      }
+                      className="mt-1 flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+                      aria-label={`${group.label}에 멤버 추가`}
+                    >
+                      <Plus className="h-3.5 w-3.5 shrink-0" />
+                      <span>멤버 추가</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       </div>
+
+      {addTarget && (
+        <MemberRoleAddDialog
+          open={!!addTarget}
+          onOpenChange={(o) => !o && setAddTarget(null)}
+          communityId={communityId}
+          roleType={addTarget.roleType}
+          roleId={addTarget.roleId}
+          roleName={addTarget.roleName}
+          members={members}
+        />
+      )}
     </>
   );
 }

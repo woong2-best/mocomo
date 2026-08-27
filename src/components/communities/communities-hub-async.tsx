@@ -21,6 +21,7 @@ export async function CommunitiesHubAsync() {
         description: c.description,
         memberCount: c.memberCount,
         iconUrl: c.iconUrl,
+        coverUrl: c.coverUrl,
         bannerUrl: c.bannerUrl,
         category: c.category,
         isNsfw: c.isNsfw,

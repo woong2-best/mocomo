@@ -23,6 +23,21 @@ export function parsePermissions(json: unknown): CommunityPermissions {
   return base;
 }
 
+/** 채널 override allow/deny JSON → 플래그 맵 */
+export function parseOverrideFlags(json: unknown): Partial<Record<CommunityPermissionKey, boolean>> {
+  const flags: Partial<Record<CommunityPermissionKey, boolean>> = {};
+  if (!json || typeof json !== "object") return flags;
+  for (const key of RBAC_PERMISSION_KEYS) {
+    const val = (json as Record<string, unknown>)[key];
+    if (val === true) flags[key] = true;
+  }
+  return flags;
+}
+
+export function hasAdministrator(perms: CommunityPermissions): boolean {
+  return perms.administrator === true;
+}
+
 export function mergePermissions(roles: CommunityPermissions[]): CommunityPermissions {
   const merged = { ...GUEST_PERMS };
   for (const role of roles) {

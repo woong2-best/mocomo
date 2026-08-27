@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { requireMobileApiUser } from "@/lib/api-mobile-auth";
-import { getUsedListings } from "@/actions/used-market";
+import { getMobileUserId, requireMobileApiUser } from "@/lib/api-mobile-auth";
+import { resolveUsedMarketBrowse, type UsedMarketBrowseMode } from "@/lib/used-ranking";
 import { listingImages } from "@/lib/used-market";
 import {
   createMobileUsedListing,
@@ -28,11 +28,20 @@ export async function GET(req: NextRequest) {
   const work = req.nextUrl.searchParams.get("work")?.trim() || undefined;
   const product = req.nextUrl.searchParams.get("product")?.trim() || undefined;
   const mode = req.nextUrl.searchParams.get("mode")?.trim() || undefined;
+  const modeParam = req.nextUrl.searchParams.get("mode")?.trim();
+  const browseMode: UsedMarketBrowseMode =
+    modeParam === "latest" || modeParam === "discover" ? modeParam : "discover";
   const take = Math.min(Number(req.nextUrl.searchParams.get("take") ?? "24") || 24, 48);
+  const cursor = req.nextUrl.searchParams.get("cursor")?.trim() || undefined;
 
-  const listings = await getUsedListings({
+  const viewerId = await getMobileUserId(req);
+
+  const listings = await resolveUsedMarketBrowse({
+    userId: viewerId,
+    mode: browseMode,
     status: "SELLING",
     take,
+    cursor,
     q,
     category: category && category !== "ALL" ? category : undefined,
     sido: sido || undefined,
@@ -67,7 +76,7 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return NextResponse.json({ items }, {
+  return NextResponse.json({ items, mode: browseMode }, {
     headers: {
       "Cache-Control": "public, s-maxage=15, stale-while-revalidate=45",
     },

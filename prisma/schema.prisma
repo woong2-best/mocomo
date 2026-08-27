@@ -618,6 +618,8 @@ model Community {
   description String?  @db.Text
   iconUrl     String?
   bannerUrl   String?
+  bannerVideoUrl String?
+  coverUrl    String?
   category    CommunityCategory
   isNsfw      Boolean  @default(false)
   parentId    String?
@@ -724,10 +726,33 @@ model CommunityChannel {
   chatRoom     ChatRoom?                 @relation(fields: [chatRoomId], references: [id], onDelete: SetNull)
   voiceChannel VoiceChannel?             @relation(fields: [voiceChannelId], references: [id], onDelete: SetNull)
   reads        CommunityChannelRead[]
+  permissionOverrides CommunityChannelPermissionOverride[]
 
   @@unique([communityId, slug])
   @@index([communityId, position])
   @@index([communityId, type])
+}
+
+enum CommunityChannelOverrideTarget {
+  ROLE
+  USER
+}
+
+/** 채널별 역할/유저 권한 덮어쓰기 (Discord Channel Overrides) */
+model CommunityChannelPermissionOverride {
+  id         String                         @id @default(cuid())
+  channelId  String
+  targetType CommunityChannelOverrideTarget
+  targetId   String
+  allow      Json                           @default("{}")
+  deny       Json                           @default("{}")
+  createdAt  DateTime                       @default(now())
+  updatedAt  DateTime                       @updatedAt
+
+  channel CommunityChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, targetType, targetId])
+  @@index([channelId])
 }
 
 model CommunityRole {

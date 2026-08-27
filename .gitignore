@@ -76,3 +76,5 @@ next-env.d.ts
 
 # large demo recordings (keep edit-mode-demo.webm only)
 /public/diorama/page@*.webm
+
+.vercel

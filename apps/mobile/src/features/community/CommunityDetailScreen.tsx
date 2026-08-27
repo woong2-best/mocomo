@@ -280,20 +280,47 @@ export function CommunityDetailScreen() {
                 ) : (channelsQuery.data?.items ?? []).length === 0 ? (
                   <Text style={styles.muted}>텍스트 채널이 없습니다.</Text>
                 ) : (
-                  channelsQuery.data!.items.map((ch) => (
-                    <Pressable
-                      key={ch.id}
-                      style={styles.channel}
-                      disabled={openingSlug === ch.slug}
-                      onPress={() => void openChannel(ch.slug, ch.name)}
-                    >
-                      <Text style={styles.channelName}># {ch.name}</Text>
-                      <Text style={styles.channelMeta}>
-                        {ch.categoryName ?? ch.type}
-                        {openingSlug === ch.slug ? " · 여는 중…" : ""}
-                      </Text>
-                    </Pressable>
-                  ))
+                  <>
+                    {channelsQuery.data!.items.map((ch) => (
+                      <Pressable
+                        key={ch.id}
+                        style={styles.channel}
+                        disabled={openingSlug === ch.slug}
+                        onPress={() => void openChannel(ch.slug, ch.name)}
+                      >
+                        <Text style={styles.channelName}># {ch.name}</Text>
+                        <Text style={styles.channelMeta}>
+                          {ch.categoryName ?? ch.type}
+                          {openingSlug === ch.slug ? " · 여는 중…" : ""}
+                        </Text>
+                      </Pressable>
+                    ))}
+                    {(channelsQuery.data?.voiceItems ?? []).length > 0 ? (
+                      <>
+                        <Text style={[styles.section, { marginTop: spacing.md }]}>음성 · 영상</Text>
+                        {channelsQuery.data!.voiceItems.map((ch) => (
+                          <Pressable
+                            key={ch.id}
+                            style={styles.channel}
+                            onPress={() =>
+                              navigation.navigate("CommunityVoice", {
+                                channelName: ch.name,
+                                voiceChannelId: ch.voiceChannelId,
+                                channelType: ch.type === "VIDEO" ? "VIDEO" : "VOICE",
+                              })
+                            }
+                          >
+                            <Text style={styles.channelName}>
+                              {ch.type === "VIDEO" ? "📹" : "🔊"} {ch.name}
+                            </Text>
+                            <Text style={styles.channelMeta}>
+                              {ch.categoryName ?? ch.type} · Jitsi
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </>
+                    ) : null}
+                  </>
                 )}
               </>
             ) : null}

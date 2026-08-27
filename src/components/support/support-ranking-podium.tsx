@@ -3,29 +3,80 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import type { SupportTierLevel } from "@prisma/client";
-import type { ChibiAvatarConfig } from "@/lib/apt/bondee/types";
-import { ChibiAvatarSvg } from "@/components/apt/chibi-avatar-svg";
 import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { formatUsd } from "@/lib/money";
+import { userAvatarFallbackInitial } from "@/lib/user-public-select";
 
 export type SupportRankingEntry = {
   rank: number;
   total: number;
+  isDemo?: boolean;
   user?: {
     id: string;
     username: string;
     image: string | null;
     supportTierSent: SupportTierLevel;
   } | null;
-  chibiAvatar: ChibiAvatarConfig;
 };
 
 const PODIUM = [
   { place: 2, label: "2등", height: "h-24", medal: "bg-slate-300", order: "order-1" },
   { place: 1, label: "1등", height: "h-32", medal: "bg-amber-400", order: "order-2" },
 ] as const;
+
+function RankingAvatar({
+  user,
+  className,
+}: {
+  user: NonNullable<SupportRankingEntry["user"]>;
+  className?: string;
+}) {
+  return (
+    <Avatar className={cn("h-[72px] w-[72px]", className)}>
+      <AvatarImage src={user.image ?? undefined} alt={user.username} />
+      <AvatarFallback className="text-lg">{userAvatarFallbackInitial(user)}</AvatarFallback>
+    </Avatar>
+  );
+}
+
+function PodiumProfile({
+  entry,
+  delay,
+}: {
+  entry: SupportRankingEntry;
+  delay: number;
+}) {
+  const user = entry.user;
+  if (!user) return null;
+
+  const body = (
+    <>
+      <motion.div
+        className="relative mb-1.5"
+        animate={{ y: [0, -4, 0] }}
+        transition={{ repeat: Infinity, duration: 2.8, delay: delay + 0.2, ease: "easeInOut" }}
+      >
+        <RankingAvatar user={user} className="drop-shadow-md transition-transform group-hover:scale-105" />
+      </motion.div>
+      <span className="text-xs font-semibold truncate max-w-full group-hover:underline">
+        @{user.username}
+      </span>
+      <span className="text-[11px] text-muted-foreground tabular-nums">{formatUsd(entry.total)}</span>
+    </>
+  );
+
+  if (entry.isDemo) {
+    return <div className="flex flex-col items-center min-w-0 w-full">{body}</div>;
+  }
+
+  return (
+    <Link href={`/u/${user.username}`} className="group flex flex-col items-center min-w-0 w-full">
+      {body}
+    </Link>
+  );
+}
 
 function PodiumSlot({
   entry,
@@ -58,35 +109,12 @@ function PodiumSlot({
       </motion.span>
 
       {entry?.user ? (
-        <Link href={`/u/${entry.user.username}`} className="group flex flex-col items-center min-w-0 w-full">
-          <motion.div
-            className="relative mb-1"
-            animate={{ y: [0, -6, 0], rotate: [0, 1.5, 0, -1.5, 0] }}
-            transition={{ repeat: Infinity, duration: 2.8, delay: delay + 0.2, ease: "easeInOut" }}
-          >
-            <ChibiAvatarSvg
-              config={entry.chibiAvatar}
-              celebrate
-              holdTrophy
-              className="h-[88px] w-[72px] drop-shadow-md group-hover:scale-105 transition-transform"
-            />
-          </motion.div>
-          <DisplayNameWithSupportTier
-            name={entry.user.username}
-            tier={entry.user.supportTierSent ?? "SEED"}
-            compact
-            className="text-xs font-semibold truncate max-w-full group-hover:underline"
-          />
-          <span className="text-[11px] text-muted-foreground tabular-nums">
-            {formatUsd(entry.total)}
-          </span>
-        </Link>
+        <PodiumProfile entry={entry} delay={delay} />
       ) : (
         <div className="flex flex-col items-center opacity-40 py-4">
-          <ChibiAvatarSvg
-            config={entry?.chibiAvatar ?? { skinColor: "#f5d0b5", hairColor: "#999", hairStyle: 0, eyeStyle: 0, mouthStyle: 0, topColor: "#ccc", bottomColor: "#aaa", shoeColor: "#888", topStyle: 0, bottomStyle: 0, blush: false }}
-            className="h-16 w-14 grayscale"
-          />
+          <Avatar className="h-16 w-16 grayscale">
+            <AvatarFallback>—</AvatarFallback>
+          </Avatar>
           <span className="text-xs text-muted-foreground mt-1">—</span>
         </div>
       )}
@@ -127,7 +155,6 @@ export function SupportRankingPodium({ entries }: { entries: SupportRankingEntry
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
-        {/* Kahoot-style podium */}
         <div className="flex-1 min-w-0">
           <div className="flex items-end justify-center gap-2 sm:gap-4 px-1">
             {PODIUM.map((slot, i) => (
@@ -144,7 +171,6 @@ export function SupportRankingPodium({ entries }: { entries: SupportRankingEntry
           </div>
         </div>
 
-        {/* Scrollable rest of rankings */}
         <div className="lg:w-44 xl:w-52 shrink-0 rounded-xl border border-border/60 bg-background/80 overflow-hidden">
           <div className="px-3 py-2 border-b border-border/50 bg-muted/30">
             <p className="text-xs font-semibold text-folk-cobalt">3위 ~</p>
@@ -153,22 +179,27 @@ export function SupportRankingPodium({ entries }: { entries: SupportRankingEntry
             {rest.length === 0 ? (
               <p className="p-3 text-[11px] text-muted-foreground text-center">아직 더 많은 랭킹이 없습니다</p>
             ) : (
-              rest.map((e) => (
-                <div key={e.rank} className="flex items-center gap-2 px-2.5 py-2 text-xs min-w-0">
-                  <span className="shrink-0 w-5 font-bold text-muted-foreground tabular-nums">#{e.rank}</span>
-                  <ChibiAvatarSvg config={e.chibiAvatar} className="h-8 w-7 shrink-0" />
-                  {e.user ? (
-                    <Link href={`/u/${e.user.username}`} className="min-w-0 flex-1 hover:underline">
-                      <span className="block truncate font-medium">@{e.user.username}</span>
-                      <span className="text-[10px] text-muted-foreground tabular-nums">
-                        {formatUsd(e.total)}
-                      </span>
-                    </Link>
+              rest.map((entry) =>
+                entry.user ? (
+                  entry.isDemo ? (
+                    <div key={entry.rank} className="px-3 py-2 text-xs min-w-0">
+                      <span className="block truncate font-medium">@{entry.user.username}</span>
+                    </div>
                   ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </div>
-              ))
+                    <Link
+                      key={entry.rank}
+                      href={`/u/${entry.user.username}`}
+                      className="block px-3 py-2 text-xs min-w-0 hover:bg-muted/40"
+                    >
+                      <span className="block truncate font-medium hover:underline">@{entry.user.username}</span>
+                    </Link>
+                  )
+                ) : (
+                  <div key={entry.rank} className="px-3 py-2 text-xs text-muted-foreground">
+                    —
+                  </div>
+                )
+              )
             )}
           </div>
         </div>

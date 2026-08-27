@@ -18,6 +18,7 @@ import {
   readOAuthFlowCookie,
   signupRedirectForUnregistered,
 } from "@/lib/oauth-flow-cookie";
+import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import { recordUserAccessLog } from "@/lib/user-access-log";
 import {
@@ -89,14 +90,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       function oauthProviderEmailVerified(): boolean {
         if (account?.provider === "naver") return Boolean(user.email?.trim());
+        // X/Twitter and LINE do not return email — account was already matched by provider id.
+        if (isProviderWithoutEmail(account?.provider)) return true;
         return Boolean(
           (profile as { email_verified?: boolean } | undefined)?.email_verified ??
             (profile as { verified_email?: boolean } | undefined)?.verified_email
         );
       }
 
+      function isProviderWithoutEmail(provider: string | undefined): boolean {
+        return provider === "twitter" || provider === "line";
+      }
+
+      async function isAddAccountOAuthFlow(): Promise<boolean> {
+        const { cookies } = await import("next/headers");
+        const jar = await cookies();
+        return jar.get(ADD_ACCOUNT_COOKIE)?.value === "1";
+      }
+
       if (isOAuth && (oauthFlow === "signin" || oauthFlow === null)) {
         let existing: SignInUserRow | null = null;
+        const addingAccount = await isAddAccountOAuthFlow();
 
         if (user.id) {
           existing = await db.user.findUnique({
@@ -109,10 +123,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (!existing) {
-          return signupRedirectForUnregistered();
+          return signupRedirectForUnregistered(addingAccount);
         }
-        if (!existing.emailVerified) {
-          return signupRedirectForUnregistered();
+        if (!existing.emailVerified && !isProviderWithoutEmail(account?.provider)) {
+          return signupRedirectForUnregistered(addingAccount);
         }
         if (!oauthProviderEmailVerified()) {
           return false;

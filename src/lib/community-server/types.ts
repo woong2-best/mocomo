@@ -1,6 +1,7 @@
 import type { CommunityChannelType, CommunityPresenceStatus, CommunityRoleType, CommunityJoinMode, CommunityVoiceActivity } from "@prisma/client";
 
 export type CommunityPermissionKey =
+  | "administrator"
   | "manageServer"
   | "deleteServer"
   | "editServerInfo"
@@ -57,6 +58,10 @@ export type CommunityPermissionKey =
   | "vipEmoji"
   | "vipEvents";
 
+export type ChannelOverrideTargetType = "ROLE" | "USER";
+
+export type ChannelPermissionOverrideFlags = Partial<Record<CommunityPermissionKey, boolean>>;
+
 export type CommunityPermissions = Record<CommunityPermissionKey, boolean>;
 
 export type CommunityChannelView = {
@@ -98,6 +103,8 @@ export type CommunityServerContext = {
   slug: string;
   name: string;
   iconUrl: string | null;
+  bannerUrl: string | null;
+  bannerVideoUrl: string | null;
   memberCount: number;
   joinMode: CommunityJoinMode;
   isPublic: boolean;

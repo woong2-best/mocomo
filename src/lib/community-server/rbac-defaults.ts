@@ -3,6 +3,8 @@ import type { CommunityPermissionKey } from "./types";
 
 /** DB CommunityRole.permissions JSON 키 — 시드 시 저장, 런타임에 DB에서 로드 */
 export const RBAC_PERMISSION_KEYS: CommunityPermissionKey[] = [
+  // Bypass
+  "administrator",
   // Server
   "manageServer",
   "deleteServer",
@@ -69,6 +71,7 @@ export const RBAC_PERMISSION_KEYS: CommunityPermissionKey[] = [
 ];
 
 export const RBAC_LABELS: Record<CommunityPermissionKey, string> = {
+  administrator: "관리자 (모든 채널 제한 우회)",
   manageServer: "서버 관리",
   deleteServer: "커뮤니티 삭제",
   editServerInfo: "커뮤니티 정보 수정",
@@ -151,6 +154,7 @@ export function rbacDefaultsForRole(type: CommunityRoleType): Record<CommunityPe
     case "ADMIN":
       return {
         ...MEMBER_PERMS,
+        administrator: true,
         manageServer: true,
         editServerInfo: true,
         manageChannels: true,

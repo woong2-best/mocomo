@@ -16,7 +16,7 @@ function safeDest(raw: string | undefined): string {
 }
 
 function signupFallback(addAccount: boolean): string {
-  if (addAccount) return signupRedirectForUnregistered();
+  if (addAccount) return signupRedirectForUnregistered(true);
   return "/auth/signup/apply?reason=oauth_failed";
 }
 
@@ -35,10 +35,10 @@ export default async function OAuthCompletePage({
   if (session?.user?.id) {
     const dbUser = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { emailVerified: true },
+      select: { isBanned: true, deletedAt: true },
     });
 
-    if (dbUser?.emailVerified) {
+    if (dbUser && !dbUser.isBanned && !dbUser.deletedAt) {
       redirect(dest);
     }
   }

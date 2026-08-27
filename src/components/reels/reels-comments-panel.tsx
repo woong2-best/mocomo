@@ -42,6 +42,11 @@ import { submitContentReport } from "@/actions/report";
 import { blockUserAction } from "@/actions/user-relationship";
 import { suspendUserTemporary } from "@/actions/admin";
 import type { SerializedComment, SerializedReply } from "@/lib/comment-service";
+import {
+  getPrefetchedComments,
+  prefetchPostComments,
+  setPrefetchedComments,
+} from "@/lib/comments-prefetch-cache";
 
 type SortId = "popular" | "newest" | "oldest";
 
@@ -723,11 +728,11 @@ export function ReelsCommentsPanel({
   }, []);
 
   const loadPage = useCallback(
-    async (opts: { reset: boolean; cursor?: string | null }) => {
-      if (opts.reset) {
+    async (opts: { reset: boolean; cursor?: string | null; silent?: boolean }) => {
+      if (opts.reset && !opts.silent) {
         setLoading(true);
         setError("");
-      } else {
+      } else if (!opts.reset) {
         setLoadingMore(true);
       }
       try {
@@ -756,6 +761,7 @@ export function ReelsCommentsPanel({
         if (opts.reset) {
           setPinned(body.pinned ?? []);
           setComments(body.comments ?? []);
+          setPrefetchedComments(postId, sort, body);
         } else {
           setComments((prev) => mergeUnique(prev, body.comments ?? []));
         }
@@ -763,7 +769,9 @@ export function ReelsCommentsPanel({
         if (typeof body.total === "number") notifyCount(body.total);
         setError("");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "댓글을 불러오지 못했습니다.");
+        if (opts.reset && !opts.silent) {
+          setError(e instanceof Error ? e.message : "댓글을 불러오지 못했습니다.");
+        }
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -772,13 +780,38 @@ export function ReelsCommentsPanel({
     [mergeUnique, notifyCount, postId, sort]
   );
 
+  const applyPrefetched = useCallback(
+    (cached: ReturnType<typeof getPrefetchedComments>) => {
+      if (!cached) return false;
+      if (typeof cached.postAuthorId === "string") {
+        setPostAuthorId(cached.postAuthorId);
+      }
+      setPinned((cached.pinned as PanelComment[] | undefined) ?? []);
+      setComments((cached.comments as PanelComment[] | undefined) ?? []);
+      setNextCursor(cached.nextCursor ?? null);
+      if (typeof cached.total === "number") notifyCount(cached.total);
+      setError("");
+      setLoading(false);
+      return true;
+    },
+    [notifyCount]
+  );
+
   useEffect(() => {
     if (!open || !postId) return;
-    setPinned([]);
-    setComments([]);
     setNextCursor(null);
     setTotal(initialCount);
     totalRef.current = initialCount;
+    setError("");
+
+    const cached = getPrefetchedComments(postId, sort);
+    if (cached && applyPrefetched(cached)) {
+      void loadPage({ reset: true, silent: true });
+      return;
+    }
+
+    setPinned([]);
+    setComments([]);
     void loadPage({ reset: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, postId, sort]);
@@ -1127,7 +1160,7 @@ export function ReelsCommentsPanel({
     <>
       <aside
         className={cn(
-          "pointer-events-auto relative z-[230] hidden h-full shrink-0 flex-col overflow-hidden border-l border-white/10 bg-[#121212] text-white transition-[width,opacity,transform] duration-300 ease-out lg:flex",
+          "pointer-events-auto relative z-[230] hidden h-full shrink-0 flex-col overflow-hidden border-l border-white/10 bg-[#121212] text-white transition-[width,opacity,transform] duration-150 ease-out lg:flex",
           open
             ? "w-[min(100%,24rem)] translate-x-0 opacity-100"
             : "w-0 translate-x-4 opacity-0 pointer-events-none border-0"
@@ -1150,7 +1183,7 @@ export function ReelsCommentsPanel({
         <button
           type="button"
           className={cn(
-            "absolute inset-0 bg-black/50 transition-opacity duration-300",
+            "absolute inset-0 bg-black/50 transition-opacity duration-150",
             open ? "pointer-events-auto opacity-100" : "opacity-0"
           )}
           aria-label="댓글 닫기"
@@ -1161,7 +1194,7 @@ export function ReelsCommentsPanel({
           aria-modal="true"
           aria-label="댓글"
           className={cn(
-            "pointer-events-auto absolute inset-x-0 bottom-0 flex max-h-[78dvh] flex-col overflow-hidden rounded-t-2xl bg-[#121212] text-white shadow-2xl transition-transform duration-300 ease-out",
+            "pointer-events-auto absolute inset-x-0 bottom-0 flex max-h-[78dvh] flex-col overflow-hidden rounded-t-2xl bg-[#121212] text-white shadow-2xl transition-transform duration-150 ease-out will-change-transform",
             open ? "translate-y-0" : "translate-y-full"
           )}
         >

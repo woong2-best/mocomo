@@ -30,7 +30,9 @@ export async function GET(
       name: true,
       description: true,
       iconUrl: true,
+      coverUrl: true,
       bannerUrl: true,
+      bannerVideoUrl: true,
       category: true,
       isNsfw: true,
       memberCount: true,
@@ -80,7 +82,9 @@ export async function GET(
       name: community.name,
       description: community.description,
       iconUrl: community.iconUrl,
+      coverUrl: community.coverUrl,
       bannerUrl: community.bannerUrl,
+      bannerVideoUrl: community.bannerVideoUrl,
       category: community.category,
       isNsfw: community.isNsfw,
       memberCount: community.memberCount,
@@ -123,7 +127,12 @@ export async function PATCH(
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  let body: { iconUrl?: string | null; bannerUrl?: string | null };
+  let body: {
+    iconUrl?: string | null;
+    coverUrl?: string | null;
+    bannerUrl?: string | null;
+    bannerVideoUrl?: string | null;
+  };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -132,7 +141,9 @@ export async function PATCH(
 
   const result = await updateCommunityBrandingForUser(userId, slug, {
     iconUrl: body.iconUrl,
+    coverUrl: body.coverUrl,
     bannerUrl: body.bannerUrl,
+    bannerVideoUrl: body.bannerVideoUrl,
   });
 
   if ("error" in result) {
@@ -142,6 +153,8 @@ export async function PATCH(
   return NextResponse.json({
     success: true,
     iconUrl: result.iconUrl,
+    coverUrl: result.coverUrl,
     bannerUrl: result.bannerUrl,
+    bannerVideoUrl: result.bannerVideoUrl,
   });
 }

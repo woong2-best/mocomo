@@ -18,6 +18,7 @@ export type CommunityHubItem = {
   description: string | null;
   memberCount: number;
   iconUrl: string | null;
+  coverUrl: string | null;
   bannerUrl: string | null;
   category: CommunityCategory;
   isNsfw: boolean;
@@ -35,11 +36,11 @@ function CommunityThumb({
   const meta = communityCategoryMeta(community.category);
   const initial = community.name.slice(0, 1);
 
-  if (community.iconUrl || community.bannerUrl) {
+  if (community.iconUrl || community.coverUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={community.iconUrl || community.bannerUrl || ""}
+        src={community.iconUrl || community.coverUrl || ""}
         alt=""
         className={cn("h-full w-full object-cover", className)}
       />
@@ -71,10 +72,10 @@ function FeaturedCommunityCards({ communities }: { communities: CommunityHubItem
             href={`/c/${c.slug}`}
             className="group relative aspect-[4/3] overflow-hidden bg-[#2b3038]"
           >
-            {c.bannerUrl || c.iconUrl ? (
+            {c.coverUrl || c.iconUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={c.bannerUrl || c.iconUrl || ""}
+                src={c.coverUrl || c.iconUrl || ""}
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
               />

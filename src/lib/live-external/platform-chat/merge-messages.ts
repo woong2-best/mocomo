@@ -8,6 +8,11 @@ export type UnifiedChatMessage = {
   content: string;
   at: number;
   source: UnifiedChatSource;
+  /** MoCoMo 후원·룰렛·미션 등 시스템 라인 */
+  messageKind?: "support" | "tip" | "mission";
+  supportAmount?: number;
+  eventType?: string;
+  rouletteLabel?: string;
 };
 
 export function mergeUnifiedChatMessages(
@@ -41,10 +46,17 @@ export const UNIFIED_CHAT_SOURCE_LABEL: Record<UnifiedChatSource, string> = {
   CHZZK: "치지직",
 };
 
-/** OBS overlay username colors */
-export const OVERLAY_SOURCE_USERNAME_COLOR: Record<UnifiedChatSource, string> = {
-  MOCOMO: "#7dd3fc",
-  TWITCH: "#bf94ff",
-  YOUTUBE: "#fca5a5",
-  CHZZK: "#6ee7b7",
+/** Live chat + OBS overlay — username colors (no platform text badges) */
+export const CHAT_SOURCE_USERNAME_COLOR: Record<UnifiedChatSource, string> = {
+  MOCOMO: "#f97316",
+  TWITCH: "#9146FF",
+  YOUTUBE: "#ef4444",
+  CHZZK: "#9333ea",
 };
+
+/** @deprecated use CHAT_SOURCE_USERNAME_COLOR */
+export const OVERLAY_SOURCE_USERNAME_COLOR = CHAT_SOURCE_USERNAME_COLOR;
+
+export function chatUsernameColor(source: UnifiedChatSource): string {
+  return CHAT_SOURCE_USERNAME_COLOR[source];
+}

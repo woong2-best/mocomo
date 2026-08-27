@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { MarketplaceListingType } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { listMarketplaceListings } from "@/actions/marketplace";
+import { getMobileUserId } from "@/lib/api-mobile-auth";
+import { resolveStarMarketBrowse, type StarMarketBrowseMode } from "@/lib/market-ranking";
 import { MARKETPLACE_LISTING_TYPES } from "@/lib/marketplace/constants";
 
 const TYPE_IDS = new Set(MARKETPLACE_LISTING_TYPES.map((t) => t.id));
@@ -24,8 +25,15 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() || undefined;
   const cursor = req.nextUrl.searchParams.get("cursor")?.trim() || undefined;
   const take = Math.min(Number(req.nextUrl.searchParams.get("take") ?? "24") || 24, 48);
+  const modeParam = req.nextUrl.searchParams.get("mode")?.trim();
+  const mode: StarMarketBrowseMode =
+    modeParam === "latest" || modeParam === "discover" ? modeParam : "discover";
 
-  const { items, nextCursor } = await listMarketplaceListings({
+  const viewerId = await getMobileUserId(req);
+
+  const { items, nextCursor } = await resolveStarMarketBrowse({
+    userId: viewerId,
+    mode,
     type,
     category,
     q,
@@ -60,6 +68,7 @@ export async function GET(req: NextRequest) {
           : null,
       })),
       nextCursor,
+      mode,
     },
     {
       headers: {

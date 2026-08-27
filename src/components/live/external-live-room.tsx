@@ -15,6 +15,7 @@ import { Trophy } from "lucide-react";
 import { subscribeLiveEnded } from "@/hooks/use-live-socket";
 import { ExternalLiveHostDashboard } from "@/components/live/external-live-host-dashboard";
 import { PlatformChatProvider } from "@/components/live/platform-chat-provider";
+import { LiveSupportTipPoll } from "@/components/live/live-support-chat-bridge";
 
 type Props = {
   channelId: string;
@@ -164,10 +165,12 @@ export function ExternalLiveRoom({
             <LiveSupportProvider
               channelId={channelId}
               isHost={isHost}
+              feedChat
               onAlert={() => {
-                /* External iframe: no on-video donation overlay */
+                /* External embed: alerts shown in chat + OBS chat URL */
               }}
             >
+              <LiveSupportTipPoll channelId={channelId} />
               <LiveChat
                 channelId={channelId}
                 viewerCount={viewerCount}

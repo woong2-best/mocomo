@@ -10,20 +10,8 @@ import { prismaErrorMessage } from "@/lib/prisma-user-error";
 import type { CommunityRoleType } from "@prisma/client";
 
 async function canManageRoles(communityId: string, userId: string): Promise<boolean> {
-  const community = await db.community.findUnique({
-    where: { id: communityId },
-    select: { creatorId: true },
-  });
-  if (!community) return false;
-  if (community.creatorId === userId) return true;
-
-  const member = await db.communityMember.findUnique({
-    where: { communityId_userId: { communityId, userId } },
-    include: { memberRoles: { include: { role: true } } },
-  });
-  if (!member) return false;
-  const perms = member.memberRoles.map((mr) => parsePermissions(mr.role.permissions));
-  return perms.some((p) => p.manageRoles);
+  const { resolveCommunityPermission } = await import("@/lib/community-server/access-resolver");
+  return resolveCommunityPermission(communityId, userId, "manageRoles");
 }
 
 export async function getCommunityRoles(communityId: string) {
@@ -163,20 +151,6 @@ export async function checkCommunityPermission(
   permission: CommunityPermissionKey
 ): Promise<boolean> {
   const user = await requireAuth();
-  const community = await db.community.findUnique({
-    where: { id: communityId },
-    select: { creatorId: true },
-  });
-  if (!community) return false;
-  if (community.creatorId === user.id) return true;
-
-  const member = await db.communityMember.findUnique({
-    where: { communityId_userId: { communityId, userId: user.id } },
-    include: { memberRoles: { include: { role: true } } },
-  });
-  if (!member) return false;
-
-  const perms = member.memberRoles.map((mr) => parsePermissions(mr.role.permissions));
-  if (perms.length === 0) return hasPermission(defaultPermissionsForRole("MEMBER"), permission);
-  return perms.some((p) => hasPermission(p, permission));
+  const { resolveCommunityPermission } = await import("@/lib/community-server/access-resolver");
+  return resolveCommunityPermission(communityId, user.id, permission);
 }

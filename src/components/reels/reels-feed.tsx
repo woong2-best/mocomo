@@ -23,6 +23,7 @@ import { useReelsMutedState } from "@/components/reels/reels-player";
 import { ReelsCommentsPanel } from "@/components/reels/reels-comments-panel";
 import { engageStar } from "@/lib/post-engage-client";
 import { getVideoPlaybackController } from "@/lib/video-playback";
+import { prefetchPostComments } from "@/lib/comments-prefetch-cache";
 
 type Props = {
   initialItems: ReelItem[];
@@ -43,10 +44,13 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [muted, setMuted] = useReelsMutedState();
   const [loadingMore, setLoadingMore] = useState(false);
+  const fetchingRef = useRef(false);
+  const autoLoadBlockedRef = useRef(false);
 
   useEffect(() => {
     setItems(filterDismissed(initialItems));
   }, [initialItems]);
+
   const [menu, setMenu] = useState<{
     open: boolean;
     x: number;
@@ -59,7 +63,49 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   } | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
-  const fetchingRef = useRef(false);
+
+  const loadMore = useCallback(async () => {
+    if (!cursor || fetchingRef.current || autoLoadBlockedRef.current) return;
+    fetchingRef.current = true;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/reels?cursor=${encodeURIComponent(cursor)}`, {
+        credentials: "same-origin",
+      });
+      if (!res.ok) {
+        autoLoadBlockedRef.current = true;
+        return;
+      }
+      const data = (await res.json()) as ReelsPageResponse;
+      const next = filterDismissed(data.items ?? []);
+      setItems((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        const merged = [...prev];
+        for (const item of next) {
+          if (!seen.has(item.id)) merged.push(item);
+        }
+        return merged;
+      });
+      setCursor(data.nextCursor ?? null);
+    } catch (e) {
+      console.error("[reels] loadMore", e);
+      autoLoadBlockedRef.current = true;
+    } finally {
+      fetchingRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [cursor]);
+
+  useEffect(() => {
+    if (items.length - activeIndex <= REELS_PREFETCH_REMAINING) {
+      void loadMore();
+    }
+  }, [activeIndex, items.length, loadMore]);
+
+  useEffect(() => {
+    const postId = items[activeIndex]?.postId;
+    if (postId) prefetchPostComments(postId);
+  }, [activeIndex, items]);
 
   // Jump to deep-linked post once
   useEffect(() => {
@@ -74,39 +120,6 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
       el?.scrollIntoView({ behavior: "instant" as ScrollBehavior, block: "start" });
     });
   }, [startPostId, items]);
-
-  const loadMore = useCallback(async () => {
-    if (!cursor || fetchingRef.current) return;
-    fetchingRef.current = true;
-    setLoadingMore(true);
-    try {
-      const res = await fetch(`/api/reels?cursor=${encodeURIComponent(cursor)}`, {
-        credentials: "same-origin",
-      });
-      const data = (await res.json()) as ReelsPageResponse;
-      const next = filterDismissed(data.items ?? []);
-      setItems((prev) => {
-        const seen = new Set(prev.map((p) => p.id));
-        const merged = [...prev];
-        for (const item of next) {
-          if (!seen.has(item.id)) merged.push(item);
-        }
-        return merged;
-      });
-      setCursor(data.nextCursor ?? null);
-    } catch (e) {
-      console.error("[reels] loadMore", e);
-    } finally {
-      fetchingRef.current = false;
-      setLoadingMore(false);
-    }
-  }, [cursor]);
-
-  useEffect(() => {
-    if (items.length - activeIndex <= REELS_PREFETCH_REMAINING) {
-      void loadMore();
-    }
-  }, [activeIndex, items.length, loadMore]);
 
   const syncActiveFromScroll = useCallback(() => {
     const root = scrollerRef.current;

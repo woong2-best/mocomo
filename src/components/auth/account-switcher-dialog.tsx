@@ -16,6 +16,7 @@ import {
   type SavedAccount,
 } from "@/lib/account-switch/client";
 import { setAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
+import { signOutForAddAccount } from "@/lib/account-switch/sign-out-client";
 import { cn } from "@/lib/utils";
 
 export function AccountSwitcherDialog({
@@ -62,22 +63,22 @@ export function AccountSwitcherDialog({
     window.location.href = DEFAULT_LANDING_PATH;
   }
 
-  function navigateToAuth(path: string) {
-    setAddAccountFlowCookie();
-    onOpenChange(false);
-    window.location.href = path;
-  }
-
   async function handleAddExisting() {
     setError("");
     await exportCurrentAccount();
-    navigateToAuth("/auth/signin?addAccount=1");
+    setAddAccountFlowCookie();
+    await signOutForAddAccount();
+    onOpenChange(false);
+    window.location.href = "/auth/signin?addAccount=1";
   }
 
-  function handleCreateNew() {
-    void exportCurrentAccount().finally(() => {
-      navigateToAuth("/auth/signup/apply?addAccount=1");
-    });
+  async function handleCreateNew() {
+    setError("");
+    await exportCurrentAccount();
+    setAddAccountFlowCookie();
+    await signOutForAddAccount();
+    onOpenChange(false);
+    window.location.href = "/auth/signup/apply?addAccount=1";
   }
 
   function handleRemove(account: SavedAccount, e: React.MouseEvent) {

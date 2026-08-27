@@ -291,7 +291,9 @@ export async function updateCommunity(
     category?: string;
     isNsfw?: boolean;
     iconUrl?: string;
+    coverUrl?: string;
     bannerUrl?: string;
+    bannerVideoUrl?: string;
     isPublic?: boolean;
   }
 ) {
@@ -310,10 +312,19 @@ export async function updateCommunity(
     if (data.isPublic !== undefined && !isOwner && !hasPermission(perms, "setVisibility")) {
       return { error: "공개 설정 변경 권한이 없습니다." };
     }
-    if ((data.iconUrl !== undefined || data.bannerUrl !== undefined) && !isOwner) {
-      if (!hasPermission(perms, "editIcon") && !hasPermission(perms, "editBanner")) {
-        return { error: "이미지 변경 권한이 없습니다." };
-      }
+    if (
+      (data.iconUrl !== undefined || data.coverUrl !== undefined) &&
+      !isOwner &&
+      !hasPermission(perms, "editIcon")
+    ) {
+      return { error: "대표·커버 이미지 변경 권한이 없습니다." };
+    }
+    if (
+      (data.bannerUrl !== undefined || data.bannerVideoUrl !== undefined) &&
+      !isOwner &&
+      !hasPermission(perms, "editBanner")
+    ) {
+      return { error: "배너 변경 권한이 없습니다." };
     }
 
     const name = data.name?.trim();
@@ -329,6 +340,10 @@ export async function updateCommunity(
       category = data.category;
     }
 
+    const bannerUrl = data.bannerUrl !== undefined ? data.bannerUrl || null : undefined;
+    const bannerVideoUrl =
+      data.bannerVideoUrl !== undefined ? data.bannerVideoUrl || null : undefined;
+
     await db.community.update({
       where: { id: communityId },
       data: {
@@ -339,7 +354,13 @@ export async function updateCommunity(
         ...(category ? { category } : {}),
         ...(data.isNsfw !== undefined ? { isNsfw: data.isNsfw } : {}),
         ...(data.iconUrl !== undefined ? { iconUrl: data.iconUrl || null } : {}),
-        ...(data.bannerUrl !== undefined ? { bannerUrl: data.bannerUrl || null } : {}),
+        ...(data.coverUrl !== undefined ? { coverUrl: data.coverUrl || null } : {}),
+        ...(bannerUrl !== undefined
+          ? { bannerUrl, ...(bannerUrl ? { bannerVideoUrl: null } : {}) }
+          : {}),
+        ...(bannerVideoUrl !== undefined
+          ? { bannerVideoUrl, ...(bannerVideoUrl ? { bannerUrl: null } : {}) }
+          : {}),
         ...(data.isPublic !== undefined ? { isPublic: data.isPublic } : {}),
       },
     });

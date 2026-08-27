@@ -43,6 +43,8 @@ export function CommunityServerLayoutClient({
             slug={slug}
             communityId={initialContext.communityId}
             communityName={initialContext.name}
+            bannerUrl={initialContext.bannerUrl}
+            bannerVideoUrl={initialContext.bannerVideoUrl}
             channels={initialContext.channels}
             isOwner={initialContext.isOwner}
             canManageChannels={hasPermission(initialContext.permissions, "manageChannels")}

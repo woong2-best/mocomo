@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteCommunity } from "@/actions/community-hub";
-import { updateCommunity } from "@/actions/community-hub";
+import { deleteCommunity, updateCommunity } from "@/actions/community-hub";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ProfileImageField } from "@/components/profile/profile-image-field";
+import { ProfileBannerField } from "@/components/profile/profile-banner-field";
 
 export function CommunityBrandingSettings({
   communityId,
@@ -17,13 +17,17 @@ export function CommunityBrandingSettings({
   slug: string;
   initial: {
     iconUrl: string | null;
+    coverUrl: string | null;
     bannerUrl: string | null;
+    bannerVideoUrl: string | null;
     isPublic: boolean;
   };
 }) {
   const router = useRouter();
   const [iconUrl, setIconUrl] = useState(initial.iconUrl ?? "");
+  const [coverUrl, setCoverUrl] = useState(initial.coverUrl ?? "");
   const [bannerUrl, setBannerUrl] = useState(initial.bannerUrl ?? "");
+  const [bannerVideoUrl, setBannerVideoUrl] = useState(initial.bannerVideoUrl ?? "");
   const [isPublic, setIsPublic] = useState(initial.isPublic);
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -35,7 +39,9 @@ export function CommunityBrandingSettings({
     setError("");
     const res = await updateCommunity(communityId, {
       iconUrl: iconUrl || undefined,
-      bannerUrl: bannerUrl || undefined,
+      coverUrl: coverUrl || undefined,
+      bannerUrl: bannerVideoUrl ? undefined : bannerUrl || undefined,
+      bannerVideoUrl: bannerVideoUrl || undefined,
       isPublic,
     });
     if ("error" in res && res.error) setError(res.error);
@@ -73,11 +79,25 @@ export function CommunityBrandingSettings({
       />
 
       <ProfileImageField
-        kind="banner"
-        name="bannerUrl"
-        value={bannerUrl}
-        onChange={setBannerUrl}
+        kind="cover"
+        name="coverUrl"
+        value={coverUrl}
+        onChange={setCoverUrl}
+        previewClassName="rounded-xl"
       />
+      <p className="text-xs text-muted-foreground -mt-2">
+        커뮤니티 목록의 큰 카드 배경에 표시됩니다. 사이드바 배너와 별도입니다.
+      </p>
+
+      <ProfileBannerField
+        bannerUrl={bannerUrl}
+        bannerVideoUrl={bannerVideoUrl}
+        onBannerUrlChange={setBannerUrl}
+        onBannerVideoUrlChange={setBannerVideoUrl}
+      />
+      <p className="text-xs text-muted-foreground -mt-2">
+        커뮤니티 서버 사이드바(이름 아래)에 표시됩니다.
+      </p>
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
