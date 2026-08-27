@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCachedAuthUserMinimal } from "@/lib/auth";
 import { normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { ensureCommunityServerProvisioned } from "@/lib/community-server/provision";
+import { ensureCommunityRoleDefaults } from "@/lib/community-server/ensure-role-defaults";
 import { ensureCommunityActivitiesChannel } from "@/lib/community-server/ensure-activities-channel";
 import { guestPermissions, parsePermissions, defaultPermissionsForRole } from "@/lib/community-server/permissions";
 import { permissionsFromMember } from "@/lib/community-server/member-permissions";
@@ -41,6 +42,7 @@ export const getCommunityServerContext = cache(
     if (!community) return null;
 
     await ensureCommunityServerProvisioned(community.id);
+    await ensureCommunityRoleDefaults(community.id);
     await ensureCommunityActivitiesChannel(community.id).catch(() => null);
 
     let isMember = false;

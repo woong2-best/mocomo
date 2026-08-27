@@ -52,6 +52,24 @@ export function hasPermission(perms: CommunityPermissions, key: CommunityPermiss
   return perms[key] === true;
 }
 
+/** 사이드바 채널 + 버튼 — createChannel 또는 manageChannels */
+export function canCreateCommunityChannel(perms: CommunityPermissions): boolean {
+  return (
+    hasAdministrator(perms) ||
+    hasPermission(perms, "createChannel") ||
+    hasPermission(perms, "manageChannels")
+  );
+}
+
+/** 채널 이름·설정 수정 */
+export function canEditCommunityChannel(perms: CommunityPermissions): boolean {
+  return (
+    hasAdministrator(perms) ||
+    hasPermission(perms, "renameChannel") ||
+    hasPermission(perms, "manageChannels")
+  );
+}
+
 export function guestPermissions(): CommunityPermissions {
   return { ...GUEST_PERMS };
 }

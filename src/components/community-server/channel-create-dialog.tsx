@@ -22,11 +22,13 @@ const TYPES: { value: CommunityChannelType; label: string }[] = [
 export function ChannelCreateDialog({
   communityId,
   communitySlug,
+  categoryId = null,
   open,
   onOpenChange,
 }: {
   communityId: string;
   communitySlug: string;
+  categoryId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -39,7 +41,12 @@ export function ChannelCreateDialog({
   async function submit() {
     setLoading(true);
     setError("");
-    const res = await createCommunityChannel({ communityId, type, name });
+    const res = await createCommunityChannel({
+      communityId,
+      type,
+      name,
+      categoryId: categoryId ?? undefined,
+    });
     if ("error" in res && res.error) {
       setError(res.error);
       setLoading(false);

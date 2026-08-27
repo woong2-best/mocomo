@@ -11,7 +11,7 @@ import { MobileMemberTabBar } from "@/components/community-server/mobile-member-
 import { MobileChannelDrawer } from "@/components/community-server/mobile-channel-drawer";
 import { trackRecentCommunity } from "@/components/communities/recent-communities-bar";
 import type { CommunityServerContext, CommunityMemberView } from "@/lib/community-server/types";
-import { hasPermission } from "@/lib/community-server/permissions";
+import { hasPermission, canCreateCommunityChannel } from "@/lib/community-server/permissions";
 
 export function CommunityServerLayoutClient({
   slug,
@@ -44,7 +44,7 @@ export function CommunityServerLayoutClient({
           bannerVideoUrl={initialContext.bannerVideoUrl}
           channels={initialContext.channels}
           isOwner={initialContext.isOwner}
-          canManageChannels={hasPermission(initialContext.permissions, "manageChannels")}
+          canCreateChannel={canCreateCommunityChannel(initialContext.permissions)}
           canAccessSettings={
             initialContext.isOwner ||
             hasPermission(initialContext.permissions, "manageServer") ||
@@ -61,7 +61,10 @@ export function CommunityServerLayoutClient({
           <div className="lg:hidden shrink-0 flex border-t border-border/60 bg-background">
             <MobileChannelDrawer
               slug={slug}
+              communityId={initialContext.communityId}
+              communitySlug={slug}
               channels={initialContext.channels}
+              canCreateChannel={canCreateCommunityChannel(initialContext.permissions)}
               open={channelOpen}
               onOpenChange={setChannelOpen}
             />

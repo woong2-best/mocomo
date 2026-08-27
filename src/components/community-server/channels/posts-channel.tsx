@@ -3,7 +3,7 @@ import { CommunityPostCard } from "@/components/community-server/community-post-
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { PostsChannelHeader } from "@/components/community-server/channels/posts-channel-header";
-import { PostsChannelComposerBar } from "@/components/community-server/channels/posts-channel-composer-bar";
+import { PostsChannelShell } from "@/components/community-server/channels/posts-channel-shell";
 import { getAuthUserId } from "@/lib/auth";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { isPaymentsConfigured } from "@/lib/payments";
@@ -38,7 +38,7 @@ export async function PostsChannelView({
   const paymentsEnabled = isPaymentsConfigured();
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <PostsChannelShell communityId={communityId}>
       <PostsChannelHeader />
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
         {posts.length === 0 ? (
@@ -56,7 +56,6 @@ export async function PostsChannelView({
           ))
         )}
       </div>
-      <PostsChannelComposerBar communityId={communityId} />
-    </div>
+    </PostsChannelShell>
   );
 }

@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { MediaType } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { prismaErrorMessage } from "@/lib/prisma-user-error";
+import { createPostForUser } from "@/lib/create-post-core";
 import { loadMemberPermissions } from "@/lib/community-server/member-permissions";
 import { hasPermission } from "@/lib/community-server/permissions";
 import { logCommunityAudit } from "@/lib/community-server/audit-log";
@@ -17,6 +19,48 @@ async function modPerms(communityId: string, userId: string) {
   const isOwner = community.creatorId === userId;
   const perms = await loadMemberPermissions(communityId, userId, isOwner);
   return { community, perms, isOwner };
+}
+
+/** 커뮤니티 게시글 채널 — 피드 글쓰기 시트 없이 즉시 게시 */
+export async function createCommunityChannelPost(
+  communityId: string,
+  data: {
+    content?: string;
+    media?: { url: string; type: MediaType; name?: string }[];
+  }
+) {
+  try {
+    const user = await requireAuth();
+    const ctx = await modPerms(communityId, user.id);
+    if (!ctx) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (!ctx.isOwner && !hasPermission(ctx.perms, "createPosts")) {
+      return { error: "게시글 작성 권한이 없습니다." };
+    }
+
+    const content = data.content?.trim() ?? "";
+    const media = (data.media ?? []).filter((m) => m.url?.trim());
+
+    const result = await createPostForUser(user, {
+      communityId,
+      content,
+      media: media.map((m) => ({ url: m.url.trim(), type: m.type })),
+      visibility: "PUBLIC",
+    });
+    if (result.error) return { error: result.error };
+    if (!result.postId) return { error: "게시에 실패했습니다." };
+
+    void logCommunityAudit({
+      communityId,
+      actorId: user.id,
+      action: "CREATE_POST",
+      targetType: "post",
+      targetId: result.postId,
+    });
+    revalidatePath(`/c/${ctx.community.slug}`);
+    return { success: true as const, postId: result.postId };
+  } catch (e) {
+    return { error: prismaErrorMessage(e) };
+  }
 }
 
 export async function deleteCommunityPost(postId: string, communityId: string) {

@@ -42,15 +42,24 @@ const CHANNEL_ICONS: Record<CommunityChannelType, typeof Hash> = {
 
 const HIDDEN_CHANNEL_TYPES = new Set<CommunityChannelType>(["VOICE", "VIDEO", "LIVE"]);
 
-function groupChannels(channels: CommunityChannelView[]) {
+type ChannelGroup = {
+  categoryId: string | null;
+  categoryName: string;
+  items: CommunityChannelView[];
+};
+
+function groupChannels(channels: CommunityChannelView[]): ChannelGroup[] {
   const visible = channels.filter((ch) => !HIDDEN_CHANNEL_TYPES.has(ch.type));
-  const groups = new Map<string, CommunityChannelView[]>();
+  const groups = new Map<string, ChannelGroup>();
   for (const ch of visible) {
-    const key = ch.categoryName ?? "채널";
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(ch);
+    const categoryName = ch.categoryName ?? "채널";
+    const key = ch.categoryId ?? categoryName;
+    if (!groups.has(key)) {
+      groups.set(key, { categoryId: ch.categoryId, categoryName, items: [] });
+    }
+    groups.get(key)!.items.push(ch);
   }
-  return [...groups.entries()];
+  return [...groups.values()];
 }
 
 export function ChannelSidebar({
@@ -61,7 +70,7 @@ export function ChannelSidebar({
   bannerVideoUrl,
   channels,
   isOwner,
-  canManageChannels,
+  canCreateChannel,
   canAccessSettings,
 }: {
   slug: string;
@@ -71,13 +80,19 @@ export function ChannelSidebar({
   bannerVideoUrl: string | null;
   channels: CommunityChannelView[];
   isOwner: boolean;
-  canManageChannels: boolean;
+  canCreateChannel: boolean;
   canAccessSettings?: boolean;
 }) {
   const pathname = usePathname();
   const base = `/c/${slug}`;
   const groups = groupChannels(channels);
   const [createOpen, setCreateOpen] = useState(false);
+  const [createCategoryId, setCreateCategoryId] = useState<string | null>(null);
+
+  function openCreate(categoryId: string | null) {
+    setCreateCategoryId(categoryId);
+    setCreateOpen(true);
+  }
 
   return (
     <>
@@ -101,26 +116,32 @@ export function ChannelSidebar({
         />
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="p-1 sm:p-2 space-y-4">
-            {groups.map(([category, items]) => (
-              <div key={category}>
-                <div className="flex items-center justify-between px-1 sm:px-2 mb-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground hidden sm:inline">
-                    {category}
-                  </span>
-                  {canManageChannels && (
+          <div className="p-1 sm:p-2 space-y-3">
+            {groups.map((group) => (
+              <div key={group.categoryId ?? group.categoryName}>
+                <div className="group/cat flex items-center justify-between px-1 sm:px-2 mb-0.5 min-h-[22px]">
+                  <div className="flex items-center gap-0.5 min-w-0 hidden sm:flex">
+                    <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground truncate">
+                      {group.categoryName}
+                    </span>
+                  </div>
+                  {canCreateChannel ? (
                     <button
                       type="button"
-                      className="text-muted-foreground hover:text-foreground mx-auto sm:mx-0"
-                      aria-label="채널 추가"
-                      onClick={() => setCreateOpen(true)}
+                      className={cn(
+                        "text-muted-foreground hover:text-foreground rounded p-0.5",
+                        "mx-auto sm:mx-0 sm:opacity-0 sm:group-hover/cat:opacity-100 transition-opacity"
+                      )}
+                      aria-label={`${group.categoryName}에 채널 추가`}
+                      onClick={() => openCreate(group.categoryId)}
                     >
                       <Plus className="h-3.5 w-3.5" />
                     </button>
-                  )}
+                  ) : null}
                 </div>
                 <ul className="space-y-0.5">
-                  {items.map((ch) => {
+                  {group.items.map((ch) => {
                     const href = `${base}/${ch.slug}`;
                     const active = pathname === href || (pathname === base && ch.isDefault);
                     const Icon = CHANNEL_ICONS[ch.type] ?? Hash;
@@ -169,6 +190,7 @@ export function ChannelSidebar({
       <ChannelCreateDialog
         communityId={communityId}
         communitySlug={slug}
+        categoryId={createCategoryId}
         open={createOpen}
         onOpenChange={setCreateOpen}
       />
