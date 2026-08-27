@@ -17,7 +17,6 @@ import { useRouter } from "next/navigation";
 const TYPES: { value: CommunityChannelType; label: string }[] = [
   { value: "TEXT", label: "텍스트" },
   { value: "ANNOUNCEMENT", label: "공지" },
-  { value: "VOICE", label: "음성" },
 ];
 
 export function ChannelCreateDialog({

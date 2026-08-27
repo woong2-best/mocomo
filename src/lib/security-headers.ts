@@ -17,15 +17,6 @@ const CSP_BASE = [
 const KAKAO_MAP_SCRIPT_SRC =
   "https://dapi.kakao.com https://t1.daumcdn.net https://ssl.daumcdn.net";
 
-/** Community voice/video — Jitsi external_api.js + embed iframe */
-function jitsiOrigin(): string {
-  const raw = process.env.NEXT_PUBLIC_JITSI_DOMAIN?.trim() || "meet.jit.si";
-  const host = raw.replace(/^https?:\/\//, "").replace(/\/+$/, "");
-  return `https://${host}`;
-}
-
-const JITSI_ORIGIN = jitsiOrigin();
-
 /** APT corner scene viewer — Three.js via unpkg import map */
 export const APT_SCENE_VIEWER_HEADERS: { key: string; value: string }[] = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -54,14 +45,14 @@ export const SECURITY_HEADERS: { key: string; value: string }[] = [
   { key: "Cross-Origin-Resource-Policy", value: "same-site" },
   {
     key: "Permissions-Policy",
-    value: `camera=(self "${JITSI_ORIGIN}"), microphone=(self "${JITSI_ORIGIN}"), geolocation=(self), payment=(self)`,
+    value: "camera=(self), microphone=(self), geolocation=(self), payment=(self)",
   },
   {
     key: "Content-Security-Policy",
     value: [
       ...CSP_BASE,
-      `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://js.stripe.com ${KAKAO_MAP_SCRIPT_SRC} ${JITSI_ORIGIN}`,
-      `frame-src 'self' ${EMBED_FRAME_SRC} ${JITSI_ORIGIN}`,
+      `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://js.stripe.com ${KAKAO_MAP_SCRIPT_SRC}`,
+      `frame-src 'self' ${EMBED_FRAME_SRC}`,
       "frame-ancestors 'none'",
     ].join("; "),
   },

@@ -25,7 +25,6 @@ export async function provisionCommunityServer(
 
   for (const spec of DEFAULT_SERVER_CHANNELS) {
     let chatRoomId: string | undefined;
-    let voiceChannelId: string | undefined;
 
     if (spec.type === "TEXT" || spec.type === "ANNOUNCEMENT" || spec.type === "QA") {
       const room = await tx.chatRoom.create({
@@ -42,39 +41,6 @@ export async function provisionCommunityServer(
       chatRoomId = room.id;
     }
 
-    if (spec.type === "VOICE" || spec.type === "VIDEO" || spec.type === "LIVE") {
-      const voice = await tx.voiceChannel.create({
-        data: {
-          name: `${communityName} · ${spec.name}`,
-          communityId,
-          createdBy: creatorId,
-          maxUsers: spec.maxUsers ?? (spec.type === "VIDEO" ? 16 : 50),
-          allowCamera: spec.type !== "VOICE",
-          allowScreen: spec.type !== "VOICE",
-          isLive: spec.type === "LIVE",
-          broadcastMode: spec.type === "LIVE" ? "BROWSER" : "VOICE",
-        },
-        select: { id: true },
-      });
-      voiceChannelId = voice.id;
-
-      if (spec.type === "LIVE") {
-        const liveChat = await tx.chatRoom.create({
-          data: {
-            name: `${communityName} · 라이브 채팅`,
-            type: "FANDOM",
-            communityId,
-            isPublic: true,
-            createdById: creatorId,
-            voiceChannelId: voice.id,
-            members: { create: { userId: creatorId, role: "owner" } },
-          },
-          select: { id: true },
-        });
-        chatRoomId = liveChat.id;
-      }
-    }
-
     await tx.communityChannel.create({
       data: {
         communityId,
@@ -85,7 +51,6 @@ export async function provisionCommunityServer(
         position: spec.position,
         isDefault: spec.isDefault ?? false,
         chatRoomId: chatRoomId ?? null,
-        voiceChannelId: voiceChannelId ?? null,
         maxUsers: spec.maxUsers ?? null,
       },
     });

@@ -6,7 +6,6 @@ import { ensureCommunityServerProvisioned } from "@/lib/community-server/provisi
 import { db } from "@/lib/db";
 
 const TEXT_TYPES = new Set(["TEXT", "ANNOUNCEMENT", "QA"]);
-const VOICE_TYPES = new Set(["VOICE", "VIDEO"]);
 
 export async function GET(
   req: NextRequest,
@@ -31,41 +30,22 @@ export async function GET(
 
   await ensureCommunityServerProvisioned(community.id).catch(() => undefined);
 
-  const [textChannels, voiceChannels] = await Promise.all([
-    db.communityChannel.findMany({
-      where: {
-        communityId: community.id,
-        type: { in: ["TEXT", "ANNOUNCEMENT", "QA"] },
-      },
-      orderBy: [{ category: { position: "asc" } }, { position: "asc" }],
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        type: true,
-        position: true,
-        chatRoomId: true,
-        category: { select: { id: true, name: true } },
-      },
-    }),
-    db.communityChannel.findMany({
-      where: {
-        communityId: community.id,
-        type: { in: ["VOICE", "VIDEO"] },
-        voiceChannelId: { not: null },
-      },
-      orderBy: [{ category: { position: "asc" } }, { position: "asc" }],
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        type: true,
-        position: true,
-        voiceChannelId: true,
-        category: { select: { id: true, name: true } },
-      },
-    }),
-  ]);
+  const textChannels = await db.communityChannel.findMany({
+    where: {
+      communityId: community.id,
+      type: { in: ["TEXT", "ANNOUNCEMENT", "QA"] },
+    },
+    orderBy: [{ category: { position: "asc" } }, { position: "asc" }],
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      type: true,
+      position: true,
+      chatRoomId: true,
+      category: { select: { id: true, name: true } },
+    },
+  });
 
   return NextResponse.json({
     community: { id: community.id, slug: community.slug, name: community.name },
@@ -80,17 +60,6 @@ export async function GET(
         chatRoomId: c.chatRoomId,
         categoryName: c.category?.name ?? null,
       })),
-    voiceItems: voiceChannels
-      .filter((c) => VOICE_TYPES.has(c.type) && c.voiceChannelId)
-      .map((c) => ({
-        id: c.id,
-        slug: c.slug,
-        name: c.name,
-        type: c.type,
-        position: c.position,
-        voiceChannelId: c.voiceChannelId!,
-        categoryName: c.category?.name ?? null,
-      })),
   });
 }
 
@@ -98,7 +67,6 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  // Open channel: body { channelSlug }
   const limited = await rateLimitPublicApi(req, "mobile-community-channel-open", 40);
   if (limited) return limited;
 

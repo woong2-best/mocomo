@@ -8,15 +8,22 @@ export async function ensureCommunityActivitiesChannel(communityId: string) {
   });
   if (existing) return existing.id;
 
-  const voiceCat = await db.communityChannelCategory.findFirst({
-    where: { communityId, name: "음성·영상" },
+  const activityCat = await db.communityChannelCategory.findFirst({
+    where: { communityId, name: "함께하기" },
     select: { id: true },
   });
 
-  let categoryId = voiceCat?.id;
+  let categoryId = activityCat?.id;
+  if (!categoryId) {
+    const legacy = await db.communityChannelCategory.findFirst({
+      where: { communityId, name: "음성·영상" },
+      select: { id: true },
+    });
+    categoryId = legacy?.id;
+  }
   if (!categoryId) {
     const created = await db.communityChannelCategory.create({
-      data: { communityId, name: "음성·영상", position: 1 },
+      data: { communityId, name: "함께하기", position: 1 },
       select: { id: true },
     });
     categoryId = created.id;

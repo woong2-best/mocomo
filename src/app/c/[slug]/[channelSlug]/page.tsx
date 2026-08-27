@@ -2,8 +2,6 @@ import { notFound } from "next/navigation";
 import { getCommunityServerContext, getCommunityChannelCached } from "@/lib/community-server/server-data";
 import { PostsChannelView } from "@/components/community-server/channels/posts-channel";
 import { TextChannelView } from "@/components/community-server/channels/text-channel";
-import { VoiceChannelView } from "@/components/community-server/channels/voice-channel-view";
-import { LiveChannelView } from "@/components/community-server/channels/live-channel";
 import { MembersChannelView } from "@/components/community-server/channels/members-channel";
 import { SettingsChannelView } from "@/components/community-server/channels/settings-channel";
 import { EventsChannelView } from "@/components/community-server/channels/events-channel";
@@ -13,6 +11,8 @@ import { FileChannelView } from "@/components/community-server/channels/file-cha
 import { hasPermission, hasAdministrator } from "@/lib/community-server/permissions";
 
 export const dynamic = "force-dynamic";
+
+const REMOVED_CHANNEL_TYPES = new Set(["VOICE", "VIDEO", "LIVE"]);
 
 export default async function CommunityChannelPage({
   params,
@@ -26,6 +26,8 @@ export default async function CommunityChannelPage({
     getCommunityChannelCached(slug, channelSlug),
   ]);
   if (!ctx || !channel) notFound();
+
+  if (REMOVED_CHANNEL_TYPES.has(channel.type)) notFound();
 
   if (
     channel.type === "SETTINGS" &&
@@ -43,8 +45,6 @@ export default async function CommunityChannelPage({
     channel.type === "TEXT" ||
     channel.type === "ANNOUNCEMENT" ||
     channel.type === "QA" ||
-    channel.type === "VOICE" ||
-    channel.type === "VIDEO" ||
     channel.type === "GALLERY" ||
     channel.type === "ACTIVITY" ||
     channel.type === "MEMBERS";
@@ -92,38 +92,6 @@ export default async function CommunityChannelPage({
           communitySlug={slug}
           isPublic={ctx.isPublic}
           readOnly={!ctx.isMember && !ctx.isOwner}
-        />
-      );
-
-    case "VOICE":
-    case "VIDEO":
-      if (!channel.voiceChannelId) notFound();
-      return (
-        <VoiceChannelView
-          channelId={channel.voiceChannelId}
-          channelPageSlug={channel.slug}
-          channelName={channel.name}
-          maxUsers={channel.maxUsers}
-          communityId={ctx.communityId}
-          readOnly={!ctx.isMember && !ctx.isOwner}
-        />
-      );
-
-    case "LIVE":
-      if (!channel.voiceChannelId) notFound();
-      if (!ctx.isMember && !ctx.isOwner) {
-        return (
-          <div className="flex items-center justify-center h-full p-8 text-center text-muted-foreground text-sm">
-            라이브 채널은 멤버만 이용할 수 있습니다.
-          </div>
-        );
-      }
-      return (
-        <LiveChannelView
-          voiceChannelId={channel.voiceChannelId}
-          channelName={channel.name}
-          communitySlug={slug}
-          isOwner={ctx.isOwner}
         />
       );
 

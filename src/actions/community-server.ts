@@ -9,6 +9,7 @@ import type { CommunityChannelType, CommunityPresenceStatus } from "@prisma/clie
 import { prismaErrorMessage } from "@/lib/prisma-user-error";
 
 const PROTECTED_TYPES: CommunityChannelType[] = ["POSTS", "MEMBERS", "SETTINGS"];
+const REMOVED_CHANNEL_TYPES: CommunityChannelType[] = ["VOICE", "VIDEO", "LIVE"];
 
 async function getCommunityPerms(communityId: string, userId: string) {
   const community = await db.community.findUnique({
@@ -67,6 +68,9 @@ export async function createCommunityChannel(data: {
 
     const name = data.name.trim();
     if (!name) return { error: "채널 이름을 입력해 주세요." };
+    if (REMOVED_CHANNEL_TYPES.includes(data.type)) {
+      return { error: "음성·영상·라이브 채널은 더 이상 만들 수 없습니다." };
+    }
 
     const slug =
       name
@@ -81,7 +85,6 @@ export async function createCommunityChannel(data: {
     });
 
     let chatRoomId: string | null = null;
-    let voiceChannelId: string | null = null;
 
     if (data.type === "TEXT" || data.type === "ANNOUNCEMENT" || data.type === "QA") {
       const room = await db.chatRoom.create({
@@ -97,19 +100,6 @@ export async function createCommunityChannel(data: {
       chatRoomId = room.id;
     }
 
-    if (data.type === "VOICE" || data.type === "VIDEO" || data.type === "LIVE") {
-      const voice = await db.voiceChannel.create({
-        data: {
-          name: `${ctx.community.name} · ${name}`,
-          communityId: ctx.community.id,
-          createdBy: user.id,
-          allowCamera: data.type !== "VOICE",
-          isLive: data.type === "LIVE",
-        },
-      });
-      voiceChannelId = voice.id;
-    }
-
     const channel = await db.communityChannel.create({
       data: {
         communityId: ctx.community.id,
@@ -119,7 +109,6 @@ export async function createCommunityChannel(data: {
         slug,
         position: (maxPos._max.position ?? 0) + 1,
         chatRoomId,
-        voiceChannelId,
       },
       select: { id: true, slug: true },
     });
@@ -228,9 +217,6 @@ export async function deleteCommunityChannel(channelId: string) {
     await db.communityChannel.delete({ where: { id: channelId } });
     if (channel.chatRoomId) {
       await db.chatRoom.delete({ where: { id: channel.chatRoomId } }).catch(() => undefined);
-    }
-    if (channel.voiceChannelId) {
-      await db.voiceChannel.delete({ where: { id: channel.voiceChannelId } }).catch(() => undefined);
     }
 
     revalidatePath(`/c/${ctx.community.slug}`);

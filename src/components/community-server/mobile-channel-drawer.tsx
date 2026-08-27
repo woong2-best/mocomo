@@ -20,7 +20,9 @@ export function MobileChannelDrawer({
 }) {
   const pathname = usePathname();
   const base = `/c/${slug}`;
-  const visible = channels.filter((c) => c.type !== "VIDEO" && c.type !== "SETTINGS");
+  const visible = channels.filter(
+    (c) => c.type !== "SETTINGS" && c.type !== "VOICE" && c.type !== "VIDEO" && c.type !== "LIVE"
+  );
 
   return (
     <>

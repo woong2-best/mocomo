@@ -5,9 +5,6 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   Hash,
-  Volume2,
-  Video,
-  Radio,
   Megaphone,
   Calendar,
   HelpCircle,
@@ -30,9 +27,9 @@ import { CommunitySidebarBanner } from "@/components/community-server/community-
 const CHANNEL_ICONS: Record<CommunityChannelType, typeof Hash> = {
   POSTS: MessageSquare,
   TEXT: Hash,
-  VOICE: Volume2,
-  VIDEO: Video,
-  LIVE: Radio,
+  VOICE: Hash,
+  VIDEO: Hash,
+  LIVE: Hash,
   ANNOUNCEMENT: Megaphone,
   EVENT: Calendar,
   ACTIVITY: Gamepad2,
@@ -43,17 +40,13 @@ const CHANNEL_ICONS: Record<CommunityChannelType, typeof Hash> = {
   SETTINGS: Settings,
 };
 
+const HIDDEN_CHANNEL_TYPES = new Set<CommunityChannelType>(["VOICE", "VIDEO", "LIVE"]);
+
 function groupChannels(channels: CommunityChannelView[]) {
-  const visible = channels
-    .filter((ch) => ch.type !== "VIDEO")
-    .map((ch) =>
-      ch.type === "VOICE"
-        ? { ...ch, name: ch.name === "음성 채널" ? "음성/영상" : ch.name }
-        : ch
-    );
+  const visible = channels.filter((ch) => !HIDDEN_CHANNEL_TYPES.has(ch.type));
   const groups = new Map<string, CommunityChannelView[]>();
   for (const ch of visible) {
-    const key = ch.type === "VOICE" ? "음성" : (ch.categoryName ?? "채널");
+    const key = ch.categoryName ?? "채널";
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(ch);
   }

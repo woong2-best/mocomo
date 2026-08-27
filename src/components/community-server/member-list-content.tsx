@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Crown, Mic, MoreHorizontal, Plus, Video } from "lucide-react";
+import { Crown, MoreHorizontal, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CommunityPresenceStatus, CommunityRoleType } from "@prisma/client";
 import type { CommunityMemberView } from "@/lib/community-server/types";
@@ -67,12 +67,6 @@ function MemberRow({
               {PRESENCE_EMOJI[member.presence]}
             </span>
             <span className="truncate">{displayName}</span>
-            {member.voiceActivity === "VOICE" && (
-              <Mic className="h-3 w-3 text-muted-foreground shrink-0" />
-            )}
-            {member.voiceActivity === "VIDEO" && (
-              <Video className="h-3 w-3 text-muted-foreground shrink-0" />
-            )}
           </p>
           {!compact && topRole && (
             <p className="text-[10px] text-muted-foreground truncate">{topRole.name}</p>

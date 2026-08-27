@@ -295,31 +295,6 @@ export function CommunityDetailScreen() {
                         </Text>
                       </Pressable>
                     ))}
-                    {(channelsQuery.data?.voiceItems ?? []).length > 0 ? (
-                      <>
-                        <Text style={[styles.section, { marginTop: spacing.md }]}>음성 · 영상</Text>
-                        {channelsQuery.data!.voiceItems.map((ch) => (
-                          <Pressable
-                            key={ch.id}
-                            style={styles.channel}
-                            onPress={() =>
-                              navigation.navigate("CommunityVoice", {
-                                channelName: ch.name,
-                                voiceChannelId: ch.voiceChannelId,
-                                channelType: ch.type === "VIDEO" ? "VIDEO" : "VOICE",
-                              })
-                            }
-                          >
-                            <Text style={styles.channelName}>
-                              {ch.type === "VIDEO" ? "📹" : "🔊"} {ch.name}
-                            </Text>
-                            <Text style={styles.channelMeta}>
-                              {ch.categoryName ?? ch.type} · Jitsi
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </>
-                    ) : null}
                   </>
                 )}
               </>

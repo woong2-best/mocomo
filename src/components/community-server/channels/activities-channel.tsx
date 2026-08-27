@@ -7,8 +7,7 @@ import { cn } from "@/lib/utils";
 import { Gamepad2, Users } from "lucide-react";
 
 /**
- * Community Activities — 음성 채널과 독립적으로 동작.
- * Voice는 종료하지 않으며, 이 화면에서 Join만 처리합니다.
+ * Community Activities — 미니게임·함께하기 (텍스트 커뮤니티 내).
  */
 export function ActivitiesChannelView({
   communitySlug,
@@ -49,7 +48,7 @@ export function ActivitiesChannelView({
           Play Together
         </h1>
         <p className="text-sm text-muted-foreground max-w-lg leading-relaxed">
-          커뮤니티를 떠나지 않고 함께 즐깁니다. 음성 채널에 접속 중이라면 음성은 그대로 유지됩니다.
+          커뮤니티를 떠나지 않고 함께 즐깁니다.
         </p>
         <p className="text-[10px] text-muted-foreground/80">
           {communitySlug} · {communityId.slice(0, 8)}

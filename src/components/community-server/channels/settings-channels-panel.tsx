@@ -39,7 +39,6 @@ const CREATE_TYPES: { value: CommunityChannelType; label: string }[] = [
   { value: "TEXT", label: "텍스트" },
   { value: "ANNOUNCEMENT", label: "공지" },
   { value: "QA", label: "Q&A" },
-  { value: "VOICE", label: "음성" },
   { value: "GALLERY", label: "갤러리" },
   { value: "EVENT", label: "이벤트" },
 ];

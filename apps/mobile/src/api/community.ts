@@ -36,35 +36,6 @@ export type CommunityDetail = CommunityListItem & {
   posts: CommunityPostPreview[];
 };
 
-export type CommunityVoiceChannelItem = {
-  id: string;
-  slug: string;
-  name: string;
-  type: string;
-  position: number;
-  voiceChannelId: string;
-  categoryName: string | null;
-};
-
-export type CommunityJitsiRoom = {
-  domain: string;
-  roomName: string;
-  displayName: string;
-  joinUrl: string;
-  config: {
-    startWithAudioMuted: boolean;
-    startWithVideoMuted: boolean;
-    disableScreenSharing: boolean;
-  };
-};
-
-export async function fetchCommunityJitsiRoom(voiceChannelId: string) {
-  return apiRequest<CommunityJitsiRoom>(
-    `/api/mobile/jitsi/community-room?channelId=${encodeURIComponent(voiceChannelId)}`,
-    { auth: true }
-  );
-}
-
 export type CommunityChannelItem = {
   id: string;
   slug: string;
@@ -140,7 +111,6 @@ export async function fetchCommunityChannels(slug: string) {
   return apiRequest<{
     community: { id: string; slug: string; name: string };
     items: CommunityChannelItem[];
-    voiceItems: CommunityVoiceChannelItem[];
   }>(`${MobileApi.community}/${encodeURIComponent(slug)}/channels`, { auth: true });
 }
 

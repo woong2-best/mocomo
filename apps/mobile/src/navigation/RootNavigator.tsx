@@ -249,12 +249,6 @@ export function RootNavigator() {
               }
             />
             <Stack.Screen
-              name="CommunityVoice"
-              getComponent={() =>
-                require("@/features/community/CommunityVoiceScreen").CommunityVoiceScreen
-              }
-            />
-            <Stack.Screen
               name="EventsList"
               getComponent={() => require("@/features/events/EventsListScreen").EventsListScreen}
             />
