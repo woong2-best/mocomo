@@ -1,15 +1,13 @@
+import { Suspense } from "react";
 import { db } from "@/lib/db";
-import { CommunityPostCard } from "@/components/community-server/community-post-card";
-import { postMediaPreview } from "@/lib/post-media-select";
-import { userPublicSelect } from "@/lib/user-public-select";
 import { PostsChannelHeader } from "@/components/community-server/channels/posts-channel-header";
 import { PostsChannelShell } from "@/components/community-server/channels/posts-channel-shell";
-import { getAuthUserId } from "@/lib/auth";
-import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
-import { isPaymentsConfigured } from "@/lib/payments";
+import { CommunityPostsBoard } from "@/components/community-server/channels/community-posts-board";
+import { userPublicSelect, userDisplayName } from "@/lib/user-public-select";
+import type { CommunityPostsBoardItem } from "@/lib/community-posts-board";
 
 export async function PostsChannelView({
-  communitySlug: _communitySlug,
+  communitySlug,
   communityId,
 }: {
   communitySlug: string;
@@ -17,44 +15,42 @@ export async function PostsChannelView({
   isMember?: boolean;
   isOwner?: boolean;
 }) {
-  const [viewerId, rawPosts] = await Promise.all([
-    getAuthUserId(),
-    db.post.findMany({
-      where: { communityId },
-      take: 20,
-      orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-      include: {
-        author: { select: userPublicSelect },
-        community: { select: { name: true, slug: true } },
-        media: postMediaPreview,
-        _count: { select: { likes: true, comments: true, votes: true, media: true } },
-      },
-    }),
-  ]);
-  const posts = await attachWebPaidMediaPlayback(
-    rawPosts.map((p) => ({ ...p, authorId: p.authorId ?? p.author.id })),
-    viewerId
-  );
-  const paymentsEnabled = isPaymentsConfigured();
+  const rawPosts = await db.post.findMany({
+    where: { communityId },
+    take: 200,
+    orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      isPinned: true,
+      viewCount: true,
+      createdAt: true,
+      author: { select: userPublicSelect },
+      _count: { select: { likes: true, comments: true } },
+    },
+  });
+
+  const posts: CommunityPostsBoardItem[] = rawPosts.map((p) => ({
+    id: p.id,
+    title: p.title,
+    content: p.content,
+    isPinned: p.isPinned,
+    viewCount: p.viewCount,
+    likeCount: p._count.likes,
+    commentCount: p._count.comments,
+    createdAt: p.createdAt.toISOString(),
+    authorUsername: p.author.username,
+    authorName: userDisplayName(p.author),
+  }));
 
   return (
     <PostsChannelShell communityId={communityId}>
       <PostsChannelHeader />
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-        {posts.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border py-16 text-center">
-            <p className="text-muted-foreground text-sm">아직 글이 없어요.</p>
-          </div>
-        ) : (
-          posts.map((post) => (
-            <CommunityPostCard
-              key={post.id}
-              post={post}
-              communityId={communityId}
-              paymentsEnabled={paymentsEnabled}
-            />
-          ))
-        )}
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-muted/40" />}>
+          <CommunityPostsBoard posts={posts} communitySlug={communitySlug} />
+        </Suspense>
       </div>
     </PostsChannelShell>
   );
