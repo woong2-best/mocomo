@@ -5,6 +5,7 @@ import {
   buildJitsiRoomName,
   getJitsiDomain,
   isJaasDeployment,
+  isJaasJwtReady,
   isJitsiConfigured,
   isJitsiJwtConfigured,
   isPublicMeetJitSi,
@@ -37,7 +38,7 @@ export async function resolveJitsiCommunityRoom(
     if (isPublicMeetJitSi()) {
       return { ok: false, status: 503, error: JITSI_PUBLIC_MEET_ERROR };
     }
-    if (isJaasDeployment() && !isJitsiJwtConfigured()) {
+    if (isJaasDeployment() && !isJaasJwtReady()) {
       return { ok: false, status: 503, error: JITSI_JAAS_CREDENTIALS_ERROR };
     }
     return { ok: false, status: 503, error: "Jitsi 서버 설정이 없습니다." };
@@ -88,7 +89,7 @@ export async function resolveJitsiCommunityRoom(
   }
 
   const roomName = buildJitsiRoomName(channelId);
-  const jwt = isJitsiJwtConfigured()
+  const jwt = isJaasJwtReady() || isJitsiJwtConfigured()
     ? await signJitsiCommunityJwt({
         roomName,
         userId,

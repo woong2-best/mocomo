@@ -157,7 +157,8 @@ Use **8x8 JaaS** (free tier at [jaas.8x8.vc](https://jaas.8x8.vc)) or **self-hos
 ```env
 NEXT_PUBLIC_JITSI_DOMAIN=8x8.vc
 JITSI_APP_ID=vpaas-magic-cookie-xxxxxxxx
-JITSI_APP_SECRET=your-jaas-private-key
+JITSI_API_KEY=vpaas-magic-cookie-xxxxxxxx/yyyyyy
+JITSI_APP_SECRET=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----
 NEXT_PUBLIC_JITSI_ROOM_PREFIX=mocomo-
 ```
 

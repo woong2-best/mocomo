@@ -1,23 +1,19 @@
-import { SignJWT } from "jose";
+import { SignJWT, importPKCS8 } from "jose";
 import {
+  getJitsiApiKey,
   getJitsiAppId,
   getJitsiAppSecret,
   getJitsiDomain,
   isJaasDeployment,
   isJitsiJwtConfigured,
+  isPemPrivateKey,
+  normalizeJitsiSecret,
 } from "@/lib/jitsi-config";
 
 const JITSI_JWT_TTL = "2h";
+const JITSI_JWT_NBF_SKEW_SEC = 10;
 
-function jwtSecret(): Uint8Array {
-  const secret = getJitsiAppSecret();
-  if (!secret) {
-    throw new Error("JITSI_APP_SECRET is not configured");
-  }
-  return new TextEncoder().encode(secret);
-}
-
-/** HS256 JWT for 8x8 JaaS or self-hosted Jitsi with app secret auth. */
+/** RS256 (JaaS PEM) or HS256 (self-hosted shared secret) JWT for Jitsi embed. */
 export async function signJitsiCommunityJwt(opts: {
   roomName: string;
   userId: string;
@@ -27,11 +23,14 @@ export async function signJitsiCommunityJwt(opts: {
   if (!isJitsiJwtConfigured()) return null;
 
   const appId = getJitsiAppId();
-  if (!appId) return null;
+  const secret = getJitsiAppSecret();
+  if (!appId || !secret) return null;
+
+  const jaas = isJaasDeployment();
+  if (jaas && !getJitsiApiKey()) return null;
 
   const domain = getJitsiDomain();
-  const jaas = isJaasDeployment();
-  const roomClaim = jaas ? opts.roomName.split("/").pop() ?? opts.roomName : opts.roomName;
+  const roomClaim = jaas ? "*" : opts.roomName.split("/").pop() ?? opts.roomName;
 
   const payload = {
     aud: "jitsi",
@@ -48,9 +47,26 @@ export async function signJitsiCommunityJwt(opts: {
     },
   };
 
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
+  const normalizedSecret = normalizeJitsiSecret(secret);
+  const useRs256 = jaas || isPemPrivateKey(normalizedSecret);
+
+  const signer = useRs256
+    ? await importPKCS8(normalizedSecret, "RS256")
+    : new TextEncoder().encode(normalizedSecret);
+
+  const header = useRs256
+    ? { alg: "RS256" as const, typ: "JWT" as const, kid: getJitsiApiKey()! }
+    : { alg: "HS256" as const };
+
+  const builder = new SignJWT(payload)
+    .setProtectedHeader(header)
     .setIssuedAt()
-    .setExpirationTime(JITSI_JWT_TTL)
-    .sign(jwtSecret());
+    .setExpirationTime(JITSI_JWT_TTL);
+
+  if (useRs256) {
+    const nbf = Math.floor(Date.now() / 1000) - JITSI_JWT_NBF_SKEW_SEC;
+    builder.setNotBefore(nbf);
+  }
+
+  return builder.sign(signer);
 }
