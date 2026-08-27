@@ -25,13 +25,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  const joinUrl = buildJitsiJoinUrl(result.domain, result.roomName, result.displayName, result.config);
+  const joinUrl = buildJitsiJoinUrl(
+    result.domain,
+    result.roomName,
+    result.displayName,
+    result.config,
+    result.jwt
+  );
 
   return NextResponse.json({
     domain: result.domain,
     roomName: result.roomName,
     displayName: result.displayName,
     config: result.config,
+    ...(result.jwt ? { jwt: result.jwt } : {}),
     joinUrl,
   });
 }
@@ -44,7 +51,8 @@ function buildJitsiJoinUrl(
     startWithAudioMuted: boolean;
     startWithVideoMuted: boolean;
     disableScreenSharing: boolean;
-  }
+  },
+  jwt?: string
 ) {
   const hash = new URLSearchParams();
   hash.set("config.prejoinPageEnabled", "false");
@@ -54,5 +62,6 @@ function buildJitsiJoinUrl(
     hash.set("config.disableScreensharing", "true");
   }
   hash.set("userInfo.displayName", displayName);
-  return `https://${domain}/${roomName}#${hash.toString()}`;
+  const query = jwt ? `?jwt=${encodeURIComponent(jwt)}` : "";
+  return `https://${domain}/${roomName}${query}#${hash.toString()}`;
 }

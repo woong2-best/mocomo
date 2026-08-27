@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
       roomName: result.roomName,
       displayName: result.displayName,
       config: result.config,
+      ...(result.jwt ? { jwt: result.jwt } : {}),
     });
   } catch (e) {
     console.error("[api/jitsi/community-room]", e);

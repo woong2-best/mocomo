@@ -13,6 +13,7 @@ export type CommunityJitsiCreds = {
   domain: string;
   roomName: string;
   displayName: string;
+  jwt?: string;
   config: {
     startWithAudioMuted: boolean;
     startWithVideoMuted: boolean;
@@ -109,6 +110,7 @@ export function CommunityJitsiRoom({
       <JitsiMeeting
         domain={creds.domain}
         roomName={creds.roomName}
+        jwt={creds.jwt}
         configOverwrite={{
           subject: channelName,
           prejoinPageEnabled: false,
@@ -118,6 +120,7 @@ export function CommunityJitsiRoom({
           disableDeepLinking: true,
           enableClosePage: false,
           disableInviteFunctions: true,
+          lobby: { autoKnock: false },
           ...(creds.config.disableScreenSharing ? { disableScreensharing: true } : {}),
         }}
         interfaceConfigOverwrite={{
@@ -139,6 +142,11 @@ export function CommunityJitsiRoom({
           onConnected?.();
           if (deafened) {
             api.executeCommand("toggleAudio");
+          }
+          try {
+            api.executeCommand("toggleLobby", false);
+          } catch {
+            /* self-hosted / JaaS may not expose lobby toggle */
           }
         }}
         onReadyToClose={() => onDisconnected?.()}

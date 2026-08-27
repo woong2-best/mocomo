@@ -148,6 +148,21 @@ LIVEKIT_API_SECRET=
 NEXT_PUBLIC_LIVEKIT_URL=
 ```
 
+### Community voice — do not use public meet.jit.si
+
+Since 2023, **meet.jit.si** requires Google/GitHub login to create rooms. Embedded MoCoMo voice channels get stuck in **membersOnly lobby** (`conference.connectionError.membersOnly`).
+
+Use **8x8 JaaS** (free tier at [jaas.8x8.vc](https://jaas.8x8.vc)) or **self-hosted Jitsi**:
+
+```env
+NEXT_PUBLIC_JITSI_DOMAIN=8x8.vc
+JITSI_APP_ID=vpaas-magic-cookie-xxxxxxxx
+JITSI_APP_SECRET=your-jaas-private-key
+NEXT_PUBLIC_JITSI_ROOM_PREFIX=mocomo-
+```
+
+MoCoMo signs JWT server-side (`src/lib/jitsi-jwt.ts`) so members join without the Jitsi login screen.
+
 ### Mobile (Expo)
 
 Static fallback only — live TURN creds always from API:

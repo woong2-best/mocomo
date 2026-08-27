@@ -1,7 +1,17 @@
 import { db } from "@/lib/db";
 import { loadMemberPermissions } from "@/lib/community-server/member-permissions";
 import { hasPermission } from "@/lib/community-server/permissions";
-import { buildJitsiRoomName, getJitsiDomain, isJitsiConfigured } from "@/lib/jitsi-config";
+import {
+  buildJitsiRoomName,
+  getJitsiDomain,
+  isJaasDeployment,
+  isJitsiConfigured,
+  isJitsiJwtConfigured,
+  isPublicMeetJitSi,
+  JITSI_JAAS_CREDENTIALS_ERROR,
+  JITSI_PUBLIC_MEET_ERROR,
+} from "@/lib/jitsi-config";
+import { signJitsiCommunityJwt } from "@/lib/jitsi-jwt";
 
 export type JitsiCommunityRoomResult =
   | {
@@ -9,6 +19,7 @@ export type JitsiCommunityRoomResult =
       domain: string;
       roomName: string;
       displayName: string;
+      jwt?: string;
       config: {
         startWithAudioMuted: boolean;
         startWithVideoMuted: boolean;
@@ -23,6 +34,12 @@ export async function resolveJitsiCommunityRoom(
   displayName: string
 ): Promise<JitsiCommunityRoomResult> {
   if (!isJitsiConfigured()) {
+    if (isPublicMeetJitSi()) {
+      return { ok: false, status: 503, error: JITSI_PUBLIC_MEET_ERROR };
+    }
+    if (isJaasDeployment() && !isJitsiJwtConfigured()) {
+      return { ok: false, status: 503, error: JITSI_JAAS_CREDENTIALS_ERROR };
+    }
     return { ok: false, status: 503, error: "Jitsi 서버 설정이 없습니다." };
   }
 
@@ -70,11 +87,27 @@ export async function resolveJitsiCommunityRoom(
     return { ok: false, status: 403, error: "음성 채널 입장 권한이 없습니다." };
   }
 
+  const roomName = buildJitsiRoomName(channelId);
+  const jwt = isJitsiJwtConfigured()
+    ? await signJitsiCommunityJwt({
+        roomName,
+        userId,
+        displayName,
+        // MoCoMo already gates membership; moderator avoids Jitsi lobby deadlock.
+        moderator: true,
+      })
+    : null;
+
+  if (isJaasDeployment() && !jwt) {
+    return { ok: false, status: 503, error: JITSI_JAAS_CREDENTIALS_ERROR };
+  }
+
   return {
     ok: true,
     domain: getJitsiDomain(),
-    roomName: buildJitsiRoomName(channelId),
+    roomName,
     displayName,
+    ...(jwt ? { jwt } : {}),
     config: {
       startWithAudioMuted: perms ? !hasPermission(perms, "speakVoice") : false,
       startWithVideoMuted: perms ? !hasPermission(perms, "useVideo") : true,
