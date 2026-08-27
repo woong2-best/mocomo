@@ -28,6 +28,18 @@ import { registerMinigameHandlers } from "./minigames/register-handlers";
 import { registerAptWorldHandlers } from "./apt-world-store";
 import { registerAptHomeHandlers } from "./apt-home-store";
 import { loadWordChainDictionaryFromDisk } from "./word-chain/load-dictionary";
+import {
+  initLiarGameStore,
+  liarGameBeginVote,
+  liarGameCastVote,
+  liarGameChat,
+  liarGameCreateRoom,
+  liarGameFindRoomByUserId,
+  liarGameHandleDisconnect,
+  liarGameJoinRoom,
+  liarGamePlayAgain,
+  liarGameStart,
+} from "./liar-game-store";
 
 const prisma = new PrismaClient();
 const PORT = parseInt(process.env.PORT || process.env.SOCKET_PORT || "3001", 10);
@@ -318,6 +330,7 @@ const io = new Server(httpServer, {
 });
 
 initSketchQuizStore(io);
+initLiarGameStore(io);
 initMinigameStore(io, prisma);
 loadWordChainDictionaryFromDisk();
 
@@ -936,7 +949,82 @@ io.on("connection", (socket: AuthedSocket) => {
     }
   );
 
+  socket.on(
+    "liar_create_room",
+    (data: { nickname?: string }, ack?: (r: unknown) => void) => {
+      const nickname = data.nickname?.trim().slice(0, 20) || "플레이어";
+      const result = liarGameCreateRoom(userId, nickname, socket.id);
+      if (!result.ok) {
+        ack?.(result);
+        return;
+      }
+      socket.join(`liar:${result.code}`);
+      ack?.({ ok: true, code: result.code, playerId: result.playerId, hostId: result.hostId });
+    }
+  );
+
+  socket.on(
+    "liar_join_room",
+    (data: { code?: string; nickname?: string }, ack?: (r: unknown) => void) => {
+      const nickname = data.nickname?.trim().slice(0, 20) || "플레이어";
+      const result = liarGameJoinRoom(data.code ?? "", userId, nickname, socket.id);
+      if (!result.ok) {
+        ack?.(result);
+        return;
+      }
+      socket.join(`liar:${result.code}`);
+      ack?.({ ok: true, code: result.code, playerId: result.playerId, hostId: result.hostId });
+    }
+  );
+
+  socket.on("liar_start_game", (_data: unknown, ack?: (r: unknown) => void) => {
+    const room = liarGameFindRoomByUserId(userId);
+    if (!room) {
+      ack?.({ ok: false, error: "방에 참여 중이 아닙니다." });
+      return;
+    }
+    ack?.(liarGameStart(room, userId));
+  });
+
+  socket.on("liar_begin_vote", (_data: unknown, ack?: (r: unknown) => void) => {
+    const room = liarGameFindRoomByUserId(userId);
+    if (!room) {
+      ack?.({ ok: false, error: "방에 참여 중이 아닙니다." });
+      return;
+    }
+    ack?.(liarGameBeginVote(room, userId));
+  });
+
+  socket.on("liar_chat_message", (data: { message?: string }) => {
+    const room = liarGameFindRoomByUserId(userId);
+    if (!room) return;
+    const payload = liarGameChat(room, userId, data.message ?? "");
+    if (payload) io.to(`liar:${room.code}`).emit("liar_chat_message", payload);
+  });
+
+  socket.on(
+    "liar_cast_vote",
+    (data: { targetId?: string }, ack?: (r: unknown) => void) => {
+      const room = liarGameFindRoomByUserId(userId);
+      if (!room) {
+        ack?.({ ok: false, error: "방에 참여 중이 아닙니다." });
+        return;
+      }
+      ack?.(liarGameCastVote(room, userId, String(data.targetId ?? "")));
+    }
+  );
+
+  socket.on("liar_play_again", (_data: unknown, ack?: (r: unknown) => void) => {
+    const room = liarGameFindRoomByUserId(userId);
+    if (!room) {
+      ack?.({ ok: false, error: "방에 참여 중이 아닙니다." });
+      return;
+    }
+    ack?.(liarGamePlayAgain(room, userId));
+  });
+
   socket.on("disconnect", () => {
+    liarGameHandleDisconnect(socket.id);
     sketchQuizMatchCancel(userId);
     minigameMatchCancelAll(userId);
     const wentOffline = setUserOnline(userId, false);

@@ -33,6 +33,8 @@ export type ActivityDefinition = {
   maxPlayers: number;
   /** false면 목록에만 보이고 Join 시 준비중 안내 */
   playable: boolean;
+  /** 게임 허브 URL — 피커에서 클릭 시 이동 */
+  href?: string;
   /** 기존 미니게임 id 매핑 (선택) */
   minigameId?: string;
 };

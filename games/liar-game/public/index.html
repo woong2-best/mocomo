@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>라이어 게임 | MoCoMo</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- 로비 -->
+      <section id="screen-lobby" class="screen active">
+        <header class="hero">
+          <p class="eyebrow">MoCoMo Play Together</p>
+          <h1>라이어 게임</h1>
+          <p class="subtitle">제시어를 아는 사람과 모르는 라이어, 누가 누굴 찾아낼까요?</p>
+        </header>
+
+        <div class="card">
+          <label class="field">
+            <span>닉네임</span>
+            <input id="nickname-input" type="text" maxlength="20" placeholder="닉네임 입력" autocomplete="off" />
+          </label>
+
+          <div class="actions-row">
+            <button id="btn-create" class="btn primary" type="button">방 만들기 (Create)</button>
+          </div>
+
+          <div class="divider"><span>또는</span></div>
+
+          <label class="field">
+            <span>방 번호</span>
+            <input id="room-code-input" type="text" maxlength="6" placeholder="6자리 코드" autocomplete="off" />
+          </label>
+          <button id="btn-join" class="btn secondary" type="button">입장 (Join)</button>
+
+          <p id="lobby-error" class="error hidden"></p>
+        </div>
+
+        <p class="footnote">최소 3명 · 과일 · 동물 · 전자기기 제시어</p>
+      </section>
+
+      <!-- 대기실 -->
+      <section id="screen-room" class="screen">
+        <header class="room-header">
+          <div>
+            <p class="eyebrow">방 번호</p>
+            <h2 id="room-code-display">------</h2>
+          </div>
+          <span id="phase-badge" class="badge">로비</span>
+        </header>
+
+        <div class="card">
+          <h3>플레이어 <span id="player-count">0</span>명</h3>
+          <ul id="player-list" class="player-list"></ul>
+          <p id="room-hint" class="hint">최소 3명이 모이면 방장이 게임을 시작할 수 있습니다.</p>
+          <button id="btn-start" class="btn primary hidden" type="button">게임 시작</button>
+          <button id="btn-begin-vote" class="btn primary hidden" type="button">투표 시작</button>
+          <button id="btn-play-again" class="btn secondary hidden" type="button">로비로 돌아가기</button>
+        </div>
+
+        <div id="chat-panel" class="card hidden">
+          <h3>토론 채팅</h3>
+          <div id="chat-log" class="chat-log" aria-live="polite"></div>
+          <form id="chat-form" class="chat-form">
+            <input id="chat-input" type="text" maxlength="500" placeholder="메시지 입력..." autocomplete="off" />
+            <button class="btn primary" type="submit">전송</button>
+          </form>
+        </div>
+
+        <div id="vote-panel" class="card hidden">
+          <h3>투표</h3>
+          <p class="hint">라이어로 의심되는 사람을 선택하세요.</p>
+          <div id="vote-options" class="vote-options"></div>
+          <p id="vote-progress" class="hint"></p>
+        </div>
+
+        <div id="result-panel" class="card hidden">
+          <h3>결과</h3>
+          <div id="result-body"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 역할 / 제시어 보안 모달 -->
+    <div id="role-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="role-title">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card secret">
+        <p class="eyebrow">비밀 정보 — 다른 사람에게 보이지 않습니다</p>
+        <h2 id="role-title">당신의 역할</h2>
+        <p id="role-label" class="role-label"></p>
+        <p id="role-category" class="role-meta"></p>
+        <p id="role-word" class="role-word"></p>
+        <p id="role-hint" class="hint"></p>
+        <button id="btn-close-role" class="btn primary" type="button">확인</button>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/main.js"></script>
+  </body>
+</html>

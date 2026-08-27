@@ -1,0 +1,345 @@
+/* MoCoMo 라이어 게임 — standalone UI */
+:root {
+  --bg: #1a1a22;
+  --card: #242430;
+  --border: rgba(99, 102, 241, 0.25);
+  --cream: #f5f0e6;
+  --cobalt: #6366f1;
+  --terracotta: #c96d4a;
+  --muted: #9ca3af;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --secret-bg: #2a1f1f;
+  --secret-border: rgba(201, 109, 74, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #2a2a38 0%, var(--bg) 55%);
+  color: var(--cream);
+}
+
+#app {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2rem;
+}
+
+.screen {
+  display: none;
+}
+
+.screen.active {
+  display: block;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 0.5rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+}
+
+.subtitle,
+.hint,
+.footnote {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.card {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 1rem;
+  padding: 1rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.field input {
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--cream);
+  font-size: 1rem;
+}
+
+.field input:focus {
+  outline: 2px solid var(--cobalt);
+  border-color: transparent;
+}
+
+.actions-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn {
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, var(--cobalt), #4f46e5);
+  color: white;
+  width: 100%;
+}
+
+.btn.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cream);
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.error {
+  margin: 0.75rem 0 0;
+  color: #fca5a5;
+  font-size: 0.85rem;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.room-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.18);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.player-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+
+.player-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.65rem;
+  background: rgba(0, 0, 0, 0.2);
+  margin-bottom: 0.35rem;
+}
+
+.player-list li .host-tag {
+  font-size: 0.7rem;
+  color: var(--terracotta);
+  font-weight: 700;
+}
+
+.chat-log {
+  height: 220px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  border-radius: 0.65rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.65rem;
+}
+
+.chat-line {
+  margin-bottom: 0.45rem;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.chat-line .name {
+  color: var(--cobalt);
+  font-weight: 700;
+  margin-right: 0.35rem;
+}
+
+.chat-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat-form input {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--cream);
+}
+
+.chat-form .btn {
+  width: auto;
+  white-space: nowrap;
+}
+
+.vote-options {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.vote-options button {
+  text-align: left;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 380px);
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.modal-card.secret {
+  background: var(--secret-bg);
+  border-color: var(--secret-border);
+}
+
+.role-label {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.role-label.liar {
+  color: var(--danger);
+}
+
+.role-label.civilian {
+  color: var(--success);
+}
+
+.role-meta {
+  margin: 0 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.role-word {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0 0 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.result-banner {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+}
+
+.result-banner.win-civilians {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #86efac;
+}
+
+.result-banner.win-liar {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.tally-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.88rem;
+}

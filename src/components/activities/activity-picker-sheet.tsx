@@ -1,13 +1,24 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { listActivities } from "@/lib/activities/registry";
 import { useActivity } from "@/components/activities/activity-provider";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 
 export function ActivityPickerSheet() {
+  const router = useRouter();
   const { pickerOpen, closePicker, inviteActivity, peerUserId } = useActivity();
   const activities = listActivities();
+
+  function onPickActivity(activityId: string, href?: string) {
+    closePicker();
+    if (href) {
+      router.push(href);
+      return;
+    }
+    inviteActivity(activityId);
+  }
 
   if (!pickerOpen) return null;
 
@@ -46,8 +57,8 @@ export function ActivityPickerSheet() {
             <button
               key={a.id}
               type="button"
-              disabled={!a.playable || !peerUserId}
-              onClick={() => inviteActivity(a.id)}
+              disabled={!a.playable || (!a.href && !peerUserId)}
+              onClick={() => onPickActivity(a.id, a.href)}
               className={cn(
                 "text-left rounded-xl border-2 px-3 py-3 transition-all",
                 a.playable

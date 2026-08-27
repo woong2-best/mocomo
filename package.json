@@ -6,6 +6,8 @@
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:socket\"",
     "dev:web": "next dev",
     "dev:socket": "tsx watch server/socket.ts",
+    "liar-game": "node games/liar-game/server.js",
+    "dev:liar-game": "npm run liar-game --prefix games/liar-game",
     "start:socket": "npx tsx server/socket.ts",
     "build": "prisma generate && node scripts/next-build.cjs",
     "vercel-build": "prisma generate && node scripts/copy-mediapipe-assets.cjs && node scripts/copy-avatar-assets.cjs && node scripts/vercel-db-sync.cjs && node scripts/next-build.cjs",
