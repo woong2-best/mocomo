@@ -1,5 +1,6 @@
 "use client";
 
+import { ActivityRoom } from "@/components/activities/activity-room";
 import { ChatRoomShell } from "@/components/messages/chat-room-shell";
 import { useCommunityMembership } from "@/components/community-server/community-membership-context";
 import type { ChatMessageView } from "@/lib/chat-message-normalize";
@@ -39,23 +40,23 @@ export function TextChannelShell({
   const readOnly = serverReadOnly && !isMember && !isOwner;
   const canDeleteMessages =
     hasPermission(permissions, "deleteMessages") || hasPermission(permissions, "moderateChat");
-  const vipEmoji = hasPermission(permissions, "vipEmoji");
 
   return (
-    <ChatRoomShell
-      roomId={roomId}
-      communityId={communityId}
-      userId={userId}
-      username={username}
-      userImage={userImage}
-      userSupportTier={userSupportTier}
-      initialMessages={initialMessages}
-      header={header}
-      groupMeta={null}
-      readOnly={readOnly}
-      guestMode={guestMode}
-      vipEmoji={vipEmoji}
-      canDeleteMessages={canDeleteMessages}
-    />
+    <ActivityRoom contextType="community" contextId={communityId}>
+      <ChatRoomShell
+        roomId={roomId}
+        communityId={communityId}
+        userId={userId}
+        username={username}
+        userImage={userImage}
+        userSupportTier={userSupportTier}
+        initialMessages={initialMessages}
+        header={header}
+        groupMeta={null}
+        readOnly={readOnly}
+        guestMode={guestMode}
+        canDeleteMessages={canDeleteMessages}
+      />
+    </ActivityRoom>
   );
 }

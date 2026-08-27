@@ -585,7 +585,6 @@ export function ChatRoomClient({
             onSendText={send}
             onSendAttachments={sendAttachments}
             inputRef={composerInputRef}
-            vipEmoji={vipEmoji}
           />
         </div>
       )}
