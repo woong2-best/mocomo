@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Loader2 } from "lucide-react";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveChatProvider } from "@/components/live/live-chat-provider";
+import { LiveSupportProvider } from "@/components/live/live-support-provider";
 
 const LiveViewerPlayer = dynamic(
   () => import("@/components/live/live-viewer-player").then((m) => m.LiveViewerPlayer),
@@ -31,9 +32,18 @@ export function LiveChannelStudio({
       <div className="rounded-xl border border-border flex flex-col min-h-[300px]">
         <div className="px-3 py-2 border-b border-border text-sm font-medium">시청자 채팅</div>
         <LiveChatProvider channelId={channelId} userId={session?.user?.id}>
-          <div className="flex-1 min-h-[240px] flex flex-col">
-            <LiveChat channelId={channelId} viewerCount={0} isHost={isOwner} canModerate={isOwner} />
-          </div>
+          <LiveSupportProvider
+            channelId={channelId}
+            isHost={isOwner}
+            feedChat
+            onAlert={() => {
+              /* Community embed: alerts shown in chat feed only */
+            }}
+          >
+            <div className="flex-1 min-h-[240px] flex flex-col">
+              <LiveChat channelId={channelId} viewerCount={0} isHost={isOwner} canModerate={isOwner} />
+            </div>
+          </LiveSupportProvider>
         </LiveChatProvider>
       </div>
       {isOwner && (
