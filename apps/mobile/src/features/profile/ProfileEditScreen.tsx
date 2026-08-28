@@ -22,6 +22,7 @@ import { ApiError } from "@/api/client";
 import { uploadLocalFile } from "@/api/upload-file";
 import { useAuth } from "@/auth/AuthContext";
 import { probeVideo } from "@/lib/apply-video-watermark";
+import { transcodeBannerVideoToH264 } from "@/lib/transcode-banner-video";
 import {
   prepareProfileAvatar,
   prepareProfileBannerImage,
@@ -245,12 +246,11 @@ export function ProfileEditScreen() {
         Alert.alert("동영상 길이", "배너 동영상은 10초 이하여야 합니다.");
         return;
       }
-      const mime = asset.mimeType || "video/mp4";
-      const ext = mime.includes("webm") ? "webm" : mime.includes("quicktime") ? "mov" : "mp4";
+      const converted = await transcodeBannerVideoToH264(asset.uri);
       const url = await uploadLocalFile({
-        uri: asset.uri,
-        filename: `profile-banner-${Date.now()}.${ext}`,
-        contentType: mime,
+        uri: converted.uri,
+        filename: converted.filename,
+        contentType: converted.mime,
         category: "video",
       });
       setBannerVideoUrl(url);

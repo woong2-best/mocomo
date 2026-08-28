@@ -8,8 +8,17 @@ export type VideoWatermark = {
   options: WatermarkOptions;
 };
 
-function pickRecorderMime(): string {
-  const candidates = [
+function pickRecorderMime(preferMp4 = false): string {
+  const mp4First = [
+    "video/mp4",
+    "video/mp4;codecs=avc1",
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+  ];
+  const webmFirst = [
     "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
     "video/webm;codecs=vp9",
@@ -17,12 +26,13 @@ function pickRecorderMime(): string {
     "video/webm",
     "video/mp4",
   ];
+  const candidates = preferMp4 ? mp4First : webmFirst;
   for (const mime of candidates) {
     if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(mime)) {
       return mime;
     }
   }
-  return "video/webm";
+  return preferMp4 ? "video/mp4" : "video/webm";
 }
 
 function waitForVideoReady(video: HTMLVideoElement, timeoutMs = 15000): Promise<void> {
@@ -67,12 +77,18 @@ function seekVideo(video: HTMLVideoElement, time: number): Promise<void> {
   });
 }
 
+type ProcessVideoOptions = {
+  /** 배너 등 크로스브라우저 MP4(H.264) 우선 */
+  preferMp4?: boolean;
+};
+
 /** 편집 상태를 적용해 영상을 재인코딩한다 (오디오 포함) */
 export async function processVideoBlob(
   blob: Blob,
   edit: VideoEditState,
   onProgress?: (ratio: number) => void,
-  watermark?: VideoWatermark
+  watermark?: VideoWatermark,
+  options?: ProcessVideoOptions
 ): Promise<Blob> {
   const url = URL.createObjectURL(blob);
   const video = document.createElement("video");
@@ -109,7 +125,7 @@ export async function processVideoBlob(
     throw new Error("Canvas를 사용할 수 없습니다.");
   }
 
-  const mimeType = pickRecorderMime();
+  const mimeType = pickRecorderMime(options?.preferMp4);
   const fps = 30;
   const canvasStream = canvas.captureStream(fps);
 
@@ -261,6 +277,29 @@ export async function trimVideoBlob(
     URL.revokeObjectURL(url);
     throw e;
   }
+}
+
+/** H.265 등 브라우저 전용 코덱 → MP4(H.264)/WebM 재인코딩 (배너 업로드용) */
+export async function reencodeBannerVideoBlob(
+  blob: Blob,
+  durationSec: number,
+  onProgress?: (ratio: number) => void
+): Promise<Blob> {
+  const edit: VideoEditState = {
+    startSec: 0,
+    endSec: Math.max(0.1, durationSec),
+    rotation: 0,
+    flipX: false,
+    flipY: false,
+    filterId: "none",
+    brightness: 0,
+    contrast: 0,
+    saturation: 0,
+    volume: 0,
+    muted: true,
+    stickers: [],
+  };
+  return processVideoBlob(blob, edit, onProgress, undefined, { preferMp4: true });
 }
 
 export async function watermarkVideoBlob(

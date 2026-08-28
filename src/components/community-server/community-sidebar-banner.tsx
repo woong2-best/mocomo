@@ -10,9 +10,10 @@ import { uploadVideoBlob } from "@/lib/client-upload";
 import { isGalleryVideoFile, normalizeGalleryVideoFile } from "@/lib/gallery-video-upload";
 import {
   MAX_PROFILE_BANNER_VIDEO_DURATION_SEC,
+  BANNER_VIDEO_FORMAT_HINT,
   bannerVideoMimeWarning,
   probeVideoDurationSec,
-  probeVideoPlayable,
+  prepareBannerVideoForUpload,
   profileBannerHasVideo,
   profileBannerImageUrl,
 } from "@/lib/profile-banner";
@@ -115,15 +116,11 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
         setError(`배너 동영상은 ${MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초 이하여야 합니다.`);
         return;
       }
-      const playable = await probeVideoPlayable(file);
-      if (!playable) {
-        setError("이 브라우저에서 재생할 수 없는 영상입니다. MP4(H.264)로 변환 후 올려 주세요.");
-        return;
-      }
-      const url = await uploadVideoBlob(file, file.name);
+      const prepared = await prepareBannerVideoForUpload(file);
+      const url = await uploadVideoBlob(prepared, prepared.name);
       await persist({ bannerVideoUrl: url, bannerUrl: "" });
-    } catch {
-      setError("영상 업로드에 실패했습니다.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "영상 업로드에 실패했습니다.");
     } finally {
       setUploadingVideo(false);
     }
@@ -235,7 +232,8 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
               ) : null}
             </div>
             <p className="text-[10px] leading-snug text-muted-foreground">
-              MP4(H.264) 권장 · 무음 자동 재생 · 최대 {MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초
+              {BANNER_VIDEO_FORMAT_HINT} · 최대 {MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초
+              {uploadingVideo ? " · H.265는 호환 형식으로 변환 중…" : ""}
             </p>
             <Button
               type="button"
