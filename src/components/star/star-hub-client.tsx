@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { STAR_CHANGED_EVENT } from "@/lib/post-engage-client";
 import { userDisplayName } from "@/lib/user-public-select";
+import { resolveVideoPosterUrl } from "@/lib/video-poster";
 
 function formatDuration(sec: number | null | undefined): string | null {
   if (!sec || sec <= 0 || !Number.isFinite(sec)) return null;
@@ -21,8 +22,12 @@ function formatDuration(sec: number | null | undefined): string | null {
 function pickCover(post: GridPost) {
   const media = post.media?.[0];
   if (!media) return null;
+  const isVideo = media.type === "VIDEO" || post.postType === "VIDEO";
+  const url = isVideo
+    ? resolveVideoPosterUrl(media)
+    : media.url?.trim() || null;
   return {
-    url: media.posterUrl?.trim() || media.url,
+    url,
     type: media.type,
     duration: media.duration,
   };
@@ -39,13 +44,8 @@ function StarGridTile({ post }: { post: GridPost }) {
       className="group relative block aspect-square min-w-0 w-full overflow-hidden rounded-sm bg-neutral-900 ring-1 ring-border/40 hover:ring-primary/40 transition-shadow"
     >
       {cover?.url ? (
-        isVideo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover.url} alt="" className="h-full w-full object-cover" loading="lazy" />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover.url} alt="" className="h-full w-full object-cover" loading="lazy" />
-        )
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={cover.url} alt="" className="h-full w-full object-cover" loading="lazy" />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-muted/40 p-2 text-center text-[11px] font-semibold text-muted-foreground">
           {post.title || post.content?.slice(0, 40) || "게시물"}
