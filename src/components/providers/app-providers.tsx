@@ -41,6 +41,14 @@ const NativePushRegistration = dynamic(
   { ssr: false }
 );
 
+const StaleDeploymentRecovery = dynamic(
+  () =>
+    import("@/components/providers/stale-deployment-recovery").then(
+      (m) => m.StaleDeploymentRecovery
+    ),
+  { ssr: false }
+);
+
 export function AppProviders({
   children,
   initialLocale,
@@ -66,6 +74,7 @@ export function AppProviders({
           <FeedPhotoLightboxProvider>
           <ComposeProvider>
             <SidebarToggleProvider>
+              <StaleDeploymentRecovery />
               <PushRegistration />
               <NativePushRegistration />
               <CheckoutResumeHandler />
