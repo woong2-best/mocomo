@@ -17,7 +17,6 @@ import {
 
 const TABS: { id: CommunityPostsBoardTab; label: string }[] = [
   { id: "all", label: "전체글" },
-  { id: "best", label: "개념글" },
   { id: "notice", label: "공지" },
 ];
 
@@ -166,11 +165,7 @@ export function CommunityPostsBoard({
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-16 text-center text-sm text-muted-foreground">
-                    {tab === "notice"
-                      ? "등록된 공지가 없습니다."
-                      : tab === "best"
-                        ? "개념글이 아직 없습니다."
-                        : "등록된 글이 없습니다."}
+                    {tab === "notice" ? "등록된 공지가 없습니다." : "등록된 글이 없습니다."}
                   </td>
                 </tr>
               ) : (

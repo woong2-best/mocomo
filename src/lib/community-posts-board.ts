@@ -1,4 +1,4 @@
-export type CommunityPostsBoardTab = "all" | "best" | "notice";
+export type CommunityPostsBoardTab = "all" | "notice";
 
 export type CommunityPostsBoardItem = {
   id: string;
@@ -15,7 +15,6 @@ export type CommunityPostsBoardItem = {
 
 export function parseCommunityPostsTab(value: string | null | undefined): CommunityPostsBoardTab {
   if (value === "notice") return "notice";
-  if (value === "best") return "best";
   return "all";
 }
 
@@ -56,7 +55,6 @@ export function filterCommunityPostsByTab(
   tab: CommunityPostsBoardTab
 ): CommunityPostsBoardItem[] {
   if (tab === "notice") return posts.filter((p) => p.isPinned);
-  if (tab === "best") return posts.filter((p) => p.likeCount >= 3);
   return posts;
 }
 
@@ -66,12 +64,6 @@ export function sortCommunityPostsForBoard(
 ): CommunityPostsBoardItem[] {
   const pinned = posts.filter((p) => p.isPinned);
   const rest = posts.filter((p) => !p.isPinned);
-  if (tab === "best") {
-    return [
-      ...pinned.sort((a, b) => b.likeCount - a.likeCount),
-      ...rest.sort((a, b) => b.likeCount - a.likeCount || b.viewCount - a.viewCount),
-    ];
-  }
   return [
     ...pinned.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     ...rest.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
