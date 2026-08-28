@@ -7,6 +7,7 @@ import { userPublicSelect } from "@/lib/user-public-select";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { isSubscriptionActive } from "@/lib/creator-subscription";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
+import { platformPostWhere } from "@/lib/post-scope";
 
 export async function GET(
   req: NextRequest,
@@ -63,7 +64,7 @@ export async function GET(
   }
 
   const posts = await db.post.findMany({
-    where: { authorId: user.id },
+    where: { authorId: user.id, ...platformPostWhere },
     orderBy: { createdAt: "desc" },
     take: 40,
     select: {

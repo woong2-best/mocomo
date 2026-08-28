@@ -9,6 +9,7 @@ import {
   mapFeedPost,
   trimFeedPostContent,
 } from "@/lib/feed-query";
+import { withPlatformPostsOnly } from "@/lib/post-scope";
 
 export type HashtagSort = "top" | "latest";
 
@@ -25,12 +26,12 @@ export function hashtagDisplayLabel(tag: string): string {
 
 function hashtagContentFilter(tag: string): Prisma.PostWhereInput {
   const needle = `#${tag}`;
-  return {
+  return withPlatformPostsOnly({
     OR: [
       { content: { contains: needle, mode: "insensitive" } },
       { title: { contains: needle, mode: "insensitive" } },
     ],
-  };
+  });
 }
 
 export async function countHashtagPosts(tag: string): Promise<number> {
@@ -91,7 +92,7 @@ export function getCachedHashtagPosts(tag: string, sort: HashtagSort) {
   const key = tag.toLowerCase().slice(0, 80);
   return unstable_cache(
     () => fetchHashtagPosts(tag, sort),
-    ["hashtag-posts-v1", key, sort],
+    ["hashtag-posts-v2-platform-only", key, sort],
     { revalidate: 30 }
   )();
 }

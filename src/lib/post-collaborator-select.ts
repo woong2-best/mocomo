@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { userPublicSelect } from "@/lib/user-public-select";
+import { platformPostWhere } from "@/lib/post-scope";
 
 /** Post header credit: show invited (PENDING) + accepted collaborators. */
 export const postCollaboratorsHeaderInclude = {
@@ -22,6 +23,7 @@ export function profilePostsOwnedOrCollabWhere(
   userId: string
 ): Prisma.PostWhereInput {
   return {
+    ...platformPostWhere,
     OR: [
       { authorId: userId },
       {

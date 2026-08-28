@@ -11,6 +11,7 @@ import {
 } from "@/lib/notifications";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { userPublicSelect } from "@/lib/user-public-select";
+import { platformPostWhere } from "@/lib/post-scope";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import {
   toggleFollowForUser,
@@ -181,7 +182,9 @@ export async function getFeed(cursor?: string, limit = 20) {
       : {};
 
   const posts = await db.post.findMany({
-    where: user ? authorFilter : {},
+    where: user
+      ? { ...platformPostWhere, ...authorFilter }
+      : platformPostWhere,
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     orderBy: { createdAt: "desc" },
@@ -206,6 +209,7 @@ export async function getFeed(cursor?: string, limit = 20) {
 
 export async function getTrending() {
   const posts = await db.post.findMany({
+    where: platformPostWhere,
     take: 10,
     orderBy: { hotScore: "desc" },
     include: {

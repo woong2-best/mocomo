@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getBoolParam, getNumericParam } from "@/lib/feed-ranking/params";
+import { platformPostWhere } from "@/lib/post-scope";
 import type { FeedBucket, FeedQuery, PostCandidate } from "@/lib/feed-ranking/types";
 import type { Source } from "@/lib/feed-ranking/pipeline/types";
 
@@ -65,6 +66,7 @@ export const followingSource: Source<FeedQuery, PostCandidate> = {
 
     const rows = await db.post.findMany({
       where: {
+        ...platformPostWhere,
         authorId: { in: following },
         visibility: "PUBLIC",
       },
@@ -85,7 +87,7 @@ export const trendingSource: Source<FeedQuery, PostCandidate> = {
     const limit = getNumericParam(query.params, "TrendingSourceLimit");
 
     const rows = await db.post.findMany({
-      where: { visibility: "PUBLIC" },
+      where: { ...platformPostWhere, visibility: "PUBLIC" },
       select: postSelect,
       orderBy: [{ hotScore: "desc" }, { createdAt: "desc" }],
       take: limit,
@@ -110,9 +112,6 @@ export const interestSource: Source<FeedQuery, PostCandidate> = {
     const limit = getNumericParam(query.params, "InterestSourceLimit");
     const orClauses: Record<string, unknown>[] = [];
 
-    if (query.communityIds.size) {
-      orClauses.push({ communityId: { in: [...query.communityIds].slice(0, 30) } });
-    }
     if (query.animeIds.size) {
       orClauses.push({ animeId: { in: [...query.animeIds].slice(0, 30) } });
     }
@@ -127,6 +126,7 @@ export const interestSource: Source<FeedQuery, PostCandidate> = {
 
     const rows = await db.post.findMany({
       where: {
+        ...platformPostWhere,
         visibility: "PUBLIC",
         OR: orClauses,
         authorId: { not: query.userId },
@@ -162,6 +162,7 @@ export const discoverySource: Source<FeedQuery, PostCandidate> = {
 
     const rows = await db.post.findMany({
       where: {
+        ...platformPostWhere,
         visibility: "PUBLIC",
         authorId: { notIn: [...excludeAuthors].slice(0, 500) },
       },

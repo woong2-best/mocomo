@@ -354,7 +354,7 @@ export async function getProfileTimeline(
 
   if (tab === "replies") {
     const comments = await db.comment.findMany({
-      where: { authorId: userId, parentId: null },
+      where: { authorId: userId, parentId: null, post: { communityId: null } },
       take: PAGE_SIZE,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
       orderBy: { createdAt: "desc" },
@@ -403,7 +403,7 @@ export async function getProfileTimeline(
   }
 
   const likes = await db.like.findMany({
-    where: { userId },
+    where: { userId, post: { communityId: null } },
     take: PAGE_SIZE,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     orderBy: { createdAt: "desc" },

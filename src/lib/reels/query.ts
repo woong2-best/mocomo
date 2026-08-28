@@ -5,6 +5,7 @@ import { userPublicSelect } from "@/lib/user-public-select";
 import type { ReelItem } from "@/lib/reels/types";
 import { REELS_PAGE_SIZE } from "@/lib/reels/constants";
 import { isHlsUrl } from "@/lib/reels/playback-url";
+import { platformPostWhere } from "@/lib/post-scope";
 
 const reelsMediaSelect = {
   id: true,
@@ -124,6 +125,7 @@ export async function fetchReelsPage(cursor: string | null, limit = REELS_PAGE_S
       ...(scanCursor ? { skip: 1, cursor: { id: scanCursor } } : {}),
       orderBy: { createdAt: "desc" },
       where: {
+        ...platformPostWhere,
         isNsfw: false,
         media: { some: { type: "VIDEO", priceKrw: 0 } },
       },
@@ -172,7 +174,7 @@ export function getCachedReelsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchReelsPage(cursor, limit),
-    ["reels-page-v2-hls", cacheKey, String(limit)],
+    ["reels-page-v3-platform-only", cacheKey, String(limit)],
     { revalidate: 20, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

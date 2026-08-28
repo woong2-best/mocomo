@@ -10,6 +10,7 @@ import { getAnimeCountByGenre } from "@/actions/anime";
 import { getWeeklyHighlights } from "@/lib/weekly-highlights";
 import { getSubcultureMapPins } from "@/lib/subculture-events";
 import { feedPostListSelect, mapFeedPost } from "@/lib/feed-query";
+import { platformPostWhere } from "@/lib/post-scope";
 
 export const getCachedWeeklyHighlights = unstable_cache(
   async () => getWeeklyHighlights(5),
@@ -21,6 +22,7 @@ export const getCachedFeedPosts = unstable_cache(
   async () => {
     try {
       const posts = await db.post.findMany({
+        where: platformPostWhere,
         take: 12,
         orderBy: { createdAt: "desc" },
         select: feedPostListSelect,
@@ -29,6 +31,7 @@ export const getCachedFeedPosts = unstable_cache(
     } catch (e) {
       console.error("[home-feed] poll/reposts", e);
       const posts = await db.post.findMany({
+        where: platformPostWhere,
         take: 12,
         orderBy: { createdAt: "desc" },
         select: {
@@ -45,7 +48,7 @@ export const getCachedFeedPosts = unstable_cache(
       );
     }
   },
-  ["home-feed-posts-v8-media-cap8", "2026-08-18"],
+  ["home-feed-posts-v9-platform-only", "2026-08-28"],
   { revalidate: 30, tags: [FEED_POSTS_CACHE_TAG] }
 );
 
@@ -138,6 +141,7 @@ export const getCachedExploreData = unstable_cache(
   async () => {
     const [trendingPosts, suggestedUsers] = await Promise.all([
       db.post.findMany({
+        where: platformPostWhere,
         take: 8,
         orderBy: [{ hotScore: "desc" }, { createdAt: "desc" }],
         select: feedPostListSelect,
@@ -156,7 +160,7 @@ export const getCachedExploreData = unstable_cache(
       suggestedUsers,
     };
   },
-  ["explore-data-v2"],
+  ["explore-data-v3-platform-only"],
   { revalidate: 60 }
 );
 

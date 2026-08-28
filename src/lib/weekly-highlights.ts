@@ -2,6 +2,7 @@ import type { SupportTierLevel } from "@prisma/client";
 import { subDays } from "date-fns";
 import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
+import { platformPostWhere } from "@/lib/post-scope";
 
 const highlightInclude = {
   author: { select: userPublicSelect },
@@ -47,7 +48,7 @@ function mapPost(
 async function fetchHighlightPosts(ids: string[]) {
   if (ids.length === 0) return [];
   const posts = await db.post.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: ids }, ...platformPostWhere },
     include: highlightInclude,
   });
   const order = new Map(ids.map((id, i) => [id, i]));
@@ -66,7 +67,7 @@ export async function getWeeklyHighlights(limit = 5) {
       take: limit,
     }),
     db.post.findMany({
-      where: { createdAt: { gte: since } },
+      where: { createdAt: { gte: since }, ...platformPostWhere },
       orderBy: [{ viewCount: "desc" }, { createdAt: "desc" }],
       take: limit,
       select: { id: true },

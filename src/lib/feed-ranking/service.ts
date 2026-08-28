@@ -10,6 +10,7 @@ import {
   trimFeedPostContent,
   type FeedPostRow,
 } from "@/lib/feed-query";
+import { platformPostWhere } from "@/lib/post-scope";
 import { getOrComputeFeedRanking } from "@/lib/feed-ranking/compute";
 
 export type FeedMode = "for_you" | "latest" | "following";
@@ -79,7 +80,7 @@ export async function fetchFollowingWebFeedPage(
   if (!authorIds.length) return [];
 
   const posts = await db.post.findMany({
-    where: { authorId: { in: authorIds }, visibility: "PUBLIC" },
+    where: { ...platformPostWhere, authorId: { in: authorIds }, visibility: "PUBLIC" },
     select: feedPostListSelect,
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -102,7 +103,7 @@ export async function fetchFollowingMobileFeedPage(
   if (!authorIds.length) return [];
 
   const posts = await db.post.findMany({
-    where: { authorId: { in: authorIds }, visibility: "PUBLIC" },
+    where: { ...platformPostWhere, authorId: { in: authorIds }, visibility: "PUBLIC" },
     select: mobileFeedPostSelect,
     orderBy: { createdAt: "desc" },
     take: limit,

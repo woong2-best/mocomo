@@ -5,6 +5,7 @@ import { userPublicSelect } from "@/lib/user-public-select";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { postPollSelect, mapPostPollRow } from "@/lib/post-poll";
 import { postCollaboratorsHeaderInclude } from "@/lib/post-collaborator-select";
+import { platformPostWhere } from "@/lib/post-scope";
 
 const FEED_POST_MAX_CONTENT = 520;
 
@@ -83,6 +84,7 @@ export const feedPostListSelectNoPoll = {
 
 export async function fetchFeedPostsPage(cursor: string | null, limit: number) {
   const query = {
+    where: platformPostWhere,
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     orderBy: { createdAt: "desc" as const },
@@ -158,6 +160,7 @@ const mobileFeedPostSelectNoReposts = {
 
 export async function fetchMobileFeedPostsPage(cursor: string | null, limit: number) {
   const query = {
+    where: platformPostWhere,
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     orderBy: { createdAt: "desc" as const },
@@ -183,7 +186,7 @@ export function getCachedFeedPostsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchFeedPostsPage(cursor, limit),
-    ["feed-page-v8-media-cap8", cacheKey, String(limit)],
+    ["feed-page-v9-platform-only", cacheKey, String(limit)],
     { revalidate: 30, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }
@@ -192,7 +195,7 @@ export function getCachedMobileFeedPostsPage(cursor: string | null, limit: numbe
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchMobileFeedPostsPage(cursor, limit),
-    ["mobile-feed-page-v2-views", cacheKey, String(limit)],
+    ["mobile-feed-page-v3-platform-only", cacheKey, String(limit)],
     { revalidate: 20, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }
@@ -201,7 +204,7 @@ export function getCachedMobileFeedPostsPage(cursor: string | null, limit: numbe
 export async function fetchWebFeedPostsByIds(postIds: string[]): Promise<FeedPostRow[]> {
   if (!postIds.length) return [];
   const posts = await db.post.findMany({
-    where: { id: { in: postIds } },
+    where: { id: { in: postIds }, ...platformPostWhere },
     select: feedPostListSelect,
   });
   const byId = new Map(posts.map((p) => [p.id, p]));
@@ -216,7 +219,7 @@ export async function fetchMobileFeedPostsByIds(
 ): Promise<Awaited<ReturnType<typeof fetchMobileFeedPostsPage>>> {
   if (!postIds.length) return [];
   const posts = await db.post.findMany({
-    where: { id: { in: postIds } },
+    where: { id: { in: postIds }, ...platformPostWhere },
     select: mobileFeedPostSelect,
   });
   const byId = new Map(posts.map((p) => [p.id, p]));

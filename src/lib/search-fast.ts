@@ -4,6 +4,7 @@ import { isHashtagSearchQuery } from "@/lib/linkify";
 import { parseHashtagFromQuery } from "@/lib/hashtag-search";
 import { getPopularWikiSearchQueries } from "@/lib/wiki-search";
 import { suggestSearchQueries } from "@/lib/search/suggest";
+import { platformPostWhere } from "@/lib/post-scope";
 import type { SupportTierLevel } from "@prisma/client";
 
 export type SearchSuggestion = {
@@ -152,19 +153,22 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
   const compact = q.replace(/\s+/g, "").toLowerCase().replace(/[\\%_]/g, "");
   const likeCompact = `%${compact}%`;
 
-  const postWhere = hashtagTag
-    ? {
-        OR: [
-          { content: { contains: `#${hashtagTag}`, mode: "insensitive" as const } },
-          { title: { contains: `#${hashtagTag}`, mode: "insensitive" as const } },
-        ],
-      }
-    : {
-        OR: [
-          { title: { contains: q, mode: "insensitive" as const } },
-          { content: { contains: q, mode: "insensitive" as const } },
-        ],
-      };
+  const postWhere = {
+    ...platformPostWhere,
+    ...(hashtagTag
+      ? {
+          OR: [
+            { content: { contains: `#${hashtagTag}`, mode: "insensitive" as const } },
+            { title: { contains: `#${hashtagTag}`, mode: "insensitive" as const } },
+          ],
+        }
+      : {
+          OR: [
+            { title: { contains: q, mode: "insensitive" as const } },
+            { content: { contains: q, mode: "insensitive" as const } },
+          ],
+        }),
+  };
 
   const animeSearch: Promise<AnimeSearchRow[]> =
     q.length >= 2 && compact.length >= 1
@@ -220,7 +224,7 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
   const animePosts =
     !hashtagTag && animeIds.length > 0
       ? await db.post.findMany({
-          where: { animeId: { in: animeIds } },
+          where: { ...platformPostWhere, animeId: { in: animeIds } },
           take: 8,
           orderBy: { createdAt: "desc" },
           select: { id: true, content: true, title: true, createdAt: true },

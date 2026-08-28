@@ -18,6 +18,7 @@ import { enqueuePostMediaHlsPackaging } from "@/lib/post-media-hls";
 import { clampMediaInt } from "@/lib/video-metadata";
 import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlement-account";
 import { validateSaleMediaPricing } from "@/lib/money";
+import { isCommunityScopedPost } from "@/lib/post-scope";
 
 export type CreatePostMediaInput = {
   url: string;
@@ -176,12 +177,16 @@ export async function createPostForUser(
     }
 
     try {
-      revalidateTag(FEED_POSTS_CACHE_TAG);
+      if (!isCommunityScopedPost({ communityId })) {
+        revalidateTag(FEED_POSTS_CACHE_TAG);
+      }
     } catch (e) {
       console.error("[createPost] revalidateTag", e);
     }
 
-    void notifyNewPostMentions(post.id, user.id, data.title, content);
+    if (!isCommunityScopedPost({ communityId })) {
+      void notifyNewPostMentions(post.id, user.id, data.title, content);
+    }
 
     const videoMedia = post.media
       .filter((m) => m.type === "VIDEO")

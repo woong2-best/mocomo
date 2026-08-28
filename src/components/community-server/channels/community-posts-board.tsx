@@ -147,7 +147,6 @@ export function CommunityPostsBoard({
             );
           })}
         </div>
-        <span className="text-[11px] text-muted-foreground">{pageSize}개</span>
       </div>
 
       <div className="rounded-lg border border-[#b8b8b8] dark:border-border overflow-hidden bg-white dark:bg-card shadow-sm">
