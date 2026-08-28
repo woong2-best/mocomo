@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   Camera,
   Film,
@@ -61,7 +69,45 @@ type PostMediaComposerProps = {
 
 const IMAGE_ACCEPT = "image/*,.heic,.heif,image/heic,image/heif";
 
-export function PostMediaComposer({
+function isLocalPreviewUrl(url: string): boolean {
+  return (
+    url.startsWith("blob:") ||
+    url.startsWith("data:") ||
+    (!url.startsWith("http") && !url.startsWith("/"))
+  );
+}
+
+function isGalleryVideoFile(file: File): boolean {
+  const type = file.type?.trim().toLowerCase() ?? "";
+  return (
+    type.startsWith("video/") ||
+    /\.(mp4|webm|mov|m4v|mkv)$/i.test(file.name)
+  );
+}
+
+function filesFromClipboard(data: DataTransfer): File[] {
+  const seen = new Set<File>();
+  const out: File[] = [];
+  const add = (file: File | null) => {
+    if (!file || seen.has(file)) return;
+    seen.add(file);
+    out.push(file);
+  };
+  for (const file of Array.from(data.files)) add(file);
+  for (const item of Array.from(data.items)) {
+    if (item.kind === "file") add(item.getAsFile());
+  }
+  return out;
+}
+
+export type PostMediaComposerHandle = {
+  handlePaste: (event: React.ClipboardEvent) => boolean;
+};
+
+export const PostMediaComposer = forwardRef<
+  PostMediaComposerHandle,
+  PostMediaComposerProps
+>(function PostMediaComposer({
   items,
   onChange,
   maxImages = 100,
@@ -78,7 +124,7 @@ export function PostMediaComposer({
   disabled = false,
   className,
   onUploadingChange,
-}: PostMediaComposerProps) {
+}, ref) {
   const galleryInputId = useId();
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -160,6 +206,12 @@ export function PostMediaComposer({
     setCropOpen(true);
   }
 
+  function finishUploadBusy(gen: number) {
+    if (gen !== galleryUploadGenRef.current) return;
+    setUploading(false);
+    onUploadingChange?.(false);
+  }
+
   async function flushPendingGalleryUpload() {
     const pending = pendingGalleryRef.current;
     if (!pending) return;
@@ -173,27 +225,42 @@ export function PostMediaComposer({
     const errors: string[] = [];
 
     try {
-      for (let i = 0; i < pending.files.length; i++) {
-        if (gen !== galleryUploadGenRef.current) return;
-        try {
-          const prepared = await prepareGalleryImageForUpload(pending.files[i]);
-          const url = await uploadImageBlob(
-            prepared,
-            prepared.name || "photo.jpg",
-            uploadOpts
-          );
-          const next = [...itemsRef.current];
-          const itemIndex = pending.baseCount + i;
-          if (next[itemIndex]?.type === "IMAGE") {
-            next[itemIndex] = { url, type: "IMAGE" };
-            onChange(next);
+      const results = await Promise.all(
+        pending.files.map(async (file, i) => {
+          if (gen !== galleryUploadGenRef.current) return { i, url: null as string | null, error: null as string | null };
+          try {
+            const prepared = await prepareGalleryImageForUpload(file);
+            const url = await uploadImageBlob(
+              prepared,
+              prepared.name || "photo.jpg",
+              uploadOpts
+            );
+            return { i, url, error: null };
+          } catch (e) {
+            return {
+              i,
+              url: null,
+              error: e instanceof Error ? e.message : `사진 ${i + 1} 업로드 실패`,
+            };
           }
-        } catch (e) {
-          errors.push(
-            e instanceof Error ? e.message : `사진 ${i + 1} 업로드 실패`
-          );
+        })
+      );
+
+      if (gen !== galleryUploadGenRef.current) return;
+
+      const next = [...itemsRef.current];
+      for (const { i, url, error } of results) {
+        if (error) {
+          errors.push(error);
+          continue;
+        }
+        if (!url) continue;
+        const itemIndex = pending.baseCount + i;
+        if (next[itemIndex]?.type === "IMAGE") {
+          next[itemIndex] = { url, type: "IMAGE" };
         }
       }
+      onChange(next);
 
       if (errors.length > 0) {
         setError(
@@ -203,10 +270,10 @@ export function PostMediaComposer({
         );
       }
     } catch (e) {
+      if (gen !== galleryUploadGenRef.current) return;
       setError(e instanceof Error ? e.message : "사진 업로드에 실패했습니다.");
     } finally {
-      setUploading(false);
-      onUploadingChange?.(false);
+      finishUploadBusy(gen);
     }
   }
 
@@ -215,6 +282,7 @@ export function PostMediaComposer({
     baseItems: PostMediaItem[],
     previewUrls: string[]
   ) {
+    const gen = ++galleryUploadGenRef.current;
     setUploading(true);
     onUploadingChange?.(true);
     setError("");
@@ -226,27 +294,44 @@ export function PostMediaComposer({
     const errors: string[] = [];
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const imgCount = next.filter((m) => m.type === "IMAGE").length;
-        if (imgCount > maxImages) break;
+      const results = await Promise.all(
+        files.map(async (file, i) => {
+          if (gen !== galleryUploadGenRef.current) {
+            return { previewUrl: previewUrls[i], url: null as string | null, error: null as string | null };
+          }
+          try {
+            const prepared = await prepareGalleryImageForUpload(file);
+            const url = await uploadImageBlob(
+              prepared,
+              prepared.name || "photo.jpg",
+              resolveUploadOpts()
+            );
+            return { previewUrl: previewUrls[i], url, error: null };
+          } catch (e) {
+            return {
+              previewUrl: previewUrls[i],
+              url: null,
+              error: e instanceof Error ? e.message : `사진 ${i + 1} 업로드 실패`,
+            };
+          } finally {
+            URL.revokeObjectURL(previewUrls[i]);
+          }
+        })
+      );
 
-        try {
-          const prepared = await prepareGalleryImageForUpload(files[i]);
-          const url = await uploadImageBlob(prepared, prepared.name || "photo.jpg", resolveUploadOpts());
-          next = next.map((item, idx) =>
-            item.url === previewUrls[i] ? { url, type: "IMAGE" as const } : item
+      if (gen !== galleryUploadGenRef.current) return;
+
+      for (const { previewUrl, url, error } of results) {
+        if (error) {
+          next = next.filter((item) => item.url !== previewUrl);
+          errors.push(error);
+        } else if (url) {
+          next = next.map((item) =>
+            item.url === previewUrl ? { url, type: "IMAGE" as const } : item
           );
-          onChange(next);
-        } catch (e) {
-          next = next.filter((item) => item.url !== previewUrls[i]);
-          onChange(next);
-          errors.push(
-            e instanceof Error ? e.message : `사진 ${i + 1} 업로드 실패`
-          );
-        } finally {
-          URL.revokeObjectURL(previewUrls[i]);
         }
       }
+      onChange(next);
 
       if (errors.length > 0) {
         setError(
@@ -256,12 +341,12 @@ export function PostMediaComposer({
         );
       }
     } catch (e) {
+      if (gen !== galleryUploadGenRef.current) return;
       onChange(baseItems);
       setError(e instanceof Error ? e.message : "사진 업로드에 실패했습니다.");
       previewUrls.forEach((u) => URL.revokeObjectURL(u));
     } finally {
-      setUploading(false);
-      onUploadingChange?.(false);
+      finishUploadBusy(gen);
     }
   }
 
@@ -288,7 +373,9 @@ export function PostMediaComposer({
       ...previewUrls.map((url) => ({ url, type: "IMAGE" as const })),
     ]);
     pendingGalleryRef.current = { files, previewUrls, baseCount };
-    schedulePendingGalleryUpload(3000);
+    setUploading(true);
+    onUploadingChange?.(true);
+    schedulePendingGalleryUpload(0);
   }
 
   useEffect(() => {
@@ -340,30 +427,19 @@ export function PostMediaComposer({
     input.onchange = (ev) => {
       const files = Array.from(
         (ev.target as HTMLInputElement).files ?? []
-      ).filter((f) => f.type.startsWith("video/") || /\.(mp4|webm|mov|m4v|mkv)$/i.test(f.name));
+      ).filter((f) => isGalleryVideoFile(f));
       if (files.length === 0) {
         setError("영상 파일을 선택해 주세요.");
         return;
       }
-      setError("");
-      const batch = files.slice(0, remaining);
-      if (files.length > remaining) {
-        setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다. ${batch.length}개만 선택했습니다.`);
-      }
-      const [first, ...rest] = batch;
-      pendingVideoFilesRef.current = rest;
-      if (first) openVideoEditor(first);
+      ingestVideoFiles(files);
     };
     input.click();
   }
 
-  async function onGalleryImagePick(e: React.ChangeEvent<HTMLInputElement>) {
-    const picked = e.target.files;
-    if (!picked?.length) return;
-    const list = Array.from(picked).filter((f) => isGalleryImageFile(f, true));
-    e.target.value = "";
+  async function ingestGalleryImages(list: File[]) {
     setError("");
-    const remaining = maxImages - imageCount;
+    const remaining = maxImages - itemsRef.current.filter((m) => m.type === "IMAGE").length;
     if (remaining <= 0) {
       setError(`사진은 최대 ${maxImages}장까지 추가할 수 있습니다.`);
       return;
@@ -373,12 +449,77 @@ export function PostMediaComposer({
       return;
     }
     const batch = list.slice(0, remaining);
+    if (list.length > remaining) {
+      setError(`사진은 최대 ${maxImages}장까지 추가할 수 있습니다. ${batch.length}장만 추가했습니다.`);
+    }
     if (watermarkCreditLabel && !quickUpload) {
       stageGalleryFiles(batch);
       return;
     }
     await uploadFilesDirect(batch);
   }
+
+  async function onGalleryImagePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files;
+    if (!picked?.length) return;
+    const list = Array.from(picked).filter((f) => isGalleryImageFile(f, true));
+    e.target.value = "";
+    await ingestGalleryImages(list);
+  }
+
+  function ingestVideoFiles(files: File[]) {
+    const remaining =
+      maxVideos - itemsRef.current.filter((m) => m.type === "VIDEO").length;
+    if (remaining <= 0) {
+      setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다.`);
+      return;
+    }
+    const batch = files.slice(0, remaining);
+    if (files.length > remaining) {
+      setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다. ${batch.length}개만 추가했습니다.`);
+    }
+    setError("");
+    const [first, ...rest] = batch;
+    pendingVideoFilesRef.current = rest;
+    if (first) openVideoEditor(first);
+  }
+
+  function handlePaste(event: React.ClipboardEvent): boolean {
+    if (disabled || uploading) return false;
+    const files = filesFromClipboard(event.clipboardData);
+    if (files.length === 0) return false;
+
+    const images = files.filter((f) => isGalleryImageFile(f, true));
+    const videos = allowVideo ? files.filter((f) => isGalleryVideoFile(f)) : [];
+    if (images.length === 0 && videos.length === 0) return false;
+
+    event.preventDefault();
+
+    if (images.length > 0 && canAddImage) {
+      void ingestGalleryImages(images);
+    } else if (images.length > 0) {
+      setError(`사진은 최대 ${maxImages}장까지 추가할 수 있습니다.`);
+    }
+
+    if (videos.length > 0 && canAddVideo) {
+      ingestVideoFiles(videos.map((f) => normalizeGalleryVideoFile(f)));
+    } else if (videos.length > 0) {
+      setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다.`);
+    }
+
+    return true;
+  }
+
+  const handlePasteRef = useRef(handlePaste);
+  handlePasteRef.current = handlePaste;
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      handlePaste: (event) => handlePasteRef.current(event),
+    }),
+    []
+  );
 
   async function onCropComplete(url: string) {
     if (editingIndex !== null) {
@@ -566,6 +707,11 @@ export function PostMediaComposer({
                 영상
               </span>
             )}
+            {isLocalPreviewUrl(m.url) && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/35 pointer-events-none">
+                <Loader2 className="h-5 w-5 animate-spin text-white" aria-hidden />
+              </div>
+            )}
           </div>
         ))}
         {(canAddImage || canAddVideo) && layout === "default" && (
@@ -593,7 +739,7 @@ export function PostMediaComposer({
               layout === "toolbar" ? "text-[10px]" : "text-xs"
             )}
           >
-            업로드 전에 워터마크를 선택하세요. 선택하면 자동 반영됩니다. ({watermarkCreditLabel})
+            워터마크를 선택하면 자동 반영됩니다. ({watermarkCreditLabel})
           </p>
         </div>
       ) : null}
@@ -749,7 +895,7 @@ export function PostMediaComposer({
       />
     </div>
   );
-}
+});
 
 /** Used listing: 갤러리/카메라 → 바로 Storage 업로드 */
 export function UsedImageComposer({

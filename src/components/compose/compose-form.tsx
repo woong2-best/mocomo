@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { ContentVisibility } from "@prisma/client";
 import { DollarSign } from "lucide-react";
-import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
+import { PostMediaComposer, type PostMediaComposerHandle, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ComposePollEditor } from "@/components/compose/compose-poll-editor";
 import {
   ComposeCollaboratorPicker,
@@ -86,7 +86,16 @@ export function ComposeForm({
   const [instantPriceUsd, setInstantPriceUsd] = useState("");
   const [payoutAccountRegistered, setPayoutAccountRegistered] = useState(true);
   const [paidMediaWarned, setPaidMediaWarned] = useState(false);
-  const submitBusy = loading || mediaUploading;
+  const mediaComposerRef = useRef<PostMediaComposerHandle>(null);
+  const mediaReady =
+    media.length === 0 ||
+    media.every(
+      (m) =>
+        !m.url.startsWith("blob:") &&
+        !m.url.startsWith("data:") &&
+        (m.url.startsWith("http") || m.url.startsWith("/"))
+    );
+  const submitBusy = loading || mediaUploading || !mediaReady;
   const canSubmit = content.trim().length > 0 || media.length > 0;
   const priceCents = parseUsdDollarsToCents(priceUsd);
   const instantPriceCents = parseUsdDollarsToCents(instantPriceUsd);
@@ -159,6 +168,10 @@ export function ComposeForm({
       <span className="text-[10px] font-medium text-muted-foreground shrink-0">USD</span>
     </div>
   );
+
+  function handleComposePaste(event: React.ClipboardEvent) {
+    mediaComposerRef.current?.handlePaste(event);
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -321,7 +334,7 @@ export function ComposeForm({
       user?.name?.trim()?.[0] ?? user?.username?.trim()?.[0] ?? "?";
 
     return (
-      <form onSubmit={handleSubmit} className="space-y-2">
+      <form onSubmit={handleSubmit} onPasteCapture={handleComposePaste} className="space-y-2">
         <div className="flex gap-3 items-start">
           <Avatar className="h-10 w-10 shrink-0 ring-1 ring-border/40">
             <AvatarImage src={user?.image ?? undefined} alt="" />
@@ -344,6 +357,7 @@ export function ComposeForm({
             />
 
             <PostMediaComposer
+              ref={mediaComposerRef}
               items={media}
               onChange={setMedia}
               maxImages={100}
@@ -379,7 +393,11 @@ export function ComposeForm({
                   className="rounded-full px-5 font-semibold shrink-0"
                   disabled={submitBusy || !canSubmit}
                 >
-                  {mediaUploading ? t("compose.uploading") : loading ? t("compose.posting") : t("compose.post")}
+                  {!mediaReady || mediaUploading
+                    ? t("compose.uploading")
+                    : loading
+                      ? t("compose.posting")
+                      : t("compose.post")}
                 </Button>
               }
             />
@@ -434,7 +452,7 @@ export function ComposeForm({
   }
 
   const formBody = (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} onPasteCapture={handleComposePaste} className="space-y-4">
       {variant === "sheet" && (
         <p className="text-sm text-muted-foreground -mt-1">
           사진·영상을 고른 뒤, 앱 안에서 자르기·구간 편집할 수 있습니다.
@@ -447,6 +465,7 @@ export function ComposeForm({
         </p>
       )}
       <PostMediaComposer
+        ref={mediaComposerRef}
         items={media}
         onChange={setMedia}
         watermarkCreditLabel={watermarkCreditLabel}
@@ -519,7 +538,11 @@ export function ComposeForm({
         NSFW
       </label>
       <Button type="submit" className="w-full rounded-xl" disabled={submitBusy}>
-        {mediaUploading ? t("compose.uploading") : loading ? t("compose.posting") : t("compose.post")}
+        {!mediaReady || mediaUploading
+          ? t("compose.uploading")
+          : loading
+            ? t("compose.posting")
+            : t("compose.post")}
       </Button>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </form>

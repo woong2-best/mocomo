@@ -5,6 +5,11 @@ import { hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark
 import { watermarkVideoBlob } from "@/lib/video-trim";
 import { DIRECT_UPLOAD_THRESHOLD } from "@/lib/upload-limits";
 
+/** Compose 백그라운드 업로드 — 사이트 전역 상단 진행 바 깜빡임 방지 */
+const NO_PROGRESS_INIT: RequestInit = {
+  headers: { "X-Moco-No-Progress": "1" },
+};
+
 export type UploadMediaOptions = {
   /** 게시물용 — @username · site 크레딧 라벨 */
   watermarkLabel?: string;
@@ -38,7 +43,10 @@ async function presignedUpload(
 ): Promise<{ publicUrl: string } | { error: string }> {
   const presignRes = await fetch("/api/upload", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Moco-No-Progress": "1",
+    },
     body: JSON.stringify({ filename, contentType, category }),
     credentials: "include",
   });
@@ -98,6 +106,7 @@ async function localUpload(
     method: "POST",
     body: form,
     credentials: "include",
+    ...NO_PROGRESS_INIT,
   });
   return (await localRes.json().catch(() => ({}))) as {
     publicUrl?: string;
