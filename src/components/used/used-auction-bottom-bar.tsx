@@ -45,6 +45,7 @@ export function UsedAuctionBottomBar({
   isWinningBidder,
   restrictedKind = "NONE",
   viewerAdultVerified = false,
+  currency,
 }: {
   listingId: string;
   isSeller: boolean;
@@ -60,6 +61,7 @@ export function UsedAuctionBottomBar({
   isWinningBidder?: boolean;
   restrictedKind?: UsedRestrictedKind | string;
   viewerAdultVerified?: boolean;
+  currency?: string | null;
 }) {
   const needsAdult =
     isUsedRestrictedKind(restrictedKind) && !isSeller && !viewerAdultVerified;
@@ -300,6 +302,7 @@ export function UsedAuctionBottomBar({
           minBid={minBid}
           buyNowPrice={buyNowPrice}
           restrictedKind={restrictedKind}
+          currency={currency}
         />
       ) : (
         <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">

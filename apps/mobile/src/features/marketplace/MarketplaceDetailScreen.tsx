@@ -22,6 +22,7 @@ import {
 } from "@/api/marketplace";
 import { ApiError } from "@/api/client";
 import { UsedMeetMapCard } from "@/features/marketplace/UsedMeetMapCard";
+import { formatUsedPrice } from "@/features/marketplace/used-catalog";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
@@ -82,7 +83,7 @@ export function MarketplaceDetailScreen() {
   const bid = useMutation({
     mutationFn: (amount: number) => placeMarketplaceBid(route.params.id, amount),
     onSuccess: async (res) => {
-      setMsg(`입찰 완료 · ${res.amount.toLocaleString("ko-KR")}원`);
+      setMsg(`입찰 완료 · ${formatUsedPrice(res.amount, item?.currency)}`);
       setBidText("");
       await invalidate();
     },
@@ -127,8 +128,8 @@ export function MarketplaceDetailScreen() {
           <View style={styles.body}>
             <Text style={styles.price}>
               {item.saleType === "AUCTION" && item.currentBidAmount != null
-                ? `현재가 ${item.currentBidAmount.toLocaleString("ko-KR")}원`
-                : `${Number(item.price ?? 0).toLocaleString("ko-KR")}원`}
+                ? `현재가 ${formatUsedPrice(item.currentBidAmount, item.currency)}`
+                : formatUsedPrice(Number(item.price ?? 0), item.currency)}
             </Text>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.sub}>
@@ -177,7 +178,7 @@ export function MarketplaceDetailScreen() {
             {item.auctionLive && !item.isOwner ? (
               <View style={styles.bidBox}>
                 <Text style={styles.bidLabel}>
-                  최소 입찰 {item.minNextBid?.toLocaleString("ko-KR") ?? "-"}원
+                  최소 입찰 {item.minNextBid != null ? formatUsedPrice(item.minNextBid, item.currency) : "-"}
                   {item.bidCount != null ? ` · 입찰 ${item.bidCount}회` : ""}
                 </Text>
                 <TextInput

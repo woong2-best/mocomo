@@ -26,7 +26,12 @@ import {
   DEFAULT_BID_INCREMENT,
   isAuctionLive,
 } from "@/lib/used-auction";
-import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL } from "@/lib/used-market";
+import {
+  maxUsedListingPrice,
+  maxUsedListingPriceLabel,
+  normalizeUsedCurrency,
+  formatUsedPrice,
+} from "@/lib/used-market";
 import {
   compactWorkKey,
   isValidProductType,
@@ -350,6 +355,7 @@ export async function createUsedListing(data: {
   title: string;
   description: string;
   price: number;
+  currency?: string;
   category: string;
   region: string;
   meetPlace?: string;
@@ -380,10 +386,12 @@ export async function createUsedListing(data: {
     if (adultErr) return { error: USED_ADULT_SELLER_MSG };
   }
   if (!data.title.trim()) return { error: "제목을 입력해 주세요." };
+  const currency = normalizeUsedCurrency(data.currency);
   const price = Math.floor(Number(data.price) || 0);
   if (data.price < 0 || price < 0) return { error: "가격이 올바르지 않습니다." };
-  if (price > MAX_USED_LISTING_PRICE) {
-    return { error: `가격은 ${MAX_USED_LISTING_PRICE_LABEL} 이하로 입력해 주세요.` };
+  const maxPrice = maxUsedListingPrice(currency);
+  if (price > maxPrice) {
+    return { error: `가격은 ${maxUsedListingPriceLabel(currency)} 이하로 입력해 주세요.` };
   }
   if (!data.region.trim()) return { error: "거래 지역을 선택해 주세요." };
   if (!isValidUsedRegion(data.region)) return { error: "올바른 거래 지역을 선택해 주세요." };
@@ -452,6 +460,7 @@ export async function createUsedListing(data: {
         title: data.title.trim(),
         description: data.description.trim(),
         price,
+        currency,
         category: (data.category as UsedListingCategory) || "OTHER",
         workTitle: normalizeWorkTitle(data.workTitle),
         productType:
@@ -623,7 +632,7 @@ export async function startUsedTradeChat(listingId: string) {
     /* DB 미적용 시에도 채팅은 진행 */
   }
 
-  const priceText = listing.price === 0 ? "나눔" : `${listing.price.toLocaleString()}원`;
+  const priceText = formatUsedPrice(listing.price, listing.currency);
   const intro = `안녕하세요! 중고거래 문의합니다.\n\n상품: ${listing.title}\n가격: ${priceText}\n링크: /used/${listing.id}`;
   try {
     await sendMessage({ roomId: dm.room.id, content: intro });

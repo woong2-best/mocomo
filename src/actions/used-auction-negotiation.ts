@@ -5,8 +5,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
 import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
-import { MAX_USED_LISTING_PRICE } from "@/lib/used-market";
-import { formatUsd } from "@/lib/money";
+import { formatUsedPrice, maxUsedListingPrice } from "@/lib/used-market";
 
 function isNegotiationParticipant(
   listing: { sellerId: string; negotiationBuyerId: string | null },
@@ -21,14 +20,14 @@ export async function proposeUsedAuctionPrice(listingId: string, amount: number)
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
 
-  const price = Math.floor(amount);
-  if (!Number.isFinite(price) || price <= 0 || price > MAX_USED_LISTING_PRICE) {
-    return { error: "가격을 올바르게 입력해 주세요." };
-  }
-
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.auctionState !== "PRICE_NEGOTIATION") {
     return { error: "가격 협상 중인 경매가 아닙니다." };
+  }
+
+  const price = Math.floor(amount);
+  if (!Number.isFinite(price) || price <= 0 || price > maxUsedListingPrice(listing.currency)) {
+    return { error: "가격을 올바르게 입력해 주세요." };
   }
   if (!isNegotiationParticipant(listing, user.id)) {
     return { error: "권한이 없습니다." };
@@ -64,7 +63,7 @@ export async function proposeUsedAuctionPrice(listingId: string, amount: number)
     data: {
       roomId: listing.activeNegotiationRoomId,
       senderId: user.id,
-      content: `💰 가격 제안: ${formatUsd(price)}`,
+      content: `💰 가격 제안: ${formatUsedPrice(price, listing.currency)}`,
     },
   });
   await db.chatRoom.update({
@@ -76,7 +75,7 @@ export async function proposeUsedAuctionPrice(listingId: string, amount: number)
     userId: otherId,
     type: "price_offer",
     title: "가격 제안 도착",
-    body: `${listing.title} · ${formatUsd(price)}`,
+    body: `${listing.title} · ${formatUsedPrice(price, listing.currency)}`,
     link,
     actorId: user.id,
   });
@@ -135,7 +134,7 @@ export async function acceptUsedAuctionPrice(offerId: string) {
     data: {
       roomId: offer.roomId,
       senderId: user.id,
-      content: `✅ ${formatUsd(offer.amount)}에 합의했습니다. 결제를 진행해 주세요.`,
+      content: `✅ ${formatUsedPrice(offer.amount, listing.currency)}에 합의했습니다. 결제를 진행해 주세요.`,
     },
   });
 
@@ -143,7 +142,7 @@ export async function acceptUsedAuctionPrice(offerId: string) {
     userId: offer.proposerId,
     type: "price_accept",
     title: "가격 수락",
-    body: `${listing.title} · ${formatUsd(offer.amount)}`,
+    body: `${listing.title} · ${formatUsedPrice(offer.amount, listing.currency)}`,
     link,
     actorId: user.id,
   });
@@ -173,7 +172,7 @@ export async function rejectUsedAuctionPrice(offerId: string) {
     data: {
       roomId: offer.roomId,
       senderId: user.id,
-      content: `❌ ${formatUsd(offer.amount)} 제안을 거절했습니다.`,
+      content: `❌ ${formatUsedPrice(offer.amount, offer.listing.currency)} 제안을 거절했습니다.`,
     },
   });
 

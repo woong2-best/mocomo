@@ -13,8 +13,13 @@ import {
   isAuctionLive,
   minNextBidAmount,
 } from "@/lib/used-auction";
-import { formatUsd } from "@/lib/money";
-import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL, listingImages } from "@/lib/used-market";
+import {
+  formatUsedPrice,
+  maxUsedListingPrice,
+  maxUsedListingPriceLabel,
+  normalizeUsedCurrency,
+  listingImages,
+} from "@/lib/used-market";
 import { isValidUsedRegion } from "@/lib/korea-regions";
 import {
   isValidProductType,
@@ -47,6 +52,7 @@ export async function createMobileUsedListing(
     title: string;
     description: string;
     price: number;
+    currency?: string;
     category: string;
     region: string;
     meetPlace?: string;
@@ -80,10 +86,12 @@ export async function createMobileUsedListing(
     if (adultErr) return { error: USED_ADULT_SELLER_MSG };
   }
   if (!data.title.trim()) return { error: "제목을 입력해 주세요." as const };
+  const currency = normalizeUsedCurrency(data.currency);
   const price = Math.floor(Number(data.price) || 0);
   if (data.price < 0 || price < 0) return { error: "가격이 올바르지 않습니다." as const };
-  if (price > MAX_USED_LISTING_PRICE) {
-    return { error: `가격은 ${MAX_USED_LISTING_PRICE_LABEL} 이하로 입력해 주세요.` as const };
+  const maxPrice = maxUsedListingPrice(currency);
+  if (price > maxPrice) {
+    return { error: `가격은 ${maxUsedListingPriceLabel(currency)} 이하로 입력해 주세요.` as const };
   }
   if (!data.region.trim()) return { error: "거래 지역을 선택해 주세요." as const };
   if (!isValidUsedRegion(data.region)) return { error: "올바른 거래 지역을 선택해 주세요." as const };
@@ -140,6 +148,7 @@ export async function createMobileUsedListing(
         title: data.title.trim(),
         description: data.description.trim(),
         price,
+        currency,
         category: (data.category as UsedListingCategory) || "OTHER",
         workTitle: normalizeWorkTitle(data.workTitle),
         productType:
@@ -186,6 +195,7 @@ export async function listMobileMyUsedListings(userId: string) {
       id: true,
       title: true,
       price: true,
+      currency: true,
       region: true,
       status: true,
       saleType: true,
@@ -203,6 +213,7 @@ export async function listMobileMyUsedListings(userId: string) {
       id: l.id,
       title: l.title,
       price: l.price,
+      currency: l.currency,
       thumbnailUrl: images[0] ?? null,
       region: l.region,
       status: l.status,
@@ -269,26 +280,32 @@ export async function startMobileUsedTradeChat(userId: string, listingId: string
     /* optional table */
   }
 
-  const priceText = listing.price === 0 ? "나눔" : formatUsd(listing.price);
+  const priceText = formatUsedPrice(listing.price, listing.currency);
   const intro = `안녕하세요! 중고거래 문의합니다.\n\n상품: ${listing.title}\n가격: ${priceText}\n링크: /used/${listing.id}`;
   await sendMobileDmMessage(userId, { roomId: dm.roomId, content: intro }).catch(() => undefined);
 
   return { roomId: dm.roomId };
 }
 
-export async function placeMobileUsedAuctionBid(userId: string, listingId: string, amount: number) {
+export async function placeMobileUsedAuctionBid(
+  userId: string,
+  listingId: string,
+  amount: number,
+  termsAccepted?: boolean
+) {
   const user = await loadUsedMarketUser(userId);
   if (!user) return { error: "로그인이 필요합니다." as const };
 
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
 
+  if (!termsAccepted) {
+    return { error: "입찰 전 결제 의무 및 이용 제한 안내에 동의해 주세요." as const };
+  }
+
   const bidAmount = Math.floor(amount);
   if (!Number.isFinite(bidAmount) || bidAmount <= 0) {
     return { error: "입찰가를 올바르게 입력해 주세요." as const };
-  }
-  if (bidAmount > MAX_USED_LISTING_PRICE) {
-    return { error: `입찰가는 ${MAX_USED_LISTING_PRICE_LABEL} 이하입니다.` as const };
   }
 
   try {
@@ -297,6 +314,10 @@ export async function placeMobileUsedAuctionBid(userId: string, listingId: strin
     const listing = await db.usedListing.findUnique({ where: { id: listingId } });
     if (!listing || listing.saleType !== "AUCTION") {
       return { error: "경매 상품이 아닙니다." as const };
+    }
+    const maxPrice = maxUsedListingPrice(listing.currency);
+    if (bidAmount > maxPrice) {
+      return { error: `입찰가는 ${maxUsedListingPriceLabel(listing.currency)} 이하입니다.` as const };
     }
     if (listing.sellerId === userId) return { error: "본인 경매에는 입찰할 수 없습니다." as const };
     if (!isAuctionLive(listing)) {
@@ -307,11 +328,11 @@ export async function placeMobileUsedAuctionBid(userId: string, listingId: strin
 
     const minBid = minNextBidAmount(listing);
     if (bidAmount < minBid) {
-      return { error: `최소 입찰가는 ${formatUsd(minBid)}입니다.` as const };
+      return { error: `최소 입찰가는 ${formatUsedPrice(minBid, listing.currency)}입니다.` as const };
     }
     if (listing.buyNowPrice != null && bidAmount >= listing.buyNowPrice) {
       return {
-        error: `즉시구매가 ${formatUsd(listing.buyNowPrice)}입니다. 즉시구매를 이용해 주세요.` as const,
+        error: `즉시구매가 ${formatUsedPrice(listing.buyNowPrice, listing.currency)}입니다. 즉시구매를 이용해 주세요.` as const,
       };
     }
 
@@ -332,7 +353,12 @@ export async function placeMobileUsedAuctionBid(userId: string, listingId: strin
       if (bidAmount < minFresh) throw new Error("LOW_BID");
 
       await tx.usedAuctionBid.create({
-        data: { listingId, bidderId: userId, amount: bidAmount },
+        data: {
+          listingId,
+          bidderId: userId,
+          amount: bidAmount,
+          termsAcceptedAt: new Date(),
+        },
       });
       await tx.usedListing.update({
         where: { id: listingId },
@@ -356,7 +382,7 @@ export async function placeMobileUsedAuctionBid(userId: string, listingId: strin
       userId: listing.sellerId,
       type: "bid",
       title: "새 입찰",
-      body: `${listing.title} · ${formatUsd(bidAmount)}`,
+      body: `${listing.title} · ${formatUsedPrice(bidAmount, listing.currency)}`,
       link,
       actorId: userId,
     });
@@ -365,7 +391,7 @@ export async function placeMobileUsedAuctionBid(userId: string, listingId: strin
         userId: prevBidderId,
         type: "outbid",
         title: "입찰 갱신됨",
-        body: `${listing.title} · ${formatUsd(bidAmount)}`,
+        body: `${listing.title} · ${formatUsedPrice(bidAmount, listing.currency)}`,
         link,
         actorId: userId,
       });
@@ -379,7 +405,7 @@ export async function placeMobileUsedAuctionBid(userId: string, listingId: strin
         const listing = await db.usedListing.findUnique({ where: { id: listingId } });
         if (listing) {
           return {
-            error: `다른 분이 먼저 입찰했습니다. 최소 ${formatUsd(minNextBidAmount(listing))} 이상으로 입찰해 주세요.` as const,
+            error: `다른 분이 먼저 입찰했습니다. 최소 ${formatUsedPrice(minNextBidAmount(listing), listing.currency)} 이상으로 입찰해 주세요.` as const,
           };
         }
       }

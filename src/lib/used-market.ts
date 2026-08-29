@@ -1,12 +1,41 @@
 import { getAllUsedRegions, isValidUsedRegion, KOREA_SIDO, USED_SHIPPING_REGION } from "@/lib/korea-regions";
 import { meetExternalMapUrl } from "@/lib/maps/external-url";
 import type { MeetCoords } from "@/lib/maps/types";
-import { formatMoney, formatUsd, MAX_USED_LISTING_PRICE_USD_CENTS } from "@/lib/money";
+import { formatPrice, formatUsd, MAX_USED_LISTING_PRICE_KRW, MAX_USED_LISTING_PRICE_USD_CENTS } from "@/lib/money";
+import { BID_INCREMENT_PRESETS } from "@/lib/used-auction";
 
 export type { MeetCoords } from "@/lib/maps/types";
 
-/** 중고거래 최대 가격 (USD cents) */
+export const USED_CURRENCIES = [
+  { id: "krw", label: "원 (KRW)" },
+  { id: "usd", label: "달러 (USD)" },
+] as const;
+
+export type UsedCurrency = (typeof USED_CURRENCIES)[number]["id"];
+
+export const DEFAULT_USED_CURRENCY: UsedCurrency = "krw";
+
+export function normalizeUsedCurrency(raw?: string | null): UsedCurrency {
+  return (raw ?? DEFAULT_USED_CURRENCY).toLowerCase() === "usd" ? "usd" : "krw";
+}
+
+/** @deprecated use maxUsedListingPrice(currency) */
 export const MAX_USED_LISTING_PRICE = MAX_USED_LISTING_PRICE_USD_CENTS;
+
+export function maxUsedListingPrice(currency?: string | null): number {
+  return normalizeUsedCurrency(currency) === "usd"
+    ? MAX_USED_LISTING_PRICE_USD_CENTS
+    : MAX_USED_LISTING_PRICE_KRW;
+}
+
+export function maxUsedListingPriceLabel(currency?: string | null): string {
+  const c = normalizeUsedCurrency(currency);
+  return c === "usd"
+    ? formatUsd(MAX_USED_LISTING_PRICE_USD_CENTS)
+    : formatPrice(MAX_USED_LISTING_PRICE_KRW, "krw");
+}
+
+/** @deprecated use maxUsedListingPriceLabel(currency) */
 export const MAX_USED_LISTING_PRICE_LABEL = formatUsd(MAX_USED_LISTING_PRICE_USD_CENTS);
 
 export const USED_CATEGORIES = [
@@ -28,8 +57,24 @@ export function usedCategoryLabel(id: string) {
   return USED_CATEGORIES.find((c) => c.id === id)?.label ?? "기타";
 }
 
-export function formatUsedPrice(price: number) {
-  return formatMoney(price, { freeLabel: "나눔" });
+export function formatUsedPrice(price: number, currency?: string | null) {
+  if (price === 0) return "나눔";
+  return formatPrice(price, normalizeUsedCurrency(currency));
+}
+
+export const BID_INCREMENT_PRESETS_USD = [
+  { value: 50, label: "$0.50" },
+  { value: 100, label: "$1" },
+  { value: 500, label: "$5" },
+  { value: 1_000, label: "$10" },
+  { value: 5_000, label: "$50" },
+  { value: 10_000, label: "$100" },
+] as const;
+
+export function bidIncrementPresets(currency?: string | null) {
+  return normalizeUsedCurrency(currency) === "usd"
+    ? BID_INCREMENT_PRESETS_USD
+    : BID_INCREMENT_PRESETS;
 }
 
 export function formatUsedTimeAgo(date: Date | string) {
@@ -86,5 +131,5 @@ export function listingImages(images: unknown): string[] {
   return [];
 }
 
-export { isAuctionListing, displayAuctionPrice, formatAuctionCountdown } from "@/lib/used-auction";
+export { isAuctionListing, displayAuctionPrice, formatAuctionCountdown, BID_INCREMENT_PRESETS } from "@/lib/used-auction";
 export { USED_PRODUCT_TYPES, usedProductTypeLabel, sanitizeWorkTitleInput } from "@/lib/used-catalog";

@@ -1,5 +1,7 @@
 /** Used-market catalog constants for mobile (mirrors web). */
 
+import { formatPrice } from "@/lib/money";
+
 export const USED_CATEGORIES = [
   { id: "DIGITAL", label: "디지털/가전" },
   { id: "FIGURE", label: "피규어/프라모" },
@@ -85,9 +87,9 @@ export function formatUsedRegion(sidoShort: string, sigungu: string) {
   return `${sidoShort} ${sigungu}`;
 }
 
-export function formatUsedPrice(price: number) {
+export function formatUsedPrice(price: number, currency?: string | null) {
   if (price === 0) return "나눔";
-  return `${price.toLocaleString("ko-KR")}원`;
+  return formatPrice(price, currency ?? "krw");
 }
 
 export function formatUsedTimeAgo(date: string) {

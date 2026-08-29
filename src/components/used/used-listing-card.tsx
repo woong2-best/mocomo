@@ -18,6 +18,7 @@ type Listing = {
   id: string;
   title: string;
   price: number;
+  currency?: string | null;
   region: string;
   status: string;
   images: unknown;
@@ -158,7 +159,7 @@ export function UsedListingCard({
           </p>
           <p className={cn("font-black text-foreground", dense ? "text-sm" : "text-base")}>
             {auction && (listing.bidCount ?? 0) > 0 ? "현재 " : ""}
-            {formatUsedPrice(showPrice)}
+            {formatUsedPrice(showPrice, listing.currency)}
           </p>
           <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 truncate">
             <MapPin className="h-2.5 w-2.5 shrink-0" />

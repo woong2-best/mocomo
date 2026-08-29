@@ -2265,8 +2265,10 @@ model UsedListing {
   sellerId    String
   title       String
   description String              @db.Text
-  /** 일반 판매가 또는 경매 시작가 */
+  /** 일반 판매가 또는 경매 시작가 — krw: 원, usd: 센트 */
   price       Int
+  /** krw | usd — 신규 글 기본 krw */
+  currency    String              @default("krw") @db.VarChar(3)
   category    UsedListingCategory @default(OTHER)
   /** 애니/게임/IP 작품명 (예: 블루 아카이브, 원신) */
   workTitle   String?             @db.VarChar(120)

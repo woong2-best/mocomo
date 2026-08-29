@@ -5,14 +5,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUsedListing } from "@/actions/used-market";
 import { UsedImageComposer } from "@/components/media/post-media-composer";
-import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL, USED_CATEGORIES } from "@/lib/used-market";
+import {
+  bidIncrementPresets,
+  DEFAULT_USED_CURRENCY,
+  maxUsedListingPrice,
+  maxUsedListingPriceLabel,
+  USED_CATEGORIES,
+  USED_CURRENCIES,
+  type UsedCurrency,
+} from "@/lib/used-market";
 import { USED_PRODUCT_TYPES } from "@/lib/used-catalog";
 import { UsedWorkTitleField } from "@/components/used/used-work-title-field";
 import {
   AUCTION_DURATION_OPTIONS,
-  BID_INCREMENT_PRESETS,
   DEFAULT_BID_INCREMENT,
 } from "@/lib/used-auction";
+import { parseUsdDollarsToCents, sanitizeUsdDollarInput } from "@/lib/money";
 import { USED_RESTRICTED_OPTIONS } from "@/lib/used-youth-protection";
 import type { UsedRestrictedKind } from "@prisma/client";
 import { UsedRegionSelect } from "@/components/used/used-region-select";
@@ -25,7 +33,19 @@ import { Input } from "@/components/ui/input";
 import type { UsedListingAiDraft } from "@/lib/used-listing-ai";
 import { cn } from "@/lib/utils";
 
-const PRICE_OVER_LIMIT_MSG = `최대 ${MAX_USED_LISTING_PRICE_LABEL}까지 입력할 수 있습니다.`;
+const PRICE_OVER_LIMIT_MSG = (currency: UsedCurrency) =>
+  `최대 ${maxUsedListingPriceLabel(currency)}까지 입력할 수 있습니다.`;
+
+function parseFormPrice(raw: string, currency: UsedCurrency): number {
+  if (currency === "usd") return parseUsdDollarsToCents(raw);
+  return Math.floor(Number(raw.replace(/,/g, "")) || 0);
+}
+
+function parseOptionalFormPrice(raw: string, currency: UsedCurrency): number | undefined {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  return parseFormPrice(trimmed, currency);
+}
 
 export function UsedPostForm({
   defaultRegion,
@@ -40,6 +60,7 @@ export function UsedPostForm({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState<UsedCurrency>(DEFAULT_USED_CURRENCY);
   const [isFree, setIsFree] = useState(false);
   const [category, setCategory] = useState("GOODS");
   const [workTitle, setWorkTitle] = useState("");
@@ -63,9 +84,11 @@ export function UsedPostForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const numericPrice = Number(price) || 0;
+  const numericPrice = parseFormPrice(price, currency);
+  const priceMax = maxUsedListingPrice(currency);
   const priceOverLimit =
-    !isFree && price.trim() !== "" && Number.isFinite(numericPrice) && numericPrice > MAX_USED_LISTING_PRICE;
+    !isFree && price.trim() !== "" && Number.isFinite(numericPrice) && numericPrice > priceMax;
+  const incrementPresets = bidIncrementPresets(currency);
 
   function applyAiDraft(draft: UsedListingAiDraft) {
     setTitle(draft.title);
@@ -118,6 +141,7 @@ export function UsedPostForm({
       title,
       description,
       price: submitPrice,
+      currency,
       category,
       region,
       meetPlace: meetPlace.trim() || undefined,
@@ -134,8 +158,8 @@ export function UsedPostForm({
         ? {
             auctionHours,
             bidIncrement,
-            buyNowPrice: buyNowPrice.trim() ? Number(buyNowPrice) : undefined,
-            reservePrice: reservePrice.trim() ? Number(reservePrice) : undefined,
+            buyNowPrice: parseOptionalFormPrice(buyNowPrice, currency),
+            reservePrice: parseOptionalFormPrice(reservePrice, currency),
           }
         : {}),
     });
@@ -233,21 +257,53 @@ export function UsedPostForm({
       </div>
       {!isFree && (
         <div className="space-y-1.5">
+          <div className="flex gap-2 p-1 rounded-xl bg-muted/50 border">
+            {USED_CURRENCIES.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={cn(
+                  "flex-1 py-2 rounded-lg text-sm font-semibold",
+                  currency === c.id ? "bg-background shadow-sm" : "text-muted-foreground"
+                )}
+                onClick={() => {
+                  setCurrency(c.id);
+                  setPrice("");
+                  setBuyNowPrice("");
+                  setReservePrice("");
+                  setBidIncrement(DEFAULT_BID_INCREMENT);
+                }}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
           <Input
-            type="number"
-            placeholder={saleType === "AUCTION" ? "경매 시작가 (USD)" : "가격 (USD)"}
+            type={currency === "usd" ? "text" : "number"}
+            inputMode={currency === "usd" ? "decimal" : "numeric"}
+            placeholder={
+              saleType === "AUCTION"
+                ? currency === "usd"
+                  ? "경매 시작가 ($)"
+                  : "경매 시작가 (원)"
+                : currency === "usd"
+                  ? "가격 ($)"
+                  : "가격 (원)"
+            }
             value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            onChange={(e) =>
+              setPrice(currency === "usd" ? sanitizeUsdDollarInput(e.target.value) : e.target.value)
+            }
             className={cn(
               "rounded-xl",
               priceOverLimit && "border-destructive focus-visible:ring-destructive"
             )}
-            min={0}
+            min={currency === "krw" ? 0 : undefined}
             aria-invalid={priceOverLimit}
             required
           />
           {priceOverLimit && (
-            <p className="text-sm text-destructive font-medium">{PRICE_OVER_LIMIT_MSG}</p>
+            <p className="text-sm text-destructive font-medium">{PRICE_OVER_LIMIT_MSG(currency)}</p>
           )}
         </div>
       )}
@@ -276,7 +332,7 @@ export function UsedPostForm({
               value={bidIncrement}
               onChange={(e) => setBidIncrement(Number(e.target.value))}
             >
-              {BID_INCREMENT_PRESETS.map((p) => (
+              {incrementPresets.map((p: { value: number; label: string }) => (
                 <option key={p.value} value={p.value}>
                   {p.label}
                 </option>
@@ -284,20 +340,30 @@ export function UsedPostForm({
             </select>
           </div>
           <Input
-            type="number"
-            placeholder="즉시구매가 (선택)"
+            type={currency === "usd" ? "text" : "number"}
+            inputMode={currency === "usd" ? "decimal" : "numeric"}
+            placeholder={`즉시구매가 (선택${currency === "usd" ? ", $" : ", 원"})`}
             value={buyNowPrice}
-            onChange={(e) => setBuyNowPrice(e.target.value)}
+            onChange={(e) =>
+              setBuyNowPrice(
+                currency === "usd" ? sanitizeUsdDollarInput(e.target.value) : e.target.value
+              )
+            }
             className="rounded-xl h-10"
-            min={0}
+            min={currency === "krw" ? 0 : undefined}
           />
           <Input
-            type="number"
-            placeholder="최저 낙찰가 (선택, 미달 시 유찰)"
+            type={currency === "usd" ? "text" : "number"}
+            inputMode={currency === "usd" ? "decimal" : "numeric"}
+            placeholder={`최저 낙찰가 (선택, 미달 시 유찰${currency === "usd" ? ", $" : ", 원"})`}
             value={reservePrice}
-            onChange={(e) => setReservePrice(e.target.value)}
+            onChange={(e) =>
+              setReservePrice(
+                currency === "usd" ? sanitizeUsdDollarInput(e.target.value) : e.target.value
+              )
+            }
             className="rounded-xl h-10"
-            min={0}
+            min={currency === "krw" ? 0 : undefined}
           />
           <p className="text-[11px] text-muted-foreground leading-relaxed">
             마감 5분 전 입찰 시 5분 연장 (최대 5회). 입찰·낙찰·갱신 알림이 발송됩니다. 낙찰 후 채팅으로

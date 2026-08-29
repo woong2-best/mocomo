@@ -5,6 +5,7 @@ export type MarketplaceListItem = {
   id: string;
   title: string;
   price: number;
+  currency?: string | null;
   thumbnailUrl: string | null;
   region: string | null;
   status: string;
@@ -97,6 +98,7 @@ export async function createMarketplaceListing(body: {
   title: string;
   description: string;
   price: number;
+  currency?: string;
   category: string;
   region: string;
   meetPlace?: string;

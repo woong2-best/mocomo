@@ -149,7 +149,7 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
             {item.title || "상품"}
           </Text>
           <Text style={[styles.cardPrice, auction && { color: colors.terracotta }]}>
-            {auction ? `현재 ${formatUsedPrice(price)}` : formatUsedPrice(price)}
+            {auction ? `현재 ${formatUsedPrice(price, item.currency)}` : formatUsedPrice(price, item.currency)}
           </Text>
           {auction && item.bidCount != null ? (
             <Text style={styles.auctionMeta}>입찰 {item.bidCount}회</Text>

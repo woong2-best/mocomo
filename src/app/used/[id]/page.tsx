@@ -50,6 +50,7 @@ import { usedProductTypeLabel } from "@/lib/used-catalog";
 
 import { isAuctionListing, minNextBidAmount } from "@/lib/used-auction";
 import { UsedRestrictedBanner } from "@/components/used/used-restricted-banner";
+import { UsedAuctionLegalNotice } from "@/components/used/used-auction-legal-notice";
 import { isUsedRestrictedKind } from "@/lib/used-youth-protection";
 
 import type { UsedListingStatus } from "@prisma/client";
@@ -221,7 +222,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
             {isAuction && listing.bidCount > 0 ? "현재 " : ""}
 
-            {formatUsedPrice(displayPrice)}
+            {formatUsedPrice(displayPrice, listing.currency)}
 
           </p>
 
@@ -229,7 +230,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
             <p className="text-xs text-muted-foreground mt-1">
 
-              시작가 {formatUsedPrice(listing.price)}
+              시작가 {formatUsedPrice(listing.price, listing.currency)}
 
             </p>
 
@@ -268,6 +269,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
                 listingId={listing.id}
                 paymentDueAt={listing.paymentDueAt}
                 amount={displayPrice}
+                currency={listing.currency}
                 isWinner={!!isWinningBidder}
                 paymentCompleted={!!listing.paymentCompletedAt}
               />
@@ -285,6 +287,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
                   negotiationDueAt={listing.negotiationDueAt}
                   auctionState={listing.auctionState}
                   currentTopBid={listing.currentBidAmount ?? listing.price}
+                  currency={listing.currency}
                   secondBidAmount={
                     listing.negotiationBuyerId
                       ? auctionBids.find((b) => b.bidderId === listing.negotiationBuyerId)?.amount
@@ -306,6 +309,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
               <UsedAuctionBidHistory
                 listingId={listing.id}
+                currency={listing.currency}
                 initialBids={auctionBids.map((b) => ({
                   id: b.id,
                   amount: b.amount,
@@ -315,6 +319,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
               />
 
             </div>
+
+            <UsedAuctionLegalNotice />
 
           </>
 
@@ -421,6 +427,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           restrictedKind={listing.restrictedKind}
 
           viewerAdultVerified={viewerAdultVerified}
+
+          currency={listing.currency}
 
         />
 

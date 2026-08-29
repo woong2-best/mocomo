@@ -65,7 +65,7 @@ export async function UsedMyContent({ userId }: { userId: string }) {
                 >
                   <p className="font-medium text-sm line-clamp-1">{b.listing.title}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    내 입찰 {formatUsedPrice(b.amount)}
+                    내 입찰 {formatUsedPrice(b.amount, b.listing.currency)}
                     {isAuctionListing(b.listing) && b.listing.currentBidderId === userId
                       ? " · 최고가"
                       : ""}

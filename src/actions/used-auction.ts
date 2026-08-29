@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { formatUsd } from "@/lib/money";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import {
@@ -11,7 +10,7 @@ import {
   reserveMet,
 } from "@/lib/used-auction";
 import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
-import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL } from "@/lib/used-market";
+import { formatUsedPrice, maxUsedListingPrice, maxUsedListingPriceLabel } from "@/lib/used-market";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
 import { assertUsedAdultForRestricted } from "@/lib/used-youth-protection";
 import {
@@ -55,14 +54,14 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
         userId: winnerId,
         type: "won",
         title: "경매 낙찰 — 결제 필요",
-        body: `${listing.title} · ${formatUsd(amount)} · ${config.paymentDeadlineHours}시간 이내 결제`,
+        body: `${listing.title} · ${formatUsedPrice(amount, listing.currency)} · ${config.paymentDeadlineHours}시간 이내 결제`,
         link: `/used/${listingId}`,
       });
       await sendUsedAuctionNotification({
         userId: listing.sellerId,
         type: "ended",
         title: "경매 낙찰 완료",
-        body: `${listing.title} · ${formatUsd(amount)}`,
+        body: `${listing.title} · ${formatUsedPrice(amount, listing.currency)}`,
         link: `/used/${listingId}`,
       });
     } else {
@@ -112,17 +111,22 @@ export async function finalizeAllExpiredAuctions(take = 50) {
   }
 }
 
-export async function placeUsedAuctionBid(listingId: string, amount: number) {
+export async function placeUsedAuctionBid(
+  listingId: string,
+  amount: number,
+  termsAccepted?: boolean
+) {
   const user = await requireAuth();
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
 
+  if (!termsAccepted) {
+    return { error: "입찰 전 결제 의무 및 이용 제한 안내에 동의해 주세요." };
+  }
+
   const bidAmount = Math.floor(amount);
   if (!Number.isFinite(bidAmount) || bidAmount <= 0) {
     return { error: "입찰가를 올바르게 입력해 주세요." };
-  }
-  if (bidAmount > MAX_USED_LISTING_PRICE) {
-    return { error: `입찰가는 ${MAX_USED_LISTING_PRICE_LABEL} 이하입니다.` };
   }
 
   try {
@@ -131,6 +135,10 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
     const listing = await db.usedListing.findUnique({ where: { id: listingId } });
     if (!listing || listing.saleType !== "AUCTION") {
       return { error: "경매 상품이 아닙니다." };
+    }
+    const maxPrice = maxUsedListingPrice(listing.currency);
+    if (bidAmount > maxPrice) {
+      return { error: `입찰가는 ${maxUsedListingPriceLabel(listing.currency)} 이하입니다.` };
     }
     if (listing.sellerId === user.id) return { error: "본인 경매에는 입찰할 수 없습니다." };
     if (!isAuctionLive(listing)) {
@@ -144,11 +152,11 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
 
     const minBid = minNextBidAmount(listing);
     if (bidAmount < minBid) {
-      return { error: `최소 입찰가는 ${formatUsd(minBid)}입니다.` };
+      return { error: `최소 입찰가는 ${formatUsedPrice(minBid, listing.currency)}입니다.` };
     }
     if (listing.buyNowPrice != null && bidAmount >= listing.buyNowPrice) {
       return {
-        error: `즉시구매가 ${formatUsd(listing.buyNowPrice)}입니다. 즉시구매를 이용해 주세요.`,
+        error: `즉시구매가 ${formatUsedPrice(listing.buyNowPrice, listing.currency)}입니다. 즉시구매를 이용해 주세요.`,
       };
     }
 
@@ -169,7 +177,12 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
       if (bidAmount < minFresh) throw new Error("LOW_BID");
 
       await tx.usedAuctionBid.create({
-        data: { listingId, bidderId: user.id, amount: bidAmount },
+        data: {
+          listingId,
+          bidderId: user.id,
+          amount: bidAmount,
+          termsAcceptedAt: new Date(),
+        },
       });
       await tx.usedListing.update({
         where: { id: listingId },
@@ -193,7 +206,7 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
       userId: listing.sellerId,
       type: "bid",
       title: "새 입찰",
-      body: `${listing.title} · ${formatUsd(bidAmount)}`,
+      body: `${listing.title} · ${formatUsedPrice(bidAmount, listing.currency)}`,
       link,
       actorId: user.id,
     });
@@ -202,7 +215,7 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
         userId: prevBidderId,
         type: "outbid",
         title: "입찰 갱신됨",
-        body: `${listing.title} · ${formatUsd(bidAmount)}`,
+        body: `${listing.title} · ${formatUsedPrice(bidAmount, listing.currency)}`,
         link,
         actorId: user.id,
       });
@@ -218,7 +231,7 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
         const listing = await db.usedListing.findUnique({ where: { id: listingId } });
         if (listing) {
           return {
-            error: `다른 분이 먼저 입찰했습니다. 최소 ${formatUsd(minNextBidAmount(listing))} 이상으로 입찰해 주세요.`,
+            error: `다른 분이 먼저 입찰했습니다. 최소 ${formatUsedPrice(minNextBidAmount(listing), listing.currency)} 이상으로 입찰해 주세요.`,
           };
         }
       }
@@ -228,10 +241,14 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
   }
 }
 
-export async function buyNowUsedAuction(listingId: string) {
+export async function buyNowUsedAuction(listingId: string, termsAccepted?: boolean) {
   const user = await requireAuth();
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
+
+  if (!termsAccepted) {
+    return { error: "즉시구매 전 결제 의무 및 이용 제한 안내에 동의해 주세요." };
+  }
 
   try {
     await finalizeExpiredAuctionIfNeeded(listingId);
@@ -256,7 +273,12 @@ export async function buyNowUsedAuction(listingId: string) {
 
     await db.$transaction(async (tx) => {
       await tx.usedAuctionBid.create({
-        data: { listingId, bidderId: user.id, amount: buyNow },
+        data: {
+          listingId,
+          bidderId: user.id,
+          amount: buyNow,
+          termsAcceptedAt: new Date(),
+        },
       });
       await tx.usedListing.update({
         where: { id: listingId },
@@ -282,7 +304,7 @@ export async function buyNowUsedAuction(listingId: string) {
       userId: listing.sellerId,
       type: "buy_now",
       title: "즉시구매",
-      body: `${listingTitle} · ${formatUsd(buyNow)}`,
+      body: `${listingTitle} · ${formatUsedPrice(buyNow, listing.currency)}`,
       link: `/used/${listingId}`,
       actorId: user.id,
     });

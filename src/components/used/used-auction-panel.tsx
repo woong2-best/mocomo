@@ -73,13 +73,13 @@ export function UsedAuctionPanel({
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
           <p className="text-xs text-muted-foreground">{listing.bidCount > 0 ? "현재가" : "시작가"}</p>
-          <p className="text-xl font-black">{formatUsedPrice(current)}</p>
+          <p className="text-xl font-black">{formatUsedPrice(current, listing.currency)}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">입찰 {listing.bidCount}회</p>
           <p className="text-sm font-medium mt-1">
             다음 최소{" "}
-            <span className="font-bold text-foreground">{formatUsedPrice(minBid)}</span>
+            <span className="font-bold text-foreground">{formatUsedPrice(minBid, listing.currency)}</span>
           </p>
         </div>
       </div>
@@ -87,7 +87,7 @@ export function UsedAuctionPanel({
       {listing.buyNowPrice != null && listing.buyNowPrice > 0 && live && (
         <p className="text-xs flex items-center gap-1 text-muted-foreground">
           <Zap className="h-3.5 w-3.5 text-amber-500" />
-          즉시구매 {formatUsedPrice(listing.buyNowPrice)}
+          즉시구매 {formatUsedPrice(listing.buyNowPrice, listing.currency)}
         </p>
       )}
 
@@ -138,8 +138,8 @@ export function UsedAuctionPanel({
           }`}
         >
           {isWinningBidder
-            ? `내가 최고가 (${formatUsedPrice(myHighestBid)})`
-            : `내 입찰 ${formatUsedPrice(myHighestBid)} · 다른 분이 더 높은 금액`}
+            ? `내가 최고가 (${formatUsedPrice(myHighestBid, listing.currency)})`
+            : `내 입찰 ${formatUsedPrice(myHighestBid, listing.currency)} · 다른 분이 더 높은 금액`}
         </p>
       )}
 

@@ -14,11 +14,12 @@ export type UsedAuctionBidRow = {
 
 type UsedAuctionBidHistoryProps = {
   listingId: string;
+  currency?: string | null;
   /** 서버에서 미리 불러온 입찰 내역 — 클라이언트 재요청 생략 */
   initialBids?: UsedAuctionBidRow[];
 };
 
-export function UsedAuctionBidHistory({ listingId, initialBids }: UsedAuctionBidHistoryProps) {
+export function UsedAuctionBidHistory({ listingId, currency, initialBids }: UsedAuctionBidHistoryProps) {
   const [bids, setBids] = useState<UsedAuctionBidRow[]>(
     () =>
       initialBids?.map((b) => ({
@@ -67,7 +68,7 @@ export function UsedAuctionBidHistory({ listingId, initialBids }: UsedAuctionBid
             ) : null}
             {maskBidderName(b.bidder.username)}
           </span>
-          <span className="font-bold tabular-nums">{formatUsedPrice(b.amount)}</span>
+          <span className="font-bold tabular-nums">{formatUsedPrice(b.amount, currency)}</span>
           <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
             {formatUsedTimeAgo(b.createdAt)}
           </span>

@@ -33,6 +33,7 @@ export function UsedPriceNegotiationPanel({
   currentTopBid,
   secondBidAmount,
   offers,
+  currency,
 }: {
   listingId: string;
   roomId: string;
@@ -44,6 +45,7 @@ export function UsedPriceNegotiationPanel({
   currentTopBid: number;
   secondBidAmount?: number | null;
   offers: Offer[];
+  currency?: string | null;
 }) {
   const router = useRouter();
   const [amount, setAmount] = useState("");
@@ -104,8 +106,8 @@ export function UsedPriceNegotiationPanel({
         <div>
           <h3 className="text-sm font-bold">가격 협상</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            최고 입찰 {formatUsedPrice(currentTopBid)} (미결제)
-            {secondBidAmount != null && ` · 차순위 ${formatUsedPrice(secondBidAmount)}`}
+            최고 입찰 {formatUsedPrice(currentTopBid, currency)} (미결제)
+            {secondBidAmount != null && ` · 차순위 ${formatUsedPrice(secondBidAmount, currency)}`}
           </p>
         </div>
         {negotiationDueAt && (
@@ -122,7 +124,7 @@ export function UsedPriceNegotiationPanel({
             <span className="font-semibold">
               {pending.proposer.name || pending.proposer.username}
             </span>
-            님의 제안: <span className="font-bold">{formatUsedPrice(pending.amount)}</span>
+            님의 제안: <span className="font-bold">{formatUsedPrice(pending.amount, currency)}</span>
           </p>
           {pending.proposerId !== viewerId && (
             <div className="flex gap-2">

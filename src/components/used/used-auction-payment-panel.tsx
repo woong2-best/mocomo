@@ -12,12 +12,14 @@ export function UsedAuctionPaymentPanel({
   listingId,
   paymentDueAt,
   amount,
+  currency,
   isWinner,
   paymentCompleted,
 }: {
   listingId: string;
   paymentDueAt: Date | string;
   amount: number;
+  currency?: string | null;
   isWinner: boolean;
   paymentCompleted?: boolean;
 }) {
@@ -42,7 +44,7 @@ export function UsedAuctionPaymentPanel({
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-sm font-bold text-orange-700 dark:text-orange-300">낙찰 · 결제 필요</p>
-          <p className="text-lg font-black">{formatUsedPrice(amount)}</p>
+          <p className="text-lg font-black">{formatUsedPrice(amount, currency)}</p>
         </div>
         <div className="text-right">
           <p className="text-[10px] text-muted-foreground">남은 결제 시간</p>

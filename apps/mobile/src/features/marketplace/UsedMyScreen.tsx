@@ -56,7 +56,7 @@ export function UsedMyScreen() {
           <Text style={styles.title} numberOfLines={2}>
             {item.title}
           </Text>
-          <Text style={styles.price}>{formatUsedPrice(item.price)}</Text>
+          <Text style={styles.price}>{formatUsedPrice(item.price, item.currency)}</Text>
           <Text style={styles.sub}>
             {item.region || "지역 미정"} · {formatUsedTimeAgo(item.createdAt)}
           </Text>

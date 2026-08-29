@@ -16,17 +16,26 @@ export function formatUsd(cents: number): string {
   }).format(cents / 100);
 }
 
+/** Format KRW whole won for display (₩X). */
+export function formatKrw(won: number): string {
+  return new Intl.NumberFormat("ko-KR", {
+    style: "currency",
+    currency: "KRW",
+    maximumFractionDigits: 0,
+  }).format(won);
+}
+
 /** Alias — all site payments display in USD. */
 export function formatMoney(cents: number, opts?: { freeLabel?: string }): string {
   if (cents === 0 && opts?.freeLabel) return opts.freeLabel;
   return formatUsd(cents);
 }
 
-/** @deprecated use formatMoney — kept for migration */
+/** Display price in the listing/order currency. krw = whole won, usd = cents. */
 export function formatPrice(amount: number, currency?: string | null): string {
   const c = (currency ?? SITE_CURRENCY).toLowerCase();
   if (c === "usd") return formatUsd(amount);
-  if (c === "krw") return formatUsd(amount);
+  if (c === "krw") return formatKrw(amount);
   return `${amount.toLocaleString()} ${c.toUpperCase()}`;
 }
 
@@ -89,6 +98,7 @@ export const EVENT_REGISTRATION_MAX_DAYS = 100;
 export const EVENT_REGISTRATION_MAX_FEE_USD_CENTS =
   EVENT_REGISTRATION_FEE_PER_DAY_USD_CENTS * EVENT_REGISTRATION_MAX_DAYS;
 export const MAX_USED_LISTING_PRICE_USD_CENTS = 2_100_000_000;
+export const MAX_USED_LISTING_PRICE_KRW = 2_100_000_000;
 export const MARKETPLACE_HIGH_PRICE_THRESHOLD_USD_CENTS = 50_000;
 
 /** Backward-compatible aliases (USD cents semantics). */

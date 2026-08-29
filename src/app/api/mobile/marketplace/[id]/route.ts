@@ -119,6 +119,7 @@ export async function GET(
       title: listing.title,
       description: listing.description,
       price: listing.price,
+      currency: listing.currency,
       images,
       region: listing.region,
       meetPlace,

@@ -27,6 +27,7 @@ export const BID_INCREMENT_PRESETS = [
 export type AuctionListingSlice = {
   saleType: UsedSaleType;
   price: number;
+  currency?: string | null;
   auctionEndsAt: Date | string | null;
   bidIncrement: number | null;
   buyNowPrice: number | null;

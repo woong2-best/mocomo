@@ -11,6 +11,8 @@ import type { UsedRestrictedKind } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Gavel, Zap } from "lucide-react";
+import { USED_AUCTION_BID_CONSENT_LABEL } from "@/lib/used-auction-legal";
+import Link from "next/link";
 
 function needsSettlementAccount(error: string) {
   return (
@@ -27,12 +29,14 @@ export function UsedAuctionBidSheet({
   buyNowPrice,
   quickBids,
   restrictedKind = "NONE",
+  currency,
 }: {
   listingId: string;
   minBid: number;
   buyNowPrice?: number | null;
   quickBids?: number[];
   restrictedKind?: UsedRestrictedKind | string;
+  currency?: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -40,11 +44,17 @@ export function UsedAuctionBidSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [confirmBuyNow, setConfirmBuyNow] = useState(false);
+  const [bidConsent, setBidConsent] = useState(false);
+  const [buyNowConsent, setBuyNowConsent] = useState(false);
 
   async function submitBid(bidAmount: number) {
+    if (!bidConsent) {
+      setError("입찰 전 결제 의무 및 이용 제한 안내에 동의해 주세요.");
+      return;
+    }
     setBusy(true);
     setError("");
-    const res = await placeUsedAuctionBid(listingId, bidAmount);
+    const res = await placeUsedAuctionBid(listingId, bidAmount, true);
     setBusy(false);
     if ("error" in res && res.error) {
       if (needsSettlementAccount(res.error)) {
@@ -68,10 +78,14 @@ export function UsedAuctionBidSheet({
 
   async function buyNow() {
     if (!buyNowPrice) return;
+    if (!buyNowConsent) {
+      setError("즉시구매 전 결제 의무 및 이용 제한 안내에 동의해 주세요.");
+      return;
+    }
     setBusy(true);
     setError("");
     setConfirmBuyNow(false);
-    const res = await buyNowUsedAuction(listingId);
+    const res = await buyNowUsedAuction(listingId, true);
     setBusy(false);
     if ("error" in res && res.error) {
       if (needsSettlementAccount(res.error)) {
@@ -109,6 +123,8 @@ export function UsedAuctionBidSheet({
         className="flex-1 h-12 rounded-xl font-semibold gap-2 bg-orange-600 hover:bg-orange-700 text-white"
         onClick={() => {
           setAmount(String(minBid));
+          setBidConsent(false);
+          setBuyNowConsent(false);
           setOpen(true);
         }}
       >
@@ -127,7 +143,7 @@ export function UsedAuctionBidSheet({
           <div className="relative bg-card rounded-t-2xl border-t p-4 pb-8 space-y-4 max-h-[85dvh] overflow-y-auto">
             <h3 className="text-lg font-bold">입찰</h3>
             <p className="text-sm text-muted-foreground">
-              최소 입찰가 <span className="font-bold text-foreground">{formatUsedPrice(minBid)}</span>
+              최소 입찰가 <span className="font-bold text-foreground">{formatUsedPrice(minBid, currency)}</span>
             </p>
 
             <div className="flex flex-wrap gap-2">
@@ -138,7 +154,7 @@ export function UsedAuctionBidSheet({
                   className="px-3 py-1.5 rounded-full text-xs font-medium border bg-muted hover:bg-muted/80"
                   onClick={() => setAmount(String(p))}
                 >
-                  {formatUsedPrice(p)}
+                  {formatUsedPrice(p, currency)}
                 </button>
               ))}
             </div>
@@ -154,31 +170,52 @@ export function UsedAuctionBidSheet({
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              입찰은 법적·계약적 책임이 따르는 약속입니다. 낙찰 후 결제를 완료하지 않을 경우
-              중고거래 서비스 이용이 제한될 수 있습니다.
-            </p>
+            <label className="flex items-start gap-2.5 cursor-pointer rounded-lg border border-border/60 p-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-input"
+                checked={bidConsent}
+                onChange={(e) => setBidConsent(e.target.checked)}
+              />
+              <span className="text-[11px] text-muted-foreground leading-relaxed">
+                {USED_AUCTION_BID_CONSENT_LABEL}{" "}
+                <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
+                  (이용약관)
+                </Link>
+              </span>
+            </label>
 
             <Button
               type="button"
               className="w-full h-12 rounded-xl font-semibold"
-              disabled={busy}
+              disabled={busy || !bidConsent}
               onClick={() => void submitBid(Number(amount) || 0)}
             >
-              {busy ? "처리 중…" : `${formatUsedPrice(Number(amount) || minBid)} 입찰`}
+              {busy ? "처리 중…" : `${formatUsedPrice(Number(amount) || minBid, currency)} 입찰`}
             </Button>
 
             {buyNowPrice != null && buyNowPrice > 0 && (
               confirmBuyNow ? (
                 <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
                   <p className="text-sm font-medium">
-                    {formatUsedPrice(buyNowPrice)}에 즉시구매하시겠습니까?
+                    {formatUsedPrice(buyNowPrice, currency)}에 즉시구매하시겠습니까?
                   </p>
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 rounded border-input"
+                      checked={buyNowConsent}
+                      onChange={(e) => setBuyNowConsent(e.target.checked)}
+                    />
+                    <span className="text-[11px] text-muted-foreground leading-relaxed">
+                      {USED_AUCTION_BID_CONSENT_LABEL}
+                    </span>
+                  </label>
                   <div className="flex gap-2">
                     <Button
                       type="button"
                       className="flex-1 h-10 rounded-xl font-semibold gap-2 bg-amber-600 hover:bg-amber-700"
-                      disabled={busy}
+                      disabled={busy || !buyNowConsent}
                       onClick={() => void buyNow()}
                     >
                       <Zap className="h-4 w-4" />
@@ -204,7 +241,7 @@ export function UsedAuctionBidSheet({
                   onClick={() => setConfirmBuyNow(true)}
                 >
                   <Zap className="h-5 w-5 text-amber-500" />
-                  즉시구매 {formatUsedPrice(buyNowPrice)}
+                  즉시구매 {formatUsedPrice(buyNowPrice, currency)}
                 </Button>
               )
             )}

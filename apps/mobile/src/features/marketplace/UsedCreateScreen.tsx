@@ -56,6 +56,7 @@ export function UsedCreateScreen() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState<"krw" | "usd">("krw");
   const [category, setCategory] = useState<string>("OTHER");
   const [region, setRegion] = useState<string>("전국 택배");
   const [meetPlace, setMeetPlace] = useState("");
@@ -135,6 +136,7 @@ export function UsedCreateScreen() {
         title: title.trim(),
         description: description.trim(),
         price: priceNum,
+        currency,
         category,
         region,
         meetPlace: meetPlace.trim() || undefined,
@@ -191,7 +193,29 @@ export function UsedCreateScreen() {
         <ScrollView contentContainerStyle={styles.body}>
           <Text style={styles.label}>제목</Text>
           <TextInput style={styles.input} value={title} onChangeText={setTitle} />
-          <Text style={styles.label}>가격 (USD)</Text>
+          <Text style={styles.label}>통화</Text>
+          <View style={styles.chips}>
+            {(
+              [
+                { id: "krw", label: "원 (KRW)" },
+                { id: "usd", label: "달러 (USD)" },
+              ] as const
+            ).map((c) => (
+              <Pressable
+                key={c.id}
+                style={[styles.chip, currency === c.id && styles.chipOn]}
+                onPress={() => {
+                  setCurrency(c.id);
+                  setPrice("");
+                }}
+              >
+                <Text style={[styles.chipText, currency === c.id && styles.chipTextOn]}>
+                  {c.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.label}>{currency === "usd" ? "가격 ($)" : "가격 (원)"}</Text>
           <TextInput
             style={styles.input}
             value={price}
