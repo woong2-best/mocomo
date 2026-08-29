@@ -205,7 +205,7 @@ export const COMMUNITY_POLICY: LegalDocument = {
 export const TERMS_OF_SERVICE: LegalDocument = {
   slug: "terms",
   title: "MoCoMo 이용약관",
-  updatedAt: "2026년 8월 29일",
+  updatedAt: "2026년 8월 30일",
   intro:
     '본 약관은 미합중국 와이오밍 주에 설립된 MoCoMo LLC(이하 "회사" 또는 "MoCoMo")가 제공하는 웹사이트(mocomo.net), 모바일 애플리케이션 및 관련 서비스의 이용 조건을 규정합니다.',
   blocks: [
@@ -395,6 +395,19 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     {
       type: "p",
       text: "③ 크리에이터의 개인적 사정, 단순 불만족, 대화 응답의 지연 또는 이용자의 주관적 기대 미달을 이유로 이미 이행된 유료 메시지 및 통화 건에 대한 환불은 원칙적으로 제한됩니다.",
+    },
+    { type: "h3", text: "(DM 유료 팬아트·잠금 미디어)" },
+    {
+      type: "p",
+      text: "① DM에서 크리에이터는 사진·영상을 유료 팬아트(잠금 미디어)로 판매할 수 있으며, 구매 전까지 수신자에게 원본 미리보기 URL이 제공되지 않습니다.",
+    },
+    {
+      type: "p",
+      text: "② 구매자는 플랫폼 공식 결제(Stripe 등)를 통해서만 잠금을 해제할 수 있으며, 결제 완료 후 해당 미디어 열람 권한이 부여됩니다. 성인·NSFW 콘텐츠의 유료 판매는 금지됩니다.",
+    },
+    {
+      type: "p",
+      text: "③ 판매자는 본인이 권리를 보유하거나 적법히 이용 허락을 받은 창작물만 판매해야 하며, 타인의 저작권·초상권을 침해하는 판매는 금지됩니다.",
     },
     { type: "h3", text: "(외부 채널 유도 및 사적 연락처 교환 금지)" },
     {
@@ -1105,7 +1118,7 @@ export const CREATOR_TERMS: LegalDocument = {
 export const PAYMENT_REFUND_POLICY: LegalDocument = {
   slug: "payment",
   title: "MoCoMo 결제 및 환불 정책",
-  updatedAt: "2026년 8월 29일",
+  updatedAt: "2026년 8월 30일",
   intro:
     "본 정책은 MoCoMo LLC가 제공하는 유료 기능, 구독, 디지털 콘텐츠, 지갑·가상재화 및 인앱결제에 적용됩니다. 성인·NSFW 콘텐츠와 관련된 유료 거래는 플랫폼 전역에서 허용되지 않습니다.",
   blocks: [
@@ -1148,6 +1161,7 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
       type: "ul",
       items: [
         "사진·영상·음성·다운로드 파일·온라인 강의 등 전자적 콘텐츠",
+        "DM 유료 팬아트(잠금 사진·영상) 구매",
         "스타 마켓·크리에이터 상품",
         "젬(Gems)·지갑 잔액 등 플랫폼 내 가상재화",
         "기타 전자적으로 제공되는 유료 기능",
