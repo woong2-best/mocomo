@@ -29,7 +29,7 @@ export function SellerOnboardingStepper({
               className={cn(
                 "inline-flex items-center gap-1 rounded-full px-2 py-0.5",
                 active && "bg-primary/10 text-primary font-semibold",
-                done && !active && "text-emerald-700",
+                done && !active && "text-emerald-700 dark:text-emerald-400",
                 !done && !active && "text-muted-foreground"
               )}
             >

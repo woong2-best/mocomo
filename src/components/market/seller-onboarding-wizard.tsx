@@ -459,7 +459,7 @@ export function SellerOnboardingWizard({
 
   return (
     <div className="mx-auto w-full max-w-lg">
-      <h1 className="text-center text-xl sm:text-2xl font-bold text-[#1a1a1a] mb-2 tracking-tight">
+      <h1 className="text-center text-xl sm:text-2xl font-bold text-foreground mb-2 tracking-tight">
         {title}
       </h1>
       <p className="text-center text-sm text-muted-foreground mb-6">
@@ -471,9 +471,9 @@ export function SellerOnboardingWizard({
 
       <SellerOnboardingStepper uiStep={uiStep} countryCode={countryForSteps} />
 
-      <div className="rounded-xl border border-[#d8dee6] bg-white p-5 sm:p-6 shadow-sm space-y-4">
+      <div className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-sm space-y-4">
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {message && <p className="text-sm text-emerald-700">{message}</p>}
+        {message && <p className="text-sm text-emerald-700 dark:text-emerald-400">{message}</p>}
 
         {effectiveStep === "ACCOUNT" && !state.signedIn && (
           <AccountStep
@@ -901,7 +901,7 @@ function AgreementsStep(props: {
   return (
     <div className="space-y-4">
       {!props.signedIn && (
-        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+        <p className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/50 rounded-lg px-3 py-2">
           계정 생성 후 로그인하면 약관 동의가 저장됩니다. 이미 계정이 있다면{" "}
           <Link href="/auth/signin?callbackUrl=/market/seller/register" className="underline font-medium">
             로그인

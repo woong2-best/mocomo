@@ -14,11 +14,11 @@ export function SellerPortalShell({
   username?: string | null;
 }) {
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-[#f5f6f8]">
-      <header className="sticky top-0 z-20 border-b border-black/8 bg-white/95 backdrop-blur-sm">
+    <div className="min-h-[100dvh] flex flex-col bg-background">
+      <header className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4 sm:max-w-3xl">
           <Link href="/market/seller/register" className="flex min-w-0 flex-col">
-            <span className="truncate font-serif text-[1.05rem] font-semibold tracking-tight text-[#1a1a1a]">
+            <span className="truncate font-serif text-[1.05rem] font-semibold tracking-tight text-foreground">
               {BRAND.name} marketplace
             </span>
             <span className="text-[10px] text-muted-foreground">판매자 등록</span>
@@ -33,7 +33,7 @@ export function SellerPortalShell({
             ) : fromApp ? null : (
               <Link
                 href="/auth/signin?callbackUrl=/market/seller/register"
-                className="rounded-md border border-[#c9d4e0] px-3 py-1.5 text-[#1a1a1a] hover:bg-muted/40"
+                className="rounded-md border border-border px-3 py-1.5 text-foreground hover:bg-muted/40"
               >
                 로그인
               </Link>
@@ -50,7 +50,7 @@ export function SellerPortalShell({
         </div>
       </header>
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:max-w-3xl sm:py-12">{children}</main>
-      <footer className="border-t border-black/6 bg-white px-4 py-4 text-center text-xs text-muted-foreground">
+      <footer className="border-t border-border/60 bg-background px-4 py-4 text-center text-xs text-muted-foreground">
         <Link href="/legal/seller-terms" className="hover:underline">
           판매자 이용약관
         </Link>
