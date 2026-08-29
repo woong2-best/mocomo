@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { TOP_PROGRESS_IDLE, topProgress, type TopProgressSnapshot } from "@/lib/top-progress";
 
 /**
- * Fixed top loading bar — X blue, 3px, CSS-smoothed width (no JS stutter).
+ * Fixed top loading bar — folk terracotta, 3px, CSS-smoothed width (no JS stutter).
  */
 export function TopProgressBar() {
   const [snap, setSnap] = useState<TopProgressSnapshot>(TOP_PROGRESS_IDLE);
@@ -26,7 +26,7 @@ export function TopProgressBar() {
         style={{
           height: "100%",
           width: "100%",
-          backgroundColor: "#1D9BF0",
+          backgroundColor: "hsl(var(--folk-terracotta))",
           transformOrigin: "left center",
           transform: `scaleX(${Math.max(0.02, progress)})`,
           opacity: fading || !active ? 0 : 1,
