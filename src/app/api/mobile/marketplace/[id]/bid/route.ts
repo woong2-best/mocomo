@@ -19,14 +19,16 @@ export async function POST(
   }
 
   let amount = 0;
+  let termsAccepted = false;
   try {
-    const body = (await req.json()) as { amount?: number };
+    const body = (await req.json()) as { amount?: number; termsAccepted?: boolean };
     amount = Number(body.amount);
+    termsAccepted = body.termsAccepted === true;
   } catch {
     return NextResponse.json({ error: "입찰가를 입력해 주세요." }, { status: 400 });
   }
 
-  const result = await placeMobileUsedAuctionBid(auth.user.id, id, amount);
+  const result = await placeMobileUsedAuctionBid(auth.user.id, id, amount, termsAccepted);
   if ("error" in result && result.error) {
     const status = "needsAdultVerify" in result && result.needsAdultVerify ? 403 : 400;
     return NextResponse.json(result, { status });

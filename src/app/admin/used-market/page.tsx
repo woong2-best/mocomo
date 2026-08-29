@@ -3,7 +3,9 @@ import {
   getUsedAuctionAdminConfig,
   searchUsedMarketBannedUsers,
 } from "@/actions/admin-used-market";
+import { getAdminUsedMarketAppeals } from "@/actions/admin-used-market-appeal";
 import { AdminUsedMarketPanel } from "@/components/admin/admin-used-market-panel";
+import { AdminUsedMarketAppealsPanel } from "@/components/admin/admin-used-market-appeals-panel";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
 import { isAdminForbiddenError } from "@/lib/admin-access";
@@ -14,14 +16,17 @@ export default async function AdminUsedMarketPage() {
   let authorized = true;
   let config = null;
   let bannedUsers: Awaited<ReturnType<typeof searchUsedMarketBannedUsers>>["users"] = [];
+  let appeals: Awaited<ReturnType<typeof getAdminUsedMarketAppeals>> = [];
 
   try {
-    const [cfgRes, bannedRes] = await Promise.all([
+    const [cfgRes, bannedRes, appealsRes] = await Promise.all([
       getUsedAuctionAdminConfig(),
       searchUsedMarketBannedUsers(""),
+      getAdminUsedMarketAppeals("OPEN"),
     ]);
     config = cfgRes.config;
     bannedUsers = bannedRes.users ?? [];
+    appeals = appealsRes;
   } catch (e) {
     if (isAdminForbiddenError(e)) authorized = false;
     else throw e;
@@ -46,6 +51,7 @@ export default async function AdminUsedMarketPage() {
         </Link>
       </Button>
 
+      <AdminUsedMarketAppealsPanel initialAppeals={appeals} />
       <AdminUsedMarketPanel initialConfig={config} initialBannedUsers={bannedUsers} />
     </AdminPageChrome>
   );

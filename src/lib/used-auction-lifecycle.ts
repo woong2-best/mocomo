@@ -8,6 +8,8 @@ import {
 } from "@/lib/used-auction-config";
 import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
 import { USED_MARKET_BAN_MESSAGE } from "@/lib/used-market-access";
+import { recordAuctionPaymentTimeoutSanction } from "@/lib/used-market-sanction-log";
+import { USED_MARKET_APPEAL_PATH } from "@/lib/used-auction-legal";
 
 export async function getUsedAuctionConfig(): Promise<UsedAuctionConfigSlice> {
   try {
@@ -144,6 +146,8 @@ export async function setupWinnerTradeChat(
 }
 
 async function banUserFromUsedMarket(userId: string, listingId: string) {
+  const sanctionLogId = await recordAuctionPaymentTimeoutSanction(userId, listingId);
+
   await db.user.update({
     where: { id: userId },
     data: {
@@ -154,6 +158,8 @@ async function banUserFromUsedMarket(userId: string, listingId: string) {
       auctionLastPaymentDefaultAt: new Date(),
     },
   });
+
+  return sanctionLogId;
 }
 
 export async function transferToNextBidder(
@@ -285,8 +291,8 @@ export async function processPaymentTimeout(listingId: string, config?: UsedAuct
     userId: winnerId,
     type: "payment_failed",
     title: "낙찰 결제 기한 초과",
-    body: `${listing.title} — 중고거래 이용이 제한되었습니다.`,
-    link: `/used/${listingId}`,
+    body: `${listing.title} — 중고거래 이용이 제한되었습니다. 이의가 있으면 ${USED_MARKET_APPEAL_PATH}에서 소명해 주세요.`,
+    link: USED_MARKET_APPEAL_PATH,
   });
   await sendUsedAuctionNotification({
     userId: listing.sellerId,

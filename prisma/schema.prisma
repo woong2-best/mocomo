@@ -329,6 +329,9 @@ model User {
   usedAuctionWinningBids UsedListing[] @relation("UsedAuctionWinningBidder")
   usedAuctionNegotiations UsedListing[] @relation("UsedAuctionNegotiationBuyer")
   usedPriceOffers  UsedPriceOffer[]
+  usedMarketSanctionLogs UsedMarketSanctionLog[]
+  usedMarketAppeals    UsedMarketAppeal[]
+  usedMarketAppealsAdministered UsedMarketAppeal[] @relation("UsedMarketAppealAdmin")
   cosplayBoardPosts CosplayBoardPost[]
   cosplayBoardComments CosplayBoardComment[]
   userBadges    UserBadge[]
@@ -2242,6 +2245,10 @@ enum UsedPriceOfferStatus {
   SUPERSEDED
 }
 
+enum UsedMarketSanctionReason {
+  AUCTION_PAYMENT_TIMEOUT
+}
+
 enum UsedListingCategory {
   DIGITAL
   FIGURE
@@ -2328,6 +2335,8 @@ model UsedListing {
   tradeChats  UsedListingChat[]
   auctionBids UsedAuctionBid[]
   priceOffers UsedPriceOffer[]
+  sanctionLogs UsedMarketSanctionLog[]
+  marketAppeals UsedMarketAppeal[]
 
   @@index([status, createdAt])
   @@index([sellerId])
@@ -2344,19 +2353,70 @@ model UsedListing {
 }
 
 model UsedAuctionBid {
-  id        String               @id @default(cuid())
-  listingId String
-  bidderId  String
-  amount    Int
-  bidStatus UsedAuctionBidStatus @default(ACTIVE)
-  createdAt DateTime             @default(now())
-  listing   UsedListing          @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  bidder    User                 @relation(fields: [bidderId], references: [id], onDelete: Cascade)
+  id              String               @id @default(cuid())
+  listingId       String
+  bidderId        String
+  amount          Int
+  bidStatus       UsedAuctionBidStatus @default(ACTIVE)
+  /** 입찰 시 결제 의무·이용 제한 안내 동의 시각 */
+  termsAcceptedAt DateTime?
+  createdAt       DateTime             @default(now())
+  listing         UsedListing          @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  bidder          User                 @relation(fields: [bidderId], references: [id], onDelete: Cascade)
 
   @@index([listingId, createdAt(sort: Desc)])
   @@index([listingId, amount(sort: Desc)])
   @@index([bidderId, createdAt(sort: Desc)])
   @@index([listingId, bidderId])
+}
+
+/** 중고거래·경매 제재 이력 — 민원·분쟁 입증용 (최소 1년 보존) */
+model UsedMarketSanctionLog {
+  id                   String                   @id @default(cuid())
+  userId               String
+  listingId            String
+  reason               UsedMarketSanctionReason
+  reasonDetail         String                   @db.Text
+  auctionEndsAt        DateTime?
+  paymentDueAt         DateTime?
+  sanctionedAt         DateTime                 @default(now())
+  winningBidAmount     Int?
+  userHighestBidAt     DateTime?
+  userHighestBidAmount Int?
+  bidTermsAcceptedAt   DateTime?
+  retainUntil          DateTime
+  user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing              UsedListing              @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  appeals              UsedMarketAppeal[]
+
+  @@index([userId, sanctionedAt(sort: Desc)])
+  @@index([listingId])
+  @@index([retainUntil])
+}
+
+/** 중고거래 이용 제한 이의 신청 */
+model UsedMarketAppeal {
+  id            String                 @id @default(cuid())
+  userId        String
+  sanctionLogId String?
+  listingId     String?
+  title         String
+  content       String                 @db.Text
+  contactEmail  String
+  status        AppealStatus           @default(RECEIVED)
+  adminNotes    String?                @db.Text
+  adminId       String?
+  decisionNote  String?                @db.Text
+  decidedAt     DateTime?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sanctionLog   UsedMarketSanctionLog? @relation(fields: [sanctionLogId], references: [id], onDelete: SetNull)
+  listing       UsedListing?           @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  admin         User?                  @relation("UsedMarketAppealAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
 }
 
 /** 경매 차순위 가격 협상 제안 */
