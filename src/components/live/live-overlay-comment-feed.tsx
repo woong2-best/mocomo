@@ -1,6 +1,7 @@
 "use client";
 
 import type { LiveChatMessage } from "@/components/live/live-chat";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { chatOverlayUsernameColor } from "@/lib/live/chat-overlay-username-color";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -67,7 +68,12 @@ export function LiveOverlayCommentFeed({
               "drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]"
             )}
           >
-            <span className="font-bold mr-1.5 align-baseline">{m.username}</span>
+            <DisplayNameWithSupportTier
+              name={<span className="font-bold">{m.username}</span>}
+              tier={m.supportTierSent ?? "SEED"}
+              compact={false}
+              className="inline-flex mr-1.5 align-baseline"
+            />
             <span className="font-normal align-baseline">{m.content}</span>
           </p>
         </div>

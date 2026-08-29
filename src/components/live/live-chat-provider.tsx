@@ -54,11 +54,14 @@ export function LiveChatProvider({
   const mergeMessages = useCallback((incoming: LiveChatMessage[]) => {
     if (incoming.length === 0) return;
     setMessages((prev) => {
-      const safePrev = ensureArray<LiveChatMessage>(prev);
-      const ids = new Set(safePrev.map((m) => m.id));
-      const added = incoming.filter((m) => !ids.has(m.id));
-      if (added.length === 0) return safePrev;
-      return [...safePrev, ...added].slice(-MAX_MESSAGES);
+      const map = new Map(ensureArray<LiveChatMessage>(prev).map((m) => [m.id, m]));
+      for (const m of incoming) {
+        const existing = map.get(m.id);
+        map.set(m.id, existing ? { ...existing, ...m } : m);
+      }
+      return [...map.values()]
+        .sort((a, b) => a.at - b.at)
+        .slice(-MAX_MESSAGES);
     });
     const last = incoming[incoming.length - 1];
     lastSyncRef.current = new Date(last.at).toISOString();

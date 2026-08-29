@@ -23,6 +23,7 @@ import { LiveSupportPanels } from "@/features/live/LiveSupportPanels";
 import { LiveSupportSheet } from "@/features/live/LiveSupportSheet";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { LinkifiedText } from "@/ui/LinkifiedText";
+import { SupportTierBadge } from "@/ui/SupportTierBadge";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -244,7 +245,10 @@ export function LiveChatPanel({
               <View style={styles.row}>
                 <FolkAvatar uri={item.image} name={item.username} size={28} framed={false} />
                 <View style={styles.bubble}>
-                  <Text style={styles.user}>@{item.username}</Text>
+                  <View style={styles.userRow}>
+                    <Text style={[styles.user, { color: "#f97316" }]}>@{item.username}</Text>
+                    <SupportTierBadge tier={item.supportTierSent ?? "SEED"} />
+                  </View>
                   <LinkifiedText text={item.content} style={styles.content} />
                 </View>
               </View>
@@ -394,7 +398,8 @@ function createStyles(colors: ThemeColors) {
     empty: { textAlign: "center", color: colors.textMuted, fontWeight: "600", fontSize: 13 },
     row: { flexDirection: "row", gap: 8, marginBottom: 8, alignItems: "flex-start" },
     bubble: { flex: 1, minWidth: 0 },
-    user: { fontSize: 11, fontWeight: "700", color: colors.cobalt, marginBottom: 2 },
+    userRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: 2 },
+    user: { fontSize: 11, fontWeight: "700" },
     content: { fontSize: 13, fontWeight: "600", color: colors.text, lineHeight: 18 },
     error: {
       color: colors.danger,

@@ -57,6 +57,7 @@ export function LiveMobileOverlayChat({
       content,
       at: Date.now(),
       image: session.user.image ?? null,
+      supportTierSent: viewerSupportTier ?? "SEED",
     });
 
     setSending(true);

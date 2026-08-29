@@ -148,6 +148,7 @@ function LiveChatInner({
       content,
       at: Date.now(),
       image: session.user.image ?? null,
+      supportTierSent: viewerSupportTier ?? "SEED",
     };
 
     setSending(true);
@@ -306,7 +307,7 @@ function LiveChatInner({
                         }
                         profileUsername={m.username}
                         tier={m.supportTierSent ?? "SEED"}
-                        compact
+                        compact={false}
                         className="flex-wrap"
                       />
                       {canModerate && !m.id.startsWith("pending-") && (
