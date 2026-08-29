@@ -43,6 +43,18 @@ export function allSessionCookieNames(): string[] {
   return names;
 }
 
+/** Session JWT cookies only — preserves CSRF/callback-url needed for the next signIn(). */
+export function sessionTokenCookieNames(): string[] {
+  const names: string[] = [];
+  for (const base of SESSION_COOKIE_BASE_NAMES) {
+    names.push(base);
+    for (let i = 0; i < MAX_SESSION_COOKIE_CHUNKS; i++) {
+      names.push(`${base}.${i}`);
+    }
+  }
+  return names;
+}
+
 const CLEAR_COOKIE_OPTS = {
   httpOnly: true,
   sameSite: "lax" as const,
@@ -55,6 +67,16 @@ const CLEAR_COOKIE_OPTS = {
 export function clearSessionCookiesOnResponse(res: NextResponse) {
   for (const name of allSessionCookieNames()) {
     res.cookies.set(name, "", CLEAR_COOKIE_OPTS);
+  }
+}
+
+/** Purge session JWT cookies only (safe before OAuth signIn kickoff). */
+export async function clearSessionTokenCookies() {
+  const { cookies } = await import("next/headers");
+  const jar = await cookies();
+
+  for (const name of sessionTokenCookieNames()) {
+    jar.set(name, "", CLEAR_COOKIE_OPTS);
   }
 }
 

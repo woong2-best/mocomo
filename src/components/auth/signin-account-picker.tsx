@@ -13,8 +13,7 @@ import {
   switchToAccount,
   type SavedAccount,
 } from "@/lib/account-switch/client";
-import { setAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
-import { signOutForAddAccount } from "@/lib/account-switch/sign-out-client";
+import { beginCreateAccountFlow, beginAddExistingAccountFlow } from "@/lib/account-switch/add-account-flow";
 import { cn } from "@/lib/utils";
 
 export function SignInAccountPicker({
@@ -57,16 +56,12 @@ export function SignInAccountPicker({
 
   async function handleAddExisting() {
     setError("");
-    setAddAccountFlowCookie();
-    await signOutForAddAccount();
-    window.location.href = "/auth/signin?addAccount=1";
+    await beginAddExistingAccountFlow();
   }
 
   async function handleCreateNew() {
     setError("");
-    setAddAccountFlowCookie();
-    await signOutForAddAccount();
-    window.location.href = "/auth/signup/apply?addAccount=1";
+    await beginCreateAccountFlow();
   }
 
   function handleRemove(account: SavedAccount, e: React.MouseEvent) {

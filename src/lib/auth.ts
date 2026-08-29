@@ -17,8 +17,10 @@ import { hydrateUserOAuthProfile, findUserIdByOAuthEmail } from "@/lib/oauth-vau
 import {
   readOAuthFlowCookie,
   signupRedirectForUnregistered,
+  signupRedirectForExistingAccount,
+  signupRedirectForStaleSession,
 } from "@/lib/oauth-flow-cookie";
-import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
+import { ADD_ACCOUNT_COOKIE, ADD_ACCOUNT_SOURCE_USER_COOKIE } from "@/lib/account-switch/constants";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import { recordUserAccessLog } from "@/lib/user-access-log";
 import {
@@ -108,6 +110,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return jar.get(ADD_ACCOUNT_COOKIE)?.value === "1";
       }
 
+      async function readAddAccountSourceUserId(): Promise<string | null> {
+        const { cookies } = await import("next/headers");
+        const jar = await cookies();
+        return jar.get(ADD_ACCOUNT_SOURCE_USER_COOKIE)?.value?.trim() || null;
+      }
+
+      async function isStaleAddAccountSignup(userId: string): Promise<boolean> {
+        const sourceUserId = await readAddAccountSourceUserId();
+        return Boolean(sourceUserId && sourceUserId === userId);
+      }
+
       if (isOAuth && (oauthFlow === "signin" || oauthFlow === null)) {
         let existing: SignInUserRow | null = null;
         const addingAccount = await isAddAccountOAuthFlow();
@@ -134,12 +147,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         user.id = existing.id;
       } else if (isOAuth && oauthFlow === "signup") {
+        const addingAccount = await isAddAccountOAuthFlow();
         const existing = user.id
           ? await db.user.findUnique({ where: { id: user.id }, select: userSelect })
           : await resolveUserByEmail(user.email);
 
         if (!existing) {
           return true;
+        }
+        if (existing.emailVerified && addingAccount) {
+          return signupRedirectForExistingAccount(true);
         }
         if (existing.emailVerified) {
           user.id = existing.id;
@@ -161,6 +178,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (!dbUser) return false;
       if (isServiceBanned(dbUser)) return false;
+
+      if (isOAuth && oauthFlow === "signup" && (await isAddAccountOAuthFlow())) {
+        if (await isStaleAddAccountSignup(resolvedUserId)) {
+          return signupRedirectForStaleSession(true);
+        }
+      }
 
       if (dbUser.deletedAt) {
         if (isAccountPastRecovery(dbUser)) return false;

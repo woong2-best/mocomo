@@ -83,11 +83,11 @@ export async function performWebSignOut(options?: {
 
 /**
  * Sign out current session while preserving add-account flow cookies.
- * Do not call /api/auth/logout — that route clears the add-account cookie.
+ * Do not call /api/auth/logout without preserveAddAccount — that route clears the add-account cookie.
  */
-export async function signOutForAddAccount() {
+export async function signOutForAddAccount(sourceUserId?: string | null) {
   const { setAddAccountFlowCookie } = await import("@/lib/account-switch/add-account-flow");
-  setAddAccountFlowCookie();
+  setAddAccountFlowCookie(sourceUserId);
 
   try {
     await fetch("/api/auth/logout?preserveAddAccount=1", {
@@ -103,5 +103,18 @@ export async function signOutForAddAccount() {
     await nextAuthSignOut({ redirect: false });
   } catch {
     // OAuth kickoff also clears server session cookies when addAccount=1.
+  }
+
+  if (!(await confirmLoggedOut())) {
+    try {
+      await fetch("/api/auth/logout?preserveAddAccount=1", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      await nextAuthSignOut({ redirect: false });
+    } catch {
+      // OAuth kickoff clears session again server-side.
+    }
   }
 }

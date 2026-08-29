@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isOAuthProviderId } from "@/lib/oauth-provider-signin-shared";
 import { startOAuthProviderSignin } from "@/lib/oauth-provider-signin";
+import { isNextNavigationError } from "@/lib/next-navigation-error";
 
 /**
  * Mobile AuthSession: start OAuth with a server redirect (no client CSRF fetch).
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
       redirectUri: sp.get("redirect_uri"),
     });
   } catch (e) {
+    if (isNextNavigationError(e)) throw e;
     console.error("[api/auth/mobile/provider-signin]", e);
     return NextResponse.redirect(new URL("/auth/error?error=Configuration", req.url));
   }

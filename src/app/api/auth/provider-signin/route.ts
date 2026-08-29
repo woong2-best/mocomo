@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isOAuthProviderId } from "@/lib/oauth-provider-signin-shared";
 import { startOAuthProviderSignin } from "@/lib/oauth-provider-signin";
+import { isNextNavigationError } from "@/lib/next-navigation-error";
 
 /** Web OAuth — server redirect so Auth.js callback-url is set correctly. */
 export async function GET(req: NextRequest) {
@@ -22,6 +23,7 @@ export async function GET(req: NextRequest) {
       mobile: false,
     });
   } catch (e) {
+    if (isNextNavigationError(e)) throw e;
     console.error("[api/auth/provider-signin]", e);
     return NextResponse.redirect(new URL("/auth/error?error=Configuration", req.url));
   }

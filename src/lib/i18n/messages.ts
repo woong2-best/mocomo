@@ -185,6 +185,8 @@ export type MessageKey =
   | "auth.hasAccount"
   | "auth.signinLink"
   | "auth.oauthSignupRequired"
+  | "auth.oauthAccountExistsAddExisting"
+  | "auth.oauthSameAccountSession"
   | "post.comments"
   | "post.writeComment"
   | "post.loadingComments"
@@ -646,6 +648,8 @@ const ko: Record<MessageKey, string> = {
   "auth.hasAccount": "이미 계정이 있나요?",
   "auth.signinLink": "로그인",
   "auth.oauthSignupRequired": "가입되지 않은 계정입니다. 회원가입을 진행해 주세요.",
+  "auth.oauthAccountExistsAddExisting": "이미 가입된 계정입니다. 「기존 계정 추가하기」로 로그인해 주세요.",
+  "auth.oauthSameAccountSession": "현재 로그인 중인 계정과 동일합니다. 다른 소셜 계정으로 새 계정을 만들어 주세요.",
   "post.comments": "댓글",
   "post.writeComment": "댓글을 입력하세요",
   "post.loadingComments": "댓글 불러오는 중…",
@@ -1111,6 +1115,8 @@ const en: Record<MessageKey, string> = {
   "auth.hasAccount": "Already have an account?",
   "auth.signinLink": "Sign in",
   "auth.oauthSignupRequired": "This account is not registered yet. Please sign up to continue.",
+  "auth.oauthAccountExistsAddExisting": "This account is already registered. Use “Add existing account” to sign in.",
+  "auth.oauthSameAccountSession": "This is the same account you were using. Choose a different social account to create a new one.",
   "post.comments": "Comments",
   "post.writeComment": "Write a comment",
   "post.loadingComments": "Loading comments…",
@@ -1576,6 +1582,8 @@ const ja: Record<MessageKey, string> = {
   "auth.hasAccount": "アカウントをお持ちですか？",
   "auth.signinLink": "ログイン",
   "auth.oauthSignupRequired": "未登録のアカウントです。新規登録を進めてください。",
+  "auth.oauthAccountExistsAddExisting": "すでに登録済みのアカウントです。「既存アカウントを追加」からログインしてください。",
+  "auth.oauthSameAccountSession": "現在ログイン中のアカウントと同じです。別のソーシャルアカウントで新規作成してください。",
   "post.comments": "コメント",
   "post.writeComment": "コメントを入力",
   "post.loadingComments": "コメント読み込み中…",
@@ -2041,6 +2049,8 @@ const zh: Record<MessageKey, string> = {
   "auth.hasAccount": "已有账号？",
   "auth.signinLink": "登录",
   "auth.oauthSignupRequired": "该账号尚未注册，请先完成注册。",
+  "auth.oauthAccountExistsAddExisting": "该账号已注册。请使用「添加现有账号」登录。",
+  "auth.oauthSameAccountSession": "与当前登录账号相同。请使用其他社交账号创建新账号。",
   "post.comments": "评论",
   "post.writeComment": "写下评论",
   "post.loadingComments": "加载评论中…",

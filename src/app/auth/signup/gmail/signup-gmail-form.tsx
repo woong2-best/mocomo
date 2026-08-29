@@ -23,6 +23,7 @@ import { CountrySelect } from "@/components/i18n/country-select";
 import { useLocale } from "@/components/providers/locale-provider";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { isValidGmailSignupEmail, parseGmailLocalPart } from "@/lib/signup-email-domains";
+import { setAddAccountFlowCookie, withAddAccountQuery } from "@/lib/account-switch/add-account-flow";
 import {
   COMMON_TIMEZONES,
   detectBrowserRegionPrefs,
@@ -52,6 +53,11 @@ export function SignupGmailForm() {
   const [prefilledOnce, setPrefilledOnce] = useState(false);
 
   const needsSignupNotice = searchParams.get("reason") === "not_registered";
+  const addAccount = searchParams.get("addAccount") === "1";
+
+  useEffect(() => {
+    if (addAccount) setAddAccountFlowCookie();
+  }, [addAccount]);
 
   useEffect(() => {
     if (prefilledOnce) return;
@@ -350,7 +356,7 @@ export function SignupGmailForm() {
           </form>
 
           <p className="text-center text-sm text-muted-foreground pt-1 border-t border-border">
-            <Link href="/auth/signup/apply" className="text-primary hover:underline">
+            <Link href={withAddAccountQuery("/auth/signup/apply", addAccount)} className="text-primary hover:underline">
               {t("auth.backToSignupMethods")}
             </Link>
           </p>

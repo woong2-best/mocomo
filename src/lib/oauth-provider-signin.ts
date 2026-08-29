@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
-import { signIn, signOut } from "@/lib/auth";
-import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
-import { clearAllSessionCookies } from "@/lib/account-switch/session-cookies";
+import { signIn, signOut, auth } from "@/lib/auth";
+import { ADD_ACCOUNT_COOKIE, ADD_ACCOUNT_SOURCE_USER_COOKIE } from "@/lib/account-switch/constants";
+import { clearSessionTokenCookies } from "@/lib/account-switch/session-cookies";
 import { OAUTH_FLOW_COOKIE } from "@/lib/oauth-flow-cookie";
 import {
   MOBILE_OAUTH_COOKIE,
@@ -43,6 +43,15 @@ export async function startOAuthProviderSignin(opts: StartOAuthProviderSigninOpt
   }
 
   if (opts.addAccount) {
+    const session = await auth();
+    if (session?.user?.id) {
+      jar.set(ADD_ACCOUNT_SOURCE_USER_COOKIE, session.user.id, {
+        path: "/",
+        maxAge: 3600,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
     jar.set(ADD_ACCOUNT_COOKIE, "1", {
       path: "/",
       maxAge: 3600,
@@ -50,7 +59,8 @@ export async function startOAuthProviderSignin(opts: StartOAuthProviderSigninOpt
       secure: process.env.NODE_ENV === "production",
     });
     await signOut({ redirect: false });
-    await clearAllSessionCookies();
+    // Keep CSRF/callback-url cookies — signIn() needs them immediately after.
+    await clearSessionTokenCookies();
   }
 
   await signIn(opts.provider, { redirectTo });

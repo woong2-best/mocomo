@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { signOut } from "@/lib/auth";
-import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
+import { ADD_ACCOUNT_COOKIE, ADD_ACCOUNT_SOURCE_USER_COOKIE } from "@/lib/account-switch/constants";
 import {
   clearAllSessionCookies,
   clearSessionCookiesOnResponse,
@@ -30,8 +30,23 @@ export async function POST(req: NextRequest) {
       sameSite: "lax",
       secure: useSecureCookies,
     });
+    const sourceUserId = req.cookies.get(ADD_ACCOUNT_SOURCE_USER_COOKIE)?.value?.trim();
+    if (sourceUserId) {
+      res.cookies.set(ADD_ACCOUNT_SOURCE_USER_COOKIE, sourceUserId, {
+        path: "/",
+        maxAge: 3600,
+        sameSite: "lax",
+        secure: useSecureCookies,
+      });
+    }
   } else {
     res.cookies.set(ADD_ACCOUNT_COOKIE, "", {
+      path: "/",
+      maxAge: 0,
+      sameSite: "lax",
+      secure: useSecureCookies,
+    });
+    res.cookies.set(ADD_ACCOUNT_SOURCE_USER_COOKIE, "", {
       path: "/",
       maxAge: 0,
       sameSite: "lax",
