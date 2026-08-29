@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Script from "next/script";
 import { Button } from "@/components/ui/button";
 import { getTurnstileSiteKey, isTurnstileConfigured } from "@/lib/turnstile-client";
@@ -15,6 +15,8 @@ type TurnstileFieldProps = {
 };
 
 const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const RENDER_RETRY_MS = 150;
+const RENDER_MAX_ATTEMPTS = 40;
 
 declare global {
   interface Window {
@@ -36,7 +38,7 @@ declare global {
   }
 }
 
-export function TurnstileField({
+function TurnstileWidget({
   onToken,
   onExpire,
   onUnavailable,
@@ -59,48 +61,45 @@ export function TurnstileField({
     onUnavailable?.(true);
   }, [onToken, onUnavailable]);
 
+  /** Returns false while api.js has not defined window.turnstile yet, so the caller retries. */
   const renderWidget = useCallback(() => {
-    if (!siteKey || !containerRef.current || !window.turnstile?.render) return false;
+    const container = containerRef.current;
+    // Never call turnstile.ready(): Cloudflare throws when the script tag carries
+    // async/defer, which next/script always adds. render=explicit + Script onReady
+    // already guarantees api.js has executed.
+    const turnstile = window.turnstile;
+    if (!siteKey || !container || !turnstile?.render) return false;
 
     if (widgetIdRef.current) {
       try {
-        window.turnstile.remove(widgetIdRef.current);
+        turnstile.remove(widgetIdRef.current);
       } catch {
         /* ignore */
       }
       widgetIdRef.current = null;
     }
 
-    containerRef.current.innerHTML = "";
+    container.innerHTML = "";
 
-    const run = () => {
-      if (!containerRef.current || !window.turnstile) return;
-      try {
-        widgetIdRef.current = window.turnstile.render(containerRef.current, {
-          sitekey: siteKey,
-          theme: "auto",
-          size: "normal",
-          callback: (token) => {
-            setFailed(false);
-            setShowSkip(false);
-            onUnavailable?.(false);
-            onToken(token);
-          },
-          "expired-callback": () => {
-            onExpire?.();
-            onToken("");
-          },
-          "error-callback": () => setFailed(true),
-        });
-      } catch {
-        setFailed(true);
-      }
-    };
-
-    if (typeof window.turnstile.ready === "function") {
-      window.turnstile.ready(run);
-    } else {
-      run();
+    try {
+      widgetIdRef.current = turnstile.render(container, {
+        sitekey: siteKey,
+        theme: "auto",
+        size: "normal",
+        callback: (token) => {
+          setFailed(false);
+          setShowSkip(false);
+          onUnavailable?.(false);
+          onToken(token);
+        },
+        "expired-callback": () => {
+          onExpire?.();
+          onToken("");
+        },
+        "error-callback": () => setFailed(true),
+      });
+    } catch {
+      setFailed(true);
     }
     return true;
   }, [siteKey, onToken, onExpire, onUnavailable]);
@@ -109,26 +108,37 @@ export function TurnstileField({
     if (!ready || !siteKey || useFallback) return;
 
     const mount = ++mountRef.current;
+    let cancelled = false;
+    const timers: number[] = [];
+
     setFailed(false);
     setShowSkip(showSkipImmediately);
     onToken("");
     onUnavailable?.(false);
 
-    const skipTimer = showSkipImmediately
-      ? undefined
-      : window.setTimeout(() => {
-          if (mount === mountRef.current) setShowSkip(true);
-        }, 4000);
+    if (!showSkipImmediately) {
+      timers.push(
+        window.setTimeout(() => {
+          if (!cancelled) setShowSkip(true);
+        }, 4000)
+      );
+    }
 
-    const failTimer = window.setTimeout(() => {
-      if (mount === mountRef.current && !widgetIdRef.current) setFailed(true);
-    }, 15000);
-
-    renderWidget();
+    let attempts = 0;
+    const attempt = () => {
+      if (cancelled) return;
+      if (renderWidget()) return;
+      if (++attempts >= RENDER_MAX_ATTEMPTS) {
+        setFailed(true);
+        return;
+      }
+      timers.push(window.setTimeout(attempt, RENDER_RETRY_MS));
+    };
+    attempt();
 
     return () => {
-      if (skipTimer) window.clearTimeout(skipTimer);
-      window.clearTimeout(failTimer);
+      cancelled = true;
+      for (const id of timers) window.clearTimeout(id);
       if (mount === mountRef.current && widgetIdRef.current && window.turnstile) {
         try {
           window.turnstile.remove(widgetIdRef.current);
@@ -149,11 +159,7 @@ export function TurnstileField({
   }
 
   if (useFallback) {
-    return (
-      <p className="text-xs text-amber-800 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-center">
-        <strong>요청 제한 모드</strong>로 가입합니다. 아래 「회원가입」 버튼을 눌러 주세요.
-      </p>
-    );
+    return <TurnstileFallbackNotice />;
   }
 
   if (failed) {
@@ -193,4 +199,36 @@ export function TurnstileField({
       )}
     </div>
   );
+}
+
+function TurnstileFallbackNotice() {
+  return (
+    <p className="text-xs text-amber-800 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-center">
+      <strong>요청 제한 모드</strong>로 진행합니다. 아래 버튼을 그대로 눌러 주세요.
+    </p>
+  );
+}
+
+/**
+ * Cloudflare's api.js runs third-party code inside our render tree. Without this
+ * boundary any throw from it takes down the whole auth page with Next.js's
+ * "client-side exception" screen instead of degrading to the rate-limited path.
+ */
+export class TurnstileField extends Component<TurnstileFieldProps, { crashed: boolean }> {
+  state = { crashed: false };
+
+  static getDerivedStateFromError() {
+    return { crashed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error("[turnstile] widget crashed, falling back to rate-limited mode", error);
+    this.props.onToken("");
+    this.props.onUnavailable?.(true);
+  }
+
+  render(): ReactNode {
+    if (this.state.crashed) return <TurnstileFallbackNotice />;
+    return <TurnstileWidget {...this.props} />;
+  }
 }
