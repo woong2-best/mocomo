@@ -3,6 +3,7 @@ import { Server, type Socket } from "socket.io";
 import { PrismaClient } from "@prisma/client";
 import { verifySocketAuthToken } from "../src/lib/socket-auth-token";
 import { sanitizeChatAttachments } from "../src/lib/chat-attachments";
+import { filterDmMessageContent } from "../src/lib/chat-content-filter";
 import { chatMessageInclude } from "../src/lib/chat-message-serialize";
 import { notifyChatMessageSocket } from "./chat-notify";
 import {
@@ -382,7 +383,9 @@ io.on("connection", (socket: AuthedSocket) => {
   }) => {
     const senderId = userId;
     if (!data.roomId || data.roomId.length > 64) return;
-    const content = (data.content ?? "").slice(0, 4000).trim();
+    const rawContent = (data.content ?? "").slice(0, 4000).trim();
+    const filtered = rawContent ? filterDmMessageContent(rawContent) : { text: "", wasFiltered: false, matchedRuleIds: [] };
+    const content = filtered.text;
     const attachments = sanitizeChatAttachments(data.attachments);
     if (!content && !attachments.length) {
       socket.emit("error", { message: "첨부 파일 URL이 유효하지 않습니다." });

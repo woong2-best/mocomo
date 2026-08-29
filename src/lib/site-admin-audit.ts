@@ -40,7 +40,8 @@ export type SiteAdminAuditAction =
   | "ADMIN_PASSWORD_RESET"
   | "SETTINGS_UPDATE"
   | "DASHBOARD_VIEW"
-  | "AUDIT_VIEW";
+  | "AUDIT_VIEW"
+  | "LEGAL_MESSAGE_EXPORT";
 
 export async function logSiteAdminAudit(input: {
   actorId: string;

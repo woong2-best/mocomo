@@ -7,6 +7,7 @@ import { sanitizeChatAttachments } from "@/lib/chat-attachments";
 import { notifyChatMessage } from "@/lib/notifications";
 import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
 import { getConversationMeta } from "@/lib/chat-display";
+import { filterDmMessageContent } from "@/lib/chat-content-filter";
 
 async function assertRoomMember(roomId: string, userId: string) {
   const member = await db.chatMember.findUnique({
@@ -251,7 +252,9 @@ export async function sendMobileDmMessage(
   const rawAttachmentCount = Array.isArray(data.attachments) ? data.attachments.length : 0;
   const attachments = sanitizeChatAttachments(data.attachments);
   const hasAttachments = attachments.length > 0;
-  const text = (data.content ?? "").trim();
+  const rawText = (data.content ?? "").trim();
+  const filtered = rawText ? filterDmMessageContent(rawText) : { text: "", wasFiltered: false, matchedRuleIds: [] };
+  const text = filtered.text;
   if (rawAttachmentCount > 0 && !hasAttachments) {
     return { error: "ATTACHMENT_INVALID" as const };
   }
@@ -299,7 +302,10 @@ export async function sendMobileDmMessage(
     createdAt: message.createdAt.toISOString(),
   });
 
-  return { message: serializeChatMessage(message) };
+  return {
+    message: serializeChatMessage(message),
+    contentFiltered: filtered.wasFiltered,
+  };
 }
 
 export async function syncMobileRoomMessages(

@@ -10,6 +10,7 @@ import { sanitizeChatAttachments } from "@/lib/chat-attachments";
 import { notifyChatMessage } from "@/lib/notifications";
 import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
 import { resolveChannelPermission } from "@/lib/community-server/access-resolver";
+import { filterDmMessageContent } from "@/lib/chat-content-filter";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -126,7 +127,9 @@ export async function sendMessage(data: {
   const rawAttachmentCount = Array.isArray(data.attachments) ? data.attachments.length : 0;
   const attachments = sanitizeChatAttachments(data.attachments);
   const hasAttachments = attachments.length > 0;
-  const text = (data.content ?? "").trim();
+  const rawText = (data.content ?? "").trim();
+  const filtered = rawText ? filterDmMessageContent(rawText) : { text: "", wasFiltered: false, matchedRuleIds: [] };
+  const text = filtered.text;
   if (rawAttachmentCount > 0 && !hasAttachments) {
     throw new Error("ATTACHMENT_INVALID");
   }
@@ -208,7 +211,10 @@ export async function sendMessage(data: {
     createdAt: message.createdAt.toISOString(),
   });
 
-  return { message: serializeChatMessage(message) };
+  return {
+    message: serializeChatMessage(message),
+    contentFiltered: filtered.wasFiltered,
+  };
 }
 
 export async function markMessageRead(messageId: string) {

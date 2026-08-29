@@ -83,7 +83,7 @@ export async function sendRoomMessage(
     attachments?: { url: string; type: "IMAGE" | "VIDEO" | "AUDIO" | "GIF"; name?: string }[];
   }
 ) {
-  return apiRequest<{ message: ChatMessage }>(`${MobileApi.messages}/${roomId}`, {
+  return apiRequest<{ message: ChatMessage; contentFiltered?: boolean }>(`${MobileApi.messages}/${roomId}`, {
     method: "POST",
     body,
   });

@@ -33,6 +33,10 @@ import { parseChatGameShare } from "@/lib/chat-game-share";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { UserProfileLink } from "@/components/user/user-profile-link";
 import { cn } from "@/lib/utils";
+import {
+  DM_CONTENT_FILTER_WARNING_KO,
+  filterDmMessageContent,
+} from "@/lib/chat-content-filter";
 
 type Message = ChatMessageView;
 
@@ -66,6 +70,7 @@ export function ChatRoomClient({
   const [input, setInput] = useState("");
   const [replyTarget, setReplyTarget] = useState<Message | null>(null);
   const [error, setError] = useState("");
+  const [filterWarning, setFilterWarning] = useState("");
   const { socket, socketReady, realtimeOff, isUserOnline, subscribeMessages } = useChatSocket();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -284,6 +289,9 @@ export function ChatRoomClient({
         selfSender.current
       );
       if (!confirmed) return;
+      if (result.contentFiltered) {
+        setFilterWarning(DM_CONTENT_FILTER_WARNING_KO);
+      }
       setMessages((prev) => {
         const without = prev.filter((m) => m.id !== pendingId && m.id !== confirmed.id);
         return [...without, confirmed];
@@ -305,14 +313,20 @@ export function ChatRoomClient({
   }
 
   function send() {
-    const text = input.trim();
-    if (!text || sendLockRef.current) return;
+    const raw = input.trim();
+    if (!raw || sendLockRef.current) return;
+
+    const filtered = filterDmMessageContent(raw);
+    if (filtered.wasFiltered) {
+      setFilterWarning(DM_CONTENT_FILTER_WARNING_KO);
+    }
 
     sendLockRef.current = true;
     setError("");
     stickToBottomRef.current = true;
     setInput("");
 
+    const text = filtered.text;
     const replyToId = replyTarget?.id;
     const replyTo = replyTarget ? replySnapshot(replyTarget) : undefined;
     clearReply();
@@ -334,6 +348,13 @@ export function ChatRoomClient({
   async function sendAttachments(attachments: ChatAttachmentInput[], caption?: string) {
     if (!attachments.length || sendLockRef.current) return;
 
+    const filteredCaption = caption?.trim()
+      ? filterDmMessageContent(caption.trim())
+      : { text: "", wasFiltered: false, matchedRuleIds: [] as string[] };
+    if (filteredCaption.wasFiltered) {
+      setFilterWarning(DM_CONTENT_FILTER_WARNING_KO);
+    }
+
     sendLockRef.current = true;
     setError("");
     stickToBottomRef.current = true;
@@ -341,18 +362,29 @@ export function ChatRoomClient({
     const replyToId = replyTarget?.id;
     const replyTo = replyTarget ? replySnapshot(replyTarget) : undefined;
     clearReply();
-    const pendingId = addOptimistic(caption ?? null, attachments, replyTo);
+    const pendingId = addOptimistic(filteredCaption.text || null, attachments, replyTo);
 
-    await sendViaAction(caption ?? null, pendingId, attachments, replyToId).finally(() => {
+    await sendViaAction(
+      filteredCaption.text || null,
+      pendingId,
+      attachments,
+      replyToId
+    ).finally(() => {
       sendLockRef.current = false;
     });
   }
 
   useEffect(() => {
-    const text = searchParams.get("send")?.trim();
-    if (!text || autoSendRef.current) return;
+    const raw = searchParams.get("send")?.trim();
+    if (!raw || autoSendRef.current) return;
     autoSendRef.current = true;
     stickToBottomRef.current = true;
+
+    const filtered = filterDmMessageContent(raw);
+    if (filtered.wasFiltered) {
+      setFilterWarning(DM_CONTENT_FILTER_WARNING_KO);
+    }
+    const text = filtered.text;
 
     const pendingId = addOptimistic(text);
     if (socketReady && socket?.connected) {
@@ -596,6 +628,9 @@ export function ChatRoomClient({
         })}
       </div>
 
+      {filterWarning && (
+        <p className="text-xs text-amber-700 dark:text-amber-400 px-4 pb-1 text-center">{filterWarning}</p>
+      )}
       {error && <p className="text-xs text-destructive px-4 pb-1 text-center">{error}</p>}
       <ActivityPanel />
       {!readOnly && (

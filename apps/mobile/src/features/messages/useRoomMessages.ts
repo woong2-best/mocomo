@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert } from "react-native";
 import {
   fetchRoomMessages,
   sendRoomMessage,
@@ -134,6 +135,12 @@ export function useRoomMessages(roomId: string) {
           ...(replyToId ? { replyToId } : {}),
         });
         mergeMessages([res.message]);
+        if (res.contentFiltered) {
+          Alert.alert(
+            "안내",
+            "외부 결제·연락처 유도는 이용약관상 금지됩니다. 해당 내용이 자동으로 가려졌습니다."
+          );
+        }
       } finally {
         setSending(false);
       }

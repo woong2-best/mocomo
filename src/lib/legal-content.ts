@@ -407,6 +407,28 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: "p",
+      text: "③ 외부 결제·연락처 유도 시도(Stripe·PayPal·개인 계좌·텔레그램·카카오톡·LINE 등)는 메시징 서비스에서 자동으로 가려지며, 반복 위반 시 제재 대상이 될 수 있습니다.",
+    },
+    { type: "h3", text: "(사법당국 협조 및 프라이버시 / Law Enforcement Cooperation & Privacy)" },
+    {
+      type: "p",
+      text: "우리 플랫폼은 이용자의 프라이버시를 최우선으로 하며, 사적인 대화 내용을 검열하거나 열람하지 않습니다. 단, 불법 행위 예방 및 관련 법령(예: 미국 FOSTA-SESTA, 한국 정보통신망법)에 의거하여, 사법당국의 정식 수사 협조 요청(영장, 법원 명령 등)이 있을 경우 법적 절차에 따라 해당 데이터를 제공할 수 있습니다.",
+    },
+    {
+      type: "p",
+      text: "Our platform prioritizes user privacy and does not censor or routinely review private conversations. However, to prevent illegal activity and in compliance with applicable laws (including U.S. FOSTA-SESTA and Korea's Act on Promotion of Information and Communications Network Utilization and Information Protection, etc.), we may disclose relevant data in response to formal law enforcement cooperation requests (warrants, court orders, and similar lawful process).",
+    },
+    { type: "h3", text: "(메시지 접근 통제 / Message Access Controls)" },
+    {
+      type: "p",
+      text: "회사는 일반 운영·고객지원 목적으로 메시지 본문을 열람하지 않으며, 운영자를 포함한 내부 인력의 데이터베이스 접근은 최소 권한 원칙 및 접근 통제로 제한합니다. 외부 결제·연락처 유도 방지를 위한 자동 필터는 사람의 검열 없이 해당 키워드만 가립니다. 법적 절차에 따른 제공이 필요한 경우에만 감사 기록을 남기고 제한적으로 접근할 수 있습니다.",
+    },
+    {
+      type: "p",
+      text: "The company does not review message bodies for routine operations or customer support. Database access by staff, including operators, is restricted under least-privilege and access-control policies. Automated filters mask off-platform payment and contact solicitation keywords without human review. Message content may be accessed only when legally required, with audit logging.",
+    },
+    {
+      type: "p",
       text: "(메타데이터 처리 및 보안) 회사는 신고 처리, 서비스 보안, 통신 장애 대응, 법령 준수 및 부정 이용 방지를 위해 필요한 최소한의 범위 내에서 메시지 및 통화의 메타데이터(일시, 이용 기록, 결제 내역, 상대방 식별자 등)를 처리할 수 있습니다. 단, 회사는 법령에 명시된 경우를 제외하고 이용자의 통신 내용을 사전 검수하거나 임의로 열람하지 않습니다.",
     },
     {
@@ -1363,7 +1385,7 @@ export const COPYRIGHT_POLICY: LegalDocument = {
 export const PRIVACY_POLICY: LegalDocument = {
   slug: "privacy",
   title: "MoCoMo 개인정보처리방침",
-  updatedAt: "2026년 8월 8일",
+  updatedAt: "2026년 8월 29일",
   intro:
     'MoCoMo LLC(미합중국 와이오밍 주 소재, 이하 "MoCoMo" 또는 "회사")는 이용자의 개인정보를 소중히 다루며, 적용 가능한 미국 연방·주 법 및 서비스를 제공하는 지역의 관련 개인정보 보호 요구사항을 준수하기 위해 노력합니다.',
   blocks: [
@@ -1444,6 +1466,15 @@ export const PRIVACY_POLICY: LegalDocument = {
         "사업 양도·합병 등 기업 거래 시(이전 사실을 고지)",
       ],
     },
+    { type: "h3", text: "메시징·사법당국 협조 (Messaging & Law Enforcement)" },
+    {
+      type: "p",
+      text: "우리 플랫폼은 이용자의 프라이버시를 최우선으로 하며, 사적인 대화 내용을 검열하거나 열람하지 않습니다. 단, 불법 행위 예방 및 관련 법령(예: 미국 FOSTA-SESTA, 한국 정보통신망법)에 의거하여, 사법당국의 정식 수사 협조 요청(영장, 법원 명령 등)이 있을 경우 법적 절차에 따라 해당 데이터를 제공할 수 있습니다.",
+    },
+    {
+      type: "p",
+      text: "Our platform prioritizes user privacy and does not censor or routinely review private conversations. However, to prevent illegal activity and in compliance with applicable laws (including U.S. FOSTA-SESTA and Korea's Act on Promotion of Information and Communications Network Utilization and Information Protection, etc.), we may disclose relevant data in response to formal law enforcement cooperation requests (warrants, court orders, and similar lawful process).",
+    },
     { type: "h3", text: "Google 사용자 데이터 처리 및 공유 제한" },
     {
       type: "p",
@@ -1477,7 +1508,11 @@ export const PRIVACY_POLICY: LegalDocument = {
     { type: "h2", text: "9. 보안" },
     {
       type: "p",
-      text: "회사는 암호화, 접근 통제, 최소 수집 등 합리적인 보안 조치를 적용합니다. 다만 인터넷 전송·저장의 완전한 안전을 보장할 수는 없습니다.",
+      text: "회사는 암호화, 접근 통제, 최소 수집 등 합리적인 보안 조치를 적용합니다. 메시지 본문은 채팅방 참여자에게만 전달되며, 운영자를 포함한 내부 인력의 일상적 열람·데이터베이스 조회는 접근 통제로 제한합니다. 외부 결제·연락처 유도 방지를 위한 자동 키워드 가림은 사람의 검열 없이 수행됩니다. 다만 인터넷 전송·저장의 완전한 안전을 보장할 수는 없습니다.",
+    },
+    {
+      type: "p",
+      text: "We apply reasonable security measures including encryption and access controls. Message bodies are delivered only to chat participants; routine access or database queries by staff, including operators, are restricted. Automated keyword masking for off-platform payment and contact solicitation is performed without human review. We cannot guarantee absolute security of internet transmission or storage.",
     },
     { type: "hr" },
     { type: "h2", text: "10. 정책 변경" },
