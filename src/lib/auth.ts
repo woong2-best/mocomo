@@ -21,6 +21,7 @@ import {
   signupRedirectForStaleSession,
 } from "@/lib/oauth-flow-cookie";
 import { ADD_ACCOUNT_COOKIE, ADD_ACCOUNT_SOURCE_USER_COOKIE } from "@/lib/account-switch/constants";
+import { getAuthUrl } from "@/lib/auth-env";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import { recordUserAccessLog } from "@/lib/user-access-log";
 import {
@@ -31,6 +32,12 @@ import {
 } from "@/lib/account-status";
 
 const useSecureCookies = process.env.NODE_ENV === "production";
+
+function absoluteAuthRedirect(path: string): string {
+  const base = getAuthUrl()?.replace(/\/$/, "");
+  if (!base) return path;
+  return path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -51,7 +58,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.callbacks,
     async signIn({ user, account, profile }) {
       const isOAuth = account?.type === "oauth" || account?.type === "oidc";
-      const oauthFlow = isOAuth ? await readOAuthFlowCookie() : null;
+      const oauthFlowRaw = isOAuth ? await readOAuthFlowCookie() : null;
+      const addingAccount = isOAuth ? await isAddAccountOAuthFlow() : false;
+      const oauthFlow =
+        oauthFlowRaw ?? (addingAccount && isOAuth ? ("signup" as const) : null);
 
       const userSelect = {
         id: true,
@@ -123,7 +133,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (isOAuth && (oauthFlow === "signin" || oauthFlow === null)) {
         let existing: SignInUserRow | null = null;
-        const addingAccount = await isAddAccountOAuthFlow();
 
         if (user.id) {
           existing = await db.user.findUnique({
@@ -136,10 +145,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (!existing) {
-          return signupRedirectForUnregistered(addingAccount);
+          return absoluteAuthRedirect(signupRedirectForUnregistered(addingAccount));
         }
         if (!existing.emailVerified && !isProviderWithoutEmail(account?.provider)) {
-          return signupRedirectForUnregistered(addingAccount);
+          return absoluteAuthRedirect(signupRedirectForUnregistered(addingAccount));
         }
         if (!oauthProviderEmailVerified()) {
           return false;
@@ -147,7 +156,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         user.id = existing.id;
       } else if (isOAuth && oauthFlow === "signup") {
-        const addingAccount = await isAddAccountOAuthFlow();
         const existing = user.id
           ? await db.user.findUnique({ where: { id: user.id }, select: userSelect })
           : await resolveUserByEmail(user.email);
@@ -156,7 +164,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return true;
         }
         if (existing.emailVerified && addingAccount) {
-          return signupRedirectForExistingAccount(true);
+          return absoluteAuthRedirect(signupRedirectForExistingAccount(true));
         }
         if (existing.emailVerified) {
           user.id = existing.id;
@@ -179,9 +187,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!dbUser) return false;
       if (isServiceBanned(dbUser)) return false;
 
-      if (isOAuth && oauthFlow === "signup" && (await isAddAccountOAuthFlow())) {
+      if (isOAuth && oauthFlow === "signup" && addingAccount) {
         if (await isStaleAddAccountSignup(resolvedUserId)) {
-          return signupRedirectForStaleSession(true);
+          return absoluteAuthRedirect(signupRedirectForStaleSession(true));
         }
       }
 

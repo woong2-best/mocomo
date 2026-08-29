@@ -16,6 +16,7 @@ import {
   persistEncryptedOAuthAccount,
 } from "@/lib/oauth-vault";
 import { readOAuthFlowCookie } from "@/lib/oauth-flow-cookie";
+import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
 
 async function generateUniqueUsername(seed: string): Promise<string> {
   let base = seed
@@ -70,7 +71,14 @@ export function createPrismaAuthAdapter(): Adapter {
   return {
     ...base,
     createUser: async (data) => {
-      const oauthFlow = await readOAuthFlowCookie();
+      let oauthFlow = await readOAuthFlowCookie();
+      if (oauthFlow !== "signup") {
+        const { cookies } = await import("next/headers");
+        const jar = await cookies();
+        if (jar.get(ADD_ACCOUNT_COOKIE)?.value === "1") {
+          oauthFlow = "signup";
+        }
+      }
       if (oauthFlow !== "signup") {
         throw new Error("OAUTH_SIGNUP_REQUIRED");
       }

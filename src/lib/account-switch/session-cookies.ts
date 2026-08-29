@@ -14,8 +14,10 @@ export const SESSION_COOKIE_BASE_NAMES = [
 const AUTH_AUX_COOKIE_BASE_NAMES = [
   "authjs.csrf-token",
   "__Secure-authjs.csrf-token",
+  "__Host-authjs.csrf-token",
   "authjs.callback-url",
   "__Secure-authjs.callback-url",
+  "__Host-authjs.callback-url",
   "next-auth.csrf-token",
   "__Secure-next-auth.csrf-token",
   "next-auth.callback-url",
