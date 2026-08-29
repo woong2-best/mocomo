@@ -19,6 +19,13 @@ import { cn } from "@/lib/utils";
 
 type AppealRow = Awaited<ReturnType<typeof getAdminUsedMarketAppeals>>[number];
 type AppealDetailResult = Awaited<ReturnType<typeof getUsedMarketAppealDetail>>;
+type AppealDetailSuccess = Exclude<AppealDetailResult, { error: string }>;
+
+function isAppealDetailSuccess(
+  detail: AppealDetailResult | null
+): detail is AppealDetailSuccess {
+  return !!detail && !("error" in detail);
+}
 
 const FILTER_OPTIONS: { value: UsedMarketAppealStatusFilter; label: string }[] = [
   { value: "OPEN", label: "미처리" },
@@ -112,10 +119,10 @@ export function AdminUsedMarketAppealsPanel({
     });
   }
 
-  const selectedAppeal = detail && "appeal" in detail ? detail.appeal : null;
-  const sanctionLogs =
-    detail && "sanctionLogs" in detail ? (detail.sanctionLogs ?? []) : [];
-  const bids = detail && "bids" in detail ? (detail.bids ?? []) : [];
+  const appealDetail = isAppealDetailSuccess(detail) ? detail : null;
+  const selectedAppeal = appealDetail?.appeal ?? null;
+  const sanctionLogs = appealDetail?.sanctionLogs ?? [];
+  const bids = appealDetail?.bids ?? [];
 
   return (
     <Card>
