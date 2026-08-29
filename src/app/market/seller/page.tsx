@@ -8,7 +8,7 @@ import {
 import { getSellerSettlementInvoices } from "@/actions/marketplace-settlement-invoices";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { stripeConnectStatus } from "@/lib/stripe-connect";
+import { stripeConnectStatusFromApi } from "@/lib/stripe-connect";
 import { formatSellerCode } from "@/lib/marketplace/seller-code";
 import { sellerRequiresPhoneVerification } from "@/lib/marketplace/seller-region-policy";
 

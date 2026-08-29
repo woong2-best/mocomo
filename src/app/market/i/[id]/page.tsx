@@ -10,6 +10,7 @@ import { isPaymentsConfigured } from "@/lib/payments";
 import { MarketplaceListingMedia } from "@/components/market/marketplace-listing-media";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { formatUsd } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 

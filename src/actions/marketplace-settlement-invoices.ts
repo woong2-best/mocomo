@@ -33,7 +33,7 @@ export async function getSellerSettlementInvoices(limit = 30): Promise<SellerSet
       sellerEarnAmount: true,
       stripeTransferId: true,
       currency: true,
-      items: { select: { title: true }, take: 1 },
+      items: { select: { titleSnapshot: true }, take: 1 },
     },
   });
 
@@ -45,6 +45,6 @@ export async function getSellerSettlementInvoices(limit = 30): Promise<SellerSet
     netPaidAmount: o.sellerEarnAmount,
     stripeTransferId: o.stripeTransferId,
     currency: o.currency,
-    itemTitle: o.items[0]?.title ?? "Marketplace order",
+    itemTitle: o.items[0]?.titleSnapshot ?? "Marketplace order",
   }));
 }

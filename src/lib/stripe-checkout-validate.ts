@@ -18,6 +18,10 @@ import {
 } from "@/lib/event-registration";
 import { assertPaymentNotForAdultContent } from "@/lib/adult-monetization-ban";
 import {
+  LETTER_DONATION_MESSAGE_MAX,
+  LETTER_DONATION_MIN_KRW,
+} from "@/lib/chat-letter-donation";
+import {
   calcVideoDonationAmount,
   DEFAULT_VIDEO_DONATION_SETTINGS,
   normalizeYoutubeUrl,

@@ -19,6 +19,7 @@ import { clampMediaInt } from "@/lib/video-metadata";
 import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlement-account";
 import { validateSaleMediaPricing } from "@/lib/money";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
+import { isCommunityScopedPost } from "@/lib/post-scope";
 
 export type CreatePostMediaInput = {
   url: string;
