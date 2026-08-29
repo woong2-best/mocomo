@@ -28,7 +28,6 @@ import { Screen } from "@/ui/Screen";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import {
-  MARKET_BRAND_FULL,
   MARKET_BRAND_NAME,
   MARKET_LISTING_FILTERS,
   type MarketListingFilterId,
@@ -141,7 +140,6 @@ export function MarketScreen() {
     <View>
       <View style={styles.brandHeader}>
         <View style={styles.brandTextWrap}>
-          <Text style={styles.brandEyebrow}>{MARKET_BRAND_FULL}</Text>
           <Text style={styles.brandTitle}>{MARKET_BRAND_NAME}</Text>
         </View>
         <Pressable style={styles.sellBtn} onPress={onSellRegister}>
@@ -264,13 +262,6 @@ function createThemedStyles(colors: ThemeColors) {
       gap: 12,
     },
     brandTextWrap: { flex: 1, minWidth: 0 },
-    brandEyebrow: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 1,
-      color: colors.terracotta,
-      textTransform: "uppercase",
-    },
     brandTitle: {
       fontSize: 22,
       fontWeight: "800",

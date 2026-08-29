@@ -9,7 +9,7 @@ import { listMarketplaceListings } from "@/actions/marketplace";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { MARKETPLACE_BROWSE_LISTING_TYPES } from "@/lib/marketplace/constants";
-import { MARKET_BRAND_FULL, MARKET_BRAND_NAME } from "@/lib/market-brand";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 import type { MarketplaceListingType } from "@prisma/client";
 
 export async function MarketplaceHomeAsync({
@@ -58,9 +58,6 @@ export async function MarketplaceHomeAsync({
         <div className="space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-1 min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-folk-terracotta">
-                {MARKET_BRAND_FULL}
-              </p>
               <h1 className="font-display text-2xl sm:text-[1.75rem] font-bold tracking-tight text-foreground">
                 {MARKET_BRAND_NAME}
               </h1>
