@@ -11,6 +11,7 @@ export type PaymentIntentType =
   | "EVENT_REGISTRATION"
   | "CREATOR_EPISODE"
   | "POST_MEDIA"
+  | "MESSAGE_MEDIA"
   | "CREATOR_SUBSCRIPTION"
   | "STUDIO_ASSET"
   | "MARKETPLACE"

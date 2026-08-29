@@ -31,6 +31,7 @@ import {
 import { MessageVoiceSession } from "@/features/messages/MessageVoiceSession";
 import { useRoomMessages } from "@/features/messages/useRoomMessages";
 import { CreatorCallBookingSheet } from "@/features/messages/CreatorCallBookingSheet";
+import { FanArtSellSheet } from "@/features/messages/FanArtSellSheet";
 import { LetterDonationSheet } from "@/payments/LetterDonationSheet";
 import { fetchCreatorCallSettings } from "@/api/call-bookings";
 import { FolkAvatar } from "@/ui/FolkAvatar";
@@ -68,6 +69,7 @@ export function MessageRoomScreen() {
     callType: "AUDIO" | "VIDEO";
   } | null>(null);
   const [letterSheet, setLetterSheet] = useState(false);
+  const [fanArtSheet, setFanArtSheet] = useState(false);
   const [peerBookable, setPeerBookable] = useState(false);
   const [draft, setDraft] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -413,14 +415,24 @@ export function MessageRoomScreen() {
         ) : null}
 
         <View style={styles.composer}>
-          <Pressable
-            style={styles.cameraBtn}
-            disabled={busy || recording}
-            onPress={() => void pickAndSendImage("camera")}
-            accessibilityLabel="카메라"
-          >
-            <Ionicons name="camera" size={20} color="#fff" />
-          </Pressable>
+          <View style={styles.leftBtns}>
+            <Pressable
+              style={styles.fanArtBtn}
+              disabled={busy || recording}
+              onPress={() => setFanArtSheet(true)}
+              accessibilityLabel="팬아트 판매"
+            >
+              <Ionicons name="cash" size={18} color="#fff" />
+            </Pressable>
+            <Pressable
+              style={styles.cameraBtn}
+              disabled={busy || recording}
+              onPress={() => void pickAndSendImage("camera")}
+              accessibilityLabel="카메라"
+            >
+              <Ionicons name="camera" size={20} color="#fff" />
+            </Pressable>
+          </View>
 
           <View style={styles.inputPill}>
             <TextInput
@@ -519,6 +531,23 @@ export function MessageRoomScreen() {
           onSuccess={() => void refresh()}
         />
       ) : null}
+
+      <FanArtSellSheet
+        visible={fanArtSheet}
+        onClose={() => setFanArtSheet(false)}
+        onSend={async (payload) => {
+          setUploading(true);
+          try {
+            const replyId = replyTo?.id;
+            setReplyTo(null);
+            nearBottomRef.current = true;
+            await send("", [payload], replyId);
+            scrollEnd();
+          } finally {
+            setUploading(false);
+          }
+        }}
+      />
     </View>
   );
 }
@@ -586,6 +615,15 @@ function createThemedStyles(colors: ThemeColors) {
     cancelRec: { paddingHorizontal: 8, paddingVertical: 4 },
     cancelRecText: { color: colors.textMuted, fontWeight: "700", fontSize: 13 },
     composer: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
+    leftBtns: { gap: 6, marginBottom: 2 },
+    fanArtBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.terracotta,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     cameraBtn: {
       width: 40,
       height: 40,
@@ -593,7 +631,6 @@ function createThemedStyles(colors: ThemeColors) {
       backgroundColor: colors.cobalt,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: 2,
     },
     inputPill: {
       flex: 1,

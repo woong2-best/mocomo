@@ -5,12 +5,16 @@ import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { canAccessDm } from "@/lib/tiers";
 import { ChatRoomType, SupportTierLevel } from "@prisma/client";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
-import { chatMessageInclude, serializeChatMessage } from "@/lib/chat-message-serialize";
+import { chatMessageInclude, serializeChatMessage, serializeChatMessageForRelay } from "@/lib/chat-message-serialize";
 import { sanitizeChatAttachments } from "@/lib/chat-attachments";
 import { notifyChatMessage } from "@/lib/notifications";
 import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
 import { resolveChannelPermission } from "@/lib/community-server/access-resolver";
 import { filterDmMessageContent } from "@/lib/chat-content-filter";
+import {
+  collectPaidAttachmentIds,
+  getPurchasedMessageAttachmentIds,
+} from "@/lib/message-paid-media";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -115,7 +119,7 @@ export async function sendMessage(data: {
   content?: string;
   replyToId?: string;
   mentions?: string[];
-  attachments?: { url: string; type: "IMAGE" | "VIDEO" | "AUDIO" | "GIF" | "STICKER" | "FILE"; name?: string }[];
+  attachments?: { url: string; type: "IMAGE" | "VIDEO" | "AUDIO" | "GIF" | "STICKER" | "FILE"; name?: string; priceKrw?: number }[];
 }) {
   const user = await requireAuth({ writeKind: "dm" });
   const member = await db.chatMember.findUnique({
@@ -186,7 +190,14 @@ export async function sendMessage(data: {
         replyToId: data.replyToId,
         mentions: data.mentions ?? [],
         attachments: hasAttachments
-          ? { create: attachments.map((a) => ({ url: a.url, type: a.type, name: a.name })) }
+          ? {
+              create: attachments.map((a) => ({
+                url: a.url,
+                type: a.type,
+                name: a.name,
+                priceKrw: a.priceKrw ?? 0,
+              })),
+            }
           : undefined,
       },
       include: chatMessageInclude,
@@ -206,13 +217,11 @@ export async function sendMessage(data: {
     mentionUserIds: data.mentions,
   });
 
-  void relayChatMessageToSocket(data.roomId, {
-    ...message,
-    createdAt: message.createdAt.toISOString(),
-  });
+  void relayChatMessageToSocket(data.roomId, serializeChatMessageForRelay(message));
 
+  const purchasedIds = await getPurchasedMessageAttachmentIds(user.id, collectPaidAttachmentIds([message]));
   return {
-    message: serializeChatMessage(message),
+    message: serializeChatMessage(message, { viewerId: user.id, purchasedAttachmentIds: purchasedIds }),
     contentFiltered: filtered.wasFiltered,
   };
 }

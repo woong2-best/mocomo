@@ -17,6 +17,8 @@ export type ChatAttachment = {
   url: string;
   type: string;
   name: string | null;
+  priceKrw?: number;
+  locked?: boolean;
 };
 
 export type ChatReplyTo = {
@@ -80,7 +82,12 @@ export async function sendRoomMessage(
   body: {
     content?: string;
     replyToId?: string;
-    attachments?: { url: string; type: "IMAGE" | "VIDEO" | "AUDIO" | "GIF"; name?: string }[];
+    attachments?: {
+      url: string;
+      type: "IMAGE" | "VIDEO" | "AUDIO" | "GIF";
+      name?: string;
+      priceKrw?: number;
+    }[];
   }
 ) {
   return apiRequest<{ message: ChatMessage; contentFiltered?: boolean }>(`${MobileApi.messages}/${roomId}`, {

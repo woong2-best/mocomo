@@ -4,7 +4,11 @@ import { redirect, notFound } from "next/navigation";
 import { ChatRoomClient } from "@/components/chat/chat-room";
 import { GroupRoomPanel } from "@/components/chat/group-room-panel";
 import { getGroupRoomMeta } from "@/actions/group-chat";
-import { chatMessageInclude, serializeChatMessage } from "@/lib/chat-message-serialize";
+import { chatMessageInclude, serializeChatMessages } from "@/lib/chat-message-serialize";
+import {
+  collectPaidAttachmentIds,
+  getPurchasedMessageAttachmentIds,
+} from "@/lib/message-paid-media";
 
 export async function ChatMessagesAsync({ roomId }: { roomId: string }) {
   const session = await getCachedSession();
@@ -33,7 +37,9 @@ export async function ChatMessagesAsync({ roomId }: { roomId: string }) {
   const isGroupRoom = room.type === "COSPLAYER_GROUP" || room.type === "SOCIAL_GROUP";
   const groupMeta = isGroupRoom ? await getGroupRoomMeta(roomId) : null;
 
-  const initialMessages = messages.map(serializeChatMessage);
+  const paidIds = collectPaidAttachmentIds(messages);
+  const purchasedIds = await getPurchasedMessageAttachmentIds(session.user.id, paidIds);
+  const initialMessages = serializeChatMessages(messages, session.user.id, purchasedIds);
 
   return (
     <div className="flex flex-col flex-1 min-h-0">

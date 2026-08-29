@@ -1,11 +1,13 @@
 import type { MessageAttachmentType } from "@prisma/client";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
 import { chatGameShareListPreview } from "@/lib/chat-game-share";
+import { validateSaleMediaPricing } from "@/lib/money";
 
 export type ChatAttachmentInput = {
   url: string;
   type: MessageAttachmentType;
   name?: string;
+  priceKrw?: number;
 };
 
 export type ChatAttachmentView = {
@@ -13,6 +15,8 @@ export type ChatAttachmentView = {
   url: string;
   type: MessageAttachmentType;
   name?: string | null;
+  priceKrw?: number;
+  locked?: boolean;
 };
 
 const ALLOWED: MessageAttachmentType[] = ["IMAGE", "VIDEO", "AUDIO", "GIF", "STICKER", "FILE"];
@@ -54,10 +58,17 @@ export function sanitizeChatAttachments(
     const url = normalizeChatAttachmentUrl(rawUrl);
     const type = typeof o.type === "string" ? parseChatAttachmentType(o.type) : null;
     if (!url || !type) continue;
+    const priceRaw = typeof o.priceKrw === "number" ? o.priceKrw : 0;
+    const priceKrw = Math.max(0, Math.round(priceRaw));
+    if (priceKrw > 0) {
+      const err = validateSaleMediaPricing(priceKrw);
+      if (err) continue;
+    }
     out.push({
       url,
       type,
       name: typeof o.name === "string" ? o.name.slice(0, 200) : undefined,
+      ...(priceKrw > 0 ? { priceKrw } : {}),
     });
   }
   return out;
@@ -76,6 +87,8 @@ export function lastMessagePreview(
   const hasImage = attachments.some((a) => a.type === "IMAGE" || a.type === "GIF");
   const hasAudio = attachments.some((a) => a.type === "AUDIO");
   const hasVideo = attachments.some((a) => a.type === "VIDEO");
+  const hasPaid = attachments.some((a) => "priceKrw" in a && (a as { priceKrw?: number }).priceKrw);
+  if (hasPaid && (hasImage || hasVideo)) return "🔒 팬아트";
   if (hasImage && hasAudio) return "사진 · 음성";
   if (hasImage) return "사진";
   if (hasAudio) return "음성 메시지";

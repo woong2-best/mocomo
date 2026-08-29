@@ -74,12 +74,16 @@ function normalizeAttachments(raw: unknown): ChatAttachmentView[] | undefined {
     const url = typeof a.url === "string" ? a.url : "";
     const type =
       typeof a.type === "string" ? parseChatAttachmentType(a.type) : null;
-    if (!url || !type) continue;
+    const locked = a.locked === true;
+    if (!type) continue;
+    if (!url && !locked) continue;
     list.push({
       id,
       url,
       type,
       name: typeof a.name === "string" ? a.name : null,
+      priceKrw: typeof a.priceKrw === "number" ? a.priceKrw : undefined,
+      locked,
     });
   }
   return list.length ? list : undefined;

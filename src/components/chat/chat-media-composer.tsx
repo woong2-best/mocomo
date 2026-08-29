@@ -1,9 +1,10 @@
 ﻿"use client";
 
 import { useId, useRef, useState, useEffect, useCallback } from "react";
-import { Camera, Gamepad2, ImagePlus, Loader2, Mic, Send, Square, X } from "lucide-react";
+import { Camera, Gamepad2, ImagePlus, Loader2, Mic, Send, Square, X, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CameraCaptureDialog } from "@/components/media/camera-capture-dialog";
+import { FanArtSellDialog } from "@/components/chat/fan-art-sell-dialog";
 import { toAbsoluteUploadUrl, uploadAudioBlob, uploadImageBlob } from "@/lib/client-upload";
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import type { ChatAttachmentInput } from "@/lib/chat-attachments";
@@ -47,6 +48,7 @@ export function ChatMediaComposer({
   const sendVoiceRef = useRef(true);
 
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [fanArtOpen, setFanArtOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [recording, setRecording] = useState(false);
@@ -235,7 +237,19 @@ export function ChatMediaComposer({
       )}
 
       <div className="flex items-end gap-1.5 max-w-3xl mx-auto">
-        <div className="flex items-center gap-0.5 shrink-0 pb-0.5">
+        <div className="flex flex-col items-center gap-0.5 shrink-0 pb-0.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-full text-folk-terracotta hover:bg-folk-terracotta/10"
+            disabled={disabled || uploading || recording}
+            onClick={() => setFanArtOpen(true)}
+            aria-label="팬아트 판매"
+            title="당신의 팬 아트를 팔아보세요!"
+          >
+            <Banknote className="h-5 w-5" />
+          </Button>
           <Button
             type="button"
             variant="ghost"
@@ -247,6 +261,8 @@ export function ChatMediaComposer({
           >
             <Camera className="h-5 w-5" />
           </Button>
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0 pb-0.5">
           {activity && (
             <Button
               type="button"
@@ -347,6 +363,12 @@ export function ChatMediaComposer({
         mode="photo"
         enableFaceFilter={false}
         onCapture={onCameraCapture}
+      />
+
+      <FanArtSellDialog
+        open={fanArtOpen}
+        onOpenChange={setFanArtOpen}
+        onSend={onSendAttachments}
       />
 
     </div>

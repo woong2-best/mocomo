@@ -232,6 +232,21 @@ export function ChatRoomClient({
     setReplyTarget(null);
   }
 
+  const refreshPurchasedMedia = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/messages/${roomId}/sync`, { credentials: "include" });
+      if (!res.ok) return;
+      const data = (await res.json()) as { messages?: unknown[] };
+      for (const raw of Array.isArray(data.messages) ? data.messages : []) {
+        const normalized = normalizeChatMessage(raw, selfSender.current);
+        if (!normalized || isPendingMessageId(normalized.id)) continue;
+        mergeIncoming(raw);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [roomId, mergeIncoming]);
+
   function replySnapshot(message: Message): Message["replyTo"] {
     return {
       id: message.id,
@@ -511,7 +526,12 @@ export function ChatRoomClient({
                             />
                           </div>
                         )}
-                        <ChatMessageAttachments attachments={m.attachments} isMine={isMine} />
+                        <ChatMessageAttachments
+                          attachments={m.attachments}
+                          isMine={isMine}
+                          sellerUsername={m.sender.username}
+                          onPurchaseSuccess={() => void refreshPurchasedMedia()}
+                        />
                       </div>
                     )}
                     {!hasAttachments && !hasText && !postShare && !gameShare && (

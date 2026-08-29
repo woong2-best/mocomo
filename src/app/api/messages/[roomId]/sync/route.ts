@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { chatMessageInclude, serializeChatMessage } from "@/lib/chat-message-serialize";
+import { chatMessageInclude, serializeChatMessages } from "@/lib/chat-message-serialize";
+import {
+  collectPaidAttachmentIds,
+  getPurchasedMessageAttachmentIds,
+} from "@/lib/message-paid-media";
 
 export async function GET(
   req: NextRequest,
@@ -41,7 +45,10 @@ export async function GET(
     include: chatMessageInclude,
   });
 
+  const paidIds = collectPaidAttachmentIds(messages);
+  const purchasedIds = await getPurchasedMessageAttachmentIds(session.user.id, paidIds);
+
   return NextResponse.json({
-    messages: messages.map(serializeChatMessage),
+    messages: serializeChatMessages(messages, session.user.id, purchasedIds),
   });
 }

@@ -2,12 +2,16 @@ import { db } from "@/lib/db";
 import { canAccessDm } from "@/lib/tiers";
 import { SupportTierLevel } from "@prisma/client";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
-import { chatMessageInclude, serializeChatMessage } from "@/lib/chat-message-serialize";
+import { chatMessageInclude, serializeChatMessage, serializeChatMessages, serializeChatMessageForRelay } from "@/lib/chat-message-serialize";
 import { sanitizeChatAttachments } from "@/lib/chat-attachments";
 import { notifyChatMessage } from "@/lib/notifications";
 import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
 import { getConversationMeta } from "@/lib/chat-display";
 import { filterDmMessageContent } from "@/lib/chat-content-filter";
+import {
+  collectPaidAttachmentIds,
+  getPurchasedMessageAttachmentIds,
+} from "@/lib/message-paid-media";
 
 async function assertRoomMember(roomId: string, userId: string) {
   const member = await db.chatMember.findUnique({
@@ -208,7 +212,9 @@ export async function getMobileRoomMessages(
   });
 
   const chronological = after ? rows : [...rows].reverse();
-  const messages = chronological.map(serializeChatMessage);
+  const paidIds = collectPaidAttachmentIds(chronological);
+  const purchasedIds = await getPurchasedMessageAttachmentIds(userId, paidIds);
+  const messages = serializeChatMessages(chronological, userId, purchasedIds);
   const nextBefore =
     !after && rows.length === limit ? rows[rows.length - 1]?.createdAt.toISOString() ?? null : null;
 
@@ -236,6 +242,7 @@ export async function sendMobileDmMessage(
       url: string;
       type: "IMAGE" | "VIDEO" | "AUDIO" | "GIF" | "STICKER" | "FILE";
       name?: string;
+      priceKrw?: number;
     }[];
   }
 ) {
@@ -278,7 +285,14 @@ export async function sendMobileDmMessage(
         content: text || null,
         replyToId: data.replyToId,
         attachments: hasAttachments
-          ? { create: attachments.map((a) => ({ url: a.url, type: a.type, name: a.name })) }
+          ? {
+              create: attachments.map((a) => ({
+                url: a.url,
+                type: a.type,
+                name: a.name,
+                priceKrw: a.priceKrw ?? 0,
+              })),
+            }
           : undefined,
       },
       include: chatMessageInclude,
@@ -297,13 +311,11 @@ export async function sendMobileDmMessage(
     roomType: room.type,
   });
 
-  void relayChatMessageToSocket(data.roomId, {
-    ...message,
-    createdAt: message.createdAt.toISOString(),
-  });
+  void relayChatMessageToSocket(data.roomId, serializeChatMessageForRelay(message));
 
+  const purchasedIds = await getPurchasedMessageAttachmentIds(userId, collectPaidAttachmentIds([message]));
   return {
-    message: serializeChatMessage(message),
+    message: serializeChatMessage(message, { viewerId: userId, purchasedAttachmentIds: purchasedIds }),
     contentFiltered: filtered.wasFiltered,
   };
 }
@@ -330,5 +342,7 @@ export async function syncMobileRoomMessages(
     include: chatMessageInclude,
   });
 
-  return { messages: messages.map(serializeChatMessage) };
+  const paidIds = collectPaidAttachmentIds(messages);
+  const purchasedIds = await getPurchasedMessageAttachmentIds(userId, paidIds);
+  return { messages: serializeChatMessages(messages, userId, purchasedIds) };
 }

@@ -95,6 +95,7 @@ export function paymentTypeLabel(type: string): string {
     EMOTICON: "이모티콘",
     CREATOR_EPISODE: "회차 구매",
     POST_MEDIA: "미디어 구매",
+    MESSAGE_MEDIA: "팬아트 구매",
     EVENT_REGISTRATION: "이벤트 등록",
     STUDIO_ASSET: "Studio 구매",
     CALL_BOOKING: "통화 예약",

@@ -33,6 +33,9 @@ function normalizeCheckoutBody(
   if (type === "POST_MEDIA" && normalized.mediaId) {
     normalized.mediaId = String(normalized.mediaId);
   }
+  if (type === "MESSAGE_MEDIA" && normalized.attachmentId) {
+    normalized.attachmentId = String(normalized.attachmentId);
+  }
   if (type === "CREATOR_SUBSCRIPTION" && normalized.creatorId) {
     normalized.creatorId = String(normalized.creatorId);
   }

@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { verifySocketAuthToken } from "../src/lib/socket-auth-token";
 import { sanitizeChatAttachments } from "../src/lib/chat-attachments";
 import { filterDmMessageContent } from "../src/lib/chat-content-filter";
-import { chatMessageInclude } from "../src/lib/chat-message-serialize";
+import { chatMessageInclude, serializeChatMessageForRelay } from "../src/lib/chat-message-serialize";
 import { notifyChatMessageSocket } from "./chat-notify";
 import {
   initSketchQuizStore,
@@ -414,7 +414,14 @@ io.on("connection", (socket: AuthedSocket) => {
           replyToId: data.replyToId,
           mentions: Array.isArray(data.mentions) ? data.mentions.slice(0, 20) : [],
           attachments: attachments.length
-            ? { create: attachments.map((a) => ({ url: a.url, type: a.type, name: a.name })) }
+            ? {
+                create: attachments.map((a) => ({
+                  url: a.url,
+                  type: a.type,
+                  name: a.name,
+                  priceKrw: a.priceKrw ?? 0,
+                })),
+              }
             : undefined,
         },
         include: chatMessageInclude,
@@ -436,10 +443,7 @@ io.on("connection", (socket: AuthedSocket) => {
           mentionUserIds: Array.isArray(data.mentions) ? data.mentions : [],
         });
       }
-      const payload = {
-        ...message,
-        createdAt: message.createdAt.toISOString(),
-      };
+      const payload = serializeChatMessageForRelay(message);
       io.to(`room:${data.roomId}`).emit("new_message", payload);
       for (const mentionId of data.mentions ?? []) {
         if (typeof mentionId === "string" && mentionId.length < 64) {

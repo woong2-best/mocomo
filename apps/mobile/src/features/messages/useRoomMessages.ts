@@ -121,7 +121,12 @@ export function useRoomMessages(roomId: string) {
   const send = useCallback(
     async (
       content: string,
-      attachments?: { url: string; type: "IMAGE" | "VIDEO" | "AUDIO" | "GIF"; name?: string }[],
+      attachments?: {
+        url: string;
+        type: "IMAGE" | "VIDEO" | "AUDIO" | "GIF";
+        name?: string;
+        priceKrw?: number;
+      }[],
       replyToId?: string
     ) => {
       const text = content.trim();

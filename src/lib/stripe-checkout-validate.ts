@@ -264,6 +264,38 @@ export async function validatePaymentInput(
     if (input.amount !== priceKrw) return { error: "가격이 일치하지 않습니다." };
   }
 
+  if (input.type === "MESSAGE_MEDIA") {
+    const attachmentId = String(input.metadata.attachmentId ?? "").trim();
+    if (!attachmentId) return { error: "미디어 정보가 없습니다." };
+    const attachment = await db.messageAttachment.findUnique({
+      where: { id: attachmentId },
+      include: {
+        message: {
+          select: { senderId: true, roomId: true },
+        },
+      },
+    });
+    if (!attachment) return { error: "미디어를 찾을 수 없습니다." };
+    if (attachment.priceKrw <= 0) return { error: "구매가 필요 없는 미디어입니다." };
+    if (attachment.message.senderId === userId) {
+      return { error: "본인 콘텐츠는 구매할 수 없습니다." };
+    }
+    const member = await db.chatMember.findUnique({
+      where: {
+        roomId_userId: { roomId: attachment.message.roomId, userId },
+      },
+      select: { userId: true },
+    });
+    if (!member) return { error: "메시지 방 참여자만 구매할 수 있습니다." };
+    const owned = await db.messageAttachmentPurchase.findUnique({
+      where: { buyerId_attachmentId: { buyerId: userId, attachmentId } },
+    });
+    if (owned) return { error: "이미 구매한 미디어입니다." };
+    if (input.amount !== attachment.priceKrw) {
+      return { error: "가격이 일치하지 않습니다." };
+    }
+  }
+
   if (input.type === "STUDIO_ASSET") {
     const assetId = input.metadata.studioAssetId as string;
     const asset = await db.studioAsset.findUnique({ where: { id: assetId } });

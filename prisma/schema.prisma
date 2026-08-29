@@ -431,6 +431,7 @@ model User {
   creatorEpisodes          CreatorEpisode[]         @relation("CreatorEpisodeAuthor")
   creatorEpisodePurchases  CreatorEpisodePurchase[]
   postMediaPurchases       PostMediaPurchase[]
+  messageAttachmentPurchases MessageAttachmentPurchase[]
   watermarkSessions        WatermarkSession[]
   watermarkDetectionLogs   WatermarkDetectionLog[] @relation("WatermarkDetectionAdmin")
   watermarkDetectionJobs   WatermarkDetectionJob[] @relation("WatermarkDetectionJobAdmin")
@@ -1372,13 +1373,34 @@ model Message {
 }
 
 model MessageAttachment {
-  id        String   @id @default(cuid())
-  messageId String
-  url       String
-  type      MessageAttachmentType
-  name      String?
-  size      Int?
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  id            String   @id @default(cuid())
+  messageId     String
+  url           String
+  type          MessageAttachmentType
+  name          String?
+  size          Int?
+  /** Paid fan-art / locked DM media (USD cents, same as post media). */
+  priceKrw      Int      @default(0)
+  purchaseCount Int      @default(0)
+  message   Message                     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  purchases MessageAttachmentPurchase[]
+
+  @@index([messageId])
+}
+
+model MessageAttachmentPurchase {
+  id           String   @id @default(cuid())
+  buyerId      String
+  attachmentId String
+  price        Int
+  createdAt    DateTime @default(now())
+
+  buyer      User              @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  attachment MessageAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@unique([buyerId, attachmentId])
+  @@index([buyerId, createdAt(sort: Desc)])
+  @@index([attachmentId])
 }
 
 model MessageRead {
@@ -1981,6 +2003,8 @@ enum PaymentIntentType {
   MOCO_TOPUP
   /** 크리에이터 1:1 통화 예약 */
   CALL_BOOKING
+  /** DM 팬아트 / 유료 첨부 미디어 */
+  MESSAGE_MEDIA
 }
 
 enum EventPublishStatus {

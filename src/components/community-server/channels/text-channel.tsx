@@ -2,7 +2,11 @@ import { after } from "next/server";
 import { redirect, notFound } from "next/navigation";
 import { getCachedSession, getCachedAuthUserMinimal } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { chatMessageInclude, serializeChatMessage } from "@/lib/chat-message-serialize";
+import { chatMessageInclude, serializeChatMessage, serializeChatMessages } from "@/lib/chat-message-serialize";
+import {
+  collectPaidAttachmentIds,
+  getPurchasedMessageAttachmentIds,
+} from "@/lib/message-paid-media";
 import { markCommunityChannelRead } from "@/actions/community-server";
 import { TextChannelShell } from "@/components/community-server/channels/text-channel-shell";
 
@@ -59,7 +63,14 @@ export async function TextChannelView({
   if (!room) notFound();
 
   const ordered = [...messages].reverse();
-  const initialMessages = ordered.map(serializeChatMessage);
+  const viewerId = session?.user?.id ?? null;
+  const paidIds = collectPaidAttachmentIds(ordered);
+  const purchasedIds = viewerId
+    ? await getPurchasedMessageAttachmentIds(viewerId, paidIds)
+    : new Set<string>();
+  const initialMessages = viewerId
+    ? serializeChatMessages(ordered, viewerId, purchasedIds)
+    : ordered.map((m) => serializeChatMessage(m, { forRelay: true }));
   const lastMsg = ordered[ordered.length - 1];
   if (lastMsg && !readOnly && !isGuest) void markCommunityChannelRead(channelId, lastMsg.id);
 

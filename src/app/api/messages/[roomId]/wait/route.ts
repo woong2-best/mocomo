@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { chatMessageInclude, serializeChatMessage } from "@/lib/chat-message-serialize";
+import { chatMessageInclude, serializeChatMessages } from "@/lib/chat-message-serialize";
+import {
+  collectPaidAttachmentIds,
+  getPurchasedMessageAttachmentIds,
+} from "@/lib/message-paid-media";
 
 export const maxDuration = 10;
 
@@ -56,8 +60,10 @@ export async function GET(
   while (Date.now() < deadline) {
     const messages = await fetchNewMessages(roomId, afterDate);
     if (messages.length > 0) {
+      const paidIds = collectPaidAttachmentIds(messages);
+      const purchasedIds = await getPurchasedMessageAttachmentIds(session.user.id, paidIds);
       return NextResponse.json({
-        messages: messages.map(serializeChatMessage),
+        messages: serializeChatMessages(messages, session.user.id, purchasedIds),
       });
     }
     await sleep(POLL_MS);

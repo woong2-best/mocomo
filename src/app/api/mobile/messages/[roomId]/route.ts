@@ -41,6 +41,7 @@ const sendSchema = z.object({
         url: z.string().url().max(2000),
         type: z.enum(["IMAGE", "VIDEO", "AUDIO", "GIF", "STICKER", "FILE"]),
         name: z.string().max(200).optional(),
+        priceKrw: z.number().int().min(0).optional(),
       })
     )
     .max(4)

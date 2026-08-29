@@ -17,6 +17,7 @@ import {
 import { fulfillFlowerPurchase } from "@/lib/flower/service";
 import { fulfillCreatorEpisodePurchase } from "@/actions/creator-works";
 import { fulfillPostMediaPurchase } from "@/actions/post-media-purchase";
+import { fulfillMessageMediaPurchase } from "@/actions/message-media-purchase";
 import { fulfillCreatorSubscriptionPurchase } from "@/actions/creator-subscription-purchase";
 import { calcPlatformFee } from "@/lib/utils";
 import { tierFromAmount } from "@/lib/tiers";
@@ -426,6 +427,32 @@ export async function fulfillPaymentIntent(
       revalidatePath(`/u/${meta.username ?? ""}`);
     }
     revalidatePath(COMMUNITY_FEED_PATH);
+  }
+
+  if (intent.type === "MESSAGE_MEDIA") {
+    const r = await fulfillMessageMediaPurchase(
+      userId,
+      String(meta.attachmentId ?? ""),
+      amount,
+      intent.id
+    );
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    if ("success" in r && r.success && !r.alreadyOwned) {
+      await recordPlatformFee(r.platformFee, {
+        referenceType: "message_media",
+        referenceId: r.referenceId,
+        paymentIntentId: intent.id,
+      });
+      await creditSellerEarning(r.authorId, r.sellerAmount, {
+        referenceType: "message_media",
+        referenceId: r.referenceId,
+        paymentIntentId: intent.id,
+        memo: "DM 팬아트 판매",
+      });
+    }
+    if ("roomId" in r && r.roomId) {
+      revalidatePath(`/messages/${r.roomId}`);
+    }
   }
 
   if (intent.type === "STUDIO_ASSET") {

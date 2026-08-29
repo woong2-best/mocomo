@@ -4,7 +4,11 @@ import { redirect, notFound } from "next/navigation";
 import { getGroupRoomMeta } from "@/actions/group-chat";
 import { getConversationMeta } from "@/lib/chat-display";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
-import { chatMessageInclude, serializeChatMessage } from "@/lib/chat-message-serialize";
+import { chatMessageInclude, serializeChatMessages } from "@/lib/chat-message-serialize";
+import {
+  collectPaidAttachmentIds,
+  getPurchasedMessageAttachmentIds,
+} from "@/lib/message-paid-media";
 import { ChatRoomShell } from "@/components/messages/chat-room-shell";
 
 export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
@@ -46,7 +50,9 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   const otherMember =
     room.type === "DM" ? room.members.find((m) => m.userId !== session.user.id)?.user : undefined;
 
-  const initialMessages = messages.map(serializeChatMessage);
+  const paidIds = collectPaidAttachmentIds(messages);
+  const purchasedIds = await getPurchasedMessageAttachmentIds(session.user.id, paidIds);
+  const initialMessages = serializeChatMessages(messages, session.user.id, purchasedIds);
 
   return (
     <ChatRoomShell
