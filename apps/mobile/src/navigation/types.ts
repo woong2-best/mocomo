@@ -68,6 +68,7 @@ export type RootStackParamList = {
   MarketSellItem: undefined;
   CommunityList: undefined;
   CommunityDetail: { slug: string };
+  CommunityServer: { slug: string };
   CommunityCreate: undefined;
   EventsList: undefined;
   EventDetail: { id: string };

@@ -168,6 +168,24 @@ export async function clearAllAccounts(): Promise<void> {
   await SecureStore.deleteItemAsync(LEGACY_REFRESH_KEY).catch(() => undefined);
 }
 
+/** Instant avatar on cold start — full profile arrives from /me shortly after. */
+export function savedAccountToCachedUser(
+  account: SavedMobileAccount
+): MobileAuthUser {
+  return {
+    id: account.userId,
+    username: account.username,
+    name: account.name,
+    image: account.image,
+  };
+}
+
+export async function getCachedActiveUser(): Promise<MobileAuthUser | null> {
+  const active = await getActiveAccount();
+  if (!active || active.userId === "legacy") return null;
+  return savedAccountToCachedUser(active);
+}
+
 export async function patchActiveAccountProfile(
   user: Pick<MobileAuthUser, "id" | "username" | "name" | "image">
 ): Promise<void> {

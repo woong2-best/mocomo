@@ -98,8 +98,8 @@ export function FeedPhotoPostCard({
             {formatFeedRelativeTime(createdAt)}
           </time>
           {post.isNsfw && (
-            <span className="text-[10px] px-1 py-0.5 rounded bg-destructive/20 text-destructive shrink-0">
-              NSFW
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/20 text-destructive shrink-0 font-bold">
+              성인 콘텐츠
             </span>
           )}
         </div>

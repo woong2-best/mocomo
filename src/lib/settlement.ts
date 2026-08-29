@@ -30,7 +30,36 @@ async function appendLedger(
   return tx.ledgerEntry.create({ data });
 }
 
-/** 판매자/크리에이터 지갑 적립 */
+/** Marketplace order settled via Stripe Connect — append-only settlement ledger */
+export async function recordMarketplaceSettlementLedger(input: {
+  userId: string;
+  grossAmount: number;
+  platformFee: number;
+  netPaidAmount: number;
+  stripeTransferId: string;
+  referenceId: string;
+  paymentIntentId?: string;
+  memo?: string;
+}) {
+  if (input.netPaidAmount <= 0) return;
+  await db.ledgerEntry.create({
+    data: {
+      userId: input.userId,
+      type: "SELLER_EARNING",
+      amount: input.netPaidAmount,
+      grossAmount: input.grossAmount,
+      platformFee: input.platformFee,
+      netPaidAmount: input.netPaidAmount,
+      stripeTransferId: input.stripeTransferId,
+      referenceType: "marketplace_escrow",
+      referenceId: input.referenceId,
+      paymentIntentId: input.paymentIntentId,
+      memo: input.memo,
+    },
+  });
+}
+
+/** 판매자/크리에이터 지갑 적립 (non-marketplace flows) */
 export async function creditSellerEarning(
   userId: string,
   amount: number,
@@ -61,7 +90,7 @@ export async function creditSellerEarning(
   });
 }
 
-/** 플랫폼 수수료·프리미엄·등록비 등 운영 수익 (장부만, 실입금은 토스 정산) */
+/** 플랫폼 수수료 등 운영 수익 (장부 — 실입금은 Stripe 정산) */
 export async function recordPlatformFee(
   amount: number,
   opts: {

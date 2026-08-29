@@ -17,6 +17,8 @@ import { createMarketplaceListing } from "@/actions/marketplace";
 import { SETTLEMENT_ACCOUNT_REQUIRED_CODE } from "@/lib/settlement-account";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ContentRatingSelect } from "@/components/forms/content-rating-select";
+import type { ContentRating } from "@prisma/client";
 
 const PREFERRED_CARRIER_CHOICES = listAllMarketplaceCarriers();
 
@@ -43,7 +45,7 @@ export function MarketplaceListingForm() {
   const [optionName, setOptionName] = useState("");
   const [optionValues, setOptionValues] = useState("");
   const [options, setOptions] = useState<{ name: string; values: string[] }[]>([]);
-  const [isNsfw, setIsNsfw] = useState(false);
+  const [contentRating, setContentRating] = useState<ContentRating>("GENERAL");
 
   const typeMeta = useMemo(
     () => MARKETPLACE_BROWSE_LISTING_TYPES.find((t) => t.id === type),
@@ -102,7 +104,8 @@ export function MarketplaceListingForm() {
         shipToCountries,
         options: options.length ? options : undefined,
         publish,
-        isNsfw,
+        contentRating,
+        isNsfw: contentRating === "ADULT",
       });
       if ("error" in res && res.error) {
         if ("code" in res && res.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE && "redirectTo" in res) {
@@ -311,22 +314,9 @@ export function MarketplaceListingForm() {
           </div>
         </section>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      <ContentRatingSelect value={contentRating} onChange={setContentRating} disabled={pending} />
 
-      <label className="flex items-start gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-sm">
-        <input
-          type="checkbox"
-          checked={isNsfw}
-          onChange={(e) => setIsNsfw(e.target.checked)}
-          className="mt-0.5"
-        />
-        <span>
-          <span className="font-semibold">민감한 콘텐츠 (NSFW)</span>
-          <span className="mt-0.5 block text-xs text-muted-foreground">
-            성인·폭력 등 민감한 이미지가 포함되면 켜 주세요. 구매자에게 경고 후 보기로 표시됩니다.
-          </span>
-        </span>
-      </label>
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex flex-wrap gap-2">
         <Button type="button" disabled={pending} onClick={() => submit(true)}>

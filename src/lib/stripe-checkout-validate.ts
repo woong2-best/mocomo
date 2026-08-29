@@ -16,10 +16,7 @@ import {
   EVENT_REGISTRATION_MAX_DAYS,
   eventDurationDays,
 } from "@/lib/event-registration";
-import {
-  LETTER_DONATION_MESSAGE_MAX,
-  LETTER_DONATION_MIN_KRW,
-} from "@/lib/chat-letter-donation";
+import { assertPaymentNotForAdultContent } from "@/lib/adult-monetization-ban";
 import {
   calcVideoDonationAmount,
   DEFAULT_VIDEO_DONATION_SETTINGS,
@@ -32,6 +29,15 @@ export async function validatePaymentInput(
 ): Promise<{ error: string } | null> {
   const payloadBlock = validatePaymentPayloadCountries(input.metadata);
   if (payloadBlock) return payloadBlock;
+
+  const metaRating =
+    input.metadata.contentRating === "ADULT" || input.metadata.isNsfw === true
+      ? "ADULT"
+      : input.metadata.contentRating === "GENERAL"
+        ? "GENERAL"
+        : null;
+  const metaBlock = assertPaymentNotForAdultContent(metaRating);
+  if (metaBlock) return metaBlock;
 
   if (input.type === "MOCO_TOPUP") {
     return { error: "모코 충전은 종료되었습니다. 각 상품·후원 화면에서 바로 결제해 주세요." };
@@ -220,11 +226,16 @@ export async function validatePaymentInput(
             authorId: true,
             visibility: true,
             instantPurchasePriceKrw: true,
+            isNsfw: true,
+            contentRating: true,
           },
         },
       },
     });
     if (!media) return { error: "미디어를 찾을 수 없습니다." };
+    const postRating = media.post.contentRating ?? (media.post.isNsfw ? "ADULT" : "GENERAL");
+    const adultBlock = assertPaymentNotForAdultContent(postRating);
+    if (adultBlock) return adultBlock;
     if (media.post.authorId === userId) return { error: "본인 콘텐츠는 구매할 수 없습니다." };
     const owned = await db.postMediaPurchase.findUnique({
       where: { buyerId_mediaId: { buyerId: userId, mediaId } },

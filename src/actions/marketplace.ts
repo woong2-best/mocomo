@@ -9,6 +9,7 @@ import type {
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlement-account";
+import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import {
   MARKETPLACE_CATEGORIES,
   listingTypeLabel,
@@ -17,6 +18,7 @@ import { validateShipToCountries } from "@/lib/marketplace/shipping-config";
 import {
   createSellerConnectOnboarding,
   refreshSellerConnectLink,
+  syncStripeConnectOnboardedAt,
 } from "@/lib/stripe-connect";
 
 export async function getMarketplaceSellerProfile(userId?: string) {
@@ -172,10 +174,13 @@ export async function resumeMarketplaceConnectOnboarding() {
 
 export async function markMarketplaceConnectComplete() {
   const user = await requireAuth();
-  await db.user.update({
+  const dbUser = await db.user.findUnique({
     where: { id: user.id },
-    data: { stripeConnectOnboardedAt: new Date() },
+    select: { stripeConnectAccountId: true },
   });
+  if (dbUser?.stripeConnectAccountId) {
+    await syncStripeConnectOnboardedAt(user.id, dbUser.stripeConnectAccountId);
+  }
   revalidatePath("/market/seller");
   return { success: true as const };
 }
@@ -201,6 +206,7 @@ export type CreateMarketplaceListingInput = {
   shipToCountries?: string[];
   shipsWorldwide?: boolean;
   publish?: boolean;
+  contentRating?: import("@prisma/client").ContentRating;
   isNsfw?: boolean;
 };
 
@@ -247,6 +253,13 @@ export async function createMarketplaceListingForUser(
   if (!Number.isFinite(input.priceAmount) || input.priceAmount < 0) {
     return { error: "가격이 올바르지 않습니다." };
   }
+
+  const listingRating = input.contentRating ?? (input.isNsfw ? "ADULT" : "GENERAL");
+  const adultListingErr = assertAdultContentNotMonetized(listingRating, {
+    hasPrice: input.priceAmount > 0,
+  });
+  if (adultListingErr) return { error: adultListingErr };
+
   if (input.type === "DIGITAL") {
     return { error: "디지털 상품 등록은 지원하지 않습니다." };
   }
@@ -284,7 +297,8 @@ export async function createMarketplaceListingForUser(
       shippingFeeFixed: Math.max(0, input.shippingFeeFixed ?? 0),
       shipToCountries,
       shipsWorldwide: false,
-      isNsfw: !!input.isNsfw,
+      contentRating: input.contentRating ?? (input.isNsfw ? "ADULT" : "GENERAL"),
+      isNsfw: (input.contentRating ?? (input.isNsfw ? "ADULT" : "GENERAL")) === "ADULT",
       publishedAt: publish ? new Date() : null,
       media: mediaUrls.length
         ? {

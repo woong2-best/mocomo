@@ -167,7 +167,7 @@ export default edgeAuth(async (req) => {
     }
   }
 
-  // 자체 송출만 차단 — /live 디렉터리·외부 임베드 룸(/voice/[id])·OBS 오버레이는 유지
+  // 자체 송출만 차단
   if (process.env.NEXT_PUBLIC_LIVE_ENABLED === "false") {
     const firstPartyOnly =
       pathname.startsWith("/avatar") ||

@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MARKET_BRAND_FULL, MARKET_BRAND_NAME } from "@/lib/market-brand";
 import { MarketplaceSellerApplyForm } from "@/components/market/marketplace-seller-apply-form";
+import { SellerSettlementInvoices } from "@/components/market/seller-settlement-invoices";
+import type { SellerSettlementInvoiceRow } from "@/actions/marketplace-settlement-invoices";
 
 export type SellerPrepState = {
   sellerInfoDone: boolean;
@@ -24,9 +26,11 @@ export type SellerPrepState = {
 export function SellerCenterHome({
   prep,
   profileFormName,
+  settlementInvoices = [],
 }: {
   prep: SellerPrepState;
   profileFormName: string;
+  settlementInvoices?: SellerSettlementInvoiceRow[];
 }) {
   const doneCount = (prep.sellerInfoDone ? 1 : 0) + (prep.firstProductDone ? 1 : 0);
   const total = 2;
@@ -181,7 +185,16 @@ export function SellerCenterHome({
         />
       </section>
 
-      <section id="settlement" className="scroll-mt-20" />
+      <section
+        id="settlement"
+        className="rounded-2xl border border-border/60 bg-white p-5 sm:p-6 shadow-sm scroll-mt-20"
+      >
+        <h2 className="text-base font-bold mb-1">정산 · Invoice</h2>
+        <p className="text-xs text-muted-foreground mb-4">
+          Stripe Connect 정산 완료 주문의 플랫폼 수수료(10%) 차감 내역입니다.
+        </p>
+        <SellerSettlementInvoices invoices={settlementInvoices} />
+      </section>
     </div>
   );
 }

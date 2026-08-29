@@ -36,7 +36,7 @@ const GOVERNING_LAW_PARAGRAPH =
 export const COMMUNITY_POLICY: LegalDocument = {
   slug: "policy",
   title: "MoCoMo 운영원칙 및 이용정책",
-  updatedAt: "2026년 8월 7일",
+  updatedAt: "2026년 8월 29일",
   intro:
     'MoCoMo LLC(이하 "MoCoMo" 또는 "회사")가 운영하는 웹·모바일 커뮤니티 플랫폼에서 모든 사용자가 안전하게 소통하고 콘텐츠를 공유할 수 있도록 아래 정책을 운영합니다.',
   blocks: [
@@ -65,7 +65,8 @@ export const COMMUNITY_POLICY: LegalDocument = {
     {
       type: "ul",
       items: [
-        "성인물, 노출, 명시적 성적 행위를 포함한 콘텐츠의 게시·판매·수익화 금지",
+        "성인·NSFW 콘텐츠는 연령 표시·접근 제어 하에 게시할 수 있으나, 플랫폼 내 판매·후원·구독·유료 열람·경매·마켓 거래 등 금전이 오가는 모든 형태의 유료 거래는 전면 금지",
+        "성인물, 노출, 명시적 성적 행위를 포함한 콘텐츠의 유료 수익화·결제 유도·외부 PG·직거래 유도 금지",
         "아동·청소년 대상 성적 콘텐츠, 불법 촬영물, 동의 없는 신체 노출, 성착취 콘텐츠",
         "성적 서비스·에스코트·성매매 알선 등 성인 서비스의 홍보·거래·결제 유도 금지",
       ],
@@ -343,7 +344,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       type: "ul",
       items: [
         "관련 법령 위반 및 불법 콘텐츠: 현행 법령에 위반되거나 범죄 행위를 목적으로 하는 내용",
-        "성인물·성적 서비스 (Adult Content and Services): 성인물, 노출, 명시적 성적 행위의 게시·판매·수익화·구독·후원 금지. 성착취·아동·청소년 유해물, 딥페이크 등 성적 불법 합성물 포함",
+        "성인물·성적 서비스 (Adult Content and Services): 성인·NSFW 콘텐츠의 판매·후원·구독·유료 열람·경매·마켓 거래 등 플랫폼 내 모든 유료 거래 금지. 성착취·아동·청소년 유해물, 딥페이크 등 성적 불법 합성물 포함. 별도 도메인·외부 결제 수단을 통한 우회도 금지",
         "지적재산권 침해 (Intellectual Property Infringement): 타인의 저작권·상표권·초상권 등을 침해하는 콘텐츠 게시·판매·수익화 금지. DMCA 등 권리자 요청에 따른 신속 삭제",
         "폭력적 극단주의·혐오 발언 (Violent Extremism / Hate Speech): 테러·극단주의 조직 홍보, 폭력·살해·자해 조장, 특정 인종·성별·종교·장애 등에 대한 차별·혐오·박해 표현",
         "권리 침해 및 명예훼손: 타인의 신원 정보(개인정보) 무단 노출, 특정인을 비방·저격하여 명예를 훼손하는 내용",
@@ -1016,7 +1017,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
 export const CREATOR_TERMS: LegalDocument = {
   slug: "creator-terms",
   title: "MoCoMo 크리에이터 약관",
-  updatedAt: "2026년 8월 7일",
+  updatedAt: "2026년 8월 29일",
   intro:
     '본 약관은 MoCoMo LLC(이하 "회사")가 제공하는 크리에이터·구독·후원·디지털 판매 기능의 이용 조건을 규정합니다. 일반 이용약관과 함께 적용되며, 충돌 시 본 약관이 크리에이터 기능에 우선합니다.',
   blocks: [
@@ -1041,7 +1042,7 @@ export const CREATOR_TERMS: LegalDocument = {
     { type: "h2", text: "제4조 (수익 정산)" },
     {
       type: "p",
-      text: "크리에이터는 구독, 후원, 디지털 콘텐츠·스타 마켓 판매 등을 통해 수익을 얻을 수 있습니다.",
+      text: "크리에이터는 구독, 후원, 디지털 콘텐츠·스타 마켓 판매 등을 통해 수익을 얻을 수 있습니다. 단, 성인·NSFW로 분류된 콘텐츠는 어떠한 형태의 유료 거래·수익화도 할 수 없습니다.",
     },
     { type: "p", text: "회사는 수수료를 공제한 후 정산할 수 있습니다." },
     {
@@ -1058,6 +1059,7 @@ export const CREATOR_TERMS: LegalDocument = {
         "사기성 판매",
         "저작권 침해 콘텐츠 판매",
         "불법 콘텐츠 판매",
+        "성인·NSFW 콘텐츠의 유료 판매·후원·구독·유료 열람",
         "결제 우회 유도",
         "허위 구독·후원 유도",
       ],
@@ -1081,9 +1083,9 @@ export const CREATOR_TERMS: LegalDocument = {
 export const PAYMENT_REFUND_POLICY: LegalDocument = {
   slug: "payment",
   title: "MoCoMo 결제 및 환불 정책",
-  updatedAt: "2026년 8월 7일",
+  updatedAt: "2026년 8월 29일",
   intro:
-    "본 정책은 MoCoMo LLC가 제공하는 유료 기능, 구독, 디지털 콘텐츠, 지갑·가상재화 및 인앱결제에 적용됩니다.",
+    "본 정책은 MoCoMo LLC가 제공하는 유료 기능, 구독, 디지털 콘텐츠, 지갑·가상재화 및 인앱결제에 적용됩니다. 성인·NSFW 콘텐츠와 관련된 유료 거래는 플랫폼 전역에서 허용되지 않습니다.",
   blocks: [
     { type: "h2", text: "제1조 (결제)" },
     {
@@ -1091,14 +1093,34 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
       text: "MoCoMo는 신용카드·체크카드, Stripe 등 결제대행, Apple App Store·Google Play 인앱결제(IAP) 및 기타 지원되는 결제수단을 통해 결제를 처리할 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제2조 (구독)" },
+    { type: "h2", text: "제2조 (성인·NSFW 콘텐츠 유료 거래 금지)" },
+    {
+      type: "p",
+      text: "MoCoMo는 결제·정산 인프라(Stripe Connect 등)를 일반 콘텐츠 및 합법적 상거래에만 사용합니다. 성인·NSFW로 분류되거나 해당에 준하는 콘텐츠에 대해서는 다음을 포함한 모든 유료 거래가 금지됩니다.",
+    },
+    {
+      type: "ul",
+      items: [
+        "유료 게시물·미디어 판매 및 즉시 구매",
+        "크리에이터 구독·후원·팁·라이브 후원",
+        "마켓플레이스·중고거래·경매·디지털 상품 판매",
+        "유료 이벤트·통화 예약·Studio 자산 판매 등 기타 플랫폼 내 유료 기능",
+        "결제 우회, 외부 링크·별도 사이트를 통한 성인 콘텐츠 유료 거래 유도",
+      ],
+    },
+    {
+      type: "p",
+      text: "위반 시 콘텐츠 삭제, 유료 설정 해제, 정산 보류, 계정 제한·영구 정지 및 관련 법령에 따른 조치가 이루어질 수 있습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "제3조 (구독)" },
     { type: "p", text: "구독은 자동 갱신될 수 있습니다." },
     {
       type: "p",
       text: "사용자는 언제든지 다음 결제일부터 적용되는 방식으로 구독을 취소할 수 있습니다. 앱스토어 구독은 해당 스토어 계정 설정에서 해지합니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제3조 (디지털 콘텐츠·가상재화)" },
+    { type: "h2", text: "제4조 (디지털 콘텐츠·가상재화)" },
     { type: "p", text: "다음은 디지털 콘텐츠 또는 가상재화에 해당할 수 있습니다." },
     {
       type: "ul",
@@ -1114,7 +1136,7 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
       text: "가상재화는 현금으로 환전·인출되지 않을 수 있으며, 양도·재판매가 제한될 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제4조 (환불)" },
+    { type: "h2", text: "제5조 (환불)" },
     {
       type: "p",
       text: "법령상 환불 의무가 있는 경우를 제외하고 이미 제공되거나 소비된 디지털 콘텐츠·가상재화는 환불이 제한될 수 있습니다.",
@@ -1124,19 +1146,19 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
       text: "Apple·Google을 통한 결제의 환불·청구 이의는 해당 스토어의 환불 절차가 우선 적용될 수 있습니다. 스토어가 환불을 승인하면 회사는 지급된 가상재화를 회수할 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제5조 (부정 결제)" },
+    { type: "h2", text: "제6조 (부정 결제)" },
     {
       type: "p",
       text: "도용 카드, 결제 사기, 차지백 악용, IAP 어뷰징 등이 확인될 경우 계정 이용이 제한될 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제6조 (결제 대행)" },
+    { type: "h2", text: "제7조 (결제 대행)" },
     {
       type: "p",
       text: "결제는 외부 결제 서비스 제공업체(Stripe, Apple, Google 등)를 통해 처리될 수 있으며, 해당 업체의 약관이 추가로 적용될 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제7조 (이벤트·광고 등록)" },
+    { type: "h2", text: "제8조 (이벤트·광고 등록)" },
     {
       type: "p",
       text: "이벤트 등록비는 선택한 노출 기간(일) × 1,000원이며, 최대 100일(100,000원)까지 등록할 수 있습니다. 등록비는 플랫폼 내 이벤트 목록 노출 위치 제공에 대한 대가이며, 클릭·참여·매출 등 광고 성과를 보장하지 않습니다.",
@@ -1759,6 +1781,11 @@ export const PAYMENT_LEGAL_SECTIONS = [
   {
     title: "결제·환불",
     body: "결제 승인 및 게시 시작 후 원칙적으로 환불 불가(No Refunds after publication). MoCoMo LLC 시스템 오류로 미노출 기간만 비례 환불 또는 기간 연장 보상.",
+    href: "/legal/payment",
+  },
+  {
+    title: "성인·NSFW 유료 거래 금지",
+    body: "성인·NSFW 콘텐츠의 판매·후원·구독·유료 열람·마켓·경매 등 플랫폼 내 모든 유료 거래는 금지됩니다. 위반 시 유료 설정 해제·정산 보류·계정 제한이 적용될 수 있습니다.",
     href: "/legal/payment",
   },
   {

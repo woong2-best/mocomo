@@ -25,7 +25,7 @@ export function UsedBankVerifyForm({
   callbackUrl?: string;
   /** @deprecated no longer used — verification is memo code only */
   legalName?: string | null;
-  /** account: 일반 설정(Stripe 미연동) · used: 중고/판매자(Stripe Connect) */
+  /** account: 일반 설정 · used: 중고 본인 확인(결제·Stripe 미연동) */
   mode?: "account" | "used";
   emailVerified?: boolean;
 }) {

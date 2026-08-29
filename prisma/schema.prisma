@@ -150,6 +150,18 @@ enum ContentVisibility {
   SUBSCRIBER_12M
 }
 
+/** 일반(General) vs 성인(Adult/NSFW) 콘텐츠 분류 — 결제 라인 분리 기준 */
+enum ContentRating {
+  GENERAL
+  ADULT
+}
+
+/** 결제 PG — 일반 영역 Stripe, 성인 영역 CCBill 등 */
+enum PaymentRail {
+  STRIPE
+  CCBILL
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String?   @unique
@@ -624,6 +636,7 @@ model Community {
   bannerVideoUrl String?
   coverUrl    String?
   category    CommunityCategory
+  contentRating ContentRating @default(GENERAL)
   isNsfw      Boolean  @default(false)
   parentId    String?
   parent      Community?  @relation("SubCommunity", fields: [parentId], references: [id])
@@ -914,6 +927,7 @@ model Post {
   communityId String?
   animeId     String?
   postType    PostType @default(GENERAL)
+  contentRating ContentRating @default(GENERAL)
   isNsfw      Boolean  @default(false)
   viewCount   Int      @default(0)
   shareCount  Int      @default(0)
@@ -2009,11 +2023,13 @@ model PaymentIntent {
   status    PaymentIntentStatus @default(PENDING)
   metadata  Json
   paymentKey String?
+  paymentRail PaymentRail       @default(STRIPE)
   createdAt DateTime            @default(now())
   paidAt    DateTime?
   user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
+  @@index([paymentRail, status])
 }
 
 // ============ 정산 · 지갑 (PG 입금 → 플랫폼 수수료 / 판매자 적립 → 출금) ============
@@ -2046,8 +2062,14 @@ model LedgerEntry {
   id              String          @id @default(cuid())
   userId          String?
   type            LedgerEntryType
+  /** Legacy single-line amount; equals netPaidAmount for marketplace settlements */
   amount          Int
   balanceAfter    Int?
+  /** Marketplace settlement breakdown (Stripe Connect payout) */
+  grossAmount     Int?
+  platformFee     Int?
+  netPaidAmount   Int?
+  stripeTransferId String?
   referenceType   String?
   referenceId     String?
   paymentIntentId String?
@@ -2058,6 +2080,7 @@ model LedgerEntry {
   @@index([userId, createdAt])
   @@index([paymentIntentId])
   @@index([referenceType, referenceId])
+  @@index([stripeTransferId])
 }
 
 model BankAccount {
@@ -2291,6 +2314,7 @@ model UsedListing {
   /** ISO-3166 alpha-2 — map engine is derived from this (never stored as provider id) */
   meetCountry String?             @db.VarChar(2)
   images      Json
+  contentRating ContentRating     @default(GENERAL)
   isNsfw      Boolean             @default(false)
   viewCount   Int                 @default(0)
   /** 경매 종료 시각 (saleType=AUCTION) */
@@ -5540,6 +5564,7 @@ model MarketplaceListing {
   viewCount          Int                        @default(0)
   favoriteCount      Int                        @default(0)
   salesCount         Int                        @default(0)
+  contentRating      ContentRating              @default(GENERAL)
   isNsfw             Boolean                    @default(false)
   publishedAt        DateTime?
   createdAt          DateTime                   @default(now())

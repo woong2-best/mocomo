@@ -16,12 +16,15 @@ import { scheduleTabWarmup, resetTabWarmup } from "@/navigation/tab-warmup";
 import {
   activateAccount,
   getActiveAccount,
+  getCachedActiveUser,
   listSavedAccountsPublic,
   migrateLegacySingleToken,
   patchActiveAccountProfile,
   saveAccountSession,
+  savedAccountToCachedUser,
   type SavedMobileAccountPublic,
 } from "@/auth/account-store";
+import { prefetchImageUrls } from "@/perf/image";
 import { clearTokens, getAccessToken, logoutCurrentAccount } from "@/auth/token-store";
 import type { MobileAuthUser } from "@/auth/types";
 
@@ -132,6 +135,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         queryClient.setQueryData(["mobile-feed"], cached);
       }
 
+      const cachedUser = await getCachedActiveUser();
+      if (cancelled) return;
+      if (cachedUser) {
+        setUser(cachedUser);
+        if (cachedUser.image) {
+          prefetchImageUrls([cachedUser.image], 1);
+        }
+      }
+
       setStatus("signedIn");
       prefetchHomeFeed(queryClient);
       scheduleTabWarmup(queryClient);
@@ -197,6 +209,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.clear();
       await clearFeedBootstrap();
       resetTabWarmup();
+      setUser(savedAccountToCachedUser(hit));
+      if (hit.image) prefetchImageUrls([hit.image], 1);
       setStatus("signedIn");
       prefetchHomeFeed(queryClient);
       scheduleTabWarmup(queryClient);

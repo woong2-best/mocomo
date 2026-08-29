@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { formatUsd } from "@/lib/money";
 import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
 import { CreditCard, Loader2, Plus } from "lucide-react";
+import { StripeOverseasPaymentNotice } from "@/components/payments/stripe-overseas-payment-notice";
 
 type Props = {
   open: boolean;
@@ -266,6 +267,7 @@ export function PaymentCheckoutSheet({
           ) : null}
 
           {showLegalNotice ? <PaymentLegalNotice compact /> : null}
+          <StripeOverseasPaymentNotice />
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
           <div className="flex gap-2">

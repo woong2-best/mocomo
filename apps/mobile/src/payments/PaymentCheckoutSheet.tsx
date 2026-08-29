@@ -23,6 +23,7 @@ import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { formatUsd } from "@/lib/money";
+import { STRIPE_OVERSEAS_PAYMENT_NOTICE } from "@/lib/stripe-payment-notice";
 
 const RETURN_PREFIX = Linking.createURL("payment/success");
 
@@ -205,6 +206,8 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
 
           {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
 
+          <Text style={[styles.notice, { color: colors.textMuted }]}>{STRIPE_OVERSEAS_PAYMENT_NOTICE}</Text>
+
           <View style={styles.actions}>
             <FolkButton label="취소" variant="ghost" onPress={onClose} disabled={paying} />
             {methods.length > 0 ? (
@@ -259,6 +262,7 @@ function createStyles(colors: ThemeColors) {
     cardTitle: { fontWeight: "800", fontSize: 15 },
     cardMeta: { fontSize: 12, marginTop: 2, fontWeight: "600" },
     error: { fontSize: 13, fontWeight: "700", marginTop: spacing.sm },
+    notice: { fontSize: 11, fontWeight: "600", lineHeight: 16, marginTop: spacing.sm },
     actions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
   });
 }

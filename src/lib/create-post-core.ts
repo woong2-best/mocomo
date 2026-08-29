@@ -18,7 +18,7 @@ import { enqueuePostMediaHlsPackaging } from "@/lib/post-media-hls";
 import { clampMediaInt } from "@/lib/video-metadata";
 import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlement-account";
 import { validateSaleMediaPricing } from "@/lib/money";
-import { isCommunityScopedPost } from "@/lib/post-scope";
+import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 
 export type CreatePostMediaInput = {
   url: string;
@@ -34,6 +34,7 @@ export type CreatePostInput = {
   title?: string;
   communityId?: string;
   animeId?: string;
+  contentRating?: import("@prisma/client").ContentRating;
   isNsfw?: boolean;
   tagNames?: string[];
   visibility?: import("@prisma/client").ContentVisibility;
@@ -77,6 +78,15 @@ export async function createPostForUser(
     .filter((m) => m.url && isPersistableMediaUrl(String(m.url)))
     .map((m) => Math.max(0, Math.floor(m.priceKrw ?? 0)));
   const maxMediaPrice = mediaPrices.length > 0 ? Math.max(...mediaPrices) : 0;
+
+  const contentRating =
+    data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL");
+  const adultMonetizationErr = assertAdultContentNotMonetized(contentRating, {
+    hasInstantPurchase: instantPrice > 0,
+    hasPaidMedia: mediaPrices.some((p) => p > 0),
+  });
+  if (adultMonetizationErr) return { error: adultMonetizationErr };
+
   const pricingErr = validateSaleMediaPricing(maxMediaPrice, instantPrice);
   if (pricingErr) return { error: pricingErr };
 
@@ -127,6 +137,9 @@ export async function createPostForUser(
       ? data.poll.options.map((o) => o.trim()).filter(Boolean)
       : [];
 
+    const contentRating =
+      data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL");
+
     const post = await db.post.create({
       data: {
         title: data.title?.trim() || null,
@@ -134,7 +147,8 @@ export async function createPostForUser(
         authorId: user.id,
         communityId,
         animeId,
-        isNsfw: data.isNsfw ?? false,
+        contentRating,
+        isNsfw: contentRating === "ADULT",
         visibility: data.visibility ?? "PUBLIC",
         instantPurchasePriceKrw: Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0)),
         hotScore: calcHotScore(0, 0, new Date()),

@@ -5,6 +5,7 @@ import { getAccessToken } from "@/auth/token-store";
 import { FolkButton } from "@/ui/FolkButton";
 import { PaymentCheckoutSheet } from "@/payments/PaymentCheckoutSheet";
 import { paymentTypeLabel } from "@/payments/stripe-checkout";
+import { ADULT_MONETIZATION_BANNED_SHORT } from "@/lib/stripe-payment-notice";
 
 type Props = {
   type: PaymentIntentType;
@@ -12,6 +13,7 @@ type Props = {
   orderName: string;
   metadata: Record<string, unknown>;
   label: string;
+  contentRating?: "GENERAL" | "ADULT" | boolean;
   disabled?: boolean;
   onSuccess?: () => void;
   variant?: "primary" | "secondary" | "ghost";
@@ -48,10 +50,16 @@ export function PayButton({
   orderName,
   metadata,
   label,
+  contentRating = "GENERAL",
   disabled,
   onSuccess,
   variant = "primary",
 }: Props) {
+  const isAdult =
+    contentRating === "ADULT" ||
+    contentRating === true ||
+    metadata.contentRating === "ADULT" ||
+    metadata.isNsfw === true;
   const [open, setOpen] = useState(false);
   const checkoutBody = useMemo(
     () => normalizeCheckoutBody(type, amount, orderName, metadata),
@@ -64,6 +72,10 @@ export function PayButton({
       Alert.alert("로그인 필요", "결제하려면 먼저 로그인해 주세요.");
       return;
     }
+    if (isAdult) {
+      Alert.alert("결제 불가", ADULT_MONETIZATION_BANNED_SHORT);
+      return;
+    }
     setOpen(true);
   }
 
@@ -72,7 +84,7 @@ export function PayButton({
       <FolkButton
         label={label}
         onPress={() => void openCheckout()}
-        disabled={disabled}
+        disabled={disabled || isAdult}
         variant={variant}
       />
       <PaymentCheckoutSheet

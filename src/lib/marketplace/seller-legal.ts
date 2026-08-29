@@ -5,7 +5,7 @@ import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 export const SELLER_TERMS: LegalDocument = {
   slug: "seller-terms",
   title: `${MARKET_BRAND_FULL} 판매자 서비스 이용약관`,
-  updatedAt: "2026년 8월 7일",
+  updatedAt: "2026년 8월 29일",
   intro:
     `본 약관은 미합중국 와이오밍 주 소재 MoCoMo LLC(이하 "회사")가 운영하는 온라인 오픈마켓 플랫폼 "${MARKET_BRAND_FULL}"(이하 "플랫폼")을 통해 상품을 판매하고자 하는 사업자(이하 "판매자")와 회사 간의 권리, 의무 및 책임사항, 서비스 이용 조건과 절차 등을 규정함을 목적으로 합니다. 판매자는 회원가입 시 본 약관에 동의함으로써 본 약관의 적용을 받습니다.`,
   blocks: [
@@ -75,6 +75,7 @@ export const SELLER_TERMS: LegalDocument = {
       type: "ul",
       items: [
         "불법·유해 상품 또는 서비스의 판매",
+        "성인·NSFW 콘텐츠의 등록·판매·유료 거래 (플랫폼 내 결제·정산 포함)",
         "결제 우회, 직거래 유도, 허위 거래, 리뷰 조작",
         "타인의 계정·결제수단·개인정보 도용",
         "플랫폼의 시스템·보안을 방해하는 행위",

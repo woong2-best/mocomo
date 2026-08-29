@@ -10,7 +10,7 @@ import {
   tierFromSubscriptionMonths,
 } from "@/lib/creator-subscription";
 import { formatUsd } from "@/lib/money";
-import { stripeConnectStatus } from "@/lib/stripe-connect";
+import { stripeConnectStatusFromApi } from "@/lib/stripe-connect";
 
 export async function getCreatorMonetizationSettings() {
   const user = await requireAuth();
@@ -25,7 +25,7 @@ export async function getCreatorMonetizationSettings() {
 
   return {
     subscriptionPriceKrw: row.creatorSubscriptionPriceKrw,
-    connect: stripeConnectStatus(row.stripeConnectAccountId),
+    connect: await stripeConnectStatusFromApi(row.stripeConnectAccountId),
   };
 }
 

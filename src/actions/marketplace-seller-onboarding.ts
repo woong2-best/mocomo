@@ -10,6 +10,8 @@ import { registerUser, sendEmailAuthCode, completeAuthWithCode } from "@/actions
 import {
   createSellerConnectOnboarding,
   isStripeConnectConfigured,
+  isStripeConnectPayoutReady,
+  syncStripeConnectOnboardedAt,
 } from "@/lib/stripe-connect";
 import { isSellerPhoneCountry } from "@/lib/marketplace/seller-phone-countries";
 import { type SellerOnboardingStepId } from "@/lib/marketplace/seller-onboarding";
@@ -206,6 +208,10 @@ export async function getSellerOnboardingState() {
     settlementPhase = bankReady || user.stripeConnectAccountId ? "done" : "bank";
   }
 
+  const connectReady = user.stripeConnectAccountId
+    ? await isStripeConnectPayoutReady(user.stripeConnectAccountId)
+    : false;
+
   return {
     signedIn: true as const,
     step,
@@ -220,7 +226,7 @@ export async function getSellerOnboardingState() {
     countryCode: country,
     phoneCountryCode: "KR",
     sellingMarket: profile?.sellingMarket ?? country,
-    connectReady: !!(user.stripeConnectOnboardedAt || user.stripeConnectAccountId),
+    connectReady,
     stripeStarted,
     settlementDeclared: !!profile?.settlementDeclaredAt,
     stripeConfigured: isStripeConnectConfigured(),
@@ -817,10 +823,13 @@ export async function declareSellerSettlementForReview(note?: string) {
 export async function markSellerConnectReturn() {
   const user = await requireAuth();
   const profile = await db.marketplaceSellerProfile.findUnique({ where: { userId: user.id } });
-  await db.user.update({
+  const dbUser = await db.user.findUnique({
     where: { id: user.id },
-    data: { stripeConnectOnboardedAt: new Date() },
+    select: { stripeConnectAccountId: true },
   });
+  if (dbUser?.stripeConnectAccountId) {
+    await syncStripeConnectOnboardedAt(user.id, dbUser.stripeConnectAccountId);
+  }
   const kycDone =
     profile &&
     profile.kycStatus !== "NOT_STARTED" &&
@@ -874,12 +883,11 @@ export async function completeSellerOnboarding() {
     return { error: "신분증(KYC)을 제출해 주세요." };
   }
 
-  const settlementReady = !!(
-    dbUser.stripeConnectOnboardedAt ||
-    dbUser.marketplaceSeller.settlementDeclaredAt
-  );
+  const settlementReady = dbUser.stripeConnectAccountId
+    ? await isStripeConnectPayoutReady(dbUser.stripeConnectAccountId)
+    : false;
   if (!settlementReady) {
-    return { error: "은행 계좌 등록이 필요합니다." };
+    return { error: "Stripe Connect 정산 설정을 완료해 주세요." };
   }
 
   const now = new Date();

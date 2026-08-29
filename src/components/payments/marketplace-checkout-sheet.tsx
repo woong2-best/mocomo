@@ -22,6 +22,7 @@ import { formatMoney } from "@/lib/money";
 import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
 import { MocoPayOption } from "@/components/payments/moco-pay-option";
 import { CreditCard, Loader2, Plus } from "lucide-react";
+import { StripeOverseasPaymentNotice } from "@/components/payments/stripe-overseas-payment-notice";
 
 type Props = {
   open: boolean;
@@ -242,6 +243,8 @@ export function MarketplaceCheckoutSheet({
           ) : null}
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+          <StripeOverseasPaymentNotice />
 
           <div className="flex gap-2">
             <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>

@@ -255,20 +255,42 @@ export function CommunityDetailScreen() {
             )}
 
             {!item.isMember ? (
-              <Pressable
-                style={[styles.btn, join.isPending && styles.btnDisabled]}
-                disabled={join.isPending}
-                onPress={() => join.mutate()}
-              >
-                <Text style={styles.btnText}>
-                  {item.joinMode === "APPROVE" ? "가입 요청" : "가입하기"}
-                </Text>
-              </Pressable>
+              <>
+                <Pressable
+                  style={[styles.btn, join.isPending && styles.btnDisabled]}
+                  disabled={join.isPending}
+                  onPress={() => join.mutate()}
+                >
+                  <Text style={styles.btnText}>
+                    {item.joinMode === "APPROVE" ? "가입 요청" : "가입하기"}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={styles.enterBtnOutline}
+                  onPress={() =>
+                    navigation.navigate("CommunityServer", { slug: route.params.slug })
+                  }
+                >
+                  <Ionicons name="arrow-forward-circle-outline" size={18} color="#c80000" />
+                  <Text style={styles.enterBtnOutlineText}>커뮤니티 들어가기</Text>
+                </Pressable>
+              </>
             ) : (
-              <Text style={styles.joined}>
-                가입됨{item.role ? ` · ${item.role}` : ""}
-                {item.isOwner ? " · owner" : ""}
-              </Text>
+              <>
+                <Text style={styles.joined}>
+                  가입됨{item.role ? ` · ${item.role}` : ""}
+                  {item.isOwner ? " · owner" : ""}
+                </Text>
+                <Pressable
+                  style={styles.enterBtn}
+                  onPress={() =>
+                    navigation.navigate("CommunityServer", { slug: route.params.slug })
+                  }
+                >
+                  <Ionicons name="arrow-forward-circle-outline" size={18} color="#fff" />
+                  <Text style={styles.enterBtnText}>커뮤니티 들어가기</Text>
+                </Pressable>
+              </>
             )}
             {joinMsg ? <Text style={styles.note}>{joinMsg}</Text> : null}
 
@@ -400,6 +422,29 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
     },
     btnDisabled: { opacity: 0.6 },
     btnText: { color: "#fff", fontWeight: "700" },
+    enterBtn: {
+      marginTop: spacing.md,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      backgroundColor: "#c80000",
+      borderRadius: 10,
+      paddingVertical: 12,
+    },
+    enterBtnText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+    enterBtnOutline: {
+      marginTop: spacing.sm,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      borderWidth: 1.5,
+      borderColor: "#c80000",
+      borderRadius: 10,
+      paddingVertical: 12,
+    },
+    enterBtnOutlineText: { color: "#c80000", fontWeight: "800", fontSize: 15 },
     joined: { marginTop: spacing.md, fontWeight: "700", color: colors.text },
     note: { marginTop: spacing.sm, color: colors.textMuted },
     section: {

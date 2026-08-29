@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-import { creditSellerEarning } from "@/lib/settlement";
+import { isStripeConnectPayoutReady } from "@/lib/stripe-connect";
+import { recordMarketplaceSettlementLedger } from "@/lib/settlement";
 import { logMarketplaceAudit, MarketplaceAuditActions } from "@/lib/marketplace/audit";
 import { refreshSellerTrust, settlementDelayDaysForSeller } from "@/lib/marketplace/trust";
 import { createNotification } from "@/lib/notifications";
@@ -108,45 +109,59 @@ export async function releaseMarketplaceEscrow(
     return { error: "관리자 검토가 필요한 주문입니다.", deferred: true };
   }
 
-  const connectReady = Boolean(
-    order.seller.stripeConnectAccountId && order.seller.stripeConnectOnboardedAt
-  );
+  const connectReady = await isStripeConnectPayoutReady(order.seller.stripeConnectAccountId);
 
   let transferId: string | undefined;
 
-  if (connectReady && isStripeConfigured() && order.seller.stripeConnectAccountId) {
-    try {
-      const stripe = getStripe();
-      const currency = (order.currency || "usd").toLowerCase();
-      const transfer = await stripe.transfers.create({
-        amount: order.sellerEarnAmount,
-        currency,
-        destination: order.seller.stripeConnectAccountId,
-        transfer_group: order.id,
-        metadata: {
-          marketplaceOrderId: order.id,
-          type: "marketplace_escrow_release",
-        },
-      });
-      transferId = transfer.id;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Stripe transfer failed";
-      await logMarketplaceAudit({
-        orderId,
-        actorId: opts?.actorId,
-        action: MarketplaceAuditActions.SETTLEMENT_BLOCKED,
-        detail: msg,
-      });
-      return { error: `정산 이체 실패: ${msg}` };
-    }
-  } else {
-    // Platform wallet escrow release (non-Connect sellers)
-    await creditSellerEarning(order.sellerId, order.sellerEarnAmount, {
-      referenceType: "marketplace_escrow",
-      referenceId: order.id,
-      memo: `MARKET 에스크로 정산 #${order.id.slice(0, 8)}`,
+  if (!connectReady || !isStripeConfigured() || !order.seller.stripeConnectAccountId) {
+    await db.marketplaceOrder.update({
+      where: { id: orderId },
+      data: {
+        settlementStatus: "HELD",
+        settlementHeldReason: "Stripe Connect 정산 설정 미완료 — 판매자센터에서 Connect 온보딩을 완료해 주세요.",
+      },
     });
+    return {
+      error: "Stripe Connect 정산이 활성화되지 않아 정산을 보류했습니다.",
+      deferred: true,
+    };
   }
+
+  try {
+    const stripe = getStripe();
+    const currency = (order.currency || "usd").toLowerCase();
+    const transfer = await stripe.transfers.create({
+      amount: order.sellerEarnAmount,
+      currency,
+      destination: order.seller.stripeConnectAccountId,
+      transfer_group: order.id,
+      metadata: {
+        marketplaceOrderId: order.id,
+        type: "marketplace_escrow_release",
+      },
+    });
+    transferId = transfer.id;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Stripe transfer failed";
+    await logMarketplaceAudit({
+      orderId,
+      actorId: opts?.actorId,
+      action: MarketplaceAuditActions.SETTLEMENT_BLOCKED,
+      detail: msg,
+    });
+    return { error: `정산 이체 실패: ${msg}` };
+  }
+
+  await recordMarketplaceSettlementLedger({
+    userId: order.sellerId,
+    grossAmount: order.subtotalAmount,
+    platformFee: order.platformFeeAmount,
+    netPaidAmount: order.sellerEarnAmount,
+    stripeTransferId: transferId,
+    referenceId: order.id,
+    paymentIntentId: order.stripePaymentIntentId ?? undefined,
+    memo: `MARKET Stripe 정산 #${order.id.slice(0, 8)}`,
+  });
 
   await db.marketplaceOrder.update({
     where: { id: orderId },
@@ -171,7 +186,7 @@ export async function releaseMarketplaceEscrow(
     orderId,
     actorId: opts?.actorId,
     action: MarketplaceAuditActions.SETTLEMENT,
-    detail: transferId ? `transfer:${transferId}` : "wallet_credit",
+    detail: transferId ? `transfer:${transferId}` : "stripe_transfer",
     metadata: { amount: order.sellerEarnAmount, transferId },
   });
 

@@ -35,7 +35,9 @@ import {
   validateSaleMediaPricing,
 } from "@/lib/money";
 import { userDisplayName } from "@/lib/user-public-select";
-import { cn } from "@/lib/utils";
+import { ContentRatingSelect } from "@/components/forms/content-rating-select";
+import { AdultMonetizationNotice } from "@/components/legal/adult-monetization-notice";
+import type { ContentRating } from "@prisma/client";
 
 function friendlyPostError(err: unknown, apiError?: string): string {
   if (apiError) return apiError;
@@ -86,6 +88,7 @@ export function ComposeForm({
   const [instantPriceUsd, setInstantPriceUsd] = useState("");
   const [payoutAccountRegistered, setPayoutAccountRegistered] = useState(true);
   const [paidMediaWarned, setPaidMediaWarned] = useState(false);
+  const [contentRating, setContentRating] = useState<ContentRating>("GENERAL");
   const mediaComposerRef = useRef<PostMediaComposerHandle>(null);
   const mediaReady =
     media.length === 0 ||
@@ -99,12 +102,14 @@ export function ComposeForm({
   const canSubmit = content.trim().length > 0 || media.length > 0;
   const priceCents = parseUsdDollarsToCents(priceUsd);
   const instantPriceCents = parseUsdDollarsToCents(instantPriceUsd);
-  const showInstantPurchase = visibility !== "PUBLIC";
+  const showInstantPurchase = visibility !== "PUBLIC" && contentRating !== "ADULT";
+  const adultBlocksPaid = contentRating === "ADULT";
   const paidPriceIntent =
-    priceCents > 0 ||
-    instantPriceCents > 0 ||
-    priceUsd.trim().length > 0 ||
-    instantPriceUsd.trim().length > 0;
+    !adultBlocksPaid &&
+    (priceCents > 0 ||
+      instantPriceCents > 0 ||
+      priceUsd.trim().length > 0 ||
+      instantPriceUsd.trim().length > 0);
   const showPaidMediaRequired = paidPriceIntent && media.length === 0;
   const sellingIntent = paidPriceIntent || visibility !== "PUBLIC";
   const showSettlementBanner = !payoutAccountRegistered && sellingIntent;
@@ -112,6 +117,13 @@ export function ComposeForm({
     () => (pathname?.startsWith("/") ? pathname : undefined),
     [pathname]
   );
+
+  useEffect(() => {
+    if (contentRating !== "ADULT") return;
+    setPriceUsd("");
+    setInstantPriceUsd("");
+    if (visibility !== "PUBLIC") setVisibility("PUBLIC");
+  }, [contentRating, visibility]);
 
   useEffect(() => {
     let cancelled = false;
@@ -150,7 +162,7 @@ export function ComposeForm({
     };
   }, []);
 
-  const salePriceField = (
+  const salePriceField = adultBlocksPaid ? null : (
     <div
       className="flex items-center gap-1.5 rounded-xl border border-border/70 bg-background px-2.5 py-1.5"
       title="유료 판매 (USD, $1.00~)"
@@ -224,7 +236,8 @@ export function ComposeForm({
       title: (form.get("title") as string) || undefined,
       content: contentText,
       communityId,
-      isNsfw: form.get("isNsfw") === "on",
+      contentRating,
+      isNsfw: contentRating === "ADULT",
       tagNames: tags,
       visibility,
       instantPurchasePriceKrw: instantPriceCents,
@@ -413,10 +426,11 @@ export function ComposeForm({
                   placeholder="태그 (쉼표로 구분)"
                   className="w-full rounded-lg border border-border/60 bg-background/80 px-3 py-2 text-sm"
                 />
-                <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <input type="checkbox" name="isNsfw" />
-                  {t("compose.tagsNsfw")}
-                </label>
+                <ContentRatingSelect
+                  value={contentRating}
+                  onChange={setContentRating}
+                  disabled={submitBusy}
+                />
                 <ComposeCollaboratorPicker
                   selected={collaborators}
                   onChange={setCollaborators}
@@ -533,10 +547,12 @@ export function ComposeForm({
           maxReached: t("compose.collabMax"),
         }}
       />
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" name="isNsfw" />
-        NSFW
-      </label>
+      <ContentRatingSelect
+        value={contentRating}
+        onChange={setContentRating}
+        disabled={submitBusy}
+      />
+      <input type="hidden" name="contentRating" value={contentRating} />
       <Button type="submit" className="w-full rounded-xl" disabled={submitBusy}>
         {!mediaReady || mediaUploading
           ? t("compose.uploading")

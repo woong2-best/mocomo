@@ -15,6 +15,7 @@ import {
 } from "@/lib/stripe-payment-methods";
 import { getMocoCheckoutQuote } from "@/lib/moco-checkout-service";
 import { assertOfacPaymentRequestAllowed, assertOfacPaymentAllowedForUser } from "@/lib/compliance/ofac-payment-guard-server";
+import { assertMonetizationPaymentAllowed } from "@/lib/payment-rail";
 
 function stripeMetadata(
   orderId: string,
@@ -89,6 +90,9 @@ export async function prepareCheckoutPaymentIntent(input: {
   const ofacBlock = await assertOfacPaymentRequestAllowed(input.userId, input.metadata);
   if (ofacBlock) return ofacBlock;
 
+  const adultBlock = assertMonetizationPaymentAllowed({ metadata: input.metadata });
+  if ("error" in adultBlock && adultBlock.error) return adultBlock;
+
   const validation = await validatePaymentInput(input.userId, input);
   if (validation) return validation;
 
@@ -97,6 +101,7 @@ export async function prepareCheckoutPaymentIntent(input: {
       userId: input.userId,
       type: input.type,
       amount: input.amount,
+      paymentRail: "STRIPE",
       metadata: { ...input.metadata, orderName: input.orderName } as Prisma.InputJsonValue,
     },
   });

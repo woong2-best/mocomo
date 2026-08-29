@@ -30,6 +30,7 @@ const postDetailSelect = {
   createdAt: true,
   isPinned: true,
   isNsfw: true,
+  contentRating: true,
   authorId: true,
   visibility: true,
   instantPurchasePriceKrw: true,

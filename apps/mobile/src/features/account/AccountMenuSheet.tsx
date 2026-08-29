@@ -95,6 +95,7 @@ type AccountsProps = {
   onClose: () => void;
   onCreateNew: () => void;
   onAddExisting: () => void;
+  onLogout?: () => void;
 };
 
 /** Web Accounts bottom sheet */
@@ -103,9 +104,10 @@ export function AccountsBottomSheet({
   onClose,
   onCreateNew,
   onAddExisting,
+  onLogout,
 }: AccountsProps) {
   const { colors } = useTheme();
-  const { user, savedAccounts, switchAccount, refreshSavedAccounts } = useAuth();
+  const { user, savedAccounts, switchAccount, refreshSavedAccounts, signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -214,6 +216,28 @@ export function AccountsBottomSheet({
               Add existing account
             </Text>
           </Pressable>
+
+          {onLogout ? (
+            <Pressable
+              style={[styles.outlineBtn, { borderColor: colors.danger, marginTop: 10 }]}
+              onPress={() => {
+                onClose();
+                onLogout();
+              }}
+            >
+              <Text style={[styles.outlineBtnText, { color: colors.danger }]}>로그아웃</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[styles.outlineBtn, { borderColor: colors.danger, marginTop: 10 }]}
+              onPress={() => {
+                onClose();
+                void signOut();
+              }}
+            >
+              <Text style={[styles.outlineBtnText, { color: colors.danger }]}>로그아웃</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </Modal>

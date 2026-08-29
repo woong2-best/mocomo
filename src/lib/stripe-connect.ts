@@ -1,9 +1,48 @@
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
+import { db } from "@/lib/db";
 
 export function isStripeConnectConfigured(): boolean {
   return isStripeConfigured();
 }
 
+/** Stripe Connect payout ready — tax/KYC delegated to Stripe onboarding */
+export async function isStripeConnectPayoutReady(
+  accountId: string | null | undefined
+): Promise<boolean> {
+  if (!accountId || !isStripeConfigured()) return false;
+  try {
+    const stripe = getStripe();
+    const account = await stripe.accounts.retrieve(accountId);
+    const eventuallyDue = account.requirements?.eventually_due ?? [];
+    return eventuallyDue.length === 0;
+  } catch {
+    return false;
+  }
+}
+
+export async function stripeConnectStatusFromApi(accountId: string | null | undefined) {
+  if (!isStripeConnectConfigured()) {
+    return {
+      ready: false,
+      message: "Stripe 설정 후 Connect 판매자 정산이 가능합니다.",
+    };
+  }
+  if (!accountId) {
+    return {
+      ready: false,
+      message: "판매자 Stripe Connect 온보딩이 필요합니다.",
+    };
+  }
+  const ready = await isStripeConnectPayoutReady(accountId);
+  return {
+    ready,
+    message: ready
+      ? "Stripe Connect 정산이 활성화되었습니다."
+      : "Stripe Connect에서 추가 정보 제출이 필요합니다.",
+  };
+}
+
+/** @deprecated Prefer stripeConnectStatusFromApi for accurate requirements check */
 export function stripeConnectStatus(accountId: string | null | undefined) {
   if (!isStripeConnectConfigured()) {
     return {
@@ -21,6 +60,19 @@ export function stripeConnectStatus(accountId: string | null | undefined) {
     ready: true,
     message: "Connect 계정이 연결되어 있습니다.",
   };
+}
+
+/** After Connect return URL — sync onboardedAt only when Stripe requirements are clear */
+export async function syncStripeConnectOnboardedAt(userId: string, accountId: string) {
+  const ready = await isStripeConnectPayoutReady(accountId);
+  if (!ready) {
+    return { ready: false as const };
+  }
+  await db.user.update({
+    where: { id: userId },
+    data: { stripeConnectOnboardedAt: new Date() },
+  });
+  return { ready: true as const };
 }
 
 /** Express Connected Account 생성 + Account Link */

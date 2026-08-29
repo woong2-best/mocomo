@@ -3,6 +3,7 @@
 import { PayButton } from "@/components/payments/pay-button";
 import { formatUsd } from "@/lib/money";
 import { usePathname } from "next/navigation";
+import type { ContentRating } from "@prisma/client";
 
 export function PurchasePostMediaButton({
   mediaId,
@@ -11,6 +12,7 @@ export function PurchasePostMediaButton({
   paymentsEnabled,
   username,
   postId,
+  contentRating = "GENERAL",
   variant = "button",
   returnPath,
   onPurchaseSuccess,
@@ -21,6 +23,7 @@ export function PurchasePostMediaButton({
   paymentsEnabled: boolean;
   username?: string;
   postId?: string;
+  contentRating?: ContentRating | boolean;
   /** button: pill CTA · label: Twitter-style white text under lock */
   variant?: "button" | "label";
   returnPath?: string;
@@ -47,6 +50,7 @@ export function PurchasePostMediaButton({
           type="POST_MEDIA"
           amount={priceKrw}
           orderName={label}
+          contentRating={contentRating}
           metadata={{ mediaId, username, postId, returnPath: checkoutReturn }}
           returnPath={checkoutReturn}
           onPurchaseSuccess={onPurchaseSuccess}

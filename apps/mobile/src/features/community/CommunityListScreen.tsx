@@ -64,32 +64,36 @@ function CommunityThumb({
 function FeaturedCard({
   community,
   width,
-  onPress,
+  onOpenServer,
+  onOpenDetail,
 }: {
   community: CommunityListItem;
   width: number;
-  onPress: () => void;
+  onOpenServer: () => void;
+  onOpenDetail: () => void;
 }) {
   const meta = communityCategoryMeta(community.category);
   const cover = community.coverUrl || community.iconUrl;
   return (
-    <Pressable style={[stylesShared.featuredCard, { width }]} onPress={onPress}>
-      {cover ? (
-        <Image
-          source={{ uri: cover }}
-          style={StyleSheet.absoluteFill}
-          cachePolicy={IMAGE_CACHE_POLICY}
-          transition={0}
-        />
-      ) : (
-        <View style={stylesShared.featuredFallback}>
-          <Text style={stylesShared.featuredEmoji}>{meta?.emoji ?? "🏠"}</Text>
-          <Text style={stylesShared.featuredFallbackName} numberOfLines={2}>
-            {community.name}
-          </Text>
-        </View>
-      )}
-      <View style={stylesShared.featuredScrim}>
+    <View style={[stylesShared.featuredCard, { width }]}>
+      <Pressable style={StyleSheet.absoluteFill} onPress={onOpenServer}>
+        {cover ? (
+          <Image
+            source={{ uri: cover }}
+            style={StyleSheet.absoluteFill}
+            cachePolicy={IMAGE_CACHE_POLICY}
+            transition={0}
+          />
+        ) : (
+          <View style={stylesShared.featuredFallback}>
+            <Text style={stylesShared.featuredEmoji}>{meta?.emoji ?? "🏠"}</Text>
+            <Text style={stylesShared.featuredFallbackName} numberOfLines={2}>
+              {community.name}
+            </Text>
+          </View>
+        )}
+      </Pressable>
+      <Pressable style={stylesShared.featuredScrim} onPress={onOpenDetail}>
         <Text style={stylesShared.featuredName} numberOfLines={2}>
           {community.name}
         </Text>
@@ -98,8 +102,8 @@ function FeaturedCard({
           {" · "}
           {community.memberCount}명
         </Text>
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 }
 
@@ -155,37 +159,54 @@ export function CommunityListScreen() {
     navigation.navigate("CommunityCreate");
   }, [navigation]);
 
-  const openCommunity = useCallback(
+  const openCommunityInfo = useCallback(
     (slug: string) => {
       navigation.navigate("CommunityDetail", { slug });
     },
     [navigation]
   );
 
+  const openCommunityServer = useCallback(
+    (slug: string) => {
+      navigation.navigate("CommunityServer", { slug });
+    },
+    [navigation]
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: CommunityListItem }) => (
-      <Pressable style={styles.row} onPress={() => openCommunity(item.slug)}>
-        <View style={styles.thumbWrap}>
-          <CommunityThumb community={item} size={52} />
-        </View>
-        <View style={styles.meta}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title} numberOfLines={1}>
-              {item.name}
-            </Text>
-            {item.isNsfw ? <Text style={styles.nsfw}>NSFW</Text> : null}
+      <View style={styles.row}>
+        <Pressable onPress={() => openCommunityServer(item.slug)} hitSlop={4}>
+          <View style={styles.thumbWrap}>
+            <CommunityThumb community={item} size={52} />
           </View>
-          <Text style={styles.sub} numberOfLines={1}>
-            {item.description?.trim() || "소개가 아직 없습니다."}
-          </Text>
+        </Pressable>
+        <View style={styles.meta}>
+          <Pressable onPress={() => openCommunityServer(item.slug)}>
+            <View style={styles.titleRow}>
+              <Text style={styles.title} numberOfLines={1}>
+                {item.name}
+              </Text>
+              {item.isNsfw ? <Text style={styles.nsfw}>NSFW</Text> : null}
+            </View>
+          </Pressable>
+          <Pressable onPress={() => openCommunityInfo(item.slug)}>
+            <Text style={styles.sub} numberOfLines={1}>
+              {item.description?.trim() || "소개가 아직 없습니다."}
+            </Text>
+          </Pressable>
         </View>
-        <View style={styles.members}>
+        <Pressable
+          style={styles.members}
+          onPress={() => openCommunityInfo(item.slug)}
+          hitSlop={8}
+        >
           <Ionicons name="people-outline" size={12} color={colors.textMuted} />
           <Text style={styles.memberCount}>{item.memberCount}</Text>
-        </View>
-      </Pressable>
+        </Pressable>
+      </View>
     ),
-    [colors.textMuted, openCommunity, styles]
+    [colors.textMuted, openCommunityInfo, openCommunityServer, styles]
   );
 
   const listHeader = (
@@ -196,7 +217,7 @@ export function CommunityListScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentChips}>
             {recent.map((r) => (
               <View key={r.slug} style={styles.recentChip}>
-                <Pressable onPress={() => openCommunity(r.slug)} hitSlop={4}>
+                <Pressable onPress={() => openCommunityServer(r.slug)} hitSlop={4}>
                   <Text style={styles.recentName} numberOfLines={1}>
                     {r.name}
                   </Text>
@@ -269,7 +290,8 @@ export function CommunityListScreen() {
                 key={c.id}
                 community={c}
                 width={cardW}
-                onPress={() => openCommunity(c.slug)}
+                onOpenServer={() => openCommunityServer(c.slug)}
+                onOpenDetail={() => openCommunityInfo(c.slug)}
               />
             ))}
           </View>

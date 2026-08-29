@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
+import { AccountsBottomSheet } from "@/features/account/AccountMenuSheet";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
 import { prefetchDrawerRoute, warmDrawerBundles } from "@/navigation/tab-warmup";
@@ -95,11 +96,13 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
   const queryClient = useQueryClient();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
-  const { user, signOut } = useAuth();
+  const { user, signOut, addAccount } = useAuth();
   const display = useMemo(
     () => user?.name || user?.username || "MoCoMo",
     [user?.name, user?.username]
   );
+
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false);
 
   const [presented, setPresented] = useState(false);
   const slideX = useRef(new Animated.Value(-360)).current;
@@ -190,26 +193,33 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
               />
               <View style={styles.profileBannerOverlay} pointerEvents="none" />
               <View style={styles.profileRow}>
-                <FolkAvatar
-                  uri={user?.image}
-                  name={user?.name || user?.username}
-                  size={52}
-                  framed={false}
-                />
-                <View style={styles.profileMeta}>
-                  <Text style={styles.profileName} numberOfLines={1}>
-                    {display}
-                  </Text>
-                  <Text style={styles.profileHandle}>@{user?.username ?? "—"}</Text>
-                  <View style={styles.stats}>
-                    <Text style={styles.stat}>
-                      <Text style={styles.statNum}>{user?.counts?.following ?? 0}</Text> 팔로잉
+                <Pressable
+                  style={styles.profileTapArea}
+                  onPress={() => setAccountSheetOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="계정 전환"
+                >
+                  <FolkAvatar
+                    uri={user?.image}
+                    name={user?.name || user?.username}
+                    size={52}
+                    framed={false}
+                  />
+                  <View style={styles.profileMeta}>
+                    <Text style={styles.profileName} numberOfLines={1}>
+                      {display}
                     </Text>
-                    <Text style={styles.stat}>
-                      <Text style={styles.statNum}>{user?.counts?.followers ?? 0}</Text> 팔로워
-                    </Text>
+                    <Text style={styles.profileHandle}>@{user?.username ?? "—"}</Text>
+                    <View style={styles.stats}>
+                      <Text style={styles.stat}>
+                        <Text style={styles.statNum}>{user?.counts?.following ?? 0}</Text> 팔로잉
+                      </Text>
+                      <Text style={styles.stat}>
+                        <Text style={styles.statNum}>{user?.counts?.followers ?? 0}</Text> 팔로워
+                      </Text>
+                    </View>
                   </View>
-                </View>
+                </Pressable>
                 <Pressable
                   style={styles.editBtn}
                   onPressIn={() => prefetch("ProfileEdit")}
@@ -287,6 +297,25 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
           </ScrollView>
         </Animated.View>
       </View>
+
+      <AccountsBottomSheet
+        visible={accountSheetOpen}
+        onClose={() => setAccountSheetOpen(false)}
+        onCreateNew={() => {
+          setAccountSheetOpen(false);
+          onClose();
+          void addAccount("signup");
+        }}
+        onAddExisting={() => {
+          setAccountSheetOpen(false);
+          onClose();
+          void addAccount("signin");
+        }}
+        onLogout={() => {
+          onClose();
+          void signOut();
+        }}
+      />
     </Modal>
   );
 }
@@ -356,6 +385,13 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       gap: 12,
       padding: spacing.md,
       zIndex: 1,
+    },
+    profileTapArea: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      minWidth: 0,
     },
     profileMeta: { flex: 1, minWidth: 0 },
     profileName: {

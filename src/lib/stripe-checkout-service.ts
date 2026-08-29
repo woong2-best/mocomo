@@ -66,6 +66,8 @@ export async function createStripeCheckoutForUser(input: {
     mode: "payment",
     customer: customerId,
     payment_method_types: ["card"],
+    automatic_tax: { enabled: true },
+    customer_update: { address: "auto" },
     line_items: [
       {
         price_data: {

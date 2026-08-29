@@ -6,7 +6,7 @@ import {
   RTCPeerConnection,
   RTCSessionDescription,
   type MediaStream,
-} from "react-native-webrtc";
+} from "@livekit/react-native-webrtc";
 import { fetchMobileWebRtcIceConfiguration } from "@/lib/webrtc-ice-config";
 import { emitCallSignal } from "@/lib/call-socket";
 
@@ -95,14 +95,16 @@ export function useMobilePeerCall({
     const pc = new RTCPeerConnection(cfg);
     pcRef.current = pc;
 
-    pc.onicecandidate = (ev: { candidate: RTCIceCandidate | null }) => {
-      if (ev.candidate) {
-        signal({ type: "ice", candidate: ev.candidate.toJSON() });
+    pc.onicecandidate = (ev) => {
+      const candidate = (ev as { candidate?: RTCIceCandidate | null }).candidate;
+      if (candidate) {
+        signal({ type: "ice", candidate: candidate.toJSON() });
       }
     };
 
-    pc.ontrack = (ev: { streams: readonly MediaStream[] }) => {
-      const [first] = ev.streams;
+    pc.ontrack = (ev) => {
+      const streams = (ev as { streams?: readonly MediaStream[] }).streams;
+      const [first] = streams ?? [];
       if (first) setRemoteStream(first);
     };
 

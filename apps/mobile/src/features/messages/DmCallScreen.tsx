@@ -10,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { RTCView } from "react-native-webrtc";
+import { RTCView } from "@livekit/react-native-webrtc";
 import type { Socket } from "socket.io-client";
 import { ApiError } from "@/api/client";
 import { endDmCall, initiateDmCall } from "@/api/calls";

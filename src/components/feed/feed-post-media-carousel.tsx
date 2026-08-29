@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { PaidFeedMediaSurface } from "@/components/media/paid-feed-media-surface";
 import { SensitiveContentGate } from "@/components/media/sensitive-content-gate";
+import { AdultContentBadge } from "@/components/media/adult-content-badge";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import type { ContentLockReason } from "@/lib/content-access";
 import {
@@ -40,6 +41,8 @@ type Props = {
   isNsfw?: boolean;
   isOwner?: boolean;
   viewerShowNsfw?: boolean;
+  /** 피드·검색: 썸네일 노출 + 성인 마크 (블러 없음) */
+  feedPreview?: boolean;
   className?: string;
   onDoubleTapLike?: () => void;
 };
@@ -134,6 +137,7 @@ function CarouselTile({
   isNsfw = false,
   isOwner = false,
   viewerShowNsfw = false,
+  feedPreview = true,
   onPurchaseSuccess,
 }: {
   media: ProfilePostMediaItem;
@@ -150,20 +154,15 @@ function CarouselTile({
   isNsfw?: boolean;
   isOwner?: boolean;
   viewerShowNsfw?: boolean;
+  feedPreview?: boolean;
   onPurchaseSuccess?: (mediaId?: string) => void | Promise<void>;
 }) {
   const locked = !!media.locked && !!media.id;
   const lockReason = (media.lockReason ?? "none") as ContentLockReason;
   const durationLabel = media.type === "VIDEO" ? formatDuration(media.duration) : null;
 
-  return (
-    <SensitiveContentGate
-      isNsfw={isNsfw}
-      isOwner={isOwner}
-      viewerShowNsfw={viewerShowNsfw}
-      className="h-full w-full"
-    >
-      <div className="relative h-full w-full overflow-hidden rounded-2xl bg-muted/30">
+  const mediaSurface = (
+    <div className="relative h-full w-full overflow-hidden rounded-2xl bg-muted/30">
       <PaidFeedMediaSurface
         type={media.type}
         src={media.url}
@@ -185,12 +184,28 @@ function CarouselTile({
         isOwner={isOwner}
       />
 
+      {isNsfw && feedPreview ? <AdultContentBadge /> : null}
+
       {durationLabel && !locked ? (
         <span className="pointer-events-none absolute bottom-2 left-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
           {durationLabel}
         </span>
       ) : null}
-      </div>
+    </div>
+  );
+
+  if (feedPreview) {
+    return mediaSurface;
+  }
+
+  return (
+    <SensitiveContentGate
+      isNsfw={isNsfw}
+      isOwner={isOwner}
+      viewerShowNsfw={viewerShowNsfw}
+      className="h-full w-full"
+    >
+      {mediaSurface}
     </SensitiveContentGate>
   );
 }
@@ -208,6 +223,7 @@ export function FeedPostMediaCarousel({
   isNsfw = false,
   isOwner = false,
   viewerShowNsfw = false,
+  feedPreview = true,
   className,
   onDoubleTapLike,
 }: Props) {
@@ -380,6 +396,7 @@ export function FeedPostMediaCarousel({
           isNsfw={isNsfw}
           isOwner={isOwner}
           viewerShowNsfw={viewerShowNsfw}
+          feedPreview={feedPreview}
           onPurchaseSuccess={(id) => void refreshAfterPurchase(id)}
         />
       </MediaOpenWrapper>

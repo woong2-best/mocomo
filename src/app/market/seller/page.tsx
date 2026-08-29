@@ -5,6 +5,7 @@ import {
   listMyMarketplaceListings,
   markMarketplaceConnectComplete,
 } from "@/actions/marketplace";
+import { getSellerSettlementInvoices } from "@/actions/marketplace-settlement-invoices";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { stripeConnectStatus } from "@/lib/stripe-connect";
@@ -28,9 +29,10 @@ export default async function MarketSellerPage({
     await markMarketplaceConnectComplete().catch(() => null);
   }
 
-  const [profile, listings] = await Promise.all([
+  const [profile, listings, settlementInvoices] = await Promise.all([
     getMarketplaceSellerProfile(),
     listMyMarketplaceListings().catch(() => []),
+    getSellerSettlementInvoices().catch(() => []),
   ]);
 
   if (!profile) {
@@ -41,7 +43,7 @@ export default async function MarketSellerPage({
     redirect("/market/seller/register");
   }
 
-  const connectStatus = stripeConnectStatus(profile.user.stripeConnectAccountId);
+  const connectStatus = await stripeConnectStatusFromApi(profile.user.stripeConnectAccountId);
   const sellerInfoDone =
     !!profile.sellerType &&
     profile.kycStatus !== "NOT_STARTED" &&
@@ -73,6 +75,7 @@ export default async function MarketSellerPage({
           phoneRequired: sellerRequiresPhoneVerification(profile.sellingMarket),
         }}
         profileFormName={displayName}
+        settlementInvoices={settlementInvoices}
       />
     </SellerCenterShell>
   );

@@ -47,10 +47,18 @@ export async function POST(req: NextRequest) {
         }
       : undefined;
 
+  const contentRating =
+    body.contentRating === "ADULT" || body.contentRating === "GENERAL"
+      ? body.contentRating
+      : Boolean(body.isNsfw)
+        ? "ADULT"
+        : "GENERAL";
+
   const result = await createPostForUser(user, {
     content: String(body.content ?? ""),
     title: body.title ? String(body.title) : undefined,
-    isNsfw: Boolean(body.isNsfw),
+    contentRating,
+    isNsfw: contentRating === "ADULT",
     tagNames: Array.isArray(body.tagNames) ? body.tagNames.map(String) : [],
     media,
     poll,

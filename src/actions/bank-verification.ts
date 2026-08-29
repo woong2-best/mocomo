@@ -90,11 +90,11 @@ export async function clearUsedMarketBankPending() {
   return clearAccountBankPending();
 }
 
-/** 중고거래 — Stripe Connect 정산 계좌 연동 포함 */
+/** 중고거래 — 본인 확인용 1원 인증 (결제·정산 미연동, C2C 자율 거래) */
 export async function sendUsedMarketBankVerification(bankCode: string, accountNum: string) {
   const user = await requireBankVerificationUser();
   const ip = await getRequestIp();
-  return startBankVerificationForUser(user, bankCode, accountNum, { ip, linkStripeConnect: true });
+  return startBankVerificationForUser(user, bankCode, accountNum, { ip, linkStripeConnect: false });
 }
 
 export async function verifyUsedMarketBankCode(
@@ -106,7 +106,7 @@ export async function verifyUsedMarketBankCode(
   const ip = await getRequestIp();
   const result = await verifyBankCodeForUser(user, bankCode, accountNum, code, {
     ip,
-    linkStripeConnect: true,
+    linkStripeConnect: false,
   });
   if ("success" in result && result.success) revalidateBankPaths();
   return result;

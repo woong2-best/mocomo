@@ -31,7 +31,7 @@ export async function sendUsedMarketBankVerificationForUser(
     user,
     bankCode,
     accountNum,
-    await withIp({ ...opts, linkStripeConnect: true })
+    await withIp({ ...opts, linkStripeConnect: false })
   );
 }
 
@@ -47,7 +47,7 @@ export async function verifyUsedMarketBankCodeForUser(
     bankCode,
     accountNum,
     code,
-    await withIp({ ...opts, linkStripeConnect: true })
+    await withIp({ ...opts, linkStripeConnect: false })
   );
 }
 

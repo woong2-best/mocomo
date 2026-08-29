@@ -4,6 +4,7 @@ import { getMarketplaceOrderDetail } from "@/actions/marketplace-checkout";
 import { PrintReceiptButton } from "@/components/market/print-receipt-button";
 import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 import { formatUsd } from "@/lib/money";
+import { STRIPE_OVERSEAS_PAYMENT_NOTICE } from "@/components/payments/stripe-overseas-payment-notice";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +76,8 @@ export default async function MarketReceiptPage({
         </tbody>
       </table>
       <p className="text-xs text-muted-foreground">
-        세금(VAT/GST/Sales Tax)은 Stripe Tax 연동 시 자동 계산됩니다.
+        {STRIPE_OVERSEAS_PAYMENT_NOTICE} Checkout 시 Stripe Tax가 적용된 경우 세금은 결제 내역에
+        포함됩니다.
       </p>
     </div>
   );

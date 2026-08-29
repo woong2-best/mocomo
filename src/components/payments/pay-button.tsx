@@ -5,13 +5,16 @@ import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { PaymentCheckoutSheet } from "@/components/payments/payment-checkout-sheet";
 import { Button } from "@/components/ui/button";
-import type { PaymentIntentType } from "@prisma/client";
+import { isAdultContent } from "@/lib/content-rating";
+import { ADULT_MONETIZATION_BANNED_SHORT } from "@/lib/adult-monetization-ban";
+import type { ContentRating, PaymentIntentType } from "@prisma/client";
 
 type Props = {
   type: PaymentIntentType;
   amount: number;
   orderName: string;
   metadata: Record<string, unknown>;
+  contentRating?: ContentRating | boolean;
   disabled?: boolean;
   className?: string;
   showLegalNotice?: boolean;
@@ -20,12 +23,13 @@ type Props = {
   children: React.ReactNode;
 };
 
-/** Saved-card sheet first; new cards via Stripe Checkout */
+/** Saved-card sheet first; new cards via Stripe Checkout. 성인 콘텐츠 유료화 금지. */
 export function PayButton({
   type,
   amount,
   orderName,
   metadata,
+  contentRating = "GENERAL",
   disabled,
   className,
   showLegalNotice,
@@ -40,8 +44,12 @@ export function PayButton({
   const status = sessionState?.status ?? "unauthenticated";
   const [open, setOpen] = useState(false);
 
+  const isAdult = isAdultContent(contentRating);
+  const blocked = isAdult;
+
   function openCheckout() {
     if (status === "loading") return;
+    if (blocked) return;
     if (!session?.user) {
       const back = returnPath ?? pathname ?? "/";
       router.push(`/auth/signin?callbackUrl=${encodeURIComponent(back)}`);
@@ -65,20 +73,28 @@ export function PayButton({
 
   return (
     <>
-      <Button type="button" className={className} disabled={disabled} onClick={openCheckout}>
+      <Button
+        type="button"
+        className={className}
+        disabled={disabled || blocked}
+        title={blocked ? ADULT_MONETIZATION_BANNED_SHORT : undefined}
+        onClick={openCheckout}
+      >
         {children}
       </Button>
-      <PaymentCheckoutSheet
-        open={open}
-        onOpenChange={setOpen}
-        type={type}
-        amount={amount}
-        orderName={orderName}
-        metadata={metadata}
-        showLegalNotice={showLegalNotice}
-        returnPath={returnPath ?? pathname ?? "/"}
-        onSuccess={handleSuccess}
-      />
+      {!blocked ? (
+        <PaymentCheckoutSheet
+          open={open}
+          onOpenChange={setOpen}
+          type={type}
+          amount={amount}
+          orderName={orderName}
+          metadata={metadata}
+          showLegalNotice={showLegalNotice}
+          returnPath={returnPath ?? pathname ?? "/"}
+          onSuccess={handleSuccess}
+        />
+      ) : null}
     </>
   );
 }

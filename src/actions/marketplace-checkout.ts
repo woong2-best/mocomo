@@ -107,6 +107,10 @@ async function initMarketplacePurchase(
   if (!listing || listing.status !== "ACTIVE") {
     return { error: "판매 중인 상품이 아닙니다." };
   }
+  const listingRating = listing.contentRating ?? (listing.isNsfw ? "ADULT" : "GENERAL");
+  const { assertPaymentNotForAdultContent } = await import("@/lib/adult-monetization-ban");
+  const adultListingBlock = assertPaymentNotForAdultContent(listingRating);
+  if (adultListingBlock) return adultListingBlock;
   if (listing.sellerId === buyer.id) {
     return { error: "본인 상품은 구매할 수 없습니다." };
   }
@@ -239,6 +243,7 @@ async function initMarketplacePurchase(
       userId: buyer.id,
       type: "MARKETPLACE",
       amount: totalAmount,
+      paymentRail: "STRIPE",
       metadata: {
         marketplaceOrderId: order.id,
         listingId: listing.id,
@@ -310,6 +315,8 @@ async function createMarketplaceCheckoutSession(
     mode: "payment",
     customer: customerId,
     payment_method_types: ["card"],
+    automatic_tax: { enabled: true },
+    customer_update: { address: "auto" },
     line_items: [
       {
         price_data: {
@@ -377,12 +384,18 @@ export async function prepareMarketplacePaymentForBuyer(
   input: MarketplaceCheckoutInput,
   _platform: CheckoutPlatform = "web"
 ) {
+  const init = await initMarketplacePurchase(buyer, input);
+  if ("error" in init) return init;
+
+  const listingRating =
+    init.listing.contentRating ?? (init.listing.isNsfw ? "ADULT" : "GENERAL");
+  const { assertPaymentNotForAdultContent } = await import("@/lib/adult-monetization-ban");
+  const adultBlock = assertPaymentNotForAdultContent(listingRating);
+  if (adultBlock) return adultBlock;
+
   if (!isStripeConfigured()) {
     return { error: "Stripe 결제가 설정되지 않았습니다." };
   }
-
-  const init = await initMarketplacePurchase(buyer, input);
-  if ("error" in init) return init;
 
   const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);
   const stripe = getStripe();

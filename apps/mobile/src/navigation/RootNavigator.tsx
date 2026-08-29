@@ -243,6 +243,12 @@ export function RootNavigator() {
               }
             />
             <Stack.Screen
+              name="CommunityServer"
+              getComponent={() =>
+                require("@/features/community/CommunityServerScreen").CommunityServerScreen
+              }
+            />
+            <Stack.Screen
               name="CommunityCreate"
               getComponent={() =>
                 require("@/features/community/CommunityCreateScreen").CommunityCreateScreen

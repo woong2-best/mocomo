@@ -41,6 +41,7 @@ import { isKakaoLocalConfigured } from "@/lib/kakao-local";
 import { geocodeMeetQuery } from "@/lib/maps/geocode";
 import { isKakaoMapCountry, normalizeMeetCountry } from "@/lib/maps/select-engine";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
+import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import {
   assertUsedAdultForRestricted,
   isUsedRestrictedKind,
@@ -372,6 +373,7 @@ export async function createUsedListing(data: {
   workTitle?: string;
   productType?: string;
   isNsfw?: boolean;
+  contentRating?: import("@prisma/client").ContentRating;
 }) {
   const user = await requireAuth();
   const accessErr = assertUsedMarketAccess(user);
@@ -416,6 +418,12 @@ export async function createUsedListing(data: {
   if (reservePrice != null && reservePrice > price && reservePrice > (buyNowPrice ?? Infinity)) {
     return { error: "최저 낙찰가 설정을 확인해 주세요." };
   }
+
+  const listingRating = data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL");
+  const adultListingErr = assertAdultContentNotMonetized(listingRating, {
+    hasPrice: price > 0 || (buyNowPrice ?? 0) > 0,
+  });
+  if (adultListingErr) return { error: adultListingErr };
 
   const ephemeral = data.images.filter(
     (u) => typeof u === "string" && (u.startsWith("blob:") || (process.env.VERCEL && u.startsWith("/uploads/")))
@@ -474,7 +482,8 @@ export async function createUsedListing(data: {
         meetLng: meetLng ?? null,
         meetCountry,
         images: data.images as Prisma.InputJsonValue,
-        isNsfw: !!data.isNsfw,
+        contentRating: data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL"),
+        isNsfw: (data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL")) === "ADULT",
         saleType: isAuction ? "AUCTION" : "FIXED",
         ...(isAuction
           ? {

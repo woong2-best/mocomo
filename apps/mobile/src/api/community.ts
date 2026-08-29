@@ -21,6 +21,7 @@ export type CommunityPostPreview = {
   content: string;
   createdAt: string;
   isNsfw: boolean;
+  isPinned?: boolean;
   author: { id: string; username: string; image: string | null };
   likeCount: number;
   commentCount: number;

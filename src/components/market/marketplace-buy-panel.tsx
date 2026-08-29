@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import type { MarketplaceCheckoutInput } from "@/actions/marketplace-checkout";
 import { addToMarketplaceCart } from "@/lib/marketplace/cart-storage";
 import { MarketplaceCheckoutSheet } from "@/components/payments/marketplace-checkout-sheet";
+import { AdultMonetizationNotice } from "@/components/legal/adult-monetization-notice";
 import { Button } from "@/components/ui/button";
+import { isAdultContent } from "@/lib/content-rating";
+import type { ContentRating } from "@prisma/client";
 import { formatUsd } from "@/lib/money";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,6 +28,7 @@ export function MarketplaceBuyPanel({
   paymentsEnabled,
   shipToCountries = [],
   shipsWorldwide = false,
+  contentRating = "GENERAL",
 }: {
   listingId: string;
   listingTitle: string;
@@ -36,7 +40,9 @@ export function MarketplaceBuyPanel({
   paymentsEnabled: boolean;
   shipToCountries?: string[];
   shipsWorldwide?: boolean;
+  contentRating?: ContentRating;
 }) {
+  const isAdult = isAdultContent(contentRating);
   const router = useRouter();
   const [error, setError] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -62,6 +68,7 @@ export function MarketplaceBuyPanel({
 
   function buy() {
     setError("");
+    if (isAdult) return;
     if (!paymentsEnabled) {
       setError("결제가 설정되지 않았습니다.");
       return;
@@ -84,13 +91,28 @@ export function MarketplaceBuyPanel({
   }
 
   function addCart() {
-    addToMarketplaceCart({
-      listingId,
-      title: listingTitle,
-      priceAmount,
-      currency: listingCurrency,
-      coverUrl: listingCoverUrl ?? null,
-    }, quantity);
+    if (isAdult) return;
+    addToMarketplaceCart(
+      {
+        listingId,
+        title: listingTitle,
+        priceAmount,
+        currency: listingCurrency,
+        coverUrl: listingCoverUrl ?? null,
+      },
+      quantity
+    );
+  }
+
+  if (isAdult) {
+    return (
+      <div className="space-y-3 rounded-2xl border border-border/60 p-4">
+        <AdultMonetizationNotice />
+        <p className="text-sm text-muted-foreground">
+          이 상품은 성인 콘텐츠로 분류되어 플랫폼 내 결제·구매가 불가합니다.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -157,12 +179,7 @@ export function MarketplaceBuyPanel({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       <div className="grid grid-cols-2 gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={stock <= 0}
-          onClick={addCart}
-        >
+        <Button type="button" variant="secondary" disabled={stock <= 0} onClick={addCart}>
           장바구니
         </Button>
         <Button
