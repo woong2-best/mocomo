@@ -19,6 +19,7 @@ type PendingSeller = {
   kycLegalName: string | null;
   kycIdType: string | null;
   kycIdHint: string | null;
+  kycDocumentKey: string | null;
   settlementDeclaredAt: Date | string | null;
   onboardingCompletedAt: Date | string | null;
   user: {
@@ -34,7 +35,7 @@ type PendingSeller = {
 
 export function AdminSellerApprovalList({ sellers }: { sellers: PendingSeller[] }) {
   if (sellers.length === 0) {
-    return <p className="text-sm text-muted-foreground">승인 대기 판매자가 없습니다.</p>;
+    return <p className="text-sm text-muted-foreground">예외 검수 대기 판매자가 없습니다.</p>;
   }
 
   return (
@@ -51,6 +52,7 @@ function AdminSellerApprovalCard({ seller }: { seller: PendingSeller }) {
   const [pending, startTransition] = useTransition();
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
+  const [showKycImage, setShowKycImage] = useState(false);
 
   function approve() {
     setError("");
@@ -91,6 +93,30 @@ function AdminSellerApprovalCard({ seller }: { seller: PendingSeller }) {
         {seller.kycIdType ? ` · ${seller.kycIdType}` : ""}
         {seller.kycIdHint ? ` · ****${seller.kycIdHint}` : ""}
       </p>
+      {seller.kycDocumentKey ? (
+        <div className="space-y-2 pt-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setShowKycImage((v) => !v)}
+          >
+            {showKycImage ? "신분증 이미지 숨기기" : "신분증 이미지 확인 (PII)"}
+          </Button>
+          {showKycImage ? (
+            <div className="rounded-lg border border-border/60 overflow-hidden bg-muted/30">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/api/admin/market/seller-kyc-document?profileId=${encodeURIComponent(seller.id)}`}
+                alt="제출 신분증"
+                className="max-h-64 w-full object-contain bg-black/5"
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <p className="text-xs text-amber-800">신분증 이미지 없음</p>
+      )}
       <p className="text-xs text-muted-foreground">
         이메일 {seller.user.email ?? "-"}
         {seller.user.phoneVerified

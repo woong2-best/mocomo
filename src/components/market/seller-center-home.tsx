@@ -36,20 +36,36 @@ export function SellerCenterHome({
   return (
     <div className="space-y-5 max-w-4xl">
       {prep.welcome && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          판매자 가입 신청이 접수되었습니다. KYC·정산 검토 후 관리자 승인이 완료되면 상품을 등록할 수
-          있습니다.
+        <div
+          className={cn(
+            "rounded-xl border px-4 py-3 text-sm",
+            prep.status === "APPROVED"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          )}
+        >
+          {prep.status === "APPROVED" ? (
+            <>
+              판매자 등록이 완료되었습니다. 자동 본인 확인이 통과되어 바로 상품을 등록할 수
+              있습니다.
+            </>
+          ) : (
+            <>
+              가입 신청이 접수되었습니다. 자동 검증 중 추가 확인이 필요한 항목이 있어 예외
+              검수 후 승인됩니다.
+            </>
+          )}
         </div>
       )}
 
       {prep.status === "PENDING" && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-semibold">관리자 승인 대기 중</p>
+          <p className="font-semibold">예외 검수 대기 중</p>
           <p className="mt-1 text-amber-800/90">
             {prep.phoneRequired
-              ? "한국 판매자: 이메일·SMS·KYC·정산 검토 중입니다."
-              : "해외 판매자: 이메일·KYC·정산 검토 중입니다. (SMS 불필요)"}{" "}
-            승인(APPROVED) 전까지 상품 등록·판매가 제한됩니다.
+              ? "자동 검증(OCR·명의 일치) 중 확인이 필요한 항목이 있습니다."
+              : "Stripe·자동 본인 확인 중 추가 검수가 필요합니다."}{" "}
+            대부분의 판매자는 자동 승인되며, 플래그된 건만 수동 확인 후 승인됩니다.
           </p>
         </div>
       )}
@@ -94,7 +110,7 @@ export function SellerCenterHome({
             <PrepCard
               done={prep.sellerInfoDone}
               title="판매자 정보 입력하기"
-              description="사업자·본인 인증 신청 후 검토가 완료되면 판매가 더 안정적으로 진행됩니다."
+              description="사업자·본인 인증은 OCR·공공 API로 자동 검증됩니다. 예외 건만 수동 검수됩니다."
               actions={
                 <Button asChild className="min-w-[9.5rem]">
                   <Link href="#profile">판매자 정보 입력</Link>

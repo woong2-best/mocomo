@@ -7,6 +7,10 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SellerOnboardingStepper } from "@/components/market/seller-onboarding-stepper";
+import {
+  SellerKycDocumentUpload,
+  type SellerKycDocumentUploadValue,
+} from "@/components/market/seller-kyc-document-upload";
 import { SellerConsentDialog } from "@/components/market/seller-consent-dialog";
 import {
   advanceSellerPhoneStep,
@@ -91,6 +95,10 @@ export function SellerOnboardingWizard({
     "NATIONAL_ID"
   );
   const [kycIdNumber, setKycIdNumber] = useState("");
+  const [kycDocument, setKycDocument] = useState<SellerKycDocumentUploadValue>({
+    documentKey: null,
+    previewUrl: null,
+  });
 
   // Agreements
   const [agreeAll, setAgreeAll] = useState(false);
@@ -355,6 +363,7 @@ export function SellerOnboardingWizard({
         legalName: kycLegalName,
         idType: kycIdType,
         idNumber: kycIdNumber,
+        documentKey: kycDocument.documentKey!,
       });
       if ("error" in res && res.error) {
         setError(res.error);
@@ -646,9 +655,15 @@ export function SellerOnboardingWizard({
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground leading-relaxed">
               {phoneRequired
-                ? "한국 판매자: 본인 확인(KYC) 정보를 제출해 주세요. 관리자 검토 후 승인됩니다."
-                : "해외 판매자: Stripe Connect 시작 후 정부 발급 신분증 정보를 제출해 주세요."}
+                ? "한국 판매자: 신분증 정보를 제출해 주세요. OCR·진위확인 API로 자동 검증되며, 서류가 선명하고 계좌 명의와 일치하면 즉시 처리됩니다. 인식 실패·정보 불일치 등 예외 건만 수동 검수됩니다."
+                : "해외 판매자: Stripe Connect 시작 후 정부 발급 신분증 정보를 제출해 주세요. Stripe·자동 검증으로 처리되며, 예외 건만 수동 검수됩니다."}
             </p>
+            <SellerKycDocumentUpload
+              value={kycDocument}
+              onChange={setKycDocument}
+              disabled={pending}
+              idType={kycIdType}
+            />
             <Input
               value={kycLegalName}
               onChange={(e) => setKycLegalName(e.target.value)}
@@ -675,7 +690,12 @@ export function SellerOnboardingWizard({
             <Button
               type="button"
               className="w-full"
-              disabled={pending || !kycLegalName.trim() || kycIdNumber.trim().length < 4}
+              disabled={
+                pending ||
+                !kycLegalName.trim() ||
+                kycIdNumber.trim().length < 4 ||
+                !kycDocument.documentKey
+              }
               onClick={handleKycSubmit}
             >
               신분증 제출하고 계좌 등록으로
@@ -693,7 +713,7 @@ export function SellerOnboardingWizard({
               <li>Stripe Connect 시작</li>
               <li>신분증 제출</li>
               <li>은행 계좌 등록</li>
-              <li>Stripe/관리자 승인</li>
+              <li>Stripe/자동 승인</li>
             </ol>
             <Button type="button" className="w-full" disabled={pending} onClick={handleConnect}>
               Stripe Connect 시작
@@ -705,8 +725,8 @@ export function SellerOnboardingWizard({
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
               {phoneRequired
-                ? "정산 계좌 등록은 필수입니다. Stripe Connect로 연결하거나 관리자 검토 요청으로 제출할 수 있습니다."
-                : "은행 계좌를 등록해 주세요. Stripe 승인·관리자 승인 전까지 상품 등록은 불가합니다."}
+                ? "정산 계좌 등록은 필수입니다. 1원 인증 계좌와 신분증 명의가 일치하면 자동 승인됩니다."
+                : "은행 계좌를 등록해 주세요. Stripe·자동 본인 확인이 완료되면 바로 상품을 등록할 수 있습니다."}
             </p>
             {phoneRequired && (
               <Button type="button" className="w-full" disabled={pending} onClick={handleConnect}>
@@ -723,7 +743,7 @@ export function SellerOnboardingWizard({
               disabled={pending}
               onClick={handleDeclareSettlement}
             >
-              은행 계좌 등록 완료 · 검토 요청
+              은행 계좌 등록 완료 · 가입 완료
             </Button>
             {(state.connectReady ||
               (state.signedIn && "settlementDeclared" in state && state.settlementDeclared)) && (

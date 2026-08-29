@@ -26,6 +26,10 @@ import {
   normalizeBusinessStartDate,
   verifyNtsBusinessRegistration,
 } from "@/lib/nts-businessman/client";
+import { verifySellerKyc } from "@/lib/marketplace/seller-kyc-verify";
+import { isKycDocumentKeyOwnedByUser } from "@/lib/marketplace/kyc-document-storage";
+import { createNotification } from "@/lib/notifications";
+import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 
 const accountSchema = z.object({
   username: z
@@ -72,6 +76,7 @@ const kycSchema = z.object({
   legalName: z.string().min(1).max(120),
   idType: z.enum(["NATIONAL_ID", "PASSPORT", "DRIVERS_LICENSE", "RESIDENT_CARD"]),
   idNumber: z.string().min(4).max(80),
+  documentKey: z.string().min(8).max(512),
 });
 
 async function getSessionUserId() {
@@ -635,6 +640,30 @@ export async function submitSellerKyc(input: z.infer<typeof kycSchema>) {
     return { error: "해외 판매자는 먼저 Stripe Connect를 시작해 주세요." };
   }
 
+  if (!isKycDocumentKeyOwnedByUser(parsed.data.documentKey, user.id)) {
+    return { error: "신분증 이미지를 다시 업로드해 주세요." };
+  }
+
+  const dbUser = await db.user.findUnique({
+    where: { id: user.id },
+    select: { settlementAccountHolder: true },
+  });
+
+  const verify = verifySellerKyc({
+    countryCode: country,
+    sellerType: profile.sellerType,
+    legalName: parsed.data.legalName,
+    idType: parsed.data.idType,
+    idNumber: parsed.data.idNumber,
+    settlementAccountHolder: dbUser?.settlementAccountHolder ?? null,
+    businessRepresentativeName: profile.businessRepresentativeName,
+    documentKey: parsed.data.documentKey,
+  });
+
+  if (verify.status === "FAILED") {
+    return { error: verify.notes };
+  }
+
   const now = new Date();
   const id = parsed.data.idNumber.replace(/\s+/g, "");
   const hint = id.length <= 4 ? id : id.slice(-4);
@@ -642,18 +671,25 @@ export async function submitSellerKyc(input: z.infer<typeof kycSchema>) {
   await db.marketplaceSellerProfile.update({
     where: { id: profile.id },
     data: {
-      kycStatus: "PENDING",
+      kycStatus: verify.status,
       kycSubmittedAt: now,
       kycLegalName: parsed.data.legalName.trim().slice(0, 120),
       kycIdType: parsed.data.idType,
       kycIdHint: hint,
-      kycNotes: `신분증 유형 ${parsed.data.idType} 제출 · 관리자 검토 대기`,
+      kycDocumentKey: parsed.data.documentKey,
+      kycNotes: verify.notes,
       onboardingStep: "SETTLEMENT",
     },
   });
 
   revalidatePath("/market/seller/register");
-  return { success: true as const, nextStep: "SETTLEMENT" as const, settlementPhase: "bank" as const };
+  return {
+    success: true as const,
+    nextStep: "SETTLEMENT" as const,
+    settlementPhase: "bank" as const,
+    kycVerified: verify.status === "VERIFIED",
+    kycPendingReview: verify.status === "PENDING",
+  };
 }
 
 /** @deprecated — defer 제거. submitSellerKyc 사용 */
@@ -847,20 +883,37 @@ export async function completeSellerOnboarding() {
   }
 
   const now = new Date();
+  const autoApprove = dbUser.marketplaceSeller.kycStatus === "VERIFIED";
+
   await db.marketplaceSellerProfile.update({
     where: { userId: user.id },
     data: {
-      status: "PENDING",
+      status: autoApprove ? "APPROVED" : "PENDING",
       onboardingStep: "COMPLETE",
       onboardingCompletedAt: now,
-      canList: false,
+      canList: autoApprove,
+      ...(autoApprove ? { reviewedAt: now } : {}),
     },
   });
+
+  if (autoApprove) {
+    await createNotification({
+      userId: user.id,
+      type: "system",
+      title: "판매자 등록 완료",
+      body: `${MARKET_BRAND_FULL} 판매자 자동 본인 확인이 완료되었습니다. 이제 상품을 등록할 수 있습니다.`,
+      link: "/market/seller",
+    }).catch(() => null);
+  }
 
   revalidatePath("/market/seller");
   revalidatePath("/market/seller/register");
   revalidatePath("/admin/market");
-  return { success: true as const, redirectTo: "/market/seller?welcome=1" };
+  return {
+    success: true as const,
+    redirectTo: "/market/seller?welcome=1",
+    autoApproved: autoApprove,
+  };
 }
 
 export async function resumeSellerConnectFromOnboarding() {

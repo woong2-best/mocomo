@@ -119,3 +119,11 @@ export const SELLER_KYC_ID_TYPES = [
   { code: "DRIVERS_LICENSE", labelKo: "운전면허증", labelEn: "Driver's license" },
   { code: "RESIDENT_CARD", labelKo: "외국인등록증/체류카드", labelEn: "Residence card" },
 ] as const;
+
+/** KYC 제출 폼 — 2차 OCR API 연동 시 documentKey + 텍스트 필드 그대로 사용 */
+export type SellerKycSubmitPayload = {
+  legalName: string;
+  idType: (typeof SELLER_KYC_ID_TYPES)[number]["code"];
+  idNumber: string;
+  documentKey: string;
+};

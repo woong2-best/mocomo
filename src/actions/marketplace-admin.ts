@@ -488,7 +488,7 @@ export async function listPendingMarketplaceSellers() {
   });
 }
 
-/** KYC·정산 검토 후 판매자 승인 → 상품 등록 가능 */
+/** 예외 검수 — 자동 KYC·정산 플래그 건 승인 → 상품 등록 가능 */
 export async function approveMarketplaceSeller(profileId: string) {
   const admin = await requireAdmin({
     action: "MARKETPLACE_SELLER_APPROVE",
