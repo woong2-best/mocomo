@@ -307,7 +307,7 @@ function LiveChatInner({
                         }
                         profileUsername={m.username}
                         tier={m.supportTierSent ?? "SEED"}
-                        compact={false}
+                        compact
                         className="flex-wrap"
                       />
                       {canModerate && !m.id.startsWith("pending-") && (

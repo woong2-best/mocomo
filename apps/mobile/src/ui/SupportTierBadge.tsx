@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 const TIER_META: Record<
   string,
@@ -26,21 +26,13 @@ const TIER_META: Record<
 
 export function SupportTierBadge({
   tier = "SEED",
-  compact = false,
 }: {
   tier?: string;
-  compact?: boolean;
 }) {
   const info = TIER_META[tier] ?? TIER_META.SEED;
   return (
-    <View
-      style={[
-        styles.badge,
-        { borderColor: `${info.color}55`, backgroundColor: `${info.color}18` },
-      ]}
-    >
+    <View style={[styles.badge, { borderColor: `${info.color}55`, backgroundColor: `${info.color}18` }]}>
       <Image source={{ uri: info.icon }} style={styles.icon} contentFit="contain" />
-      {!compact ? <Text style={[styles.label, { color: info.color }]}>{info.label}</Text> : null}
     </View>
   );
 }
@@ -56,5 +48,4 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   icon: { width: 14, height: 14 },
-  label: { fontSize: 10, fontWeight: "800" },
 });
