@@ -19,6 +19,16 @@ import { resetRiskScore } from "@/lib/risk-score";
 import { riskTierFromScore, riskTierLabel } from "@/lib/risk-score-rules";
 import { createNotification } from "@/lib/notifications";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
+import {
+  repeatViolatorsEscalationReason,
+  shouldAutoEscalateToPermanentBan,
+} from "@/lib/moderation-repeat-violators";
+
+async function countUserWarnings(userId: string): Promise<number> {
+  return db.moderationAuditLog.count({
+    where: { targetUserId: userId, action: "sanction_warning" },
+  });
+}
 
 async function requireStaff(minRole: UserRole = "MODERATOR") {
   const user = await requireAuth({ writeKind: "notification" });
@@ -212,6 +222,8 @@ export async function applyModerationSanction(
     riskScore: target.riskScore,
   };
 
+  let effectiveSanction = sanction;
+
   if (sanction === "warning") {
     await createNotification({
       userId: targetUserId,
@@ -219,6 +231,19 @@ export async function applyModerationSanction(
       title: "운영원칙 위반 경고",
       body: reason.trim(),
     });
+    const warningCount = (await countUserWarnings(targetUserId)) + 1;
+    if (shouldAutoEscalateToPermanentBan(warningCount)) {
+      effectiveSanction = "permanent";
+      const escalationReason = repeatViolatorsEscalationReason(warningCount);
+      await suspendUserPermanently(targetUserId, escalationReason);
+      await createNotification({
+        userId: targetUserId,
+        type: "SYSTEM",
+        title: "계정 영구 정지 — 반복 위반",
+        body: escalationReason,
+        link: "/appeal",
+      });
+    }
   } else if (sanction === "limited") {
     await db.user.update({
       where: { id: targetUserId },
@@ -269,8 +294,23 @@ export async function applyModerationSanction(
     beforeState: before,
     afterState: afterUser as Record<string, unknown>,
     reason: reason.trim(),
-    metadata: { riskScore: target.riskScore },
+    metadata: {
+      riskScore: target.riskScore,
+      autoEscalated: effectiveSanction !== sanction ? effectiveSanction : undefined,
+    },
   });
+
+  if (effectiveSanction !== sanction && effectiveSanction === "permanent") {
+    await logModerationAudit({
+      adminId: admin.id,
+      action: "sanction_permanent_auto",
+      targetUserId,
+      beforeState: before,
+      afterState: afterUser as Record<string, unknown>,
+      reason: repeatViolatorsEscalationReason(await countUserWarnings(targetUserId)),
+      metadata: { triggeredBy: "repeat_violators_policy" },
+    });
+  }
 
   await logSiteAdminAudit({
     actorId: admin.id,
@@ -280,7 +320,7 @@ export async function applyModerationSanction(
     metadata: { sanction, reason: reason.trim() },
   });
 
-  if (sanction !== "warning") {
+  if (sanction !== "warning" && sanction !== "restore") {
     await createNotification({
       userId: targetUserId,
       type: "SYSTEM",

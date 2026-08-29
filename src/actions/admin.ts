@@ -39,6 +39,17 @@ async function logSuspensionChange(params: {
   ]);
 }
 
+async function blockUserMonetization(userId: string) {
+  await db.user.update({
+    where: { id: userId },
+    data: { creatorCallEnabled: false },
+  });
+  await db.marketplaceSellerProfile.updateMany({
+    where: { userId, status: { in: ["PENDING", "APPROVED"] } },
+    data: { status: "SUSPENDED" },
+  });
+}
+
 export async function suspendUserPermanently(targetId: string, reason: string) {
   const admin = await requireAdmin();
   const target = await db.user.findUnique({
@@ -69,6 +80,8 @@ export async function suspendUserPermanently(targetId: string, reason: string) {
     reason,
     isPermanent: true,
   });
+
+  await blockUserMonetization(targetId);
 
   revalidatePath("/admin");
   revalidatePath("/admin/suspensions");
@@ -193,6 +206,7 @@ export async function resolveReport(reportId: string, status: ReportStatus) {
     data: { actorId: admin.id, targetId: reportId, action: "resolve_report", metadata: { status } },
   });
   revalidatePath("/admin");
+  revalidatePath("/admin/reports");
   return { success: true };
 }
 

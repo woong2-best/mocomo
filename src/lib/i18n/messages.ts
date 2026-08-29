@@ -455,6 +455,7 @@ export type MessageKey =
   | "auth.emailDeliveryHelpMicrosoft"
   | "auth.emailDeliveryHelpApple"
   | "legal.terms"
+  | "legal.aup"
   | "legal.creatorTerms"
   | "legal.payment"
   | "legal.sponsoredContent"
@@ -921,6 +922,7 @@ const ko: Record<MessageKey, string> = {
   "auth.emailDeliveryHelpMicrosoft": "Outlook/Hotmail은 처음 받는 발신자를 정크(Junk)함으로 보내는 경우가 많습니다. 받은편지함·정크·스팸을 모두 확인해 주세요.",
   "auth.emailDeliveryHelpApple": "iCloud 메일은 스팸함·휴지통·「정크」 필터를 확인해 주세요. Hide My Email을 쓰는 경우 relay 주소로 옵니다.",
   "legal.terms": "이용약관",
+  "legal.aup": "AUP",
   "legal.creatorTerms": "크리에이터 약관",
   "legal.payment": "결제·환불",
   "legal.sponsoredContent": "광고·이벤트",
@@ -1388,6 +1390,7 @@ const en: Record<MessageKey, string> = {
   "auth.emailDeliveryHelpMicrosoft": "Outlook/Hotmail often puts new senders in Junk. Check Inbox, Junk, and Spam folders.",
   "auth.emailDeliveryHelpApple": "Check iCloud Mail spam, trash, and junk filters. Hide My Email delivers to your relay address.",
   "legal.terms": "Terms",
+  "legal.aup": "AUP",
   "legal.creatorTerms": "Creator terms",
   "legal.payment": "Payment & refunds",
   "legal.sponsoredContent": "Sponsored content",
@@ -1855,6 +1858,7 @@ const ja: Record<MessageKey, string> = {
   "auth.emailDeliveryHelpMicrosoft": "Outlook/Hotmailは新しい送信者を迷惑メールに入れることがあります。受信トレイ・迷惑メールを確認してください。",
   "auth.emailDeliveryHelpApple": "iCloudメールの迷惑メール・ゴミ箱を確認してください。Hide My Email利用時はリレーアドレスを確認してください。",
   "legal.terms": "利用規約",
+  "legal.aup": "AUP",
   "legal.creatorTerms": "クリエイター規約",
   "legal.payment": "決済・返金",
   "legal.sponsoredContent": "広告・イベント",
@@ -2321,6 +2325,7 @@ const zh: Record<MessageKey, string> = {
   "auth.emailDeliveryHelpMicrosoft": "Outlook/Hotmail 常将新发件人归入垃圾邮件。请检查收件箱和垃圾邮件文件夹。",
   "auth.emailDeliveryHelpApple": "请检查 iCloud 邮件的垃圾邮件和废纸篓。使用 Hide My Email 时请查看中继地址。",
   "legal.terms": "服务条款",
+  "legal.aup": "AUP",
   "legal.creatorTerms": "创作者条款",
   "legal.payment": "支付与退款",
   "legal.sponsoredContent": "广告·活动",

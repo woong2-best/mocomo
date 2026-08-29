@@ -6,6 +6,7 @@ export type LegalLink = {
 
 export const LEGAL_POLICY_LINKS: LegalLink[] = [
   { label: "이용약관", path: "/legal/terms" },
+  { label: "AUP (Acceptable Use Policy)", path: "/legal/aup" },
   { label: "크리에이터 약관", path: "/legal/creator-terms" },
   { label: "결제 및 환불 정책", path: "/legal/payment" },
   { label: "저작권 정책", path: "/legal/copyright" },

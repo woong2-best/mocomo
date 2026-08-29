@@ -3,6 +3,7 @@ import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
 import { AdminLoadError } from "@/components/admin/admin-load-error";
 import { AdminModerationPanel } from "@/components/admin/admin-moderation-panel";
+import { AdminRepeatViolatorsPolicy } from "@/components/admin/admin-repeat-violators-policy";
 import { getModerationReviewQueue } from "@/actions/moderation-admin";
 
 export default async function AdminModerationPage() {
@@ -37,6 +38,9 @@ export default async function AdminModerationPage() {
         <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
           ← 관리자 홈
         </Link>
+      </div>
+      <div className="mb-4 grid gap-4 lg:grid-cols-[1fr_280px]">
+        <AdminRepeatViolatorsPolicy />
       </div>
       <AdminModerationPanel initialQueue={queue} />
     </AdminPageChrome>

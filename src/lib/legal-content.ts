@@ -61,14 +61,22 @@ export const COMMUNITY_POLICY: LegalDocument = {
         "인종, 국적, 성별, 종교, 장애 등을 이유로 한 차별 및 혐오 표현",
       ],
     },
-    { type: "h3", text: "불법 성적 콘텐츠" },
+    { type: "h3", text: "성인물·성적 서비스 (Adult Content and Services)" },
     {
       type: "ul",
       items: [
-        "아동·청소년 대상 성적 콘텐츠",
-        "불법 촬영물",
-        "동의 없는 신체 노출 콘텐츠",
-        "성착취 콘텐츠",
+        "성인물, 노출, 명시적 성적 행위를 포함한 콘텐츠의 게시·판매·수익화 금지",
+        "아동·청소년 대상 성적 콘텐츠, 불법 촬영물, 동의 없는 신체 노출, 성착취 콘텐츠",
+        "성적 서비스·에스코트·성매매 알선 등 성인 서비스의 홍보·거래·결제 유도 금지",
+      ],
+    },
+    { type: "h3", text: "폭력적 극단주의·혐오 발언 (Violent Extremism / Hate Speech)" },
+    {
+      type: "ul",
+      items: [
+        "테러·폭력적 극단주의 조직·이념의 홍보 및 가입·자금 모집 유도",
+        "특정 집단(인종, 민족, 국적, 종교, 성별, 성적 지향, 장애 등)에 대한 차별·혐오·박해 조장",
+        "폭력 행위·살해·테러를 미화·조장·선동하는 콘텐츠",
       ],
     },
     {
@@ -125,15 +133,15 @@ export const COMMUNITY_POLICY: LegalDocument = {
       ],
     },
     { type: "hr" },
-    { type: "h2", text: "6. 저작권 정책" },
+    { type: "h2", text: "6. 지적재산권 침해 (Intellectual Property Infringement)" },
     { type: "p", text: "사용자는 자신이 업로드한 콘텐츠에 필요한 권리를 보유해야 합니다." },
-    { type: "p", text: "다음 행위는 제한될 수 있습니다." },
+    { type: "p", text: "다음 행위는 금지되며, 권리자 신고 시 즉시 삭제·계정 제재될 수 있습니다." },
     {
       type: "ul",
       items: [
-        "타인의 그림·사진·영상 무단 업로드",
-        "불법 복제물 공유",
-        "상표권 침해",
+        "타인의 저작권·상표권·초상권을 침해하는 그림·사진·영상·음원·텍스트 무단 업로드·판매",
+        "불법 복제물·해적판·무단 스캔본·리캐스트 등 권리 없는 상품의 거래",
+        "DMCA 등 권리자 요청에 따른 신속한 삭제·반복 침해자 제재 (자세한 내용은 저작권 정책 참조)",
       ],
     },
     { type: "p", text: "권리자의 요청이 있을 경우 콘텐츠는 삭제될 수 있습니다." },
@@ -145,6 +153,10 @@ export const COMMUNITY_POLICY: LegalDocument = {
     },
     { type: "hr" },
     { type: "h2", text: "8. 신고 및 제재" },
+    {
+      type: "p",
+      text: "이용자는 게시물·프로필·댓글·마켓 상품 등에서 '신고(Report)' 버튼을 통해 부적절한 콘텐츠를 운영진에게 알릴 수 있습니다. 접수된 신고는 관리자 대시보드에서 검토되며, 위험도·AI 분석·운영자 판단에 따라 조치됩니다.",
+    },
     { type: "p", text: "MoCoMo는 정책 위반 정도에 따라 아래 조치를 진행할 수 있습니다." },
     {
       type: "ul",
@@ -152,8 +164,22 @@ export const COMMUNITY_POLICY: LegalDocument = {
         "게시물 삭제",
         "댓글 제한",
         "기능 제한(메시지·라이브·마켓·중고 등)",
+        "경고 (Warning)",
         "일시 정지",
         "영구 정지",
+      ],
+    },
+    { type: "h3", text: "반복 위반자 정책 (Repeat Violators Policy)" },
+    {
+      type: "p",
+      text: "동일 이용자가 운영원칙 또는 본 정책을 반복 위반하는 경우, 누적 경고 횟수에 따라 단계적 제재를 적용합니다.",
+    },
+    {
+      type: "ul",
+      items: [
+        "1~2회 경고: 콘텐츠 삭제 및 경고 알림, 위험도 점수 상승",
+        "3회 경고: 계정 영구 정지, 크리에이터·판매자 수익·정산 기능 차단, Stripe Connect 정산 중단",
+        "아동·청소년 유해, 테러·폭력 선동, 성착취 등 중대 위반: 경고 없이 즉시 영구 정지 및 수익 차단",
       ],
     },
     { type: "p", text: "심각한 불법 행위는 경고 없이 즉시 영구 정지될 수 있습니다." },
@@ -317,9 +343,10 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       type: "ul",
       items: [
         "관련 법령 위반 및 불법 콘텐츠: 현행 법령에 위반되거나 범죄 행위를 목적으로 하는 내용",
-        "성착취 및 아동·청소년 유해물: 아동·청소년 성착취물, 딥페이크 등 성적 불법 합성물, 국내 법령상 비통관/음란 유해 매체물",
-        "폭력 및 혐오 표현: 폭력, 잔혹 행위, 자살·자해 조장, 특정 인종·성별·종교·장애 등에 대한 차별 및 혐오 표현",
-        "권리 침해 및 명예훼손: 타인의 저작권·상표권·초상권 등 지식재산권을 침해하는 내용, 타인의 신원 정보(개인정보) 무단 노출, 특정인을 비방·저격하여 명예를 훼손하는 내용",
+        "성인물·성적 서비스 (Adult Content and Services): 성인물, 노출, 명시적 성적 행위의 게시·판매·수익화·구독·후원 금지. 성착취·아동·청소년 유해물, 딥페이크 등 성적 불법 합성물 포함",
+        "지적재산권 침해 (Intellectual Property Infringement): 타인의 저작권·상표권·초상권 등을 침해하는 콘텐츠 게시·판매·수익화 금지. DMCA 등 권리자 요청에 따른 신속 삭제",
+        "폭력적 극단주의·혐오 발언 (Violent Extremism / Hate Speech): 테러·극단주의 조직 홍보, 폭력·살해·자해 조장, 특정 인종·성별·종교·장애 등에 대한 차별·혐오·박해 표현",
+        "권리 침해 및 명예훼손: 타인의 신원 정보(개인정보) 무단 노출, 특정인을 비방·저격하여 명예를 훼손하는 내용",
         "사기, 피싱 및 악성 코드: 타인을 속여 금전적 이득을 취하려는 내용, 악성코드, 피싱 사이트 링크, 시스템 교란 스팸",
         "기타 불건전 콘텐츠: 사회 통념상 용인하기 어려운 현저히 불쾌하거나 공서양속에 반하는 내용",
       ],
@@ -1534,7 +1561,169 @@ export const ACCOUNT_DELETION: LegalDocument = {
   ],
 };
 
+export const ACCEPTABLE_USE_POLICY: LegalDocument = {
+  slug: "aup",
+  title: "Acceptable Use Policy (AUP) — 이용 허용 정책",
+  updatedAt: "2026년 8월 29일",
+  intro:
+    `This Acceptable Use Policy ("AUP") governs all use of MoCoMo LLC's platform (mocomo.net and mobile apps). By using MoCoMo, you agree to comply with this policy. Violations may result in content removal, account suspension, permanent ban, and revenue/payout blocking. Contact: ${LEGAL_CONTACT_EMAIL}`,
+  blocks: [
+    { type: "h2", text: "1. Prohibited Content and Activities" },
+    {
+      type: "p",
+      text: "The following are strictly prohibited on MoCoMo. This list is not exhaustive.",
+    },
+    { type: "h3", text: "Adult Content and Services" },
+    {
+      type: "ul",
+      items: [
+        "Posting, selling, monetizing, or promoting adult/explicit sexual content, nudity, or pornography",
+        "Offering or facilitating escort services, sexual services, or adult entertainment for payment",
+        "Using creator subscriptions, tips, marketplace listings, or paid messaging to monetize explicit sexual content",
+        "Child sexual abuse material (CSAM) or any content sexualizing minors — zero tolerance, immediate permanent ban and law enforcement referral",
+      ],
+    },
+    { type: "h3", text: "Intellectual Property Infringement" },
+    {
+      type: "ul",
+      items: [
+        "Uploading, sharing, or selling content that infringes copyright, trademark, or other IP rights",
+        "Pirated media, unauthorized scans, recasts, counterfeit goods, or stolen artwork",
+        "Repeat copyright infringers will be permanently banned per our DMCA policy",
+      ],
+    },
+    { type: "h3", text: "Violent Extremism / Hate Speech" },
+    {
+      type: "ul",
+      items: [
+        "Promoting or supporting terrorist organizations or violent extremist ideologies",
+        "Content that incites violence, murder, or terrorism",
+        "Hate speech targeting individuals or groups based on race, ethnicity, nationality, religion, gender, sexual orientation, disability, or similar protected characteristics",
+      ],
+    },
+    { type: "h3", text: "Other Prohibited Conduct" },
+    {
+      type: "ul",
+      items: [
+        "Spam, fraud, phishing, malware, and platform abuse",
+        "Harassment, stalking, doxing, and impersonation",
+        "Illegal goods, payment bypass, and off-platform scam solicitation",
+        "Any activity that violates applicable law or payment processor (Stripe) requirements",
+      ],
+    },
+    { type: "hr" },
+    { type: "h2", text: "2. Reporting Violations" },
+    {
+      type: "p",
+      text: "Users can report inappropriate content via the Report button on posts, profiles, comments, marketplace listings, and live streams. Reports are reviewed by MoCoMo moderators. False or malicious reports may result in account sanctions.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "3. Enforcement & Repeat Violators Policy" },
+    {
+      type: "p",
+      text: "MoCoMo enforces this AUP through automated risk scoring, user reports, AI-assisted review, and human moderator review.",
+    },
+    {
+      type: "ul",
+      items: [
+        "Warning 1–2: Content removal, written warning, increased risk score",
+        "Warning 3 (third strike): Permanent account suspension, creator/seller revenue block, Stripe Connect payout suspension",
+        "Severe violations (CSAM, terrorism, fraud): Immediate permanent ban without warning, revenue block, and legal referral",
+      ],
+    },
+    {
+      type: "p",
+      text: "MoCoMo LLC reserves the right to remove content and suspend accounts at its sole discretion to protect users and comply with law and payment network rules.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "4. Related Policies" },
+    {
+      type: "ul",
+      items: [
+        "Terms of Service: /legal/terms",
+        "Community Policy (Korean): /legal/policy",
+        "Copyright / DMCA: /legal/copyright",
+        "Payment & Refund: /legal/payment",
+      ],
+    },
+    { type: "hr" },
+    { type: "h2", text: "5. Governing Law" },
+    { type: "p", text: GOVERNING_LAW_PARAGRAPH },
+    {
+      type: "p",
+      text: `Legal entity: ${LEGAL_ENTITY_NAME}, ${LEGAL_ENTITY_JURISDICTION}. DMCA / abuse contact: ${LEGAL_DMCA_AGENT_EMAIL}`,
+    },
+  ],
+};
+
+export const MODERATION_POLICY: LegalDocument = {
+  slug: "moderation",
+  title: "콘텐츠 신고 및 운영 정책",
+  updatedAt: "2026년 8월 29일",
+  intro:
+    "MoCoMo는 이용자 신고와 자동 탐지를 통해 플랫폼을 안전하게 운영합니다. 본 페이지는 신고 처리 절차와 반복 위반자 제재 기준을 공개합니다.",
+  blocks: [
+    { type: "h2", text: "1. 신고 방법" },
+    {
+      type: "p",
+      text: "로그인한 이용자는 다음 위치에서 '신고(Report)' 버튼을 이용할 수 있습니다.",
+    },
+    {
+      type: "ul",
+      items: [
+        "피드·게시물 상세 페이지 (⋯ 메뉴 또는 신고 바)",
+        "크리에이터·이용자 프로필 (⋯ 메뉴)",
+        "댓글, 릴스, 라이브 채팅",
+        "마켓 상품 페이지",
+        "중고거래 매물 페이지",
+      ],
+    },
+    {
+      type: "p",
+      text: "신고 시 사유(스팸, 혐오, 폭력, 저작권, 음란물 등)를 선택하고 선택적으로 상세 설명을 입력할 수 있습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "2. 신고 처리 절차" },
+    {
+      type: "ul",
+      items: [
+        "접수: 신고는 데이터베이스에 기록되고 관리자 신고 대기열(/admin/reports)에 표시됩니다",
+        "검토: 운영자·모더레이터가 콘텐츠를 확인하고 위험도 점수·AI 분석·누적 위반 이력을 참고합니다",
+        "조치: 콘텐츠 삭제, 경고, 기능 제한, 일시·영구 정지, 수익 차단 중 적절한 조치를 적용합니다",
+        "기록: 모든 제재는 감사 로그(ModerationAuditLog)에 보존됩니다",
+      ],
+    },
+    { type: "hr" },
+    { type: "h2", text: "3. 반복 위반자 정책 (Repeat Violators Policy)" },
+    {
+      type: "p",
+      text: "동일 계정에 대해 운영원칙 위반 경고가 누적되면 다음 단계적 제재를 자동·수동 적용합니다.",
+    },
+    {
+      type: "ul",
+      items: [
+        "1~2회 경고: 위반 콘텐츠 삭제, 이용자에게 경고 알림, 위험도 점수 증가",
+        "3회 경고: 계정 영구 정지, 크리에이터 유료 기능·판매자센터·Stripe Connect 정산 차단",
+        "중대 위반(아동 유해, 테러·폭력 선동, 대규모 사기): 1회라도 즉시 영구 정지 및 수익 차단",
+      ],
+    },
+    { type: "hr" },
+    { type: "h2", text: "4. 이의 제기" },
+    {
+      type: "p",
+      text: "계정 제재를 받은 이용자는 /appeal 페이지에서 이의 제기(Appeal)를 요청할 수 있습니다. 운영팀이 검토 후 회복 또는 유지를 결정합니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "5. 문의" },
+    {
+      type: "p",
+      text: `신고·저작권·법 집행 협조: ${LEGAL_CONTACT_EMAIL} · DMCA: ${LEGAL_DMCA_AGENT_EMAIL}`,
+    },
+  ],
+};
+
 export const LEGAL_PAGES = [
+  { href: "/legal/aup", label: "Acceptable Use Policy (AUP)", doc: ACCEPTABLE_USE_POLICY },
   { href: "/legal/policy", label: "운영원칙 및 이용정책", doc: COMMUNITY_POLICY },
   { href: "/legal/culture-wiki", label: "컬쳐 위키 이용 약관", doc: CULTURE_WIKI_TERMS },
   { href: "/legal/terms", label: "이용약관", doc: TERMS_OF_SERVICE },
@@ -1545,6 +1734,7 @@ export const LEGAL_PAGES = [
   { href: "/legal/copyright", label: "저작권 정책", doc: COPYRIGHT_POLICY },
   { href: "/legal/privacy", label: "개인정보처리방침", doc: PRIVACY_POLICY },
   { href: "/legal/account-deletion", label: "계정 및 데이터 삭제", doc: ACCOUNT_DELETION },
+  { href: "/legal/moderation", label: "신고 및 운영 정책", doc: MODERATION_POLICY },
 ] as const;
 
 /** Compact disclosure blocks for footer and checkout UI */
