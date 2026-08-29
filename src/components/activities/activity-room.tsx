@@ -10,12 +10,15 @@ import type { ActivityContextType, ActivityPlayer } from "@/lib/activities/types
 export function ActivityRoom({
   contextType,
   contextId,
+  roomId,
   peerUserId,
   peerHint,
   children,
 }: {
   contextType: ActivityContextType;
   contextId: string;
+  /** 채팅 메시지로 게임 카드를 올릴 방 id (커뮤니티 텍스트/DM) */
+  roomId?: string;
   peerUserId?: string;
   peerHint?: ActivityPlayer;
   children: ReactNode;
@@ -24,6 +27,7 @@ export function ActivityRoom({
     <ActivityProvider
       contextType={contextType}
       contextId={contextId}
+      roomId={roomId}
       peerUserId={peerUserId}
       peerHint={peerHint}
     >

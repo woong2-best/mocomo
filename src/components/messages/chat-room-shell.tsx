@@ -109,6 +109,7 @@ export function ChatRoomShell({
     <ActivityRoom
       contextType="dm"
       contextId={roomId}
+      roomId={roomId}
       peerUserId={header.otherUserId}
       peerHint={{
         id: header.otherUserId!,

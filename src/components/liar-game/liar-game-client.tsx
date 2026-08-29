@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ const PHASE_LABELS: Record<Phase, string> = {
 };
 
 export function LiarGameClient() {
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const { socket, socketReady, realtimeOff, connectionFailed } = useAppSocket();
   const defaultNickname =
@@ -75,6 +77,11 @@ export function LiarGameClient() {
   useEffect(() => {
     if (defaultNickname) setNickname(defaultNickname);
   }, [defaultNickname]);
+
+  useEffect(() => {
+    const code = searchParams.get("code")?.trim().toUpperCase();
+    if (code) setRoomCodeInput(code);
+  }, [searchParams]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -108,6 +115,7 @@ export function LiarGameClient() {
 
     const onRoomState = (data: RoomState) => {
       setRoom(data);
+      setScreen("room");
       if (data.phase === "result" && data.lastResult) setResult(data.lastResult);
       if (data.phase === "lobby") {
         setHasVoted(false);

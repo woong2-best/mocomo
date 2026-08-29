@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { LiarGameClient } from "@/components/liar-game/liar-game-client";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function LiarGamePage() {
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
-      <LiarGameClient />
+      <Suspense fallback={<div className="py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>}>
+        <LiarGameClient />
+      </Suspense>
     </AppPageChrome>
   );
 }

@@ -1,23 +1,20 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { listActivities } from "@/lib/activities/registry";
+import {
+  canPickActivity,
+  listActivitiesForPicker,
+} from "@/lib/activities/picker-utils";
 import { useActivity } from "@/components/activities/activity-provider";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 
 export function ActivityPickerSheet() {
-  const router = useRouter();
-  const { pickerOpen, closePicker, inviteActivity, peerUserId } = useActivity();
-  const activities = listActivities();
+  const { pickerOpen, closePicker, pickActivity, peerUserId } = useActivity();
+  const isDm = !!peerUserId;
+  const activities = listActivitiesForPicker(isDm);
 
-  function onPickActivity(activityId: string, href?: string) {
-    closePicker();
-    if (href) {
-      router.push(href);
-      return;
-    }
-    inviteActivity(activityId);
+  function onPickActivity(activityId: string) {
+    void pickActivity(activityId);
   }
 
   if (!pickerOpen) return null;
@@ -40,7 +37,11 @@ export function ActivityPickerSheet() {
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
           <div>
             <p className="text-base font-bold text-foreground">Play Together</p>
-            <p className="text-[11px] text-muted-foreground">대화를 유지한 채 함께 즐겨요</p>
+            <p className="text-[11px] text-muted-foreground">
+              {isDm
+                ? "2인 게임은 바로 시작 · 채팅에 초대 카드가 올라갑니다"
+                : "로비에서 함께 모여요 · 채팅에 초대 카드가 올라갑니다"}
+            </p>
           </div>
           <button
             type="button"
@@ -53,26 +54,36 @@ export function ActivityPickerSheet() {
         </div>
 
         <div className="overflow-y-auto max-h-[calc(78vh-3.5rem)] p-3 grid grid-cols-2 gap-2">
-          {activities.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              disabled={!a.playable || (!a.href && !peerUserId)}
-              onClick={() => onPickActivity(a.id, a.href)}
-              className={cn(
-                "text-left rounded-xl border-2 px-3 py-3 transition-all",
-                a.playable
-                  ? "border-folk-cobalt/20 bg-folk-cream/40 hover:border-folk-terracotta/50 hover:-translate-y-0.5"
-                  : "border-border/40 bg-muted/30 opacity-60 cursor-not-allowed"
-              )}
-            >
-              <span className="text-xl leading-none">{a.icon}</span>
-              <p className="mt-1.5 text-sm font-bold text-foreground">{a.title}</p>
-              <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">
-                {a.playable ? a.description : "곧 플레이 가능"}
-              </p>
-            </button>
-          ))}
+          {activities.map((a) => {
+            const pickable = canPickActivity(a, isDm);
+            const playerHint =
+              a.minPlayers >= 3
+                ? `커뮤니티 · ${a.minPlayers}~${a.maxPlayers}인`
+                : isDm
+                  ? "1:1 바로 시작"
+                  : `${a.minPlayers}~${a.maxPlayers}인 · 로비`;
+
+            return (
+              <button
+                key={a.id}
+                type="button"
+                disabled={!pickable}
+                onClick={() => onPickActivity(a.id)}
+                className={cn(
+                  "text-left rounded-xl border-2 px-3 py-3 transition-all",
+                  pickable
+                    ? "border-folk-cobalt/20 bg-folk-cream/40 hover:border-folk-terracotta/50 hover:-translate-y-0.5"
+                    : "border-border/40 bg-muted/30 opacity-60 cursor-not-allowed"
+                )}
+              >
+                <span className="text-xl leading-none">{a.icon}</span>
+                <p className="mt-1.5 text-sm font-bold text-foreground">{a.title}</p>
+                <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">
+                  {pickable ? playerHint : "곧 플레이 가능"}
+                </p>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

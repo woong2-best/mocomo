@@ -42,7 +42,7 @@ export function TextChannelShell({
     hasPermission(permissions, "deleteMessages") || hasPermission(permissions, "moderateChat");
 
   return (
-    <ActivityRoom contextType="community" contextId={communityId}>
+    <ActivityRoom contextType="community" contextId={communityId} roomId={roomId}>
       <ChatRoomShell
         roomId={roomId}
         communityId={communityId}
