@@ -97,10 +97,15 @@ export function createPrismaAuthAdapter(): Adapter {
         throw new Error(FORBIDDEN_ADMIN_SEQUENCE_MESSAGE);
       }
 
+      // Auth.js passes emailVerified: null for OAuth. The signIn callback already
+      // required provider-side verification, and leaving it null locks the account
+      // out of later OAuth sign-ins.
+      const emailVerified = data.emailVerified ?? (data.email ? new Date() : null);
+
       const user = await db.user.create({
         data: {
           email: data.email,
-          emailVerified: data.emailVerified,
+          emailVerified,
           name: displayName,
           image: data.image,
           username,

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { signIn, auth } from "@/lib/auth";
 import { ADD_ACCOUNT_COOKIE, ADD_ACCOUNT_SOURCE_USER_COOKIE } from "@/lib/account-switch/constants";
+import { clearSessionTokenCookies } from "@/lib/account-switch/session-cookies";
 import { OAUTH_FLOW_COOKIE } from "@/lib/oauth-flow-cookie";
 import {
   MOBILE_OAUTH_COOKIE,
@@ -60,8 +61,11 @@ export async function startOAuthProviderSignin(opts: StartOAuthProviderSigninOpt
       });
     }
 
-    // Do NOT signOut here — client already logged out before signup.
-    // Server signOut immediately before signIn() wipes PKCE/CSRF cookies and causes Configuration errors.
+    // Drop the session JWT only. If any session cookie survives, handleLoginOrRegister
+    // links the new provider to the *current* user instead of creating a new account.
+    // Auth.js signOut() is avoided here because it also rewrites the CSRF cookie that
+    // the signIn() call below depends on.
+    await clearSessionTokenCookies();
   }
 
   await signIn(opts.provider, { redirectTo });

@@ -10,19 +10,12 @@ export const SESSION_COOKIE_BASE_NAMES = [
   "__Secure-next-auth.session-token",
 ] as const;
 
-/** Auth.js auxiliary cookies — stale values can confuse client signOut. */
-const AUTH_AUX_COOKIE_BASE_NAMES = [
-  "authjs.csrf-token",
-  "__Secure-authjs.csrf-token",
-  "__Host-authjs.csrf-token",
-  "authjs.callback-url",
-  "__Secure-authjs.callback-url",
-  "__Host-authjs.callback-url",
-  "next-auth.csrf-token",
-  "__Secure-next-auth.csrf-token",
-  "next-auth.callback-url",
-  "__Secure-next-auth.callback-url",
-] as const;
+/**
+ * CSRF (`*.csrf-token`) and `*.callback-url` cookies are deliberately NOT purged.
+ * Auth.js needs the CSRF cookie for the very next signOut/signIn POST, and deleting
+ * it makes those requests fail with MissingCSRF — surfaced to users as
+ * `/auth/error?error=Configuration`.
+ */
 
 /** Auth.js splits large JWTs into `.0`, `.1`, … suffix cookies. */
 const MAX_SESSION_COOKIE_CHUNKS = 12;
@@ -31,21 +24,7 @@ export function sessionCookieName(): string {
   return useSecureCookies ? "__Secure-authjs.session-token" : "authjs.session-token";
 }
 
-export function allSessionCookieNames(): string[] {
-  const names: string[] = [];
-  for (const base of SESSION_COOKIE_BASE_NAMES) {
-    names.push(base);
-    for (let i = 0; i < MAX_SESSION_COOKIE_CHUNKS; i++) {
-      names.push(`${base}.${i}`);
-    }
-  }
-  for (const base of AUTH_AUX_COOKIE_BASE_NAMES) {
-    names.push(base);
-  }
-  return names;
-}
-
-/** Session JWT cookies only — preserves CSRF/callback-url needed for the next signIn(). */
+/** Every session JWT cookie variant, including Auth.js chunk suffixes. */
 export function sessionTokenCookieNames(): string[] {
   const names: string[] = [];
   for (const base of SESSION_COOKIE_BASE_NAMES) {
@@ -55,6 +34,10 @@ export function sessionTokenCookieNames(): string[] {
     }
   }
   return names;
+}
+
+export function allSessionCookieNames(): string[] {
+  return sessionTokenCookieNames();
 }
 
 const CLEAR_COOKIE_OPTS = {

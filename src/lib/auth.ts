@@ -43,6 +43,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: createPrismaAuthAdapter(),
   providers: getAuthProviders(),
+  logger: {
+    // Auth.js surfaces every non-client-safe failure as `error=Configuration`,
+    // so the real type/cause is only recoverable from server logs.
+    error(error) {
+      const cause = (error as { cause?: { err?: Error } }).cause?.err;
+      console.error("[auth][error]", error.name, error.message, cause?.message ?? "");
+    },
+    warn(code) {
+      console.warn("[auth][warn]", code);
+    },
+  },
   cookies: {
     sessionToken: {
       name: useSecureCookies ? "__Secure-authjs.session-token" : "authjs.session-token",
@@ -104,9 +115,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (account?.provider === "naver") return Boolean(user.email?.trim());
         // X/Twitter and LINE do not return email — account was already matched by provider id.
         if (isProviderWithoutEmail(account?.provider)) return true;
+        const claims = profile as
+          | { email_verified?: boolean; verified_email?: boolean; verified?: boolean }
+          | undefined;
+        // Google/OIDC use email_verified, Discord uses verified.
         return Boolean(
-          (profile as { email_verified?: boolean } | undefined)?.email_verified ??
-            (profile as { verified_email?: boolean } | undefined)?.verified_email
+          claims?.email_verified ?? claims?.verified_email ?? claims?.verified
         );
       }
 
@@ -147,11 +161,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!existing) {
           return absoluteAuthRedirect(signupRedirectForUnregistered(addingAccount));
         }
-        if (!existing.emailVerified && !isProviderWithoutEmail(account?.provider)) {
-          return absoluteAuthRedirect(signupRedirectForUnregistered(addingAccount));
-        }
         if (!oauthProviderEmailVerified()) {
           return false;
+        }
+        if (!existing.emailVerified && !isProviderWithoutEmail(account?.provider)) {
+          // Accounts created through OAuth start with emailVerified = null. The provider
+          // just verified the address, so backfill it instead of forcing signup again.
+          await db.user
+            .update({ where: { id: existing.id }, data: { emailVerified: new Date() } })
+            .catch(() => undefined);
         }
 
         user.id = existing.id;
@@ -161,7 +179,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           : await resolveUserByEmail(user.email);
 
         if (!existing) {
-          return true;
+          return oauthProviderEmailVerified();
         }
         if (existing.emailVerified && addingAccount) {
           return absoluteAuthRedirect(signupRedirectForExistingAccount(true));
