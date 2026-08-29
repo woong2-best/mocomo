@@ -54,12 +54,20 @@ function TurnstileWidget({
   const [showSkip, setShowSkip] = useState(showSkipImmediately);
   const siteKey = getTurnstileSiteKey();
 
+  // Call sites pass inline arrows, so keeping these in deps would re-run the render
+  // effect on every parent render and tear the widget down before Cloudflare can
+  // mount its challenge iframe.
+  const callbacksRef = useRef({ onToken, onExpire, onUnavailable });
+  useEffect(() => {
+    callbacksRef.current = { onToken, onExpire, onUnavailable };
+  }, [onToken, onExpire, onUnavailable]);
+
   const enableFallback = useCallback(() => {
     setUseFallback(true);
     setFailed(false);
-    onToken("");
-    onUnavailable?.(true);
-  }, [onToken, onUnavailable]);
+    callbacksRef.current.onToken("");
+    callbacksRef.current.onUnavailable?.(true);
+  }, []);
 
   /** Returns false while api.js has not defined window.turnstile yet, so the caller retries. */
   const renderWidget = useCallback(() => {
@@ -89,12 +97,12 @@ function TurnstileWidget({
         callback: (token) => {
           setFailed(false);
           setShowSkip(false);
-          onUnavailable?.(false);
-          onToken(token);
+          callbacksRef.current.onUnavailable?.(false);
+          callbacksRef.current.onToken(token);
         },
         "expired-callback": () => {
-          onExpire?.();
-          onToken("");
+          callbacksRef.current.onExpire?.();
+          callbacksRef.current.onToken("");
         },
         "error-callback": () => setFailed(true),
       });
@@ -102,7 +110,7 @@ function TurnstileWidget({
       setFailed(true);
     }
     return true;
-  }, [siteKey, onToken, onExpire, onUnavailable]);
+  }, [siteKey]);
 
   useEffect(() => {
     if (!ready || !siteKey || useFallback) return;
@@ -113,8 +121,8 @@ function TurnstileWidget({
 
     setFailed(false);
     setShowSkip(showSkipImmediately);
-    onToken("");
-    onUnavailable?.(false);
+    callbacksRef.current.onToken("");
+    callbacksRef.current.onUnavailable?.(false);
 
     if (!showSkipImmediately) {
       timers.push(
@@ -148,7 +156,7 @@ function TurnstileWidget({
         widgetIdRef.current = null;
       }
     };
-  }, [ready, siteKey, useFallback, showSkipImmediately, renderWidget, onToken, onUnavailable]);
+  }, [ready, siteKey, useFallback, showSkipImmediately, renderWidget]);
 
   if (!isTurnstileConfigured() || !siteKey) {
     return (
