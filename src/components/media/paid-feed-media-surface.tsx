@@ -194,6 +194,7 @@ export function PaidFeedMediaSurface({
                 src={poster}
                 alt=""
                 className="h-full w-full scale-[1.2] object-cover blur-[28px] brightness-[0.7]"
+                loading="lazy"
                 draggable={false}
               />
             ) : (
@@ -246,6 +247,7 @@ export function PaidFeedMediaSurface({
         src={photoTileSrc}
         alt=""
         className="h-full w-full object-cover"
+        loading="lazy"
         draggable={false}
         onContextMenu={(e) => e.preventDefault()}
       />

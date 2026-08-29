@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { ProfileGridMediaItem, ProfileTabContentMeta } from "@/actions/profile-page";
+import type { ProfileGridMediaItem, ProfileTabContentMeta, ProfileTabInitialPayload } from "@/actions/profile-page";
 import { ProfileMediaGrid } from "@/components/profile/profile-media-grid";
 import { ProfileTimeline, type TimelineItem } from "@/components/profile/profile-timeline";
 import { useProfileTab } from "@/components/profile/profile-tab-context";
 import type { ProfileMediaKind, ProfileSort, ProfileTab } from "@/lib/profile-queries";
 import { Button } from "@/components/ui/button";
+import { ProfileTimelineSkeleton } from "@/components/ui/content-skeletons";
 
 export type { ProfileTabContentMeta } from "@/actions/profile-page";
 
@@ -17,9 +18,33 @@ type WikiData = {
 };
 
 type TabPayload =
-  | { kind: "timeline"; items: TimelineItem[]; nextCursor: string | null }
+  | {
+      kind: "timeline";
+      items: TimelineItem[];
+      nextCursor: string | null;
+      likedIds?: string[];
+      starredIds?: string[];
+      repostedIds?: string[];
+    }
   | { kind: "media"; items: ProfileGridMediaItem[]; nextCursor: string | null }
   | { kind: "wiki"; data: WikiData };
+
+function initialPayloadToTabPayload(initial: ProfileTabInitialPayload): TabPayload {
+  if (initial.kind === "wiki") {
+    return { kind: "wiki", data: initial.data };
+  }
+  if (initial.kind === "media") {
+    return { kind: "media", items: initial.items, nextCursor: initial.nextCursor };
+  }
+  return {
+    kind: "timeline",
+    items: initial.items as TimelineItem[],
+    nextCursor: initial.nextCursor,
+    likedIds: initial.likedIds,
+    starredIds: initial.starredIds,
+    repostedIds: initial.repostedIds,
+  };
+}
 
 const emptyMessages: Record<ProfileTab, string> = {
   posts: "아직 게시물이 없습니다.",
@@ -86,20 +111,39 @@ function ProfileWikiList({ data, emptyMessage }: { data: WikiData; emptyMessage:
 export function ProfileTabContent({
   username,
   meta,
+  initialPayload,
 }: {
   username: string;
   meta: ProfileTabContentMeta;
+  initialPayload?: ProfileTabInitialPayload | null;
 }) {
   const { tab, sort, kind } = useProfileTab();
   const effectiveTab: ProfileTab = tab === "likes" && !meta.isSelf ? "posts" : tab;
+  const activeKey = queryKey(effectiveTab, sort, kind);
   const cache = useRef(new Map<string, TabPayload>());
-  const [display, setDisplay] = useState<{ key: string; payload: TabPayload } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const hasInitialPayload = initialPayload?.key === activeKey;
+  const [display, setDisplay] = useState<{ key: string; payload: TabPayload } | null>(() => {
+    if (hasInitialPayload && initialPayload) {
+      const payload = initialPayloadToTabPayload(initialPayload);
+      cache.current.set(initialPayload.key, payload);
+      return { key: initialPayload.key, payload };
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(() => !hasInitialPayload);
   const [loadError, setLoadError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
-  const activeKey = queryKey(effectiveTab, sort, kind);
 
   useEffect(() => {
+    if (initialPayload?.key === activeKey) {
+      const payload = initialPayloadToTabPayload(initialPayload);
+      cache.current.set(activeKey, payload);
+      setDisplay({ key: activeKey, payload });
+      setLoadError("");
+      setLoading(false);
+      return;
+    }
+
     const cached = cache.current.get(activeKey);
     if (cached) {
       setDisplay({ key: activeKey, payload: cached });
@@ -144,6 +188,9 @@ export function ProfileTabContent({
             kind: "timeline",
             items: json.items as TimelineItem[],
             nextCursor: json.nextCursor ?? null,
+            likedIds: json.likedIds as string[] | undefined,
+            starredIds: json.starredIds as string[] | undefined,
+            repostedIds: json.repostedIds as string[] | undefined,
           };
         }
         cache.current.set(activeKey, next);
@@ -159,12 +206,12 @@ export function ProfileTabContent({
     return () => {
       cancelled = true;
     };
-  }, [activeKey, effectiveTab, sort, kind, username, retryCount]);
+  }, [activeKey, effectiveTab, sort, kind, username, retryCount, initialPayload]);
 
   const isStale = Boolean(display && display.key !== activeKey);
 
   if (loading && !display) {
-    return <div className="min-h-[12rem]" aria-busy="true" />;
+    return <ProfileTimelineSkeleton />;
   }
 
   if (loadError && !display) {
@@ -178,7 +225,7 @@ export function ProfileTabContent({
     );
   }
 
-  if (!display) return <div className="min-h-[12rem]" aria-busy="true" />;
+  if (!display) return <ProfileTimelineSkeleton />;
 
   const { payload } = display;
   const shown = parseQueryKey(display.key);
@@ -225,6 +272,9 @@ export function ProfileTabContent({
             authorId={meta.authorId}
             subscriptionPriceKrw={meta.subscriptionPriceKrw}
             subscribed={meta.subscribed}
+            initialLikedIds={payload.likedIds}
+            initialStarredIds={payload.starredIds}
+            initialRepostedIds={payload.repostedIds}
           />
         )}
       </div>

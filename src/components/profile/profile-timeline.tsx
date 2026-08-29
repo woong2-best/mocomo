@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { ProfilePostCard } from "@/components/profile/profile-post-card";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import type { ProfileMediaKind, ProfileSort, ProfileTab } from "@/lib/profile-queries";
@@ -77,6 +78,8 @@ export function ProfileTimeline({
   const [starredIds, setStarredIds] = useState(() => new Set(initialStarredIds));
   const [repostedIds, setRepostedIds] = useState(() => new Set(initialRepostedIds));
   const sentinel = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
+  const autoLoadBlockedRef = useRef(false);
 
   useEffect(() => {
     setItems(initialItems);
@@ -86,6 +89,8 @@ export function ProfileTimeline({
     setLikedIds(new Set(initialLikedIds));
     setStarredIds(new Set(initialStarredIds));
     setRepostedIds(new Set(initialRepostedIds));
+    loadingRef.current = false;
+    autoLoadBlockedRef.current = false;
   }, [initialItems, initialCursor, initialLikedIds, initialStarredIds, initialRepostedIds, tab, sort, mediaKind]);
 
   useEffect(() => {
@@ -100,34 +105,54 @@ export function ProfileTimeline({
     });
   }, []);
 
-  const loadMore = useCallback(async () => {
-    if (!cursor || loading || done) return;
+  const loadMore = useCallback(async (opts?: { manual?: boolean }) => {
+    if (!cursor || loadingRef.current || done) return;
+    if (autoLoadBlockedRef.current && !opts?.manual) return;
+    loadingRef.current = true;
     setLoading(true);
+    if (opts?.manual) autoLoadBlockedRef.current = false;
     setLoadError("");
     try {
       const qs = timelineQuery(tab, sort, mediaKind);
       const res = await fetch(
         `/api/profile/${username}/timeline?${qs}&cursor=${cursor}`
       );
-      const json = await res.json();
+      let json: {
+        items?: TimelineItem[];
+        nextCursor?: string | null;
+        likedIds?: string[];
+        starredIds?: string[];
+        repostedIds?: string[];
+        error?: string;
+      };
+      try {
+        json = await res.json();
+      } catch {
+        autoLoadBlockedRef.current = true;
+        setLoadError("응답을 해석하지 못했습니다.");
+        return;
+      }
       if (!res.ok) {
+        autoLoadBlockedRef.current = true;
         setLoadError(
           res.status === 403 ? "비공개 탭입니다." : json.error ?? "불러오기에 실패했습니다."
         );
         return;
       }
-      setItems((prev) => [...prev, ...json.items]);
-      setCursor(json.nextCursor);
+      setItems((prev) => [...prev, ...(json.items ?? [])]);
+      setCursor(json.nextCursor ?? null);
       if (!json.nextCursor) setDone(true);
       setLikedIds((prev) => mergeIds(prev, json.likedIds));
       setStarredIds((prev) => mergeIds(prev, json.starredIds));
       setRepostedIds((prev) => mergeIds(prev, json.repostedIds));
     } catch {
+      autoLoadBlockedRef.current = true;
       setLoadError("네트워크 오류가 발생했습니다.");
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
-  }, [cursor, loading, done, username, tab, sort, mediaKind]);
+  }, [cursor, done, username, tab, sort, mediaKind]);
 
   useEffect(() => {
     const el = sentinel.current;
@@ -197,11 +222,13 @@ export function ProfileTimeline({
         );
       })}
       <div ref={sentinel} className="flex flex-col items-center gap-2 py-6">
-        {loading ? <div className="h-5" aria-busy="true" /> : null}
+        {loading ? (
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
+        ) : null}
         {loadError && (
           <>
             <p className="text-sm text-destructive">{loadError}</p>
-            <Button type="button" variant="secondary" size="sm" onClick={() => loadMore()}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => loadMore({ manual: true })}>
               다시 시도
             </Button>
           </>

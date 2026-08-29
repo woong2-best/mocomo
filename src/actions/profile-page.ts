@@ -20,11 +20,14 @@ import {
 } from "@/lib/creator-subscription";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { getPurchasedPostMediaIds } from "@/lib/post-paid-media";
+import { getPostEngagementForUser } from "@/lib/post-engagement";
+import { getUserWikiContributions } from "@/actions/anime";
 import {
   attachProfilePostAuthor,
   profilePostIncludeLight,
   parseProfileMediaKind,
   parseProfileSort,
+  parseProfileTab,
   profilePostsOrderBy,
   type ProfileTab,
   type ProfileMediaKind,
@@ -35,7 +38,7 @@ import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
 import { canViewLockedAccountContent } from "@/lib/posts-lock";
 import type { UserPublicFields } from "@/lib/user-public-select";
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 const MEDIA_GRID_PAGE_SIZE = 30;
 
 export type ProfileGridMediaItem = {
@@ -602,3 +605,159 @@ export async function getProfileMediaGrid(
     nextCursor: rows.length === MEDIA_GRID_PAGE_SIZE ? rows[rows.length - 1]?.id : null,
   };
 }
+
+function profileTabQueryKey(tab: ProfileTab, sort: ProfileSort, kind: ProfileMediaKind) {
+  return `${tab}:${sort}:${kind}`;
+}
+
+export type ProfileTabInitialPayload =
+  | {
+      key: string;
+      kind: "timeline";
+      items: {
+        type: "post" | "reply" | "like";
+        post: Record<string, unknown> & { id: string; createdAt: string };
+        comment?: { id: string; content: string; createdAt: string };
+      }[];
+      nextCursor: string | null;
+      likedIds: string[];
+      starredIds: string[];
+      repostedIds: string[];
+    }
+  | {
+      key: string;
+      kind: "media";
+      items: ProfileGridMediaItem[];
+      nextCursor: string | null;
+    }
+  | {
+      key: string;
+      kind: "wiki";
+      data: {
+        created: { slug: string; title: string; updatedAt: string }[];
+        edited: { id: string; createdAt: string; anime: { slug: string; title: string } }[];
+      };
+    };
+
+/** SSR 첫 탭 — 클라이언트 fetch 없이 타임라인 즉시 표시 */
+export const getProfileTabInitialPayload = cache(async function getProfileTabInitialPayload(
+  username: string,
+  tabParam?: string,
+  sortParam?: string,
+  kindParam?: string
+): Promise<ProfileTabInitialPayload | null> {
+  const header = await getProfileHeader(username);
+  if (!header) return null;
+
+  const tab = parseProfileTab(tabParam);
+  const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
+  const sort = parseProfileSort(sortParam);
+  const mediaKind = parseProfileMediaKind(kindParam);
+  const key = profileTabQueryKey(
+    effectiveTab,
+    sort,
+    effectiveTab === "media" ? mediaKind : "all"
+  );
+
+  const profileBlocked =
+    !header.isSelf &&
+    (header.relationship.blockedByViewer || header.relationship.blockedViewer);
+  const postsLockedFromViewer = !header.isSelf && !header.canViewPosts;
+
+  if (effectiveTab === "wiki") {
+    const { created, edited } = await getUserWikiContributions(header.user.id);
+    return {
+      key,
+      kind: "wiki",
+      data: {
+        created: created.map((a) => ({
+          slug: a.slug,
+          title: a.title,
+          updatedAt: a.updatedAt.toISOString(),
+        })),
+        edited: edited.map((r) => ({
+          id: r.id,
+          createdAt: r.createdAt.toISOString(),
+          anime: r.anime,
+        })),
+      },
+    };
+  }
+
+  if (profileBlocked || postsLockedFromViewer) {
+    if (effectiveTab === "media") {
+      return { key, kind: "media", items: [], nextCursor: null };
+    }
+    return {
+      key,
+      kind: "timeline",
+      items: [],
+      nextCursor: null,
+      likedIds: [],
+      starredIds: [],
+      repostedIds: [],
+    };
+  }
+
+  if (effectiveTab === "media") {
+    const mediaGrid = await getProfileMediaGrid(header.user.id, header.author, undefined, {
+      sort,
+      mediaKind,
+    });
+    return {
+      key,
+      kind: "media",
+      items: mediaGrid.items,
+      nextCursor: mediaGrid.nextCursor,
+    };
+  }
+
+  const timeline = await getProfileTimeline(
+    header.user.id,
+    effectiveTab,
+    header.author,
+    undefined,
+    { sort }
+  );
+
+  const items = timeline.items.map((item) => {
+    if (item.type === "post") {
+      return {
+        type: "post" as const,
+        post: { ...item.post, createdAt: item.post.createdAt.toISOString() },
+      };
+    }
+    if (item.type === "reply") {
+      return {
+        type: "reply" as const,
+        comment: {
+          id: item.comment.id,
+          content: item.comment.content,
+          createdAt: item.comment.createdAt.toISOString(),
+        },
+        post: { ...item.post, createdAt: item.post.createdAt.toISOString() },
+      };
+    }
+    return {
+      type: "like" as const,
+      post: { ...item.post, createdAt: item.post.createdAt.toISOString() },
+    };
+  });
+
+  const viewerId = await getAuthUserId();
+  const postIds = [...new Set(items.map((item) => item.post.id))];
+  const engagement =
+    viewerId && postIds.length > 0
+      ? await getPostEngagementForUser(viewerId, postIds)
+      : { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
+
+  return {
+    key,
+    kind: "timeline",
+    items,
+    nextCursor: timeline.nextCursor,
+    likedIds: engagement.likedIds,
+    starredIds: engagement.starredIds,
+    repostedIds: engagement.repostedIds,
+  };
+});

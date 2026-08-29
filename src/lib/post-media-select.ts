@@ -44,9 +44,9 @@ export const postMediaGallery = {
   },
 };
 
-/** 프로필 타임라인 — 유료 미디어 id 포함 */
+/** 프로필 타임라인 — 카드뷰용 (피드와 동일 상한, 라이트박스는 prefetch) */
 export const postMediaProfileTimeline = {
-  take: POST_MEDIA_FULL_TAKE,
+  take: POST_MEDIA_FEED_TAKE,
   orderBy: { order: "asc" as const },
   select: {
     id: true,

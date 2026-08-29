@@ -55,11 +55,16 @@ export function ProfileHeaderSkeleton() {
 
 export function ProfileTimelineSkeleton() {
   return (
-    <div className="animate-pulse divide-y divide-border/40">
+    <div className="animate-pulse divide-y divide-border/40" aria-busy="true">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="p-4 space-y-2">
-          <div className="h-4 w-3/4 rounded bg-muted" />
-          <div className="h-3 w-1/2 rounded bg-muted" />
+        <div key={i} className="flex gap-3 px-4 py-3">
+          <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-3 w-32 rounded bg-muted" />
+            <div className="h-3 w-full max-w-md rounded bg-muted" />
+            <div className="h-3 w-4/5 max-w-sm rounded bg-muted" />
+            {i === 1 ? <div className="mt-2 h-48 w-full max-w-lg rounded-2xl bg-muted" /> : null}
+          </div>
         </div>
       ))}
     </div>
