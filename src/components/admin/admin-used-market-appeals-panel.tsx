@@ -113,8 +113,9 @@ export function AdminUsedMarketAppealsPanel({
   }
 
   const selectedAppeal = detail && "appeal" in detail ? detail.appeal : null;
-  const sanctionLogs = detail && "sanctionLogs" in detail ? detail.sanctionLogs : [];
-  const bids = detail && "bids" in detail ? detail.bids : [];
+  const sanctionLogs =
+    detail && "sanctionLogs" in detail ? (detail.sanctionLogs ?? []) : [];
+  const bids = detail && "bids" in detail ? (detail.bids ?? []) : [];
 
   return (
     <Card>
