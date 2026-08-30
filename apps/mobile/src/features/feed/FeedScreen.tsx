@@ -16,7 +16,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { fetchFeedPage, type FeedPost } from "@/api/feed";
+import { fetchFeedPage, type FeedItem, type FeedPost } from "@/api/feed";
 import { saveFeedBootstrap } from "@/api/feed-bootstrap-cache";
 import { fetchWeeklyHighlights, type HighlightItem } from "@/api/highlights";
 import { searchAll, type SearchResult } from "@/api/social";
@@ -24,6 +24,7 @@ import { prefetchPostComments } from "@/api/post-comments-query";
 import { useAuth } from "@/auth/AuthContext";
 import { InlineComposeBox } from "@/features/compose/InlineComposeBox";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
+import { FeedAdCard } from "@/features/feed/FeedAdCard";
 import { SideDrawer, type DrawerRoute } from "@/navigation/SideDrawer";
 import { warmDrawerBundles, warmTabBundles } from "@/navigation/tab-warmup";
 import { floatingTabClearance } from "@/navigation/tab-layout";
@@ -80,24 +81,36 @@ export function FeedScreen() {
   const bottomPad = floatingTabClearance(insets.bottom);
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
+  const postOffsetRef = useRef(0);
+
   const query = useInfiniteQuery({
     queryKey: ["mobile-feed"],
-    queryFn: ({ pageParam }) => fetchFeedPage(pageParam ?? null, 10),
+    queryFn: ({ pageParam }) => {
+      const offset = postOffsetRef.current;
+      return fetchFeedPage(pageParam ?? null, 10, offset).then((page) => {
+        const addedPosts = page.items.filter((i) => i.type === "post").length;
+        postOffsetRef.current += addedPosts;
+        return page;
+      });
+    },
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     staleTime: 90_000,
     refetchOnMount: false,
   });
 
-  const posts = useMemo(() => {
-    const list: FeedPost[] = [];
+  const feedItems = useMemo(() => {
+    const list: FeedItem[] = [];
     for (const page of query.data?.pages ?? []) {
-      for (const item of page.items) {
-        if (item.type === "post") list.push(item.data);
-      }
+      for (const item of page.items) list.push(item);
     }
     return list;
   }, [query.data]);
+
+  const posts = useMemo(
+    () => feedItems.filter((i): i is { type: "post"; data: FeedPost } => i.type === "post").map((i) => i.data),
+    [feedItems]
+  );
 
   useEffect(() => {
     if (!query.data?.pages?.length) return;
@@ -134,6 +147,7 @@ export function FeedScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    postOffsetRef.current = 0;
     await queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
     setRefreshing(false);
   }, [queryClient]);
@@ -178,13 +192,15 @@ export function FeedScreen() {
   );
 
   const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: { item?: FeedPost; isViewable?: boolean }[] }) => {
-      const visible = viewableItems.filter((v) => v.isViewable && v.item?.id);
-      const firstVideo = visible.find((v) =>
-        (v.item!.media ?? []).some((m) => m.type === "VIDEO" && (m.url || m.locked))
+    ({ viewableItems }: { viewableItems: { item?: FeedItem; isViewable?: boolean }[] }) => {
+      const visible = viewableItems.filter(
+        (v) => v.isViewable && v.item?.type === "post" && v.item.data?.id
       );
-      setActivePreviewId(firstVideo?.item?.id ?? null);
-      setVisiblePostIds(visible.map((v) => v.item!.id));
+      const firstVideo = visible.find((v) =>
+        (v.item!.data as FeedPost).media?.some((m) => m.type === "VIDEO" && (m.url || m.locked))
+      );
+      setActivePreviewId(firstVideo ? (firstVideo.item!.data as FeedPost).id : null);
+      setVisiblePostIds(visible.map((v) => (v.item!.data as FeedPost).id));
     }
   ).current;
 
@@ -218,20 +234,26 @@ export function FeedScreen() {
   }, [queryClient]);
 
   const renderItem = useCallback(
-    ({ item }: { item: FeedPost }) => (
-      <FeedPostCard
-        post={item}
-        previewActive={
-          isFocused && previewArmed && activePreviewIdRef.current === item.id
-        }
-        viewTrackActive={isFocused && visiblePostIds.includes(item.id)}
-        paymentsEnabled={paymentsEnabled}
-        onPurchaseSuccess={onPurchaseSuccess}
-        onPressPost={onPressPost}
-        onPressAuthor={onPressAuthor}
-        onPressVideo={onPressVideo}
-      />
-    ),
+    ({ item }: { item: FeedItem }) => {
+      if (item.type === "ad") {
+        return <FeedAdCard ad={item.data} />;
+      }
+      const post = item.data;
+      return (
+        <FeedPostCard
+          post={post}
+          previewActive={
+            isFocused && previewArmed && activePreviewIdRef.current === post.id
+          }
+          viewTrackActive={isFocused && visiblePostIds.includes(post.id)}
+          paymentsEnabled={paymentsEnabled}
+          onPurchaseSuccess={onPurchaseSuccess}
+          onPressPost={onPressPost}
+          onPressAuthor={onPressAuthor}
+          onPressVideo={onPressVideo}
+        />
+      );
+    },
     [
       isFocused,
       onPressAuthor,
@@ -244,7 +266,10 @@ export function FeedScreen() {
     ]
   );
 
-  const getItemType = useCallback((item: FeedPost) => feedItemType(item), []);
+  const getItemType = useCallback(
+    (item: FeedItem) => (item.type === "ad" ? "ad" : feedItemType(item.data)),
+    []
+  );
 
   return (
     <Screen safeTop={false}>
@@ -381,9 +406,9 @@ export function FeedScreen() {
         </View>
       ) : (
         <FlashList
-          data={posts}
+          data={feedItems}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => (item.type === "ad" ? `ad-${item.data.id}` : item.data.id)}
           getItemType={getItemType}
           extraData={`${activePreviewId}:${isFocused ? 1 : 0}:${previewArmed ? 1 : 0}:${visiblePostIds.join(",")}`}
           drawDistance={PerformanceBudgets.feedDrawDistance}

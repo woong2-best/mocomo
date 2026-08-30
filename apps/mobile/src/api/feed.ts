@@ -48,8 +48,22 @@ export type FeedPost = {
   anime?: { title: string; slug: string } | null;
 };
 
+export type FeedAd = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string;
+  sponsorName?: string | null;
+  ctaLabel?: string | null;
+  adCategory?: string | null;
+};
+
+export type FeedItem =
+  | { type: "post"; data: FeedPost }
+  | { type: "ad"; data: FeedAd };
+
 export type FeedPage = {
-  items: { type: "post"; data: FeedPost }[];
+  items: FeedItem[];
   nextCursor: string | null;
   likedIds: string[];
   starredIds: string[];
@@ -58,10 +72,15 @@ export type FeedPage = {
   error?: string;
 };
 
-export async function fetchFeedPage(cursor?: string | null, limit = 12): Promise<FeedPage> {
+export async function fetchFeedPage(
+  cursor?: string | null,
+  limit = 12,
+  postOffset = 0
+): Promise<FeedPage> {
   const q = new URLSearchParams();
   if (cursor) q.set("cursor", cursor);
   q.set("limit", String(limit));
+  if (postOffset > 0) q.set("postOffset", String(postOffset));
   const path = `${MobileApi.feed}?${q.toString()}`;
   const page = await apiRequest<FeedPage>(path, { auth: true });
   const liked = new Set(page.likedIds ?? []);
@@ -69,15 +88,19 @@ export async function fetchFeedPage(cursor?: string | null, limit = 12): Promise
   const reposted = new Set(page.repostedIds ?? []);
   return {
     ...page,
-    items: (page.items ?? []).map((item) => ({
-      ...item,
-      data: {
-        ...item.data,
-        liked: liked.has(item.data.id),
-        starred: starred.has(item.data.id),
-        reposted: reposted.has(item.data.id),
-      },
-    })),
+    items: (page.items ?? []).map((item) =>
+      item.type === "ad"
+        ? item
+        : {
+            ...item,
+            data: {
+              ...item.data,
+              liked: liked.has(item.data.id),
+              starred: starred.has(item.data.id),
+              reposted: reposted.has(item.data.id),
+            },
+          }
+    ),
   };
 }
 

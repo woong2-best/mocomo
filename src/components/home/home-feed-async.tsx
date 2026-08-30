@@ -1,6 +1,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { getCachedFeedPosts } from "@/lib/cached-data";
+import { getCachedFeedAds, getCachedFeedPosts } from "@/lib/cached-data";
+import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { getCachedSession } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
@@ -21,9 +22,10 @@ function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): 
 
 export async function HomeFeedAsync() {
   try {
-    const [rawPosts, session] = await Promise.all([
+    const [rawPosts, session, feedAds] = await Promise.all([
       getCachedFeedPosts(),
       getCachedSession(),
+      getCachedFeedAds(),
     ]);
     const viewerId = session?.user?.id ?? null;
     const visible = await filterPostsByAudienceLock(
@@ -47,11 +49,12 @@ export async function HomeFeedAsync() {
           }),
     ]);
     const serialized = serializeCreatedAt(posts);
-    const mixed = serialized.map((data) => ({ type: "post" as const, data }));
-    const nextCursor = rawPosts.length === 12 ? rawPosts[rawPosts.length - 1]?.id ?? null : null;
-    const hasDbPosts = mixed.some((item) => item.type === "post");
     const isLoggedIn = !!session?.user;
     const isPremium = session?.user?.premiumTier === "PREMIUM";
+    const ads = isPremium ? [] : feedAds;
+    const mixed = mixFeedWithAds(serialized, ads);
+    const nextCursor = rawPosts.length === 12 ? rawPosts[rawPosts.length - 1]?.id ?? null : null;
+    const hasDbPosts = mixed.some((item) => item.type === "post");
     const paymentsEnabled = isPaymentsConfigured();
     const visibleMixed = mixed;
 
@@ -63,16 +66,20 @@ export async function HomeFeedAsync() {
         starredIds={engagement.starredIds}
         repostedIds={engagement.repostedIds}
         paymentsEnabled={paymentsEnabled}
-        feedItems={visibleMixed.map((item) => ({
-          type: "post" as const,
-          data: {
-            ...item.data,
-            createdAt:
-              item.data.createdAt instanceof Date
-                ? item.data.createdAt.toISOString()
-                : String(item.data.createdAt),
-          },
-        }))}
+        feedItems={visibleMixed.map((item) =>
+          item.type === "ad"
+            ? item
+            : {
+                type: "post" as const,
+                data: {
+                  ...item.data,
+                  createdAt:
+                    item.data.createdAt instanceof Date
+                      ? item.data.createdAt.toISOString()
+                      : String(item.data.createdAt),
+                },
+              }
+        )}
         nextCursor={nextCursor}
         hasDbPosts={hasDbPosts}
       />

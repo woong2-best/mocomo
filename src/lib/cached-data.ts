@@ -52,11 +52,7 @@ export const getCachedFeedPosts = unstable_cache(
   { revalidate: 30, tags: [FEED_POSTS_CACHE_TAG] }
 );
 
-export const getCachedFeedAds = unstable_cache(
-  async () => db.adSlot.findMany({ where: { active: true, isFeedAd: true }, take: 10 }),
-  ["home-feed-ads"],
-  { revalidate: 300 }
-);
+export { getCachedFeedAdPool as getCachedFeedAds } from "@/lib/feed-ads";
 
 export const getCachedSidebarAds = unstable_cache(
   async () =>

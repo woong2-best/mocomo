@@ -5,6 +5,8 @@ import { resolveFeedPage, type FeedMode } from "@/lib/feed-ranking";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
+import { fetchFeedAdPool } from "@/lib/feed-ads";
+import { mixFeedWithAds } from "@/lib/feed-mixer";
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,6 +16,10 @@ export async function GET(req: NextRequest) {
     const session = await getCachedSession();
     const cursor = req.nextUrl.searchParams.get("cursor");
     const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "12", 10), 30);
+    const postOffset = Math.max(
+      0,
+      parseInt(req.nextUrl.searchParams.get("postOffset") || "0", 10) || 0
+    );
     const modeParam = req.nextUrl.searchParams.get("mode");
     const mode: FeedMode =
       modeParam === "latest" || modeParam === "following" || modeParam === "for_you"
@@ -36,23 +42,29 @@ export async function GET(req: NextRequest) {
     const postIds = visible.map((p) => p.id);
     const viewerUserId = session?.user?.id;
 
-    const [gated, engagement] = await Promise.all([
+    const [gated, engagement, feedAds] = await Promise.all([
       attachWebPaidMediaPlayback(visible, viewerUserId ?? null),
       viewerUserId && postIds.length > 0
         ? getPostEngagementForUser(viewerUserId, postIds)
         : Promise.resolve({ likedIds: [], starredIds: [], repostedIds: [] }),
+      session?.user?.premiumTier === "PREMIUM" ? Promise.resolve([]) : fetchFeedAdPool(),
     ]);
 
-    const items = gated.map((data) => ({ type: "post" as const, data }));
+    const serialized = gated.map((data) => ({
+      ...data,
+      createdAt: data.createdAt.toISOString(),
+    }));
+    const mixed = mixFeedWithAds(serialized, feedAds, { postOffset });
 
     const nextCursor = posts.length === limit ? posts[posts.length - 1]?.id : null;
 
     return NextResponse.json(
       {
-        items: items.map((item) => ({
-          type: "post" as const,
-          data: { ...item.data, createdAt: item.data.createdAt.toISOString() },
-        })),
+        items: mixed.map((item) =>
+          item.type === "ad"
+            ? item
+            : { type: "post" as const, data: item.data }
+        ),
         nextCursor,
         mode,
         likedIds: engagement.likedIds,
