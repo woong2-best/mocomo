@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   isProfilePath,
@@ -8,6 +8,7 @@ import {
   shouldShowRightPanel,
 } from "@/lib/sidebar-panel-paths";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useIdleCallback } from "@/hooks/use-idle-callback";
 import {
   RightPanelContent,
   RightPanelSkeleton,
@@ -30,7 +31,7 @@ export function RightPanelHydrated({
   const [data, setData] = useState<SidebarPanelData | null>(initialData);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  useIdleCallback(() => {
     if (!showDefault) return;
     if (data) return;
 
@@ -38,7 +39,7 @@ export function RightPanelHydrated({
     const ac = new AbortController();
     setLoading(true);
 
-    (async () => {
+    void (async () => {
       try {
         const res = await fetch(
           `/api/sidebar?country=${encodeURIComponent(countryCode || initialCountryCode)}`,

@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useIdleCallback } from "@/hooks/use-idle-callback";
 import { userDisplayName } from "@/lib/user-public-select";
 import { cn } from "@/lib/utils";
 import type { RecommendListItem } from "@/lib/follow-recommendations/types";
@@ -57,7 +58,7 @@ export function WhoToFollowPanel() {
     }
   }, [signedIn]);
 
-  useEffect(() => {
+  useIdleCallback(() => {
     void load();
   }, [load]);
 

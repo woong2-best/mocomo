@@ -64,9 +64,7 @@ async function UsedFeed({
             : "아직 올라온 중고 글이 없어요."}
         </p>
         <Button variant="secondary" asChild>
-          <Link href="/used/new" prefetch>
-            첫 글 올리기
-          </Link>
+          <Link href="/used/new">첫 글 올리기</Link>
         </Button>
       </div>
     );

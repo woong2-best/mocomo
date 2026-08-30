@@ -9,6 +9,9 @@ export function isFastHubPath(pathname: string): boolean {
   if (pathname === "/market" || pathname === "/messages") return true;
   if (pathname === "/rankings" || pathname === "/notifications") return true;
   if (pathname === "/voice" || pathname === "/live") return true;
+  if (pathname === "/search" || pathname === "/communities") return true;
+  if (pathname === "/star" || pathname === "/anime") return true;
+  if (pathname === "/wallet" || pathname === "/settings") return true;
   return /^\/u\/[^/]+$/.test(pathname);
 }
 

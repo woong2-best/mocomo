@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Loader2, Play, Star } from "lucide-react";
 import type { StarHubCreator } from "@/lib/star-bookmarks";
@@ -41,6 +41,7 @@ function StarGridTile({ post }: { post: GridPost }) {
   return (
     <Link
       href={`/post/${post.id}`}
+      prefetch={false}
       className="group relative block aspect-square min-w-0 w-full overflow-hidden rounded-sm bg-neutral-900 ring-1 ring-border/40 hover:ring-primary/40 transition-shadow"
     >
       {cover?.url ? (
@@ -102,7 +103,14 @@ export function StarHubClient({
     }
   }, []);
 
+  const skipInitialRefresh = useRef(true);
+
   useEffect(() => {
+    if (skipInitialRefresh.current && creatorId === null) {
+      skipInitialRefresh.current = false;
+      return;
+    }
+    skipInitialRefresh.current = false;
     void refresh(creatorId);
   }, [creatorId, refresh]);
 

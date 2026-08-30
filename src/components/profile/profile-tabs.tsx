@@ -20,7 +20,7 @@ export function ProfileTabs({
   /** @deprecated Create moved to followers row — kept for call-site compat */
   isSelf?: boolean;
 }) {
-  const { tab: active, navigate } = useProfileTab();
+  const { tab: active, navigate, prefetchQuery } = useProfileTab();
   const isMedia = active === "media";
 
   return (
@@ -34,6 +34,8 @@ export function ProfileTabs({
                 key={t.id}
                 type="button"
                 onClick={() => navigate({ tab: t.id })}
+                onMouseEnter={() => prefetchQuery({ tab: t.id })}
+                onFocus={() => prefetchQuery({ tab: t.id })}
                 className={cn(
                   "relative min-w-0 flex-1 py-3.5 text-center text-sm font-medium transition-colors hover:bg-muted/40",
                   isActive ? "font-bold text-foreground" : "text-muted-foreground"

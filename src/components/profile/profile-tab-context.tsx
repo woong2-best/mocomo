@@ -31,6 +31,7 @@ type ProfileTabContextValue = ProfileTabQuery & {
   username: string;
   basePath: string;
   navigate: (patch: Partial<ProfileTabQuery>) => void;
+  prefetchQuery: (patch: Partial<ProfileTabQuery>) => void;
   buildHref: (query: ProfileTabQuery) => string;
   isPending: boolean;
 };
@@ -89,27 +90,55 @@ export function ProfileTabProvider({
     [router]
   );
 
-  useEffect(() => {
-    const tabs: ProfileTab[] = ["posts", "replies", "media", "wiki", "likes"];
-    for (const tab of tabs) {
-      prefetchHref(buildHref({ tab, sort: "new", kind: tab === "media" ? "photo" : "all" }));
-      prefetchHref(buildHref({ tab, sort: "popular", kind: tab === "media" ? "photo" : "all" }));
-      prefetchHref(buildHref({ tab, sort: "oldest", kind: tab === "media" ? "photo" : "all" }));
-    }
-  }, [buildHref, prefetchHref]);
-
-  const navigate = useCallback(
-    (patch: Partial<ProfileTabQuery>) => {
+  const resolveQuery = useCallback(
+    (patch: Partial<ProfileTabQuery>, base: ProfileTabQuery): ProfileTabQuery => {
       const next: ProfileTabQuery = {
-        tab: patch.tab ?? active.tab,
-        sort: patch.sort ?? active.sort,
-        kind: patch.kind ?? active.kind,
+        tab: patch.tab ?? base.tab,
+        sort: patch.sort ?? base.sort,
+        kind: patch.kind ?? base.kind,
       };
       if (next.tab !== "media") {
         next.kind = "all";
       } else if (patch.tab === "media" && !patch.kind) {
         next.kind = "photo";
       }
+      return next;
+    },
+    []
+  );
+
+  const prefetchQuery = useCallback(
+    (patch: Partial<ProfileTabQuery>) => {
+      prefetchHref(buildHref(resolveQuery(patch, active)));
+    },
+    [active, buildHref, prefetchHref, resolveQuery]
+  );
+
+  // Twitter-style: prefetch adjacent tabs only when idle — not all 15 combos on mount.
+  useEffect(() => {
+    const tabs: ProfileTab[] = ["posts", "replies", "media", "wiki", "likes"];
+    const idx = tabs.indexOf(active.tab);
+    const neighbors = [tabs[idx - 1], tabs[idx + 1]].filter(
+      (tab): tab is ProfileTab => tab != null
+    );
+
+    const run = () => {
+      for (const tab of neighbors) {
+        prefetchQuery({ tab });
+      }
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(run, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = setTimeout(run, 1200);
+    return () => clearTimeout(timer);
+  }, [active.tab, prefetchQuery]);
+
+  const navigate = useCallback(
+    (patch: Partial<ProfileTabQuery>) => {
+      const next = resolveQuery(patch, active);
       setOptimistic(next);
       const href = buildHref(next);
       prefetchHref(href);
@@ -117,7 +146,7 @@ export function ProfileTabProvider({
         router.replace(href, { scroll: false });
       });
     },
-    [active.tab, active.sort, active.kind, buildHref, prefetchHref, router]
+    [active, buildHref, prefetchHref, resolveQuery, router]
   );
 
   const value = useMemo<ProfileTabContextValue>(
@@ -128,10 +157,21 @@ export function ProfileTabProvider({
       sort: active.sort,
       kind: active.kind,
       navigate,
+      prefetchQuery,
       buildHref,
       isPending,
     }),
-    [username, basePath, active.tab, active.sort, active.kind, navigate, buildHref, isPending]
+    [
+      username,
+      basePath,
+      active.tab,
+      active.sort,
+      active.kind,
+      navigate,
+      prefetchQuery,
+      buildHref,
+      isPending,
+    ]
   );
 
   return <ProfileTabContext.Provider value={value}>{children}</ProfileTabContext.Provider>;

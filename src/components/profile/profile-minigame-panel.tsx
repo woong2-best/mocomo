@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Car, Trophy } from "lucide-react";
+import { useIdleCallback } from "@/hooks/use-idle-callback";
 import {
   RANK_TIER_LABELS,
   VEHICLE_SPECS,
@@ -38,7 +39,7 @@ export function ProfileMinigamePanel({ username }: { username: string }) {
   const [showcase, setShowcase] = useState<ParkingShowcase | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useIdleCallback(() => {
     let cancelled = false;
     setLoading(true);
     void Promise.all([

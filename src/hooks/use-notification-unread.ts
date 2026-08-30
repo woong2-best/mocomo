@@ -6,6 +6,7 @@ import {
   NOTIFICATIONS_READ_EVENT,
   dispatchNotificationsRead,
 } from "@/lib/notification-read-sync";
+import { useIdleCallback } from "@/hooks/use-idle-callback";
 
 export function useNotificationUnread() {
   const pathname = usePathname();
@@ -25,12 +26,15 @@ export function useNotificationUnread() {
   useEffect(() => {
     if (pathname === "/notifications") {
       setUnread(0);
-      return;
     }
+  }, [pathname]);
+
+  useIdleCallback(() => {
+    if (pathname === "/notifications") return;
     void fetchUnread();
     const t = setInterval(() => void fetchUnread(), 60000);
     return () => clearInterval(t);
-  }, [pathname, fetchUnread]);
+  }, [fetchUnread, pathname]);
 
   useEffect(() => {
     const onRead = () => setUnread(0);

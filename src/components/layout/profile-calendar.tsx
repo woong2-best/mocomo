@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useIdleCallback } from "@/hooks/use-idle-callback";
 import {
   Dialog,
   DialogContent,
@@ -86,7 +87,7 @@ export function ProfileCalendar() {
     }
   }, [signedIn, year, month]);
 
-  useEffect(() => {
+  useIdleCallback(() => {
     void loadMemos();
   }, [loadMemos]);
 

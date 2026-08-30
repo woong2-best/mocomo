@@ -20,19 +20,13 @@ export function UsedSectionHeader() {
       </div>
       <nav className="flex flex-wrap items-center gap-2 shrink-0">
         <Button variant="outline" size="sm" className="rounded-xl" asChild>
-          <Link href="/used?mode=auction" prefetch>
-            경매
-          </Link>
+          <Link href="/used?mode=auction">경매</Link>
         </Button>
         <Button variant="outline" size="sm" className="rounded-xl" asChild>
-          <Link href="/used/my" prefetch>
-            내 거래
-          </Link>
+          <Link href="/used/my">내 거래</Link>
         </Button>
         <Button variant="secondary" size="sm" className="rounded-xl" asChild>
-          <Link href="/used/new" prefetch>
-            글쓰기
-          </Link>
+          <Link href="/used/new">글쓰기</Link>
         </Button>
       </nav>
     </div>

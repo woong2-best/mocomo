@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { shouldShowDesktopAdRails } from "@/lib/desktop-ad-rails";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
+import { useIdleCallback } from "@/hooks/use-idle-callback";
 import { AdRailUnit } from "@/components/layout/ad-rail-unit";
 import type { RailAdData } from "@/lib/default-ads";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,7 @@ export function DesktopAdRails() {
 
   const [rails, setRails] = useState<RailsPayload | null>(null);
 
-  useEffect(() => {
+  useIdleCallback(() => {
     if (!showRails || isPremium) {
       setRails(null);
       return;
@@ -61,7 +62,7 @@ export function DesktopAdRails() {
     let cancelled = false;
     const ac = new AbortController();
 
-    (async () => {
+    void (async () => {
       try {
         const res = await fetch("/api/ads/rails", { signal: ac.signal });
         const body = await res.json();

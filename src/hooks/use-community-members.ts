@@ -1,7 +1,15 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { CommunityMemberView } from "@/lib/community-server/types";
+import { useIdleCallback } from "@/hooks/use-idle-callback";
 
 export function useCommunityMembers(communityId: string, initial?: CommunityMemberView[]) {
+  const [idleReady, setIdleReady] = useState(initial !== undefined);
+
+  useIdleCallback(() => {
+    setIdleReady(true);
+  }, [initial]);
+
   return useQuery({
     queryKey: ["community-members", communityId],
     queryFn: async () => {
@@ -22,7 +30,7 @@ export function useCommunityMembers(communityId: string, initial?: CommunityMemb
       }
     },
     initialData: initial,
-    enabled: !!communityId,
+    enabled: !!communityId && idleReady,
     staleTime: 120_000,
     // 진입 직후 세션·토큰과 경쟁하지 않도록 폴링/즉시 refetch 끔
     refetchInterval: false,

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getDiscoveryMatchCount } from "@/actions/discovery";
+import { useIdleCallback } from "@/hooks/use-idle-callback";
 import { cn } from "@/lib/utils";
 
 export function DiscoveryMatchBadge({ className }: { className?: string }) {
   const [count, setCount] = useState(0);
 
-  useEffect(() => {
+  useIdleCallback(() => {
     let active = true;
     const refresh = () => {
       void getDiscoveryMatchCount()

@@ -66,7 +66,7 @@ export function MarketplaceListingCard({
   return (
     <Link
       href={`/market/i/${item.id}`}
-      prefetch
+      prefetch={false}
       className="market-product-card group block min-w-0"
     >
       <article className="space-y-2">

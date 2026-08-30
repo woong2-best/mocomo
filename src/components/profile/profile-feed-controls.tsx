@@ -13,7 +13,7 @@ const SORT_OPTIONS: { id: ProfileSort; label: string }[] = [
 
 /** Compact sort links — sits with Create on the following/followers row. */
 export function ProfileSortControls({ className }: { className?: string }) {
-  const { tab, sort, navigate } = useProfileTab();
+  const { tab, sort, navigate, prefetchQuery } = useProfileTab();
 
   if (tab !== "posts" && tab !== "media") return null;
 
@@ -25,6 +25,8 @@ export function ProfileSortControls({ className }: { className?: string }) {
           <button
             type="button"
             onClick={() => navigate({ sort: opt.id })}
+            onMouseEnter={() => prefetchQuery({ sort: opt.id })}
+            onFocus={() => prefetchQuery({ sort: opt.id })}
             className={cn(
               "transition-colors",
               sort === opt.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
@@ -54,7 +56,7 @@ const KIND_OPTIONS: {
  * 3-col media grid stays edge-to-edge underneath.
  */
 export function ProfileFeedControls() {
-  const { tab, kind, navigate } = useProfileTab();
+  const { tab, kind, navigate, prefetchQuery } = useProfileTab();
 
   if (tab !== "media") return null;
 
@@ -78,6 +80,8 @@ export function ProfileFeedControls() {
               role="tab"
               aria-selected={active}
               onClick={() => setKind(id)}
+              onMouseEnter={() => prefetchQuery({ kind: id })}
+              onFocus={() => prefetchQuery({ kind: id })}
               className={cn(
                 "liquid-glass-segment inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium sm:px-3.5",
                 active && "liquid-glass-segment-active"

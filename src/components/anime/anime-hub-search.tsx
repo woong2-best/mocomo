@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { useLocale } from "@/components/providers/locale-provider";
+import { useIdleCallback } from "@/hooks/use-idle-callback";
 import { displayAnimeTitle } from "@/lib/anime-display-title";
 
 type Result = { slug: string; title: string; titleEn: string | null };
@@ -18,7 +19,7 @@ export function AnimeHubSearch() {
   const [popular, setPopular] = useState<{ query: string; count: number }[]>([]);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
+  useIdleCallback(() => {
     fetch("/api/anime/search?q=")
       .then((r) => r.json())
       .then((d: { popular?: { query: string; count: number }[] }) => setPopular(d.popular ?? []))

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getCommunityServerContext, getCommunityMembersForSidebar } from "@/lib/community-server/server-data";
+import { getCommunityServerContext } from "@/lib/community-server/server-data";
 import { CommunityServerLayoutClient } from "@/components/community-server/server-layout-client";
 
 export const dynamic = "force-dynamic";
@@ -17,13 +17,8 @@ export default async function CommunityLayout({
   const ctx = await getCommunityServerContext(slug);
   if (!ctx) notFound();
 
-  const initialMembers =
-    ctx.isPublic || ctx.isMember || ctx.isOwner
-      ? await getCommunityMembersForSidebar(ctx.communityId)
-      : [];
-
   return (
-    <CommunityServerLayoutClient slug={slug} initialContext={ctx} initialMembers={initialMembers}>
+    <CommunityServerLayoutClient slug={slug} initialContext={ctx}>
       {children}
     </CommunityServerLayoutClient>
   );
