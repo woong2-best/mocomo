@@ -29,6 +29,7 @@ const TYPE_LABELS: Record<PaymentIntentType, string> = {
   EVENT_REGISTRATION: "이벤트",
   CREATOR_EPISODE: "유료 회차",
   POST_MEDIA: "유료 미디어",
+  MESSAGE_MEDIA: "DM 팬아트",
   CREATOR_SUBSCRIPTION: "멤버십 구독",
   STUDIO_ASSET: "Studio 자산",
   MARKETPLACE: "마켓",
@@ -180,6 +181,13 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
       contentTitle = creatorDisplayName ?? (creatorUsername ? `@${creatorUsername}` : "크리에이터");
       contentSubtitle = metaStr(meta, "message") ?? "후원";
       href = creatorUsername ? `/u/${creatorUsername}` : "/support";
+    }
+
+    if (intent.type === "MESSAGE_MEDIA") {
+      referenceType = "message_media";
+      contentTitle = orderName ?? "DM 팬아트";
+      contentSubtitle = creatorUsername ? `@${creatorUsername}` : "팬아트 구매";
+      href = creatorUsername ? `/u/${creatorUsername}` : "/messages";
     }
 
     if (intent.type === "POST_MEDIA") {

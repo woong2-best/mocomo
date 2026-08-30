@@ -67,7 +67,7 @@ export function FanArtSellDialog({ open, onOpenChange, onSend }: Props) {
         if (!data.url) throw new Error("업로드 URL을 받지 못했습니다.");
         url = toAbsoluteUploadUrl(data.url);
       } else {
-        const uploadable = isGalleryImageFile(file)
+        const uploadable = isGalleryImageFile(file, true)
           ? file
           : await fileToUploadableJpeg(file);
         url = toAbsoluteUploadUrl(await uploadImageBlob(uploadable, uploadable.name));

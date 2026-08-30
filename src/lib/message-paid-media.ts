@@ -1,10 +1,11 @@
+import type { MessageAttachmentType } from "@prisma/client";
 import { db } from "@/lib/db";
 import { isPaidMedia, isMediaUnlockedForViewer } from "@/lib/post-paid-media";
 
 export type MessageAttachmentAccessRow = {
   id: string;
   url: string;
-  type: string;
+  type: MessageAttachmentType;
   name?: string | null;
   priceKrw?: number;
   locked?: boolean;

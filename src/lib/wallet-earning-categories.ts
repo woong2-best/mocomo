@@ -16,6 +16,7 @@ const MARKET_CREATOR_TYPES = new Set([
   "emoticon_gift",
   "studio_asset",
   "post_media",
+  "message_media",
 ]);
 
 const LIVE_TYPES = new Set(["tip", "moco_tip", "call_booking"]);

@@ -1,9 +1,11 @@
 import type { Prisma } from "@prisma/client";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
+import type { ChatAttachmentView } from "@/lib/chat-attachments";
 import {
   attachMessageMediaAccess,
   type MessageAttachmentAccessRow,
 } from "@/lib/message-paid-media";
+import type { ChatMessageView } from "@/lib/chat-message-normalize";
 
 export const chatMessageInclude = {
   sender: { select: userPublicSelectMinimal },
@@ -29,7 +31,7 @@ function serializeAttachments(
   attachments: MessageRow["attachments"],
   senderId: string,
   opts?: SerializeChatMessageOptions
-) {
+): ChatAttachmentView[] {
   const purchased = opts?.purchasedAttachmentIds ?? new Set<string>();
   const rows: MessageAttachmentAccessRow[] = attachments.map((a) => ({
     id: a.id,
@@ -62,7 +64,7 @@ function serializeReplyTo(
   };
 }
 
-export function serializeChatMessage(m: MessageRow, opts?: SerializeChatMessageOptions) {
+export function serializeChatMessage(m: MessageRow, opts?: SerializeChatMessageOptions): ChatMessageView {
   return {
     id: m.id,
     content: m.content,
@@ -77,7 +79,7 @@ export function serializeChatMessages(
   messages: MessageRow[],
   viewerId: string,
   purchasedAttachmentIds: Set<string>
-) {
+): ChatMessageView[] {
   const opts = { viewerId, purchasedAttachmentIds };
   return messages.map((m) => serializeChatMessage(m, opts));
 }
@@ -85,3 +87,5 @@ export function serializeChatMessages(
 export function serializeChatMessageForRelay(m: MessageRow) {
   return serializeChatMessage(m, { forRelay: true });
 }
+
+export type SerializedChatMessage = ChatMessageView;
