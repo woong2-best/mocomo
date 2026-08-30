@@ -21,6 +21,7 @@ import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { CreatorMarketingSheet } from "@/features/messages/CreatorMarketingSheet";
 
 function relativeTime(iso: string | null) {
   if (!iso) return "";
@@ -57,6 +58,7 @@ export function MessagesInboxScreen() {
     placeholderData: (previous) => previous,
   });
   const loading = query.isLoading && !query.data;
+  const [marketingOpen, setMarketingOpen] = useState(false);
 
   const renderItem = useCallback(
     ({ item }: { item: DmInboxRoom }) => (
@@ -94,7 +96,19 @@ export function MessagesInboxScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.cobalt} />
           </Pressable>
         ) : (
-          <View style={styles.headerBtn} />
+          <Pressable
+            onPress={() => setMarketingOpen(true)}
+            hitSlop={10}
+            style={styles.headerBtn}
+            accessibilityLabel="크리에이터 마케팅"
+          >
+            <Ionicons
+              name="people"
+              size={24}
+              color={colors.terracotta}
+              style={styles.marketingIconGlow}
+            />
+          </Pressable>
         )}
         <Text style={styles.headerTitle}>메시지</Text>
         <Pressable
@@ -134,6 +148,7 @@ export function MessagesInboxScreen() {
           }
         />
       )}
+      <CreatorMarketingSheet visible={marketingOpen} onClose={() => setMarketingOpen(false)} />
     </Screen>
   );
 }
@@ -151,6 +166,11 @@ function createThemedStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     headerBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+    marketingIconGlow: {
+      textShadowColor: "rgba(232, 93, 58, 0.65)",
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 8,
+    },
     headerTitle: { fontSize: 22, fontWeight: "800", color: colors.text, letterSpacing: -0.3 },
     row: {
       flexDirection: "row",

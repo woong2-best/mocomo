@@ -75,6 +75,8 @@ export const MobileApi = {
   callBookingComplete: (id: string) => `/api/mobile/call-bookings/${id}/complete`,
   callBookingRefund: (id: string) => `/api/mobile/call-bookings/${id}/refund`,
   creatorCallSettings: "/api/mobile/me/creator-call-settings",
+  creatorDmMarketing: "/api/mobile/me/creator-dm-marketing",
+  creatorDmMarketingBulk: "/api/mobile/me/creator-dm-marketing/bulk",
   starMarketCheckout: (id: string) => `/api/mobile/market/${id}/checkout`,
   liveAlerts: (id: string) => `/api/mobile/live/${id}/alerts`,
   games: "/api/mobile/games",

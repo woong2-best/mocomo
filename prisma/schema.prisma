@@ -432,6 +432,8 @@ model User {
   creatorEpisodePurchases  CreatorEpisodePurchase[]
   postMediaPurchases       PostMediaPurchase[]
   messageAttachmentPurchases MessageAttachmentPurchase[]
+  creatorDmMarketing         CreatorDmMarketing?
+  creatorBulkDmJobs          CreatorBulkDmJob[]
   watermarkSessions        WatermarkSession[]
   watermarkDetectionLogs   WatermarkDetectionLog[] @relation("WatermarkDetectionAdmin")
   watermarkDetectionJobs   WatermarkDetectionJob[] @relation("WatermarkDetectionJobAdmin")
@@ -1401,6 +1403,52 @@ model MessageAttachmentPurchase {
   @@unique([buyerId, attachmentId])
   @@index([buyerId, createdAt(sort: Desc)])
   @@index([attachmentId])
+}
+
+/** 크리에이터 DM 마케팅 — 신규 팔로워 웰컴 메시지 설정 */
+model CreatorDmMarketing {
+  userId              String   @id
+  welcomeEnabled      Boolean  @default(false)
+  welcomeText         String?  @db.Text
+  welcomeMediaUrl     String?
+  welcomeMediaType    MessageAttachmentType?
+  welcomeMediaName    String?
+  /** Paid PPV media (USD cents, same as message attachments). */
+  welcomeMediaPriceKrw Int     @default(0)
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum CreatorBulkDmJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+/** 전체 팔로워 단체 DM 발송 작업 (비동기 배치) */
+model CreatorBulkDmJob {
+  id            String                 @id @default(cuid())
+  creatorId     String
+  content       String?                @db.Text
+  mediaUrl      String?
+  mediaType     MessageAttachmentType?
+  mediaName     String?
+  mediaPriceKrw Int                    @default(0)
+  status        CreatorBulkDmJobStatus @default(PENDING)
+  totalFollowers Int                   @default(0)
+  sentCount     Int                    @default(0)
+  failedCount   Int                    @default(0)
+  cursorFollowerId String?
+  errorMessage  String?                @db.Text
+  createdAt     DateTime               @default(now())
+  completedAt   DateTime?
+
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
 }
 
 model MessageRead {

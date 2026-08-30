@@ -94,6 +94,9 @@ export async function toggleFollowForUser(
   void notifyFollow(targetUserId, actorId);
   const { onFollowFromRecommendation } = await import("@/lib/follow-recommendations");
   void onFollowFromRecommendation(actorId, targetUserId).catch(() => {});
+  void import("@/lib/creator-dm-marketing").then(({ sendWelcomeDmOnNewFollow }) =>
+    sendWelcomeDmOnNewFollow(targetUserId, actorId).catch(() => {})
+  );
   await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
 
   return { following: true };

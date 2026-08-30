@@ -59,3 +59,16 @@ export function filterDmMessageContent(content: string): FilterDmMessageResult {
     matchedRuleIds,
   };
 }
+
+/** Marketing DM settings — reject prohibited terms instead of masking at save/send time. */
+export function validateCreatorMarketingText(
+  content: string | null | undefined
+): { ok: true; text: string } | { ok: false; error: string } {
+  const trimmed = (content ?? "").trim();
+  if (!trimmed) return { ok: true, text: "" };
+  const filtered = filterDmMessageContent(trimmed);
+  if (filtered.wasFiltered) {
+    return { ok: false, error: DM_CONTENT_FILTER_WARNING_KO };
+  }
+  return { ok: true, text: filtered.text };
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { MessageSquare, PenSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,10 @@ import type { SupportTierLevel } from "@prisma/client";
 import { getConversationMeta, formatChatListTime } from "@/lib/chat-display";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import {
+  CreatorMarketingDialog,
+  CreatorMarketingHeaderButton,
+} from "@/components/messages/creator-marketing-dialog";
 import { cn } from "@/lib/utils";
 
 type Room = {
@@ -43,6 +48,7 @@ export function ConversationList({
   className?: string;
 }) {
   const { isNativeApp } = useClientPlatform();
+  const [marketingOpen, setMarketingOpen] = useState(false);
 
   return (
     <aside
@@ -52,18 +58,31 @@ export function ConversationList({
       )}
     >
       <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between gap-2 shrink-0">
-        {!isNativeApp && <h1 className="font-bold text-lg tracking-tight">메시지</h1>}
-        <Button
-          asChild
-          size="icon"
-          variant="ghost"
-          className={cn("rounded-full h-9 w-9 shrink-0", isNativeApp && "ml-auto")}
-        >
-          <Link href="/messages/new" aria-label="새 메시지">
-            <PenSquare className="h-5 w-5" />
-          </Link>
-        </Button>
+        {isNativeApp ? (
+          <>
+            <CreatorMarketingHeaderButton onClick={() => setMarketingOpen(true)} />
+            <h1 className="font-bold text-lg tracking-tight flex-1 text-center">메시지</h1>
+            <Button asChild size="icon" variant="ghost" className="rounded-full h-9 w-9 shrink-0">
+              <Link href="/messages/new" aria-label="새 메시지">
+                <PenSquare className="h-5 w-5" />
+              </Link>
+            </Button>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-1 min-w-0">
+              <CreatorMarketingHeaderButton onClick={() => setMarketingOpen(true)} />
+              <h1 className="font-bold text-lg tracking-tight">메시지</h1>
+            </div>
+            <Button asChild size="icon" variant="ghost" className="rounded-full h-9 w-9 shrink-0">
+              <Link href="/messages/new" aria-label="새 메시지">
+                <PenSquare className="h-5 w-5" />
+              </Link>
+            </Button>
+          </>
+        )}
       </div>
+      <CreatorMarketingDialog open={marketingOpen} onOpenChange={setMarketingOpen} />
 
       <div className={cn("flex-1 overflow-y-auto min-h-0", isNativeApp && "pb-native-fab")}>
         {rooms.length === 0 ? (

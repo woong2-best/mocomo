@@ -74,6 +74,9 @@ export async function approveFollowRequest(requesterId: string) {
 
   void notifyFollow(user.id, requesterId);
   void notifyFollowRequestAccepted(requesterId, user.id);
+  void import("@/lib/creator-dm-marketing").then(({ sendWelcomeDmOnNewFollow }) =>
+    sendWelcomeDmOnNewFollow(user.id, requesterId).catch(() => {})
+  );
 
   const me = await db.user.findUnique({
     where: { id: user.id },

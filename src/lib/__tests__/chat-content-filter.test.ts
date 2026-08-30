@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DM_CONTENT_MASK, filterDmMessageContent } from "@/lib/chat-content-filter";
+import { DM_CONTENT_MASK, filterDmMessageContent, validateCreatorMarketingText } from "@/lib/chat-content-filter";
 
 test("filterDmMessageContent masks stripe and paypal links", () => {
   const r = filterDmMessageContent("pay at stripe.com or paypal me");
@@ -15,8 +15,14 @@ test("filterDmMessageContent masks external messengers and payment terms in Kore
   assert.doesNotMatch(r.text, /카톡|텔레그렘|계좌|입금/);
 });
 
-test("filterDmMessageContent leaves benign text unchanged", () => {
-  const r = filterDmMessageContent("안녕하세요! 코스프레 사진 잘 봤어요");
-  assert.equal(r.wasFiltered, false);
-  assert.equal(r.text, "안녕하세요! 코스프레 사진 잘 봤어요");
+test("validateCreatorMarketingText rejects prohibited payment terms", () => {
+  const r = validateCreatorMarketingText("stripe.com으로 결제해 주세요");
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.match(r.error, /금지/);
+});
+
+test("validateCreatorMarketingText accepts benign marketing copy", () => {
+  const r = validateCreatorMarketingText("팔로우 감사합니다! 신규 콘텐츠를 확인해 보세요.");
+  assert.equal(r.ok, true);
+  if (r.ok) assert.equal(r.text, "팔로우 감사합니다! 신규 콘텐츠를 확인해 보세요.");
 });
