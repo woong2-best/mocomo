@@ -2,63 +2,61 @@
 
 import { useEffect, useId, useState } from "react";
 import { cn } from "@/lib/utils";
+import { PAID_VIDEO_PROTECTION_WARNING_MS } from "@/lib/paid-content-protection-slide";
 
 type Props = {
   className?: string;
-  onContinue: () => void;
+  /** Overlay on video: auto-dismiss after 6s. Slide: static first photo in carousel. */
+  variant?: "overlay" | "slide";
+  onDismiss?: () => void;
+  autoDismissMs?: number;
 };
 
-export function PaidVideoCopyrightWarning({ className, onContinue }: Props) {
+export function PaidVideoCopyrightWarning({
+  className,
+  variant = "overlay",
+  onDismiss,
+  autoDismissMs = PAID_VIDEO_PROTECTION_WARNING_MS,
+}: Props) {
   const scopeId = useId().replace(/:/g, "");
-  const scopeClass = `paid-video-copyright-${scopeId}`;
+  const scopeClass = `paid-content-protection-${scopeId}`;
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [canContinue, setCanContinue] = useState(false);
+  const isSlide = variant === "slide";
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const apply = () => {
-      const reduced = mq.matches;
-      setReducedMotion(reduced);
-      if (reduced) setCanContinue(true);
-    };
+    const apply = () => setReducedMotion(mq.matches);
     apply();
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
   }, []);
 
   useEffect(() => {
-    if (reducedMotion) return;
-    const t = window.setTimeout(() => setCanContinue(true), 2400);
+    if (isSlide || !onDismiss) return;
+    const ms = reducedMotion ? Math.min(autoDismissMs, 1200) : autoDismissMs;
+    const t = window.setTimeout(onDismiss, ms);
     return () => clearTimeout(t);
-  }, [reducedMotion]);
-
-  const onDismiss = () => {
-    if (!canContinue) return;
-    onContinue();
-  };
+  }, [autoDismissMs, isSlide, onDismiss, reducedMotion]);
 
   return (
-    <button
-      type="button"
-      aria-label="저작권 안내 확인 후 계속 시청"
-      disabled={!canContinue}
-      onClick={(e) => {
-        e.stopPropagation();
-        onDismiss();
-      }}
-      onPointerDown={(e) => e.stopPropagation()}
+    <div
+      role={isSlide ? "img" : "presentation"}
+      aria-label={isSlide ? "콘텐츠 보호 안내" : undefined}
       className={cn(
         scopeClass,
-        "absolute inset-0 z-[10] flex cursor-pointer items-center justify-center border-0 p-0 text-left",
-        !canContinue && "cursor-wait",
+        isSlide
+          ? "relative flex h-full w-full items-center justify-center overflow-y-auto"
+          : "absolute inset-0 z-[10] flex items-center justify-center overflow-y-auto",
         className
       )}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
       <style jsx>{`
         .${scopeClass} {
           background: #0b1a4a;
           opacity: ${reducedMotion ? 1 : 0};
-          animation: ${reducedMotion ? "none" : "pvCopyrightBgIn 0.4s ease forwards"};
+          animation: ${reducedMotion ? "none" : "pvProtectionBgIn 0.4s ease forwards"};
           font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
         }
         .${scopeClass} .panel {
@@ -67,6 +65,7 @@ export function PaidVideoCopyrightWarning({ className, onContinue }: Props) {
           color: #fff;
           text-align: center;
           pointer-events: none;
+          padding: 24px 0;
         }
         .${scopeClass} .badge {
           width: 96px;
@@ -77,44 +76,36 @@ export function PaidVideoCopyrightWarning({ className, onContinue }: Props) {
           justify-content: center;
           opacity: ${reducedMotion ? 1 : 0};
           transform: ${reducedMotion ? "scale(1)" : "scale(0.6)"};
-          animation: ${reducedMotion ? "none" : "pvCopyrightPop 0.5s ease 0.15s forwards"};
+          animation: ${reducedMotion ? "none" : "pvProtectionPop 0.5s ease 0.15s forwards"};
         }
         .${scopeClass} .badge svg {
           width: 96px;
           height: 96px;
         }
         .${scopeClass} .title {
-          font-size: clamp(22px, 5vw, 30px);
+          font-size: clamp(18px, 4.5vw, 30px);
           font-weight: 800;
-          letter-spacing: 3px;
+          letter-spacing: 2px;
           color: #ffd23f;
           margin-bottom: 6px;
           opacity: ${reducedMotion ? 1 : 0};
-          animation: ${reducedMotion ? "none" : "pvCopyrightFadeIn 0.5s ease 0.5s forwards"};
-        }
-        .${scopeClass} .subtitle {
-          font-size: 12.5px;
-          letter-spacing: 2px;
-          color: rgba(255, 255, 255, 0.55);
-          margin-bottom: 26px;
-          opacity: ${reducedMotion ? 1 : 0};
-          animation: ${reducedMotion ? "none" : "pvCopyrightFadeIn 0.5s ease 0.7s forwards"};
+          animation: ${reducedMotion ? "none" : "pvProtectionFadeIn 0.5s ease 0.5s forwards"};
         }
         .${scopeClass} .divider {
           width: ${reducedMotion ? "100%" : "0%"};
           height: 1px;
           background: rgba(255, 255, 255, 0.3);
-          margin: 0 auto 26px;
-          animation: ${reducedMotion ? "none" : "pvCopyrightGrowLine 0.6s ease 0.9s forwards"};
+          margin: 0 auto 22px;
+          animation: ${reducedMotion ? "none" : "pvProtectionGrowLine 0.6s ease 0.9s forwards"};
         }
         .${scopeClass} .lead {
-          font-size: clamp(13px, 3.4vw, 15px);
-          line-height: 1.8;
+          font-size: clamp(12px, 3.2vw, 14px);
+          line-height: 1.75;
           color: #fff;
           font-weight: 500;
-          margin-bottom: 22px;
+          margin-bottom: 18px;
           opacity: ${reducedMotion ? 1 : 0};
-          animation: ${reducedMotion ? "none" : "pvCopyrightFadeUp 0.6s ease 1.15s forwards"};
+          animation: ${reducedMotion ? "none" : "pvProtectionFadeUp 0.6s ease 1.15s forwards"};
         }
         .${scopeClass} .lead b {
           color: #ffd23f;
@@ -125,7 +116,11 @@ export function PaidVideoCopyrightWarning({ className, onContinue }: Props) {
           font-size: clamp(11px, 2.8vw, 12.5px);
           line-height: 1.85;
           color: rgba(255, 255, 255, 0.8);
-          margin-bottom: 24px;
+          margin-bottom: 20px;
+        }
+        .${scopeClass} .rules li b {
+          color: #ffd23f;
+          font-weight: 700;
         }
         .${scopeClass} .rules li {
           padding-left: 16px;
@@ -139,60 +134,53 @@ export function PaidVideoCopyrightWarning({ className, onContinue }: Props) {
           color: rgba(255, 255, 255, 0.4);
         }
         .${scopeClass} .rules li:nth-child(1) {
-          animation: ${reducedMotion ? "none" : "pvCopyrightFadeUp 0.5s ease 1.5s forwards"};
+          animation: ${reducedMotion ? "none" : "pvProtectionFadeUp 0.5s ease 1.5s forwards"};
         }
         .${scopeClass} .rules li:nth-child(2) {
-          animation: ${reducedMotion ? "none" : "pvCopyrightFadeUp 0.5s ease 1.68s forwards"};
+          animation: ${reducedMotion ? "none" : "pvProtectionFadeUp 0.5s ease 1.65s forwards"};
         }
         .${scopeClass} .rules li:nth-child(3) {
-          animation: ${reducedMotion ? "none" : "pvCopyrightFadeUp 0.5s ease 1.86s forwards"};
+          animation: ${reducedMotion ? "none" : "pvProtectionFadeUp 0.5s ease 1.8s forwards"};
+        }
+        .${scopeClass} .rules li:nth-child(4) {
+          animation: ${reducedMotion ? "none" : "pvProtectionFadeUp 0.5s ease 1.95s forwards"};
+        }
+        .${scopeClass} .rules li:nth-child(5) {
+          animation: ${reducedMotion ? "none" : "pvProtectionFadeUp 0.5s ease 2.1s forwards"};
+        }
+        .${scopeClass} .rules li:nth-child(6) {
+          animation: ${reducedMotion ? "none" : "pvProtectionFadeUp 0.5s ease 2.25s forwards"};
         }
         .${scopeClass} .footer {
-          font-size: 11px;
-          letter-spacing: 1.5px;
+          font-size: clamp(9px, 2.2vw, 11px);
+          letter-spacing: 1px;
+          line-height: 1.65;
           color: rgba(255, 255, 255, 0.35);
           opacity: ${reducedMotion ? 1 : 0};
-          animation: ${reducedMotion ? "none" : "pvCopyrightFadeIn 0.6s ease 2.15s forwards"};
+          animation: ${reducedMotion ? "none" : "pvProtectionFadeIn 0.6s ease 2.45s forwards"};
         }
-        .${scopeClass} .continue {
-          margin-top: 20px;
-          opacity: ${canContinue ? 1 : 0};
-          transform: translateY(${canContinue ? "0" : "8px"});
-          transition: opacity 0.45s ease, transform 0.45s ease;
-        }
-        .${scopeClass} .continue span {
-          display: inline-block;
-          padding: 10px 28px;
-          border-radius: 999px;
-          border: 1px solid rgba(255, 210, 63, 0.55);
-          background: rgba(255, 210, 63, 0.12);
-          color: #ffd23f;
-          font-size: 13px;
-          font-weight: 700;
-          letter-spacing: 1.5px;
-        }
-        @keyframes pvCopyrightBgIn {
+        @keyframes pvProtectionBgIn {
           to {
             opacity: 1;
           }
         }
-        @keyframes pvCopyrightPop {
+        @keyframes pvProtectionPop {
           to {
             opacity: 1;
             transform: scale(1);
           }
         }
-        @keyframes pvCopyrightFadeIn {
+        @keyframes pvProtectionFadeIn {
           to {
             opacity: 1;
           }
         }
-        @keyframes pvCopyrightGrowLine {
+        @keyframes pvProtectionGrowLine {
           to {
             width: 100%;
           }
         }
-        @keyframes pvCopyrightFadeUp {
+        @keyframes pvProtectionFadeUp {
           from {
             opacity: 0;
             transform: translateY(6px);
@@ -219,45 +207,56 @@ export function PaidVideoCopyrightWarning({ className, onContinue }: Props) {
             <circle cx="12" cy="17.6" r="1.3" fill="#fff" />
           </svg>
         </div>
-        <div className="title">COPYRIGHT WARNING</div>
-        <div className="subtitle">MoCoMo LLC · PROTECTED CONTENT</div>
+        <div className="title">CONTENT PROTECTION WARNING</div>
 
         <div className="divider" />
 
         <div className="lead">
-          본 영상에는 시청자 계정과{" "}
-          <b>암호학적으로 연결된 포렌식 워터마킹 파이프라인</b>이 적용되어 있습니다.
+          본 콘텐츠에는 이용자 식별 및 권리 보호를 위한{" "}
+          <b>포렌식 워터마킹 기술</b>이 적용되어 있습니다.
           <br />
-          캡처, 녹화, 편집본 그 어떤 형태로 유출되어도{" "}
-          <b>식별 신호는 삭제되지 않고 계정까지 역추적됩니다.</b>
+          무단 유출·녹화·재배포·공개 등이 확인될 경우{" "}
+          <b>기술적 분석</b>을 통해 해당 계정 및 관련 정보를 확인할 수 있습니다.
           <br />
-          국가와 지역을 옮기거나 익명 계정을 사용해도 추적 경로는 동일하게 남습니다.
           <br />
-          본 콘텐츠의 저작권은 <b>해당 콘텐츠 제작 크리에이터</b>에게 있습니다.
+          결제는 소유권 또는 유포 권한 이전을 의미하지 않으며,
+          <br />
+          본 콘텐츠는 <b>개인적인 시청·열람 목적</b>으로만 제공됩니다.
         </div>
 
         <ul className="rules">
+          <li>계정 공유·양도·타인 이용을 금지합니다.</li>
+          <li>무단 복제·다운로드·캡처·녹화·재배포를 금지합니다.</li>
           <li>
-            본 콘텐츠는 구매/구독자 본인의 개인적 시청 목적으로만 이용할 수 있습니다.
+            <b>사생활·인격권 침해, 명예훼손</b> 등 민·형사상 책임이 발생할 수
+            있습니다.
           </li>
           <li>
-            계정 공유, 사전 동의 없는 2차 가공·캡처·무단 녹화, 타 플랫폼(SNS, 커뮤니티
-            등) 재배포·판매를 금지합니다.
+            <b>성폭력범죄의 처벌 등에 관한 특례법</b> 등 관련 법령에 따른 처벌
+            대상이 될 수 있습니다.
           </li>
           <li>
-            위반이 확인되는 즉시 계정이 영구 정지되며, 저작권법 등 관련 법률에 따라
-            민·형사상 책임을 물을 수 있습니다.
+            <b>저작권법</b> 등 관련 법령에 따른 민·형사상 책임이 발생할 수
+            있습니다.
+          </li>
+          <li>
+            본 콘텐츠는 <b>미국 연방법 및 해당 주의 법률</b>을 포함한 관련
+            법령의 적용을 받습니다.
           </li>
         </ul>
 
         <div className="footer">
-          TRACKING DATA IS RETAINED · LOCATION DOES NOT AFFECT IDENTIFICATION
-        </div>
-
-        <div className="continue" aria-hidden={!canContinue}>
-          <span>계속 시청</span>
+          UNAUTHORIZED REPRODUCTION, RECORDING, REDISTRIBUTION OR DISCLOSURE
+          MAY RESULT IN ACCOUNT SUSPENSION AND LEGAL ACTION.
+          <br />
+          CONTENT ACCESS IS FOR PERSONAL VIEWING ONLY.
+          <br />
+          PROTECTION &amp; FORENSIC DATA MAY BE RETAINED FOR RIGHTS ENFORCEMENT.
         </div>
       </div>
-    </button>
+    </div>
   );
 }
+
+/** @deprecated use PaidVideoCopyrightWarning */
+export const PaidContentProtectionWarning = PaidVideoCopyrightWarning;

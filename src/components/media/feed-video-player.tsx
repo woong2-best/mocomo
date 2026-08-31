@@ -348,8 +348,6 @@ export function FeedVideoPlayer({
       const v = videoRef.current;
       if (!v || !ctrl) return false;
 
-      if (protect && !previewMode && !copyrightDismissedRef.current) return false;
-
       // Scrub pauses intentionally — don't let IO/hover autoplay fight mid-drag.
       if (scrubbingRef.current && reason !== "user") return false;
 
@@ -386,24 +384,11 @@ export function FeedVideoPlayer({
     setCopyrightDismissed(false);
   }, [protect]);
 
-  const dismissCopyrightWarning = useCallback(
-    (thenPlay?: "user") => {
-      if (!protect || copyrightDismissedRef.current) {
-        if (thenPlay === "user") {
-          userPausedRef.current = false;
-          void playExclusive("user");
-        }
-        return;
-      }
-      copyrightDismissedRef.current = true;
-      setCopyrightDismissed(true);
-      if (thenPlay === "user") {
-        userPausedRef.current = false;
-        void playExclusive("user");
-      }
-    },
-    [playExclusive, protect]
-  );
+  const dismissCopyrightWarning = useCallback(() => {
+    if (!protect || copyrightDismissedRef.current) return;
+    copyrightDismissedRef.current = true;
+    setCopyrightDismissed(true);
+  }, [protect]);
 
   const pauseSelf = useCallback(
     (clearResume = false) => {
@@ -499,12 +484,8 @@ export function FeedVideoPlayer({
     resetCopyrightWarning();
   }, [mediaId, protect, resetCopyrightWarning, src]);
 
-  const showCopyrightWarning = protect && !previewMode && !copyrightDismissed;
-
-  useEffect(() => {
-    if (!showCopyrightWarning) return;
-    pauseSelf(true);
-  }, [pauseSelf, showCopyrightWarning]);
+  const showCopyrightWarning =
+    protect && !previewMode && !copyrightDismissed && started;
 
   // Core media events
   useEffect(() => {
@@ -1125,14 +1106,6 @@ export function FeedVideoPlayer({
     (e: KeyboardEvent | React.KeyboardEvent) => {
       if (isEditableKeyTarget(e.target)) return;
 
-      if (showCopyrightWarning) {
-        if (e.key === " " || e.key === "Enter") {
-          e.preventDefault();
-          dismissCopyrightWarning("user");
-        }
-        return;
-      }
-
       switch (e.key) {
         case " ":
         case "k":
@@ -1178,7 +1151,7 @@ export function FeedVideoPlayer({
           break;
       }
     },
-    [applyVolume, dismissCopyrightWarning, protect, seekBy, showCopyrightWarning, togglePlay, volume, zoom]
+    [applyVolume, protect, seekBy, togglePlay, volume, zoom]
   );
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -1333,9 +1306,7 @@ export function FeedVideoPlayer({
       )}
 
       {showCopyrightWarning ? (
-        <PaidVideoCopyrightWarning
-          onContinue={() => dismissCopyrightWarning("user")}
-        />
+        <PaidVideoCopyrightWarning onDismiss={dismissCopyrightWarning} />
       ) : null}
 
       {!playing && !buffering && !showCopyrightWarning && !previewMode && (

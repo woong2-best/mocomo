@@ -11,6 +11,7 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { PaidFeedMediaSurface } from "@/components/media/paid-feed-media-surface";
+import { PaidContentProtectionSlide } from "@/components/media/paid-content-protection-slide";
 import { SensitiveContentGate } from "@/components/media/sensitive-content-gate";
 import { AdultContentBadge } from "@/components/media/adult-content-badge";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
@@ -24,6 +25,10 @@ import {
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { useFeedPhotoLightboxOptional } from "@/components/media/feed-photo-lightbox-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
+import {
+  isProtectionWarningSlide,
+  withProtectionSlide,
+} from "@/lib/paid-content-protection-slide";
 
 const SLIDE_WIDTH_RATIO = 0.88;
 const EDGE_PAD_RATIO = 0.06;
@@ -161,6 +166,14 @@ function CarouselTile({
   const lockReason = (media.lockReason ?? "none") as ContentLockReason;
   const durationLabel = media.type === "VIDEO" ? formatDuration(media.duration) : null;
 
+  if (isProtectionWarningSlide(media)) {
+    return (
+      <div className="relative h-full w-full overflow-hidden rounded-2xl bg-[#0b1a4a]">
+        <PaidContentProtectionSlide className="rounded-2xl" />
+      </div>
+    );
+  }
+
   const mediaSurface = (
     <div className="relative h-full w-full overflow-hidden rounded-2xl bg-muted/30">
       <PaidFeedMediaSurface
@@ -270,7 +283,7 @@ export function FeedPostMediaCarousel({
         setCachedPostMedia(postId, fresh);
       }
     },
-    [photoLightbox, postId, postInstantPurchasePriceKrw]
+    [photoLightbox, postId, postInstantPurchasePriceKrw, isOwner]
   );
 
   const total = mediaTotal ?? localMedia.length;
@@ -299,7 +312,15 @@ export function FeedPostMediaCarousel({
     [photoLightbox, postId, postInstantPurchasePriceKrw, isOwner]
   );
 
-  const items = useMemo(() => localMedia.filter(isVisual), [localMedia]);
+  const rawVisual = useMemo(() => localMedia.filter(isVisual), [localMedia]);
+  const items = useMemo(
+    () =>
+      withProtectionSlide(rawVisual, {
+        postInstantPurchasePriceKrw,
+        isOwner,
+      }),
+    [rawVisual, postInstantPurchasePriceKrw, isOwner]
+  );
   const multi = items.length > 1;
 
   function warmFullMedia() {
@@ -324,7 +345,7 @@ export function FeedPostMediaCarousel({
     }
 
     if (items.length >= total) {
-      openLightbox(items, index);
+      openLightbox(rawVisual, index);
       return;
     }
 

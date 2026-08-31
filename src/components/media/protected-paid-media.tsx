@@ -14,6 +14,7 @@ import {
   resolveClientPaidMediaSrc,
   type WatermarkContentKind,
 } from "@/lib/paid-media-playback";
+import { PaidContentProtectionSlide } from "@/components/media/paid-content-protection-slide";
 
 type Props = {
   type: string;
@@ -38,8 +39,8 @@ type Props = {
   contentKind?: WatermarkContentKind;
   /** Author/owner: skip forensic session and show media directly. */
   skipForensic?: boolean;
-  /** Lightbox/detail: block raw pixels until the forensic canvas is ready. */
-  blockUntilForensicReady?: boolean;
+  /** Lightbox/carousel prepends the warning slide — skip the inline intro. */
+  skipProtectionIntro?: boolean;
 };
 
 function inferObjectFit(className: string | undefined, explicit?: "cover" | "contain") {
@@ -102,6 +103,7 @@ export function ProtectedPaidMedia({
   contentKind = "POST_MEDIA",
   skipForensic = false,
   blockUntilForensicReady = false,
+  skipProtectionIntro = false,
 }: Props) {
   const protect = shouldProtectPaidMediaView({
     mediaPriceKrw,
@@ -316,6 +318,8 @@ export function ProtectedPaidMedia({
 
   if (!protect) return imageNode;
 
+  const embedIntro = !skipProtectionIntro && !isVideo && !locked;
+
   return (
     <PaidMediaProtectionShell
       className={cn(
@@ -328,10 +332,21 @@ export function ProtectedPaidMedia({
       <div
         className={cn(
           "relative",
-          fillsTile || lightboxForensic ? "size-full max-w-full" : "inline-flex max-w-full max-h-full"
+          fillsTile || lightboxForensic ? "size-full max-w-full" : "inline-flex max-w-full max-h-full",
+          embedIntro &&
+            "flex h-full w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
       >
-        {imageNode}
+        {embedIntro ? (
+          <>
+            <div className="relative h-full w-full shrink-0 snap-center">
+              <PaidContentProtectionSlide className="min-h-[280px] size-full" />
+            </div>
+            <div className="relative h-full w-full shrink-0 snap-center">{imageNode}</div>
+          </>
+        ) : (
+          imageNode
+        )}
         <div
           className="absolute inset-0 z-[1] pointer-events-none"
           aria-hidden
