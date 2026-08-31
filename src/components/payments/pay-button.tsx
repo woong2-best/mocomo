@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { PaymentCheckoutSheet } from "@/components/payments/payment-checkout-sheet";
+import { AdultVerificationDialog } from "@/components/adult-verification/adult-verification-dialog";
 import { Button } from "@/components/ui/button";
+import { useAdultVerificationGate } from "@/hooks/use-adult-verification-gate";
 import { isAdultContent } from "@/lib/content-rating";
 import { ADULT_MONETIZATION_BANNED_SHORT } from "@/lib/adult-monetization-ban";
 import type { ContentRating, PaymentIntentType } from "@prisma/client";
@@ -43,17 +45,22 @@ export function PayButton({
   const session = sessionState?.data;
   const status = sessionState?.status ?? "unauthenticated";
   const [open, setOpen] = useState(false);
+  const adultGate = useAdultVerificationGate("DM_PAID");
 
   const isAdult = isAdultContent(contentRating);
   const blocked = isAdult;
 
-  function openCheckout() {
+  async function openCheckout() {
     if (status === "loading") return;
     if (blocked) return;
     if (!session?.user) {
       const back = returnPath ?? pathname ?? "/";
       router.push(`/auth/signin?callbackUrl=${encodeURIComponent(back)}`);
       return;
+    }
+    if (type === "MESSAGE_MEDIA" || type === "CALL_BOOKING") {
+      const ok = await adultGate.ensureAdult();
+      if (!ok) return;
     }
     setOpen(true);
   }
@@ -93,6 +100,19 @@ export function PayButton({
           showLegalNotice={showLegalNotice}
           returnPath={returnPath ?? pathname ?? "/"}
           onSuccess={handleSuccess}
+        />
+      ) : null}
+      {!blocked && (type === "MESSAGE_MEDIA" || type === "CALL_BOOKING") ? (
+        <AdultVerificationDialog
+          open={adultGate.promptOpen}
+          onOpenChange={adultGate.setPromptOpen}
+          onVerify={() =>
+            adultGate.verifyNow(() => {
+              setOpen(true);
+            })
+          }
+          busy={adultGate.pending}
+          error={adultGate.error}
         />
       ) : null}
     </>

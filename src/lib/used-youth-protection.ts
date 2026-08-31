@@ -1,7 +1,8 @@
 import type { UsedRestrictedKind } from "@prisma/client";
+import { ageFromBirthDate } from "@/lib/adult-verification/is-verified";
 
 /** 주류·담배·성인용품 거래 최소 연령 (만 나이) */
-export const USED_ADULT_MIN_AGE = 19;
+export { ADULT_MIN_AGE as USED_ADULT_MIN_AGE } from "@/lib/adult-verification/constants";
 
 export const USED_RESTRICTED_OPTIONS = [
   { value: "NONE" as const, label: "해당 없음 (일반 상품)" },
@@ -35,12 +36,8 @@ export function isUsedAdultVerified(user: {
   return !!user.adultVerifiedAt;
 }
 
-/** 생년월일 → 만 나이 (국제 기준) */
 export function usedAgeFromBirthDate(birth: Date, at = new Date()): number {
-  let age = at.getFullYear() - birth.getFullYear();
-  const m = at.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && at.getDate() < birth.getDate())) age -= 1;
-  return age;
+  return ageFromBirthDate(birth, at);
 }
 
 export function parseBirthDateInput(year: number, month: number, day: number): Date | null {

@@ -12,6 +12,7 @@ import { PublishedToastProvider } from "@/components/providers/published-toast-p
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
 import { TopProgressProvider } from "@/components/providers/top-progress-provider";
 import type { Locale } from "@/lib/i18n/config";
+import { PortOneIdentityScript } from "@/components/adult-verification/portone-identity-sdk";
 
 const PlatformBootstrapClient = dynamic(
   () =>
@@ -75,6 +76,7 @@ export function AppProviders({
           <ComposeProvider>
             <SidebarToggleProvider>
               <StaleDeploymentRecovery />
+              <PortOneIdentityScript />
               <PushRegistration />
               <NativePushRegistration />
               <CheckoutResumeHandler />

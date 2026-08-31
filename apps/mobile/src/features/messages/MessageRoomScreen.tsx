@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
-import { useRoute, useNavigation, type RouteProp } from "@react-navigation/native";
+import { useRoute, useNavigation, useFocusEffect, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ChatMessage } from "@/api/messages";
@@ -32,7 +32,15 @@ import { MessageVoiceSession } from "@/features/messages/MessageVoiceSession";
 import { useRoomMessages } from "@/features/messages/useRoomMessages";
 import { CreatorCallBookingSheet } from "@/features/messages/CreatorCallBookingSheet";
 import { FanArtSellSheet } from "@/features/messages/FanArtSellSheet";
+import { FanArtSellComposerButton } from "@/features/messages/FanArtSellComposerButton";
+import { SellButtonTrashOverlay } from "@/features/messages/SellButtonTrashOverlay";
+import Animated, { FadeIn, FadeOut, Layout } from "react-native-reanimated";
 import { LetterDonationSheet } from "@/payments/LetterDonationSheet";
+import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
+import {
+  loadMessageComposerPrefs,
+  setFanArtSellHidden,
+} from "@/lib/message-composer-prefs";
 import { fetchCreatorCallSettings } from "@/api/call-bookings";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useTheme } from "@/theme/ThemeContext";
@@ -70,6 +78,9 @@ export function MessageRoomScreen() {
   } | null>(null);
   const [letterSheet, setLetterSheet] = useState(false);
   const [fanArtSheet, setFanArtSheet] = useState(false);
+  const [fanArtSellHidden, setFanArtSellHiddenState] = useState(false);
+  const [sellTrashOverlay, setSellTrashOverlay] = useState(false);
+  const adultGate = useAdultVerificationGate("DM_PAID");
   const [peerBookable, setPeerBookable] = useState(false);
   const [draft, setDraft] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -104,6 +115,35 @@ export function MessageRoomScreen() {
       .then((s) => setPeerBookable(s.bookable))
       .catch(() => setPeerBookable(false));
   }, [peerId]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    void loadMessageComposerPrefs(user.id).then((prefs) => {
+      setFanArtSellHiddenState(prefs.fanArtSellHidden);
+    });
+  }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) return;
+      void loadMessageComposerPrefs(user.id).then((prefs) => {
+        setFanArtSellHiddenState(prefs.fanArtSellHidden);
+      });
+    }, [user?.id])
+  );
+
+  const onFanArtSellPress = useCallback(() => {
+    void adultGate.ensureAdult().then((ok) => {
+      if (ok) setFanArtSheet(true);
+    });
+  }, [adultGate]);
+
+  const hideFanArtSellButton = useCallback(async () => {
+    if (!user?.id) return;
+    setSellTrashOverlay(false);
+    setFanArtSellHiddenState(true);
+    await setFanArtSellHidden(user.id, true);
+  }, [user?.id]);
 
   const rows = useMemo<MessageRow[]>(
     () =>
@@ -416,14 +456,19 @@ export function MessageRoomScreen() {
 
         <View style={styles.composer}>
           <View style={styles.leftBtns}>
-            <Pressable
-              style={styles.fanArtBtn}
-              disabled={busy || recording}
-              onPress={() => setFanArtSheet(true)}
-              accessibilityLabel="팬아트 판매"
-            >
-              <Ionicons name="cash" size={18} color="#fff" />
-            </Pressable>
+            {!fanArtSellHidden ? (
+              <Animated.View
+                entering={FadeIn.duration(240)}
+                exiting={FadeOut.duration(200)}
+                layout={Layout.springify().damping(16).stiffness(180)}
+              >
+                <FanArtSellComposerButton
+                  disabled={busy || recording || adultGate.busy}
+                  onPress={onFanArtSellPress}
+                  onHoldComplete={() => setSellTrashOverlay(true)}
+                />
+              </Animated.View>
+            ) : null}
             <Pressable
               style={styles.cameraBtn}
               disabled={busy || recording}
@@ -548,6 +593,12 @@ export function MessageRoomScreen() {
           }
         }}
       />
+
+      <SellButtonTrashOverlay
+        visible={sellTrashOverlay}
+        onDismiss={() => setSellTrashOverlay(false)}
+        onConfirmHide={() => void hideFanArtSellButton()}
+      />
     </View>
   );
 }
@@ -616,14 +667,6 @@ function createThemedStyles(colors: ThemeColors) {
     cancelRecText: { color: colors.textMuted, fontWeight: "700", fontSize: 13 },
     composer: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
     leftBtns: { gap: 6, marginBottom: 2 },
-    fanArtBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.terracotta,
-      alignItems: "center",
-      justifyContent: "center",
-    },
     cameraBtn: {
       width: 40,
       height: 40,

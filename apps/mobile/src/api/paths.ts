@@ -52,6 +52,8 @@ export const MobileApi = {
   marketFavoriteToggle: (id: string) => `/api/mobile/market/${id}/favorite`,
   couponsMine: "/api/mobile/coupons/mine",
   webSession: "/api/mobile/auth/web-session",
+  adultVerificationStatus: "/api/mobile/adult-verification/status",
+  adultVerificationConfirm: "/api/mobile/adult-verification/confirm",
   calendarMemos: "/api/mobile/calendar/memos",
   community: "/api/mobile/community",
   events: "/api/mobile/events",

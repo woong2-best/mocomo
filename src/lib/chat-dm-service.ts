@@ -12,6 +12,7 @@ import {
   collectPaidAttachmentIds,
   getPurchasedMessageAttachmentIds,
 } from "@/lib/message-paid-media";
+import { assertAdultVerified } from "@/lib/adult-verification/is-verified";
 
 async function assertRoomMember(roomId: string, userId: string) {
   const member = await db.chatMember.findUnique({
@@ -259,6 +260,15 @@ export async function sendMobileDmMessage(
   const rawAttachmentCount = Array.isArray(data.attachments) ? data.attachments.length : 0;
   const attachments = sanitizeChatAttachments(data.attachments);
   const hasAttachments = attachments.length > 0;
+  const hasPaidAttachment = attachments.some((a) => (a.priceKrw ?? 0) > 0);
+  if (hasPaidAttachment) {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { adultVerifiedAt: true },
+    });
+    const block = assertAdultVerified(user ?? { adultVerifiedAt: null });
+    if (block) return { error: "ADULT_VERIFICATION_REQUIRED" as const };
+  }
   const rawText = (data.content ?? "").trim();
   const filtered = rawText ? filterDmMessageContent(rawText) : { text: "", wasFiltered: false, matchedRuleIds: [] };
   const text = filtered.text;

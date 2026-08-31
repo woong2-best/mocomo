@@ -16,6 +16,10 @@ import {
 import { getMocoCheckoutQuote } from "@/lib/moco-checkout-service";
 import { assertOfacPaymentRequestAllowed, assertOfacPaymentAllowedForUser } from "@/lib/compliance/ofac-payment-guard-server";
 import { assertMonetizationPaymentAllowed } from "@/lib/payment-rail";
+import {
+  assertAdultVerifiedForPaidDm,
+  paymentTypeRequiresAdultVerification,
+} from "@/lib/adult-verification/paid-dm-guard";
 
 function stripeMetadata(
   orderId: string,
@@ -92,6 +96,11 @@ export async function prepareCheckoutPaymentIntent(input: {
 
   const adultBlock = assertMonetizationPaymentAllowed({ metadata: input.metadata });
   if ("error" in adultBlock && adultBlock.error) return adultBlock;
+
+  if (paymentTypeRequiresAdultVerification(input.type)) {
+    const dmAdultBlock = await assertAdultVerifiedForPaidDm(input.userId);
+    if (dmAdultBlock) return dmAdultBlock;
+  }
 
   const validation = await validatePaymentInput(input.userId, input);
   if (validation) return validation;

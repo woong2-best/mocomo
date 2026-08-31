@@ -19,6 +19,7 @@ import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { formatUsd, MIN_CALL_BOOKING_USD_CENTS } from "@/lib/money";
+import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
 
 const AMOUNT_PRESETS = [10_000, 30_000, 50_000, 100_000, 150_000, 200_000];
 
@@ -77,6 +78,7 @@ export function CreatorCallBookingSheet({
   const [customAmount, setCustomAmount] = useState("");
   const [note, setNote] = useState("");
   const [payOpen, setPayOpen] = useState(false);
+  const adultGate = useAdultVerificationGate("DM_PAID");
   const [payBody, setPayBody] = useState<{
     type: "CALL_BOOKING";
     amount: number;
@@ -127,6 +129,9 @@ export function CreatorCallBookingSheet({
       setError("금액이 너무 적어 최소 15분 통화를 예약할 수 없습니다.");
       return;
     }
+
+    const adultOk = await adultGate.ensureAdult();
+    if (!adultOk) return;
 
     setBusy(true);
     setError("");

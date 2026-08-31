@@ -6,6 +6,8 @@ import { FolkButton } from "@/ui/FolkButton";
 import { PaymentCheckoutSheet } from "@/payments/PaymentCheckoutSheet";
 import { paymentTypeLabel } from "@/payments/stripe-checkout";
 import { ADULT_MONETIZATION_BANNED_SHORT } from "@/lib/stripe-payment-notice";
+import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
+import { paymentTypeRequiresAdultVerification } from "@/lib/adult-verification-messages";
 
 type Props = {
   type: PaymentIntentType;
@@ -64,6 +66,7 @@ export function PayButton({
     metadata.contentRating === "ADULT" ||
     metadata.isNsfw === true;
   const [open, setOpen] = useState(false);
+  const adultGate = useAdultVerificationGate("DM_PAID");
   const checkoutBody = useMemo(
     () => normalizeCheckoutBody(type, amount, orderName, metadata),
     [amount, metadata, orderName, type]
@@ -79,6 +82,10 @@ export function PayButton({
       Alert.alert("결제 불가", ADULT_MONETIZATION_BANNED_SHORT);
       return;
     }
+    if (paymentTypeRequiresAdultVerification(type)) {
+      const ok = await adultGate.ensureAdult();
+      if (!ok) return;
+    }
     setOpen(true);
   }
 
@@ -87,7 +94,7 @@ export function PayButton({
       <FolkButton
         label={label}
         onPress={() => void openCheckout()}
-        disabled={disabled || isAdult}
+        disabled={disabled || isAdult || adultGate.busy}
         variant={variant}
       />
       <PaymentCheckoutSheet

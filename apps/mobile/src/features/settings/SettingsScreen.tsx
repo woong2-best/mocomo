@@ -18,6 +18,7 @@ import { fetchCheckoutMeta } from "@/api/checkout";
 import { ApiError } from "@/api/client";
 import { PayButton } from "@/payments/PayButton";
 import { CreatorCallSettingsCard } from "@/features/settings/CreatorCallSettingsCard";
+import { MessageComposerSettingsCard } from "@/features/settings/MessageComposerSettingsCard";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
@@ -174,6 +175,8 @@ export function SettingsScreen() {
           ) : null}
 
           <CreatorCallSettingsCard />
+
+          <MessageComposerSettingsCard />
 
           <FolkCard>
             <Text style={styles.cardTitle}>게시글 잠금</Text>

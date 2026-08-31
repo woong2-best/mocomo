@@ -12,6 +12,7 @@ import {
 } from "@/lib/chat-attachments";
 import { getOrCreateDmForUser, sendMobileDmMessage } from "@/lib/chat-dm-service";
 import { validateSaleMediaPricing } from "@/lib/money";
+import { isAdultVerified } from "@/lib/adult-verification/is-verified";
 
 const BULK_BATCH_SIZE = 25;
 const BULK_MAX_FOLLOWERS = 50_000;
@@ -207,7 +208,7 @@ export async function saveCreatorWelcomeMessage(
   return { ok: true, settings };
 }
 
-export async function sendWelcomeDmOnNewFollow(creatorId: string, followerId: string) {
+export async function deliverWelcomeDm(creatorId: string, followerId: string) {
   if (creatorId === followerId) return;
 
   const settings = await db.creatorDmMarketing.findUnique({
@@ -237,6 +238,55 @@ export async function sendWelcomeDmOnNewFollow(creatorId: string, followerId: st
     content: payload.content,
     attachments: payload.attachments,
   });
+}
+
+export async function sendWelcomeDmOnNewFollow(creatorId: string, followerId: string) {
+  if (creatorId === followerId) return;
+
+  const settings = await db.creatorDmMarketing.findUnique({
+    where: { userId: creatorId },
+  });
+  if (!settings?.welcomeEnabled) return;
+
+  const follower = await db.user.findUnique({
+    where: { id: followerId },
+    select: { adultVerifiedAt: true },
+  });
+
+  if (!isAdultVerified(follower ?? { adultVerifiedAt: null })) {
+    await db.creatorWelcomeDmPending.upsert({
+      where: {
+        creatorId_followerId: { creatorId, followerId },
+      },
+      create: { creatorId, followerId },
+      update: {},
+    });
+    return;
+  }
+
+  await deliverWelcomeDm(creatorId, followerId);
+}
+
+/** 성인인증 완료 후 대기 중이던 크리에이터 웰컴 DM 일괄 발송 */
+export async function flushPendingWelcomeDmsForFollower(followerId: string) {
+  const pending = await db.creatorWelcomeDmPending.findMany({
+    where: { followerId },
+    select: { creatorId: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  for (const { creatorId } of pending) {
+    try {
+      await deliverWelcomeDm(creatorId, followerId);
+    } catch (e) {
+      console.error("[flushPendingWelcomeDmsForFollower]", creatorId, followerId, e);
+    }
+    await db.creatorWelcomeDmPending
+      .delete({
+        where: { creatorId_followerId: { creatorId, followerId } },
+      })
+      .catch(() => undefined);
+  }
 }
 
 export async function enqueueCreatorBulkDm(

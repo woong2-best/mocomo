@@ -15,6 +15,8 @@ import {
   collectPaidAttachmentIds,
   getPurchasedMessageAttachmentIds,
 } from "@/lib/message-paid-media";
+import { isPaidMedia } from "@/lib/post-paid-media";
+import { assertAdultVerified } from "@/lib/adult-verification/is-verified";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -131,6 +133,11 @@ export async function sendMessage(data: {
   const rawAttachmentCount = Array.isArray(data.attachments) ? data.attachments.length : 0;
   const attachments = sanitizeChatAttachments(data.attachments);
   const hasAttachments = attachments.length > 0;
+  const hasPaidAttachment = attachments.some((a) => isPaidMedia(a.priceKrw ?? 0));
+  if (hasPaidAttachment) {
+    const block = assertAdultVerified(user);
+    if (block) throw new Error("ADULT_VERIFICATION_REQUIRED");
+  }
   const rawText = (data.content ?? "").trim();
   const filtered = rawText ? filterDmMessageContent(rawText) : { text: "", wasFiltered: false, matchedRuleIds: [] };
   const text = filtered.text;

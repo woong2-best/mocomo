@@ -18,9 +18,14 @@ import {
 } from "@/lib/event-registration";
 import { assertPaymentNotForAdultContent } from "@/lib/adult-monetization-ban";
 import {
+  assertAdultVerifiedForPaidDm,
+  paymentTypeRequiresAdultVerification,
+} from "@/lib/adult-verification/paid-dm-guard";
+import {
   LETTER_DONATION_MESSAGE_MAX,
   LETTER_DONATION_MIN_KRW,
 } from "@/lib/chat-letter-donation";
+import { COMMENT_DONATION_MESSAGE_MAX } from "@/lib/comment-donation";
 import {
   calcVideoDonationAmount,
   DEFAULT_VIDEO_DONATION_SETTINGS,
@@ -42,6 +47,11 @@ export async function validatePaymentInput(
         : null;
   const metaBlock = assertPaymentNotForAdultContent(metaRating);
   if (metaBlock) return metaBlock;
+
+  if (paymentTypeRequiresAdultVerification(input.type)) {
+    const adultBlock = await assertAdultVerifiedForPaidDm(userId);
+    if (adultBlock) return { error: adultBlock.error };
+  }
 
   if (input.type === "MOCO_TOPUP") {
     return { error: "모코 충전은 종료되었습니다. 각 상품·후원 화면에서 바로 결제해 주세요." };
@@ -83,6 +93,20 @@ export async function validatePaymentInput(
           select: { userId: true },
         });
         if (!member) return { error: "메시지 방에 참여 중일 때만 편지를 보낼 수 있습니다." };
+      }
+    } else if (tipKind === "superchat") {
+      if (!channelId?.trim()) {
+        return { error: "댓글 후원은 라이브 방송 중에만 가능합니다." };
+      }
+      const msg = String(input.metadata.message ?? "").trim();
+      if (!msg) return { error: "후원 메시지를 입력해 주세요." };
+      if (msg.length > COMMENT_DONATION_MESSAGE_MAX) {
+        return {
+          error: `후원 메시지는 ${COMMENT_DONATION_MESSAGE_MAX}자까지 입력할 수 있습니다.`,
+        };
+      }
+      if (input.amount < MIN_TIP_USD_CENTS) {
+        return { error: `최소 후원 금액은 ${formatMoney(MIN_TIP_USD_CENTS)}입니다.` };
       }
     } else if (tipKind === "video") {
       const videoUrl = normalizeYoutubeUrl(String(input.metadata.videoUrl ?? ""));
