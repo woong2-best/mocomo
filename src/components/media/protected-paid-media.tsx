@@ -41,6 +41,8 @@ type Props = {
   skipForensic?: boolean;
   /** Lightbox/carousel prepends the warning slide — skip the inline intro. */
   skipProtectionIntro?: boolean;
+  /** Lightbox: wait for forensic watermark session before showing media. */
+  blockUntilForensicReady?: boolean;
 };
 
 function inferObjectFit(className: string | undefined, explicit?: "cover" | "contain") {
