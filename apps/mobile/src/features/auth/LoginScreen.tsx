@@ -13,7 +13,6 @@ import { useAuth } from "@/auth/AuthContext";
 import type { MobileAuthProvider } from "@/auth/oauth";
 import {
   GoogleNativeCancelledError,
-  GoogleNativeUnavailableError,
   prefetchGoogleNativeConfig,
   type GoogleNativeProfile,
 } from "@/auth/google-native";
@@ -23,11 +22,10 @@ import { hasSeenNotificationPrompt } from "@/lib/onboarding-store";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { NotificationPermissionSheet } from "@/features/auth/NotificationPermissionSheet";
 import { TermsConsentSheet } from "@/features/auth/TermsConsentSheet";
-import { WelcomeConnectIllustration } from "@/features/auth/WelcomeConnectIllustration";
 import { WelcomeSocialAuthRow } from "@/features/auth/WelcomeSocialAuthRow";
 import { NativeCredentialsForm } from "@/features/auth/NativeCredentialsForm";
 import { useTheme } from "@/theme/ThemeContext";
-import { radii, spacing } from "@/theme/tokens";
+import { spacing } from "@/theme/tokens";
 
 const WEB = API_BASE_URL.replace(/\/$/, "");
 
@@ -110,7 +108,9 @@ export function LoginScreen() {
             return;
           } catch (e) {
             if (e instanceof GoogleNativeCancelledError) return;
-            if (!(e instanceof GoogleNativeUnavailableError)) throw e;
+            // Any other native failure is a device/config issue, never
+            // something the user can act on — quietly use the web flow.
+            if (__DEV__) console.warn("native google sign-in failed", e);
           }
         }
         await openWebAuth("signin", { provider });
@@ -182,9 +182,11 @@ export function LoginScreen() {
                 </Text>
               ))}
             </View>
-            <View style={styles.illustrationWrap}>
-              <WelcomeConnectIllustration color={colors.text} />
-            </View>
+            <Image
+              source={require("../../../assets/welcome-hands.png")}
+              style={styles.hands}
+              contentFit="contain"
+            />
           </View>
         ) : null}
 
@@ -252,27 +254,26 @@ const styles = StyleSheet.create({
   hero: {
     alignItems: "center",
     paddingTop: 4,
-    paddingBottom: 8,
   },
   mascot: {
-    width: 88,
-    height: 88,
-    marginBottom: 10,
+    width: 168,
+    height: 132,
+    marginBottom: -10,
   },
-  taglines: { gap: 2, alignItems: "center", marginBottom: 8 },
+  taglines: { gap: 2, alignItems: "center" },
   tagline: {
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: "800",
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 26,
     letterSpacing: -0.3,
   },
-  illustrationWrap: {
-    width: "100%",
-    alignItems: "center",
-    marginTop: 4,
-    marginBottom: 18,
-    opacity: 0.92,
+  hands: {
+    alignSelf: "stretch",
+    marginHorizontal: -spacing.lg,
+    aspectRatio: 900 / 280,
+    marginTop: 6,
+    marginBottom: 14,
   },
   actions: { gap: 14 },
   orText: {

@@ -7,6 +7,7 @@ import type { MobileAuthUser } from "@/auth/types";
 type GoogleConfig = {
   enabled: boolean;
   webClientId: string | null;
+  androidClientId?: string | null;
   iosClientId: string | null;
 };
 
@@ -49,17 +50,30 @@ let configuredFor: string | null = null;
 let configPromise: Promise<GoogleConfig> | null = null;
 
 async function loadModule(): Promise<GoogleSigninModule> {
-  if (!modulePromise) {
-    modulePromise = import("@react-native-google-signin/google-signin").catch(
-      (e) => {
-        modulePromise = null;
-        throw new GoogleNativeUnavailableError(
-          e instanceof Error ? e.message : undefined
-        );
-      }
+  try {
+    // The package reads native constants while its module body evaluates, so a
+    // missing/mismatched TurboModule throws *synchronously* out of `import()`.
+    // Keeping the call inside this try block is what turns that into a
+    // recoverable "unavailable" signal rather than a raw TypeError.
+    if (!modulePromise) {
+      modulePromise = Promise.resolve(
+        import("@react-native-google-signin/google-signin")
+      );
+    }
+    const mod = await modulePromise;
+    if (
+      typeof mod?.GoogleSignin?.configure !== "function" ||
+      typeof mod?.GoogleSignin?.signIn !== "function"
+    ) {
+      throw new Error("RNGoogleSignin is not registered on this build");
+    }
+    return mod;
+  } catch (e) {
+    modulePromise = null;
+    throw new GoogleNativeUnavailableError(
+      e instanceof Error ? e.message : undefined
     );
   }
-  return modulePromise;
 }
 
 async function loadConfig(): Promise<GoogleConfig> {
@@ -96,12 +110,18 @@ async function ensureConfigured(): Promise<GoogleSigninModule> {
 
   const mod = await loadModule();
   if (configuredFor !== config.webClientId) {
-    mod.GoogleSignin.configure({
-      webClientId: config.webClientId,
-      ...(config.iosClientId ? { iosClientId: config.iosClientId } : {}),
-      scopes: ["profile", "email"],
-      offlineAccess: false,
-    });
+    try {
+      mod.GoogleSignin.configure({
+        webClientId: config.webClientId,
+        ...(config.iosClientId ? { iosClientId: config.iosClientId } : {}),
+        scopes: ["profile", "email"],
+        offlineAccess: false,
+      });
+    } catch (e) {
+      throw new GoogleNativeUnavailableError(
+        e instanceof Error ? e.message : undefined
+      );
+    }
     configuredFor = config.webClientId;
   }
   return mod;
@@ -117,9 +137,14 @@ async function requestGoogleIdToken(): Promise<string> {
   const { GoogleSignin, isErrorWithCode, statusCodes } = mod;
 
   if (Platform.OS === "android") {
-    const hasPlay = await GoogleSignin.hasPlayServices({
-      showPlayServicesUpdateDialog: true,
-    }).catch(() => false);
+    let hasPlay = false;
+    try {
+      hasPlay = await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
+    } catch {
+      hasPlay = false;
+    }
     if (!hasPlay) {
       throw new GoogleNativeUnavailableError(
         "Google Play 서비스를 사용할 수 없습니다."
@@ -127,7 +152,12 @@ async function requestGoogleIdToken(): Promise<string> {
     }
   }
 
-  await GoogleSignin.signOut().catch(() => undefined);
+  // Drop the cached session so the account chooser always appears.
+  try {
+    await GoogleSignin.signOut();
+  } catch {
+    /* nothing cached */
+  }
 
   try {
     const result = await GoogleSignin.signIn();
@@ -144,20 +174,15 @@ async function requestGoogleIdToken(): Promise<string> {
   } catch (e) {
     if (e instanceof GoogleNativeCancelledError) throw e;
     if (e instanceof GoogleNativeUnavailableError) throw e;
-    if (isErrorWithCode(e)) {
-      if (e.code === statusCodes.SIGN_IN_CANCELLED) {
-        throw new GoogleNativeCancelledError();
-      }
-      // DEVELOPER_ERROR = SHA-1/client id mismatch; fall back to the web flow
-      // instead of dead-ending the user.
-      if (
-        e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE ||
-        e.code === "DEVELOPER_ERROR"
-      ) {
-        throw new GoogleNativeUnavailableError();
-      }
+    if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED) {
+      throw new GoogleNativeCancelledError();
     }
-    throw e;
+    // Anything else here is a device/console configuration problem
+    // (DEVELOPER_ERROR from a SHA-1 mismatch, missing Play services, ...).
+    // Report it as unavailable so the caller can use the web flow.
+    throw new GoogleNativeUnavailableError(
+      e instanceof Error ? e.message : undefined
+    );
   }
 }
 
