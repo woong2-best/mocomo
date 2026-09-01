@@ -23,15 +23,19 @@ export function googleWebClientId(): string | null {
   );
 }
 
+/** Android OAuth client — native SDK may use this as ID token `aud`. */
+export function googleAndroidClientId(): string | null {
+  return process.env.GOOGLE_ANDROID_CLIENT_ID?.trim() || null;
+}
+
 /**
- * Every audience a native ID token may carry. Android/iOS SDKs mint tokens for
  * the web client when `serverClientId` is set, but fall back to their own
  * platform client id when it is not.
  */
 export function googleNativeAudiences(): string[] {
   const raw = [
     googleWebClientId(),
-    process.env.GOOGLE_ANDROID_CLIENT_ID?.trim(),
+    googleAndroidClientId(),
     process.env.GOOGLE_IOS_CLIENT_ID?.trim(),
   ].filter((v): v is string => !!v);
   return [...new Set(raw)];

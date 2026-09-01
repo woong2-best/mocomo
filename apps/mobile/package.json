@@ -1,6 +1,6 @@
 {
   "name": "mocomo-mobile",
-  "version": "1.0.92",
+  "version": "1.0.93",
   "main": "index.ts",
   "private": true,
   "dependencies": {
@@ -73,7 +73,7 @@
     "build:preview:android": "eas build --profile preview --platform android",
     "submit:internal:android": "eas submit --profile internal --platform android --latest",
     "build:play:aab": "cd android && gradlew.bat bundleRelease && node ../scripts/copy-play-aab.cjs",
-    "submit:internal:android:local": "eas submit --profile internal --platform android --path ../../MoCoMo-1.0.92-play.aab",
+    "submit:internal:android:local": "eas submit --profile internal --platform android --path ../../MoCoMo-1.0.93-play.aab",
     "eas:whoami": "eas whoami"
   }
 }
