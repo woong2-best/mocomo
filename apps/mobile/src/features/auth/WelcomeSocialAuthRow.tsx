@@ -1,10 +1,10 @@
 import type { ComponentType } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Image, type ImageSource } from "expo-image";
 import type { MobileAuthProvider } from "@/auth/oauth";
 import {
   DiscordIcon,
   GoogleIcon,
-  LineIcon,
   NaverIcon,
   XIcon,
 } from "@/features/auth/SocialBrandIcons";
@@ -12,18 +12,26 @@ import { radii } from "@/theme/tokens";
 
 type ProviderTile = {
   id: MobileAuthProvider;
-  bg: string;
-  Icon: ComponentType<{ size?: number; color?: string }>;
-  iconColor?: string;
   label: string;
+  bg?: string;
+  Icon?: ComponentType<{ size?: number; color?: string }>;
+  iconColor?: string;
+  /** Brand artwork that already includes its own tile, e.g. the LINE mark. */
+  art?: ImageSource;
+  spinnerColor: string;
 };
 
 const TILES: ProviderTile[] = [
-  { id: "gmail", bg: "#FFFFFF", Icon: GoogleIcon, label: "Google" },
-  { id: "naver", bg: "#03C75A", Icon: NaverIcon, label: "Naver" },
-  { id: "twitter", bg: "#0F1419", Icon: XIcon, label: "X" },
-  { id: "discord", bg: "#5865F2", Icon: DiscordIcon, label: "Discord" },
-  { id: "line", bg: "#06C755", Icon: LineIcon, label: "LINE" },
+  { id: "gmail", bg: "#FFFFFF", Icon: GoogleIcon, label: "Google", spinnerColor: "#4285F4" },
+  { id: "naver", bg: "#03C75A", Icon: NaverIcon, label: "Naver", spinnerColor: "#fff" },
+  { id: "twitter", bg: "#0F1419", Icon: XIcon, label: "X", spinnerColor: "#fff" },
+  { id: "discord", bg: "#5865F2", Icon: DiscordIcon, label: "Discord", spinnerColor: "#fff" },
+  {
+    id: "line",
+    label: "LINE",
+    art: require("../../../assets/brand-line.png"),
+    spinnerColor: "#06C755",
+  },
 ];
 
 type Props = {
@@ -46,12 +54,21 @@ export function WelcomeSocialAuthRow({ busyProvider, disabled, onPress }: Props)
             accessibilityLabel={tile.label}
             onPress={() => onPress(tile.id)}
           >
-            <View style={[styles.tile, { backgroundColor: tile.bg }]}>
+            <View
+              style={[
+                styles.tile,
+                tile.art
+                  ? styles.artTile
+                  : { backgroundColor: tile.bg ?? "#FFFFFF" },
+              ]}
+            >
               {busy ? (
-                <ActivityIndicator color={tile.id === "gmail" ? "#4285F4" : "#fff"} />
-              ) : (
+                <ActivityIndicator color={tile.spinnerColor} />
+              ) : tile.art ? (
+                <Image source={tile.art} style={styles.art} contentFit="contain" />
+              ) : tile.Icon ? (
                 <tile.Icon size={24} color={tile.iconColor ?? "#fff"} />
-              )}
+              ) : null}
             </View>
           </Pressable>
         );
@@ -86,5 +103,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+  },
+  artTile: {
+    backgroundColor: "transparent",
+    borderColor: "transparent",
+  },
+  art: {
+    width: TILE,
+    height: TILE,
   },
 });

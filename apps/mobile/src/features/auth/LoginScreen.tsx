@@ -29,11 +29,8 @@ import { spacing } from "@/theme/tokens";
 
 const WEB = API_BASE_URL.replace(/\/$/, "");
 
-const TAGLINES = [
-  "More Connect Moments",
-  "More Community Moments",
-  "More Commercial Moments",
-] as const;
+/** Matches the flat lower half of the welcome artwork so edges never show. */
+const BACKDROP = "#000026";
 
 type PendingGoogleSignup = {
   idToken: string;
@@ -154,13 +151,20 @@ export function LoginScreen() {
   }
 
   return (
-    <View style={[styles.flex, { backgroundColor: colors.background }]}>
+    <View style={[styles.flex, { backgroundColor: BACKDROP }]}>
+      <Image
+        source={require("../../../assets/welcome-bg.png")}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        contentPosition="top center"
+      />
+
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={[
           styles.scroll,
           {
-            paddingTop: insets.top + (keyboardOpen ? 8 : 16),
+            paddingTop: insets.top + 12,
             paddingBottom: Math.max(insets.bottom + 20, keyboardHeight + 20),
           },
         ]}
@@ -168,40 +172,17 @@ export function LoginScreen() {
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
-        {!keyboardOpen ? (
-          <View style={styles.hero}>
-            <Image
-              source={require("../../../assets/welcome-mascot.png")}
-              style={styles.mascot}
-              contentFit="contain"
-            />
-            <View style={styles.taglines}>
-              {TAGLINES.map((line) => (
-                <Text key={line} style={[styles.tagline, { color: colors.brand }]}>
-                  {line}
-                </Text>
-              ))}
-            </View>
-            <Image
-              source={require("../../../assets/welcome-hands.png")}
-              style={styles.hands}
-              contentFit="contain"
-            />
-          </View>
-        ) : null}
+        {/* Keeps the artwork clear until the keyboard needs the room. */}
+        <View style={styles.spacer} />
 
         <View style={styles.actions}>
-          {!keyboardOpen ? (
-            <WelcomeSocialAuthRow
-              busyProvider={busyProvider}
-              disabled={authLocked}
-              onPress={(provider) => void runOAuth(provider)}
-            />
-          ) : null}
+          <WelcomeSocialAuthRow
+            busyProvider={busyProvider}
+            disabled={authLocked}
+            onPress={(provider) => void runOAuth(provider)}
+          />
 
-          {!keyboardOpen ? (
-            <Text style={[styles.orText, { color: colors.textMuted }]}>또는</Text>
-          ) : null}
+          <Text style={[styles.orText, { color: colors.textMuted }]}>또는</Text>
 
           <NativeCredentialsForm
             busy={credentialsBusy}
@@ -251,30 +232,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: spacing.lg,
   },
-  hero: {
-    alignItems: "center",
-    paddingTop: 4,
-  },
-  mascot: {
-    width: 168,
-    height: 132,
-    marginBottom: -10,
-  },
-  taglines: { gap: 2, alignItems: "center" },
-  tagline: {
-    fontSize: 20,
-    fontWeight: "800",
-    textAlign: "center",
-    lineHeight: 26,
-    letterSpacing: -0.3,
-  },
-  hands: {
-    alignSelf: "stretch",
-    marginHorizontal: -spacing.lg,
-    aspectRatio: 900 / 280,
-    marginTop: 6,
-    marginBottom: 14,
-  },
+  spacer: { flex: 1, minHeight: 16 },
   actions: { gap: 14 },
   orText: {
     fontSize: 14,
