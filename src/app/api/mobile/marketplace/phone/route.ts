@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     parsed.data.bankCode,
     parsed.data.accountNum,
     parsed.data.code,
-    { ip, linkStripeConnect: true }
+      { ip, linkStripeConnect: false }
   );
   if ("error" in result && result.error) {
     return NextResponse.json({ error: result.error }, { status: 400 });

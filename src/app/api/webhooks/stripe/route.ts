@@ -59,5 +59,33 @@ export async function POST(req: Request) {
     }
   }
 
+  if (event.type === "account.updated") {
+    const account = event.data.object as Stripe.Account;
+    const { syncStripeConnectAccountToDb } = await import(
+      "@/lib/marketplace/stripe-connect-sync"
+    );
+    await syncStripeConnectAccountToDb(account).catch((e) => {
+      console.error("[stripe-webhook] account.updated sync failed", e);
+    });
+  }
+
+  if (event.type === "person.updated") {
+    const person = event.data.object as Stripe.Person;
+    const accountId =
+      typeof person.account === "string" ? person.account : person.account?.id;
+    if (accountId) {
+      const stripe = getStripe();
+      const account = await stripe.accounts.retrieve(accountId).catch(() => null);
+      if (account) {
+        const { syncStripeConnectAccountToDb } = await import(
+          "@/lib/marketplace/stripe-connect-sync"
+        );
+        await syncStripeConnectAccountToDb(account).catch((e) => {
+          console.error("[stripe-webhook] person.updated sync failed", e);
+        });
+      }
+    }
+  }
+
   return NextResponse.json({ received: true });
 }

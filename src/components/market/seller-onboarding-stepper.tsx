@@ -7,15 +7,9 @@ import {
   type SellerOnboardingUiStep,
 } from "@/lib/marketplace/seller-onboarding";
 
-export function SellerOnboardingStepper({
-  uiStep,
-  countryCode,
-}: {
-  uiStep: SellerOnboardingUiStep;
-  countryCode?: string | null;
-}) {
-  const visible = visibleSellerOnboardingUiSteps(countryCode);
-  const currentIdx = Math.max(0, visible.indexOf(uiStep === "COMPLETE" ? "BANK" : uiStep));
+export function SellerOnboardingStepper({ uiStep }: { uiStep: SellerOnboardingUiStep }) {
+  const visible = visibleSellerOnboardingUiSteps();
+  const currentIdx = Math.max(0, visible.indexOf(uiStep === "COMPLETE" ? "STRIPE" : uiStep));
 
   return (
     <ol className="flex flex-wrap items-center gap-x-1 gap-y-2 text-[11px] sm:text-xs mb-6">

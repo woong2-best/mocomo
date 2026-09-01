@@ -50,11 +50,20 @@ export function validateKoreanResidentId(raw: string): boolean {
   return check === Number(digits[12]);
 }
 
-function validateIdNumber(idType: string, idNumber: string): { ok: boolean; error?: string } {
+function validateIdNumber(
+  idType: string,
+  idNumber: string,
+  countryCode: string
+): { ok: boolean; error?: string } {
   const compact = idNumber.replace(/\s+/g, "");
   if (idType === "NATIONAL_ID") {
-    if (!validateKoreanResidentId(compact)) {
-      return { ok: false, error: "주민등록번호 형식이 올바르지 않습니다." };
+    // 한국만 주민등록번호 체크섬 — 해외 국가신분증은 길이만 확인
+    if (sellerRequiresPhoneVerification(countryCode)) {
+      if (!validateKoreanResidentId(compact)) {
+        return { ok: false, error: "주민등록번호 형식이 올바르지 않습니다." };
+      }
+    } else if (compact.length < 4) {
+      return { ok: false, error: "신분증 번호를 입력해 주세요." };
     }
     return { ok: true };
   }
@@ -85,7 +94,7 @@ export function verifySellerKyc(input: SellerKycVerifyInput): SellerKycVerifyRes
   const flags: string[] = [];
   const legalName = input.legalName.trim();
 
-  const idCheck = validateIdNumber(input.idType, input.idNumber);
+  const idCheck = validateIdNumber(input.idType, input.idNumber, input.countryCode);
   if (!idCheck.ok) {
     return {
       status: "FAILED",

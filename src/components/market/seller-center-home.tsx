@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTransition } from "react";
 import { Check, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,6 +9,8 @@ import { MARKET_BRAND_FULL, MARKET_BRAND_NAME } from "@/lib/market-brand";
 import { MarketplaceSellerApplyForm } from "@/components/market/marketplace-seller-apply-form";
 import { SellerSettlementInvoices } from "@/components/market/seller-settlement-invoices";
 import type { SellerSettlementInvoiceRow } from "@/actions/marketplace-settlement-invoices";
+import { resumeSellerConnectFromOnboarding } from "@/actions/marketplace-seller-onboarding";
+import { openStripeConnectOnboardingUrl } from "@/lib/marketplace/open-stripe-connect-url";
 
 export type SellerPrepState = {
   sellerInfoDone: boolean;
@@ -20,7 +23,8 @@ export type SellerPrepState = {
   welcome?: boolean;
   status: string;
   canList: boolean;
-  phoneRequired: boolean;
+  stripeRequirementsDue?: boolean;
+  stripeDisabled?: boolean;
 };
 
 export function SellerCenterHome({
@@ -36,9 +40,27 @@ export function SellerCenterHome({
   const total = 2;
   const progressPct = (doneCount / total) * 100;
   const showPrep = doneCount < total || prep.welcome;
+  const [stripePending, startStripe] = useTransition();
+
+  function resumeStripe() {
+    startStripe(async () => {
+      const res = await resumeSellerConnectFromOnboarding();
+      if ("url" in res && res.url) openStripeConnectOnboardingUrl(res.url, false);
+    });
+  }
 
   return (
     <div className="space-y-5 max-w-4xl">
+      {(!prep.connectReady || prep.stripeRequirementsDue || prep.stripeDisabled) && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 space-y-2">
+          <p className="font-semibold">Stripe 온보딩</p>
+          <p>{prep.connectMessage}</p>
+          <Button type="button" size="sm" disabled={stripePending} onClick={resumeStripe}>
+            Stripe 온보딩 이어서 하기
+          </Button>
+        </div>
+      )}
+
       {prep.welcome && (
         <div
           className={cn(
@@ -49,27 +71,19 @@ export function SellerCenterHome({
           )}
         >
           {prep.status === "APPROVED" ? (
-            <>
-              판매자 등록이 완료되었습니다. 자동 본인 확인이 통과되어 바로 상품을 등록할 수
-              있습니다.
-            </>
+            <>판매자 등록이 완료되었습니다. Stripe 정산이 준비되면 바로 상품을 등록할 수 있습니다.</>
           ) : (
-            <>
-              가입 신청이 접수되었습니다. 자동 검증 중 추가 확인이 필요한 항목이 있어 예외
-              검수 후 승인됩니다.
-            </>
+            <>가입 신청이 접수되었습니다. Stripe 온보딩 완료 후 판매를 시작할 수 있습니다.</>
           )}
         </div>
       )}
 
       {prep.status === "PENDING" && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-semibold">예외 검수 대기 중</p>
+          <p className="font-semibold">승인 대기 중</p>
           <p className="mt-1 text-amber-800/90">
-            {prep.phoneRequired
-              ? "자동 검증(OCR·명의 일치) 중 확인이 필요한 항목이 있습니다."
-              : "Stripe·자동 본인 확인 중 추가 검수가 필요합니다."}{" "}
-            대부분의 판매자는 자동 승인되며, 플래그된 건만 수동 확인 후 승인됩니다.
+            Stripe 온보딩 상태를 확인 중입니다. 추가 정보가 필요하면 위 배너에서 이어서 진행해
+            주세요.
           </p>
         </div>
       )}
@@ -114,7 +128,7 @@ export function SellerCenterHome({
             <PrepCard
               done={prep.sellerInfoDone}
               title="판매자 정보 입력하기"
-              description="사업자·본인 인증은 OCR·공공 API로 자동 검증됩니다. 예외 건만 수동 검수됩니다."
+              description="Stripe에서 본인 확인 및 정산 계좌를 등록합니다."
               actions={
                 <Button asChild className="min-w-[9.5rem]">
                   <Link href="#profile">판매자 정보 입력</Link>

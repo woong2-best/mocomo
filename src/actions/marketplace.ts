@@ -16,10 +16,11 @@ import {
 } from "@/lib/marketplace/constants";
 import { validateShipToCountries } from "@/lib/marketplace/shipping-config";
 import {
-  createSellerConnectOnboarding,
   refreshSellerConnectLink,
+  startSellerConnectOnboarding,
   syncStripeConnectOnboardedAt,
 } from "@/lib/stripe-connect";
+import { normalizeSellerCountry } from "@/lib/marketplace/seller-region-policy";
 
 export async function getMarketplaceSellerProfile(userId?: string) {
   const user = userId
@@ -141,19 +142,27 @@ export async function startMarketplaceConnectOnboarding() {
   const { user } = await requireMarketplaceSeller();
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
-    select: { id: true, email: true, stripeConnectAccountId: true },
+    select: {
+      id: true,
+      email: true,
+      stripeConnectAccountId: true,
+      countryCode: true,
+      marketplaceSeller: { select: { sellingMarket: true } },
+    },
   });
   if (!dbUser) return { error: "사용자를 찾을 수 없습니다." };
 
-  const result = await createSellerConnectOnboarding(dbUser);
-  if ("error" in result) return result;
+  const country = normalizeSellerCountry(
+    dbUser.marketplaceSeller?.sellingMarket || dbUser.countryCode
+  );
 
-  if (result.accountId !== dbUser.stripeConnectAccountId) {
-    await db.user.update({
-      where: { id: user.id },
-      data: { stripeConnectAccountId: result.accountId },
-    });
-  }
+  const result = await startSellerConnectOnboarding({
+    userId: dbUser.id,
+    email: dbUser.email,
+    stripeConnectAccountId: dbUser.stripeConnectAccountId,
+    countryCode: country,
+  });
+  if ("error" in result) return result;
 
   return { url: result.url };
 }

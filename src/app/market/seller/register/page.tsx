@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: `판매자 가입 — ${MARKET_BRAND_FULL}`,
-  description: `${MARKET_BRAND_FULL} 판매자 온보딩. 계정·약관·인증·정산까지 한 번에 시작하세요.`,
+  description: `${MARKET_BRAND_FULL} 판매자 온보딩. 계정·약관·Stripe 본인 확인 및 정산까지 한 번에 시작하세요.`,
 };
 
 export default async function SellerRegisterPage({

@@ -1,23 +1,175 @@
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
 import { db } from "@/lib/db";
+import { normalizeSellerCountry, isKrSellerCountry } from "@/lib/marketplace/seller-region-policy";
+import {
+  snapshotStripeConnectAccount,
+  syncStripeConnectAccountToDb,
+} from "@/lib/marketplace/stripe-connect-sync";
+import type Stripe from "stripe";
 
 export function isStripeConnectConfigured(): boolean {
   return isStripeConfigured();
 }
 
-/** Stripe Connect payout ready — tax/KYC delegated to Stripe onboarding */
+export type SellerConnectUrlContext = {
+  fromApp?: boolean;
+  returnTo?: string | null;
+};
+
+export function buildSellerConnectRedirectPaths(ctx: SellerConnectUrlContext = {}) {
+  const origin = getAppOrigin();
+  const params = new URLSearchParams();
+  if (ctx.fromApp) params.set("app", "1");
+  if (ctx.returnTo) params.set("return", ctx.returnTo);
+  const q = params.toString();
+  const suffix = q ? `?${q}` : "";
+  const amp = q ? `&${q}` : "";
+  return {
+    refresh_url: `${origin}/api/market/seller/stripe-connect/refresh${suffix}`,
+    return_url: `${origin}/market/seller/register?connect=return${amp}`,
+  };
+}
+
+/** KR=recipient(transfers only) / 그 외=full(default) Express 계정 생성 */
+export async function createExpressConnectAccount(input: {
+  userId: string;
+  email?: string | null;
+  countryCode: string;
+}): Promise<{ accountId: string } | { error: string }> {
+  if (!isStripeConfigured()) {
+    return { error: "Stripe가 설정되지 않았습니다." };
+  }
+
+  const country = normalizeSellerCountry(input.countryCode).toUpperCase();
+  const isKr = isKrSellerCountry(country);
+  const stripe = getStripe();
+
+  const params: Stripe.AccountCreateParams = {
+    type: "express",
+    country,
+    email: input.email?.trim() || undefined,
+    metadata: { mocomoUserId: input.userId },
+    capabilities: {
+      transfers: { requested: true },
+    },
+  };
+
+  if (isKr) {
+    params.tos_acceptance = { service_agreement: "recipient" };
+  }
+
+  try {
+    const account = await stripe.accounts.create(params);
+    return { accountId: account.id };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Stripe 계정 생성 실패";
+    console.error("[stripe-connect] createExpressConnectAccount:", msg);
+    return { error: msg };
+  }
+}
+
+/** Express Account Link (account_onboarding) */
+export async function createSellerAccountOnboardingLink(input: {
+  accountId: string;
+  urlContext?: SellerConnectUrlContext;
+}): Promise<{ url: string } | { error: string }> {
+  if (!isStripeConfigured()) {
+    return { error: "Stripe가 설정되지 않았습니다." };
+  }
+
+  const stripe = getStripe();
+  const paths = buildSellerConnectRedirectPaths(input.urlContext);
+
+  try {
+    const link = await stripe.accountLinks.create({
+      account: input.accountId,
+      refresh_url: paths.refresh_url,
+      return_url: paths.return_url,
+      type: "account_onboarding",
+    });
+    return { url: link.url };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Stripe 온보딩 링크 생성 실패";
+    console.error("[stripe-connect] createSellerAccountOnboardingLink:", msg);
+    return { error: msg };
+  }
+}
+
+/** 계정 생성(없으면) + Account Link — 이메일만 프리필 */
+export async function startSellerConnectOnboarding(input: {
+  userId: string;
+  email?: string | null;
+  stripeConnectAccountId?: string | null;
+  countryCode: string;
+  urlContext?: SellerConnectUrlContext;
+}): Promise<{ accountId: string; url: string } | { error: string }> {
+  if (!isStripeConnectConfigured()) {
+    return { error: "Stripe가 설정되지 않았습니다." };
+  }
+
+  let accountId = input.stripeConnectAccountId ?? null;
+
+  if (!accountId) {
+    const created = await createExpressConnectAccount({
+      userId: input.userId,
+      email: input.email,
+      countryCode: input.countryCode,
+    });
+    if ("error" in created) return created;
+    accountId = created.accountId;
+
+    await db.user.update({
+      where: { id: input.userId },
+      data: { stripeConnectAccountId: accountId },
+    });
+
+    await db.marketplaceSellerProfile.updateMany({
+      where: { userId: input.userId },
+      data: {
+        stripeConnectStartedAt: new Date(),
+        onboardingStep: "SETTLEMENT",
+      },
+    });
+  }
+
+  const link = await createSellerAccountOnboardingLink({
+    accountId,
+    urlContext: input.urlContext,
+  });
+  if ("error" in link) return link;
+
+  return { accountId, url: link.url };
+}
+
+export async function refreshSellerConnectLink(
+  accountId: string,
+  urlContext?: SellerConnectUrlContext
+) {
+  return createSellerAccountOnboardingLink({ accountId, urlContext });
+}
+
+/** Stripe API에서 계정 상태 조회 후 DB 동기화 */
+export async function pullAndSyncStripeConnectAccount(
+  accountId: string
+): Promise<ReturnType<typeof snapshotStripeConnectAccount> | null> {
+  if (!isStripeConfigured()) return null;
+  try {
+    const stripe = getStripe();
+    const account = await stripe.accounts.retrieve(accountId);
+    await syncStripeConnectAccountToDb(account);
+    return snapshotStripeConnectAccount(account);
+  } catch {
+    return null;
+  }
+}
+
+/** @deprecated webhook·pullAndSyncStripeConnectAccount 사용 */
 export async function isStripeConnectPayoutReady(
   accountId: string | null | undefined
 ): Promise<boolean> {
   if (!accountId || !isStripeConfigured()) return false;
-  try {
-    const stripe = getStripe();
-    const account = await stripe.accounts.retrieve(accountId);
-    const eventuallyDue = account.requirements?.eventually_due ?? [];
-    return eventuallyDue.length === 0;
-  } catch {
-    return false;
-  }
+  const snap = await pullAndSyncStripeConnectAccount(accountId);
+  return snap?.readyForPayouts ?? false;
 }
 
 export async function stripeConnectStatusFromApi(accountId: string | null | undefined) {
@@ -30,19 +182,25 @@ export async function stripeConnectStatusFromApi(accountId: string | null | unde
   if (!accountId) {
     return {
       ready: false,
-      message: "판매자 Stripe Connect 온보딩이 필요합니다.",
+      message: "Stripe Connect 온보딩이 필요합니다.",
     };
   }
-  const ready = await isStripeConnectPayoutReady(accountId);
+  const snap = await pullAndSyncStripeConnectAccount(accountId);
+  if (!snap) {
+    return {
+      ready: false,
+      message: "Stripe Connect 상태를 확인할 수 없습니다.",
+    };
+  }
+  const { stripeConnectStatusLabel } = await import("@/lib/marketplace/stripe-connect-sync");
   return {
-    ready,
-    message: ready
-      ? "Stripe Connect 정산이 활성화되었습니다."
-      : "Stripe Connect에서 추가 정보 제출이 필요합니다.",
+    ready: snap.readyForPayouts,
+    message: stripeConnectStatusLabel(snap.onboardingStatus, snap.requirementsDue),
+    snapshot: snap,
   };
 }
 
-/** @deprecated Prefer stripeConnectStatusFromApi for accurate requirements check */
+/** @deprecated Prefer stripeConnectStatusFromApi */
 export function stripeConnectStatus(accountId: string | null | undefined) {
   if (!isStripeConnectConfigured()) {
     return {
@@ -62,129 +220,44 @@ export function stripeConnectStatus(accountId: string | null | undefined) {
   };
 }
 
-/** After Connect return URL — sync onboardedAt only when Stripe requirements are clear */
+/** Connect return URL — Stripe 상태 pull 후 동기화 */
 export async function syncStripeConnectOnboardedAt(userId: string, accountId: string) {
-  const ready = await isStripeConnectPayoutReady(accountId);
-  if (!ready) {
-    return { ready: false as const };
+  const snap = await pullAndSyncStripeConnectAccount(accountId);
+  if (!snap?.readyForPayouts) {
+    return { ready: false as const, snapshot: snap };
   }
-  await db.user.update({
-    where: { id: userId },
-    data: { stripeConnectOnboardedAt: new Date() },
-  });
-  return { ready: true as const };
+  return { ready: true as const, snapshot: snap };
 }
 
-/** Express Connected Account 생성 + Account Link */
-export async function createSellerConnectOnboarding(user: {
-  id: string;
-  email?: string | null;
-  stripeConnectAccountId?: string | null;
-}) {
-  if (!isStripeConfigured()) {
-    return { error: "Stripe가 설정되지 않았습니다." as const };
-  }
-
-  const stripe = getStripe();
-  let accountId = user.stripeConnectAccountId ?? null;
-
-  if (!accountId) {
-    const account = await stripe.accounts.create({
-      type: "express",
-      email: user.email ?? undefined,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-      metadata: { mocomoUserId: user.id },
-    });
-    accountId = account.id;
-  }
-
-  const origin = getAppOrigin();
-  const link = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: `${origin}/market/seller?connect=refresh`,
-    return_url: `${origin}/market/seller?connect=return`,
-    type: "account_onboarding",
-  });
-
-  return { accountId, url: link.url };
-}
-
-export async function refreshSellerConnectLink(accountId: string) {
-  if (!isStripeConfigured()) {
-    return { error: "Stripe가 설정되지 않았습니다." as const };
-  }
-  const stripe = getStripe();
-  const origin = getAppOrigin();
-  const link = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: `${origin}/market/seller?connect=refresh`,
-    return_url: `${origin}/market/seller?connect=return`,
-    type: "account_onboarding",
-  });
-  return { url: link.url };
-}
-
-/** Apick 1원 인증 완료 후 Custom Connect 계정 생성 */
-export async function createCustomConnectAccount(input: {
+/** @deprecated Custom Connect — Stripe Hosted Onboarding으로 대체 */
+export async function createCustomConnectAccount(_input: {
   userId: string;
   email?: string | null;
   legalName: string;
 }) {
-  if (!isStripeConfigured()) {
-    return { error: "Stripe가 설정되지 않았습니다." as const };
-  }
-
-  const stripe = getStripe();
-  const account = await stripe.accounts.create({
-    type: "custom",
-    country: "KR",
-    email: input.email ?? undefined,
-    business_type: "individual",
-    capabilities: {
-      card_payments: { requested: true },
-      transfers: { requested: true },
-    },
-    metadata: { mocomoUserId: input.userId },
-    individual: {
-      email: input.email ?? undefined,
-      first_name: input.legalName.slice(0, 40),
-    },
-  });
-
-  return { accountId: account.id };
+  return { error: "Custom Connect는 더 이상 지원되지 않습니다." as const };
 }
 
-/** 검증된 한국 계좌를 Connect external_account 로 등록 */
-export async function attachKrBankToConnectAccount(input: {
+/** @deprecated Custom Connect — Stripe Hosted Onboarding으로 대체 */
+export async function attachKrBankToConnectAccount(_input: {
   accountId: string;
   bankCode: string;
   accountNum: string;
   holderName: string;
 }) {
-  if (!isStripeConfigured()) {
-    return { error: "Stripe가 설정되지 않았습니다." as const };
-  }
+  return { error: "Custom Connect는 더 이상 지원되지 않습니다." as const };
+}
 
-  const stripe = getStripe();
-  try {
-    await stripe.accounts.createExternalAccount(input.accountId, {
-      external_account: {
-        object: "bank_account",
-        country: "KR",
-        currency: "krw",
-        account_holder_name: input.holderName,
-        account_holder_type: "individual",
-        routing_number: input.bankCode,
-        account_number: input.accountNum,
-      },
-    });
-    return { ok: true as const };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Stripe 계좌 등록 실패";
-    console.error("[stripe-connect] attachKrBank failed:", msg);
-    return { error: msg };
-  }
+/** @deprecated startSellerConnectOnboarding 사용 */
+export async function createSellerConnectOnboarding(user: {
+  id: string;
+  email?: string | null;
+  stripeConnectAccountId?: string | null;
+}) {
+  return startSellerConnectOnboarding({
+    userId: user.id,
+    email: user.email,
+    stripeConnectAccountId: user.stripeConnectAccountId,
+    countryCode: "US",
+  });
 }

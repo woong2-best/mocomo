@@ -501,9 +501,6 @@ export async function approveMarketplaceSeller(profileId: string) {
   if (!profile.onboardingCompletedAt) {
     return { error: "온보딩이 완료되지 않은 판매자입니다." };
   }
-  if (profile.kycStatus === "NOT_STARTED" || profile.kycStatus === "DEFERRED") {
-    return { error: "KYC가 제출되지 않았습니다." };
-  }
 
   const now = new Date();
   await db.marketplaceSellerProfile.update({
@@ -511,7 +508,6 @@ export async function approveMarketplaceSeller(profileId: string) {
     data: {
       status: "APPROVED",
       canList: true,
-      kycStatus: profile.kycStatus === "PENDING" ? "VERIFIED" : profile.kycStatus,
       reviewedAt: now,
       reviewedById: admin.id,
     },

@@ -55,7 +55,7 @@ export default async function AdminMarketPage() {
       </div>
 
       <section className="mb-8 space-y-3">
-        <h2 className="font-semibold">예외 검수 대기 (자동 검증 플래그)</h2>
+        <h2 className="font-semibold">수동 검수 대기 (Stripe 온보딩 완료 · 승인 대기)</h2>
         <AdminSellerApprovalList sellers={pendingSellers} />
       </section>
 

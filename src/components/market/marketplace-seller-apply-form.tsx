@@ -8,6 +8,7 @@ import {
 } from "@/actions/marketplace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { openStripeConnectOnboardingUrl } from "@/lib/marketplace/open-stripe-connect-url";
 
 export function MarketplaceSellerApplyForm({
   initialName,
@@ -56,7 +57,7 @@ export function MarketplaceSellerApplyForm({
         return;
       }
       if ("url" in res && res.url) {
-        window.location.href = res.url;
+        openStripeConnectOnboardingUrl(res.url, false);
       }
     });
   }

@@ -10,7 +10,6 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { stripeConnectStatusFromApi } from "@/lib/stripe-connect";
 import { formatSellerCode } from "@/lib/marketplace/seller-code";
-import { sellerRequiresPhoneVerification } from "@/lib/marketplace/seller-region-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -44,11 +43,7 @@ export default async function MarketSellerPage({
   }
 
   const connectStatus = await stripeConnectStatusFromApi(profile.user.stripeConnectAccountId);
-  const sellerInfoDone =
-    !!profile.sellerType &&
-    profile.kycStatus !== "NOT_STARTED" &&
-    (profile.sellerType === "INDIVIDUAL" ||
-      (!!profile.businessName && !!profile.businessRegNo));
+  const sellerInfoDone = !!profile.sellerType && !!profile.displayName;
   const firstProductDone = listings.length > 0;
   const displayName =
     profile.displayName || session.user.name || session.user.username || "판매자";
@@ -72,7 +67,8 @@ export default async function MarketSellerPage({
           welcome: params.welcome === "1",
           status: profile.status,
           canList: profile.canList && profile.status === "APPROVED",
-          phoneRequired: sellerRequiresPhoneVerification(profile.sellingMarket),
+          stripeRequirementsDue: profile.stripeConnectRequirementsDue,
+          stripeDisabled: !!profile.stripeConnectDisabledReason,
         }}
         profileFormName={displayName}
         settlementInvoices={settlementInvoices}

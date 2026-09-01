@@ -31,6 +31,10 @@ export const APT_SCENE_VIEWER_HEADERS: { key: string; value: string }[] = [
   },
 ];
 
+/** PortOne V2 — 본인인증·결제 SDK (cdn script + checkout iframe) */
+const PORTONE_SCRIPT_SRC = "https://cdn.portone.io";
+const PORTONE_FRAME_SRC = "https://checkout.portone.io https://api.portone.io";
+
 /** External live embeds (YouTube / Twitch / CHZZK) + payment widgets */
 const EMBED_FRAME_SRC =
   "https://challenges.cloudflare.com https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.twitch.tv https://chzzk.naver.com";
@@ -51,8 +55,8 @@ export const SECURITY_HEADERS: { key: string; value: string }[] = [
     key: "Content-Security-Policy",
     value: [
       ...CSP_BASE,
-      `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://js.stripe.com ${KAKAO_MAP_SCRIPT_SRC}`,
-      `frame-src 'self' ${EMBED_FRAME_SRC}`,
+      `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://js.stripe.com ${PORTONE_SCRIPT_SRC} ${KAKAO_MAP_SCRIPT_SRC}`,
+      `frame-src 'self' ${EMBED_FRAME_SRC} ${PORTONE_FRAME_SRC}`,
       "frame-ancestors 'none'",
     ].join("; "),
   },

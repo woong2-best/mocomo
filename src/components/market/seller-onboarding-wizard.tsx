@@ -7,14 +7,8 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SellerOnboardingStepper } from "@/components/market/seller-onboarding-stepper";
-import {
-  SellerKycDocumentUpload,
-  type SellerKycDocumentUploadValue,
-} from "@/components/market/seller-kyc-document-upload";
 import { SellerConsentDialog } from "@/components/market/seller-consent-dialog";
 import {
-  advanceSellerPhoneStep,
-  completeSellerOnboarding,
   getSellerOnboardingState,
   markSellerConnectReturn,
   registerSellerAccount,
@@ -22,31 +16,24 @@ import {
   resumeSellerConnectFromOnboarding,
   saveSellerAgreements,
   saveSellerInfo,
-  declareSellerSettlementForReview,
-  startSellerSettlementOnboarding,
-  submitSellerKyc,
+  startSellerStripeConnectOnboarding,
   verifySellerEmailCode,
-  type SellerSettlementPhase,
 } from "@/actions/marketplace-seller-onboarding";
 import {
-  sendSellerBankVerification,
-  verifySellerBankCode,
-} from "@/actions/bank-verification";
-import { BankSelectField } from "@/components/bank/bank-select-field";
-import {
-  SELLER_KYC_ID_TYPES,
   SELLER_MARKETS,
   toSellerOnboardingUiStep,
   type SellerOnboardingStepId,
 } from "@/lib/marketplace/seller-onboarding";
-import { sellerRequiresPhoneVerification } from "@/lib/marketplace/seller-region-policy";
+import { openStripeConnectOnboardingUrl } from "@/lib/marketplace/open-stripe-connect-url";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { MARKET_BRAND_FULL } from "@/lib/market-brand";
-import { walletSettlementPath } from "@/lib/settlement-account";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 
 type OnboardingState = Awaited<ReturnType<typeof getSellerOnboardingState>>;
+
+const STRIPE_ONBOARDING_COPY =
+  "Stripe로 안전하게 본인 확인 및 정산 계좌를 등록해 주세요. 신분증·사업자 정보·계좌는 Stripe에서 직접 수집합니다.";
 
 export function SellerOnboardingWizard({
   initialState,
@@ -61,18 +48,14 @@ export function SellerOnboardingWizard({
 }) {
   const router = useRouter();
   const [state, setState] = useState(initialState);
-  const [step, setStep] = useState<SellerOnboardingStepId>(initialState.step);
-  const [settlementPhase, setSettlementPhase] = useState<SellerSettlementPhase>(
-    initialState.signedIn && "settlementPhase" in initialState
-      ? initialState.settlementPhase
-      : null
+  const [step, setStep] = useState<SellerOnboardingStepId>(
+    initialState.signedIn ? initialState.step : "ACCOUNT"
   );
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [consentKind, setConsentKind] = useState<"terms" | "marketing" | "privacy" | null>(null);
 
-  // Account form
   const [sellingMarket, setSellingMarket] = useState(() => {
     if (initialState.signedIn) {
       return (
@@ -83,56 +66,24 @@ export function SellerOnboardingWizard({
     }
     return "KR";
   });
-  const phoneRequired = sellerRequiresPhoneVerification(sellingMarket);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [name, setName] = useState(initialState.signedIn ? initialState.name ?? "" : "");
   const [email, setEmail] = useState(initialState.signedIn ? initialState.email ?? "" : "");
-  const [phoneCountryCode] = useState("KR");
-  const [kycLegalName, setKycLegalName] = useState("");
-  const [kycIdType, setKycIdType] = useState<(typeof SELLER_KYC_ID_TYPES)[number]["code"]>(
-    "NATIONAL_ID"
-  );
-  const [kycIdNumber, setKycIdNumber] = useState("");
-  const [kycDocument, setKycDocument] = useState<SellerKycDocumentUploadValue>({
-    documentKey: null,
-    previewUrl: null,
-  });
 
-  // Agreements
   const [agreeAll, setAgreeAll] = useState(false);
   const [agreeAge, setAgreeAge] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
   const [agreePromo, setAgreePromo] = useState(false);
-
-  // Email / bank (KR)
   const [emailCode, setEmailCode] = useState("");
-  const [bankCode, setBankCode] = useState("004");
-  const [accountNum, setAccountNum] = useState("");
-  const [bankCodeInput, setBankCodeInput] = useState("");
-  const [bankSent, setBankSent] = useState(false);
-  const [bankVerifiedOnForm] = useState(
-    !!(initialState.signedIn && initialState.phoneVerified)
-  );
 
-  // Seller info
   const [sellerType, setSellerType] = useState<"INDIVIDUAL" | "BUSINESS">("INDIVIDUAL");
   const [displayName, setDisplayName] = useState(
     initialState.profile?.displayName ?? (initialState.signedIn ? initialState.name ?? "" : "")
   );
   const [bio, setBio] = useState(initialState.profile?.bio ?? "");
-  const [businessName, setBusinessName] = useState(initialState.profile?.businessName ?? "");
-  const [businessRegNo, setBusinessRegNo] = useState(initialState.profile?.businessRegNo ?? "");
-  const [businessRepresentativeName, setBusinessRepresentativeName] = useState(
-    initialState.profile?.businessRepresentativeName ?? ""
-  );
-  const [businessStartDate, setBusinessStartDate] = useState(() => {
-    const raw = initialState.profile?.businessStartDate;
-    if (!raw || raw.length !== 8) return "";
-    return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
-  });
 
   useEffect(() => {
     if (connectParam === "return") {
@@ -143,15 +94,16 @@ export function SellerOnboardingWizard({
           return;
         }
         if ("error" in res && res.error) setError(res.error);
+        else refreshState();
       });
     } else if (connectParam === "refresh") {
       startTransition(async () => {
-        const res = await resumeSellerConnectFromOnboarding();
-        if ("url" in res && res.url) window.location.href = res.url;
+        const res = await resumeSellerConnectFromOnboarding({ fromApp, returnTo });
+        if ("url" in res && res.url) openStripeConnectOnboardingUrl(res.url, fromApp);
         if ("error" in res && res.error) setError(res.error);
       });
     }
-  }, [connectParam, router]);
+  }, [connectParam, fromApp, returnTo, router]);
 
   useEffect(() => {
     if (initialState.signedIn && initialState.step === "COMPLETE") {
@@ -179,9 +131,6 @@ export function SellerOnboardingWizard({
       const next = await getSellerOnboardingState();
       setState(next);
       setStep(next.step);
-      if (next.signedIn && "settlementPhase" in next) {
-        setSettlementPhase(next.settlementPhase);
-      }
     });
   }
 
@@ -196,7 +145,6 @@ export function SellerOnboardingWizard({
         name,
         email,
         sellingMarket,
-        phoneCountryCode: phoneRequired ? "KR" : sellingMarket,
         locale: "ko",
         timeZone:
           typeof Intl !== "undefined"
@@ -221,41 +169,6 @@ export function SellerOnboardingWizard({
       setEmail(res.email ?? email);
       setMessage("계정이 생성되었습니다. 이메일 인증 코드를 확인해 주세요.");
       setStep("EMAIL");
-    });
-  }
-
-  async function handleSendBank() {
-    setError("");
-    startTransition(async () => {
-      const res = await sendSellerBankVerification(bankCode, accountNum);
-      if ("error" in res && res.error) {
-        setError(res.error);
-        return;
-      }
-      if ("alreadyVerified" in res && res.alreadyVerified) {
-        await advanceSellerPhoneStep("KR");
-        setStep("SELLER_INFO");
-        refreshState();
-        return;
-      }
-      setBankSent(true);
-      setMessage(("message" in res && res.message) || "1원을 보냈습니다.");
-      if ("devCode" in res && res.devCode) setBankCodeInput(res.devCode);
-    });
-  }
-
-  async function handleVerifyBank() {
-    setError("");
-    startTransition(async () => {
-      const res = await verifySellerBankCode(bankCode, accountNum, bankCodeInput);
-      if ("error" in res && res.error) {
-        setError(res.error);
-        return;
-      }
-      await advanceSellerPhoneStep("KR");
-      setMessage("계좌 1원 인증이 완료되었습니다.");
-      setStep("SELLER_INFO");
-      refreshState();
     });
   }
 
@@ -311,12 +224,7 @@ export function SellerOnboardingWizard({
         }
       }
       setMessage("이메일 인증이 완료되었습니다.");
-      const next = await getSellerOnboardingState();
-      setState(next);
-      setStep(next.step);
-      if (next.signedIn && "settlementPhase" in next) {
-        setSettlementPhase(next.settlementPhase);
-      }
+      refreshState();
     });
   }
 
@@ -339,10 +247,6 @@ export function SellerOnboardingWizard({
         sellerType,
         displayName,
         bio: bio || undefined,
-        businessName: businessName || undefined,
-        businessRegNo: businessRegNo || undefined,
-        businessRepresentativeName: businessRepresentativeName || undefined,
-        businessStartDate: businessStartDate || undefined,
       });
       if (res.error) {
         setError(res.error);
@@ -350,121 +254,61 @@ export function SellerOnboardingWizard({
       }
       if ("nextStep" in res && res.nextStep) {
         setStep(res.nextStep as SellerOnboardingStepId);
-        if (res.nextStep === "SETTLEMENT") setSettlementPhase("stripe");
       }
       refreshState();
     });
   }
 
-  async function handleKycSubmit() {
-    setError("");
-    startTransition(async () => {
-      const res = await submitSellerKyc({
-        legalName: kycLegalName,
-        idType: kycIdType,
-        idNumber: kycIdNumber,
-        documentKey: kycDocument.documentKey!,
-      });
-      if ("error" in res && res.error) {
-        setError(res.error);
-        return;
-      }
-      if (res.success) {
-        setStep("SETTLEMENT");
-        setSettlementPhase("bank");
-        refreshState();
-      }
-    });
-  }
-
-  async function handleConnect() {
+  async function handleStripeConnect() {
     setError("");
     setMessage("");
     startTransition(async () => {
-      const res = await startSellerSettlementOnboarding();
+      const res = await startSellerStripeConnectOnboarding({ fromApp, returnTo });
       if ("error" in res && res.error) {
         setError(res.error);
         return;
       }
       if ("url" in res && res.url) {
-        window.location.href = res.url;
-        return;
+        openStripeConnectOnboardingUrl(res.url, fromApp);
       }
-      if ("message" in res && res.message) setMessage(res.message);
-      if ("nextStep" in res && res.nextStep) {
-        setStep(res.nextStep as SellerOnboardingStepId);
-      } else {
-        setStep("KYC");
-      }
-      refreshState();
     });
   }
 
-  async function handleDeclareSettlement() {
+  async function handleResumeStripe() {
     setError("");
     startTransition(async () => {
-      const res = await declareSellerSettlementForReview("온보딩 정산 계좌 등록 검토 요청");
+      const res = await resumeSellerConnectFromOnboarding({ fromApp, returnTo });
       if ("error" in res && res.error) {
         setError(res.error);
         return;
       }
-      if ("redirectTo" in res && res.redirectTo) {
-        router.replace(res.redirectTo);
+      if ("url" in res && res.url) {
+        openStripeConnectOnboardingUrl(res.url, fromApp);
       }
     });
   }
 
-  async function handleComplete() {
-    setError("");
-    startTransition(async () => {
-      const res = await completeSellerOnboarding();
-      if ("error" in res && res.error) {
-        setError(res.error);
-        return;
-      }
-      if (fromApp && returnTo) {
-        window.location.replace(returnTo);
-        return;
-      }
-      if ("redirectTo" in res && res.redirectTo) {
-        router.replace(res.redirectTo);
-      }
-    });
-  }
-
-  const countryForSteps =
-    ("sellingMarket" in state && state.sellingMarket) ||
-    state.countryCode ||
-    sellingMarket;
-
-  // Logged-in users skip ACCOUNT; overseas skip PHONE
   let effectiveStep: SellerOnboardingStepId =
     state.signedIn && step === "ACCOUNT" ? "AGREEMENTS" : step;
-  if (
-    effectiveStep === "PHONE" &&
-    !sellerRequiresPhoneVerification(countryForSteps)
-  ) {
-    effectiveStep = "SELLER_INFO";
+  if (effectiveStep === "PHONE" || effectiveStep === "KYC") {
+    effectiveStep = "SETTLEMENT";
   }
 
-  const uiStep = toSellerOnboardingUiStep(
-    effectiveStep,
-    settlementPhase,
-    countryForSteps
-  );
+  const uiStep = toSellerOnboardingUiStep(effectiveStep);
 
   const title = useMemo(() => {
     if (effectiveStep === "ACCOUNT") return `${MARKET_BRAND_FULL}과 함께 비즈니스를 시작하세요!`;
     if (effectiveStep === "AGREEMENTS") return "약관 동의";
     if (effectiveStep === "EMAIL") return "이메일 인증";
-    if (effectiveStep === "PHONE") return "계좌 1원 인증";
     if (effectiveStep === "SELLER_INFO") return "판매자 정보";
-    if (effectiveStep === "KYC") return "신분증 제출";
-    if (effectiveStep === "SETTLEMENT") {
-      return uiStep === "STRIPE" ? "Stripe Connect 시작" : "은행 계좌 등록";
-    }
+    if (effectiveStep === "SETTLEMENT") return "Stripe 본인 확인 · 정산";
     return "가입 완료";
-  }, [effectiveStep, uiStep]);
+  }, [effectiveStep]);
+
+  const stripeMessage =
+    state.signedIn && "stripeStatusMessage" in state
+      ? state.stripeStatusMessage
+      : STRIPE_ONBOARDING_COPY;
 
   return (
     <div className="mx-auto w-full max-w-lg">
@@ -472,13 +316,10 @@ export function SellerOnboardingWizard({
         {title}
       </h1>
       <p className="text-center text-sm text-muted-foreground mb-6">
-        {MARKET_BRAND_FULL} 판매자 온보딩 ·{" "}
-        {phoneRequired
-          ? "한국: 이메일+SMS+KYC+정산"
-          : "해외: 이메일 → Stripe → 신분증 → 계좌 (SMS 없음)"}
+        {MARKET_BRAND_FULL} 판매자 온보딩
       </p>
 
-      <SellerOnboardingStepper uiStep={uiStep} countryCode={countryForSteps} />
+      <SellerOnboardingStepper uiStep={uiStep} />
 
       <div className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-sm space-y-4">
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -487,9 +328,7 @@ export function SellerOnboardingWizard({
         {effectiveStep === "ACCOUNT" && !state.signedIn && (
           <AccountStep
             sellingMarket={sellingMarket}
-            setSellingMarket={(v) => {
-              setSellingMarket(v);
-            }}
+            setSellingMarket={setSellingMarket}
             username={username}
             setUsername={setUsername}
             password={password}
@@ -500,7 +339,6 @@ export function SellerOnboardingWizard({
             setName={setName}
             email={email}
             setEmail={setEmail}
-            phoneRequired={phoneRequired}
             pending={pending}
             onSubmit={handleRegister}
           />
@@ -540,30 +378,17 @@ export function SellerOnboardingWizard({
               inputMode="numeric"
             />
             <div className="flex flex-wrap gap-2">
-              <Button type="button" disabled={pending || emailCode.length !== 6} onClick={handleEmailVerify}>
+              <Button
+                type="button"
+                disabled={pending || emailCode.length !== 6}
+                onClick={handleEmailVerify}
+              >
                 이메일 인증 완료
               </Button>
               <Button type="button" variant="secondary" disabled={pending} onClick={handleResendEmail}>
                 코드 재전송
               </Button>
             </div>
-          </div>
-        )}
-
-        {effectiveStep === "PHONE" && (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              한국 판매자는 지갑에서 계좌 1원 인증이 필요합니다. 1원 입금 후 입금통장메모의 4자리
-              숫자를 입력하면 완료됩니다.
-            </p>
-            <Button type="button" className="w-full" asChild>
-              <Link href={walletSettlementPath("/market/seller/register")}>지갑에서 계좌 등록</Link>
-            </Button>
-            {state.signedIn && state.phoneVerified ? (
-              <Button type="button" className="w-full" disabled={pending} onClick={refreshState}>
-                인증 완료 — 다음
-              </Button>
-            ) : null}
           </div>
         )}
 
@@ -604,46 +429,14 @@ export function SellerOnboardingWizard({
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
             {sellerType === "BUSINESS" && (
-              <>
-                <Input
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="사업자명 (상호)"
-                />
-                <Input
-                  value={businessRegNo}
-                  onChange={(e) => setBusinessRegNo(e.target.value)}
-                  placeholder="사업자등록번호 (10자리)"
-                  inputMode="numeric"
-                />
-                <Input
-                  value={businessRepresentativeName}
-                  onChange={(e) => setBusinessRepresentativeName(e.target.value)}
-                  placeholder="대표자명 (사업자등록증과 동일)"
-                />
-                <Input
-                  type="date"
-                  value={businessStartDate}
-                  onChange={(e) => setBusinessStartDate(e.target.value)}
-                  aria-label="개업일자"
-                />
-                <p className="text-xs text-muted-foreground">
-                  사업자등록증의 대표자명·개업일자로 국세청 진위확인 후 다음 단계로 진행됩니다.
-                </p>
-              </>
+              <p className="text-xs text-muted-foreground rounded-lg bg-muted/40 px-3 py-2">
+                사업자등록증·대표자 정보는 다음 Stripe 단계에서 입력합니다.
+              </p>
             )}
             <Button
               type="button"
               className="w-full"
-              disabled={
-                pending ||
-                !displayName.trim() ||
-                (sellerType === "BUSINESS" &&
-                  (!businessName.trim() ||
-                    !businessRegNo.trim() ||
-                    !businessRepresentativeName.trim() ||
-                    !businessStartDate))
-              }
+              disabled={pending || !displayName.trim()}
               onClick={handleSellerInfo}
             >
               다음
@@ -651,104 +444,31 @@ export function SellerOnboardingWizard({
           </div>
         )}
 
-        {effectiveStep === "KYC" && (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {phoneRequired
-                ? "한국 판매자: 신분증 정보를 제출해 주세요. OCR·진위확인 API로 자동 검증되며, 서류가 선명하고 계좌 명의와 일치하면 즉시 처리됩니다. 인식 실패·정보 불일치 등 예외 건만 수동 검수됩니다."
-                : "해외 판매자: Stripe Connect 시작 후 정부 발급 신분증 정보를 제출해 주세요. Stripe·자동 검증으로 처리되며, 예외 건만 수동 검수됩니다."}
-            </p>
-            <SellerKycDocumentUpload
-              value={kycDocument}
-              onChange={setKycDocument}
-              disabled={pending}
-              idType={kycIdType}
-            />
-            <Input
-              value={kycLegalName}
-              onChange={(e) => setKycLegalName(e.target.value)}
-              placeholder="법적 성명 (신분증과 동일)"
-            />
-            <select
-              value={kycIdType}
-              onChange={(e) =>
-                setKycIdType(e.target.value as (typeof SELLER_KYC_ID_TYPES)[number]["code"])
-              }
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              {SELLER_KYC_ID_TYPES.map((t) => (
-                <option key={t.code} value={t.code}>
-                  {t.labelKo}
-                </option>
-              ))}
-            </select>
-            <Input
-              value={kycIdNumber}
-              onChange={(e) => setKycIdNumber(e.target.value)}
-              placeholder="신분증 번호 (저장 시 끝자리만 보관)"
-            />
-            <Button
-              type="button"
-              className="w-full"
-              disabled={
-                pending ||
-                !kycLegalName.trim() ||
-                kycIdNumber.trim().length < 4 ||
-                !kycDocument.documentKey
-              }
-              onClick={handleKycSubmit}
-            >
-              신분증 제출하고 계좌 등록으로
-            </Button>
-          </div>
-        )}
-
-        {effectiveStep === "SETTLEMENT" && uiStep === "STRIPE" && (
+        {effectiveStep === "SETTLEMENT" && (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              해외 판매자는 SMS 대신 Stripe Connect로 본인·정산을 진행합니다. Stripe가 아직
-              연결되지 않아도 &quot;시작&quot;으로 기록한 뒤 신분증 제출로 이어집니다.
-            </p>
-            <ol className="text-xs text-muted-foreground space-y-1 list-decimal pl-4">
-              <li>Stripe Connect 시작</li>
-              <li>신분증 제출</li>
-              <li>은행 계좌 등록</li>
-              <li>Stripe/자동 승인</li>
-            </ol>
-            <Button type="button" className="w-full" disabled={pending} onClick={handleConnect}>
-              Stripe Connect 시작
-            </Button>
-          </div>
-        )}
-
-        {effectiveStep === "SETTLEMENT" && uiStep !== "STRIPE" && (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {phoneRequired
-                ? "정산 계좌 등록은 필수입니다. 1원 인증 계좌와 신분증 명의가 일치하면 자동 승인됩니다."
-                : "은행 계좌를 등록해 주세요. Stripe·자동 본인 확인이 완료되면 바로 상품을 등록할 수 있습니다."}
-            </p>
-            {phoneRequired && (
-              <Button type="button" className="w-full" disabled={pending} onClick={handleConnect}>
-                정산 계좌 연결 (Stripe Connect)
-              </Button>
+            <p className="text-sm text-muted-foreground leading-relaxed">{stripeMessage}</p>
+            {state.signedIn && "stripeRequirementsDue" in state && state.stripeRequirementsDue && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                Stripe에서 추가 정보 제출이 필요합니다. 온보딩을 이어서 완료해 주세요.
+              </div>
             )}
-            <Button type="button" variant="secondary" className="w-full" asChild>
-              <Link href={walletSettlementPath("/market/seller/register")}>지갑에서 계좌 등록</Link>
+            {state.signedIn && "stripeDisabled" in state && state.stripeDisabled && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                Stripe 계정 확인이 필요합니다. 온보딩을 다시 진행해 주세요.
+              </div>
+            )}
+            <Button type="button" className="w-full" disabled={pending} onClick={handleStripeConnect}>
+              Stripe 온보딩 시작
             </Button>
-            <Button
-              type="button"
-              variant={phoneRequired ? "secondary" : "default"}
-              className="w-full"
-              disabled={pending}
-              onClick={handleDeclareSettlement}
-            >
-              은행 계좌 등록 완료 · 가입 완료
-            </Button>
-            {(state.connectReady ||
-              (state.signedIn && "settlementDeclared" in state && state.settlementDeclared)) && (
-              <Button type="button" className="w-full" disabled={pending} onClick={handleComplete}>
-                가입 신청 완료
+            {state.signedIn && "stripeStarted" in state && state.stripeStarted && (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                disabled={pending}
+                onClick={handleResumeStripe}
+              >
+                Stripe 온보딩 이어서 하기
               </Button>
             )}
           </div>
@@ -756,47 +476,21 @@ export function SellerOnboardingWizard({
 
         {effectiveStep === "COMPLETE" && (
           <div className="space-y-3 text-center">
-            <p className="text-sm">판매자 온보딩이 완료되었습니다.</p>
+            <p className="text-sm text-muted-foreground">판매자 등록이 완료되었습니다.</p>
             {fromApp && returnTo ? (
-              <Button
-                type="button"
-                className="w-full"
-                onClick={() => {
-                  window.location.replace(returnTo);
-                }}
-              >
+              <Button type="button" className="w-full" onClick={() => window.location.replace(returnTo)}>
                 앱으로 돌아가기
               </Button>
             ) : (
-              <Button
-                type="button"
-                className="w-full"
-                onClick={() => router.replace("/market/seller?welcome=1")}
-              >
-                판매자센터로 이동
+              <Button type="button" className="w-full" asChild>
+                <Link href="/market/seller?welcome=1">판매자 센터로</Link>
               </Button>
             )}
           </div>
         )}
       </div>
 
-      {!initialState.signedIn ? (
-        <p className="mt-5 text-center text-sm text-muted-foreground">
-          이미 계정이 있나요?{" "}
-          <Link
-            href="/auth/signin?callbackUrl=/market/seller/register"
-            className="font-medium text-primary hover:underline"
-          >
-            로그인
-          </Link>
-        </p>
-      ) : null}
-
-      <SellerConsentDialog
-        open={!!consentKind}
-        kind={consentKind}
-        onOpenChange={(o) => !o && setConsentKind(null)}
-      />
+      <SellerConsentDialog kind={consentKind} onClose={() => setConsentKind(null)} />
     </div>
   );
 }
@@ -814,31 +508,23 @@ function AccountStep(props: {
   setName: (v: string) => void;
   email: string;
   setEmail: (v: string) => void;
-  phoneRequired: boolean;
   pending: boolean;
   onSubmit: () => void;
 }) {
   return (
     <div className="space-y-3">
-      <div>
-        <label className="block text-sm font-medium mb-1.5">판매 국가</label>
-        <select
-          value={props.sellingMarket}
-          onChange={(e) => props.setSellingMarket(e.target.value)}
-          className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          {SELLER_MARKETS.map((m) => (
-            <option key={m.code} value={m.code}>
-              {m.labelKo} ({m.code})
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-muted-foreground mt-1">
-          {props.phoneRequired
-            ? "한국: 이메일 → 계좌 1원 인증 → KYC → Stripe 정산"
-            : "해외: 이메일 → Stripe Connect → 신분증 → 은행계좌 (SMS 없음)"}
-        </p>
-      </div>
+      <label className="block text-sm font-medium">판매 국가</label>
+      <select
+        value={props.sellingMarket}
+        onChange={(e) => props.setSellingMarket(e.target.value)}
+        className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+      >
+        {SELLER_MARKETS.map((m) => (
+          <option key={m.code} value={m.code}>
+            {m.labelKo}
+          </option>
+        ))}
+      </select>
       <Input
         value={props.username}
         onChange={(e) => props.setUsername(e.target.value)}
@@ -872,20 +558,7 @@ function AccountStep(props: {
         placeholder="이메일"
         autoComplete="email"
       />
-
-      {props.phoneRequired && (
-        <p className="text-xs text-muted-foreground rounded-lg bg-muted/40 px-3 py-2">
-          한국 판매자는 가입·이메일 인증 후 <strong>계좌 1원 인증</strong> 단계에서 계좌를
-          등록합니다. 입금통장메모 4자리 숫자로 확인합니다.
-        </p>
-      )}
-
-      <Button
-        type="button"
-        className="w-full h-11 mt-2"
-        disabled={props.pending}
-        onClick={props.onSubmit}
-      >
+      <Button type="button" className="w-full h-11 mt-2" disabled={props.pending} onClick={props.onSubmit}>
         가입하고 이메일 인증
       </Button>
     </div>
@@ -910,10 +583,7 @@ function AgreementsStep(props: {
   onOpenConsent: (k: "terms" | "marketing" | "privacy") => void;
   onSubmit: () => void;
 }) {
-  function toggle(
-    setter: (v: boolean) => void,
-    value: boolean
-  ) {
+  function toggle(setter: (v: boolean) => void, value: boolean) {
     setter(!value);
     props.setAgreeAll(false);
   }
@@ -929,7 +599,6 @@ function AgreementsStep(props: {
           해 주세요.
         </p>
       )}
-
       <label className="flex items-start gap-2.5 cursor-pointer">
         <input
           type="checkbox"
@@ -939,70 +608,21 @@ function AgreementsStep(props: {
         />
         <span>
           <span className="font-semibold text-sm">모두 동의합니다</span>
-          <span className="block text-xs text-muted-foreground mt-0.5">
-            필수 항목 및 선택 항목(마케팅)이 포함되며, 선택 항목에 동의하지 않아도 서비스를 이용할 수
-            있습니다.
-          </span>
         </span>
       </label>
-
-      {!props.canSubmit && (
-        <p className="text-xs text-destructive flex items-center gap-1">
-          필수 항목에 모두 동의해 주세요
-        </p>
-      )}
-
       <ul className="divide-y divide-border/70 border border-border/70 rounded-lg">
-        <ConsentRow
-          required
-          checked={props.agreeAge}
-          onToggle={() => toggle(props.setAgreeAge, props.agreeAge)}
-          label="만 19세 이상입니다"
-        />
-        <ConsentRow
-          required
-          checked={props.agreeTerms}
-          onToggle={() => toggle(props.setAgreeTerms, props.agreeTerms)}
-          label={`${MARKET_BRAND_FULL} 판매자 서비스 이용약관 - 사업자용`}
-          onDetail={() => props.onOpenConsent("terms")}
-        />
-        <ConsentRow
-          optional
-          checked={props.agreeMarketing}
-          onToggle={() => toggle(props.setAgreeMarketing, props.agreeMarketing)}
-          label="마케팅 목적의 개인정보 수집 및 이용 동의"
-          onDetail={() => props.onOpenConsent("marketing")}
-        />
-        <ConsentRow
-          optional
-          checked={props.agreePromo}
-          onToggle={() => toggle(props.setAgreePromo, props.agreePromo)}
-          label="특별 프로모션 혜택(광고) 수신 동의"
-        />
+        <ConsentRow required checked={props.agreeAge} onToggle={() => toggle(props.setAgreeAge, props.agreeAge)} label="만 19세 이상입니다" />
+        <ConsentRow required checked={props.agreeTerms} onToggle={() => toggle(props.setAgreeTerms, props.agreeTerms)} label={`${MARKET_BRAND_FULL} 판매자 서비스 이용약관`} onDetail={() => props.onOpenConsent("terms")} />
+        <ConsentRow optional checked={props.agreeMarketing} onToggle={() => toggle(props.setAgreeMarketing, props.agreeMarketing)} label="마케팅 목적의 개인정보 수집 및 이용 동의" onDetail={() => props.onOpenConsent("marketing")} />
+        <ConsentRow optional checked={props.agreePromo} onToggle={() => toggle(props.setAgreePromo, props.agreePromo)} label="특별 프로모션 혜택(광고) 수신 동의" />
         <li>
-          <button
-            type="button"
-            onClick={() => props.onOpenConsent("privacy")}
-            className="w-full flex items-center justify-between px-3 py-3 text-sm hover:bg-muted/30"
-          >
+          <button type="button" onClick={() => props.onOpenConsent("privacy")} className="w-full flex items-center justify-between px-3 py-3 text-sm hover:bg-muted/30">
             <span>개인정보 수집 및 이용 안내</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </button>
         </li>
       </ul>
-
-      <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
-        <p className="font-semibold text-foreground">확인해주세요</p>
-        <p>· 마케팅 동의를 거부해도 판매자 서비스는 이용할 수 있습니다.</p>
-        <p>· 동의 설정은 판매자센터에서 나중에 변경할 수 있습니다.</p>
-      </div>
-
-      <Button
-        type="button"
-        className="w-full h-11"
-        disabled={!props.canSubmit || props.pending || !props.signedIn}
-        onClick={props.onSubmit}
-      >
+      <Button type="button" className="w-full h-11" disabled={!props.canSubmit || props.pending || !props.signedIn} onClick={props.onSubmit}>
         약관 동의하고 계속하기
       </Button>
     </div>
@@ -1027,27 +647,13 @@ function ConsentRow({
   return (
     <li className="flex items-center gap-2 px-3 py-2.5">
       <input type="checkbox" checked={checked} onChange={onToggle} className="shrink-0" />
-      <button
-        type="button"
-        className="flex-1 text-left text-sm flex items-center gap-1.5 min-w-0"
-        onClick={onDetail ?? onToggle}
-      >
-        <span
-          className={cn(
-            "shrink-0 text-[11px] font-semibold",
-            required && "text-primary",
-            optional && "text-muted-foreground"
-          )}
-        >
+      <button type="button" className="flex-1 text-left text-sm flex items-center gap-1.5 min-w-0" onClick={onDetail ?? onToggle}>
+        <span className={cn("shrink-0 text-[11px] font-semibold", required && "text-primary", optional && "text-muted-foreground")}>
           {required ? "[필수]" : "[선택]"}
         </span>
         <span className="truncate">{label}</span>
+        {onDetail && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground ml-auto" />}
       </button>
-      {onDetail && (
-        <button type="button" onClick={onDetail} className="shrink-0 p-1 text-muted-foreground" aria-label="상세">
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      )}
     </li>
   );
 }

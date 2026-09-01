@@ -228,8 +228,9 @@ model User {
   /** 1:1 유료 통화 예약 — 크리에이터(코스플레이/스트리머) 전용 */
   creatorCallEnabled        Boolean @default(false)
   creatorCallRateKrwPerHour Int?
-  /** Stripe Connect — 정산용 (추후 onboarding) */
+  /** Stripe Connect Express 계정 ID */
   stripeConnectAccountId String?
+  /** payouts_enabled && requirements clear 시각 (웹훅·return URL 동기화) */
   stripeConnectOnboardedAt DateTime?
   /** Stripe Customer — 저장된 결제 카드 (지갑 탭) */
   stripeCustomerId String? @unique
@@ -5411,7 +5412,16 @@ enum MarketplaceSellerType {
   BUSINESS
 }
 
-/** 판매자 KYC(본인·사업자 인증) — 1차는 준비 구조, 2차에서 실인증 연동 */
+/** Stripe Connect 온보딩 상태 — account.updated 웹훅 동기화 */
+enum StripeConnectOnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  REQUIREMENTS_DUE
+  DISABLED
+  COMPLETE
+}
+
+/** @deprecated Stripe Connect 온보딩으로 대체됨. 추후 마이그레이션/파기 정책 논의 */
 enum MarketplaceSellerKycStatus {
   NOT_STARTED
   PENDING
@@ -5550,17 +5560,19 @@ model MarketplaceSellerProfile {
   /** Seller onboarding (MoCoMo MARKET / WING-style) */
   sellerType      MarketplaceSellerType?
   sellingMarket   String                   @default("KR")
+  /** @deprecated Stripe Connect 온보딩에서 수집. 쓰기 중단 */
   businessName    String?
+  /** @deprecated Stripe Connect 온보딩에서 수집. 쓰기 중단 */
   businessRegNo   String?
-  /** 사업자 대표자명 (국세청 진위확인) */
+  /** @deprecated Stripe Connect 온보딩에서 수집. 쓰기 중단 */
   businessRepresentativeName String?
-  /** 개업일자 YYYYMMDD (국세청 진위확인) */
+  /** @deprecated Stripe Connect 온보딩에서 수집. 쓰기 중단 */
   businessStartDate String?
-  /** 국세청 사업자 확인 완료 시각 */
+  /** @deprecated Stripe Connect 온보딩에서 수집. 쓰기 중단 */
   businessVerifiedAt DateTime?
-  /** 납세자상태 코드: 01 계속, 02 휴업, 03 폐업 */
+  /** @deprecated Stripe Connect 온보딩에서 수집. 쓰기 중단 */
   businessStatusCode String?
-  /** 과세유형 (국세청 상태조회) */
+  /** @deprecated Stripe Connect 온보딩에서 수집. 쓰기 중단 */
   businessTaxType String?
   onboardingStep  MarketplaceSellerOnboardingStep @default(ACCOUNT)
   onboardingCompletedAt DateTime?
@@ -5569,21 +5581,34 @@ model MarketplaceSellerProfile {
   agreedPrivacyAt   DateTime?
   agreedMarketingAt DateTime?
   agreedPromoAt     DateTime?
+  /** @deprecated Stripe Connect KYC로 대체. 읽기 전용 유지 */
   kycStatus         MarketplaceSellerKycStatus @default(NOT_STARTED)
+  /** @deprecated */
   kycSubmittedAt    DateTime?
+  /** @deprecated */
   kycNotes          String?                @db.Text
-  /** KYC 신분증 유형 — NATIONAL_ID / PASSPORT / DRIVERS_LICENSE / RESIDENT_CARD */
+  /** @deprecated */
   kycIdType         String?
-  /** 법적 성명 (KYC 제출) */
+  /** @deprecated */
   kycLegalName      String?
-  /** 신분증 번호 끝자리 등 힌트 (전체 번호 저장 금지) */
+  /** @deprecated */
   kycIdHint         String?
-  /** KYC 신분증 이미지 — 비공개 스토리지 키 (공개 URL 저장 금지) */
+  /** @deprecated */
   kycDocumentKey    String?
-  /** Stripe Connect 온보딩 시작(해외: SMS 대신 Connect 선행) */
+  /** Stripe Connect 온보딩 시작 시각 */
   stripeConnectStartedAt DateTime?
-  /** 은행 계좌 등록/검토 요청 완료 */
+  /** @deprecated Stripe Connect 정산 계좌로 대체 */
   settlementDeclaredAt DateTime?
+  /** Stripe account.updated — charges_enabled */
+  stripeConnectChargesEnabled Boolean @default(false)
+  /** Stripe account.updated — payouts_enabled */
+  stripeConnectPayoutsEnabled Boolean @default(false)
+  /** currently_due 또는 eventually_due 비어있지 않음 */
+  stripeConnectRequirementsDue Boolean @default(false)
+  /** requirements.disabled_reason (내용 노출 금지, 상태만) */
+  stripeConnectDisabledReason String?
+  /** Stripe Connect 종합 온보딩 상태 */
+  stripeConnectOnboardingStatus StripeConnectOnboardingStatus @default(NOT_STARTED)
   phoneCountryCode  String?
   ratingAvg       Float                    @default(0)
   ratingCount     Int                      @default(0)
