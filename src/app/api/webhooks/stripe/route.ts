@@ -71,8 +71,8 @@ export async function POST(req: Request) {
 
   if (event.type === "person.updated") {
     const person = event.data.object as Stripe.Person;
-    const accountId =
-      typeof person.account === "string" ? person.account : person.account?.id;
+    const accountRef = person.account;
+    const accountId = typeof accountRef === "string" ? accountRef : null;
     if (accountId) {
       const stripe = getStripe();
       const account = await stripe.accounts.retrieve(accountId).catch(() => null);

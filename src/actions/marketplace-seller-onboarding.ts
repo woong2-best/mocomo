@@ -481,7 +481,7 @@ export async function completeSellerOnboarding() {
     }
 
     const refreshed = await loadOnboardingUser(user.id);
-    const profile = refreshed?.marketplaceSeller;
+    const profile = refreshed?.marketplaceSeller ?? null;
     if (!isSellerStripeConnectReady(profile)) {
       return { error: "Stripe 본인 확인 및 정산 계좌 등록을 완료해 주세요." };
     }

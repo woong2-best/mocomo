@@ -490,7 +490,13 @@ export function SellerOnboardingWizard({
         )}
       </div>
 
-      <SellerConsentDialog kind={consentKind} onClose={() => setConsentKind(null)} />
+      <SellerConsentDialog
+        open={consentKind !== null}
+        kind={consentKind}
+        onOpenChange={(open) => {
+          if (!open) setConsentKind(null);
+        }}
+      />
     </div>
   );
 }

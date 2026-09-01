@@ -22,10 +22,6 @@ import {
   clearBankVerifyFailures,
   recordBankVerifyFailure,
 } from "@/lib/bank-verification-security";
-import {
-  attachKrBankToConnectAccount,
-  createCustomConnectAccount,
-} from "@/lib/stripe-connect";
 
 const BANK_VERIFY_TTL_MS = 10 * 60 * 1000;
 
@@ -416,29 +412,8 @@ export async function verifyBankCodeForUser(
   });
 
   if (opts.linkStripeConnect) {
-    if (!connectAccountId) {
-      const created = await createCustomConnectAccount({
-        userId: user.id,
-        email: user.email,
-        legalName: pending.holderName,
-      });
-      if ("accountId" in created && created.accountId) {
-        connectAccountId = created.accountId;
-        await db.user.update({
-          where: { id: user.id },
-          data: { stripeConnectAccountId: connectAccountId },
-        });
-      }
-    }
-
-    if (connectAccountId) {
-      await attachKrBankToConnectAccount({
-        accountId: connectAccountId,
-        bankCode,
-        accountNum,
-        holderName: pending.holderName,
-      });
-    }
+    // Custom Connect deprecated — seller onboarding uses Stripe Hosted Onboarding.
+    console.warn("[bank-verification] linkStripeConnect is deprecated; skipping Connect attach");
   }
 
   return {
