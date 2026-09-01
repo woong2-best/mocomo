@@ -68,5 +68,10 @@ export async function startOAuthProviderSignin(opts: StartOAuthProviderSigninOpt
     await clearSessionTokenCookies();
   }
 
-  await signIn(opts.provider, { redirectTo });
+  await signIn(opts.provider, {
+    redirectTo,
+    ...(opts.mobile && opts.provider === "google"
+      ? { authorizationParams: { prompt: "select_account" } }
+      : {}),
+  });
 }

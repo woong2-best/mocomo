@@ -1,6 +1,6 @@
 import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
-const BADGE = require("../../../assets/live-adult-19-badge.png");
+const BADGE = require("../../../assets/live-adult-19-badge.jpg");
 
 type Props = {
   style?: StyleProp<ViewStyle>;
@@ -21,7 +21,7 @@ export function isLiveAdultItem(item: { isNsfw?: boolean; contentRating?: string
 
 const styles = StyleSheet.create({
   wrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,

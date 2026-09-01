@@ -4,7 +4,8 @@ import { fetchCheckoutMeta } from "@/api/checkout";
 import { fetchCommunityList } from "@/api/community";
 import { fetchAnimeList, fetchStarHub, fetchWallet } from "@/api/discovery";
 import { fetchEventsList, fetchEventsMap } from "@/api/events";
-import { fetchLiveHub } from "@/api/live";
+import { fetchLiveHub, type LiveHubResponse } from "@/api/live";
+import type { MobileLiveCategoryId } from "@/features/live/live-categories";
 import { fetchMarketplaceList } from "@/api/marketplace";
 import { fetchDmInbox } from "@/api/messages";
 import { fetchProfileEditState } from "@/api/profile";
@@ -14,6 +15,22 @@ import type { DrawerRoute, RootTabParamList } from "@/navigation/types";
 
 const DEFAULT_MARKETPLACE_QUERY = { take: 48 } as const;
 const STALE_MS = 90_000;
+const LIVE_HUB_STALE_MS = 25_000;
+
+function prefetchLiveHubInfinite(queryClient: QueryClient, category: MobileLiveCategoryId = "ALL") {
+  void queryClient.prefetchInfiniteQuery({
+    queryKey: ["mobile-live-hub", category],
+    queryFn: ({ pageParam }) =>
+      fetchLiveHub({
+        category: category === "ALL" ? undefined : category,
+        offset: pageParam,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (last: LiveHubResponse) =>
+      last.hasMore ? last.nextOffset : undefined,
+    staleTime: LIVE_HUB_STALE_MS,
+  });
+}
 
 let bundlesWarmed = false;
 let queriesWarmed = false;
@@ -80,11 +97,7 @@ export function prefetchDrawerQueries(queryClient: QueryClient): void {
   if (drawerQueriesWarmed) return;
   drawerQueriesWarmed = true;
 
-  void queryClient.prefetchQuery({
-    queryKey: ["mobile-live-hub", "ALL"],
-    queryFn: () => fetchLiveHub(),
-    staleTime: 25_000,
-  });
+  prefetchLiveHubInfinite(queryClient, "ALL");
   void queryClient.prefetchQuery({
     queryKey: ["mobile-star-hub", null],
     queryFn: () => fetchStarHub(null),
@@ -186,11 +199,7 @@ export function prefetchDrawerRoute(queryClient: QueryClient, route: DrawerRoute
       prefetchTabForRoute(queryClient, route);
       return;
     case "LiveList":
-      void queryClient.prefetchQuery({
-        queryKey: ["mobile-live-hub", "ALL"],
-        queryFn: () => fetchLiveHub(),
-        staleTime: 25_000,
-      });
+      prefetchLiveHubInfinite(queryClient, "ALL");
       return;
     case "StarList":
       void queryClient.prefetchQuery({

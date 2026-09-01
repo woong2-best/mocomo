@@ -13,9 +13,13 @@ const WEB = API_BASE_URL.replace(/\/$/, "");
 
 export type WebAuthMode = "signup" | "signin";
 
+export type MobileAuthProvider = "gmail" | "naver" | "discord" | "twitter" | "line";
+
 export type OpenWebAuthOptions = {
   /** Add another account without reusing the browser session cookie. */
   addAccount?: boolean;
+  /** Jump straight to a provider (via /auth/mobile/oauth). */
+  provider?: MobileAuthProvider;
 };
 
 /**
@@ -33,8 +37,11 @@ export async function openWebAuthSession(
 
   const addQs = options.addAccount ? "&addAccount=1" : "";
 
-  const startPath =
-    mode === "signup"
+  const startPath = options.provider
+    ? `/auth/mobile/oauth?provider=${encodeURIComponent(options.provider)}` +
+      `&mode=${mode}&platform=${platform}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}${addQs}`
+    : mode === "signup"
       ? `/auth/signup/apply?from=mobile&platform=${platform}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}${addQs}`
       : `/auth/signin?from=mobile&platform=${platform}` +
@@ -42,8 +49,8 @@ export async function openWebAuthSession(
         `&redirect_uri=${encodeURIComponent(redirectUri)}${addQs}`;
 
   const result = await WebBrowser.openAuthSessionAsync(`${WEB}${startPath}`, redirectUri, {
-    preferEphemeralSession: options.addAccount === true,
-    showInRecents: !options.addAccount,
+    preferEphemeralSession: options.addAccount === true || !!options.provider,
+    showInRecents: !options.addAccount && !options.provider,
   });
 
   if (result.type !== "success" || !result.url) {

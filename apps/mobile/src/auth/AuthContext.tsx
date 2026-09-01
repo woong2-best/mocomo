@@ -25,7 +25,7 @@ import {
   type SavedMobileAccountPublic,
 } from "@/auth/account-store";
 import { prefetchImageUrls } from "@/perf/image";
-import { clearTokens, getAccessToken, logoutCurrentAccount } from "@/auth/token-store";
+import { clearTokens, getAccessToken, logoutCurrentAccount, setTokens } from "@/auth/token-store";
 import type { MobileAuthUser } from "@/auth/types";
 
 export type WebAuthMode = "signup" | "signin";
@@ -34,7 +34,22 @@ type AuthState = {
   status: "loading" | "signedOut" | "signedIn";
   user: MobileAuthUser | null;
   savedAccounts: SavedMobileAccountPublic[];
-  openWebAuth: (mode: WebAuthMode) => Promise<void>;
+  openWebAuth: (
+    mode: WebAuthMode,
+    opts?: import("@/auth/oauth").OpenWebAuthOptions
+  ) => Promise<void>;
+  signInWithCredentials: (loginId: string, password: string) => Promise<void>;
+  signInWithGoogleNative: (opts?: {
+    flow?: "signin" | "signup";
+    idToken?: string;
+  }) => Promise<
+    | { status: "signedIn" }
+    | {
+        status: "needsSignup";
+        idToken: string;
+        profile: import("@/auth/google-native").GoogleNativeProfile;
+      }
+  >;
   addAccount: (mode: WebAuthMode) => Promise<void>;
   switchAccount: (userId: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -173,9 +188,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient, refreshSavedAccounts]);
 
   const finishWebAuth = useCallback(
-    async (mode: WebAuthMode, addAccount: boolean) => {
+    async (mode: WebAuthMode, addAccount: boolean, opts?: import("@/auth/oauth").OpenWebAuthOptions) => {
       const { openWebAuthSession } = await import("@/auth/oauth");
-      const next = await openWebAuthSession(mode, { addAccount });
+      const next = await openWebAuthSession(mode, { ...opts, addAccount });
       await applySignedInUser(next);
       void refreshMe();
     },
@@ -183,10 +198,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const openWebAuth = useCallback(
-    async (mode: WebAuthMode) => {
-      await finishWebAuth(mode, false);
+    async (mode: WebAuthMode, opts?: import("@/auth/oauth").OpenWebAuthOptions) => {
+      await finishWebAuth(mode, false, opts);
     },
     [finishWebAuth]
+  );
+
+  const signInWithCredentials = useCallback(
+    async (loginId: string, password: string) => {
+      const { loginWithCredentials } = await import("@/auth/credentials-login");
+      const data = await loginWithCredentials(loginId, password);
+      await setTokens(data.accessToken, data.refreshToken, data.user);
+      await applySignedInUser(data.user);
+      void refreshMe();
+    },
+    [applySignedInUser, refreshMe]
+  );
+
+  const signInWithGoogleNative = useCallback(
+    async (opts?: { flow?: "signin" | "signup"; idToken?: string }) => {
+      const { authenticateWithGoogleNative } = await import("@/auth/google-native");
+      const result = await authenticateWithGoogleNative({
+        flow: opts?.flow ?? "signin",
+        idToken: opts?.idToken,
+      });
+
+      if (result.status === "needsSignup") {
+        return {
+          status: "needsSignup" as const,
+          idToken: result.idToken,
+          profile: result.profile,
+        };
+      }
+
+      await setTokens(result.accessToken, result.refreshToken, result.user);
+      await applySignedInUser(result.user);
+      void refreshMe();
+      return { status: "signedIn" as const };
+    },
+    [applySignedInUser, refreshMe]
   );
 
   const addAccount = useCallback(
@@ -230,6 +280,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }).catch(() => undefined);
     } finally {
       await unregisterPushSafe();
+      void import("@/auth/google-native")
+        .then((m) => m.clearGoogleNativeSession())
+        .catch(() => undefined);
       const fallback = await logoutCurrentAccount();
       await clearFeedBootstrap();
       queryClient.clear();
@@ -252,6 +305,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       savedAccounts,
       openWebAuth,
+      signInWithCredentials,
+      signInWithGoogleNative,
       addAccount,
       switchAccount,
       signOut,
@@ -263,6 +318,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       savedAccounts,
       openWebAuth,
+      signInWithCredentials,
+      signInWithGoogleNative,
       addAccount,
       switchAccount,
       signOut,

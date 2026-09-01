@@ -278,7 +278,7 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
       backgroundColor: isDark ? "rgba(168,85,247,0.12)" : colors.surface,
     },
     featuredOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: "rgba(0,0,0,0.45)",
     },
     featuredContent: {

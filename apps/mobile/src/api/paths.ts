@@ -8,6 +8,8 @@ export const MobileApi = {
     refresh: "/api/mobile/auth/refresh",
     logout: "/api/mobile/auth/logout",
     oauthPkce: "/api/mobile/auth/oauth/pkce",
+    google: "/api/mobile/auth/google",
+    googleConfig: "/api/mobile/auth/google/config",
   },
   feed: "/api/mobile/feed",
   reels: "/api/mobile/reels",

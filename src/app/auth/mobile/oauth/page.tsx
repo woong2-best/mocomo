@@ -3,7 +3,7 @@ import { getAuthConfigStatus } from "@/lib/auth-env";
 import { MobileOAuthStartClient } from "./mobile-oauth-start-client";
 
 export default function MobileOAuthStartPage() {
-  const { discordOAuth, twitterOAuth, lineOAuth } = getAuthConfigStatus();
+  const { googleOAuth, discordOAuth, twitterOAuth, lineOAuth } = getAuthConfigStatus();
   return (
     <Suspense
       fallback={
@@ -13,6 +13,7 @@ export default function MobileOAuthStartPage() {
       }
     >
       <MobileOAuthStartClient
+        googleOAuth={googleOAuth}
         discordOAuth={discordOAuth}
         twitterOAuth={twitterOAuth}
         lineOAuth={lineOAuth}

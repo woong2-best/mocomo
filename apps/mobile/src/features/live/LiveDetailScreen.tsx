@@ -184,7 +184,7 @@ export function LiveDetailScreen() {
                     <Pressable
                       style={[styles.primaryBtn, adultGate.busy && styles.btnDisabled]}
                       disabled={adultGate.busy}
-                      onPress={() => void adultGate.ensureAdult().then((ok) => ok && query.refetch())}
+                      onPress={() => void adultGate.ensureAdult().then((ok) => { if (ok) void query.refetch(); })}
                     >
                       <Text style={styles.primaryBtnText}>성인 본인인증</Text>
                     </Pressable>
@@ -293,7 +293,7 @@ export function LiveDetailScreen() {
                 <Pressable
                   style={[styles.primaryBtn, adultGate.busy && styles.btnDisabled]}
                   disabled={adultGate.busy}
-                  onPress={() => void adultGate.ensureAdult().then((ok) => ok && query.refetch())}
+                  onPress={() => void adultGate.ensureAdult().then((ok) => { if (ok) void query.refetch(); })}
                 >
                   <Text style={styles.primaryBtnText}>성인 본인인증 후 시청</Text>
                 </Pressable>
@@ -338,7 +338,7 @@ export function LiveDetailScreen() {
                   streamStartedAt={item.streamStartedAt}
                 />
               </View>
-            )}
+            ) : null}
           </View>
         </ScrollView>
       )}
@@ -402,7 +402,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: "#000",
     },
     adultGateOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       alignItems: "center",
       justifyContent: "center",
       padding: spacing.md,

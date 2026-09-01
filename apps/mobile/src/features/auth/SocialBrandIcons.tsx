@@ -45,12 +45,31 @@ export function NaverIcon({ color = "#fff", size = SIZE }: { color?: string; siz
   );
 }
 
-export function LineIcon({ color = "#fff", size = SIZE }: { color?: string; size?: number }) {
+/** LINE — white bubble with the wordmark knocked out in the brand green. */
+export function LineIcon({
+  color = "#fff",
+  size = SIZE,
+  bg = "#06C755",
+}: {
+  color?: string;
+  size?: number;
+  bg?: string;
+}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" accessibilityElementsHidden>
       <Path
         fill={color}
-        d="M12 2C6.477 2 2 5.985 2 10.9c0 4.425 3.926 8.13 9.23 8.83.36.077.847.236.97.542.112.276.073.705.036.99l-.17.99c-.05.292-.24 1.147 1.005.627 1.246-.52 6.691-3.94 9.124-6.744C23.176 14.02 24 12.52 24 10.9 24 5.985 19.523 2 12 2Z"
+        d="M12 2C6.48 2 2 5.64 2 10.12c0 4.01 3.55 7.37 8.35 8.01.33.07.77.21.88.49.1.25.07.64.03.89l-.14.86c-.04.25-.2 1 .88.54 1.08-.45 5.8-3.42 7.91-5.85C21.36 13.42 22 11.86 22 10.12 22 5.64 17.52 2 12 2Z"
+      />
+      <Path fill={bg} d="M5.75 7.7h1v3.8h1.6v1h-2.6Z" />
+      <Path fill={bg} d="M9.45 7.7h1v4.8h-1Z" />
+      <Path
+        fill={bg}
+        d="M11.55 7.7h.95L13.8 9.8V7.7h.95v4.8h-.95L12.5 10.4v2.1h-.95Z"
+      />
+      <Path
+        fill={bg}
+        d="M15.85 7.7h2.6v1h-1.6v.85h1.5v1h-1.5v.95h1.6v1h-2.6Z"
       />
     </Svg>
   );

@@ -19,10 +19,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
  * Gmail / Naver signup → dedicated email forms (same as web).
  */
 export function MobileOAuthStartClient({
+  googleOAuth,
   discordOAuth,
   twitterOAuth,
   lineOAuth,
 }: {
+  googleOAuth: boolean;
   discordOAuth: boolean;
   twitterOAuth: boolean;
   lineOAuth: boolean;
@@ -56,10 +58,23 @@ export function MobileOAuthStartClient({
     const p = provider as MobileOAuthProvider;
 
     if (p === "gmail") {
+      if (mode === "signin") {
+        if (!googleOAuth) {
+          setError("Google 로그인이 서버에 설정되지 않았습니다.");
+          return;
+        }
+        const params = new URLSearchParams({
+          provider: "google",
+          platform,
+          flow: mode,
+          callbackUrl: completeUrl,
+        });
+        if (redirectUri) params.set("redirect_uri", redirectUri);
+        window.location.replace(`/api/auth/mobile/provider-signin?${params}`);
+        return;
+      }
       window.location.replace(
-        mode === "signin"
-          ? `/auth/signin?from=mobile&platform=${platform}&callbackUrl=${encodeURIComponent(completeUrl)}`
-          : `/auth/signup/gmail?from=mobile&platform=${platform}&callbackUrl=${encodeURIComponent(completeUrl)}`
+        `/auth/signup/gmail?from=mobile&platform=${platform}&callbackUrl=${encodeURIComponent(completeUrl)}`
       );
       return;
     }
@@ -109,6 +124,7 @@ export function MobileOAuthStartClient({
     platform,
     completeUrl,
     redirectUri,
+    googleOAuth,
     discordOAuth,
     twitterOAuth,
     lineOAuth,
