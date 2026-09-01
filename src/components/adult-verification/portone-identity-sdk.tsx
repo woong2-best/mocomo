@@ -1,6 +1,7 @@
 "use client";
 
 import Script from "next/script";
+import type { AdultVerificationScope } from "@prisma/client";
 
 declare global {
   interface Window {
@@ -18,7 +19,7 @@ export function PortOneIdentityScript() {
   return <Script src="https://cdn.portone.io/v2/browser-sdk.js" strategy="lazyOnload" />;
 }
 
-export async function requestPortOneIdentityVerification(scope: "DM_PAID" | "USED_MARKET" | "GLOBAL") {
+export async function requestPortOneIdentityVerification(scope: AdultVerificationScope = "GLOBAL") {
   const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID?.trim();
   const channelKey = process.env.NEXT_PUBLIC_PORTONE_IDV_CHANNEL_KEY?.trim();
   if (!storeId || !channelKey) {
