@@ -211,6 +211,7 @@ export default async function VoiceRoomPage({
         minViewerTier={channel.minViewerTier}
         hostFollowing={hostFollowing}
         isLiveOnAir={onAir}
+        isNsfw={channel.isNsfw === true}
       />
     </LiveRoomPageShell>
   );

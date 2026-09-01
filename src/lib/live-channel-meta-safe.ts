@@ -1,4 +1,5 @@
 import type {
+  ContentRating,
   LiveBroadcastMode,
   LiveExternalProvider,
   LiveMediaSourceType,
@@ -29,6 +30,8 @@ export type SafeLiveChannelMeta = {
   liveVisibility: LiveVisibility;
   minViewerTier: SupportTierLevel | null;
   donationAlertsOnStream: boolean;
+  contentRating: ContentRating;
+  isNsfw: boolean;
   rtmpUrl: string | null;
   rtmpStreamKey: string | null;
   mediaSourceType: LiveMediaSourceType;
@@ -63,6 +66,8 @@ const EXTENDED_SELECT = {
   liveVisibility: true,
   minViewerTier: true,
   donationAlertsOnStream: true,
+  contentRating: true,
+  isNsfw: true,
   rtmpUrl: true,
   rtmpStreamKey: true,
   mediaSourceType: true,
@@ -107,6 +112,8 @@ function withLiveDefaults(
     liveVisibility: ch.liveVisibility ?? "PUBLIC",
     minViewerTier: ch.minViewerTier ?? null,
     donationAlertsOnStream: ch.donationAlertsOnStream === true,
+    contentRating: ch.contentRating ?? "GENERAL",
+    isNsfw: ch.isNsfw === true,
     rtmpUrl: ch.rtmpUrl ?? null,
     rtmpStreamKey: ch.rtmpStreamKey ?? null,
     mediaSourceType: ch.mediaSourceType ?? "FIRST_PARTY",

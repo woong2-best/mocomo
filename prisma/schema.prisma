@@ -1597,6 +1597,9 @@ model VoiceChannel {
   liveCollabUserId       String?
   /** 방송 화면(OBS·플레이어) 후원 알림 — 기본 꺼짐, 알림센터는 항상 */
   donationAlertsOnStream Boolean @default(false)
+  /** 성인(19+) 방송 — 본인인증된 시청자만 입장 */
+  contentRating ContentRating @default(GENERAL)
+  isNsfw      Boolean @default(false)
 
   /** FIRST_PARTY = Cloudflare/LiveKit/SRS (숨김) · EXTERNAL = iframe */
   mediaSourceType  LiveMediaSourceType @default(FIRST_PARTY)
@@ -6376,6 +6379,7 @@ enum AdultVerificationProvider {
 enum AdultVerificationScope {
   DM_PAID
   USED_MARKET
+  LIVE
   GLOBAL
 }
 

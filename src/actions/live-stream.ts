@@ -2,6 +2,7 @@
 
 import { after } from "next/server";
 import type {
+  ContentRating,
   LiveBroadcastMode,
   LiveStreamCategory,
   LiveVisibility,
@@ -96,6 +97,8 @@ export async function createLiveStream(data: {
   broadcastMode?: LiveBroadcastMode;
   liveVisibility?: LiveVisibility;
   minViewerTier?: SupportTierLevel;
+  contentRating?: ContentRating;
+  isNsfw?: boolean;
 }) {
   try {
     const fp = assertFirstPartyLiveEnabled();
@@ -131,6 +134,8 @@ export async function createLiveStream(data: {
     const visibility = data.liveVisibility ?? "PUBLIC";
     const minTier =
       visibility === "PRIVATE" ? (data.minViewerTier ?? "BRONZE") : null;
+    const contentRating = data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL");
+    const isNsfw = data.isNsfw ?? contentRating === "ADULT";
 
     if (data.broadcastMode === "VOICE") {
       return { error: "보이스 라이브는 더 이상 지원하지 않습니다. 영상 방송을 이용해 주세요." };
@@ -171,6 +176,8 @@ export async function createLiveStream(data: {
       scheduledAt: isScheduled ? scheduledAt : null,
       donationGoalKrw: Number.isFinite(goalRaw) && goalRaw > 0 ? goalRaw : null,
       broadcastMode: data.broadcastMode === "OBS" ? ("OBS" as const) : ("BROWSER" as const),
+      contentRating,
+      isNsfw,
       members: {
         create: {
           userId: user.id,
@@ -437,6 +444,12 @@ export async function enterLiveAsViewer(channelId: string) {
       return {
         error: `비공개 방송입니다. 이 스트리머에게 ${tierLabelKo(access.minViewerTier)} 등급 이상 후원이 필요합니다.`,
         code: "TIER_REQUIRED" as const,
+      };
+    }
+    if (access.reason === "ADULT_VERIFICATION_REQUIRED") {
+      return {
+        error: "성인 인증된 회원만 시청할 수 있는 방송입니다.",
+        code: "ADULT_VERIFICATION_REQUIRED" as const,
       };
     }
     return { error: "시청할 수 없습니다." };
@@ -862,6 +875,8 @@ export async function updateLiveStreamSettings(
     chatBannedWords?: string[];
     liveCollabSplitEnabled?: boolean;
     donationAlertsOnStream?: boolean;
+    contentRating?: ContentRating;
+    isNsfw?: boolean;
   }
 ) {
   const user = await requireAuth();
@@ -872,6 +887,14 @@ export async function updateLiveStreamSettings(
   if (!channel || channel.createdBy !== user.id) {
     return { error: "호스트만 방송 설정을 변경할 수 있습니다." };
   }
+
+  const contentRating =
+    data.contentRating ??
+    (data.isNsfw === true ? "ADULT" : data.isNsfw === false ? "GENERAL" : undefined);
+  const isNsfw =
+    data.isNsfw ??
+    (contentRating === "ADULT" ? true : contentRating === "GENERAL" ? false : undefined);
+
   await db.voiceChannel.update({
     where: { id: channelId },
     data: {
@@ -882,9 +905,12 @@ export async function updateLiveStreamSettings(
       chatBannedWords: data.chatBannedWords?.slice(0, 30),
       liveCollabSplitEnabled: data.liveCollabSplitEnabled,
       donationAlertsOnStream: data.donationAlertsOnStream,
+      contentRating,
+      isNsfw,
     },
   });
   revalidateTag(liveRoomCacheTag(channelId));
+  revalidateLiveHubCache();
   return { success: true as const };
 }
 

@@ -30,8 +30,12 @@ export async function GET(
 
   const access = await resolveLiveChannelAccess(id, authResult.user.id);
   if (!access.allowed) {
+    const message =
+      access.reason === "ADULT_VERIFICATION_REQUIRED"
+        ? "성인 인증된 회원만 시청할 수 있는 방송입니다."
+        : access.reason;
     return NextResponse.json(
-      { error: access.reason, minViewerTier: access.minViewerTier },
+      { error: message, reason: access.reason, minViewerTier: access.minViewerTier },
       { status: 403 }
     );
   }

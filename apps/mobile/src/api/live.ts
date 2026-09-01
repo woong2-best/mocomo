@@ -18,6 +18,8 @@ export type LiveListItem = {
   category: string;
   tags?: string[];
   broadcastMode: string | null;
+  isNsfw?: boolean;
+  contentRating?: string;
   host: LiveHost;
 };
 
@@ -46,11 +48,29 @@ export type LiveScheduledItem = {
 
 export type LiveHubResponse = {
   items: LiveListItem[];
+  heroItems: LiveListItem[];
   popularCategories: LivePopularCategory[];
   followed: LiveListItem[];
   recommended: LiveRecommendedHost[];
   scheduled: LiveScheduledItem[];
   category: string | null;
+  total: number;
+  hasMore: boolean;
+  nextOffset: number;
+  categoryRows: LiveCategoryRow[];
+};
+
+export type LiveCategoryRow = {
+  id: string;
+  label: string;
+  channels: LiveListItem[];
+};
+
+export type LivePlaybackInfo = {
+  ok?: boolean;
+  hlsUrl?: string | null;
+  waiting?: boolean;
+  tryLoad?: boolean;
 };
 
 export type LiveExternalInfo = {
@@ -65,6 +85,7 @@ export type LiveDetail = LiveListItem & {
   isLive: boolean;
   liveStatus?: string;
   canEnter?: boolean;
+  accessDeniedReason?: "ADULT_VERIFICATION_REQUIRED" | "TIER_REQUIRED" | null;
   isHost?: boolean;
   isExternal?: boolean;
   mediaSourceType?: string | null;
@@ -98,6 +119,8 @@ export type LiveChatMessage = {
   supportTierSent?: string;
   messageKind?: "support" | "tip" | "mission";
   eventType?: string;
+  supportAmount?: number;
+  tipMessage?: string;
 };
 
 export type StreamingAccount = {
@@ -109,11 +132,21 @@ export type StreamingAccount = {
   profileImage: string | null;
 };
 
-export async function fetchLiveHub(opts?: { category?: string | null }) {
+export async function fetchLiveHub(opts?: {
+  category?: string | null;
+  offset?: number;
+  limit?: number;
+}) {
   const params = new URLSearchParams();
   if (opts?.category) params.set("category", opts.category);
+  if (opts?.offset != null) params.set("offset", String(opts.offset));
+  if (opts?.limit != null) params.set("limit", String(opts.limit));
   const suffix = params.toString() ? `?${params}` : "";
-  return apiRequest<LiveHubResponse>(`${MobileApi.live}${suffix}`, { auth: true });
+  return apiRequest<LiveHubResponse>(`${MobileApi.live}${suffix}`, { auth: true, timeoutMs: 25_000 });
+}
+
+export async function fetchLivePlayback(id: string) {
+  return apiRequest<LivePlaybackInfo>(`${MobileApi.live}/${id}/playback`, { auth: true });
 }
 
 /** @deprecated use fetchLiveHub */

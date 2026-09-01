@@ -12,6 +12,8 @@ import {
   isHostBroadcastRoom,
   isPubliclyLive,
 } from "@/lib/live-channel-active";
+import { resolveLiveChannelAccess } from "@/lib/live-room-access";
+import { isAdultVerified } from "@/lib/adult-verification/is-verified";
 
 export async function GET(
   req: NextRequest,
@@ -46,6 +48,8 @@ export async function GET(
       createdAt: true,
       donationGoalKrw: true,
       donationAlertsOnStream: true,
+      isNsfw: true,
+      contentRating: true,
       members: {
         where: { lastSeenAt: { gte: liveViewerCutoff() } },
         select: { id: true },
@@ -72,9 +76,25 @@ export async function GET(
   const liveStatus = channel.liveStatus ?? (channel.isLive ? "LIVE" : "ENDED");
   const onAir = isPubliclyLive({ isLive: channel.isLive, liveStatus });
   const isHost = !!viewerId && channel.createdBy === viewerId;
-  const canEnter =
+  const adultStream = channel.isNsfw === true || channel.contentRating === "ADULT";
+  let canEnter =
     (isHost && isHostBroadcastRoom({ liveStatus })) ||
     (!isHost && canViewerEnterLiveRoom({ isLive: channel.isLive, liveStatus }));
+  let accessDeniedReason: "ADULT_VERIFICATION_REQUIRED" | "TIER_REQUIRED" | null = null;
+
+  if (!isHost && adultStream && canEnter && viewerId) {
+    const viewer = await db.user.findUnique({
+      where: { id: viewerId },
+      select: { adultVerifiedAt: true },
+    });
+    if (!viewer || !isAdultVerified(viewer)) {
+      canEnter = false;
+      accessDeniedReason = "ADULT_VERIFICATION_REQUIRED";
+    }
+  } else if (!isHost && adultStream && canEnter && !viewerId) {
+    canEnter = false;
+    accessDeniedReason = "ADULT_VERIFICATION_REQUIRED";
+  }
 
   const isExternal =
     channel.mediaSourceType === "EXTERNAL" || channel.broadcastMode === "EXTERNAL";
@@ -146,6 +166,9 @@ export async function GET(
       isLive: onAir,
       liveStatus,
       canEnter,
+      accessDeniedReason,
+      isNsfw: adultStream,
+      contentRating: channel.contentRating ?? "GENERAL",
       isHost,
       isExternal,
       external,

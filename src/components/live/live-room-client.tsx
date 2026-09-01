@@ -11,6 +11,7 @@ import {
   leaveLiveStream,
 } from "@/actions/live-stream";
 import { tierLabelKo } from "@/lib/live-viewer-access";
+import { useAdultVerificationGate } from "@/hooks/use-adult-verification-gate";
 import { LiveHostStudioShell } from "@/components/live/live-host-studio-shell";
 import { LiveCollabStudioShell } from "@/components/live/live-collab-studio-shell";
 import { LiveViewerShell } from "@/components/live/live-viewer-shell";
@@ -28,6 +29,7 @@ import { LiveOverlayProvider } from "@/components/live/overlays/live-overlay-con
 import { LiveChatProvider } from "@/components/live/live-chat-provider";
 import { LiveOverlayGamesBridge } from "@/components/live/overlays/live-overlay-games-bridge";
 import { LiveSupportProvider } from "@/components/live/live-support-provider";
+import { AdultVerificationDialog } from "@/components/adult-verification/adult-verification-dialog";
 
 export function LiveRoomClient({
   channelId,
@@ -53,6 +55,7 @@ export function LiveRoomClient({
   minViewerTier,
   hostFollowing,
   isLiveOnAir = false,
+  isNsfw = false,
 }: {
   channelId: string;
   channelName: string;
@@ -77,12 +80,15 @@ export function LiveRoomClient({
   minViewerTier?: SupportTierLevel | null;
   hostFollowing?: boolean;
   isLiveOnAir?: boolean;
+  isNsfw?: boolean;
 }) {
   const router = useRouter();
   const { data: session } = useSession();
+  const adultGate = useAdultVerificationGate("LIVE");
   const mobilePortrait = useLiveMobilePortrait();
   const [joined, setJoined] = useState(false);
   const [viewerJoinError, setViewerJoinError] = useState("");
+  const [adultVerificationRequired, setAdultVerificationRequired] = useState(false);
   const viewerJoinStartedRef = useRef(false);
   const endingStreamRef = useRef(false);
   const [collabPassword, setCollabPassword] = useState("");
@@ -144,10 +150,14 @@ export function LiveRoomClient({
     const res = await enterLiveAsViewer(channelId);
     setJoining(false);
     if ("error" in res && res.error) {
+      if ("code" in res && res.code === "ADULT_VERIFICATION_REQUIRED") {
+        setAdultVerificationRequired(true);
+      }
       setViewerJoinError(res.error);
       setJoinError(res.error);
       return;
     }
+    setAdultVerificationRequired(false);
     setJoined(true);
   }, [channelId]);
 
@@ -223,6 +233,7 @@ export function LiveRoomClient({
     collabPassword: storedPassword,
     recentTips,
     donationAlertsOnStream,
+    isNsfw,
   };
 
   const overlayProviderProps = {
@@ -270,8 +281,19 @@ export function LiveRoomClient({
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
       {isHost && joined && <LiveHostPresenceSync channelId={channelId} enabled />}
       {!mobilePortrait && !isHost && viewerJoinError && (
-        <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          {viewerJoinError}
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive space-y-2">
+          <p>{viewerJoinError}</p>
+          {adultVerificationRequired ? (
+            <Button
+              type="button"
+              size="sm"
+              className="rounded-xl"
+              disabled={adultGate.pending}
+              onClick={() => void adultGate.ensureAdult()}
+            >
+              {adultGate.pending ? "인증 중…" : "성인 본인인증"}
+            </Button>
+          ) : null}
         </div>
       )}
 
@@ -321,6 +343,18 @@ export function LiveRoomClient({
     </div>
     </LiveSupportProvider>
     </LiveChatProvider>
+    <AdultVerificationDialog
+      open={adultGate.promptOpen}
+      onOpenChange={adultGate.setPromptOpen}
+      onVerify={() =>
+        adultGate.verifyNow(() => {
+          viewerJoinStartedRef.current = false;
+          void enterStudioAsViewer();
+        })
+      }
+      busy={adultGate.pending}
+      error={adultGate.error}
+    />
     </LiveOverlayProvider>
   );
 }

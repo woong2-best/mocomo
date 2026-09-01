@@ -20,6 +20,7 @@ function HostSettingsForm({
   initialBanned,
   initialCollabSplit,
   initialDonationAlertsOnStream,
+  initialIsNsfw,
   collabCoHostName,
 }: {
   channelId: string;
@@ -27,6 +28,7 @@ function HostSettingsForm({
   initialBanned: string[];
   initialCollabSplit?: boolean;
   initialDonationAlertsOnStream?: boolean;
+  initialIsNsfw?: boolean;
   collabCoHostName?: string | null;
 }) {
   const safeBanned = ensureStringArray(initialBanned);
@@ -36,6 +38,7 @@ function HostSettingsForm({
   const [donationAlertsOnStream, setDonationAlertsOnStream] = useState(
     !!initialDonationAlertsOnStream
   );
+  const [isNsfw, setIsNsfw] = useState(!!initialIsNsfw);
   const [msg, setMsg] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -51,6 +54,8 @@ function HostSettingsForm({
           .slice(0, 30),
         liveCollabSplitEnabled: collabSplit,
         donationAlertsOnStream,
+        isNsfw,
+        contentRating: isNsfw ? "ADULT" : "GENERAL",
       });
       if ("error" in res && res.error) setMsg(res.error);
       else setMsg("저장되었습니다.");
@@ -59,6 +64,23 @@ function HostSettingsForm({
 
   return (
     <div className="space-y-4 text-sm">
+      <div className="rounded-xl border border-red-500/35 bg-red-500/5 p-3 space-y-2">
+        <p className="text-xs font-semibold text-red-900 dark:text-red-100">19+ 성인 방송</p>
+        <label className="text-xs flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={isNsfw}
+            onChange={(e) => setIsNsfw(e.target.checked)}
+          />
+          <span>
+            성인(19+) 방송으로 표시
+            <span className="block text-[10px] text-muted-foreground mt-1 leading-snug">
+              켜면 본인인증된 시청자만 입장할 수 있고, 썸네일 중앙에 19+ 표시가 붙습니다.
+            </span>
+          </span>
+        </label>
+      </div>
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
         <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">후원 알림</p>
         <label className="text-xs flex items-start gap-2 cursor-pointer">
@@ -127,6 +149,7 @@ export function LiveHostSettings({
   bannedWords: initialBanned,
   initialCollabSplit,
   initialDonationAlertsOnStream,
+  initialIsNsfw,
   collabCoHostName,
   embedded,
 }: {
@@ -135,6 +158,7 @@ export function LiveHostSettings({
   bannedWords: string[];
   initialCollabSplit?: boolean;
   initialDonationAlertsOnStream?: boolean;
+  initialIsNsfw?: boolean;
   collabCoHostName?: string | null;
   embedded?: boolean;
 }) {
@@ -146,6 +170,7 @@ export function LiveHostSettings({
         initialBanned={initialBanned}
         initialCollabSplit={initialCollabSplit}
         initialDonationAlertsOnStream={initialDonationAlertsOnStream}
+        initialIsNsfw={initialIsNsfw}
         collabCoHostName={collabCoHostName}
       />
     );
@@ -169,6 +194,7 @@ export function LiveHostSettings({
           initialBanned={initialBanned}
           initialCollabSplit={initialCollabSplit}
           initialDonationAlertsOnStream={initialDonationAlertsOnStream}
+          initialIsNsfw={initialIsNsfw}
           collabCoHostName={collabCoHostName}
         />
       </DialogContent>

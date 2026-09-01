@@ -71,6 +71,7 @@ export default function NewVoicePage() {
   const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
   const [liveVisibility, setLiveVisibility] = useState<LiveVisibility>("PUBLIC");
   const [minViewerTier, setMinViewerTier] = useState<SupportTierLevel>("BRONZE");
+  const [isNsfw, setIsNsfw] = useState(false);
   const [created, setCreated] = useState<CreatedUiState | null>(null);
   const [copied, setCopied] = useState(false);
   const [prepNotice, setPrepNotice] = useState("");
@@ -120,6 +121,8 @@ export default function NewVoicePage() {
         broadcastMode: "BROWSER",
         liveVisibility,
         minViewerTier: liveVisibility === "PRIVATE" ? minViewerTier : undefined,
+        isNsfw,
+        contentRating: isNsfw ? "ADULT" : "GENERAL",
       });
 
       if (result.error) {
@@ -381,6 +384,23 @@ export default function NewVoicePage() {
                   ))}
                 </select>
               )}
+            </div>
+            <div className="rounded-xl border border-red-500/35 bg-red-500/5 p-3 space-y-2">
+              <p className="text-xs font-semibold text-red-900 dark:text-red-100">19+ 성인 방송</p>
+              <label className="text-xs flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={isNsfw}
+                  onChange={(e) => setIsNsfw(e.target.checked)}
+                />
+                <span>
+                  성인(19+) 방송으로 시작
+                  <span className="block text-[10px] text-muted-foreground mt-1 leading-snug">
+                    본인인증된 시청자만 입장할 수 있고, 썸네일에 19+ 표시가 붙습니다.
+                  </span>
+                </span>
+              </label>
             </div>
             <div className="flex flex-wrap gap-2">
               {BROADCAST_CATEGORIES.map(({ value, label }) => (

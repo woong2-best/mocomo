@@ -30,6 +30,7 @@ export type LiveMobilePortraitHostProps = {
   collabPassword?: string | null;
   recentTips?: LiveTipAlert[];
   donationAlertsOnStream?: boolean;
+  isNsfw?: boolean;
 };
 
 /** 호스트 — 모바일 세로 인스타 라이브 UI (데스크탑과 분리) */
@@ -44,6 +45,7 @@ export function LiveMobilePortraitHost({
   collabPassword,
   recentTips = [],
   donationAlertsOnStream = false,
+  isNsfw = false,
 }: LiveMobilePortraitHostProps) {
   const { chatOverlayEnabled } = useLiveChat();
 
@@ -92,6 +94,7 @@ export function LiveMobilePortraitHost({
               slowModeSeconds={slowModeSeconds ?? 0}
               bannedWords={ensureStringArray(chatBannedWords)}
               initialDonationAlertsOnStream={donationAlertsOnStream}
+              initialIsNsfw={isNsfw}
               embedded
             />
           </DialogContent>

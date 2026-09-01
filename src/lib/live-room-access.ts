@@ -1,14 +1,21 @@
-import type { LiveStreamStatus, LiveVisibility, SupportTierLevel } from "@prisma/client";
+import type { ContentRating, LiveStreamStatus, LiveVisibility, SupportTierLevel } from "@prisma/client";
 import { db } from "@/lib/db";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { meetsPrivateLiveTier } from "@/lib/live-viewer-access";
 import { isBroadcastActive } from "@/lib/live-channel-active";
+import { isAdultVerified } from "@/lib/adult-verification/is-verified";
 
 export type LiveRoomAccess =
   | { allowed: true; isHost: boolean; hostUserId: string; canPublish?: boolean }
   | {
       allowed: false;
-      reason: "NOT_FOUND" | "NOT_LIVE" | "NOT_MEMBER" | "ENDED" | "TIER_REQUIRED";
+      reason:
+        | "NOT_FOUND"
+        | "NOT_LIVE"
+        | "NOT_MEMBER"
+        | "ENDED"
+        | "TIER_REQUIRED"
+        | "ADULT_VERIFICATION_REQUIRED";
       minViewerTier?: SupportTierLevel;
     };
 
@@ -19,6 +26,8 @@ type ChannelAccessRow = {
   liveStatus?: LiveStreamStatus;
   liveVisibility?: LiveVisibility;
   minViewerTier?: SupportTierLevel | null;
+  isNsfw?: boolean;
+  contentRating?: ContentRating;
   linkedChatRoom?: { id: string; type: string } | null;
 };
 
@@ -33,6 +42,8 @@ async function loadChannelForAccess(channelId: string): Promise<ChannelAccessRow
         liveStatus: true,
         liveVisibility: true,
         minViewerTier: true,
+        isNsfw: true,
+        contentRating: true,
         linkedChatRoom: { select: { id: true, type: true } },
       },
     });
@@ -111,6 +122,18 @@ export async function resolveLiveChannelAccess(
     const ok = await meetsPrivateLiveTier(userId, channel.createdBy, minTier);
     if (!ok) {
       return { allowed: false, reason: "TIER_REQUIRED", minViewerTier: minTier };
+    }
+  }
+
+  const adultStream =
+    channel.isNsfw === true || channel.contentRating === "ADULT";
+  if (adultStream) {
+    const viewer = await db.user.findUnique({
+      where: { id: userId },
+      select: { adultVerifiedAt: true },
+    });
+    if (!viewer || !isAdultVerified(viewer)) {
+      return { allowed: false, reason: "ADULT_VERIFICATION_REQUIRED" };
     }
   }
 

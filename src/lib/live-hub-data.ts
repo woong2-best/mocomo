@@ -11,6 +11,16 @@ import { isExternalLiveEnabled, isFirstPartyLiveEnabled } from "@/lib/live-featu
 
 /** /live 허브·팔로우 라이브 목록 캐시 */
 export const LIVE_HUB_CACHE_TAG = "live-hub";
+export const LIVE_HUB_PAGE_SIZE = 20;
+export const LIVE_HUB_MAX_CHANNELS = 500;
+
+const ROW_ORDER: LiveStreamCategory[] = [
+  "JUST_CHATTING",
+  "GAME",
+  "IRL",
+  "MUSIC",
+  "LIVE",
+];
 
 export type LiveHubChannel = {
   id: string;
@@ -21,6 +31,7 @@ export type LiveHubChannel = {
   tags: string[];
   thumbnailUrl: string | null;
   broadcastMode?: string | null;
+  isNsfw?: boolean;
 };
 
 export type LiveHubHost = {
@@ -92,9 +103,10 @@ async function fetchLiveHubChannels(category?: LiveStreamCategory, mode: LiveHub
       tags: true,
       thumbnailUrl: true,
       broadcastMode: true,
+      isNsfw: true,
     },
     orderBy: { createdAt: "desc" },
-    take: 36,
+    take: LIVE_HUB_MAX_CHANNELS,
   });
 
   const channels = await filterChannelsWithPresentHost(rawChannels);
@@ -161,6 +173,7 @@ async function fetchFollowedLive(userId: string) {
       tags: true,
       thumbnailUrl: true,
       broadcastMode: true,
+      isNsfw: true,
     },
     take: 12,
   });
@@ -198,6 +211,61 @@ export async function getLiveHubChannelFeed(category?: LiveStreamCategory, mode:
       : [];
 
   return { channels, hosts };
+}
+
+export type LiveHubCategoryRow = {
+  category: LiveStreamCategory;
+  channels: LiveHubChannel[];
+};
+
+function buildCategoryRows(channels: LiveHubChannel[]): LiveHubCategoryRow[] {
+  const viewerByCategory = channels.reduce(
+    (acc, ch) => {
+      acc[ch.category] = (acc[ch.category] ?? 0) + ch.viewerCount;
+      return acc;
+    },
+    {} as Partial<Record<LiveStreamCategory, number>>
+  );
+
+  return [...ROW_ORDER]
+    .sort((a, b) => (viewerByCategory[b] ?? 0) - (viewerByCategory[a] ?? 0))
+    .map((category) => ({
+      category,
+      channels: channels.filter((c) => c.category === category).slice(0, 8),
+    }))
+    .filter((row) => row.channels.length > 0);
+}
+
+/** Paginated live hub feed — full list cached, sliced in memory. */
+export async function getLiveHubChannelFeedPage(
+  category?: LiveStreamCategory,
+  mode: LiveHubMode = "all",
+  offset = 0,
+  limit = LIVE_HUB_PAGE_SIZE
+) {
+  const feed = await getLiveHubChannelFeed(category, mode);
+  const channels = feed.channels.slice(offset, offset + limit);
+  const categoryRows =
+    !category && offset === 0 ? buildCategoryRows(feed.channels) : ([] as LiveHubCategoryRow[]);
+  const heroChannels =
+    !category && offset === 0 ? (feed.channels.slice(0, 5) as LiveHubChannel[]) : [];
+
+  const hostIds = new Set(channels.map((c) => c.createdBy));
+  for (const row of categoryRows) {
+    for (const ch of row.channels) hostIds.add(ch.createdBy);
+  }
+  for (const ch of heroChannels) hostIds.add(ch.createdBy);
+  const hosts = feed.hosts.filter((h) => hostIds.has(h.id));
+
+  return {
+    channels,
+    hosts,
+    total: feed.channels.length,
+    hasMore: offset + limit < feed.channels.length,
+    nextOffset: offset + limit,
+    categoryRows,
+    heroChannels,
+  };
 }
 
 /** 클립·추천·팔로우 등 카테고리와 무관한 허브 데이터 */

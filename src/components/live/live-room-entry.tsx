@@ -34,6 +34,7 @@ export function LiveRoomEntry({
   minViewerTier,
   hostFollowing,
   isLiveOnAir,
+  isNsfw,
 }: {
   channelId: string;
   channelName: string;
@@ -58,6 +59,7 @@ export function LiveRoomEntry({
   hostFollowing?: boolean;
   /** 서버 기준 LIVE 여부 */
   isLiveOnAir?: boolean;
+  isNsfw?: boolean;
 }) {
   const [storedPassword, setStoredPassword] = useState<string | null>(null);
 
@@ -94,6 +96,7 @@ export function LiveRoomEntry({
       minViewerTier={minViewerTier}
       hostFollowing={hostFollowing}
       isLiveOnAir={isLiveOnAir}
+      isNsfw={isNsfw}
     />
   );
 }

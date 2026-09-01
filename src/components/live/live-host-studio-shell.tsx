@@ -22,7 +22,6 @@ import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
 import { VoiceLiveHostStudio } from "@/components/voice-live/voice-live-studio";
 import { LiveMobilePortraitVoiceHost } from "@/components/live/mobile/live-mobile-portrait-voice-host";
 import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
-import { LiveVideoDonationOverlay } from "@/components/live/live-video-donation-panel";
 
 /** 호스트 스튜디오 — 브라우저 송출 + 채팅 + 설정 */
 export function LiveHostStudioShell({
@@ -40,6 +39,7 @@ export function LiveHostStudioShell({
   broadcastMode,
   hostImage,
   hostDisplayName,
+  isNsfw = false,
 }: {
   channelId: string;
   channelName: string;
@@ -63,6 +63,7 @@ export function LiveHostStudioShell({
   donationAlertsOnStream?: boolean;
   broadcastMode?: LiveBroadcastMode;
   hostImage?: string | null;
+  isNsfw?: boolean;
 }) {
   const mobilePortrait = useLiveMobilePortrait();
   const collab = useLiveCollabState(channelId);
@@ -136,6 +137,7 @@ export function LiveHostStudioShell({
         collabPassword={collabPassword}
         recentTips={recentTips}
         donationAlertsOnStream={donationAlertsOnStream}
+        isNsfw={isNsfw}
       />
     );
   }
@@ -176,6 +178,7 @@ export function LiveHostStudioShell({
                 bannedWords={ensureStringArray(chatBannedWords)}
                 initialCollabSplit={collab.splitEnabled}
                 initialDonationAlertsOnStream={donationAlertsOnStream}
+                initialIsNsfw={isNsfw}
                 collabCoHostName={coHostLabel ?? null}
                 embedded
               />
@@ -203,7 +206,6 @@ export function LiveHostStudioShell({
             }
           />
           {donationAlertsOnStream ? <LiveDonationAlertOverlay tips={recentTips} /> : null}
-          <LiveVideoDonationOverlay channelId={channelId} />
         </div>
         <div className="min-h-[360px] lg:sticky lg:top-[3.25rem] lg:max-h-[calc(100vh-5rem)] border border-border/60 rounded-xl overflow-hidden bg-card/30">
           <LiveChat

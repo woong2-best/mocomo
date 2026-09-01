@@ -4,21 +4,25 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import type { LiveListItem } from "@/api/live";
 import { liveCategoryLabel } from "@/features/live/live-categories";
+import { LiveViewerBadge } from "@/features/live/LiveViewerBadge";
+import { LiveAdultWatermark, isLiveAdultItem } from "@/features/live/LiveAdultWatermark";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
-import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { radii, type ThemeColors } from "@/theme/tokens";
 
 type Props = {
   item: LiveListItem;
   cardWidth: number;
   onPress: () => void;
+  onOverflow?: () => void;
 };
 
-function LiveStreamCardInner({ item, cardWidth, onPress }: Props) {
+/** Horizontal-rail live card: thumb → title → host → tags (followed / category rails). */
+function LiveStreamCardInner({ item, cardWidth, onPress, onOverflow }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const thumb = item.thumbnailUrl ?? item.host.image;
+  const thumb = item.thumbnailUrl ?? item.host?.image ?? null;
   const decode = feedMediaDecodeWidth(cardWidth);
   const tags = (item.tags ?? []).slice(0, 2);
 
@@ -36,40 +40,50 @@ function LiveStreamCardInner({ item, cardWidth, onPress }: Props) {
           />
         ) : (
           <View style={[styles.thumb, styles.thumbFallback]}>
-            <Ionicons name="radio" size={36} color={colors.terracotta} style={{ opacity: 0.45 }} />
+            <Ionicons name="radio" size={32} color={colors.terracotta} style={{ opacity: 0.45 }} />
           </View>
         )}
-        <View style={styles.scrim} pointerEvents="none" />
-        <View style={styles.liveBadge}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>LIVE</Text>
-        </View>
-        <View style={styles.viewerChip}>
-          <Ionicons name="eye" size={11} color="#fff" />
-          <Text style={styles.viewerText}>{item.viewerCount}</Text>
+        {isLiveAdultItem(item) ? <LiveAdultWatermark /> : null}
+        <View style={styles.badge}>
+          <LiveViewerBadge viewerCount={item.viewerCount} />
         </View>
       </View>
 
-      <View style={styles.meta}>
-        <FolkAvatar uri={item.host.image} name={item.host.username} size={36} />
-        <View style={styles.metaText}>
-          <Text style={styles.host} numberOfLines={1}>
-            @{item.host.username}
-          </Text>
-          <Text style={styles.title} numberOfLines={1}>
-            {item.title}
-          </Text>
-          <View style={styles.tags}>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{liveCategoryLabel(item.category)}</Text>
-            </View>
-            {tags.map((tag) => (
-              <View key={tag} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
+      <View style={styles.titleRow}>
+        <Text style={styles.title} numberOfLines={2}>
+          {item.title}
+        </Text>
+        {onOverflow ? (
+          <Pressable onPress={onOverflow} hitSlop={8} style={styles.overflowBtn}>
+            <Ionicons name="ellipsis-vertical" size={15} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
+      </View>
+
+      <View style={styles.hostRow}>
+        <FolkAvatar
+          uri={item.host?.image}
+          name={item.host?.username ?? "?"}
+          size={18}
+          framed={false}
+        />
+        <Text style={styles.host} numberOfLines={1}>
+          @{item.host?.username ?? "host"}
+        </Text>
+        {item.host?.isPartner ? (
+          <Ionicons name="checkmark-circle" size={12} color={colors.success} />
+        ) : null}
+      </View>
+
+      <View style={styles.tags}>
+        <View style={styles.tag}>
+          <Text style={styles.tagText}>{liveCategoryLabel(item.category)}</Text>
         </View>
+        {tags.map((tag) => (
+          <View key={tag} style={styles.tag}>
+            <Text style={styles.tagText}>{tag}</Text>
+          </View>
+        ))}
       </View>
     </Pressable>
   );
@@ -79,14 +93,12 @@ export const LiveStreamCard = memo(LiveStreamCardInner);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    wrap: { marginBottom: spacing.md },
+    wrap: { gap: 7 },
     thumbWrap: {
       aspectRatio: 16 / 9,
-      borderRadius: radii.lg,
+      borderRadius: radii.md,
       overflow: "hidden",
       backgroundColor: "rgba(27, 74, 140, 0.12)",
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
     },
     thumb: { width: "100%", height: "100%" },
     thumbFallback: {
@@ -94,50 +106,22 @@ function createStyles(colors: ThemeColors) {
       justifyContent: "center",
       backgroundColor: colors.muted,
     },
-    scrim: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: "rgba(0,0,0,0.08)",
+    badge: { position: "absolute", top: 8, left: 8 },
+    titleRow: { flexDirection: "row", alignItems: "flex-start", gap: 4 },
+    title: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.text,
+      lineHeight: 19,
     },
-    liveBadge: {
-      position: "absolute",
-      top: 10,
-      left: 10,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      backgroundColor: "#059669",
-      borderRadius: 6,
-      paddingHorizontal: 7,
-      paddingVertical: 3,
-    },
-    liveDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: "#fff",
-    },
-    liveText: { color: "#fff", fontSize: 10, fontWeight: "900", letterSpacing: 0.4 },
-    viewerChip: {
-      position: "absolute",
-      bottom: 10,
-      left: 10,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      backgroundColor: "rgba(0,0,0,0.65)",
-      borderRadius: 6,
-      paddingHorizontal: 7,
-      paddingVertical: 3,
-    },
-    viewerText: { color: "#fff", fontSize: 11, fontWeight: "700" },
-    meta: { flexDirection: "row", gap: 10, marginTop: 10, paddingHorizontal: 2 },
-    metaText: { flex: 1, minWidth: 0, gap: 2 },
-    host: { fontSize: 13, fontWeight: "700", color: colors.text },
-    title: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
-    tags: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 4 },
+    overflowBtn: { paddingTop: 2 },
+    hostRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+    host: { flexShrink: 1, fontSize: 12, fontWeight: "600", color: colors.textMuted },
+    tags: { flexDirection: "row", flexWrap: "nowrap", gap: 4, overflow: "hidden" },
     tag: {
       backgroundColor: colors.muted,
-      borderRadius: 6,
+      borderRadius: 5,
       paddingHorizontal: 6,
       paddingVertical: 2,
     },

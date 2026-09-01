@@ -7,6 +7,7 @@ import { Eye, Radio, User } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { LivePopularCategories } from "@/components/live/live-popular-categories";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
+import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
@@ -42,6 +43,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
             <Radio className="h-10 w-10 text-folk-terracotta/45" />
           </div>
         )}
+        {isLiveAdultChannel(ch) ? <LiveAdultWatermark /> : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
         <span className="live-badge absolute top-2.5 left-2.5 !bg-emerald-600">
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />

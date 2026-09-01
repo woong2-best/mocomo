@@ -7,6 +7,7 @@ import { MobileAdultVerifyClient } from "./mobile-adult-verify-client";
 
 function parseScope(raw: string | undefined): AdultVerificationScope {
   if (raw === "USED_MARKET") return "USED_MARKET";
+  if (raw === "LIVE") return "LIVE";
   if (raw === "GLOBAL") return "GLOBAL";
   return "DM_PAID";
 }

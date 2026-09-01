@@ -20,6 +20,7 @@ import { toggleFollowUser } from "@/api/social";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import { ExternalLivePlayer } from "@/features/live/ExternalLivePlayer";
+import { LiveAdultWatermark, isLiveAdultItem } from "@/features/live/LiveAdultWatermark";
 import { LiveChatPanel } from "@/features/live/LiveChatPanel";
 import { LiveDonationBar } from "@/features/live/LiveDonationBar";
 import { LiveKitConnecting, LiveKitViewer } from "@/features/live/LiveKitViewer";
@@ -30,8 +31,8 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { LiveDonationAlertOverlay } from "@/features/live/LiveDonationAlertOverlay";
-import { TipCreatorSheet } from "@/payments/TipCreatorSheet";
 import { formatUsd } from "@/lib/money";
+import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
 
 export function LiveDetailScreen() {
   const { colors } = useTheme();
@@ -41,12 +42,12 @@ export function LiveDetailScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "LiveDetail">>();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const adultGate = useAdultVerificationGate("LIVE");
   const [watchingFirstParty, setWatchingFirstParty] = useState(false);
   const [creds, setCreds] = useState<LiveToken | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
-  const [tipOpen, setTipOpen] = useState(false);
   const [following, setFollowing] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
 
@@ -65,6 +66,10 @@ export function LiveDetailScreen() {
   const onViewerCount = useCallback((n: number) => setViewerCount(n), []);
 
   const startFirstParty = async () => {
+    if (item && !item.isHost && isLiveAdultItem(item)) {
+      const ok = await adultGate.ensureAdult();
+      if (!ok) return;
+    }
     setTokenLoading(true);
     setTokenError(null);
     try {
@@ -85,6 +90,12 @@ export function LiveDetailScreen() {
       setTokenLoading(false);
     }
   };
+
+  const adultBlocked =
+    !!item &&
+    !item.isHost &&
+    isLiveAdultItem(item) &&
+    (item.accessDeniedReason === "ADULT_VERIFICATION_REQUIRED" || item.canEnter === false);
 
   async function onToggleFollow() {
     if (!item?.host.id || item.isHost) return;
@@ -152,7 +163,36 @@ export function LiveDetailScreen() {
               />
             ) : null}
             {item.isExternal && item.external ? (
-              <ExternalLivePlayer external={item.external} title={item.title} />
+              adultBlocked ? (
+                <View style={styles.adultGate}>
+                  {item.thumbnailUrl ? (
+                    <Image
+                      source={{ uri: item.thumbnailUrl }}
+                      style={StyleSheet.absoluteFill}
+                      cachePolicy={IMAGE_CACHE_POLICY}
+                      transition={0}
+                    />
+                  ) : (
+                    <View style={[StyleSheet.absoluteFill, styles.heroFallback]}>
+                      <Ionicons name="radio" size={40} color={colors.terracotta} style={{ opacity: 0.5 }} />
+                    </View>
+                  )}
+                  <LiveAdultWatermark />
+                  <View style={styles.adultGateOverlay}>
+                    <Text style={styles.adultGateTitle}>19+ 성인 방송</Text>
+                    <Text style={styles.adultGateSub}>본인인증된 회원만 시청할 수 있습니다.</Text>
+                    <Pressable
+                      style={[styles.primaryBtn, adultGate.busy && styles.btnDisabled]}
+                      disabled={adultGate.busy}
+                      onPress={() => void adultGate.ensureAdult().then((ok) => ok && query.refetch())}
+                    >
+                      <Text style={styles.primaryBtnText}>성인 본인인증</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <ExternalLivePlayer external={item.external} title={item.title} />
+              )
             ) : watchingFirstParty && creds ? (
               <View style={styles.firstPartyPlayer}>
                 <LiveKitViewer
@@ -168,12 +208,15 @@ export function LiveDetailScreen() {
                 <LiveKitConnecting />
               </View>
             ) : item.thumbnailUrl ? (
-              <Image
-                source={{ uri: item.thumbnailUrl }}
-                style={styles.hero}
-                cachePolicy={IMAGE_CACHE_POLICY}
-                transition={0}
-              />
+              <View style={styles.heroWrap}>
+                <Image
+                  source={{ uri: item.thumbnailUrl }}
+                  style={styles.hero}
+                  cachePolicy={IMAGE_CACHE_POLICY}
+                  transition={0}
+                />
+                {isLiveAdultItem(item) ? <LiveAdultWatermark style={styles.hero} /> : null}
+              </View>
             ) : (
               <View style={[styles.hero, styles.heroFallback]}>
                 <Ionicons name="radio" size={40} color={colors.terracotta} style={{ opacity: 0.5 }} />
@@ -246,6 +289,14 @@ export function LiveDetailScreen() {
                 >
                   <Text style={styles.secondaryBtnText}>시청 종료</Text>
                 </Pressable>
+              ) : adultBlocked ? (
+                <Pressable
+                  style={[styles.primaryBtn, adultGate.busy && styles.btnDisabled]}
+                  disabled={adultGate.busy}
+                  onPress={() => void adultGate.ensureAdult().then((ok) => ok && query.refetch())}
+                >
+                  <Text style={styles.primaryBtnText}>성인 본인인증 후 시청</Text>
+                </Pressable>
               ) : (
                 <Pressable
                   style={[styles.primaryBtn, (tokenLoading || !item.isLive) && styles.btnDisabled]}
@@ -271,7 +322,7 @@ export function LiveDetailScreen() {
 
             {tokenError ? <Text style={styles.errorInline}>{tokenError}</Text> : null}
 
-            {(item.canEnter !== false || item.isLive) && (
+            {(item.canEnter !== false || item.isLive) && !adultBlocked ? (
               <View style={styles.chatWrap}>
                 <LiveChatPanel
                   channelId={item.id}
@@ -281,25 +332,13 @@ export function LiveDetailScreen() {
                   paymentsEnabled={item.paymentsEnabled}
                   hostDisplayName={item.host.name || item.host.username}
                   hostUserId={item.host.id}
+                  hostUsername={item.host.username}
                   pinnedMessage={item.pinnedMessage}
                   currentUserId={user?.id}
                   streamStartedAt={item.streamStartedAt}
-                  onTipPress={() => setTipOpen(true)}
                 />
               </View>
             )}
-
-            {item.paymentsEnabled && !item.isHost ? (
-              <TipCreatorSheet
-                visible={tipOpen}
-                onClose={() => setTipOpen(false)}
-                creatorId={item.host.id}
-                username={item.host.username}
-                displayName={item.host.name || item.host.username}
-                channelId={item.id}
-                onSuccess={() => Alert.alert("후원 완료", "라이브 후원이 완료되었습니다.")}
-              />
-            ) : null}
           </View>
         </ScrollView>
       )}
@@ -348,6 +387,30 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 12,
       backgroundColor: colors.muted,
     },
+    heroWrap: {
+      width: "100%",
+      aspectRatio: 16 / 9,
+      borderRadius: 12,
+      overflow: "hidden",
+      backgroundColor: colors.muted,
+    },
+    adultGate: {
+      width: "100%",
+      aspectRatio: 16 / 9,
+      borderRadius: 12,
+      overflow: "hidden",
+      backgroundColor: "#000",
+    },
+    adultGateOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: spacing.md,
+      backgroundColor: "rgba(0,0,0,0.55)",
+      gap: 8,
+    },
+    adultGateTitle: { color: "#fff", fontSize: 18, fontWeight: "900" },
+    adultGateSub: { color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: "600", textAlign: "center" },
     heroFallback: { alignItems: "center", justifyContent: "center" },
     body: { padding: spacing.md, gap: 10 },
     title: { fontSize: 20, fontWeight: "900", color: colors.text },
