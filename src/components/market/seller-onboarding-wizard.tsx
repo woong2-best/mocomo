@@ -40,17 +40,24 @@ export function SellerOnboardingWizard({
   connectParam,
   fromApp = false,
   returnTo = null,
+  freshStart = false,
 }: {
   initialState: OnboardingState;
   connectParam?: string;
   fromApp?: boolean;
   returnTo?: string | null;
+  /** Stripe 복귀가 아닌 일반 진입 — 약관부터 새로 시작 */
+  freshStart?: boolean;
 }) {
   const router = useRouter();
   const [state, setState] = useState(initialState);
-  const [step, setStep] = useState<SellerOnboardingStepId>(
-    initialState.signedIn ? initialState.step : "ACCOUNT"
-  );
+  const resolveEntryStep = (next: OnboardingState): SellerOnboardingStepId => {
+    if (freshStart) {
+      return next.signedIn ? "AGREEMENTS" : "ACCOUNT";
+    }
+    return next.signedIn ? next.step : "ACCOUNT";
+  };
+  const [step, setStep] = useState<SellerOnboardingStepId>(() => resolveEntryStep(initialState));
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -84,6 +91,33 @@ export function SellerOnboardingWizard({
     initialState.profile?.displayName ?? (initialState.signedIn ? initialState.name ?? "" : "")
   );
   const [bio, setBio] = useState(initialState.profile?.bio ?? "");
+
+  const onboardingUserId =
+    initialState.signedIn && "userId" in initialState ? initialState.userId : null;
+
+  useEffect(() => {
+    const nextStep = resolveEntryStep(initialState);
+    setState(initialState);
+    setStep(nextStep);
+    setError("");
+    setMessage("");
+    if (initialState.signedIn) {
+      setName(initialState.name ?? "");
+      setEmail(initialState.email ?? "");
+      setDisplayName(initialState.profile?.displayName ?? initialState.name ?? "");
+      setBio(initialState.profile?.bio ?? "");
+      if (initialState.profile?.sellerType) {
+        setSellerType(initialState.profile.sellerType);
+      } else {
+        setSellerType("INDIVIDUAL");
+      }
+      setSellingMarket(
+        ("sellingMarket" in initialState && initialState.sellingMarket) ||
+          initialState.countryCode ||
+          "KR"
+      );
+    }
+  }, [onboardingUserId, freshStart]);
 
   useEffect(() => {
     if (connectParam === "return") {
@@ -319,7 +353,7 @@ export function SellerOnboardingWizard({
         {MARKET_BRAND_FULL} 판매자 온보딩
       </p>
 
-      <SellerOnboardingStepper uiStep={uiStep} />
+      <SellerOnboardingStepper uiStep={uiStep} signedIn={state.signedIn} />
 
       <div className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-sm space-y-4">
         {error && <p className="text-sm text-destructive">{error}</p>}

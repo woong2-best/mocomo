@@ -39,6 +39,7 @@ export async function getSellerOnboardingStateForUserId(userId: string) {
 
   return {
     signedIn: true as const,
+    userId: user.id,
     step,
     email: user.email,
     username: user.username,

@@ -86,6 +86,7 @@ function buildOnboardingStateFromUser(
 
   return {
     signedIn: true as const,
+    userId: user.id,
     step,
     settlementPhase: null,
     email: user.email,

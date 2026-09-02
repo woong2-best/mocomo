@@ -42,6 +42,7 @@ export default async function SellerRegisterPage({
   }
 
   const connect = params.connect;
+  const freshStart = connect !== "return" && connect !== "refresh";
 
   return (
     <SellerPortalShell
@@ -54,6 +55,7 @@ export default async function SellerRegisterPage({
         connectParam={connect}
         fromApp={fromApp}
         returnTo={returnTo}
+        freshStart={freshStart}
       />
     </SellerPortalShell>
   );

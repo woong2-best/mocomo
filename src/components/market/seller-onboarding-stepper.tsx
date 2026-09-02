@@ -7,8 +7,17 @@ import {
   type SellerOnboardingUiStep,
 } from "@/lib/marketplace/seller-onboarding";
 
-export function SellerOnboardingStepper({ uiStep }: { uiStep: SellerOnboardingUiStep }) {
-  const visible = visibleSellerOnboardingUiSteps();
+export function SellerOnboardingStepper({
+  uiStep,
+  signedIn = false,
+}: {
+  uiStep: SellerOnboardingUiStep;
+  /** 로그인 사용자는 계정 생성 단계를 건너뛰므로 스테퍼에서 제외 */
+  signedIn?: boolean;
+}) {
+  const visible = visibleSellerOnboardingUiSteps().filter(
+    (id) => !(signedIn && id === "ACCOUNT")
+  );
   const currentIdx = Math.max(0, visible.indexOf(uiStep === "COMPLETE" ? "STRIPE" : uiStep));
 
   return (
