@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Image } from "expo-image";
@@ -30,7 +31,12 @@ import { spacing } from "@/theme/tokens";
 const WEB = API_BASE_URL.replace(/\/$/, "");
 
 /** Matches the flat lower half of the welcome artwork so edges never show. */
-const BACKDROP = "#000026";
+const BACKDROP = "#001959";
+/** Intrinsic shape of welcome-bg.png and where its line art stops. */
+const BACKDROP_ASPECT = 472 / 1024;
+const BACKDROP_ART_END = 0.527;
+/** Breathing room between the artwork and the first row of buttons. */
+const ART_GAP = 26;
 
 type PendingGoogleSignup = {
   idToken: string;
@@ -55,6 +61,15 @@ export function LoginScreen() {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const keyboardHeight = useKeyboardBottomInset();
+  const window = useWindowDimensions();
+
+  // `cover` anchors the artwork to the top of the screen, so the baseline of
+  // the line art lands at a fixed fraction of the displayed image height.
+  const backdropHeight = Math.max(
+    window.height,
+    window.width / BACKDROP_ASPECT
+  );
+  const artOffset = backdropHeight * BACKDROP_ART_END;
 
   const [busyProvider, setBusyProvider] = useState<MobileAuthProvider | null>(null);
   const [credentialsBusy, setCredentialsBusy] = useState(false);
@@ -172,8 +187,11 @@ export function LoginScreen() {
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
-        {/* Keeps the artwork clear until the keyboard needs the room. */}
-        <View style={styles.spacer} />
+        <View
+          style={{
+            height: Math.max(16, artOffset + ART_GAP - insets.top - 12),
+          }}
+        />
 
         <View style={styles.actions}>
           <WelcomeSocialAuthRow
@@ -232,7 +250,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: spacing.lg,
   },
-  spacer: { flex: 1, minHeight: 16 },
   actions: { gap: 14 },
   orText: {
     fontSize: 14,

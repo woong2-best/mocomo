@@ -8,7 +8,7 @@ const OUT = "apps/mobile/assets";
  * with lanczos and sharpen, then deepen the colours as requested.
  */
 async function buildBackground() {
-  const src = `${ASSETS}/c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_1412-1d79940b-3f1f-4f52-a12f-fa1d34ca5054.png`;
+  const src = `${ASSETS}/c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_Screenshot_20260902_111621_Gallery-460ea081-57a5-4440-aa5e-57829d8e42d4.png`;
   const dest = `${OUT}/welcome-bg.png`;
 
   await sharp(src)
@@ -16,8 +16,8 @@ async function buildBackground() {
     .sharpen({ sigma: 1.1, m1: 0.6, m2: 2.2 })
     // Deepen the navy without dulling the white line art: the linear curve
     // crushes the shadows while highlights still clip to pure white.
-    .modulate({ saturation: 1.45 })
-    .linear(1.12, -30)
+    .modulate({ saturation: 1.35 })
+    .linear(1.1, -22)
     .png({ compressionLevel: 9 })
     .toFile(dest);
 
