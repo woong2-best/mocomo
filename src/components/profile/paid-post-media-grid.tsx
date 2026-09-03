@@ -13,6 +13,7 @@ import {
 } from "@/lib/post-media-client-cache";
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
+import { postMediaAspectRatio } from "@/lib/format-feed";
 
 export type ProfilePostMediaItem = {
   id?: string;
@@ -106,6 +107,8 @@ export function PaidPostMediaGrid({
   const preview = media.slice(0, FEED_GRID_MAX);
   const count = preview.length;
   const overflow = Math.max(0, total - FEED_GRID_MAX);
+  const singleAspectStyle =
+    count === 1 ? { aspectRatio: postMediaAspectRatio(preview[0]!), maxHeight: 510 } : undefined;
 
   function warmFullMedia() {
     if (!needsFullFetch) return;
@@ -171,13 +174,14 @@ export function PaidPostMediaGrid({
           className,
           opening && "opacity-80"
         )}
+        style={singleAspectStyle}
         onPointerEnter={warmFullMedia}
         onFocusCapture={warmFullMedia}
       >
         <div
           className={cn(
             "grid w-full gap-[2px]",
-            count === 1 && "grid-cols-1",
+            count === 1 && "h-full grid-cols-1",
             count === 2 && "h-full grid-cols-2",
             count >= 3 && "h-full grid-cols-2 grid-rows-2"
           )}
@@ -196,7 +200,7 @@ export function PaidPostMediaGrid({
                 tabIndex={!locked ? 0 : undefined}
                 className={cn(
                   "relative min-h-0 overflow-hidden bg-muted/30 text-left",
-                  count === 1 ? "max-h-[510px]" : "h-full min-h-[120px]",
+                  count === 1 ? "h-full max-h-[510px]" : "h-full min-h-[120px]",
                   spanClass,
                   !locked && "cursor-pointer"
                 )}

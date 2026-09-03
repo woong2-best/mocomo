@@ -31,3 +31,15 @@ export function postHasVisualMedia(post: {
   if (m.locked) return true;
   return m.type === "IMAGE" || m.type === "VIDEO" || Boolean(m.url?.trim());
 }
+
+/** Single-tile feed/detail/carousel aspect ratio (width/height or sensible default). */
+export function postMediaAspectRatio(media: {
+  width?: number | null;
+  height?: number | null;
+  type?: string;
+}): string {
+  if (media.width && media.height && media.width > 0 && media.height > 0) {
+    return `${media.width} / ${media.height}`;
+  }
+  return media.type === "VIDEO" ? "16 / 9" : "16 / 10";
+}

@@ -86,7 +86,9 @@ export function PostDetailCard({
           isAuthor={isOwner}
         />
         {post.title && <h1 className="text-xl font-bold">{post.title}</h1>}
-        <TranslatableText text={post.content} as="p" className="whitespace-pre-wrap" />
+        {post.content ? (
+          <TranslatableText text={post.content} as="p" className="whitespace-pre-wrap" />
+        ) : null}
         {post.poll && <PostPollCard postId={post.id} poll={post.poll} />}
         <PaidPostMediaGrid
           media={(post.media ?? []).map((m) => ({
@@ -97,6 +99,11 @@ export function PostDetailCard({
             locked: m.locked,
             lockReason: m.lockReason,
             instantPurchasePriceKrw: m.instantPurchasePriceKrw,
+            width: m.width,
+            height: m.height,
+            duration: m.duration,
+            hlsUrl: m.hlsUrl,
+            posterUrl: m.posterUrl,
           }))}
           postId={post.id}
           authorUsername={post.author.username}

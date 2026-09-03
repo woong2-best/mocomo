@@ -22,6 +22,11 @@ type PostDetailMedia = {
   lockReason: ContentLockReason;
   instantPurchasePriceKrw: number;
   visibility: ContentVisibility;
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  hlsUrl: string | null;
+  posterUrl: string | null;
 };
 
 const postDetailSelect = {
@@ -39,7 +44,17 @@ const postDetailSelect = {
   author: { select: userPublicSelect },
   collaborators: postCollaboratorsHeaderInclude,
   media: {
-    select: { id: true, url: true, type: true, priceKrw: true },
+    select: {
+      id: true,
+      url: true,
+      type: true,
+      priceKrw: true,
+      width: true,
+      height: true,
+      duration: true,
+      hlsUrl: true,
+      posterUrl: true,
+    },
     orderBy: { order: "asc" as const },
   },
   tags: { select: { tag: { select: { id: true, name: true } } } },
@@ -130,7 +145,17 @@ async function enrichPostDetail<
     authorId: string;
     visibility: ContentVisibility;
     instantPurchasePriceKrw: number;
-    media: { id: string; url: string; type: string; priceKrw: number | null }[];
+    media: {
+      id: string;
+      url: string;
+      type: string;
+      priceKrw: number | null;
+      width?: number | null;
+      height?: number | null;
+      duration?: number | null;
+      hlsUrl?: string | null;
+      posterUrl?: string | null;
+    }[];
     poll: Parameters<typeof mapPostPollRow>[0] | null;
   }
 >(
@@ -160,6 +185,8 @@ async function enrichPostDetail<
       type: m.type,
       priceKrw,
       locked,
+      hlsUrl: m.hlsUrl,
+      posterUrl: m.posterUrl,
     });
     return {
       id: m.id,
@@ -170,6 +197,11 @@ async function enrichPostDetail<
       lockReason,
       instantPurchasePriceKrw: priceKrw,
       visibility: withPoll.visibility,
+      width: m.width ?? null,
+      height: m.height ?? null,
+      duration: m.duration ?? null,
+      hlsUrl: gated.hlsUrl,
+      posterUrl: gated.posterUrl,
     };
   });
 

@@ -25,6 +25,7 @@ import {
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { useFeedPhotoLightboxOptional } from "@/components/media/feed-photo-lightbox-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
+import { postMediaAspectRatio } from "@/lib/format-feed";
 import {
   isProtectionWarningSlide,
   withProtectionSlide,
@@ -426,10 +427,7 @@ export function FeedPostMediaCarousel({
 
   if (!multi) {
     const m = items[0]!;
-    const aspect =
-      m.width && m.height && m.width > 0 && m.height > 0
-        ? `${m.width} / ${m.height}`
-        : "16 / 10";
+    const aspect = postMediaAspectRatio(m);
     return (
       <div
         className={cn("mt-3 max-w-full", className, opening && "opacity-80")}
@@ -482,10 +480,7 @@ export function FeedPostMediaCarousel({
           aria-label="게시물 미디어"
         >
           {items.map((m, i) => {
-            const aspect =
-              m.width && m.height && m.width > 0 && m.height > 0
-                ? `${m.width} / ${m.height}`
-                : "16 / 10";
+            const aspect = postMediaAspectRatio(m);
             return (
               <div
                 key={m.id ?? `${postId}:${i}`}
