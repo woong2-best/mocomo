@@ -190,8 +190,6 @@ export function FeedVideoPlayer({
   const pendingSeekPctRef = useRef<number | null>(null);
   const volumeBeforeMuteRef = useRef(DEFAULT_VOLUME);
   const userPausedRef = useRef(false);
-  /** Suppress trailing click that lands on the Play overlay after pointerup-pause. */
-  const suppressOverlayClickRef = useRef(false);
   const holdBoostRef = useRef(false);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1005,12 +1003,7 @@ export function FeedVideoPlayer({
       return;
     }
 
-    // pointerup → pause mounts Play overlay → trailing click would immediately resume.
-    suppressOverlayClickRef.current = true;
-    window.setTimeout(() => {
-      suppressOverlayClickRef.current = false;
-    }, 350);
-
+    // pointerup toggles play/pause on the video surface.
     if (!started) {
       userPausedRef.current = false;
       void playExclusive("user");
@@ -1049,10 +1042,6 @@ export function FeedVideoPlayer({
       onOpenImmersive();
       return;
     }
-    suppressOverlayClickRef.current = true;
-    window.setTimeout(() => {
-      suppressOverlayClickRef.current = false;
-    }, 350);
     if (!started) {
       userPausedRef.current = false;
       void playExclusive("user");
@@ -1206,7 +1195,7 @@ export function FeedVideoPlayer({
       ref={containerRef}
       data-feed-video-id={playerId}
       className={cn(
-        "relative overflow-hidden bg-black group/video outline-none",
+        "relative isolate overflow-hidden bg-black group/video outline-none",
         className
       )}
       tabIndex={0}
@@ -1233,7 +1222,8 @@ export function FeedVideoPlayer({
           fillMode
             ? cn("absolute inset-0 h-full w-full", fillFitClass)
             : "block w-full h-auto",
-          "origin-center will-change-transform"
+          "origin-center backface-hidden",
+          zoom > 1 && "will-change-transform"
         )}
         style={videoStyle}
         muted={isMuted}
@@ -1310,27 +1300,14 @@ export function FeedVideoPlayer({
       ) : null}
 
       {!playing && !buffering && !showCopyrightWarning && !previewMode && (
-        <button
-          type="button"
-          aria-label="재생"
-          onClick={(e) => {
-            stopFeedNavigation(e);
-            focusPlayer();
-            // Ghost click after video pointerup-pause must not auto-resume.
-            if (suppressOverlayClickRef.current) {
-              suppressOverlayClickRef.current = false;
-              return;
-            }
-            userPausedRef.current = false;
-            void playExclusive("user");
-          }}
-          onPointerDown={stopFeedNavigation}
-          className="absolute inset-0 z-[2] flex items-center justify-center transition-opacity duration-200"
+        <div
+          className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center"
+          aria-hidden
         >
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/55 text-white ring-1 ring-white/25 backdrop-blur-sm transition-transform group-hover/video:scale-105">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/65 text-white shadow-[0_2px_12px_rgba(0,0,0,0.45)] ring-1 ring-white/20">
             <Play className="h-7 w-7 translate-x-[2px]" fill="currentColor" />
           </span>
-        </button>
+        </div>
       )}
 
       {started && !previewMode && (
