@@ -24,6 +24,8 @@ import { ReelsCommentsPanel } from "@/components/reels/reels-comments-panel";
 import { engageStar } from "@/lib/post-engage-client";
 import { getVideoPlaybackController } from "@/lib/video-playback";
 import { prefetchPostComments } from "@/lib/comments-prefetch-cache";
+import { useLocale } from "@/components/providers/locale-provider";
+import { absoluteUrl, copyShareUrl } from "@/lib/post-share";
 
 type Props = {
   initialItems: ReelItem[];
@@ -63,6 +65,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   } | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
+  const { t } = useLocale();
 
   const loadMore = useCallback(async () => {
     if (!cursor || fetchingRef.current || autoLoadBlockedRef.current) return;
@@ -247,28 +250,10 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
 
   const shareReel = useCallback(
     async (reel: ReelItem) => {
-      const url =
-        typeof window !== "undefined"
-          ? `${window.location.origin}/reels?v=${reel.postId}`
-          : `/reels?v=${reel.postId}`;
-      try {
-        if (navigator.share) {
-          await navigator.share({
-            title: reel.title ?? "MoCoMo Reels",
-            url,
-          });
-          return;
-        }
-      } catch {
-        /* fall through */
-      }
-      try {
-        await navigator.clipboard.writeText(url);
-      } catch {
-        /* ignore */
-      }
+      const url = absoluteUrl(`/reels?v=${reel.postId}`);
+      await copyShareUrl(url, t("toast.linkCopied"));
     },
-    []
+    [t]
   );
 
   const onMenuAction = useCallback(

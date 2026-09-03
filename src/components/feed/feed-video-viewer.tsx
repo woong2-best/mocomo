@@ -29,6 +29,8 @@ import {
 import { FeedVideoPostSlide } from "@/components/feed/feed-video-post-slide";
 import { FeedVideoExpandLightbox } from "@/components/feed/feed-video-expand-lightbox";
 import { ReelsCommentsPanel } from "@/components/reels/reels-comments-panel";
+import { useLocale } from "@/components/providers/locale-provider";
+import { copyShareUrl, postUrl } from "@/lib/post-share";
 
 type Props = {
   groups: FeedVideoGroup[];
@@ -75,6 +77,7 @@ export function FeedVideoViewer({
   const [, startTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname() ?? "/feed";
+  const { t } = useLocale();
   const closedRef = useRef(false);
   const closingViaUiRef = useRef(false);
   const startedRef = useRef(false);
@@ -297,28 +300,12 @@ export function FeedVideoViewer({
     setMenu({ open: true, x, y, index });
   }, []);
 
-  const shareReel = useCallback(async (reel: ReelItem) => {
-    const url =
-      typeof window !== "undefined"
-        ? `${window.location.origin}/post/${reel.postId}`
-        : `/post/${reel.postId}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: reel.title ?? "MoCoMo",
-          url,
-        });
-        return;
-      }
-    } catch {
-      /* fall through */
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  const shareReel = useCallback(
+    async (reel: ReelItem) => {
+      await copyShareUrl(postUrl(reel.postId), t("toast.linkCopied"));
+    },
+    [t]
+  );
 
   const onMenuAction = useCallback(
     (action: ReelsMenuAction) => {

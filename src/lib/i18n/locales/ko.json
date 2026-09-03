@@ -293,7 +293,7 @@
   "toast.copyLink": "링크 복사",
   "toast.share": "공유",
   "toast.delete": "삭제",
-  "toast.linkCopied": "URL 복사 완료",
+  "toast.linkCopied": "복사가 되었습니다!",
   "toast.deleteConfirm": "정말 삭제하시겠습니까?",
   "toast.cancel": "취소",
   "toast.editSoon": "게시물 수정은 곧 지원됩니다",

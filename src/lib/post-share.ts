@@ -13,6 +13,21 @@ export function postUrl(postId: string): string {
   return absoluteUrl(postPath(postId));
 }
 
+/** Copy a share URL and show the global info toast (feed/reels globe button). */
+export async function copyShareUrl(
+  url: string,
+  toastMessage: string
+): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(url);
+    const { pushInfoToast } = await import("@/lib/published-toast-store");
+    pushInfoToast({ message: toastMessage, durationMs: 2500 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function buildPostShareMessage(input: {
   postId: string;
   authorUsername: string;
