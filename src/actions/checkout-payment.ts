@@ -11,6 +11,7 @@ import {
 import { payCheckoutWithMoco } from "@/lib/moco-checkout-service";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
 import type { PaymentIntentType } from "@prisma/client";
+import { db } from "@/lib/db";
 import {
   createMarketplaceCheckoutSessionForPaymentIntent,
   prepareMarketplacePaymentForBuyer,
@@ -105,8 +106,12 @@ export async function createStripeCheckoutRedirect(input: {
 
 export async function prepareMarketplacePayment(input: MarketplaceCheckoutInput) {
   const user = await requireAuth();
+  const dbUser = await db.user.findUnique({
+    where: { id: user.id },
+    select: { countryCode: true },
+  });
   return prepareMarketplacePaymentForBuyer(
-    { id: user.id, email: user.email },
+    { id: user.id, email: user.email, countryCode: dbUser?.countryCode },
     input,
     "web"
   );

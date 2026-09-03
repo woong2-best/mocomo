@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { ko, enUS, ja, zhCN } from "date-fns/locale";
 import { Heart, MessageSquare, Star } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
@@ -23,14 +22,7 @@ import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { postHasVisualMedia } from "@/lib/format-feed";
 import { useLocale } from "@/components/providers/locale-provider";
-import type { Locale } from "@/lib/i18n/config";
-
-const dateLocales: Record<Locale, typeof ko> = {
-  ko,
-  en: enUS,
-  ja,
-  zh: zhCN,
-};
+import { dateFnsLocale } from "@/lib/i18n/date-locale";
 
 export function FeedTimelinePostCard({
   post,
@@ -96,7 +88,7 @@ export function FeedTimelinePostCard({
                 trailing={
                   <Link href={`/post/${post.id}`} className="hover:underline">
                     <time dateTime={createdAt.toISOString()}>
-                      {formatDistanceToNow(createdAt, { addSuffix: true, locale: dateLocales[locale] })}
+                      {formatDistanceToNow(createdAt, { addSuffix: true, locale: dateFnsLocale(locale) })}
                     </time>
                   </Link>
                 }

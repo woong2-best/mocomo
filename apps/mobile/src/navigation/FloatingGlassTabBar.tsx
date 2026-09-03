@@ -9,17 +9,22 @@ import { FLOATING_TAB } from "@/navigation/tab-layout";
 import { prefetchTabForRoute } from "@/navigation/tab-warmup";
 import type { RootTabParamList } from "@/navigation/types";
 import { useTheme } from "@/theme/ThemeContext";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
-const TAB_META: Record<
-  keyof RootTabParamList,
-  { active: IconName; inactive: IconName; label: string }
-> = {
-  Home: { active: "home", inactive: "home-outline", label: "홈" },
-  Market: { active: "storefront", inactive: "storefront-outline", label: "마켓" },
-  Used: { active: "pricetag", inactive: "pricetag-outline", label: "중고" },
-  Messages: { active: "paper-plane", inactive: "paper-plane-outline", label: "메세지" },
+const TAB_LABEL_KEYS: Record<keyof RootTabParamList, string> = {
+  Home: "nav.home",
+  Market: "nav.market",
+  Used: "nav.used",
+  Messages: "nav.messages",
+};
+
+const TAB_ICONS: Record<keyof RootTabParamList, { active: IconName; inactive: IconName }> = {
+  Home: { active: "home", inactive: "home-outline" },
+  Market: { active: "storefront", inactive: "storefront-outline" },
+  Used: { active: "pricetag", inactive: "pricetag-outline" },
+  Messages: { active: "paper-plane", inactive: "paper-plane-outline" },
 };
 
 /** Floating glass pill — solid on Android (GPU), Blur on iOS. */
@@ -27,6 +32,7 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { colors } = useTheme();
+  const { t } = useI18n();
   const bottom = Math.max(insets.bottom, 8) + FLOATING_TAB.bottomGap;
 
   const pillInner = (
@@ -45,9 +51,10 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
       <View style={styles.row}>
         {state.routes.map((route, index) => {
           const focused = state.index === index;
-          const meta = TAB_META[route.name as keyof RootTabParamList];
+          const tabName = route.name as keyof RootTabParamList;
+          const icons = TAB_ICONS[tabName];
           const { options } = descriptors[route.key];
-          const label = options.title ?? meta.label;
+          const label = options.title ?? t(TAB_LABEL_KEYS[tabName]);
 
           const onPress = () => {
             const event = navigation.emit({
@@ -80,7 +87,7 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
                 <View style={[styles.activeGlow, { backgroundColor: colors.tabActiveGlow }]} />
               ) : null}
               <Ionicons
-                name={focused ? meta.active : meta.inactive}
+                  name={focused ? icons.active : icons.inactive}
                 size={23}
                 color={focused ? colors.tabIconActive : colors.tabIcon}
               />

@@ -1,8 +1,8 @@
 import { formatDistanceToNow } from "date-fns";
-import { ko, enUS, ja, zhCN } from "date-fns/locale";
 import { Pin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Locale } from "@/lib/i18n/config";
+import { dateFnsLocale } from "@/lib/i18n/date-locale";
 import type { getPostDetail, PostDetailLocked } from "@/lib/post-queries";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
@@ -11,8 +11,6 @@ import { PostCollabManageDialog } from "@/components/post/post-collab-manage-dia
 import { PostCollabActions } from "@/components/post/post-collab-actions";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
-
-const dateLocales = { ko, en: enUS, ja, zh: zhCN } as const;
 
 type PostDetailOk = Exclude<
   NonNullable<Awaited<ReturnType<typeof getPostDetail>>>,
@@ -38,7 +36,7 @@ export function PostDetailCard({
   viewerCollabStatus?: "PENDING" | "ACCEPTED" | null;
   viewerShowNsfw?: boolean;
 }) {
-  const dateLocale = dateLocales[locale] ?? ko;
+  const dateLocale = dateFnsLocale(locale);
   const collaborators =
     "collaborators" in post && Array.isArray(post.collaborators)
       ? post.collaborators

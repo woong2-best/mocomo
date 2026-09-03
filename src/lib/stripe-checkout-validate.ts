@@ -7,6 +7,7 @@ import { isSubscriptionActive } from "@/lib/creator-subscription";
 import {
   formatMoney,
   LISTING_FEE_USD_CENTS,
+  VENDOR_ONBOARDING_FEE_USD_CENTS,
   MAX_TIP_USD_CENTS,
   MIN_TIP_USD_CENTS,
   EVENT_REGISTRATION_FEE_PER_DAY_USD_CENTS,
@@ -201,6 +202,27 @@ export async function validatePaymentInput(
     const req = await db.goodsListingRequest.findUnique({ where: { id: requestId } });
     if (!req || req.sellerId !== userId) return { error: "굿즈 등록 요청을 찾을 수 없습니다." };
     if (req.listingFeePaid) return { error: "이미 등록비가 결제되었습니다." };
+  }
+
+  if (input.type === "VENDOR_ONBOARDING_FEE") {
+    if (input.amount !== VENDOR_ONBOARDING_FEE_USD_CENTS) {
+      return { error: `판매자 입점비는 ${formatMoney(VENDOR_ONBOARDING_FEE_USD_CENTS)}입니다.` };
+    }
+    const profile = await db.marketplaceSellerProfile.findUnique({ where: { userId } });
+    if (!profile) return { error: "판매자 프로필을 먼저 등록해 주세요." };
+    if (profile.isStripeSupported) {
+      return { error: "Stripe 지원 국가 판매자는 입점비가 없습니다." };
+    }
+    if (profile.vendorOnboardingFeePaidAt) {
+      return { error: "이미 입점비가 결제되었습니다." };
+    }
+    if (
+      !profile.directTradeBankName?.trim() ||
+      !profile.directTradeAccountNumber?.trim() ||
+      !profile.businessRegNo?.trim()
+    ) {
+      return { error: "직거래 계좌·사업자 정보를 먼저 등록해 주세요." };
+    }
   }
 
   if (input.type === "PHYSICAL_GOODS") {

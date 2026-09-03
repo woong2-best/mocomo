@@ -5,11 +5,8 @@ import type { LiveSupportEventType } from "@prisma/client";
 import {
   Gift,
   Loader2,
-  Megaphone,
-  Music2,
   RotateCw,
   Target,
-  Volume2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,9 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   CHEER_PRESETS,
-  SOUND_PRESETS,
   SUPPORT_MIN_AMOUNT,
-  type SoundPresetId,
 } from "@/lib/live-support/types";
 import {
   createLiveMission,
@@ -36,8 +31,6 @@ import type { Socket } from "socket.io-client";
 
 const TABS: { id: LiveSupportEventType | "MISSION"; label: string; icon: ReactNode }[] = [
   { id: "GENERAL", label: "일반", icon: <Gift className="h-3.5 w-3.5" /> },
-  { id: "TTS", label: "TTS", icon: <Megaphone className="h-3.5 w-3.5" /> },
-  { id: "SOUND", label: "사운드", icon: <Volume2 className="h-3.5 w-3.5" /> },
   { id: "ROULETTE", label: "룰렛", icon: <RotateCw className="h-3.5 w-3.5" /> },
   { id: "MISSION", label: "미션", icon: <Target className="h-3.5 w-3.5" /> },
 ];
@@ -76,7 +69,6 @@ export function LiveSupportDialog({
   const [amount, setAmount] = useState(1_000);
   const [custom, setCustom] = useState("");
   const [message, setMessage] = useState("");
-  const [soundId, setSoundId] = useState<SoundPresetId>("clap");
   const [missionTitle, setMissionTitle] = useState("");
   const [missionReward, setMissionReward] = useState(3_000);
   const [loading, setLoading] = useState(false);
@@ -100,7 +92,7 @@ export function LiveSupportDialog({
       type,
       amount: effectiveAmount,
       message: message.trim() || undefined,
-      metadata: type === "SOUND" ? { soundId } : undefined,
+      metadata: undefined,
     });
     setLoading(false);
     if (!res.ok) {
@@ -148,7 +140,7 @@ export function LiveSupportDialog({
       ) : controlledOpen === undefined ? (
         <DialogTrigger asChild>
           <Button variant={triggerVariant} size={triggerSize} className={triggerClass} disabled={!connected}>
-            <Music2 className="h-4 w-4" />
+            <Gift className="h-4 w-4" />
             {triggerLabel}
           </Button>
         </DialogTrigger>
@@ -157,12 +149,12 @@ export function LiveSupportDialog({
         <DialogHeader>
           <DialogTitle>라이브 응원 (가상 CP)</DialogTitle>
           <DialogDescription>
-            {hostDisplayName}님께 결제 없이 응원 포인트(CP)를 보냅니다. 실제 결제는 &quot;후원&quot; 버튼을
-            이용해 주세요.
+            {hostDisplayName}님께 결제 없이 응원 포인트(CP)를 보냅니다. 유료 댓글 후원은 채팅 하단
+            &quot;댓글 후원&quot; 버튼을 이용해 주세요.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-5 gap-1">
+        <div className="grid grid-cols-3 gap-1">
           {TABS.map((t) => (
             <Button
               key={t.id}
@@ -195,40 +187,6 @@ export function LiveSupportDialog({
               rows={2}
             />
             <SubmitRow loading={loading} onClick={() => void handleCheer("GENERAL")} label="일반 응원 보내기" />
-          </div>
-        )}
-
-        {tab === "TTS" && (
-          <div className="space-y-3 mt-3">
-            <p className="text-xs text-muted-foreground">최소 {SUPPORT_MIN_AMOUNT.TTS.toLocaleString()} CP · 방송에서 AI 음성으로 읽습니다.</p>
-            <Textarea
-              placeholder="읽어줄 메시지 (필수, 120자)"
-              value={message}
-              onChange={(e) => setMessage(e.target.value.slice(0, 120))}
-              rows={3}
-            />
-            <SubmitRow loading={loading} onClick={() => void handleCheer("TTS")} label="TTS 응원 보내기" />
-          </div>
-        )}
-
-        {tab === "SOUND" && (
-          <div className="space-y-3 mt-3">
-            <div className="grid grid-cols-3 gap-2">
-              {SOUND_PRESETS.map((s) => (
-                <Button
-                  key={s.id}
-                  type="button"
-                  variant={soundId === s.id ? "default" : "outline"}
-                  size="sm"
-                  className="flex flex-col h-auto py-2 gap-0.5"
-                  onClick={() => setSoundId(s.id)}
-                >
-                  <span className="text-lg">{s.emoji}</span>
-                  <span className="text-[10px]">{s.label}</span>
-                </Button>
-              ))}
-            </div>
-            <SubmitRow loading={loading} onClick={() => void handleCheer("SOUND")} label="사운드 응원 보내기" />
           </div>
         )}
 

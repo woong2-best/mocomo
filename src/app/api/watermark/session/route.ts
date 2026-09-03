@@ -7,6 +7,7 @@ import {
 } from "@/lib/watermark/session/service";
 import { getWatermarkViewerUserId } from "@/lib/watermark/request-auth";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
+import { parseWatermarkContentKind } from "@/lib/paid-media-playback";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
   if (!contentId || contentId.length > 64) {
     return NextResponse.json({ error: "contentId required" }, { status: 400 });
   }
-  const contentKind = body.contentKind === "EPISODE" ? "EPISODE" : "POST_MEDIA";
+  const contentKind = parseWatermarkContentKind(body.contentKind);
 
   try {
     const result = await createWatermarkSession(userId, contentId, contentKind);

@@ -16,7 +16,7 @@ import {
   normalizeLocale,
   type Locale,
 } from "@/lib/i18n/config";
-import { createTranslator, type MessageKey } from "@/lib/i18n/messages";
+import { createTranslator, prefetchLocaleTable, type MessageKey } from "@/lib/i18n/messages";
 import { updateUserLocale } from "@/actions/locale";
 import { setClientLocaleCookies } from "@/lib/i18n/client-cookies";
 import { DEFAULT_TIMEZONE, normalizeTimeZone } from "@/lib/i18n/timezone";
@@ -57,6 +57,7 @@ export function LocaleProvider({
     setCountryCode(nextCountry);
     setTimeZone(nextTz);
     setClientLocaleCookies(nextLocale, nextCountry, nextTz);
+    prefetchLocaleTable(nextLocale);
   }, [initialLocale, initialCountryCode, initialTimeZone]);
 
   const setLocale = useCallback(
@@ -67,6 +68,7 @@ export function LocaleProvider({
       setCountryCode(country);
       setTimeZone(tz);
       setClientLocaleCookies(next, country, tz);
+      prefetchLocaleTable(next);
       await updateUserLocale({ locale: next, countryCode: country, timeZone: tz });
       startTransition(() => router.refresh());
     },

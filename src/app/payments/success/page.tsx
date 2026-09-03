@@ -33,6 +33,7 @@ export default async function PaymentSuccessPage({
     PREMIUM: "프리미엄 구독",
     EMOTICON: "이모티콘 구매",
     LISTING_FEE: "굿즈 등록비",
+    VENDOR_ONBOARDING_FEE: "판매자 입점비",
     PHYSICAL_GOODS: "굿즈 주문",
     EVENT_REGISTRATION: "이벤트 등록",
     STUDIO_ASSET: "Studio 자산 구매",
@@ -62,7 +63,7 @@ export default async function PaymentSuccessPage({
         result.type === "TIP" &&
         typeof redirectPath === "string" &&
         redirectPath.startsWith("/voice/")
-          ? "영상 후원은 호스트 검수 후 방송에 재생됩니다."
+          ? "댓글 후원이 채팅에 표시됩니다. 라이브로 돌아가 확인해 보세요."
           : undefined
       }
     />

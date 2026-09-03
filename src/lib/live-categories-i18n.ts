@@ -2,7 +2,7 @@ import type { LiveStreamCategory } from "@prisma/client";
 import type { Locale } from "@/lib/i18n/config";
 import { LIVE_CATEGORIES } from "@/lib/live-categories";
 
-const CATEGORY_LABELS: Record<Locale, Record<string, string>> = {
+const CATEGORY_LABELS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
     ALL: "전체",
     JUST_CHATTING: "Just Chatting",
@@ -42,7 +42,7 @@ const CATEGORY_LABELS: Record<Locale, Record<string, string>> = {
 };
 
 export function getLocalizedLiveCategories(locale: Locale) {
-  const labels = CATEGORY_LABELS[locale] ?? CATEGORY_LABELS.en;
+  const labels = CATEGORY_LABELS[locale] ?? CATEGORY_LABELS.en!;
   return LIVE_CATEGORIES.map((c) => ({
     ...c,
     label: labels[c.value] ?? c.label,
@@ -53,7 +53,7 @@ export function localizedLiveCategoryLabel(
   cat: LiveStreamCategory | string | null | undefined,
   locale: Locale
 ): string {
-  const labels = CATEGORY_LABELS[locale] ?? CATEGORY_LABELS.en;
+  const labels = CATEGORY_LABELS[locale] ?? CATEGORY_LABELS.en!;
   if (!cat) return labels.default;
   return labels[cat] ?? labels.default;
 }

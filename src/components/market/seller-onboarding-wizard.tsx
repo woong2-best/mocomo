@@ -20,12 +20,13 @@ import {
   verifySellerEmailCode,
 } from "@/actions/marketplace-seller-onboarding";
 import {
-  SELLER_MARKETS,
+  STRIPE_SELLER_MARKETS,
   toSellerOnboardingUiStep,
   type SellerOnboardingStepId,
 } from "@/lib/marketplace/seller-onboarding";
 import { openStripeConnectOnboardingUrl } from "@/lib/marketplace/open-stripe-connect-url";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
+import { MARKET_STRIPE_DISCLAIMER_KO } from "@/lib/marketplace/market-access";
 import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
@@ -68,10 +69,10 @@ export function SellerOnboardingWizard({
       return (
         ("sellingMarket" in initialState && initialState.sellingMarket) ||
         initialState.countryCode ||
-        "KR"
+        "US"
       );
     }
-    return "KR";
+    return "US";
   });
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -91,6 +92,9 @@ export function SellerOnboardingWizard({
     initialState.profile?.displayName ?? (initialState.signedIn ? initialState.name ?? "" : "")
   );
   const [bio, setBio] = useState(initialState.profile?.bio ?? "");
+  const [businessRegNo, setBusinessRegNo] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [businessRepresentativeName, setBusinessRepresentativeName] = useState("");
 
   const onboardingUserId =
     initialState.signedIn && "userId" in initialState ? initialState.userId : null;
@@ -118,6 +122,15 @@ export function SellerOnboardingWizard({
       );
     }
   }, [onboardingUserId, freshStart]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("onboarding") === "fee_paid") {
+      setMessage("입점비 결제가 완료되었습니다. 판매자 센터로 이동합니다.");
+      refreshState();
+    }
+  }, []);
 
   useEffect(() => {
     if (connectParam === "return") {
@@ -274,6 +287,9 @@ export function SellerOnboardingWizard({
     });
   }
 
+  const marketEligible =
+    !state.signedIn || !("marketEligible" in state) || state.marketEligible !== false;
+
   async function handleSellerInfo() {
     setError("");
     startTransition(async () => {
@@ -281,6 +297,9 @@ export function SellerOnboardingWizard({
         sellerType,
         displayName,
         bio: bio || undefined,
+        businessRegNo,
+        businessName: businessName || undefined,
+        businessRepresentativeName: businessRepresentativeName || undefined,
       });
       if (res.error) {
         setError(res.error);
@@ -334,7 +353,7 @@ export function SellerOnboardingWizard({
     if (effectiveStep === "ACCOUNT") return `${MARKET_BRAND_FULL}과 함께 비즈니스를 시작하세요!`;
     if (effectiveStep === "AGREEMENTS") return "약관 동의";
     if (effectiveStep === "EMAIL") return "이메일 인증";
-    if (effectiveStep === "SELLER_INFO") return "판매자 정보";
+    if (effectiveStep === "SELLER_INFO") return "판매자 · 사업자 정보";
     if (effectiveStep === "SETTLEMENT") return "Stripe 본인 확인 · 정산";
     return "가입 완료";
   }, [effectiveStep]);
@@ -455,6 +474,25 @@ export function SellerOnboardingWizard({
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="판매자 표시 이름"
             />
+            <Input
+              value={businessRegNo}
+              onChange={(e) => setBusinessRegNo(e.target.value)}
+              placeholder={sellerType === "BUSINESS" ? "사업자등록번호 (필수)" : "주민/사업자 식별번호 (필수)"}
+            />
+            {sellerType === "BUSINESS" && (
+              <>
+                <Input
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder="상호 / 법인명"
+                />
+                <Input
+                  value={businessRepresentativeName}
+                  onChange={(e) => setBusinessRepresentativeName(e.target.value)}
+                  placeholder="대표자명"
+                />
+              </>
+            )}
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
@@ -464,13 +502,13 @@ export function SellerOnboardingWizard({
             />
             {sellerType === "BUSINESS" && (
               <p className="text-xs text-muted-foreground rounded-lg bg-muted/40 px-3 py-2">
-                사업자등록증·대표자 정보는 다음 Stripe 단계에서 입력합니다.
+                사업자등록증·대표자 정보는 Stripe 단계에서 추가로 확인합니다.
               </p>
             )}
             <Button
               type="button"
               className="w-full"
-              disabled={pending || !displayName.trim()}
+              disabled={pending || !displayName.trim() || !businessRegNo.trim()}
               onClick={handleSellerInfo}
             >
               다음
@@ -480,30 +518,41 @@ export function SellerOnboardingWizard({
 
         {effectiveStep === "SETTLEMENT" && (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">{stripeMessage}</p>
-            {state.signedIn && "stripeRequirementsDue" in state && state.stripeRequirementsDue && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                Stripe에서 추가 정보 제출이 필요합니다. 온보딩을 이어서 완료해 주세요.
-              </div>
-            )}
-            {state.signedIn && "stripeDisabled" in state && state.stripeDisabled && (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                Stripe 계정 확인이 필요합니다. 온보딩을 다시 진행해 주세요.
-              </div>
-            )}
-            <Button type="button" className="w-full" disabled={pending} onClick={handleStripeConnect}>
-              Stripe 온보딩 시작
-            </Button>
-            {state.signedIn && "stripeStarted" in state && state.stripeStarted && (
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full"
-                disabled={pending}
-                onClick={handleResumeStripe}
-              >
-                Stripe 온보딩 이어서 하기
-              </Button>
+            {!marketEligible ? (
+              <p className="text-sm text-destructive leading-relaxed">
+                선택한 판매 국가에서는 마켓플레이스 판매자 등록을 지원하지 않습니다. Stripe 지원
+                국가를 선택해 주세요.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {stripeMessage} {MARKET_STRIPE_DISCLAIMER_KO}
+                </p>
+                {state.signedIn && "stripeRequirementsDue" in state && state.stripeRequirementsDue && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    Stripe에서 추가 정보 제출이 필요합니다. 온보딩을 이어서 완료해 주세요.
+                  </div>
+                )}
+                {state.signedIn && "stripeDisabled" in state && state.stripeDisabled && (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                    Stripe 계정 확인이 필요합니다. 온보딩을 다시 진행해 주세요.
+                  </div>
+                )}
+                <Button type="button" className="w-full" disabled={pending} onClick={handleStripeConnect}>
+                  Stripe 온보딩 시작
+                </Button>
+                {state.signedIn && "stripeStarted" in state && state.stripeStarted && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full"
+                    disabled={pending}
+                    onClick={handleResumeStripe}
+                  >
+                    Stripe 온보딩 이어서 하기
+                  </Button>
+                )}
+              </>
             )}
           </div>
         )}
@@ -559,12 +608,15 @@ function AccountStep(props: {
         onChange={(e) => props.setSellingMarket(e.target.value)}
         className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
       >
-        {SELLER_MARKETS.map((m) => (
+        {STRIPE_SELLER_MARKETS.map((m) => (
           <option key={m.code} value={m.code}>
             {m.labelKo}
           </option>
         ))}
       </select>
+      <p className="text-xs text-muted-foreground rounded-lg bg-muted/40 px-3 py-2 leading-relaxed">
+        {MARKET_STRIPE_DISCLAIMER_KO}
+      </p>
       <Input
         value={props.username}
         onChange={(e) => props.setUsername(e.target.value)}

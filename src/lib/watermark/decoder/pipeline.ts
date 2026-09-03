@@ -6,6 +6,7 @@ import {
   buildWatermarkPayload,
   toBase64,
 } from "@/lib/watermark/crypto/payload";
+import { watermarkAccessRef } from "@/lib/watermark/access-ref";
 import { REGION_RECOVERED_THRESHOLD } from "@/lib/watermark/decoder/confidence";
 import { verifyWatermarkFrame, type PixelFrame } from "@/lib/watermark/verify-watermark-frame";
 import { centerCropVariants, centerCropVariantsFast, cropFrame, MIN_CROP, scaleFrameVariants, scaleFrameVariantsFast } from "@/lib/watermark/decoder/crop-search";
@@ -27,6 +28,7 @@ export type DetectionCandidate = {
   userId: string;
   purchaseId: string | null;
   episodePurchaseId?: string | null;
+  messageAttachmentPurchaseId?: string | null;
   subscriptionId?: string | null;
   sessionNonce: string;
   watermarkVersion: number;
@@ -54,10 +56,7 @@ export function prepareCandidate(candidate: DetectionCandidate): PreparedCandida
     userId: candidate.userId,
     // Must mirror how createWatermarkSession derived the access reference, or
     // the recomputed codeword will not match what was embedded.
-    purchaseId:
-      candidate.purchaseId ??
-      candidate.episodePurchaseId ??
-      `sub:${candidate.subscriptionId}`,
+    purchaseId: watermarkAccessRef(candidate),
     watermarkVersion: candidate.watermarkVersion,
     sessionNonce: candidate.sessionNonce,
   });

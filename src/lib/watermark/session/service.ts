@@ -11,6 +11,7 @@ import {
   WATERMARK_MODULATION_STRENGTH,
 } from "@/lib/watermark/config";
 import { buildWatermarkPayload, toBase64 } from "@/lib/watermark/crypto/payload";
+import { watermarkAccessRef } from "@/lib/watermark/access-ref";
 import { isWatermarkSecretConfigured } from "@/lib/watermark/crypto/secrets";
 import type { ForensicRenderConfig, WatermarkSessionClientResponse } from "@/lib/watermark/types";
 import type { WatermarkContentKind } from "@/lib/paid-media-playback";
@@ -29,8 +30,10 @@ export type PaidVideoAccess = {
   contentId: string;
   mediaId: string | null;
   episodeId: string | null;
+  messageAttachmentId: string | null;
   purchaseId: string | null;
   episodePurchaseId: string | null;
+  messageAttachmentPurchaseId: string | null;
   subscriptionId: string | null;
 };
 
@@ -41,6 +44,9 @@ export async function verifyPaidVideoAccess(
 ): Promise<PaidVideoAccess> {
   if (contentKind === "EPISODE") {
     return verifyEpisodeAccess(userId, contentId);
+  }
+  if (contentKind === "MESSAGE_ATTACHMENT") {
+    return verifyMessageAttachmentAccess(userId, contentId);
   }
 
   const media = await db.postMedia.findUnique({
@@ -103,8 +109,10 @@ export async function verifyPaidVideoAccess(
       contentId,
       mediaId: contentId,
       episodeId: null,
+      messageAttachmentId: null,
       purchaseId: purchase.id,
       episodePurchaseId: null,
+      messageAttachmentPurchaseId: null,
       subscriptionId: null,
     };
   }
@@ -120,14 +128,64 @@ export async function verifyPaidVideoAccess(
         contentId,
         mediaId: contentId,
         episodeId: null,
+        messageAttachmentId: null,
         purchaseId: null,
         episodePurchaseId: null,
+        messageAttachmentPurchaseId: null,
         subscriptionId: row.id,
       };
     }
   }
 
   throw new WatermarkAccessError(403, "Purchase record required");
+}
+
+/**
+ * Paid DM fan-art. Only the buyer gets a forensic session; the sender owns the
+ * file and is never a leak suspect, so they are exempted like a post author.
+ */
+async function verifyMessageAttachmentAccess(
+  userId: string,
+  attachmentId: string
+): Promise<PaidVideoAccess> {
+  const attachment = await db.messageAttachment.findUnique({
+    where: { id: attachmentId },
+    select: {
+      id: true,
+      type: true,
+      priceKrw: true,
+      message: { select: { senderId: true } },
+    },
+  });
+
+  if (!attachment) throw new WatermarkAccessError(404, "Content not found");
+  if (attachment.type !== "VIDEO" && attachment.type !== "IMAGE") {
+    throw new WatermarkAccessError(400, "Forensic watermark applies to paid image or video only");
+  }
+  if ((attachment.priceKrw ?? 0) <= 0) {
+    throw new WatermarkAccessError(400, "Forensic watermark applies to paid media only");
+  }
+  if (userId === attachment.message.senderId) {
+    throw new WatermarkAccessError(403, "Author playback does not require forensic session");
+  }
+
+  const purchase = await db.messageAttachmentPurchase.findUnique({
+    where: { buyerId_attachmentId: { buyerId: userId, attachmentId } },
+    select: { id: true },
+  });
+  if (!purchase) throw new WatermarkAccessError(403, "Purchase required");
+
+  return {
+    contentKind: "MESSAGE_ATTACHMENT",
+    contentId: attachmentId,
+    mediaId: null,
+    episodeId: null,
+    messageAttachmentId: attachmentId,
+    purchaseId: null,
+    episodePurchaseId: null,
+    messageAttachmentPurchaseId: purchase.id,
+    subscriptionId: null,
+  };
 }
 
 async function verifyEpisodeAccess(userId: string, episodeId: string): Promise<PaidVideoAccess> {
@@ -159,8 +217,10 @@ async function verifyEpisodeAccess(userId: string, episodeId: string): Promise<P
     contentId: episodeId,
     mediaId: null,
     episodeId,
+    messageAttachmentId: null,
     purchaseId: null,
     episodePurchaseId: purchase.id,
+    messageAttachmentPurchaseId: null,
     subscriptionId: null,
   };
 }
@@ -178,8 +238,7 @@ export async function createWatermarkSession(
   }
 
   const access = await verifyPaidVideoAccess(userId, contentId, contentKind);
-  const accessRef =
-    access.purchaseId ?? access.episodePurchaseId ?? `sub:${access.subscriptionId}`;
+  const accessRef = watermarkAccessRef(access);
   const watermarkVersion = getWatermarkVersion();
   const expiresAt = new Date(Date.now() + WATERMARK_SESSION_TTL_MS);
   const pendingOpaque = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -191,8 +250,10 @@ export async function createWatermarkSession(
       userId,
       mediaId: access.mediaId,
       episodeId: access.episodeId,
+      messageAttachmentId: access.messageAttachmentId,
       purchaseId: access.purchaseId,
       episodePurchaseId: access.episodePurchaseId,
+      messageAttachmentPurchaseId: access.messageAttachmentPurchaseId,
       subscriptionId: access.subscriptionId,
       opaqueWatermarkId: pendingOpaque,
       watermarkVersion,
@@ -256,6 +317,7 @@ export async function loadDetectionCandidates(options: {
         userId: true,
         purchaseId: true,
         episodePurchaseId: true,
+        messageAttachmentPurchaseId: true,
         subscriptionId: true,
         sessionNonce: true,
         watermarkVersion: true,
@@ -273,6 +335,7 @@ export async function loadDetectionCandidates(options: {
     OR?: Array<
       | { media: { post: { authorId: string } } }
       | { episode: { authorId: string } }
+      | { messageAttachment: { message: { senderId: string } } }
     >;
   } | undefined;
 
@@ -283,6 +346,7 @@ export async function loadDetectionCandidates(options: {
       OR: [
         { media: { post: { authorId: options.creatorId } } },
         { episode: { authorId: options.creatorId } },
+        { messageAttachment: { message: { senderId: options.creatorId } } },
       ],
     };
   }
@@ -297,6 +361,7 @@ export async function loadDetectionCandidates(options: {
       userId: true,
       purchaseId: true,
       episodePurchaseId: true,
+      messageAttachmentPurchaseId: true,
       subscriptionId: true,
       sessionNonce: true,
       watermarkVersion: true,
@@ -312,6 +377,15 @@ export async function resolveWatermarkSession(sessionId: string) {
       user: { select: { id: true, username: true } },
       purchase: { select: { id: true, price: true, createdAt: true } },
       episodePurchase: { select: { id: true, price: true, createdAt: true } },
+      messageAttachmentPurchase: { select: { id: true, price: true, createdAt: true } },
+      messageAttachment: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          message: { select: { sender: { select: { username: true } } } },
+        },
+      },
       media: {
         select: {
           id: true,

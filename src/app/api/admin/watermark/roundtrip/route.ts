@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
     userId: session.userId,
     purchaseId: session.purchaseId,
     episodePurchaseId: session.episodePurchaseId,
+    messageAttachmentPurchaseId: session.messageAttachmentPurchaseId,
     subscriptionId: session.subscriptionId,
     sessionNonce: session.sessionNonce,
     watermarkVersion: session.watermarkVersion,

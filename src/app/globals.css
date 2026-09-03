@@ -498,7 +498,7 @@ html[data-client="app"] .native-live-pad {
   }
 
   .live-badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-folk-terracotta text-white text-[11px] font-bold uppercase tracking-wide;
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#E02020] text-white text-[11px] font-bold uppercase tracking-wide;
   }
 
   @keyframes profile-live-sweep {

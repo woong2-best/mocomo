@@ -54,10 +54,18 @@ export async function enrichDetectionResult(
 
   await recordDetectionHit(session.id);
 
-  const purchaseRow = session.purchase ?? session.episodePurchase;
-  const contentTitle = session.media?.post.title ?? session.episode?.title ?? null;
+  const purchaseRow =
+    session.purchase ?? session.episodePurchase ?? session.messageAttachmentPurchase;
+  const contentTitle =
+    session.media?.post.title ??
+    session.episode?.title ??
+    session.messageAttachment?.name ??
+    (session.messageAttachment ? `DM ${session.messageAttachment.type}` : null);
   const authorUsername =
-    session.media?.post.author.username ?? session.episode?.author.username ?? "";
+    session.media?.post.author.username ??
+    session.episode?.author.username ??
+    session.messageAttachment?.message.sender.username ??
+    "";
 
   return {
     ...base,

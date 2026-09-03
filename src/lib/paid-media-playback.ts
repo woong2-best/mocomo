@@ -7,7 +7,19 @@ import {
 
 export const PAID_MEDIA_PLAYBACK_PREFIX = "/api/media/paid";
 
-export type WatermarkContentKind = "POST_MEDIA" | "EPISODE";
+export type WatermarkContentKind = "POST_MEDIA" | "EPISODE" | "MESSAGE_ATTACHMENT";
+
+const WATERMARK_CONTENT_KINDS: WatermarkContentKind[] = [
+  "POST_MEDIA",
+  "EPISODE",
+  "MESSAGE_ATTACHMENT",
+];
+
+export function parseWatermarkContentKind(raw: unknown): WatermarkContentKind {
+  return WATERMARK_CONTENT_KINDS.includes(raw as WatermarkContentKind)
+    ? (raw as WatermarkContentKind)
+    : "POST_MEDIA";
+}
 
 export function paidMediaPlaybackPath(mediaId: string): string {
   return `${PAID_MEDIA_PLAYBACK_PREFIX}/${encodeURIComponent(mediaId)}`;
@@ -37,6 +49,11 @@ export function clampPaidPreviewRange(
 
 export function paidEpisodePlaybackPath(episodeId: string): string {
   return `${PAID_MEDIA_PLAYBACK_PREFIX}/episode/${encodeURIComponent(episodeId)}`;
+}
+
+/** Paid DM attachment (messenger fan-art photo/video) — entitlement-gated origin proxy. */
+export function paidMessageAttachmentPlaybackPath(attachmentId: string): string {
+  return `${PAID_MEDIA_PLAYBACK_PREFIX}/message/${encodeURIComponent(attachmentId)}`;
 }
 
 export function isPaidPlaybackPath(url: string | null | undefined): boolean {

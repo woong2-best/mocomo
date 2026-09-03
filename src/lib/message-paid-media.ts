@@ -1,6 +1,8 @@
 import type { MessageAttachmentType } from "@prisma/client";
 import { db } from "@/lib/db";
 import { isPaidMedia, isMediaUnlockedForViewer } from "@/lib/post-paid-media";
+import { paidMessageAttachmentPlaybackPath } from "@/lib/paid-media-playback";
+import { isForensicMessageAttachmentType } from "@/lib/chat-attachments";
 
 export type MessageAttachmentAccessRow = {
   id: string;
@@ -40,11 +42,14 @@ export function attachMessageMediaAccess<T extends { senderId: string; attachmen
         purchasedIds.has(a.id)
       );
       const locked = paid && !unlocked;
-      return {
-        ...a,
-        locked,
-        url: locked ? "" : a.url,
-      };
+      if (locked) return { ...a, locked, url: "" };
+      // Unlocked paid media streams through the entitlement gate so the origin
+      // URL never reaches the client and the forensic canvas can read pixels
+      // same-origin.
+      if (paid && isForensicMessageAttachmentType(a.type)) {
+        return { ...a, locked, url: paidMessageAttachmentPlaybackPath(a.id) };
+      }
+      return { ...a, locked, url: a.url };
     }),
   };
 }

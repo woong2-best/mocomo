@@ -62,6 +62,10 @@ export async function GET(
     }
   }
 
-  const origin = await fetchPaidOriginVideo(media.url, req.headers.get("range"));
+  const origin = await fetchPaidOriginVideo(
+    media.url,
+    req.headers.get("range"),
+    media.type === "IMAGE" ? "image/jpeg" : "video/mp4"
+  );
   return passthrough(origin);
 }

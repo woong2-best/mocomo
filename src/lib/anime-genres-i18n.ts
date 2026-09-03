@@ -4,7 +4,7 @@ import { ANIME_GENRES } from "@/lib/anime-genres";
 
 type GenreText = { label: string; description: string };
 
-const GENRE_TEXT: Record<Locale, Record<AnimeGenre, GenreText>> = {
+const GENRE_TEXT: Partial<Record<Locale, Record<AnimeGenre, GenreText>>> = {
   ko: {
     ACTION: { label: "액션", description: "박진감 넘치는 전투와 스펙터클" },
     ROMANCE: { label: "로맨스", description: "사랑과 관계를 다루는 작품" },
@@ -84,7 +84,7 @@ const GENRE_TEXT: Record<Locale, Record<AnimeGenre, GenreText>> = {
 };
 
 export function getLocalizedAnimeGenres(locale: Locale) {
-  const text = GENRE_TEXT[locale] ?? GENRE_TEXT.en;
+  const text = GENRE_TEXT[locale] ?? GENRE_TEXT.en!;
   return ANIME_GENRES.map((g) => ({
     ...g,
     label: text[g.id].label,

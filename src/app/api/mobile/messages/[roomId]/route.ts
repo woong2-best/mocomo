@@ -84,7 +84,11 @@ export async function POST(
 
   if ("error" in result) {
     const status = result.error === "NOT_MEMBER" ? 403 : 400;
-    return NextResponse.json({ error: result.error }, { status });
+    const message =
+      result.error === "ADULT_VERIFICATION_REQUIRED"
+        ? "미성년자 보호 및 안전한 거래를 위해 최초 1회 본인인증이 필요합니다."
+        : result.error;
+    return NextResponse.json({ error: message, code: result.error }, { status });
   }
   return NextResponse.json(result);
 }

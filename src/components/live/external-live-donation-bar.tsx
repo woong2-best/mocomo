@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Film, Heart, Target } from "lucide-react";
+import { DollarSign, Target } from "lucide-react";
 import { LiveSupportDialog } from "@/components/live/live-support-dialog";
-import { VideoTipWizardDialog } from "@/components/support/video-tip-wizard-dialog";
+import { CommentDonationDialog } from "@/components/live/comment-donation-dialog";
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import { cn } from "@/lib/utils";
 
-/** External live viewer — 채팅후원 · 영상후원 · 미션 */
+/** External live viewer — 댓글후원 · 미션 */
 export function ExternalLiveDonationBar({
   channelId,
   hostDisplayName,
@@ -24,7 +24,7 @@ export function ExternalLiveDonationBar({
   isHost?: boolean;
 }) {
   const { socket, connected } = useLiveChat();
-  const [videoOpen, setVideoOpen] = useState(false);
+  const [commentOpen, setCommentOpen] = useState(false);
   const [missionOpen, setMissionOpen] = useState(false);
 
   if (isHost) return null;
@@ -37,40 +37,27 @@ export function ExternalLiveDonationBar({
 
   return (
     <div className="flex gap-2">
-      <LiveSupportDialog
-        channelId={channelId}
-        hostDisplayName={hostDisplayName}
-        socket={socket}
-        connected={connected}
-        trigger={
-          <button type="button" disabled={!connected} className={btnClass}>
-            <Heart className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
-            채팅후원
-          </button>
-        }
-      />
       {paymentsEnabled ? (
         <>
-          <button type="button" className={btnClass} onClick={() => setVideoOpen(true)}>
-            <Film className="h-3.5 w-3.5" />
-            영상후원
+          <button type="button" className={btnClass} onClick={() => setCommentOpen(true)}>
+            <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+            댓글후원
           </button>
-          <VideoTipWizardDialog
+          <CommentDonationDialog
             creatorId={hostUserId}
             username={hostUsername}
             displayName={hostDisplayName}
             channelId={channelId}
             returnPath={`/voice/${channelId}`}
             paymentsEnabled
-            open={videoOpen}
-            onOpenChange={setVideoOpen}
-            trigger={null}
+            open={commentOpen}
+            onOpenChange={setCommentOpen}
           />
         </>
       ) : (
         <button type="button" className={btnClass} disabled>
-          <Film className="h-3.5 w-3.5" />
-          영상후원
+          <DollarSign className="h-3.5 w-3.5" />
+          댓글후원
         </button>
       )}
       <LiveSupportDialog

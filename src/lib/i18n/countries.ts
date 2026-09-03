@@ -2,8 +2,9 @@ import {
   filterOfacAllowedCountries,
   isOfacSanctionedCountry,
 } from "@/lib/compliance/ofac-sanctioned-countries";
+import type { Locale } from "@/lib/i18n/config";
 
-export type CountryLocale = "ko" | "en" | "ja" | "zh";
+export type CountryLocale = Locale;
 
 export type CountryEntry = {
   code: string;
@@ -22,12 +23,21 @@ export type CountryRegion = {
 
 const INTL_REGION = new Map<string, Intl.DisplayNames>();
 
-function intlRegionName(code: string, locale: "ja" | "zh"): string | undefined {
-  const tag = locale === "zh" ? "zh-Hans" : locale;
+function intlRegionName(code: string, locale: string): string | undefined {
+  const tag =
+    locale === "zh"
+      ? "zh-Hans"
+      : locale === "zh-TW"
+        ? "zh-Hant"
+        : locale.split("-")[0] ?? locale;
   let display = INTL_REGION.get(tag);
   if (!display) {
-    display = new Intl.DisplayNames([tag], { type: "region" });
-    INTL_REGION.set(tag, display);
+    try {
+      display = new Intl.DisplayNames([tag], { type: "region" });
+      INTL_REGION.set(tag, display);
+    } catch {
+      return undefined;
+    }
   }
   return display.of(code.toUpperCase()) ?? undefined;
 }
@@ -330,7 +340,11 @@ export function countryDisplayName(code: string, locale: CountryLocale): string 
   if (!c) return code;
   if (locale === "ko") return c.nameKo;
   if (locale === "en") return c.nameEn;
-  if (upper === "OTHER") return locale === "ja" ? "その他" : "其他";
+  if (upper === "OTHER") {
+    if (locale === "ja") return "その他";
+    if (locale === "zh" || locale === "zh-TW") return locale === "zh-TW" ? "其他" : "其他";
+    return intlRegionName(upper, locale) ?? c.nameEn;
+  }
   return intlRegionName(upper, locale) ?? c.nameEn;
 }
 
@@ -345,6 +359,6 @@ export function isSelectableCountryCode(code: string): boolean {
 export function regionLabel(region: CountryRegion, locale: CountryLocale): string {
   if (locale === "ko") return region.labelKo;
   if (locale === "ja") return region.labelJa;
-  if (locale === "zh") return region.labelZh;
+  if (locale === "zh" || locale === "zh-TW") return region.labelZh;
   return region.labelEn;
 }

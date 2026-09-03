@@ -1,4 +1,5 @@
 import { COUNTRY_REGIONS } from "@/lib/i18n/countries";
+import type { Locale } from "@/lib/i18n/config";
 
 const europeCodes =
   COUNTRY_REGIONS.find((r) => r.id === "europe")?.countries.map((c) => c.code) ?? [];
@@ -17,7 +18,7 @@ export function isUsedMarketPhoneCountry(countryCode: string): boolean {
   return USED_MARKET_PHONE_COUNTRY_CODES.has(countryCode.toUpperCase());
 }
 
-export function usedMarketPhoneCountryLabel(countryCode: string, locale: "ko" | "en" | "ja" | "zh" = "ko") {
+export function usedMarketPhoneCountryLabel(countryCode: string, locale: Locale = "ko") {
   if (locale === "ko") {
     if (countryCode === "KR") return "대한민국";
     if (countryCode === "US") return "미국";

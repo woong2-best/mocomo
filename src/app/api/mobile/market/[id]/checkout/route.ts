@@ -10,6 +10,7 @@ import {
 import { confirmCheckoutPaymentIntent, payCheckoutWithSavedMethod } from "@/lib/stripe-pay-intent-service";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { stripePaymentAuthenticateUrl } from "@/lib/stripe-payment-return-url";
+import { getMarketplaceCheckoutEligibility } from "@/lib/marketplace/checkout-eligibility";
 
 const checkoutBodySchema = z.object({
   quantity: z.number().int().positive().optional(),
@@ -71,13 +72,35 @@ export async function POST(
     return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
   }
 
+  const eligibility = await getMarketplaceCheckoutEligibility({
+    listingId,
+    userId: auth.user.id,
+    shipCountry: parsed.data.shipCountry,
+    headers: req.headers,
+  });
+  if ("error" in eligibility) {
+    return NextResponse.json({ error: eligibility.error }, { status: 404 });
+  }
+  if (eligibility.mode === "BLOCKED" || eligibility.blocked) {
+    return NextResponse.json(
+      { error: eligibility.disclaimer, checkoutMode: "BLOCKED" },
+      { status: 403 }
+    );
+  }
+  if (!eligibility.sellerReady) {
+    return NextResponse.json(
+      { error: eligibility.sellerReadyMessage ?? "판매자 결제 준비가 완료되지 않았습니다." },
+      { status: 422 }
+    );
+  }
+
   const dbUser = await db.user.findUnique({
     where: { id: auth.user.id },
-    select: { email: true },
+    select: { email: true, countryCode: true },
   });
 
   const result = await prepareMarketplacePaymentForBuyer(
-    { id: auth.user.id, email: dbUser?.email },
+    { id: auth.user.id, email: dbUser?.email, countryCode: dbUser?.countryCode },
     { listingId, ...parsed.data },
     "mobile"
   );

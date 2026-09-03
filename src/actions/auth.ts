@@ -22,7 +22,7 @@ import {
   isEmailConfigured,
   getResendAccountHint,
 } from "@/lib/email";
-import { z } from "zod";
+import { isLocale, normalizeLocale } from "@/lib/i18n/config";
 import {
   resolveUserByEmail,
   isEmailVerified,
@@ -58,6 +58,9 @@ import {
 import { RESERVED_USERNAMES } from "@/lib/username-policy";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
 import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
+import { z } from "zod";
+
+const localeField = z.string().refine((v) => isLocale(v), "Invalid locale").default("ko");
 
 const signupApplicationSchema = z.object({
   email: z.string().email(),
@@ -69,7 +72,7 @@ const signupApplicationSchema = z.object({
     .transform((s) => s.trim().toLowerCase()),
   password: z.string().min(8),
   name: z.string().optional(),
-  locale: z.enum(["ko", "en", "ja", "zh"]).default("ko"),
+  locale: localeField,
   countryCode: z.string().min(2).max(8).default("KR"),
   timeZone: z.string().min(1).max(64).default("UTC"),
   homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS).optional(),
@@ -86,7 +89,7 @@ const registerSchema = z.object({
     .transform((s) => s.trim().toLowerCase()),
   password: z.string().min(8),
   name: z.string().optional(),
-  locale: z.enum(["ko", "en", "ja", "zh"]).default("ko"),
+  locale: localeField,
   countryCode: z.string().min(2).max(8).default("KR"),
   timeZone: z.string().min(1).max(64).default("UTC"),
   homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS).optional(),

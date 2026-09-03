@@ -18,6 +18,12 @@ import { useLiveChat } from "@/components/live/live-chat-provider";
 import { ensureArray } from "@/lib/ensure-array";
 import { LiveDonationToolbar } from "@/components/live/live-donation-toolbar";
 import { ExternalLiveDonationBar } from "@/components/live/external-live-donation-bar";
+import {
+  CommentDonationChatCard,
+  CommentDonationTicker,
+} from "@/components/live/comment-donation-chat-card";
+import { CommentDonationIconButton } from "@/components/live/comment-donation-dialog";
+import { commentDonationPinMs } from "@/lib/comment-donation";
 import { LiveSupportSidebar } from "@/components/live/live-support-sidebar";
 import { LivePinnedMessageBar } from "@/components/live/live-pinned-message-bar";
 import { Heart, Target, Sparkles } from "lucide-react";
@@ -43,6 +49,8 @@ export type LiveChatMessage = {
   supportAmount?: number;
   eventType?: LiveSupportEventType;
   rouletteLabel?: string;
+  /** 댓글 후원 원문 (tip kind) */
+  tipMessage?: string;
 };
 
 export const LiveChat = memo(LiveChatInner);
@@ -124,6 +132,15 @@ function LiveChatInner({
     }
     return merged.slice(-150);
   }, [isExternal, externalProvider, messages, platformMessages]);
+
+  const pinnedTip = useMemo(() => {
+    const tips = displayMessages.filter((m) => m.messageKind === "tip");
+    if (tips.length === 0) return null;
+    const latest = tips[tips.length - 1]!;
+    const pinMs = commentDonationPinMs(latest.supportAmount ?? 0);
+    if (Date.now() - latest.at > pinMs) return null;
+    return latest;
+  }, [displayMessages]);
 
   useEffect(() => {
     if (!stickToBottomRef.current) return;
@@ -248,6 +265,7 @@ function LiveChatInner({
         onScroll={onScroll}
         className="flex-1 overflow-y-auto p-2.5 space-y-2 min-h-0"
       >
+        {pinnedTip ? <CommentDonationTicker message={pinnedTip} /> : null}
         {historyError && (
           <p className="text-xs text-destructive text-center py-2 px-2">{historyError}</p>
         )}
@@ -261,6 +279,9 @@ function LiveChatInner({
         {ensureArray<LiveChatMessage>(displayMessages).map((m) => {
           const isPlatform = !!m.source && m.source !== "MOCOMO";
           const isSupportLine = !!m.messageKind && m.messageKind !== "chat";
+          if (isSupportLine && m.messageKind === "tip") {
+            return <CommentDonationChatCard key={m.id} message={m} />;
+          }
           if (isSupportLine) {
             return (
               <SupportChatLine key={m.id} message={m} />
@@ -369,10 +390,20 @@ function LiveChatInner({
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void send()}
               placeholder="채팅 입력…"
-              className="h-9 rounded-lg text-sm"
+              className="h-9 rounded-lg text-sm flex-1"
               maxLength={200}
               disabled={sending}
             />
+            {!isHost && hostUserId && hostUsername && (
+              <CommentDonationIconButton
+                creatorId={hostUserId}
+                username={hostUsername}
+                displayName={hostDisplayName ?? hostUsername}
+                paymentsEnabled={paymentsEnabled}
+                channelId={channelId}
+                returnPath={`/voice/${channelId}`}
+              />
+            )}
             <Button
               size="sm"
               className="h-9 shrink-0 rounded-lg bg-folk-terracotta px-3 hover:bg-folk-terracotta/90"

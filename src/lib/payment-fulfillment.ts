@@ -328,6 +328,36 @@ export async function fulfillPaymentIntent(
     revalidatePath("/support");
   }
 
+  if (intent.type === "VENDOR_ONBOARDING_FEE") {
+    const profile = await db.marketplaceSellerProfile.findUnique({ where: { userId } });
+    if (!profile) return { ok: false, error: "판매자 프로필을 찾을 수 없습니다." };
+    if (profile.vendorOnboardingFeePaidAt) {
+      return { ok: true as const, type: intent.type, alreadyPaid: true };
+    }
+    const now = new Date();
+    await db.marketplaceSellerProfile.update({
+      where: { userId },
+      data: {
+        vendorOnboardingFeePaidAt: now,
+        vendorOnboardingFeeAmount: amount,
+        status: "APPROVED",
+        onboardingStep: "COMPLETE",
+        onboardingCompletedAt: now,
+        canList: true,
+        reviewedAt: now,
+      },
+    });
+    await recordPlatformFee(amount, {
+      referenceType: "vendor_onboarding_fee",
+      referenceId: profile.id,
+      paymentIntentId: intent.id,
+      memo: "판매자 입점비 (Stripe 미지원 국가)",
+    });
+    revalidatePath("/market/seller/register");
+    revalidatePath("/market/seller");
+    revalidatePath("/admin/market");
+  }
+
   if (intent.type === "EVENT_REGISTRATION") {
     const r = await fulfillEventRegistration(meta.eventId, userId);
     if ("error" in r && r.error) return { ok: false, error: r.error };

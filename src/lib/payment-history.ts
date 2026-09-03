@@ -25,6 +25,7 @@ const TYPE_LABELS: Record<PaymentIntentType, string> = {
   PREMIUM: "프리미엄",
   EMOTICON: "이모티콘",
   LISTING_FEE: "등록 수수료",
+  VENDOR_ONBOARDING_FEE: "판매자 입점비",
   PHYSICAL_GOODS: "굿즈",
   EVENT_REGISTRATION: "이벤트",
   CREATOR_EPISODE: "유료 회차",

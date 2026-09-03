@@ -15,6 +15,8 @@ import { startAddPaymentMethod } from "@/actions/payment-methods";
 import { saveCheckoutForResume } from "@/components/payments/checkout-resume-handler";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import { PaymentLegalNotice } from "@/components/legal/legal-entity-notice";
+import { PaidContentUsageNotice } from "@/components/payments/paid-content-usage-notice";
+import { requiresPaidContentUsageNotice } from "@/lib/paid-content-usage-notice";
 import { MocoPayOption } from "@/components/payments/moco-pay-option";
 import { Button } from "@/components/ui/button";
 import {
@@ -183,6 +185,10 @@ export function PaymentCheckoutSheet({
             <p className="text-sm text-muted-foreground">{orderName}</p>
             <p className="text-2xl font-black mt-1">{amountLabel}</p>
           </div>
+
+          {/* Sits above every pay affordance so no purchase can be completed
+              without the personal-viewing-licence terms on screen. */}
+          {requiresPaidContentUsageNotice(type) ? <PaidContentUsageNotice /> : null}
 
           {loading ? (
             <div className="flex justify-center py-8">

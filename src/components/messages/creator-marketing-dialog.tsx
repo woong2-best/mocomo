@@ -18,7 +18,7 @@ import {
   saveCreatorWelcomeMessageAction,
   sendCreatorBulkDmAction,
 } from "@/actions/creator-dm-marketing";
-import { toAbsoluteUploadUrl, uploadImageBlob } from "@/lib/client-upload";
+import { toAbsoluteUploadUrl, uploadImageBlob, uploadVideoBlob } from "@/lib/client-upload";
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import {
   formatUsd,
@@ -147,15 +147,7 @@ export function CreatorMarketingDialog({ open, onOpenChange }: Props) {
     const isVideo = file.type.startsWith("video/");
     let url: string;
     if (isVideo) {
-      const res = await fetch("/api/upload/direct", {
-        method: "POST",
-        headers: { "Content-Type": file.type || "video/mp4" },
-        body: file,
-      });
-      if (!res.ok) throw new Error("업로드에 실패했습니다.");
-      const data = (await res.json()) as { url?: string };
-      if (!data.url) throw new Error("업로드 URL을 받지 못했습니다.");
-      url = toAbsoluteUploadUrl(data.url);
+      url = toAbsoluteUploadUrl(await uploadVideoBlob(file, file.name));
     } else {
       const uploadable = isGalleryImageFile(file, true) ? file : await fileToUploadableJpeg(file);
       url = toAbsoluteUploadUrl(await uploadImageBlob(uploadable, uploadable.name));

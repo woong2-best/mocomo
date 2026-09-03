@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { LiveRoomFollowButton } from "@/components/live/live-room-follow-button";
 import { LiveShareButton } from "@/components/live/live-share-button";
-import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
+import { CommentDonationDialog } from "@/components/live/comment-donation-dialog";
 import { ReportButton } from "@/components/report/report-button";
 import { liveCategoryLabel } from "@/lib/live-categories";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
@@ -70,15 +70,14 @@ export function ExternalLiveStreamInfo({
               />
               <LiveShareButton channelId={channelId} />
               {paymentsEnabled ? (
-                <TipCreatorDialog
+                <CommentDonationDialog
                   creatorId={hostUserId}
                   username={hostUsername}
                   displayName={hostDisplayName ?? hostUsername}
-                  currentTier={hostTier}
-                  currentTotal={hostTotalSupport}
                   paymentsEnabled={!!paymentsEnabled}
                   channelId={channelId}
                   returnPath={`/voice/${channelId}`}
+                  triggerLabel="댓글 후원"
                 />
               ) : null}
               <ReportButton

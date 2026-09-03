@@ -48,7 +48,10 @@ export function checkoutCurrency(): typeof SITE_CURRENCY {
 export const MIN_TIP_USD_CENTS = 100;
 export const MAX_TIP_USD_CENTS = 100_000;
 export const MIN_PAYOUT_USD_CENTS = Number(process.env.MIN_PAYOUT_USD_CENTS ?? 1_000);
+/** @deprecated use VENDOR_ONBOARDING_FEE for marketplace sellers */
 export const LISTING_FEE_USD_CENTS = 500;
+/** Stripe 미지원 국가 판매자 1회 입점비 */
+export const VENDOR_ONBOARDING_FEE_USD_CENTS = 4_000;
 export const DEFAULT_CREATOR_SUBSCRIPTION_USD_CENTS = 1_299;
 export const LETTER_DONATION_MIN_USD_CENTS = 500;
 export const SALE_MEDIA_MIN_PRICE_USD_CENTS = 100;

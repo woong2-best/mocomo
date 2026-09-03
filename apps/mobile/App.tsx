@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
 import { createAppQueryClient } from "@/api/query-client";
 import { AuthProvider } from "@/auth/AuthContext";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import { RootNavigator } from "@/navigation/RootNavigator";
 import { ThemeProvider, useTheme } from "@/theme/ThemeContext";
 import { perfMark } from "@/perf/mark";
@@ -33,7 +34,9 @@ export default function App() {
         <ThemeProvider>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
-              <RootNavigator />
+              <I18nProvider>
+                <RootNavigator />
+              </I18nProvider>
               <ThemedStatusBar />
             </AuthProvider>
           </QueryClientProvider>

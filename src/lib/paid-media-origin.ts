@@ -40,7 +40,8 @@ export type OriginVideoResponse = {
  */
 export async function fetchPaidOriginVideo(
   originUrl: string,
-  range: string | null
+  range: string | null,
+  fallbackContentType = "video/mp4"
 ): Promise<OriginVideoResponse> {
   const key = keyFromPublicUrl(originUrl);
   if (key && s3 && process.env.S3_BUCKET_NAME) {
@@ -52,7 +53,7 @@ export async function fetchPaidOriginVideo(
       })
     );
     const headers = new Headers();
-    headers.set("Content-Type", out.ContentType || "video/mp4");
+    headers.set("Content-Type", out.ContentType || fallbackContentType);
     headers.set("Accept-Ranges", "bytes");
     headers.set("Cache-Control", "private, max-age=60");
     if (out.ContentLength != null) headers.set("Content-Length", String(out.ContentLength));
@@ -69,7 +70,7 @@ export async function fetchPaidOriginVideo(
   const headers = new Headers();
   headers.set(
     "Content-Type",
-    upstream.headers.get("content-type") || "video/mp4"
+    upstream.headers.get("content-type") || fallbackContentType
   );
   headers.set("Accept-Ranges", upstream.headers.get("accept-ranges") || "bytes");
   headers.set("Cache-Control", "private, max-age=60");

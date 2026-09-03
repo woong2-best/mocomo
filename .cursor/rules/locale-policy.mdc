@@ -1,51 +1,45 @@
 ---
-description: Four site languages (ko/en/ja/zh), worldwide countries, UI vs UGC translation policy
-globs: src/lib/i18n/**,src/components/**/locale*,src/app/api/translate/**
+description: Global UI languages (70+), worldwide countries, UI vs UGC translation policy
+globs: src/lib/i18n/**,src/components/**/locale*,src/app/api/translate/**,src/app/api/i18n/**
 alwaysApply: false
 ---
 
 # Locale & Country Policy (MoCoMo)
 
-## Languages (fixed four)
+## Languages (70+ static catalogs)
 
-Site **display language** is limited to:
+Site **display language** uses static JSON files in `src/lib/i18n/locales/{code}.json` (not runtime translation).
 
-| Code | Region | UI + translation target |
-|------|--------|---------------------------|
-| `ko` | Korea | Korean |
-| `en` | United States | American English |
-| `ja` | Japan | Japanese |
-| `zh` | China | Simplified Chinese |
-
-Defined in `src/lib/i18n/config.ts` (`LOCALES`). Do not add locales without product approval.
+- Defined in `src/lib/i18n/config.ts` (`LOCALES`) — includes **Greek (`el`)**, French, German, Spanish, Arabic, Hindi, etc.
+- Regenerate: `npm run i18n:generate` (from `en.json` source)
+- Fallback chain: chosen locale → `en` → `ko` → key
 
 ## Countries (worldwide)
 
-- **Country** is independent of language: any ISO code in `COUNTRY_REGIONS` (`src/lib/i18n/countries.ts`).
+- **Country** is independent of language: any ISO code in `COUNTRY_REGIONS`.
 - Used for profile flag / region display, not for UI strings.
-- Country names follow UI locale: ko/en from static list; ja/zh via `Intl.DisplayNames`.
 
 ## What gets localized
 
 | Content | Localized? |
 |---------|------------|
-| App chrome (nav, buttons, settings, errors) | Yes — `t()` / `messages.ts` |
+| App chrome (nav, buttons, settings, errors) | Yes — `t()` / locale JSON |
 | Server-rendered UI | Yes — `getServerTranslator()` |
 | Other users' posts, comments, DMs | **No** — original language |
 | Post "View translation" | Yes — target = viewer's `getRequestLocale()` |
 
-## Translation API
-
-- `POST /api/translate` uses **`getRequestLocale()`** as target (not client-supplied locale).
-- `translatePostContent` maps locale → natural language in `content-translate.ts`.
-
 ## Adding UI strings
 
-1. Add key to `MessageKey` and all four tables in `messages.ts` (ko, en, ja, zh).
+1. Add key to `en.json` and `ko.json` (and run `npm run i18n:generate` for other locales).
 2. Use `t("key")` in components — never hardcode Korean/English for feature UI.
 3. User-generated text stays as-is; optional `TranslatableText` for reader translation.
 
+## Mobile
+
+- Loads same catalog via `GET /api/i18n/messages?locale=`
+- `I18nProvider` + `useI18n()` in `apps/mobile`
+
 ## Settings UX
 
-- Language select: `LOCALES` only (4 options).
+- Language select: searchable list of all `LOCALES`.
 - Country select: `CountrySelect` with full worldwide list.

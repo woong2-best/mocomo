@@ -9,7 +9,11 @@ import {
   stripeCheckoutReturnUrls,
   type CheckoutPlatform,
 } from "@/lib/stripe-checkout-service";
-import { computeMarketplaceFees } from "@/lib/marketplace/constants";
+import {
+  computeFeesForCheckoutMode,
+  resolveCheckoutRouting,
+} from "@/lib/marketplace/payment-routing";
+import { buildStripeConnectSplitParams } from "@/lib/marketplace/stripe-connect-split";
 import {
   getCarrierById,
   listingShipsToCountry,
@@ -35,6 +39,9 @@ import {
 } from "@/lib/stripe-payment-methods";
 import { assertOfacPaymentRequestAllowed } from "@/lib/compliance/ofac-payment-guard-server";
 import { isOfacSanctionedCountry, OFAC_REGION_UNAVAILABLE_MESSAGE } from "@/lib/compliance/ofac-sanctioned-countries";
+import { headers } from "next/headers";
+import { getRequestCountryFromHeaders } from "@/lib/compliance/request-country";
+import { assertShipmentTrackingForSeller } from "@/lib/marketplace/refund-policy";
 
 /** How long an unpaid order stays reusable for the same buyer + listing. */
 const ORDER_REUSE_WINDOW_MS = 60 * 60 * 1000;
@@ -78,10 +85,23 @@ type MarketplaceInitResult = {
 };
 
 async function initMarketplacePurchase(
-  buyer: { id: string },
+  buyer: { id: string; countryCode?: string | null },
   input: MarketplaceCheckoutInput
 ): Promise<{ error: string } | MarketplaceInitResult> {
   const quantity = Math.max(1, Math.floor(input.quantity ?? 1));
+
+  const hdrs = await headers();
+  const routing = resolveCheckoutRouting({
+    userCountryCode: buyer.countryCode,
+    shipCountry: input.shipCountry,
+    geoCountry: getRequestCountryFromHeaders(hdrs),
+  });
+
+  if (routing.mode === "BLOCKED") {
+    return {
+      error: routing.blockedReason ?? "마켓플레이스는 Stripe 지원 국가에서만 이용할 수 있습니다.",
+    };
+  }
 
   const ofacBlock = await assertOfacPaymentRequestAllowed(buyer.id, {
     shipCountry: input.shipCountry,
@@ -156,8 +176,12 @@ async function initMarketplacePurchase(
     listing.type === "DIGITAL" || listing.shippingFeeType === "FREE"
       ? 0
       : listing.shippingFeeFixed;
-  const fees = computeMarketplaceFees(subtotal, shippingAmount);
+  const fees = computeFeesForCheckoutMode("STRIPE", subtotal, shippingAmount);
   const totalAmount = fees.totalAmount;
+
+  if (!listing.seller.stripeConnectAccountId) {
+    return { error: "판매자 Stripe Connect 온보딩이 완료되지 않았습니다." };
+  }
 
   const shippingFields = {
     shipName: input.shipName?.trim() || null,
@@ -219,6 +243,8 @@ async function initMarketplacePurchase(
       sellerId: listing.sellerId,
       sellerProfileId: listing.sellerProfileId ?? listing.sellerProfile?.id,
       status: "AWAITING_PAYMENT",
+      checkoutMode: "STRIPE",
+      buyerCountryCode: routing.buyerCountry.countryCode,
       subtotalAmount: subtotal,
       shippingAmount,
       platformFeeAmount: fees.platformFeeAmount,
@@ -311,6 +337,15 @@ async function createMarketplaceCheckoutSession(
 
   const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);
 
+  const platformFeeAmount = Math.floor((init.unitAmount * init.quantity * 1000) / 10_000);
+  const connectSplit = buildStripeConnectSplitParams({
+    checkoutMode: "STRIPE",
+    sellerConnectAccountId: init.listing.seller.stripeConnectAccountId,
+    platformFeeAmount,
+    totalAmount: init.totalAmount,
+    transferGroup: init.order.id,
+  });
+
   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
     mode: "payment",
     customer: customerId,
@@ -357,7 +392,7 @@ async function createMarketplaceCheckoutSession(
         init.listing.id,
         init.listing.sellerId
       ),
-      transfer_group: init.order.id,
+      ...connectSplit,
     },
     success_url: successUrl,
     cancel_url: cancelUrl,
@@ -380,7 +415,7 @@ async function createMarketplaceCheckoutSession(
 
 /** Saved-card sheet: create order + Stripe PaymentIntent with wallet customer */
 export async function prepareMarketplacePaymentForBuyer(
-  buyer: { id: string; email?: string | null },
+  buyer: { id: string; email?: string | null; countryCode?: string | null },
   input: MarketplaceCheckoutInput,
   _platform: CheckoutPlatform = "web"
 ) {
@@ -400,6 +435,15 @@ export async function prepareMarketplacePaymentForBuyer(
   const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);
   const stripe = getStripe();
 
+  const platformFeeAmount = Math.floor((init.unitAmount * init.quantity * 1000) / 10_000);
+  const connectSplit = buildStripeConnectSplitParams({
+    checkoutMode: "STRIPE",
+    sellerConnectAccountId: init.listing.seller.stripeConnectAccountId,
+    platformFeeAmount,
+    totalAmount: init.totalAmount,
+    transferGroup: init.order.id,
+  });
+
   const pi = await stripe.paymentIntents.create({
     amount: init.totalAmount,
     currency: init.currency,
@@ -412,8 +456,8 @@ export async function prepareMarketplacePaymentForBuyer(
       init.listing.id,
       init.listing.sellerId
     ),
-    transfer_group: init.order.id,
     automatic_payment_methods: { enabled: true },
+    ...connectSplit,
   });
 
   await db.paymentIntent.update({
@@ -646,6 +690,14 @@ export async function sellerUpdateShipment(input: {
     return { error: "송장번호를 입력해 주세요." };
   }
 
+  if (status === "SHIPPED" || status === "IN_TRANSIT" || status === "IN_CUSTOMS") {
+    const trackingCheck = assertShipmentTrackingForSeller({
+      trackingNumber,
+      carrierCode: input.carrierCode,
+    });
+    if ("error" in trackingCheck) return trackingCheck;
+  }
+
   const carrierMeta = input.carrierCode ? getCarrierById(input.carrierCode) : undefined;
   const carrierLabel = carrierMeta?.label ?? input.carrier?.trim() ?? null;
   const carrierCode = carrierMeta?.id ?? input.carrierCode?.trim() ?? null;
@@ -833,9 +885,16 @@ export async function confirmMarketplaceOrder(orderId: string) {
   return { success: true };
 }
 
-export async function requestMarketplaceRefund(orderId: string, reason: string) {
+export async function requestMarketplaceRefund(
+  orderId: string,
+  reason: string,
+  amountOverride?: number
+) {
   const user = await requireAuth();
-  const order = await db.marketplaceOrder.findUnique({ where: { id: orderId } });
+  const order = await db.marketplaceOrder.findUnique({
+    where: { id: orderId },
+    include: { shipment: true },
+  });
   if (!order || order.buyerId !== user.id) return { error: "권한이 없습니다." };
   if (["CANCELLED", "REFUNDED", "CONFIRMED"].includes(order.status)) {
     return { error: "환불을 요청할 수 없는 상태입니다." };
@@ -843,12 +902,16 @@ export async function requestMarketplaceRefund(orderId: string, reason: string) 
   const text = reason.trim();
   if (!text) return { error: "환불 사유를 입력해 주세요." };
 
+  const refundAmount =
+    amountOverride ??
+    order.subtotalAmount + order.shippingAmount;
+
   await db.marketplaceRefund.create({
     data: {
       orderId,
       requesterId: user.id,
       reason: text,
-      amount: order.subtotalAmount + order.shippingAmount,
+      amount: refundAmount,
       status: "REQUESTED",
     },
   });

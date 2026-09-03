@@ -1,12 +1,20 @@
 import type { Locale } from "@/lib/i18n/config";
 
 /** UI 언어별 원문 언어 표기 (트위터 "원문 언어 영어" 스타일) */
-export const SOURCE_LANGUAGE_LABELS: Record<Locale, Record<Locale, string>> = {
+const SOURCE_LANGUAGE_LABELS: Partial<Record<Locale, Partial<Record<Locale, string>>>> = {
   ko: { ko: "한국어", en: "영어", ja: "일본어", zh: "중국어" },
   en: { ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese" },
   ja: { ko: "韓国語", en: "英語", ja: "日本語", zh: "中国語" },
   zh: { ko: "韩语", en: "英语", ja: "日语", zh: "中文" },
 };
+
+function displayLanguageName(code: string, uiLocale: Locale): string {
+  try {
+    return new Intl.DisplayNames([uiLocale], { type: "language" }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
 
 function stripNoise(text: string): string {
   return text
@@ -49,5 +57,10 @@ export function needsTranslation(text: string, userLocale: Locale): boolean {
 }
 
 export function sourceLanguageLabel(source: Locale, uiLocale: Locale): string {
-  return SOURCE_LANGUAGE_LABELS[uiLocale][source] ?? SOURCE_LANGUAGE_LABELS.en[source];
+  const table = SOURCE_LANGUAGE_LABELS[uiLocale] ?? SOURCE_LANGUAGE_LABELS.en;
+  return (
+    table?.[source] ??
+    SOURCE_LANGUAGE_LABELS.en?.[source] ??
+    displayLanguageName(source, uiLocale)
+  );
 }

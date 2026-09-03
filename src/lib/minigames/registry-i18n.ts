@@ -8,14 +8,14 @@ import {
 
 type GameText = { name: string; description: string };
 
-const CATEGORY_LABELS: Record<Locale, Record<MinigameCategory, string>> = {
+const CATEGORY_LABELS: Partial<Record<Locale, Record<MinigameCategory, string>>> = {
   ko: { board: "보드게임", word: "단어 게임", puzzle: "퍼즐", casual: "캐주얼" },
   en: { board: "Board", word: "Word", puzzle: "Puzzle", casual: "Casual" },
   ja: { board: "ボード", word: "言葉", puzzle: "パズル", casual: "カジュアル" },
   zh: { board: "桌游", word: "文字", puzzle: "益智", casual: "休闲" },
 };
 
-const GAME_TEXT: Record<string, Record<Locale, GameText>> = {
+const GAME_TEXT: Record<string, Partial<Record<Locale, GameText>>> = {
   "sketch-quiz": {
     ko: { name: "스케치퀴즈", description: "그림으로 맞히는 캐치마인드 · 친구 방 / 랜덤 매칭" },
     en: { name: "Sketch Quiz", description: "Draw & guess · friend rooms / random match" },
@@ -146,11 +146,12 @@ function localeSort(locale: Locale): string {
 }
 
 export function getLocalizedCategoryLabel(category: MinigameCategory, locale: Locale): string {
-  return (CATEGORY_LABELS[locale] ?? CATEGORY_LABELS.en)[category];
+  return (CATEGORY_LABELS[locale] ?? CATEGORY_LABELS.en)?.[category] ?? category;
 }
 
 export function localizeMinigame(game: MinigameCatalogItem, locale: Locale): MinigameCatalogItem {
-  const text = GAME_TEXT[game.id]?.[locale] ?? GAME_TEXT[game.id]?.ko;
+  const text =
+    GAME_TEXT[game.id]?.[locale] ?? GAME_TEXT[game.id]?.en ?? GAME_TEXT[game.id]?.ko;
   if (!text) return game;
   return { ...game, name: text.name, description: text.description };
 }

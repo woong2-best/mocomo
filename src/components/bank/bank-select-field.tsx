@@ -30,7 +30,7 @@ export function BankSelectField({
   value: string;
   onChange: (code: string) => void;
   disabled?: boolean;
-  locale?: "ko" | "en" | "ja" | "zh";
+  locale?: import("@/lib/i18n/config").Locale;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");

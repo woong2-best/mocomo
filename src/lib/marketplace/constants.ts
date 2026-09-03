@@ -1,6 +1,9 @@
 import type { MarketplaceListingType } from "@prisma/client";
 
-/** 플랫폼 수수료 — 10% (1000 bps) */
+/** 판매자 입점비 — Stripe 미지원 국가(KR 등) 1회 $40 */
+export const VENDOR_ONBOARDING_FEE_USD_CENTS = 4_000;
+
+/** 플랫폼 수수료 — 10% (1000 bps) — Stripe 지원 국가 거래만 */
 export const MARKETPLACE_PLATFORM_FEE_BPS = 1000;
 
 export const MARKETPLACE_LISTING_TYPES: {

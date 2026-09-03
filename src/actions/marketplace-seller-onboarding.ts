@@ -16,6 +16,12 @@ import {
 import { type SellerOnboardingStepId } from "@/lib/marketplace/seller-onboarding";
 import { normalizeSellerCountry } from "@/lib/marketplace/seller-region-policy";
 import {
+  isStripeMarketCountry,
+  MARKET_UNAVAILABLE_KO,
+} from "@/lib/marketplace/market-access";
+import { isLocale } from "@/lib/i18n/config";
+import {
+  isSellerSettlementReady,
   isSellerStripeConnectReady,
   resolveSellerOnboardingStep,
   sellerOnboardingUserSelect,
@@ -39,8 +45,8 @@ const accountSchema = z.object({
   passwordConfirm: z.string().min(8),
   name: z.string().min(1).max(80),
   email: z.string().email(),
-  sellingMarket: z.string().min(2).max(8).default("KR"),
-  locale: z.enum(["ko", "en", "ja", "zh"]).default("ko"),
+  sellingMarket: z.string().min(2).max(8).default("US"),
+  locale: z.string().refine((v) => isLocale(v), "Invalid locale").default("ko"),
   timeZone: z.string().min(1).max(64).optional(),
   turnstileToken: z.string().optional(),
   turnstileUnavailable: z.boolean().optional(),
@@ -60,6 +66,10 @@ const sellerInfoSchema = z.object({
   sellerType: z.enum(["INDIVIDUAL", "BUSINESS"]),
   displayName: z.string().min(1).max(80),
   bio: z.string().max(2000).optional(),
+  /** 사업자등록번호(법인) 또는 개인 판매자 식별번호 */
+  businessRegNo: z.string().min(1).max(32),
+  businessName: z.string().min(1).max(120).optional(),
+  businessRepresentativeName: z.string().min(1).max(80).optional(),
 });
 
 async function getSessionUserId() {
@@ -80,7 +90,7 @@ function buildOnboardingStateFromUser(
     profile,
   });
 
-  const stripeReady = isSellerStripeConnectReady(profile);
+  const stripeReady = isSellerSettlementReady(profile);
   const stripeStatus = profile?.stripeConnectOnboardingStatus ?? "NOT_STARTED";
   const requirementsDue = !!profile?.stripeConnectRequirementsDue;
 
@@ -123,6 +133,7 @@ function buildOnboardingStateFromUser(
           stripeConnectOnboardingStatus: profile.stripeConnectOnboardingStatus,
         }
       : null,
+    marketEligible: isStripeMarketCountry(country),
   };
 }
 
@@ -182,6 +193,9 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
   }
 
   const sellingMarket = normalizeSellerCountry(data.sellingMarket);
+  if (!isStripeMarketCountry(sellingMarket)) {
+    return { error: MARKET_UNAVAILABLE_KO };
+  }
 
   const existingSession = await getSessionUserId();
   if (existingSession) {
@@ -214,6 +228,7 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
       userId: result.userId,
       displayName: data.name.trim().slice(0, 80),
       sellingMarket,
+      isStripeSupported: true,
       onboardingStep: "EMAIL",
       status: "PENDING",
       canList: false,
@@ -221,6 +236,7 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
     update: {
       displayName: data.name.trim().slice(0, 80),
       sellingMarket,
+      isStripeSupported: true,
       onboardingStep: "EMAIL",
       status: "PENDING",
       canList: false,
@@ -329,6 +345,11 @@ export async function resendSellerEmailCode(email: string) {
   return sendEmailAuthCode(email, "signup", undefined, true);
 }
 
+/** @deprecated Stripe-only marketplace */
+export async function saveDirectTradeSellerAccount(_input: unknown) {
+  return { error: MARKET_UNAVAILABLE_KO };
+}
+
 /** @deprecated Stripe Connect 온보딩으로 대체 */
 export async function advanceSellerPhoneStep(_phoneCountryCode: string) {
   return { success: true as const, nextStep: "SELLER_INFO" as const };
@@ -348,6 +369,10 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
   const country = normalizeSellerCountry(
     dbUser?.marketplaceSeller?.sellingMarket || dbUser?.countryCode
   );
+  if (!isStripeMarketCountry(country)) {
+    return { error: MARKET_UNAVAILABLE_KO };
+  }
+
   const nextStep: MarketplaceSellerOnboardingStep = "SETTLEMENT";
 
   await db.marketplaceSellerProfile.upsert({
@@ -357,15 +382,27 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
       displayName,
       bio: data.bio?.trim().slice(0, 2000) || null,
       sellerType: data.sellerType as MarketplaceSellerType,
+      businessRegNo: data.businessRegNo.trim(),
+      businessName: data.businessName?.trim() || displayName,
+      businessRepresentativeName:
+        data.businessRepresentativeName?.trim() ||
+        (data.sellerType === "INDIVIDUAL" ? displayName : null),
       status: "PENDING",
       canList: false,
       sellingMarket: country,
+      isStripeSupported: true,
       onboardingStep: nextStep,
     },
     update: {
       displayName,
       bio: data.bio?.trim().slice(0, 2000) || null,
       sellerType: data.sellerType as MarketplaceSellerType,
+      businessRegNo: data.businessRegNo.trim(),
+      businessName: data.businessName?.trim() || displayName,
+      businessRepresentativeName:
+        data.businessRepresentativeName?.trim() ||
+        (data.sellerType === "INDIVIDUAL" ? displayName : null),
+      isStripeSupported: true,
       onboardingStep: nextStep,
     },
   });
@@ -483,6 +520,14 @@ export async function completeSellerOnboarding() {
 
     const refreshed = await loadOnboardingUser(user.id);
     const profile = refreshed?.marketplaceSeller ?? null;
+
+    const country = normalizeSellerCountry(
+      profile?.sellingMarket || refreshed?.countryCode
+    );
+
+    if (!isStripeMarketCountry(country)) {
+      return { error: MARKET_UNAVAILABLE_KO };
+    }
     if (!isSellerStripeConnectReady(profile)) {
       return { error: "Stripe 본인 확인 및 정산 계좌 등록을 완료해 주세요." };
     }

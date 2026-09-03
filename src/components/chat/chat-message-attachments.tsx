@@ -5,7 +5,56 @@ import type { ChatAttachmentView } from "@/lib/chat-attachments";
 import { ChatVoiceMessage } from "@/components/chat/chat-voice-message";
 import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
 import { PurchaseMessageMediaButton } from "@/components/chat/purchase-message-media-button";
+import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import { cn } from "@/lib/utils";
+
+/**
+ * The forensic canvas refuses to embed below MIN_FORENSIC_VERIFY_LONG_EDGE
+ * (320 CSS px) because smaller frames cannot recover enough quadrant bits.
+ * Paid DM media therefore gets a fixed portrait card instead of the ordinary
+ * thumbnail box, so the long edge is always above the floor regardless of
+ * viewport width.
+ */
+const PAID_TILE_CLASS = "h-[380px] w-[min(280px,72vw)]";
+
+function isPaid(attachment: ChatAttachmentView) {
+  return (attachment.priceKrw ?? 0) > 0;
+}
+
+function isLockedAttachment(attachment: ChatAttachmentView) {
+  return Boolean(attachment.locked) || (!attachment.url && isPaid(attachment));
+}
+
+function LockedTile({
+  attachment,
+  isMine,
+  sellerUsername,
+  onPurchaseSuccess,
+}: {
+  attachment: ChatAttachmentView;
+  isMine: boolean;
+  sellerUsername?: string;
+  onPurchaseSuccess?: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative block overflow-hidden border border-border/40 bg-muted",
+        PAID_TILE_CLASS,
+        isMine ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md"
+      )}
+    >
+      <LockedMediaPaywallOverlay>
+        <PurchaseMessageMediaButton
+          attachmentId={attachment.id}
+          priceKrw={attachment.priceKrw ?? 0}
+          sellerUsername={sellerUsername}
+          onPurchaseSuccess={onPurchaseSuccess}
+        />
+      </LockedMediaPaywallOverlay>
+    </div>
+  );
+}
 
 function ChatImage({
   attachment,
@@ -21,24 +70,37 @@ function ChatImage({
   onPurchaseSuccess?: () => void;
 }) {
   const [failed, setFailed] = useState(false);
-  const locked = attachment.locked || (!attachment.url && (attachment.priceKrw ?? 0) > 0);
 
-  if (locked) {
+  if (isLockedAttachment(attachment)) {
     return (
-      <div
-        className={cn(
-          "relative block overflow-hidden border border-border/40 bg-muted max-w-[min(280px,72vw)] min-h-[180px]",
-          isMine ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md"
-        )}
-      >
-        <LockedMediaPaywallOverlay>
-          <PurchaseMessageMediaButton
-            attachmentId={attachment.id}
-            priceKrw={attachment.priceKrw ?? 0}
-            sellerUsername={sellerUsername}
-            onPurchaseSuccess={onPurchaseSuccess}
-          />
-        </LockedMediaPaywallOverlay>
+      <LockedTile
+        attachment={attachment}
+        isMine={isMine}
+        sellerUsername={sellerUsername}
+        onPurchaseSuccess={onPurchaseSuccess}
+      />
+    );
+  }
+
+  const radius = isMine ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md";
+
+  // Purchased fan-art renders through the forensic canvas so every displayed
+  // pixel carries this buyer's invisible session payload. No raw <img>, and no
+  // "open in new tab" escape hatch.
+  if (isPaid(attachment)) {
+    return (
+      <div className={cn("overflow-hidden border border-border/40 bg-black", PAID_TILE_CLASS, radius)}>
+        <ProtectedPaidMedia
+          type="IMAGE"
+          src={attachment.url}
+          mediaId={attachment.id}
+          mediaPriceKrw={attachment.priceKrw ?? 0}
+          contentKind="MESSAGE_ATTACHMENT"
+          skipForensic={isMine}
+          alt={alt}
+          className="h-full w-full object-cover"
+          objectFit="cover"
+        />
       </div>
     );
   }
@@ -69,10 +131,7 @@ function ChatImage({
       href={attachment.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn(
-        "block overflow-hidden border border-border/40 bg-black/5 max-w-[min(280px,72vw)]",
-        isMine ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md"
-      )}
+      className={cn("block overflow-hidden border border-border/40 bg-black/5 max-w-[min(280px,72vw)]", radius)}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -82,6 +141,67 @@ function ChatImage({
         onError={() => setFailed(true)}
       />
     </a>
+  );
+}
+
+function ChatVideo({
+  attachment,
+  isMine,
+  sellerUsername,
+  onPurchaseSuccess,
+}: {
+  attachment: ChatAttachmentView;
+  isMine: boolean;
+  sellerUsername?: string;
+  onPurchaseSuccess?: () => void;
+}) {
+  if (isLockedAttachment(attachment)) {
+    return (
+      <LockedTile
+        attachment={attachment}
+        isMine={isMine}
+        sellerUsername={sellerUsername}
+        onPurchaseSuccess={onPurchaseSuccess}
+      />
+    );
+  }
+
+  const radius = isMine ? "rounded-br-md" : "rounded-bl-md";
+
+  if (isPaid(attachment)) {
+    return (
+      <div
+        className={cn(
+          "relative overflow-hidden rounded-2xl border border-border/40 bg-black",
+          PAID_TILE_CLASS,
+          radius
+        )}
+      >
+        <ProtectedPaidMedia
+          type="VIDEO"
+          src={attachment.url}
+          mediaId={attachment.id}
+          mediaPriceKrw={attachment.priceKrw ?? 0}
+          contentKind="MESSAGE_ATTACHMENT"
+          skipForensic={isMine}
+          className="h-full w-full object-cover"
+          objectFit="cover"
+          controls
+          muted={false}
+          autoPlayOnView={false}
+          preload="metadata"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <video
+      src={attachment.url}
+      controls
+      playsInline
+      className={cn("max-w-[min(280px,72vw)] rounded-2xl border border-border/40", radius)}
+    />
   );
 }
 
@@ -127,41 +247,15 @@ export function ChatMessageAttachments({
         </div>
       )}
 
-      {videos.map((a) => {
-        const locked = a.locked || (!a.url && (a.priceKrw ?? 0) > 0);
-        if (locked) {
-          return (
-            <div
-              key={a.id}
-              className={cn(
-                "relative max-w-[min(280px,72vw)] min-h-[180px] rounded-2xl border border-border/40 bg-muted overflow-hidden",
-                isMine ? "rounded-br-md" : "rounded-bl-md"
-              )}
-            >
-              <LockedMediaPaywallOverlay>
-                <PurchaseMessageMediaButton
-                  attachmentId={a.id}
-                  priceKrw={a.priceKrw ?? 0}
-                  sellerUsername={sellerUsername}
-                  onPurchaseSuccess={onPurchaseSuccess}
-                />
-              </LockedMediaPaywallOverlay>
-            </div>
-          );
-        }
-        return (
-          <video
-            key={a.id}
-            src={a.url}
-            controls
-            playsInline
-            className={cn(
-              "max-w-[min(280px,72vw)] rounded-2xl border border-border/40",
-              isMine ? "rounded-br-md" : "rounded-bl-md"
-            )}
-          />
-        );
-      })}
+      {videos.map((a) => (
+        <ChatVideo
+          key={a.id}
+          attachment={a}
+          isMine={isMine}
+          sellerUsername={sellerUsername}
+          onPurchaseSuccess={onPurchaseSuccess}
+        />
+      ))}
     </div>
   );
 }

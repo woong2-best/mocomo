@@ -111,12 +111,14 @@ export function tipToChatMessage(tip: {
   amount: number;
   message: string | null;
   at: number;
+  image?: string | null;
 }): LiveChatMessage {
+  const msg = tip.message?.trim() ?? "";
   return {
     id: `tip-${tip.id}`,
     userId: "system",
     username: tip.username,
-    content: formatSupportChatContent({
+    content: msg || formatSupportChatContent({
       kind: "tip",
       username: tip.username,
       amount: tip.amount,
@@ -125,6 +127,8 @@ export function tipToChatMessage(tip: {
     at: tip.at,
     messageKind: "tip",
     supportAmount: tip.amount,
+    tipMessage: msg || undefined,
+    image: tip.image,
   };
 }
 

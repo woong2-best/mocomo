@@ -24,10 +24,24 @@ import { MocoPayOption } from "@/components/payments/moco-pay-option";
 import { CreditCard, Loader2, Plus } from "lucide-react";
 import { StripeOverseasPaymentNotice } from "@/components/payments/stripe-overseas-payment-notice";
 
+type PreparedCheckout = {
+  orderId: string;
+  marketplaceOrderId?: string;
+  clientSecret?: string | null;
+  publishableKey?: string;
+  methods?: SavedPaymentMethod[];
+  amount: number;
+  orderName: string;
+  mocoBalance?: number;
+  mocoRequired?: number;
+  canPayWithMoco?: boolean;
+};
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   checkoutInput: MarketplaceCheckoutInput | null;
+  prepared?: PreparedCheckout | null;
   onSuccess?: (result: { marketplaceOrderId?: string; redirectPath?: string }) => void;
 };
 
@@ -35,6 +49,7 @@ export function MarketplaceCheckoutSheet({
   open,
   onOpenChange,
   checkoutInput,
+  prepared = null,
   onSuccess,
 }: Props) {
   const [methods, setMethods] = useState<SavedPaymentMethod[]>([]);
@@ -51,7 +66,26 @@ export function MarketplaceCheckoutSheet({
   const [mocoRequired, setMocoRequired] = useState(0);
 
   useEffect(() => {
-    if (!open || !checkoutInput) return;
+    if (!open) return;
+    if (prepared) {
+      setError("");
+      setOrderId(prepared.orderId);
+      setMarketplaceOrderId(prepared.marketplaceOrderId ?? null);
+      setAmount(prepared.amount);
+      setOrderName(prepared.orderName);
+      setMethods(prepared.methods ?? []);
+      const defaultPm =
+        (prepared.methods ?? []).find((m) => m.isDefault) ?? (prepared.methods ?? [])[0];
+      setSelectedId(defaultPm?.id ?? null);
+      if (prepared.publishableKey) {
+        setStripePromise(loadStripe(prepared.publishableKey));
+      }
+      setMocoBalance(prepared.mocoBalance ?? 0);
+      setMocoRequired(prepared.mocoRequired ?? 0);
+      setLoading(false);
+      return;
+    }
+    if (!checkoutInput) return;
     setError("");
     setLoading(true);
     void prepareMarketplacePayment(checkoutInput)
@@ -77,7 +111,7 @@ export function MarketplaceCheckoutSheet({
         setMocoRequired("mocoRequired" in res ? (res.mocoRequired ?? 0) : 0);
       })
       .finally(() => setLoading(false));
-  }, [open, checkoutInput]);
+  }, [open, checkoutInput, prepared]);
 
   const handle3ds = useCallback(
     async (secret: string, oid: string) => {

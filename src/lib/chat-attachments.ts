@@ -21,6 +21,11 @@ export type ChatAttachmentView = {
 
 const ALLOWED: MessageAttachmentType[] = ["IMAGE", "VIDEO", "AUDIO", "GIF", "STICKER", "FILE"];
 
+/** Paid DM media the forensic watermark pipeline can carry. */
+export function isForensicMessageAttachmentType(type: MessageAttachmentType): boolean {
+  return type === "IMAGE" || type === "VIDEO";
+}
+
 export function parseChatAttachmentType(raw: string): MessageAttachmentType | null {
   const u = raw.toUpperCase();
   return ALLOWED.includes(u as MessageAttachmentType) ? (u as MessageAttachmentType) : null;
@@ -61,6 +66,8 @@ export function sanitizeChatAttachments(
     const priceRaw = typeof o.priceKrw === "number" ? o.priceKrw : 0;
     const priceKrw = Math.max(0, Math.round(priceRaw));
     if (priceKrw > 0) {
+      // Only types the forensic watermark pipeline can carry may be sold.
+      if (!isForensicMessageAttachmentType(type)) continue;
       const err = validateSaleMediaPricing(priceKrw);
       if (err) continue;
     }

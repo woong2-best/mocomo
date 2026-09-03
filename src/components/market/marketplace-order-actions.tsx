@@ -13,6 +13,7 @@ import {
   submitMarketplaceDisputeEvidence,
   submitMarketplaceReview,
 } from "@/actions/marketplace-checkout";
+import { confirmDirectTradePayment } from "@/actions/marketplace-direct-checkout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCarriersForShipment } from "@/lib/marketplace/shipping-config";
@@ -232,11 +233,27 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
       {order.isBuyer && (
         <section className="rounded-xl border border-border/60 p-3 space-y-2">
           <p className="text-sm font-semibold">구매자 액션</p>
-          <p className="text-[11px] text-muted-foreground">
-            결제금은 구매 확정(또는 자동 확정) 전까지 에스크로로 보호됩니다. 정산 상태:{" "}
-            {order.settlementStatus}
-          </p>
+          {order.checkoutMode === "DIRECT_TRADE" ? (
+            <p className="text-[11px] text-muted-foreground">
+              무통장 직거래 주문입니다. 입금 후 아래 버튼으로 송금 완료를 표시해 주세요.
+            </p>
+          ) : (
+            <p className="text-[11px] text-muted-foreground">
+              결제금은 구매 확정(또는 자동 확정) 전까지 에스크로로 보호됩니다. 정산 상태:{" "}
+              {order.settlementStatus}
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
+            {order.checkoutMode === "DIRECT_TRADE" && order.status === "AWAITING_PAYMENT" && (
+              <Button
+                type="button"
+                size="sm"
+                disabled={pending}
+                onClick={() => run(() => confirmDirectTradePayment(order.id))}
+              >
+                송금 완료 표시
+              </Button>
+            )}
             {(order.status === "DELIVERED" || order.status === "SHIPPED") && (
               <Button
                 type="button"

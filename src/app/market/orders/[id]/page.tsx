@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getMarketplaceOrderDetail } from "@/actions/marketplace-checkout";
 import { MarketplaceOrderActions } from "@/components/market/marketplace-order-actions";
+import { DirectTradeOrderCard } from "@/components/market/direct-trade-order-card";
+import type { DirectTradeSnapshot } from "@/lib/marketplace/payment-routing";
 import { shipCountryLabel } from "@/lib/marketplace/shipping-config";
 import Link from "next/link";
 import { formatUsd } from "@/lib/money";
@@ -80,6 +82,13 @@ export default async function MarketOrderDetailPage({
         ))}
       </div>
 
+      {order.checkoutMode === "DIRECT_TRADE" && (
+        <DirectTradeOrderCard
+          snapshot={order.directTradeSnapshot as DirectTradeSnapshot | null}
+          status={order.status}
+        />
+      )}
+
       <ul className="space-y-2 text-sm">
         {order.items.map((item) => (
           <li key={item.id} className="rounded-xl border border-border/60 p-3">
@@ -121,6 +130,7 @@ export default async function MarketOrderDetailPage({
         </div>
       )}
 
+      {order.checkoutMode !== "DIRECT_TRADE" && (
       <div className="rounded-xl border border-border/60 p-3 text-sm space-y-1">
         <p className="font-semibold">에스크로 · 정산</p>
         <p>
@@ -135,6 +145,7 @@ export default async function MarketOrderDetailPage({
           구매 확정(또는 자동 확정) 이후에만 판매자에게 정산됩니다. 정산 완료 전 출금 불가.
         </p>
       </div>
+      )}
 
       {(order.shipName || order.shipAddress1) && (
         <div className="rounded-xl border border-border/60 p-3 text-sm space-y-1">

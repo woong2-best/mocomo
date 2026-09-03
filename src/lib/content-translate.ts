@@ -1,14 +1,8 @@
 import { unstable_cache } from "next/cache";
 import type { Locale } from "@/lib/i18n/config";
+import { targetLanguageForLocale } from "@/lib/i18n/target-language";
 
 const MAX_CHARS = 2000;
-
-const TARGET_LANGUAGE: Record<Locale, string> = {
-  ko: "Korean",
-  en: "American English",
-  ja: "Japanese",
-  zh: "Simplified Chinese",
-};
 
 function geminiKey() {
   return (
@@ -23,7 +17,7 @@ function openaiKey() {
 }
 
 function buildPrompt(text: string, targetLocale: Locale): string {
-  const target = TARGET_LANGUAGE[targetLocale];
+  const target = targetLanguageForLocale(targetLocale);
   return `Translate this social media post to natural ${target}. Keep hashtags (#word), @mentions, URLs, and line breaks exactly as in the original. Return ONLY the translated text with no quotes or explanation.
 
 ${text}`;

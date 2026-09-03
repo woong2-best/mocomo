@@ -17,8 +17,10 @@ export function ChatMessageReplyQuote({
 }) {
   const isReplyToSelf = replyTo.sender.id === selfUserId;
   const preview = getChatMessageReplyPreview(replyTo);
+  // Paid media never renders outside the forensic canvas, not even as a
+  // reply thumbnail.
   const thumb = replyTo.attachments?.find(
-    (a) => a.type === "IMAGE" || a.type === "GIF"
+    (a) => (a.type === "IMAGE" || a.type === "GIF") && !(a.priceKrw ?? 0) && Boolean(a.url)
   );
 
   return (

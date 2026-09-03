@@ -28,25 +28,28 @@ function UsedTabScreen() {
   return <MarketplaceListScreen mode="tab" />;
 }
 
+import { useI18n } from "@/i18n/I18nProvider";
+
 function MainTabs() {
+  const { t } = useI18n();
   return (
     <Tab.Navigator
       tabBar={(props) => <FloatingGlassTabBar {...props} />}
       screenOptions={{ headerShown: false, lazy: true, freezeOnBlur: true }}
     >
-      <Tab.Screen name="Home" component={FeedScreen} options={{ title: "홈" }} />
+      <Tab.Screen name="Home" component={FeedScreen} options={{ title: t("nav.home") }} />
       <Tab.Screen
         name="Market"
         getComponent={() => require("@/features/market/MarketScreen").MarketScreen}
-        options={{ title: "마켓" }}
+        options={{ title: t("nav.market") }}
       />
-      <Tab.Screen name="Used" getComponent={() => UsedTabScreen} options={{ title: "중고" }} />
+      <Tab.Screen name="Used" getComponent={() => UsedTabScreen} options={{ title: t("nav.used") }} />
       <Tab.Screen
         name="Messages"
         getComponent={() =>
           require("@/features/messages/MessagesInboxScreen").MessagesInboxScreen
         }
-        options={{ title: "메세지" }}
+        options={{ title: t("nav.messages") }}
       />
     </Tab.Navigator>
   );

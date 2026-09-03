@@ -1,5 +1,7 @@
 import type { MarketplaceSellerProfile } from "@prisma/client";
 import type { SellerOnboardingStepId } from "@/lib/marketplace/seller-onboarding";
+import { isStripeMarketCountry } from "@/lib/marketplace/market-access";
+import { normalizeSellerCountry } from "@/lib/marketplace/seller-region-policy";
 
 export type SellerStripeConnectFields = Pick<
   MarketplaceSellerProfile,
@@ -12,14 +14,28 @@ export type SellerStripeConnectFields = Pick<
   | "agreedPrivacyAt"
   | "agreedAgeAt"
   | "sellerType"
+  | "sellingMarket"
+  | "businessRegNo"
 >;
 
-/** Stripe Connect 기반 온보딩 단계 결정 */
+/** Stripe Connect 정산 준비 완료 */
+export function isSellerSettlementReady(profile: SellerStripeConnectFields | null): boolean {
+  if (!profile) return false;
+  if (profile.onboardingCompletedAt) return true;
+  return isSellerStripeConnectReady(profile);
+}
+
 export function resolveSellerOnboardingStep(input: {
   emailVerified: boolean;
   profile: SellerStripeConnectFields | null;
+  sellingMarket?: string | null;
 }): SellerOnboardingStepId {
   const profile = input.profile;
+  const market = normalizeSellerCountry(profile?.sellingMarket || input.sellingMarket);
+
+  if (!isStripeMarketCountry(market)) {
+    return profile?.agreedTermsAt ? "SELLER_INFO" : "AGREEMENTS";
+  }
 
   if (profile?.onboardingCompletedAt) {
     return "COMPLETE";
@@ -30,11 +46,11 @@ export function resolveSellerOnboardingStep(input: {
   if (!profile?.agreedTermsAt || !profile?.agreedPrivacyAt || !profile?.agreedAgeAt) {
     return "AGREEMENTS";
   }
-  if (!profile?.sellerType) {
+  if (!profile?.sellerType || !profile.businessRegNo?.trim()) {
     return "SELLER_INFO";
   }
 
-  if (!isSellerStripeConnectReady(profile)) {
+  if (!isSellerSettlementReady(profile)) {
     return "SETTLEMENT";
   }
 
@@ -82,6 +98,7 @@ export const sellerOnboardingUserSelect = {
       stripeConnectRequirementsDue: true,
       stripeConnectDisabledReason: true,
       stripeConnectOnboardingStatus: true,
+      businessRegNo: true,
     },
   },
 } as const;

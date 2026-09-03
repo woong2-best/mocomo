@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Heart, Send } from "lucide-react";
+import { DollarSign, Send } from "lucide-react";
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import { LiveOverlayCommentFeed } from "@/components/live/live-overlay-comment-feed";
 import { useLiveOverlayDisplayQueue } from "@/hooks/use-live-overlay-display-queue";
 import { relayLiveChatMessage } from "@/hooks/use-live-socket";
 import type { LiveChatMessage } from "@/components/live/live-chat";
-import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
+import { CommentDonationDialog } from "@/components/live/comment-donation-dialog";
 import type { SupportTierLevel } from "@prisma/client";
 
 /** 인스타 라이브 스타일 — 영상 위 채팅 오버레이 + 입력 */
@@ -116,24 +116,26 @@ export function LiveMobileOverlayChat({
             <Send className="h-4 w-4" />
           </button>
           {!hostUserId || !hostUsername ? null : paymentsEnabled ? (
-            <TipCreatorDialog
+            <CommentDonationDialog
               creatorId={hostUserId}
               username={hostUsername}
               displayName={hostDisplayName ?? hostUsername}
-              currentTier={viewerSupportTier}
-              currentTotal={viewerSupportTotal}
               paymentsEnabled
               channelId={channelId}
               returnPath={`/voice/${channelId}`}
-              triggerVariant="ghost"
-              triggerSize="icon"
-              iconOnly
-              triggerClassName="h-10 w-10 rounded-full bg-white/15 backdrop-blur-md text-white hover:bg-white/25 hover:text-white"
-              triggerIcon={<Heart className="h-5 w-5" />}
+              trigger={
+                <button
+                  type="button"
+                  className="h-10 w-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-emerald-300 hover:bg-white/25"
+                  aria-label="댓글 후원"
+                >
+                  <DollarSign className="h-5 w-5" />
+                </button>
+              }
             />
           ) : (
             <span className="h-10 w-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-white/80">
-              <Heart className="h-5 w-5" />
+              <DollarSign className="h-5 w-5" />
             </span>
           )}
         </div>

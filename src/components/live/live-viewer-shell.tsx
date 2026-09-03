@@ -9,7 +9,6 @@ import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@p
 import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
 import { VoiceLiveListener } from "@/components/voice-live/voice-live-studio";
 import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
-import { LiveVideoDonationOverlay } from "@/components/live/live-video-donation-panel";
 
 export function LiveViewerShell({
   channelId,
@@ -168,7 +167,6 @@ export function LiveViewerShell({
             isLiveOnAir={isLiveOnAir}
           />
           {donationAlertsOnStream ? <LiveDonationAlertOverlay tips={recentTips} /> : null}
-          <LiveVideoDonationOverlay channelId={channelId} />
         </div>
         <div className="xl:sticky xl:top-16 min-h-[min(70vh,560px)]">
           <LiveChat

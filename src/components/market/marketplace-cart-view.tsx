@@ -105,10 +105,13 @@ export function MarketplaceCartView() {
           </li>
         ))}
       </ul>
-      <div className="rounded-2xl border border-folk-cobalt/15 bg-folk-cream/50 px-4 py-3 flex items-center justify-between">
+      <div className="rounded-2xl border border-folk-cobalt/15 bg-folk-cream/50 px-4 py-3 flex items-center justify-between gap-3">
         <span className="text-sm font-semibold">예상 합계</span>
         <span className="text-lg font-bold">{formatMoney(total)}</span>
       </div>
+      <Button asChild className="w-full">
+        <Link href="/market/cart/checkout">주문하기</Link>
+      </Button>
       <p className="text-[11px] text-muted-foreground text-center">
         배송비·옵션은 상품별 결제 화면에서 확인됩니다.
       </p>

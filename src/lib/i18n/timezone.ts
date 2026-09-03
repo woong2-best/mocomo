@@ -113,14 +113,26 @@ export function detectBrowserTimeZone(): string {
   }
 }
 
-/** Map navigator.language → site Locale (ko/en/ja/zh). */
+/** Map navigator.language → site Locale (70+ languages). */
 export function detectBrowserLocale(fallback: Locale = DEFAULT_GUEST_LOCALE): Locale {
   if (typeof navigator === "undefined") return fallback;
-  const raw = (navigator.language || navigator.languages?.[0] || "").toLowerCase();
-  if (raw.startsWith("ko")) return "ko";
-  if (raw.startsWith("ja")) return "ja";
-  if (raw.startsWith("zh")) return "zh";
-  if (raw.startsWith("en") && isLocale("en")) return "en";
+  const langs = [
+    ...(navigator.languages ?? []),
+    navigator.language,
+  ].filter(Boolean) as string[];
+
+  for (const lang of langs) {
+    const raw = lang.toLowerCase();
+    if (raw.startsWith("zh-tw") || raw.startsWith("zh-hant")) {
+      if (isLocale("zh-TW")) return "zh-TW";
+    }
+    if (raw.startsWith("pt-br")) {
+      if (isLocale("pt-BR")) return "pt-BR";
+    }
+    const base = raw.split("-")[0] ?? raw;
+    if (isLocale(base)) return base;
+    if (isLocale(raw)) return raw as Locale;
+  }
   return fallback;
 }
 

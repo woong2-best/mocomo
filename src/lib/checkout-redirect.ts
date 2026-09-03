@@ -45,5 +45,9 @@ export function checkoutRedirectPath(intent: PaymentIntent, type: string) {
       : "/market/orders";
   }
 
+  if (type === "VENDOR_ONBOARDING_FEE") {
+    redirectPath = "/market/seller/register?onboarding=fee_paid";
+  }
+
   return redirectPath;
 }

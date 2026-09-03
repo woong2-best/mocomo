@@ -6,7 +6,7 @@ export type TipPaymentMetadata = {
   username?: string;
   channelId?: string;
   returnPath?: string;
-  tipKind?: "standard" | "video" | "letter";
+  tipKind?: "standard" | "video" | "letter" | "superchat";
   roomId?: string;
   /** 영상 후원 — 결제 전 위저드에서 수집 */
   videoUrl?: string;
@@ -26,7 +26,7 @@ export function tipMetadataForCheckout(input: {
   username?: string;
   channelId?: string;
   returnPath?: string;
-  tipKind?: "standard" | "video" | "letter";
+  tipKind?: "standard" | "video" | "letter" | "superchat";
   roomId?: string;
   videoUrl?: string;
   videoTitle?: string;
@@ -47,6 +47,8 @@ export function tipMetadataForCheckout(input: {
   if (input.roomId?.trim()) meta.roomId = input.roomId.trim();
   if (input.tipKind === "letter") {
     meta.tipKind = "letter";
+  } else if (input.tipKind === "superchat") {
+    meta.tipKind = "superchat";
   } else if (input.tipKind === "video") {
     meta.tipKind = "video";
     if (input.videoUrl?.trim()) meta.videoUrl = input.videoUrl.trim();

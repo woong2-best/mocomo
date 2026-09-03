@@ -7,6 +7,13 @@ export type AnimeTitleLocalization = {
   zh: string;
 };
 
+function catalogLocale(locale: Locale): keyof AnimeTitleLocalization {
+  if (locale === "ko") return "ko";
+  if (locale === "ja") return "ja";
+  if (locale === "zh" || locale === "zh-TW") return "zh";
+  return "en";
+}
+
 /** 위키 시드·인기작 공식 표기 (사이드바 탑10 등) */
 const ANIME_TITLE_CATALOG: AnimeTitleLocalization[] = [
   {
@@ -148,12 +155,13 @@ export function lookupAnimeTitleCatalog(
   locale: Locale
 ): string | null {
   if (locale === "ko") return anime.title;
+  const lang = catalogLocale(locale);
   const byTitle = byKo.get(norm(anime.title));
-  if (byTitle) return byTitle[locale];
+  if (byTitle) return byTitle[lang];
   const en = anime.titleEn?.trim();
   if (en) {
     const byEnglish = byEn.get(norm(en));
-    if (byEnglish) return byEnglish[locale];
+    if (byEnglish) return byEnglish[lang];
   }
   return null;
 }

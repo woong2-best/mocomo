@@ -40,13 +40,14 @@ function serializeAttachments(
     name: a.name,
     priceKrw: a.priceKrw,
   }));
-  if (opts?.forRelay) {
+  // No viewer context means no entitlement can be proven — fail closed so a
+  // paid origin URL is never serialized.
+  if (opts?.forRelay || !opts?.viewerId) {
     return rows.map((a) => {
       const paid = (a.priceKrw ?? 0) > 0;
       return paid ? { ...a, url: "", locked: true } : a;
     });
   }
-  if (!opts?.viewerId) return rows;
   return attachMessageMediaAccess({ senderId, attachments: rows }, opts.viewerId, purchased)
     .attachments!;
 }

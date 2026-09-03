@@ -1,4 +1,6 @@
 import type { Locale } from "@/lib/i18n/config";
+
+type ChallengeLang = "en" | "ja" | "zh";
 import type { HumanChallengeChoice } from "@/lib/human-challenge-types";
 import type {
   OddOneChallenge,
@@ -8,14 +10,14 @@ import type {
 
 type PickChallenge = OddOneChallenge | SequenceChallenge | TriviaChallenge;
 
-const DEFAULT_HINT: Record<Locale, string> = {
+const DEFAULT_HINT: Partial<Record<Locale, string>> = {
   ko: "정답을 골라 주세요.",
   en: "Pick the correct answer.",
   ja: "正解を選んでください。",
   zh: "请选择正确答案。",
 };
 
-const MATH_HINTS: Record<Locale, { add: string; sub: string; mul: string }> = {
+const MATH_HINTS: Partial<Record<Locale, { add: string; sub: string; mul: string }>> = {
   ko: {
     add: "덧셈 정답을 고르세요.",
     sub: "뺄셈 정답을 고르세요.",
@@ -38,9 +40,8 @@ const MATH_HINTS: Record<Locale, { add: string; sub: string; mul: string }> = {
   },
 };
 
-const VERIFY_ERRORS: Record<
-  Locale,
-  { missing: string; expired: string; timeout: string; wrong: string }
+const VERIFY_ERRORS: Partial<
+  Record<Locale, { missing: string; expired: string; timeout: string; wrong: string }>
 > = {
   ko: {
     missing: "확인 퀴즈를 풀어 주세요.",
@@ -68,7 +69,7 @@ const VERIFY_ERRORS: Record<
   },
 };
 
-const ODD_PROMPTS: Record<string, Record<Exclude<Locale, "ko">, { prompt: string; hint?: string }>> =
+const ODD_PROMPTS: Record<string, Partial<Record<ChallengeLang, { prompt: string; hint?: string }>>> =
   {
     car: { en: { prompt: "Which is not a fruit?" }, ja: { prompt: "果物ではないものは？" }, zh: { prompt: "哪个不是水果？" } },
     book: { en: { prompt: "Which is not an animal?" }, ja: { prompt: "動物ではないものは？" }, zh: { prompt: "哪个不是动物？" } },
@@ -116,7 +117,7 @@ const ODD_PROMPTS: Record<string, Record<Exclude<Locale, "ko">, { prompt: string
     letter: { en: { prompt: "Which is not a number?" }, ja: { prompt: "数字ではないものは？" }, zh: { prompt: "哪个不是数字？" } },
   };
 
-const TRIVIA_PROMPTS: Record<string, Record<Exclude<Locale, "ko">, string>> = {
+const TRIVIA_PROMPTS: Record<string, Partial<Record<ChallengeLang, string>>> = {
   anime: {
     en: "What do we call Japanese animation?",
     ja: "日本のアニメーションを何と呼びますか？",
@@ -159,7 +160,7 @@ const TRIVIA_PROMPTS: Record<string, Record<Exclude<Locale, "ko">, string>> = {
   },
 };
 
-const SEQUENCE_HINTS: Record<string, Record<Exclude<Locale, "ko">, string>> = {
+const SEQUENCE_HINTS: Record<string, Partial<Record<ChallengeLang, string>>> = {
   "2 → 4 → 6 → ?": {
     en: "Find the pattern and pick the next number.",
     ja: "規則を見つけて次の数字を選んでください。",
@@ -182,7 +183,7 @@ const SEQUENCE_HINTS: Record<string, Record<Exclude<Locale, "ko">, string>> = {
   },
 };
 
-const CHOICE_LABELS: Record<Exclude<Locale, "ko">, Record<string, string>> = {
+const CHOICE_LABELS: Record<ChallengeLang, Record<string, string>> = {
   en: {
     car: "🚗 Car",
     apple: "🍎 Apple",
@@ -428,8 +429,10 @@ const CHOICE_LABELS: Record<Exclude<Locale, "ko">, Record<string, string>> = {
 CHOICE_LABELS.ja = { ...CHOICE_LABELS.en };
 CHOICE_LABELS.zh = { ...CHOICE_LABELS.en };
 
-function resolveLocale(locale: Locale): Exclude<Locale, "ko"> {
-  return locale === "ko" ? "en" : locale;
+function resolveLocale(locale: Locale): ChallengeLang {
+  if (locale === "ja") return "ja";
+  if (locale === "zh" || locale === "zh-TW") return "zh";
+  return "en";
 }
 
 function localizeChoice(choice: HumanChallengeChoice, locale: Locale): HumanChallengeChoice {
@@ -441,18 +444,18 @@ function localizeChoice(choice: HumanChallengeChoice, locale: Locale): HumanChal
 }
 
 export function getDefaultChallengeHint(locale: Locale): string {
-  return DEFAULT_HINT[locale] ?? DEFAULT_HINT.en;
+  return DEFAULT_HINT[locale] ?? DEFAULT_HINT.en ?? "Pick the correct answer.";
 }
 
 export function getMathChallengeHint(
   locale: Locale,
   kind: "add" | "sub" | "mul"
 ): string {
-  return MATH_HINTS[locale]?.[kind] ?? MATH_HINTS.en[kind];
+  return MATH_HINTS[locale]?.[kind] ?? MATH_HINTS.en?.[kind] ?? MATH_HINTS.en!.add;
 }
 
 export function getVerifyChallengeErrors(locale: Locale) {
-  return VERIFY_ERRORS[locale] ?? VERIFY_ERRORS.en;
+  return VERIFY_ERRORS[locale] ?? VERIFY_ERRORS.en!;
 }
 
 export function localizePickChallenge<T extends PickChallenge>(challenge: T, locale: Locale): T {
