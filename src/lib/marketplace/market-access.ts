@@ -18,8 +18,6 @@ export {
   getStripeSupportedCountriesSync,
   getStripeSupportedCountryList,
   STAR_MARKET_PRODUCT_EXCLUDED_COUNTRIES,
-  syncStripeSupportedCountriesFromApi,
-  ensureStripeSupportedCountriesFresh,
   getStripeCountryCacheMeta,
 } from "@/lib/marketplace/stripe-supported-countries";
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isProduction, verifyInternalSecret } from "@/lib/api-security";
-import { syncStripeSupportedCountriesFromApi } from "@/lib/marketplace/stripe-supported-countries";
+import { syncStripeSupportedCountriesFromApi } from "@/lib/marketplace/stripe-supported-countries.server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
