@@ -36,19 +36,37 @@ const GOVERNING_LAW_PARAGRAPH =
 export const COMMUNITY_POLICY: LegalDocument = {
   slug: "policy",
   title: "MoCoMo 운영원칙 및 이용정책",
-  updatedAt: "2026년 8월 29일",
+  updatedAt: "2026년 9월 3일",
   intro:
     'MoCoMo LLC(이하 "MoCoMo" 또는 "회사")가 운영하는 웹·모바일 커뮤니티 플랫폼에서 모든 사용자가 안전하게 소통하고 콘텐츠를 공유할 수 있도록 아래 정책을 운영합니다.',
   blocks: [
     { type: "h2", text: "1. 안전한 커뮤니티" },
     { type: "p", text: "다음 행위는 허용되지 않습니다." },
+    { type: "h3", text: "불법 물품 및 규제 물품" },
+    {
+      type: "ul",
+      items: [
+        "마약류, 향정신성의약품, 임시마약류 등 관련 법령에서 금지하는 물질의 판매·구매·광고·알선",
+        "총기, 실탄, 폭발물, 도검류 등 무기 및 그 부품의 불법 거래",
+        "마약 제조·흡입 도구 등 관련 물품의 거래",
+      ],
+    },
+    { type: "h3", text: "불법 서비스 및 인신매매" },
+    {
+      type: "ul",
+      items: [
+        "성매매 또는 성적 서비스의 제공·알선·광고",
+        "인신매매, 노동력 착취, 미성년자 관련 착취",
+        "장기매매 등 신체 관련 불법 거래",
+      ],
+    },
     { type: "h3", text: "폭력 및 위협" },
     {
       type: "ul",
       items: [
-        "폭력 행위 조장",
-        "살해 협박",
-        "범죄 예고",
+        "테러 행위 계획·선동·자금조달·지지",
+        "특정 개인·집단에 대한 폭력, 살해, 신체적 위해를 선동·모의·조장하는 행위",
+        "폭력 행위 조장, 살해 협박, 범죄 예고",
         "테러 및 범죄 조직 홍보",
       ],
     },
@@ -80,9 +98,20 @@ export const COMMUNITY_POLICY: LegalDocument = {
         "폭력 행위·살해·테러를 미화·조장·선동하는 콘텐츠",
       ],
     },
+    { type: "h3", text: "기타 불법·유해 콘텐츠" },
+    {
+      type: "ul",
+      items: [
+        "아동 성적 학대물(CSAM) 등 아동을 대상으로 한 착취 콘텐츠",
+        "위조품, 장물, 도난품의 거래",
+        "개인정보 불법 수집·유통, 해킹 도구, 악성코드 배포",
+        "사기, 다단계, 유사수신 등 금융 관련 불법행위",
+        "도박 관련 서비스(해당 국가에서 불법인 경우)",
+      ],
+    },
     {
       type: "p",
-      text: "위 항목은 발견 즉시 삭제 및 영구 정지될 수 있으며 관련 법률에 따라 신고될 수 있습니다.",
+      text: "위 각 호에 해당하는 행위를 암시하거나 은어, 이모지, 코드명 등을 사용하여 우회적으로 시도하는 행위도 동일하게 금지됩니다. 위 항목은 발견 즉시 삭제 및 영구 정지될 수 있으며 관련 법률에 따라 신고될 수 있습니다.",
     },
     { type: "hr" },
     { type: "h2", text: "2. 개인정보 보호" },
@@ -147,10 +176,18 @@ export const COMMUNITY_POLICY: LegalDocument = {
     },
     { type: "p", text: "권리자의 요청이 있을 경우 콘텐츠는 삭제될 수 있습니다." },
     { type: "hr" },
-    { type: "h2", text: "7. 청소년 보호" },
+    { type: "h2", text: "7. 아동 안전 및 신고 의무" },
     {
       type: "p",
-      text: "MoCoMo는 청소년 보호를 위해 노력합니다. 아동·청소년 성보호 관련 법률을 위반하는 콘텐츠는 무관용 정책으로 처리됩니다. 필요 시 관계 기관에 신고될 수 있습니다.",
+      text: "MoCoMo는 아동 성적 학대물(CSAM) 등 아동 대상 착취 콘텐츠에 대해 무관용 원칙을 적용합니다.",
+    },
+    {
+      type: "p",
+      text: "관련 콘텐츠를 인지한 경우, 회사는 미국 법령(18 U.S.C. §2258A)에 따라 미국 실종·착취아동센터(NCMEC)에 신고할 의무를 가지며, 필요 시 관련 수사기관에도 통보합니다.",
+    },
+    {
+      type: "p",
+      text: "이용자가 본 조항을 위반한 콘텐츠를 게시할 경우 즉시 계정이 영구 정지되며, 관련 법령에 따라 법 집행기관에 통보될 수 있습니다.",
     },
     { type: "hr" },
     { type: "h2", text: "8. 신고 및 제재" },
@@ -185,19 +222,24 @@ export const COMMUNITY_POLICY: LegalDocument = {
     },
     { type: "p", text: "심각한 불법 행위는 경고 없이 즉시 영구 정지될 수 있습니다." },
     { type: "hr" },
-    { type: "h2", text: "9. 운영자 권한" },
+    { type: "h2", text: "9. 신고 및 수사기관 협조" },
+    {
+      type: "p",
+      text: "회사는 관련 법령 및 수사기관의 정당한 요청에 따라 이용자 정보를 제공할 수 있으며, 불법행위 발견 시 관련 기관에 신고할 의무를 가집니다.",
+    },
+    { type: "h2", text: "10. 운영자 권한" },
     {
       type: "p",
       text: "MoCoMo는 서비스 보호 및 사용자 안전을 위해 운영자 판단에 따라 콘텐츠 삭제 또는 계정 제한 조치를 진행할 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "10. 정책 변경" },
+    { type: "h2", text: "11. 정책 변경" },
     {
       type: "p",
       text: "본 정책은 서비스 운영 및 법률 변경에 따라 수정될 수 있습니다. 중요 변경 사항은 공지사항을 통해 안내됩니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "11. 준거법" },
+    { type: "h2", text: "12. 준거법" },
     { type: "p", text: GOVERNING_LAW_PARAGRAPH },
   ],
 };
@@ -205,7 +247,7 @@ export const COMMUNITY_POLICY: LegalDocument = {
 export const TERMS_OF_SERVICE: LegalDocument = {
   slug: "terms",
   title: "MoCoMo 이용약관",
-  updatedAt: "2026년 8월 30일",
+  updatedAt: "2026년 9월 3일",
   intro:
     '본 약관은 미합중국 와이오밍 주에 설립된 MoCoMo LLC(이하 "회사" 또는 "MoCoMo")가 제공하는 웹사이트(mocomo.net), 모바일 애플리케이션 및 관련 서비스의 이용 조건을 규정합니다.',
   blocks: [
@@ -335,22 +377,61 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: "(콘텐츠의 관리 및 삭제) 회사는 이용자가 본 약관 또는 관계 법령을 위반한 경우, 사전 통지 없이 해당 게시물을 수정, 이동, 삭제할 수 있으며 필요한 경우 이용자의 서비스 이용을 제한할 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제6조 (금지 콘텐츠 및 처리 절차)" },
+    { type: "h2", text: "제6조 (금지행위 및 금지 콘텐츠)" },
+    {
+      type: "p",
+      text: "(금지행위의 원칙) 이용자는 본 서비스를 이용함에 있어 다음 각 호에 해당하는 행위를 하여서는 안 되며, 위반 시 사전 통지 없이 게시물 삭제, 계정 정지, 이용 제한, 관련 법 집행기관 신고 등의 조치가 취해질 수 있습니다.",
+    },
     {
       type: "p",
       text: "(금지 콘텐츠의 정의) 이용자는 다음 각 호에 해당하는 콘텐츠(텍스트, 이미지, 영상, 음성, 링크, 아바타, 릴스, 라이브 스트리밍 등 형태를 불문함)를 생성, 게시, 전송, 공유할 수 없습니다.",
     },
+    { type: "h3", text: "불법 물품 및 규제 물품" },
     {
       type: "ul",
       items: [
-        "관련 법령 위반 및 불법 콘텐츠: 현행 법령에 위반되거나 범죄 행위를 목적으로 하는 내용",
+        "마약류, 향정신성의약품, 임시마약류 등 관련 법령에서 금지하는 물질의 판매, 구매, 광고, 알선",
+        "총기, 실탄, 폭발물, 도검류 등 무기 및 그 부품의 불법 거래",
+        "마약 제조·흡입 도구 등 관련 물품의 거래",
+      ],
+    },
+    { type: "h3", text: "불법 서비스 및 인신매매" },
+    {
+      type: "ul",
+      items: [
+        "성매매 또는 성적 서비스의 제공·알선·광고",
+        "인신매매, 노동력 착취, 미성년자 관련 착취",
+        "장기매매 등 신체 관련 불법 거래",
         "성인물·성적 서비스 (Adult Content and Services): 성인·NSFW 콘텐츠의 판매·후원·구독·유료 열람·경매·마켓 거래 등 플랫폼 내 모든 유료 거래 금지. 성착취·아동·청소년 유해물, 딥페이크 등 성적 불법 합성물 포함. 별도 도메인·외부 결제 수단을 통한 우회도 금지",
-        "지적재산권 침해 (Intellectual Property Infringement): 타인의 저작권·상표권·초상권 등을 침해하는 콘텐츠 게시·판매·수익화 금지. DMCA 등 권리자 요청에 따른 신속 삭제",
+      ],
+    },
+    { type: "h3", text: "폭력, 테러 및 위해 행위" },
+    {
+      type: "ul",
+      items: [
+        "테러 행위 계획·선동·자금조달·지지",
+        "특정 개인·집단에 대한 폭력, 살해, 신체적 위해를 선동·모의·조장하는 행위",
         "폭력적 극단주의·혐오 발언 (Violent Extremism / Hate Speech): 테러·극단주의 조직 홍보, 폭력·살해·자해 조장, 특정 인종·성별·종교·장애 등에 대한 차별·혐오·박해 표현",
+      ],
+    },
+    { type: "h3", text: "기타 불법·유해 콘텐츠" },
+    {
+      type: "ul",
+      items: [
+        "아동 성적 학대물(CSAM) 등 아동을 대상으로 한 착취 콘텐츠",
+        "위조품, 장물, 도난품의 거래",
+        "개인정보 불법 수집·유통, 해킹 도구, 악성코드 배포",
+        "사기, 다단계, 유사수신 등 금융 관련 불법행위",
+        "도박 관련 서비스 (해당 국가에서 불법인 경우)",
+        "지적재산권 침해 (Intellectual Property Infringement): 타인의 저작권·상표권·초상권 등을 침해하는 콘텐츠 게시·판매·수익화 금지. DMCA 등 권리자 요청에 따른 신속 삭제",
         "권리 침해 및 명예훼손: 타인의 신원 정보(개인정보) 무단 노출, 특정인을 비방·저격하여 명예를 훼손하는 내용",
         "사기, 피싱 및 악성 코드: 타인을 속여 금전적 이득을 취하려는 내용, 악성코드, 피싱 사이트 링크, 시스템 교란 스팸",
         "기타 불건전 콘텐츠: 사회 통념상 용인하기 어려운 현저히 불쾌하거나 공서양속에 반하는 내용",
       ],
+    },
+    {
+      type: "p",
+      text: "위 각 호에 해당하는 행위를 암시하거나 은어, 이모지, 코드명 등을 사용하여 우회적으로 시도하는 행위도 동일하게 금지됩니다.",
     },
     {
       type: "p",
@@ -371,7 +452,12 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: "p",
-      text: "(수사기관 협조 및 정보 제공) 회사는 금지 콘텐츠가 형사 처벌 대상이 되거나 긴급 상황이 발생한 경우, 관련 법령 및 정당한 법적 절차에 따라 해당 콘텐츠 및 작성자의 정보를 수사기관 또는 관할 행정기관에 제공할 수 있습니다.",
+      text: "(수사기관 협조 및 정보 제공) 회사는 금지 콘텐츠가 형사 처벌 대상이 되거나 긴급 상황이 발생한 경우, 관련 법령 및 정당한 법적 절차(영장, 법원 명령, 수사기관의 정당한 요청 등)에 따라 해당 콘텐츠 및 작성자의 정보를 수사기관 또는 관할 행정기관에 제공할 수 있으며, 불법행위 발견 시 관련 기관에 신고할 의무를 가집니다.",
+    },
+    { type: "h3", text: "(아동 안전 및 신고 의무)" },
+    {
+      type: "p",
+      text: "회사는 아동 성적 학대물(CSAM) 등 아동 대상 착취 콘텐츠에 대해 무관용 원칙을 적용합니다. 관련 콘텐츠를 인지한 경우, 회사는 미국 법령(18 U.S.C. §2258A)에 따라 미국 실종·착취아동센터(NCMEC)에 신고할 의무를 가지며, 필요 시 관련 수사기관에도 통보합니다. 이용자가 본 조항을 위반한 콘텐츠를 게시할 경우 즉시 계정이 영구 정지되며, 관련 법령에 따라 법 집행기관에 통보될 수 있습니다.",
     },
     {
       type: "p",
@@ -963,6 +1049,10 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     { type: "h2", text: "제17조 (회사의 면책 및 책임 제한)" },
     {
       type: "p",
+      text: "(플랫폼 면책 — Section 230) 회사는 미국 통신품위법(Communications Decency Act) 제230조에 따라 이용자가 게시한 콘텐츠의 정보 제공자가 아닌 상호작용 컴퓨터 서비스 제공자(interactive computer service provider)로서, 이용자가 게시·전송한 콘텐츠에 대해 원칙적으로 책임을 지지 않습니다. 회사는 자체 판단에 따라 본 약관을 위반하거나 부적절하다고 판단되는 콘텐츠를 사전 통지 없이 삭제, 차단 또는 제한할 수 있는 권리를 보유합니다.",
+    },
+    {
+      type: "p",
       text: "(콘텐츠 관련 면책) 회사는 이용자가 서비스 내에 작성, 게재, 전송 또는 수신한 정보, 자료, 사실의 신뢰도, 정확성, 적법성 및 완결성에 대하여 보증하지 아니하며, 이용자가 작성한 게시물 및 미디어 콘텐츠로 인해 발생한 손해에 대해 회사의 고의 또는 중과실이 없는 한 어떠한 책임도 부담하지 않습니다.",
     },
     {
@@ -1399,7 +1489,7 @@ export const COPYRIGHT_POLICY: LegalDocument = {
 export const PRIVACY_POLICY: LegalDocument = {
   slug: "privacy",
   title: "MoCoMo 개인정보처리방침",
-  updatedAt: "2026년 8월 29일",
+  updatedAt: "2026년 9월 3일",
   intro:
     'MoCoMo LLC(미합중국 와이오밍 주 소재, 이하 "MoCoMo" 또는 "회사")는 이용자의 개인정보를 소중히 다루며, 적용 가능한 미국 연방·주 법 및 서비스를 제공하는 지역의 관련 개인정보 보호 요구사항을 준수하기 위해 노력합니다.',
   blocks: [
@@ -1513,10 +1603,14 @@ export const PRIVACY_POLICY: LegalDocument = {
       text: "사용자는 자신의 개인정보 열람, 수정 및 삭제를 요청할 수 있습니다. 계정 전체 삭제 절차는 MoCoMo 계정 및 데이터 삭제 안내(/legal/account-deletion)를 참고해 주세요. 거주 지역 법에 따른 추가 권리가 있는 경우 동일 연락처로 요청할 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "8. 청소년 보호" },
+    { type: "h2", text: "8. 아동 안전 및 청소년 보호" },
     {
       type: "p",
-      text: "MoCoMo는 아동·청소년 대상 불법 콘텐츠에 대해 무관용 정책을 적용합니다. 아동의 개인정보를 고의로 수집하지 않도록 노력하며, 해당 정보가 확인되면 삭제할 수 있습니다.",
+      text: "MoCoMo는 아동·청소년 대상 불법 콘텐츠에 대해 무관용 정책을 적용합니다. 아동 성적 학대물(CSAM) 등 관련 콘텐츠를 인지한 경우, 회사는 미국 법령(18 U.S.C. §2258A)에 따라 NCMEC에 신고할 의무를 가집니다.",
+    },
+    {
+      type: "p",
+      text: "아동의 개인정보를 고의로 수집하지 않도록 노력하며, 해당 정보가 확인되면 삭제할 수 있습니다.",
     },
     { type: "hr" },
     { type: "h2", text: "9. 보안" },
@@ -1635,7 +1729,7 @@ export const ACCOUNT_DELETION: LegalDocument = {
 export const ACCEPTABLE_USE_POLICY: LegalDocument = {
   slug: "aup",
   title: "Acceptable Use Policy (AUP) — 이용 허용 정책",
-  updatedAt: "2026년 8월 29일",
+  updatedAt: "2026년 9월 3일",
   intro:
     `This Acceptable Use Policy ("AUP") governs all use of MoCoMo LLC's platform (mocomo.net and mobile apps). By using MoCoMo, you agree to comply with this policy. Violations may result in content removal, account suspension, permanent ban, and revenue/payout blocking. Contact: ${LEGAL_CONTACT_EMAIL}`,
   blocks: [
@@ -1643,6 +1737,24 @@ export const ACCEPTABLE_USE_POLICY: LegalDocument = {
     {
       type: "p",
       text: "The following are strictly prohibited on MoCoMo. This list is not exhaustive.",
+    },
+    { type: "h3", text: "Illegal Goods and Regulated Items" },
+    {
+      type: "ul",
+      items: [
+        "Sale, purchase, advertising, or facilitation of controlled substances, narcotics, or illegal drugs",
+        "Illegal trade in firearms, ammunition, explosives, bladed weapons, or weapon parts",
+        "Drug paraphernalia or manufacturing/consumption tools",
+      ],
+    },
+    { type: "h3", text: "Illegal Services and Human Trafficking" },
+    {
+      type: "ul",
+      items: [
+        "Prostitution, escort services, or sexual services for payment",
+        "Human trafficking, labor exploitation, or exploitation involving minors",
+        "Illegal trade involving organs or body parts",
+      ],
     },
     { type: "h3", text: "Adult Content and Services" },
     {
@@ -1676,20 +1788,52 @@ export const ACCEPTABLE_USE_POLICY: LegalDocument = {
     {
       type: "ul",
       items: [
+        "Counterfeit goods, stolen property, or fencing of stolen items",
+        "Illegal collection or distribution of personal data, hacking tools, or malware",
+        "Fraud, pyramid schemes, Ponzi schemes, and other financial crimes",
+        "Gambling services where illegal under applicable law",
         "Spam, fraud, phishing, malware, and platform abuse",
         "Harassment, stalking, doxing, and impersonation",
         "Illegal goods, payment bypass, and off-platform scam solicitation",
         "Any activity that violates applicable law or payment processor (Stripe) requirements",
       ],
     },
+    {
+      type: "p",
+      text: "Attempts to circumvent these rules using euphemisms, emojis, code words, or indirect language are equally prohibited.",
+    },
     { type: "hr" },
-    { type: "h2", text: "2. Reporting Violations" },
+    { type: "h2", text: "2. Child Safety and Mandatory Reporting" },
+    {
+      type: "p",
+      text: "MoCoMo applies a zero-tolerance policy toward child sexual abuse material (CSAM) and any content that exploits children.",
+    },
+    {
+      type: "p",
+      text: "When we become aware of such content, MoCoMo LLC is required under 18 U.S.C. §2258A to report it to the National Center for Missing & Exploited Children (NCMEC) and may notify law enforcement as required by law.",
+    },
+    {
+      type: "p",
+      text: "Users who post violating content will be permanently banned immediately and may be referred to law enforcement.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "3. Platform Liability — Section 230" },
+    {
+      type: "p",
+      text: "MoCoMo LLC operates as an interactive computer service provider under Section 230 of the U.S. Communications Decency Act. We are not the publisher or speaker of user-generated content and are generally not liable for content posted or transmitted by users. We reserve the right to remove, block, or restrict content that violates this policy or that we deem inappropriate, with or without prior notice.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "4. Reporting Violations and Law Enforcement Cooperation" },
     {
       type: "p",
       text: "Users can report inappropriate content via the Report button on posts, profiles, comments, marketplace listings, and live streams. Reports are reviewed by MoCoMo moderators. False or malicious reports may result in account sanctions.",
     },
+    {
+      type: "p",
+      text: "MoCoMo LLC may disclose user information in response to lawful requests from law enforcement and is obligated to report illegal activity to relevant authorities when required by applicable law.",
+    },
     { type: "hr" },
-    { type: "h2", text: "3. Enforcement & Repeat Violators Policy" },
+    { type: "h2", text: "5. Enforcement & Repeat Violators Policy" },
     {
       type: "p",
       text: "MoCoMo enforces this AUP through automated risk scoring, user reports, AI-assisted review, and human moderator review.",
@@ -1707,7 +1851,7 @@ export const ACCEPTABLE_USE_POLICY: LegalDocument = {
       text: "MoCoMo LLC reserves the right to remove content and suspend accounts at its sole discretion to protect users and comply with law and payment network rules.",
     },
     { type: "hr" },
-    { type: "h2", text: "4. Related Policies" },
+    { type: "h2", text: "6. Related Policies" },
     {
       type: "ul",
       items: [
@@ -1718,7 +1862,7 @@ export const ACCEPTABLE_USE_POLICY: LegalDocument = {
       ],
     },
     { type: "hr" },
-    { type: "h2", text: "5. Governing Law" },
+    { type: "h2", text: "7. Governing Law" },
     { type: "p", text: GOVERNING_LAW_PARAGRAPH },
     {
       type: "p",
@@ -1730,7 +1874,7 @@ export const ACCEPTABLE_USE_POLICY: LegalDocument = {
 export const MODERATION_POLICY: LegalDocument = {
   slug: "moderation",
   title: "콘텐츠 신고 및 운영 정책",
-  updatedAt: "2026년 8월 29일",
+  updatedAt: "2026년 9월 3일",
   intro:
     "MoCoMo는 이용자 신고와 자동 탐지를 통해 플랫폼을 안전하게 운영합니다. 본 페이지는 신고 처리 절차와 반복 위반자 제재 기준을 공개합니다.",
   blocks: [
@@ -1779,13 +1923,27 @@ export const MODERATION_POLICY: LegalDocument = {
       ],
     },
     { type: "hr" },
-    { type: "h2", text: "4. 이의 제기" },
+    { type: "h2", text: "4. 아동 안전 및 법 집행 신고" },
+    {
+      type: "p",
+      text: "아동 성적 학대물(CSAM) 등 아동 착취 콘텐츠는 무관용 정책으로 처리하며, 인지 즉시 콘텐츠를 보존·차단하고 계정을 영구 정지합니다.",
+    },
+    {
+      type: "p",
+      text: "회사는 미국 법령(18 U.S.C. §2258A)에 따라 NCMEC(미국 실종·착취아동센터)에 신고할 의무를 가지며, 관련 수사기관에 통보할 수 있습니다.",
+    },
+    {
+      type: "p",
+      text: "회사는 관련 법령 및 수사기관의 정당한 요청에 따라 이용자 정보를 제공할 수 있으며, 불법행위 발견 시 관련 기관에 신고할 의무를 가집니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "5. 이의 제기" },
     {
       type: "p",
       text: "계정 제재를 받은 이용자는 /appeal 페이지에서 이의 제기(Appeal)를 요청할 수 있습니다. 운영팀이 검토 후 회복 또는 유지를 결정합니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "5. 문의" },
+    { type: "h2", text: "6. 문의" },
     {
       type: "p",
       text: `신고·저작권·법 집행 협조: ${LEGAL_CONTACT_EMAIL} · DMCA: ${LEGAL_DMCA_AGENT_EMAIL}`,
