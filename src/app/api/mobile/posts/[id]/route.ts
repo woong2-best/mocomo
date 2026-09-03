@@ -9,6 +9,7 @@ import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { getSubscriptionsForViewer } from "@/lib/content-access";
 import { isSubscriptionActive } from "@/lib/creator-subscription";
 import { isPaymentsConfigured } from "@/lib/payments";
+import { canViewNsfwResource } from "@/lib/nsfw-viewer-access";
 
 export async function GET(
   req: NextRequest,
@@ -48,6 +49,17 @@ export async function GET(
 
   if (!post) {
     return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+  }
+
+  if (
+    post.isNsfw &&
+    !(await canViewNsfwResource({
+      viewerId,
+      ownerId: post.author.id,
+      isNsfw: true,
+    }))
+  ) {
+    return NextResponse.json({ error: "성인 콘텐츠는 열람할 수 없습니다." }, { status: 403 });
   }
 
   const engagement = viewerId

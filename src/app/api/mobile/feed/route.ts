@@ -11,6 +11,7 @@ import { isPaymentsConfigured } from "@/lib/payments";
 import { fetchFeedAdPool } from "@/lib/feed-ads";
 import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { db } from "@/lib/db";
+import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,6 +32,7 @@ export async function GET(req: NextRequest) {
 
     const viewerId = await getMobileUserId(req);
     const effectiveMode: FeedMode = viewerId ? mode : "latest";
+    const canViewNsfw = await resolveCanViewNsfw(viewerId);
 
     const posts = await resolveFeedPage({
       userId: viewerId,
@@ -38,6 +40,7 @@ export async function GET(req: NextRequest) {
       cursor,
       limit,
       variant: "mobile",
+      canViewNsfw,
     });
 
     const visible = await filterPostsByAudienceLock(

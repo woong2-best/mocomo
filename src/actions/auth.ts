@@ -58,7 +58,26 @@ import {
 import { RESERVED_USERNAMES } from "@/lib/username-policy";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
 import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
+import { parseBirthDateInput } from "@/lib/birth-date";
 import { z } from "zod";
+
+const birthDateSignupFields = {
+  birthYear: z.coerce.number().int().min(1900).max(new Date().getFullYear()),
+  birthMonth: z.coerce.number().int().min(1).max(12),
+  birthDay: z.coerce.number().int().min(1).max(31),
+};
+
+function parseSignupBirthDate(data: {
+  birthYear: number;
+  birthMonth: number;
+  birthDay: number;
+}): { birthDate: Date } | { error: string } {
+  const birthDate = parseBirthDateInput(data.birthYear, data.birthMonth, data.birthDay);
+  if (!birthDate) {
+    return { error: "올바른 생년월일을 입력해 주세요." };
+  }
+  return { birthDate };
+}
 
 const localeField = z.string().refine((v) => isLocale(v), "Invalid locale").default("ko");
 
@@ -77,6 +96,7 @@ const signupApplicationSchema = z.object({
   timeZone: z.string().min(1).max(64).default("UTC"),
   homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS).optional(),
   website: z.string().optional(),
+  ...birthDateSignupFields,
 });
 
 const registerSchema = z.object({
@@ -103,6 +123,7 @@ const registerSchema = z.object({
   humanChallengeAnswer: z.string().optional(),
   /** 봇 허니팟 — 값이 있으면 거부 */
   website: z.string().optional(),
+  ...birthDateSignupFields,
 });
 
 const PLATFORM_USERNAME = "mocomo_official";
@@ -450,9 +471,15 @@ export async function registerUser(
     humanChallengeAnswer,
     availabilityPrechecked,
     website,
+    birthYear,
+    birthMonth,
+    birthDay,
   } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
   const timeZone = normalizeTimeZone(rawTimeZone);
+  const birthParsed = parseSignupBirthDate({ birthYear, birthMonth, birthDay });
+  if ("error" in birthParsed) return { error: birthParsed.error };
+  const birthDate = birthParsed.birthDate;
 
   const countryBlock = assertCountrySelectable(countryCode);
   if (countryBlock) return { error: countryBlock.error };
@@ -564,6 +591,7 @@ export async function registerUser(
           locale,
           countryCode: countryCode.toUpperCase(),
           timeZone,
+          birthDate,
         },
       });
       userId = updated.id;
@@ -579,6 +607,7 @@ export async function registerUser(
           locale,
           countryCode: countryCode.toUpperCase(),
           timeZone,
+          birthDate,
         },
       });
       userId = user.id;

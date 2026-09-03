@@ -8,6 +8,7 @@ import {
   createMobileUsedListing,
   listMobileMyUsedListings,
 } from "@/lib/used-market-mobile";
+import { filterNsfwItems, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-marketplace-list", 60);
@@ -35,22 +36,26 @@ export async function GET(req: NextRequest) {
   const cursor = req.nextUrl.searchParams.get("cursor")?.trim() || undefined;
 
   const viewerId = await getMobileUserId(req);
+  const canViewNsfw = await resolveCanViewNsfw(viewerId);
 
-  const listings = await resolveUsedMarketBrowse({
-    userId: viewerId,
-    mode: browseMode,
-    status: "SELLING",
-    take,
-    cursor,
-    q,
-    category: category && category !== "ALL" ? category : undefined,
-    sido: sido || undefined,
-    region: region || undefined,
-    work: work || undefined,
-    product: product || undefined,
-    saleType: mode === "auction" ? "AUCTION" : undefined,
-    liveAuctionOnly: mode === "auction",
-  });
+  const listings = filterNsfwItems(
+    await resolveUsedMarketBrowse({
+      userId: viewerId,
+      mode: browseMode,
+      status: "SELLING",
+      take,
+      cursor,
+      q,
+      category: category && category !== "ALL" ? category : undefined,
+      sido: sido || undefined,
+      region: region || undefined,
+      work: work || undefined,
+      product: product || undefined,
+      saleType: mode === "auction" ? "AUCTION" : undefined,
+      liveAuctionOnly: mode === "auction",
+    }),
+    canViewNsfw
+  );
   const items = listings.map((l) => {
     const images = listingImages(l.images);
     return {

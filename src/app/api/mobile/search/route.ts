@@ -3,6 +3,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { runFastSearch } from "@/lib/search-fast";
 import { recordSearchEvent } from "@/lib/search/record";
+import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-search", 60);
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const result = await runFastSearch(q);
+  const result = await runFastSearch(q, await resolveCanViewNsfw(viewerId));
   void recordSearchEvent({
     rawQuery: q,
     resultCount:

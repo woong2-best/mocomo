@@ -7,6 +7,7 @@ import { autoEndAbandonedLiveChannels } from "@/lib/live-abandon";
 import { getAuthUserId } from "@/lib/auth";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { LiveFeatureDisabledNotice } from "@/components/live/live-feature-disabled";
+import { filterNsfwChannels, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 export const revalidate = 25;
 
@@ -20,6 +21,7 @@ export default async function LivePage({
   }
 
   const currentUserId = await getAuthUserId();
+  const canViewNsfw = await resolveCanViewNsfw(currentUserId);
   void autoEndAbandonedLiveChannels();
 
   let staticData: Awaited<ReturnType<typeof getLiveHubStaticData>> = {
@@ -32,13 +34,17 @@ export default async function LivePage({
 
   try {
     staticData = await getLiveHubStaticData(currentUserId);
+    staticData = {
+      ...staticData,
+      followedLive: filterNsfwChannels(staticData.followedLive, canViewNsfw),
+    };
   } catch {
     /* DB 미마이그레이션 시 빈 허브 */
   }
 
   try {
     const feed = await getLiveHubChannelFeed(undefined, "all");
-    sidebarChannels = feed.channels;
+    sidebarChannels = filterNsfwChannels(feed.channels, canViewNsfw);
   } catch {
     /* ignore */
   }

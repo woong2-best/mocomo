@@ -20,6 +20,10 @@ import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlem
 import { validateSaleMediaPricing } from "@/lib/money";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import { isCommunityScopedPost } from "@/lib/post-scope";
+import {
+  assertCanPublishNsfwContent,
+  nsfwViewerSelect,
+} from "@/lib/nsfw-viewer-access";
 
 export type CreatePostMediaInput = {
   url: string;
@@ -87,6 +91,18 @@ export async function createPostForUser(
     hasPaidMedia: mediaPrices.some((p) => p > 0),
   });
   if (adultMonetizationErr) return { error: adultMonetizationErr };
+
+  if (contentRating === "ADULT") {
+    const nsfwUser = await db.user.findUnique({
+      where: { id: user.id },
+      select: nsfwViewerSelect,
+    });
+    const publishErr = assertCanPublishNsfwContent(
+      nsfwUser ?? { id: user.id, birthDate: null },
+      true
+    );
+    if (publishErr) return { error: publishErr };
+  }
 
   const pricingErr = validateSaleMediaPricing(maxMediaPrice, instantPrice);
   if (pricingErr) return { error: pricingErr };

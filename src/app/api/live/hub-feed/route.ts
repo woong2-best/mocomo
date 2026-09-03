@@ -5,6 +5,11 @@ import {
   getLiveHubChannelFeedPage,
   LIVE_HUB_PAGE_SIZE,
 } from "@/lib/live-hub-data";
+import { getAuthUserId } from "@/lib/auth";
+import {
+  filterNsfwChannels,
+  resolveCanViewNsfw,
+} from "@/lib/nsfw-viewer-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,8 +28,18 @@ export async function GET(req: NextRequest) {
     Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(Math.floor(limitRaw), 50) : LIVE_HUB_PAGE_SIZE;
 
   try {
+    const viewerId = await getAuthUserId();
+    const canViewNsfw = await resolveCanViewNsfw(viewerId);
     const page = await getLiveHubChannelFeedPage(category, "all", offset, limit);
-    return NextResponse.json(page);
+    return NextResponse.json({
+      ...page,
+      channels: filterNsfwChannels(page.channels, canViewNsfw),
+      heroChannels: filterNsfwChannels(page.heroChannels, canViewNsfw),
+      categoryRows: page.categoryRows.map((row) => ({
+        ...row,
+        channels: filterNsfwChannels(row.channels, canViewNsfw),
+      })),
+    });
   } catch {
     return NextResponse.json(
       { channels: [], hosts: [], total: 0, hasMore: false, nextOffset: offset, categoryRows: [], heroChannels: [] },

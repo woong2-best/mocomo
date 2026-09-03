@@ -52,6 +52,9 @@ const accountSchema = z.object({
   turnstileUnavailable: z.boolean().optional(),
   humanChallengeToken: z.string().optional(),
   humanChallengeAnswer: z.string().optional(),
+  birthYear: z.coerce.number().int().min(1900).max(new Date().getFullYear()),
+  birthMonth: z.coerce.number().int().min(1).max(12),
+  birthDay: z.coerce.number().int().min(1).max(31),
 });
 
 const agreementsSchema = z.object({
@@ -217,6 +220,9 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
     turnstileUnavailable: data.turnstileUnavailable ?? !isSignupHumanVerifyRequired(),
     humanChallengeToken: data.humanChallengeToken,
     humanChallengeAnswer: data.humanChallengeAnswer,
+    birthYear: data.birthYear,
+    birthMonth: data.birthMonth,
+    birthDay: data.birthDay,
   });
 
   if (result.error) return { error: result.error };

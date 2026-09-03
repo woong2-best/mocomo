@@ -3,13 +3,18 @@ import { unstable_cache } from "next/cache";
 import { getAuthUserId } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { enrichSearchUsersWithFollowStatus, runFastSearch } from "@/lib/search-fast";
+import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 function normalizeSearchKey(q: string) {
   return q.trim().toLowerCase().slice(0, 80);
 }
 
-const cachedSearch = (key: string, q: string) =>
-  unstable_cache(() => runFastSearch(q), ["fast-search-v2", key], { revalidate: 30 })();
+const cachedSearch = (key: string, q: string, canViewNsfw: boolean) =>
+  unstable_cache(
+    () => runFastSearch(q, canViewNsfw),
+    ["fast-search-v3-nsfw", key, canViewNsfw ? "adult" : "safe"],
+    { revalidate: 30 }
+  )();
 
 /** 빠른 통합 검색 (JSON) — 동일 검색어 30초 캐시 */
 export async function GET(req: NextRequest) {
@@ -26,8 +31,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const key = normalizeSearchKey(q);
-    const data = await cachedSearch(key, q);
     const viewerId = await getAuthUserId();
+    const canViewNsfw = await resolveCanViewNsfw(viewerId);
+    const data = await cachedSearch(key, q, canViewNsfw);
     const users = await enrichSearchUsersWithFollowStatus(viewerId, data.users);
     // 미리보기(/api/search)는 집계하지 않음 — /search 페이지 진입 시 recordSearchEvent
 

@@ -5,7 +5,7 @@ import { PostDetailActions } from "@/components/post/post-detail-actions";
 import { PostFlashHighlight } from "@/components/post/post-flash-highlight";
 import { PostCommentsSection } from "@/components/post/post-comments-section";
 import { PostCommentsSkeleton } from "@/components/post/post-comments-skeleton";
-import { getPostDetail, isPostDetailAudienceLocked } from "@/lib/post-queries";
+import { getPostDetail, isPostDetailAudienceLocked, isPostDetailNsfwBlocked } from "@/lib/post-queries";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { auth, isSiteOperator } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
@@ -40,6 +40,22 @@ export default async function PostPage({
             className="inline-block text-sm text-primary hover:underline"
           >
             프로필 보기
+          </a>
+        </div>
+      </AppPageChrome>
+    );
+  }
+
+  if (isPostDetailNsfwBlocked(detail)) {
+    return (
+      <AppPageChrome maxWidth="2xl">
+        <div className="px-4 py-16 max-w-md mx-auto text-center space-y-3">
+          <p className="text-lg font-bold">성인 콘텐츠</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            이 게시물은 만 19세 이상(생년월일 등록) 계정에서만 볼 수 있습니다.
+          </p>
+          <a href="/auth/signin" className="inline-block text-sm text-primary hover:underline">
+            로그인
           </a>
         </div>
       </AppPageChrome>

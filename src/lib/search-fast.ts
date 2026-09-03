@@ -5,6 +5,7 @@ import { parseHashtagFromQuery } from "@/lib/hashtag-search";
 import { getPopularWikiSearchQueries } from "@/lib/wiki-search";
 import { suggestSearchQueries } from "@/lib/search/suggest";
 import { platformPostWhere } from "@/lib/post-scope";
+import { nsfwPostWhere } from "@/lib/nsfw-viewer-access";
 import type { SupportTierLevel } from "@prisma/client";
 
 export type SearchSuggestion = {
@@ -127,7 +128,10 @@ export async function enrichSearchUsersWithFollowStatus(
 }
 
 /** 헤더·검색 페이지용 — synopsis 등 무거운 필드 제외 */
-export async function runFastSearch(query: string): Promise<FastSearchResult> {
+export async function runFastSearch(
+  query: string,
+  canViewNsfw = false
+): Promise<FastSearchResult> {
   const q = query.trim();
   if (q.length < 1) {
     return { suggestions: [], users: [], animes: [], posts: [], liveStreams: [] };
@@ -155,6 +159,7 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
 
   const postWhere = {
     ...platformPostWhere,
+    ...nsfwPostWhere(canViewNsfw),
     ...(hashtagTag
       ? {
           OR: [
@@ -210,6 +215,7 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
             isLive: true,
             liveStatus: "LIVE",
             name: { contains: q, mode: "insensitive" },
+            ...(canViewNsfw ? {} : { isNsfw: false }),
           },
           take: 4,
           select: { id: true, name: true, category: true, createdBy: true, createdAt: true },
@@ -224,7 +230,7 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
   const animePosts =
     !hashtagTag && animeIds.length > 0
       ? await db.post.findMany({
-          where: { ...platformPostWhere, animeId: { in: animeIds } },
+          where: { ...platformPostWhere, ...nsfwPostWhere(canViewNsfw), animeId: { in: animeIds } },
           take: 8,
           orderBy: { createdAt: "desc" },
           select: { id: true, content: true, title: true, createdAt: true },

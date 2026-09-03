@@ -3,59 +3,74 @@ import { Alert } from "react-native";
 import { fetchAdultVerificationStatus } from "@/api/adult-verification";
 import {
   ADULT_VERIFICATION_REQUIRED_MSG,
+  BIRTH_DATE_REQUIRED_MSG,
   type AdultVerificationScope,
 } from "@/lib/adult-verification-messages";
-import { openAdultVerificationSession } from "@/lib/open-adult-verification";
+import { navigateFromPush } from "@/navigation/navigationRef";
 
-export function useAdultVerificationGate(scope: AdultVerificationScope = "DM_PAID") {
+export function useAdultVerificationGate(_scope: AdultVerificationScope = "DM_PAID") {
   const [isAdult, setIsAdult] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     const status = await fetchAdultVerificationStatus();
-    setIsAdult(status.isAdult);
-    return status.isAdult;
+    const ok = status.isAdult || status.canAccessPaidAdult;
+    setIsAdult(ok);
+    return ok;
   }, []);
 
-  const runVerification = useCallback(async () => {
-    setBusy(true);
-    try {
-      await openAdultVerificationSession(scope);
-      setIsAdult(true);
-      return true;
-    } finally {
-      setBusy(false);
-    }
-  }, [scope]);
+  const openBirthDateSettings = useCallback(() => {
+    navigateFromPush("ProfileEdit");
+    return true;
+  }, []);
 
   const ensureAdult = useCallback(async (): Promise<boolean> => {
     try {
-      const ok = isAdult ?? (await refresh());
+      const status = await fetchAdultVerificationStatus();
+      const ok = status.isAdult || status.canAccessPaidAdult;
+      setIsAdult(ok);
       if (ok) return true;
-    } catch {
-      /* status fetch failed — still offer verification */
-    }
 
-    return new Promise((resolve) => {
-      Alert.alert("본인인증 필요", ADULT_VERIFICATION_REQUIRED_MSG, [
-        { text: "취소", style: "cancel", onPress: () => resolve(false) },
-        {
-          text: "본인인증 시작",
-          onPress: () => {
-            void runVerification()
-              .then(() => resolve(true))
-              .catch((e) => {
-                Alert.alert(
-                  "인증 실패",
-                  e instanceof Error ? e.message : "본인인증에 실패했습니다."
-                );
-                resolve(false);
-              });
+      const message = status.hasBirthDate
+        ? ADULT_VERIFICATION_REQUIRED_MSG
+        : BIRTH_DATE_REQUIRED_MSG;
+
+      return new Promise((resolve) => {
+        Alert.alert("연령 확인 필요", message, [
+          { text: "취소", style: "cancel", onPress: () => resolve(false) },
+          {
+            text: status.hasBirthDate ? "확인" : "생년월일 입력",
+            onPress: () => {
+              if (!status.hasBirthDate) {
+                openBirthDateSettings();
+              }
+              resolve(false);
+            },
           },
-        },
-      ]);
-    });
-  }, [isAdult, refresh, runVerification]);
+        ]);
+      });
+    } catch {
+      return new Promise((resolve) => {
+        Alert.alert("연령 확인 필요", BIRTH_DATE_REQUIRED_MSG, [
+          { text: "취소", style: "cancel", onPress: () => resolve(false) },
+          {
+            text: "생년월일 입력",
+            onPress: () => {
+              openBirthDateSettings();
+              resolve(false);
+            },
+          },
+        ]);
+      });
+    }
+  }, [openBirthDateSettings]);
 
-  return { isAdult, busy, ensureAdult, refresh, runVerification };
+  return {
+    isAdult,
+    busy,
+    ensureAdult,
+    refresh,
+    /** @deprecated PortOne removed — opens profile birth date settings */
+    runVerification: openBirthDateSettings,
+  };
 }

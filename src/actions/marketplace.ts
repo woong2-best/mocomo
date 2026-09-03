@@ -11,6 +11,10 @@ import { requireAuth } from "@/lib/auth";
 import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlement-account";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import {
+  assertCanPublishNsfwContent,
+  nsfwViewerSelect,
+} from "@/lib/nsfw-viewer-access";
+import {
   MARKETPLACE_CATEGORIES,
   listingTypeLabel,
 } from "@/lib/marketplace/constants";
@@ -268,6 +272,18 @@ export async function createMarketplaceListingForUser(
     hasPrice: input.priceAmount > 0,
   });
   if (adultListingErr) return { error: adultListingErr };
+
+  if (listingRating === "ADULT" || input.isNsfw) {
+    const nsfwUser = await db.user.findUnique({
+      where: { id: user.id },
+      select: nsfwViewerSelect,
+    });
+    const publishErr = assertCanPublishNsfwContent(
+      nsfwUser ?? { id: user.id, birthDate: null },
+      true
+    );
+    if (publishErr) return { error: publishErr };
+  }
 
   if (input.type === "DIGITAL") {
     return { error: "디지털 상품 등록은 지원하지 않습니다." };

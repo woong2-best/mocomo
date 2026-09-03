@@ -8,6 +8,7 @@ import { geocodeMeetQuery } from "@/lib/maps/geocode";
 import { meetExternalMapUrl, meetMapCaption } from "@/lib/maps/external-url";
 import { normalizeMeetCountry, selectMapEngine } from "@/lib/maps/select-engine";
 import { getRegionMapCenter, isShippingOnlyRegion } from "@/lib/used-region-coords";
+import { canViewNsfwResource } from "@/lib/nsfw-viewer-access";
 
 export async function GET(
   req: NextRequest,
@@ -28,6 +29,17 @@ export async function GET(
   }
 
   const listing = result.listing;
+  if (
+    listing.isNsfw &&
+    !(await canViewNsfwResource({
+      viewerId,
+      ownerId: listing.sellerId,
+      isNsfw: true,
+    }))
+  ) {
+    return NextResponse.json({ error: "성인 콘텐츠는 열람할 수 없습니다." }, { status: 403 });
+  }
+
   const images = listingImages(listing.images);
   const auctionLive = isAuctionLive(listing);
 

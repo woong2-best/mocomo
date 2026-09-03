@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { Locale } from "@/lib/i18n/config";
 import { dateFnsLocale } from "@/lib/i18n/date-locale";
 import type { getPostDetail, PostDetailLocked } from "@/lib/post-queries";
+import type { PostNsfwBlocked } from "@/lib/nsfw-viewer-access";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
@@ -14,7 +15,7 @@ import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 
 type PostDetailOk = Exclude<
   NonNullable<Awaited<ReturnType<typeof getPostDetail>>>,
-  PostDetailLocked
+  PostDetailLocked | PostNsfwBlocked
 >;
 
 export function PostDetailCard({

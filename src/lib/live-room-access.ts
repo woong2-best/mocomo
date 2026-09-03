@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { meetsPrivateLiveTier } from "@/lib/live-viewer-access";
 import { isBroadcastActive } from "@/lib/live-channel-active";
-import { isAdultVerified } from "@/lib/adult-verification/is-verified";
+import { canViewNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 
 export type LiveRoomAccess =
   | { allowed: true; isHost: boolean; hostUserId: string; canPublish?: boolean }
@@ -130,9 +130,9 @@ export async function resolveLiveChannelAccess(
   if (adultStream) {
     const viewer = await db.user.findUnique({
       where: { id: userId },
-      select: { adultVerifiedAt: true },
+      select: nsfwViewerSelect,
     });
-    if (!viewer || !isAdultVerified(viewer)) {
+    if (!viewer || !canViewNsfwContent(viewer)) {
       return { allowed: false, reason: "ADULT_VERIFICATION_REQUIRED" };
     }
   }

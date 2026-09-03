@@ -4,6 +4,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { resolveStarMarketBrowse, type StarMarketBrowseMode } from "@/lib/market-ranking";
 import { MARKETPLACE_LISTING_TYPES } from "@/lib/marketplace/constants";
+import { filterNsfwItems, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 const TYPE_IDS = new Set(MARKETPLACE_LISTING_TYPES.map((t) => t.id));
 
@@ -30,6 +31,7 @@ export async function GET(req: NextRequest) {
     modeParam === "latest" || modeParam === "discover" ? modeParam : "discover";
 
   const viewerId = await getMobileUserId(req);
+  const canViewNsfw = await resolveCanViewNsfw(viewerId);
 
   const { items, nextCursor } = await resolveStarMarketBrowse({
     userId: viewerId,
@@ -41,9 +43,11 @@ export async function GET(req: NextRequest) {
     cursor,
   });
 
+  const visibleItems = filterNsfwItems(items, canViewNsfw);
+
   return NextResponse.json(
     {
-      items: items.map((row) => ({
+      items: visibleItems.map((row) => ({
         id: row.id,
         title: row.title,
         type: row.type,

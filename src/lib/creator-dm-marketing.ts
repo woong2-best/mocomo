@@ -12,7 +12,7 @@ import {
 } from "@/lib/chat-attachments";
 import { getOrCreateDmForUser, sendMobileDmMessage } from "@/lib/chat-dm-service";
 import { validateSaleMediaPricing } from "@/lib/money";
-import { isAdultVerified } from "@/lib/adult-verification/is-verified";
+import { canViewNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 
 const BULK_BATCH_SIZE = 25;
 const BULK_MAX_FOLLOWERS = 50_000;
@@ -250,10 +250,10 @@ export async function sendWelcomeDmOnNewFollow(creatorId: string, followerId: st
 
   const follower = await db.user.findUnique({
     where: { id: followerId },
-    select: { adultVerifiedAt: true },
+    select: nsfwViewerSelect,
   });
 
-  if (!isAdultVerified(follower ?? { adultVerifiedAt: null })) {
+  if (!canViewNsfwContent(follower)) {
     await db.creatorWelcomeDmPending.upsert({
       where: {
         creatorId_followerId: { creatorId, followerId },

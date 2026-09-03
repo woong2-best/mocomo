@@ -25,6 +25,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { buildNaverEmail, isValidNaverSignupEmail, parseNaverLocalPart } from "@/lib/signup-email-domains";
 import { setAddAccountFlowCookie, withAddAccountQuery } from "@/lib/account-switch/add-account-flow";
+import { SignupBirthDateFields } from "@/components/auth/signup-birth-date-fields";
 import {
   COMMON_TIMEZONES,
   detectBrowserRegionPrefs,
@@ -110,6 +111,9 @@ export function SignupNaverForm() {
     const password = form.get("password") as string;
     const username = ((form.get("username") as string) || "").trim().toLowerCase();
     const displayName = ((form.get("name") as string) || "").trim();
+    const birthYear = Number(form.get("birthYear"));
+    const birthMonth = Number(form.get("birthMonth"));
+    const birthDay = Number(form.get("birthDay"));
 
     if (
       containsForbiddenAdminSequence(username) ||
@@ -133,6 +137,9 @@ export function SignupNaverForm() {
         countryCode,
         timeZone: tz,
         website: (form.get("website") as string) || undefined,
+        birthYear,
+        birthMonth,
+        birthDay,
       });
 
       if (!("ok" in check) || !check.ok) {
@@ -152,6 +159,9 @@ export function SignupNaverForm() {
         countryCode,
         timeZone: tz,
         homeFloor: check.homeFloor,
+        birthYear,
+        birthMonth,
+        birthDay,
       };
 
       if (needsHumanVerify) {
@@ -252,6 +262,7 @@ export function SignupNaverForm() {
               autoComplete="new-password"
               className="rounded-xl"
             />
+            <SignupBirthDateFields locale={locale} />
             <div className="grid grid-cols-2 gap-2">
               <label className="space-y-1">
                 <span className="text-xs text-muted-foreground">{t("auth.country")}</span>

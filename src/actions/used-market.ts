@@ -42,8 +42,10 @@ import { geocodeMeetQuery } from "@/lib/maps/geocode";
 import { isKakaoMapCountry, normalizeMeetCountry } from "@/lib/maps/select-engine";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
+import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 import {
   assertUsedAdultForRestricted,
+  isUsedAdultVerified,
   isUsedRestrictedKind,
   USED_ADULT_SELLER_MSG,
 } from "@/lib/used-youth-protection";
@@ -252,7 +254,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
           db.user
             .findUnique({
               where: { id: viewerId },
-              select: { adultVerifiedAt: true },
+              select: { birthDate: true },
             })
             .catch(() => null),
           db.usedFavorite.findUnique({
@@ -323,7 +325,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
 
     if (viewerResult) {
       const [viewer, fav, tradeChat, myBid] = viewerResult;
-      viewerAdultVerified = !!viewer?.adultVerifiedAt;
+      viewerAdultVerified = isUsedAdultVerified(viewer ?? { birthDate: null });
       favorited = !!fav;
       buyerChatRoomId = tradeChat?.roomId ?? null;
       if (isAuction) {
@@ -424,6 +426,18 @@ export async function createUsedListing(data: {
     hasPrice: price > 0 || (buyNowPrice ?? 0) > 0,
   });
   if (adultListingErr) return { error: adultListingErr };
+
+  if (listingRating === "ADULT" || data.isNsfw) {
+    const nsfwUser = await db.user.findUnique({
+      where: { id: user.id },
+      select: nsfwViewerSelect,
+    });
+    const publishErr = assertCanPublishNsfwContent(
+      nsfwUser ?? { id: user.id, birthDate: null },
+      true
+    );
+    if (publishErr) return { error: publishErr };
+  }
 
   const ephemeral = data.images.filter(
     (u) => typeof u === "string" && (u.startsWith("blob:") || (process.env.VERCEL && u.startsWith("/uploads/")))

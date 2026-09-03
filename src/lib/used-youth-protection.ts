@@ -1,5 +1,6 @@
 import type { UsedRestrictedKind } from "@prisma/client";
 import { ageFromBirthDate } from "@/lib/adult-verification/is-verified";
+import { ADULT_MIN_AGE } from "@/lib/adult-verification/constants";
 
 /** 주류·담배·성인용품 거래 최소 연령 (만 나이) */
 export { ADULT_MIN_AGE as USED_ADULT_MIN_AGE } from "@/lib/adult-verification/constants";
@@ -12,10 +13,10 @@ export const USED_RESTRICTED_OPTIONS = [
 ] as const;
 
 export const USED_ADULT_REQUIRED_MSG =
-  "술·담배·성인용품은 만 19세 이상 성인 인증 후 구매·입찰·거래 문의가 가능합니다.";
+  "술·담배·성인용품은 만 19세 이상(생년월일 등록) 계정만 구매·입찰·거래 문의가 가능합니다.";
 
 export const USED_ADULT_SELLER_MSG =
-  "해당 품목을 등록하려면 먼저 성인 인증을 완료해 주세요.";
+  "해당 품목을 등록하려면 프로필에 만 19세 이상 생년월일을 등록해 주세요.";
 
 export function isUsedRestrictedKind(
   kind: UsedRestrictedKind | string | null | undefined
@@ -30,10 +31,9 @@ export function usedRestrictedLabel(kind: UsedRestrictedKind | string): string {
   return "";
 }
 
-export function isUsedAdultVerified(user: {
-  adultVerifiedAt: Date | null;
-}): boolean {
-  return !!user.adultVerifiedAt;
+export function isUsedAdultVerified(user: { birthDate: Date | null }): boolean {
+  if (!user.birthDate) return false;
+  return usedAgeFromBirthDate(user.birthDate) >= ADULT_MIN_AGE;
 }
 
 export function usedAgeFromBirthDate(birth: Date, at = new Date()): number {
@@ -59,7 +59,7 @@ export function parseBirthDateInput(year: number, month: number, day: number): D
 }
 
 export function assertUsedAdultForRestricted(
-  user: { adultVerifiedAt: Date | null },
+  user: { birthDate: Date | null },
   restrictedKind: UsedRestrictedKind | string
 ): string | null {
   if (!isUsedRestrictedKind(restrictedKind)) return null;

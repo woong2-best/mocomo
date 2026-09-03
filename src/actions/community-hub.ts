@@ -15,6 +15,7 @@ import { provisionCommunityServer } from "@/lib/community-server/provision";
 import { isCommunityCategory } from "@/lib/community-labels";
 import { COMMUNITIES_LIST_CACHE_TAG } from "@/lib/cache-tags";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
+import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 
 function revalidateCommunitiesList(slug?: string) {
   after(() => {
@@ -64,6 +65,19 @@ export async function createCommunity(data: {
     }
 
     const description = data.description?.trim() || null;
+    const isNsfw = data.isNsfw ?? false;
+
+    if (isNsfw) {
+      const nsfwUser = await db.user.findUnique({
+        where: { id: user.id },
+        select: nsfwViewerSelect,
+      });
+      const publishErr = assertCanPublishNsfwContent(
+        nsfwUser ?? { id: user.id, birthDate: null },
+        true
+      );
+      if (publishErr) return { error: publishErr };
+    }
 
     for (let attempt = 0; attempt < 4; attempt++) {
       const slug =
@@ -78,7 +92,7 @@ export async function createCommunity(data: {
               slug,
               description,
               category,
-              isNsfw: data.isNsfw ?? false,
+              isNsfw,
               parentId: data.parentId ?? null,
               creatorId: user.id,
               memberCount: 1,

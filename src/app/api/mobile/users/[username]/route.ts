@@ -8,6 +8,7 @@ import { isPaymentsConfigured } from "@/lib/payments";
 import { isSubscriptionActive } from "@/lib/creator-subscription";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { platformPostWhere } from "@/lib/post-scope";
+import { nsfwPostWhere, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 export async function GET(
   req: NextRequest,
@@ -63,8 +64,15 @@ export async function GET(
     subscribed = sub ? isSubscriptionActive(sub) : false;
   }
 
+  const canViewNsfw = await resolveCanViewNsfw(viewerId);
+  const isSelf = viewerId === user.id;
+
   const posts = await db.post.findMany({
-    where: { authorId: user.id, ...platformPostWhere },
+    where: {
+      authorId: user.id,
+      ...platformPostWhere,
+      ...(isSelf ? {} : nsfwPostWhere(canViewNsfw)),
+    },
     orderBy: { createdAt: "desc" },
     take: 40,
     select: {

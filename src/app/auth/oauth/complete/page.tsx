@@ -41,7 +41,7 @@ export default async function OAuthCompletePage({
   if (session?.user?.id) {
     const dbUser = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { isBanned: true, deletedAt: true },
+      select: { isBanned: true, deletedAt: true, birthDate: true },
     });
 
     if (dbUser && !dbUser.isBanned && !dbUser.deletedAt) {
@@ -50,6 +50,11 @@ export default async function OAuthCompletePage({
         if (isStaleAddAccountSignupSession(session.user.id, sourceUserId)) {
           redirect(signupRedirectForStaleSession(true));
         }
+      }
+      if (!dbUser.birthDate && sp.flow === "signup") {
+        redirect(
+          `/auth/complete-birth-date?dest=${encodeURIComponent(dest)}`
+        );
       }
       redirect(dest);
     }

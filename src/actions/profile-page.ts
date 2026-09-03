@@ -37,6 +37,7 @@ import { profilePostsOwnedOrCollabWhere } from "@/lib/post-collaborator-select";
 import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
 import { canViewLockedAccountContent } from "@/lib/posts-lock";
 import type { UserPublicFields } from "@/lib/user-public-select";
+import { nsfwPostWhere, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 const PAGE_SIZE = 10;
 const MEDIA_GRID_PAGE_SIZE = 30;
@@ -526,11 +527,16 @@ export async function getProfileMediaGrid(
   const sort = options?.sort ?? "new";
   const mediaKind = options?.mediaKind ?? "all";
   const typeWhere = postMediaWhereFilter(mediaKind);
+  const isSelf = viewerId === userId;
+  const canViewNsfw = isSelf ? true : await resolveCanViewNsfw(viewerId);
 
   const rows = await db.postMedia.findMany({
     where: {
       ...typeWhere,
-      post: profilePostsOwnedOrCollabWhere(userId),
+      post: {
+        ...profilePostsOwnedOrCollabWhere(userId),
+        ...nsfwPostWhere(canViewNsfw),
+      },
     },
     take: MEDIA_GRID_PAGE_SIZE,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
@@ -568,11 +574,13 @@ export async function getProfileMediaGrid(
     getPurchasedPostMediaIds(viewerId, mediaIds),
     getSubscriptionsForViewer(viewerId, authorIds),
     viewerId
-      ? db.user.findUnique({ where: { id: viewerId }, select: { showNsfw: true } })
+      ? db.user.findUnique({
+          where: { id: viewerId },
+          select: { showNsfw: true, birthDate: true, role: true },
+        })
       : Promise.resolve(null),
   ]);
   const viewerShowNsfw = viewer?.showNsfw ?? false;
-  const isSelf = viewerId === userId;
 
   const items: ProfileGridMediaItem[] = rows.map((row) => {
     const access = isMediaContentLocked({

@@ -11,6 +11,7 @@ import {
   type LiveHubHost,
 } from "@/lib/live-hub-data";
 import { parseLiveCategoryParam } from "@/lib/live-categories";
+import { filterNsfwChannels, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 const CATEGORY_ORDER: LiveStreamCategory[] = [
   "IRL",
@@ -59,6 +60,7 @@ export async function GET(req: NextRequest) {
   if (limited) return limited;
 
   const userId = await getMobileUserId(req);
+  const canViewNsfw = await resolveCanViewNsfw(userId);
   const category = parseLiveCategoryParam(req.nextUrl.searchParams.get("category"));
   const offsetRaw = Number(req.nextUrl.searchParams.get("offset") ?? "0");
   const limitRaw = Number(req.nextUrl.searchParams.get("limit") ?? String(LIVE_HUB_PAGE_SIZE));
@@ -79,9 +81,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const items = page.channels.map((ch) => mapItem(ch, hostMap));
+  const items = filterNsfwChannels(page.channels, canViewNsfw).map((ch) => mapItem(ch, hostMap));
 
-  const popularSource = allFeed?.channels ?? (offset === 0 ? page.channels : []);
+  const popularSource = filterNsfwChannels(
+    allFeed?.channels ?? (offset === 0 ? page.channels : []),
+    canViewNsfw
+  );
   const viewerByCategory: Partial<Record<LiveStreamCategory, number>> = {};
   for (const ch of popularSource) {
     const key = ch.category as LiveStreamCategory;
@@ -102,7 +107,9 @@ export async function GET(req: NextRequest) {
     ? new Map(staticData.followedHosts.map((h) => [h.id, h]))
     : new Map<string, LiveHubHost>();
   const followed = staticData
-    ? staticData.followedLive.map((ch) => mapItem(ch, followedHostMap))
+    ? filterNsfwChannels(staticData.followedLive, canViewNsfw).map((ch) =>
+        mapItem(ch, followedHostMap)
+      )
     : [];
 
   const recommended = staticData
@@ -132,13 +139,15 @@ export async function GET(req: NextRequest) {
       ? page.categoryRows.map((row) => ({
           id: row.category,
           label: row.category,
-          channels: row.channels.map((ch) => mapItem(ch, hostMap)),
+          channels: filterNsfwChannels(row.channels, canViewNsfw).map((ch) =>
+            mapItem(ch, hostMap)
+          ),
         }))
       : [];
 
   const heroItems =
     offset === 0 && !category
-      ? page.heroChannels.map((ch) => mapItem(ch, hostMap))
+      ? filterNsfwChannels(page.heroChannels, canViewNsfw).map((ch) => mapItem(ch, hostMap))
       : [];
 
   return NextResponse.json({

@@ -11,6 +11,7 @@ import {
   type FeedPostRow,
 } from "@/lib/feed-query";
 import { platformPostWhere } from "@/lib/post-scope";
+import { nsfwPostWhere } from "@/lib/nsfw-viewer-access";
 import { getOrComputeFeedRanking } from "@/lib/feed-ranking/compute";
 
 export type FeedMode = "for_you" | "latest" | "following";
@@ -37,39 +38,42 @@ async function rankedPostIds(userId: string, cursor: string | null, limit: numbe
 export async function fetchRankedWebFeedPage(
   userId: string,
   cursor: string | null,
-  limit: number
+  limit: number,
+  canViewNsfw = false
 ): Promise<FeedPostRow[]> {
   try {
     const ids = await rankedPostIds(userId, cursor, limit);
-    if (ids === null) return fetchFeedPostsPage(cursor, limit);
+    if (ids === null) return fetchFeedPostsPage(cursor, limit, canViewNsfw);
     if (!ids.length) return [];
-    return fetchWebFeedPostsByIds(ids);
+    return fetchWebFeedPostsByIds(ids, canViewNsfw);
   } catch (e) {
     console.error("[feed-ranking] web ranked feed failed, falling back to latest", e);
-    return fetchFeedPostsPage(cursor, limit);
+    return fetchFeedPostsPage(cursor, limit, canViewNsfw);
   }
 }
 
 export async function fetchRankedMobileFeedPage(
   userId: string,
   cursor: string | null,
-  limit: number
+  limit: number,
+  canViewNsfw = false
 ): Promise<MobileFeedPost[]> {
   try {
     const ids = await rankedPostIds(userId, cursor, limit);
-    if (ids === null) return fetchMobileFeedPostsPage(cursor, limit);
+    if (ids === null) return fetchMobileFeedPostsPage(cursor, limit, canViewNsfw);
     if (!ids.length) return [];
-    return fetchMobileFeedPostsByIds(ids);
+    return fetchMobileFeedPostsByIds(ids, canViewNsfw);
   } catch (e) {
     console.error("[feed-ranking] mobile ranked feed failed, falling back to latest", e);
-    return fetchMobileFeedPostsPage(cursor, limit);
+    return fetchMobileFeedPostsPage(cursor, limit, canViewNsfw);
   }
 }
 
 export async function fetchFollowingWebFeedPage(
   userId: string,
   cursor: string | null,
-  limit: number
+  limit: number,
+  canViewNsfw = false
 ): Promise<FeedPostRow[]> {
   const following = await db.follow.findMany({
     where: { followerId: userId },
@@ -80,7 +84,12 @@ export async function fetchFollowingWebFeedPage(
   if (!authorIds.length) return [];
 
   const posts = await db.post.findMany({
-    where: { ...platformPostWhere, authorId: { in: authorIds }, visibility: "PUBLIC" },
+    where: {
+      ...platformPostWhere,
+      ...nsfwPostWhere(canViewNsfw),
+      authorId: { in: authorIds },
+      visibility: "PUBLIC",
+    },
     select: feedPostListSelect,
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -92,7 +101,8 @@ export async function fetchFollowingWebFeedPage(
 export async function fetchFollowingMobileFeedPage(
   userId: string,
   cursor: string | null,
-  limit: number
+  limit: number,
+  canViewNsfw = false
 ): Promise<MobileFeedPost[]> {
   const following = await db.follow.findMany({
     where: { followerId: userId },
@@ -103,7 +113,12 @@ export async function fetchFollowingMobileFeedPage(
   if (!authorIds.length) return [];
 
   const posts = await db.post.findMany({
-    where: { ...platformPostWhere, authorId: { in: authorIds }, visibility: "PUBLIC" },
+    where: {
+      ...platformPostWhere,
+      ...nsfwPostWhere(canViewNsfw),
+      authorId: { in: authorIds },
+      visibility: "PUBLIC",
+    },
     select: mobileFeedPostSelect,
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -118,6 +133,7 @@ export async function resolveFeedPage(opts: {
   cursor: string | null;
   limit: number;
   variant: "mobile";
+  canViewNsfw?: boolean;
 }): Promise<MobileFeedPost[]>;
 export async function resolveFeedPage(opts: {
   userId: string | null;
@@ -125,6 +141,7 @@ export async function resolveFeedPage(opts: {
   cursor: string | null;
   limit: number;
   variant?: "web";
+  canViewNsfw?: boolean;
 }): Promise<FeedPostRow[]>;
 export async function resolveFeedPage(opts: {
   userId: string | null;
@@ -132,35 +149,37 @@ export async function resolveFeedPage(opts: {
   cursor: string | null;
   limit: number;
   variant?: "web" | "mobile";
+  canViewNsfw?: boolean;
 }): Promise<FeedPostRow[] | MobileFeedPost[]> {
   const variant = opts.variant ?? "web";
+  const canViewNsfw = opts.canViewNsfw ?? false;
 
   if (!opts.userId) {
     return variant === "mobile"
-      ? fetchMobileFeedPostsPage(opts.cursor, opts.limit)
-      : fetchFeedPostsPage(opts.cursor, opts.limit);
+      ? fetchMobileFeedPostsPage(opts.cursor, opts.limit, canViewNsfw)
+      : fetchFeedPostsPage(opts.cursor, opts.limit, canViewNsfw);
   }
 
   if (variant === "mobile") {
     switch (opts.mode) {
       case "for_you":
-        return fetchRankedMobileFeedPage(opts.userId, opts.cursor, opts.limit);
+        return fetchRankedMobileFeedPage(opts.userId, opts.cursor, opts.limit, canViewNsfw);
       case "following":
-        return fetchFollowingMobileFeedPage(opts.userId, opts.cursor, opts.limit);
+        return fetchFollowingMobileFeedPage(opts.userId, opts.cursor, opts.limit, canViewNsfw);
       case "latest":
       default:
-        return fetchMobileFeedPostsPage(opts.cursor, opts.limit);
+        return fetchMobileFeedPostsPage(opts.cursor, opts.limit, canViewNsfw);
     }
   }
 
   switch (opts.mode) {
     case "for_you":
-      return fetchRankedWebFeedPage(opts.userId, opts.cursor, opts.limit);
+      return fetchRankedWebFeedPage(opts.userId, opts.cursor, opts.limit, canViewNsfw);
     case "following":
-      return fetchFollowingWebFeedPage(opts.userId, opts.cursor, opts.limit);
+      return fetchFollowingWebFeedPage(opts.userId, opts.cursor, opts.limit, canViewNsfw);
     case "latest":
     default:
-      return fetchFeedPostsPage(opts.cursor, opts.limit);
+      return fetchFeedPostsPage(opts.cursor, opts.limit, canViewNsfw);
   }
 }
 

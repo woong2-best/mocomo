@@ -6,6 +6,7 @@ import { postMediaPreview } from "@/lib/post-media-select";
 import { postPollSelect, mapPostPollRow } from "@/lib/post-poll";
 import { postCollaboratorsHeaderInclude } from "@/lib/post-collaborator-select";
 import { platformPostWhere } from "@/lib/post-scope";
+import { nsfwPostWhere } from "@/lib/nsfw-viewer-access";
 
 const FEED_POST_MAX_CONTENT = 520;
 
@@ -82,9 +83,13 @@ export const feedPostListSelectNoPoll = {
   _count: { select: { likes: true, comments: true, votes: true, reposts: true, media: true } },
 } as const;
 
-export async function fetchFeedPostsPage(cursor: string | null, limit: number) {
+export async function fetchFeedPostsPage(
+  cursor: string | null,
+  limit: number,
+  canViewNsfw = false
+) {
   const query = {
-    where: platformPostWhere,
+    where: { ...platformPostWhere, ...nsfwPostWhere(canViewNsfw) },
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     orderBy: { createdAt: "desc" as const },
@@ -158,9 +163,13 @@ const mobileFeedPostSelectNoReposts = {
   _count: { select: { likes: true, comments: true, votes: true } },
 } as const;
 
-export async function fetchMobileFeedPostsPage(cursor: string | null, limit: number) {
+export async function fetchMobileFeedPostsPage(
+  cursor: string | null,
+  limit: number,
+  canViewNsfw = false
+) {
   const query = {
-    where: platformPostWhere,
+    where: { ...platformPostWhere, ...nsfwPostWhere(canViewNsfw) },
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     orderBy: { createdAt: "desc" as const },
@@ -181,30 +190,41 @@ export async function fetchMobileFeedPostsPage(cursor: string | null, limit: num
   }
 }
 
-/** 무한 스크롤 페이지 — 짧은 TTL 캐시로 DB 부하 완화 */
-export function getCachedFeedPostsPage(cursor: string | null, limit: number) {
+export function getCachedFeedPostsPage(
+  cursor: string | null,
+  limit: number,
+  canViewNsfw = false
+) {
   const cacheKey = cursor ?? "__head__";
+  const nsfwKey = canViewNsfw ? "adult" : "safe";
   return unstable_cache(
-    () => fetchFeedPostsPage(cursor, limit),
-    ["feed-page-v9-platform-only", cacheKey, String(limit)],
+    () => fetchFeedPostsPage(cursor, limit, canViewNsfw),
+    ["feed-page-v10-nsfw", cacheKey, String(limit), nsfwKey],
     { revalidate: 30, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }
 
-export function getCachedMobileFeedPostsPage(cursor: string | null, limit: number) {
+export function getCachedMobileFeedPostsPage(
+  cursor: string | null,
+  limit: number,
+  canViewNsfw = false
+) {
   const cacheKey = cursor ?? "__head__";
+  const nsfwKey = canViewNsfw ? "adult" : "safe";
   return unstable_cache(
-    () => fetchMobileFeedPostsPage(cursor, limit),
-    ["mobile-feed-page-v3-platform-only", cacheKey, String(limit)],
+    () => fetchMobileFeedPostsPage(cursor, limit, canViewNsfw),
+    ["mobile-feed-page-v4-nsfw", cacheKey, String(limit), nsfwKey],
     { revalidate: 20, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }
 
-/** ID 순서를 유지하며 피드 포스트 fetch (For You 랭킹용) */
-export async function fetchWebFeedPostsByIds(postIds: string[]): Promise<FeedPostRow[]> {
+export async function fetchWebFeedPostsByIds(
+  postIds: string[],
+  canViewNsfw = false
+): Promise<FeedPostRow[]> {
   if (!postIds.length) return [];
   const posts = await db.post.findMany({
-    where: { id: { in: postIds }, ...platformPostWhere },
+    where: { id: { in: postIds }, ...platformPostWhere, ...nsfwPostWhere(canViewNsfw) },
     select: feedPostListSelect,
   });
   const byId = new Map(posts.map((p) => [p.id, p]));
@@ -215,11 +235,12 @@ export async function fetchWebFeedPostsByIds(postIds: string[]): Promise<FeedPos
 }
 
 export async function fetchMobileFeedPostsByIds(
-  postIds: string[]
+  postIds: string[],
+  canViewNsfw = false
 ): Promise<Awaited<ReturnType<typeof fetchMobileFeedPostsPage>>> {
   if (!postIds.length) return [];
   const posts = await db.post.findMany({
-    where: { id: { in: postIds }, ...platformPostWhere },
+    where: { id: { in: postIds }, ...platformPostWhere, ...nsfwPostWhere(canViewNsfw) },
     select: mobileFeedPostSelect,
   });
   const byId = new Map(posts.map((p) => [p.id, p]));
@@ -230,8 +251,12 @@ export async function fetchMobileFeedPostsByIds(
 }
 
 /** @deprecated fetchWebFeedPostsByIds / fetchMobileFeedPostsByIds 사용 */
-export async function fetchFeedPostsByIds(postIds: string[], variant: "web" | "mobile" = "web") {
+export async function fetchFeedPostsByIds(
+  postIds: string[],
+  variant: "web" | "mobile" = "web",
+  canViewNsfw = false
+) {
   return variant === "mobile"
-    ? fetchMobileFeedPostsByIds(postIds)
-    : fetchWebFeedPostsByIds(postIds);
+    ? fetchMobileFeedPostsByIds(postIds, canViewNsfw)
+    : fetchWebFeedPostsByIds(postIds, canViewNsfw);
 }

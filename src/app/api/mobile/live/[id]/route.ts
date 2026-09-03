@@ -13,7 +13,7 @@ import {
   isPubliclyLive,
 } from "@/lib/live-channel-active";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
-import { isAdultVerified } from "@/lib/adult-verification/is-verified";
+import { canViewNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 
 export async function GET(
   req: NextRequest,
@@ -85,9 +85,9 @@ export async function GET(
   if (!isHost && adultStream && canEnter && viewerId) {
     const viewer = await db.user.findUnique({
       where: { id: viewerId },
-      select: { adultVerifiedAt: true },
+      select: nsfwViewerSelect,
     });
-    if (!viewer || !isAdultVerified(viewer)) {
+    if (!viewer || !canViewNsfwContent(viewer)) {
       canEnter = false;
       accessDeniedReason = "ADULT_VERIFICATION_REQUIRED";
     }

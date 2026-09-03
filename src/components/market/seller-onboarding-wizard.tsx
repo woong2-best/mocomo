@@ -79,6 +79,9 @@ export function SellerOnboardingWizard({
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [name, setName] = useState(initialState.signedIn ? initialState.name ?? "" : "");
   const [email, setEmail] = useState(initialState.signedIn ? initialState.email ?? "" : "");
+  const [birthYear, setBirthYear] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
 
   const [agreeAll, setAgreeAll] = useState(false);
   const [agreeAge, setAgreeAge] = useState(false);
@@ -198,6 +201,9 @@ export function SellerOnboardingWizard({
             ? Intl.DateTimeFormat().resolvedOptions().timeZone
             : undefined,
         turnstileUnavailable: true,
+        birthYear: Number(birthYear),
+        birthMonth: Number(birthMonth),
+        birthDay: Number(birthDay),
       });
       if (res.error) {
         if ("alreadySignedIn" in res && res.alreadySignedIn) {
@@ -392,6 +398,12 @@ export function SellerOnboardingWizard({
             setName={setName}
             email={email}
             setEmail={setEmail}
+            birthYear={birthYear}
+            setBirthYear={setBirthYear}
+            birthMonth={birthMonth}
+            setBirthMonth={setBirthMonth}
+            birthDay={birthDay}
+            setBirthDay={setBirthDay}
             pending={pending}
             onSubmit={handleRegister}
           />
@@ -597,6 +609,12 @@ function AccountStep(props: {
   setName: (v: string) => void;
   email: string;
   setEmail: (v: string) => void;
+  birthYear: string;
+  setBirthYear: (v: string) => void;
+  birthMonth: string;
+  setBirthMonth: (v: string) => void;
+  birthDay: string;
+  setBirthDay: (v: string) => void;
   pending: boolean;
   onSubmit: () => void;
 }) {
@@ -650,6 +668,32 @@ function AccountStep(props: {
         placeholder="이메일"
         autoComplete="email"
       />
+      <div className="grid grid-cols-3 gap-2">
+        <Input
+          value={props.birthYear}
+          onChange={(e) => props.setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          placeholder="YYYY"
+          inputMode="numeric"
+          autoComplete="bday-year"
+        />
+        <Input
+          value={props.birthMonth}
+          onChange={(e) => props.setBirthMonth(e.target.value.replace(/\D/g, "").slice(0, 2))}
+          placeholder="MM"
+          inputMode="numeric"
+          autoComplete="bday-month"
+        />
+        <Input
+          value={props.birthDay}
+          onChange={(e) => props.setBirthDay(e.target.value.replace(/\D/g, "").slice(0, 2))}
+          placeholder="DD"
+          inputMode="numeric"
+          autoComplete="bday-day"
+        />
+      </div>
+      <p className="text-[10px] text-muted-foreground leading-relaxed">
+        생년월일은 연령 확인에 사용됩니다. 허위 기재 시 약관에 따라 계정이 제한될 수 있습니다.
+      </p>
       <Button type="button" className="w-full h-11 mt-2" disabled={props.pending} onClick={props.onSubmit}>
         가입하고 이메일 인증
       </Button>

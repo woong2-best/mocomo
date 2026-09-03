@@ -4,6 +4,7 @@ import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { getMarketplaceListing } from "@/actions/marketplace";
 import { listingTypeLabel } from "@/lib/marketplace/constants";
 import { isPaymentsConfigured } from "@/lib/payments";
+import { canViewNsfwResource } from "@/lib/nsfw-viewer-access";
 
 export async function GET(
   req: NextRequest,
@@ -21,6 +22,17 @@ export async function GET(
   const listing = await getMarketplaceListing(id);
   if (!listing || listing.status !== "ACTIVE") {
     return NextResponse.json({ error: "상품을 찾을 수 없습니다." }, { status: 404 });
+  }
+
+  if (
+    listing.isNsfw &&
+    !(await canViewNsfwResource({
+      viewerId,
+      ownerId: listing.sellerId,
+      isNsfw: true,
+    }))
+  ) {
+    return NextResponse.json({ error: "성인 콘텐츠는 열람할 수 없습니다." }, { status: 403 });
   }
 
   return NextResponse.json({

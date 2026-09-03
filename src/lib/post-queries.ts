@@ -11,6 +11,7 @@ import { postCollaboratorsHeaderInclude } from "@/lib/post-collaborator-select";
 import { canViewLockedAccountContent } from "@/lib/posts-lock";
 import type { ContentVisibility, Prisma } from "@prisma/client";
 import { rewritePaidVideoSrc } from "@/lib/paid-media-playback";
+import { canViewNsfwResource, type PostNsfwBlocked } from "@/lib/nsfw-viewer-access";
 
 type PostDetailMedia = {
   id: string;
@@ -69,10 +70,26 @@ export function isPostDetailAudienceLocked(
   return !!post && "audienceLocked" in post && post.audienceLocked === true;
 }
 
+export function isPostDetailNsfwBlocked(
+  post: Awaited<ReturnType<typeof getPostDetail>>
+): post is PostNsfwBlocked {
+  return !!post && "nsfwBlocked" in post && post.nsfwBlocked === true;
+}
+
 export async function getPostDetail(id: string, viewerId?: string) {
   try {
     const post = await db.post.findUnique({ where: { id }, select: postDetailSelect });
     if (!post) return null;
+    if (
+      post.isNsfw &&
+      !(await canViewNsfwResource({
+        viewerId,
+        ownerId: post.authorId,
+        isNsfw: true,
+      }))
+    ) {
+      return { nsfwBlocked: true as const } satisfies PostNsfwBlocked;
+    }
     const allowed = await canViewLockedAccountContent(
       post.authorId,
       viewerId,
@@ -86,6 +103,16 @@ export async function getPostDetail(id: string, viewerId?: string) {
     console.error("[getPostDetail]", e);
     const post = await db.post.findUnique({ where: { id }, select: postDetailSelectNoReposts });
     if (!post) return null;
+    if (
+      post.isNsfw &&
+      !(await canViewNsfwResource({
+        viewerId,
+        ownerId: post.authorId,
+        isNsfw: true,
+      }))
+    ) {
+      return { nsfwBlocked: true as const } satisfies PostNsfwBlocked;
+    }
     const allowed = await canViewLockedAccountContent(
       post.authorId,
       viewerId,

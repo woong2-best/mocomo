@@ -7,6 +7,7 @@ import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { fetchFeedAdPool } from "@/lib/feed-ads";
 import { mixFeedWithAds } from "@/lib/feed-mixer";
+import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,19 +29,22 @@ export async function GET(req: NextRequest) {
           ? "for_you"
           : "latest";
 
+    const viewerUserId = session?.user?.id;
+    const canViewNsfw = await resolveCanViewNsfw(viewerUserId);
+
     const posts = await resolveFeedPage({
-      userId: session?.user?.id ?? null,
+      userId: viewerUserId ?? null,
       mode,
       cursor,
       limit,
       variant: "web",
+      canViewNsfw,
     });
     const visible = await filterPostsByAudienceLock(
       posts.map((p) => ({ ...p, authorId: p.author.id })),
       session?.user?.id ?? null
     );
     const postIds = visible.map((p) => p.id);
-    const viewerUserId = session?.user?.id;
 
     const [gated, engagement, feedAds] = await Promise.all([
       attachWebPaidMediaPlayback(visible, viewerUserId ?? null),

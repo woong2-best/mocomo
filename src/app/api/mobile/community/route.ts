@@ -3,6 +3,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { createCommunityForUser } from "@/lib/community-mobile-mutate";
 import { getCachedMobileCommunities } from "@/lib/mobile-public-lists";
+import { filterNsfwItems, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-community-list", 60);
@@ -11,7 +12,9 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() || undefined;
   const take = Math.min(Number(req.nextUrl.searchParams.get("take") ?? "80") || 80, 200);
 
-  const communities = await getCachedMobileCommunities(take, q);
+  const viewerId = await getMobileUserId(req);
+  const canViewNsfw = await resolveCanViewNsfw(viewerId);
+  const communities = filterNsfwItems(await getCachedMobileCommunities(take, q), canViewNsfw);
 
   return NextResponse.json(
     {

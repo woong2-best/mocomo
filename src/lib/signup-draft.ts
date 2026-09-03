@@ -14,6 +14,9 @@ export type SignupDraft = {
   countryCode: string;
   timeZone: string;
   homeFloor: number;
+  birthYear: number;
+  birthMonth: number;
+  birthDay: number;
 };
 
 export function saveSignupDraft(draft: SignupDraft): void {
@@ -30,6 +33,13 @@ export function loadSignupDraft(): SignupDraft | null {
     if (!parsed.email || !parsed.username || !parsed.password) return null;
     if (typeof parsed.homeFloor !== "number") {
       parsed.homeFloor = 500;
+    }
+    if (
+      typeof parsed.birthYear !== "number" ||
+      typeof parsed.birthMonth !== "number" ||
+      typeof parsed.birthDay !== "number"
+    ) {
+      return null;
     }
     parsed.locale = normalizeLocale(parsed.locale, DEFAULT_GUEST_LOCALE);
     if (!parsed.timeZone) {

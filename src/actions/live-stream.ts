@@ -42,6 +42,7 @@ import { revalidateLiveHubCache } from "@/lib/live-hub-data";
 import { autoEndAbandonedLiveChannels } from "@/lib/live-abandon";
 import { assertLiveHostEligible, fetchLiveHostEligibility } from "@/lib/live-host-eligibility";
 import { assertFirstPartyLiveEnabled } from "@/lib/live-feature";
+import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 
 function mapLiveChatMessage(m: {
   id: string;
@@ -136,6 +137,18 @@ export async function createLiveStream(data: {
       visibility === "PRIVATE" ? (data.minViewerTier ?? "BRONZE") : null;
     const contentRating = data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL");
     const isNsfw = data.isNsfw ?? contentRating === "ADULT";
+
+    if (isNsfw) {
+      const nsfwUser = await db.user.findUnique({
+        where: { id: user.id },
+        select: nsfwViewerSelect,
+      });
+      const publishErr = assertCanPublishNsfwContent(
+        nsfwUser ?? { id: user.id, birthDate: null },
+        true
+      );
+      if (publishErr) return { error: publishErr };
+    }
 
     if (data.broadcastMode === "VOICE") {
       return { error: "보이스 라이브는 더 이상 지원하지 않습니다. 영상 방송을 이용해 주세요." };
@@ -894,6 +907,18 @@ export async function updateLiveStreamSettings(
   const isNsfw =
     data.isNsfw ??
     (contentRating === "ADULT" ? true : contentRating === "GENERAL" ? false : undefined);
+
+  if (isNsfw === true) {
+    const nsfwUser = await db.user.findUnique({
+      where: { id: user.id },
+      select: nsfwViewerSelect,
+    });
+    const publishErr = assertCanPublishNsfwContent(
+      nsfwUser ?? { id: user.id, birthDate: null },
+      true
+    );
+    if (publishErr) return { error: publishErr };
+  }
 
   await db.voiceChannel.update({
     where: { id: channelId },

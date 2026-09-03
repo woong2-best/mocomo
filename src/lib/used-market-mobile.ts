@@ -36,7 +36,7 @@ const usedMarketUserSelect = {
   countryCode: true,
   phoneVerified: true,
   usedMarketBannedAt: true,
-  adultVerifiedAt: true,
+  birthDate: true,
 } as const;
 
 async function loadUsedMarketUser(userId: string) {

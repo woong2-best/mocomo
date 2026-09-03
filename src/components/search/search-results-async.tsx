@@ -11,6 +11,7 @@ import { userDisplayName } from "@/lib/user-public-select";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { recordSearchEvent } from "@/lib/search/record";
 import { getRelatedSearchQueries } from "@/lib/search/suggest";
+import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 export async function SearchResultsAsync({ query }: { query: string }) {
   if (!query) return null;
@@ -22,10 +23,14 @@ export async function SearchResultsAsync({ query }: { query: string }) {
   }
 
   const searchKey = q.toLowerCase().slice(0, 80);
-  const [viewerId, locale] = await Promise.all([getAuthUserId(), getRequestLocale()]);
+  const viewerId = await getAuthUserId();
+  const [locale, canViewNsfw] = await Promise.all([
+    getRequestLocale(),
+    resolveCanViewNsfw(viewerId),
+  ]);
   const cached = await unstable_cache(
-    () => runFastSearch(q),
-    ["fast-search-page-v2", searchKey],
+    () => runFastSearch(q, canViewNsfw),
+    ["fast-search-page-v3-nsfw", searchKey, canViewNsfw ? "adult" : "safe"],
     { revalidate: 30 }
   )();
   const users = await enrichSearchUsersWithFollowStatus(viewerId, cached.users);

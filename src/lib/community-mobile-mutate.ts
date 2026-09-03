@@ -9,6 +9,7 @@ import { loadMemberPermissions } from "@/lib/community-server/member-permissions
 import { hasPermission } from "@/lib/community-server/permissions";
 import { COMMUNITIES_LIST_CACHE_TAG } from "@/lib/cache-tags";
 import { prismaErrorMessage } from "@/lib/prisma-user-error";
+import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 
 function revalidateCommunitiesList(slug?: string) {
   after(() => {
@@ -45,6 +46,19 @@ export async function createCommunityForUser(
   }
 
   const description = data.description?.trim() || null;
+  const isNsfw = data.isNsfw ?? false;
+
+  if (isNsfw) {
+    const nsfwUser = await db.user.findUnique({
+      where: { id: userId },
+      select: nsfwViewerSelect,
+    });
+    const publishErr = assertCanPublishNsfwContent(
+      nsfwUser ?? { id: userId, birthDate: null },
+      true
+    );
+    if (publishErr) return { error: publishErr };
+  }
 
   try {
     for (let attempt = 0; attempt < 4; attempt++) {
@@ -58,7 +72,7 @@ export async function createCommunityForUser(
               slug,
               description,
               category,
-              isNsfw: data.isNsfw ?? false,
+              isNsfw,
               creatorId: userId,
               memberCount: 1,
             },
