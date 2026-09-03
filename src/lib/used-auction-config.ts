@@ -4,8 +4,19 @@ export const DEFAULT_PAYMENT_DEADLINE_HOURS = 5;
 /** 차순위 협상 제한 (시간) */
 export const DEFAULT_NEGOTIATION_DEADLINE_HOURS = 24;
 
-/** 향후 입찰 보증금 — 현재 비활성 */
+/** 향후 입찰 보증금 — Stripe auth hold (USD) */
 export const DEFAULT_DEPOSIT_RATE = 0.05;
+
+/** Bid auth hold minimum (USD cents) — no Stripe fee until capture */
+export const USED_AUCTION_MIN_BID_HOLD_USD_CENTS = 50;
+
+/** Winning bid capture floor (USD cents) — $0.30 Stripe fixed fee */
+export const USED_AUCTION_MIN_CAPTURABLE_USD_CENTS = 500;
+
+/** Card authorization validity — re-auth cron fires before expiry */
+export const USED_AUCTION_HOLD_AUTH_DAYS = 7;
+
+export const USED_AUCTION_REAUTH_LEAD_HOURS = 24;
 
 export type UsedAuctionConfigSlice = {
   depositEnabled: boolean;

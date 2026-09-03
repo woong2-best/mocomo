@@ -1,7 +1,11 @@
 /**
- * Tracking provider interface — Manual now; AfterShip / Shippo / EasyPost / 17TRACK later.
- * Swap implementation in getTrackingProvider() without changing order/shipment callers.
+ * Tracking provider interface — Manual default; 17TRACK when API key configured.
  */
+
+import {
+  SeventeenTrackProvider,
+  get17TrackApiKey,
+} from "@/lib/marketplace/tracking/providers/17track";
 
 export type TrackingSnapshot = {
   status: string;
@@ -13,13 +17,13 @@ export type TrackingSnapshot = {
 
 export type TrackingProvider = {
   id: string;
-  /** Register or refresh tracking with external API (no-op for manual) */
   registerTracking(input: {
     carrierId: string;
     trackingNumber: string;
     trackingSlug?: string;
+    orderId?: string;
+    destinationCountry?: string | null;
   }): Promise<{ externalId?: string } | { error: string }>;
-  /** Fetch live status (manual returns null — UI shows stored status only) */
   fetchTracking(input: {
     carrierId: string;
     trackingNumber: string;
@@ -41,15 +45,17 @@ export class ManualTrackingProvider implements TrackingProvider {
 
 let cached: TrackingProvider | null = null;
 
-/** Override with AfterShip etc. via env later, e.g. TRACKING_PROVIDER=aftership */
 export function getTrackingProvider(): TrackingProvider {
   if (cached) return cached;
   const name = process.env.MARKETPLACE_TRACKING_PROVIDER?.trim().toLowerCase();
-  if (name === "aftership" || name === "shippo" || name === "easypost" || name === "17track") {
-    // Placeholder — implement adapters under ./providers/* when API keys exist
-    cached = new ManualTrackingProvider();
-  } else {
-    cached = new ManualTrackingProvider();
+  if (name === "17track" && get17TrackApiKey()) {
+    cached = new SeventeenTrackProvider();
+    return cached;
   }
+  cached = new ManualTrackingProvider();
   return cached;
+}
+
+export function resetTrackingProviderCache() {
+  cached = null;
 }

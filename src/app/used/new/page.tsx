@@ -3,21 +3,24 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { UsedPostForm } from "@/components/used/used-post-form";
-import { isUsedMarketEligible, usedMarketUnsupportedCountryMsg } from "@/lib/used-bank-auth";
-import { walletSettlementPath } from "@/lib/settlement-account";
+import { isUsedMarketEligible } from "@/lib/used-bank-auth";
+import { usedMarketVerifyPath } from "@/lib/used-market-verify-path";
 import { isUsedAdultVerified } from "@/lib/used-youth-protection";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { assertUsedMarketCountryAllowed } from "@/lib/used-regions-global";
+import { usedMarketBlockedRegionMsg } from "@/lib/used-bank-auth";
 
 export default async function UsedNewPage() {
   const user = await getCachedCurrentUser();
   if (!user) redirect("/auth/signin?callbackUrl=/used/new");
   const { locale } = await getServerTranslator();
 
-  if (user.countryCode.toUpperCase() !== "KR") {
+  const regionErr = assertUsedMarketCountryAllowed(user.countryCode);
+  if (regionErr) {
     return (
       <AppPageChrome maxWidth="lg" spacing="sm" className="py-8 text-center">
-        <p className="text-muted-foreground">{usedMarketUnsupportedCountryMsg(locale)}</p>
+        <p className="text-muted-foreground">{usedMarketBlockedRegionMsg(locale)}</p>
         <Link href="/used" className="text-primary underline text-sm">
           {locale === "en" ? "Back to marketplace" : "중고거래 홈으로"}
         </Link>
@@ -26,7 +29,7 @@ export default async function UsedNewPage() {
   }
 
   if (!isUsedMarketEligible(user)) {
-    redirect(walletSettlementPath("/used/new"));
+    redirect(usedMarketVerifyPath("/used/new", user.countryCode));
   }
 
   const sns = user.profile?.snsLinks as { location?: string } | null | undefined;

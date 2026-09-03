@@ -15,6 +15,9 @@ import {
 import { markAllNotificationsReadAction, markNotificationRead, deleteAllEconomyNotificationsAction } from "@/actions/notifications";
 import { dispatchNotificationsRead } from "@/lib/notification-read-sync";
 import { CollabInviteNotificationActions } from "@/components/notifications/collab-invite-notification-actions";
+import { isAptPublicEnabled } from "@/lib/apt-public-gate";
+
+const APT_ECONOMY_FILTER_IDS = new Set(["economy", "market", "shop", "flea"]);
 
 const FILTERS: { id: string; label: string; category: string | null }[] = [
   { id: "all", label: "전체", category: null },
@@ -95,18 +98,26 @@ export function NotificationsFeedClient({
     }
   }
 
+  const visibleFilters = FILTERS.filter(
+    (f) => isAptPublicEnabled() || !APT_ECONOMY_FILTER_IDS.has(f.id)
+  );
+
+  const visibleItems = isAptPublicEnabled()
+    ? items
+    : items.filter((n) => n.source !== "apt");
+
   const filtered =
     filter === "all"
-      ? items
+      ? visibleItems
       : filter === "economy"
-        ? items.filter((n) => n.source === "apt")
-        : items.filter((n) => notificationCategoryForType(n.type) === filter);
+        ? visibleItems.filter((n) => n.source === "apt")
+        : visibleItems.filter((n) => notificationCategoryForType(n.type) === filter);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-1.5">
-          {FILTERS.map((f) => (
+          {visibleFilters.map((f) => (
             <button
               key={f.id}
               type="button"
@@ -122,7 +133,7 @@ export function NotificationsFeedClient({
             </button>
           ))}
         </div>
-        {filter === "economy" && items.some((n) => n.source === "apt") && (
+        {isAptPublicEnabled() && filter === "economy" && items.some((n) => n.source === "apt") && (
           <Button
             variant="ghost"
             size="sm"

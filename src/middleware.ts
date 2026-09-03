@@ -16,6 +16,7 @@ import {
   studioInternalPath,
 } from "@/studio/lib/host";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { isAptPublicBlockedPath } from "@/lib/apt-public-gate";
 import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
 import { getOperatorUsername } from "@/lib/operator-config";
 import {
@@ -129,6 +130,18 @@ export default edgeAuth(async (req) => {
     req.nextUrl.hostname
   );
   const { pathname } = req.nextUrl;
+
+  if (isAptPublicBlockedPath(pathname)) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "APT is temporarily unavailable." }, { status: 503 });
+    }
+    const url = req.nextUrl.clone();
+    url.pathname = DEFAULT_LANDING_PATH;
+    url.search = "";
+    const res = NextResponse.redirect(url);
+    stampAppClientIfNeeded(req, res);
+    return res;
+  }
 
   if (isPaymentGuardPath(pathname)) {
     const geoCountry = getRequestCountryFromHeaders(req.headers);

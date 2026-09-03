@@ -82,6 +82,8 @@ export const MobileApi = {
   creatorDmMarketing: "/api/mobile/me/creator-dm-marketing",
   creatorDmMarketingBulk: "/api/mobile/me/creator-dm-marketing/bulk",
   starMarketCheckout: (id: string) => `/api/mobile/market/${id}/checkout`,
+  starMarketDirectCheckout: (id: string) => `/api/mobile/market/${id}/direct-checkout`,
+  starMarketCheckoutMode: "/api/market/checkout-mode",
   liveAlerts: (id: string) => `/api/mobile/live/${id}/alerts`,
   games: "/api/mobile/games",
   highlights: "/api/mobile/highlights",

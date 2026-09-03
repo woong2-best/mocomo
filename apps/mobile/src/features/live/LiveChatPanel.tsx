@@ -19,8 +19,11 @@ import {
 } from "@/api/live";
 import { ApiError } from "@/api/client";
 import { alertToChatLine } from "@/lib/live-support";
+import { commentDonationPinMs } from "@/lib/comment-donation";
 import { LiveSupportPanels } from "@/features/live/LiveSupportPanels";
 import { LiveSupportSheet } from "@/features/live/LiveSupportSheet";
+import { CommentDonationCard, CommentDonationTicker } from "@/features/live/CommentDonationCard";
+import { CommentDonationSheet } from "@/features/live/CommentDonationSheet";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { LinkifiedText } from "@/ui/LinkifiedText";
 import { SupportTierBadge } from "@/ui/SupportTierBadge";
@@ -35,9 +38,9 @@ type Props = {
   paymentsEnabled?: boolean;
   hostDisplayName?: string;
   hostUserId?: string;
+  hostUsername?: string;
   pinnedMessage?: string | null;
   currentUserId?: string;
-  onTipPress?: () => void;
   streamStartedAt?: string;
 };
 
@@ -49,9 +52,9 @@ export function LiveChatPanel({
   paymentsEnabled,
   hostDisplayName,
   hostUserId,
+  hostUsername,
   pinnedMessage,
   currentUserId,
-  onTipPress,
   streamStartedAt,
 }: Props) {
   const { colors } = useTheme();
@@ -61,7 +64,8 @@ export function LiveChatPanel({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [supportOpen, setSupportOpen] = useState(false);
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [cheerOpen, setCheerOpen] = useState(false);
   const [missionOpen, setMissionOpen] = useState(false);
   const sinceRef = useRef(0);
   const alertSinceRef = useRef(
@@ -198,6 +202,15 @@ export function LiveChatPanel({
 
   const showDonationActions = !isHost && !!hostUserId;
 
+  const pinnedTip = useMemo(() => {
+    const tips = messages.filter((m) => m.messageKind === "tip");
+    if (tips.length === 0) return null;
+    const latest = tips[tips.length - 1]!;
+    const pinMs = commentDonationPinMs(latest.supportAmount ?? 0);
+    if (Date.now() - latest.at > pinMs) return null;
+    return latest;
+  }, [messages]);
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -238,8 +251,11 @@ export function LiveChatPanel({
           ListEmptyComponent={
             <Text style={styles.empty}>아직 채팅이 없습니다. 첫 메시지를 남겨 보세요.</Text>
           }
+          ListHeaderComponent={pinnedTip ? <CommentDonationTicker message={pinnedTip} /> : null}
           renderItem={({ item }) =>
-            item.messageKind ? (
+            item.messageKind === "tip" ? (
+              <CommentDonationCard message={item} />
+            ) : item.messageKind ? (
               <SupportLine message={item} colors={colors} />
             ) : (
               <View style={styles.row}>
@@ -261,16 +277,16 @@ export function LiveChatPanel({
 
       {showDonationActions ? (
         <View style={styles.actionRow}>
-          <Pressable style={styles.actionBtn} onPress={() => setSupportOpen(true)}>
-            <Ionicons name="heart" size={14} color="#eab308" />
-            <Text style={styles.actionText}>채팅후원</Text>
-          </Pressable>
           {paymentsEnabled ? (
-            <Pressable style={styles.actionBtn} onPress={onTipPress}>
-              <Ionicons name="cash" size={14} color={colors.cobalt} />
-              <Text style={styles.actionText}>후원</Text>
+            <Pressable style={styles.actionBtn} onPress={() => setCommentOpen(true)}>
+              <Ionicons name="logo-usd" size={14} color="#059669" />
+              <Text style={styles.actionText}>댓글후원</Text>
             </Pressable>
           ) : null}
+          <Pressable style={styles.actionBtn} onPress={() => setCheerOpen(true)}>
+            <Ionicons name="heart" size={14} color="#eab308" />
+            <Text style={styles.actionText}>응원 CP</Text>
+          </Pressable>
           <Pressable style={styles.actionBtn} onPress={() => setMissionOpen(true)}>
             <Ionicons name="flag" size={14} color={colors.terracotta} />
             <Text style={styles.actionText}>미션</Text>
@@ -290,6 +306,11 @@ export function LiveChatPanel({
           onSubmitEditing={() => void onSend()}
           returnKeyType="send"
         />
+        {paymentsEnabled && hostUserId && hostUsername ? (
+          <Pressable style={styles.dollarBtn} onPress={() => setCommentOpen(true)}>
+            <Ionicons name="logo-usd" size={18} color="#059669" />
+          </Pressable>
+        ) : null}
         <Pressable
           style={[styles.send, (!draft.trim() || sending) && styles.sendDisabled]}
           disabled={!draft.trim() || sending}
@@ -303,11 +324,20 @@ export function LiveChatPanel({
         </Pressable>
       </View>
 
-      {hostDisplayName ? (
+      {hostDisplayName && hostUserId && hostUsername ? (
         <>
+          <CommentDonationSheet
+            visible={commentOpen}
+            onClose={() => setCommentOpen(false)}
+            creatorId={hostUserId}
+            username={hostUsername}
+            displayName={hostDisplayName}
+            channelId={channelId}
+            onSuccess={onSupportRefresh}
+          />
           <LiveSupportSheet
-            visible={supportOpen}
-            onClose={() => setSupportOpen(false)}
+            visible={cheerOpen}
+            onClose={() => setCheerOpen(false)}
             channelId={channelId}
             hostDisplayName={hostDisplayName}
             onSuccess={onSupportRefresh}
@@ -457,5 +487,15 @@ function createStyles(colors: ThemeColors) {
     },
     sendDisabled: { opacity: 0.45 },
     sendText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+    dollarBtn: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      borderRadius: radii.md,
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surface,
+    },
   });
 }

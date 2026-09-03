@@ -3,21 +3,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { startUsedTradeChat } from "@/actions/used-market";
-import { walletSettlementPath, SETTLEMENT_ACCOUNT_REQUIRED_MSG } from "@/lib/settlement-account";
-import { USED_BANK_REQUIRED_MSG } from "@/lib/used-bank-auth";
-import { MessageSquare } from "lucide-react";
+import { usedMarketVerifyPath } from "@/lib/used-market-verify-path";
 import { Button } from "@/components/ui/button";
 
-function needsSettlementAccount(error: string) {
+function needsVerification(error: string) {
   return (
-    error === USED_BANK_REQUIRED_MSG ||
-    error === SETTLEMENT_ACCOUNT_REQUIRED_MSG ||
+    error.includes("인증") ||
+    error.includes("verification") ||
     error.includes("입금 계좌") ||
-    error.includes("계좌 1원")
+    error.includes("휴대폰")
   );
 }
 
-export function UsedTradeChatButton({ listingId }: { listingId: string }) {
+export function UsedTradeChatButton({
+  listingId,
+  countryCode = "KR",
+}: {
+  listingId: string;
+  countryCode?: string;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,8 +32,8 @@ export function UsedTradeChatButton({ listingId }: { listingId: string }) {
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (needsSettlementAccount(res.error)) {
-        router.push(walletSettlementPath(`/used/${listingId}`));
+      if (needsVerification(res.error)) {
+        router.push(usedMarketVerifyPath(`/used/${listingId}`, countryCode));
         return;
       }
       setError(res.error);

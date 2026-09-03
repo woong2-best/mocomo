@@ -4,12 +4,18 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
+import { getUsedListingMarketplaceOrderId, usedOrderLink } from "@/lib/used-auction-marketplace-order";
 
-/** 낙찰자 — 결제 완료 신고 (5시간 이내) */
+/** 낙찰자 — Stripe 주문이 있으면 주문 페이지로, 없으면 honor 결제 완료 신고 */
 export async function markAuctionPaymentComplete(listingId: string) {
   const user = await requireAuth();
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
+
+  const orderId = await getUsedListingMarketplaceOrderId(listingId);
+  if (orderId) {
+    return { success: true, orderId, redirectPath: usedOrderLink(orderId) };
+  }
 
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.saleType !== "AUCTION") {
@@ -53,6 +59,7 @@ export async function getAuctionPaymentStatus(listingId: string) {
         currentBidAmount: true,
         price: true,
         forfeitedWinnerCount: true,
+        marketplaceOrderId: true,
       },
     });
     return { listing };

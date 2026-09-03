@@ -1,4 +1,7 @@
+import { redirect } from "next/navigation";
 import { getCachedCurrentUser } from "@/lib/auth";
+import { isAptPublicEnabled } from "@/lib/apt-public-gate";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { getAptProfile } from "@/actions/apt";
 import { bondeeFromAptProfile } from "@/lib/apt/bondee/bondee-profile";
 import { getAptStudioInventory } from "@/studio/actions/library";
@@ -16,6 +19,10 @@ export const aptHubMetadata = {
 };
 
 export async function AptHubPage() {
+  if (!isAptPublicEnabled()) {
+    redirect(DEFAULT_LANDING_PATH);
+  }
+
   let user = null;
   let profile = null;
   let studioInventory: Awaited<ReturnType<typeof getAptStudioInventory>> = [];

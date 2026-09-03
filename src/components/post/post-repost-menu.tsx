@@ -13,6 +13,7 @@ import { useComposeOptional } from "@/components/compose/compose-provider";
 import { postEngage } from "@/lib/post-engage-client";
 import { buildPostRepostQuoteDraft } from "@/lib/post-share";
 import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
+import { isAptPublicEnabled } from "@/lib/apt-public-gate";
 import { cn, formatNumber } from "@/lib/utils";
 
 type PostRepostMenuProps = {
@@ -117,12 +118,14 @@ export function PostRepostMenu({
       });
       return;
     }
-    router.push(
-      buildAptMailboxUrl({
-        initialContent: quoteBlock,
-        initialTitle: `@${authorUsername} 인용`,
-      })
-    );
+    if (isAptPublicEnabled()) {
+      router.push(
+        buildAptMailboxUrl({
+          initialContent: quoteBlock,
+          initialTitle: `@${authorUsername} 인용`,
+        })
+      );
+    }
   }
 
   return (

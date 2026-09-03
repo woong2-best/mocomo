@@ -1,18 +1,18 @@
 import { db } from "@/lib/db";
 import {
-  AUTO_CONFIRM_DAYS_AFTER_DELIVERY,
   computeMarketplaceFees,
 } from "@/lib/marketplace/constants";
+import { marketplaceAutoConfirmAtFromDelivery, applyDeliveryFallbackBatch } from "@/lib/marketplace/delivery-pipeline";
 import { createNotification } from "@/lib/notifications";
-import { recordPlatformFee } from "@/lib/settlement";
 import { logMarketplaceAudit, MarketplaceAuditActions } from "@/lib/marketplace/audit";
 import {
   confirmAndMaybeSettle,
   releaseDueMarketplaceSettlementsBatch,
 } from "@/lib/marketplace/escrow";
+import { MARKETPLACE_DISPUTE_WINDOW_HOURS } from "@/lib/marketplace/protection-config";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
-/** 결제 완료 후 주문 활성화 — 재고 원자성. 판매자 정산은 구매확정(에스크로) 후. */
+/** 결제 승인( auth hold ) 후 주문 활성화 — 재고 원자성. 판매자 정산은 구매확정 후 capture. */
 export async function fulfillMarketplaceOrder(params: {
   marketplaceOrderId: string;
   paymentIntentDbId: string;
@@ -39,11 +39,22 @@ export async function fulfillMarketplaceOrder(params: {
   }
 
   const expected = order.subtotalAmount + order.shippingAmount;
-  if (expected !== params.amount) {
+  if (expected !== params.amount && !order.usedListingId) {
     return { error: "결제 금액이 주문과 일치하지 않습니다." };
+  }
+  if (order.usedListingId && params.amount < order.subtotalAmount) {
+    return { error: "결제 금액이 낙찰가보다 적습니다." };
   }
 
   for (const item of order.items) {
+    if (item.usedListingId) {
+      await db.usedListing.update({
+        where: { id: item.usedListingId },
+        data: { status: "RESERVED" },
+      });
+      continue;
+    }
+    if (!item.listingId) continue;
     if (item.listingType === "DIGITAL") continue;
     const updated = await db.marketplaceListing.updateMany({
       where: { id: item.listingId, stock: { gte: item.quantity } },
@@ -68,6 +79,7 @@ export async function fulfillMarketplaceOrder(params: {
   }
 
   for (const item of order.items) {
+    if (item.usedListingId || !item.listingId) continue;
     if (item.listingType !== "DIGITAL") continue;
     await db.marketplaceListing.update({
       where: { id: item.listingId },
@@ -130,9 +142,7 @@ export async function fulfillMarketplaceOrder(params: {
         update: {},
       });
     } else {
-      const confirmAt = new Date(
-        Date.now() + AUTO_CONFIRM_DAYS_AFTER_DELIVERY * 24 * 60 * 60 * 1000
-      );
+      const confirmAt = marketplaceAutoConfirmAtFromDelivery();
       await db.marketplaceOrder.update({
         where: { id: order.id },
         data: { status: "DELIVERED", autoConfirmAt: confirmAt },
@@ -140,14 +150,7 @@ export async function fulfillMarketplaceOrder(params: {
     }
   }
 
-  await recordPlatformFee(order.platformFeeAmount, {
-    referenceType: "marketplace",
-    referenceId: order.id,
-    paymentIntentId: params.paymentIntentDbId,
-    memo: `${MARKET_BRAND_NAME} 수수료 #${order.id.slice(0, 8)}`,
-  });
-
-  // Escrow: do NOT credit seller / Transfer until purchase confirm
+  // Platform fee + gross ledger recorded at capture (releaseMarketplaceEscrow)
 
   await db.marketplaceSellerProfile.updateMany({
     where: { userId: order.sellerId },
@@ -178,7 +181,9 @@ export async function fulfillMarketplaceOrder(params: {
     title: "결제가 완료되었습니다",
     body: holdForReview
       ? "안전 검토 후 주문 처리가 이어집니다."
-      : "주문 내역에서 배송·다운로드를 확인하세요. 구매 확정 전까지 결제금이 보호됩니다.",
+      : order.usedListingId
+        ? "주문 내역에서 배송·추적을 확인하세요. 배송 완료 후 72시간 뒤 자동 구매확정됩니다."
+        : "주문 내역에서 배송·다운로드를 확인하세요. 구매 확정 전까지 결제 승인(보류) 상태입니다.",
     link: `/market/orders/${order.id}`,
   });
 
@@ -204,6 +209,8 @@ export async function fulfillMarketplaceOrder(params: {
 }
 
 export async function autoConfirmMarketplaceOrdersBatch() {
+  const fallback = await applyDeliveryFallbackBatch(50);
+
   const due = await db.marketplaceOrder.findMany({
     where: {
       status: "DELIVERED",
@@ -224,14 +231,14 @@ export async function autoConfirmMarketplaceOrdersBatch() {
       userId: row.buyerId,
       type: "SYSTEM",
       title: "구매가 자동 확정되었습니다",
-      body: "배송 완료 후 7일이 지나 자동 확정되었습니다.",
+      body: `배송 완료 후 ${MARKETPLACE_DISPUTE_WINDOW_HOURS}시간이 지나 자동 구매확정되었습니다.`,
       link: `/market/orders/${row.id}`,
     });
     confirmed += 1;
   }
 
   const settlements = await releaseDueMarketplaceSettlementsBatch();
-  return { confirmed, ...settlements };
+  return { confirmed, ...settlements, deliveryFallback: fallback };
 }
 
 export { computeMarketplaceFees, releaseDueMarketplaceSettlementsBatch };

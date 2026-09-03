@@ -34,7 +34,7 @@ export type UsedListingCandidate = PipelineCandidate & {
 
 export type UsedMarketQuery = PipelineQuery & {
   userId: string | null;
-  countryCode: string;
+  countryCode: string | null;
   preferredRegion: string | null;
   preferredSido: string | null;
   params: UsedMarketParams;

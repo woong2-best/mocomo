@@ -23,6 +23,7 @@ import {
 } from "@/lib/marketplace-cart";
 import type { MarketplaceCheckoutBody } from "@/api/star-market";
 import { MarketplacePaymentSheet } from "@/payments/MarketplacePaymentSheet";
+import { fetchMarketplaceCheckoutMode } from "@/api/star-market";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -51,9 +52,18 @@ export function MarketCartScreen() {
     }, [reload])
   );
 
-  function checkout(item: MarketplaceCartItem) {
+  async function checkout(item: MarketplaceCartItem) {
     setPayItem(item);
-    setPayVisible(true);
+    try {
+      const mode = await fetchMarketplaceCheckoutMode(item.listingId, "US");
+      if (mode.mode === "BLOCKED" || mode.blocked) {
+        Alert.alert("이용 불가", mode.disclaimer);
+        return;
+      }
+      setPayVisible(true);
+    } catch {
+      Alert.alert("오류", "결제 정보를 불러오지 못했습니다.");
+    }
   }
 
   async function handlePaySuccess(item: MarketplaceCartItem) {

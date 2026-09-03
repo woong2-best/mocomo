@@ -1,4 +1,4 @@
-# Forensic Watermarking (web, paid video)
+# Forensic Watermarking (paid post media, creator episodes, paid DM media)
 
 Marks paid **image and video** playback with an invisible, per-viewing-session signal so a
 leaked screen capture can be traced back to the session it came from.
@@ -46,6 +46,7 @@ do not interact.
 | `POST /api/watermark/session` | authenticated, paid image/video, entitlement required |
 | `GET /api/media/paid/[id]` | authenticated, paid PostMedia image or video bytes |
 | `GET /api/media/paid/episode/[id]` | authenticated, paid creator-episode video bytes |
+| `GET /api/media/paid/message/[id]` | authenticated, paid DM attachment image or video bytes |
 | `POST /api/admin/watermark/detect` | admin, audited, returns a job id |
 | `GET /api/admin/watermark/detect/[jobId]` | admin, poll job result |
 | `GET /api/admin/watermark/sessions` | admin session list |
@@ -58,7 +59,8 @@ Admin UI lives at `/admin/watermark/forensics`. Detection reports one of
 1. The player requests `POST /api/watermark/session` as soon as paid image or video
    is opened — no view-time delay.
 2. The server confirms the viewer is actually entitled to that media — a
-   `PostMediaPurchase`, an active subscription, or a `CreatorEpisodePurchase` —
+   `PostMediaPurchase`, an active subscription, a `CreatorEpisodePurchase`, or a
+   `MessageAttachmentPurchase` —
    then creates a `WatermarkSession` and derives an opaque id from the master secret over
    (user, content, entitlement, nonce). No viewer identity travels to the client.
    The author is exempt: they are the rights holder, not a leak suspect.
@@ -79,11 +81,44 @@ detection needs them.
 Every surface that plays or shows a sale-priced image or video has to carry the mark, or the
 easiest capture path is also the unwatermarked one. Currently that means
 `ProtectedPaidMedia` (inline feed, post detail, profile grid, expand lightbox,
-creator-episode viewer) and `ReelsPlayer` (reels and the feed's full-screen
-viewer). Both take the media price and open a session from it. Episode playback
-sends `contentKind: "EPISODE"` so the session is bound to the episode purchase,
-not a PostMedia row. Paid images load through `/api/media/paid/[id]` so canvas
-embedding can read pixels same-origin.
+creator-episode viewer, paid DM fan-art) and `ReelsPlayer` (reels and the feed's
+full-screen viewer). Both take the media price and open a session from it. Episode
+playback sends `contentKind: "EPISODE"` so the session is bound to the episode
+purchase, not a PostMedia row. Paid images load through `/api/media/paid/[id]` so
+canvas embedding can read pixels same-origin.
+
+### Paid DM fan-art (messenger)
+
+Photos and videos sold inside a DM send `contentKind: "MESSAGE_ATTACHMENT"`, and
+the session binds to the `MessageAttachmentPurchase`. Bytes stream through
+`/api/media/paid/message/[id]`; `attachMessageMediaAccess` rewrites the stored
+URL to that path for anyone entitled and to `""` for anyone who is not, so the
+origin URL never reaches a chat payload — including the socket relay.
+
+Two constraints shape the chat UI:
+
+- The forensic canvas refuses to embed below `MIN_FORENSIC_VERIFY_LONG_EDGE`
+  (320 CSS px), because a smaller frame cannot recover enough quadrant bits.
+  Ordinary DM thumbnails are well under that, so paid media renders in a fixed
+  portrait card (280×380 web, 240×380 mobile) instead. Shrink that card and
+  the canvas will time out and block the media rather than show it unmarked.
+- Only `IMAGE` and `VIDEO` may carry a price. `sanitizeChatAttachments` drops a
+  price on any other type, so there is no sellable format the pipeline cannot mark.
+
+Paid DM media is also excluded from reply-quote thumbnails and from the mobile
+plain lightbox — those paths render raw pixels and would be an unmarked capture
+surface. Mobile shows paid DM media through `ForensicPaidVideoEmbed`, an
+authenticated WebView pointed at `/embed/paid-video/[id]?kind=message`
+(`&type=image` for photos), which runs the same web canvas pipeline.
+
+### The access reference
+
+`watermarkAccessRef()` (`src/lib/watermark/access-ref.ts`) is the single
+derivation of the entitlement reference mixed into the payload. Embedding
+(`createWatermarkSession`) and detection (`prepareCandidate`) both call it. If
+they ever derive it differently the recomputed codeword will not match and a
+leaked file becomes silently unattributable — a new content kind must be added
+there, not inlined at either call site.
 
 Playback compositing uses a 2D canvas at the element's on-screen size. The hidden
 `<video>` / plain `<img>` is not shown to buyers until the marked canvas is ready;
@@ -115,7 +150,8 @@ a crop, a logo or a black bar over part of the frame is survivable.
 
 Admin → Watermark Forensics.
 
-Supply the **media id** when you have it. Each session has its own carrier, so
+Supply the **media id** when you have it — for DM fan-art that is the
+`MessageAttachment` id. Each session has its own carrier, so
 the detector has to try candidate sessions; scoping to the leaked content limits
 that to the people who bought it. Without an id, only recent sessions across all
 content are searched, and an older leak can be missed.
@@ -161,6 +197,12 @@ Covers the pixel round trip, recovery after noise and the loss of a whole
 quadrant, refusal to attribute a clean or unrelated frame, per-frame embedding
 cost, Reed-Solomon behaviour, **display-size capture path** (PNG export roundtrip),
 and **screen-recording-style JPEG frames**.
+
+`message-attachment-forensic.test.ts` additionally proves the DM path: that paid
+attachment URLs are gated in every serialization branch, that the embed survives
+at each size the paid chat card actually paints at, and that a PNG screenshot of
+leaked fan-art resolves to the buyer's session — built from a stored session row
+whose only entitlement column is `messageAttachmentPurchaseId`.
 
 Manual E2E before release:
 

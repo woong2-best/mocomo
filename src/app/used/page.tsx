@@ -19,13 +19,14 @@ async function UsedFeed({
     q?: string;
     category?: string;
     region?: string;
+    country?: string;
     sido?: string;
     mode?: string;
     work?: string;
     product?: string;
   }>;
 }) {
-  const { q, category, region, sido, mode, work, product } = await searchParams;
+  const { q, category, region, country, sido, mode, work, product } = await searchParams;
 
   const [dbReady, listings, session] = await Promise.all([
     isUsedDbReady(),
@@ -33,6 +34,7 @@ async function UsedFeed({
       q,
       category,
       region,
+      country,
       sido,
       work,
       product,
@@ -88,6 +90,7 @@ export default async function UsedHomePage({
     q?: string;
     category?: string;
     region?: string;
+    country?: string;
     sido?: string;
     mode?: string;
     work?: string;

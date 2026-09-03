@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { isAptPublicEnabled } from "@/lib/apt-public-gate";
 import {
   ECONOMY_FEATURE_DEFAULTS,
   type EconomyFeatureFlags,
@@ -80,11 +81,13 @@ export async function isEconomyFeatureEnabledForUser(
   userId: string,
   key: EconomyFeatureKey
 ): Promise<boolean> {
+  if (!isAptPublicEnabled()) return false;
   const flags = await resolveFeatureFlagsForUser(userId);
   return flags[flagKeyToField(key)];
 }
 
 export async function isEconomyFeatureEnabled(key: EconomyFeatureKey): Promise<boolean> {
+  if (!isAptPublicEnabled()) return false;
   const flags = await getEconomyFeatureFlags();
   return flags[flagKeyToField(key)];
 }

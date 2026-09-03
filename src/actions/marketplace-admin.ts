@@ -18,8 +18,7 @@ import {
 } from "@/lib/marketplace/escrow";
 import { applyMarketplaceSanction, clearMarketplaceSanction } from "@/lib/marketplace/sanctions";
 import { MARKETPLACE_REPORT_ESCALATE_COUNT } from "@/lib/marketplace/protection-config";
-import { refreshSellerTrust } from "@/lib/marketplace/trust";
-import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { executeMarketplaceDisputeResolution } from "@/lib/marketplace/dispute-resolution";
 
 export async function resolveMarketplaceDispute(
   disputeId: string,
@@ -33,133 +32,21 @@ export async function resolveMarketplaceDispute(
     targetId: disputeId,
   });
 
-  const dispute = await db.marketplaceDispute.findUnique({
-    where: { id: disputeId },
-    include: { order: true },
-  });
-  if (!dispute) return { error: "분쟁을 찾을 수 없습니다." };
-
-  const status =
-    decision === "buyer"
-      ? "RESOLVED_BUYER"
-      : decision === "seller"
-        ? "RESOLVED_SELLER"
-        : "CLOSED";
-
-  await db.marketplaceDispute.update({
-    where: { id: disputeId },
-    data: {
-      status,
-      resolution:
-        note.trim() ||
-        (decision === "buyer"
-          ? "구매자 승"
-          : decision === "seller"
-            ? "판매자 승"
-            : "부분 환불"),
-      resolvedAt: new Date(),
-    },
-  });
-
-  if (decision === "buyer" || decision === "partial") {
-    const amount =
-      decision === "partial" && partialAmount && partialAmount > 0
-        ? Math.min(partialAmount, dispute.order.subtotalAmount + dispute.order.shippingAmount)
-        : dispute.order.subtotalAmount + dispute.order.shippingAmount;
-
-    let stripeRefundId: string | undefined;
-    if (isStripeConfigured() && dispute.order.stripePaymentIntentId) {
-      try {
-        const stripe = getStripe();
-        let paymentIntentId = dispute.order.stripePaymentIntentId;
-        if (paymentIntentId.startsWith("cs_")) {
-          const session = await stripe.checkout.sessions.retrieve(paymentIntentId);
-          paymentIntentId =
-            typeof session.payment_intent === "string"
-              ? session.payment_intent
-              : session.payment_intent?.id ?? paymentIntentId;
-        }
-        if (paymentIntentId.startsWith("pi_")) {
-          const refunded = await stripe.refunds.create({
-            payment_intent: paymentIntentId,
-            amount,
-          });
-          stripeRefundId = refunded.id;
-        }
-      } catch {
-        /* admin can retry */
-      }
-    }
-
-    await db.marketplaceRefund.create({
-      data: {
-        orderId: dispute.orderId,
-        requesterId: dispute.openerId,
-        reason: note.trim() || "분쟁 해결 환불",
-        amount,
-        status: stripeRefundId ? "COMPLETED" : "APPROVED",
-        stripeRefundId,
-        decidedAt: new Date(),
-      },
-    });
-
-    await db.marketplaceOrder.update({
-      where: { id: dispute.orderId },
-      data: {
-        status: "REFUNDED",
-        settlementStatus: "REVERSED",
-        escrowHeld: false,
-        settlementHeldReason: "분쟁 환불",
-      },
-    });
-    await db.marketplaceSellerProfile.updateMany({
-      where: { userId: dispute.order.sellerId },
-      data: { refundedOrderCount: { increment: 1 } },
-    });
-  } else {
-    // Seller wins → confirm and release escrow
-    await db.marketplaceOrder.update({
-      where: { id: dispute.orderId },
-      data: {
-        status: "CONFIRMED",
-        confirmedAt: new Date(),
-        settlementStatus: "READY",
-        adminReviewRequired: false,
-        settlementHeldReason: null,
-      },
-    });
-    await releaseMarketplaceEscrow(dispute.orderId, {
-      actorId: admin.id,
-      force: true,
-    });
-  }
-
-  await logMarketplaceAudit({
-    orderId: dispute.orderId,
+  const result = await executeMarketplaceDisputeResolution({
+    disputeId,
+    decision,
+    note,
+    partialAmount,
     actorId: admin.id,
-    action: MarketplaceAuditActions.DISPUTE_RESOLVE,
-    detail: `${decision}: ${note.slice(0, 200)}`,
   });
-
-  await refreshSellerTrust(dispute.order.sellerId).catch(() => null);
-
-  await createNotification({
-    userId: dispute.order.buyerId,
-    type: "SYSTEM",
-    title: "분쟁 처리 결과",
-    body: note.trim() || status,
-    link: `/market/orders/${dispute.orderId}`,
-  });
-  await createNotification({
-    userId: dispute.order.sellerId,
-    type: "SYSTEM",
-    title: "분쟁 처리 결과",
-    body: note.trim() || status,
-    link: `/market/orders/${dispute.orderId}`,
-  });
+  if ("error" in result) return result;
 
   revalidatePath("/admin/market");
-  revalidatePath(`/market/orders/${dispute.orderId}`);
+  const disputeRow = await db.marketplaceDispute.findUnique({
+    where: { id: disputeId },
+    select: { orderId: true },
+  });
+  if (disputeRow) revalidatePath(`/market/orders/${disputeRow.orderId}`);
   return { success: true };
 }
 

@@ -1,4 +1,5 @@
-import { APT_GAME_PATH } from "@/lib/site-routes";
+import { APT_GAME_PATH, DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { isAptPublicEnabled } from "@/lib/apt-public-gate";
 
 export type AptMailboxComposeParams = {
   communityId?: string;
@@ -8,6 +9,7 @@ export type AptMailboxComposeParams = {
 
 /** APT 우편함 배치·글쓰기 화면으로 이동하는 URL */
 export function buildAptMailboxUrl(params?: AptMailboxComposeParams): string {
+  if (!isAptPublicEnabled()) return DEFAULT_LANDING_PATH;
   const q = new URLSearchParams();
   q.set("decor", "mailbox");
   if (params?.communityId) q.set("community", params.communityId);

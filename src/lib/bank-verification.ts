@@ -134,10 +134,18 @@ export async function getBankVerificationStatusForUser(userId: string) {
       verified && bankLabel && user.settlementAccountLast4
         ? `${bankLabel} ${maskBankAccount(user.settlementAccountLast4)}`
         : null,
-    /** 중고거래 이용 자격 — KR 거주 + 계좌 인증 */
-    usedMarketEligible: user.countryCode.toUpperCase() === "KR" && verified,
+    /** 중고거래 이용 자격 — KR: 계좌 · 해외: 휴대폰 */
+    usedMarketEligible: (() => {
+      const cc = user.countryCode.toUpperCase();
+      if (cc === "KR") return verified && !!user.bankVerifiedAt;
+      return !!user.phoneVerified;
+    })(),
     /** @deprecated use usedMarketEligible */
-    eligible: user.countryCode.toUpperCase() === "KR" && verified,
+    eligible: (() => {
+      const cc = user.countryCode.toUpperCase();
+      if (cc === "KR") return verified && !!user.bankVerifiedAt;
+      return !!user.phoneVerified;
+    })(),
     legalName: user.name,
   };
 }

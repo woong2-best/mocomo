@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -369,19 +368,6 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
         />
       ) : null}
 
-      <View style={styles.nsfwRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.nsfwLabel}>NSFW</Text>
-          <Text style={styles.nsfwHint}>민감한 콘텐츠가 포함되면 켜 주세요</Text>
-        </View>
-        <Switch
-          value={isNsfw}
-          onValueChange={setIsNsfw}
-          disabled={busy}
-          trackColor={{ true: "#c80000" }}
-        />
-      </View>
-
       {poll ? (
         <PollEditor
           value={poll}
@@ -408,7 +394,7 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
       ) : null}
 
       <View style={styles.toolbar}>
-        <View style={styles.icons}>
+        <View style={styles.toolbarLeading}>
           <ToolIcon name="image-outline" onPress={() => void pickGallery()} disabled={busy} color={colors.terracotta} />
           <ToolIcon name="camera-outline" onPress={() => void takePhoto()} disabled={busy} color={colors.terracotta} />
           <ToolIcon name="videocam-outline" onPress={() => void recordVideo()} disabled={busy} color={colors.terracotta} />
@@ -424,6 +410,19 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
             disabled={busy}
             color={collaborators.length ? colors.brand : colors.terracotta}
           />
+          <Pressable
+            onPress={() => setIsNsfw((v) => !v)}
+            disabled={busy}
+            accessibilityLabel="NSFW"
+            accessibilityState={{ checked: isNsfw }}
+            hitSlop={6}
+          >
+            <Image
+              source={require("../../../assets/nsfw-button.png")}
+              style={[styles.nsfwBtn, !isNsfw && styles.nsfwBtnOff]}
+              contentFit="contain"
+            />
+          </Pressable>
         </View>
         <Pressable
           style={[styles.postBtn, (!canPost || busy) && styles.postBtnDisabled]}
@@ -837,21 +836,21 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surfaceRaised,
     },
     chipText: { color: colors.brand, fontWeight: "700", fontSize: 12 },
-    nsfwRow: {
-      marginTop: 10,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-    },
-    nsfwLabel: { fontSize: 13, fontWeight: "800", color: colors.text },
-    nsfwHint: { marginTop: 2, fontSize: 11, color: colors.textMuted, fontWeight: "600" },
     toolbar: {
       marginTop: 8,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
+      gap: 10,
     },
-    icons: { flexDirection: "row", gap: 18, alignItems: "center" },
+    toolbarLeading: { flex: 1, flexDirection: "row", gap: 14, alignItems: "center" },
+    nsfwBtn: {
+      width: 50,
+      height: 28,
+    },
+    nsfwBtnOff: {
+      opacity: 0.42,
+    },
     postBtn: {
       paddingHorizontal: 20,
       paddingVertical: 8,

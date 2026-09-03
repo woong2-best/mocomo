@@ -38,7 +38,7 @@ const CATEGORIES = [
   { id: "OTHER", label: "기타" },
 ] as const;
 
-const REGIONS = [
+const REGIONS_KR = [
   "전국 택배",
   "서울 강남구",
   "서울 마포구",
@@ -58,7 +58,8 @@ export function UsedCreateScreen() {
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState<"krw" | "usd">("krw");
   const [category, setCategory] = useState<string>("OTHER");
-  const [region, setRegion] = useState<string>("전국 택배");
+  const [region, setRegion] = useState<string>("Shipping");
+  const [regionText, setRegionText] = useState("");
   const [meetPlace, setMeetPlace] = useState("");
   const [meetCoords, setMeetCoords] = useState<MeetCoords | null>(null);
   const [countryCode, setCountryCode] = useState("KR");
@@ -75,9 +76,21 @@ export function UsedCreateScreen() {
       try {
         const status = await fetchUsedPhoneStatus();
         if (!alive) return;
-        if (status.countryCode) setCountryCode(status.countryCode);
+        if (status.countryCode) {
+          setCountryCode(status.countryCode);
+          if (status.countryCode.toUpperCase() !== "KR") {
+            setCurrency("usd");
+          }
+        }
+        if (status.countryCode?.toUpperCase() === "KR") {
+          setRegion("전국 택배");
+        }
         if (!status.eligible) {
-          navigation.replace("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" });
+          if (status.countryCode?.toUpperCase() === "KR") {
+            navigation.replace("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" });
+          } else {
+            navigation.replace("UsedPhoneVerify");
+          }
           return;
         }
       } catch {
@@ -132,13 +145,20 @@ export function UsedCreateScreen() {
         images.push(publicUrl);
       }
 
+      const submitRegion =
+        countryCode.toUpperCase() === "KR"
+          ? region
+          : region === "Shipping"
+            ? "Shipping"
+            : regionText.trim() || region;
+
       const res = await createMarketplaceListing({
         title: title.trim(),
         description: description.trim(),
         price: priceNum,
         currency,
         category,
-        region,
+        region: submitRegion,
         meetPlace: meetPlace.trim() || undefined,
         meetLat: meetCoords?.lat,
         meetLng: meetCoords?.lng,
@@ -161,13 +181,15 @@ export function UsedCreateScreen() {
           : e instanceof Error
             ? e.message
             : "등록에 실패했습니다.";
-      if (msg.includes("입금 계좌") || msg.includes("계좌 1원") || msg.includes("휴대폰")) {
-        Alert.alert("수익 입금 계좌 필요", msg, [
+      if (msg.includes("입금 계좌") || msg.includes("계좌 1원") || msg.includes("휴대폰") || msg.includes("인증")) {
+        Alert.alert("본인 확인 필요", msg, [
           { text: "취소", style: "cancel" },
           {
-            text: "지갑에서 등록",
+            text: countryCode.toUpperCase() === "KR" ? "지갑에서 등록" : "휴대폰 인증",
             onPress: () =>
-              navigation.replace("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" }),
+              countryCode.toUpperCase() === "KR"
+                ? navigation.replace("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" })
+                : navigation.replace("UsedPhoneVerify"),
           },
         ]);
       } else {
@@ -246,20 +268,60 @@ export function UsedCreateScreen() {
             ))}
           </View>
           <Text style={styles.label}>지역</Text>
-          <View style={styles.chips}>
-            {REGIONS.map((r) => (
-              <Pressable
-                key={r}
-                style={[styles.chip, region === r && styles.chipOn]}
-                onPress={() => {
-                  setRegion(r);
-                  setMeetCoords(null);
-                }}
-              >
-                <Text style={[styles.chipText, region === r && styles.chipTextOn]}>{r}</Text>
-              </Pressable>
-            ))}
-          </View>
+          {countryCode.toUpperCase() === "KR" ? (
+            <View style={styles.chips}>
+              {REGIONS_KR.map((r) => (
+                <Pressable
+                  key={r}
+                  style={[styles.chip, region === r && styles.chipOn]}
+                  onPress={() => {
+                    setRegion(r);
+                    setMeetCoords(null);
+                  }}
+                >
+                  <Text style={[styles.chipText, region === r && styles.chipTextOn]}>{r}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <View style={{ gap: spacing.sm }}>
+              <View style={styles.chips}>
+                {(["Shipping", "City"] as const).map((mode) => (
+                  <Pressable
+                    key={mode}
+                    style={[
+                      styles.chip,
+                      (mode === "Shipping" ? region === "Shipping" : region !== "Shipping") &&
+                        styles.chipOn,
+                    ]}
+                    onPress={() => {
+                      setRegion(mode === "Shipping" ? "Shipping" : "");
+                      setMeetCoords(null);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        (mode === "Shipping" ? region === "Shipping" : region !== "Shipping") &&
+                          styles.chipTextOn,
+                      ]}
+                    >
+                      {mode === "Shipping" ? "Shipping" : "City / area"}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              {region !== "Shipping" ? (
+                <TextInput
+                  style={styles.input}
+                  value={regionText}
+                  onChangeText={setRegionText}
+                  placeholder="e.g. Los Angeles, CA"
+                  placeholderTextColor={colors.textMuted}
+                />
+              ) : null}
+            </View>
+          )}
           <Text style={styles.label}>직거래 위치</Text>
           <MeetMap
             mode="pick"

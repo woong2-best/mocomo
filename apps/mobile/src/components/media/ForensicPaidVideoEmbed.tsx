@@ -9,16 +9,20 @@ import {
 type Props = {
   mediaId: string;
   contentKind?: WatermarkContentKind;
+  /** Paid photos run through the same handoff, rendered by the image canvas. */
+  mediaType?: "video" | "image";
   style?: object;
 };
 
 /**
- * Reuses the web ForensicVideoCanvas pipeline inside a authenticated WebView
- * so mobile paid playback carries the same invisible forensic signal as web.
+ * Reuses the web forensic canvas pipeline inside an authenticated WebView so
+ * mobile paid photo/video viewing carries the same invisible forensic signal
+ * as web. Nothing here ever receives the origin file URL.
  */
 export function ForensicPaidVideoEmbed({
   mediaId,
   contentKind = "POST_MEDIA",
+  mediaType = "video",
   style,
 }: Props) {
   const [handoffUrl, setHandoffUrl] = useState<string | null>(null);
@@ -28,7 +32,7 @@ export function ForensicPaidVideoEmbed({
     let cancelled = false;
     void (async () => {
       try {
-        const url = await createPaidVideoWebHandoff(mediaId, contentKind);
+        const url = await createPaidVideoWebHandoff(mediaId, contentKind, mediaType);
         if (!cancelled) setHandoffUrl(url);
       } catch (e) {
         if (!cancelled) {
@@ -39,7 +43,7 @@ export function ForensicPaidVideoEmbed({
     return () => {
       cancelled = true;
     };
-  }, [mediaId, contentKind]);
+  }, [mediaId, contentKind, mediaType]);
 
   if (error) {
     return (

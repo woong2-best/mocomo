@@ -24,8 +24,6 @@ type Tab = SupportEventType | "MISSION";
 
 const TABS: { id: Tab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: "GENERAL", label: "일반", icon: "heart" },
-  { id: "TTS", label: "TTS", icon: "megaphone" },
-  { id: "SOUND", label: "사운드", icon: "musical-notes" },
   { id: "ROULETTE", label: "룰렛", icon: "sync" },
   { id: "MISSION", label: "미션", icon: "flag" },
 ];
@@ -76,7 +74,6 @@ export function LiveSupportSheet({
         type,
         amount: effectiveAmount,
         message: message.trim() || undefined,
-        metadata: type === "SOUND" ? { soundId: "clap" } : undefined,
       });
       if (!res.ok || !res.event) {
         setError(res.error ?? "응원에 실패했습니다.");
@@ -141,8 +138,8 @@ export function LiveSupportSheet({
 
   return (
     <KeyboardSheet visible={visible} onClose={onClose} sheetStyle={{ backgroundColor: colors.surface }}>
-      <Text style={styles.title}>채팅후원 · CP</Text>
-      <Text style={styles.sub}>@{hostDisplayName.replace(/^@/, "")} · 결제 없이 응원 포인트</Text>
+      <Text style={styles.title}>라이브 응원 · CP</Text>
+      <Text style={styles.sub}>@{hostDisplayName.replace(/^@/, "")} · 유료 댓글 후원은 「댓글후원」 버튼</Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabs}>
         {TABS.map((t) => (
@@ -226,12 +223,12 @@ export function LiveSupportSheet({
             placeholderTextColor={colors.textMuted}
             keyboardType="number-pad"
           />
-          {(tab === "GENERAL" || tab === "TTS") && (
+          {tab === "GENERAL" && (
             <TextInput
               style={[styles.input, styles.textarea]}
               value={message}
               onChangeText={setMessage}
-              placeholder={tab === "TTS" ? "TTS로 읽을 메시지 (필수)" : "메시지 (선택)"}
+              placeholder="메시지 (선택)"
               placeholderTextColor={colors.textMuted}
               multiline
               maxLength={200}

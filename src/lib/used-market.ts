@@ -1,4 +1,11 @@
-import { getAllUsedRegions, isValidUsedRegion, KOREA_SIDO, USED_SHIPPING_REGION } from "@/lib/korea-regions";
+import { getAllUsedRegions, KOREA_SIDO, USED_SHIPPING_REGION } from "@/lib/korea-regions";
+import {
+  defaultUsedRegionForCountry,
+  isKoreaUsedMarketCountry,
+  isUsedShippingRegion,
+  isValidUsedRegion,
+  usedShippingRegionLabel,
+} from "@/lib/used-regions-global";
 import { meetExternalMapUrl } from "@/lib/maps/external-url";
 import type { MeetCoords } from "@/lib/maps/types";
 import { formatPrice, formatUsd, MAX_USED_LISTING_PRICE_KRW, MAX_USED_LISTING_PRICE_USD_CENTS } from "@/lib/money";
@@ -52,6 +59,13 @@ export const USED_CATEGORIES = [
 export const USED_REGIONS = getAllUsedRegions();
 
 export { KOREA_SIDO, USED_SHIPPING_REGION, isValidUsedRegion };
+export {
+  defaultUsedRegionForCountry,
+  isKoreaUsedMarketCountry,
+  isUsedShippingRegion,
+  usedShippingRegionLabel,
+  USED_GLOBAL_SHIPPING_REGION,
+} from "@/lib/used-regions-global";
 
 export function usedCategoryLabel(id: string) {
   return USED_CATEGORIES.find((c) => c.id === id)?.label ?? "기타";

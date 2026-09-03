@@ -1,0 +1,9 @@
+{
+  "syncedAt": "2026-03-03T00:00:00.000Z",
+  "source": "baseline",
+  "countries": [
+    "US", "CA", "GB", "DE", "FR", "IT", "ES", "NL", "BE", "AT", "CH", "IE", "PT", "FI", "SE", "NO", "DK",
+    "PL", "CZ", "SK", "HU", "RO", "BG", "HR", "SI", "LT", "LV", "EE", "LU", "MT", "CY", "GR",
+    "AU", "NZ", "SG", "HK", "JP", "MX", "BR", "AE", "IL", "IN", "MY", "TH", "PH", "TW"
+  ]
+}

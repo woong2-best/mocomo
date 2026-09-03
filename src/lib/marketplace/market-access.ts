@@ -1,62 +1,27 @@
 /**
- * 마켓플레이스 접근 — Stripe 지원 국가만 허용.
- * Stripe 미지원 국가(KR 등)는 커뮤니티는 이용 가능, 마켓/결제는 차단.
+ * 마켓플레이스 접근 — Stripe 지원 국가 ∩ OFAC comprehensive ∩ product policy.
+ * Stripe list ↔ OFAC list are maintained independently (see stripe-supported-countries + ofac-*).
  */
 
 import { getRequestCountryFromHeaders } from "@/lib/compliance/request-country";
-import { isOfacSanctionedCountry } from "@/lib/compliance/ofac-sanctioned-countries";
+import { isOfacComprehensiveEmbargoLocation } from "@/lib/compliance/ofac-comprehensive-embargo";
 import { normalizeSellerCountry } from "@/lib/marketplace/seller-region-policy";
 import { MARKETPLACE_PLATFORM_FEE_BPS } from "@/lib/marketplace/constants";
+import {
+  getStripeSupportedCountriesSync,
+  getStripeSupportedCountryList,
+  isCountryInStripeSupportedList,
+  isStarMarketProductExcluded,
+} from "@/lib/marketplace/stripe-supported-countries";
 
-/** Stripe Connect · Checkout 지원 마켓 국가 (ISO 3166-1 alpha-2) */
-export const STRIPE_MARKET_COUNTRIES = new Set([
-  "US",
-  "CA",
-  "GB",
-  "DE",
-  "FR",
-  "IT",
-  "ES",
-  "NL",
-  "BE",
-  "AT",
-  "CH",
-  "IE",
-  "PT",
-  "FI",
-  "SE",
-  "NO",
-  "DK",
-  "PL",
-  "CZ",
-  "SK",
-  "HU",
-  "RO",
-  "BG",
-  "HR",
-  "SI",
-  "LT",
-  "LV",
-  "EE",
-  "LU",
-  "MT",
-  "CY",
-  "GR",
-  "AU",
-  "NZ",
-  "SG",
-  "HK",
-  "JP",
-  "MX",
-  "BR",
-  "AE",
-  "IL",
-  "IN",
-  "MY",
-  "TH",
-  "PH",
-  "TW",
-]);
+export {
+  getStripeSupportedCountriesSync,
+  getStripeSupportedCountryList,
+  STAR_MARKET_PRODUCT_EXCLUDED_COUNTRIES,
+  syncStripeSupportedCountriesFromApi,
+  ensureStripeSupportedCountriesFresh,
+  getStripeCountryCacheMeta,
+} from "@/lib/marketplace/stripe-supported-countries";
 
 export const MARKET_UNAVAILABLE_KO =
   "마켓플레이스는 Stripe 지원 국가에서만 이용할 수 있습니다. 커뮤니티 기능은 계속 이용 가능합니다.";
@@ -74,10 +39,17 @@ export function normalizeMarketCountry(code: string | null | undefined): string 
   return (code ?? "").trim().toUpperCase();
 }
 
+/** @deprecated Use getStripeSupportedCountriesSync() — synced via cron from Stripe API */
+export function getStripeMarketCountries(): Set<string> {
+  return getStripeSupportedCountriesSync();
+}
+
 export function isStripeMarketCountry(countryCode: string | null | undefined): boolean {
   const c = normalizeMarketCountry(countryCode);
-  if (!c || isOfacSanctionedCountry(c)) return false;
-  return STRIPE_MARKET_COUNTRIES.has(c);
+  if (!c) return false;
+  if (isOfacComprehensiveEmbargoLocation({ countryCode: c })) return false;
+  if (isStarMarketProductExcluded(c)) return false;
+  return isCountryInStripeSupportedList(c);
 }
 
 export type MarketAccessResult =
@@ -88,7 +60,6 @@ export function resolveMarketCountry(input: {
   userCountryCode?: string | null;
   shipCountry?: string | null;
   geoCountry?: string | null;
-  /** Buyer checkout: ship country must also be eligible when provided */
   requireShipCountry?: boolean;
 }): { countryCode: string; shipCountry?: string } {
   const user = normalizeMarketCountry(input.userCountryCode);
@@ -96,6 +67,16 @@ export function resolveMarketCountry(input: {
   const geo = normalizeMarketCountry(input.geoCountry);
   const countryCode = user || ship || geo || "US";
   return { countryCode, shipCountry: ship || undefined };
+}
+
+function marketBlockedMessage(countryCode: string): { message: string; messageEn: string } {
+  if (isStarMarketProductExcluded(countryCode)) {
+    return {
+      message: "Star Market은 현재 해당 국가에서 제공되지 않습니다. 중고·커뮤니티는 이용 가능합니다.",
+      messageEn: "Star Market is not available in your country yet. Used market and community remain available.",
+    };
+  }
+  return { message: MARKET_UNAVAILABLE_KO, messageEn: MARKET_UNAVAILABLE_EN };
 }
 
 export function assertMarketAccess(input: {
@@ -108,20 +89,21 @@ export function assertMarketAccess(input: {
   const { countryCode, shipCountry } = resolveMarketCountry(input);
 
   if (!isStripeMarketCountry(countryCode)) {
-    return {
-      allowed: false,
-      countryCode,
-      message: MARKET_UNAVAILABLE_KO,
-      messageEn: MARKET_UNAVAILABLE_EN,
-    };
+    const msg = marketBlockedMessage(countryCode);
+    return { allowed: false, countryCode, ...msg };
   }
 
   if (shipCountry && !isStripeMarketCountry(shipCountry)) {
+    const msg = marketBlockedMessage(shipCountry);
     return {
       allowed: false,
       countryCode: shipCountry,
-      message: "배송지 국가는 Stripe 지원 지역이어야 합니다.",
-      messageEn: "Shipping country must be in a Stripe-supported region.",
+      message: msg.message.startsWith("Star")
+        ? msg.message
+        : "배송지 국가는 Stripe 지원 지역이어야 합니다.",
+      messageEn: msg.messageEn.startsWith("Star")
+        ? msg.messageEn
+        : "Shipping country must be in a Stripe-supported region.",
     };
   }
 
@@ -129,11 +111,12 @@ export function assertMarketAccess(input: {
     ? normalizeSellerCountry(input.sellerCountryCode)
     : null;
   if (seller && !isStripeMarketCountry(seller)) {
+    const msg = marketBlockedMessage(seller);
     return {
       allowed: false,
       countryCode: seller,
       message: "해당 판매자 국가에서는 마켓 거래를 지원하지 않습니다.",
-      messageEn: "Marketplace transactions are not supported for this seller region.",
+      messageEn: msg.messageEn,
     };
   }
 
@@ -166,4 +149,7 @@ export function marketplacePlatformFeeBps(): number {
   return MARKETPLACE_PLATFORM_FEE_BPS;
 }
 
-export const STRIPE_MARKET_COUNTRY_LIST = [...STRIPE_MARKET_COUNTRIES].sort();
+export const STRIPE_MARKET_COUNTRY_LIST = getStripeSupportedCountryList();
+
+/** @deprecated Use getStripeMarketCountries() */
+export const STRIPE_MARKET_COUNTRIES = getStripeSupportedCountriesSync();

@@ -14,6 +14,7 @@ import {
   resolveCheckoutRouting,
 } from "@/lib/marketplace/payment-routing";
 import { buildStripeConnectSplitParams } from "@/lib/marketplace/stripe-connect-split";
+import { refundOrReleaseMarketplacePayment } from "@/lib/marketplace/stripe-payment";
 import {
   getCarrierById,
   listingShipsToCountry,
@@ -22,6 +23,7 @@ import {
   UNSUPPORTED_SHIP_COUNTRY_MESSAGE,
 } from "@/lib/marketplace/shipping-config";
 import { getTrackingProvider } from "@/lib/marketplace/tracking";
+import { markMarketplaceOrderDelivered } from "@/lib/marketplace/delivery-pipeline";
 import { createNotification } from "@/lib/notifications";
 import {
   assessMarketplaceCheckoutRisk,
@@ -33,6 +35,8 @@ import {
   confirmAndMaybeSettle,
   holdSettlementForDispute,
 } from "@/lib/marketplace/escrow";
+import { evaluateMarketplaceDisputeRule } from "@/lib/marketplace/auto-dispute-rules";
+import { syncSellerStripeReserve } from "@/lib/marketplace/stripe-connect-reserve";
 import type { MarketplaceDisputeReason } from "@prisma/client";
 import {
   getOrCreateStripeCustomer,
@@ -315,7 +319,7 @@ function marketplaceStripeMetadata(
     listingId,
     sellerId,
     mocomoPaymentIntentId: paymentIntentId,
-    escrow: "platform_hold",
+    escrow: "connect_manual_capture",
   };
 }
 
@@ -574,7 +578,11 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
       // local record can still say unpaid until the webhook lands. Handing out
       // a fresh checkout session here would charge the buyer twice.
       const existing = await stripe.paymentIntents.retrieve(paymentIntent.paymentKey);
-      if (existing.status === "succeeded" || existing.status === "processing") {
+      if (
+        existing.status === "succeeded" ||
+        existing.status === "processing" ||
+        existing.status === "requires_capture"
+      ) {
         return { error: "이미 결제가 진행된 주문입니다." };
       }
     }
@@ -723,6 +731,8 @@ export async function sellerUpdateShipment(input: {
       carrierId: carrierCode,
       trackingNumber,
       trackingSlug: carrierMeta?.trackingSlug,
+      orderId: order.id,
+      destinationCountry: order.shipCountry,
     });
     if (!("error" in registered)) {
       externalTrackingId = registered.externalId;
@@ -759,18 +769,23 @@ export async function sellerUpdateShipment(input: {
     },
   });
 
-  const patch: { status?: typeof order.status; autoConfirmAt?: Date } = {};
+  const patch: { status?: typeof order.status } = {};
   if (status === "PREPARING") patch.status = "PREPARING";
   if (status === "SHIPPED" || status === "IN_TRANSIT" || status === "IN_CUSTOMS") {
     patch.status = "SHIPPED";
   }
-  if (status === "DELIVERED") {
-    patch.status = "DELIVERED";
-    patch.autoConfirmAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  }
 
   if (patch.status) {
     await db.marketplaceOrder.update({ where: { id: order.id }, data: patch });
+  }
+
+  if (status === "DELIVERED") {
+    const delivered = await markMarketplaceOrderDelivered({
+      orderId: order.id,
+      source: "manual",
+      actorId: user.id,
+    });
+    if ("error" in delivered) return delivered;
   }
 
   await logMarketplaceAudit({
@@ -821,16 +836,19 @@ export async function sellerSetOrderStatus(
     return { error: "현재 상태에서는 변경할 수 없습니다." };
   }
 
-  const data: {
-    status: typeof status;
-    autoConfirmAt?: Date;
-  } = { status };
+  const data: { status?: typeof status } = {};
 
   if (status === "DELIVERED") {
-    data.autoConfirmAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const delivered = await markMarketplaceOrderDelivered({
+      orderId,
+      source: "manual",
+      actorId: user.id,
+    });
+    if ("error" in delivered) return delivered;
+  } else {
+    data.status = status;
+    await db.marketplaceOrder.update({ where: { id: orderId }, data });
   }
-
-  await db.marketplaceOrder.update({ where: { id: orderId }, data });
 
   const shipStatus =
     status === "PREPARING"
@@ -975,28 +993,16 @@ export async function sellerRespondMarketplaceRefund(
     return { success: true };
   }
 
-  // Stripe 환불
+  // Stripe 환불 / auth hold 해제 (Connect reverse_transfer on captured charges)
   let stripeRefundId: string | undefined;
-  if (isStripeConfigured() && refund.order.stripePaymentIntentId) {
-    try {
-      const stripe = getStripe();
-      let paymentIntentId = refund.order.stripePaymentIntentId;
-      if (paymentIntentId.startsWith("cs_")) {
-        const session = await stripe.checkout.sessions.retrieve(paymentIntentId);
-        paymentIntentId =
-          typeof session.payment_intent === "string"
-            ? session.payment_intent
-            : session.payment_intent?.id ?? paymentIntentId;
-      }
-      if (paymentIntentId.startsWith("pi_")) {
-        const refunded = await stripe.refunds.create({
-          payment_intent: paymentIntentId,
-          amount: refund.amount,
-        });
-        stripeRefundId = refunded.id;
-      }
-    } catch {
-      /* Connect refund may need transfer reversal — APPROVED for admin follow-up */
+  const storedRef = refund.order.stripePaymentIntentId ?? refund.order.stripeCheckoutSessionId;
+  if (storedRef) {
+    const stripeRes = await refundOrReleaseMarketplacePayment({
+      storedRef,
+      amount: refund.amount,
+    });
+    if ("ok" in stripeRes) {
+      stripeRefundId = stripeRes.stripeRefId ?? (stripeRes.mode === "cancelled" ? "cancelled" : undefined);
     }
   }
 
@@ -1068,7 +1074,7 @@ export async function openMarketplaceDispute(
 
   const isBuyer = order.buyerId === user.id;
 
-  await db.marketplaceDispute.create({
+  const created = await db.marketplaceDispute.create({
     data: {
       orderId,
       openerId: user.id,
@@ -1110,6 +1116,10 @@ export async function openMarketplaceDispute(
 
   revalidatePath(`/market/orders/${orderId}`);
   revalidatePath("/admin/market");
+
+  await evaluateMarketplaceDisputeRule(created.id).catch(() => null);
+  await syncSellerStripeReserve(order.sellerId).catch(() => null);
+
   return { success: true };
 }
 
@@ -1154,6 +1164,9 @@ export async function submitMarketplaceDisputeEvidence(
 
   revalidatePath(`/market/orders/${order.id}`);
   revalidatePath("/admin/market");
+
+  await evaluateMarketplaceDisputeRule(disputeId).catch(() => null);
+
   return { success: true };
 }
 

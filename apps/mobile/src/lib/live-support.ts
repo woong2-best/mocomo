@@ -108,20 +108,23 @@ export function alertToChatLine(alert: {
   rouletteLabel?: string;
 }): LiveChatLine {
   if (alert.kind === "tip") {
-  return {
-    id: `tip-${alert.id}`,
-    userId: "system",
-    username: alert.username,
-    content: formatSupportChatContent({
-      kind: "tip",
+    const msg = alert.message?.trim() ?? "";
+    return {
+      id: `tip-${alert.id}`,
+      userId: "system",
       username: alert.username,
-      amount: alert.amount,
-      message: alert.message,
-    }),
-    at: new Date(alert.at).getTime(),
-    image: null,
-    messageKind: "tip",
-  };
+      content: msg || formatSupportChatContent({
+        kind: "tip",
+        username: alert.username,
+        amount: alert.amount,
+        message: alert.message,
+      }),
+      at: new Date(alert.at).getTime(),
+      image: null,
+      messageKind: "tip",
+      supportAmount: alert.amount,
+      tipMessage: msg || undefined,
+    };
   }
   return {
     id: `support-${alert.id}`,

@@ -18,7 +18,13 @@ export type ForensicRenderConfig = {
   modulationStrength: number;
 };
 
-export type WatermarkContentKind = "POST_MEDIA" | "EPISODE";
+export type WatermarkContentKind = "POST_MEDIA" | "EPISODE" | "MESSAGE_ATTACHMENT";
+
+const EMBED_KIND_QUERY: Record<WatermarkContentKind, string> = {
+  POST_MEDIA: "",
+  EPISODE: "episode",
+  MESSAGE_ATTACHMENT: "message",
+};
 
 export async function fetchWatermarkConfig(): Promise<WatermarkPublicConfig> {
   return apiRequest<WatermarkPublicConfig>("/api/watermark/config", { auth: false });
@@ -37,10 +43,15 @@ export async function createWatermarkSession(
 
 export async function createPaidVideoWebHandoff(
   mediaId: string,
-  contentKind: WatermarkContentKind = "POST_MEDIA"
+  contentKind: WatermarkContentKind = "POST_MEDIA",
+  mediaType: "video" | "image" = "video"
 ): Promise<string> {
-  const kindQuery = contentKind === "EPISODE" ? "?kind=episode" : "";
-  const redirect = `/embed/paid-video/${encodeURIComponent(mediaId)}${kindQuery}`;
+  const query = new URLSearchParams();
+  const kind = EMBED_KIND_QUERY[contentKind];
+  if (kind) query.set("kind", kind);
+  if (mediaType === "image") query.set("type", "image");
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const redirect = `/embed/paid-video/${encodeURIComponent(mediaId)}${suffix}`;
   const res = await apiRequest<{ url: string }>("/api/mobile/auth/web-session", {
     method: "POST",
     auth: true,

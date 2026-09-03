@@ -20,8 +20,8 @@ import {
 } from "@/lib/phone-ownership";
 import { sendAuthSms } from "@/lib/sms";
 import { checkPhoneSmsRateLimit } from "@/lib/auth-rate-limit";
+import { isUsedMarketEligible, usedMarketBlockedRegionMsg } from "@/lib/used-bank-auth";
 import { isUsedMarketPhoneCountry } from "@/lib/used-phone-countries";
-import { usedMarketUnsupportedCountryMsg } from "@/lib/used-phone-auth";
 
 const OTP_TTL_MS = 3 * 60 * 1000;
 
@@ -64,13 +64,13 @@ export async function getUsedMarketPhoneStatusForUser(userId: string) {
     phone: user.phone,
     phoneVerified: !!user.phoneVerified,
     displayPhone: user.phone ? formatPhoneDisplay(user.phone) : null,
-    eligible: isUsedMarketPhoneCountry(user.countryCode) && !!user.phoneVerified,
+    eligible: isUsedMarketPhoneCountry(user.countryCode) && isUsedMarketEligible(user),
   };
 }
 
 export async function sendUsedMarketPhoneOtpForUser(user: UserSlice, rawPhone: string) {
   if (!isUsedMarketPhoneCountry(user.countryCode)) {
-    return { error: usedMarketUnsupportedCountryMsg("ko") };
+    return { error: usedMarketBlockedRegionMsg("ko") };
   }
   const region = user.countryCode.toUpperCase();
 
@@ -140,7 +140,7 @@ export async function verifyUsedMarketPhoneOtpForUser(
   code: string
 ) {
   if (!isUsedMarketPhoneCountry(user.countryCode)) {
-    return { error: usedMarketUnsupportedCountryMsg("ko") };
+    return { error: usedMarketBlockedRegionMsg("ko") };
   }
   const region = user.countryCode.toUpperCase();
   const phone = normalizeMobilePhone(rawPhone, region);

@@ -1,5 +1,6 @@
 import { isEconomyEmergencyMode } from "./config-service";
 import { isEconomyFeatureEnabled } from "./feature-flag-service";
+import { isAptPublicEnabled } from "@/lib/apt-public-gate";
 import {
   FEATURE_DISABLED_MESSAGES,
   type EconomyFeatureKey,
@@ -8,6 +9,9 @@ import {
 export const EMERGENCY_MSG = "긴급 점검 중입니다. 잠시 후 다시 시도해 주세요.";
 
 async function assertFeature(key: EconomyFeatureKey): Promise<void> {
+  if (!isAptPublicEnabled()) {
+    throw new Error("APT is temporarily unavailable.");
+  }
   if (await isEconomyEmergencyMode()) {
     throw new Error(EMERGENCY_MSG);
   }
@@ -60,6 +64,7 @@ export async function assertOfflineSyncEnabled(): Promise<void> {
 
 /** 알림 차단 시 false — throw 대신 no-op용 */
 export async function isEconomyNotificationDeliveryEnabled(): Promise<boolean> {
+  if (!isAptPublicEnabled()) return false;
   if (await isEconomyEmergencyMode()) return false;
   return isEconomyFeatureEnabled("notification");
 }

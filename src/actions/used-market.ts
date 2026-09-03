@@ -12,9 +12,9 @@ import {
 } from "@prisma/client";
 import {
   getSidoRegionPrefix,
-  isValidUsedRegion,
   USED_SHIPPING_REGION,
 } from "@/lib/korea-regions";
+import { isValidUsedRegion as validateUsedRegion } from "@/lib/used-regions-global";
 import { finalizeExpiredAuctionIfNeeded } from "@/actions/used-auction";
 import {
   processNegotiationTimeout,
@@ -63,6 +63,8 @@ export async function getUsedListings(params?: {
   q?: string;
   category?: string;
   region?: string;
+  /** ISO country filter (meetCountry) */
+  country?: string;
   /** 시·도 전체 — 해당 시·도 접두사로 region 필터 */
   sido?: string;
   status?: UsedListingStatus;
@@ -115,6 +117,9 @@ export async function getUsedListings(params?: {
     }
   } else if (params?.region) {
     where.region = params.region;
+  }
+  if (params?.country?.trim()) {
+    where.meetCountry = params.country.trim().toUpperCase();
   }
   if (params?.sellerId) where.sellerId = params.sellerId;
   if (params?.q?.trim()) {
@@ -398,7 +403,9 @@ export async function createUsedListing(data: {
     return { error: `가격은 ${maxUsedListingPriceLabel(currency)} 이하로 입력해 주세요.` };
   }
   if (!data.region.trim()) return { error: "거래 지역을 선택해 주세요." };
-  if (!isValidUsedRegion(data.region)) return { error: "올바른 거래 지역을 선택해 주세요." };
+  if (!validateUsedRegion(data.region, user.countryCode)) {
+    return { error: "올바른 거래 지역을 선택해 주세요." };
+  }
 
   const isAuction = data.saleType === "AUCTION";
   if (isAuction && price <= 0) return { error: "경매 시작가를 입력해 주세요." };
@@ -457,7 +464,8 @@ export async function createUsedListing(data: {
     if (
       (meetLat == null || meetLng == null) &&
       meetPlaceTrim &&
-      !data.region.includes("전국 택배")
+      !data.region.includes("전국 택배") &&
+      !data.region.includes("Shipping")
     ) {
       if (isKakaoMapCountry(meetCountry) && !isKakaoLocalConfigured()) {
         return {

@@ -5,7 +5,7 @@ import { autoConfirmMarketplaceOrdersBatch } from "@/lib/marketplace/fulfillment
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-/** 배송완료 후 7일 자동 구매확정 */
+/** Delivery fallback (45d) → dispute window (72h) → auto-confirm → capture */
 export async function GET(req: NextRequest) {
   if (isProduction() && !verifyInternalSecret(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

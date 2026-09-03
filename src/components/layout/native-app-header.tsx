@@ -110,7 +110,7 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   if (pathname === "/cosplay/profiles") return "코스어 프로필";
   if (pathname === "/cosplay/board/new") return "글쓰기";
   if (pathname === "/used/adult-verify") return "성인 인증";
-  if (pathname === "/used/verify") return "계좌 인증";
+  if (pathname === "/used/verify") return "본인 확인";
   if (pathname.startsWith("/wallet")) return "지갑";
   if (pathname.startsWith("/market/sell-item")) return "판매 등록";
   if (pathname.startsWith("/market/seller")) return "판매자";

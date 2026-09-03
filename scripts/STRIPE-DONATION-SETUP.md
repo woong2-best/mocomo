@@ -8,12 +8,20 @@
 2. **Publishable key** → Vercel `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`  
 3. **Secret key** → Vercel `STRIPE_SECRET_KEY`
 
-## 2. Webhook (결제 완료 자동 반영)
+## 2. Webhook (결제 완료 + Star Market escrow + Used auction holds)
 
-1. https://dashboard.stripe.com/test/webhooks → **Add endpoint**  
-2. URL: `https://mocomo.net/api/webhooks/stripe`  
-3. 이벤트: `checkout.session.completed`  
-4. Signing secret → Vercel `STRIPE_WEBHOOK_SECRET`
+1. https://dashboard.stripe.com/test/webhooks → **Add endpoint** (staging은 prod와 **별도** endpoint + `whsec_…`)
+2. URL: `https://<staging-host>/api/webhooks/stripe`
+3. 이벤트 (필수):
+   - `checkout.session.completed`
+   - `payment_intent.amount_capturable_updated`
+   - `payment_intent.succeeded`
+   - `charge.dispute.created`
+   - `charge.dispute.closed`
+   - `charge.dispute.funds_withdrawn`
+4. Signing secret → staging Vercel `STRIPE_WEBHOOK_SECRET` (prod whsec와 혼용 금지)
+
+검증: `node --env-file=.env scripts/smoke-used-auction-pipeline.mjs preflight`
 
 로컬 테스트: Stripe CLI `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
 

@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { isAptPublicEnabled } from "@/lib/apt-public-gate";
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -182,7 +183,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
             <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pb-safe">
               {open ? (
                 <>
-                  {viaMailbox && (
+                  {viaMailbox && isAptPublicEnabled() && (
                     <p className="text-sm text-muted-foreground mb-3 -mt-1">
                       APT 우편함에서 사진·영상·글을 올립니다.
                     </p>

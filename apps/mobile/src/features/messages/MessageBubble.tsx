@@ -18,6 +18,8 @@ import { CallBookingCard } from "@/features/messages/CallBookingCard";
 import { LetterDonationCard } from "@/features/messages/LetterDonationCard";
 import { LinkifiedText } from "@/ui/LinkifiedText";
 import { LockedMessageMediaTile } from "@/components/media/LockedMessageMediaTile";
+import { ForensicPaidVideoEmbed } from "@/components/media/ForensicPaidVideoEmbed";
+import { resolveAbsolutePlaybackUrl } from "@/api/watermark";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -25,6 +27,14 @@ import { spacing, type ThemeColors } from "@/theme/tokens";
 const BUBBLE_IMAGE = 200;
 const STANDALONE_W = 220;
 const STANDALONE_H = 320;
+/**
+ * The forensic canvas inside the WebView refuses to embed below 320 CSS px on
+ * the long edge, so paid DM media always gets this portrait card. Width may be
+ * clamped by the 72% bubble cap on narrow phones; the fixed height is what
+ * keeps the embed above the floor.
+ */
+const PAID_TILE_W = 240;
+const PAID_TILE_H = 380;
 
 export type DmOpenImagePayload = {
   images: DmLightboxImage[];
@@ -50,6 +60,10 @@ type Props = {
   onOpenImage?: (payload: DmOpenImagePayload) => void;
 };
 
+function isAttachmentLocked(a: { url: string; locked?: boolean; priceKrw?: number }) {
+  return Boolean(a.locked) || (!a.url && (a.priceKrw ?? 0) > 0);
+}
+
 function ChatMessageImage({
   image,
   frameStyle,
@@ -60,6 +74,7 @@ function ChatMessageImage({
   locked,
   priceKrw,
   sellerUsername,
+  mine,
   onPurchaseSuccess,
 }: {
   image: { id: string; url: string; locked?: boolean; priceKrw?: number };
@@ -71,14 +86,50 @@ function ChatMessageImage({
   locked?: boolean;
   priceKrw?: number;
   sellerUsername?: string;
+  mine?: boolean;
   onPurchaseSuccess?: () => void;
 }) {
-  const isLocked = locked || (!image.url && (image.priceKrw ?? 0) > 0);
+  const isLocked = locked || isAttachmentLocked(image);
+  const paid = (priceKrw ?? image.priceKrw ?? 0) > 0;
+
+  // Purchased fan-art photos render inside the forensic WebView so every pixel
+  // the buyer sees carries their invisible session payload. The sender owns the
+  // file and is never a leak suspect, so they get the plain view.
+  if (paid) {
+    return (
+      <View style={[frameStyle, styles.imageFrame, styles.paidTile]}>
+        {isLocked ? (
+          <LockedMessageMediaTile
+            attachmentId={image.id}
+            priceKrw={priceKrw ?? image.priceKrw ?? 0}
+            sellerUsername={sellerUsername}
+            onPurchaseSuccess={onPurchaseSuccess}
+          />
+        ) : mine ? (
+          <Image
+            source={{ uri: resolveAbsolutePlaybackUrl(image.url) }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            cachePolicy={IMAGE_CACHE_POLICY}
+            transition={0}
+            pointerEvents="none"
+          />
+        ) : (
+          <ForensicPaidVideoEmbed
+            mediaId={image.id}
+            contentKind="MESSAGE_ATTACHMENT"
+            mediaType="image"
+          />
+        )}
+      </View>
+    );
+  }
+
   return (
     <View style={[frameStyle, styles.imageFrame]}>
       {!isLocked && image.url ? (
         <Image
-          source={{ uri: image.url, width: decodeW, height: decodeH }}
+          source={{ uri: resolveAbsolutePlaybackUrl(image.url), width: decodeW, height: decodeH }}
           style={StyleSheet.absoluteFill}
           contentFit="cover"
           cachePolicy={IMAGE_CACHE_POLICY}
@@ -114,6 +165,7 @@ function ChatMessageVideo({
   locked,
   priceKrw,
   sellerUsername,
+  mine,
   onPurchaseSuccess,
 }: {
   video: { id: string; url: string; locked?: boolean; priceKrw?: number };
@@ -121,9 +173,33 @@ function ChatMessageVideo({
   locked?: boolean;
   priceKrw?: number;
   sellerUsername?: string;
+  mine?: boolean;
   onPurchaseSuccess?: () => void;
 }) {
-  const isLocked = locked || (!video.url && (video.priceKrw ?? 0) > 0);
+  const isLocked = locked || isAttachmentLocked(video);
+  const paid = (priceKrw ?? video.priceKrw ?? 0) > 0;
+
+  if (paid) {
+    return (
+      <View style={[frameStyle, styles.imageFrame, styles.paidTile]}>
+        {isLocked ? (
+          <LockedMessageMediaTile
+            attachmentId={video.id}
+            priceKrw={priceKrw ?? video.priceKrw ?? 0}
+            sellerUsername={sellerUsername}
+            onPurchaseSuccess={onPurchaseSuccess}
+          />
+        ) : mine ? (
+          <View style={styles.videoBadge}>
+            <Ionicons name="play-circle" size={36} color="#fff" />
+          </View>
+        ) : (
+          <ForensicPaidVideoEmbed mediaId={video.id} contentKind="MESSAGE_ATTACHMENT" />
+        )}
+      </View>
+    );
+  }
+
   return (
     <View style={[frameStyle, styles.imageFrame, styles.videoFrame]}>
       {!isLocked && video.url ? (
@@ -214,8 +290,13 @@ function MessageBubbleInner({
   const bubbleDecode = feedMediaDecodeWidth(BUBBLE_IMAGE);
   const standaloneDecodeW = feedMediaDecodeWidth(STANDALONE_W);
   const standaloneDecodeH = feedMediaDecodeWidth(STANDALONE_H);
+  // Paid photos are only ever shown through the forensic embed, so they never
+  // enter the plain fullscreen viewer.
   const lightboxImages = useMemo(
-    () => images.filter((img) => !img.locked && img.url).map((img) => ({ id: img.id, url: img.url })),
+    () =>
+      images
+        .filter((img) => !isAttachmentLocked(img) && (img.priceKrw ?? 0) === 0 && img.url)
+        .map((img) => ({ id: img.id, url: resolveAbsolutePlaybackUrl(img.url) })),
     [images]
   );
 
@@ -269,6 +350,7 @@ function MessageBubbleInner({
                 locked={image.locked}
                 priceKrw={image.priceKrw}
                 sellerUsername={message.sender.username}
+                mine={mine}
                 onPurchaseSuccess={onMessagesRefresh}
                 onPress={() => {
                   const idx = lightboxImages.findIndex((i) => i.id === image.id);
@@ -286,6 +368,7 @@ function MessageBubbleInner({
                 locked={video.locked}
                 priceKrw={video.priceKrw}
                 sellerUsername={message.sender.username}
+                mine={mine}
                 onPurchaseSuccess={onMessagesRefresh}
               />
             ))}
@@ -306,6 +389,7 @@ function MessageBubbleInner({
                 locked={image.locked}
                 priceKrw={image.priceKrw}
                 sellerUsername={message.sender.username}
+                mine={mine}
                 onPurchaseSuccess={onMessagesRefresh}
                 onPress={() => {
                   const idx = lightboxImages.findIndex((i) => i.id === image.id);
@@ -322,6 +406,7 @@ function MessageBubbleInner({
                 locked={video.locked}
                 priceKrw={video.priceKrw}
                 sellerUsername={message.sender.username}
+                mine={mine}
                 onPurchaseSuccess={onMessagesRefresh}
               />
             ))}
@@ -391,9 +476,16 @@ export const MessageBubble = memo(MessageBubbleInner);
 
 const styles = StyleSheet.create({
   imageFrame: { overflow: "hidden" },
+  paidTile: {
+    width: PAID_TILE_W,
+    maxWidth: "100%",
+    height: PAID_TILE_H,
+    borderRadius: 14,
+    backgroundColor: "#000",
+  },
   videoFrame: { backgroundColor: "#1a2744" },
   videoBadge: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.35)",

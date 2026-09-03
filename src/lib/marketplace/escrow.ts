@@ -1,15 +1,21 @@
+import { safeLogWarn } from "@/lib/safe-log";
 import { db } from "@/lib/db";
-import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { isStripeConnectPayoutReady } from "@/lib/stripe-connect";
-import { recordMarketplaceSettlementLedger } from "@/lib/settlement";
+import { recordMarketplaceSettlementLedger, recordPlatformFee, recordPaymentGross } from "@/lib/settlement";
 import { logMarketplaceAudit, MarketplaceAuditActions } from "@/lib/marketplace/audit";
 import { refreshSellerTrust, settlementDelayDaysForSeller } from "@/lib/marketplace/trust";
 import { createNotification } from "@/lib/notifications";
 import { formatUsd } from "@/lib/money";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
+import {
+  captureMarketplacePaymentIntent,
+  resolveMarketplaceStripePaymentIntentId,
+} from "@/lib/marketplace/stripe-payment";
 
 /**
- * Escrow: platform holds funds until purchase confirm (+ tier delay).
- * Connect sellers get Stripe Transfer; others get wallet credit.
+ * Escrow: auth hold until purchase confirm (+ tier delay), then PI capture.
+ * Connect destination transfer + application fee occur at capture — not before.
+ * Dispute exposure after capture sits in seller Connect account reserve.
  */
 export async function releaseMarketplaceEscrow(
   orderId: string,
@@ -111,9 +117,7 @@ export async function releaseMarketplaceEscrow(
 
   const connectReady = await isStripeConnectPayoutReady(order.seller.stripeConnectAccountId);
 
-  let transferId: string | undefined;
-
-  if (!connectReady || !isStripeConfigured() || !order.seller.stripeConnectAccountId) {
+  if (!connectReady || !order.seller.stripeConnectAccountId) {
     await db.marketplaceOrder.update({
       where: { id: orderId },
       data: {
@@ -127,29 +131,37 @@ export async function releaseMarketplaceEscrow(
     };
   }
 
-  try {
-    const stripe = getStripe();
-    const currency = (order.currency || "usd").toLowerCase();
-    const transfer = await stripe.transfers.create({
-      amount: order.sellerEarnAmount,
-      currency,
-      destination: order.seller.stripeConnectAccountId,
-      transfer_group: order.id,
-      metadata: {
-        marketplaceOrderId: order.id,
-        type: "marketplace_escrow_release",
-      },
-    });
-    transferId = transfer.id;
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Stripe transfer failed";
+  const storedRef = order.stripePaymentIntentId ?? order.stripeCheckoutSessionId;
+  const captureRes = await captureMarketplacePaymentIntent(storedRef);
+  if ("error" in captureRes) {
     await logMarketplaceAudit({
       orderId,
       actorId: opts?.actorId,
       action: MarketplaceAuditActions.SETTLEMENT_BLOCKED,
-      detail: msg,
+      detail: captureRes.error,
     });
-    return { error: `정산 이체 실패: ${msg}` };
+    if (order.usedListingId) {
+      const { handleUsedAuctionOrderCaptureFailure } = await import(
+        "@/lib/used-auction-marketplace-order"
+      );
+      await handleUsedAuctionOrderCaptureFailure(orderId, captureRes.error).catch((e) => {
+        safeLogWarn("used-auction-capture-fail-handoff", { orderId, err: String(e) });
+      });
+    }
+    return { error: `정산 캡처 실패: ${captureRes.error}` };
+  }
+
+  const settlementRef = captureRes.chargeId ?? (await resolveMarketplaceStripePaymentIntentId(storedRef));
+
+  if (!captureRes.alreadyCaptured) {
+    const gross = order.subtotalAmount + order.shippingAmount;
+    await recordPaymentGross(gross, order.id, "MARKETPLACE");
+    await recordPlatformFee(order.platformFeeAmount, {
+      referenceType: "marketplace",
+      referenceId: order.id,
+      paymentIntentId: order.stripePaymentIntentId ?? undefined,
+      memo: `${MARKET_BRAND_NAME} 수수료 #${order.id.slice(0, 8)}`,
+    });
   }
 
   await recordMarketplaceSettlementLedger({
@@ -157,10 +169,10 @@ export async function releaseMarketplaceEscrow(
     grossAmount: order.subtotalAmount,
     platformFee: order.platformFeeAmount,
     netPaidAmount: order.sellerEarnAmount,
-    stripeTransferId: transferId,
+    stripeTransferId: settlementRef ?? "capture",
     referenceId: order.id,
     paymentIntentId: order.stripePaymentIntentId ?? undefined,
-    memo: `MARKET Stripe 정산 #${order.id.slice(0, 8)}`,
+    memo: `MARKET Stripe capture #${order.id.slice(0, 8)}`,
   });
 
   await db.marketplaceOrder.update({
@@ -170,10 +182,17 @@ export async function releaseMarketplaceEscrow(
       settlementStatus: "SETTLED",
       escrowHeld: false,
       settledAt: new Date(),
-      stripeTransferId: transferId ?? null,
+      stripeTransferId: settlementRef ?? null,
       settlementHeldReason: null,
     },
   });
+
+  if (order.usedListingId) {
+    await db.usedListing.update({
+      where: { id: order.usedListingId },
+      data: { status: "SOLD", auctionState: "ENDED" },
+    });
+  }
 
   await db.marketplaceSellerProfile.updateMany({
     where: { userId: order.sellerId },
@@ -186,8 +205,8 @@ export async function releaseMarketplaceEscrow(
     orderId,
     actorId: opts?.actorId,
     action: MarketplaceAuditActions.SETTLEMENT,
-    detail: transferId ? `transfer:${transferId}` : "stripe_transfer",
-    metadata: { amount: order.sellerEarnAmount, transferId },
+    detail: captureRes.alreadyCaptured ? "capture_already_done" : "capture",
+    metadata: { amount: order.sellerEarnAmount, chargeId: settlementRef },
   });
 
   await createNotification({

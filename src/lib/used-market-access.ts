@@ -1,7 +1,7 @@
 import {
+  assertUsedMarketCountryAllowed,
   isUsedMarketEligible,
-  USED_BANK_REQUIRED_MSG,
-  usedMarketUnsupportedCountryMsg,
+  usedMarketVerificationRequiredMsg,
 } from "@/lib/used-bank-auth";
 
 export const USED_MARKET_BAN_MESSAGE =
@@ -10,8 +10,8 @@ export const USED_MARKET_BAN_MESSAGE =
 export const USED_MARKET_BAN_APPEAL_HINT =
   "시스템 오류, 판매자의 부당한 요청 등 정당한 사유가 있는 경우 제재 통지일로부터 7일 이내에 이의 신청을 제출할 수 있습니다.";
 
-/** @deprecated use USED_BANK_REQUIRED_MSG */
-export const USED_PHONE_REQUIRED_MSG = USED_BANK_REQUIRED_MSG;
+/** @deprecated use USED_BANK_REQUIRED_MSG or USED_PHONE_REQUIRED_MSG */
+export { USED_BANK_REQUIRED_MSG as USED_PHONE_REQUIRED_MSG } from "@/lib/used-bank-auth";
 
 export type UsedMarketUserSlice = {
   countryCode: string;
@@ -33,7 +33,10 @@ export function assertUsedMarketNotBanned(user: UsedMarketUserSlice): string | n
 export function assertUsedMarketAccess(user: UsedMarketUserSlice): string | null {
   const banErr = assertUsedMarketNotBanned(user);
   if (banErr) return banErr;
-  if (user.countryCode.toUpperCase() !== "KR") return usedMarketUnsupportedCountryMsg("ko");
-  if (!isUsedMarketEligible(user)) return USED_BANK_REQUIRED_MSG;
+  const regionErr = assertUsedMarketCountryAllowed(user.countryCode);
+  if (regionErr) return regionErr;
+  if (!isUsedMarketEligible(user)) {
+    return usedMarketVerificationRequiredMsg(user.countryCode, "ko");
+  }
   return null;
 }

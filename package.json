@@ -44,6 +44,7 @@
     "persona:auth-smoke": "node scripts/persona-auth-smoke.mjs",
     "health:prod": "node scripts/prod-health-check.mjs",
     "smoke:api": "node scripts/smoke-api.mjs",
+    "smoke:used-auction": "node scripts/smoke-used-auction-pipeline.mjs",
     "economy:backup": "tsx scripts/economy-backup-daily.ts",
     "economy:health": "tsx scripts/economy-health-scan.ts",
     "diorama:export-living": "tsx scripts/export-living-preset.ts",

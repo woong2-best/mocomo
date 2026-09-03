@@ -7,6 +7,7 @@ import {
   type UsedAuctionConfigSlice,
 } from "@/lib/used-auction-config";
 import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
+import { voidActiveHoldForBidder } from "@/lib/used-auction-bid-hold";
 import { USED_MARKET_BAN_MESSAGE } from "@/lib/used-market-access";
 import { recordAuctionPaymentTimeoutSanction } from "@/lib/used-market-sanction-log";
 import { USED_MARKET_APPEAL_PATH } from "@/lib/used-auction-legal";
@@ -262,6 +263,126 @@ export async function transferToNextBidder(
   return { transferred: true, nextBidderId: next.bidderId, roomId };
 }
 
+/** Stripe: auto next-bidder win + MarketplaceOrder. Honor: legacy price negotiation. */
+export async function promoteNextAuctionWinner(
+  listingId: string,
+  config?: UsedAuctionConfigSlice,
+  options?: { incrementForfeitCount?: boolean }
+) {
+  const cfg = config ?? (await getUsedAuctionConfig());
+  const listing = await db.usedListing.findUnique({ where: { id: listingId } });
+  if (!listing) return { transferred: false };
+
+  const { resolveBidHoldMode } = await import("@/lib/used-auction-bid-hold");
+  const holdMode = await resolveBidHoldMode({ listing });
+
+  if (holdMode !== "stripe") {
+    return transferToNextBidder(listingId, cfg, options);
+  }
+
+  const priorForfeited = await db.usedAuctionBid.findMany({
+    where: { listingId, bidStatus: { in: ["FORFEITED", "SUPERSEDED"] } },
+    select: { bidderId: true },
+  });
+  const excludeUserIds = [...new Set(priorForfeited.map((p) => p.bidderId))];
+  if (listing.winningBidderId) excludeUserIds.push(listing.winningBidderId);
+  if (listing.negotiationBuyerId) excludeUserIds.push(listing.negotiationBuyerId);
+
+  const ranked = await getRankedBidders(listingId, excludeUserIds);
+  const next = ranked[0];
+  if (!next) {
+    await db.usedListing.update({
+      where: { id: listingId },
+      data: {
+        auctionState: "NEGOTIATION_FAILED",
+        status: "SELLING",
+        winningBidderId: null,
+        negotiationBuyerId: null,
+        negotiationDueAt: null,
+        paymentDueAt: null,
+        marketplaceOrderId: null,
+      },
+    });
+    await sendUsedAuctionNotification({
+      userId: listing.sellerId,
+      type: "ended",
+      title: "경매 거래 무산",
+      body: `${listing.title} — 차순위 입찰자가 없습니다.`,
+      link: `/used/${listingId}`,
+    });
+    return { transferred: false, relisted: true };
+  }
+
+  const { attemptAutoHoldAndActivateOrder, usedOrderLink } = await import(
+    "@/lib/used-auction-marketplace-order"
+  );
+  const auto = await attemptAutoHoldAndActivateOrder(listingId, next.bidderId, next.amount);
+
+  if ("ok" in auto && auto.ok) {
+    await db.usedListing.update({
+      where: { id: listingId },
+      data: {
+        auctionState: "TRANSFERRED_TO_NEXT_BIDDER",
+        status: "RESERVED",
+        winningBidderId: next.bidderId,
+        negotiationBuyerId: null,
+        negotiationDueAt: null,
+        paymentDueAt: null,
+        marketplaceOrderId: auto.orderId,
+        ...(options?.incrementForfeitCount ? { forfeitedWinnerCount: { increment: 1 } } : {}),
+      },
+    });
+    const orderLink = usedOrderLink(auto.orderId);
+    await sendUsedAuctionNotification({
+      userId: next.bidderId,
+      type: "won",
+      title: "차순위 자동 낙찰",
+      body: `${listing.title} — 주문이 생성되었습니다.`,
+      link: orderLink,
+    });
+    await sendUsedAuctionNotification({
+      userId: listing.sellerId,
+      type: "transfer",
+      title: "차순위 낙찰 — 배송 준비",
+      body: `${listing.title}`,
+      link: orderLink,
+    });
+    return { transferred: true, stripe: true, orderId: auto.orderId, nextBidderId: next.bidderId };
+  }
+
+  await beginAuctionPaymentWindow(listingId, next.bidderId, cfg);
+  await db.usedListing.update({
+    where: { id: listingId },
+    data: {
+      auctionState: "TRANSFERRED_TO_NEXT_BIDDER",
+      ...(options?.incrementForfeitCount ? { forfeitedWinnerCount: { increment: 1 } } : {}),
+    },
+  });
+
+  const link = `/used/${listingId}`;
+  await sendUsedAuctionNotification({
+    userId: next.bidderId,
+    type: "won",
+    title: "차순위 낙찰 — 카드 hold 필요",
+    body: `${listing.title} — 입찰 hold 승인 후 주문이 생성됩니다.`,
+    link,
+  });
+  await sendUsedAuctionNotification({
+    userId: listing.sellerId,
+    type: "transfer",
+    title: "차순위 입찰자에게 승계",
+    body: `${listing.title}`,
+    link,
+  });
+
+  return {
+    transferred: true,
+    pendingHold: true,
+    nextBidderId: next.bidderId,
+    autoError: "error" in auto ? auto.error : undefined,
+  };
+}
+
 export async function processPaymentTimeout(listingId: string, config?: UsedAuctionConfigSlice) {
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.auctionState !== "PAYMENT_PENDING") return { processed: false };
@@ -287,6 +408,8 @@ export async function processPaymentTimeout(listingId: string, config?: UsedAuct
 
   await banUserFromUsedMarket(winnerId, listingId);
 
+  await voidActiveHoldForBidder(listingId, winnerId, "payment_timeout");
+
   await sendUsedAuctionNotification({
     userId: winnerId,
     type: "payment_failed",
@@ -302,7 +425,7 @@ export async function processPaymentTimeout(listingId: string, config?: UsedAuct
     link: `/used/${listingId}`,
   });
 
-  const transfer = await transferToNextBidder(listingId, config, { incrementForfeitCount: true });
+  const transfer = await promoteNextAuctionWinner(listingId, config, { incrementForfeitCount: true });
   return { processed: true, transfer };
 }
 

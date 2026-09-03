@@ -20,6 +20,7 @@ import {
   startMarketplaceTradeChat,
   toggleMarketplaceFavorite,
 } from "@/api/marketplace";
+import { UsedAuctionBidHoldSheet } from "@/payments/UsedAuctionBidHoldSheet";
 import { ApiError } from "@/api/client";
 import { UsedMeetMapCard } from "@/features/marketplace/UsedMeetMapCard";
 import { formatUsedPrice } from "@/features/marketplace/used-catalog";
@@ -52,6 +53,7 @@ export function MarketplaceDetailScreen() {
   const queryClient = useQueryClient();
   const [bidText, setBidText] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [holdSheet, setHoldSheet] = useState<{ amount: number } | null>(null);
 
   const query = useQuery({
     queryKey: ["mobile-marketplace", route.params.id],
@@ -81,13 +83,38 @@ export function MarketplaceDetailScreen() {
   });
 
   const bid = useMutation({
-    mutationFn: (amount: number) => placeMarketplaceBid(route.params.id, amount),
+    mutationFn: (amount: number) =>
+      placeMarketplaceBid(route.params.id, amount, { termsAccepted: true }),
     onSuccess: async (res) => {
+      if (res.error) {
+        if (res.needsBidHold) {
+          setHoldSheet({ amount: Number(bidText.replace(/,/g, "")) || 0 });
+          return;
+        }
+        setMsg(res.error);
+        return;
+      }
+      if (!res.amount) {
+        setMsg("입찰에 실패했습니다.");
+        return;
+      }
       setMsg(`입찰 완료 · ${formatUsedPrice(res.amount, item?.currency)}`);
       setBidText("");
       await invalidate();
     },
-    onError: (err) => setMsg(apiErrMessage(err, "입찰에 실패했습니다.")),
+    onError: (err) => {
+      const body =
+        err instanceof ApiError &&
+        err.body &&
+        typeof err.body === "object" &&
+        "needsBidHold" in err.body &&
+        (err.body as { needsBidHold?: boolean }).needsBidHold;
+      if (body) {
+        setHoldSheet({ amount: Number(bidText.replace(/,/g, "")) || 0 });
+        return;
+      }
+      setMsg(apiErrMessage(err, "입찰에 실패했습니다."));
+    },
   });
 
   const onBid = () => {
@@ -203,6 +230,21 @@ export function MarketplaceDetailScreen() {
           </View>
         </ScrollView>
       )}
+      {holdSheet ? (
+        <UsedAuctionBidHoldSheet
+          visible
+          listingId={route.params.id}
+          bidAmount={holdSheet.amount}
+          currency={item?.currency}
+          onClose={() => setHoldSheet(null)}
+          onSuccess={async (res) => {
+            setHoldSheet(null);
+            setMsg(`입찰 완료 · ${formatUsedPrice(res.amount, item?.currency)}`);
+            setBidText("");
+            await invalidate();
+          }}
+        />
+      ) : null}
     </View>
   );
 }

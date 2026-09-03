@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { markAuctionPaymentComplete } from "@/actions/used-auction-payment";
@@ -15,6 +16,7 @@ export function UsedAuctionPaymentPanel({
   currency,
   isWinner,
   paymentCompleted,
+  marketplaceOrderId,
 }: {
   listingId: string;
   paymentDueAt: Date | string;
@@ -22,10 +24,25 @@ export function UsedAuctionPaymentPanel({
   currency?: string | null;
   isWinner: boolean;
   paymentCompleted?: boolean;
+  marketplaceOrderId?: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  if (marketplaceOrderId) {
+    return (
+      <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-4 space-y-2">
+        <p className="text-sm font-bold text-green-700 dark:text-green-400">Stripe 주문 생성됨</p>
+        <p className="text-xs text-muted-foreground">
+          배송·추적·구매확정은 Star Market 주문 파이프라인(72h 이의 → capture)을 따릅니다.
+        </p>
+        <Button asChild className="w-full rounded-xl">
+          <Link href={`/market/orders/${marketplaceOrderId}`}>주문 · 배송 관리</Link>
+        </Button>
+      </div>
+    );
+  }
 
   if (paymentCompleted) {
     return (
@@ -72,6 +89,7 @@ export function UsedAuctionPaymentPanel({
               const res = await markAuctionPaymentComplete(listingId);
               setBusy(false);
               if ("error" in res && res.error) setError(res.error);
+              else if ("redirectPath" in res && res.redirectPath) router.push(res.redirectPath);
               else router.refresh();
             }}
           >

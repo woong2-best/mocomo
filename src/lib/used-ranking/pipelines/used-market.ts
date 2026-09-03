@@ -30,7 +30,7 @@ export async function runUsedMarketPipeline(opts: {
 }) {
   const initialQuery: UsedMarketQuery = {
     userId: opts.userId,
-    countryCode: "KR",
+    countryCode: null,
     preferredRegion: opts.preferredRegion ?? null,
     preferredSido: null,
     params: buildUsedMarketParams(),

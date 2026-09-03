@@ -41,15 +41,35 @@ export const CATEGORY_POSTER: Record<
   },
 };
 
+export function coerceViewerCount(n: unknown): number {
+  const v = typeof n === "number" ? n : Number(n);
+  if (!Number.isFinite(v) || v < 0) return 0;
+  return Math.floor(v);
+}
+
 export function formatViewerCount(n: number): string {
-  if (n >= 10000) {
-    const man = n / 10000;
+  const count = coerceViewerCount(n);
+  if (count >= 10000) {
+    const man = count / 10000;
     return `${man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "")}만명 시청 중`;
   }
-  if (n >= 1000) {
-    return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}천명 시청 중`;
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}천명 시청 중`;
   }
-  return `${n}명 시청 중`;
+  return `${count}명 시청 중`;
+}
+
+/** Compact badge — e.g. "9,750명", "1.2만" */
+export function formatViewerCountCompact(n: number): string {
+  const count = coerceViewerCount(n);
+  if (count >= 10000) {
+    const man = count / 10000;
+    return `${man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "")}만`;
+  }
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}천`;
+  }
+  return count.toLocaleString("ko-KR");
 }
 
 export function providerLabel(provider: string): string {

@@ -2,9 +2,32 @@ import { NextResponse } from "next/server";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
 import { verifyStripeCheckoutSession } from "@/lib/stripe-checkout";
+import { isMarketplacePaymentAuthorized } from "@/lib/marketplace/stripe-payment";
+import { handleStripeChargeDisputeEvent } from "@/lib/marketplace/stripe-dispute";
 import type Stripe from "stripe";
 
 export const runtime = "nodejs";
+
+async function fulfillFromPaymentIntent(pi: Stripe.PaymentIntent) {
+  const orderId = pi.metadata?.orderId;
+  if (!orderId) return null;
+
+  if (pi.metadata?.type === "USED_AUCTION_BID_HOLD") {
+    return null;
+  }
+
+  const isMarketplace = pi.metadata?.type === "MARKETPLACE";
+  if (isMarketplace && !isMarketplacePaymentAuthorized(pi)) {
+    return null;
+  }
+
+  const amount =
+    isMarketplace && pi.status === "requires_capture"
+      ? pi.amount
+      : pi.amount;
+
+  return fulfillPaymentIntent(orderId, pi.id, amount);
+}
 
 export async function POST(req: Request) {
   if (!isStripeConfigured()) {
@@ -48,15 +71,32 @@ export async function POST(req: Request) {
     }
   }
 
-  if (event.type === "payment_intent.succeeded") {
+  if (
+    event.type === "payment_intent.amount_capturable_updated" ||
+    event.type === "payment_intent.succeeded"
+  ) {
     const pi = event.data.object as Stripe.PaymentIntent;
-    const orderId = pi.metadata?.orderId;
-    if (orderId) {
-      const result = await fulfillPaymentIntent(orderId, pi.id, pi.amount);
-      if (!result.ok) {
+
+    if (event.type === "payment_intent.succeeded" && pi.metadata?.type === "MARKETPLACE") {
+      // Marketplace fulfillment happens on authorization; capture triggers settlement in escrow.
+    } else if (pi.metadata?.type === "USED_AUCTION_BID_HOLD") {
+      // Bid holds are verified at bid placement; no product fulfillment.
+    } else {
+      const result = await fulfillFromPaymentIntent(pi);
+      if (result && !result.ok) {
         return NextResponse.json({ error: result.error }, { status: 422 });
       }
     }
+  }
+
+  if (
+    event.type === "charge.dispute.created" ||
+    event.type === "charge.dispute.closed" ||
+    event.type === "charge.dispute.funds_withdrawn"
+  ) {
+    await handleStripeChargeDisputeEvent(event).catch((e) => {
+      console.error("[stripe-webhook] charge.dispute handler failed", e);
+    });
   }
 
   if (event.type === "account.updated") {

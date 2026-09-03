@@ -6,6 +6,7 @@ import {
   MARKETPLACE_SETTLEMENT_DELAY_DAYS,
   MARKETPLACE_TRUST_TIERS,
 } from "@/lib/marketplace/protection-config";
+import { syncSellerStripeReserve } from "@/lib/marketplace/stripe-connect-reserve";
 
 export type TrustInputs = {
   salesCount: number;
@@ -136,8 +137,12 @@ export async function refreshSellerTrust(sellerUserId: string) {
 
   const trustTier = trustTierFromScore(score);
 
-  return db.marketplaceSellerProfile.update({
+  const updated = await db.marketplaceSellerProfile.update({
     where: { id: profile.id },
     data: { trustScore: score, trustTier },
   });
+
+  await syncSellerStripeReserve(sellerUserId).catch(() => null);
+
+  return updated;
 }

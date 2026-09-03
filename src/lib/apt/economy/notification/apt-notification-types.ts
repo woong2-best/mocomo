@@ -54,14 +54,27 @@ export type AptNotificationPayload = {
   [key: string]: unknown;
 };
 
-import { APT_GAME_PATH } from "@/lib/site-routes";
+import { APT_GAME_PATH, DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { isAptPublicEnabled } from "@/lib/apt-public-gate";
+
+const APT_HOLD_LINK = DEFAULT_LANDING_PATH;
 
 export const APT_DEEP_LINKS = {
-  market: `${APT_GAME_PATH}?shop=market`,
-  flea: `${APT_GAME_PATH}?shop=flea`,
-  shop: `${APT_GAME_PATH}?shop=official`,
-  inventory: APT_GAME_PATH,
-  live: APT_GAME_PATH,
+  get market() {
+    return isAptPublicEnabled() ? `${APT_GAME_PATH}?shop=market` : APT_HOLD_LINK;
+  },
+  get flea() {
+    return isAptPublicEnabled() ? `${APT_GAME_PATH}?shop=flea` : APT_HOLD_LINK;
+  },
+  get shop() {
+    return isAptPublicEnabled() ? `${APT_GAME_PATH}?shop=official` : APT_HOLD_LINK;
+  },
+  get inventory() {
+    return isAptPublicEnabled() ? APT_GAME_PATH : APT_HOLD_LINK;
+  },
+  get live() {
+    return isAptPublicEnabled() ? APT_GAME_PATH : APT_HOLD_LINK;
+  },
   notifications: "/notifications",
 } as const;
 

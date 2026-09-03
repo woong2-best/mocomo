@@ -65,7 +65,7 @@ export function MeetMapView({
   const [displayCoords, setDisplayCoords] = useState<MeetCoords | null>(coords ?? null);
   const activeCoords = coords ?? displayCoords;
 
-  const regionCenter = useMemo(() => getRegionMapCenter(region), [region]);
+  const regionCenter = useMemo(() => getRegionMapCenter(region, country), [region, country]);
   const center = activeCoords ?? { lat: regionCenter.lat, lng: regionCenter.lng };
   const zoom = activeCoords ? 16 : regionCenter.zoom;
 
@@ -208,7 +208,9 @@ export function MeetMapView({
   if (shipping) {
     return (
       <p className="text-xs text-muted-foreground rounded-xl border border-dashed p-4 text-center">
-        전국 택배 거래는 지도 표시 없이 택배로 진행해 주세요.
+        {preferredEngine === "kakao"
+          ? "전국 택배 거래는 지도 표시 없이 택배로 진행해 주세요."
+          : "Shipping trades proceed without a meetup map pin."}
       </p>
     );
   }

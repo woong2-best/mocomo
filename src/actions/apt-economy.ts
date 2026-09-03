@@ -29,12 +29,14 @@ import type { AptGameState } from "@/lib/apt/game/types";
 import { resolveAptHomeOwnerId } from "@/actions/apt-cohabitation";
 import { assertShopEnabled } from "@/lib/apt/economy/economy-emergency";
 import { assertFraudAllowed } from "@/lib/apt/economy/fraud/fraud-restrictions";
+import { isAptPublicEnabled } from "@/lib/apt-public-gate";
 
 export type AptEconomyActionResult =
   | { ok: true; economy: EconomySnapshot }
   | { error: string };
 
 export async function getAptEconomySnapshot(): Promise<EconomySnapshot | null> {
+  if (!isAptPublicEnabled()) return null;
   const user = await getCachedCurrentUser();
   if (!user) return null;
   return loadEconomySnapshot(user.id);

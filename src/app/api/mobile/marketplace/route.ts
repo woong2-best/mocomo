@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() || undefined;
   const category = req.nextUrl.searchParams.get("category")?.trim() || undefined;
   const sido = req.nextUrl.searchParams.get("sido")?.trim() || undefined;
+  const country = req.nextUrl.searchParams.get("country")?.trim() || undefined;
   const region = req.nextUrl.searchParams.get("region")?.trim() || undefined;
   const work = req.nextUrl.searchParams.get("work")?.trim() || undefined;
   const product = req.nextUrl.searchParams.get("product")?.trim() || undefined;
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest) {
       category: category && category !== "ALL" ? category : undefined,
       sido: sido || undefined,
       region: region || undefined,
+      country: country || undefined,
       work: work || undefined,
       product: product || undefined,
       saleType: mode === "auction" ? "AUCTION" : undefined,

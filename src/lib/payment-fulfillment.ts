@@ -223,7 +223,19 @@ export async function fulfillPaymentIntent(
   const meta = intent.metadata as Record<string, string>;
   const userId = intent.userId;
 
-  await recordPaymentGross(amount, intent.id, intent.type);
+  if (intent.type !== "MARKETPLACE" && intent.type !== "USED_AUCTION_BID_HOLD") {
+    await recordPaymentGross(amount, intent.id, intent.type);
+  }
+
+  if (intent.type === "USED_AUCTION_BID_HOLD") {
+    if (intent.status !== "PAID") {
+      await db.paymentIntent.update({
+        where: { id: orderId },
+        data: { status: "PAID", paidAt: new Date() },
+      });
+    }
+    return { ok: true, type: intent.type };
+  }
 
   if (intent.type === "TIP") {
     const r = await fulfillTip(

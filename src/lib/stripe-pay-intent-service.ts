@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { checkoutRedirectPath } from "@/lib/checkout-redirect";
 import { checkoutCurrencyForType, isPaymentsConfigured } from "@/lib/payments";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
+import { isMarketplacePaymentAuthorized } from "@/lib/marketplace/stripe-payment";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { stripePaymentIntentReturnUrl } from "@/lib/stripe-payment-return-url";
 import { validatePaymentInput } from "@/lib/stripe-checkout-validate";
@@ -63,7 +64,11 @@ async function finalizePaidCheckout(userId: string, orderId: string) {
 
   const stripe = getStripe();
   const pi = await stripe.paymentIntents.retrieve(intent.paymentKey);
-  if (pi.status !== "succeeded") {
+  const marketplaceAuthorized =
+    intent.type === "MARKETPLACE" && isMarketplacePaymentAuthorized(pi);
+  const bidHoldAuthorized =
+    intent.type === "USED_AUCTION_BID_HOLD" && isMarketplacePaymentAuthorized(pi);
+  if (pi.status !== "succeeded" && !marketplaceAuthorized && !bidHoldAuthorized) {
     return { error: "결제가 완료되지 않았습니다." };
   }
   if (pi.metadata?.orderId !== orderId) {
@@ -71,6 +76,22 @@ async function finalizePaidCheckout(userId: string, orderId: string) {
   }
   if (pi.amount !== intent.amount) {
     return { error: "결제 금액이 일치하지 않습니다." };
+  }
+
+  if (intent.type === "USED_AUCTION_BID_HOLD") {
+    await db.paymentIntent.update({
+      where: { id: orderId },
+      data: {
+        status: "PAID",
+        paidAt: new Date(),
+        purchaseTermsAcceptedAt: intent.purchaseTermsAcceptedAt ?? new Date(),
+      },
+    });
+    return {
+      success: true as const,
+      type: intent.type,
+      redirectPath: checkoutRedirectPath(intent, intent.type),
+    };
   }
 
   const consentBlock = await assertPurchaseTermsConsentRecorded(userId, orderId);
@@ -223,7 +244,7 @@ export async function payCheckoutWithSavedMethod(
       };
     }
 
-    if (pi.status === "succeeded") {
+    if (pi.status === "succeeded" || isMarketplacePaymentAuthorized(pi)) {
       return finalizePaidCheckout(userId, orderId);
     }
 

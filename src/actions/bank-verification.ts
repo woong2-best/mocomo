@@ -11,6 +11,13 @@ import {
   verifyBankCodeForUser,
   type BankVerificationUser,
 } from "@/lib/bank-verification";
+import {
+  getUsedMarketPhoneStatusForUser,
+  sendUsedMarketPhoneOtpForUser,
+  verifyUsedMarketPhoneOtpForUser,
+} from "@/lib/used-market-phone-otp";
+import { phonePendingIdentifier } from "@/lib/auth-tokens";
+import { isKoreaUsedMarketCountry } from "@/lib/used-regions-global";
 
 const bankUserSelect = {
   id: true,
@@ -33,8 +40,30 @@ async function loadBankVerificationUser(): Promise<BankVerificationUser | null> 
   });
 }
 
+const phoneUserSelect = {
+  id: true,
+  countryCode: true,
+  phone: true,
+  phoneVerified: true,
+} as const;
+
+async function loadPhoneVerificationUser() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  return db.user.findUnique({
+    where: { id: session.user.id },
+    select: phoneUserSelect,
+  });
+}
+
 async function requireBankVerificationUser() {
   const user = await loadBankVerificationUser();
+  if (!user) throw new Error("UNAUTHORIZED");
+  return user;
+}
+
+async function requirePhoneVerificationUser() {
+  const user = await loadPhoneVerificationUser();
   if (!user) throw new Error("UNAUTHORIZED");
   return user;
 }
@@ -112,36 +141,70 @@ export async function verifyUsedMarketBankCode(
   return result;
 }
 
-/** @deprecated SMS OTP — Apick 1원 인증으로 대체됨 */
-export async function sendUsedMarketPhoneOtp(_rawPhone: string) {
-  return {
-    error: "휴대폰 SMS 인증은 종료되었습니다. 계좌 1원 인증을 이용해 주세요.",
-  };
+/** 해외 중고거래 — 휴대폰 SMS OTP (KR은 계좌 1원 인증) */
+export async function sendUsedMarketPhoneOtp(rawPhone: string) {
+  const user = await requirePhoneVerificationUser();
+  if (isKoreaUsedMarketCountry(user.countryCode)) {
+    return { error: "한국은 계좌 1원 인증을 이용해 주세요." };
+  }
+  return sendUsedMarketPhoneOtpForUser(user, rawPhone);
 }
 
-/** @deprecated SMS OTP — Apick 1원 인증으로 대체됨 */
-export async function verifyUsedMarketPhoneOtp(_rawPhone: string, _code: string) {
-  return {
-    error: "휴대폰 SMS 인증은 종료되었습니다. 계좌 1원 인증을 이용해 주세요.",
-  };
+export async function verifyUsedMarketPhoneOtp(rawPhone: string, code: string) {
+  const user = await requirePhoneVerificationUser();
+  if (isKoreaUsedMarketCountry(user.countryCode)) {
+    return { error: "한국은 계좌 1원 인증을 이용해 주세요." };
+  }
+  const result = await verifyUsedMarketPhoneOtpForUser(user, rawPhone, code);
+  if ("success" in result && result.success) revalidateBankPaths();
+  return result;
 }
 
-/** @deprecated */
+export async function getUsedMarketPhoneVerificationStatus() {
+  const session = await auth();
+  if (!session?.user?.id) return { signedIn: false as const };
+  const status = await getUsedMarketPhoneStatusForUser(session.user.id);
+  if (!status) return { signedIn: false as const };
+  return { signedIn: true as const, ...status };
+}
+
+export async function clearUsedMarketPhonePending() {
+  const user = await requirePhoneVerificationUser();
+  await db.verificationToken.deleteMany({
+    where: { identifier: phonePendingIdentifier(user.id) },
+  });
+  return { ok: true as const };
+}
+
+/** @deprecated use getUsedMarketPhoneVerificationStatus or getBankVerificationStatus */
 export async function getPhoneVerificationStatus() {
-  const status = await getBankVerificationStatus();
-  if (!status.signedIn) return { signedIn: false as const };
+  const session = await auth();
+  if (!session?.user?.id) return { signedIn: false as const };
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { countryCode: true, phone: true, phoneVerified: true, bankVerifiedAt: true },
+  });
+  if (!user) return { signedIn: false as const };
+  if (isKoreaUsedMarketCountry(user.countryCode)) {
+    const bank = await getBankVerificationStatusForUser(session.user.id);
+    if (!bank) return { signedIn: false as const };
+    return {
+      signedIn: true as const,
+      countryCode: bank.countryCode,
+      phone: null,
+      phoneVerified: bank.bankVerified,
+      displayPhone: bank.displayAccount,
+    };
+  }
+  const phone = await getUsedMarketPhoneStatusForUser(session.user.id);
+  if (!phone) return { signedIn: false as const };
   return {
     signedIn: true as const,
-    countryCode: status.countryCode,
-    phone: null,
-    phoneVerified: status.bankVerified,
-    displayPhone: status.displayAccount,
+    countryCode: phone.countryCode,
+    phone: phone.phone,
+    phoneVerified: phone.phoneVerified,
+    displayPhone: phone.displayPhone,
   };
-}
-
-/** @deprecated */
-export async function clearUsedMarketPhonePending() {
-  return clearAccountBankPending();
 }
 
 /** 판매자 온보딩 — 한국 계좌 1원 인증 + Stripe Connect */

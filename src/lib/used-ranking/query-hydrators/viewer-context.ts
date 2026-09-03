@@ -13,7 +13,7 @@ export const usedMarketViewerHydrator: QueryHydrator<UsedMarketQuery> = {
       favoriteCategories: new Set<string>(),
       favoriteWorks: new Set<string>(),
       blockedIds: new Set<string>(),
-      countryCode: query.countryCode || "KR",
+      countryCode: query.countryCode ?? null,
       preferredRegion: query.preferredRegion ?? null,
       preferredSido: query.preferredSido ?? null,
     };

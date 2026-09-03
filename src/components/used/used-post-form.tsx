@@ -8,6 +8,8 @@ import { UsedImageComposer } from "@/components/media/post-media-composer";
 import {
   bidIncrementPresets,
   DEFAULT_USED_CURRENCY,
+  defaultUsedRegionForCountry,
+  isKoreaUsedMarketCountry,
   maxUsedListingPrice,
   maxUsedListingPriceLabel,
   USED_CATEGORIES,
@@ -60,14 +62,17 @@ export function UsedPostForm({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState<UsedCurrency>(DEFAULT_USED_CURRENCY);
+  const [currency, setCurrency] = useState<UsedCurrency>(
+    isKoreaUsedMarketCountry(sellerCountry) ? DEFAULT_USED_CURRENCY : "usd"
+  );
   const [isFree, setIsFree] = useState(false);
   const [category, setCategory] = useState("GOODS");
   const [workTitle, setWorkTitle] = useState("");
   const [productType, setProductType] = useState("");
+  const sellerCountry = sellerCountryCode.toUpperCase();
   const initialRegion = (() => {
     if (defaultRegion && parseUsedRegion(defaultRegion)) return defaultRegion;
-    return formatUsedRegion(KOREA_SIDO[0].short, getSigunguList(KOREA_SIDO[0].id)[0] ?? "종로구");
+    return defaultUsedRegionForCountry(sellerCountry);
   })();
   const [region, setRegion] = useState(initialRegion);
   const [meetPlace, setMeetPlace] = useState("");
@@ -458,6 +463,7 @@ export function UsedPostForm({
           setRegion(r);
           setMeetCoords(null);
         }}
+        countryCode={sellerCountryCode}
       />
 
       <UsedMeetMapPicker

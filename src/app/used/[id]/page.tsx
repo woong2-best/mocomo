@@ -264,14 +264,17 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
             />
 
-            {listing.auctionState === "PAYMENT_PENDING" && listing.paymentDueAt && (
+            {(listing.auctionState === "PAYMENT_PENDING" ||
+              listing.auctionState === "PAYMENT_COMPLETED") &&
+              (listing.paymentDueAt || listing.marketplaceOrderId) && (
               <UsedAuctionPaymentPanel
                 listingId={listing.id}
-                paymentDueAt={listing.paymentDueAt}
+                paymentDueAt={listing.paymentDueAt ?? new Date()}
                 amount={displayPrice}
                 currency={listing.currency}
                 isWinner={!!isWinningBidder}
                 paymentCompleted={!!listing.paymentCompletedAt}
+                marketplaceOrderId={listing.marketplaceOrderId}
               />
             )}
 

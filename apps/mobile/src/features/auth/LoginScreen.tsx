@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   Linking,
-  ScrollView,
+  Platform,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -59,9 +59,9 @@ export function LoginScreen() {
     refreshSavedAccounts,
   } = useAuth();
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView>(null);
   const keyboardHeight = useKeyboardBottomInset();
   const window = useWindowDimensions();
+  const relaxedHeightRef = useRef(window.height);
 
   // `cover` anchors the artwork to the top of the screen, so the baseline of
   // the line art lands at a fixed fraction of the displayed image height.
@@ -82,6 +82,28 @@ export function LoginScreen() {
   const authLocked = credentialsBusy || busyProvider !== null;
   const keyboardOpen = keyboardHeight > 0;
 
+  if (!keyboardOpen) {
+    relaxedHeightRef.current = window.height;
+  }
+
+  // Android `softwareKeyboardLayoutMode: resize` shrinks the window; iOS keeps
+  // the frame and reports keyboard height instead — never apply both.
+  const windowResizedForKeyboard =
+    Platform.OS === "android" &&
+    keyboardOpen &&
+    relaxedHeightRef.current - window.height > 80;
+
+  const formBottomInset = windowResizedForKeyboard
+    ? insets.bottom + 16
+    : keyboardOpen
+      ? keyboardHeight + insets.bottom + 16
+      : insets.bottom + 20;
+
+  const socialTop =
+    insets.top +
+    12 +
+    Math.max(16, artOffset + ART_GAP - insets.top - 12);
+
   useEffect(() => {
     void refreshSavedAccounts();
     void hasSeenNotificationPrompt().then((seen) => {
@@ -89,16 +111,6 @@ export function LoginScreen() {
     });
     prefetchGoogleNativeConfig();
   }, [refreshSavedAccounts]);
-
-  const scrollToForm = useCallback(() => {
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    });
-  }, []);
-
-  useEffect(() => {
-    if (keyboardOpen) scrollToForm();
-  }, [keyboardOpen, scrollToForm]);
 
   const runGoogleNative = useCallback(async () => {
     const result = await signInWithGoogleNative({ flow: "signin" });
@@ -174,39 +186,26 @@ export function LoginScreen() {
         contentPosition="top center"
       />
 
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={[
-          styles.scroll,
-          {
-            paddingTop: insets.top + 12,
-            paddingBottom: Math.max(insets.bottom + 20, keyboardHeight + 20),
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={[styles.flex, styles.overlay]} pointerEvents="box-none">
+        {/* Social tiles — absolute, never moves when the keyboard opens. */}
         <View
-          style={{
-            height: Math.max(16, artOffset + ART_GAP - insets.top - 12),
-          }}
-        />
-
-        <View style={styles.actions}>
+          pointerEvents="box-none"
+          style={[styles.socialDock, { top: socialTop }]}
+        >
           <WelcomeSocialAuthRow
             busyProvider={busyProvider}
             disabled={authLocked}
             onPress={(provider) => void runOAuth(provider)}
           />
-
           <Text style={[styles.orText, { color: colors.textMuted }]}>또는</Text>
+        </View>
 
+        {/* ID / password / login — absolute bottom, lifts above the keyboard. */}
+        <View style={[styles.formDock, { bottom: formBottomInset }]}>
           <NativeCredentialsForm
             busy={credentialsBusy}
             error={credentialsError}
             onSubmit={(loginId, password) => void handleCredentials(loginId, password)}
-            onFieldFocus={scrollToForm}
           />
 
           <Text style={[styles.helperLinks, { color: colors.textMuted }]}>
@@ -225,7 +224,7 @@ export function LoginScreen() {
             </Text>
           </Text>
         </View>
-      </ScrollView>
+      </View>
 
       <TermsConsentSheet
         visible={pendingSignup !== null}
@@ -246,11 +245,18 @@ export function LoginScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.lg,
+  overlay: { zIndex: 1 },
+  socialDock: {
+    position: "absolute",
+    left: spacing.lg,
+    right: spacing.lg,
   },
-  actions: { gap: 14 },
+  formDock: {
+    position: "absolute",
+    left: spacing.lg,
+    right: spacing.lg,
+    gap: 14,
+  },
   orText: {
     fontSize: 14,
     fontWeight: "700",

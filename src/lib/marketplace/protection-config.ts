@@ -2,7 +2,13 @@
  * Marketplace buyer/seller protection config — tunables in one place.
  */
 
-/** Days after delivery before auto-confirm (also escrow hold for NEW sellers) */
+/** Buyer dispute window after delivery before auto-confirm + capture (hours) */
+export const MARKETPLACE_DISPUTE_WINDOW_HOURS = 72;
+
+/** Shipped but no delivery signal → treat as delivered (days from shippedAt) */
+export const MARKETPLACE_DELIVERY_FALLBACK_DAYS = 45;
+
+/** @deprecated Use MARKETPLACE_DISPUTE_WINDOW_HOURS for post-delivery timing */
 export const MARKETPLACE_AUTO_CONFIRM_DAYS = 7;
 
 /** New seller: first N confirmed sales OR first N days → conservative escrow */
@@ -40,6 +46,31 @@ export const MARKETPLACE_CANCEL_PATTERN_MIN = 3;
 
 /** Reports on seller before auto admin review / escalate sanction */
 export const MARKETPLACE_REPORT_ESCALATE_COUNT = 3;
+
+/** Paid but no tracking registered → auto full refund (days) */
+export const MARKETPLACE_SHIP_DEADLINE_DAYS = 5;
+
+/** Buyer photo evidence minimum for auto damage/not-as-described rules */
+export const MARKETPLACE_AUTO_DISPUTE_MIN_BUYER_PHOTOS = 2;
+
+/** Seller counter-evidence window before auto buyer refund (days) */
+export const MARKETPLACE_AUTO_DISPUTE_SELLER_RESPONSE_DAYS = 3;
+
+/** Stripe Connect rolling reserve % by trust tier (basis points, 100 = 1%) */
+export const MARKETPLACE_ROLLING_RESERVE_BPS: Record<string, number> = {
+  NEW: 2000,
+  STANDARD: 1000,
+  TRUSTED: 500,
+  PREMIUM: 0,
+};
+
+/** Stripe Connect payout delay (days) by trust tier — complements MoCoMo escrow delay */
+export const MARKETPLACE_ROLLING_RESERVE_PAYOUT_DAYS: Record<string, number> = {
+  NEW: 14,
+  STANDARD: 7,
+  TRUSTED: 3,
+  PREMIUM: 0,
+};
 
 export const MARKETPLACE_DISPUTE_REASONS = [
   { id: "NOT_RECEIVED", label: "상품 미도착" },

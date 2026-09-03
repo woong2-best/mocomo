@@ -154,11 +154,64 @@ export async function startMarketplaceTradeChat(id: string) {
   });
 }
 
-export async function placeMarketplaceBid(id: string, amount: number) {
-  return apiRequest<{ success: boolean; amount: number; extended?: boolean }>(
-    `${MobileApi.marketplace}/${id}/bid`,
-    { method: "POST", body: { amount } }
-  );
+export async function placeMarketplaceBid(
+  id: string,
+  amount: number,
+  opts?: { termsAccepted?: boolean; paymentIntentDbId?: string }
+) {
+  return apiRequest<{
+    success?: boolean;
+    amount?: number;
+    extended?: boolean;
+    error?: string;
+    needsBidHold?: boolean;
+    needsAdultVerify?: boolean;
+  }>(`${MobileApi.marketplace}/${id}/bid`, {
+    method: "POST",
+    body: {
+      amount,
+      termsAccepted: opts?.termsAccepted ?? true,
+      paymentIntentDbId: opts?.paymentIntentDbId,
+    },
+  });
+}
+
+export async function prepareMarketplaceBidHold(id: string, amount: number) {
+  return apiRequest<{
+    orderId: string;
+    clientSecret: string;
+    publishableKey: string;
+    holdAmount: number;
+    bidAmount: number;
+    methods: Array<{
+      id: string;
+      brand: string;
+      last4: string;
+      expMonth: number;
+      expYear: number;
+      isDefault: boolean;
+    }>;
+  }>(`${MobileApi.marketplace}/${id}/bid`, {
+    method: "POST",
+    body: { mode: "prepare", amount },
+  });
+}
+
+export async function payMarketplaceBidHold(
+  id: string,
+  paymentIntentDbId: string,
+  paymentMethodId: string
+) {
+  return apiRequest<{
+    ok?: boolean;
+    requiresAction?: boolean;
+    clientSecret?: string;
+    orderId?: string;
+    error?: string;
+  }>(`${MobileApi.marketplace}/${id}/bid`, {
+    method: "POST",
+    body: { mode: "pay", paymentIntentDbId, paymentMethodId },
+  });
 }
 
 export type UsedBankStatus = {
@@ -222,10 +275,25 @@ export async function verifyUsedBankCode(bankCode: string, accountNum: string, c
   });
 }
 
-/** @deprecated */
-export const sendUsedPhoneOtp = (_phone: string) =>
-  sendUsedBankVerification("004", _phone);
+export async function sendUsedPhoneOtp(phone: string) {
+  return apiRequest<{
+    message?: string;
+    alreadyVerified?: boolean;
+    phoneDisplay?: string;
+    devCode?: string;
+  }>(MobileApi.marketplacePhone, {
+    method: "POST",
+    body: { action: "send", phone },
+  });
+}
+
+export async function verifyUsedPhoneOtp(phone: string, code: string) {
+  return apiRequest<{ success: boolean; displayPhone?: string }>(MobileApi.marketplacePhone, {
+    method: "POST",
+    body: { action: "verify", phone, code },
+  });
+}
 
 /** @deprecated */
-export const verifyUsedPhoneOtp = (phone: string, code: string) =>
-  verifyUsedBankCode("004", phone, code);
+export const sendUsedPhoneOtpLegacy = (_phone: string) =>
+  sendUsedBankVerification("004", _phone);

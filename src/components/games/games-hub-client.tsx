@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { APT_GAME_PATH } from "@/lib/site-routes";
+import { isAptPublicEnabled } from "@/lib/apt-public-gate";
 import { CATEGORY_ORDER, type MinigameCategory } from "@/lib/minigames/types";
 import {
   getLocalizedAllMinigames,
@@ -83,22 +84,24 @@ export function GamesHubClient({
 
       <PageSection title={t("games.play")} icon={Gamepad2}>
         <div key={category} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          <MotionInViewIndexed index={0}>
-            <MotionPress>
-              <Link
-                href={APT_GAME_PATH}
-                className="group col-span-2 flex flex-row items-center gap-4 rounded-2xl border-2 border-folk-terracotta/35 bg-gradient-to-br from-folk-gold/25 to-folk-cream/80 p-4 hover:border-folk-terracotta/60 transition-colors folk-card-interactive"
-              >
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 border-folk-cobalt/15 bg-white group-hover:border-folk-terracotta/40">
-                  <Building2 className="h-7 w-7 text-folk-cobalt" />
-                </span>
-                <div className="min-w-0 text-left">
-                  <p className="text-sm font-black text-folk-cobalt">{t("games.aptTitle")}</p>
-                  <p className="text-[11px] text-muted-foreground leading-snug">{t("games.aptDesc")}</p>
-                </div>
-              </Link>
-            </MotionPress>
-          </MotionInViewIndexed>
+          {isAptPublicEnabled() ? (
+            <MotionInViewIndexed index={0}>
+              <MotionPress>
+                <Link
+                  href={APT_GAME_PATH}
+                  className="group col-span-2 flex flex-row items-center gap-4 rounded-2xl border-2 border-folk-terracotta/35 bg-gradient-to-br from-folk-gold/25 to-folk-cream/80 p-4 hover:border-folk-terracotta/60 transition-colors folk-card-interactive"
+                >
+                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 border-folk-cobalt/15 bg-white group-hover:border-folk-terracotta/40">
+                    <Building2 className="h-7 w-7 text-folk-cobalt" />
+                  </span>
+                  <div className="min-w-0 text-left">
+                    <p className="text-sm font-black text-folk-cobalt">{t("games.aptTitle")}</p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">{t("games.aptDesc")}</p>
+                  </div>
+                </Link>
+              </MotionPress>
+            </MotionInViewIndexed>
+          ) : null}
           {games.map((game, i) => {
             const Icon = game.icon;
             const playable = game.status === "live" || game.status === "beta";
@@ -140,7 +143,7 @@ export function GamesHubClient({
             if (playable && game.href) {
               if (embedded && onGameNavigate) {
                 return (
-                  <MotionInViewIndexed key={game.id} index={i + 1}>
+                  <MotionInViewIndexed key={game.id} index={isAptPublicEnabled() ? i + 1 : i}>
                     <MotionPress>
                       <button
                         type="button"
@@ -154,7 +157,7 @@ export function GamesHubClient({
                 );
               }
               return (
-                <MotionInViewIndexed key={game.id} index={i + 1}>
+                <MotionInViewIndexed key={game.id} index={isAptPublicEnabled() ? i + 1 : i}>
                   <MotionPress>
                     <Link
                       href={game.href}
@@ -168,7 +171,7 @@ export function GamesHubClient({
             }
 
             return (
-              <MotionInViewIndexed key={game.id} index={i + 1}>
+              <MotionInViewIndexed key={game.id} index={isAptPublicEnabled() ? i + 1 : i}>
                 <div
                   className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border/60 bg-muted/20 p-4 opacity-80 cursor-not-allowed"
                   title={t("games.statusComingTitle")}

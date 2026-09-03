@@ -13,6 +13,7 @@ function hasSearchFilters(params: {
   category?: string;
   sido?: string;
   region?: string;
+  country?: string;
   work?: string;
   product?: string;
 }) {
@@ -21,6 +22,7 @@ function hasSearchFilters(params: {
     (params.category && params.category !== "ALL") ||
     params.sido ||
     params.region ||
+    params.country ||
     params.work ||
     params.product
   );
@@ -72,6 +74,7 @@ export async function resolveUsedMarketBrowse(params: {
   category?: string;
   sido?: string;
   region?: string;
+  country?: string;
   work?: string;
   product?: string;
   saleType?: "FIXED" | "AUCTION";
@@ -89,6 +92,7 @@ export async function resolveUsedMarketBrowse(params: {
       category: params.category,
       sido: params.sido,
       region: params.region,
+      country: params.country,
       work: params.work,
       product: params.product,
       saleType: params.saleType,

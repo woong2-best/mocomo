@@ -20,7 +20,11 @@ export function ChatReplyQuote({
   const styles = useMemo(() => createStyles(colors, mine), [colors, mine]);
   const isSelf = !!selfUserId && replyTo.sender.id === selfUserId;
   const preview = getChatReplyPreview(replyTo);
-  const thumb = replyTo.attachments?.find((a) => a.type === "IMAGE" || a.type === "GIF");
+  // Paid media never renders outside the forensic canvas, not even as a
+  // reply thumbnail.
+  const thumb = replyTo.attachments?.find(
+    (a) => (a.type === "IMAGE" || a.type === "GIF") && !(a.priceKrw ?? 0) && Boolean(a.url)
+  );
 
   return (
     <View style={styles.wrap}>

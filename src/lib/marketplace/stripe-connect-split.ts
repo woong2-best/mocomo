@@ -1,8 +1,13 @@
 /**
- * Stripe Connect destination charge — 결제 시 플랫폼 수수료(10%) 자동 분할
+ * Stripe Connect destination charge — manual capture until purchase confirm.
+ *
+ * At capture: application_fee + transfer to Connect account (seller-side payout).
+ * Pre-capture: auth hold only — no platform balance custody (MTL-safe).
+ * Post-capture disputes: funds drawn from Connect account reserve.
  */
 
 import type { MarketplaceCheckoutMode } from "@prisma/client";
+import { MARKETPLACE_CAPTURE_METHOD } from "@/lib/marketplace/stripe-payment";
 
 export type StripeConnectSplitInput = {
   checkoutMode: MarketplaceCheckoutMode;
@@ -14,27 +19,31 @@ export type StripeConnectSplitInput = {
 };
 
 export type StripeConnectSplitParams = {
+  capture_method?: "manual";
   application_fee_amount?: number;
   transfer_data?: { destination: string };
   transfer_group?: string;
 };
 
 /**
- * STRIPE 모드 + Connect 계정 있을 때 destination charge 파라미터 반환.
- * escrow deferred transfer 대신 charge 시점 분할.
+ * STRIPE mode + Connect account → manual capture destination charge params.
+ * Seller Connect reserve (not platform balance) holds post-capture dispute exposure.
  */
 export function buildStripeConnectSplitParams(
   input: StripeConnectSplitInput
 ): StripeConnectSplitParams {
   if (input.checkoutMode !== "STRIPE") return {};
-  if (!input.sellerConnectAccountId?.trim()) return {};
-  if (input.platformFeeAmount <= 0 || input.totalAmount <= input.platformFeeAmount) {
-    return input.transferGroup ? { transfer_group: input.transferGroup } : {};
-  }
+  const destination = input.sellerConnectAccountId?.trim();
+  if (!destination) return {};
 
-  return {
-    application_fee_amount: input.platformFeeAmount,
-    transfer_data: { destination: input.sellerConnectAccountId.trim() },
+  const fee = Math.max(0, Math.floor(input.platformFeeAmount));
+  const params: StripeConnectSplitParams = {
+    capture_method: MARKETPLACE_CAPTURE_METHOD,
+    transfer_data: { destination },
     ...(input.transferGroup ? { transfer_group: input.transferGroup } : {}),
   };
+  if (fee > 0 && input.totalAmount > fee) {
+    params.application_fee_amount = fee;
+  }
+  return params;
 }

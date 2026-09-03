@@ -57,7 +57,7 @@ export function toSellerOnboardingUiStep(step: SellerOnboardingStepId): SellerOn
   return "ACCOUNT";
 }
 
-import { STRIPE_MARKET_COUNTRIES } from "@/lib/marketplace/market-access";
+import { isStripeMarketCountry } from "@/lib/marketplace/market-access";
 
 export const SELLER_MARKETS = [
   { code: "KR", labelKo: "한국", labelEn: "Korea" },
@@ -74,10 +74,8 @@ export const SELLER_MARKETS = [
   { code: "CA", labelKo: "캐나다", labelEn: "Canada" },
 ] as const;
 
-/** Stripe Connect 지원 판매 국가만 */
-export const STRIPE_SELLER_MARKETS = SELLER_MARKETS.filter((m) =>
-  STRIPE_MARKET_COUNTRIES.has(m.code)
-);
+/** Stripe Connect 지원 판매 국가 (synced list ∩ policy) */
+export const STRIPE_SELLER_MARKETS = SELLER_MARKETS.filter((m) => isStripeMarketCountry(m.code));
 
 /** @deprecated Stripe Connect KYC로 대체 */
 export const SELLER_KYC_ID_TYPES = [
