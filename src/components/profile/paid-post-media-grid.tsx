@@ -312,20 +312,15 @@ function PaidPostMediaTile({
       isNsfw={isNsfw}
       isOwner={isOwner}
       viewerShowNsfw={viewerShowNsfw}
-      className={cn("relative w-full overflow-hidden", single ? "max-h-[510px]" : "h-full")}
+      className={cn("relative h-full w-full overflow-hidden", single && "max-h-[510px]")}
     >
-      <div
-        className={cn(
-          "relative w-full overflow-hidden",
-          single ? "max-h-[510px]" : "h-full"
-        )}
-      >
+      <div className={cn("relative h-full w-full overflow-hidden", single && "max-h-[510px]")}>
       <PaidFeedMediaSurface
         type={media.type}
         src={media.url}
         className={cn(
-          "w-full",
-          single ? "max-h-[510px] h-full object-contain" : "h-full object-cover"
+          "h-full w-full",
+          single ? "object-contain" : "object-cover"
         )}
         mediaPriceKrw={media.priceKrw}
         postInstantPurchasePriceKrw={postInstantPurchasePriceKrw ?? media.instantPurchasePriceKrw}

@@ -11,7 +11,7 @@ import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-he
 import { PostCollabManageDialog } from "@/components/post/post-collab-manage-dialog";
 import { PostCollabActions } from "@/components/post/post-collab-actions";
 import { TranslatableText } from "@/components/ui/translatable-text";
-import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
+import { PostDetailMedia } from "@/components/post/post-detail-media";
 
 type PostDetailOk = Exclude<
   NonNullable<Awaited<ReturnType<typeof getPostDetail>>>,
@@ -90,7 +90,7 @@ export function PostDetailCard({
           <TranslatableText text={post.content} as="p" className="whitespace-pre-wrap" />
         ) : null}
         {post.poll && <PostPollCard postId={post.id} poll={post.poll} />}
-        <PaidPostMediaGrid
+        <PostDetailMedia
           media={(post.media ?? []).map((m) => ({
             id: m.id,
             url: m.url,
@@ -111,9 +111,7 @@ export function PostDetailCard({
           subscriptionPriceKrw={subscriptionPriceKrw}
           paymentsEnabled={paymentsEnabled}
           subscribed={subscribed}
-          linkToPost={false}
           postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
-          mediaTotal={(post.media ?? []).length}
           isNsfw={post.isNsfw}
           isOwner={isOwner}
           viewerShowNsfw={viewerShowNsfw}
