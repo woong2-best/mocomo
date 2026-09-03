@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { startUsedTradeChat } from "@/actions/used-market";
 import { usedMarketVerifyPath } from "@/lib/used-market-verify-path";
+import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function needsVerification(error: string) {

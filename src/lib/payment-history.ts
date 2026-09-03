@@ -34,6 +34,7 @@ const TYPE_LABELS: Record<PaymentIntentType, string> = {
   CREATOR_SUBSCRIPTION: "멤버십 구독",
   STUDIO_ASSET: "Studio 자산",
   MARKETPLACE: "마켓",
+  USED_AUCTION_BID_HOLD: "경매 입찰 hold",
   FLOWER: "Flower",
   MOCO_TOPUP: "MOCO 충전",
   CALL_BOOKING: "통화 예약",

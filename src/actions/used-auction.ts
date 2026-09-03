@@ -8,7 +8,7 @@ import {
   reserveMet,
 } from "@/lib/used-auction";
 import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
-import { formatUsedPrice } from "@/lib/used-market";
+import { formatUsedPrice, normalizeUsedCurrency } from "@/lib/used-market";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
 import { assertUsedAdultForRestricted } from "@/lib/used-youth-protection";
 import {
@@ -44,7 +44,10 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
 
     if (won && winnerId) {
       const amount = finalBid ?? listing.price;
-      const captureCheck = validateWinningBidCapturable(amount, listing.currency);
+      const captureCheck = validateWinningBidCapturable(
+        amount,
+        normalizeUsedCurrency(listing.currency)
+      );
       if (captureCheck) {
         await db.usedListing.update({
           where: { id: listingId },

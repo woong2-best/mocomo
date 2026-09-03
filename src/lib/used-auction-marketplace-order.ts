@@ -274,7 +274,9 @@ export async function handleUsedAuctionOrderCaptureFailure(orderId: string, reas
   });
 
   const { promoteNextAuctionWinner } = await import("@/lib/used-auction-lifecycle");
-  const transfer = await promoteNextAuctionWinner(listingId, { incrementForfeitCount: true });
+  const transfer = await promoteNextAuctionWinner(listingId, undefined, {
+    incrementForfeitCount: true,
+  });
   return { handled: true as const, transfer };
 }
 
@@ -322,6 +324,9 @@ export async function attemptAutoHoldAndActivateOrder(
   }
   if ("error" in paid) {
     return { error: paid.error, code: "hold_failed" };
+  }
+  if (!("ok" in paid)) {
+    return { error: "입찰 hold에 실패했습니다.", code: "hold_failed" };
   }
 
   await db.usedAuctionBid.updateMany({

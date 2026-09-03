@@ -21,7 +21,7 @@ import {
   USED_AUCTION_REAUTH_LEAD_HOURS,
 } from "@/lib/used-auction-config";
 import { normalizeUsedCurrency, type UsedCurrency } from "@/lib/used-market";
-import { assertOfacComprehensiveEmbargoLocation } from "@/lib/compliance/ofac-comprehensive-embargo";
+import { isOfacComprehensiveEmbargoLocation } from "@/lib/compliance/ofac-comprehensive-embargo";
 import { safeLogWarn } from "@/lib/safe-log";
 
 export type BidHoldMode = "none" | "stripe" | "honor";
@@ -529,6 +529,9 @@ export async function renewExpiringBidHold(bid: {
   if ("error" in paid) {
     return { ok: true, manual: true, reason: paid.error };
   }
+  if (!("ok" in paid)) {
+    return { ok: true, manual: true, reason: "hold_failed" };
+  }
 
   await db.usedAuctionBid.update({
     where: { id: bid.id },
@@ -594,7 +597,7 @@ export async function reauthorizeExpiringBidHoldsBatch(limit = 30) {
         failed += 1;
         continue;
       }
-      if (result.auto) {
+      if ("auto" in result && result.auto) {
         voided += 1;
         autoReauth += 1;
         reauthorized += 1;
@@ -614,21 +617,23 @@ export async function reauthorizeExpiringBidHoldsBatch(limit = 30) {
         continue;
       }
 
-      voided += 1;
-      manualReauth += 1;
-      await db.usedAuctionBid.update({
-        where: { id: bid.id },
-        data: { bidStatus: "SUPERSEDED", stripePaymentIntentId: null, holdExpiresAt: null },
-      });
-      const { sendUsedAuctionNotification } = await import("@/lib/used-auction-notify");
-      await sendUsedAuctionNotification({
-        userId: bid.bidderId,
-        type: "outbid",
-        title: "입찰 hold 갱신 필요",
-        body: `카드 승인 갱신에 실패했습니다 (${result.reason}). 경매 페이지에서 동일 금액으로 다시 입찰해 주세요.`,
-        link: `/used/${bid.listingId}`,
-      });
-      reauthorized += 1;
+      if ("manual" in result && result.manual) {
+        voided += 1;
+        manualReauth += 1;
+        await db.usedAuctionBid.update({
+          where: { id: bid.id },
+          data: { bidStatus: "SUPERSEDED", stripePaymentIntentId: null, holdExpiresAt: null },
+        });
+        const { sendUsedAuctionNotification } = await import("@/lib/used-auction-notify");
+        await sendUsedAuctionNotification({
+          userId: bid.bidderId,
+          type: "outbid",
+          title: "입찰 hold 갱신 필요",
+          body: `카드 승인 갱신에 실패했습니다 (${result.reason}). 경매 페이지에서 동일 금액으로 다시 입찰해 주세요.`,
+          link: `/used/${bid.listingId}`,
+        });
+        reauthorized += 1;
+      }
     } catch {
       failed += 1;
     }

@@ -1027,6 +1027,7 @@ export async function sellerRespondMarketplaceRefund(
   // 재고 복원
   for (const item of await db.marketplaceOrderItem.findMany({ where: { orderId: refund.orderId } })) {
     if (item.listingType === "DIGITAL") continue;
+    if (!item.listingId) continue;
     await db.marketplaceListing.update({
       where: { id: item.listingId },
       data: {

@@ -103,6 +103,7 @@ export async function fulfillMarketplaceOrder(params: {
 
   for (const item of order.items) {
     if (item.listingType !== "DIGITAL") continue;
+    if (!item.listingId) continue;
     const listing = await db.marketplaceListing.findUnique({
       where: { id: item.listingId },
       select: {

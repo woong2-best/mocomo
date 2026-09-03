@@ -32,7 +32,7 @@ export default async function UsedVerifyPage({
   }
 
   return (
-    <AppPageChrome maxWidth="md" spacing="sm" className="py-6 space-y-4">
+    <AppPageChrome maxWidth="2xl" spacing="sm" className="py-6 space-y-4">
       <div>
         <Link href="/used" className="text-sm text-muted-foreground hover:text-foreground underline">
           {locale === "en" ? "Back to marketplace" : "중고거래 홈"}

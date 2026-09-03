@@ -228,12 +228,10 @@ export async function fulfillPaymentIntent(
   }
 
   if (intent.type === "USED_AUCTION_BID_HOLD") {
-    if (intent.status !== "PAID") {
-      await db.paymentIntent.update({
-        where: { id: orderId },
-        data: { status: "PAID", paidAt: new Date() },
-      });
-    }
+    await db.paymentIntent.update({
+      where: { id: orderId },
+      data: { status: "PAID", paidAt: new Date() },
+    });
     return { ok: true, type: intent.type };
   }
 

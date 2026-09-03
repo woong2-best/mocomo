@@ -59,6 +59,7 @@ export function UsedPostForm({
   sellerCountryCode?: string;
 }) {
   const router = useRouter();
+  const sellerCountry = sellerCountryCode.toUpperCase();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -69,7 +70,6 @@ export function UsedPostForm({
   const [category, setCategory] = useState("GOODS");
   const [workTitle, setWorkTitle] = useState("");
   const [productType, setProductType] = useState("");
-  const sellerCountry = sellerCountryCode.toUpperCase();
   const initialRegion = (() => {
     if (defaultRegion && parseUsedRegion(defaultRegion)) return defaultRegion;
     return defaultUsedRegionForCountry(sellerCountry);

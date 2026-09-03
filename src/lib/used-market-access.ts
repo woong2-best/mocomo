@@ -1,5 +1,5 @@
+import { assertUsedMarketCountryAllowed } from "@/lib/used-regions-global";
 import {
-  assertUsedMarketCountryAllowed,
   isUsedMarketEligible,
   usedMarketVerificationRequiredMsg,
 } from "@/lib/used-bank-auth";

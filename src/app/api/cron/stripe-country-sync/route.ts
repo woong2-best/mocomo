@@ -15,5 +15,5 @@ export async function GET(req: NextRequest) {
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 503 });
   }
-  return NextResponse.json({ ok: true, ...result });
+  return NextResponse.json(result);
 }
