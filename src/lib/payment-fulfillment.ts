@@ -213,6 +213,9 @@ export async function fulfillPaymentIntent(
   if (intent.status === "PAID") {
     return { ok: true, type: intent.type, alreadyPaid: true };
   }
+  if (!intent.purchaseTermsAcceptedAt) {
+    return { ok: false, error: "결제 약관 동의 기록이 없습니다." };
+  }
   if (intent.amount !== amount) {
     return { ok: false, error: "?? ??? ???? ????." };
   }

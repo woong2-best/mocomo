@@ -30,6 +30,7 @@ import { formatUsd } from "@/lib/money";
 import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
 import { CreditCard, Loader2, Plus } from "lucide-react";
 import { StripeOverseasPaymentNotice } from "@/components/payments/stripe-overseas-payment-notice";
+import { PurchaseChargebackTermsNotice } from "@/components/payments/purchase-chargeback-terms-notice";
 
 type Props = {
   open: boolean;
@@ -69,11 +70,13 @@ export function PaymentCheckoutSheet({
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
   const [mocoBalance, setMocoBalance] = useState(0);
   const [mocoRequired, setMocoRequired] = useState(0);
+  const [purchaseTermsAccepted, setPurchaseTermsAccepted] = useState(false);
 
   const amountLabel = useMemo(() => formatAmount(type, amount), [amount, type]);
 
   useEffect(() => {
     if (!open) return;
+    setPurchaseTermsAccepted(false);
     setError("");
     setLoading(true);
     void prepareCheckoutPayment({ type, amount, orderName, metadata })
@@ -134,9 +137,13 @@ export function PaymentCheckoutSheet({
       setError("카드를 선택해 주세요.");
       return;
     }
+    if (!purchaseTermsAccepted) {
+      setError("결제 전 이용약관에 동의해 주세요.");
+      return;
+    }
     setError("");
     startTransition(async () => {
-      const res = await payWithSavedCard(orderId, selectedId);
+      const res = await payWithSavedCard(orderId, selectedId, true);
       if ("error" in res && res.error) {
         setError(res.error);
         return;
@@ -153,8 +160,18 @@ export function PaymentCheckoutSheet({
   }
 
   async function redirectCheckout() {
+    if (!purchaseTermsAccepted) {
+      setError("결제 전 이용약관에 동의해 주세요.");
+      return;
+    }
     setError("");
-    const res = await createStripeCheckoutRedirect({ type, amount, orderName, metadata });
+    const res = await createStripeCheckoutRedirect({
+      type,
+      amount,
+      orderName,
+      metadata,
+      purchaseTermsAccepted: true,
+    });
     if ("error" in res && res.error) {
       setError(res.error);
       return;
@@ -190,6 +207,11 @@ export function PaymentCheckoutSheet({
               without the personal-viewing-licence terms on screen. */}
           {requiresPaidContentUsageNotice(type) ? <PaidContentUsageNotice /> : null}
 
+          <PurchaseChargebackTermsNotice
+            checked={purchaseTermsAccepted}
+            onCheckedChange={setPurchaseTermsAccepted}
+          />
+
           {loading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -202,7 +224,8 @@ export function PaymentCheckoutSheet({
                   mocoBalance={mocoBalance}
                   mocoRequired={mocoRequired}
                   amountLabel={amountLabel}
-                  disabled={loading || pending}
+                  disabled={loading || pending || !purchaseTermsAccepted}
+                  purchaseTermsAccepted={purchaseTermsAccepted}
                   onError={setError}
                   onSuccess={(result) => {
                     onOpenChange(false);
@@ -284,13 +307,13 @@ export function PaymentCheckoutSheet({
               <Button
                 type="button"
                 className="flex-1"
-                disabled={pending || loading || !selectedId || !orderId}
+                disabled={pending || loading || !selectedId || !orderId || !purchaseTermsAccepted}
                 onClick={paySelected}
               >
                 {pending ? "결제 중…" : "선택한 카드로 결제"}
               </Button>
             ) : (
-              <Button type="button" className="flex-1" disabled={pending || loading} onClick={() => void redirectCheckout()}>
+              <Button type="button" className="flex-1" disabled={pending || loading || !purchaseTermsAccepted} onClick={() => void redirectCheckout()}>
                 새 카드로 결제
               </Button>
             )}

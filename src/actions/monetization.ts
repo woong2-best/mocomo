@@ -17,12 +17,14 @@ export async function createStripeCheckout(input: {
   amount: number;
   orderName: string;
   metadata: Record<string, unknown>;
+  purchaseTermsAccepted?: boolean;
 }) {
   const user = await requireAuth();
   return createStripeCheckoutForUser({
     userId: user.id,
     email: user.email,
     platform: "web",
+    purchaseTermsAccepted: input.purchaseTermsAccepted,
     ...input,
   });
 }

@@ -24,6 +24,12 @@ import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { formatUsd } from "@/lib/money";
 import { STRIPE_OVERSEAS_PAYMENT_NOTICE } from "@/lib/stripe-payment-notice";
+import {
+  PURCHASE_CHARGEBACK_TERMS_BULLETS,
+  PURCHASE_CHARGEBACK_TERMS_CHECKBOX_LABEL,
+  PURCHASE_CHARGEBACK_TERMS_TITLE,
+  PURCHASE_CHARGEBACK_TERMS_VERSION,
+} from "@/lib/purchase-chargeback-terms";
 
 const RETURN_PREFIX = Linking.createURL("payment/success");
 
@@ -52,9 +58,11 @@ export function MarketplacePaymentSheet({
   const [orderName, setOrderName] = useState("");
   const [methods, setMethods] = useState<PaymentMethodItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [purchaseTermsAccepted, setPurchaseTermsAccepted] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
+    setPurchaseTermsAccepted(false);
     setError("");
     setLoading(true);
     void prepareMarketplacePayment(listingId, body)
@@ -94,6 +102,10 @@ export function MarketplacePaymentSheet({
       setError("카드를 선택해 주세요.");
       return;
     }
+    if (!purchaseTermsAccepted) {
+      setError("결제 전 이용약관에 동의해 주세요.");
+      return;
+    }
     setPaying(true);
     setError("");
     try {
@@ -120,6 +132,10 @@ export function MarketplacePaymentSheet({
 
   async function payWithNewCard() {
     if (!orderId) return;
+    if (!purchaseTermsAccepted) {
+      setError("결제 전 이용약관에 동의해 주세요.");
+      return;
+    }
     setPaying(true);
     setError("");
     try {
@@ -161,6 +177,35 @@ export function MarketplacePaymentSheet({
           <Text style={[styles.amount, { color: colors.text }]}>
             {amount > 0 ? formatUsd(amount) : "—"}
           </Text>
+
+          <View style={[styles.termsNotice, { borderColor: `${colors.terracotta}66` }]}>
+            <Text style={[styles.termsTitle, { color: colors.text }]}>
+              {PURCHASE_CHARGEBACK_TERMS_TITLE}{" "}
+              <Text style={{ color: colors.textMuted, fontSize: 11 }}>v{PURCHASE_CHARGEBACK_TERMS_VERSION}</Text>
+            </Text>
+            {PURCHASE_CHARGEBACK_TERMS_BULLETS.map((line) => (
+              <Text key={line} style={[styles.termsBullet, { color: colors.textMuted }]}>
+                • {line}
+              </Text>
+            ))}
+            <Pressable
+              onPress={() => setPurchaseTermsAccepted((v) => !v)}
+              style={styles.termsCheckRow}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  {
+                    borderColor: purchaseTermsAccepted ? colors.cobalt : colors.hairline,
+                    backgroundColor: purchaseTermsAccepted ? `${colors.cobalt}33` : "transparent",
+                  },
+                ]}
+              />
+              <Text style={[styles.termsCheckLabel, { color: colors.text }]}>
+                {PURCHASE_CHARGEBACK_TERMS_CHECKBOX_LABEL}
+              </Text>
+            </Pressable>
+          </View>
 
           {loading ? (
             <ActivityIndicator style={{ marginVertical: spacing.lg }} color={colors.terracotta} />
@@ -212,14 +257,14 @@ export function MarketplacePaymentSheet({
                 label={paying ? "결제 중…" : "선택한 카드로 결제"}
                 onPress={() => void paySelected()}
                 loading={paying}
-                disabled={!selectedId || loading}
+                disabled={!selectedId || loading || !purchaseTermsAccepted}
               />
             ) : (
               <FolkButton
                 label={paying ? "이동 중…" : "새 카드로 결제"}
                 onPress={() => void payWithNewCard()}
                 loading={paying}
-                disabled={loading || !orderId}
+                disabled={loading || !orderId || !purchaseTermsAccepted}
               />
             )}
           </View>
@@ -254,6 +299,19 @@ function createStyles(colors: ThemeColors) {
     },
     cardTitle: { fontWeight: "800", fontSize: 15 },
     cardMeta: { fontSize: 12, marginTop: 2, fontWeight: "600" },
+    termsNotice: {
+      borderWidth: 1,
+      borderRadius: 14,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      marginBottom: spacing.md,
+      backgroundColor: "rgba(200, 120, 60, 0.10)",
+    },
+    termsTitle: { fontSize: 13, fontWeight: "800", lineHeight: 18 },
+    termsBullet: { fontSize: 11, fontWeight: "600", lineHeight: 16, marginTop: 4 },
+    termsCheckRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm, marginTop: spacing.sm },
+    checkbox: { width: 18, height: 18, borderWidth: 1.5, borderRadius: 4, marginTop: 1 },
+    termsCheckLabel: { flex: 1, fontSize: 11, fontWeight: "700", lineHeight: 16 },
     error: { fontSize: 13, fontWeight: "700", marginTop: spacing.sm },
     notice: { fontSize: 11, fontWeight: "600", lineHeight: 16, marginTop: spacing.sm },
     actions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },

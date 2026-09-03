@@ -53,7 +53,7 @@ export async function prepareCheckoutPayment(input: {
   });
 }
 
-export async function payWithMoco(orderId: string) {
+export async function payWithMoco(orderId: string, purchaseTermsAccepted?: boolean) {
   const user = await requireAuth();
   const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
   const limited = await checkRateLimit(authLimiter, `moco-pay:${user.id}`);
@@ -63,16 +63,26 @@ export async function payWithMoco(orderId: string) {
   if (!orderId || typeof orderId !== "string" || orderId.length > 64) {
     return { error: "잘못된 결제 요청입니다." };
   }
-  const result = await payCheckoutWithMoco(user.id, orderId);
+  const result = await payCheckoutWithMoco(user.id, orderId, {
+    purchaseTermsAccepted,
+    platform: "web",
+  });
   if ("success" in result && result.success) {
     revalidateAfterPayment(result.type);
   }
   return result;
 }
 
-export async function payWithSavedCard(orderId: string, paymentMethodId: string) {
+export async function payWithSavedCard(
+  orderId: string,
+  paymentMethodId: string,
+  purchaseTermsAccepted?: boolean
+) {
   const user = await requireAuth();
-  const result = await payCheckoutWithSavedMethod(user.id, orderId, paymentMethodId);
+  const result = await payCheckoutWithSavedMethod(user.id, orderId, paymentMethodId, {
+    purchaseTermsAccepted,
+    platform: "web",
+  });
   if ("success" in result && result.success) {
     revalidateAfterPayment(result.type);
   }
@@ -94,12 +104,14 @@ export async function createStripeCheckoutRedirect(input: {
   amount: number;
   orderName: string;
   metadata: Record<string, unknown>;
+  purchaseTermsAccepted?: boolean;
 }) {
   const user = await requireAuth();
   return createStripeCheckoutForUser({
     userId: user.id,
     email: user.email,
     platform: "web",
+    purchaseTermsAccepted: input.purchaseTermsAccepted,
     ...input,
   });
 }
@@ -117,9 +129,16 @@ export async function prepareMarketplacePayment(input: MarketplaceCheckoutInput)
   );
 }
 
-export async function payMarketplaceWithSavedCard(orderId: string, paymentMethodId: string) {
+export async function payMarketplaceWithSavedCard(
+  orderId: string,
+  paymentMethodId: string,
+  purchaseTermsAccepted?: boolean
+) {
   const user = await requireAuth();
-  const result = await payCheckoutWithSavedMethod(user.id, orderId, paymentMethodId);
+  const result = await payCheckoutWithSavedMethod(user.id, orderId, paymentMethodId, {
+    purchaseTermsAccepted,
+    platform: "web",
+  });
   if ("success" in result && result.success) {
     revalidateAfterPayment(result.type);
   }
@@ -135,11 +154,15 @@ export async function confirmMarketplacePayment(orderId: string) {
   return result;
 }
 
-export async function createMarketplaceCheckoutRedirect(orderId: string) {
+export async function createMarketplaceCheckoutRedirect(
+  orderId: string,
+  purchaseTermsAccepted?: boolean
+) {
   const user = await requireAuth();
   return createMarketplaceCheckoutSessionForPaymentIntent(
     { id: user.id, email: user.email },
     orderId,
-    "web"
+    "web",
+    { purchaseTermsAccepted }
   );
 }

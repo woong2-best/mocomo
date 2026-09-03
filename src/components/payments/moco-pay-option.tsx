@@ -13,6 +13,7 @@ type Props = {
   mocoRequired: number;
   amountLabel: string;
   disabled?: boolean;
+  purchaseTermsAccepted?: boolean;
   onSuccess?: (result: { type: string; redirectPath?: string }) => void;
   onError?: (message: string) => void;
 };
@@ -23,6 +24,7 @@ export function MocoPayOption({
   mocoRequired,
   amountLabel,
   disabled,
+  purchaseTermsAccepted,
   onSuccess,
   onError,
 }: Props) {
@@ -31,8 +33,12 @@ export function MocoPayOption({
 
   function handlePay() {
     if (!orderId || !canPay) return;
+    if (!purchaseTermsAccepted) {
+      onError?.("결제 전 이용약관에 동의해 주세요.");
+      return;
+    }
     startTransition(async () => {
-      const res = await payWithMoco(orderId);
+      const res = await payWithMoco(orderId, true);
       if ("error" in res && res.error) {
         onError?.(res.error);
         return;

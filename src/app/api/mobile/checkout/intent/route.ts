@@ -77,6 +77,7 @@ const confirmSchema = z.discriminatedUnion("mode", [
     mode: z.literal("saved"),
     orderId: z.string().min(1),
     paymentMethodId: z.string().min(1),
+    purchaseTermsAccepted: z.literal(true),
   }),
   z.object({
     mode: z.literal("finalize"),
@@ -88,6 +89,7 @@ const confirmSchema = z.discriminatedUnion("mode", [
     amount: z.number().int().positive(),
     orderName: z.string().min(1).max(200),
     metadata: z.record(z.unknown()).default({}),
+    purchaseTermsAccepted: z.literal(true),
   }),
 ]);
 
@@ -123,6 +125,7 @@ export async function PATCH(req: NextRequest) {
       orderName: parsed.data.orderName,
       metadata: parsed.data.metadata,
       platform: "mobile",
+      purchaseTermsAccepted: true,
     });
     if ("error" in result && result.error) {
       return NextResponse.json({ error: result.error }, { status: 422 });
@@ -141,7 +144,8 @@ export async function PATCH(req: NextRequest) {
   const result = await payCheckoutWithSavedMethod(
     auth.user.id,
     parsed.data.orderId,
-    parsed.data.paymentMethodId
+    parsed.data.paymentMethodId,
+    { purchaseTermsAccepted: true, platform: "mobile" }
   );
 
   if ("error" in result && result.error) {

@@ -29,6 +29,7 @@ const patchSchema = z.discriminatedUnion("mode", [
     mode: z.literal("saved"),
     orderId: z.string().min(1),
     paymentMethodId: z.string().min(1),
+    purchaseTermsAccepted: z.literal(true),
   }),
   z.object({
     mode: z.literal("finalize"),
@@ -37,6 +38,7 @@ const patchSchema = z.discriminatedUnion("mode", [
   z.object({
     mode: z.literal("checkout"),
     orderId: z.string().min(1),
+    purchaseTermsAccepted: z.literal(true),
   }),
 ]);
 
@@ -148,7 +150,8 @@ export async function PATCH(
     const result = await createMarketplaceCheckoutSessionForPaymentIntent(
       { id: auth.user.id, email: dbUser?.email },
       parsed.data.orderId,
-      "mobile"
+      "mobile",
+      { purchaseTermsAccepted: true }
     );
     if ("error" in result && result.error) {
       return NextResponse.json({ error: result.error }, { status: 422 });
@@ -167,7 +170,8 @@ export async function PATCH(
   const result = await payCheckoutWithSavedMethod(
     auth.user.id,
     parsed.data.orderId,
-    parsed.data.paymentMethodId
+    parsed.data.paymentMethodId,
+    { purchaseTermsAccepted: true, platform: "mobile" }
   );
 
   if ("error" in result && result.error) {

@@ -2128,12 +2128,18 @@ model PaymentIntent {
   metadata  Json
   paymentKey String?
   paymentRail PaymentRail       @default(STRIPE)
+  /** Stripe dispute evidence — purchase terms accepted before charge */
+  purchaseTermsVersion     String?
+  purchaseTermsAcceptedAt  DateTime?
+  purchaseTermsSnapshot    String?   @db.Text
+  purchaseTermsPlatform    String?
   createdAt DateTime            @default(now())
   paidAt    DateTime?
   user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
   @@index([paymentRail, status])
+  @@index([purchaseTermsAcceptedAt])
 }
 
 // ============ 정산 · 지갑 (PG 입금 → 플랫폼 수수료 / 판매자 적립 → 출금) ============
@@ -5785,6 +5791,11 @@ model MarketplaceOrder {
   shipAddress2       String?
   shipPhone          String?
   buyerNote          String?                @db.Text
+  /** Stripe dispute evidence — mirrors PaymentIntent purchase terms at checkout */
+  purchaseTermsVersion     String?
+  purchaseTermsAcceptedAt  DateTime?
+  purchaseTermsSnapshot    String?          @db.Text
+  purchaseTermsPlatform    String?
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
 

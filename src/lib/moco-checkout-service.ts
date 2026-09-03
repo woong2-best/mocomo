@@ -5,6 +5,10 @@ import { krwToMoco } from "@/lib/moco/economy";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
 import { debitPlatformWallet, creditPlatformWallet, getOrCreatePlatformWallet } from "@/lib/platform/wallet/service";
 import { assertOfacPaymentAllowedForUser } from "@/lib/compliance/ofac-payment-guard-server";
+import {
+  assertAndRecordPurchaseTermsConsent,
+} from "@/lib/purchase-terms-consent";
+import type { PurchaseTermsPlatform } from "@/lib/purchase-chargeback-terms";
 
 const MOCO_PAY_BLOCKED: PaymentIntentType[] = ["MOCO_TOPUP"];
 
@@ -18,7 +22,19 @@ export async function getMocoCheckoutQuote(userId: string, amountKrw: number) {
   };
 }
 
-export async function payCheckoutWithMoco(userId: string, orderId: string) {
+export async function payCheckoutWithMoco(
+  userId: string,
+  orderId: string,
+  opts?: { purchaseTermsAccepted?: boolean; platform?: PurchaseTermsPlatform }
+) {
+  const consentBlock = await assertAndRecordPurchaseTermsConsent({
+    userId,
+    paymentIntentId: orderId,
+    termsAccepted: opts?.purchaseTermsAccepted === true,
+    platform: opts?.platform,
+  });
+  if (consentBlock.error) return { error: consentBlock.error };
+
   const ofacBlock = await assertOfacPaymentAllowedForUser(userId);
   if (ofacBlock) return ofacBlock;
 

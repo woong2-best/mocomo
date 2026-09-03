@@ -17,6 +17,11 @@ import { getMocoCheckoutQuote } from "@/lib/moco-checkout-service";
 import { assertOfacPaymentRequestAllowed, assertOfacPaymentAllowedForUser } from "@/lib/compliance/ofac-payment-guard-server";
 import { assertMonetizationPaymentAllowed } from "@/lib/payment-rail";
 import {
+  assertAndRecordPurchaseTermsConsent,
+  assertPurchaseTermsConsentRecorded,
+} from "@/lib/purchase-terms-consent";
+import type { PurchaseTermsPlatform } from "@/lib/purchase-chargeback-terms";
+import {
   assertAdultVerifiedForPaidDm,
   paymentTypeRequiresAdultVerification,
 } from "@/lib/adult-verification/paid-dm-guard";
@@ -67,6 +72,9 @@ async function finalizePaidCheckout(userId: string, orderId: string) {
   if (pi.amount !== intent.amount) {
     return { error: "결제 금액이 일치하지 않습니다." };
   }
+
+  const consentBlock = await assertPurchaseTermsConsentRecorded(userId, orderId);
+  if (consentBlock.error) return { error: consentBlock.error };
 
   const result = await fulfillPaymentIntent(orderId, pi.id, pi.amount);
   if (!result.ok) return { error: result.error };
@@ -166,11 +174,20 @@ export async function prepareCheckoutPaymentIntent(input: {
 export async function payCheckoutWithSavedMethod(
   userId: string,
   orderId: string,
-  paymentMethodId: string
+  paymentMethodId: string,
+  opts?: { purchaseTermsAccepted?: boolean; platform?: PurchaseTermsPlatform }
 ) {
   if (!isPaymentsConfigured()) {
     return { error: "결제가 설정되지 않았습니다." };
   }
+
+  const consentBlock = await assertAndRecordPurchaseTermsConsent({
+    userId,
+    paymentIntentId: orderId,
+    termsAccepted: opts?.purchaseTermsAccepted === true,
+    platform: opts?.platform,
+  });
+  if (consentBlock.error) return { error: consentBlock.error };
 
   const ofacBlock = await assertOfacPaymentAllowedForUser(userId);
   if (ofacBlock) return ofacBlock;

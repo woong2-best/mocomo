@@ -27,6 +27,7 @@ import {
   assessMarketplaceCheckoutRisk,
   applyOrderRiskFlags,
 } from "@/lib/marketplace/risk";
+import { assertAndRecordPurchaseTermsConsent } from "@/lib/purchase-terms-consent";
 import { logMarketplaceAudit, MarketplaceAuditActions } from "@/lib/marketplace/audit";
 import {
   confirmAndMaybeSettle,
@@ -487,11 +488,20 @@ export async function prepareMarketplacePaymentForBuyer(
 export async function createMarketplaceCheckoutSessionForPaymentIntent(
   buyer: { id: string; email?: string | null },
   paymentIntentDbId: string,
-  platform: CheckoutPlatform = "web"
+  platform: CheckoutPlatform = "web",
+  opts?: { purchaseTermsAccepted?: boolean }
 ) {
   if (!isStripeConfigured()) {
     return { error: "Stripe 결제가 설정되지 않았습니다." };
   }
+
+  const consentBlock = await assertAndRecordPurchaseTermsConsent({
+    userId: buyer.id,
+    paymentIntentId: paymentIntentDbId,
+    termsAccepted: opts?.purchaseTermsAccepted === true,
+    platform: platform === "mobile" ? "mobile" : "web",
+  });
+  if (consentBlock.error) return { error: consentBlock.error };
 
   const ofacBlock = await assertOfacPaymentRequestAllowed(buyer.id);
   if (ofacBlock) return ofacBlock;

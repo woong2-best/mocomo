@@ -24,7 +24,7 @@ export async function payCheckoutWithSavedCard(orderId: string, paymentMethodId:
     | { error: string }
   >(MobileApi.checkoutIntent, {
     method: "PATCH",
-    body: { mode: "saved", orderId, paymentMethodId },
+    body: { mode: "saved", orderId, paymentMethodId, purchaseTermsAccepted: true },
   });
 }
 
@@ -38,7 +38,7 @@ export async function finalizeCheckoutPayment(orderId: string) {
 export async function startCheckoutRedirect(body: CheckoutBody) {
   return apiRequest<{ checkoutUrl: string; orderId: string }>(MobileApi.checkoutIntent, {
     method: "PATCH",
-    body: { mode: "checkout", ...body },
+    body: { mode: "checkout", ...body, purchaseTermsAccepted: true },
   });
 }
 

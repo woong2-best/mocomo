@@ -147,7 +147,7 @@ export async function payMarketplaceWithSavedCard(
     | { error: string }
   >(MobileApi.starMarketCheckout(listingId), {
     method: "PATCH",
-    body: { mode: "saved", orderId, paymentMethodId },
+    body: { mode: "saved", orderId, paymentMethodId, purchaseTermsAccepted: true },
     auth: true,
   });
 }
@@ -168,7 +168,7 @@ export async function startMarketplaceCheckoutRedirect(listingId: string, orderI
     MobileApi.starMarketCheckout(listingId),
     {
       method: "PATCH",
-      body: { mode: "checkout", orderId },
+      body: { mode: "checkout", orderId, purchaseTermsAccepted: true },
       auth: true,
     }
   );

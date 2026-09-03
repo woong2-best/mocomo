@@ -12,6 +12,7 @@ const checkoutSchema = z.object({
   amount: z.number().int().positive(),
   orderName: z.string().min(1).max(200),
   metadata: z.record(z.unknown()).default({}),
+  purchaseTermsAccepted: z.literal(true),
 });
 
 /** Bearer auth — Stripe Checkout URL for mobile app */
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
     orderName: parsed.data.orderName,
     metadata: parsed.data.metadata,
     platform: "mobile",
+    purchaseTermsAccepted: true,
   });
 
   if ("error" in result && result.error) {

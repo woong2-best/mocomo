@@ -23,6 +23,7 @@ import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-
 import { MocoPayOption } from "@/components/payments/moco-pay-option";
 import { CreditCard, Loader2, Plus } from "lucide-react";
 import { StripeOverseasPaymentNotice } from "@/components/payments/stripe-overseas-payment-notice";
+import { PurchaseChargebackTermsNotice } from "@/components/payments/purchase-chargeback-terms-notice";
 
 type PreparedCheckout = {
   orderId: string;
@@ -64,9 +65,11 @@ export function MarketplaceCheckoutSheet({
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
   const [mocoBalance, setMocoBalance] = useState(0);
   const [mocoRequired, setMocoRequired] = useState(0);
+  const [purchaseTermsAccepted, setPurchaseTermsAccepted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setPurchaseTermsAccepted(false);
     if (prepared) {
       setError("");
       setOrderId(prepared.orderId);
@@ -157,9 +160,13 @@ export function MarketplaceCheckoutSheet({
       setError("카드를 선택해 주세요.");
       return;
     }
+    if (!purchaseTermsAccepted) {
+      setError("결제 전 이용약관에 동의해 주세요.");
+      return;
+    }
     setError("");
     startTransition(async () => {
-      const res = await payMarketplaceWithSavedCard(orderId, selectedId);
+      const res = await payMarketplaceWithSavedCard(orderId, selectedId, true);
       if ("error" in res && res.error) {
         setError(res.error);
         return;
@@ -180,8 +187,12 @@ export function MarketplaceCheckoutSheet({
 
   async function redirectCheckout() {
     if (!orderId) return;
+    if (!purchaseTermsAccepted) {
+      setError("결제 전 이용약관에 동의해 주세요.");
+      return;
+    }
     setError("");
-    const res = await createMarketplaceCheckoutRedirect(orderId);
+    const res = await createMarketplaceCheckoutRedirect(orderId, true);
     if ("error" in res && res.error) {
       setError(res.error);
       return;
@@ -206,6 +217,11 @@ export function MarketplaceCheckoutSheet({
             </p>
           </div>
 
+          <PurchaseChargebackTermsNotice
+            checked={purchaseTermsAccepted}
+            onCheckedChange={setPurchaseTermsAccepted}
+          />
+
           {loading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -217,7 +233,8 @@ export function MarketplaceCheckoutSheet({
                 mocoBalance={mocoBalance}
                 mocoRequired={mocoRequired}
                 amountLabel={amount > 0 ? formatMoney(amount) : "—"}
-                disabled={loading || pending}
+                disabled={loading || pending || !purchaseTermsAccepted}
+                purchaseTermsAccepted={purchaseTermsAccepted}
                 onError={setError}
                 onSuccess={(result) => {
                   onOpenChange(false);
@@ -288,7 +305,7 @@ export function MarketplaceCheckoutSheet({
               <Button
                 type="button"
                 className="flex-1"
-                disabled={pending || loading || !selectedId || !orderId}
+                disabled={pending || loading || !selectedId || !orderId || !purchaseTermsAccepted}
                 onClick={paySelected}
               >
                 {pending ? "결제 중…" : "선택한 카드로 결제"}
@@ -297,7 +314,7 @@ export function MarketplaceCheckoutSheet({
               <Button
                 type="button"
                 className="flex-1"
-                disabled={pending || loading || !orderId}
+                disabled={pending || loading || !orderId || !purchaseTermsAccepted}
                 onClick={() => void redirectCheckout()}
               >
                 새 카드로 결제

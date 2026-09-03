@@ -9,6 +9,11 @@ import { verifyStripeCheckoutSession } from "@/lib/stripe-checkout";
 import { validatePaymentInput } from "@/lib/stripe-checkout-validate";
 import { getOrCreateStripeCustomer } from "@/lib/stripe-payment-methods";
 import { assertOfacPaymentRequestAllowed } from "@/lib/compliance/ofac-payment-guard-server";
+import {
+  assertAndRecordPurchaseTermsConsent,
+  assertPurchaseTermsConsentRecorded,
+} from "@/lib/purchase-terms-consent";
+import type { PurchaseTermsPlatform } from "@/lib/purchase-chargeback-terms";
 
 export type CheckoutPlatform = "web" | "mobile";
 
@@ -34,6 +39,7 @@ export async function createStripeCheckoutForUser(input: {
   orderName: string;
   metadata: Record<string, unknown>;
   platform?: CheckoutPlatform;
+  purchaseTermsAccepted?: boolean;
 }) {
   if (!isStripeConfigured()) {
     return {
@@ -56,6 +62,17 @@ export async function createStripeCheckoutForUser(input: {
       metadata: input.metadata as Prisma.InputJsonValue,
     },
   });
+
+  const consentBlock = await assertAndRecordPurchaseTermsConsent({
+    userId: input.userId,
+    paymentIntentId: intent.id,
+    termsAccepted: input.purchaseTermsAccepted === true,
+    platform: input.platform === "mobile" ? "mobile" : "web",
+  });
+  if (consentBlock.error) {
+    await db.paymentIntent.delete({ where: { id: intent.id } }).catch(() => null);
+    return { error: consentBlock.error };
+  }
 
   const urls = stripeCheckoutReturnUrls(input.platform ?? "web");
   const stripe = getStripe();
@@ -112,6 +129,9 @@ export async function confirmStripeCheckoutForUser(userId: string, sessionId: st
   if (!intent || intent.userId !== userId) {
     return { error: "결제 정보를 찾을 수 없습니다." };
   }
+
+  const consentBlock = await assertPurchaseTermsConsentRecorded(userId, verified.orderId);
+  if (consentBlock.error) return { error: consentBlock.error };
 
   const result = await fulfillPaymentIntent(
     verified.orderId,
