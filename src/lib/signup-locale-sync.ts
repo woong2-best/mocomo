@@ -68,14 +68,10 @@ export function clearSignupLocaleStorage(): void {
   }
 }
 
-/** 가입 플로우 UI용 locale — URL > sessionStorage > cookie > 기본값 */
+/** 가입 플로우 UI용 locale — URL > sessionStorage > English (never guest cookie). */
 export function resolveSignupFlowLocale(paramLocale?: string | null): Locale {
   if (paramLocale && isLocale(paramLocale)) return paramLocale;
-  return (
-    readSignupLocaleStorage() ??
-    readClientLocaleCookie() ??
-    DEFAULT_GUEST_LOCALE
-  );
+  return readSignupLocaleStorage() ?? DEFAULT_GUEST_LOCALE;
 }
 
 /** 이메일 인증 페이지 — 비밀번호 찾기는 sessionStorage 가입 locale 무시 */
@@ -88,7 +84,7 @@ export function resolveEmailVerifyLocale(
     const stored = readSignupLocaleStorage();
     if (stored) return stored;
   }
-  return readClientLocaleCookie() ?? DEFAULT_GUEST_LOCALE;
+  return DEFAULT_GUEST_LOCALE;
 }
 
 export function resolveSignupFlowCountry(): string {

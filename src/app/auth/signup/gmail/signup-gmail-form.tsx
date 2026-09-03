@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { registerUser, prepareSignupVerify } from "@/actions/auth";
@@ -9,7 +9,7 @@ import {
   FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
 } from "@/lib/forbidden-admin-sequence";
 import { saveSignupDraft } from "@/lib/signup-draft";
-import { saveSignupLocaleStorage, syncSignupLocaleClient } from "@/lib/signup-locale-sync";
+import { saveSignupLocaleStorage, syncSignupLocaleClient, readSignupLocaleStorage } from "@/lib/signup-locale-sync";
 import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,8 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { EmailAddressField } from "@/components/auth/email-address-field";
 import { BRAND } from "@/lib/brand";
-import { LOCALE_LABELS, LOCALES, type Locale } from "@/lib/i18n/config";
+import { DEFAULT_GUEST_LOCALE, LOCALE_LABELS, LOCALES, type Locale } from "@/lib/i18n/config";
+import { createTranslator } from "@/lib/i18n/messages";
 import { CountrySelect } from "@/components/i18n/country-select";
 import { useLocale } from "@/components/providers/locale-provider";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
@@ -35,16 +36,14 @@ export function SignupGmailForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const {
-    locale: initialLocale,
     countryCode: initialCountry,
     timeZone: initialTimeZone,
-    t,
-    setLocale: setProviderLocale,
   } = useLocale();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
-  const [locale, setLocale] = useState<Locale>(initialLocale);
+  const [locale, setLocale] = useState<Locale>(DEFAULT_GUEST_LOCALE);
+  const t = useMemo(() => createTranslator(locale), [locale]);
   const [countryCode, setCountryCode] = useState(initialCountry);
   const [timeZone, setTimeZone] = useState(normalizeTimeZone(initialTimeZone));
   const [tzOptions, setTzOptions] = useState<string[]>([...COMMON_TIMEZONES]);
@@ -81,16 +80,19 @@ export function SignupGmailForm() {
   const needsHumanVerify = isSignupHumanVerifyRequired();
 
   useEffect(() => {
+    const stored = readSignupLocaleStorage();
+    if (stored) setLocale(stored);
+  }, []);
+
+  useEffect(() => {
     if (detectedOnce) return;
     setDetectedOnce(true);
     const prefs = detectBrowserRegionPrefs();
     setTimeZone(prefs.timeZone);
-    setLocale(prefs.locale);
     if (prefs.countryCode) setCountryCode(prefs.countryCode);
     setTzOptions(listTimeZonesForPicker());
-    syncSignupLocaleClient(prefs.locale, prefs.countryCode ?? initialCountry, prefs.timeZone);
-    void setProviderLocale(prefs.locale, prefs.countryCode ?? initialCountry, prefs.timeZone);
-  }, [detectedOnce, initialCountry, setProviderLocale]);
+    syncSignupLocaleClient(DEFAULT_GUEST_LOCALE, prefs.countryCode ?? initialCountry, prefs.timeZone);
+  }, [detectedOnce, initialCountry]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -122,7 +124,6 @@ export function SignupGmailForm() {
     try {
       const tz = normalizeTimeZone(timeZone);
       syncSignupLocaleClient(locale, countryCode, tz);
-      await setProviderLocale(locale, countryCode, tz);
 
       const check = await prepareSignupVerify({
         email: normalized,
@@ -262,7 +263,6 @@ export function SignupGmailForm() {
                   onChange={(code) => {
                     setCountryCode(code);
                     syncSignupLocaleClient(locale, code, timeZone);
-                    void setProviderLocale(locale, code, timeZone);
                   }}
                   locale={locale}
                   className="w-full h-10 rounded-xl border border-input bg-background px-2 text-sm"
@@ -275,8 +275,8 @@ export function SignupGmailForm() {
                   onChange={(e) => {
                     const next = e.target.value as Locale;
                     setLocale(next);
+                    saveSignupLocaleStorage(next);
                     syncSignupLocaleClient(next, countryCode, timeZone);
-                    void setProviderLocale(next, countryCode, timeZone);
                   }}
                   className="w-full h-10 rounded-xl border border-input bg-background px-2 text-sm"
                 >
@@ -296,7 +296,6 @@ export function SignupGmailForm() {
                   const next = normalizeTimeZone(e.target.value);
                   setTimeZone(next);
                   syncSignupLocaleClient(locale, countryCode, next);
-                  void setProviderLocale(locale, countryCode, next);
                 }}
                 className="w-full h-10 rounded-xl border border-input bg-background px-2 text-sm"
               >

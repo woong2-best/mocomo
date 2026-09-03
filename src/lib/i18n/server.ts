@@ -37,8 +37,9 @@ export const getRequestI18n = cache(
     const cookieTz = rawTz ? normalizeTimeZone(decodeURIComponent(rawTz)) : null;
 
     if (!hasSessionCookie(cookieStore)) {
+      // Guests always see English until they sign in (ignore locale cookie / browser hints).
       return {
-        locale: cookieLocale ?? DEFAULT_GUEST_LOCALE,
+        locale: DEFAULT_GUEST_LOCALE,
         countryCode: rawCountry || DEFAULT_GUEST_COUNTRY,
         timeZone: cookieTz ?? DEFAULT_TIMEZONE,
       };

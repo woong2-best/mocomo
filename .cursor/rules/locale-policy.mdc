@@ -39,7 +39,11 @@ Site **display language** uses static JSON files in `src/lib/i18n/locales/{code}
 - Loads same catalog via `GET /api/i18n/messages?locale=`
 - `I18nProvider` + `useI18n()` in `apps/mobile`
 
-## Settings UX
+## Guest default
+
+- **Not logged in / not signed up:** site UI locale is always **`en`** (`DEFAULT_GUEST_LOCALE`).
+- Guest locale cookie and browser `navigator.language` are **not** used for main site chrome.
+- During signup, the user may pick a language (stored in sessionStorage); that choice is saved to the account on registration.
 
 - Language select: searchable list of all `LOCALES`.
 - Country select: `CountrySelect` with full worldwide list.

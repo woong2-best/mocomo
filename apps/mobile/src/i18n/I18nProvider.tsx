@@ -45,11 +45,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fromUser = user?.locale ? normalizeMobileLocale(user.locale) : null;
     void (async () => {
-      const stored = await getStoredMobileLocale();
-      const initial = fromUser ?? stored;
+      const stored = user ? await getStoredMobileLocale() : null;
+      const initial = fromUser ?? stored ?? "en";
       await reload(initial);
     })();
-  }, [user?.locale, reload]);
+  }, [user?.locale, user, reload]);
 
   const setLocale = useCallback(
     async (next: Locale) => {
