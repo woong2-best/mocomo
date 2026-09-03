@@ -14,6 +14,10 @@ import {
 import { ShareToMessageDialog } from "@/components/share/share-to-message-dialog";
 import { usePublishedToastOptional } from "@/components/providers/published-toast-provider";
 import { cn } from "@/lib/utils";
+import {
+  FOLK_DROPDOWN_ITEM_CLASS,
+  FOLK_DROPDOWN_MENU_CLASS,
+} from "@/lib/folk-dropdown-accent";
 
 export type ContentShareMenuProps = {
   url: string;
@@ -54,10 +58,10 @@ export function ContentShareMenu({
   const accent =
     tone === "folk"
       ? {
-          menu: "border-folk-cobalt/30 bg-folk-cream shadow-folk",
-          item: "focus:bg-folk-gold/20 rounded-xl py-2.5",
-          icon: "text-folk-cobalt",
-          check: "text-folk-forest",
+          menu: FOLK_DROPDOWN_MENU_CLASS,
+          item: FOLK_DROPDOWN_ITEM_CLASS,
+          icon: "text-folk-cobalt dark:text-primary",
+          check: "text-folk-forest dark:text-green-400",
         }
       : {
           menu: "border-border bg-background shadow-xl",

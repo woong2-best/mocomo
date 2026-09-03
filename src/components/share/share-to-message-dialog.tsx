@@ -13,6 +13,11 @@ import {
 import { userDisplayName } from "@/lib/user-public-select";
 import type { DmUserSearchHit } from "@/lib/dm-user-search";
 import { cn } from "@/lib/utils";
+import {
+  FOLK_SHARE_SHEET_CLASS,
+  FOLK_SHARE_SHEET_ITEM_CLASS,
+  FOLK_SHARE_SHEET_TITLE_CLASS,
+} from "@/lib/folk-dropdown-accent";
 
 type Props = {
   open: boolean;
@@ -55,11 +60,11 @@ export function ShareToMessageDialog({
   const accent =
     tone === "folk"
       ? {
-          sheet: "bg-folk-cream border-folk-cobalt/25",
-          item: "hover:bg-folk-gold/15 active:bg-folk-gold/25",
-          title: "text-folk-cobalt",
-          check: "border-folk-cobalt bg-folk-cobalt text-white",
-          send: "bg-folk-cobalt text-white hover:bg-folk-cobalt/90 disabled:bg-folk-cobalt/40",
+          sheet: FOLK_SHARE_SHEET_CLASS,
+          item: FOLK_SHARE_SHEET_ITEM_CLASS,
+          title: FOLK_SHARE_SHEET_TITLE_CLASS,
+          check: "border-folk-cobalt bg-folk-cobalt text-white dark:border-primary dark:bg-primary",
+          send: "bg-folk-cobalt text-white hover:bg-folk-cobalt/90 disabled:bg-folk-cobalt/40 dark:bg-primary dark:hover:bg-primary/90 dark:disabled:bg-primary/40",
         }
       : {
           sheet: "bg-background border-border",
@@ -193,7 +198,7 @@ export function ShareToMessageDialog({
           <header className="flex items-center gap-1 px-2 py-2.5 border-b border-border/60 shrink-0">
             <button
               type="button"
-              className="rounded-full p-2 hover:bg-black/5"
+              className="rounded-full p-2 hover:bg-black/5 dark:hover:bg-white/10"
               aria-label="뒤로"
               onClick={handleBack}
             >

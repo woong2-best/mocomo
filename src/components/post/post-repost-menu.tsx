@@ -15,6 +15,10 @@ import { buildPostRepostQuoteDraft } from "@/lib/post-share";
 import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
 import { isAptPublicEnabled } from "@/lib/apt-public-gate";
 import { cn, formatNumber } from "@/lib/utils";
+import {
+  FOLK_DROPDOWN_ITEM_CLASS,
+  FOLK_DROPDOWN_MENU_CLASS,
+} from "@/lib/folk-dropdown-accent";
 
 type PostRepostMenuProps = {
   postId: string;
@@ -62,11 +66,11 @@ export function PostRepostMenu({
   const accent =
     tone === "folk"
       ? {
-          menu: "border-folk-cobalt/30 bg-folk-cream shadow-folk",
-          item: "focus:bg-folk-gold/20 rounded-xl py-2.5",
-          icon: "text-folk-forest",
-          active: "text-folk-forest",
-          hover: "hover:text-folk-forest",
+          menu: FOLK_DROPDOWN_MENU_CLASS,
+          item: FOLK_DROPDOWN_ITEM_CLASS,
+          icon: "text-folk-forest dark:text-primary",
+          active: "text-folk-forest dark:text-primary",
+          hover: "hover:text-folk-forest dark:hover:text-primary",
         }
       : {
           menu: "border-border bg-background shadow-xl",
@@ -183,7 +187,7 @@ export function PostRepostMenu({
           }}
           className={cn("gap-3 font-medium cursor-pointer", accent.item)}
         >
-          <PenLine className="h-4 w-4 shrink-0 text-folk-cobalt" />
+          <PenLine className={cn("h-4 w-4 shrink-0", accent.icon)} />
           인용하세요
         </DropdownMenuItem>
       </DropdownMenuContent>
