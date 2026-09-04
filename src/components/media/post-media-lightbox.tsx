@@ -11,9 +11,7 @@ import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
-import { PaidContentProtectionSlide } from "@/components/media/paid-content-protection-slide";
 import type { ContentLockReason } from "@/lib/content-access";
-import { isProtectionWarningSlide } from "@/lib/paid-content-protection-slide";
 
 export type PostMediaLightboxItem = {
   id?: string;
@@ -175,9 +173,6 @@ export function PostMediaLightbox({
           }}
         >
           {current ? (
-            isProtectionWarningSlide(current) ? (
-              <PaidContentProtectionSlide className="h-[calc(100dvh-8rem)] w-full max-h-[calc(100dvh-8rem)] max-w-full rounded-lg" />
-            ) : (
             <ProtectedPaidMedia
               type={current.type}
               src={current.url}
@@ -201,7 +196,6 @@ export function PostMediaLightbox({
               skipProtectionIntro
               blockUntilForensicReady={!isOwner && !current.locked}
             />
-            )
           ) : (
             <p className="text-sm text-white/70">사진을 표시할 수 없습니다.</p>
           )}

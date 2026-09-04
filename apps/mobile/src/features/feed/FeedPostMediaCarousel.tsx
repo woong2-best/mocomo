@@ -148,8 +148,26 @@ function FeedPostMediaCarouselInner({
     </SensitiveContentGate>
   );
 
+  const renderImageCell = (item: VisualItem) => (
+    <Pressable
+      style={StyleSheet.absoluteFill}
+      onPress={() => openImage(item)}
+      accessibilityRole="button"
+      accessibilityLabel="사진 크게 보기"
+    >
+      <Image
+        source={{ uri: item.url, width: decode, height: decode }}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        cachePolicy={IMAGE_CACHE_POLICY}
+        recyclingKey={item.url}
+        transition={0}
+      />
+    </Pressable>
+  );
+
   const renderMediaCell = (item: VisualItem, active: boolean, aspect: number) => {
-    if (item.locked) {
+    if (item.locked && item.type === "VIDEO") {
       return (
         <View style={[styles.lockedCell, { aspectRatio: aspect }]}>
           <LockedMediaTile media={item} monetization={monetization} />
@@ -169,23 +187,7 @@ function FeedPostMediaCarouselInner({
       );
     }
 
-    return (
-      <Pressable
-        style={StyleSheet.absoluteFill}
-        onPress={() => openImage(item)}
-        accessibilityRole="button"
-        accessibilityLabel="사진 크게 보기"
-      >
-        <Image
-          source={{ uri: item.url, width: decode, height: decode }}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          cachePolicy={IMAGE_CACHE_POLICY}
-          recyclingKey={item.url}
-          transition={0}
-        />
-      </Pressable>
-    );
+    return renderImageCell(item);
   };
 
   if (items.length === 1) {
@@ -194,6 +196,14 @@ function FeedPostMediaCarouselInner({
       item.width && item.height && item.width > 0 && item.height > 0
         ? Math.min(Math.max(item.width / item.height, 0.56), 1.9)
         : 16 / 10;
+
+    if (item.locked && item.type === "VIDEO") {
+      return wrapGate(
+        <View style={[styles.singleMedia, styles.lockedCell, { width: layoutWidth, aspectRatio: aspect }]}>
+          <LockedMediaTile media={item} monetization={monetization} />
+        </View>
+      );
+    }
 
     if (item.type === "VIDEO" && !item.locked) {
       return wrapGate(
@@ -207,10 +217,20 @@ function FeedPostMediaCarouselInner({
     }
 
     if (item.locked) {
-      return wrapGate(
-        <View style={[styles.singleMedia, styles.lockedCell, { width: layoutWidth, aspectRatio: aspect }]}>
-          <LockedMediaTile media={item} monetization={monetization} />
-        </View>
+      return (
+        <>
+          {wrapGate(
+            <View style={[styles.singleMedia, { width: layoutWidth, aspectRatio: aspect }]}>
+              {renderImageCell(item)}
+            </View>
+          )}
+          <FeedImageLightbox
+            visible={lightboxOpen}
+            images={images}
+            initialIndex={0}
+            onClose={() => setLightboxOpen(false)}
+          />
+        </>
       );
     }
 

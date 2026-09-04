@@ -14,7 +14,6 @@ import {
   resolveClientPaidMediaSrc,
   type WatermarkContentKind,
 } from "@/lib/paid-media-playback";
-import { PaidContentProtectionSlide } from "@/components/media/paid-content-protection-slide";
 
 type Props = {
   type: string;
@@ -325,8 +324,6 @@ export function ProtectedPaidMedia({
 
   if (!protect) return imageNode;
 
-  const embedIntro = !skipProtectionIntro && !isVideo && !locked;
-
   return (
     <PaidMediaProtectionShell
       className={cn(
@@ -339,21 +336,10 @@ export function ProtectedPaidMedia({
       <div
         className={cn(
           "relative",
-          fillsTile || lightboxForensic ? "size-full max-w-full" : "inline-flex max-w-full max-h-full",
-          embedIntro &&
-            "flex h-full w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          fillsTile || lightboxForensic ? "size-full max-w-full" : "inline-flex max-w-full max-h-full"
         )}
       >
-        {embedIntro ? (
-          <>
-            <div className="relative h-full w-full shrink-0 snap-center">
-              <PaidContentProtectionSlide className="min-h-[280px] size-full" />
-            </div>
-            <div className="relative h-full w-full shrink-0 snap-center">{imageNode}</div>
-          </>
-        ) : (
-          imageNode
-        )}
+        {imageNode}
         <div
           className="absolute inset-0 z-[1] pointer-events-none"
           aria-hidden

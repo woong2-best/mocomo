@@ -15,7 +15,6 @@ import {
 } from "@/components/media/post-media-lightbox";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import { registerFeedOverlay } from "@/lib/feed-overlay-guard";
-import { withProtectionSlide } from "@/lib/paid-content-protection-slide";
 
 type OpenArgs = {
   media: ProfilePostMediaItem[];
@@ -95,14 +94,7 @@ export function FeedPhotoLightboxProvider({ children }: { children: ReactNode })
     [open, openPhotoLightbox, closePhotoLightbox, updatePhotoLightboxMedia]
   );
 
-  const lightboxItems = useMemo(
-    () =>
-      withProtectionSlide(toLightboxItems(media), {
-        postInstantPurchasePriceKrw,
-        isOwner,
-      }),
-    [media, postInstantPurchasePriceKrw, isOwner]
-  );
+  const lightboxItems = useMemo(() => toLightboxItems(media), [media]);
 
   return (
     <FeedPhotoLightboxContext.Provider value={value}>

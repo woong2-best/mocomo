@@ -255,12 +255,6 @@ export function PaidFeedMediaSurface({
         draggable={false}
         onContextMenu={(e) => e.preventDefault()}
       />
-      <div className="pointer-events-none absolute inset-0 z-[6] flex items-center justify-center bg-black/25">
-        <Lock
-          className="h-9 w-9 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)]"
-          strokeWidth={2.25}
-        />
-      </div>
       <PaidMediaCheckoutDialog
         open={payOpen}
         onOpenChange={handlePayOpenChange}
