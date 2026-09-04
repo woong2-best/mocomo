@@ -33,6 +33,54 @@ const STALL_AFTER_MS = 4_000;
 const STALL_PROGRESS = 0.92;
 /** Hard ceiling — past this something is genuinely wrong, so clear the bar. */
 const ABANDON_AFTER_MS = 30_000;
+/** Max wait while syncing with browser load (tab spinner / window.load). */
+const SETTLE_CAP_MS = 10_000;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+/** Wait until paint + document/resources settle — aligns with the browser tab spinner. */
+async function waitForPageSettle(): Promise<void> {
+  await nextFrame();
+  await nextFrame();
+
+  if (document.readyState !== "complete") {
+    await Promise.race([
+      new Promise<void>((resolve) => {
+        window.addEventListener("load", () => resolve(), { once: true });
+      }),
+      delay(SETTLE_CAP_MS),
+    ]);
+  }
+
+  try {
+    await Promise.race([document.fonts.ready, delay(2_000)]);
+  } catch {
+    // document.fonts unsupported
+  }
+
+  const pending = Array.from(document.images).filter((img) => !img.complete);
+  if (pending.length > 0) {
+    await Promise.race([
+      Promise.all(
+        pending.map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              const finish = () => resolve();
+              img.addEventListener("load", finish, { once: true });
+              img.addEventListener("error", finish, { once: true });
+            }),
+        ),
+      ),
+      delay(4_000),
+    ]);
+  }
+}
 
 class TopProgressController {
   private count = 0;
@@ -43,6 +91,7 @@ class TopProgressController {
   private safetyTimer: ReturnType<typeof setTimeout> | null = null;
   private abandonTimer: ReturnType<typeof setTimeout> | null = null;
   private crawlTimer: ReturnType<typeof setTimeout> | null = null;
+  private settlePromise: Promise<void> | null = null;
   private listeners = new Set<Listener>();
   private cached: TopProgressSnapshot = TOP_PROGRESS_IDLE;
 
@@ -78,7 +127,7 @@ class TopProgressController {
     if (this.count <= 0) return;
     this.count -= 1;
     if (this.count > 0) return;
-    this.finish();
+    void this.settleThenFinish();
   }
 
   fail(): void {
@@ -89,17 +138,22 @@ class TopProgressController {
     this.reset();
   }
 
-  /** Force-finish (route settled). */
+  /** Force-finish — drains all holds, then waits for page settle. */
   complete(): void {
     if (typeof window === "undefined") return;
     if (!this.active && this.count === 0) return;
     this.count = 0;
-    this.finish();
+    void this.settleThenFinish();
   }
 
   forceReset(): void {
     this.count = 0;
     this.reset();
+  }
+
+  /** True while any navigation / mutation hold is open. */
+  isBusy(): boolean {
+    return this.count > 0 || this.active || this.fading;
   }
 
   private armSafetyOnce(): void {
@@ -153,6 +207,17 @@ class TopProgressController {
       clearTimeout(this.crawlTimer);
       this.crawlTimer = null;
     }
+  }
+
+  private async settleThenFinish(): Promise<void> {
+    if (!this.settlePromise) {
+      this.settlePromise = waitForPageSettle().finally(() => {
+        this.settlePromise = null;
+      });
+    }
+    await this.settlePromise;
+    if (this.count > 0 || !this.active) return;
+    this.finish();
   }
 
   private finish(): void {
@@ -231,6 +296,13 @@ function resolveHeaders(input: RequestInfo | URL, init?: RequestInit): Headers {
   return headers;
 }
 
+function isNextNavigationFetch(input: RequestInfo | URL, init?: RequestInit): boolean {
+  if (resolveMethod(input, init) !== "GET") return false;
+  const headers = resolveHeaders(input, init);
+  if (headers.get("Next-Router-Prefetch") === "1") return false;
+  return headers.get("RSC") === "1" || headers.has("Next-Router-State-Tree");
+}
+
 /**
  * Only track user mutations — never GET/RSC/polling (those caused stuck bars).
  */
@@ -273,14 +345,20 @@ export function installTopProgressFetch(): () => void {
   const original = window.fetch.bind(window);
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    if (!shouldTrackFetch(input, init)) return original(input, init);
-    topProgress.start();
+    const trackMutation = shouldTrackFetch(input, init);
+    const trackNavigation = isNextNavigationFetch(input, init);
+
+    if (trackNavigation && !topProgress.isBusy()) {
+      topProgress.start();
+    }
+    if (trackMutation) topProgress.start();
+
     try {
       const res = await original(input, init);
-      topProgress.done();
+      if (trackMutation) topProgress.done();
       return res;
     } catch (err) {
-      topProgress.fail();
+      if (trackMutation) topProgress.fail();
       throw err;
     }
   };

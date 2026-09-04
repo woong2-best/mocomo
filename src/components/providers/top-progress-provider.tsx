@@ -20,7 +20,6 @@ export function TopProgressProvider({ children }: { children: React.ReactNode })
 function TopProgressEffects() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const navPending = useRef(false);
   const routeKey = `${pathname}?${searchParams?.toString() ?? ""}`;
   const prevRouteKey = useRef(routeKey);
 
@@ -52,19 +51,26 @@ function TopProgressEffects() {
         return;
       }
 
-      navPending.current = true;
+      topProgress.start();
+    };
+
+    const onPopState = () => {
       topProgress.start();
     };
 
     document.addEventListener("click", onClick, true);
-    return () => document.removeEventListener("click", onClick, true);
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      window.removeEventListener("popstate", onPopState);
+    };
   }, []);
 
   useEffect(() => {
     if (prevRouteKey.current === routeKey) return;
     prevRouteKey.current = routeKey;
-    navPending.current = false;
-    topProgress.complete();
+    // Ref-counted release — Suspense fallbacks / mutations may still hold the bar open.
+    topProgress.done();
   }, [routeKey]);
 
   return null;
