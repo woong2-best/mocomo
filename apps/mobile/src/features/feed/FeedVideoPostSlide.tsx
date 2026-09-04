@@ -27,7 +27,11 @@ import type { RootStackParamList } from "@/navigation/types";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { spacing } from "@/theme/tokens";
 import { FolkAvatar } from "@/ui/FolkAvatar";
-import { LinkifiedText } from "@/ui/LinkifiedText";
+import {
+  buildVideoCaptionText,
+  CollapsibleVideoCaption,
+  collapsibleCaptionStyles,
+} from "@/ui/CollapsibleVideoCaption";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { useAuth } from "@/auth/AuthContext";
 
@@ -265,8 +269,13 @@ function FeedVideoPostSlideInner({
   const [muted, setMuted] = useState(false);
   const [pausedByUser, setPausedByUser] = useState(false);
   const [fastForward, setFastForward] = useState(false);
+  const [captionExpanded, setCaptionExpanded] = useState(false);
 
   const current = group.videos[videoIndex] ?? group.videos[0];
+  const captionText = useMemo(
+    () => buildVideoCaptionText(current?.title, current?.content ?? ""),
+    [current?.content, current?.title]
+  );
   const chromeHidden = fastForward;
 
   const stopFastForward = useCallback(() => {
@@ -289,6 +298,7 @@ function FeedVideoPostSlideInner({
 
   useEffect(() => {
     stopFastForward();
+    setCaptionExpanded(false);
   }, [videoIndex, group.postId, stopFastForward]);
 
   useEffect(() => {
@@ -519,16 +529,28 @@ function FeedVideoPostSlideInner({
         </View>
       ) : null}
 
+      {!chromeHidden && captionExpanded ? (
+        <Pressable
+          style={collapsibleCaptionStyles.expandedBackdrop}
+          onPress={() => setCaptionExpanded(false)}
+          accessibilityRole="button"
+          accessibilityLabel="설명 닫기"
+        />
+      ) : null}
+
       {/* Bottom meta */}
       {!chromeHidden ? (
-        <View style={styles.meta} pointerEvents="box-none">
+        <View
+          style={[styles.meta, captionExpanded && collapsibleCaptionStyles.expandedMeta]}
+          pointerEvents="box-none"
+        >
         <Text style={styles.user}>@{current.author.username}</Text>
-        {current.content ? (
-          <LinkifiedText
-            text={current.content}
+        {captionText ? (
+          <CollapsibleVideoCaption
+            text={captionText}
             style={styles.caption}
-            numberOfLines={2}
-            lightLinks
+            resetKey={`${group.postId}:${current.id}`}
+            onExpandedChange={setCaptionExpanded}
           />
         ) : null}
         {group.videos.length > 1 ? (

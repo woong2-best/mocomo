@@ -1,5 +1,11 @@
 import { useMemo } from "react";
-import { Text, type StyleProp, type TextStyle } from "react-native";
+import {
+  Text,
+  type StyleProp,
+  type TextStyle,
+  type NativeSyntheticEvent,
+  type TextLayoutEventData,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { parseLinkifyParts } from "@/lib/linkify";
@@ -17,6 +23,7 @@ type Props = {
   lightLinks?: boolean;
   /** Tap on non-link text (e.g. open post detail). */
   onBackgroundPress?: () => void;
+  onTextLayout?: (e: NativeSyntheticEvent<TextLayoutEventData>) => void;
 };
 
 export function LinkifiedText({
@@ -27,6 +34,7 @@ export function LinkifiedText({
   mentionStyle,
   lightLinks = false,
   onBackgroundPress,
+  onTextLayout,
 }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { colors } = useTheme();
@@ -36,7 +44,12 @@ export function LinkifiedText({
   const mentionColor = lightLinks ? "#FDE68A" : colors.cobalt;
 
   return (
-    <Text style={style} numberOfLines={numberOfLines} onPress={onBackgroundPress}>
+    <Text
+      style={style}
+      numberOfLines={numberOfLines}
+      onPress={onBackgroundPress}
+      onTextLayout={onTextLayout}
+    >
       {parts.map((part, i) => {
         if (part.type === "text") {
           return <Text key={`t-${i}`}>{part.value}</Text>;

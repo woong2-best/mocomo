@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
 } from "react";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -16,6 +15,7 @@ import type { ReelItem } from "@/lib/reels/types";
 import type { FeedVideoGroup } from "@/lib/feed-video-viewer";
 import { ReelsPlayer } from "@/components/reels/reels-player";
 import { ReelsActions } from "@/components/reels/reels-actions";
+import { VideoOverlayCaption } from "@/components/reels/video-overlay-caption";
 import { cn } from "@/lib/utils";
 
 /** Desktop phone-frame width (px) — keep in sync with lg:w-[420px] */
@@ -230,11 +230,6 @@ export function FeedVideoPostSlide({
     onEnded?.();
   }, [goH, group.videos.length, onEnded, videoIndex]);
 
-  const caption =
-    activeReel.title?.trim() ||
-    activeReel.content.trim().slice(0, 160) ||
-    `@${activeReel.author.username}`;
-
   const sideNavBtnClass = cn(
     "pointer-events-auto absolute top-1/2 z-40 hidden -translate-y-1/2",
     "h-11 w-11 items-center justify-center rounded-full",
@@ -345,26 +340,18 @@ export function FeedVideoPostSlide({
                 {/* Overlays only on the focused card */}
                 {isCurrent && (
                   <>
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/75 via-black/25 to-transparent pt-24 pb-10">
-                      <div className="pointer-events-auto flex items-end justify-between gap-3 px-4 pr-16">
-                        <div className="min-w-0 max-w-[78%] space-y-1 text-white">
-                          <Link
-                            href={`/u/${activeReel.author.username}`}
-                            className="inline-block rounded font-display text-sm font-bold drop-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                          >
-                            @{activeReel.author.username}
-                          </Link>
-                          <p className="line-clamp-3 text-sm leading-snug text-white/95 drop-shadow">
-                            {caption}
+                    <VideoOverlayCaption
+                      username={activeReel.author.username}
+                      title={activeReel.title}
+                      content={activeReel.content}
+                      footer={
+                        multiVideo ? (
+                          <p className="text-[11px] tabular-nums text-white/70">
+                            {videoIndex + 1} / {group.videos.length}
                           </p>
-                          {multiVideo && (
-                            <p className="text-[11px] tabular-nums text-white/70">
-                              {videoIndex + 1} / {group.videos.length}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                        ) : undefined
+                      }
+                    />
 
                     {multiVideo && (
                       <div className="pointer-events-none absolute inset-x-0 top-[max(3.5rem,env(safe-area-inset-top))] z-20 flex justify-center gap-1.5 px-10 lg:top-4">

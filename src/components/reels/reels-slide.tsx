@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
 } from "react";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
@@ -15,6 +14,7 @@ import { userDisplayName } from "@/lib/user-public-select";
 import type { ReelItem } from "@/lib/reels/types";
 import { ReelsPlayer } from "@/components/reels/reels-player";
 import { ReelsActions } from "@/components/reels/reels-actions";
+import { VideoOverlayCaption } from "@/components/reels/video-overlay-caption";
 import { cn } from "@/lib/utils";
 
 const CINEMA_IDLE_MS = 1600;
@@ -162,11 +162,6 @@ export function ReelsSlide({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [cinema, exitCinema]);
 
-  const caption =
-    reel.title?.trim() ||
-    reel.content.trim().slice(0, 160) ||
-    `@${reel.author.username}`;
-
   const player = (
     <ReelsPlayer
       src={reel.media.url}
@@ -190,21 +185,11 @@ export function ReelsSlide({
   );
 
   const captionBlock = !cinema ? (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/75 via-black/25 to-transparent pt-24 pb-10">
-      <div className="pointer-events-auto flex items-end justify-between gap-3 px-4 pr-16">
-        <div className="min-w-0 max-w-[78%] space-y-1 text-white">
-          <Link
-            href={`/u/${reel.author.username}`}
-            className="inline-block font-display text-sm font-bold drop-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded"
-          >
-            @{reel.author.username}
-          </Link>
-          <p className="text-sm leading-snug text-white/95 line-clamp-3 drop-shadow">
-            {caption}
-          </p>
-        </div>
-      </div>
-    </div>
+    <VideoOverlayCaption
+      username={reel.author.username}
+      title={reel.title}
+      content={reel.content}
+    />
   ) : null;
 
   const actions = (
