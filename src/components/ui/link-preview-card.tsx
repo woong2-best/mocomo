@@ -32,6 +32,27 @@ function youtubeFallback(url: string): LinkPreviewData | null {
   };
 }
 
+function twitterFallback(url: string): LinkPreviewData | null {
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    if (host !== "x.com" && host !== "twitter.com" && !host.endsWith(".twitter.com")) {
+      return null;
+    }
+    const path = new URL(url).pathname.replace(/\/+$/, "") || "/";
+    return {
+      url,
+      domain: host,
+      title: path === "/home" ? "Home / X" : `X${path}`,
+      description: null,
+      imageUrl: null,
+      siteName: "X",
+      provider: "og",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function LinkPreviewCard({
   text,
   className,
@@ -62,9 +83,11 @@ export function LinkPreviewCard({
     let cancelled = false;
     const ctrl = new AbortController();
     const yt = youtubeFallback(url);
-    setPreview(yt);
+    const tw = twitterFallback(url);
+    const localFallback = yt ?? tw;
+    setPreview(localFallback);
     setFailed(false);
-    onReadyRef.current?.(Boolean(yt));
+    onReadyRef.current?.(Boolean(localFallback));
 
     void (async () => {
       try {
@@ -74,8 +97,7 @@ export function LinkPreviewCard({
         const data = (await res.json()) as PreviewResponse;
         if (cancelled) return;
         if (!res.ok || !data.ok || !data.preview) {
-          // Keep YouTube thumbnail fallback; only fail hard for other hosts.
-          if (!yt) {
+          if (!localFallback) {
             setFailed(true);
             onReadyRef.current?.(false);
           }
@@ -84,7 +106,7 @@ export function LinkPreviewCard({
         setPreview(data.preview);
         onReadyRef.current?.(true);
       } catch {
-        if (!cancelled && !yt) {
+        if (!cancelled && !localFallback) {
           setFailed(true);
           onReadyRef.current?.(false);
         }

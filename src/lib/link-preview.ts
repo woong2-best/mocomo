@@ -174,6 +174,35 @@ export async function fetchYoutubePreview(rawUrl: string): Promise<LinkPreviewDa
   };
 }
 
+function isTwitterHost(host: string): boolean {
+  const h = host.toLowerCase().replace(/^www\./, "");
+  return h === "x.com" || h === "twitter.com" || h.endsWith(".twitter.com");
+}
+
+/** X/Twitter blocks server-side OG scrapers — return a lightweight card. */
+export function fetchTwitterPreview(rawUrl: string): LinkPreviewData | null {
+  const safe = isSafePreviewUrl(rawUrl);
+  if (!safe || !isTwitterHost(safe.hostname)) return null;
+
+  const path = safe.pathname.replace(/\/+$/, "") || "/";
+  const title =
+    path === "/home"
+      ? "Home / X"
+      : path.startsWith("/")
+        ? `X${path}`
+        : "X";
+
+  return {
+    url: safe.href,
+    domain: safe.hostname.replace(/^www\./, ""),
+    title,
+    description: null,
+    imageUrl: null,
+    siteName: "X",
+    provider: "og",
+  };
+}
+
 export async function buildLinkPreview(rawUrl: string): Promise<LinkPreviewData | null> {
   const safe = isSafePreviewUrl(rawUrl);
   if (!safe) return null;
@@ -181,6 +210,9 @@ export async function buildLinkPreview(rawUrl: string): Promise<LinkPreviewData 
   if (extractYoutubeVideoId(safe.href)) {
     return fetchYoutubePreview(safe.href);
   }
+
+  const twitter = fetchTwitterPreview(safe.href);
+  if (twitter) return twitter;
 
   return fetchOpenGraphPreview(safe.href);
 }

@@ -196,6 +196,7 @@ function CarouselTile({
         onPurchaseSuccess={onPurchaseSuccess}
         onOpenFull={onOpenFull}
         isOwner={isOwner}
+        feedPreview={feedPreview}
       />
 
       {isNsfw && feedPreview ? <AdultContentBadge /> : null}

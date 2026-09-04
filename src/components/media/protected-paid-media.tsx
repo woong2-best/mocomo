@@ -43,6 +43,8 @@ type Props = {
   skipProtectionIntro?: boolean;
   /** Lightbox: wait for forensic watermark session before showing media. */
   blockUntilForensicReady?: boolean;
+  /** Post detail — avoid unloading video src (prevents cache reload errors). */
+  keepMediaLoaded?: boolean;
 };
 
 function inferObjectFit(className: string | undefined, explicit?: "cover" | "contain") {
@@ -106,6 +108,7 @@ export function ProtectedPaidMedia({
   skipForensic = false,
   blockUntilForensicReady = false,
   skipProtectionIntro = false,
+  keepMediaLoaded = false,
 }: Props) {
   const protect = shouldProtectPaidMediaView({
     mediaPriceKrw,
@@ -165,6 +168,7 @@ export function ProtectedPaidMedia({
           autoPlayOnView={autoPlayOnView}
           poster={poster}
           previewMaxSeconds={PAID_PREVIEW_SECONDS}
+          keepMediaLoaded={keepMediaLoaded}
         />
       );
     }
@@ -198,6 +202,7 @@ export function ProtectedPaidMedia({
         poster={poster}
         forensicRenderConfig={useForensicPipeline ? forensicRenderConfig : null}
         forensicSessionFailed={useForensicPipeline ? Boolean(sessionError) : false}
+        keepMediaLoaded={keepMediaLoaded}
       />
     );
     if (!protect) return player;

@@ -16,8 +16,24 @@ export async function GET(req: NextRequest) {
   }
 
   const preview = await buildLinkPreview(raw);
-  if (!preview || (!preview.title && !preview.imageUrl && !preview.description)) {
+  if (!preview) {
     return NextResponse.json({ error: "미리보기를 가져올 수 없습니다." }, { status: 404 });
+  }
+  if (!preview.title && !preview.imageUrl && !preview.description) {
+    return NextResponse.json(
+      {
+        ok: true,
+        preview: {
+          ...preview,
+          title: preview.domain || preview.url,
+        },
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      }
+    );
   }
 
   return NextResponse.json(

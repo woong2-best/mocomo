@@ -38,6 +38,7 @@ type Props = {
   onOpenFull?: () => void;
   fullHref?: string;
   isOwner?: boolean;
+  feedPreview?: boolean;
 };
 
 export function PaidFeedMediaSurface({
@@ -60,6 +61,7 @@ export function PaidFeedMediaSurface({
   onOpenFull,
   fullHref,
   isOwner = false,
+  feedPreview = true,
 }: Props) {
   const isVideo = type === "VIDEO";
   const sale = isSalePricedMedia(mediaPriceKrw, postInstantPurchasePriceKrw);
@@ -150,6 +152,7 @@ export function PaidFeedMediaSurface({
         mediaId={mediaId}
         poster={poster}
         autoPlayOnView
+        keepMediaLoaded={!feedPreview}
       />
     );
   }
@@ -184,6 +187,7 @@ export function PaidFeedMediaSurface({
               onPreviewEnded={previewing ? onPreviewEnded : undefined}
               forensicRenderConfig={full && !skipForensic ? forensicRenderConfig : null}
               forensicSessionFailed={full && !skipForensic ? Boolean(sessionError) : false}
+              keepMediaLoaded={!feedPreview}
             />
           </PaidMediaProtectionShell>
         ) : (

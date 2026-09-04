@@ -48,3 +48,5 @@ export {
   toggleVideoFullscreen,
   bindVideoFullscreenEvents,
 } from "@/lib/video-playback/fullscreen";
+
+export { withVideoCacheBust } from "@/lib/video-playback/src-url";

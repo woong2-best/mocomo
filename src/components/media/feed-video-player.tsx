@@ -51,6 +51,7 @@ import {
   isVideoFullscreen,
   toggleVideoFullscreen,
   bindVideoFullscreenEvents,
+  withVideoCacheBust,
 } from "@/lib/video-playback";
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
@@ -84,6 +85,8 @@ type Props = {
   previewMaxSeconds?: number | null;
   /** Fired once when a teaser preview reaches previewMaxSeconds. */
   onPreviewEnded?: () => void;
+  /** Post detail / lightbox — keep src attached (avoid cache reload failures). */
+  keepMediaLoaded?: boolean;
 };
 
 function formatTime(sec: number): string {
@@ -175,6 +178,7 @@ export function FeedVideoPlayer({
   forensicSessionFailed = false,
   previewMaxSeconds = null,
   onPreviewEnded,
+  keepMediaLoaded = false,
 }: Props) {
   const reactId = useId();
   const playerId = `fv-${mediaId ?? reactId}`;
@@ -245,6 +249,10 @@ export function FeedVideoPlayer({
   );
   const [loop, setLoop] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
+  const [attachToken, setAttachToken] = useState(0);
+  const wasDetachedRef = useRef(false);
+
+  const playbackSrc = withVideoCacheBust(src, retryToken + attachToken);
 
   const classStr = className ?? "";
   const wantsContain = /\bobject-contain\b/.test(classStr);
@@ -315,11 +323,11 @@ export function FeedVideoPlayer({
   const ensureMediaSrc = useCallback(async () => {
     const v = videoRef.current;
     if (!v) return false;
-    if (v.getAttribute("src") === src && v.src) return true;
+    if (v.getAttribute("src") === playbackSrc && v.src) return true;
 
     restoredRef.current = false;
     setMediaAttached(true);
-    v.src = src;
+    v.src = playbackSrc;
     v.load();
 
     await new Promise<void>((resolve) => {
@@ -338,7 +346,7 @@ export function FeedVideoPlayer({
       window.setTimeout(finish, 2000);
     });
     return Boolean(v.getAttribute("src"));
-  }, [src]);
+  }, [playbackSrc]);
 
   const playExclusive = useCallback(
     async (reason: "autoplay" | "user" | "hover" | "visibility") => {
@@ -350,7 +358,7 @@ export function FeedVideoPlayer({
       if (scrubbingRef.current && reason !== "user") return false;
 
       // Fullscreen IO can falsely unload src; restore before user/autoplay play.
-      if (!v.getAttribute("src") || v.getAttribute("src") !== src) {
+      if (!v.getAttribute("src") || v.getAttribute("src") !== playbackSrc) {
         const okAttach = await ensureMediaSrc();
         if (!okAttach) return false;
       }
@@ -373,7 +381,7 @@ export function FeedVideoPlayer({
       }
       return ok;
     },
-    [ensureMediaSrc, playerId, previewMode, protect, src]
+    [ensureMediaSrc, playerId, previewMode, protect, playbackSrc]
   );
 
   const resetCopyrightWarning = useCallback(() => {
@@ -446,10 +454,10 @@ export function FeedVideoPlayer({
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !mediaAttached) return;
-    const needsAttach = v.getAttribute("src") !== src;
+    const needsAttach = v.getAttribute("src") !== playbackSrc;
     if (needsAttach) {
       restoredRef.current = false;
-      v.src = src;
+      v.src = playbackSrc;
       v.load();
     }
     // Only kick autoplay after a fresh attach — not on every effect re-run.
@@ -465,12 +473,16 @@ export function FeedVideoPlayer({
       }, 80);
       return () => clearTimeout(t);
     }
-  }, [src, mediaAttached, retryToken, autoPlayOnView, playExclusive]);
+  }, [playbackSrc, mediaAttached, retryToken, autoPlayOnView, playExclusive]);
 
   useEffect(() => {
     setForensicCanvasReady(false);
     setForensicCanvasFailed(false);
     previewEndedRef.current = false;
+    retryCountRef.current = 0;
+    setRetryToken(0);
+    setAttachToken(0);
+    wasDetachedRef.current = false;
   }, [src, mediaId, forensicRenderConfig?.sessionId, previewMaxSeconds]);
 
   useEffect(() => {
@@ -652,8 +664,13 @@ export function FeedVideoPlayer({
             clearTimeout(unloadTimerRef.current);
             unloadTimerRef.current = null;
           }
+          if (wasDetachedRef.current) {
+            wasDetachedRef.current = false;
+            setAttachToken((t) => t + 1);
+          }
           setMediaAttached((prev) => (prev ? prev : true));
         } else if (!near) {
+          if (keepMediaLoaded) return;
           if (!unloadTimerRef.current) {
             unloadTimerRef.current = setTimeout(() => {
               if (isPlayerFullscreen()) return;
@@ -664,6 +681,7 @@ export function FeedVideoPlayer({
                 v.removeAttribute("src");
                 v.load();
               }
+              wasDetachedRef.current = true;
               restoredRef.current = false;
               autoPlayingRef.current = false;
               setMediaAttached(false);
@@ -719,6 +737,7 @@ export function FeedVideoPlayer({
     preloadProp,
     isPlayerFullscreen,
     resetCopyrightWarning,
+    keepMediaLoaded,
   ]);
 
   useEffect(() => {
@@ -1187,7 +1206,7 @@ export function FeedVideoPlayer({
   const videoStyle: CSSProperties = {
     transform: zoom > 1 ? `scale(${zoom})` : undefined,
     transition: pinchRef.current ? undefined : "transform 200ms ease",
-    opacity: forensicRequired ? 0 : undefined,
+    opacity: forensicRequired && markedOutputReady ? 0 : undefined,
   };
 
   return (
@@ -1216,7 +1235,7 @@ export function FeedVideoPlayer({
     >
       <video
         ref={videoRef}
-        data-src={src}
+        data-src={playbackSrc}
         poster={poster}
         className={cn(
           fillMode
