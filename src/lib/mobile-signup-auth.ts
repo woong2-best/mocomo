@@ -8,7 +8,6 @@ import {
 } from "@/actions/auth";
 import { authenticateCredentialsUser } from "@/lib/mobile-credentials-login";
 import { issueMobileTokenPair } from "@/lib/mobile-auth-tokens";
-import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
 import {
   authCodeIdentifier,
   generateEmailCode,
@@ -145,18 +144,18 @@ export async function registerMobileUser(data: z.input<typeof registerBodySchema
   );
 }
 
-async function toMobileAuthUser(userId: string) {
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { id: true, username: true, name: true, image: true, locale: true },
-  });
-  if (!user) throw new Error("user_not_found");
-  const hydrated = await hydrateUserOAuthProfile(user);
+function toMobileAuthUser(user: {
+  id: string;
+  username: string;
+  name: string | null;
+  image: string | null;
+  locale: string | null;
+}) {
   return {
     id: user.id,
     username: user.username,
-    name: hydrated.name,
-    image: hydrated.image,
+    name: user.name,
+    image: user.image,
     locale: user.locale,
   };
 }
@@ -186,7 +185,7 @@ export async function verifyMobileSignupAndLogin(data: z.input<typeof verifySign
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       expiresAt: tokens.expiresAt.toISOString(),
-      user: await toMobileAuthUser(user.id),
+      user: toMobileAuthUser(user),
     };
   } catch {
     return { error: "인증은 완료됐지만 로그인에 실패했습니다. 다시 로그인해 주세요." };
@@ -221,7 +220,7 @@ export async function completeMobilePasswordReset(data: z.input<typeof resetComp
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       expiresAt: tokens.expiresAt.toISOString(),
-      user: await toMobileAuthUser(user.id),
+      user: toMobileAuthUser(user),
     };
   } catch {
     return {
