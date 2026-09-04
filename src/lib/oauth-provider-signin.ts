@@ -60,11 +60,12 @@ export async function startOAuthProviderSignin(opts: StartOAuthProviderSigninOpt
         secure: process.env.NODE_ENV === "production",
       });
     }
+  }
 
-    // Drop the session JWT only. If any session cookie survives, handleLoginOrRegister
-    // links the new provider to the *current* user instead of creating a new account.
-    // Auth.js signOut() is avoided here because it also rewrites the CSRF cookie that
-    // the signIn() call below depends on.
+  // Mobile AuthSession must never reuse a stale browser session — otherwise the user
+  // picks ojeojag@gmail.com in Google but gets tokens for tom6761bear@gmail.com.
+  // Drop session JWT only (not full signOut) so CSRF for signIn() below stays valid.
+  if (opts.mobile || opts.addAccount) {
     await clearSessionTokenCookies();
   }
 

@@ -6,6 +6,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "@/auth/AuthContext";
 import { LoginScreen } from "@/features/auth/LoginScreen";
+import { SignupScreen } from "@/features/auth/SignupScreen";
+import { PasswordResetScreen } from "@/features/auth/PasswordResetScreen";
 import { FeedScreen } from "@/features/feed/FeedScreen";
 import { FloatingGlassTabBar } from "@/navigation/FloatingGlassTabBar";
 import { navigationRef } from "@/navigation/navigationRef";
@@ -16,10 +18,21 @@ import {
   folkDarkNavigationTheme,
   folkLightNavigationTheme,
 } from "@/theme/navigation-theme";
-import type { RootStackParamList, RootTabParamList } from "@/navigation/types";
+import type { AuthStackParamList, RootStackParamList, RootTabParamList } from "@/navigation/types";
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+
+function AuthNavigator() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="Signup" component={SignupScreen} />
+      <AuthStack.Screen name="PasswordReset" component={PasswordResetScreen} />
+    </AuthStack.Navigator>
+  );
+}
 
 function UsedTabScreen() {
   const { MarketplaceListScreen } = require("@/features/marketplace/MarketplaceListScreen") as {
@@ -330,7 +343,7 @@ export function RootNavigator() {
             />
           </>
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Login" component={AuthNavigator} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

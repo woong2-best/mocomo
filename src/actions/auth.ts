@@ -452,7 +452,8 @@ export async function validateSignupApplication(data: z.input<typeof signupAppli
 
 export async function registerUser(
   data: z.input<typeof registerSchema>,
-  isRetry = false
+  isRetry = false,
+  opts?: { channel?: "web" | "mobile" }
 ) {
   const parsed = registerSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
@@ -488,14 +489,14 @@ export async function registerUser(
     return { error: "요청을 처리할 수 없습니다." };
   }
 
-  if (isSignupHumanVerifyRequired()) {
+  if (opts?.channel !== "mobile" && isSignupHumanVerifyRequired()) {
     const humanCheck = verifyHumanChallengeAnswer(
       humanChallengeToken,
       humanChallengeAnswer,
       locale
     );
     if (!humanCheck.ok) return { error: humanCheck.error };
-  } else {
+  } else if (opts?.channel !== "mobile") {
     const botCheck = await verifyTurnstileToken(turnstileToken, {
       widgetUnavailable: turnstileUnavailable || true,
     });

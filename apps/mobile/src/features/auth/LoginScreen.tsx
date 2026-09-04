@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Keyboard,
-  Linking,
   Platform,
   StyleSheet,
   Text,
@@ -10,15 +9,16 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "@/auth/AuthContext";
 import type { MobileAuthProvider } from "@/auth/oauth";
 import {
   GoogleNativeCancelledError,
+  GoogleNativeUnavailableError,
   prefetchGoogleNativeConfig,
   type GoogleNativeProfile,
 } from "@/auth/google-native";
 import { ApiError } from "@/api/client";
-import { API_BASE_URL } from "@/config/env";
 import { hasSeenNotificationPrompt } from "@/lib/onboarding-store";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { NotificationPermissionSheet } from "@/features/auth/NotificationPermissionSheet";
@@ -27,8 +27,7 @@ import { WelcomeSocialAuthRow } from "@/features/auth/WelcomeSocialAuthRow";
 import { NativeCredentialsForm } from "@/features/auth/NativeCredentialsForm";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing } from "@/theme/tokens";
-
-const WEB = API_BASE_URL.replace(/\/$/, "");
+import type { AuthStackParamList } from "@/navigation/types";
 
 /** Matches the flat lower half of the welcome artwork so edges never show. */
 const BACKDROP = "#001959";
@@ -49,8 +48,10 @@ function credentialsErrorMessage(e: unknown, fallback: string): string {
   return fallback;
 }
 
+type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
+
 /** MoCoMo welcome login — hero, social, then native credentials. */
-export function LoginScreen() {
+export function LoginScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const {
     openWebAuth,
@@ -132,9 +133,14 @@ export function LoginScreen() {
             return;
           } catch (e) {
             if (e instanceof GoogleNativeCancelledError) return;
-            // Any other native failure is a device/config issue, never
-            // something the user can act on — quietly use the web flow.
-            if (__DEV__) console.warn("native google sign-in failed", e);
+            const msg =
+              e instanceof GoogleNativeUnavailableError
+                ? e.message
+                : e instanceof ApiError
+                  ? e.message
+                  : "Google 로그인에 실패했습니다. 앱을 업데이트한 뒤 다시 시도해 주세요.";
+            setCredentialsError(msg);
+            return;
           }
         }
         await openWebAuth("signin", { provider });
@@ -211,14 +217,14 @@ export function LoginScreen() {
           <Text style={[styles.helperLinks, { color: colors.textMuted }]}>
             <Text
               style={{ color: colors.brand, fontWeight: "700" }}
-              onPress={() => void Linking.openURL(`${WEB}/auth/email-verify?mode=reset`)}
+              onPress={() => navigation.navigate("PasswordReset")}
             >
               비밀번호 재설정
             </Text>
             {" · "}
             <Text
               style={{ color: colors.brand, fontWeight: "700" }}
-              onPress={() => void openWebAuth("signup")}
+              onPress={() => navigation.navigate("Signup")}
             >
               회원가입
             </Text>
