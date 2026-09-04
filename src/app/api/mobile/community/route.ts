@@ -26,8 +26,9 @@ export async function GET(req: NextRequest) {
         iconUrl: c.iconUrl,
         coverUrl: c.coverUrl,
         bannerUrl: c.bannerUrl,
-        category: c.category,
-        isNsfw: c.isNsfw,
+      category: c.category,
+      customCategoryLabel: c.customCategoryLabel,
+      isNsfw: c.isNsfw,
         memberCount: c.memberCount,
         joinMode: c.joinMode,
       })),
@@ -51,7 +52,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  let body: { name?: string; description?: string; category?: string; isNsfw?: boolean };
+  let body: {
+    name?: string;
+    description?: string;
+    category?: string;
+    customCategoryLabel?: string;
+    isNsfw?: boolean;
+  };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -62,6 +69,7 @@ export async function POST(req: NextRequest) {
     name: body.name ?? "",
     description: body.description,
     category: body.category ?? "",
+    customCategoryLabel: body.customCategoryLabel,
     isNsfw: body.isNsfw,
   });
 

@@ -41,6 +41,7 @@ export async function SettingsChannelView({
       name: true,
       description: true,
       category: true,
+      customCategoryLabel: true,
       isNsfw: true,
       iconUrl: true,
       coverUrl: true,
@@ -84,6 +85,7 @@ export async function SettingsChannelView({
               name: community.name,
               description: community.description ?? "",
               category: community.category,
+              customCategoryLabel: community.customCategoryLabel,
               isNsfw: community.isNsfw,
             }}
           />

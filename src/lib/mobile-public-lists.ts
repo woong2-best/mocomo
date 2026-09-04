@@ -33,6 +33,7 @@ export function getCachedMobileCommunities(take: number, q?: string) {
           bannerUrl: true,
           coverUrl: true,
           category: true,
+          customCategoryLabel: true,
           isNsfw: true,
           memberCount: true,
           joinMode: true,

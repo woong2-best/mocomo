@@ -3,7 +3,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { Prisma, type CommunityCategory } from "@prisma/client";
 import { db } from "@/lib/db";
 import { generateCommunitySlug } from "@/lib/community-slug";
-import { isCommunityCategory } from "@/lib/community-labels";
+import { isCommunityCategory, validateCustomCategoryLabel } from "@/lib/community-labels";
 import { provisionCommunityServer } from "@/lib/community-server/provision";
 import { loadMemberPermissions } from "@/lib/community-server/member-permissions";
 import { hasPermission } from "@/lib/community-server/permissions";
@@ -29,6 +29,7 @@ export async function createCommunityForUser(
     name: string;
     description?: string;
     category: string;
+    customCategoryLabel?: string;
     isNsfw?: boolean;
   }
 ): Promise<{ community: { id: string; slug: string; name: string } } | { error: string }> {
@@ -43,6 +44,13 @@ export async function createCommunityForUser(
   const category = data.category as CommunityCategory;
   if (!isCommunityCategory(category)) {
     return { error: "카테고리를 선택해 주세요." };
+  }
+
+  let customCategoryLabel: string | null = null;
+  if (category === "CUSTOM") {
+    const customErr = validateCustomCategoryLabel(data.customCategoryLabel);
+    if (customErr) return { error: customErr };
+    customCategoryLabel = data.customCategoryLabel!.trim();
   }
 
   const description = data.description?.trim() || null;
@@ -72,6 +80,7 @@ export async function createCommunityForUser(
               slug,
               description,
               category,
+              customCategoryLabel,
               isNsfw,
               creatorId: userId,
               memberCount: 1,

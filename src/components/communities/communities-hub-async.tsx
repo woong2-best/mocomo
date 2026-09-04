@@ -24,6 +24,7 @@ export async function CommunitiesHubAsync() {
         coverUrl: c.coverUrl,
         bannerUrl: c.bannerUrl,
         category: c.category,
+        customCategoryLabel: c.customCategoryLabel,
         isNsfw: c.isNsfw,
       }))}
     />

@@ -8,13 +8,26 @@ import type { CommunityCategory } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [category, setCategory] = useState<CommunityCategory | "">("");
+  const [customCategoryLabel, setCustomCategoryLabel] = useState("");
+  const [customMode, setCustomMode] = useState(false);
+
+  function selectPreset(next: CommunityCategory) {
+    setCustomMode(false);
+    setCustomCategoryLabel("");
+    setCategory(next);
+  }
+
+  function selectCustom() {
+    setCustomMode(true);
+    setCategory("CUSTOM");
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,6 +35,11 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
 
     if (!category) {
       setError("커뮤니티가 속할 카테고리를 선택해 주세요.");
+      return;
+    }
+
+    if (category === "CUSTOM" && !customCategoryLabel.trim()) {
+      setError("직접 입력한 카테고리 이름을 입력해 주세요.");
       return;
     }
 
@@ -33,6 +51,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
         name: form.get("name") as string,
         description: (form.get("description") as string) || undefined,
         category,
+        customCategoryLabel: category === "CUSTOM" ? customCategoryLabel.trim() : undefined,
         isNsfw: form.get("isNsfw") === "on",
       });
 
@@ -45,7 +64,6 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
         return;
       }
       if ("community" in result && result.community?.slug) {
-        // Hard navigation — soft replace can leave users on /new after a long action.
         window.location.assign(`/c/${result.community.slug}/posts`);
         return;
       }
@@ -96,7 +114,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
                       key={opt.id}
                       type="button"
                       disabled={loading}
-                      onClick={() => setCategory(opt.id)}
+                      onClick={() => selectPreset(opt.id)}
                       className={cn(
                         "flex items-center gap-2 rounded-sm border px-2.5 py-2.5 text-left text-sm transition-colors",
                         selected
@@ -106,11 +124,37 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
                       )}
                     >
                       <span className="text-base leading-none">{opt.emoji}</span>
-                      <span className="font-medium">{opt.shortLabel}</span>
+                      <span className="font-medium leading-snug">{opt.shortLabel}</span>
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={selectCustom}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 rounded-sm border px-2.5 py-2.5 text-sm transition-colors",
+                    customMode
+                      ? "border-[#c80000] bg-[#c80000]/5 text-foreground ring-1 ring-[#c80000]/40"
+                      : "border-dashed border-border bg-background hover:border-foreground/30 hover:bg-muted/40",
+                    loading && "opacity-60"
+                  )}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="font-medium">직접 입력</span>
+                </button>
               </div>
+              {customMode && (
+                <Input
+                  value={customCategoryLabel}
+                  onChange={(e) => setCustomCategoryLabel(e.target.value)}
+                  placeholder="원하는 카테고리 이름 (2~24자)"
+                  maxLength={24}
+                  disabled={loading}
+                  className="rounded-sm"
+                  autoFocus
+                />
+              )}
               {!category && (
                 <p className="text-[11px] text-muted-foreground">위에서 소속 카테고리를 골라 주세요.</p>
               )}
@@ -156,7 +200,15 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
               </p>
             )}
 
-            <Button type="submit" className="w-full rounded-sm" disabled={loading || !category}>
+            <Button
+              type="submit"
+              className="w-full rounded-sm"
+              disabled={
+                loading ||
+                !category ||
+                (category === "CUSTOM" && customCategoryLabel.trim().length < 2)
+              }
+            >
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />

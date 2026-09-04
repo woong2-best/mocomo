@@ -20,6 +20,7 @@ import { fetchCommunityList, type CommunityListItem } from "@/api/community";
 import {
   COMMUNITY_CATEGORY_OPTIONS,
   communityCategoryMeta,
+  resolveCommunityCategoryDisplay,
 } from "@/features/community/community-labels";
 import {
   getRecentCommunities,
@@ -42,7 +43,10 @@ function CommunityThumb({
   community: CommunityListItem;
   size: number;
 }) {
-  const meta = communityCategoryMeta(community.category);
+  const meta = resolveCommunityCategoryDisplay(
+    community.category,
+    community.customCategoryLabel
+  );
   const uri = community.iconUrl || community.coverUrl;
   if (uri) {
     return (
@@ -56,7 +60,7 @@ function CommunityThumb({
   }
   return (
     <View style={[stylesShared.thumbFallback, { width: size, height: size }]}>
-      <Text style={stylesShared.thumbEmoji}>{meta?.emoji ?? community.name.slice(0, 1)}</Text>
+      <Text style={stylesShared.thumbEmoji}>{meta.emoji || community.name.slice(0, 1)}</Text>
     </View>
   );
 }
@@ -72,7 +76,10 @@ function FeaturedCard({
   onOpenServer: () => void;
   onOpenDetail: () => void;
 }) {
-  const meta = communityCategoryMeta(community.category);
+  const meta = resolveCommunityCategoryDisplay(
+    community.category,
+    community.customCategoryLabel
+  );
   const cover = community.coverUrl || community.iconUrl;
   return (
     <View style={[stylesShared.featuredCard, { width }]}>
@@ -86,7 +93,7 @@ function FeaturedCard({
           />
         ) : (
           <View style={stylesShared.featuredFallback}>
-            <Text style={stylesShared.featuredEmoji}>{meta?.emoji ?? "🏠"}</Text>
+            <Text style={stylesShared.featuredEmoji}>{meta.emoji || "🏠"}</Text>
             <Text style={stylesShared.featuredFallbackName} numberOfLines={2}>
               {community.name}
             </Text>
@@ -98,7 +105,7 @@ function FeaturedCard({
           {community.name}
         </Text>
         <Text style={stylesShared.featuredMeta}>
-          {meta ? `${meta.emoji} ${meta.shortLabel}` : community.category}
+          {`${meta.emoji} ${meta.shortLabel}`}
           {" · "}
           {community.memberCount}명
         </Text>

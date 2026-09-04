@@ -278,6 +278,7 @@ const communityListSelect = {
   bannerUrl: true,
   coverUrl: true,
   category: true,
+  customCategoryLabel: true,
   isNsfw: true,
   children: {
     take: 5,

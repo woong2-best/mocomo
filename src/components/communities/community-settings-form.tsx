@@ -20,6 +20,7 @@ export function CommunitySettingsForm({
     name: string;
     description: string | null;
     category: CommunityCategory;
+    customCategoryLabel: string | null;
     isNsfw: boolean;
   };
 }) {
@@ -27,6 +28,10 @@ export function CommunitySettingsForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
+  const [category, setCategory] = useState<CommunityCategory>(initial.category);
+  const [customCategoryLabel, setCustomCategoryLabel] = useState(
+    initial.customCategoryLabel ?? ""
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,7 +43,8 @@ export function CommunitySettingsForm({
       const result = await updateCommunity(communityId, {
         name: form.get("name") as string,
         description: (form.get("description") as string) || "",
-        category: form.get("category") as string,
+        category,
+        customCategoryLabel: category === "CUSTOM" ? customCategoryLabel : undefined,
         isNsfw: form.get("isNsfw") === "on",
       });
       if (!result) {
@@ -79,7 +85,8 @@ export function CommunitySettingsForm({
         <label className="text-sm font-medium">카테고리</label>
         <select
           name="category"
-          defaultValue={initial.category}
+          value={category}
+          onChange={(e) => setCategory(e.target.value as CommunityCategory)}
           className="w-full h-10 rounded-sm border border-border px-3 text-sm"
           required
         >
@@ -88,7 +95,17 @@ export function CommunitySettingsForm({
               {c.emoji} {c.label}
             </option>
           ))}
+          <option value="CUSTOM">➕ 직접 입력</option>
         </select>
+        {category === "CUSTOM" && (
+          <Input
+            value={customCategoryLabel}
+            onChange={(e) => setCustomCategoryLabel(e.target.value)}
+            placeholder="카테고리 이름 (2~24자)"
+            maxLength={24}
+            required
+          />
+        )}
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="isNsfw" defaultChecked={initial.isNsfw} />

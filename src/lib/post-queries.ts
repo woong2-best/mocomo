@@ -67,22 +67,10 @@ const postDetailSelectNoReposts = {
   _count: { select: { likes: true, votes: true, comments: true } },
 } as const;
 
-export type PostDetailLocked = {
+type AudienceLockedDetail = {
   audienceLocked: true;
   author: Prisma.UserGetPayload<{ select: typeof userPublicSelect }>;
 };
-
-export function isPostDetailAudienceLocked(
-  post: Awaited<ReturnType<typeof getPostDetail>>
-): post is PostDetailLocked {
-  return !!post && "audienceLocked" in post && post.audienceLocked === true;
-}
-
-export function isPostDetailNsfwBlocked(
-  post: Awaited<ReturnType<typeof getPostDetail>>
-): post is PostNsfwBlocked {
-  return !!post && "nsfwBlocked" in post && post.nsfwBlocked === true;
-}
 
 export async function getPostDetail(id: string, viewerId?: string) {
   try {
@@ -104,7 +92,7 @@ export async function getPostDetail(id: string, viewerId?: string) {
       post.author.postsLocked
     );
     if (!allowed) {
-      return { audienceLocked: true as const, author: post.author } satisfies PostDetailLocked;
+      return { audienceLocked: true as const, author: post.author } satisfies AudienceLockedDetail;
     }
     return enrichPostDetail(post, viewerId);
   } catch (e) {
@@ -127,10 +115,23 @@ export async function getPostDetail(id: string, viewerId?: string) {
       post.author.postsLocked
     );
     if (!allowed) {
-      return { audienceLocked: true as const, author: post.author } satisfies PostDetailLocked;
+      return { audienceLocked: true as const, author: post.author } satisfies AudienceLockedDetail;
     }
     return enrichPostDetail({ ...post, poll: null }, viewerId);
   }
+}
+
+export type PostDetailResult = Awaited<ReturnType<typeof getPostDetail>>;
+export type PostDetailLocked = Extract<NonNullable<PostDetailResult>, { audienceLocked: true }>;
+
+export function isPostDetailAudienceLocked(post: PostDetailResult): post is PostDetailLocked {
+  return !!post && "audienceLocked" in post && post.audienceLocked === true;
+}
+
+export function isPostDetailNsfwBlocked(
+  post: PostDetailResult
+): post is Extract<NonNullable<PostDetailResult>, PostNsfwBlocked> {
+  return !!post && "nsfwBlocked" in post && post.nsfwBlocked === true;
 }
 
 async function enrichPostDetail<

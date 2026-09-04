@@ -10,6 +10,7 @@ export type CommunityListItem = {
   coverUrl: string | null;
   bannerUrl: string | null;
   category: string;
+  customCategoryLabel?: string | null;
   isNsfw: boolean;
   memberCount: number;
   joinMode: string;
@@ -61,6 +62,7 @@ export async function createCommunity(input: {
   name: string;
   description?: string;
   category: string;
+  customCategoryLabel?: string;
   isNsfw?: boolean;
 }) {
   return apiRequest<{ community: { id: string; slug: string; name: string } }>(

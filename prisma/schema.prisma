@@ -241,9 +241,9 @@ model User {
   stripeConnectOnboardedAt DateTime?
   /** Stripe Customer — 저장된 결제 카드 (지갑 탭) */
   stripeCustomerId String? @unique
-  /** 회원 탈퇴 요청 시각 (50일 복구 기간) */
+  /** 회원 탈퇴 요청 시각 (30일 복구 기간) */
   deletedAt           DateTime?
-  /** 영구 삭제 예정 시각 — 탈퇴 다음날부터 50일 */
+  /** 영구 삭제 예정 시각 — 탈퇴 시점 + 30일 */
   scheduledPurgeAt    DateTime?
   deletionReason      String?
   /** 최근 로그인 (세션/로그인 콜백에서 갱신) */
@@ -627,7 +627,18 @@ model UserBadge {
 // ============ COMMUNITY ============
 
 enum CommunityCategory {
+  FREE
+  HUMOR
   GAME
+  SPORTS
+  CREATOR
+  MUSIC
+  CREATIVE
+  SUBCULTURE
+  IT
+  FOOD
+  INFO
+  CUSTOM
   ANIME
   COMIC
   VTUBER
@@ -650,6 +661,7 @@ model Community {
   bannerVideoUrl String?
   coverUrl    String?
   category    CommunityCategory
+  customCategoryLabel String?
   contentRating ContentRating @default(GENERAL)
   isNsfw      Boolean  @default(false)
   parentId    String?

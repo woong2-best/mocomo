@@ -5,8 +5,8 @@ import { useMemo, useState } from "react";
 import { Plus, Users } from "lucide-react";
 import {
   COMMUNITY_CATEGORY_OPTIONS,
-  communityCategoryLabel,
   communityCategoryMeta,
+  resolveCommunityCategoryDisplay,
 } from "@/lib/community-labels";
 import type { CommunityCategory } from "@prisma/client";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ export type CommunityHubItem = {
   coverUrl: string | null;
   bannerUrl: string | null;
   category: CommunityCategory;
+  customCategoryLabel: string | null;
   isNsfw: boolean;
 };
 
@@ -33,7 +34,7 @@ function CommunityThumb({
   community: CommunityHubItem;
   className?: string;
 }) {
-  const meta = communityCategoryMeta(community.category);
+  const meta = resolveCommunityCategoryDisplay(community.category, community.customCategoryLabel);
   const initial = community.name.slice(0, 1);
 
   if (community.iconUrl || community.coverUrl) {
@@ -65,7 +66,7 @@ function FeaturedCommunityCards({ communities }: { communities: CommunityHubItem
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/60">
       {communities.map((c) => {
-        const meta = communityCategoryMeta(c.category);
+        const meta = resolveCommunityCategoryDisplay(c.category, c.customCategoryLabel);
         return (
           <Link
             key={c.id}
@@ -92,7 +93,7 @@ function FeaturedCommunityCards({ communities }: { communities: CommunityHubItem
                 {c.name}
               </p>
               <p className="text-[10px] text-white/70 mt-0.5">
-                {meta ? `${meta.emoji} ${meta.shortLabel}` : communityCategoryLabel(c.category)}
+                {`${meta.emoji} ${meta.shortLabel}`}
                 {" · "}
                 {c.memberCount}명
               </p>
@@ -105,7 +106,7 @@ function FeaturedCommunityCards({ communities }: { communities: CommunityHubItem
 }
 
 function CommunityRow({ community }: { community: CommunityHubItem }) {
-  const meta = communityCategoryMeta(community.category);
+  const meta = resolveCommunityCategoryDisplay(community.category, community.customCategoryLabel);
 
   return (
     <Link
@@ -131,7 +132,7 @@ function CommunityRow({ community }: { community: CommunityHubItem }) {
       </div>
 
       <span className="hidden sm:inline shrink-0 w-[4.5rem] text-right text-xs text-muted-foreground truncate">
-        {meta?.shortLabel ?? communityCategoryLabel(community.category)}
+        {meta.shortLabel}
       </span>
 
       <span className="shrink-0 w-14 flex items-center justify-end gap-1 text-xs text-muted-foreground tabular-nums">

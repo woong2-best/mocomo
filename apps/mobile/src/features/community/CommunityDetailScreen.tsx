@@ -24,7 +24,7 @@ import {
 } from "@/api/community";
 import { ApiError } from "@/api/client";
 import { uploadLocalFile } from "@/api/upload-file";
-import { communityCategoryMeta } from "@/features/community/community-labels";
+import { resolveCommunityCategoryDisplay } from "@/features/community/community-labels";
 import { trackRecentCommunity } from "@/features/community/recent-communities";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { AppHeader } from "@/ui/AppHeader";
@@ -73,7 +73,9 @@ export function CommunityDetailScreen() {
     queryFn: () => fetchCommunityDetail(route.params.slug),
   });
   const item = query.data?.item;
-  const meta = item ? communityCategoryMeta(item.category) : null;
+  const meta = item
+    ? resolveCommunityCategoryDisplay(item.category, item.customCategoryLabel)
+    : null;
 
   useEffect(() => {
     if (item?.slug && item?.name) {
@@ -215,7 +217,7 @@ export function CommunityDetailScreen() {
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.title}>{item.name}</Text>
                 <Text style={styles.sub}>
-                  {meta ? `${meta.emoji} ${meta.label}` : item.category}
+                  {`${meta.emoji} ${meta.label}`}
                   {" · "}
                   {item.memberCount.toLocaleString("ko-KR")}명
                   {item.isNsfw ? " · NSFW" : ""}

@@ -12,7 +12,7 @@ import { Prisma } from "@prisma/client";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { provisionCommunityServer } from "@/lib/community-server/provision";
-import { isCommunityCategory } from "@/lib/community-labels";
+import { isCommunityCategory, validateCustomCategoryLabel } from "@/lib/community-labels";
 import { COMMUNITIES_LIST_CACHE_TAG } from "@/lib/cache-tags";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
@@ -43,6 +43,7 @@ export async function createCommunity(data: {
   name: string;
   description?: string;
   category: string;
+  customCategoryLabel?: string;
   isNsfw?: boolean;
   parentId?: string;
 }): Promise<
@@ -62,6 +63,13 @@ export async function createCommunity(data: {
     const category = data.category as CommunityCategory;
     if (!isCommunityCategory(category)) {
       return { error: "카테고리를 선택해 주세요." };
+    }
+
+    let customCategoryLabel: string | null = null;
+    if (category === "CUSTOM") {
+      const customErr = validateCustomCategoryLabel(data.customCategoryLabel);
+      if (customErr) return { error: customErr };
+      customCategoryLabel = data.customCategoryLabel!.trim();
     }
 
     const description = data.description?.trim() || null;
@@ -92,6 +100,7 @@ export async function createCommunity(data: {
               slug,
               description,
               category,
+              customCategoryLabel,
               isNsfw,
               parentId: data.parentId ?? null,
               creatorId: user.id,
@@ -303,6 +312,7 @@ export async function updateCommunity(
     name?: string;
     description?: string;
     category?: string;
+    customCategoryLabel?: string;
     isNsfw?: boolean;
     iconUrl?: string;
     coverUrl?: string;
@@ -347,11 +357,19 @@ export async function updateCommunity(
     }
 
     let category: CommunityCategory | undefined;
+    let customCategoryLabel: string | null | undefined;
     if (data.category) {
       if (!isCommunityCategory(data.category)) {
         return { error: "카테고리를 확인해 주세요." };
       }
       category = data.category;
+      if (category === "CUSTOM") {
+        const customErr = validateCustomCategoryLabel(data.customCategoryLabel);
+        if (customErr) return { error: customErr };
+        customCategoryLabel = data.customCategoryLabel!.trim();
+      } else {
+        customCategoryLabel = null;
+      }
     }
 
     const bannerUrl = data.bannerUrl !== undefined ? data.bannerUrl || null : undefined;
@@ -366,6 +384,7 @@ export async function updateCommunity(
           ? { description: data.description.trim() || null }
           : {}),
         ...(category ? { category } : {}),
+        ...(customCategoryLabel !== undefined ? { customCategoryLabel } : {}),
         ...(data.isNsfw !== undefined ? { isNsfw: data.isNsfw } : {}),
         ...(data.iconUrl !== undefined ? { iconUrl: data.iconUrl || null } : {}),
         ...(data.coverUrl !== undefined ? { coverUrl: data.coverUrl || null } : {}),

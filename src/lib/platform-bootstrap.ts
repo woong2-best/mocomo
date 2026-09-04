@@ -51,7 +51,7 @@ export async function ensurePlatformBootstrap(prisma: PrismaClient) {
           slug: "welcome",
           name: "MoCoMo 공식",
           description: "환영합니다!",
-          category: "ANIME",
+          category: "SUBCULTURE",
           creatorId: platform.id,
           memberCount: 1,
           members: { create: { userId: platform.id, role: "owner" } },
