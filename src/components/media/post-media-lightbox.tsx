@@ -315,16 +315,12 @@ function ThumbButton({
             autoPlayOnView={false}
             mediaId={media.id}
           />
-        ) : isProtectionWarningSlide(media) ? (
-          <div className="flex h-full w-full items-center justify-center bg-[#0b1a4a]">
-            <span className="text-[10px] font-bold tracking-wider text-[#ffd23f]">WARNING</span>
-          </div>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={media.url}
             alt=""
-            className={cn("h-full w-full object-cover", media.locked && "blur-sm scale-105")}
+            className="h-full w-full object-cover"
             draggable={false}
           />
         )}
