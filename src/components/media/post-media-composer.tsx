@@ -31,6 +31,7 @@ import {
 import { normalizeGalleryVideoFile } from "@/lib/gallery-video-upload";
 import { EMPTY_WATERMARK_OPTIONS, hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
 import { WatermarkToggleButtons } from "@/components/media/watermark-toggle-buttons";
+import { filesFromClipboard } from "@/lib/clipboard-files";
 import { cn } from "@/lib/utils";
 
 export type PostMediaItem = {
@@ -85,20 +86,6 @@ function isGalleryVideoFile(file: File): boolean {
   );
 }
 
-function filesFromClipboard(data: DataTransfer): File[] {
-  const seen = new Set<File>();
-  const out: File[] = [];
-  const add = (file: File | null) => {
-    if (!file || seen.has(file)) return;
-    seen.add(file);
-    out.push(file);
-  };
-  for (const file of Array.from(data.files)) add(file);
-  for (const item of Array.from(data.items)) {
-    if (item.kind === "file") add(item.getAsFile());
-  }
-  return out;
-}
 
 export type PostMediaComposerHandle = {
   handlePaste: (event: React.ClipboardEvent) => boolean;
@@ -149,6 +136,7 @@ export const PostMediaComposer = forwardRef<
   const pendingVideoFilesRef = useRef<File[]>([]);
   const advancingVideoQueueRef = useRef(false);
   const [watermarkOptions, setWatermarkOptions] = useState(EMPTY_WATERMARK_OPTIONS);
+  const pasteLockUntilRef = useRef(0);
   const watermarkOptionsRef = useRef(watermarkOptions);
   watermarkOptionsRef.current = watermarkOptions;
 
@@ -486,6 +474,8 @@ export const PostMediaComposer = forwardRef<
 
   function handlePaste(event: React.ClipboardEvent): boolean {
     if (disabled || uploading) return false;
+    const now = Date.now();
+    if (now < pasteLockUntilRef.current) return false;
     const files = filesFromClipboard(event.clipboardData);
     if (files.length === 0) return false;
 
@@ -494,6 +484,8 @@ export const PostMediaComposer = forwardRef<
     if (images.length === 0 && videos.length === 0) return false;
 
     event.preventDefault();
+    event.stopPropagation();
+    pasteLockUntilRef.current = now + 400;
 
     if (images.length > 0 && canAddImage) {
       void ingestGalleryImages(images);
@@ -846,7 +838,7 @@ export const PostMediaComposer = forwardRef<
           }}
           imageSrc={cropSrc}
           title="사진 편집"
-          description="레이어를 추가하고 배치한 뒤 적용하세요. Ctrl+Z 실행 취소."
+          description="자르고 회전한 뒤 적용하세요."
           maxWidth={1920}
           maxHeight={1920}
           uploadFilename={cropFilename}

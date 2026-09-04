@@ -48,19 +48,19 @@ const ASPECT_PRESETS: AspectPreset[] = [
   { id: "16:9", label: "16:9", aspect: 16 / 9 },
 ];
 
-type EditorPanel = "main" | "audio" | "text" | "overlay" | "filter" | "adjust" | "aspect";
+type EditorPanel = "crop" | "adjust" | "filter" | "text" | "overlay" | "audio";
 
 const IMAGE_TOOL_ITEMS: {
   panel: EditorPanel;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
 }[] = [
-  { panel: "audio", icon: "musical-note-outline", label: "오디오" },
+  { panel: "crop", icon: "crop-outline", label: "자르기" },
+  { panel: "adjust", icon: "sunny-outline", label: "보정" },
+  { panel: "filter", icon: "color-filter-outline", label: "필터" },
   { panel: "text", icon: "text-outline", label: "텍스트" },
   { panel: "overlay", icon: "shield-checkmark-outline", label: "워터마크" },
-  { panel: "filter", icon: "color-filter-outline", label: "필터" },
-  { panel: "adjust", icon: "contrast-outline", label: "보정" },
-  { panel: "aspect", icon: "crop-outline", label: "비율" },
+  { panel: "audio", icon: "musical-note-outline", label: "오디오" },
 ];
 
 type Props = {
@@ -126,7 +126,8 @@ export function ComposeImageEditor({
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
   const [edit, setEdit] = useState<ImageEditDraft>(DEFAULT_IMAGE_EDIT);
-  const [panel, setPanel] = useState<EditorPanel>("main");
+  const [panel, setPanel] = useState<EditorPanel>("crop");
+  const [showAspectPick, setShowAspectPick] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -140,7 +141,8 @@ export function ComposeImageEditor({
     setWidth(item.width ?? 0);
     setHeight(item.height ?? 0);
     setEdit(cloneImageEdit(item.imageEdit ?? DEFAULT_IMAGE_EDIT));
-    setPanel("main");
+    setPanel("crop");
+    setShowAspectPick(false);
     setError("");
     setSelectedTextId(null);
     setBusy(false);
@@ -273,7 +275,39 @@ export function ComposeImageEditor({
             <Ionicons name="chevron-back" size={26} color={colors.terracotta} />
           </Pressable>
           <Text style={styles.headerTitle}>사진 편집</Text>
-          <View style={styles.headerSide} />
+          <Pressable
+            onPress={onDone}
+            disabled={busy || !workingUri}
+            hitSlop={12}
+            style={styles.headerSide}
+          >
+            <Text style={[styles.sheetDone, (busy || !workingUri) && { opacity: 0.4 }]}>적용</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.toolIconBar}>
+          {IMAGE_TOOL_ITEMS.map((tool) => {
+            const active = panel === tool.panel;
+            return (
+              <Pressable
+                key={tool.panel}
+                onPress={() => {
+                  setPanel(tool.panel);
+                  setShowAspectPick(false);
+                }}
+                style={[styles.toolIconBtn, active && styles.toolIconBtnActive]}
+              >
+                <Ionicons
+                  name={tool.icon}
+                  size={22}
+                  color={active ? colors.terracotta : colors.textMuted}
+                />
+                <Text style={[styles.toolIconLabel, active && styles.toolIconLabelActive]}>
+                  {tool.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <View style={styles.previewFrame}>
@@ -342,6 +376,12 @@ export function ComposeImageEditor({
             />
           ))}
 
+          {panel === "crop" && width > 0 && height > 0 ? (
+            <View pointerEvents="none" style={styles.cropDimBadge}>
+              <Text style={styles.cropDimText}>{`${width} × ${height}`}</Text>
+            </View>
+          ) : null}
+
           {busy ? (
             <View style={styles.busyOverlay}>
               <ActivityIndicator color={colors.terracotta} size="large" />
@@ -352,181 +392,9 @@ export function ComposeImageEditor({
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {panel === "main" ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.toolStrip}
-          >
-            {IMAGE_TOOL_ITEMS.map((tool) => (
-              <ToolPill
-                key={tool.panel}
-                icon={tool.icon}
-                label={tool.label}
-                colors={colors}
-                styles={styles}
-                onPress={() => setPanel(tool.panel)}
-              />
-            ))}
-          </ScrollView>
-        ) : (
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
-            {panel === "audio" ? (
-              <View style={styles.sheetBody}>
-                <Pressable style={styles.trackRow} onPress={() => void onPickAudio()}>
-                  <Ionicons name="add-circle-outline" size={20} color={colors.brand} />
-                  <Text style={styles.trackLabel}>
-                    {edit.audioTrack ? `🎵 ${edit.audioTrack.filename}` : "MP3 파일 선택"}
-                  </Text>
-                  {edit.audioTrack ? (
-                    <Pressable
-                      hitSlop={8}
-                      onPress={() => setEdit((p) => ({ ...p, audioTrack: null }))}
-                    >
-                      <Ionicons name="close-circle" size={20} color={colors.textMuted} />
-                    </Pressable>
-                  ) : null}
-                </Pressable>
-              </View>
-            ) : null}
-
-            {panel === "text" ? (
-              <View style={styles.sheetBody}>
-                <Pressable style={styles.trackRow} onPress={onAddText}>
-                  <Ionicons name="add-circle-outline" size={20} color={colors.brand} />
-                  <Text style={styles.trackLabel}>
-                    {edit.textOverlays.length > 0
-                      ? `텍스트 ${edit.textOverlays.length}개 · 탭해서 추가`
-                      : "텍스트 추가"}
-                  </Text>
-                </Pressable>
-                {selectedTextId ? (
-                  <>
-                    <Text style={styles.textColorLabel}>글자 색</Text>
-                    <TextColorPicker
-                      value={
-                        edit.textOverlays.find((t) => t.id === selectedTextId)?.color ??
-                        DEFAULT_TEXT_OVERLAY_COLOR
-                      }
-                      onChange={(color) => {
-                        setEdit((p) => ({
-                          ...p,
-                          textOverlays: p.textOverlays.map((t) =>
-                            t.id === selectedTextId ? { ...t, color } : t
-                          ),
-                        }));
-                      }}
-                      styles={styles}
-                    />
-                    <Pressable
-                      style={styles.sheetMutedBtn}
-                      onPress={() => {
-                        setEdit((p) => ({
-                          ...p,
-                          textOverlays: p.textOverlays.filter((t) => t.id !== selectedTextId),
-                        }));
-                        setSelectedTextId(null);
-                      }}
-                    >
-                      <Text style={styles.sheetMutedBtnText}>선택 텍스트 삭제</Text>
-                    </Pressable>
-                  </>
-                ) : edit.textOverlays.length > 0 ? (
-                  <Text style={styles.sheetHint}>미리보기에서 텍스트를 탭하면 색을 바꿀 수 있어요.</Text>
-                ) : null}
-              </View>
-            ) : null}
-
-            {panel === "overlay" ? (
-              <View style={styles.sheetBody}>
-                {creditLabel ? (
-                  <WatermarkToggleRow
-                    value={watermarkOptions}
-                    onChange={onWatermarkChange}
-                    creditLabel={creditLabel}
-                  />
-                ) : (
-                  <Text style={styles.sheetHint}>로그인 후 워터마크를 사용할 수 있습니다.</Text>
-                )}
-              </View>
-            ) : null}
-
-            {panel === "filter" ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterRow}
-              >
-                {MOBILE_VIDEO_FILTERS.map((f) => (
-                  <Pressable
-                    key={f.id}
-                    onPress={() => setEdit((p) => ({ ...p, filterId: f.id }))}
-                    style={styles.filterChip}
-                  >
-                    <View
-                      style={[
-                        styles.filterPreview,
-                        f.preview
-                          ? { backgroundColor: f.preview.color, opacity: 0.35 + f.preview.opacity }
-                          : { backgroundColor: "#333" },
-                        edit.filterId === f.id && styles.filterPreviewActive,
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.filterLabel,
-                        edit.filterId === f.id && styles.filterLabelActive,
-                      ]}
-                    >
-                      {f.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            ) : null}
-
-            {panel === "adjust" ? (
-              <View style={styles.sheetBody}>
-                <AdjustRow
-                  label="밝기"
-                  value={edit.brightness}
-                  onChange={(v) => setEdit((p) => ({ ...p, brightness: v }))}
-                  styles={styles}
-                />
-                <AdjustRow
-                  label="대비"
-                  value={edit.contrast}
-                  onChange={(v) => setEdit((p) => ({ ...p, contrast: v }))}
-                  styles={styles}
-                />
-                <AdjustRow
-                  label="채도"
-                  value={edit.saturation}
-                  onChange={(v) => setEdit((p) => ({ ...p, saturation: v }))}
-                  styles={styles}
-                />
-                <View style={styles.adjustActions}>
-                  <MiniAction icon="refresh-outline" label="↺" onPress={() => void runManipulate([{ rotate: -90 }])} styles={styles} colors={colors} />
-                  <MiniAction icon="refresh" label="↻" onPress={() => void runManipulate([{ rotate: 90 }])} styles={styles} colors={colors} />
-                  <MiniAction
-                    icon="swap-horizontal-outline"
-                    label="좌우"
-                    onPress={() => void runManipulate([{ flip: ImageManipulator.FlipType.Horizontal }])}
-                    styles={styles}
-                    colors={colors}
-                  />
-                  <MiniAction
-                    icon="swap-vertical-outline"
-                    label="상하"
-                    onPress={() => void runManipulate([{ flip: ImageManipulator.FlipType.Vertical }])}
-                    styles={styles}
-                    colors={colors}
-                  />
-                </View>
-              </View>
-            ) : null}
-
-            {panel === "aspect" ? (
+        {panel === "crop" ? (
+          <View style={styles.cropBar}>
+            {showAspectPick ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.aspectRow}>
                 {ASPECT_PRESETS.map((preset) => (
                   <Pressable
@@ -534,6 +402,7 @@ export function ComposeImageEditor({
                     disabled={busy || !preset.aspect || !width || !height}
                     onPress={() => {
                       if (!preset.aspect) return;
+                      setShowAspectPick(false);
                       void runManipulate([{ crop: centerCropRect(width, height, preset.aspect) }]);
                     }}
                     style={[styles.aspectChip, !preset.aspect && styles.aspectChipMuted]}
@@ -543,30 +412,175 @@ export function ComposeImageEditor({
                 ))}
               </ScrollView>
             ) : null}
-
-            <View style={styles.sheetActions}>
-              <Pressable onPress={() => setPanel("main")}>
-                <Text style={styles.sheetCancel}>취소</Text>
+            <View style={styles.cropActions}>
+              <View style={styles.cropActionGroup}>
+                <MiniAction icon="refresh-outline" label="↺" onPress={() => void runManipulate([{ rotate: -90 }])} styles={styles} colors={colors} />
+                <MiniAction icon="refresh" label="↻" onPress={() => void runManipulate([{ rotate: 90 }])} styles={styles} colors={colors} />
+              </View>
+              <Pressable
+                onPress={() => setShowAspectPick((v) => !v)}
+                style={styles.cropAspectBtn}
+                disabled={busy}
+              >
+                <Ionicons name="crop-outline" size={22} color={colors.brand} />
+                <Text style={styles.cropAspectLabel}>자유</Text>
               </Pressable>
-              <Text style={styles.sheetTitle}>
-                {panel === "audio"
-                  ? "오디오"
-                  : panel === "text"
-                    ? "텍스트"
-                    : panel === "overlay"
-                      ? "워터마크"
-                      : panel === "filter"
-                        ? "필터"
-                        : panel === "adjust"
-                          ? "보정"
-                          : "비율"}
-              </Text>
-              <Pressable onPress={() => setPanel("main")}>
-                <Text style={styles.sheetDone}>완료</Text>
-              </Pressable>
+              <View style={styles.cropActionGroup}>
+                <MiniAction
+                  icon="swap-horizontal-outline"
+                  label="좌우"
+                  onPress={() => void runManipulate([{ flip: ImageManipulator.FlipType.Horizontal }])}
+                  styles={styles}
+                  colors={colors}
+                />
+                <MiniAction
+                  icon="swap-vertical-outline"
+                  label="상하"
+                  onPress={() => void runManipulate([{ flip: ImageManipulator.FlipType.Vertical }])}
+                  styles={styles}
+                  colors={colors}
+                />
+              </View>
             </View>
           </View>
-        )}
+        ) : null}
+
+        {panel === "audio" ? (
+          <View style={styles.sheetBody}>
+            <Pressable style={styles.trackRow} onPress={() => void onPickAudio()}>
+              <Ionicons name="add-circle-outline" size={20} color={colors.brand} />
+              <Text style={styles.trackLabel}>
+                {edit.audioTrack ? `🎵 ${edit.audioTrack.filename}` : "MP3 파일 선택"}
+              </Text>
+              {edit.audioTrack ? (
+                <Pressable
+                  hitSlop={8}
+                  onPress={() => setEdit((p) => ({ ...p, audioTrack: null }))}
+                >
+                  <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+                </Pressable>
+              ) : null}
+            </Pressable>
+          </View>
+        ) : null}
+
+        {panel === "text" ? (
+          <View style={styles.sheetBody}>
+            <Pressable style={styles.trackRow} onPress={onAddText}>
+              <Ionicons name="add-circle-outline" size={20} color={colors.brand} />
+              <Text style={styles.trackLabel}>
+                {edit.textOverlays.length > 0
+                  ? `텍스트 ${edit.textOverlays.length}개 · 탭해서 추가`
+                  : "텍스트 추가"}
+              </Text>
+            </Pressable>
+            {selectedTextId ? (
+              <>
+                <Text style={styles.textColorLabel}>글자 색</Text>
+                <TextColorPicker
+                  value={
+                    edit.textOverlays.find((t) => t.id === selectedTextId)?.color ??
+                    DEFAULT_TEXT_OVERLAY_COLOR
+                  }
+                  onChange={(color) => {
+                    setEdit((p) => ({
+                      ...p,
+                      textOverlays: p.textOverlays.map((t) =>
+                        t.id === selectedTextId ? { ...t, color } : t
+                      ),
+                    }));
+                  }}
+                  styles={styles}
+                />
+                <Pressable
+                  style={styles.sheetMutedBtn}
+                  onPress={() => {
+                    setEdit((p) => ({
+                      ...p,
+                      textOverlays: p.textOverlays.filter((t) => t.id !== selectedTextId),
+                    }));
+                    setSelectedTextId(null);
+                  }}
+                >
+                  <Text style={styles.sheetMutedBtnText}>선택 텍스트 삭제</Text>
+                </Pressable>
+              </>
+            ) : edit.textOverlays.length > 0 ? (
+              <Text style={styles.sheetHint}>미리보기에서 텍스트를 탭하면 색을 바꿀 수 있어요.</Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {panel === "overlay" ? (
+          <View style={styles.sheetBody}>
+            {creditLabel ? (
+              <WatermarkToggleRow
+                value={watermarkOptions}
+                onChange={onWatermarkChange}
+                creditLabel={creditLabel}
+              />
+            ) : (
+              <Text style={styles.sheetHint}>로그인 후 워터마크를 사용할 수 있습니다.</Text>
+            )}
+          </View>
+        ) : null}
+
+        {panel === "filter" ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterRow}
+          >
+            {MOBILE_VIDEO_FILTERS.map((f) => (
+              <Pressable
+                key={f.id}
+                onPress={() => setEdit((p) => ({ ...p, filterId: f.id }))}
+                style={styles.filterChip}
+              >
+                <View
+                  style={[
+                    styles.filterPreview,
+                    f.preview
+                      ? { backgroundColor: f.preview.color, opacity: 0.35 + f.preview.opacity }
+                      : { backgroundColor: "#333" },
+                    edit.filterId === f.id && styles.filterPreviewActive,
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.filterLabel,
+                    edit.filterId === f.id && styles.filterLabelActive,
+                  ]}
+                >
+                  {f.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : null}
+
+        {panel === "adjust" ? (
+          <View style={styles.sheetBody}>
+            <AdjustRow
+              label="밝기"
+              value={edit.brightness}
+              onChange={(v) => setEdit((p) => ({ ...p, brightness: v }))}
+              styles={styles}
+            />
+            <AdjustRow
+              label="대비"
+              value={edit.contrast}
+              onChange={(v) => setEdit((p) => ({ ...p, contrast: v }))}
+              styles={styles}
+            />
+            <AdjustRow
+              label="채도"
+              value={edit.saturation}
+              onChange={(v) => setEdit((p) => ({ ...p, saturation: v }))}
+              styles={styles}
+            />
+          </View>
+        ) : null}
 
         <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 10 }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbRow}>
@@ -624,33 +638,6 @@ export function ComposeImageEditor({
         </Modal>
       </View>
     </Modal>
-  );
-}
-
-function ToolPill({
-  icon,
-  label,
-  onPress,
-  styles,
-  colors,
-  active,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress: () => void;
-  styles: ReturnType<typeof createComposeEditorStyles>;
-  colors: ThemeColors;
-  active?: boolean;
-}) {
-  return (
-    <Pressable onPress={onPress} style={[styles.toolPill, active && styles.toolPillActive]}>
-      <Ionicons
-        name={icon}
-        size={18}
-        color={active ? colors.textOnAccent : colors.brand}
-      />
-      <Text style={[styles.toolPillLabel, active && styles.toolPillLabelActive]}>{label}</Text>
-    </Pressable>
   );
 }
 

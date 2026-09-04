@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ComponentType } from "react";
 import type Konva from "konva";
 import {
+  Crop,
+  Droplets,
   FlipHorizontal2,
   FlipVertical2,
   Loader2,
-  Redo2,
+  Paintbrush,
   RotateCcw,
   RotateCw,
-  Undo2,
-  ZoomIn,
-  ZoomOut,
+  Sun,
+  Type,
 } from "lucide-react";
+import { EFFECT_SLIDERS } from "@/lib/media-editor/effects";
 import {
   Dialog,
   DialogContent,
@@ -73,14 +75,27 @@ export type ImageEditorDialogProps = {
 
 const FONT_LABELS = ["기본", "세리프", "임팩트", "고정폭", "캐주얼"];
 
-type LocalTool = "select" | "brush" | "emoji" | "shape";
+type LocalTool = "crop" | "adjust" | "draw" | "markup" | "watermark";
+
+const EDITOR_TOOLS: {
+  id: LocalTool;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  watermarkOnly?: boolean;
+}[] = [
+  { id: "crop", label: "자르기", icon: Crop },
+  { id: "adjust", label: "보정", icon: Sun },
+  { id: "draw", label: "그리기", icon: Paintbrush },
+  { id: "markup", label: "텍스트", icon: Type },
+  { id: "watermark", label: "워터마크", icon: Droplets, watermarkOnly: true },
+];
 
 export function ImageEditorDialog({
   open,
   onOpenChange,
   imageSrc,
   title = "사진 편집",
-  description = "드래그·확대·90° 회전·뒤집기·자유 각도·비율 변경 후 적용하세요.",
+  description = "자르고 회전한 뒤 적용하세요.",
   maxWidth,
   maxHeight,
   uploadFilename,
@@ -102,8 +117,10 @@ export function ImageEditorDialog({
   const [error, setError] = useState("");
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const [cropAspect, setCropAspect] = useState<number | undefined>(aspect);
-  const [localTool, setLocalTool] = useState<LocalTool>("select");
+  const [localTool, setLocalTool] = useState<LocalTool>("crop");
   const [showEmojiPick, setShowEmojiPick] = useState(false);
+  const [showShapePick, setShowShapePick] = useState(false);
+  const [showAspectPick, setShowAspectPick] = useState(false);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const pendingTextEdit = useRef(false);
 
@@ -113,9 +130,12 @@ export function ImageEditorDialog({
   const presets = lockAspect ? aspectPresets.filter((p) => p.aspect === aspect) : aspectPresets;
   const activeLayer = project?.layers.find((l) => l.id === project.activeLayerId) ?? null;
   const bgLayer = project?.layers.find((l) => l.type === "background") ?? null;
-  const brushMode = localTool === "brush";
-  const cropEditing =
-    !brushMode && localTool === "select" && (!activeLayer || activeLayer.type === "background");
+  const brushMode = localTool === "draw";
+  const cropEditing = localTool === "crop";
+  const activeAspectLabel =
+    presets.find((p) =>
+      p.aspect === undefined ? cropAspect === undefined : p.aspect === cropAspect
+    )?.label ?? "자유";
 
   const pad = 8;
   const viewBox = project
@@ -152,8 +172,10 @@ export function ImageEditorDialog({
     let cancelled = false;
     setLoading(true);
     setError("");
-    setLocalTool("select");
+    setLocalTool("crop");
     setShowEmojiPick(false);
+    setShowShapePick(false);
+    setShowAspectPick(false);
     setEditingTextId(null);
     pendingTextEdit.current = false;
     // 비율 고정이 아니면 업로드 사진 비율에 캔버스를 맞추고 전체를 크롭(자유)으로 시작 → 검은 여백 없음
@@ -292,8 +314,10 @@ export function ImageEditorDialog({
       if (!ok) return;
     }
     setCropAspect(initialAspect);
-    setLocalTool("select");
+    setLocalTool("crop");
     setShowEmojiPick(false);
+    setShowShapePick(false);
+    setShowAspectPick(false);
     setEditingTextId(null);
     editor.resetBackgroundTransform(initialAspect);
   }
@@ -354,7 +378,30 @@ export function ImageEditorDialog({
   }
 
   const showObjectToolbar =
-    activeLayer && activeLayer.type !== "background" && localTool !== "brush" && !editingTextId;
+    activeLayer && activeLayer.type !== "background" && localTool !== "draw" && !editingTextId;
+  const visibleTools = EDITOR_TOOLS.filter((t) => !t.watermarkOnly || !!watermarkCreditLabel);
+  const adjustSliders = EFFECT_SLIDERS.filter(
+    (s) => s.key === "brightness" || s.key === "contrast" || s.key === "saturation"
+  );
+
+  function selectTool(id: LocalTool) {
+    setShowEmojiPick(false);
+    setShowShapePick(false);
+    setShowAspectPick(false);
+    setLocalTool(id);
+    if (id === "crop" && bg) editor.selectLayer(bg.id);
+    if (id === "draw") {
+      editor.selectLayer(null);
+      editor.ensureBrushLayer();
+    }
+  }
+
+  function iconBtnClass(active?: boolean) {
+    return cn(
+      "h-11 w-11 rounded-full flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-40",
+      active && "bg-primary/10 text-primary"
+    );
+  }
 
   const editingTextLayer =
     editingTextId && project
@@ -371,15 +418,51 @@ export function ImageEditorDialog({
         else requestClose();
       }}
     >
-      <DialogContent layer="stack" className="max-w-2xl p-0 gap-0 overflow-hidden max-h-[96vh] flex flex-col">
-        <DialogHeader className="px-5 pt-5 pb-2 shrink-0">
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+      <DialogContent layer="stack" className="max-w-xl p-0 gap-0 overflow-hidden max-h-[96vh] flex flex-col">
+        <DialogHeader className="px-4 pt-4 pb-1 pr-12 shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle className="text-base">{title}</DialogTitle>
+            <Button
+              type="button"
+              size="sm"
+              className="rounded-full h-8 px-4"
+              onClick={apply}
+              disabled={busy || loading || !project}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "적용"}
+            </Button>
+          </div>
+          <DialogDescription className="sr-only">{description}</DialogDescription>
         </DialogHeader>
+
+        <div className="flex items-end justify-center gap-4 sm:gap-6 px-4 pt-1 pb-2 shrink-0">
+          {visibleTools.map((tool) => {
+            const Icon = tool.icon;
+            const active = localTool === tool.id;
+            return (
+              <button
+                key={tool.id}
+                type="button"
+                title={tool.label}
+                disabled={busy}
+                onClick={() => selectTool(tool.id)}
+                className={cn(
+                  "flex flex-col items-center gap-1 min-w-[44px] pb-1 text-[11px] font-semibold border-b-2",
+                  active
+                    ? "text-primary border-primary"
+                    : "text-muted-foreground border-transparent hover:text-foreground"
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{tool.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
         <div
           ref={photoRef}
-          className="relative mx-5 w-[calc(100%-2.5rem)] h-[min(44vh,320px)] sm:h-[min(48vh,360px)] bg-[#152238] dark:bg-[#0A0E18] shrink-0 touch-none flex items-center justify-center overflow-hidden rounded-2xl border-2 border-primary/15 shadow-[3px_4px_0_rgba(27,74,140,0.12)]"
+          className="relative mx-3 w-[calc(100%-1.5rem)] h-[min(52vh,440px)] bg-[#152238] dark:bg-[#0A0E18] shrink-0 touch-none flex items-center justify-center overflow-hidden rounded-2xl border-2 border-primary/15 shadow-[3px_4px_0_rgba(27,74,140,0.12)]"
         >
           {loading || !project || !canvasReady ? (
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -402,7 +485,8 @@ export function ImageEditorDialog({
                 onCropCommit={() => editor.flushTransform()}
                 onSelectLayer={(id) => {
                   editor.selectLayer(id);
-                  setLocalTool("select");
+                  const layer = project?.layers.find((l) => l.id === id);
+                  if (layer && layer.type !== "background") setLocalTool("markup");
                   setShowEmojiPick(false);
                 }}
                 onTransformEnd={(layerId, attrs) => {
@@ -414,7 +498,7 @@ export function ImageEditorDialog({
                 onEditText={(id) => {
                   editor.selectLayer(id);
                   setEditingTextId(id);
-                  setLocalTool("select");
+                  setLocalTool("markup");
                 }}
               />
               {editingTextLayer && (
@@ -439,483 +523,136 @@ export function ImageEditorDialog({
                   onSendBack={() => editor.sendToBack(activeLayer.id)}
                 />
               )}
+              {cropEditing && project ? (
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-md bg-black/70 px-2 py-0.5 text-[10px] text-white tabular-nums pointer-events-none">
+                  {Math.round(project.crop.width)} × {Math.round(project.crop.height)}
+                </div>
+              ) : null}
             </>
           )}
         </div>
 
-        <div className="relative z-10 shrink-0 border-t border-border bg-background pb-safe">
-          {watermarkCreditLabel && watermarkOptions && onWatermarkOptionsChange ? (
-            <div className="px-4 pt-3 space-y-1">
-              <WatermarkToggleButtons value={watermarkOptions} onChange={onWatermarkOptionsChange} disabled={busy} />
-              <p className="text-[10px] text-muted-foreground">
-                업로드 전에 워터마크를 선택하세요. ({watermarkCreditLabel})
-              </p>
+        {localTool === "crop" ? (
+          <div className="shrink-0 px-4 pt-2 pb-1">
+            <p className="text-center text-xs tabular-nums text-muted-foreground">{Math.round(rotation)}°</p>
+            <input
+              type="range"
+              min={-180}
+              max={180}
+              step={0.5}
+              value={rotation}
+              onChange={(e) => setRotation(Number(e.target.value))}
+              className="w-full accent-primary h-7"
+              disabled={busy || !bg}
+              aria-label="회전"
+            />
+          </div>
+        ) : null}
+
+        <div className="relative z-10 shrink-0 bg-background pb-safe">
+          {error ? <p className="px-4 pt-2 text-sm text-destructive">{error}</p> : null}
+
+          {localTool === "crop" ? (
+            <div className="px-4 pb-4 pt-1 space-y-2">
+              {!lockAspect && showAspectPick && presets.length > 1 ? (
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {presets.map((p) => (
+                    <Button
+                      key={p.id}
+                      type="button"
+                      size="sm"
+                      variant={
+                        (p.aspect === undefined && cropAspect === undefined) || p.aspect === cropAspect
+                          ? "default"
+                          : "outline"
+                      }
+                      className="rounded-full h-8 px-3 text-xs"
+                      disabled={busy}
+                      onClick={() => {
+                        onAspectPick(p.aspect);
+                        setShowAspectPick(false);
+                      }}
+                    >
+                      {p.label}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1">
+                  <button type="button" className={iconBtnClass()} title="90° 왼쪽" disabled={busy} onClick={() => rotateBy(-90)}>
+                    <RotateCcw className="h-5 w-5" />
+                  </button>
+                  <button type="button" className={iconBtnClass()} title="90° 오른쪽" disabled={busy} onClick={() => rotateBy(90)}>
+                    <RotateCw className="h-5 w-5" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy || lockAspect}
+                  onClick={() => setShowAspectPick((v) => !v)}
+                  className="flex flex-col items-center gap-0.5 min-w-[64px] text-xs font-semibold text-foreground disabled:opacity-40"
+                >
+                  <Crop className="h-5 w-5" />
+                  {activeAspectLabel}
+                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className={iconBtnClass(!!bg?.data.flipX)}
+                    title="좌우 뒤집기"
+                    disabled={busy || !bg}
+                    onClick={() => toggleFlip("x")}
+                  >
+                    <FlipHorizontal2 className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    className={iconBtnClass(!!bg?.data.flipY)}
+                    title="상하 뒤집기"
+                    disabled={busy || !bg}
+                    onClick={() => toggleFlip("y")}
+                  >
+                    <FlipVertical2 className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-center">
+                <button type="button" className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40" disabled={busy} onClick={handleReset}>
+                  초기화
+                </button>
+              </div>
             </div>
           ) : null}
 
-          <div className="flex gap-2 px-4 pt-4 pb-3">
-            <Button type="button" variant="outline" className="rounded-xl flex-1 h-11" onClick={requestClose} disabled={busy}>
-              취소
-            </Button>
-            <Button type="button" className="rounded-xl flex-1 h-11" onClick={apply} disabled={busy || loading || !project}>
-              {busy ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  업로드 중…
-                </>
-              ) : (
-                "적용"
-              )}
-            </Button>
-          </div>
-
-          {error && <p className="px-4 -mt-1 pb-2 text-sm text-destructive">{error}</p>}
-
-          <div className="px-4 pb-4 space-y-3 max-h-[38vh] overflow-y-auto overscroll-contain">
-            <div className="flex flex-wrap gap-1.5">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="rounded-full h-8 px-3 text-xs"
-                disabled={busy}
-                onClick={() => document.getElementById(fileInputId)?.click()}
-              >
-                사진 추가
-              </Button>
-              <input
-                id={fileInputId}
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
-                multiple
-                className="sr-only"
-                onChange={(e) => {
-                  if (e.target.files?.length) void editor.addImageFiles(e.target.files);
-                  e.target.value = "";
-                  setLocalTool("select");
-                }}
-              />
-              <Button
-                type="button"
-                size="sm"
-                variant={localTool === "select" && activeLayer?.type === "text" ? "default" : "outline"}
-                className="rounded-full h-8 px-3 text-xs"
-                disabled={busy}
-                onClick={() => {
-                  editor.addTextLayer();
-                  pendingTextEdit.current = true;
-                  setLocalTool("select");
-                  setShowEmojiPick(false);
-                }}
-              >
-                텍스트
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={showEmojiPick ? "default" : "outline"}
-                className="rounded-full h-8 px-3 text-xs"
-                disabled={busy}
-                onClick={() => {
-                  setShowEmojiPick((v) => !v);
-                  setLocalTool("select");
-                }}
-              >
-                이모지
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={localTool === "shape" ? "default" : "outline"}
-                className="rounded-full h-8 px-3 text-xs"
-                disabled={busy}
-                onClick={() => {
-                  setLocalTool((t) => (t === "shape" ? "select" : "shape"));
-                  setShowEmojiPick(false);
-                }}
-              >
-                도형
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={localTool === "brush" ? "default" : "outline"}
-                className="rounded-full h-8 px-3 text-xs"
-                disabled={busy}
-                onClick={() => {
-                  setShowEmojiPick(false);
-                  setLocalTool((t) => {
-                    const next = t === "brush" ? "select" : "brush";
-                    if (next === "brush") {
-                      editor.selectLayer(null);
-                      editor.ensureBrushLayer();
-                    }
-                    return next;
-                  });
-                }}
-              >
-                그리기
-              </Button>
-            </div>
-
-            {project && project.layers.length > 1 && (
-              <div className="rounded-xl border border-border bg-muted/30 p-2 space-y-1">
-                <p className="text-[10px] font-medium text-muted-foreground px-1">레이어 (위가 앞)</p>
-                <div className="max-h-28 overflow-y-auto space-y-1">
-                  {[...project.layers]
-                    .map((l, i) => ({ l, i }))
-                    .reverse()
-                    .map(({ l }) => {
-                      const isBg = l.type === "background";
-                      const isActive = l.id === project.activeLayerId;
-                      const label =
-                        l.type === "text"
-                          ? `T ${(l.data as { text: string }).text?.slice(0, 8) || "텍스트"}`
-                          : l.type === "emoji"
-                            ? (l.data as { emoji: string }).emoji
-                            : l.type === "shape"
-                              ? "도형"
-                              : l.type === "brush"
-                                ? "그림"
-                                : l.type === "image"
-                                  ? "사진"
-                                  : "배경";
-                      return (
-                        <div
-                          key={l.id}
-                          className={cn(
-                            "flex items-center gap-1 rounded-lg px-2 py-1 text-xs cursor-pointer",
-                            isActive ? "bg-primary/15 ring-1 ring-primary/40" : "hover:bg-muted"
-                          )}
-                          onClick={() => {
-                            editor.selectLayer(l.id);
-                            setLocalTool("select");
-                          }}
-                        >
-                          <span className="flex-1 truncate">{label}</span>
-                          {!isBg && (
-                            <>
-                              <button
-                                type="button"
-                                className="px-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
-                                title="앞으로"
-                                disabled={busy}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  editor.moveLayerOrder(l.id, "up");
-                                }}
-                              >
-                                ▲
-                              </button>
-                              <button
-                                type="button"
-                                className="px-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
-                                title="뒤로"
-                                disabled={busy}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  editor.moveLayerOrder(l.id, "down");
-                                }}
-                              >
-                                ▼
-                              </button>
-                              <button
-                                type="button"
-                                className="px-1 text-destructive/80 hover:text-destructive disabled:opacity-30"
-                                title="삭제"
-                                disabled={busy}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  editor.deleteLayer(l.id);
-                                }}
-                              >
-                                ✕
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-            )}
-
-            {showEmojiPick && (
-              <div className="flex flex-wrap gap-1">
-                {EMOJI_QUICK_PICK.map((e) => (
-                  <button
-                    key={e}
-                    type="button"
-                    className="text-xl p-1.5 rounded-lg hover:bg-muted"
-                    onClick={() => {
-                      if (activeLayer?.type === "text") {
-                        editor.patchLayer(activeLayer.id, (l) =>
-                          l.type === "text" ? { ...l, data: { ...l.data, text: l.data.text + e } } : l
-                        );
-                      } else {
-                        editor.addEmojiLayer(e);
-                      }
-                      setShowEmojiPick(false);
-                    }}
-                  >
-                    {e}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {localTool === "shape" && (
-              <div className="flex flex-wrap gap-1.5">
-                {SHAPE_OPTIONS.map((s) => (
-                  <Button
-                    key={s.id}
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="rounded-full h-8 w-10 text-xs"
-                    disabled={busy}
-                    onClick={() => {
-                      editor.addShape(s.id);
-                      setLocalTool("select");
-                    }}
-                  >
-                    {s.label}
-                  </Button>
-                ))}
-              </div>
-            )}
-
-            {localTool === "brush" && (
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="flex items-center gap-2 text-xs">
-                  색상
-                  <input
-                    type="color"
-                    value={editor.brushSettings.color}
-                    onChange={(e) => editor.setBrushSettings((b) => ({ ...b, color: e.target.value }))}
-                    className="h-8 w-10 rounded border-0"
-                  />
-                </label>
-                <label className="flex-1 min-w-[120px] text-xs">
-                  굵기
-                  <input
-                    type="range"
-                    min={1}
-                    max={32}
-                    value={editor.brushSettings.size}
-                    onChange={(e) => editor.setBrushSettings((b) => ({ ...b, size: Number(e.target.value) }))}
-                    className="w-full accent-primary"
-                  />
-                </label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={editor.brushSettings.tool === "eraser" ? "default" : "outline"}
-                  className="rounded-full h-8 px-3 text-xs"
-                  onClick={() =>
-                    editor.setBrushSettings((b) => ({
-                      ...b,
-                      tool: b.tool === "eraser" ? "pen" : "eraser",
-                    }))
-                  }
-                >
-                  지우개
-                </Button>
-              </div>
-            )}
-
-            {activeLayer?.type === "text" && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <select
-                  className="h-8 rounded-full border border-input bg-background px-2 text-xs"
-                  value={activeLayer.data.fontFamily}
-                  onChange={(e) =>
-                    editor.patchLayer(activeLayer.id, (l) =>
-                      l.type === "text" ? { ...l, data: { ...l.data, fontFamily: e.target.value } } : l
-                    )
-                  }
-                  title="폰트"
-                >
-                  {EDITOR_FONTS.map((font, i) => (
-                    <option key={font} value={font}>
-                      {FONT_LABELS[i] ?? font}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="color"
-                  value={activeLayer.data.fill}
-                  onChange={(e) =>
-                    editor.patchLayer(activeLayer.id, (l) =>
-                      l.type === "text" ? { ...l, data: { ...l.data, fill: e.target.value } } : l
-                    )
-                  }
-                  className="h-8 w-10 rounded border"
-                  title="글자색"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={activeLayer.data.fontStyle.includes("bold") ? "default" : "outline"}
-                  className="rounded-full h-8 w-8 text-xs font-bold"
-                  onClick={() =>
-                    editor.patchLayer(activeLayer.id, (l) => {
-                      if (l.type !== "text") return l;
-                      const bold = l.data.fontStyle.includes("bold");
-                      const italic = l.data.fontStyle.includes("italic");
-                      const next = `${bold ? "" : "bold"}${italic ? " italic" : ""}`.trim() || "normal";
-                      return { ...l, data: { ...l.data, fontStyle: next as typeof l.data.fontStyle } };
-                    })
-                  }
-                >
-                  B
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={activeLayer.data.fontStyle.includes("italic") ? "default" : "outline"}
-                  className="rounded-full h-8 w-8 text-xs italic"
-                  onClick={() =>
-                    editor.patchLayer(activeLayer.id, (l) => {
-                      if (l.type !== "text") return l;
-                      const bold = l.data.fontStyle.includes("bold");
-                      const italic = l.data.fontStyle.includes("italic");
-                      const next = `${bold ? "bold" : ""}${italic ? "" : " italic"}`.trim() || "normal";
-                      return { ...l, data: { ...l.data, fontStyle: next as typeof l.data.fontStyle } };
-                    })
-                  }
-                >
-                  I
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={activeLayer.data.textDecoration.includes("underline") ? "default" : "outline"}
-                  className="rounded-full h-8 w-8 text-xs underline"
-                  onClick={() =>
-                    editor.patchLayer(activeLayer.id, (l) =>
-                      l.type === "text"
-                        ? {
-                            ...l,
-                            data: {
-                              ...l.data,
-                              textDecoration: l.data.textDecoration ? "" : "underline",
-                            },
-                          }
-                        : l
-                    )
-                  }
-                >
-                  U
-                </Button>
-                {(["left", "center", "right"] as const).map((align) => (
-                  <Button
-                    key={align}
-                    type="button"
-                    size="sm"
-                    variant={activeLayer.data.align === align ? "default" : "outline"}
-                    className="rounded-full h-8 px-2 text-[10px]"
-                    onClick={() =>
-                      editor.patchLayer(activeLayer.id, (l) =>
-                        l.type === "text" ? { ...l, data: { ...l.data, align } } : l
-                      )
-                    }
-                  >
-                    {align === "left" ? "좌" : align === "center" ? "중" : "우"}
-                  </Button>
-                ))}
-                <input
-                  type="range"
-                  min={12}
-                  max={96}
-                  value={activeLayer.data.fontSize}
-                  onChange={(e) =>
-                    editor.patchLayer(activeLayer.id, (l) =>
-                      l.type === "text" ? { ...l, data: { ...l.data, fontSize: Number(e.target.value) } } : l
-                    )
-                  }
-                  className="flex-1 min-w-[80px] accent-primary"
-                />
-              </div>
-            )}
-
-            {!lockAspect && presets.length > 1 && (
-              <div className="flex flex-wrap gap-1.5">
-                {presets.map((p) => (
-                  <Button
-                    key={p.id}
-                    type="button"
-                    size="sm"
-                    variant={
-                      (p.aspect === undefined && cropAspect === undefined) || p.aspect === cropAspect
-                        ? "default"
-                        : "outline"
-                    }
-                    className="rounded-full h-8 px-3 text-xs"
-                    disabled={busy}
-                    onClick={() => onAspectPick(p.aspect)}
-                  >
-                    {p.label}
-                  </Button>
-                ))}
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
-              <Button type="button" variant="outline" size="icon" className="rounded-xl h-10 w-10" title="실행 취소" disabled={busy || !editor.canUndo} onClick={editor.undo}>
-                <Undo2 className="h-4 w-4" />
-              </Button>
-              <Button type="button" variant="outline" size="icon" className="rounded-xl h-10 w-10" title="다시 실행" disabled={busy || !editor.canRedo} onClick={editor.redo}>
-                <Redo2 className="h-4 w-4" />
-              </Button>
-              <Button type="button" variant="outline" size="icon" className="rounded-xl h-10 w-10" title="90° 왼쪽" disabled={busy} onClick={() => rotateBy(-90)}>
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-              <Button type="button" variant="outline" size="icon" className="rounded-xl h-10 w-10" title="90° 오른쪽" disabled={busy} onClick={() => rotateBy(90)}>
-                <RotateCw className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="rounded-xl h-10 w-10"
-                title="좌우 뒤집기"
-                disabled={busy || !bg}
-                onClick={() => toggleFlip("x")}
-              >
-                <FlipHorizontal2 className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="rounded-xl h-10 w-10"
-                title="상하 뒤집기"
-                disabled={busy || !bg}
-                onClick={() => toggleFlip("y")}
-              >
-                <FlipVertical2 className="h-4 w-4" />
-              </Button>
-              <Button type="button" variant="outline" size="icon" className="rounded-xl h-10 w-10" title="축소" disabled={busy || !bg || displayZoom <= 1.001} onClick={() => setDisplayZoom(displayZoom - 0.15)}>
-                <ZoomOut className="h-4 w-4" />
-              </Button>
-              <Button type="button" variant="outline" size="icon" className="rounded-xl h-10 w-10" title="확대" disabled={busy || !bg || displayZoom >= MAX_ZOOM - 0.001} onClick={() => setDisplayZoom(displayZoom + 0.15)}>
-                <ZoomIn className="h-4 w-4" />
-              </Button>
-              <Button type="button" variant="ghost" size="sm" className="rounded-xl text-xs h-10 px-3" disabled={busy} onClick={handleReset}>
-                초기화
-              </Button>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <ZoomIn className="h-3.5 w-3.5" />
-                    확대 · 축소
-                  </span>
-                  <span>{Math.round(displayZoom * 100)}%</span>
-                </div>
+          {localTool === "adjust" && bg ? (
+            <div className="px-4 pb-4 pt-2 space-y-3">
+              {adjustSliders.map((s) => {
+                const value = bg.data.effects?.[s.key] ?? s.default;
+                return (
+                  <label key={s.key} className="block space-y-1">
+                    <span className="flex items-center justify-between text-xs text-muted-foreground">
+                      {s.label}
+                      <span className="tabular-nums">{s.key === "brightness" || s.key === "saturation" ? value.toFixed(2) : Math.round(Number(value))}</span>
+                    </span>
+                    <input
+                      type="range"
+                      min={s.min}
+                      max={s.max}
+                      step={s.step}
+                      value={Number(value)}
+                      disabled={busy}
+                      className="w-full accent-primary h-7"
+                      onChange={(e) => editor.setImageEffects(bg.id, { [s.key]: Number(e.target.value) })}
+                    />
+                  </label>
+                );
+              })}
+              <label className="block space-y-1">
+                <span className="flex items-center justify-between text-xs text-muted-foreground">
+                  확대
+                  <span className="tabular-nums">{Math.round(displayZoom * 100)}%</span>
+                </span>
                 <input
                   type="range"
                   min={1}
@@ -923,31 +660,236 @@ export function ImageEditorDialog({
                   step={0.01}
                   value={displayZoom}
                   onChange={(e) => setDisplayZoom(Number(e.target.value))}
-                  className="w-full accent-primary h-8"
+                  className="w-full accent-primary h-7"
                   disabled={busy || !bg}
                 />
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <RotateCw className="h-3.5 w-3.5" />
-                    회전
-                  </span>
-                  <span className="tabular-nums">{Math.round(rotation)}°</span>
-                </div>
+              </label>
+            </div>
+          ) : null}
+
+          {localTool === "draw" ? (
+            <div className="flex flex-wrap items-center gap-3 px-4 pb-4 pt-2">
+              <label className="flex items-center gap-2 text-xs">
+                색상
+                <input
+                  type="color"
+                  value={editor.brushSettings.color}
+                  onChange={(e) => editor.setBrushSettings((b) => ({ ...b, color: e.target.value }))}
+                  className="h-8 w-10 rounded border-0"
+                />
+              </label>
+              <label className="flex-1 min-w-[120px] text-xs">
+                굵기
                 <input
                   type="range"
-                  min={-180}
-                  max={180}
-                  step={0.5}
-                  value={rotation}
-                  onChange={(e) => setRotation(Number(e.target.value))}
-                  className="w-full accent-primary h-8"
-                  disabled={busy || !bg}
+                  min={1}
+                  max={32}
+                  value={editor.brushSettings.size}
+                  onChange={(e) => editor.setBrushSettings((b) => ({ ...b, size: Number(e.target.value) }))}
+                  className="w-full accent-primary"
                 />
-              </div>
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                variant={editor.brushSettings.tool === "eraser" ? "default" : "outline"}
+                className="rounded-full h-8 px-3 text-xs"
+                onClick={() =>
+                  editor.setBrushSettings((b) => ({
+                    ...b,
+                    tool: b.tool === "eraser" ? "pen" : "eraser",
+                  }))
+                }
+              >
+                지우개
+              </Button>
             </div>
-          </div>
+          ) : null}
+
+          {localTool === "markup" ? (
+            <div className="px-4 pb-4 pt-2 space-y-3 max-h-[32vh] overflow-y-auto">
+              <div className="flex flex-wrap gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full h-8 px-3 text-xs"
+                  disabled={busy}
+                  onClick={() => document.getElementById(fileInputId)?.click()}
+                >
+                  사진 추가
+                </Button>
+                <input
+                  id={fileInputId}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                  multiple
+                  className="sr-only"
+                  onChange={(e) => {
+                    if (e.target.files?.length) void editor.addImageFiles(e.target.files);
+                    e.target.value = "";
+                    setLocalTool("markup");
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={activeLayer?.type === "text" ? "default" : "outline"}
+                  className="rounded-full h-8 px-3 text-xs"
+                  disabled={busy}
+                  onClick={() => {
+                    editor.addTextLayer();
+                    pendingTextEdit.current = true;
+                    setShowEmojiPick(false);
+                    setShowShapePick(false);
+                  }}
+                >
+                  텍스트
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={showEmojiPick ? "default" : "outline"}
+                  className="rounded-full h-8 px-3 text-xs"
+                  disabled={busy}
+                  onClick={() => {
+                    setShowEmojiPick((v) => !v);
+                    setShowShapePick(false);
+                  }}
+                >
+                  이모지
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={showShapePick ? "default" : "outline"}
+                  className="rounded-full h-8 px-3 text-xs"
+                  disabled={busy}
+                  onClick={() => {
+                    setShowShapePick((v) => !v);
+                    setShowEmojiPick(false);
+                  }}
+                >
+                  도형
+                </Button>
+              </div>
+
+              {showEmojiPick ? (
+                <div className="flex flex-wrap gap-1">
+                  {EMOJI_QUICK_PICK.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      className="text-xl p-1.5 rounded-lg hover:bg-muted"
+                      onClick={() => {
+                        if (activeLayer?.type === "text") {
+                          editor.patchLayer(activeLayer.id, (l) =>
+                            l.type === "text" ? { ...l, data: { ...l.data, text: l.data.text + e } } : l
+                          );
+                        } else {
+                          editor.addEmojiLayer(e);
+                        }
+                        setShowEmojiPick(false);
+                      }}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {showShapePick ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {SHAPE_OPTIONS.map((s) => (
+                    <Button
+                      key={s.id}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full h-8 w-10 text-xs"
+                      disabled={busy}
+                      onClick={() => {
+                        editor.addShape(s.id);
+                        setShowShapePick(false);
+                      }}
+                    >
+                      {s.label}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+
+              {activeLayer?.type === "text" ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <select
+                    className="h-8 rounded-full border border-input bg-background px-2 text-xs"
+                    value={activeLayer.data.fontFamily}
+                    onChange={(e) =>
+                      editor.patchLayer(activeLayer.id, (l) =>
+                        l.type === "text" ? { ...l, data: { ...l.data, fontFamily: e.target.value } } : l
+                      )
+                    }
+                    title="폰트"
+                  >
+                    {EDITOR_FONTS.map((font, i) => (
+                      <option key={font} value={font}>
+                        {FONT_LABELS[i] ?? font}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="color"
+                    value={activeLayer.data.fill}
+                    onChange={(e) =>
+                      editor.patchLayer(activeLayer.id, (l) =>
+                        l.type === "text" ? { ...l, data: { ...l.data, fill: e.target.value } } : l
+                      )
+                    }
+                    className="h-8 w-10 rounded border"
+                    title="글자색"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={activeLayer.data.fontStyle.includes("bold") ? "default" : "outline"}
+                    className="rounded-full h-8 w-8 text-xs font-bold"
+                    onClick={() =>
+                      editor.patchLayer(activeLayer.id, (l) => {
+                        if (l.type !== "text") return l;
+                        const bold = l.data.fontStyle.includes("bold");
+                        const italic = l.data.fontStyle.includes("italic");
+                        const next = `${bold ? "" : "bold"}${italic ? " italic" : ""}`.trim() || "normal";
+                        return { ...l, data: { ...l.data, fontStyle: next as typeof l.data.fontStyle } };
+                      })
+                    }
+                  >
+                    B
+                  </Button>
+                  <input
+                    type="range"
+                    min={12}
+                    max={96}
+                    value={activeLayer.data.fontSize}
+                    onChange={(e) =>
+                      editor.patchLayer(activeLayer.id, (l) =>
+                        l.type === "text" ? { ...l, data: { ...l.data, fontSize: Number(e.target.value) } } : l
+                      )
+                    }
+                    className="flex-1 min-w-[80px] accent-primary"
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {localTool === "watermark" && watermarkCreditLabel && watermarkOptions && onWatermarkOptionsChange ? (
+            <div className="px-4 pb-4 pt-2 space-y-1">
+              <WatermarkToggleButtons value={watermarkOptions} onChange={onWatermarkOptionsChange} disabled={busy} />
+              <p className="text-[10px] text-muted-foreground">
+                적용 시 워터마크가 함께 들어갑니다. ({watermarkCreditLabel})
+              </p>
+            </div>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
