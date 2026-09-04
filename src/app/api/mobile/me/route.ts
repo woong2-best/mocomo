@@ -36,6 +36,7 @@ const meSelect = {
   accountStatus: true,
   deletedAt: true,
   premiumTier: true,
+  passwordHash: true,
   profile: { select: { bio: true, bannerUrl: true, bannerVideoUrl: true } },
   _count: { select: { posts: true, followers: true, following: true } },
 } as const;
@@ -93,6 +94,7 @@ export async function GET(req: NextRequest) {
         followers: user._count.followers,
         following: user._count.following,
       },
+      hasPassword: Boolean(user.passwordHash),
       settings: settings
         ? {
             mainCharacter: settings.mainCharacter,

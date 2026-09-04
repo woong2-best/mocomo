@@ -95,7 +95,7 @@ async function assertUsable(user: UserRow): Promise<void> {
   }
   throw new MobileGoogleAuthError(
     "account_pending_recovery",
-    "탈퇴 처리 중인 계정입니다. 탈퇴 다음 날부터 복구할 수 있습니다.",
+    "탈퇴 처리 중인 계정입니다. 30일 이내 로그인하면 탈퇴를 취소할 수 있습니다.",
     403
   );
 }

@@ -1208,9 +1208,9 @@ export const CREATOR_TERMS: LegalDocument = {
 export const PAYMENT_REFUND_POLICY: LegalDocument = {
   slug: "payment",
   title: "MoCoMo 결제 및 환불 정책",
-  updatedAt: "2026년 8월 30일",
+  updatedAt: "2026년 9월 4일",
   intro:
-    "본 정책은 MoCoMo LLC가 제공하는 유료 기능, 구독, 디지털 콘텐츠, 지갑·가상재화 및 인앱결제에 적용됩니다. 성인·NSFW 콘텐츠와 관련된 유료 거래는 플랫폼 전역에서 허용되지 않습니다.",
+    "본 정책은 MoCoMo LLC(와이오밍 법인)가 제공하는 유료 기능, Star Market·중고 경매, 구독, 디지털 콘텐츠, 지갑·가상재화 및 인앱결제에 적용됩니다. 마켓플레이스 결제는 Stripe Connect 단일 결제사를 사용하며, 성인·NSFW 콘텐츠와 관련된 유료 거래는 플랫폼 전역에서 허용되지 않습니다.",
   blocks: [
     { type: "h2", text: "제1조 (결제)" },
     {
@@ -1218,7 +1218,56 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
       text: "MoCoMo는 신용카드·체크카드, Stripe 등 결제대행, Apple App Store·Google Play 인앱결제(IAP) 및 기타 지원되는 결제수단을 통해 결제를 처리할 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제2조 (성인·NSFW 콘텐츠 유료 거래 금지)" },
+    { type: "h2", text: "제2조 (Star Market · Stripe Connect)" },
+    {
+      type: "p",
+      text: "Star Market(직접판매·즉시구매) 결제는 Stripe Connect destination charge로 처리됩니다. 구매 확정 시 카드 승인(authorization) 후, 배송 추적상 배송 완료 확인 또는 정해진 기간 경과 후 구매자 이의제기 창구(72시간)를 거쳐 자동 캡처(capture) 및 판매자 정산이 이루어집니다.",
+    },
+    {
+      type: "ul",
+      items: [
+        "판매자 플랫폼 수수료: 판매가의 10% (입점비 없음)",
+        "해외카드·환전·송금 등 플랫폼 원가가 10%를 초과하는 경우, 부족분은 체크아웃 시 '해외 처리 수수료' 등 별도 항목으로 구매자에게 표시될 수 있습니다",
+        "판매자 정산: 기본 주 1회 배치 정산 (Stripe Connect payout)",
+        "운송장 미등록 마감(결제 후 5일) 시 자동 전액 환불",
+        "신규·고위험 판매자는 Stripe Reserve(롤링 리저브)가 적용될 수 있습니다",
+      ],
+    },
+    {
+      type: "p",
+      text: "MoCoMo는 결제 대금을 장기 보유하지 않으며, 자금은 Stripe 시스템 내에서 규칙(웹훅·스케줄)에 따라 자동 이동합니다. 배송·물류 책임은 판매자와 배송사에 있습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "제3조 (중고 경매 · 입찰 Hold)" },
+    {
+      type: "p",
+      text: "중고 경매 입찰 시 입찰 금액만큼 카드 승인 Hold(한도 확보)가 걸리며, 실제 청구는 낙찰·배송 완료 플로우에서 이루어집니다. 상위 입찰자 발생·유찰 시 기존 Hold는 자동 해제(void)됩니다.",
+    },
+    {
+      type: "ul",
+      items: [
+        "카드 승인 유효기간(통상 7일) 만료 전 시스템이 자동 재승인(re-authorization)을 시도합니다",
+        "낙찰 후 미결제(카드 승인 실패) 시 차순위 입찰자에게 낙찰권이 자동 이전될 수 있습니다",
+        "Hold는 자금 이동이 아니므로 Stripe 수수료가 발생하지 않으나, 카드사별 동시 Hold 제한이 있을 수 있습니다",
+        "낙찰 후 Star Market과 동일한 배송 추적·이의제기·자동 정산 엔진을 사용합니다",
+      ],
+    },
+    { type: "hr" },
+    { type: "h2", text: "제4조 (국가·제재 정책)" },
+    {
+      type: "p",
+      text: "마켓플레이스 결제 가능 국가는 (1) Stripe 공식 지원 국가 목록, (2) 미국 OFAC 포괄 제재 대상 제외, (3) Star Market 제품 정책(국가별 출시)의 교집합으로 결정됩니다. 두 리스트는 독립적으로 관리·동기화됩니다.",
+    },
+    {
+      type: "ul",
+      items: [
+        "OFAC 포괄 제재(쿠바·이란·북한·시리아 등): 가입·결제·판매자 등록 원천 차단",
+        "OFAC 표적 제재(러시아·벨라루스 등): 가입 허용, Stripe Connect SDN 스크리닝으로 추가 심사",
+        "판매자의 해외 수취·세금·외환 신고 의무는 판매자 본인 책임",
+      ],
+    },
+    { type: "hr" },
+    { type: "h2", text: "제5조 (성인·NSFW 콘텐츠 유료 거래 금지)" },
     {
       type: "p",
       text: "MoCoMo는 결제·정산 인프라(Stripe Connect 등)를 일반 콘텐츠 및 합법적 상거래에만 사용합니다. 성인·NSFW로 분류되거나 해당에 준하는 콘텐츠에 대해서는 다음을 포함한 모든 유료 거래가 금지됩니다.",
@@ -1238,14 +1287,14 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
       text: "위반 시 콘텐츠 삭제, 유료 설정 해제, 정산 보류, 계정 제한·영구 정지 및 관련 법령에 따른 조치가 이루어질 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제3조 (구독)" },
+    { type: "h2", text: "제6조 (구독)" },
     { type: "p", text: "구독은 자동 갱신될 수 있습니다." },
     {
       type: "p",
       text: "사용자는 언제든지 다음 결제일부터 적용되는 방식으로 구독을 취소할 수 있습니다. 앱스토어 구독은 해당 스토어 계정 설정에서 해지합니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제4조 (디지털 콘텐츠·가상재화)" },
+    { type: "h2", text: "제7조 (디지털 콘텐츠·가상재화)" },
     { type: "p", text: "다음은 디지털 콘텐츠 또는 가상재화에 해당할 수 있습니다." },
     {
       type: "ul",
@@ -1262,7 +1311,7 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
       text: "가상재화는 현금으로 환전·인출되지 않을 수 있으며, 양도·재판매가 제한될 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제5조 (환불)" },
+    { type: "h2", text: "제8조 (환불)" },
     {
       type: "p",
       text: "법령상 환불 의무가 있는 경우를 제외하고 이미 제공되거나 소비된 디지털 콘텐츠·가상재화는 환불이 제한될 수 있습니다.",
@@ -1272,19 +1321,19 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
       text: "Apple·Google을 통한 결제의 환불·청구 이의는 해당 스토어의 환불 절차가 우선 적용될 수 있습니다. 스토어가 환불을 승인하면 회사는 지급된 가상재화를 회수할 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제6조 (부정 결제)" },
+    { type: "h2", text: "제9조 (부정 결제)" },
     {
       type: "p",
       text: "도용 카드, 결제 사기, 차지백 악용, IAP 어뷰징 등이 확인될 경우 계정 이용이 제한될 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제7조 (결제 대행)" },
+    { type: "h2", text: "제10조 (결제 대행)" },
     {
       type: "p",
       text: "결제는 외부 결제 서비스 제공업체(Stripe, Apple, Google 등)를 통해 처리될 수 있으며, 해당 업체의 약관이 추가로 적용될 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제8조 (이벤트·광고 등록)" },
+    { type: "h2", text: "제11조 (이벤트·광고 등록)" },
     {
       type: "p",
       text: "이벤트 등록비는 선택한 노출 기간(일) × 1,000원이며, 최대 100일(100,000원)까지 등록할 수 있습니다. 등록비는 플랫폼 내 이벤트 목록 노출 위치 제공에 대한 대가이며, 클릭·참여·매출 등 광고 성과를 보장하지 않습니다.",
@@ -1298,7 +1347,7 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
       text: "사기, 저작권 침해, 불법 상품, 혐오 표현 등 약관 위반 이벤트는 사전 통보 없이 삭제될 수 있으며, 이 경우 등록비는 환불되지 않습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제8조 (준거법)" },
+    { type: "h2", text: "제12조 (준거법)" },
     { type: "p", text: GOVERNING_LAW_PARAGRAPH },
   ],
 };
@@ -1641,27 +1690,41 @@ export const PRIVACY_POLICY: LegalDocument = {
 export const ACCOUNT_DELETION: LegalDocument = {
   slug: "account-deletion",
   title: "MoCoMo 계정 및 데이터 삭제",
-  updatedAt: "2026년 8월 7일",
+  updatedAt: "2026년 9월 4일",
   intro:
-    "MoCoMo LLC가 운영하는 MoCoMo(모코모) Android·iOS 앱 및 웹 서비스 이용자는 언제든지 계정 삭제를 요청할 수 있습니다. 본 페이지는 앱 스토어 등록정보에 공개되는 계정·데이터 삭제 안내입니다.",
+    "MoCoMo LLC가 운영하는 MoCoMo(모코모) Android·iOS 앱 및 웹 서비스(mocomo.net) 이용자는 설정 메뉴에서 직접 회원 탈퇴를 신청할 수 있습니다. 본 페이지는 앱 스토어 등록정보에 공개되는 계정·데이터 삭제 안내입니다.",
   blocks: [
-    { type: "h2", text: "1. 삭제 요청 방법" },
+    { type: "h2", text: "1. 탈퇴(삭제) 방법" },
     {
       type: "p",
-      text: "MoCoMo 앱 또는 웹(mocomo.net)에 로그인한 뒤, 가입 시 사용한 이메일 주소로 아래 절차에 따라 삭제를 요청해 주세요.",
+      text: "MoCoMo 앱 또는 웹(mocomo.net)에 로그인한 뒤, 설정 → 회원 탈퇴에서 직접 신청할 수 있습니다.",
     },
     {
       type: "ul",
       items: [
-        `1단계: ${LEGAL_CONTACT_EMAIL} 으로 이메일을 보냅니다.`,
-        "2단계: 메일 제목에 [MoCoMo 계정 삭제 요청]을 적습니다.",
-        "3단계: 본문에 MoCoMo 사용자명(@username), 가입 이메일 주소, 삭제를 원하는 사유를 기재합니다.",
-        "4단계: 본인 확인을 위해 가입 이메일과 동일한 주소에서 발송해야 합니다. OAuth(Google·Discord) 가입자도 연결된 이메일로 요청해 주세요.",
-        "5단계: 접수 확인 후 영업일 기준 최대 30일 이내 처리 결과를 회신합니다.",
+        "1단계: 설정 → 계정 → 회원 탈퇴를 선택합니다.",
+        "2단계: 본인 확인을 위해 아이디(닉네임)와 비밀번호를 입력합니다. (Google·Discord 등 소셜 가입 계정은 비밀번호 없이 진행)",
+        `3단계: 확인을 위해 "Delete"을(를) 정확히 입력합니다.`,
+        "4단계: 탈퇴가 접수되면 즉시 로그아웃되며 계정이 비활성화됩니다.",
+        "5단계: 30일 이내 같은 계정으로 로그인하면 탈퇴를 취소하고 계정을 복구할 수 있습니다. 30일이 지나면 영구 삭제됩니다.",
+        `이메일로 탈퇴가 어려운 경우 ${LEGAL_CONTACT_EMAIL} 으로 [MoCoMo 계정 삭제 요청] 제목으로 문의할 수 있습니다.`,
       ],
     },
     { type: "hr" },
-    { type: "h2", text: "2. 삭제되는 데이터" },
+    { type: "h2", text: "2. 탈퇴 직후 변화 (Instagram·X 방식)" },
+    {
+      type: "ul",
+      items: [
+        "계정은 즉시 비활성화되며 로그인·서비스 이용이 중단됩니다.",
+        "게시물, 릴스, 댓글, 좋아요, 팔로우·팔로잉 관계 등 공개 흔적은 즉시 정리·숨김 처리됩니다.",
+        "DM(쪽지) 기록은 상대방 화면에 대화창이 남을 수 있으며, 보낸 사람은 \"탈퇴한 사용자\"로 표시됩니다.",
+        "인용·리포스트된 게시물은 원본이 사라져 \"사용할 수 없는 게시물\"로 표시될 수 있습니다.",
+        "30일 유예 기간 동안 로그인하면 탈퇴가 취소되고 계정이 복구됩니다. (팔로우·좋아요 등 일부 데이터는 복구되지 않을 수 있습니다.)",
+        "30일이 지나면 계정과 데이터가 영구 삭제되며, 아이디(닉네임)가 다시 사용 가능해집니다.",
+      ],
+    },
+    { type: "hr" },
+    { type: "h2", text: "3. 영구 삭제되는 데이터" },
     {
       type: "p",
       text: "계정 삭제가 완료되면 아래 데이터는 복구할 수 없도록 삭제·비식별 처리됩니다.",
@@ -1681,7 +1744,7 @@ export const ACCOUNT_DELETION: LegalDocument = {
       ],
     },
     { type: "hr" },
-    { type: "h2", text: "3. 보관되는 데이터" },
+    { type: "h2", text: "4. 보관되는 데이터" },
     {
       type: "p",
       text: "적용 법령, 세금·회계, 분쟁·부정 이용 방지를 위해 아래 정보는 계정 삭제 후에도 일정 기간 보관될 수 있습니다.",
@@ -1697,7 +1760,7 @@ export const ACCOUNT_DELETION: LegalDocument = {
       ],
     },
     { type: "hr" },
-    { type: "h2", text: "4. 삭제 전 확인 사항" },
+    { type: "h2", text: "5. 삭제 전 확인 사항" },
     {
       type: "ul",
       items: [
@@ -1709,16 +1772,16 @@ export const ACCOUNT_DELETION: LegalDocument = {
       ],
     },
     { type: "hr" },
-    { type: "h2", text: "5. 계정 없이 데이터만 삭제" },
+    { type: "h2", text: "6. 계정 없이 데이터만 삭제" },
     {
       type: "p",
       text: `계정을 유지한 채 특정 개인정보만 삭제·수정하려면 ${LEGAL_CONTACT_EMAIL} 으로 [MoCoMo 데이터 삭제·수정 요청] 제목으로 문의해 주세요. 프로필 수정은 앱 내 설정 → 프로필 수정에서 직접 변경할 수 있습니다.`,
     },
     { type: "hr" },
-    { type: "h2", text: "6. 준거법" },
+    { type: "h2", text: "7. 준거법" },
     { type: "p", text: GOVERNING_LAW_PARAGRAPH },
     { type: "hr" },
-    { type: "h2", text: "7. 문의" },
+    { type: "h2", text: "8. 문의" },
     {
       type: "p",
       text: `운영 주체: ${LEGAL_ENTITY_NAME} (${LEGAL_ENTITY_JURISDICTION}). 계정 삭제와 관련해 궁금한 점이 있으면 ${LEGAL_CONTACT_EMAIL} 으로 문의해 주세요.`,

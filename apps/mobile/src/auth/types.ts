@@ -15,4 +15,5 @@ export type MobileAuthUser = {
     followers: number;
     following: number;
   };
+  hasPassword?: boolean;
 };

@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { isServiceBanned } from "@/lib/account-status";
 import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
+import { recoverDeletedAccount } from "@/lib/account-deletion-server";
 import { checkLoginRateLimit, recordLoginAttempt } from "@/lib/auth-rate-limit";
 import {
   CREDENTIALS_JWT_USER_SELECT,
@@ -131,6 +132,10 @@ export async function authenticateCredentialsUser(
   if (!user.emailVerified) {
     logFail("email_not_verified", user);
     throw new LoginEmailNotVerifiedError();
+  }
+
+  if (user.deletedAt && canRecoverAccount(user)) {
+    await recoverDeletedAccount(user.id);
   }
 
   void recordUserAccessLog({

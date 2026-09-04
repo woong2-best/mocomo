@@ -1,8 +1,9 @@
 import type { Prisma } from "@prisma/client";
 
-/** 피드·프로필·검색 등 글로벌 플랫폼용 — 커뮤니티 채널 글 제외 */
+/** 피드·프로필·검색 등 글로벌 플랫폼용 — 커뮤니티 채널 글·탈퇴 사용자 글 제외 */
 export const platformPostWhere = {
   communityId: null,
+  author: { deletedAt: null },
 } satisfies Prisma.PostWhereInput;
 
 export function isCommunityScopedPost(post: { communityId?: string | null }): boolean {

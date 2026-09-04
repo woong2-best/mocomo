@@ -1,11 +1,10 @@
 import { addDays, startOfDay } from "date-fns";
 
-export const ACCOUNT_RECOVERY_DAYS = 50;
+export const ACCOUNT_RECOVERY_DAYS = 30;
 
-/** 탈퇴 다음날 0시 + 50일 = 영구 삭제 시점 */
+/** Instagram/X 방식 — 탈퇴 시점 + 30일 = 영구 삭제 시점 */
 export function computeScheduledPurgeAt(deletedAt: Date): Date {
-  const dayAfter = startOfDay(addDays(deletedAt, 1));
-  return startOfDay(addDays(dayAfter, ACCOUNT_RECOVERY_DAYS));
+  return startOfDay(addDays(deletedAt, ACCOUNT_RECOVERY_DAYS));
 }
 
 export function isAccountSoftDeleted(user: {
@@ -15,15 +14,13 @@ export function isAccountSoftDeleted(user: {
   return user.deletedAt != null;
 }
 
-/** 탈퇴 다음날부터 scheduledPurgeAt 전까지 복구 가능 */
+/** 탈퇴 직후부터 scheduledPurgeAt 전까지 로그인 시 복구 가능 (X 방식) */
 export function canRecoverAccount(user: {
   deletedAt: Date | null;
   scheduledPurgeAt: Date | null;
 }): boolean {
   if (!user.deletedAt || !user.scheduledPurgeAt) return false;
-  const now = new Date();
-  const recoveryStarts = startOfDay(addDays(user.deletedAt, 1));
-  return now >= recoveryStarts && now < user.scheduledPurgeAt;
+  return new Date() < user.scheduledPurgeAt;
 }
 
 export function isAccountPastRecovery(user: {

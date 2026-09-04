@@ -10,6 +10,7 @@ export const COMMENT_REPLY_PAGE_SIZE = 20;
 const visibleWhere = {
   deletedAt: null,
   hiddenAt: null,
+  author: { deletedAt: null },
 } as const;
 
 export type CommentViewer = {

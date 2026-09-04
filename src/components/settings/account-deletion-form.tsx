@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { requestAccountDeletion } from "@/actions/account";
 import { ACCOUNT_RECOVERY_DAYS } from "@/lib/account-deletion";
+import { ACCOUNT_DELETE_CONFIRM_TEXT } from "@/lib/account-deletion-request";
 import { Loader2 } from "lucide-react";
 
 type Props = {
@@ -24,6 +25,7 @@ export function AccountDeletionForm({ username, hasPassword }: Props) {
   const [open, setOpen] = useState(false);
   const [confirmUsername, setConfirmUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,15 +33,22 @@ export function AccountDeletionForm({ username, hasPassword }: Props) {
   function resetForm() {
     setConfirmUsername("");
     setPassword("");
+    setConfirmDelete("");
     setReason("");
     setError("");
   }
+
+  const canSubmit =
+    confirmUsername.trim().length > 0 &&
+    confirmDelete.trim() === ACCOUNT_DELETE_CONFIRM_TEXT &&
+    (!hasPassword || password.trim().length > 0);
 
   async function handleDelete() {
     setLoading(true);
     setError("");
     const result = await requestAccountDeletion({
       confirmUsername,
+      confirmDelete,
       password: hasPassword ? password : undefined,
       reason: reason || undefined,
     });
@@ -63,9 +72,10 @@ export function AccountDeletionForm({ username, hasPassword }: Props) {
         <div>
           <p className="text-sm font-medium text-destructive">회원 탈퇴</p>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-            탈퇴하면 로그인과 모든 기능 이용이 중단됩니다. 게시물·메시지 등 데이터는{" "}
-            <strong>{ACCOUNT_RECOVERY_DAYS}일간 보관</strong>되며, 탈퇴 다음 날부터 같은 계정으로
-            로그인하면 복구할 수 있습니다. 복구 기간 동안 같은 닉네임으로 새 가입은 할 수 없습니다.
+            탈퇴하면 계정이 즉시 비활성화되고 게시물·댓글·좋아요 등 공개 흔적은 사라집니다. DM
+            기록은 상대방 화면에 &quot;탈퇴한 사용자&quot;로 남을 수 있습니다.{" "}
+            <strong>{ACCOUNT_RECOVERY_DAYS}일</strong> 이내 로그인하면 탈퇴를 취소할 수 있으며,
+            기간이 지나면 계정과 데이터가 영구 삭제됩니다.
           </p>
         </div>
         <Button
@@ -88,15 +98,15 @@ export function AccountDeletionForm({ username, hasPassword }: Props) {
             <DialogTitle>정말 탈퇴하시겠습니까?</DialogTitle>
             <DialogDescription className="text-left space-y-2 pt-1">
               <span className="block">
-                탈퇴 후 <strong>{ACCOUNT_RECOVERY_DAYS}일</strong> 동안 글·메시지·기록이 그대로
-                보관됩니다.
+                탈퇴 즉시 피드·프로필의 게시물과 댓글, 좋아요, 팔로우 관계가 정리됩니다.
               </span>
               <span className="block">
-                <strong>내일부터 {ACCOUNT_RECOVERY_DAYS}일간</strong> 같은 계정으로 로그인하면
-                복구할 수 있습니다.
+                <strong>{ACCOUNT_RECOVERY_DAYS}일</strong> 이내 같은 계정으로 로그인하면 탈퇴를
+                취소하고 계정을 복구할 수 있습니다.
               </span>
               <span className="block text-destructive">
-                복구 기간이 지나면 계정과 데이터가 영구 삭제됩니다.
+                {ACCOUNT_RECOVERY_DAYS}일이 지나면 계정과 데이터가 영구 삭제되며, 아이디가 다시
+                사용 가능해집니다.
               </span>
             </DialogDescription>
           </DialogHeader>
@@ -104,7 +114,7 @@ export function AccountDeletionForm({ username, hasPassword }: Props) {
           <div className="space-y-3 py-1">
             <label className="block text-sm space-y-1.5">
               <span className="text-muted-foreground">
-                확인을 위해 닉네임 <strong>{username}</strong>을(를) 입력하세요
+                확인을 위해 아이디 <strong>{username}</strong>을(를) 입력하세요
               </span>
               <Input
                 value={confirmUsername}
@@ -126,7 +136,25 @@ export function AccountDeletionForm({ username, hasPassword }: Props) {
                   disabled={loading}
                 />
               </label>
-            ) : null}
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Google·Discord 등 소셜 가입 계정은 비밀번호 확인 없이 아이디와 Delete 입력만
+                필요합니다.
+              </p>
+            )}
+
+            <label className="block text-sm space-y-1.5">
+              <span className="text-muted-foreground">
+                확인을 위해 <strong>{ACCOUNT_DELETE_CONFIRM_TEXT}</strong>을(를) 입력하세요
+              </span>
+              <Input
+                value={confirmDelete}
+                onChange={(e) => setConfirmDelete(e.target.value)}
+                placeholder={ACCOUNT_DELETE_CONFIRM_TEXT}
+                autoComplete="off"
+                disabled={loading}
+              />
+            </label>
 
             <label className="block text-sm space-y-1.5">
               <span className="text-muted-foreground">탈퇴 사유 (선택)</span>
@@ -149,7 +177,7 @@ export function AccountDeletionForm({ username, hasPassword }: Props) {
             <Button
               type="button"
               variant="destructive"
-              disabled={loading || confirmUsername.trim().length === 0}
+              disabled={loading || !canSubmit}
               onClick={handleDelete}
             >
               {loading ? (

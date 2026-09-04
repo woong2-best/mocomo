@@ -19,6 +19,7 @@ import { ApiError } from "@/api/client";
 import { PayButton } from "@/payments/PayButton";
 import { CreatorCallSettingsCard } from "@/features/settings/CreatorCallSettingsCard";
 import { MessageComposerSettingsCard } from "@/features/settings/MessageComposerSettingsCard";
+import { AccountDeletionCard } from "@/features/settings/AccountDeletionCard";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
@@ -211,6 +212,11 @@ export function SettingsScreen() {
               }}
             />
           </FolkCard>
+
+          <AccountDeletionCard
+            username={user?.username ?? ""}
+            hasPassword={Boolean(user?.hasPassword)}
+          />
 
           <FolkCard>
             <Text style={styles.cardTitle}>프로필</Text>

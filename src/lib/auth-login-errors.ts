@@ -39,7 +39,7 @@ export function loginErrorMessage(code: string | undefined, fallback?: string): 
     case "account_deleted":
       return "탈퇴한 계정입니다. 복구 기간이 지났거나 영구 삭제되었습니다.";
     case "account_pending_recovery":
-      return "탈퇴 처리되었습니다. 내일부터 50일간 로그인하면 계정을 복구할 수 있습니다.";
+      return "탈퇴 처리되었습니다. 30일 이내 로그인하면 탈퇴를 취소하고 계정을 복구할 수 있습니다.";
     case "oauth_only":
       return "이 이메일은 Discord·Google·LINE 등으로 가입된 계정입니다. 아래 소셜 로그인을 사용해 주세요.";
     case "invalid_credentials":

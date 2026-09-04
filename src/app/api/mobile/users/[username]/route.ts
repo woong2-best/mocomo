@@ -31,6 +31,7 @@ export async function GET(
       username: true,
       name: true,
       image: true,
+      deletedAt: true,
       createdAt: true,
       countryCode: true,
       creatorSubscriptionPriceKrw: true,
@@ -39,7 +40,7 @@ export async function GET(
     },
   });
 
-  if (!user) {
+  if (!user || user.deletedAt) {
     return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
   }
 

@@ -40,6 +40,7 @@ export const MobileApi = {
   marketplace: "/api/mobile/marketplace",
   marketplacePhone: "/api/mobile/marketplace/phone",
   accountBank: "/api/mobile/account/bank",
+  accountDelete: "/api/mobile/account/delete",
   starMarket: "/api/mobile/market",
   starMarketEmoticons: "/api/mobile/market/emoticons",
   starMarketMine: "/api/mobile/market/mine",

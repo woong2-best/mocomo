@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { userPublicSelectMinimal } from "@/lib/user-public-select";
+import { DELETED_USER_DISPLAY_NAME, userPublicSelectMinimal } from "@/lib/user-public-select";
 import type { ChatAttachmentView } from "@/lib/chat-attachments";
 import {
   attachMessageMediaAccess,
@@ -19,6 +19,17 @@ export const chatMessageInclude = {
 } satisfies Prisma.MessageInclude;
 
 type MessageRow = Prisma.MessageGetPayload<{ include: typeof chatMessageInclude }>;
+
+function publicSender(
+  sender: MessageRow["sender"]
+): ChatMessageView["sender"] {
+  return {
+    id: sender.id,
+    username: sender.deletedAt ? DELETED_USER_DISPLAY_NAME : sender.username,
+    image: sender.deletedAt ? null : sender.image,
+    supportTierSent: sender.supportTierSent,
+  };
+}
 
 export type SerializeChatMessageOptions = {
   viewerId?: string | null;
@@ -60,7 +71,7 @@ function serializeReplyTo(
   return {
     id: replyTo.id,
     content: replyTo.content,
-    sender: replyTo.sender,
+    sender: publicSender(replyTo.sender),
     attachments: serializeAttachments(replyTo.attachments, replyTo.sender.id, opts),
   };
 }
@@ -70,7 +81,7 @@ export function serializeChatMessage(m: MessageRow, opts?: SerializeChatMessageO
     id: m.id,
     content: m.content,
     createdAt: m.createdAt.toISOString(),
-    sender: m.sender,
+    sender: publicSender(m.sender),
     attachments: serializeAttachments(m.attachments, m.sender.id, opts),
     replyTo: serializeReplyTo(m.replyTo, opts),
   };

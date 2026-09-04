@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { computeScheduledPurgeAt } from "@/lib/account-deletion";
+import { revokeAllMobileRefreshTokens } from "@/lib/mobile-auth-tokens";
 
 const BATCH_SIZE = 20;
 
@@ -35,27 +36,51 @@ export async function recoverDeletedAccount(userId: string): Promise<boolean> {
   if (!user?.deletedAt || !user.scheduledPurgeAt) return false;
   if (new Date() >= user.scheduledPurgeAt) return false;
 
-  await db.user.update({
-    where: { id: userId },
-    data: {
-      deletedAt: null,
-      scheduledPurgeAt: null,
-      deletionReason: null,
-    },
-  });
+  const deletionMark = user.deletedAt;
+  await db.$transaction([
+    db.user.update({
+      where: { id: userId },
+      data: {
+        deletedAt: null,
+        scheduledPurgeAt: null,
+        deletionReason: null,
+      },
+    }),
+    db.comment.updateMany({
+      where: { authorId: userId, deletedAt: deletionMark },
+      data: { deletedAt: null },
+    }),
+  ]);
+
   return true;
 }
 
 export async function markAccountForDeletion(userId: string, reason?: string) {
   const deletedAt = new Date();
   const scheduledPurgeAt = computeScheduledPurgeAt(deletedAt);
-  await db.user.update({
-    where: { id: userId },
-    data: {
-      deletedAt,
-      scheduledPurgeAt,
-      deletionReason: reason?.trim() || null,
-    },
-  });
+
+  await db.$transaction([
+    db.user.update({
+      where: { id: userId },
+      data: {
+        deletedAt,
+        scheduledPurgeAt,
+        deletionReason: reason?.trim() || null,
+      },
+    }),
+    db.comment.updateMany({
+      where: { authorId: userId, deletedAt: null },
+      data: { deletedAt },
+    }),
+    db.like.deleteMany({ where: { userId } }),
+    db.commentLike.deleteMany({ where: { userId } }),
+    db.follow.deleteMany({
+      where: { OR: [{ followerId: userId }, { followingId: userId }] },
+    }),
+    db.pushSubscription.deleteMany({ where: { userId } }),
+  ]);
+
+  await revokeAllMobileRefreshTokens(userId);
+
   return { deletedAt, scheduledPurgeAt };
 }
