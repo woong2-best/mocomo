@@ -19,6 +19,7 @@ import { clampMediaInt } from "@/lib/video-metadata";
 import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlement-account";
 import { validateSaleMediaPricing } from "@/lib/money";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
+import { extractHashtagNames } from "@/lib/linkify";
 import { isCommunityScopedPost } from "@/lib/post-scope";
 import {
   assertCanPublishNsfwContent,
@@ -191,7 +192,16 @@ export async function createPostForUser(
       },
     });
 
-    const tagNames = (data.tagNames ?? []).map((t) => t.trim()).filter(Boolean);
+    const explicitTags = (data.tagNames ?? []).map((t) => t.trim()).filter(Boolean);
+    const contentTags = extractHashtagNames(content);
+    const tagKeySet = new Set<string>();
+    const tagNames: string[] = [];
+    for (const name of [...explicitTags, ...contentTags]) {
+      const key = name.toLowerCase();
+      if (tagKeySet.has(key)) continue;
+      tagKeySet.add(key);
+      tagNames.push(name);
+    }
     for (const name of tagNames) {
       try {
         const slug = tagSlugFromName(name);

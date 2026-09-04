@@ -31,6 +31,21 @@ export function isHashtagSearchQuery(q: string): boolean {
   return q.startsWith("#") && q.length > 1;
 }
 
+/** 본문 #해시태그 추출 (중복 제거, 원문 대소문자 유지) */
+export function extractHashtagNames(text: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const match of text.matchAll(HASHTAG_RE)) {
+    const tag = match[0].slice(1);
+    if (!tag) continue;
+    const key = tag.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(tag);
+  }
+  return out;
+}
+
 function splitTrailingPunctuation(raw: string): { core: string; trailing: string } {
   let core = raw;
   let trailing = "";

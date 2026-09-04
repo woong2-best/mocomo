@@ -35,8 +35,8 @@ import {
   validateSaleMediaPricing,
 } from "@/lib/money";
 import { userDisplayName } from "@/lib/user-public-select";
-import { cn } from "@/lib/utils";
 import { NsfwToggleButton } from "@/components/forms/nsfw-toggle-button";
+import { ComposeRichTextarea } from "@/components/compose/compose-rich-textarea";
 import type { ContentRating } from "@prisma/client";
 
 function friendlyPostError(err: unknown, apiError?: string): string {
@@ -81,7 +81,6 @@ export function ComposeForm({
   const [poll, setPoll] = useState<CreatePostPollInput | null>(null);
   const [content, setContent] = useState(initialContent ?? "");
   const [defaultTitle] = useState(initialTitle ?? "");
-  const [showOptions, setShowOptions] = useState(false);
   const [collaborators, setCollaborators] = useState<CollabPickerUser[]>([]);
   const [visibility, setVisibility] = useState<ContentVisibility>("PUBLIC");
   const [priceUsd, setPriceUsd] = useState("");
@@ -220,7 +219,6 @@ export function ComposeForm({
     }
 
     const form = new FormData(e.currentTarget);
-    const tags = (form.get("tags") as string)?.split(",").map((t) => t.trim()).filter(Boolean);
     const contentText =
       content.trim() || String(form.get("content") ?? "").trim();
 
@@ -246,7 +244,6 @@ export function ComposeForm({
       communityId,
       contentRating,
       isNsfw: contentRating === "ADULT",
-      tagNames: tags,
       visibility,
       instantPurchasePriceKrw: instantPriceCents,
       media: media.map((m) => ({
@@ -365,16 +362,14 @@ export function ComposeForm({
           </Avatar>
 
           <div className="flex-1 min-w-0 space-y-3">
-            <textarea
+            <ComposeRichTextarea
               name="content"
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={setContent}
               placeholder={t("compose.placeholder")}
               rows={3}
-              className={cn(
-                "w-full resize-none bg-transparent text-[15px] leading-relaxed",
-                "placeholder:text-muted-foreground/70 outline-none border-0 p-0 min-h-[72px]"
-              )}
+              variant="inline"
+              disabled={submitBusy}
             />
 
             <PostMediaComposer
@@ -399,13 +394,6 @@ export function ComposeForm({
                     />
                   )}
                   {nsfwToggle}
-                  <button
-                    type="button"
-                    className="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted/60 shrink-0"
-                    onClick={() => setShowOptions((v) => !v)}
-                  >
-                    {showOptions ? t("compose.optionsClose") : t("compose.optionsOpen")}
-                  </button>
                 </>
               }
               toolbarFooter={
@@ -428,40 +416,17 @@ export function ComposeForm({
               <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
             )}
 
-            {showOptions && (
-              <div className="space-y-2 rounded-xl border border-border/50 bg-muted/20 p-3">
-                <input
-                  name="tags"
-                  placeholder="태그 (쉼표로 구분)"
-                  className="w-full rounded-lg border border-border/60 bg-background/80 px-3 py-2 text-sm"
-                />
-                <ComposeCollaboratorPicker
-                  selected={collaborators}
-                  onChange={setCollaborators}
-                  disabled={submitBusy}
-                  labels={{
-                    add: t("compose.collabAdd"),
-                    search: t("compose.collabSearch"),
-                    following: t("compose.collabFollowing"),
-                    maxReached: t("compose.collabMax"),
-                  }}
-                />
-              </div>
-            )}
-
-            {!showOptions && (
-              <ComposeCollaboratorPicker
-                selected={collaborators}
-                onChange={setCollaborators}
-                disabled={submitBusy}
-                labels={{
-                  add: t("compose.collabAdd"),
-                  search: t("compose.collabSearch"),
-                  following: t("compose.collabFollowing"),
-                  maxReached: t("compose.collabMax"),
-                }}
-              />
-            )}
+            <ComposeCollaboratorPicker
+              selected={collaborators}
+              onChange={setCollaborators}
+              disabled={submitBusy}
+              labels={{
+                add: t("compose.collabAdd"),
+                search: t("compose.collabSearch"),
+                following: t("compose.collabFollowing"),
+                maxReached: t("compose.collabMax"),
+              }}
+            />
           </div>
         </div>
         <input type="hidden" name="contentRating" value={contentRating} />
@@ -500,17 +465,13 @@ export function ComposeForm({
         placeholder="제목 (선택)"
         className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm"
       />
-      <textarea
+      <ComposeRichTextarea
         name="content"
         value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="내용을 입력하세요..."
-        className="w-full min-h-[160px] rounded-xl border border-border bg-background/50 p-3 text-sm resize-y"
-      />
-      <input
-        name="tags"
-        placeholder="태그 (쉼표로 구분) 예: 원신, 코스프레"
-        className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm"
+        onChange={setContent}
+        placeholder="내용을 입력하세요... @멘션 #해시태그"
+        variant="default"
+        disabled={submitBusy}
       />
       <div className="grid gap-3 sm:grid-cols-2">
         <ContentVisibilitySelect
