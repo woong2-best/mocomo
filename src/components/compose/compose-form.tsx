@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { ContentVisibility } from "@prisma/client";
-import { DollarSign } from "lucide-react";
 import { PostMediaComposer, type PostMediaComposerHandle, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ComposePollEditor } from "@/components/compose/compose-poll-editor";
+import { ComposeSalePriceField } from "@/components/compose/compose-sale-price-field";
 import {
   ComposeCollaboratorPicker,
   type CollabPickerUser,
@@ -164,22 +164,12 @@ export function ComposeForm({
   }, []);
 
   const salePriceField = adultBlocksPaid ? null : (
-    <div
-      className="flex items-center gap-1.5 rounded-xl border border-border/70 bg-background px-2.5 py-1.5"
-      title="유료 판매 (USD, $1.00~)"
-    >
-      <DollarSign className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
-      <Input
-        inputMode="decimal"
-        placeholder="0"
-        value={priceUsd}
-        onChange={(e) => setPriceUsd(sanitizeUsdDollarInput(e.target.value))}
-        disabled={submitBusy}
-        className="h-7 w-[4.5rem] border-0 bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0"
-        aria-label="유료 판매 가격 (USD)"
-      />
-      <span className="text-[10px] font-medium text-muted-foreground shrink-0">USD</span>
-    </div>
+    <ComposeSalePriceField
+      priceUsd={priceUsd}
+      onChange={setPriceUsd}
+      disabled={submitBusy}
+      variant={variant === "inline" ? "toolbar" : "inline"}
+    />
   );
 
   function handleComposePaste(event: React.ClipboardEvent) {
