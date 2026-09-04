@@ -69,14 +69,7 @@ const postDetailSelectNoReposts = {
 
 export type PostDetailLocked = {
   audienceLocked: true;
-  author: {
-    id: string;
-    username: string;
-    name: string | null;
-    image: string | null;
-    supportTierSent: import("@prisma/client").SupportTierLevel;
-    postsLocked: boolean;
-  };
+  author: Prisma.UserGetPayload<{ select: typeof userPublicSelect }>;
 };
 
 export function isPostDetailAudienceLocked(
