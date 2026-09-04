@@ -36,8 +36,7 @@ import {
 } from "@/lib/money";
 import { userDisplayName } from "@/lib/user-public-select";
 import { cn } from "@/lib/utils";
-import { ContentRatingSelect } from "@/components/forms/content-rating-select";
-import { AdultMonetizationNotice } from "@/components/legal/adult-monetization-notice";
+import { NsfwToggleButton } from "@/components/forms/nsfw-toggle-button";
 import type { ContentRating } from "@prisma/client";
 
 function friendlyPostError(err: unknown, apiError?: string): string {
@@ -163,6 +162,17 @@ export function ComposeForm({
     };
   }, []);
 
+  const toggleNsfw = () =>
+    setContentRating((v) => (v === "ADULT" ? "GENERAL" : "ADULT"));
+
+  const nsfwToggle = (
+    <NsfwToggleButton
+      active={contentRating === "ADULT"}
+      onToggle={toggleNsfw}
+      disabled={submitBusy}
+    />
+  );
+
   const salePriceField = adultBlocksPaid ? null : (
     <ComposeSalePriceField
       priceUsd={priceUsd}
@@ -170,6 +180,13 @@ export function ComposeForm({
       disabled={submitBusy}
       variant={variant === "inline" ? "toolbar" : "inline"}
     />
+  );
+
+  const mediaToolbarExtras = (
+    <>
+      {salePriceField}
+      {nsfwToggle}
+    </>
   );
 
   function handleComposePaste(event: React.ClipboardEvent) {
@@ -381,6 +398,7 @@ export function ComposeForm({
                       compact
                     />
                   )}
+                  {nsfwToggle}
                   <button
                     type="button"
                     className="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted/60 shrink-0"
@@ -417,11 +435,6 @@ export function ComposeForm({
                   placeholder="태그 (쉼표로 구분)"
                   className="w-full rounded-lg border border-border/60 bg-background/80 px-3 py-2 text-sm"
                 />
-                <ContentRatingSelect
-                  value={contentRating}
-                  onChange={setContentRating}
-                  disabled={submitBusy}
-                />
                 <ComposeCollaboratorPicker
                   selected={collaborators}
                   onChange={setCollaborators}
@@ -451,6 +464,7 @@ export function ComposeForm({
             )}
           </div>
         </div>
+        <input type="hidden" name="contentRating" value={contentRating} />
         {error && <p className="text-sm text-destructive pl-[52px]">{error}</p>}
       </form>
     );
@@ -478,7 +492,7 @@ export function ComposeForm({
         maxVideos={10}
         allowVideoCapture={false}
         onUploadingChange={setMediaUploading}
-        afterVideoButton={salePriceField}
+        afterVideoButton={mediaToolbarExtras}
       />
       <input
         name="title"
@@ -537,11 +551,6 @@ export function ComposeForm({
           following: t("compose.collabFollowing"),
           maxReached: t("compose.collabMax"),
         }}
-      />
-      <ContentRatingSelect
-        value={contentRating}
-        onChange={setContentRating}
-        disabled={submitBusy}
       />
       <input type="hidden" name="contentRating" value={contentRating} />
       <Button type="submit" className="w-full rounded-xl" disabled={submitBusy}>
