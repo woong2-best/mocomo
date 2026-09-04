@@ -1,6 +1,7 @@
 import { addDays, startOfDay } from "date-fns";
 
 export const ACCOUNT_RECOVERY_DAYS = 30;
+export const ACCOUNT_DELETE_CONFIRM_TEXT = "Delete";
 
 /** Instagram/X 방식 — 탈퇴 시점 + 30일 = 영구 삭제 시점 */
 export function computeScheduledPurgeAt(deletedAt: Date): Date {

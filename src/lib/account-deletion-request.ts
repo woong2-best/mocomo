@@ -2,10 +2,8 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { isSiteOperator } from "@/lib/auth";
-import { formatRecoveryDeadline } from "@/lib/account-deletion";
+import { formatRecoveryDeadline, ACCOUNT_DELETE_CONFIRM_TEXT } from "@/lib/account-deletion";
 import { markAccountForDeletion } from "@/lib/account-deletion-server";
-
-export const ACCOUNT_DELETE_CONFIRM_TEXT = "Delete";
 
 export const accountDeletionInputSchema = z.object({
   password: z.string().optional(),

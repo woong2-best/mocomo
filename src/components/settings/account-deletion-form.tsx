@@ -12,8 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { requestAccountDeletion } from "@/actions/account";
-import { ACCOUNT_RECOVERY_DAYS } from "@/lib/account-deletion";
-import { ACCOUNT_DELETE_CONFIRM_TEXT } from "@/lib/account-deletion-request";
+import { ACCOUNT_RECOVERY_DAYS, ACCOUNT_DELETE_CONFIRM_TEXT } from "@/lib/account-deletion";
 import { Loader2 } from "lucide-react";
 
 type Props = {
