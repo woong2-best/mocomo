@@ -686,11 +686,17 @@ html[data-client="app"] .native-live-pad {
   }
 
   .folk-sidebar-panel .sidebar-block-icon {
-    @apply border-white/25 bg-white/10 text-folk-gold;
+    @apply isolate border-white/30 text-folk-gold;
+    background-color: rgba(10, 18, 42, 0.88);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .folk-sidebar-panel .sidebar-block-icon-active {
-    @apply border-white/40 bg-folk-terracotta/90 text-white shadow-folk-sm;
+    @apply border-white/40 text-white shadow-folk-sm;
+    background-color: hsl(var(--folk-terracotta));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .folk-sidebar-compose {
