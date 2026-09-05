@@ -646,6 +646,30 @@ html[data-client="app"] .native-live-pad {
     @apply bg-muted/20;
   }
 
+  .folk-sidebar-panel {
+    @apply relative overflow-hidden;
+    background-image: url("/home/sidebar-bg.png");
+    background-size: cover;
+    background-position: center bottom;
+    background-repeat: no-repeat;
+  }
+
+  .folk-sidebar-panel > * {
+    @apply relative z-10;
+  }
+
+  .folk-sidebar-panel .sidebar-block {
+    background-color: hsl(var(--sidebar-block));
+  }
+
+  .folk-sidebar-panel .sidebar-block:hover {
+    background-color: hsl(var(--sidebar-block-hover));
+  }
+
+  .folk-sidebar-compose {
+    @apply rounded-2xl bg-[hsl(var(--sidebar-block)/0.96)] p-2 backdrop-blur-md;
+  }
+
   /* 3-column shell — 동일 패딩·구분선 */
   .shell-col-pad {
     @apply p-4 lg:p-6;

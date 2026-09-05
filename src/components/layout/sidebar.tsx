@@ -42,7 +42,7 @@ export function Sidebar() {
     >
       <aside
         className={cn(
-          "flex h-full w-[17rem] xl:w-[18rem] flex-col shrink-0 shell-col-pad shell-col-divider-r folk-panel-aside space-y-3 overflow-y-auto overscroll-contain",
+          "flex h-full w-[17rem] xl:w-[18rem] flex-col shrink-0 shell-col-pad shell-col-divider-r folk-sidebar-panel space-y-3 overflow-y-auto overscroll-contain",
           !open && "pointer-events-none invisible"
         )}
       >
@@ -69,7 +69,7 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className="mt-auto shrink-0 space-y-2 border-t border-border pt-3">
+        <div className="folk-sidebar-compose mt-auto shrink-0 space-y-2 border-t border-border/50 pt-3">
           <ComposeOpenButton className="flex w-full items-center justify-center gap-2 rounded-2xl bg-folk-terracotta py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-folk-terracotta-dark active:scale-[0.98]">
             <PenSquare className="h-4 w-4 shrink-0" />
             {t("nav.compose")}
