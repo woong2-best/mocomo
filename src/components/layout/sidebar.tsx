@@ -52,14 +52,12 @@ export function Sidebar() {
               key={href}
               href={href}
               prefetch={href === "/live" || href === "/messages" ? false : undefined}
-              className={cn("sidebar-block", isActive(href) && "sidebar-block-active")}
+              className={cn("sidebar-block drop-shadow-sm", isActive(href) && "sidebar-block-active")}
             >
               <span
                 className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-lg shrink-0 border-2",
-                  isActive(href)
-                    ? "bg-folk-terracotta text-white border-folk-cobalt/40 shadow-folk-sm"
-                    : "bg-folk-cream border-folk-cobalt/15 text-folk-cobalt"
+                  "sidebar-block-icon flex h-9 w-9 items-center justify-center rounded-lg shrink-0 border-2",
+                  isActive(href) && "sidebar-block-icon-active"
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -69,8 +67,8 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className="folk-sidebar-compose mt-auto shrink-0 space-y-2 border-t border-border/50 pt-3">
-          <ComposeOpenButton className="flex w-full items-center justify-center gap-2 rounded-2xl bg-folk-terracotta py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-folk-terracotta-dark active:scale-[0.98]">
+        <div className="folk-sidebar-compose mt-auto shrink-0 space-y-2">
+          <ComposeOpenButton className="folk-sidebar-compose-btn">
             <PenSquare className="h-4 w-4 shrink-0" />
             {t("nav.compose")}
           </ComposeOpenButton>
