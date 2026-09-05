@@ -18,6 +18,7 @@ import {
   type UsedCurrency,
 } from "@/lib/used-market";
 import { isTcgProductType } from "@/lib/subculture-commerce/catalog";
+import { coerceSubcultureListingFields } from "@/lib/subculture-commerce/types";
 import {
   EMPTY_SUBCULTURE_FORM,
   UsedSubcultureFields,
@@ -166,14 +167,16 @@ export function UsedPostForm({
       workTitle: workTitle.trim() || undefined,
       animeSlug: animeSlug ?? undefined,
       productType: productType || undefined,
-      characterName: subculture.characterName.trim() || undefined,
-      conditionGrade: subculture.conditionGrade || undefined,
-      limitedKind: subculture.limitedKind || undefined,
-      listingFormat: subculture.listingFormat || undefined,
-      tradeMode: saleType === "AUCTION" ? "SELL" : subculture.tradeMode || undefined,
-      itemOrigin: subculture.itemOrigin || undefined,
-      packagingState: subculture.packagingState || undefined,
-      subcultureMeta: Object.keys(subculture.meta).length ? subculture.meta : undefined,
+      ...coerceSubcultureListingFields({
+        characterName: subculture.characterName,
+        conditionGrade: subculture.conditionGrade,
+        limitedKind: subculture.limitedKind,
+        listingFormat: subculture.listingFormat,
+        tradeMode: saleType === "AUCTION" ? "SELL" : subculture.tradeMode,
+        itemOrigin: subculture.itemOrigin,
+        packagingState: subculture.packagingState,
+        subcultureMeta: Object.keys(subculture.meta).length ? subculture.meta : undefined,
+      }),
       restrictedKind,
       isNsfw,
       saleType,

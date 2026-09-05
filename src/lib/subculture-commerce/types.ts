@@ -114,3 +114,26 @@ export type SubcultureListingInput = SubcultureListingFields & {
   animeSlug?: string | null;
   productType?: string | null;
 };
+
+/** Form/API string values → typed fields (validated again in normalize). */
+export function coerceSubcultureListingFields(raw: {
+  characterName?: string | null;
+  conditionGrade?: string | null;
+  limitedKind?: string | null;
+  listingFormat?: string | null;
+  tradeMode?: string | null;
+  itemOrigin?: string | null;
+  packagingState?: string | null;
+  subcultureMeta?: SubcultureVerticalMeta | null;
+}): SubcultureListingFields {
+  return {
+    characterName: raw.characterName?.trim() || undefined,
+    conditionGrade: (raw.conditionGrade || undefined) as SubcultureConditionGrade | undefined,
+    limitedKind: (raw.limitedKind || undefined) as SubcultureLimitedKind | undefined,
+    listingFormat: (raw.listingFormat || undefined) as SubcultureListingFormat | undefined,
+    tradeMode: (raw.tradeMode || undefined) as SubcultureTradeMode | undefined,
+    itemOrigin: (raw.itemOrigin || undefined) as SubcultureItemOrigin | undefined,
+    packagingState: (raw.packagingState || undefined) as SubculturePackagingState | undefined,
+    subcultureMeta: raw.subcultureMeta ?? undefined,
+  };
+}

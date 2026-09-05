@@ -26,6 +26,7 @@ import {
   UsedSubcultureFields,
   type UsedSubcultureFormState,
 } from "@/components/used/used-subculture-fields";
+import { coerceSubcultureListingFields } from "@/lib/subculture-commerce/types";
 
 const PREFERRED_CARRIER_CHOICES = listAllMarketplaceCarriers();
 
@@ -118,14 +119,16 @@ export function MarketplaceListingForm() {
         isNsfw: contentRating === "ADULT",
         workTitle: workTitle.trim() || undefined,
         productType: productType || undefined,
-        characterName: subculture.characterName.trim() || undefined,
-        conditionGrade: subculture.conditionGrade || undefined,
-        limitedKind: subculture.limitedKind || undefined,
-        listingFormat: subculture.listingFormat || undefined,
-        tradeMode: subculture.tradeMode || undefined,
-        itemOrigin: subculture.itemOrigin || undefined,
-        packagingState: subculture.packagingState || undefined,
-        subcultureMeta: Object.keys(subculture.meta).length ? subculture.meta : undefined,
+        ...coerceSubcultureListingFields({
+          characterName: subculture.characterName,
+          conditionGrade: subculture.conditionGrade,
+          limitedKind: subculture.limitedKind,
+          listingFormat: subculture.listingFormat,
+          tradeMode: subculture.tradeMode,
+          itemOrigin: subculture.itemOrigin,
+          packagingState: subculture.packagingState,
+          subcultureMeta: Object.keys(subculture.meta).length ? subculture.meta : undefined,
+        }),
       });
       if ("error" in res && res.error) {
         if ("code" in res && res.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE && "redirectTo" in res) {

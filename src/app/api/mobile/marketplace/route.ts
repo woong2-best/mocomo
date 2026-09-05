@@ -9,10 +9,11 @@ import {
   listMobileMyUsedListings,
 } from "@/lib/used-market-mobile";
 import { filterNsfwItems, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { coerceSubcultureListingFields } from "@/lib/subculture-commerce/types";
 
 export async function GET(req: NextRequest) {
-  const limited = await rateLimitPublicApi(req, "mobile-marketplace-list", 60);
-  if (limited) return limited;
+  const rateLimited = await rateLimitPublicApi(req, "mobile-marketplace-list", 60);
+  if (rateLimited) return rateLimited;
 
   const mine = req.nextUrl.searchParams.get("mine") === "1";
   if (mine) {
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
   const anime = req.nextUrl.searchParams.get("anime")?.trim() || undefined;
   const product = req.nextUrl.searchParams.get("product")?.trim() || undefined;
   const condition = req.nextUrl.searchParams.get("condition")?.trim() || undefined;
-  const limited = req.nextUrl.searchParams.get("limited")?.trim() || undefined;
+  const limitedKind = req.nextUrl.searchParams.get("limited")?.trim() || undefined;
   const trade = req.nextUrl.searchParams.get("trade")?.trim() || undefined;
   const mode = req.nextUrl.searchParams.get("mode")?.trim() || undefined;
   const modeParam = req.nextUrl.searchParams.get("mode")?.trim();
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest) {
       anime: anime || undefined,
       product: product || undefined,
       condition: condition || undefined,
-      limited: limited || undefined,
+      limited: limitedKind || undefined,
       trade: trade || undefined,
       saleType: mode === "auction" ? "AUCTION" : undefined,
       liveAuctionOnly: mode === "auction",
@@ -151,7 +152,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
   }
 
-  const result = await createMobileUsedListing(auth.user.id, parsed.data);
+  const {
+    characterName,
+    conditionGrade,
+    limitedKind,
+    listingFormat,
+    tradeMode,
+    itemOrigin,
+    packagingState,
+    subcultureMeta,
+    ...listingCore
+  } = parsed.data;
+
+  const result = await createMobileUsedListing(auth.user.id, {
+    ...listingCore,
+    ...coerceSubcultureListingFields({
+      characterName,
+      conditionGrade,
+      limitedKind,
+      listingFormat,
+      tradeMode,
+      itemOrigin,
+      packagingState,
+      subcultureMeta,
+    }),
+  });
   if ("error" in result && result.error) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
