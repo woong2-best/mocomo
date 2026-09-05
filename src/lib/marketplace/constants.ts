@@ -1,4 +1,5 @@
 import type { MarketplaceListingType } from "@prisma/client";
+import { isVisaBrand } from "@/lib/marketplace/card-authorization";
 
 /** 판매자 입점비 — Stripe 미지원 국가(KR 등) 1회 $40 */
 export const VENDOR_ONBOARDING_FEE_USD_CENTS = 4_000;
@@ -48,13 +49,32 @@ export {
   MARKETPLACE_INTERNATIONAL_CARRIERS,
 } from "./shipping-config";
 
+/** Visa Extended Authorization network surcharge — 0.08% (8 bps), Visa + EA only */
+export const VISA_EXTENDED_AUTH_FEE_BPS = 8;
+
 export const AUTO_CONFIRM_DAYS_AFTER_DELIVERY = 7;
 
-export function computeMarketplaceFees(subtotalAmount: number, shippingAmount = 0) {
+export type MarketplaceFeeOptions = {
+  cardBrand?: string | null;
+  /** Visa EA active (flag ON + extended hold, or flag ON at quote time) */
+  visaExtendedAuthApplied?: boolean;
+};
+
+export function computeMarketplaceFees(
+  subtotalAmount: number,
+  shippingAmount = 0,
+  feeOpts?: MarketplaceFeeOptions
+) {
   const platformFeeAmount = Math.floor((subtotalAmount * MARKETPLACE_PLATFORM_FEE_BPS) / 10_000);
   const sellerEarnAmount = Math.max(0, subtotalAmount - platformFeeAmount);
   const totalAmount = subtotalAmount + shippingAmount;
-  return { platformFeeAmount, sellerEarnAmount, totalAmount };
+
+  const variableFeeAmount =
+    feeOpts?.visaExtendedAuthApplied && isVisaBrand(feeOpts.cardBrand)
+      ? Math.floor((totalAmount * VISA_EXTENDED_AUTH_FEE_BPS) / 10_000)
+      : 0;
+
+  return { platformFeeAmount, sellerEarnAmount, totalAmount, variableFeeAmount };
 }
 
 export function listingTypeLabel(type: MarketplaceListingType): string {

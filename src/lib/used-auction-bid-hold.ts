@@ -7,7 +7,12 @@ import type Stripe from "stripe";
 import { db } from "@/lib/db";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { isStripeConnectPayoutReady } from "@/lib/stripe-connect";
-import { buildStripeConnectSplitParams } from "@/lib/marketplace/stripe-connect-split";
+import { buildMarketplaceConnectSplitParams } from "@/lib/marketplace/stripe-connect-split";
+import {
+  applyExtendedAuthorizationBeforeConfirm,
+  resolveHoldExpiresAtFromPaymentIntent,
+  shouldSkipReauthorization,
+} from "@/lib/marketplace/card-authorization";
 import { computeMarketplaceFees } from "@/lib/marketplace/constants";
 import { getOrCreateStripeCustomer, listSavedPaymentMethods } from "@/lib/stripe-payment-methods";
 import { stripePaymentIntentReturnUrl } from "@/lib/stripe-payment-return-url";
@@ -15,7 +20,6 @@ import { isMarketplacePaymentAuthorized } from "@/lib/marketplace/stripe-payment
 import { getUsedAuctionConfig } from "@/lib/used-auction-lifecycle";
 import type { UsedAuctionConfigSlice } from "@/lib/used-auction-config";
 import {
-  USED_AUCTION_HOLD_AUTH_DAYS,
   USED_AUCTION_MIN_BID_HOLD_USD_CENTS,
   USED_AUCTION_MIN_CAPTURABLE_USD_CENTS,
   USED_AUCTION_REAUTH_LEAD_HOURS,
@@ -84,10 +88,6 @@ export async function resolveBidHoldMode(input: {
   if (!connectReady || !seller?.stripeConnectAccountId) return "honor";
 
   return "stripe";
-}
-
-function holdExpiresAtFromNow(now = Date.now()): Date {
-  return new Date(now + USED_AUCTION_HOLD_AUTH_DAYS * 24 * 60 * 60 * 1000);
 }
 
 function bidHoldMetadata(input: {
@@ -169,6 +169,8 @@ export async function payUsedAuctionBidHoldWithSavedCard(
 
   const stripe = getStripe();
   try {
+    await applyExtendedAuthorizationBeforeConfirm(stripe, intent.paymentKey, paymentMethodId);
+
     const pi = await stripe.paymentIntents.confirm(intent.paymentKey, {
       payment_method: paymentMethodId,
       return_url: stripePaymentIntentReturnUrl(paymentIntentDbId),
@@ -294,12 +296,13 @@ export async function prepareUsedAuctionBidHold(input: {
 
   const customerId = await getOrCreateStripeCustomer(input.userId, input.email);
   const stripe = getStripe();
-  const connectSplit = buildStripeConnectSplitParams({
+  const connectSplit = await buildMarketplaceConnectSplitParams({
     checkoutMode: "STRIPE",
     sellerConnectAccountId: seller.stripeConnectAccountId,
     platformFeeAmount,
     totalAmount: holdAmount,
     transferGroup: `used-auction-${input.listingId}`,
+    checkoutBrandUnknown: true,
   });
 
   let pi: Stripe.PaymentIntent;
@@ -379,7 +382,9 @@ export async function verifyUsedAuctionBidHold(input: {
   }
 
   const stripe = getStripe();
-  const pi = await stripe.paymentIntents.retrieve(intent.paymentKey);
+  const pi = await stripe.paymentIntents.retrieve(intent.paymentKey, {
+    expand: ["latest_charge"],
+  });
   if (!isMarketplacePaymentAuthorized(pi)) {
     return { error: "카드 승인(hold)이 완료되지 않았습니다." };
   }
@@ -387,7 +392,7 @@ export async function verifyUsedAuctionBidHold(input: {
     return { error: "Hold 금액이 일치하지 않습니다." };
   }
 
-  const holdExpiresAt = holdExpiresAtFromNow();
+  const holdExpiresAt = await resolveHoldExpiresAtFromPaymentIntent(stripe, pi);
   await db.paymentIntent.update({
     where: { id: intent.id },
     data: {
@@ -577,6 +582,7 @@ export async function reauthorizeExpiringBidHoldsBatch(limit = 30) {
       amount: true,
       paymentIntentDbId: true,
       stripePaymentIntentId: true,
+      holdExpiresAt: true,
       listing: { select: { currentBidderId: true } },
     },
   });
@@ -589,6 +595,8 @@ export async function reauthorizeExpiringBidHoldsBatch(limit = 30) {
 
   for (const bid of bids) {
     if (bid.listing.currentBidderId !== bid.bidderId) continue;
+
+    if (shouldSkipReauthorization(bid.holdExpiresAt)) continue;
 
     try {
       const oldPi = bid.stripePaymentIntentId;

@@ -6,6 +6,7 @@ import { checkoutRedirectPath } from "@/lib/checkout-redirect";
 import { checkoutCurrencyForType, isPaymentsConfigured } from "@/lib/payments";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
 import { isMarketplacePaymentAuthorized } from "@/lib/marketplace/stripe-payment";
+import { applyExtendedAuthorizationBeforeConfirm } from "@/lib/marketplace/card-authorization";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { stripePaymentIntentReturnUrl } from "@/lib/stripe-payment-return-url";
 import { validatePaymentInput } from "@/lib/stripe-checkout-validate";
@@ -231,6 +232,10 @@ export async function payCheckoutWithSavedMethod(
 
   const stripe = getStripe();
   try {
+    if (intent.type === "MARKETPLACE") {
+      await applyExtendedAuthorizationBeforeConfirm(stripe, intent.paymentKey, paymentMethodId);
+    }
+
     const pi = await stripe.paymentIntents.confirm(intent.paymentKey, {
       payment_method: paymentMethodId,
       return_url: stripePaymentIntentReturnUrl(orderId),

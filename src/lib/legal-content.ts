@@ -1228,6 +1228,8 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
       items: [
         "판매자 플랫폼 수수료: 판매가의 10% (입점비 없음)",
         "해외카드·환전·송금 등 플랫폼 원가가 10%를 초과하는 경우, 부족분은 체크아웃 시 '해외 처리 수수료' 등 별도 항목으로 구매자에게 표시될 수 있습니다",
+        "Visa Extended Authorization 적용 거래: 변동비 +0.08% (Visa 카드 + EA 활성 시)",
+        "카드 브랜드별 승인 유효기간: Mastercard·American Express·Discover는 Extended Authorization(최대 30일), Visa는 기본 7일(승인 후 feature flag로 EA 전환 가능)",
         "판매자 정산: 기본 주 1회 배치 정산 (Stripe Connect payout)",
         "운송장 미등록 마감(결제 후 5일) 시 자동 전액 환불",
         "신규·고위험 판매자는 Stripe Reserve(롤링 리저브)가 적용될 수 있습니다",
@@ -1246,7 +1248,8 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
     {
       type: "ul",
       items: [
-        "카드 승인 유효기간(통상 7일) 만료 전 시스템이 자동 재승인(re-authorization)을 시도합니다",
+        "카드 승인 유효기간(통상 7일, Mastercard·Amex·Discover는 Extended Authorization 최대 30일) 만료 전 시스템이 자동 재승인(re-authorization)을 시도합니다",
+        "Extended Authorization hold는 재승인 cron 대상에서 제외됩니다",
         "낙찰 후 미결제(카드 승인 실패) 시 차순위 입찰자에게 낙찰권이 자동 이전될 수 있습니다",
         "Hold는 자금 이동이 아니므로 Stripe 수수료가 발생하지 않으나, 카드사별 동시 Hold 제한이 있을 수 있습니다",
         "낙찰 후 Star Market과 동일한 배송 추적·이의제기·자동 정산 엔진을 사용합니다",

@@ -8,6 +8,10 @@ export const DEFAULT_FEATURE_FLAGS: Record<string, { enabled: boolean; descripti
   marketplace: { enabled: true, description: "마켓플레이스" },
   wallet: { enabled: true, description: "플랫폼 Wallet" },
   settlement: { enabled: true, description: "정산 원장" },
+  visa_extended_auth: {
+    enabled: false,
+    description: "Visa Extended Authorization (Stripe US merchant approval 후 ON)",
+  },
 };
 
 /** 재배포 없이 Feature Flag ON/OFF (DB FeatureFlag) */

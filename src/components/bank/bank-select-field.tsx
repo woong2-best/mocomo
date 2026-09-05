@@ -143,8 +143,8 @@ export function BankSelectField({
 
       <p className="text-[11px] text-muted-foreground leading-relaxed">
         {en
-          ? "1 KRW verification via Apick · Korea only. JP/US banks coming soon (Stripe Connect)."
-          : "Apick 1원 인증 · 한국 계좌만 지원. 일본·미국 은행은 Stripe Connect 연동 준비 중."}
+          ? "1 KRW verification via Apick · Korea only. Overseas sellers receive payouts via Stripe Connect."
+          : "Apick 1원 인증 · 한국 계좌만 지원. 해외 판매자 정산은 Stripe Connect만 이용합니다."}
       </p>
     </div>
   );

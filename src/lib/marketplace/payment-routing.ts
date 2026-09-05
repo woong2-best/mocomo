@@ -1,14 +1,17 @@
 /**
- * Stripe 전용 마켓플레이스 결제 라우팅
- * - Stripe 지원 국가만 checkout 허용
- * - 플랫폼 수수료 10% (Connect destination charge)
- * - 입점비 없음
+ * Stripe-only marketplace payment routing (Rail B deferred).
+ * - Stripe Connect supported countries only for sellers; buyers may purchase from supported regions.
+ * - Platform fee 10% via Connect destination charge + manual capture.
  */
 
 import type { MarketplaceCheckoutMode } from "@prisma/client";
 import type { Locale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/messages";
-import { computeMarketplaceFees, MARKETPLACE_PLATFORM_FEE_BPS } from "@/lib/marketplace/constants";
+import {
+  computeMarketplaceFees,
+  MARKETPLACE_PLATFORM_FEE_BPS,
+  type MarketplaceFeeOptions,
+} from "@/lib/marketplace/constants";
 import {
   assertMarketAccess,
   assertMarketAccessFromRequest,
@@ -106,9 +109,10 @@ export function resolveCheckoutRouting(input: {
 export function computeFeesForCheckoutMode(
   _mode: MarketplaceCheckoutMode,
   subtotalAmount: number,
-  shippingAmount = 0
+  shippingAmount = 0,
+  feeOpts?: MarketplaceFeeOptions
 ) {
-  return computeMarketplaceFees(subtotalAmount, shippingAmount);
+  return computeMarketplaceFees(subtotalAmount, shippingAmount, feeOpts);
 }
 
 /** @deprecated legacy direct trade orders */

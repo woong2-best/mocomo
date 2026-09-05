@@ -19,7 +19,7 @@ import { assertOfacPaymentRequestAllowed } from "@/lib/compliance/ofac-payment-g
 import { isOfacSanctionedCountry, OFAC_REGION_UNAVAILABLE_MESSAGE } from "@/lib/compliance/ofac-sanctioned-countries";
 import type { MarketplaceCheckoutInput } from "@/actions/marketplace-checkout";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-import { buildStripeConnectSplitParams } from "@/lib/marketplace/stripe-connect-split";
+import { buildMarketplaceConnectSplitParams } from "@/lib/marketplace/stripe-connect-split";
 import {
   getOrCreateStripeCustomer,
   listSavedPaymentMethods,
@@ -213,12 +213,13 @@ async function initMultiItemStripeCartOrder(
 
   const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);
   const stripe = getStripe();
-  const connectSplit = buildStripeConnectSplitParams({
+  const connectSplit = await buildMarketplaceConnectSplitParams({
     checkoutMode: "STRIPE",
     sellerConnectAccountId: seller.stripeConnectAccountId,
     platformFeeAmount: fees.platformFeeAmount,
     totalAmount: fees.totalAmount,
     transferGroup: order.id,
+    checkoutBrandUnknown: true,
   });
 
   const pi = await stripe.paymentIntents.create({

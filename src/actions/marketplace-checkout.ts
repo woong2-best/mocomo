@@ -13,7 +13,7 @@ import {
   computeFeesForCheckoutMode,
   resolveCheckoutRouting,
 } from "@/lib/marketplace/payment-routing";
-import { buildStripeConnectSplitParams } from "@/lib/marketplace/stripe-connect-split";
+import { buildMarketplaceConnectSplitParams } from "@/lib/marketplace/stripe-connect-split";
 import { refundOrReleaseMarketplacePayment } from "@/lib/marketplace/stripe-payment";
 import {
   getCarrierById,
@@ -343,12 +343,13 @@ async function createMarketplaceCheckoutSession(
   const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);
 
   const platformFeeAmount = Math.floor((init.unitAmount * init.quantity * 1000) / 10_000);
-  const connectSplit = buildStripeConnectSplitParams({
+  const connectSplit = await buildMarketplaceConnectSplitParams({
     checkoutMode: "STRIPE",
     sellerConnectAccountId: init.listing.seller.stripeConnectAccountId,
     platformFeeAmount,
     totalAmount: init.totalAmount,
     transferGroup: init.order.id,
+    checkoutBrandUnknown: true,
   });
 
   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
@@ -441,12 +442,13 @@ export async function prepareMarketplacePaymentForBuyer(
   const stripe = getStripe();
 
   const platformFeeAmount = Math.floor((init.unitAmount * init.quantity * 1000) / 10_000);
-  const connectSplit = buildStripeConnectSplitParams({
+  const connectSplit = await buildMarketplaceConnectSplitParams({
     checkoutMode: "STRIPE",
     sellerConnectAccountId: init.listing.seller.stripeConnectAccountId,
     platformFeeAmount,
     totalAmount: init.totalAmount,
     transferGroup: init.order.id,
+    checkoutBrandUnknown: true,
   });
 
   const pi = await stripe.paymentIntents.create({

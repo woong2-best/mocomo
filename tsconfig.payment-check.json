@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/lib/marketplace/card-authorization.ts",
+    "src/lib/marketplace/stripe-connect-split.ts",
+    "src/lib/marketplace/constants.ts",
+    "src/lib/marketplace/payment-routing.ts",
+    "src/lib/marketplace/stripe-payment.ts",
+    "src/lib/marketplace/__tests__/card-authorization.test.ts",
+    "src/lib/used-auction-bid-hold.ts",
+    "src/lib/used-auction-config.ts",
+    "src/lib/stripe-pay-intent-service.ts",
+    "src/lib/platform/feature-flags.ts",
+    "src/actions/marketplace-checkout.ts",
+    "src/actions/marketplace-cart-checkout.ts",
+    "src/components/bank/bank-select-field.tsx",
+    "src/lib/apick/bank-catalog.ts",
+    "src/lib/legal-content.ts"
+  ]
+}

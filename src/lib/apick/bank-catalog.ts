@@ -385,17 +385,8 @@ export const KR_BANK_CATALOG: BankCatalogEntry[] = [
   },
 ];
 
-/** UI 미리보기 — Apick 1원 인증 미지원 (Stripe Connect 등 별도) */
-export const INTL_BANK_PREVIEW: IntlBankPreview[] = [
-  { region: "JP", name: "미즈호은행", nameEn: "Mizuho", note: "준비 중" },
-  { region: "JP", name: "MUFG은행", nameEn: "MUFG", note: "준비 중" },
-  { region: "JP", name: "SMBC", nameEn: "SMBC", note: "준비 중" },
-  { region: "JP", name: "라쿠텐은행", nameEn: "Rakuten Bank", note: "준비 중" },
-  { region: "US", name: "J.P. Morgan Chase", nameEn: "Chase", note: "준비 중" },
-  { region: "US", name: "Bank of America", nameEn: "BoA", note: "준비 중" },
-  { region: "US", name: "Wells Fargo", nameEn: "Wells Fargo", note: "준비 중" },
-  { region: "US", name: "Mercury Bank", nameEn: "Mercury", note: "준비 중" },
-];
+/** UI placeholder removed — overseas seller payout is Stripe Connect only (Rail B deferred). */
+export const INTL_BANK_PREVIEW: IntlBankPreview[] = [];
 
 const CATALOG_BY_CODE = new Map(KR_BANK_CATALOG.map((b) => [b.code, b]));
 
