@@ -53,6 +53,13 @@ export type MarketplaceDetail = Omit<MarketplaceListItem, "thumbnailUrl"> & {
   meetLng?: number | null;
   meetCountry?: string | null;
   map?: MarketplaceMeetMap | null;
+  animeSlug?: string | null;
+  characterName?: string | null;
+  conditionGrade?: string | null;
+  limitedKind?: string | null;
+  listingFormat?: string | null;
+  tradeMode?: string | null;
+  subcultureMeta?: unknown;
   seller: {
     id: string;
     username: string;
@@ -109,7 +116,13 @@ export async function createMarketplaceListing(body: {
   saleType?: "FIXED" | "AUCTION";
   auctionHours?: number;
   workTitle?: string;
+  animeSlug?: string;
   productType?: string;
+  characterName?: string;
+  conditionGrade?: string;
+  limitedKind?: string;
+  listingFormat?: string;
+  tradeMode?: string;
   isNsfw?: boolean;
 }) {
   return apiRequest<{ listingId: string }>(MobileApi.marketplace, {

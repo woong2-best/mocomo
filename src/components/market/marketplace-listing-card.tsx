@@ -5,6 +5,10 @@ import { MarketplaceListingThumb } from "@/components/market/marketplace-listing
 import type { MarketplaceListingType } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/money";
+import {
+  SubcultureMetaBadges,
+  parseSubcultureMetaFromDb,
+} from "@/components/used/subculture-meta-badges";
 
 export type MarketplaceListingCardData = {
   id: string;
@@ -17,6 +21,16 @@ export type MarketplaceListingCardData = {
   productionDays: number | null;
   favoriteCount: number;
   salesCount: number;
+  workTitle?: string | null;
+  productType?: string | null;
+  characterName?: string | null;
+  conditionGrade?: string | null;
+  limitedKind?: string | null;
+  listingFormat?: string | null;
+  tradeMode?: string | null;
+  itemOrigin?: string | null;
+  packagingState?: string | null;
+  subcultureMeta?: unknown;
   isNsfw?: boolean;
   sellerId?: string;
   seller: { username: string; image: string | null };
@@ -89,6 +103,19 @@ export function MarketplaceListingCard({
             <span className="text-muted-foreground font-semibold">({typePrefix}) </span>
             {item.title}
           </h3>
+
+          <SubcultureMetaBadges
+            productType={item.productType}
+            characterName={item.characterName}
+            conditionGrade={item.conditionGrade}
+            limitedKind={item.limitedKind}
+            listingFormat={item.listingFormat}
+            tradeMode={item.tradeMode}
+            itemOrigin={item.itemOrigin}
+            packagingState={item.packagingState}
+            subcultureMeta={parseSubcultureMetaFromDb(item.subcultureMeta)}
+            max={3}
+          />
 
           <p className="text-[11px] text-muted-foreground truncate font-medium">{sellerName}</p>
 

@@ -11,6 +11,11 @@ import { MarketplaceListingMedia } from "@/components/market/marketplace-listing
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatUsd } from "@/lib/money";
+import {
+  SubcultureMetaBadges,
+  SubcultureMetaDetail,
+  parseSubcultureMetaFromDb,
+} from "@/components/used/subculture-meta-badges";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +57,26 @@ export default async function MarketplaceListingPage({
           <div>
             <p className="text-xs text-muted-foreground">
               {listingTypeLabel(listing.type)} · {listing.category}
+              {listing.workTitle ? ` · ${listing.workTitle}` : ""}
             </p>
             <h1 className="text-2xl font-bold mt-1">{listing.title}</h1>
+            <SubcultureMetaBadges
+              productType={listing.productType}
+              characterName={listing.characterName}
+              conditionGrade={listing.conditionGrade}
+              limitedKind={listing.limitedKind}
+              listingFormat={listing.listingFormat}
+              tradeMode={listing.tradeMode}
+              itemOrigin={listing.itemOrigin}
+              packagingState={listing.packagingState}
+              subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
+              className="mt-2"
+              max={8}
+            />
+            <SubcultureMetaDetail
+              subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
+              className="mt-1"
+            />
           </div>
 
           <div className="rounded-xl border border-border/60 p-3 text-sm space-y-1">

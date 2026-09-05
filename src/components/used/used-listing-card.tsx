@@ -9,6 +9,7 @@ import {
 } from "@/lib/used-market";
 import { isAuctionLive, formatAuctionCountdown } from "@/lib/used-auction";
 import { usedProductTypeLabel } from "@/lib/used-catalog";
+import { SubcultureMetaBadges, parseSubcultureMetaFromDb } from "@/components/used/subculture-meta-badges";
 import { isUsedRestrictedKind, usedRestrictedLabel } from "@/lib/used-youth-protection";
 import { UsedListingThumb } from "@/components/used/used-listing-thumb";
 import { MapPin, Gavel } from "lucide-react";
@@ -36,6 +37,14 @@ type Listing = {
   restrictedKind?: string;
   workTitle?: string | null;
   productType?: string | null;
+  characterName?: string | null;
+  conditionGrade?: string | null;
+  limitedKind?: string | null;
+  listingFormat?: string | null;
+  tradeMode?: string | null;
+  itemOrigin?: string | null;
+  packagingState?: string | null;
+  subcultureMeta?: unknown;
   isNsfw?: boolean;
   sellerId?: string;
 };
@@ -157,6 +166,19 @@ export function UsedListingCard({
           >
             {listing.title}
           </p>
+          <SubcultureMetaBadges
+            productType={listing.productType}
+            characterName={listing.characterName}
+            conditionGrade={listing.conditionGrade}
+            limitedKind={listing.limitedKind}
+            listingFormat={listing.listingFormat}
+            tradeMode={listing.tradeMode}
+            itemOrigin={listing.itemOrigin}
+            packagingState={listing.packagingState}
+            subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
+            max={dense ? 3 : 4}
+            className="pt-0.5"
+          />
           <p className={cn("font-black text-foreground", dense ? "text-sm" : "text-base")}>
             {auction && (listing.bidCount ?? 0) > 0 ? "현재 " : ""}
             {formatUsedPrice(showPrice, listing.currency)}

@@ -28,7 +28,11 @@ export async function GET(req: NextRequest) {
   const country = req.nextUrl.searchParams.get("country")?.trim() || undefined;
   const region = req.nextUrl.searchParams.get("region")?.trim() || undefined;
   const work = req.nextUrl.searchParams.get("work")?.trim() || undefined;
+  const anime = req.nextUrl.searchParams.get("anime")?.trim() || undefined;
   const product = req.nextUrl.searchParams.get("product")?.trim() || undefined;
+  const condition = req.nextUrl.searchParams.get("condition")?.trim() || undefined;
+  const limited = req.nextUrl.searchParams.get("limited")?.trim() || undefined;
+  const trade = req.nextUrl.searchParams.get("trade")?.trim() || undefined;
   const mode = req.nextUrl.searchParams.get("mode")?.trim() || undefined;
   const modeParam = req.nextUrl.searchParams.get("mode")?.trim();
   const browseMode: UsedMarketBrowseMode =
@@ -52,7 +56,11 @@ export async function GET(req: NextRequest) {
       region: region || undefined,
       country: country || undefined,
       work: work || undefined,
+      anime: anime || undefined,
       product: product || undefined,
+      condition: condition || undefined,
+      limited: limited || undefined,
+      trade: trade || undefined,
       saleType: mode === "auction" ? "AUCTION" : undefined,
       liveAuctionOnly: mode === "auction",
     }),
@@ -76,6 +84,11 @@ export async function GET(req: NextRequest) {
       bidCount: l.bidCount ?? null,
       workTitle: l.workTitle ?? null,
       productType: l.productType ?? null,
+      characterName: l.characterName ?? null,
+      conditionGrade: l.conditionGrade ?? null,
+      limitedKind: l.limitedKind ?? null,
+      tradeMode: l.tradeMode ?? null,
+      subcultureMeta: l.subcultureMeta ?? null,
       isNsfw: l.isNsfw,
       sellerId: l.sellerId,
       seller: l.seller
@@ -106,7 +119,16 @@ const createSchema = z.object({
   saleType: z.enum(["FIXED", "AUCTION"]).optional(),
   auctionHours: z.number().int().positive().optional(),
   workTitle: z.string().max(120).optional(),
+  animeSlug: z.string().max(120).optional(),
   productType: z.string().max(40).optional(),
+  characterName: z.string().max(80).optional(),
+  conditionGrade: z.string().max(20).optional(),
+  limitedKind: z.string().max(30).optional(),
+  listingFormat: z.string().max(20).optional(),
+  tradeMode: z.string().max(20).optional(),
+  itemOrigin: z.string().max(30).optional(),
+  packagingState: z.string().max(30).optional(),
+  subcultureMeta: z.record(z.unknown()).optional(),
   isNsfw: z.boolean().optional(),
 });
 

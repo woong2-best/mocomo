@@ -25,6 +25,10 @@ import {
   syncStripeConnectOnboardedAt,
 } from "@/lib/stripe-connect";
 import { normalizeSellerCountry } from "@/lib/marketplace/seller-region-policy";
+import { isValidProductType, normalizeWorkTitle, compactWorkKey } from "@/lib/used-catalog";
+import { normalizeSubcultureListingInput } from "@/lib/subculture-commerce/normalize";
+import { resolveAnimeSlugFromWorkTitle } from "@/lib/subculture-commerce/anime-suggest";
+import type { SubcultureListingInput } from "@/lib/subculture-commerce/types";
 
 export async function getMarketplaceSellerProfile(userId?: string) {
   const user = userId
@@ -221,7 +225,7 @@ export type CreateMarketplaceListingInput = {
   publish?: boolean;
   contentRating?: import("@prisma/client").ContentRating;
   isNsfw?: boolean;
-};
+} & SubcultureListingInput;
 
 export async function createMarketplaceListing(input: CreateMarketplaceListingInput) {
   const user = await requireAuth();
@@ -299,6 +303,10 @@ export async function createMarketplaceListingForUser(
   const mediaUrls = (input.mediaUrls ?? []).filter(Boolean).slice(0, 12);
   const coverUrl = input.coverUrl || mediaUrls[0] || null;
   const publish = input.publish !== false;
+  const subculture = normalizeSubcultureListingInput(input);
+  const normalizedWork = normalizeWorkTitle(input.workTitle);
+  const animeSlug =
+    subculture.animeSlug ?? (await resolveAnimeSlugFromWorkTitle(normalizedWork));
 
   const listing = await db.marketplaceListing.create({
     data: {
@@ -309,6 +317,22 @@ export async function createMarketplaceListingForUser(
       type: input.type,
       category: input.category,
       tags: (input.tags ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 20),
+      workTitle: normalizedWork,
+      animeSlug,
+      productType:
+        input.productType?.trim() && isValidProductType(input.productType.trim())
+          ? input.productType.trim()
+          : null,
+      characterName: subculture.characterName,
+      conditionGrade: subculture.conditionGrade,
+      limitedKind: subculture.limitedKind,
+      listingFormat: subculture.listingFormat,
+      tradeMode: subculture.tradeMode,
+      itemOrigin: subculture.itemOrigin,
+      packagingState: subculture.packagingState,
+      subcultureMeta: subculture.subcultureMeta
+        ? (subculture.subcultureMeta as Prisma.InputJsonValue)
+        : undefined,
       priceAmount: Math.floor(input.priceAmount),
       currency: (input.currency ?? "usd").toLowerCase(),
       stock: Math.max(0, Math.floor(input.stock ?? 1)),
@@ -347,6 +371,8 @@ export async function listMarketplaceListings(params?: {
   type?: MarketplaceListingType | "ALL";
   category?: string;
   q?: string;
+  work?: string;
+  product?: string;
   take?: number;
   cursor?: string;
 }) {
@@ -360,14 +386,30 @@ export async function listMarketplaceListings(params?: {
     where.type = { not: "DIGITAL" };
   }
   if (params?.category) where.category = params.category;
+  const andFilters: Prisma.MarketplaceListingWhereInput[] = [];
+  const workCompact = compactWorkKey(params?.work);
+  if (workCompact) {
+    andFilters.push({
+      OR: [
+        { workTitle: { contains: workCompact, mode: "insensitive" } },
+        { title: { contains: workCompact, mode: "insensitive" } },
+      ],
+    });
+  }
+  if (params?.product?.trim() && isValidProductType(params.product.trim())) {
+    where.productType = params.product.trim();
+  }
   if (params?.q?.trim()) {
     const q = params.q.trim();
-    where.OR = [
-      { title: { contains: q, mode: "insensitive" } },
-      { description: { contains: q, mode: "insensitive" } },
-      { tags: { has: q } },
-    ];
+    andFilters.push({
+      OR: [
+        { title: { contains: q, mode: "insensitive" } },
+        { description: { contains: q, mode: "insensitive" } },
+        { tags: { has: q } },
+      ],
+    });
   }
+  if (andFilters.length) where.AND = andFilters;
 
   const rows = await db.marketplaceListing.findMany({
     where,
@@ -386,6 +428,16 @@ export async function listMarketplaceListings(params?: {
       productionDays: true,
       favoriteCount: true,
       salesCount: true,
+      workTitle: true,
+      productType: true,
+      characterName: true,
+      conditionGrade: true,
+      limitedKind: true,
+      tradeMode: true,
+      listingFormat: true,
+      itemOrigin: true,
+      packagingState: true,
+      subcultureMeta: true,
       isNsfw: true,
       sellerId: true,
       createdAt: true,

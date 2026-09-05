@@ -4,6 +4,7 @@ import { getMyUsedAuctionBids } from "@/actions/used-auction";
 import { formatUsedPrice } from "@/lib/used-market";
 import { isAuctionListing } from "@/lib/used-auction";
 import { UsedListingCard } from "@/components/used/used-listing-card";
+import { UsedWtbMySection } from "@/components/used/used-wtb-my-section";
 
 export async function UsedMyContent({ userId }: { userId: string }) {
   const [{ selling, reserved, sold, favorites }, { bids: myBids }] = await Promise.all([
@@ -76,6 +77,8 @@ export async function UsedMyContent({ userId }: { userId: string }) {
           </ul>
         </section>
       )}
+
+      <UsedWtbMySection />
 
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground mb-3">

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addAnimeGoods, deleteAnimeGoods } from "@/actions/anime";
@@ -65,6 +66,15 @@ export function AnimeGoodsPanel({
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">위키 굿즈 정보</p>
+        <Link
+          href={`/used?anime=${encodeURIComponent(slug)}`}
+          className="text-sm font-semibold text-primary hover:underline"
+        >
+          중고거래에서 찾기 →
+        </Link>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {goods.length === 0 ? (
           <p className="text-muted-foreground col-span-full">굿즈 정보 없음</p>

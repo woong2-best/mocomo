@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { isStripeConnectPayoutReady } from "@/lib/stripe-connect";
 import { recordMarketplaceSettlementLedger, recordPlatformFee, recordPaymentGross } from "@/lib/settlement";
 import { logMarketplaceAudit, MarketplaceAuditActions } from "@/lib/marketplace/audit";
+import { finalizeUsedListingSold } from "@/lib/subculture-commerce/sale-records";
 import { refreshSellerTrust, settlementDelayDaysForSeller } from "@/lib/marketplace/trust";
 import { createNotification } from "@/lib/notifications";
 import { formatUsd } from "@/lib/money";
@@ -192,6 +193,7 @@ export async function releaseMarketplaceEscrow(
       where: { id: order.usedListingId },
       data: { status: "SOLD", auctionState: "ENDED" },
     });
+    void finalizeUsedListingSold(order.usedListingId).catch(() => undefined);
   }
 
   await db.marketplaceSellerProfile.updateMany({

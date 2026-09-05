@@ -12,6 +12,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { fetchMarketplaceList, type MarketplaceListItem } from "@/api/marketplace";
+import { fetchMyWtbAlerts } from "@/api/subculture";
+import { UsedWtbAlertList } from "@/features/marketplace/UsedWtbAlertList";
 import {
   formatUsedPrice,
   formatUsedTimeAgo,
@@ -33,6 +35,11 @@ export function UsedMyScreen() {
   const query = useQuery({
     queryKey: ["mobile-marketplace-mine"],
     queryFn: () => fetchMarketplaceList({ mine: true, take: 48 }),
+  });
+
+  const wtbQuery = useQuery({
+    queryKey: ["mobile-wtb-alerts"],
+    queryFn: fetchMyWtbAlerts,
   });
 
   const renderItem = useCallback(
@@ -82,6 +89,21 @@ export function UsedMyScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={{ padding: spacing.md, paddingBottom: 40 }}
+          ListHeaderComponent={
+            <View style={{ marginBottom: spacing.md }}>
+              <Text style={styles.sectionTitle}>
+                WTB 알림 ({wtbQuery.data?.items.length ?? 0})
+              </Text>
+              {wtbQuery.isLoading ? (
+                <ActivityIndicator color={colors.terracotta} style={{ marginVertical: 12 }} />
+              ) : (
+                <UsedWtbAlertList items={wtbQuery.data?.items ?? []} />
+              )}
+              <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
+                내 글 ({query.data?.items.length ?? 0})
+              </Text>
+            </View>
+          }
           ListEmptyComponent={
             <Text style={styles.muted}>등록한 중고거래 글이 없습니다.</Text>
           }
@@ -124,5 +146,11 @@ function createStyles(colors: ThemeColors) {
     muted: { color: colors.textMuted, padding: spacing.lg },
     error: { color: colors.danger, marginBottom: 12, fontWeight: "600" },
     center: { padding: spacing.lg, alignItems: "center" },
+    sectionTitle: {
+      fontSize: 13,
+      fontWeight: "800",
+      color: colors.textMuted,
+      marginBottom: spacing.sm,
+    },
   });
 }

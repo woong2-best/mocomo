@@ -15,15 +15,26 @@ export const USED_CATEGORIES = [
 export const USED_PRODUCT_TYPES = [
   { id: "FIGURE", label: "피규어" },
   { id: "PLAMODEL", label: "프라모델" },
-  { id: "PLUSH", label: "인형" },
-  { id: "STATUE", label: "등신대" },
+  { id: "PLUSH", label: "인형·봉제" },
+  { id: "STATUE", label: "등신대·스태츄" },
   { id: "ACRYLIC_STAND", label: "아크릴 스탠드" },
   { id: "CAN_BADGE", label: "캔뱃지" },
   { id: "KEYRING", label: "키링" },
   { id: "COSPLAY_COSTUME", label: "코스프레 의상" },
   { id: "WIG", label: "가발" },
-  { id: "TCG_CARD", label: "카드(TCG)" },
-  { id: "BOOK", label: "만화책/라이트노벨" },
+  { id: "TCG_CARD", label: "카드 (TCG·일반)" },
+  { id: "TCG_POKEMON", label: "포켓몬 카드" },
+  { id: "TCG_YGO", label: "유희왕" },
+  { id: "TCG_MTG", label: "매직 (MTG)" },
+  { id: "TCG_ONEPIECE", label: "원피스 카드" },
+  { id: "TCG_OTHER", label: "기타 TCG" },
+  { id: "PHOTOCARD", label: "포토카드" },
+  { id: "DOUJIN", label: "동인지" },
+  { id: "ARTBOOK", label: "아트북" },
+  { id: "BOARDGAME", label: "보드게임" },
+  { id: "VTUBER_GOODS", label: "VTuber 굿즈" },
+  { id: "EVENT_GOODS", label: "행사·한정 굿즈" },
+  { id: "BOOK", label: "만화·라노벨" },
   { id: "MEDIA", label: "CD/DVD/블루레이" },
   { id: "OTHER", label: "기타" },
 ] as const;
@@ -119,4 +130,9 @@ export function usedStatusLabel(status: string) {
     default:
       return status;
   }
+}
+
+export function productTypeLabel(id: string | null | undefined): string {
+  if (!id) return "";
+  return USED_PRODUCT_TYPES.find((p) => p.id === id)?.label ?? id;
 }

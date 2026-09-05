@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { USED_CATEGORIES } from "@/lib/used-market";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
 import { UsedWorkProductFilters } from "@/components/used/used-work-product-filters";
+import { UsedSubcultureFilters } from "@/components/used/used-subculture-filters";
 
 export function UsedSearchHeader() {
   const router = useRouter();
@@ -75,6 +76,8 @@ export function UsedSearchHeader() {
       </section>
 
       <UsedWorkProductFilters onNavigate={apply} isPending={isPending} />
+
+      <UsedSubcultureFilters onNavigate={apply} isPending={isPending} />
 
       <section className="space-y-2">
         <h3 className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">

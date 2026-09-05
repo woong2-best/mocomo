@@ -22,6 +22,10 @@ import {
   isValidProductType,
   normalizeWorkTitle,
 } from "@/lib/used-catalog";
+import { normalizeSubcultureListingInput } from "@/lib/subculture-commerce/normalize";
+import type { SubcultureListingInput } from "@/lib/subculture-commerce/types";
+import { resolveAnimeSlugFromWorkTitle } from "@/lib/subculture-commerce/anime-suggest";
+import { notifyWtbAlertsForListing } from "@/lib/subculture-commerce/wtb-alerts";
 import { geocodeMeetQuery } from "@/lib/maps/geocode";
 import { normalizeMeetCountry } from "@/lib/maps/select-engine";
 import { finalizeExpiredAuctionIfNeeded } from "@/actions/used-auction";
@@ -68,7 +72,7 @@ export async function createMobileUsedListing(
     workTitle?: string;
     productType?: string;
     isNsfw?: boolean;
-  }
+  } & SubcultureListingInput
 ) {
   const user = await loadUsedMarketUser(userId);
   if (!user) return { error: "로그인이 필요합니다." as const };
@@ -144,6 +148,14 @@ export async function createMobileUsedListing(
       }
     }
 
+    const subculture = normalizeSubcultureListingInput({
+      ...data,
+      tradeMode: isAuction ? "SELL" : data.tradeMode,
+    });
+    const normalizedWork = normalizeWorkTitle(data.workTitle);
+    const animeSlug =
+      subculture.animeSlug ?? (await resolveAnimeSlugFromWorkTitle(normalizedWork));
+
     const listing = await db.usedListing.create({
       data: {
         sellerId: userId,
@@ -152,11 +164,22 @@ export async function createMobileUsedListing(
         price,
         currency,
         category: (data.category as UsedListingCategory) || "OTHER",
-        workTitle: normalizeWorkTitle(data.workTitle),
+        workTitle: normalizedWork,
+        animeSlug,
         productType:
           data.productType?.trim() && isValidProductType(data.productType.trim())
             ? data.productType.trim()
             : null,
+        characterName: subculture.characterName,
+        conditionGrade: subculture.conditionGrade,
+        limitedKind: subculture.limitedKind,
+        listingFormat: subculture.listingFormat,
+        tradeMode: subculture.tradeMode,
+        itemOrigin: subculture.itemOrigin,
+        packagingState: subculture.packagingState,
+        subcultureMeta: subculture.subcultureMeta
+          ? (subculture.subcultureMeta as Prisma.InputJsonValue)
+          : undefined,
         restrictedKind: restricted,
         region: data.region.trim(),
         meetPlace: meetPlaceTrim,
@@ -178,6 +201,7 @@ export async function createMobileUsedListing(
           : {}),
       },
     });
+    void notifyWtbAlertsForListing(listing.id).catch(() => undefined);
     return { listingId: listing.id };
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {

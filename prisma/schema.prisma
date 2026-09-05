@@ -353,6 +353,8 @@ model User {
   usedMarketSanctionLogs UsedMarketSanctionLog[]
   usedMarketAppeals    UsedMarketAppeal[]
   usedMarketAppealsAdministered UsedMarketAppeal[] @relation("UsedMarketAppealAdmin")
+  subcultureWtbAlerts SubcultureWtbAlert[]
+  subcultureSaleRecords SubcultureSaleRecord[] @relation("SubcultureSaleSeller")
   cosplayBoardPosts CosplayBoardPost[]
   cosplayBoardComments CosplayBoardComment[]
   userBadges    UserBadge[]
@@ -2406,6 +2408,62 @@ enum UsedListingCategory {
   OTHER
 }
 
+/** 서브컬처 거래 — 상태 등급 (카드 NM/LP, 피규어 등) */
+enum SubcultureConditionGrade {
+  NEW
+  LIKE_NEW
+  NM
+  LP
+  MP
+  HP
+  POOR
+  UNKNOWN
+}
+
+/** 한정·출처 유형 */
+enum SubcultureLimitedKind {
+  STANDARD
+  EVENT_EXCLUSIVE
+  VENUE_ONLY
+  PREORDER
+  COLLAB
+  LIMITED_RUN
+  LOTTERY
+  PROMO
+}
+
+/** 단품 / lot / 세트 */
+enum SubcultureListingFormat {
+  SINGLE
+  LOT
+  SET
+  BINDER
+  BOX
+}
+
+/** 판매 vs 교환 (WTT) */
+enum SubcultureTradeMode {
+  SELL
+  TRADE
+  SELL_OR_TRADE
+}
+
+/** 정품 vs 팬메 */
+enum SubcultureItemOrigin {
+  OFFICIAL
+  FANMADE
+  BOOTLEG_UNKNOWN
+}
+
+/** 개봉·구성품 */
+enum SubculturePackagingState {
+  SEALED
+  OPENED_COMPLETE
+  OPENED_INCOMPLETE
+  LOOSE
+  NA
+}
+
 /** 청소년 보호 — 성인 인증 필요 품목 */
 enum UsedRestrictedKind {
   NONE
@@ -2426,8 +2484,20 @@ model UsedListing {
   category    UsedListingCategory @default(OTHER)
   /** 애니/게임/IP 작품명 (예: 블루 아카이브, 원신) */
   workTitle   String?             @db.VarChar(120)
+  /** Anime 위키 slug — workTitle과 연동 */
+  animeSlug   String?             @db.VarChar(120)
   /** 상품 종류 (피규어, 인형, 프라모델 등 — used-catalog) */
   productType String?             @db.VarChar(40)
+  /** 캐릭터·멤버명 */
+  characterName String?           @db.VarChar(80)
+  conditionGrade SubcultureConditionGrade?
+  limitedKind    SubcultureLimitedKind?
+  listingFormat  SubcultureListingFormat?
+  tradeMode      SubcultureTradeMode @default(SELL)
+  itemOrigin     SubcultureItemOrigin?
+  packagingState SubculturePackagingState?
+  /** TCG·포카·동인 등 vertical별 메타 (set, grade, album…) */
+  subcultureMeta Json?
   restrictedKind UsedRestrictedKind @default(NONE)
   status      UsedListingStatus   @default(SELLING)
   saleType    UsedSaleType        @default(FIXED)
@@ -2494,7 +2564,12 @@ model UsedListing {
   @@index([sellerId])
   @@index([category])
   @@index([workTitle])
+  @@index([animeSlug])
   @@index([productType])
+  @@index([characterName])
+  @@index([conditionGrade])
+  @@index([limitedKind])
+  @@index([tradeMode])
   @@index([region])
   @@index([saleType, auctionEndsAt])
   @@index([auctionState])
@@ -2627,6 +2702,53 @@ model UsedListingChat {
 
   @@unique([listingId, buyerId])
   @@index([listingId])
+}
+
+// ============ SUBCULTURE WTB · 체결가 ============
+
+/** WTB (Want To Buy) — 조건 매칭 시 알림 */
+model SubcultureWtbAlert {
+  id             String   @id @default(cuid())
+  userId         String
+  workTitle      String?  @db.VarChar(120)
+  animeSlug      String?  @db.VarChar(120)
+  productType    String?  @db.VarChar(40)
+  characterName  String?  @db.VarChar(80)
+  maxPrice       Int?
+  currency       String   @default("krw") @db.VarChar(3)
+  note           String?  @db.VarChar(200)
+  active         Boolean  @default(true)
+  lastNotifiedAt DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active, createdAt(sort: Desc)])
+  @@index([animeSlug, productType, active])
+  @@index([workTitle, productType, active])
+}
+
+/** 거래완료 체결가 — 익명 시세 집계용 */
+model SubcultureSaleRecord {
+  id             String                    @id @default(cuid())
+  listingId      String?                   @unique
+  sellerId       String
+  soldPrice      Int
+  currency       String                    @default("krw") @db.VarChar(3)
+  workTitle      String?                   @db.VarChar(120)
+  animeSlug      String?                   @db.VarChar(120)
+  productType    String?                   @db.VarChar(40)
+  characterName  String?                   @db.VarChar(80)
+  listingFormat  SubcultureListingFormat?
+  subcultureMeta Json?
+  soldAt         DateTime                  @default(now())
+
+  seller User @relation("SubcultureSaleSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([workTitle, productType, soldAt(sort: Desc)])
+  @@index([animeSlug, productType, soldAt(sort: Desc)])
+  @@index([sellerId, soldAt(sort: Desc)])
 }
 
 // ============ COSPLAY BOARD (대여·구매) ============
@@ -5716,6 +5838,19 @@ model MarketplaceListing {
   type               MarketplaceListingType
   category           String
   tags               String[]
+  /** 애니/게임/IP 작품명 */
+  workTitle          String?                    @db.VarChar(120)
+  animeSlug          String?                    @db.VarChar(120)
+  /** subculture-commerce product type id */
+  productType        String?                    @db.VarChar(40)
+  characterName      String?                    @db.VarChar(80)
+  conditionGrade     SubcultureConditionGrade?
+  limitedKind        SubcultureLimitedKind?
+  listingFormat      SubcultureListingFormat?
+  tradeMode          SubcultureTradeMode        @default(SELL)
+  itemOrigin         SubcultureItemOrigin?
+  packagingState     SubculturePackagingState?
+  subcultureMeta     Json?
   priceAmount        Int
   currency           String                     @default("usd")
   stock              Int                        @default(1)
@@ -5752,6 +5887,10 @@ model MarketplaceListing {
   @@index([status, type, createdAt])
   @@index([sellerId, status])
   @@index([category, status])
+  @@index([workTitle])
+  @@index([animeSlug])
+  @@index([productType])
+  @@index([tradeMode])
   @@index([priceAmount])
 }
 

@@ -47,6 +47,13 @@ import {
 
 } from "@/lib/used-market";
 import { usedProductTypeLabel } from "@/lib/used-catalog";
+import {
+  SubcultureMetaBadges,
+  SubcultureMetaDetail,
+  parseSubcultureMetaFromDb,
+} from "@/components/used/subculture-meta-badges";
+import { UsedSaleStatsPanel } from "@/components/used/used-sale-stats-panel";
+import { UsedWtbAlertPanel } from "@/components/used/used-wtb-alert-panel";
 
 import { isAuctionListing, minNextBidAmount } from "@/lib/used-auction";
 import { UsedRestrictedBanner } from "@/components/used/used-restricted-banner";
@@ -211,12 +218,58 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
           {(listing.workTitle || listing.productType) && (
             <p className="text-sm text-primary font-medium mb-1">
-              {[listing.workTitle, usedProductTypeLabel(listing.productType)]
-                .filter(Boolean)
-                .join(" · ")}
+              {listing.workTitle && (
+                <>
+                  {listing.animeSlug ? (
+                    <Link href={`/anime/${listing.animeSlug}`} className="hover:underline">
+                      {listing.workTitle}
+                    </Link>
+                  ) : (
+                    listing.workTitle
+                  )}
+                </>
+              )}
+              {listing.workTitle && listing.productType ? " · " : ""}
+              {listing.productType ? usedProductTypeLabel(listing.productType) : ""}
             </p>
           )}
           <h1 className="text-lg font-bold leading-snug">{listing.title}</h1>
+
+          <SubcultureMetaBadges
+            productType={listing.productType}
+            characterName={listing.characterName}
+            conditionGrade={listing.conditionGrade}
+            limitedKind={listing.limitedKind}
+            listingFormat={listing.listingFormat}
+            tradeMode={listing.tradeMode}
+            itemOrigin={listing.itemOrigin}
+            packagingState={listing.packagingState}
+            subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
+            className="mt-2"
+            max={8}
+          />
+          <SubcultureMetaDetail
+            subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
+            className="mt-1.5"
+          />
+
+          <UsedSaleStatsPanel
+            workTitle={listing.workTitle}
+            animeSlug={listing.animeSlug}
+            productType={listing.productType}
+            characterName={listing.characterName}
+          />
+
+          {!isSeller && status === "SELLING" && (
+            <UsedWtbAlertPanel
+              workTitle={listing.workTitle}
+              animeSlug={listing.animeSlug}
+              productType={listing.productType}
+              characterName={listing.characterName}
+              currency={listing.currency}
+              loggedIn={!!session?.user?.id}
+            />
+          )}
 
           <p className="text-2xl font-black mt-2">
 

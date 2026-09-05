@@ -23,6 +23,11 @@ import {
 import { UsedAuctionBidHoldSheet } from "@/payments/UsedAuctionBidHoldSheet";
 import { ApiError } from "@/api/client";
 import { UsedMeetMapCard } from "@/features/marketplace/UsedMeetMapCard";
+import {
+  SubcultureMetaChips,
+  UsedSaleStatsCard,
+} from "@/features/marketplace/UsedSubcultureDetailCards";
+import { UsedWtbAlertCard } from "@/features/marketplace/UsedWtbAlertCard";
 import { formatUsedPrice } from "@/features/marketplace/used-catalog";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
@@ -159,11 +164,37 @@ export function MarketplaceDetailScreen() {
                 : formatUsedPrice(Number(item.price ?? 0), item.currency)}
             </Text>
             <Text style={styles.title}>{item.title}</Text>
+            <SubcultureMetaChips
+              workTitle={item.workTitle}
+              productType={item.productType}
+              characterName={item.characterName}
+              conditionGrade={item.conditionGrade}
+              tradeMode={item.tradeMode}
+            />
             <Text style={styles.sub}>
               {item.region || "지역 미정"}
               {item.seller?.username ? ` · @${item.seller.username}` : ""}
             </Text>
             {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
+
+            <UsedSaleStatsCard
+              workTitle={item.workTitle}
+              animeSlug={item.animeSlug}
+              productType={item.productType}
+              characterName={item.characterName}
+            />
+
+            {!item.isOwner ? (
+              <UsedWtbAlertCard
+                workTitle={item.workTitle}
+                animeSlug={item.animeSlug}
+                productType={item.productType}
+                characterName={item.characterName}
+                currency={item.currency}
+                isOwner={item.isOwner}
+                status={item.status}
+              />
+            ) : null}
 
             {item.map &&
             Number.isFinite(item.map.lat) &&

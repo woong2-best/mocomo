@@ -154,7 +154,14 @@ export async function GET(
       auctionLive,
       minNextBid: auctionLive ? minNextBidAmount(listing) : null,
       workTitle: listing.workTitle ?? null,
+      animeSlug: listing.animeSlug ?? null,
       productType: listing.productType ?? null,
+      characterName: listing.characterName ?? null,
+      conditionGrade: listing.conditionGrade ?? null,
+      limitedKind: listing.limitedKind ?? null,
+      listingFormat: listing.listingFormat ?? null,
+      tradeMode: listing.tradeMode ?? null,
+      subcultureMeta: listing.subcultureMeta ?? null,
       seller: listing.seller
         ? {
             id: listing.seller.id,

@@ -14,10 +14,17 @@ import {
   maxUsedListingPriceLabel,
   USED_CATEGORIES,
   USED_CURRENCIES,
+  USED_PRODUCT_TYPES,
   type UsedCurrency,
 } from "@/lib/used-market";
-import { USED_PRODUCT_TYPES } from "@/lib/used-catalog";
+import { isTcgProductType } from "@/lib/subculture-commerce/catalog";
+import {
+  EMPTY_SUBCULTURE_FORM,
+  UsedSubcultureFields,
+  type UsedSubcultureFormState,
+} from "@/components/used/used-subculture-fields";
 import { UsedWorkTitleField } from "@/components/used/used-work-title-field";
+import { UsedLotTemplatePicker } from "@/components/used/used-lot-template-picker";
 import {
   AUCTION_DURATION_OPTIONS,
   DEFAULT_BID_INCREMENT,
@@ -69,7 +76,9 @@ export function UsedPostForm({
   const [isFree, setIsFree] = useState(false);
   const [category, setCategory] = useState("GOODS");
   const [workTitle, setWorkTitle] = useState("");
+  const [animeSlug, setAnimeSlug] = useState<string | null>(null);
   const [productType, setProductType] = useState("");
+  const [subculture, setSubculture] = useState<UsedSubcultureFormState>(EMPTY_SUBCULTURE_FORM);
   const initialRegion = (() => {
     if (defaultRegion && parseUsedRegion(defaultRegion)) return defaultRegion;
     return defaultUsedRegionForCountry(sellerCountry);
@@ -93,7 +102,7 @@ export function UsedPostForm({
   const priceMax = maxUsedListingPrice(currency);
   const priceOverLimit =
     !isFree && price.trim() !== "" && Number.isFinite(numericPrice) && numericPrice > priceMax;
-  const incrementPresets = bidIncrementPresets(currency);
+  const incrementPresets = bidIncrementPresets(currency, isTcgProductType(productType));
 
   function applyAiDraft(draft: UsedListingAiDraft) {
     setTitle(draft.title);
@@ -155,7 +164,16 @@ export function UsedPostForm({
       meetCountry: sellerCountryCode,
       images,
       workTitle: workTitle.trim() || undefined,
+      animeSlug: animeSlug ?? undefined,
       productType: productType || undefined,
+      characterName: subculture.characterName.trim() || undefined,
+      conditionGrade: subculture.conditionGrade || undefined,
+      limitedKind: subculture.limitedKind || undefined,
+      listingFormat: subculture.listingFormat || undefined,
+      tradeMode: saleType === "AUCTION" ? "SELL" : subculture.tradeMode || undefined,
+      itemOrigin: subculture.itemOrigin || undefined,
+      packagingState: subculture.packagingState || undefined,
+      subcultureMeta: Object.keys(subculture.meta).length ? subculture.meta : undefined,
       restrictedKind,
       isNsfw,
       saleType,
@@ -406,8 +424,36 @@ export function UsedPostForm({
         )}
       </div>
 
+      <UsedLotTemplatePicker
+        disabled={loading}
+        onApply={({ subculture: patch, productType: pt, titleHint, descriptionHint }) => {
+          setSubculture((prev) => ({
+            ...prev,
+            ...patch,
+            meta: { ...prev.meta, ...patch.meta },
+          }));
+          if (pt) setProductType(pt);
+          if (titleHint && !title.trim()) setTitle(titleHint);
+          if (descriptionHint && !description.trim()) setDescription(descriptionHint);
+        }}
+      />
+
+      <UsedSubcultureFields
+        productType={productType}
+        value={subculture}
+        onChange={setSubculture}
+        disabled={loading}
+        saleType={saleType}
+      />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <UsedWorkTitleField value={workTitle} onChange={setWorkTitle} disabled={loading} />
+        <UsedWorkTitleField
+          value={workTitle}
+          onChange={setWorkTitle}
+          animeSlug={animeSlug}
+          onAnimeSlugChange={setAnimeSlug}
+          disabled={loading}
+        />
         <div className="space-y-1">
           <label htmlFor="product-type" className="text-sm font-medium">
             상품 종류

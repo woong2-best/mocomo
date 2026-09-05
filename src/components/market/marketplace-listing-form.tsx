@@ -19,6 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ContentRatingSelect } from "@/components/forms/content-rating-select";
 import type { ContentRating } from "@prisma/client";
+import { UsedWorkTitleField } from "@/components/used/used-work-title-field";
+import { USED_PRODUCT_TYPES } from "@/lib/used-catalog";
+import {
+  EMPTY_SUBCULTURE_FORM,
+  UsedSubcultureFields,
+  type UsedSubcultureFormState,
+} from "@/components/used/used-subculture-fields";
 
 const PREFERRED_CARRIER_CHOICES = listAllMarketplaceCarriers();
 
@@ -46,6 +53,9 @@ export function MarketplaceListingForm() {
   const [optionValues, setOptionValues] = useState("");
   const [options, setOptions] = useState<{ name: string; values: string[] }[]>([]);
   const [contentRating, setContentRating] = useState<ContentRating>("GENERAL");
+  const [workTitle, setWorkTitle] = useState("");
+  const [productType, setProductType] = useState("");
+  const [subculture, setSubculture] = useState<UsedSubcultureFormState>(EMPTY_SUBCULTURE_FORM);
 
   const typeMeta = useMemo(
     () => MARKETPLACE_BROWSE_LISTING_TYPES.find((t) => t.id === type),
@@ -106,6 +116,16 @@ export function MarketplaceListingForm() {
         publish,
         contentRating,
         isNsfw: contentRating === "ADULT",
+        workTitle: workTitle.trim() || undefined,
+        productType: productType || undefined,
+        characterName: subculture.characterName.trim() || undefined,
+        conditionGrade: subculture.conditionGrade || undefined,
+        limitedKind: subculture.limitedKind || undefined,
+        listingFormat: subculture.listingFormat || undefined,
+        tradeMode: subculture.tradeMode || undefined,
+        itemOrigin: subculture.itemOrigin || undefined,
+        packagingState: subculture.packagingState || undefined,
+        subcultureMeta: Object.keys(subculture.meta).length ? subculture.meta : undefined,
       });
       if ("error" in res && res.error) {
         if ("code" in res && res.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE && "redirectTo" in res) {
@@ -154,6 +174,31 @@ export function MarketplaceListingForm() {
           placeholder="설명"
           rows={6}
           className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <UsedWorkTitleField value={workTitle} onChange={setWorkTitle} disabled={pending} />
+          <div className="space-y-1">
+            <label className="text-sm font-medium">상품 종류</label>
+            <select
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm h-11"
+              value={productType}
+              onChange={(e) => setProductType(e.target.value)}
+              disabled={pending}
+            >
+              <option value="">선택 (권장)</option>
+              {USED_PRODUCT_TYPES.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <UsedSubcultureFields
+          productType={productType}
+          value={subculture}
+          onChange={setSubculture}
+          disabled={pending}
         />
         <div className="grid gap-3 sm:grid-cols-2">
           <select

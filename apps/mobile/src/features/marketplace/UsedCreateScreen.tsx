@@ -27,6 +27,11 @@ import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import {
+  EMPTY_MOBILE_SUBCULTURE,
+  UsedSubcultureFormSection,
+  type MobileSubcultureFormState,
+} from "@/features/marketplace/UsedSubcultureFormSection";
 
 const CATEGORIES = [
   { id: "FIGURE", label: "피규어/프라모" },
@@ -67,6 +72,7 @@ export function UsedCreateScreen() {
   const [mime, setMime] = useState("image/jpeg");
   const [filename, setFilename] = useState("photo.jpg");
   const [isNsfw, setIsNsfw] = useState(false);
+  const [subculture, setSubculture] = useState<MobileSubcultureFormState>(EMPTY_MOBILE_SUBCULTURE);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
 
@@ -166,6 +172,14 @@ export function UsedCreateScreen() {
         images,
         saleType: "FIXED",
         isNsfw,
+        workTitle: subculture.workTitle.trim() || undefined,
+        animeSlug: subculture.animeSlug ?? undefined,
+        productType: subculture.productType || undefined,
+        characterName: subculture.characterName.trim() || undefined,
+        conditionGrade: subculture.conditionGrade || undefined,
+        limitedKind: subculture.limitedKind || undefined,
+        listingFormat: subculture.listingFormat || undefined,
+        tradeMode: subculture.tradeMode || undefined,
       });
       await queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
       Alert.alert("등록됨", "중고거래 글이 올라갔습니다.", [
@@ -252,6 +266,16 @@ export function UsedCreateScreen() {
             value={description}
             onChangeText={setDescription}
             multiline
+          />
+          <UsedSubcultureFormSection
+            value={subculture}
+            onChange={setSubculture}
+            onTitleHint={(hint) => {
+              if (!title.trim()) setTitle(hint);
+            }}
+            onDescriptionHint={(hint) => {
+              if (!description.trim()) setDescription(hint);
+            }}
           />
           <Text style={styles.label}>카테고리</Text>
           <View style={styles.chips}>

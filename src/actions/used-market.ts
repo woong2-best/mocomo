@@ -9,6 +9,9 @@ import {
   type UsedListingCategory,
   type UsedListingStatus,
   type UsedRestrictedKind,
+  type SubcultureConditionGrade,
+  type SubcultureLimitedKind,
+  type SubcultureTradeMode,
 } from "@prisma/client";
 import {
   getSidoRegionPrefix,
@@ -37,6 +40,11 @@ import {
   isValidProductType,
   normalizeWorkTitle,
 } from "@/lib/used-catalog";
+import { normalizeSubcultureListingInput } from "@/lib/subculture-commerce/normalize";
+import type { SubcultureListingInput } from "@/lib/subculture-commerce/types";
+import { resolveAnimeSlugFromWorkTitle } from "@/lib/subculture-commerce/anime-suggest";
+import { notifyWtbAlertsForListing } from "@/lib/subculture-commerce/wtb-alerts";
+import { finalizeUsedListingSold } from "@/lib/subculture-commerce/sale-records";
 import { isKakaoLocalConfigured } from "@/lib/kakao-local";
 import { geocodeMeetQuery } from "@/lib/maps/geocode";
 import { isKakaoMapCountry, normalizeMeetCountry } from "@/lib/maps/select-engine";
@@ -78,6 +86,14 @@ export async function getUsedListings(params?: {
   work?: string;
   /** 상품 종류 ID */
   product?: string;
+  /** SubcultureConditionGrade */
+  condition?: string;
+  /** SubcultureLimitedKind */
+  limited?: string;
+  /** SubcultureTradeMode */
+  trade?: string;
+  /** Anime wiki slug */
+  anime?: string;
 }) {
   const status = params?.status ?? "SELLING";
   const where: Prisma.UsedListingWhereInput = { status };
@@ -96,7 +112,9 @@ export async function getUsedListings(params?: {
   if (params?.category) where.category = params.category as UsedListingCategory;
 
   const workCompact = compactWorkKey(params?.work);
-  if (workCompact) {
+  if (params?.anime?.trim()) {
+    where.animeSlug = params.anime.trim();
+  } else if (workCompact) {
     andFilters.push({
       OR: [
         { workTitle: { contains: workCompact, mode: "insensitive" } },
@@ -107,6 +125,15 @@ export async function getUsedListings(params?: {
 
   if (params?.product?.trim() && isValidProductType(params.product.trim())) {
     where.productType = params.product.trim();
+  }
+  if (params?.condition?.trim()) {
+    where.conditionGrade = params.condition.trim() as SubcultureConditionGrade;
+  }
+  if (params?.limited?.trim()) {
+    where.limitedKind = params.limited.trim() as SubcultureLimitedKind;
+  }
+  if (params?.trade?.trim()) {
+    where.tradeMode = params.trade.trim() as SubcultureTradeMode;
   }
   if (params?.sido) {
     if (params.sido === "__shipping__") {
@@ -381,7 +408,7 @@ export async function createUsedListing(data: {
   productType?: string;
   isNsfw?: boolean;
   contentRating?: import("@prisma/client").ContentRating;
-}) {
+} & SubcultureListingInput) {
   const user = await requireAuth();
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
@@ -484,6 +511,14 @@ export async function createUsedListing(data: {
       }
     }
 
+    const subculture = normalizeSubcultureListingInput({
+      ...data,
+      tradeMode: isAuction ? "SELL" : data.tradeMode,
+    });
+    const normalizedWork = normalizeWorkTitle(data.workTitle);
+    const animeSlug =
+      subculture.animeSlug ?? (await resolveAnimeSlugFromWorkTitle(normalizedWork));
+
     const listing = await db.usedListing.create({
       data: {
         sellerId: user.id,
@@ -492,11 +527,22 @@ export async function createUsedListing(data: {
         price,
         currency,
         category: (data.category as UsedListingCategory) || "OTHER",
-        workTitle: normalizeWorkTitle(data.workTitle),
+        workTitle: normalizedWork,
+        animeSlug,
         productType:
           data.productType?.trim() && isValidProductType(data.productType.trim())
             ? data.productType.trim()
             : null,
+        characterName: subculture.characterName,
+        conditionGrade: subculture.conditionGrade,
+        limitedKind: subculture.limitedKind,
+        listingFormat: subculture.listingFormat,
+        tradeMode: subculture.tradeMode,
+        itemOrigin: subculture.itemOrigin,
+        packagingState: subculture.packagingState,
+        subcultureMeta: subculture.subcultureMeta
+          ? (subculture.subcultureMeta as Prisma.InputJsonValue)
+          : undefined,
         restrictedKind: restricted,
         region: data.region.trim(),
         meetPlace: meetPlaceTrim,
@@ -519,6 +565,7 @@ export async function createUsedListing(data: {
           : {}),
       },
     });
+    void notifyWtbAlertsForListing(listing.id).catch(() => undefined);
     revalidatePath("/used");
     revalidatePath("/used/my");
     return { listingId: listing.id };
@@ -557,6 +604,9 @@ export async function updateUsedListingStatus(listingId: string, status: UsedLis
   if (!listing || listing.sellerId !== user.id) return { error: "권한이 없습니다." };
 
   await db.usedListing.update({ where: { id: listingId }, data: { status } });
+  if (status === "SOLD") {
+    void finalizeUsedListingSold(listingId).catch(() => undefined);
+  }
   revalidatePath(`/used/${listingId}`);
   revalidatePath("/used/my");
   revalidatePath("/used");

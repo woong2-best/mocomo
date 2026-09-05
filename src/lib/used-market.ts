@@ -9,7 +9,11 @@ import {
 import { meetExternalMapUrl } from "@/lib/maps/external-url";
 import type { MeetCoords } from "@/lib/maps/types";
 import { formatPrice, formatUsd, MAX_USED_LISTING_PRICE_KRW, MAX_USED_LISTING_PRICE_USD_CENTS } from "@/lib/money";
-import { BID_INCREMENT_PRESETS } from "@/lib/used-auction";
+import {
+  BID_INCREMENT_PRESETS,
+  BID_INCREMENT_PRESETS_TCG_KRW,
+  BID_INCREMENT_PRESETS_TCG_USD,
+} from "@/lib/used-auction";
 
 export type { MeetCoords } from "@/lib/maps/types";
 
@@ -85,10 +89,11 @@ export const BID_INCREMENT_PRESETS_USD = [
   { value: 10_000, label: "$100" },
 ] as const;
 
-export function bidIncrementPresets(currency?: string | null) {
-  return normalizeUsedCurrency(currency) === "usd"
-    ? BID_INCREMENT_PRESETS_USD
-    : BID_INCREMENT_PRESETS;
+export function bidIncrementPresets(currency?: string | null, tcg = false) {
+  if (normalizeUsedCurrency(currency) === "usd") {
+    return tcg ? BID_INCREMENT_PRESETS_TCG_USD : BID_INCREMENT_PRESETS_USD;
+  }
+  return tcg ? BID_INCREMENT_PRESETS_TCG_KRW : BID_INCREMENT_PRESETS;
 }
 
 export function formatUsedTimeAgo(date: Date | string) {

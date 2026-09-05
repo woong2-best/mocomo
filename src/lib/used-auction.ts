@@ -24,6 +24,22 @@ export const BID_INCREMENT_PRESETS = [
   { value: 100_000, label: "10만 원" },
 ] as const;
 
+/** 저가 카드·lot 경매용 */
+export const BID_INCREMENT_PRESETS_TCG_KRW = [
+  { value: 100, label: "100원" },
+  { value: 500, label: "500원" },
+  { value: 1_000, label: "1,000원" },
+  { value: 5_000, label: "5,000원" },
+  { value: 10_000, label: "1만 원" },
+] as const;
+
+export const BID_INCREMENT_PRESETS_TCG_USD = [
+  { value: 10, label: "$0.10" },
+  { value: 50, label: "$0.50" },
+  { value: 100, label: "$1" },
+  { value: 500, label: "$5" },
+] as const;
+
 export type AuctionListingSlice = {
   saleType: UsedSaleType;
   price: number;

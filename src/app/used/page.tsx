@@ -24,9 +24,14 @@ async function UsedFeed({
     mode?: string;
     work?: string;
     product?: string;
+    condition?: string;
+    limited?: string;
+    trade?: string;
+    anime?: string;
   }>;
 }) {
-  const { q, category, region, country, sido, mode, work, product } = await searchParams;
+  const { q, category, region, country, sido, mode, work, product, condition, limited, trade, anime } =
+    await searchParams;
 
   const [dbReady, listings, session] = await Promise.all([
     isUsedDbReady(),
@@ -38,6 +43,10 @@ async function UsedFeed({
       sido,
       work,
       product,
+      condition,
+      limited,
+      trade,
+      anime,
       status: "SELLING",
       liveAuctionOnly: mode === "auction",
     }),
