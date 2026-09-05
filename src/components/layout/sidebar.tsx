@@ -42,11 +42,11 @@ export function Sidebar() {
     >
       <aside
         className={cn(
-          "flex h-full w-[17rem] xl:w-[18rem] flex-col shrink-0 shell-col-pad shell-col-divider-r folk-sidebar-panel space-y-3 overflow-y-auto overscroll-contain",
+          "flex h-full w-[17rem] xl:w-[18rem] flex-col shrink-0 shell-col-pad shell-col-divider-r folk-sidebar-panel space-y-3 overflow-hidden overscroll-none",
           !open && "pointer-events-none invisible"
         )}
       >
-        <nav className="flex flex-col gap-2 pr-1">
+        <nav className="flex flex-col gap-2">
           {navItems.map(({ href, icon: Icon, labelKey }) => (
             <Link
               key={href}

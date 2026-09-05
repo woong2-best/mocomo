@@ -647,11 +647,19 @@ html[data-client="app"] .native-live-pad {
   }
 
   .folk-sidebar-panel {
-    @apply relative overflow-hidden;
+    @apply relative overflow-hidden overscroll-none;
     background-image: url("/home/sidebar-bg.png");
     background-size: cover;
     background-position: center bottom;
     background-repeat: no-repeat;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .folk-sidebar-panel::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   .folk-sidebar-panel.shell-col-divider-r {
