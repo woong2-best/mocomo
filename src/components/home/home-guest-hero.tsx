@@ -23,17 +23,22 @@ export function HomeGuestHero() {
 
   return (
     <div className="folk-hero-banner">
-      <FolkSectionTitle className="mb-3">
+      <FolkSectionTitle className="mb-3 text-white drop-shadow-sm">
         {t("home.welcome", { brand: BRAND.name })}
       </FolkSectionTitle>
-      <p className="text-muted-foreground mt-3 max-w-lg font-medium leading-relaxed whitespace-pre-line">
+      <p className="mt-3 max-w-lg font-medium leading-relaxed whitespace-pre-line text-white/90 drop-shadow-sm">
         {t("home.guestDescription")}
       </p>
       <div className="flex flex-wrap gap-3 mt-6">
         <Button asChild size="lg" className="rounded-xl shadow-folk">
           <Link href="/auth/signup">{t("home.signUpFree")}</Link>
         </Button>
-        <Button asChild size="lg" variant="outline" className="rounded-xl border-2 border-folk-cobalt/40">
+        <Button
+          asChild
+          size="lg"
+          variant="outline"
+          className="rounded-xl border-2 border-white/50 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
+        >
           <Link href="/auth/signin">{t("nav.signin")}</Link>
         </Button>
       </div>
