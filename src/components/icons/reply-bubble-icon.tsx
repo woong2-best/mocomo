@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** 답글/댓글 — 말풍선 아웃라인. `currentColor` → 라이트 검정 · 다크 흰색 */
+/** 답글 — 왼쪽 곡선 화살표. `currentColor` → 라이트 검정 · 다크 흰색 */
 export function ReplyBubbleIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -11,11 +11,11 @@ export function ReplyBubbleIcon({ className }: { className?: string }) {
       aria-hidden
     >
       <path
-        d="M7 3.75h10a2.75 2.75 0 0 1 2.75 2.75v6.75A2.75 2.75 0 0 1 17 16H11.8L8.2 19.4V16H7A2.75 2.75 0 0 1 4.25 13.25V6.5A2.75 2.75 0 0 1 7 3.75Z"
+        d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6"
         stroke="currentColor"
-        strokeWidth="1.85"
-        strokeLinejoin="round"
+        strokeWidth="2.25"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
