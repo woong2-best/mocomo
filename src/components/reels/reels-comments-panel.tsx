@@ -18,7 +18,7 @@ import {
   Pin,
   X,
 } from "lucide-react";
-import { cn, formatNumber } from "@/lib/utils";
+import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
 import { CommentForm } from "@/components/post/comment-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -579,9 +579,10 @@ function CommentRow({
           {viewerId && (
             <button
               type="button"
-              className="hover:text-white/70"
+              className="inline-flex items-center gap-1 hover:text-white/70"
               onClick={() => setReplyOpen((v) => !v)}
             >
+              <ReplyBubbleIcon className="h-3.5 w-3.5" />
               답글 달기
             </button>
           )}

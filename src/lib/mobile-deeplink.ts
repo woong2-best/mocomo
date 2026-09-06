@@ -15,6 +15,10 @@ export function mobileDeepLinkFromPath(path: string): string {
     const id = p.slice("/voice/".length).split(/[?#]/)[0];
     if (id) return `mocomo://live/${id}`;
   }
+  if (p.startsWith("/post/")) {
+    const id = p.slice("/post/".length).split(/[?#]/)[0];
+    if (id) return `mocomo://post/${id}`;
+  }
   if (p.startsWith("/notifications")) return "mocomo://activity";
   if (p === "/MarketSellItem" || p.startsWith("/MarketSellItem")) {
     return "mocomo://open?path=MarketSellItem";

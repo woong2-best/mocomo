@@ -6,13 +6,13 @@ import { useSession } from "next-auth/react";
 import {
   Heart,
   Maximize2,
-  MessageSquare,
   Minimize2,
   Star,
   Volume2,
   VolumeX,
 } from "lucide-react";
 import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
+import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
 import { cn, formatNumber } from "@/lib/utils";
 import { prefetchPostComments } from "@/lib/comments-prefetch-cache";
 import { MotionPop } from "@/components/motion/motion-primitives";
@@ -106,7 +106,7 @@ export function ReelsActions({
           onPointerDown={() => prefetchPostComments(reel.postId)}
           onClick={onComment}
         >
-          <MessageSquare className="h-7 w-7 drop-shadow-md" />
+          <ReplyBubbleIcon className="h-7 w-7 drop-shadow-md" />
           <span className="text-[11px] font-semibold tabular-nums drop-shadow">
             {formatNumber(displayCommentCount)}
           </span>
@@ -117,7 +117,7 @@ export function ReelsActions({
           className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
           aria-label="Comments"
         >
-          <MessageSquare className="h-7 w-7 drop-shadow-md" />
+          <ReplyBubbleIcon className="h-7 w-7 drop-shadow-md" />
           <span className="text-[11px] font-semibold tabular-nums drop-shadow">
             {formatNumber(displayCommentCount)}
           </span>

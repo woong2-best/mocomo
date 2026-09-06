@@ -1,5 +1,4 @@
 import { sendFcmToUser, isFcmConfigured } from "@/lib/fcm-push";
-import { isWebPushConfigured, sendUserWebPush } from "@/lib/web-push";
 
 export type MobilePushInput = {
   userId: string;
@@ -8,46 +7,25 @@ export type MobilePushInput = {
   url?: string;
   tag?: string;
   type?: string;
-  /** FCM data payload (roomId, callId, etc.) */
+  /** FCM data payload (roomId, callId, postId, categoryId, etc.) */
   data?: Record<string, string>;
 };
 
-/** Web Push + FCM 동시 시도 (설정된 채널만) */
+/** Native app FCM only — web push is intentionally disabled. */
 export async function deliverMobilePush(input: MobilePushInput): Promise<void> {
-  const tasks: Promise<void>[] = [];
-  const pushType = input.type || "notification";
+  if (!isFcmConfigured()) return;
 
-  if (isWebPushConfigured()) {
-    tasks.push(
-      sendUserWebPush({
-        userId: input.userId,
-        title: input.title,
-        body: input.body,
-        url: input.url,
-        tag: input.tag,
-        type: pushType,
-        urgency: pushType === "incoming_call" ? "high" : "normal",
-      })
-    );
-  }
-
-  if (isFcmConfigured()) {
-    tasks.push(
-      sendFcmToUser({
-        userId: input.userId,
-        title: input.title,
-        body: input.body,
-        url: input.url,
-        tag: input.tag,
-        type: pushType,
-      })
-    );
-  }
-
-  if (tasks.length === 0) return;
-  await Promise.allSettled(tasks);
+  await sendFcmToUser({
+    userId: input.userId,
+    title: input.title,
+    body: input.body,
+    url: input.url,
+    tag: input.tag,
+    type: input.type,
+    data: input.data,
+  });
 }
 
 export function isAnyPushConfigured(): boolean {
-  return isWebPushConfigured() || isFcmConfigured();
+  return isFcmConfigured();
 }

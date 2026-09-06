@@ -3,6 +3,11 @@ import { db } from "@/lib/db";
 import { extractMentionUsernames } from "@/lib/mention-utils";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
 import { formatUsd } from "@/lib/money";
+import {
+  buildPostInteractionPushData,
+  extractPostIdFromLink,
+  isPostInteractionPush,
+} from "@/lib/post-push-enrich";
 
 export type NotificationInput = {
   userId: string;
@@ -29,8 +34,24 @@ export async function createNotification(data: NotificationInput): Promise<void>
       },
     });
     void import("@/lib/mobile-push")
-      .then(({ deliverMobilePush }) => {
+      .then(async ({ deliverMobilePush }) => {
         const pushType = data.type === "call" ? "incoming_call" : data.type;
+        let pushData = data.pushData;
+
+        if (isPostInteractionPush(data.type, data.link)) {
+          const postId = extractPostIdFromLink(data.link);
+          if (postId) {
+            pushData = {
+              ...(pushData ?? {}),
+              ...(await buildPostInteractionPushData({
+                postId,
+                actorId: data.actorId,
+                body: data.body,
+              })),
+            };
+          }
+        }
+
         return deliverMobilePush({
           userId: data.userId,
           title: data.title,
@@ -38,7 +59,7 @@ export async function createNotification(data: NotificationInput): Promise<void>
           url: data.link,
           tag: `sns-${data.type}`,
           type: pushType,
-          data: data.pushData,
+          data: pushData,
         });
       })
       .catch(() => undefined);
@@ -476,17 +497,6 @@ export async function notifyIncomingCall(
       callerId,
       ...(chatRoomId ? { chatRoomId } : {}),
     },
-  });
-  after(async () => {
-    const { sendIncomingCallPush } = await import("@/lib/web-push");
-    await sendIncomingCallPush({
-      calleeId,
-      callerId,
-      callId,
-      callerName: label,
-      callType,
-      chatRoomId,
-    });
   });
 }
 

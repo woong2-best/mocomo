@@ -2,6 +2,7 @@ import { cert, getApps, initializeApp, type ServiceAccount } from "firebase-admi
 import { getMessaging } from "firebase-admin/messaging";
 import { db } from "@/lib/db";
 import { mobileDeepLinkFromPath } from "@/lib/mobile-deeplink";
+import { POST_INTERACTION_CATEGORY } from "@/lib/post-push-enrich";
 
 export type FcmPushPayload = {
   userId: string;
@@ -13,6 +14,8 @@ export type FcmPushPayload = {
   type?: string;
   data?: Record<string, string>;
 };
+
+type PushToken = { id: string; token: string; platform: string };
 
 type ServiceAccountJson = {
   project_id?: string;
@@ -62,8 +65,16 @@ function ensureFirebaseApp(): boolean {
   return true;
 }
 
+function isPostInteraction(payload: FcmPushPayload): boolean {
+  return payload.data?.categoryId === POST_INTERACTION_CATEGORY;
+}
+
+function notificationBody(payload: FcmPushPayload): string {
+  return payload.data?.preview?.trim() || payload.body;
+}
+
 /** FCM HTTP v1 (firebase-admin) — FIREBASE_SERVICE_ACCOUNT JSON env */
-async function sendFcmV1(payload: FcmPushPayload, tokens: { id: string; token: string }[]) {
+async function sendFcmV1(payload: FcmPushPayload, tokens: PushToken[]) {
   if (!ensureFirebaseApp()) return;
   const messaging = getMessaging();
 
@@ -74,23 +85,45 @@ async function sendFcmV1(payload: FcmPushPayload, tokens: { id: string; token: s
     payload.deeplink ||
     (payload.url ? mobileDeepLinkFromPath(payload.url) : "mocomo://activity");
   const isCall = pushType === "incoming_call";
-  const channelId = isCall ? "calls" : pushType === "dm" ? "messages" : "default";
+  const postInteraction = isPostInteraction(payload);
+  const channelId = isCall ? "calls" : pushType === "dm" ? "messages" : postInteraction ? "social" : "default";
+  const imageUrl = payload.data?.imageUrl?.trim() || undefined;
+  const subtitle = payload.data?.subtitle?.trim() || undefined;
+  const displayBody = notificationBody(payload);
 
   const data: Record<string, string> = {
     type: pushType,
     url: payload.url || `${appUrl}/notifications`,
     deeplink,
+    title: payload.title,
+    body: displayBody,
     ...(payload.data ?? {}),
   };
 
   await Promise.all(
-    tokens.map(async ({ id, token }) => {
+    tokens.map(async ({ id, token, platform }) => {
       try {
+        const isAndroid = platform === "android";
+
+        if (postInteraction && isAndroid) {
+          // Data-only: Android background task presents local notification with PNG action buttons.
+          await messaging.send({
+            token,
+            data: {
+              ...data,
+              categoryId: POST_INTERACTION_CATEGORY,
+            },
+            android: { priority: "high" },
+          });
+          return;
+        }
+
         await messaging.send({
           token,
           notification: {
             title: payload.title,
-            body: payload.body,
+            body: displayBody,
+            imageUrl,
           },
           data,
           android: {
@@ -99,16 +132,27 @@ async function sendFcmV1(payload: FcmPushPayload, tokens: { id: string; token: s
               channelId,
               tag: payload.tag || "mocomo",
               sound: isCall ? "default" : undefined,
+              imageUrl,
             },
           },
           apns: {
-            headers: isCall ? { "apns-priority": "10" } : undefined,
+            headers: isCall || postInteraction ? { "apns-priority": "10" } : undefined,
             payload: {
               aps: {
+                alert: postInteraction
+                  ? {
+                      title: payload.title,
+                      subtitle,
+                      body: displayBody,
+                    }
+                  : undefined,
                 sound: isCall ? "default" : undefined,
+                category: postInteraction ? POST_INTERACTION_CATEGORY : undefined,
+                mutableContent: postInteraction && imageUrl ? true : undefined,
                 contentAvailable: true,
               },
             },
+            fcmOptions: imageUrl ? { imageUrl } : undefined,
           },
         });
       } catch (e: unknown) {
@@ -127,7 +171,7 @@ async function sendFcmV1(payload: FcmPushPayload, tokens: { id: string; token: s
 }
 
 /** @deprecated Legacy HTTP API — FIREBASE_SERVER_KEY. Prefer FIREBASE_SERVICE_ACCOUNT. */
-async function sendFcmLegacy(payload: FcmPushPayload, tokens: { id: string; token: string }[]) {
+async function sendFcmLegacy(payload: FcmPushPayload, tokens: PushToken[]) {
   const serverKey = legacyServerKey();
   if (!serverKey) return;
 
@@ -138,10 +182,48 @@ async function sendFcmLegacy(payload: FcmPushPayload, tokens: { id: string; toke
     payload.deeplink ||
     (payload.url ? mobileDeepLinkFromPath(payload.url) : "mocomo://activity");
   const isCall = pushType === "incoming_call";
+  const postInteraction = isPostInteraction(payload);
+  const displayBody = notificationBody(payload);
+  const imageUrl = payload.data?.imageUrl?.trim();
 
   await Promise.all(
-    tokens.map(async ({ id, token }) => {
+    tokens.map(async ({ id, token, platform }) => {
       try {
+        const isAndroid = platform === "android";
+        const dataPayload = {
+          type: pushType,
+          url: payload.url || `${appUrl}/notifications`,
+          deeplink,
+          title: payload.title,
+          body: displayBody,
+          ...(payload.data ?? {}),
+        };
+
+        if (postInteraction && isAndroid) {
+          const res = await fetch("https://fcm.googleapis.com/fcm/send", {
+            method: "POST",
+            headers: {
+              Authorization: `key=${serverKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              to: token,
+              priority: "high",
+              data: {
+                ...dataPayload,
+                categoryId: POST_INTERACTION_CATEGORY,
+              },
+            }),
+          });
+          if (!res.ok) {
+            const text = await res.text().catch(() => "");
+            if (text.includes("NotRegistered") || text.includes("InvalidRegistration")) {
+              stale.push(id);
+            }
+          }
+          return;
+        }
+
         const res = await fetch("https://fcm.googleapis.com/fcm/send", {
           method: "POST",
           headers: {
@@ -153,19 +235,15 @@ async function sendFcmLegacy(payload: FcmPushPayload, tokens: { id: string; toke
             priority: "high",
             notification: {
               title: payload.title,
-              body: payload.body,
+              body: displayBody,
               icon: `${appUrl}/mocomo-logo.png`,
               click_action: payload.url || `${appUrl}/notifications`,
               tag: payload.tag || "mocomo",
               sound: isCall ? "default" : undefined,
-              android_channel_id: isCall ? "calls" : pushType === "dm" ? "messages" : "default",
+              android_channel_id: isCall ? "calls" : pushType === "dm" ? "messages" : postInteraction ? "social" : "default",
+              image: imageUrl || undefined,
             },
-            data: {
-              type: pushType,
-              url: payload.url || `${appUrl}/notifications`,
-              deeplink,
-              ...(payload.data ?? {}),
-            },
+            data: dataPayload,
           }),
         });
         if (!res.ok) {
@@ -190,7 +268,7 @@ export async function sendFcmToUser(payload: FcmPushPayload): Promise<void> {
 
   const tokens = await db.mobilePushToken.findMany({
     where: { userId: payload.userId },
-    select: { id: true, token: true },
+    select: { id: true, token: true, platform: true },
   });
   if (tokens.length === 0) return;
 

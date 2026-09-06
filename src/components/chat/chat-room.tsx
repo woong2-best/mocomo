@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CornerUpLeft, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
 import type { SupportTierLevel } from "@prisma/client";
 import { sendMessage } from "@/actions/chat";
 import { deleteCommunityChatMessage } from "@/actions/community-content";
@@ -627,7 +628,7 @@ export function ChatRoomClient({
                         className="h-7 w-7 rounded-md bg-muted/70 hover:bg-muted border border-border/40 flex items-center justify-center text-muted-foreground opacity-80 hover:opacity-100 transition-opacity"
                         aria-label="답장"
                       >
-                        <CornerUpLeft className="h-3.5 w-3.5" />
+                        <ReplyBubbleIcon className="h-3.5 w-3.5" />
                       </button>
                       {canDeleteMessages && communityId && (
                         <button

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ExternalLink, Heart, MessageSquare, BarChart2, Bookmark, Share2 } from "lucide-react";
+import { ExternalLink, Heart, BarChart2, Bookmark, Share2 } from "lucide-react";
+import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
 
 type FeedAd = {
@@ -93,7 +94,7 @@ export function FeedAdCard({ ad }: { ad: FeedAd }) {
       <div className="flex items-center justify-between px-4 py-2 border-t border-border/60 text-muted-foreground">
         <div className="flex items-center gap-1 text-xs">
           <span className="flex items-center gap-1 min-h-8 px-2 rounded-lg opacity-60">
-            <MessageSquare className="h-4 w-4" />
+            <ReplyBubbleIcon className="h-4 w-4" />
           </span>
           <span className="flex items-center gap-1 min-h-8 px-2 rounded-lg opacity-60">
             <Heart className="h-4 w-4" />

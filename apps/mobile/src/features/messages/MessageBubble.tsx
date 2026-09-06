@@ -2,6 +2,7 @@ import { memo, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { ReplyBubbleIcon } from "@/ui/icons/ReplyBubbleIcon";
 import type { ChatMessage } from "@/api/messages";
 import { ChatReplyQuote } from "@/features/messages/ChatReplyQuote";
 import { ChatSharedPostCard } from "@/features/messages/ChatSharedPostCard";
@@ -248,7 +249,7 @@ function ReplyButton({
   const { colors } = useTheme();
   return (
     <Pressable onPress={onPress} hitSlop={10} style={styles.replyBtn} accessibilityLabel="답장">
-      <Ionicons name="arrow-undo-outline" size={16} color={colors.textMuted} />
+      <ReplyBubbleIcon size={16} color={colors.text} />
     </Pressable>
   );
 }

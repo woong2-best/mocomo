@@ -3,7 +3,8 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageSquare, Star } from "lucide-react";
+import { Heart, Star } from "lucide-react";
+import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { formatNumber } from "@/lib/utils";
@@ -155,7 +156,7 @@ export function FeedPostCard({
               {formatNumber(post._count?.likes ?? 0)}
             </span>
             <span className="flex items-center gap-0.5 hover:text-neon-cyan">
-              <MessageSquare className="h-3.5 w-3.5" />
+              <ReplyBubbleIcon className="h-3.5 w-3.5" />
               {formatNumber(post._count?.comments ?? 0)}
             </span>
             <PostShareMenu

@@ -7,9 +7,9 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Heart,
-  MessageSquare,
   Bookmark,
 } from "lucide-react";
+import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
@@ -169,7 +169,7 @@ export function FeedPhotoPostCard({
               href={`/post/${post.id}#comments`}
               className="flex items-center gap-1.5 min-h-9 hover:opacity-70"
             >
-              <MessageSquare className="h-6 w-6" strokeWidth={1.5} />
+              <ReplyBubbleIcon className="h-6 w-6" />
               {(post._count?.comments ?? 0) > 0 && (
                 <span className="text-sm font-medium tabular-nums">
                   {formatCompactNumberKo(post._count?.comments ?? 0)}

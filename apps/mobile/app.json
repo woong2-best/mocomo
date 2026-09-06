@@ -2,7 +2,7 @@
   "expo": {
     "name": "MoCoMo",
     "slug": "mocomo",
-    "version": "1.0.100",
+    "version": "1.0.105",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -11,7 +11,6 @@
       "policy": "appVersion"
     },
     "plugins": [
-      "@react-native-google-signin/google-signin",
       "expo-secure-store",
       "expo-image",
       "expo-video",
@@ -31,9 +30,11 @@
         {
           "icon": "./assets/android-icon-monochrome.png",
           "color": "#2E4A8E",
-          "defaultChannel": "default"
+          "defaultChannel": "default",
+          "enableBackgroundRemoteNotifications": true
         }
       ],
+      "./plugins/with-notification-actions",
       [
         "expo-location",
         {
@@ -46,7 +47,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "net.mocomo.app",
-      "buildNumber": "99",
+      "buildNumber": "100",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification",
@@ -62,7 +63,7 @@
     "android": {
       "package": "net.mocomo.app",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 105,
+      "versionCode": 110,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#F5F0E8",
@@ -96,7 +97,7 @@
       "apiBaseUrl": "https://mocomo.net",
       "socketUrl": "https://mocomo.net",
       "kakaoNativeAppKey": "b52b08185d2635a1cbeefd2d7236919d",
-      "googleWebClientId": "382483122683-0bqhh4dl4r8k7ogcu6802j4sg2ckeait.apps.googleusercontent.com"
+      "googleWebClientId": "105871724562-4kfgodg2c21c5tat84nqim1daj2ipnok.apps.googleusercontent.com"
     },
     "owner": "replace-with-expo-username"
   }
