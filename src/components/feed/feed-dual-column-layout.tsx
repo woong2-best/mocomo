@@ -60,7 +60,7 @@ export function FeedDualColumnLayout({
   }
 
   return (
-    <div className={cn("mx-auto flex w-full flex-col max-w-[600px]")}>
+    <div className={cn("mx-auto flex w-full flex-col")}>
       {items.map((item, i) => renderItem(item, `feed-${i}`, i))}
     </div>
   );

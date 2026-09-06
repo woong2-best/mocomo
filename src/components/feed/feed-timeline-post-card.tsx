@@ -101,7 +101,10 @@ export function FeedTimelinePostCard({
               )}
               {post.content && (
                 <div
-                  className="cursor-pointer"
+                  className={cn(
+                    "cursor-pointer",
+                    !hasMedia && "min-h-[9.5rem]"
+                  )}
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest("a, button, [role='link']")) return;
                     router.push(`/post/${post.id}`);
