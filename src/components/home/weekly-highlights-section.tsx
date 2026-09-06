@@ -7,6 +7,9 @@ import { formatNumber } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { WeeklyHighlightPost } from "@/lib/weekly-highlights";
 
+const HIGHLIGHT_GRID =
+  "grid grid-cols-[1.75rem_minmax(0,1fr)_5.5rem_3.25rem] items-center gap-x-2";
+
 function HighlightRow({
   post,
   rank,
@@ -26,7 +29,7 @@ function HighlightRow({
   return (
     <Link
       href={`/post/${post.id}`}
-      className="grid grid-cols-[1.75rem_minmax(0,1fr)_5.5rem_3.25rem] items-center gap-x-2 border-b border-border/70 px-2.5 py-[7px] text-[13px] leading-snug last:border-b-0 hover:bg-muted/40"
+      className={`${HIGHLIGHT_GRID} border-b border-border/70 px-2.5 py-[7px] text-[13px] leading-snug last:border-b-0 hover:bg-muted/40`}
     >
       <span
         className={
@@ -74,6 +77,7 @@ function HighlightColumn({
   likesLabel,
   viewsLabel,
   emptyLabel,
+  splitPosition,
 }: {
   title: string;
   posts: WeeklyHighlightPost[];
@@ -81,36 +85,39 @@ function HighlightColumn({
   likesLabel: string;
   viewsLabel: string;
   emptyLabel: string;
+  splitPosition: "left" | "right";
 }) {
-  if (posts.length === 0) {
-    return (
-      <div className="border border-border/70 px-3 py-4 text-center text-sm text-muted-foreground">
-        {emptyLabel}
-      </div>
-    );
-  }
-
   const statLabel = kind === "likes" ? likesLabel : viewsLabel;
+  const splitBorder =
+    splitPosition === "left"
+      ? "border-b border-border/70 lg:border-b-0 lg:border-r"
+      : "";
 
   return (
-    <div className="overflow-hidden border border-border/70 bg-card">
-      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_5.5rem_3.25rem] items-center gap-x-2 border-b border-border/70 bg-muted/55 px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground">
+    <div className={`min-w-0 ${splitBorder} border-border/70`}>
+      <div
+        className={`${HIGHLIGHT_GRID} border-b border-border/70 bg-muted/55 px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground`}
+      >
         <span className="text-center">#</span>
         <h3 className="text-[13px] font-bold tracking-tight text-foreground">{title}</h3>
         <span />
         <span className="text-right">{statLabel}</span>
       </div>
-      <div>
-        {posts.map((post, i) => (
-          <HighlightRow
-            key={post.id}
-            post={post}
-            rank={i + 1}
-            stat={kind === "likes" ? post.weeklyLikes : post.viewCount}
-            statLabel={statLabel}
-          />
-        ))}
-      </div>
+      {posts.length === 0 ? (
+        <div className="px-3 py-4 text-center text-sm text-muted-foreground">{emptyLabel}</div>
+      ) : (
+        <div>
+          {posts.map((post, i) => (
+            <HighlightRow
+              key={post.id}
+              post={post}
+              rank={i + 1}
+              stat={kind === "likes" ? post.weeklyLikes : post.viewCount}
+              statLabel={statLabel}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -135,23 +142,27 @@ export function WeeklyHighlightsSection({
         <h2 className="text-[15px] font-bold tracking-tight">{t("home.highlightsTitle")}</h2>
         <span className="pb-0.5 text-[11px] text-muted-foreground">{t("home.highlightsMeta")}</span>
       </div>
-      <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2 lg:gap-4">
-        <HighlightColumn
-          title={likesTitle}
-          posts={topLiked}
-          kind="likes"
-          likesLabel={t("home.likes")}
-          viewsLabel={t("home.views")}
-          emptyLabel={t("home.highlightsEmpty", { title: likesTitle })}
-        />
-        <HighlightColumn
-          title={viewsTitle}
-          posts={topViewed}
-          kind="views"
-          likesLabel={t("home.likes")}
-          viewsLabel={t("home.views")}
-          emptyLabel={t("home.highlightsEmpty", { title: viewsTitle })}
-        />
+      <div className="overflow-hidden border border-border/70 bg-card">
+        <div className="grid grid-cols-1 lg:grid-cols-2">
+          <HighlightColumn
+            title={likesTitle}
+            posts={topLiked}
+            kind="likes"
+            likesLabel={t("home.likes")}
+            viewsLabel={t("home.views")}
+            emptyLabel={t("home.highlightsEmpty", { title: likesTitle })}
+            splitPosition="left"
+          />
+          <HighlightColumn
+            title={viewsTitle}
+            posts={topViewed}
+            kind="views"
+            likesLabel={t("home.likes")}
+            viewsLabel={t("home.views")}
+            emptyLabel={t("home.highlightsEmpty", { title: viewsTitle })}
+            splitPosition="right"
+          />
+        </div>
       </div>
     </section>
   );
