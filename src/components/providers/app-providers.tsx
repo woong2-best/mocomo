@@ -11,6 +11,8 @@ import { FeedPhotoLightboxProvider } from "@/components/media/feed-photo-lightbo
 import { PublishedToastProvider } from "@/components/providers/published-toast-provider";
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
 import { TopProgressProvider } from "@/components/providers/top-progress-provider";
+import { ClientTranslationProvider } from "@/components/providers/client-translation-provider";
+import { ClientTranslationWarmup } from "@/components/client-translation/client-translation-warmup";
 import type { Locale } from "@/lib/i18n/config";
 import { PortOneIdentityScript } from "@/components/adult-verification/portone-identity-sdk";
 
@@ -69,28 +71,31 @@ export function AppProviders({
         initialTimeZone={initialTimeZone}
       >
         <TopProgressProvider>
-        <AppSocketProvider>
-          <QueryProvider>
-          <PublishedToastProvider>
-          <FeedPhotoLightboxProvider>
-          <ComposeProvider>
-            <SidebarToggleProvider>
-              <StaleDeploymentRecovery />
-              <PortOneIdentityScript />
-              <PushRegistration />
-              <NativePushRegistration />
-              <CheckoutResumeHandler />
-              <CallProviderGate>
-                <PlatformBootstrapClient />
-                <AddAccountFlowHandler />
-                {children}
-              </CallProviderGate>
-            </SidebarToggleProvider>
-          </ComposeProvider>
-          </FeedPhotoLightboxProvider>
-          </PublishedToastProvider>
-          </QueryProvider>
-        </AppSocketProvider>
+          <ClientTranslationProvider>
+            <AppSocketProvider>
+              <QueryProvider>
+                <PublishedToastProvider>
+                  <FeedPhotoLightboxProvider>
+                    <ComposeProvider>
+                      <SidebarToggleProvider>
+                        <StaleDeploymentRecovery />
+                        <ClientTranslationWarmup />
+                        <PortOneIdentityScript />
+                        <PushRegistration />
+                        <NativePushRegistration />
+                        <CheckoutResumeHandler />
+                        <CallProviderGate>
+                          <PlatformBootstrapClient />
+                          <AddAccountFlowHandler />
+                          {children}
+                        </CallProviderGate>
+                      </SidebarToggleProvider>
+                    </ComposeProvider>
+                  </FeedPhotoLightboxProvider>
+                </PublishedToastProvider>
+              </QueryProvider>
+            </AppSocketProvider>
+          </ClientTranslationProvider>
         </TopProgressProvider>
       </LocaleProvider>
     </SessionProvider>

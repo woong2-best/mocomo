@@ -34,7 +34,23 @@ const nextConfig: NextConfig = {
       process.env.VERCEL_GIT_COMMIT_REF ??
       "local",
   },
-  transpilePackages: ["@mediapipe/tasks-vision", "@pixiv/three-vrm", "three"],
+  transpilePackages: [
+    "@mediapipe/tasks-vision",
+    "@pixiv/three-vrm",
+    "three",
+    "@huggingface/transformers",
+  ],
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...(config.externals as string[] | undefined ?? []), "@huggingface/transformers"];
+    }
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      sharp$: false,
+      "onnxruntime-node$": false,
+    };
+    return config;
+  },
   // Lint runs in CI via `npm run lint`; in-build linting adds several hundred MB
   // to an already memory-tight build container.
   eslint: { ignoreDuringBuilds: true },
