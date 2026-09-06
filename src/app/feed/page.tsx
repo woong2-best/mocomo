@@ -36,8 +36,8 @@ export default function FeedPage() {
           <div className="mb-6 space-y-2 animate-pulse">
             <div className="h-4 w-32 rounded bg-muted" />
             <div className="grid grid-cols-2 gap-3">
-              <div className="h-24 rounded-xl bg-muted" />
-              <div className="h-24 rounded-xl bg-muted" />
+              <div className="h-24 rounded-2xl bg-muted" />
+              <div className="h-24 rounded-2xl bg-muted" />
             </div>
           </div>
         }

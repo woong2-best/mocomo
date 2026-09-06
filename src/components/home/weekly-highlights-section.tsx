@@ -8,7 +8,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import type { WeeklyHighlightPost } from "@/lib/weekly-highlights";
 
 const HIGHLIGHT_GRID =
-  "grid grid-cols-[1.75rem_minmax(0,1fr)_5.5rem_3.25rem] items-center gap-x-2";
+  "grid grid-cols-[1.75rem_minmax(0,1fr)_5.5rem_3.25rem] items-center gap-x-3";
 
 function HighlightRow({
   post,
@@ -29,7 +29,7 @@ function HighlightRow({
   return (
     <Link
       href={`/post/${post.id}`}
-      className={`${HIGHLIGHT_GRID} border-b border-border/70 px-2.5 py-[7px] text-[13px] leading-snug last:border-b-0 hover:bg-muted/40`}
+      className={`${HIGHLIGHT_GRID} border-b border-border/60 px-4 py-2 text-sm leading-snug last:border-b-0 hover:bg-muted/40`}
     >
       <span
         className={
@@ -90,16 +90,16 @@ function HighlightColumn({
   const statLabel = kind === "likes" ? likesLabel : viewsLabel;
   const splitBorder =
     splitPosition === "left"
-      ? "border-b border-border/70 lg:border-b-0 lg:border-r"
+      ? "border-b border-border/60 lg:border-b-0 lg:border-r"
       : "";
 
   return (
-    <div className={`min-w-0 ${splitBorder} border-border/70`}>
+    <div className={`min-w-0 ${splitBorder} border-border/60`}>
       <div
-        className={`${HIGHLIGHT_GRID} border-b border-border/70 bg-muted/55 px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground`}
+        className={`${HIGHLIGHT_GRID} border-b border-border/60 bg-muted/40 px-4 py-2 text-xs font-semibold text-muted-foreground`}
       >
         <span className="text-center">#</span>
-        <h3 className="text-[13px] font-bold tracking-tight text-foreground">{title}</h3>
+        <h3 className="text-sm font-bold tracking-tight text-foreground">{title}</h3>
         <span />
         <span className="text-right">{statLabel}</span>
       </div>
@@ -142,7 +142,7 @@ export function WeeklyHighlightsSection({
         <h2 className="text-[15px] font-bold tracking-tight">{t("home.highlightsTitle")}</h2>
         <span className="pb-0.5 text-[11px] text-muted-foreground">{t("home.highlightsMeta")}</span>
       </div>
-      <div className="overflow-hidden border border-border/70 bg-card">
+      <div className="w-full overflow-hidden rounded-2xl border border-border bg-card">
         <div className="grid grid-cols-1 lg:grid-cols-2">
           <HighlightColumn
             title={likesTitle}
