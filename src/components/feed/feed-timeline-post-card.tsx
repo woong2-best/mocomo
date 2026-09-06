@@ -78,7 +78,7 @@ export function FeedTimelinePostCard({
   }
 
   return (
-    <article className="rounded-2xl border border-border bg-card overflow-hidden">
+    <article className="w-full rounded-2xl border border-border bg-card overflow-hidden">
       <div className="flex gap-3 p-4 pb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
@@ -101,10 +101,7 @@ export function FeedTimelinePostCard({
               )}
               {post.content && (
                 <div
-                  className={cn(
-                    "cursor-pointer",
-                    !hasMedia && "min-h-[9.5rem]"
-                  )}
+                  className="cursor-pointer"
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest("a, button, [role='link']")) return;
                     router.push(`/post/${post.id}`);

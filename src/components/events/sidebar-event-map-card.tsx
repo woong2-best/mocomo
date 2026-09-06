@@ -49,12 +49,12 @@ export function SidebarEventMapCard({ pins }: { pins: MapEventPin[] }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
+        <p className="text-[10px] text-muted-foreground leading-snug">
           {summary}
         </p>
         <SubcultureEventsMapLazy
           pins={localPins}
-          heightClassName="h-56"
+          heightClassName="h-40"
           interactive={false}
           defaultView={defaultView}
         />

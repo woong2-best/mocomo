@@ -47,6 +47,7 @@ import {
   prefetchPostComments,
   setPrefetchedComments,
 } from "@/lib/comments-prefetch-cache";
+import { cn, formatNumber } from "@/lib/utils";
 
 type SortId = "popular" | "newest" | "oldest";
 
