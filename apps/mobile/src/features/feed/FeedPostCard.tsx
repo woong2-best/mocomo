@@ -9,7 +9,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { FeedPostMediaCarousel } from "@/features/feed/FeedPostMediaCarousel";
 import { FeedPostOverflowMenu } from "@/features/feed/FeedPostOverflowMenu";
 import { FolkAvatar } from "@/ui/FolkAvatar";
-import { LinkifiedText } from "@/ui/LinkifiedText";
+import { TranslatableText } from "@/ui/TranslatableText";
 import { ShareGlobeIcon } from "@/ui/ShareGlobeIcon";
 import { PerformanceBudgets } from "@/perf/budgets";
 import { formatViewCount, recordPostViewOnce } from "@/lib/post-view";
@@ -205,11 +205,12 @@ function FeedPostCardInner({
       </View>
 
       {post.content ? (
-        <LinkifiedText
+        <TranslatableText
           text={post.content}
           style={styles.content}
           numberOfLines={8}
           onBackgroundPress={onPressPost ? openPost : undefined}
+          translateActive={viewTrackActive}
         />
       ) : post.title ? (
         <Pressable onPress={openPost} disabled={!onPressPost}>

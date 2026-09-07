@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { checkoutCurrencyForType, isPaymentsConfigured } from "@/lib/payments";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
 import { checkoutRedirectPath } from "@/lib/checkout-redirect";
+import { confirmCreatorSubscriptionCheckout } from "@/lib/creator-subscription-checkout";
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
 import { verifyStripeCheckoutSession } from "@/lib/stripe-checkout";
 import { validatePaymentInput } from "@/lib/stripe-checkout-validate";
@@ -128,6 +129,10 @@ export async function confirmStripeCheckoutForUser(userId: string, sessionId: st
   const intent = await db.paymentIntent.findUnique({ where: { id: verified.orderId } });
   if (!intent || intent.userId !== userId) {
     return { error: "결제 정보를 찾을 수 없습니다." };
+  }
+
+  if (intent.type === "CREATOR_SUBSCRIPTION") {
+    return confirmCreatorSubscriptionCheckout(userId, sessionId);
   }
 
   const consentBlock = await assertPurchaseTermsConsentRecorded(userId, verified.orderId);

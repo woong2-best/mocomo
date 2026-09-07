@@ -13,6 +13,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "@/auth/AuthContext";
+import { useI18n } from "@/i18n/I18nProvider";
+import { normalizeMobileLocale, type Locale } from "@/i18n";
 import { patchMe } from "@/api/discovery";
 import { fetchCheckoutMeta } from "@/api/checkout";
 import { ApiError } from "@/api/client";
@@ -66,6 +68,7 @@ export function SettingsScreen() {
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const navigation = useNavigation();
   const { user, refreshMe, signOut } = useAuth();
+  const { setLocale: applyUiLocale } = useI18n();
 
   const [locale, setLocale] = useState(user?.locale ?? "ko");
   const [countryCode, setCountryCode] = useState(user?.countryCode ?? "KR");
@@ -87,6 +90,7 @@ export function SettingsScreen() {
     setLocaleBusy(true);
     try {
       await patchMe({ locale, countryCode, timeZone });
+      await applyUiLocale(normalizeMobileLocale(locale) as Locale);
       await refreshMe();
       Alert.alert("저장됨", "지역·언어 설정이 업데이트되었습니다.");
     } catch (e) {

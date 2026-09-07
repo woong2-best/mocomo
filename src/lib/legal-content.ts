@@ -756,6 +756,14 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       type: "p",
       text: "② 구독 서비스는 별도의 해지 신청이 없는 한, 지정된 결제 주기(매월 등)마다 자동으로 결제(자동 갱신)됩니다.",
     },
+    {
+      type: "p",
+      text: "All recurring donations are non-refundable once processed. You may cancel your subscription at any time to prevent future charges.",
+    },
+    {
+      type: "p",
+      text: "정기 후원(구독)으로 처리된 후원금은 원칙적으로 환불되지 않으며, [설정 → 정기 후원 관리] 또는 마이페이지에서 언제든지 다음 달 자동 결제를 해지할 수 있습니다.",
+    },
     { type: "h3", text: "(결제 처리 및 앱스토어 정책)" },
     {
       type: "p",

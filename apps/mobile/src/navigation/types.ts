@@ -30,15 +30,11 @@ export type RootTabParamList = {
   Messages: undefined;
 };
 
-export type AuthStackParamList = {
-  Login: undefined;
-  Signup: undefined;
-  PasswordReset: undefined;
-};
-
 export type RootStackParamList = {
   Main: NavigatorScreenParams<RootTabParamList> | undefined;
   Login: undefined;
+  Signup: undefined;
+  PasswordReset: undefined;
   ComposeModal: undefined;
   MessageRoom: { roomId: string; title?: string };
   MessagesNew: undefined;

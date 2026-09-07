@@ -48,6 +48,7 @@ import {
 import { prepareImageForUpload } from "@/lib/prepare-image-upload";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
+import { NsfwToggleButton } from "@/ui/NsfwToggleButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -410,19 +411,11 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
             disabled={busy}
             color={collaborators.length ? colors.brand : colors.terracotta}
           />
-          <Pressable
-            onPress={() => setIsNsfw((v) => !v)}
+          <NsfwToggleButton
+            active={isNsfw}
+            onToggle={() => setIsNsfw((v) => !v)}
             disabled={busy}
-            accessibilityLabel="NSFW"
-            accessibilityState={{ checked: isNsfw }}
-            hitSlop={6}
-          >
-            <Image
-              source={require("../../../assets/nsfw-button.png")}
-              style={[styles.nsfwBtn, !isNsfw && styles.nsfwBtnOff]}
-              contentFit="contain"
-            />
-          </Pressable>
+          />
         </View>
         <Pressable
           style={[styles.postBtn, (!canPost || busy) && styles.postBtnDisabled]}
@@ -844,13 +837,6 @@ function createStyles(colors: ThemeColors) {
       gap: 10,
     },
     toolbarLeading: { flex: 1, flexDirection: "row", gap: 14, alignItems: "center" },
-    nsfwBtn: {
-      width: 50,
-      height: 28,
-    },
-    nsfwBtnOff: {
-      opacity: 0.42,
-    },
     postBtn: {
       paddingHorizontal: 20,
       paddingVertical: 8,

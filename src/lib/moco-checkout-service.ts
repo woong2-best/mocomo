@@ -10,7 +10,7 @@ import {
 } from "@/lib/purchase-terms-consent";
 import type { PurchaseTermsPlatform } from "@/lib/purchase-chargeback-terms";
 
-const MOCO_PAY_BLOCKED: PaymentIntentType[] = ["MOCO_TOPUP"];
+const MOCO_PAY_BLOCKED: PaymentIntentType[] = ["MOCO_TOPUP", "GEM_TOPUP"];
 
 export async function getMocoCheckoutQuote(userId: string, amountKrw: number) {
   const wallet = await getOrCreatePlatformWallet(userId);

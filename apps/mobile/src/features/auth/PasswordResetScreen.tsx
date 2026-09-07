@@ -8,9 +8,9 @@ import { AuthScreenLayout } from "@/features/auth/AuthScreenLayout";
 import { AuthTextField } from "@/features/auth/AuthTextField";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
-import type { AuthStackParamList } from "@/navigation/types";
+import type { RootStackParamList } from "@/navigation/types";
 
-type Props = NativeStackScreenProps<AuthStackParamList, "PasswordReset">;
+type Props = NativeStackScreenProps<RootStackParamList, "PasswordReset">;
 type Step = "email" | "code" | "done";
 
 function errMsg(e: unknown, fallback: string) {

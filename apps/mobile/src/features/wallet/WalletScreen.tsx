@@ -17,6 +17,8 @@ import { fetchWallet, fetchWalletEarnings } from "@/api/discovery";
 import { fetchBankStatus } from "@/api/checkout-payment";
 import { fetchPaymentMethods, openPaymentMethodSetup, setDefaultPaymentMethod } from "@/payments/stripe-setup";
 import { WalletCardStack } from "@/features/wallet/WalletCardStack";
+import { GemBalancePanel } from "@/features/wallet/GemBalancePanel";
+import { MySubscriptionsPanel } from "@/features/wallet/MySubscriptionsPanel";
 import { WalletMembershipStrip } from "@/features/wallet/WalletMembershipStrip";
 import { WalletEarningsChart } from "@/features/wallet/WalletEarningsChart";
 import { BankVerifyPanel } from "@/features/wallet/BankVerifyPanel";
@@ -167,7 +169,12 @@ export function WalletScreen() {
           walletLoading ? (
             <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
           ) : !data ? null : (
-            <>
+            <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
+              <GemBalancePanel />
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>정기 후원</Text>
+                <MySubscriptionsPanel />
+              </View>
               <WalletCardStack
                 cards={paymentCards}
                 colors={colors}
@@ -180,7 +187,7 @@ export function WalletScreen() {
               <Text style={styles.walletHelp}>
                 결제할 때 이 카드 목록에서 선택합니다. 맨 앞 카드를 눌러 추가하세요.
               </Text>
-            </>
+            </ScrollView>
           )
         ) : earningsLoading ? (
           <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
@@ -356,6 +363,11 @@ function createThemedStyles(colors: ThemeColors) {
     section: {
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: "900",
+      marginBottom: spacing.sm,
     },
     returnBanner: {
       marginHorizontal: spacing.md,

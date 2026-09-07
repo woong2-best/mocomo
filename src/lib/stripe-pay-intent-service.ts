@@ -16,6 +16,7 @@ import {
   type SavedPaymentMethod,
 } from "@/lib/stripe-payment-methods";
 import { getMocoCheckoutQuote } from "@/lib/moco-checkout-service";
+import { getGemCheckoutQuote } from "@/lib/gems/checkout-quote";
 import { assertOfacPaymentRequestAllowed, assertOfacPaymentAllowedForUser } from "@/lib/compliance/ofac-payment-guard-server";
 import { assertMonetizationPaymentAllowed } from "@/lib/payment-rail";
 import {
@@ -181,6 +182,8 @@ export async function prepareCheckoutPaymentIntent(input: {
   }
 
   const mocoQuote = await getMocoCheckoutQuote(input.userId, input.amount);
+  const gemQuote = await getGemCheckoutQuote(input.userId, input.amount);
+  const gemEligible = input.type === "TIP" || input.type === "POST_MEDIA";
 
   return {
     orderId: intent.id,
@@ -190,6 +193,9 @@ export async function prepareCheckoutPaymentIntent(input: {
     mocoBalance: mocoQuote.mocoBalance,
     mocoRequired: mocoQuote.mocoRequired,
     canPayWithMoco: mocoQuote.canPayWithMoco && input.type !== "MOCO_TOPUP",
+    gemBalance: gemQuote.gemBalance,
+    gemsRequired: gemQuote.gemsRequired,
+    canPayWithGems: gemEligible && gemQuote.canPayWithGems,
   };
 }
 

@@ -14,15 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "105871724562-qv6u25h27ut2l8i1tocmetqv1o9ocqms.apps.googleusercontent.com",
+          "client_id": "105871724562-6aq7qmcnnjq38bsnikgngke481lcvbdl.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "net.mocomo.app",
-            "certificate_hash": "16f17968a05c305c44ebb80a330201e100198332"
+            "certificate_hash": "c5e048b7c60ba7c7f9dc2bed1c9d363488bbced9"
           }
         },
         {
-          "client_id": "382483122683-0bqhh4dl4r8k7ogcu6802j4sg2ckeait.apps.googleusercontent.com",
+          "client_id": "105871724562-4kfgodg2c21c5tat84nqim1daj2ipnok.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -35,7 +35,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "382483122683-0bqhh4dl4r8k7ogcu6802j4sg2ckeait.apps.googleusercontent.com",
+              "client_id": "105871724562-4kfgodg2c21c5tat84nqim1daj2ipnok.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

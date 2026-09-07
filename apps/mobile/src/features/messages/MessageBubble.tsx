@@ -17,7 +17,7 @@ import {
 } from "@/lib/chat-letter-donation";
 import { CallBookingCard } from "@/features/messages/CallBookingCard";
 import { LetterDonationCard } from "@/features/messages/LetterDonationCard";
-import { LinkifiedText } from "@/ui/LinkifiedText";
+import { TranslatableText } from "@/ui/TranslatableText";
 import { LockedMessageMediaTile } from "@/components/media/LockedMessageMediaTile";
 import { ForensicPaidVideoEmbed } from "@/components/media/ForensicPaidVideoEmbed";
 import { resolveAbsolutePlaybackUrl } from "@/api/watermark";
@@ -230,7 +230,7 @@ function MessageText({
   styles: ReturnType<typeof createThemedStyles>;
 }) {
   return (
-    <LinkifiedText
+    <TranslatableText
       text={text}
       style={[styles.text, mine && styles.textMine]}
       linkStyle={[styles.link, mine && styles.linkMine]}

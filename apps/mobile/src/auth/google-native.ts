@@ -42,6 +42,19 @@ export class GoogleNativeCancelledError extends Error {
   }
 }
 
+/** Play App Signing SHA-1 missing from Firebase — native SDK cannot authenticate. */
+export function isGoogleDeveloperError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e ?? "");
+  return msg.includes("DEVELOPER_ERROR");
+}
+
+function googleNativeFailureMessage(e: unknown): string {
+  if (isGoogleDeveloperError(e)) {
+    return "Google 로그인 설정 오류입니다. Play Store 설치본은 Firebase에 앱 서명 키 SHA-1이 등록되어 있어야 합니다.";
+  }
+  return e instanceof Error ? e.message : "Google 로그인에 실패했습니다.";
+}
+
 type GoogleSigninModule =
   typeof import("@react-native-google-signin/google-signin");
 
@@ -180,9 +193,7 @@ async function requestGoogleIdToken(): Promise<string> {
     // Anything else here is a device/console configuration problem
     // (DEVELOPER_ERROR from a SHA-1 mismatch, missing Play services, ...).
     // Report it as unavailable so the caller can use the web flow.
-    throw new GoogleNativeUnavailableError(
-      e instanceof Error ? e.message : undefined
-    );
+    throw new GoogleNativeUnavailableError(googleNativeFailureMessage(e));
   }
 }
 

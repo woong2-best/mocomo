@@ -241,6 +241,8 @@ model User {
   stripeConnectOnboardedAt DateTime?
   /** Stripe Customer — 저장된 결제 카드 (지갑 탭) */
   stripeCustomerId String? @unique
+  /** 젬(Gems) 잔액 — GemPurchase.remainingGems 합과 동기화 */
+  gemBalance Int @default(0)
   /** 회원 탈퇴 요청 시각 (30일 복구 기간) */
   deletedAt           DateTime?
   /** 영구 삭제 예정 시각 — 탈퇴 시점 + 30일 */
@@ -458,6 +460,12 @@ model User {
   payoutRequests   PayoutRequest[]
   ledgerEntries    LedgerEntry[]
   payoutsProcessed PayoutRequest[] @relation("PayoutProcessor")
+
+  gemPurchases                 GemPurchase[]              @relation("GemPurchaseFan")
+  giftEventsSent               GiftEvent[]                @relation("GiftEventFan")
+  giftEventsReceived           GiftEvent[]                @relation("GiftEventCreator")
+  creatorPayoutBatches         CreatorPayoutBatch[]
+  unauthorizedPaymentClaims    UnauthorizedPaymentClaim[] @relation("UnauthorizedPaymentClaimFan")
 
   liveSupportSent              LiveSupportEvent[]     @relation("LiveSupportSender")
   liveSupportReceived          LiveSupportEvent[]     @relation("LiveSupportReceiver")
@@ -1928,6 +1936,104 @@ model LiveSupportEvent {
   @@index([receiverId, createdAt(sort: Desc)])
 }
 
+/** 젬 구매 내역 (FIFO 기반 잔여 젬 추적) */
+model GemPurchase {
+  id                    String   @id @default(cuid())
+  fanId                 String
+  krwAmount             Int
+  gems                  Int
+  remainingGems         Int
+  pricePerGemUsd        Float
+  stripePaymentIntentId String   @unique
+  refunded              Boolean  @default(false)
+  refundedUsd           Float?   @default(0)
+  createdAt             DateTime @default(now())
+
+  fan         User                  @relation("GemPurchaseFan", fields: [fanId], references: [id], onDelete: Cascade)
+  allocations GiftEventAllocation[]
+
+  @@index([fanId, createdAt])
+  @@index([fanId, remainingGems])
+}
+
+/** 후원·유료 미디어 소비 (젬 차감, Stripe Transfer 없음) */
+model GiftEvent {
+  id            String    @id @default(cuid())
+  fanId         String
+  creatorId     String
+  gems          Int
+  source        String
+  contentId     String?
+  timestamp     DateTime  @default(now())
+  payoutBatchId String?
+
+  fan         User                  @relation("GiftEventFan", fields: [fanId], references: [id], onDelete: Cascade)
+  creator     User                  @relation("GiftEventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  payoutBatch CreatorPayoutBatch?   @relation(fields: [payoutBatchId], references: [id], onDelete: SetNull)
+  allocations GiftEventAllocation[]
+
+  @@index([creatorId, payoutBatchId])
+  @@index([fanId, timestamp(sort: Desc)])
+  @@index([payoutBatchId])
+}
+
+/** FIFO — 어느 구매건의 젬이 어느 후원에 쓰였는지 */
+model GiftEventAllocation {
+  id            String   @id @default(cuid())
+  giftEventId   String
+  gemPurchaseId String
+  gemsUsed      Int
+  createdAt     DateTime @default(now())
+
+  giftEvent   GiftEvent   @relation(fields: [giftEventId], references: [id], onDelete: Cascade)
+  gemPurchase GemPurchase @relation(fields: [gemPurchaseId], references: [id], onDelete: Cascade)
+
+  @@index([gemPurchaseId])
+  @@index([giftEventId])
+}
+
+/** 크리에이터 정산 배치 (Cron — Stripe Transfer 1회) */
+model CreatorPayoutBatch {
+  id               String   @id @default(cuid())
+  creatorId        String
+  periodStart      DateTime
+  periodEnd        DateTime
+  giftEventCount   Int
+  totalGems        Int
+  totalUsd         Float
+  netPayoutUsd     Float
+  rateVersion      String
+  payoutMethod     String
+  status           String
+  stripeTransferId String?
+  stripePayoutId   String?
+  errorMessage     String?  @db.Text
+  createdAt        DateTime @default(now())
+
+  creator    User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  giftEvents GiftEvent[]
+
+  @@index([creatorId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+}
+
+/** 도용·미성년자 무단결제 예외 청구 */
+model UnauthorizedPaymentClaim {
+  id            String   @id @default(cuid())
+  gemPurchaseId String
+  fanId         String
+  reason        String
+  status        String
+  proofUrl      String?
+  createdAt     DateTime @default(now())
+
+  fan User @relation("UnauthorizedPaymentClaimFan", fields: [fanId], references: [id], onDelete: Cascade)
+
+  @@index([fanId, createdAt(sort: Desc)])
+  @@index([gemPurchaseId])
+  @@index([status])
+}
+
 model LiveSupportMission {
   id           String                   @id @default(cuid())
   channelId    String
@@ -2030,6 +2136,8 @@ model Subscription {
   subscribedSince DateTime @default(now())
   currentPeriodEnd DateTime
   stripeSubscriptionId String?
+  /** 다음 결제일부터 자동 갱신 중지 (Stripe cancel_at_period_end) */
+  cancelAtPeriodEnd   Boolean  @default(false)
   createdAt  DateTime @default(now())
   subscriber User @relation("Subscriber", fields: [subscriberId], references: [id])
   creator    User @relation("Creator", fields: [creatorId], references: [id])
@@ -2095,6 +2203,8 @@ enum PaymentIntentType {
   FLOWER
   /** 모코(가상 재화) Stripe 충전 — 실환전 아님 */
   MOCO_TOPUP
+  /** 젬(Gems) Stripe 충전 — 후원·유료 미디어 소비용 */
+  GEM_TOPUP
   /** 크리에이터 1:1 통화 예약 */
   CALL_BOOKING
   /** DM 팬아트 / 유료 첨부 미디어 */
@@ -2149,6 +2259,10 @@ model PaymentIntent {
   purchaseTermsAcceptedAt  DateTime?
   purchaseTermsSnapshot    String?   @db.Text
   purchaseTermsPlatform    String?
+  /** ROSCA / FTC — recurring creator donation opt-in */
+  recurringDonationTermsVersion     String?
+  recurringDonationTermsAcceptedAt  DateTime?
+  recurringDonationTermsSnapshot    String?   @db.Text
   createdAt DateTime            @default(now())
   paidAt    DateTime?
   user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)

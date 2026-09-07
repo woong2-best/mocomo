@@ -8,7 +8,7 @@ import {
   type NativeSyntheticEvent,
   type TextLayoutEventData,
 } from "react-native";
-import { LinkifiedText } from "@/ui/LinkifiedText";
+import { TranslatableText } from "@/ui/TranslatableText";
 
 type Props = {
   text: string;
@@ -60,12 +60,11 @@ export function CollapsibleVideoCaption({
   if (!text.trim()) return null;
 
   const caption = (
-    <LinkifiedText
+    <TranslatableText
       text={text}
       style={style}
       numberOfLines={expanded ? undefined : 1}
       lightLinks
-      onTextLayout={onTextLayout}
     />
   );
 

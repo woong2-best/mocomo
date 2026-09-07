@@ -29,6 +29,14 @@ import {
   PAID_CONTENT_USAGE_NOTICE_TITLE,
   requiresPaidContentUsageNotice,
 } from "@/lib/paid-content-usage-notice";
+import { GemPayOption } from "@/payments/GemPayOption";
+import { openGemTopupCheckout } from "@/payments/gem-topup";
+import { openSubscriptionCheckout } from "@/api/subscriptions";
+import {
+  RECURRING_DONATION_CHECKBOX_LABEL_KO,
+  RECURRING_DONATION_CHECKOUT_NOTICE_KO,
+} from "@/lib/recurring-donation-terms";
+import { GEM_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
 import {
   PURCHASE_CHARGEBACK_TERMS_BULLETS,
   PURCHASE_CHARGEBACK_TERMS_CHECKBOX_LABEL,
@@ -59,6 +67,12 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
   const [methods, setMethods] = useState<PaymentMethodItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [purchaseTermsAccepted, setPurchaseTermsAccepted] = useState(false);
+  const [gemBalance, setGemBalance] = useState(0);
+  const [gemsRequired, setGemsRequired] = useState(0);
+  const [recurringDonationTermsAccepted, setRecurringDonationTermsAccepted] = useState(false);
+  const gemEligible = body.type === "TIP" || body.type === "POST_MEDIA";
+  const isGemTopup = body.type === "GEM_TOPUP";
+  const isRecurringSubscription = body.type === "CREATOR_SUBSCRIPTION";
 
   const checkoutKey = useMemo(
     () =>
@@ -74,12 +88,19 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
   useEffect(() => {
     if (!visible) return;
     setPurchaseTermsAccepted(false);
+    setRecurringDonationTermsAccepted(false);
     setError("");
+    if (isRecurringSubscription) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     void prepareCheckoutPayment(body)
       .then((res) => {
         setOrderId(res.orderId);
         setMethods(res.methods ?? []);
+        setGemBalance(res.gemBalance ?? 0);
+        setGemsRequired(res.gemsRequired ?? body.amount);
         const def = res.methods.find((m) => m.isDefault) ?? res.methods[0];
         setSelectedId(def?.id ?? null);
       })
@@ -87,7 +108,30 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
         setError(e instanceof Error ? e.message : "결제 준비에 실패했습니다.");
       })
       .finally(() => setLoading(false));
-  }, [visible, checkoutKey, body]);
+  }, [visible, checkoutKey, body, isRecurringSubscription]);
+
+  async function startRecurringSubscription() {
+    if (!purchaseTermsAccepted) {
+      setError("결제 전 이용약관에 동의해 주세요.");
+      return;
+    }
+    if (!recurringDonationTermsAccepted) {
+      setError("정기 후원 약관에 동의해 주세요.");
+      return;
+    }
+    setPaying(true);
+    setError("");
+    try {
+      const creatorId = String(body.metadata.creatorId ?? "");
+      const username = String(body.metadata.username ?? "");
+      await openSubscriptionCheckout({ creatorId, username, amount: body.amount });
+      onClose();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "정기 후원을 시작할 수 없습니다.");
+    } finally {
+      setPaying(false);
+    }
+  }
 
   async function openAuthenticate(authenticateUrl: string, oid: string) {
     const result = await WebBrowser.openAuthSessionAsync(authenticateUrl, RETURN_PREFIX, {
@@ -147,6 +191,14 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
     setPaying(true);
     setError("");
     try {
+      if (isGemTopup) {
+        const gems = Number(body.metadata.gemAmount ?? 0);
+        if (!gems) throw new Error("젬 패키지 정보가 없습니다.");
+        const res = await openGemTopupCheckout(gems);
+        if ("error" in res) throw new Error(res.error);
+        onClose();
+        return;
+      }
       const { checkoutUrl } = await startCheckoutRedirect(body);
       const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, RETURN_PREFIX, {
         preferEphemeralSession: false,
@@ -188,7 +240,35 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
 
           {/* Sits above every pay affordance so no purchase can be completed
               without the personal-viewing-licence terms on screen. */}
-          {requiresPaidContentUsageNotice(body.type) ? (
+          {isRecurringSubscription ? (
+            <View style={[styles.recurringNotice, { borderColor: `${colors.cobalt}66` }]}>
+              <Text style={[styles.recurringTitle, { color: colors.text }]}>정기 후원 안내</Text>
+              <Text style={[styles.recurringBody, { color: colors.textMuted }]}>
+                {RECURRING_DONATION_CHECKOUT_NOTICE_KO}
+              </Text>
+              <Pressable
+                onPress={() => setRecurringDonationTermsAccepted((v) => !v)}
+                style={styles.termsCheckRow}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    {
+                      borderColor: recurringDonationTermsAccepted ? colors.cobalt : colors.hairline,
+                      backgroundColor: recurringDonationTermsAccepted
+                        ? `${colors.cobalt}33`
+                        : "transparent",
+                    },
+                  ]}
+                />
+                <Text style={[styles.termsCheckLabel, { color: colors.text }]}>
+                  {RECURRING_DONATION_CHECKBOX_LABEL_KO}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {!isRecurringSubscription && requiresPaidContentUsageNotice(body.type) ? (
             <View style={[styles.usageNotice, { borderColor: `${colors.terracotta}66` }]}>
               <Text style={[styles.usageNoticeTitle, { color: colors.text }]}>
                 {PAID_CONTENT_USAGE_NOTICE_TITLE}
@@ -200,15 +280,24 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
           ) : null}
 
           <View style={[styles.termsNotice, { borderColor: `${colors.terracotta}66` }]}>
-            <Text style={[styles.termsTitle, { color: colors.text }]}>
-              {PURCHASE_CHARGEBACK_TERMS_TITLE}{" "}
-              <Text style={{ color: colors.textMuted, fontSize: 11 }}>v{PURCHASE_CHARGEBACK_TERMS_VERSION}</Text>
-            </Text>
-            {PURCHASE_CHARGEBACK_TERMS_BULLETS.map((line) => (
-              <Text key={line} style={[styles.termsBullet, { color: colors.textMuted }]}>
-                • {line}
-              </Text>
-            ))}
+            {isGemTopup ? (
+              <>
+                <Text style={[styles.termsTitle, { color: colors.text }]}>젬 충전 약관</Text>
+                <Text style={[styles.termsBullet, { color: colors.textMuted }]}>{GEM_PURCHASE_TERMS_COPY}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.termsTitle, { color: colors.text }]}>
+                  {PURCHASE_CHARGEBACK_TERMS_TITLE}{" "}
+                  <Text style={{ color: colors.textMuted, fontSize: 11 }}>v{PURCHASE_CHARGEBACK_TERMS_VERSION}</Text>
+                </Text>
+                {PURCHASE_CHARGEBACK_TERMS_BULLETS.map((line) => (
+                  <Text key={line} style={[styles.termsBullet, { color: colors.textMuted }]}>
+                    • {line}
+                  </Text>
+                ))}
+              </>
+            )}
             <Pressable
               onPress={() => setPurchaseTermsAccepted((v) => !v)}
               style={styles.termsCheckRow}
@@ -223,15 +312,42 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
                 ]}
               />
               <Text style={[styles.termsCheckLabel, { color: colors.text }]}>
-                {PURCHASE_CHARGEBACK_TERMS_CHECKBOX_LABEL}
+                {isGemTopup ? "위 약관에 동의합니다" : PURCHASE_CHARGEBACK_TERMS_CHECKBOX_LABEL}
               </Text>
             </Pressable>
           </View>
 
-          {loading ? (
+          {isRecurringSubscription ? (
+            <>
+              {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+              <View style={styles.actions}>
+                <FolkButton label="취소" variant="ghost" onPress={onClose} disabled={paying} />
+                <FolkButton
+                  label={paying ? "이동 중…" : "정기 후원 시작"}
+                  onPress={() => void startRecurringSubscription()}
+                  loading={paying}
+                  disabled={!purchaseTermsAccepted || !recurringDonationTermsAccepted}
+                />
+              </View>
+            </>
+          ) : loading ? (
             <ActivityIndicator style={{ marginVertical: spacing.lg }} color={colors.terracotta} />
           ) : (
             <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+              {gemEligible ? (
+                <GemPayOption
+                  body={body}
+                  gemBalance={gemBalance}
+                  gemsRequired={gemsRequired}
+                  amountLabel={formatAmount(body.type, body.amount)}
+                  disabled={paying || !purchaseTermsAccepted}
+                  onSuccess={() => {
+                    onSuccess({ type: body.type });
+                    onClose();
+                  }}
+                  onError={setError}
+                />
+              ) : null}
               {methods.map((pm) => (
                 <Pressable
                   key={pm.id}
@@ -347,6 +463,16 @@ function createStyles(colors: ThemeColors) {
     termsCheckRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm, marginTop: spacing.sm },
     checkbox: { width: 18, height: 18, borderWidth: 1.5, borderRadius: 4, marginTop: 1 },
     termsCheckLabel: { flex: 1, fontSize: 11, fontWeight: "700", lineHeight: 16 },
+    recurringNotice: {
+      borderWidth: 1,
+      borderRadius: 14,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      marginBottom: spacing.md,
+      backgroundColor: "rgba(100, 80, 200, 0.08)",
+    },
+    recurringTitle: { fontSize: 13, fontWeight: "800", lineHeight: 18 },
+    recurringBody: { fontSize: 11, fontWeight: "600", lineHeight: 16, marginTop: 4 },
     error: { fontSize: 13, fontWeight: "700", marginTop: spacing.sm },
     notice: { fontSize: 11, fontWeight: "600", lineHeight: 16, marginTop: spacing.sm },
     actions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },

@@ -8,6 +8,7 @@ import * as WebBrowser from "expo-web-browser";
 import { createAppQueryClient } from "@/api/query-client";
 import { AuthProvider } from "@/auth/AuthContext";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { ClientTranslationProvider } from "@/providers/ClientTranslationProvider";
 import { RootNavigator } from "@/navigation/RootNavigator";
 import { ThemeProvider, useTheme } from "@/theme/ThemeContext";
 import { perfMark } from "@/perf/mark";
@@ -35,7 +36,9 @@ export default function App() {
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
               <I18nProvider>
-                <RootNavigator />
+                <ClientTranslationProvider>
+                  <RootNavigator />
+                </ClientTranslationProvider>
               </I18nProvider>
               <ThemedStatusBar />
             </AuthProvider>

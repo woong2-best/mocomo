@@ -1,6 +1,6 @@
 {
   "name": "mocomo-mobile",
-  "version": "1.0.105",
+  "version": "1.0.106",
   "main": "index.ts",
   "private": true,
   "dependencies": {
@@ -13,6 +13,7 @@
     "@maplibre/maplibre-react-native": "^11.3.6",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-signin/google-signin": "^16.1.4",
+    "@react-native-ml-kit/translate-text": "^0.5.0",
     "@react-navigation/bottom-tabs": "^7.18.14",
     "@react-navigation/native": "^7.3.14",
     "@react-navigation/native-stack": "^7.18.6",
@@ -40,6 +41,7 @@
     "expo-video": "~57.0.2",
     "expo-web-browser": "~57.0.2",
     "ffmpeg-kit-react-native": "^6.0.2",
+    "franc": "^6.2.0",
     "livekit-client": "^2.21.0",
     "react": "19.2.3",
     "react-native": "0.86.0",

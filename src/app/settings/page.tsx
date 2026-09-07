@@ -107,6 +107,11 @@ export default async function SettingsPage() {
                 {t("settings.editProfile")}
               </Button>
             </Link>
+            <Link href="/settings/subscriptions">
+              <Button variant="outline" size="sm">
+                정기 후원 관리
+              </Button>
+            </Link>
             <Link href="/settings/creator">
               <Button variant="outline" size="sm">
                 {t("settings.creatorRevenue")}

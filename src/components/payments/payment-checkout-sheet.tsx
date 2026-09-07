@@ -18,6 +18,7 @@ import { PaymentLegalNotice } from "@/components/legal/legal-entity-notice";
 import { PaidContentUsageNotice } from "@/components/payments/paid-content-usage-notice";
 import { requiresPaidContentUsageNotice } from "@/lib/paid-content-usage-notice";
 import { MocoPayOption } from "@/components/payments/moco-pay-option";
+import { GemPayOption } from "@/components/payments/gem-pay-option";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,6 +32,9 @@ import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-
 import { CreditCard, Loader2, Plus } from "lucide-react";
 import { StripeOverseasPaymentNotice } from "@/components/payments/stripe-overseas-payment-notice";
 import { PurchaseChargebackTermsNotice } from "@/components/payments/purchase-chargeback-terms-notice";
+import { GEM_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
+import { startCreatorSubscriptionCheckout } from "@/actions/subscriptions";
+import { RecurringDonationTermsNotice } from "@/components/payments/recurring-donation-terms-notice";
 
 type Props = {
   open: boolean;
@@ -70,14 +74,26 @@ export function PaymentCheckoutSheet({
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
   const [mocoBalance, setMocoBalance] = useState(0);
   const [mocoRequired, setMocoRequired] = useState(0);
+  const [gemBalance, setGemBalance] = useState(0);
+  const [gemsRequired, setGemsRequired] = useState(0);
   const [purchaseTermsAccepted, setPurchaseTermsAccepted] = useState(false);
+  const [recurringDonationTermsAccepted, setRecurringDonationTermsAccepted] = useState(false);
+
+  const gemEligible = type === "TIP" || type === "POST_MEDIA";
+  const isGemTopup = type === "GEM_TOPUP";
+  const isRecurringSubscription = type === "CREATOR_SUBSCRIPTION";
 
   const amountLabel = useMemo(() => formatAmount(type, amount), [amount, type]);
 
   useEffect(() => {
     if (!open) return;
     setPurchaseTermsAccepted(false);
+    setRecurringDonationTermsAccepted(false);
     setError("");
+    if (isRecurringSubscription) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     void prepareCheckoutPayment({ type, amount, orderName, metadata })
       .then((res) => {
@@ -95,9 +111,42 @@ export function PaymentCheckoutSheet({
         }
         setMocoBalance("mocoBalance" in res ? (res.mocoBalance ?? 0) : 0);
         setMocoRequired("mocoRequired" in res ? (res.mocoRequired ?? 0) : 0);
+        setGemBalance("gemBalance" in res ? (res.gemBalance ?? 0) : 0);
+        setGemsRequired("gemsRequired" in res ? (res.gemsRequired ?? 0) : 0);
       })
       .finally(() => setLoading(false));
-  }, [open, type, amount, orderName, metadata]);
+  }, [open, type, amount, orderName, metadata, isRecurringSubscription]);
+
+  function startRecurringSubscription() {
+    if (!purchaseTermsAccepted) {
+      setError("결제 전 이용약관에 동의해 주세요.");
+      return;
+    }
+    if (!recurringDonationTermsAccepted) {
+      setError("정기 후원 약관에 동의해 주세요.");
+      return;
+    }
+    setError("");
+    startTransition(async () => {
+      const creatorId = String(metadata.creatorId ?? "");
+      const username = String(metadata.username ?? "");
+      const res = await startCreatorSubscriptionCheckout({
+        creatorId,
+        username,
+        amount,
+        returnPath: resumePath,
+        purchaseTermsAccepted: true,
+        recurringDonationTermsAccepted: true,
+      });
+      if ("error" in res && res.error) {
+        setError(res.error);
+        return;
+      }
+      if ("checkoutUrl" in res && res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+      }
+    });
+  }
 
   const handle3ds = useCallback(
     async (secret: string, oid: string) => {
@@ -207,18 +256,80 @@ export function PaymentCheckoutSheet({
               without the personal-viewing-licence terms on screen. */}
           {requiresPaidContentUsageNotice(type) ? <PaidContentUsageNotice /> : null}
 
-          <PurchaseChargebackTermsNotice
-            checked={purchaseTermsAccepted}
-            onCheckedChange={setPurchaseTermsAccepted}
-          />
+          {isRecurringSubscription ? (
+            <>
+              <RecurringDonationTermsNotice
+                checked={recurringDonationTermsAccepted}
+                onCheckedChange={setRecurringDonationTermsAccepted}
+              />
+              <PurchaseChargebackTermsNotice
+                checked={purchaseTermsAccepted}
+                onCheckedChange={setPurchaseTermsAccepted}
+              />
+            </>
+          ) : isGemTopup ? (
+            <label className="flex items-start gap-2 cursor-pointer rounded-xl border border-border/60 px-4 py-3">
+              <input
+                type="checkbox"
+                checked={purchaseTermsAccepted}
+                onChange={(e) => setPurchaseTermsAccepted(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span className="text-[11px] text-muted-foreground leading-relaxed">{GEM_PURCHASE_TERMS_COPY}</span>
+            </label>
+          ) : (
+            <PurchaseChargebackTermsNotice
+              checked={purchaseTermsAccepted}
+              onCheckedChange={setPurchaseTermsAccepted}
+            />
+          )}
 
-          {loading ? (
+          {loading && !isRecurringSubscription ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
+          ) : isRecurringSubscription ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Stripe에서 카드 등록 후 <strong>매월 자동 결제</strong>됩니다. 젬이 아닌 카드 정기
+                결제입니다.
+              </p>
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
+              <StripeOverseasPaymentNotice />
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+                  취소
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1 bg-violet-600 hover:bg-violet-600/90"
+                  disabled={pending || !purchaseTermsAccepted || !recurringDonationTermsAccepted}
+                  onClick={startRecurringSubscription}
+                >
+                  {pending ? "이동 중…" : "정기 후원 시작"}
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="space-y-3">
-              {type !== "MOCO_TOPUP" ? (
+              {gemEligible ? (
+                <GemPayOption
+                  type={type}
+                  amountUsdCents={amount}
+                  metadata={metadata}
+                  gemBalance={gemBalance}
+                  gemsRequired={gemsRequired}
+                  amountLabel={amountLabel}
+                  disabled={loading || pending}
+                  onError={setError}
+                  onSuccess={(result) => {
+                    onOpenChange(false);
+                    onSuccess?.(result);
+                  }}
+                />
+              ) : null}
+
+              {!gemEligible && type !== "MOCO_TOPUP" && type !== "GEM_TOPUP" ? (
                 <MocoPayOption
                   orderId={orderId}
                   mocoBalance={mocoBalance}
@@ -289,35 +400,42 @@ export function PaymentCheckoutSheet({
             </div>
           )}
 
-          {methods.length === 0 && !loading ? (
+          {!isRecurringSubscription && methods.length === 0 && !loading ? (
             <p className="text-sm text-muted-foreground text-center">
               저장된 카드가 없습니다. 지갑에서 카드를 추가하거나 새 카드로 결제하세요.
             </p>
           ) : null}
 
-          {showLegalNotice ? <PaymentLegalNotice compact /> : null}
-          <StripeOverseasPaymentNotice />
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {!isRecurringSubscription && showLegalNotice ? <PaymentLegalNotice compact /> : null}
+          {!isRecurringSubscription ? <StripeOverseasPaymentNotice /> : null}
+          {!isRecurringSubscription && error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
-              취소
-            </Button>
-            {methods.length > 0 ? (
-              <Button
-                type="button"
-                className="flex-1"
-                disabled={pending || loading || !selectedId || !orderId || !purchaseTermsAccepted}
-                onClick={paySelected}
-              >
-                {pending ? "결제 중…" : "선택한 카드로 결제"}
+          {!isRecurringSubscription ? (
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+                취소
               </Button>
-            ) : (
-              <Button type="button" className="flex-1" disabled={pending || loading || !purchaseTermsAccepted} onClick={() => void redirectCheckout()}>
-                새 카드로 결제
-              </Button>
-            )}
-          </div>
+              {methods.length > 0 ? (
+                <Button
+                  type="button"
+                  className="flex-1"
+                  disabled={pending || loading || !selectedId || !orderId || !purchaseTermsAccepted}
+                  onClick={paySelected}
+                >
+                  {pending ? "결제 중…" : "선택한 카드로 결제"}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  className="flex-1"
+                  disabled={pending || loading || !purchaseTermsAccepted}
+                  onClick={() => void redirectCheckout()}
+                >
+                  새 카드로 결제
+                </Button>
+              )}
+            </div>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

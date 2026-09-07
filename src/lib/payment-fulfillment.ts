@@ -554,6 +554,20 @@ export async function fulfillPaymentIntent(
     revalidatePath("/wallet");
   }
 
+  if (intent.type === "GEM_TOPUP") {
+    const { fulfillGemTopup } = await import("@/lib/gems/purchase");
+    const gemsFromMeta = Number(meta.gemAmount);
+    const r = await fulfillGemTopup({
+      fanId: userId,
+      paymentIntentDbId: intent.id,
+      stripePaymentIntentId: paymentRef,
+      amountUsdCents: amount,
+      gemsFromMeta: Number.isFinite(gemsFromMeta) ? gemsFromMeta : undefined,
+    });
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    revalidatePath("/wallet");
+  }
+
   if (intent.type === "CALL_BOOKING") {
     const { fulfillCallBookingPayment } = await import("@/lib/call-booking");
     const bookingId = String(meta.bookingId ?? "");

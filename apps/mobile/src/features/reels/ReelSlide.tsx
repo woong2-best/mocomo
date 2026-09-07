@@ -10,7 +10,7 @@ import { isPaidPlaybackPath } from "@/api/watermark";
 import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
 import { IMAGE_CACHE_POLICY, avatarDecodeSize } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
-import { LinkifiedText } from "@/ui/LinkifiedText";
+import { TranslatableText } from "@/ui/TranslatableText";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { useAuth } from "@/auth/AuthContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -200,7 +200,7 @@ function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
         <View style={styles.meta}>
           <Text style={styles.user}>@{item.author.username}</Text>
           {item.content ? (
-            <LinkifiedText
+            <TranslatableText
               text={item.content}
               style={styles.caption}
               numberOfLines={3}

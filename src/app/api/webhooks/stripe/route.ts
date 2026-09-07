@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
 import { verifyStripeCheckoutSession } from "@/lib/stripe-checkout";
+import { confirmCreatorSubscriptionCheckout } from "@/lib/creator-subscription-checkout";
+import { db } from "@/lib/db";
 import { isMarketplacePaymentAuthorized } from "@/lib/marketplace/stripe-payment";
 import { handleStripeChargeDisputeEvent } from "@/lib/marketplace/stripe-dispute";
 import type Stripe from "stripe";
@@ -56,19 +58,65 @@ export async function POST(req: Request) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const sessionId = session.id;
-    const verified = await verifyStripeCheckoutSession(sessionId);
-    if (!verified.ok) {
-      return NextResponse.json({ error: verified.error }, { status: 422 });
-    }
 
-    const result = await fulfillPaymentIntent(
-      verified.orderId,
-      verified.paymentRef,
-      verified.amount
-    );
-    if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+    if (session.mode === "subscription" && session.metadata?.type === "CREATOR_SUBSCRIPTION") {
+      const subscriberId = session.metadata?.userId;
+      if (subscriberId) {
+        await confirmCreatorSubscriptionCheckout(subscriberId, sessionId).catch((e) => {
+          console.error("[stripe-webhook] creator subscription checkout", e);
+        });
+      }
+    } else {
+      const verified = await verifyStripeCheckoutSession(sessionId);
+      if (!verified.ok) {
+        return NextResponse.json({ error: verified.error }, { status: 422 });
+      }
+
+      const intent = await db.paymentIntent.findUnique({ where: { id: verified.orderId } });
+      if (intent?.type === "CREATOR_SUBSCRIPTION") {
+        await confirmCreatorSubscriptionCheckout(intent.userId, sessionId);
+      } else {
+        const result = await fulfillPaymentIntent(
+          verified.orderId,
+          verified.paymentRef,
+          verified.amount
+        );
+        if (!result.ok) {
+          return NextResponse.json({ error: result.error }, { status: 422 });
+        }
+      }
     }
+  }
+
+  if (event.type === "invoice.paid") {
+    const invoice = event.data.object as Stripe.Invoice;
+    if (
+      invoice.subscription &&
+      invoice.billing_reason === "subscription_cycle" &&
+      typeof invoice.subscription === "string"
+    ) {
+      const { renewCreatorSubscriptionFromInvoice } = await import(
+        "@/lib/creator-subscription-stripe"
+      );
+      await renewCreatorSubscriptionFromInvoice({
+        stripeSubscriptionId: invoice.subscription,
+        amountUsdCents: invoice.amount_paid,
+        stripeInvoiceId: invoice.id,
+      }).catch((e) => console.error("[stripe-webhook] subscription renewal", e));
+    }
+  }
+
+  if (
+    event.type === "customer.subscription.updated" ||
+    event.type === "customer.subscription.deleted"
+  ) {
+    const sub = event.data.object as Stripe.Subscription;
+    const { syncCreatorSubscriptionFromStripe } = await import(
+      "@/lib/creator-subscription-stripe"
+    );
+    await syncCreatorSubscriptionFromStripe(sub.id).catch((e) =>
+      console.error("[stripe-webhook] subscription sync", e)
+    );
   }
 
   if (

@@ -15,7 +15,8 @@ export type PaymentIntentType =
   | "CREATOR_SUBSCRIPTION"
   | "STUDIO_ASSET"
   | "MARKETPLACE"
-  | "CALL_BOOKING";
+  | "CALL_BOOKING"
+  | "GEM_TOPUP";
 
 export type CheckoutBody = {
   type: PaymentIntentType;

@@ -8,6 +8,9 @@ export type PrepareCheckoutResult = {
   clientSecret: string | null;
   publishableKey: string;
   methods: PaymentMethodItem[];
+  gemBalance?: number;
+  gemsRequired?: number;
+  canPayWithGems?: boolean;
 };
 
 export async function prepareCheckoutPayment(body: CheckoutBody) {

@@ -5,7 +5,8 @@ export async function fulfillCreatorSubscriptionPurchase(
   subscriberId: string,
   creatorId: string,
   amount: number,
-  paymentIntentId: string
+  paymentIntentId: string,
+  stripeSubscriptionId?: string
 ) {
   const creator = await db.user.findUnique({
     where: { id: creatorId },
@@ -33,11 +34,14 @@ export async function fulfillCreatorSubscriptionPurchase(
       status: "active",
       subscribedSince: new Date(),
       currentPeriodEnd: periodEnd,
+      stripeSubscriptionId: stripeSubscriptionId ?? null,
     },
     update: {
       amount,
       status: "active",
       currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: false,
+      stripeSubscriptionId: stripeSubscriptionId ?? undefined,
     },
   });
 

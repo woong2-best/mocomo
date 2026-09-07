@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { PayButton } from "@/components/payments/pay-button";
 import { usePathname } from "next/navigation";
 import { Heart } from "lucide-react";
@@ -28,9 +29,9 @@ export function SubscribeCreatorButton({
       <Button
         variant="outline"
         className={compact ? "rounded-full font-bold px-4 h-9 text-sm" : "rounded-full font-bold px-5"}
-        disabled
+        asChild
       >
-        구독 중
+        <Link href="/settings/subscriptions">구독 관리</Link>
       </Button>
     );
   }
@@ -61,7 +62,7 @@ export function SubscribeCreatorButton({
       }
     >
       <Heart className="h-4 w-4" />
-        월 {formatUsd(priceKrw)} 구독
+        월 {formatUsd(priceKrw)} 정기 후원
     </PayButton>
   );
 }

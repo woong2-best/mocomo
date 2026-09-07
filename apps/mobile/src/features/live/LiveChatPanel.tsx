@@ -25,7 +25,7 @@ import { LiveSupportSheet } from "@/features/live/LiveSupportSheet";
 import { CommentDonationCard, CommentDonationTicker } from "@/features/live/CommentDonationCard";
 import { CommentDonationSheet } from "@/features/live/CommentDonationSheet";
 import { FolkAvatar } from "@/ui/FolkAvatar";
-import { LinkifiedText } from "@/ui/LinkifiedText";
+import { TranslatableText } from "@/ui/TranslatableText";
 import { SupportTierBadge } from "@/ui/SupportTierBadge";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
@@ -265,7 +265,7 @@ export function LiveChatPanel({
                     <Text style={[styles.user, { color: "#f97316" }]}>@{item.username}</Text>
                     <SupportTierBadge tier={item.supportTierSent ?? "SEED"} />
                   </View>
-                  <LinkifiedText text={item.content} style={styles.content} />
+                  <TranslatableText text={item.content} style={styles.content} />
                 </View>
               </View>
             )

@@ -220,7 +220,7 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
                       creatorId: user.id,
                       username: user.username,
                     }}
-                    label={`${formatUsd(user.creatorSubscriptionPriceKrw)}/월 구독`}
+                    label={`${formatUsd(user.creatorSubscriptionPriceKrw)}/월 정기 후원`}
                     variant="secondary"
                     onSuccess={() => void query.refetch()}
                   />

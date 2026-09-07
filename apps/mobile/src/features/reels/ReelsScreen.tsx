@@ -31,7 +31,7 @@ import {
   type FeedVideoGroup,
 } from "@/features/feed/feed-video-groups";
 import { FeedVideoPostSlide } from "@/features/feed/FeedVideoPostSlide";
-import { LinkifiedText } from "@/ui/LinkifiedText";
+import { TranslatableText } from "@/ui/TranslatableText";
 import type { RootStackParamList } from "@/navigation/types";
 
 export function ReelsScreen() {
@@ -349,7 +349,7 @@ export function ReelsScreen() {
                       {item.author.username}
                       <Text style={styles.commentMeta}> · </Text>
                     </Text>
-                    <LinkifiedText text={item.content} style={styles.commentBody} lightLinks />
+                    <TranslatableText text={item.content} style={styles.commentBody} lightLinks />
                   </View>
                 )}
                 ListEmptyComponent={

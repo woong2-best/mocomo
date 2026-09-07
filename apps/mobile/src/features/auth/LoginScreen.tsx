@@ -15,6 +15,7 @@ import type { MobileAuthProvider } from "@/auth/oauth";
 import {
   GoogleNativeCancelledError,
   GoogleNativeUnavailableError,
+  isGoogleDeveloperError,
   prefetchGoogleNativeConfig,
   type GoogleNativeProfile,
 } from "@/auth/google-native";
@@ -27,7 +28,7 @@ import { WelcomeSocialAuthRow } from "@/features/auth/WelcomeSocialAuthRow";
 import { NativeCredentialsForm } from "@/features/auth/NativeCredentialsForm";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing } from "@/theme/tokens";
-import type { AuthStackParamList } from "@/navigation/types";
+import type { RootStackParamList } from "@/navigation/types";
 
 /** Matches the flat lower half of the welcome artwork so edges never show. */
 const BACKDROP = "#001959";
@@ -48,7 +49,7 @@ function credentialsErrorMessage(e: unknown, fallback: string): string {
   return fallback;
 }
 
-type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
+type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
 /** MoCoMo welcome login — hero, social, then native credentials. */
 export function LoginScreen({ navigation }: Props) {
@@ -133,6 +134,12 @@ export function LoginScreen({ navigation }: Props) {
             return;
           } catch (e) {
             if (e instanceof GoogleNativeCancelledError) return;
+            // Play-distributed builds need Play App Signing SHA-1 in Firebase.
+            // Fall back to the in-app browser flow until that is registered.
+            if (isGoogleDeveloperError(e)) {
+              await openWebAuth("signin", { provider: "gmail" });
+              return;
+            }
             const msg =
               e instanceof GoogleNativeUnavailableError
                 ? e.message

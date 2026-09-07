@@ -9,6 +9,8 @@ import {
   prepareCheckoutPaymentIntent,
 } from "@/lib/stripe-pay-intent-service";
 import { payCheckoutWithMoco } from "@/lib/moco-checkout-service";
+import { payCheckoutWithGems } from "@/lib/gems/checkout-pay";
+import { safeReturnPath } from "@/lib/donation-metadata";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
 import type { PaymentIntentType } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -26,6 +28,9 @@ function revalidateAfterPayment(type: string) {
   if (type === "POST_MEDIA") {
     revalidatePath("/post/[id]", "page");
     revalidatePath("/u/[username]", "page");
+  }
+  if (type === "GEM_TOPUP") {
+    revalidatePath("/wallet");
   }
   if (type === "FLOWER") revalidatePath("/flowers");
   if (type === "STUDIO_ASSET") {
@@ -98,7 +103,68 @@ export async function confirmCheckoutPayment(orderId: string) {
   return result;
 }
 
-/** Fallback — Stripe Checkout redirect with saved customer cards */
+function gemPayRedirectPath(
+  type: PaymentIntentType,
+  metadata: Record<string, unknown>
+): string {
+  if (type === "TIP") {
+    const username = typeof metadata.username === "string" ? metadata.username : undefined;
+    const channelId = typeof metadata.channelId === "string" ? metadata.channelId : undefined;
+    const returnPath = typeof metadata.returnPath === "string" ? metadata.returnPath : undefined;
+    if (channelId) return `/voice/${channelId}`;
+    return safeReturnPath(returnPath, username ? `/u/${username}` : "/support");
+  }
+  if (type === "POST_MEDIA") {
+    const returnPath = typeof metadata.returnPath === "string" ? metadata.returnPath : undefined;
+    const username = typeof metadata.username === "string" ? metadata.username : undefined;
+    if (returnPath) return safeReturnPath(returnPath, "/");
+    if (username) return `/u/${username}?paid=1`;
+    const postId = typeof metadata.postId === "string" ? metadata.postId : undefined;
+    if (postId) return `/post/${postId}`;
+    return "/";
+  }
+  return "/wallet";
+}
+
+export async function payWithGems(input: {
+  type: PaymentIntentType;
+  amount: number;
+  metadata: Record<string, unknown>;
+}) {
+  const user = await requireAuth();
+  const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
+  const limited = await checkRateLimit(authLimiter, `gem-pay:${user.id}`);
+  if (!limited.success) {
+    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+  }
+
+  const result = await payCheckoutWithGems({
+    userId: user.id,
+    type: input.type,
+    amountUsdCents: input.amount,
+    metadata: input.metadata,
+  });
+
+  if ("error" in result && result.error) {
+    const messages: Record<string, string> = {
+      INSUFFICIENT_GEMS_BALANCE: "젬 잔액이 부족합니다. 지갑에서 충전해 주세요.",
+    };
+    return { error: messages[result.error] ?? result.error };
+  }
+
+  if ("success" in result && result.success) {
+    revalidateAfterPayment(input.type);
+    return {
+      success: true as const,
+      type: input.type,
+      redirectPath: gemPayRedirectPath(input.type, input.metadata),
+      balance: "balance" in result ? result.balance : undefined,
+    };
+  }
+
+  return { error: "결제에 실패했습니다." };
+}
+
 export async function createStripeCheckoutRedirect(input: {
   type: PaymentIntentType;
   amount: number;

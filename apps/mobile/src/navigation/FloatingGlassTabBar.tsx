@@ -102,7 +102,7 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
                 ]}
                 numberOfLines={1}
               >
-                {meta.label}
+                {label}
               </Text>
             </Pressable>
           );

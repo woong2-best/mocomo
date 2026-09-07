@@ -27,7 +27,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { FeedPostMediaCarousel } from "@/features/feed/FeedPostMediaCarousel";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
-import { LinkifiedText } from "@/ui/LinkifiedText";
+import { TranslatableText } from "@/ui/TranslatableText";
 import { formatViewCount, recordPostViewOnce } from "@/lib/post-view";
 import { Screen } from "@/ui/Screen";
 import { PerformanceBudgets } from "@/perf/budgets";
@@ -138,7 +138,7 @@ export function PostDetailScreen() {
                 </Pressable>
                 {post.title ? <Text style={styles.title}>{post.title}</Text> : null}
                 {post.content ? (
-                  <LinkifiedText text={post.content} style={styles.content} />
+                  <TranslatableText text={post.content} style={styles.content} />
                 ) : null}
                 {post.media && post.media.length > 0 ? (
                   <FeedPostMediaCarousel
@@ -184,7 +184,7 @@ export function PostDetailScreen() {
             renderItem={({ item }) => (
               <View style={styles.comment}>
                 <Text style={styles.commentAuthor}>@{item.author.username}</Text>
-                <LinkifiedText text={item.content} style={styles.commentBody} />
+                <TranslatableText text={item.content} style={styles.commentBody} />
               </View>
             )}
           />

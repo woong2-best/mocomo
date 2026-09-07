@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getMyPaymentMethods } from "@/actions/payment-methods";
 import { getMyTipHistory } from "@/actions/support";
 import { getMyWallet, getMyWalletEarnings, getMyPaymentHistory } from "@/actions/wallet";
+import { getMyGemBalance, getMyGemPurchases } from "@/actions/gems";
 import { WalletHub } from "@/components/wallet/wallet-hub";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { apickBankLabel } from "@/lib/apick/bank-codes";
@@ -13,12 +14,15 @@ export default async function WalletPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/wallet");
 
-  const [data, earnings, paymentData, tipHistory, paymentHistory, user] = await Promise.all([
+  const [data, earnings, paymentData, tipHistory, paymentHistory, gemData, gemPurchases, user] =
+    await Promise.all([
     getMyWallet(),
     getMyWalletEarnings(),
     getMyPaymentMethods(),
     getMyTipHistory(),
     getMyPaymentHistory(),
+    getMyGemBalance(),
+    getMyGemPurchases(),
     db.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -51,6 +55,9 @@ export default async function WalletPage() {
           paymentMethods={paymentData.methods}
           tipHistory={tipHistory}
           paymentHistory={paymentHistory}
+          gemBalance={gemData.balance}
+          gemPackages={gemData.packages}
+          gemPurchases={gemPurchases.purchases}
           bankVerified={bankVerified}
           verifiedBankLabel={verifiedBankLabel}
           legalName={user?.name}

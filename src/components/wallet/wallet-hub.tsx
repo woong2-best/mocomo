@@ -12,6 +12,7 @@ import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import type { PaymentHistoryItem } from "@/lib/payment-history";
 import type { TipHistory } from "@/actions/support";
+import { GemBalancePanel } from "@/components/wallet/gem-balance-panel";
 import { cn } from "@/lib/utils";
 
 type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWallet>>;
@@ -22,6 +23,17 @@ type Props = {
   paymentMethods: SavedPaymentMethod[];
   tipHistory: TipHistory;
   paymentHistory: PaymentHistoryItem[];
+  gemBalance: number;
+  gemPackages: readonly { gems: number; usdCents: number; label: string }[];
+  gemPurchases: {
+    id: string;
+    gems: number;
+    remainingGems: number;
+    krwAmount: number;
+    refunded: boolean;
+    refundedUsd: number | null;
+    createdAt: Date;
+  }[];
   bankVerified: boolean;
   verifiedBankLabel?: string | null;
   legalName?: string | null;
@@ -40,6 +52,9 @@ export function WalletHub({
   paymentMethods,
   tipHistory,
   paymentHistory,
+  gemBalance,
+  gemPackages,
+  gemPurchases,
   bankVerified,
   verifiedBankLabel,
   legalName,
@@ -130,6 +145,7 @@ export function WalletHub({
 
       {tab === "wallet" ? (
         <>
+          <GemBalancePanel balance={gemBalance} packages={gemPackages} purchases={gemPurchases} />
           <PaymentMethodsPanel methods={paymentMethods} />
           <PaymentHistoryPanel items={paymentHistory} />
           <p className="text-center text-xs text-muted-foreground px-4">

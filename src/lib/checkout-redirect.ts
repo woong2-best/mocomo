@@ -49,5 +49,9 @@ export function checkoutRedirectPath(intent: PaymentIntent, type: string) {
     redirectPath = "/market/seller/register?onboarding=fee_paid";
   }
 
+  if (type === "GEM_TOPUP") {
+    redirectPath = "/wallet";
+  }
+
   return redirectPath;
 }
