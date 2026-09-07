@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { requestPayout } from "@/actions/wallet";
 import { UsedBankVerifyForm } from "@/components/used/used-bank-verify-form";
 import { WalletCardStack, WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
-import { WalletEarningsInteractiveChart } from "@/components/wallet/wallet-earnings-interactive-chart";
+import { WalletEarningsExportPanel } from "@/components/wallet/wallet-earnings-export-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MIN_PAYOUT_KRW } from "@/lib/settlement";
@@ -181,7 +181,7 @@ export function RevenueSettlementPanel({
           <StatCard label="순수익" value={earnings.yearNet} tone={earnings.yearNet >= 0 ? "up" : "down"} />
         </div>
 
-        <WalletEarningsInteractiveChart
+        <WalletEarningsExportPanel
           transactions={yearTransactions}
           months={earnings.months}
           year={earnings.year}

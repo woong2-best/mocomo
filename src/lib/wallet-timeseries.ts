@@ -272,22 +272,73 @@ export function buildStepPathFromBuckets(
   return parts.join(" ");
 }
 
-export function exportTransactionsCsv(transactions: WalletTransactionPoint[], year: number): string {
-  const header = "id,at,type,label,amount,net,cumulative,memo,referenceType";
+function csvCell(value: string | number | null | undefined): string {
+  if (value == null || value === "") return "";
+  const s = String(value);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function formatKoDateTime(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `${y}.${m}.${day} ${hh}:${mm}:${ss}`;
+}
+
+export type WalletExportRow = WalletTransactionPoint & {
+  category?: string;
+  payerUsername?: string | null;
+};
+
+export function exportYearSummaryCsv(
+  months: { month: number; label: string; earned: number; withdrawn: number; net: number; cumulative: number }[],
+  year: number
+): string {
+  const header = "연도,월,수익,지출,순수익,누적순수익";
+  const rows = months.map((m) =>
+    [year, m.label, m.earned, m.withdrawn, m.net, m.cumulative].map(csvCell).join(",")
+  );
+  const totalEarned = months.reduce((s, m) => s + m.earned, 0);
+  const totalWithdrawn = months.reduce((s, m) => s + m.withdrawn, 0);
+  const totalNet = totalEarned - totalWithdrawn;
+  rows.push(["합계", "", totalEarned, totalWithdrawn, totalNet, ""].map(csvCell).join(","));
+  return `\uFEFF${header}\n${rows.join("\n")}\n`;
+}
+
+export function exportTransactionsCsv(transactions: WalletExportRow[], year: number): string {
+  const header = "일시,유형,분류,금액,순변동,누적잔액,후원자,메모";
   const rows = transactions.map((t) =>
     [
-      t.id,
-      t.at,
-      t.type,
-      `"${t.label.replace(/"/g, '""')}"`,
+      formatKoDateTime(t.at),
+      t.label,
+      t.category ?? "",
       t.amount,
       t.net,
       t.cumulative,
-      t.memo ? `"${t.memo.replace(/"/g, '""')}"` : "",
-      t.referenceType ?? "",
-    ].join(",")
+      t.payerUsername ? `@${t.payerUsername}` : "",
+      t.memo ?? "",
+    ]
+      .map(csvCell)
+      .join(",")
   );
   return `\uFEFF${header}\n${rows.join("\n")}\n`;
+}
+
+export function exportMonthTransactionsCsv(
+  transactions: WalletExportRow[],
+  year: number,
+  month: number
+): string {
+  const filtered = transactions.filter((t) => {
+    const d = new Date(t.at);
+    return d.getFullYear() === year && d.getMonth() + 1 === month;
+  });
+  return exportTransactionsCsv(filtered, year);
 }
 
 export function exportTransactionsJson(transactions: WalletTransactionPoint[], year: number) {

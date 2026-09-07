@@ -20,7 +20,7 @@ import { WalletCardStack } from "@/features/wallet/WalletCardStack";
 import { GemBalancePanel } from "@/features/wallet/GemBalancePanel";
 import { MySubscriptionsPanel } from "@/features/wallet/MySubscriptionsPanel";
 import { WalletMembershipStrip } from "@/features/wallet/WalletMembershipStrip";
-import { WalletEarningsChart } from "@/features/wallet/WalletEarningsChart";
+import { WalletEarningsExport } from "@/features/wallet/WalletEarningsExport";
 import { BankVerifyPanel } from "@/features/wallet/BankVerifyPanel";
 import { RevenuePayoutPanel } from "@/features/wallet/RevenuePayoutPanel";
 import { buildPaymentMethodCards, buildRevenueCards } from "@/features/wallet/wallet-card-builders";
@@ -283,8 +283,10 @@ export function WalletScreen() {
                 />
               </View>
 
-              <WalletEarningsChart
+              <WalletEarningsExport
                 months={earnings.months ?? []}
+                transactions={earnings.transactions ?? []}
+                year={earnings.year}
                 yearNet={earnings.yearNet ?? 0}
                 colors={colors}
               />
