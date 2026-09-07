@@ -46,14 +46,15 @@ export async function createGemTopupCheckout(gems: number, purchaseTermsAccepted
 export async function requestGemRefund(gemPurchaseId: string) {
   const user = await requireAuth();
   const result = await processRefundRequest(gemPurchaseId, user.id);
-  if ("error" in result) {
+  if ("error" in result && result.error) {
+    const code = result.error;
     const messages: Record<string, string> = {
       UNAUTHORIZED: "환불 권한이 없습니다.",
       ALREADY_REFUNDED: "이미 환불된 구매입니다.",
       NO_REMAINING_GEMS_TO_REFUND: "환불 가능한 미사용 젬이 없습니다.",
       REFUND_WINDOW_EXPIRED: "환불 기한이 지났습니다.",
     };
-    return { error: messages[result.error] ?? result.error };
+    return { error: messages[code] ?? code };
   }
   revalidatePath("/wallet");
   return result;

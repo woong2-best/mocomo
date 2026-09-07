@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
+import { getStripeSubscriptionPeriodEndUnix } from "@/lib/stripe-subscription-utils";
 import { fulfillCreatorSubscriptionPurchase } from "@/actions/creator-subscription-purchase";
 import {
   creditSellerEarning,
@@ -76,7 +77,7 @@ export async function renewCreatorSubscriptionFromInvoice(input: {
 
   const stripe = getStripe();
   const stripeSub = await stripe.subscriptions.retrieve(input.stripeSubscriptionId);
-  const periodEnd = new Date(stripeSub.current_period_end * 1000);
+  const periodEnd = new Date(getStripeSubscriptionPeriodEndUnix(stripeSub) * 1000);
 
   await db.subscription.update({
     where: { id: sub.id },
@@ -113,7 +114,7 @@ export async function syncCreatorSubscriptionFromStripe(stripeSubscriptionId: st
   });
   if (!sub) return;
 
-  const periodEnd = new Date(stripeSub.current_period_end * 1000);
+  const periodEnd = new Date(getStripeSubscriptionPeriodEndUnix(stripeSub) * 1000);
   const canceled = stripeSub.status === "canceled" || stripeSub.status === "unpaid";
 
   await db.subscription.update({

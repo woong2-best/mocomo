@@ -134,7 +134,7 @@ export async function spendGemsOnLiveTip(input: {
       channelId: input.channelId,
       senderId: input.fanId,
       receiverId: input.creatorId,
-      type: input.liveSupportType ?? "CHEER",
+      type: input.liveSupportType ?? "GENERAL",
       amount: amountCents,
       message: input.message?.trim() || null,
       metadata: { giftEventId: gift.giftEvent.id, tipId: tip.id },

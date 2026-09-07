@@ -163,14 +163,15 @@ export async function POST(req: NextRequest) {
   }
 
   const refund = await processRefundRequest(data.gemPurchaseId, auth.user.id);
-  if ("error" in refund) {
+  if ("error" in refund && refund.error) {
+    const code = refund.error;
     const messages: Record<string, string> = {
       UNAUTHORIZED: "환불 권한이 없습니다.",
       ALREADY_REFUNDED: "이미 환불되었습니다.",
       NO_REMAINING_GEMS_TO_REFUND: "환불 가능한 젬이 없습니다.",
       REFUND_WINDOW_EXPIRED: "환불 기한이 지났습니다.",
     };
-    return NextResponse.json({ error: messages[refund.error] ?? refund.error }, { status: 422 });
+    return NextResponse.json({ error: messages[code] ?? code }, { status: 422 });
   }
 
   return NextResponse.json({ success: true, ...refund });

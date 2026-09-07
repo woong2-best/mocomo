@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { isMarketplacePaymentAuthorized } from "@/lib/marketplace/stripe-payment";
 import { handleStripeChargeDisputeEvent } from "@/lib/marketplace/stripe-dispute";
 import type Stripe from "stripe";
+import { getStripeSubscriptionIdFromInvoice } from "@/lib/stripe-subscription-utils";
 
 export const runtime = "nodejs";
 
@@ -90,16 +91,13 @@ export async function POST(req: Request) {
 
   if (event.type === "invoice.paid") {
     const invoice = event.data.object as Stripe.Invoice;
-    if (
-      invoice.subscription &&
-      invoice.billing_reason === "subscription_cycle" &&
-      typeof invoice.subscription === "string"
-    ) {
+    const stripeSubscriptionId = getStripeSubscriptionIdFromInvoice(invoice);
+    if (stripeSubscriptionId && invoice.billing_reason === "subscription_cycle") {
       const { renewCreatorSubscriptionFromInvoice } = await import(
         "@/lib/creator-subscription-stripe"
       );
       await renewCreatorSubscriptionFromInvoice({
-        stripeSubscriptionId: invoice.subscription,
+        stripeSubscriptionId,
         amountUsdCents: invoice.amount_paid,
         stripeInvoiceId: invoice.id,
       }).catch((e) => console.error("[stripe-webhook] subscription renewal", e));
