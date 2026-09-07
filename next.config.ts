@@ -67,6 +67,16 @@ const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   // scripts/next-build.cjs already ran `tsc --noEmit` in a separate process.
   ...(process.env.NEXT_SKIP_TYPECHECK ? { typescript: { ignoreBuildErrors: true } } : {}),
+  /** Keep ML model weights out of serverless function traces (Vercel 250MB limit). */
+  outputFileTracingExcludes: {
+    "/*": [
+      "./node_modules/@huggingface/transformers/**",
+      "./node_modules/onnxruntime-web/**",
+      "./node_modules/onnxruntime-node/**",
+      "./node_modules/@img/**",
+      "./node_modules/sharp/**",
+    ],
+  },
   async rewrites() {
     return {
       beforeFiles: studioHostRewrites(),
@@ -130,16 +140,6 @@ const nextConfig: NextConfig = {
     staleTimes: {
       dynamic: 120,
       static: 600,
-    },
-    /** Keep ML model weights out of serverless function traces (Vercel 250MB limit). */
-    outputFileTracingExcludes: {
-      "*": [
-        "node_modules/@huggingface/transformers/**",
-        "node_modules/onnxruntime-web/**",
-        "node_modules/onnxruntime-node/**",
-        "node_modules/@img/**",
-        "node_modules/sharp/**",
-      ],
     },
     optimizePackageImports: [
       "lucide-react",
