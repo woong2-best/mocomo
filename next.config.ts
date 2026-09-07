@@ -38,7 +38,6 @@ const nextConfig: NextConfig = {
     "@mediapipe/tasks-vision",
     "@pixiv/three-vrm",
     "three",
-    "@huggingface/transformers",
   ],
   serverExternalPackages: [
     "@huggingface/transformers",
