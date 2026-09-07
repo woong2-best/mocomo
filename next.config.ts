@@ -40,9 +40,20 @@ const nextConfig: NextConfig = {
     "three",
     "@huggingface/transformers",
   ],
+  serverExternalPackages: [
+    "@huggingface/transformers",
+    "onnxruntime-web",
+    "onnxruntime-node",
+    "sharp",
+  ],
   webpack: (config, { isServer }) => {
     if (isServer) {
-      config.externals = [...(config.externals as string[] | undefined ?? []), "@huggingface/transformers"];
+      config.externals = [
+        ...(config.externals as string[] | undefined ?? []),
+        "@huggingface/transformers",
+        "onnxruntime-web",
+        "onnxruntime-node",
+      ];
     }
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -119,6 +130,16 @@ const nextConfig: NextConfig = {
     staleTimes: {
       dynamic: 120,
       static: 600,
+    },
+    /** Keep ML model weights out of serverless function traces (Vercel 250MB limit). */
+    outputFileTracingExcludes: {
+      "*": [
+        "node_modules/@huggingface/transformers/**",
+        "node_modules/onnxruntime-web/**",
+        "node_modules/onnxruntime-node/**",
+        "node_modules/@img/**",
+        "node_modules/sharp/**",
+      ],
     },
     optimizePackageImports: [
       "lucide-react",

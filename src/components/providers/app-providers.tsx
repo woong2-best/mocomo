@@ -11,10 +11,24 @@ import { FeedPhotoLightboxProvider } from "@/components/media/feed-photo-lightbo
 import { PublishedToastProvider } from "@/components/providers/published-toast-provider";
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
 import { TopProgressProvider } from "@/components/providers/top-progress-provider";
-import { ClientTranslationProvider } from "@/components/providers/client-translation-provider";
-import { ClientTranslationWarmup } from "@/components/client-translation/client-translation-warmup";
 import type { Locale } from "@/lib/i18n/config";
 import { PortOneIdentityScript } from "@/components/adult-verification/portone-identity-sdk";
+
+const ClientTranslationProvider = dynamic(
+  () =>
+    import("@/components/providers/client-translation-provider").then(
+      (m) => m.ClientTranslationProvider
+    ),
+  { ssr: false }
+);
+
+const ClientTranslationWarmup = dynamic(
+  () =>
+    import("@/components/client-translation/client-translation-warmup").then(
+      (m) => m.ClientTranslationWarmup
+    ),
+  { ssr: false }
+);
 
 const PlatformBootstrapClient = dynamic(
   () =>
