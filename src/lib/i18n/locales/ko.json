@@ -1,4 +1,4 @@
-{
+﻿{
   "nav.home": "홈",
   "nav.explore": "탐색",
   "nav.discover": "매칭",
@@ -337,7 +337,7 @@
   "home.featureLive": "라이브",
   "home.featureCommunities": "커뮤니티",
   "home.highlightsTitle": "이번 주 하이라이트",
-  "home.highlightsMeta": "최근 7일 · 각 2개",
+  "home.highlightsMeta": "최근 7일 · 각 3개",
   "home.likesTop": "좋아요 TOP",
   "home.viewsTop": "조회수 TOP",
   "home.likes": "좋아요",

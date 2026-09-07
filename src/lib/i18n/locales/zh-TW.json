@@ -1,4 +1,4 @@
-{
+﻿{
   "nav.home": "家",
   "nav.explore": "探索",
   "nav.discover": "匹配",
@@ -337,7 +337,7 @@
   "home.featureLive": "居住",
   "home.featureCommunities": "社群",
   "home.highlightsTitle": "本週亮點",
-  "home.highlightsMeta": "過去 7 天·各前 2 名",
+  "home.highlightsMeta": "過去 7 天·各前 3 名",
   "home.likesTop": "最喜歡的",
   "home.viewsTop": "頂視圖",
   "home.likes": "喜歡",

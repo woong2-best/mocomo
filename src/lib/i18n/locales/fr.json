@@ -1,4 +1,4 @@
-{
+﻿{
   "nav.home": "Maison",
   "nav.explore": "Explorer",
   "nav.discover": "Correspondre",
@@ -337,7 +337,7 @@
   "home.featureLive": "Live",
   "home.featureCommunities": "Communities",
   "home.highlightsTitle": "This week's highlights",
-  "home.highlightsMeta": "Last 7 days · top 2 each",
+  "home.highlightsMeta": "Last 7 days · top 3 each",
   "home.likesTop": "Top likes",
   "home.viewsTop": "Top views",
   "home.likes": "likes",

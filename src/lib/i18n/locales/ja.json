@@ -1,4 +1,4 @@
-{
+﻿{
   "nav.home": "ホーム",
   "nav.explore": "探索",
   "nav.discover": "マッチ",
@@ -337,7 +337,7 @@
   "home.featureLive": "ライブ",
   "home.featureCommunities": "コミュニティ",
   "home.highlightsTitle": "今週のハイライト",
-  "home.highlightsMeta": "過去7日 · 各2件",
+  "home.highlightsMeta": "過去7日 · 各3件",
   "home.likesTop": "いいね TOP",
   "home.viewsTop": "閲覧 TOP",
   "home.likes": "いいね",

@@ -13,7 +13,7 @@ import { feedPostListSelect, mapFeedPost } from "@/lib/feed-query";
 import { platformPostWhere } from "@/lib/post-scope";
 
 export const getCachedWeeklyHighlights = unstable_cache(
-  async () => getWeeklyHighlights(5),
+  async () => getWeeklyHighlights(3),
   ["home-weekly-highlights"],
   { revalidate: 300 }
 );

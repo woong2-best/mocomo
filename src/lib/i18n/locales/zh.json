@@ -1,4 +1,4 @@
-{
+﻿{
   "nav.home": "首页",
   "nav.explore": "探索",
   "nav.discover": "マッチ",
@@ -337,7 +337,7 @@
   "home.featureLive": "直播",
   "home.featureCommunities": "社区",
   "home.highlightsTitle": "本周亮点",
-  "home.highlightsMeta": "近7天 · 各2条",
+  "home.highlightsMeta": "近7天 · 各3条",
   "home.likesTop": "点赞 TOP",
   "home.viewsTop": "浏览 TOP",
   "home.likes": "点赞",
