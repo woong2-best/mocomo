@@ -167,10 +167,7 @@ export function NativeAppHeader() {
         <div className="min-w-0 flex-1">
           <Suspense
             fallback={
-              <div className="flex h-11 w-full gap-2" aria-hidden>
-                <div className="flex-1 rounded-xl bg-muted/60" />
-                <div className="h-11 w-14 shrink-0 rounded-xl bg-muted/60" />
-              </div>
+              <div className="h-11 w-full rounded-xl border-2 border-folk-cobalt/20 bg-muted/40" aria-hidden />
             }
           >
             <HeaderSearch variant="header" />

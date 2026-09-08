@@ -14,10 +14,7 @@ function SearchPill() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-11 flex-1 gap-2" aria-hidden>
-          <div className="flex-1 rounded-xl bg-muted/60" />
-          <div className="h-11 w-14 shrink-0 rounded-xl bg-muted/60" />
-        </div>
+        <div className="h-11 flex-1 rounded-xl border-2 border-folk-cobalt/20 bg-muted/40" aria-hidden />
       }
     >
       <HeaderSearch variant="pill" className="flex-1 min-w-0" />

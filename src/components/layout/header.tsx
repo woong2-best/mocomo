@@ -21,10 +21,7 @@ function HeaderSearchSlot({ className }: { className?: string }) {
     <div className={className}>
       <Suspense
         fallback={
-          <div className="flex h-11 w-full max-w-2xl gap-2" aria-hidden>
-            <div className="flex-1 rounded-xl bg-muted/60" />
-            <div className="h-11 w-14 shrink-0 rounded-xl bg-muted/60" />
-          </div>
+          <div className="h-11 w-full max-w-2xl rounded-xl border-2 border-folk-cobalt/20 bg-muted/40" aria-hidden />
         }
       >
         <HeaderSearch variant="header" />

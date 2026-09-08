@@ -220,15 +220,16 @@ export function HeaderSearch({
         ref={wrapRef}
         className={cn("relative w-full min-w-0", variant === "page" && "z-[1]", className)}
       >
-        <form onSubmit={goFullSearch} className="flex w-full gap-2" role="search">
-          <div
-            className={cn(
-              "relative flex min-w-0 flex-1 items-center rounded-xl border bg-muted/80 transition-shadow",
-              "border-border/80 focus-within:ring-2 focus-within:ring-folk-cobalt/40 focus-within:border-folk-cobalt/30",
-              showPanel && "ring-2 ring-folk-cobalt/30 border-folk-cobalt/30"
-            )}
-          >
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <form
+          onSubmit={goFullSearch}
+          className={cn(
+            "flex w-full items-stretch overflow-hidden rounded-xl border-2 border-folk-cobalt/35 bg-background shadow-[2px_3px_0_hsl(var(--folk-cobalt)/0.1)] transition-all",
+            "focus-within:border-folk-terracotta focus-within:shadow-[3px_4px_0_hsl(var(--folk-terracotta)/0.18)]",
+            showPanel && "border-folk-terracotta shadow-[3px_4px_0_hsl(var(--folk-terracotta)/0.18)]"
+          )}
+          role="search"
+        >
+          <div className="relative flex min-w-0 flex-1 items-center">
             <input
               ref={inputRef}
               name="q"
@@ -253,30 +254,31 @@ export function HeaderSearch({
               aria-label={t("search.placeholder")}
               autoComplete="off"
               enterKeyHint="search"
-              className="h-11 w-full bg-transparent pl-10 pr-10 text-sm outline-none"
+              className="h-11 w-full bg-transparent px-3 pr-9 text-sm outline-none"
             />
             {pending && !q && (
-              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              <Loader2 className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
             )}
             {q.length > 0 && !pending && (
               <button
                 type="button"
                 onClick={clearQuery}
-                className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-background/80"
+                className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/60"
                 aria-label="검색어 지우기"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
             {pending && q.length > 0 && (
-              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              <Loader2 className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
             )}
           </div>
           <button
             type="submit"
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-muted/90 px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+            className="inline-flex h-11 shrink-0 items-center justify-center bg-folk-terracotta px-3.5 text-white transition-colors hover:brightness-110"
+            aria-label={t("search.placeholder")}
           >
-            {t("search.submit")}
+            <Search className="h-4 w-4" strokeWidth={2.5} />
           </button>
         </form>
       </div>
