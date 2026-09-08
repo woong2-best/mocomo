@@ -122,7 +122,7 @@ export function HeaderSearch({
   }, []);
 
   const updatePanelRect = useCallback(() => {
-    const el = inputRef.current;
+    const el = wrapRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const width = Math.min(Math.max(rect.width, 320), window.innerWidth - 24);
@@ -220,49 +220,60 @@ export function HeaderSearch({
         ref={wrapRef}
         className={cn("relative w-full min-w-0", variant === "page" && "z-[1]", className)}
       >
-        <form onSubmit={goFullSearch} className="relative w-full" role="search">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <input
-            ref={inputRef}
-            name="q"
-            type="search"
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              if (e.target.value.trim().length >= 1) setOpen(true);
-              else {
-                setOpen(false);
-                setResults(null);
-              }
-            }}
-            onFocus={() => {
-              if (trimmed.length >= 1) setOpen(true);
-            }}
-            placeholder={t("search.placeholder")}
-            autoComplete="off"
-            enterKeyHint="search"
+        <form onSubmit={goFullSearch} className="flex w-full gap-2" role="search">
+          <div
             className={cn(
-              "w-full h-10 pl-10 pr-10 rounded-full bg-muted/80 border text-sm transition-shadow",
-              "border-border/80 focus:outline-none focus:ring-2 focus:ring-folk-cobalt/40 focus:border-folk-cobalt/30",
+              "relative flex min-w-0 flex-1 items-center rounded-xl border bg-muted/80 transition-shadow",
+              "border-border/80 focus-within:ring-2 focus-within:ring-folk-cobalt/40 focus-within:border-folk-cobalt/30",
               showPanel && "ring-2 ring-folk-cobalt/30 border-folk-cobalt/30"
             )}
-          />
-          {pending && !q && (
-            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-          )}
-          {q.length > 0 && !pending && (
-            <button
-              type="button"
-              onClick={clearQuery}
-              className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-background/80 text-muted-foreground"
-              aria-label="검색어 지우기"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-          {pending && q.length > 0 && (
-            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-          )}
+          >
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              ref={inputRef}
+              name="q"
+              type="search"
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                if (e.target.value.trim().length >= 1) setOpen(true);
+                else {
+                  setOpen(false);
+                  setResults(null);
+                }
+              }}
+              onFocus={() => {
+                if (trimmed.length >= 1) setOpen(true);
+              }}
+              aria-label={t("search.placeholder")}
+              autoComplete="off"
+              enterKeyHint="search"
+              className="h-11 w-full bg-transparent pl-10 pr-10 text-sm outline-none"
+            />
+            {pending && !q && (
+              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
+            {q.length > 0 && !pending && (
+              <button
+                type="button"
+                onClick={clearQuery}
+                className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-background/80"
+                aria-label="검색어 지우기"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+            {pending && q.length > 0 && (
+              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
+          </div>
+          <button
+            type="submit"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-muted/90 text-foreground transition-colors hover:bg-muted"
+            aria-label={t("search.placeholder")}
+          >
+            <Search className="h-4 w-4" />
+          </button>
         </form>
       </div>
       {previewPanel}

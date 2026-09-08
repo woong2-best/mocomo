@@ -19,7 +19,14 @@ import { cn } from "@/lib/utils";
 function HeaderSearchSlot({ className }: { className?: string }) {
   return (
     <div className={className}>
-      <Suspense fallback={<div className="h-10 w-full max-w-2xl rounded-full bg-muted/60" aria-hidden />}>
+      <Suspense
+        fallback={
+          <div className="flex h-11 w-full max-w-2xl gap-2" aria-hidden>
+            <div className="flex-1 rounded-xl bg-muted/60" />
+            <div className="h-11 w-11 shrink-0 rounded-xl bg-muted/60" />
+          </div>
+        }
+      >
         <HeaderSearch variant="header" />
       </Suspense>
     </div>

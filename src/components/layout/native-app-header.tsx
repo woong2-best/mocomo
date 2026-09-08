@@ -165,7 +165,14 @@ export function NativeAppHeader() {
           </motion.button>
         </div>
         <div className="min-w-0 flex-1">
-          <Suspense fallback={<div className="h-10 w-full rounded-full bg-muted/60" aria-hidden />}>
+          <Suspense
+            fallback={
+              <div className="flex h-11 w-full gap-2" aria-hidden>
+                <div className="flex-1 rounded-xl bg-muted/60" />
+                <div className="h-11 w-11 shrink-0 rounded-xl bg-muted/60" />
+              </div>
+            }
+          >
             <HeaderSearch variant="header" />
           </Suspense>
         </div>
