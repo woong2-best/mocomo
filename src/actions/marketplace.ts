@@ -257,7 +257,7 @@ export async function createMarketplaceListingForUser(
 
   const sellerUser = await db.user.findUnique({
     where: { id: userId },
-    select: { bankVerifiedAt: true, phoneVerified: true, countryCode: true },
+    select: { stripeOnboardingCompleted: true, stripeConnectOnboardedAt: true, phoneVerified: true, countryCode: true },
   });
   const settlementErr = assertSettlementAccount(sellerUser);
   if (settlementErr) {

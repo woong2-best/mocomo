@@ -53,7 +53,17 @@ export async function syncStripeConnectAccountToDb(account: Stripe.Account): Pro
   if (!userId) return;
 
   const snap = snapshotStripeConnectAccount(account);
+  const onboardingComplete = !!account.details_submitted && !!account.payouts_enabled;
   const now = new Date();
+
+  await db.user.update({
+    where: { id: userId },
+    data: {
+      stripeConnectAccountId: account.id,
+      stripeOnboardingCompleted: onboardingComplete,
+      ...(snap.readyForPayouts ? { stripeConnectOnboardedAt: now } : {}),
+    },
+  });
 
   const profile = await db.marketplaceSellerProfile.findUnique({
     where: { userId },
@@ -64,15 +74,10 @@ export async function syncStripeConnectAccountToDb(account: Stripe.Account): Pro
     },
   });
 
-  if (!profile) return;
-
-  await db.user.update({
-    where: { id: userId },
-    data: {
-      stripeConnectAccountId: account.id,
-      ...(snap.readyForPayouts ? { stripeConnectOnboardedAt: now } : {}),
-    },
-  });
+  if (!profile) {
+    revalidatePath("/wallet");
+    return;
+  }
 
   await db.marketplaceSellerProfile.update({
     where: { id: profile.id },
@@ -118,6 +123,7 @@ export async function syncStripeConnectAccountToDb(account: Stripe.Account): Pro
   revalidatePath("/market/seller");
   revalidatePath("/market/seller/register");
   revalidatePath("/admin/market");
+  revalidatePath("/wallet");
 }
 
 export function stripeConnectStatusLabel(

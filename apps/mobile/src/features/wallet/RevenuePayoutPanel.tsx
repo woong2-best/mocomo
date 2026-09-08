@@ -49,8 +49,10 @@ export function RevenuePayoutPanel({ withdrawable, bankReady }: Props) {
       <Text style={[styles.body, { color: colors.textMuted }]}>
         출금 가능 {formatUsd(withdrawable)} · 최소 {formatUsd(MIN_PAYOUT_USD_CENTS)}
       </Text>
-      {!bankReady ? (
-        <Text style={[styles.body, { color: colors.danger }]}>먼저 수익 입금 계좌를 1원 인증으로 등록해 주세요.</Text>
+        {!bankReady ? (
+        <Text style={[styles.body, { color: colors.danger }]}>
+          먼저 Stripe Connect 정산 계좌 연동을 완료해 주세요.
+        </Text>
       ) : (
         <>
           <TextInput

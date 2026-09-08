@@ -7,7 +7,6 @@ import { getMyWallet, getMyWalletEarnings, getMyPaymentHistory } from "@/actions
 import { getMyGemBalance, getMyGemPurchases } from "@/actions/gems";
 import { WalletHub } from "@/components/wallet/wallet-hub";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
-import { apickBankLabel } from "@/lib/apick/bank-codes";
 import { db } from "@/lib/db";
 
 export default async function WalletPage() {
@@ -26,22 +25,14 @@ export default async function WalletPage() {
     db.user.findUnique({
       where: { id: session.user.id },
       select: {
-        name: true,
-        emailVerified: true,
-        bankVerifiedAt: true,
-        settlementBankCode: true,
-        settlementAccountLast4: true,
+        stripeOnboardingCompleted: true,
       },
     }),
   ]);
 
   if (!tipHistory) redirect("/auth/signin?callbackUrl=/wallet");
 
-  const bankVerified = !!user?.bankVerifiedAt;
-  const verifiedBankLabel =
-    bankVerified && user?.settlementBankCode && user.settlementAccountLast4
-      ? `${apickBankLabel(user.settlementBankCode)} ****${user.settlementAccountLast4}`
-      : null;
+  const stripeOnboardingCompleted = !!user?.stripeOnboardingCompleted;
 
   return (
     <AppPageChrome spacing="sm">
@@ -58,10 +49,7 @@ export default async function WalletPage() {
           gemBalance={gemData.balance}
           gemPackages={gemData.packages}
           gemPurchases={gemPurchases.purchases}
-          bankVerified={bankVerified}
-          verifiedBankLabel={verifiedBankLabel}
-          legalName={user?.name}
-          emailVerified={!!user?.emailVerified}
+          stripeOnboardingCompleted={stripeOnboardingCompleted}
         />
       </Suspense>
     </AppPageChrome>

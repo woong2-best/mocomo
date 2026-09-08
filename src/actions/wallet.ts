@@ -59,28 +59,24 @@ export async function requestPayout(amount: number) {
   }
 
   try {
-    const bank = await db.bankAccount.findUnique({ where: { userId: user.id } });
     const verified = await db.user.findUnique({
       where: { id: user.id },
       select: {
-        bankVerifiedAt: true,
-        settlementBankCode: true,
-        settlementAccountLast4: true,
-        settlementAccountHolder: true,
+        stripeOnboardingCompleted: true,
+        stripeConnectAccountId: true,
         name: true,
       },
     });
 
-    let payoutBank: { bankName: string; accountNumber: string; holderName: string } | null = bank;
-    if (!payoutBank && verified?.bankVerifiedAt && verified.settlementBankCode) {
-      const { apickBankLabel } = await import("@/lib/apick/bank-codes");
-      payoutBank = {
-        bankName: apickBankLabel(verified.settlementBankCode) ?? verified.settlementBankCode,
-        accountNumber: verified.settlementAccountLast4 ?? "",
-        holderName: verified.settlementAccountHolder ?? verified.name ?? "",
-      };
+    if (!verified?.stripeOnboardingCompleted || !verified.stripeConnectAccountId) {
+      return { error: "Stripe Connect 정산 계좌 연동을 먼저 완료해 주세요." };
     }
-    if (!payoutBank) return { error: "출금 계좌를 먼저 등록해 주세요." };
+
+    const payoutBank = {
+      bankName: "Stripe Connect",
+      accountNumber: verified.stripeConnectAccountId.slice(-8),
+      holderName: verified.name ?? "Stripe",
+    };
 
     const wallet = await db.wallet.findUnique({ where: { userId: user.id } });
     const available = wallet?.availableBalance ?? 0;

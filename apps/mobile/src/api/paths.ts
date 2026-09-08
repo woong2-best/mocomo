@@ -78,6 +78,8 @@ export const MobileApi = {
   checkoutConfirm: "/api/mobile/checkout/confirm",
   checkoutIntent: "/api/mobile/checkout/intent",
   walletPayout: "/api/mobile/wallet/payout",
+  stripeConnect: "/api/mobile/stripe/connect",
+  stripeConnectDashboard: "/api/mobile/stripe/connect/dashboard",
   callBookings: "/api/mobile/call-bookings",
   callBooking: (id: string) => `/api/mobile/call-bookings/${id}`,
   callBookingCreator: (userId: string) => `/api/mobile/call-bookings/creator/${userId}`,

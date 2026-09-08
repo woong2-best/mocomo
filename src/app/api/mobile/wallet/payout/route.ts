@@ -32,7 +32,6 @@ export async function POST(req: NextRequest) {
 
   const { db } = await import("@/lib/db");
   const { MIN_PAYOUT_USD_CENTS, formatUsd } = await import("@/lib/money");
-  const { apickBankLabel } = await import("@/lib/apick/bank-codes");
 
   const userId = auth.user.id;
   const amount = parsed.data.amount;
@@ -45,29 +44,27 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const bank = await db.bankAccount.findUnique({ where: { userId } });
     const verified = await db.user.findUnique({
       where: { id: userId },
       select: {
-        bankVerifiedAt: true,
-        settlementBankCode: true,
-        settlementAccountLast4: true,
-        settlementAccountHolder: true,
+        stripeOnboardingCompleted: true,
+        stripeConnectAccountId: true,
         name: true,
       },
     });
 
-    let payoutBank: { bankName: string; accountNumber: string; holderName: string } | null = bank;
-    if (!payoutBank && verified?.bankVerifiedAt && verified.settlementBankCode) {
-      payoutBank = {
-        bankName: apickBankLabel(verified.settlementBankCode) ?? verified.settlementBankCode,
-        accountNumber: verified.settlementAccountLast4 ?? "",
-        holderName: verified.settlementAccountHolder ?? verified.name ?? "",
-      };
+    if (!verified?.stripeOnboardingCompleted || !verified.stripeConnectAccountId) {
+      return NextResponse.json(
+        { error: "Stripe Connect 정산 계좌 연동을 먼저 완료해 주세요." },
+        { status: 400 }
+      );
     }
-    if (!payoutBank) {
-      return NextResponse.json({ error: "출금 계좌를 먼저 등록해 주세요." }, { status: 400 });
-    }
+
+    const payoutBank = {
+      bankName: "Stripe Connect",
+      accountNumber: verified.stripeConnectAccountId.slice(-8),
+      holderName: verified.name ?? "Stripe",
+    };
 
     const wallet = await db.wallet.findUnique({ where: { userId } });
     const available = wallet?.availableBalance ?? 0;
@@ -89,9 +86,9 @@ export async function POST(req: NextRequest) {
         data: {
           userId,
           amount,
-          bankName: payoutBank!.bankName,
-          accountNumber: payoutBank!.accountNumber,
-          holderName: payoutBank!.holderName,
+          bankName: payoutBank.bankName,
+          accountNumber: payoutBank.accountNumber,
+          holderName: payoutBank.holderName,
         },
       });
       await tx.ledgerEntry.create({

@@ -3,9 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { requestPayout } from "@/actions/wallet";
-import { UsedBankVerifyForm } from "@/components/used/used-bank-verify-form";
 import { WalletCardStack, WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
 import { WalletEarningsExportPanel } from "@/components/wallet/wallet-earnings-export-panel";
+import { WalletStripeConnectPanel } from "@/components/wallet/wallet-stripe-connect-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MIN_PAYOUT_KRW } from "@/lib/settlement";
@@ -13,17 +13,13 @@ import { formatUsd } from "@/lib/money";
 import { LEDGER_LABELS } from "@/lib/wallet-labels";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import { cn } from "@/lib/utils";
-import { ShieldCheck } from "lucide-react";
 
 type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWallet>>;
 
 type Props = {
   data: WalletData;
   earnings: WalletEarningsAnalytics;
-  bankVerified: boolean;
-  verifiedBankLabel?: string | null;
-  legalName?: string | null;
-  emailVerified?: boolean;
+  stripeOnboardingCompleted: boolean;
   callbackUrl?: string | null;
 };
 
@@ -34,11 +30,7 @@ function fmtUsd(n: number) {
 export function RevenueSettlementPanel({
   data,
   earnings: initialEarnings,
-  bankVerified,
-  verifiedBankLabel,
-  legalName,
-  emailVerified = true,
-  callbackUrl = "/wallet?tab=earnings",
+  stripeOnboardingCompleted,
 }: Props) {
   const router = useRouter();
   const [earnings, setEarnings] = useState(initialEarnings);
@@ -50,11 +42,6 @@ export function RevenueSettlementPanel({
 
   const yearTransactions = earnings.transactions ?? [];
   const withdrawable = Math.max(0, data.availableBalance - data.pendingPayout);
-  const bankLabel =
-    verifiedBankLabel ??
-    (data.bank
-      ? `${data.bank.bankName} ${data.bank.accountNumber ? `****${String(data.bank.accountNumber).slice(-4)}` : ""}`
-      : null);
 
   function changeYear(nextYear: number) {
     setYear(nextYear);
@@ -86,7 +73,7 @@ export function RevenueSettlementPanel({
         totalEarned={data.totalEarned}
         totalWithdrawn={data.totalWithdrawn}
         pendingPayout={data.pendingPayout}
-        bankLabel={bankLabel}
+        bankLabel={stripeOnboardingCompleted ? "Stripe Connect" : null}
       />
 
       <div className="space-y-2">
@@ -104,34 +91,14 @@ export function RevenueSettlementPanel({
         ) : null}
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-primary" />
-          <p className="font-bold">수익 입금 계좌 (1원 인증)</p>
-        </div>
-        {bankVerified && verifiedBankLabel ? (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
-            <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-              ✓ {verifiedBankLabel}
-            </p>
-            <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80 mt-1">
-              등록된 계좌로 수익이 입금됩니다.
-            </p>
-          </div>
-        ) : (
-          <UsedBankVerifyForm
-            mode="account"
-            callbackUrl={callbackUrl ?? "/wallet?tab=earnings"}
-            legalName={legalName}
-            emailVerified={emailVerified}
-          />
-        )}
-      </div>
+      <WalletStripeConnectPanel stripeOnboardingCompleted={stripeOnboardingCompleted} />
 
       <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
         <p className="font-bold">출금 신청</p>
-        {!bankVerified && !data.bank ? (
-          <p className="text-sm text-muted-foreground">출금 전 수익 입금 계좌를 1원 인증으로 등록해 주세요.</p>
+        {!stripeOnboardingCompleted ? (
+          <p className="text-sm text-muted-foreground">
+            출금 전 Stripe Connect 정산 계좌 연동을 완료해 주세요.
+          </p>
         ) : (
           <form onSubmit={submitPayout} className="space-y-2">
             <Input

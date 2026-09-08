@@ -4,11 +4,12 @@ import { walletSettlementPath } from "@/lib/settlement-account";
 
 export type UsedMarketVerifyUser = {
   countryCode: string;
-  bankVerifiedAt?: Date | null;
+  stripeOnboardingCompleted?: boolean;
+  stripeConnectOnboardedAt?: Date | null;
   phoneVerified?: Date | null;
 };
 
-/** KR → bank (wallet) · overseas → phone OTP at /used/verify */
+/** KR → Stripe Connect (wallet) · overseas → phone OTP at /used/verify */
 export function usedMarketVerifyPath(callbackUrl?: string, countryCode?: string): string {
   const next = callbackUrl?.startsWith("/") ? callbackUrl : "/used/new";
   if (isKoreaUsedMarketCountry(countryCode)) {

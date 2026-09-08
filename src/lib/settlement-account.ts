@@ -1,16 +1,17 @@
 export const SETTLEMENT_ACCOUNT_REQUIRED_MSG =
-  "수익 입금 계좌 등록이 필요합니다. 지갑 → 수익 탭에서 본인 명의 계좌를 1원 인증으로 등록해 주세요.";
+  "수익 정산 계좌 연동이 필요합니다. 지갑 → 수익 탭에서 Stripe Connect로 정산 계좌를 등록해 주세요.";
 
 export const SETTLEMENT_ACCOUNT_REQUIRED_CODE = "SETTLEMENT_ACCOUNT_REQUIRED";
 
 export type SettlementAccountUser = {
-  bankVerifiedAt?: Date | null;
+  stripeOnboardingCompleted?: boolean;
+  stripeConnectOnboardedAt?: Date | null;
 };
 
-/** Apick 1원 인증 완료 여부 (수익 입금 계좌) */
+/** Stripe Connect Express 온보딩 완료 여부 */
 export function hasSettlementAccount(user: SettlementAccountUser | null | undefined): boolean {
   if (!user) return false;
-  return !!user.bankVerifiedAt;
+  return !!(user.stripeOnboardingCompleted || user.stripeConnectOnboardedAt);
 }
 
 export function assertSettlementAccount(user: SettlementAccountUser | null | undefined): string | null {
@@ -18,7 +19,7 @@ export function assertSettlementAccount(user: SettlementAccountUser | null | und
   return SETTLEMENT_ACCOUNT_REQUIRED_MSG;
 }
 
-/** 지갑 수익 탭 — 계좌 등록 UI */
+/** 지갑 수익 탭 — Stripe Connect 연동 UI */
 export function walletSettlementPath(callbackUrl?: string): string {
   const base = "/wallet?tab=earnings";
   if (!callbackUrl?.startsWith("/")) return base;

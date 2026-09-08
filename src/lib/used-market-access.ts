@@ -15,7 +15,8 @@ export { USED_BANK_REQUIRED_MSG as USED_PHONE_REQUIRED_MSG } from "@/lib/used-ba
 
 export type UsedMarketUserSlice = {
   countryCode: string;
-  bankVerifiedAt?: Date | null;
+  stripeOnboardingCompleted?: boolean;
+  stripeConnectOnboardedAt?: Date | null;
   phoneVerified?: Date | null;
   usedMarketBannedAt?: Date | null;
   adultVerifiedAt?: Date | null;

@@ -36,7 +36,8 @@ import { getOrCreateDmForUser, sendMobileDmMessage } from "@/lib/chat-dm-service
 const usedMarketUserSelect = {
   id: true,
   countryCode: true,
-  bankVerifiedAt: true,
+  stripeOnboardingCompleted: true,
+  stripeConnectOnboardedAt: true,
   phoneVerified: true,
   usedMarketBannedAt: true,
   birthDate: true,

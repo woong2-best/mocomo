@@ -112,7 +112,7 @@ export async function createPostForUser(
   if (instantPrice > 0 || paidMediaInput) {
     const seller = await db.user.findUnique({
       where: { id: user.id },
-      select: { bankVerifiedAt: true, phoneVerified: true, username: true },
+      select: { stripeOnboardingCompleted: true, stripeConnectOnboardedAt: true, phoneVerified: true, username: true },
     });
     const settlementErr = assertSettlementAccount(seller);
     if (settlementErr) {

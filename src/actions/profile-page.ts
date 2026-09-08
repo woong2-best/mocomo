@@ -218,9 +218,9 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
   if (viewerId === user.id) {
     const payout = await db.user.findUnique({
       where: { id: viewerId },
-      select: { bankVerifiedAt: true },
+      select: { stripeOnboardingCompleted: true },
     });
-    hasPayoutAccount = !!payout?.bankVerifiedAt;
+    hasPayoutAccount = !!payout?.stripeOnboardingCompleted;
   }
 
   return {

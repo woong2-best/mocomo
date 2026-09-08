@@ -14,14 +14,14 @@ import type { RouteProp } from "@react-navigation/native";
 import type { RootStackParamList } from "@/navigation/types";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { fetchWallet, fetchWalletEarnings } from "@/api/discovery";
-import { fetchBankStatus } from "@/api/checkout-payment";
+import { fetchStripeConnectStatus } from "@/api/stripe-connect";
 import { fetchPaymentMethods, openPaymentMethodSetup, setDefaultPaymentMethod } from "@/payments/stripe-setup";
 import { WalletCardStack } from "@/features/wallet/WalletCardStack";
 import { GemBalancePanel } from "@/features/wallet/GemBalancePanel";
 import { MySubscriptionsPanel } from "@/features/wallet/MySubscriptionsPanel";
 import { WalletMembershipStrip } from "@/features/wallet/WalletMembershipStrip";
 import { WalletEarningsExport } from "@/features/wallet/WalletEarningsExport";
-import { BankVerifyPanel } from "@/features/wallet/BankVerifyPanel";
+import { StripeConnectPanel } from "@/features/wallet/StripeConnectPanel";
 import { RevenuePayoutPanel } from "@/features/wallet/RevenuePayoutPanel";
 import { buildPaymentMethodCards, buildRevenueCards } from "@/features/wallet/wallet-card-builders";
 import { AppHeader } from "@/ui/AppHeader";
@@ -53,7 +53,7 @@ export function WalletScreen() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [addingCard, setAddingCard] = useState(false);
   const returnScreen = route.params?.returnScreen;
-  const handleBankVerified = useCallback(() => {
+  const handleStripeConnected = useCallback(() => {
     if (!returnScreen) return;
     navigation.replace(returnScreen);
   }, [navigation, returnScreen]);
@@ -77,9 +77,9 @@ export function WalletScreen() {
     enabled: tab === "earnings",
     retry: 1,
   });
-  const bankStatusQuery = useQuery({
-    queryKey: ["mobile-bank-status"],
-    queryFn: fetchBankStatus,
+  const stripeConnectQuery = useQuery({
+    queryKey: ["mobile-stripe-connect"],
+    queryFn: fetchStripeConnectStatus,
     enabled: tab === "earnings",
   });
 
@@ -87,9 +87,7 @@ export function WalletScreen() {
   const earnings = earningsQuery.data;
   const paymentMethods = paymentMethodsQuery.data?.methods ?? [];
   const withdrawable = data ? Math.max(0, data.availableBalance - data.pendingPayout) : 0;
-  const bankLabel = data?.bank
-    ? `${data.bank.bankName} ${data.bank.accountMasked ?? ""}`
-    : null;
+  const bankLabel = stripeConnectQuery.data?.stripeOnboardingCompleted ? "Stripe Connect" : null;
 
   const paymentCards = useMemo(
     () => buildPaymentMethodCards(paymentMethods, colors),
@@ -198,7 +196,7 @@ export function WalletScreen() {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
-            {returnScreen && !(bankStatusQuery.data?.bankVerified || data.bank) ? (
+            {returnScreen && !stripeConnectQuery.data?.stripeOnboardingCompleted ? (
               <View
                 style={[
                   styles.returnBanner,
@@ -206,10 +204,11 @@ export function WalletScreen() {
                 ]}
               >
                 <Text style={[styles.returnBannerTitle, { color: colors.text }]}>
-                  수익 입금 계좌 등록
+                  수익 정산 계좌 연동
                 </Text>
                 <Text style={[styles.returnBannerBody, { color: colors.textMuted }]}>
-                  판매·중고·크리에이터 수익을 받으려면 아래에서 본인 명의 계좌 1원 인증을 완료해 주세요.
+                  판매·중고·크리에이터 수익을 받으려면 아래에서 Stripe Connect로 정산 계좌를
+                  연동해 주세요.
                 </Text>
               </View>
             ) : null}
@@ -240,10 +239,10 @@ export function WalletScreen() {
               ) : null}
             </View>
 
-            <BankVerifyPanel onVerified={handleBankVerified} />
+            <StripeConnectPanel onConnected={handleStripeConnected} />
             <RevenuePayoutPanel
               withdrawable={withdrawable}
-              bankReady={!!bankStatusQuery.data?.bankVerified || !!data.bank}
+              bankReady={!!stripeConnectQuery.data?.stripeOnboardingCompleted}
             />
 
             <View style={styles.section}>

@@ -34,10 +34,7 @@ type Props = {
     refundedUsd: number | null;
     createdAt: Date;
   }[];
-  bankVerified: boolean;
-  verifiedBankLabel?: string | null;
-  legalName?: string | null;
-  emailVerified?: boolean;
+  stripeOnboardingCompleted: boolean;
 };
 
 type Tab = "wallet" | "earnings";
@@ -55,10 +52,7 @@ export function WalletHub({
   gemBalance,
   gemPackages,
   gemPurchases,
-  bankVerified,
-  verifiedBankLabel,
-  legalName,
-  emailVerified,
+  stripeOnboardingCompleted,
 }: Props) {
   const router = useRouter();
   const params = useSearchParams();
@@ -109,12 +103,12 @@ export function WalletHub({
 
   return (
     <div className="max-w-lg mx-auto space-y-5 pb-8">
-      {safeCallbackUrl && !bankVerified ? (
+      {safeCallbackUrl && !stripeOnboardingCompleted ? (
         <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm space-y-1">
-          <p className="font-bold text-foreground">수익 입금 계좌 등록</p>
+          <p className="font-bold text-foreground">수익 정산 계좌 연동</p>
           <p className="text-muted-foreground leading-relaxed">
-            판매·중고거래·크리에이터 수익을 받으려면 아래에서 계좌 1원 인증(입금통장메모 4자리
-            숫자)을 완료해 주세요.
+            판매·중고거래·크리에이터 수익을 받으려면 아래에서 Stripe Connect로 정산 계좌를
+            연동해 주세요.
           </p>
           <Link href={safeCallbackUrl} className="text-primary font-semibold text-xs underline">
             나중에 — 이전 화면으로
@@ -158,10 +152,7 @@ export function WalletHub({
           <RevenueSettlementPanel
             data={data}
             earnings={earnings}
-            bankVerified={bankVerified}
-            verifiedBankLabel={verifiedBankLabel}
-            legalName={legalName}
-            emailVerified={emailVerified}
+            stripeOnboardingCompleted={stripeOnboardingCompleted}
             callbackUrl={safeCallbackUrl ?? "/wallet?tab=earnings"}
           />
         </>

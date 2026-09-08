@@ -31,12 +31,12 @@ export function buildRevenueCards(input: {
       eyebrow: "출금 가능 잔액",
       title: "",
       amount: fmtUsd(withdrawable),
-      subtitle: bankLabel ?? "출금 계좌 미등록 · 아래에서 1원 인증",
+      subtitle: bankLabel ?? "Stripe Connect 미연동 · 아래에서 연동",
       badge: "CREATOR",
       expandedLines: [
         `총 수익 ${fmtUsd(totalEarned)}`,
-        pendingPayout > 0 ? `출금 처리 중 ${fmtUsd(pendingPayout)}` : "Stripe 즉시 결제 · 정산 후 출금",
-        "수익 입금 계좌는 1원 인증으로 등록",
+        pendingPayout > 0 ? `출금 처리 중 ${fmtUsd(pendingPayout)}` : "Stripe Connect 정산",
+        "수익 정산 계좌는 Stripe Connect로 등록",
       ],
     },
     {
