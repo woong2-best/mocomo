@@ -31,12 +31,13 @@ export async function GET(
     channelId,
     "roles.assign_moderator"
   );
-  if (!permManage.ok && !permMod.ok) {
+  const granted = permManage.ok ? permManage : permMod.ok ? permMod : null;
+  if (!granted) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
 
   const users = await searchUsersForBroadcastRole(session.user.id, channelId, q);
-  const actorRole = permManage.ok ? permManage.role : permMod.role!;
+  const actorRole = granted.role;
   const actorPerms = listPermissionsForRole(actorRole);
 
   return NextResponse.json({

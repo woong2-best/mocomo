@@ -5,13 +5,6 @@ import type { BroadcastRole } from "@prisma/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { BroadcastRoleBadge } from "@/components/live/broadcast-role-badge";
 import { broadcastRoleLabelKo, type EffectiveBroadcastRole } from "@/lib/live-broadcast/permissions";
 import {
@@ -185,18 +178,17 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
           </div>
         )}
         <div className="flex gap-2 mt-3">
-          <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as BroadcastRole)}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="역할 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              {assignableRoles.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {broadcastRoleLabelKo(r)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <select
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value as BroadcastRole)}
+            className="h-9 w-[140px] rounded-md border border-input bg-background px-3 text-sm"
+          >
+            {assignableRoles.map((r) => (
+              <option key={r} value={r}>
+                {broadcastRoleLabelKo(r)}
+              </option>
+            ))}
+          </select>
           <Button disabled={!selectedUserId || saving} onClick={() => void saveRole()}>
             저장
           </Button>
