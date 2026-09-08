@@ -52,6 +52,13 @@ enum LiveStreamStatus {
   ENDED
 }
 
+/** 방송 단위 역할 — Owner는 createdBy로 판별, 나머지는 BroadcastRoleAssignment */
+enum BroadcastRole {
+  MANAGER
+  MODERATOR
+  VIP
+}
+
 enum LiveBroadcastMode {
   BROWSER
   OBS
@@ -313,6 +320,14 @@ model User {
 
   voiceMembers  VoiceMember[]
   liveChatMessages LiveChatMessage[]
+  broadcastRolesAssigned BroadcastRoleAssignment[] @relation("BroadcastRoleUser")
+  broadcastRolesGranted  BroadcastRoleAssignment[] @relation("BroadcastRoleAssigner")
+  broadcastRoleLogsAsActor  BroadcastRoleLog[] @relation("BroadcastRoleLogActor")
+  broadcastRoleLogsAsTarget BroadcastRoleLog[] @relation("BroadcastRoleLogTarget")
+  liveChatBansReceived LiveChatBan[] @relation("LiveChatBanUser")
+  liveChatBansIssued   LiveChatBan[] @relation("LiveChatBanIssuer")
+  liveChatTimeoutsReceived LiveChatTimeout[] @relation("LiveChatTimeoutUser")
+  liveChatTimeoutsIssued   LiveChatTimeout[] @relation("LiveChatTimeoutIssuer")
   streamClips       StreamClip[]
   streamClipLikes   StreamClipLike[]
   streamClipComments StreamClipComment[]
@@ -1608,6 +1623,12 @@ model VoiceChannel {
   liveStatus       LiveStreamStatus @default(LIVE)
   slowModeSeconds  Int      @default(0)
   chatBannedWords  String[] @default([])
+  /** 팔로워만 채팅 가능 */
+  chatFollowersOnly Boolean @default(false)
+  /** 구독자만 채팅 가능 */
+  chatSubscribersOnly Boolean @default(false)
+  /** 채팅 제한 시 예외 허용 최소 사이트 등급 (Seed~Cosmic) */
+  chatMinTierExempt SupportTierLevel?
   donationGoalKrw  Int?
   /** 영상 후원 — 초당 과금(원), 최소금액, 최대 재생초 */
   videoDonationRateKrw Int @default(100)
@@ -1657,6 +1678,10 @@ model VoiceChannel {
   liveSupportMissions LiveSupportMission[]
   liveSupportPolls    LiveSupportPoll[]
   liveVideoDonations  LiveVideoDonation[]
+  broadcastRoles      BroadcastRoleAssignment[]
+  broadcastRoleLogs   BroadcastRoleLog[]
+  liveChatBans        LiveChatBan[]
+  liveChatTimeouts    LiveChatTimeout[]
 
   @@index([isLive, liveStatus, createdAt(sort: Desc)])
   @@index([isLive, liveStatus, category, createdAt(sort: Desc)])
@@ -1723,6 +1748,73 @@ model LiveChatMessage {
 
   @@index([channelId, createdAt])
   @@index([channelId, userId, createdAt(sort: Desc)])
+}
+
+model BroadcastRoleAssignment {
+  id        String        @id @default(cuid())
+  channelId String
+  userId    String
+  role      BroadcastRole
+  createdBy String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  channel  VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user     User         @relation("BroadcastRoleUser", fields: [userId], references: [id], onDelete: Cascade)
+  assigner User         @relation("BroadcastRoleAssigner", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([channelId, role])
+  @@index([userId])
+}
+
+model BroadcastRoleLog {
+  id           String         @id @default(cuid())
+  channelId    String
+  actorUserId  String
+  targetUserId String
+  action       String         @db.VarChar(32)
+  oldRole      BroadcastRole?
+  newRole      BroadcastRole?
+  createdAt    DateTime       @default(now())
+
+  channel VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  actor   User         @relation("BroadcastRoleLogActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+  target  User         @relation("BroadcastRoleLogTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt(sort: Desc)])
+  @@index([targetUserId, createdAt(sort: Desc)])
+}
+
+model LiveChatBan {
+  id        String    @id @default(cuid())
+  channelId String
+  userId    String
+  bannedBy  String
+  reason    String?   @db.VarChar(200)
+  createdAt DateTime  @default(now())
+
+  channel VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User         @relation("LiveChatBanUser", fields: [userId], references: [id], onDelete: Cascade)
+  issuer  User         @relation("LiveChatBanIssuer", fields: [bannedBy], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([channelId])
+}
+
+model LiveChatTimeout {
+  id         String   @id @default(cuid())
+  channelId  String
+  userId     String
+  timedOutBy String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  channel VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User         @relation("LiveChatTimeoutUser", fields: [userId], references: [id], onDelete: Cascade)
+  issuer  User         @relation("LiveChatTimeoutIssuer", fields: [timedOutBy], references: [id], onDelete: Cascade)
+
+  @@index([channelId, userId, expiresAt])
 }
 
 model VoiceMember {

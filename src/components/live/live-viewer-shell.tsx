@@ -9,6 +9,7 @@ import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@p
 import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
 import { VoiceLiveListener } from "@/components/voice-live/voice-live-studio";
 import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
+import { LiveControlPanel } from "@/components/live/live-control-panel";
 
 export function LiveViewerShell({
   channelId,
@@ -34,6 +35,8 @@ export function LiveViewerShell({
   hostImage,
   recentTips = [],
   donationAlertsOnStream = false,
+  canModerate = false,
+  canManageLive = false,
 }: {
   channelId: string;
   channelName: string;
@@ -58,6 +61,8 @@ export function LiveViewerShell({
   isLiveOnAir?: boolean;
   recentTips?: LiveTipAlert[];
   donationAlertsOnStream?: boolean;
+  canModerate?: boolean;
+  canManageLive?: boolean;
 }) {
   const mobilePortrait = useLiveMobilePortrait();
 
@@ -128,6 +133,7 @@ export function LiveViewerShell({
               hostUsername={hostUsername}
               hostDisplayName={hostDisplayName}
               paymentsEnabled={paymentsEnabled}
+              canModerate={canModerate}
             />
           </div>
         </div>
@@ -157,6 +163,15 @@ export function LiveViewerShell({
         paymentsEnabled={paymentsEnabled}
         hostFollowing={hostFollowing}
       />
+      {canManageLive && (
+        <div className="flex justify-end">
+          <LiveControlPanel
+            channelId={channelId}
+            slowModeSeconds={slowModeSeconds}
+            chatBannedWords={chatBannedWords}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 xl:gap-4 items-start">
         <div className="min-w-0 relative rounded-xl overflow-hidden ring-1 ring-border/50 bg-black">
@@ -177,6 +192,7 @@ export function LiveViewerShell({
             hostUsername={hostUsername}
             hostDisplayName={hostDisplayName}
             paymentsEnabled={paymentsEnabled}
+            canModerate={canModerate}
           />
         </div>
       </div>

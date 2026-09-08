@@ -27,6 +27,7 @@ import { CommentDonationSheet } from "@/features/live/CommentDonationSheet";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { TranslatableText } from "@/ui/TranslatableText";
 import { SupportTierBadge } from "@/ui/SupportTierBadge";
+import { Image } from "expo-image";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -262,10 +263,50 @@ export function LiveChatPanel({
                 <FolkAvatar uri={item.image} name={item.username} size={28} framed={false} />
                 <View style={styles.bubble}>
                   <View style={styles.userRow}>
-                    <Text style={[styles.user, { color: "#f97316" }]}>@{item.username}</Text>
-                    <SupportTierBadge tier={item.supportTierSent ?? "SEED"} />
+                    <Text
+                      style={[
+                        styles.user,
+                        {
+                          color:
+                            item.broadcastRole === "MANAGER"
+                              ? "#5CE1E6"
+                              : item.broadcastRole === "OWNER"
+                                ? "#f59e0b"
+                                : item.broadcastRole === "MODERATOR"
+                                  ? "#10b981"
+                                  : item.broadcastRole === "VIP"
+                                    ? "#8b5cf6"
+                                    : "#f97316",
+                        },
+                      ]}
+                    >
+                      @{item.username}
+                    </Text>
+                    {item.broadcastRole === "MANAGER" ? (
+                      <Image
+                        source={require("../../../assets/manager-badge.png")}
+                        style={{ width: 18, height: 18 }}
+                        contentFit="contain"
+                      />
+                    ) : item.broadcastRole && item.broadcastRole !== "VIEWER" ? (
+                      <Text style={styles.roleTag}>
+                        {item.broadcastRole === "OWNER"
+                          ? "OWNER"
+                          : item.broadcastRole === "MODERATOR"
+                            ? "MOD"
+                            : "VIP"}
+                      </Text>
+                    ) : (
+                      <SupportTierBadge tier={item.supportTierSent ?? "SEED"} />
+                    )}
                   </View>
-                  <TranslatableText text={item.content} style={styles.content} />
+                  <TranslatableText
+                    text={item.content}
+                    style={[
+                      styles.content,
+                      item.broadcastRole === "MANAGER" ? { color: "#5CE1E6" } : undefined,
+                    ]}
+                  />
                 </View>
               </View>
             )
@@ -430,6 +471,16 @@ function createStyles(colors: ThemeColors) {
     bubble: { flex: 1, minWidth: 0 },
     userRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: 2 },
     user: { fontSize: 11, fontWeight: "700" },
+    roleTag: {
+      fontSize: 9,
+      fontWeight: "800",
+      paddingHorizontal: 4,
+      paddingVertical: 1,
+      borderRadius: 4,
+      overflow: "hidden",
+      backgroundColor: "rgba(255,255,255,0.12)",
+      color: "#e2e8f0",
+    },
     content: { fontSize: 13, fontWeight: "600", color: colors.text, lineHeight: 18 },
     error: {
       color: colors.danger,

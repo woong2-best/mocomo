@@ -9,8 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { LiveSupportEventType, SupportTierLevel } from "@prisma/client";
+import type { EffectiveBroadcastRole } from "@/lib/live-broadcast/permissions";
 import { deleteLiveChatMessage } from "@/actions/live-stream";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import {
+  BroadcastRoleBadge,
+  broadcastRoleChatColor,
+} from "@/components/live/broadcast-role-badge";
+import { LiveChatUserMenu } from "@/components/live/live-chat-user-menu";
 import { UserProfileLink } from "@/components/user/user-profile-link";
 import { ReportButton } from "@/components/report/report-button";
 import { relayLiveChatMessage } from "@/hooks/use-live-socket";
@@ -42,6 +48,7 @@ export type LiveChatMessage = {
   at: number;
   image?: string | null;
   supportTierSent?: SupportTierLevel;
+  broadcastRole?: EffectiveBroadcastRole;
   /** MoCoMo DB chat vs imported platform chat */
   source?: "MOCOMO" | "TWITCH" | "YOUTUBE" | "CHZZK";
   /** 후원·룰렛·미션 등 시스템 라인 (DB 저장 없음) */
@@ -317,20 +324,16 @@ function LiveChatInner({
                     </span>
                   ) : (
                     <>
-                      <DisplayNameWithSupportTier
-                        name={
-                          <span
-                            className="font-semibold text-xs"
-                            style={{ color: CHAT_SOURCE_USERNAME_COLOR.MOCOMO }}
-                          >
-                            @{m.username}
-                          </span>
-                        }
-                        profileUsername={m.username}
-                        tier={m.supportTierSent ?? "SEED"}
-                        compact
-                        className="flex-wrap"
-                      />
+                      <ChatUsernameRow message={m} />
+                      {canModerate && !m.id.startsWith("pending-") && m.userId && (
+                        <LiveChatUserMenu
+                          channelId={channelId}
+                          userId={m.userId}
+                          username={m.username}
+                          messageId={m.id}
+                          canModerate={canModerate}
+                        />
+                      )}
                       {canModerate && !m.id.startsWith("pending-") && (
                         <button
                           type="button"
@@ -356,7 +359,16 @@ function LiveChatInner({
                     </>
                   )}
                 </div>
-                <p className="text-sm break-words leading-snug mt-0.5">{m.content}</p>
+                <p
+                  className="text-sm break-words leading-snug mt-0.5"
+                  style={
+                    m.broadcastRole && m.broadcastRole !== "VIEWER"
+                      ? { color: broadcastRoleChatColor(m.broadcastRole) }
+                      : undefined
+                  }
+                >
+                  {m.content}
+                </p>
               </div>
             </div>
           );
@@ -421,6 +433,39 @@ function LiveChatInner({
         </p>
       )}
     </div>
+  );
+}
+
+function ChatUsernameRow({ message }: { message: LiveChatMessage }) {
+  const role = message.broadcastRole;
+  const roleColor = broadcastRoleChatColor(role);
+  const hasStaffRole = role && role !== "VIEWER";
+
+  const nameEl = (
+    <span className="font-semibold text-xs" style={{ color: roleColor ?? CHAT_SOURCE_USERNAME_COLOR.MOCOMO }}>
+      @{message.username}
+    </span>
+  );
+
+  if (hasStaffRole) {
+    return (
+      <span className="inline-flex items-center gap-1 flex-wrap">
+        <UserProfileLink username={message.username} className="hover:underline">
+          {nameEl}
+        </UserProfileLink>
+        <BroadcastRoleBadge role={role} size={18} />
+      </span>
+    );
+  }
+
+  return (
+    <DisplayNameWithSupportTier
+      name={nameEl}
+      profileUsername={message.username}
+      tier={message.supportTierSent ?? "SEED"}
+      compact
+      className="flex-wrap"
+    />
   );
 }
 

@@ -43,6 +43,7 @@ import { autoEndAbandonedLiveChannels } from "@/lib/live-abandon";
 import { assertLiveHostEligible, fetchLiveHostEligibility } from "@/lib/live-host-eligibility";
 import { assertFirstPartyLiveEnabled } from "@/lib/live-feature";
 import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
+import { requireBroadcastPermission } from "@/lib/live-broadcast/permissions";
 
 function mapLiveChatMessage(m: {
   id: string;
@@ -722,18 +723,13 @@ export async function getLiveStreamSync(channelId: string, since?: string) {
 
 export async function deleteLiveChatMessage(channelId: string, messageId: string) {
   const user = await requireAuth();
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: { createdBy: true },
-  });
-  if (!channel) return { error: "방송을 찾을 수 없습니다." };
-
+  const perm = await requireBroadcastPermission(user.id, channelId, "chat.delete");
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
     select: { role: true },
   });
-  const isMod = dbUser?.role === "MODERATOR" || dbUser?.role === "ADMIN";
-  if (channel.createdBy !== user.id && !isMod) {
+  const isSiteMod = dbUser?.role === "MODERATOR" || dbUser?.role === "ADMIN";
+  if (!perm.ok && !isSiteMod) {
     return { error: "채팅 삭제 권한이 없습니다." };
   }
 
@@ -790,12 +786,8 @@ export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcas
 
 export async function endLiveStream(channelId: string) {
   const user = await requireAuth();
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: { createdBy: true },
-  });
-  if (!channel) return { error: "방송을 찾을 수 없습니다." };
-  if (channel.createdBy !== user.id) return { error: "방송 종료는 호스트만 할 수 있습니다." };
+  const perm = await requireBroadcastPermission(user.id, channelId, "broadcast.end");
+  if (!perm.ok) return { error: "방송 종료는 방송 소유자만 할 수 있습니다." };
 
   await endHostBroadcastChannel(channelId, user.id);
 
@@ -893,12 +885,10 @@ export async function updateLiveStreamSettings(
   }
 ) {
   const user = await requireAuth();
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: { createdBy: true },
-  });
-  if (!channel || channel.createdBy !== user.id) {
-    return { error: "호스트만 방송 설정을 변경할 수 있습니다." };
+  const permEdit = await requireBroadcastPermission(user.id, channelId, "broadcast.edit");
+  const permChat = await requireBroadcastPermission(user.id, channelId, "chat.settings");
+  if (!permEdit.ok && !permChat.ok) {
+    return { error: "방송 설정을 변경할 권한이 없습니다." };
   }
 
   const contentRating =

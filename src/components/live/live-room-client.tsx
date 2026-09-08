@@ -104,6 +104,21 @@ export function LiveRoomClient({
   const [donationAlertsOnStream, setDonationAlertsOnStream] = useState(initialDonationAlertsOnStream);
   const donationAlertsOnStreamRef = useRef(initialDonationAlertsOnStream);
   donationAlertsOnStreamRef.current = donationAlertsOnStream;
+  const [canModerateChat, setCanModerateChat] = useState(isHost);
+  const [canManageLive, setCanManageLive] = useState(isHost);
+
+  useEffect(() => {
+    if (!joined) return;
+    void (async () => {
+      const res = await fetch(`/api/live/${channelId}/permissions`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setCanModerateChat(!!data.canModerate || isHost);
+      setCanManageLive(
+        !!data.canModerate || !!data.canManageRoles || !!data.canEditBroadcast || isHost
+      );
+    })();
+  }, [joined, channelId, isHost]);
 
   const handleStats = useCallback(
     (data: {
@@ -234,6 +249,8 @@ export function LiveRoomClient({
     recentTips,
     donationAlertsOnStream,
     isNsfw,
+    canModerate: canModerateChat,
+    canManageLive,
   };
 
   const overlayProviderProps = {

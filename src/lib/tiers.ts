@@ -44,6 +44,11 @@ export function getTierInfo(level: SupportTierLevel): TierDefinition {
   return SUPPORT_TIERS.find((t) => t.level === level) ?? SUPPORT_TIERS[0];
 }
 
+export function tierRank(level: SupportTierLevel): number {
+  const idx = SUPPORT_TIERS.findIndex((t) => t.level === level);
+  return idx >= 0 ? idx : 0;
+}
+
 export function getNextTierInfo(totalAmount: number) {
   const current = tierFromAmount(totalAmount);
   const idx = SUPPORT_TIERS.findIndex((t) => t.level === current);

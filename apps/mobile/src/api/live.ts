@@ -117,6 +117,7 @@ export type LiveChatMessage = {
   at: number;
   image: string | null;
   supportTierSent?: string;
+  broadcastRole?: "OWNER" | "MANAGER" | "MODERATOR" | "VIP" | "VIEWER";
   messageKind?: "support" | "tip" | "mission";
   eventType?: string;
   supportAmount?: number;

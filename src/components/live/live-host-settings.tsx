@@ -12,7 +12,109 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { updateLiveStreamSettings } from "@/actions/live-stream";
+import { updateLiveChatSettingsAction } from "@/actions/broadcast-roles";
+import { SUPPORT_TIERS } from "@/lib/tiers";
 import { ensureStringArray } from "@/lib/ensure-array";
+import type { SupportTierLevel } from "@prisma/client";
+
+function ChatSettingsForm({
+  channelId,
+  initialSlow,
+  initialBanned,
+  initialFollowersOnly,
+  initialSubscribersOnly,
+  initialTierExempt,
+}: {
+  channelId: string;
+  initialSlow: number;
+  initialBanned: string[];
+  initialFollowersOnly?: boolean;
+  initialSubscribersOnly?: boolean;
+  initialTierExempt?: SupportTierLevel | null;
+}) {
+  const safeBanned = ensureStringArray(initialBanned);
+  const [slow, setSlow] = useState(String(initialSlow));
+  const [words, setWords] = useState(safeBanned.join(", "));
+  const [followersOnly, setFollowersOnly] = useState(!!initialFollowersOnly);
+  const [subscribersOnly, setSubscribersOnly] = useState(!!initialSubscribersOnly);
+  const [tierExempt, setTierExempt] = useState(initialTierExempt ?? "");
+  const [msg, setMsg] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  function save() {
+    setMsg("");
+    startTransition(async () => {
+      const res = await updateLiveChatSettingsAction(channelId, {
+        slowModeSeconds: parseInt(slow, 10) || 0,
+        chatBannedWords: words
+          .split(/[,，]/)
+          .map((w) => w.trim())
+          .filter(Boolean)
+          .slice(0, 30),
+        chatFollowersOnly: followersOnly,
+        chatSubscribersOnly: subscribersOnly,
+        chatMinTierExempt: tierExempt ? (tierExempt as SupportTierLevel) : null,
+      });
+      if ("error" in res && res.error) setMsg(res.error);
+      else setMsg("저장되었습니다.");
+    });
+  }
+
+  return (
+    <div className="space-y-4 text-sm">
+      <div>
+        <label className="text-xs text-muted-foreground">슬로우 모드 (초, 0=끔)</label>
+        <Input
+          value={slow}
+          onChange={(e) => setSlow(e.target.value)}
+          type="number"
+          min={0}
+          max={120}
+          className="rounded-xl mt-1"
+        />
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground">추가 금칙어 (쉼표 구분)</label>
+        <Input
+          value={words}
+          onChange={(e) => setWords(e.target.value)}
+          className="rounded-xl mt-1"
+          placeholder="예: 광고, 홍보"
+        />
+      </div>
+      <div className="rounded-xl border border-border/60 p-3 space-y-2">
+        <p className="text-xs font-semibold">채팅 제한</p>
+        <label className="text-xs flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={followersOnly} onChange={(e) => setFollowersOnly(e.target.checked)} />
+          팔로워만 채팅
+        </label>
+        <label className="text-xs flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={subscribersOnly} onChange={(e) => setSubscribersOnly(e.target.checked)} />
+          구독자만 채팅
+        </label>
+        <div>
+          <label className="text-xs text-muted-foreground">등급 예외 (이 등급 이상은 제한 무시)</label>
+          <select
+            className="w-full mt-1 rounded-xl border border-input bg-background px-3 py-2 text-sm"
+            value={tierExempt}
+            onChange={(e) => setTierExempt(e.target.value)}
+          >
+            <option value="">없음</option>
+            {SUPPORT_TIERS.map((t) => (
+              <option key={t.level} value={t.level}>
+                {t.labelKo} ({t.label})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <Button className="w-full rounded-xl" onClick={save} disabled={pending}>
+        채팅 설정 저장
+      </Button>
+      {msg && <p className="text-xs text-muted-foreground">{msg}</p>}
+    </div>
+  );
+}
 
 function HostSettingsForm({
   channelId,
@@ -151,6 +253,10 @@ export function LiveHostSettings({
   initialDonationAlertsOnStream,
   initialIsNsfw,
   collabCoHostName,
+  chatSettingsOnly,
+  initialFollowersOnly,
+  initialSubscribersOnly,
+  initialTierExempt,
   embedded,
 }: {
   channelId: string;
@@ -160,8 +266,25 @@ export function LiveHostSettings({
   initialDonationAlertsOnStream?: boolean;
   initialIsNsfw?: boolean;
   collabCoHostName?: string | null;
+  chatSettingsOnly?: boolean;
+  initialFollowersOnly?: boolean;
+  initialSubscribersOnly?: boolean;
+  initialTierExempt?: SupportTierLevel | null;
   embedded?: boolean;
 }) {
+  if (chatSettingsOnly) {
+    return (
+      <ChatSettingsForm
+        channelId={channelId}
+        initialSlow={initialSlow}
+        initialBanned={initialBanned}
+        initialFollowersOnly={initialFollowersOnly}
+        initialSubscribersOnly={initialSubscribersOnly}
+        initialTierExempt={initialTierExempt}
+      />
+    );
+  }
+
   if (embedded) {
     return (
       <HostSettingsForm

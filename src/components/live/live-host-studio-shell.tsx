@@ -6,6 +6,7 @@ import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
+import { LiveControlPanel } from "@/components/live/live-control-panel";
 import { useLiveCollabState } from "@/hooks/use-live-collab-state";
 import { liveCategoryLabel } from "@/lib/live-categories";
 import { ensureStringArray } from "@/lib/ensure-array";
@@ -159,6 +160,16 @@ export function LiveHostStudioShell({
           <Eye className="h-4 w-4" />
           {viewerCount}
         </span>
+
+        <LiveControlPanel
+          channelId={channelId}
+          slowModeSeconds={slowModeSeconds}
+          chatBannedWords={chatBannedWords}
+          initialCollabSplit={collab.splitEnabled}
+          initialDonationAlertsOnStream={donationAlertsOnStream}
+          initialIsNsfw={isNsfw}
+          collabCoHostName={coHostLabel ?? null}
+        />
 
         <Dialog>
           <DialogTrigger asChild>
