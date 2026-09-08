@@ -16,7 +16,7 @@ function SearchPill() {
       fallback={
         <div className="flex h-11 flex-1 gap-2" aria-hidden>
           <div className="flex-1 rounded-xl bg-muted/60" />
-          <div className="h-11 w-11 shrink-0 rounded-xl bg-muted/60" />
+          <div className="h-11 w-14 shrink-0 rounded-xl bg-muted/60" />
         </div>
       }
     >

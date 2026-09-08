@@ -307,6 +307,7 @@
   "toast.deleted": "게시물이(가) 삭제되었습니다",
   "toast.more": "더보기",
   "search.placeholder": "사람, 애니, 게시물 검색",
+  "search.submit": "검색",
   "compose.placeholder": "무슨 일이 일어나고 있나요?",
   "compose.post": "게시하기",
   "compose.posting": "게시 중…",
