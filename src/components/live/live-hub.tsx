@@ -84,9 +84,9 @@ export function LiveHub({
 
   return (
     <LivePageChrome>
-      <header className="live-hero flex flex-wrap items-center justify-between gap-4 !py-4 !px-5">
+      <header className="live-hero live-hub-header flex flex-wrap items-center justify-between gap-4 !py-4 !px-5">
         <LivePageTitle>
-          <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2.5 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2.5 tracking-tight text-white drop-shadow-md">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
               <Radio className="h-5 w-5" />
             </span>

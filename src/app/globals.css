@@ -480,6 +480,14 @@ html[data-client="app"] .native-live-pad {
     background-color: hsl(var(--folk-gold) / 0.12);
   }
 
+  .live-hero.live-hub-header {
+    background-color: transparent;
+    background-image: url("/images/live-hub-header-bg.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
   .live-studio-panel {
     @apply folk-card text-card-foreground;
   }
