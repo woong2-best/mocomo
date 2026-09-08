@@ -65,14 +65,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     resolveRequestHostname(headerStore.get("x-forwarded-host") ?? headerStore.get("host"))
   );
   const showRightPanel = !isStudioHost && !isNativeAppPlatform(initialPlatform);
+  const buildId =
+    process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ??
+    process.env.NEXT_PUBLIC_APT_BUILD_ID ??
+    "local";
 
   return (
     <html
       lang={locale}
       data-client={initialPlatform}
       data-visible-animations="off"
+      data-build={buildId}
       suppressHydrationWarning
     >
+      <head>
+        <meta name="mocomo-build-id" content={buildId} />
+      </head>
       <body className={`${folkDisplay.variable} ${geistSans.variable} ${geistMono.variable} font-sans folk-canvas`}>
         <div className="folk-app-shell">
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>

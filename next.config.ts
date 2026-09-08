@@ -151,11 +151,8 @@ const nextConfig: NextConfig = {
       "@radix-ui/react-toast",
       "@radix-ui/react-tooltip",
       "framer-motion",
-      "@livekit/components-react",
       "livekit-client",
       "socket.io-client",
-      "next-auth",
-      "next-auth/react",
     ],
   },
 };

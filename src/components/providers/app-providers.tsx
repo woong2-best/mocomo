@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { LocaleProvider } from "@/components/providers/locale-provider";
+import { ClientTranslationProvider } from "@/components/providers/client-translation-provider";
+import { ClientTranslationWarmup } from "@/components/client-translation/client-translation-warmup";
 import { AppSocketProvider } from "@/components/providers/app-socket-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { CallProviderGate } from "@/components/call/call-provider-gate";
@@ -11,24 +13,9 @@ import { FeedPhotoLightboxProvider } from "@/components/media/feed-photo-lightbo
 import { PublishedToastProvider } from "@/components/providers/published-toast-provider";
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
 import { TopProgressProvider } from "@/components/providers/top-progress-provider";
+import { StaleDeploymentRecovery } from "@/components/providers/stale-deployment-recovery";
 import type { Locale } from "@/lib/i18n/config";
 import { PortOneIdentityScript } from "@/components/adult-verification/portone-identity-sdk";
-
-const ClientTranslationProvider = dynamic(
-  () =>
-    import("@/components/providers/client-translation-provider").then(
-      (m) => m.ClientTranslationProvider
-    ),
-  { ssr: false }
-);
-
-const ClientTranslationWarmup = dynamic(
-  () =>
-    import("@/components/client-translation/client-translation-warmup").then(
-      (m) => m.ClientTranslationWarmup
-    ),
-  { ssr: false }
-);
 
 const PlatformBootstrapClient = dynamic(
   () =>
@@ -55,14 +42,6 @@ const CheckoutResumeHandler = dynamic(
 const NativePushRegistration = dynamic(
   () =>
     import("@/components/push/native-push-registration").then((m) => m.NativePushRegistration),
-  { ssr: false }
-);
-
-const StaleDeploymentRecovery = dynamic(
-  () =>
-    import("@/components/providers/stale-deployment-recovery").then(
-      (m) => m.StaleDeploymentRecovery
-    ),
   { ssr: false }
 );
 

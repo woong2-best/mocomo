@@ -9,7 +9,8 @@ function readReducedMotion(): boolean {
 }
 
 export function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(readReducedMotion);
+  // SSR·하이드레이션 첫 프레임은 false로 고정 — document.dataset는 클라이언트에서만 읽음
+  const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
