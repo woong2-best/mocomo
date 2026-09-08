@@ -252,9 +252,10 @@ export function HeaderSearch({
                 goFullSearch();
               }}
               aria-label={t("search.placeholder")}
+              placeholder="Search"
               autoComplete="off"
               enterKeyHint="search"
-              className="h-11 w-full bg-transparent px-3 pr-9 text-sm outline-none"
+              className="h-11 w-full bg-transparent px-3 pr-9 text-sm outline-none placeholder:text-muted-foreground/70"
             />
             {pending && !q && (
               <Loader2 className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
