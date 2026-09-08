@@ -45,5 +45,6 @@ export async function updateStreamerProfile(data: {
   });
   revalidatePath(`/u/${user.username}`);
   revalidatePath("/settings/streamer");
+  revalidatePath("/live/schedule");
   return { success: true as const };
 }

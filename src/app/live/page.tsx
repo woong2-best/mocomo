@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { LiveHub } from "@/components/live/live-hub";
 import { LiveChannelFeed } from "@/components/live/live-channel-feed";
 import { LiveChannelGridSkeleton } from "@/components/live/live-channel-grid-skeleton";
-import { getLiveHubChannelFeed, getLiveHubStaticData } from "@/lib/live-hub-data";
+import { getLiveHubStaticData } from "@/lib/live-hub-data";
 import { autoEndAbandonedLiveChannels } from "@/lib/live-abandon";
 import { getAuthUserId } from "@/lib/auth";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
@@ -11,15 +11,21 @@ import { filterNsfwChannels, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access
 
 export const revalidate = 25;
 
+function parseLiveHubViewParam(raw?: string | null): "explore" | "following" {
+  return raw === "following" ? "following" : "explore";
+}
+
 export default async function LivePage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; mode?: string; notice?: string }>;
+  searchParams: Promise<{ category?: string; mode?: string; notice?: string; view?: string }>;
 }) {
   if (!isLiveFeatureEnabled()) {
     return <LiveFeatureDisabledNotice />;
   }
 
+  const params = await searchParams;
+  const view = parseLiveHubViewParam(params.view);
   const currentUserId = await getAuthUserId();
   const canViewNsfw = await resolveCanViewNsfw(currentUserId);
   void autoEndAbandonedLiveChannels();
@@ -30,7 +36,6 @@ export default async function LivePage({
     followedHosts: [],
     scheduledStreams: [],
   };
-  let sidebarChannels: Awaited<ReturnType<typeof getLiveHubChannelFeed>>["channels"] = [];
 
   try {
     staticData = await getLiveHubStaticData(currentUserId);
@@ -42,13 +47,6 @@ export default async function LivePage({
     /* DB 미마이그레이션 시 빈 허브 */
   }
 
-  try {
-    const feed = await getLiveHubChannelFeed(undefined, "all");
-    sidebarChannels = filterNsfwChannels(feed.channels, canViewNsfw);
-  } catch {
-    /* ignore */
-  }
-
   return (
     <LiveHub
       recommendedStreamers={staticData.recommendedStreamers}
@@ -56,10 +54,10 @@ export default async function LivePage({
       followedHosts={staticData.followedHosts}
       scheduledStreams={staticData.scheduledStreams}
       currentUserId={currentUserId ?? undefined}
-      liveChannelsForSidebar={sidebarChannels}
+      view={view}
       channelFeed={
         <Suspense fallback={<LiveChannelGridSkeleton />}>
-          <LiveChannelFeed searchParams={searchParams} />
+          <LiveChannelFeed searchParams={Promise.resolve(params)} />
         </Suspense>
       }
     />

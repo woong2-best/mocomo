@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Radio, Video } from "lucide-react";
+import { MonitorPlay, Radio, Video } from "lucide-react";
 import {
   isExternalLiveEnabled,
   isFirstPartyLiveEnabled,
@@ -26,18 +26,31 @@ export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
       ? "flex flex-wrap gap-2 justify-end"
       : "flex flex-wrap gap-2 justify-center";
 
+  const studioButton = (
+    <Link href={session?.user ? "/avatar/studio" : "/auth/signin?callbackUrl=/avatar/studio"}>
+      <Button variant="outline" className="gap-2 rounded-xl">
+        <MonitorPlay className="h-4 w-4" />
+        {t("live.liveStudio")}
+      </Button>
+    </Link>
+  );
+
   if (!session?.user) {
-    return externalOn ? (
+    return (
       <div className={wrap}>
-        <Link href="/auth/signin?callbackUrl=/live/external/new">
-          <Button className="gap-2 rounded-xl shadow-sm">{t("live.loginToBroadcast")}</Button>
-        </Link>
+        {studioButton}
+        {externalOn ? (
+          <Link href="/auth/signin?callbackUrl=/live/external/new">
+            <Button className="gap-2 rounded-xl shadow-sm">{t("live.loginToBroadcast")}</Button>
+          </Link>
+        ) : null}
       </div>
-    ) : null;
+    );
   }
 
   return (
     <div className={wrap}>
+      {studioButton}
       {externalOn ? (
         <Link href="/live/external/new">
           <Button className="gap-2 rounded-xl shadow-sm">

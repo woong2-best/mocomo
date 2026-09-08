@@ -57,13 +57,48 @@ function formatViewerCount(n: number, locale: string) {
 
 export function LivePopularCategories({
   viewerByCategory,
+  variant = "row",
 }: {
   viewerByCategory: Partial<Record<LiveStreamCategory, number>>;
+  variant?: "row" | "sidebar";
 }) {
   const { locale, t } = useLocale();
   const ranked = [...CATEGORY_ORDER].sort(
     (a, b) => (viewerByCategory[b] ?? 0) - (viewerByCategory[a] ?? 0)
   );
+
+  if (variant === "sidebar") {
+    return (
+      <div className="grid grid-cols-2 gap-2 sm:gap-2.5 w-full sm:w-[280px] lg:w-[300px] shrink-0">
+        {ranked.map((cat) => {
+          const style = CATEGORY_STYLE[cat];
+          const label = localizedLiveCategoryLabel(cat, locale);
+          return (
+            <Link
+              key={cat}
+              href={`/live?category=${cat}`}
+              className="group block min-w-0"
+            >
+              <div
+                className={cn(
+                  "relative aspect-[3/4] rounded-xl overflow-hidden shadow-sm border border-border/50",
+                  "bg-gradient-to-br",
+                  style.overlay
+                )}
+              >
+                <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_20%,white,transparent_55%)]" />
+                <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/75 via-black/30 to-transparent">
+                  <p className="text-white font-black text-[11px] sm:text-xs leading-tight uppercase tracking-wide drop-shadow line-clamp-2">
+                    {label}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <section className="space-y-3">

@@ -5,14 +5,19 @@ import { LiveChannelGrid } from "@/components/live/live-channel-grid";
 import { getAuthUserId } from "@/lib/auth";
 import { filterNsfwChannels, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
+function parseLiveHubViewParam(raw?: string | null): "explore" | "following" {
+  return raw === "following" ? "following" : "explore";
+}
+
 export async function LiveChannelFeed({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; mode?: string }>;
+  searchParams: Promise<{ category?: string; mode?: string; view?: string }>;
 }) {
-  const { category: categoryRaw, mode: modeRaw } = await searchParams;
+  const { category: categoryRaw, mode: modeRaw, view: viewRaw } = await searchParams;
   const category = parseLiveCategoryParam(categoryRaw);
   const mode = parseLiveHubModeParam(modeRaw);
+  const view = parseLiveHubViewParam(viewRaw);
   const canViewNsfw = await resolveCanViewNsfw(await getAuthUserId());
 
   let channels: Awaited<ReturnType<typeof getLiveHubChannelFeed>>["channels"] = [];
@@ -26,6 +31,11 @@ export async function LiveChannelFeed({
   }
 
   return (
-    <LiveChannelGrid channels={channels} hosts={hosts} filteredCategory={category} />
+    <LiveChannelGrid
+      channels={channels}
+      hosts={hosts}
+      filteredCategory={category}
+      view={view}
+    />
   );
 }

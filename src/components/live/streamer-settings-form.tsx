@@ -46,7 +46,9 @@ export function StreamerSettingsForm({
         />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground">방송 스케줄 메모</label>
+        <label className="text-xs text-muted-foreground">
+          방송 스케줄 (라이브 → 스케줄 페이지에 표시 · 사이트 달력과 별개)
+        </label>
         <Input value={scheduleNote} onChange={(e) => setScheduleNote(e.target.value)} className="rounded-xl mt-1" />
       </div>
       <Button className="w-full rounded-xl" onClick={save} disabled={pending}>
