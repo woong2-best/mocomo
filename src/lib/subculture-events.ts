@@ -387,15 +387,9 @@ export async function geocodePendingSubcultureEvents(max = 5): Promise<number> {
       const country =
         eventCountryFromExternalKey(row.externalKey) ??
         inferEventCountryFromCoords(row.lat ?? 0, row.lng ?? 0, row.externalKey);
-      const raw = isKoreaEventCountry(country)
+      const coord = isKoreaEventCountry(country)
         ? await kakaoSearchPlace(q)
         : await geocodeEventVenueInCountry(country, row.venueName, row.address);
-      const coord =
-        raw && "label" in raw
-          ? raw
-          : raw
-            ? { lat: raw.lat, lng: raw.lng, label: q }
-            : null;
       if (!coord || !isPinCoordinateValid(country, coord.lat, coord.lng)) continue;
       await db.subcultureEventPin.update({
         where: { id: row.id },
