@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -47,8 +48,15 @@ export function ConversationList({
   activeRoomId?: string;
   className?: string;
 }) {
+  const pathname = usePathname() ?? "";
   const { isNativeApp } = useClientPlatform();
   const [marketingOpen, setMarketingOpen] = useState(false);
+  const activeFromPath = pathname.match(/^\/messages\/([^/]+)$/)?.[1];
+  const resolvedActiveRoomId =
+    activeRoomId ??
+    (activeFromPath && activeFromPath !== "new" && activeFromPath !== "join"
+      ? activeFromPath
+      : undefined);
 
   return (
     <aside
@@ -82,7 +90,7 @@ export function ConversationList({
           <ul className="py-1">
             {rooms.map((room) => {
               const meta = getConversationMeta(room, currentUserId);
-              const active = activeRoomId === room.id;
+              const active = resolvedActiveRoomId === room.id;
               return (
                 <li key={room.id}>
                   <Link

@@ -1,23 +1,30 @@
-"use client";
+import { Suspense } from "react";
+import { MessagesLayoutShell } from "@/components/messages/messages-layout-shell";
+import { MessagesInboxAsync } from "@/components/messages/messages-inbox-async";
 
-import { usePathname } from "next/navigation";
-import { shouldHideMobileNav } from "@/lib/mobile-shell";
-import { useClientPlatform } from "@/components/providers/client-platform-provider";
-import { cn } from "@/lib/utils";
+function InboxSkeleton() {
+  return (
+    <aside className="w-full md:w-[340px] lg:w-[360px] shrink-0 border-r border-border/60 flex flex-col animate-pulse">
+      <div className="h-14 border-b border-border/60 bg-muted/30" />
+      <div className="flex-1 p-2 space-y-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-14 rounded-xl bg-muted" />
+        ))}
+      </div>
+    </aside>
+  );
+}
 
 export default function MessagesLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const { isNativeApp } = useClientPlatform();
-  const immersive = shouldHideMobileNav(pathname);
-
   return (
-    <div
-      className={cn(
-        "flex flex-col min-h-0 overflow-hidden",
-        immersive ? "h-full min-h-0" : isNativeApp ? "flex-1 min-h-0" : "h-app-nav"
-      )}
+    <MessagesLayoutShell
+      sidebar={
+        <Suspense fallback={<InboxSkeleton />}>
+          <MessagesInboxAsync />
+        </Suspense>
+      }
     >
       {children}
-    </div>
+    </MessagesLayoutShell>
   );
 }

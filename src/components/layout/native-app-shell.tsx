@@ -43,16 +43,25 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
 
   // 채팅방·커뮤니티 서버는 확정 높이가 필요하다(입력창 하단 고정 + 목록만 스크롤).
   const isMessagesRoom = /^\/messages\/[^/]+$/.test(pathname);
+  const isMessagesRoute = pathname.startsWith("/messages");
   const sameCommunityNav =
     isCommunityServerRoute &&
     /^\/c\/[^/]+/.test(prevPath) &&
     prevPath.split("/")[2] === pathname.split("/")[2];
-  const motionKey = sameCommunityNav ? `/c/${pathname.split("/")[2]}` : pathname;
+  const sameMessagesNav =
+    isMessagesRoute &&
+    prevPath.startsWith("/messages") &&
+    pathname.startsWith("/messages");
+  const motionKey = sameCommunityNav
+    ? `/c/${pathname.split("/")[2]}`
+    : sameMessagesNav
+      ? "/messages"
+      : pathname;
   const motionClass =
     isMessagesRoom || isCommunityServerRoute ? "h-full min-h-0" : "min-h-full";
 
   const pageMotion =
-    reduced || isProfileRoute || sameCommunityNav || skipTabMotion ? (
+    reduced || isProfileRoute || sameCommunityNav || sameMessagesNav || skipTabMotion ? (
       <div key={motionKey} className={motionClass}>
         {children}
       </div>
