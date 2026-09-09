@@ -393,6 +393,18 @@ export function ComposeForm({
                       compact
                     />
                   )}
+                  <ComposeCollaboratorPicker
+                    compact
+                    selected={collaborators}
+                    onChange={setCollaborators}
+                    disabled={submitBusy}
+                    labels={{
+                      add: t("compose.collabAdd"),
+                      search: t("compose.collabSearch"),
+                      following: t("compose.collabFollowing"),
+                      maxReached: t("compose.collabMax"),
+                    }}
+                  />
                   {nsfwToggle}
                 </>
               }
@@ -417,15 +429,9 @@ export function ComposeForm({
             )}
 
             <ComposeCollaboratorPicker
+              chipsOnly
               selected={collaborators}
               onChange={setCollaborators}
-              disabled={submitBusy}
-              labels={{
-                add: t("compose.collabAdd"),
-                search: t("compose.collabSearch"),
-                following: t("compose.collabFollowing"),
-                maxReached: t("compose.collabMax"),
-              }}
             />
           </div>
         </div>
