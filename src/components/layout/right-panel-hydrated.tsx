@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   isProfilePath,
@@ -8,7 +8,6 @@ import {
   shouldShowRightPanel,
 } from "@/lib/sidebar-panel-paths";
 import { useLocale } from "@/components/providers/locale-provider";
-import { useIdleCallback } from "@/hooks/use-idle-callback";
 import {
   RightPanelContent,
   RightPanelSkeleton,
@@ -16,7 +15,7 @@ import {
 } from "@/components/layout/right-panel-content";
 import { ProfileRightPanel } from "@/components/layout/profile-right-panel";
 
-/** 서버 prefetch + 클라이언트 네비게이션 시 lazy fetch */
+/** 서버 prefetch + 클라이언트 네비게이션 시 pathname별 sidebar fetch */
 export function RightPanelHydrated({
   initialData,
   countryCode: initialCountryCode,
@@ -24,16 +23,18 @@ export function RightPanelHydrated({
   initialData: SidebarPanelData | null;
   countryCode: string;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "/";
   const show = shouldShowRightPanel(pathname);
   const showDefault = shouldShowDefaultRightPanel(pathname);
   const { countryCode } = useLocale();
   const [data, setData] = useState<SidebarPanelData | null>(initialData);
   const [loading, setLoading] = useState(false);
 
-  useIdleCallback(() => {
-    if (!showDefault) return;
-    if (data) return;
+  useEffect(() => {
+    if (!showDefault) {
+      setData(null);
+      return;
+    }
 
     let cancelled = false;
     const ac = new AbortController();
@@ -41,14 +42,16 @@ export function RightPanelHydrated({
 
     void (async () => {
       try {
-        const res = await fetch(
-          `/api/sidebar?country=${encodeURIComponent(countryCode || initialCountryCode)}`,
-          { signal: ac.signal }
-        );
+        const params = new URLSearchParams({
+          country: countryCode || initialCountryCode,
+          pathname,
+        });
+        const res = await fetch(`/api/sidebar?${params.toString()}`, { signal: ac.signal });
         const body = await res.json();
         if (cancelled || !body.ok) return;
         setData({
           trendingQueries: body.trendingQueries ?? [],
+          searchRankingScope: body.searchRankingScope ?? "global",
           tips: body.tips ?? [],
           sidebarAds: body.sidebarAds ?? [],
           eventPins: body.eventPins ?? [],
@@ -57,6 +60,7 @@ export function RightPanelHydrated({
         if (!cancelled) {
           setData({
             trendingQueries: [],
+            searchRankingScope: "global",
             tips: [],
             sidebarAds: [],
             eventPins: [],
@@ -71,7 +75,7 @@ export function RightPanelHydrated({
       cancelled = true;
       ac.abort();
     };
-  }, [showDefault, data, countryCode, initialCountryCode]);
+  }, [showDefault, pathname, countryCode, initialCountryCode]);
 
   if (!show) return null;
   if (isProfilePath(pathname)) return <ProfileRightPanel />;

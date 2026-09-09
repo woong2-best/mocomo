@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import type { SidebarSearchRankingScope } from "@/lib/scoped-search-rank";
+import { searchRankingHref } from "@/lib/scoped-search-rank";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export type SidebarTrendingQuery = {
@@ -13,8 +15,10 @@ export type SidebarTrendingQuery = {
 /** 사이드바 검색어 순위 TOP10 */
 export function SearchRankingSidebarList({
   items,
+  scope = "global",
 }: {
   items: SidebarTrendingQuery[];
+  scope?: SidebarSearchRankingScope;
 }) {
   const { t } = useLocale();
 
@@ -29,7 +33,7 @@ export function SearchRankingSidebarList({
       {items.map((item) => (
         <li key={item.id}>
           <Link
-            href={`/search?q=${encodeURIComponent(item.label)}`}
+            href={searchRankingHref(scope, item.label)}
             className="flex items-baseline gap-2 text-sm text-folk-cobalt dark:text-white hover:underline"
           >
             <span className="w-5 shrink-0 font-bold tabular-nums">{item.rank}</span>

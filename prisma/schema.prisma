@@ -3134,6 +3134,20 @@ model WikiSearchQuery {
   createdAt DateTime @default(now())
 }
 
+/** 섹션별 검색어 순위 (중고·마켓·커뮤니티·라이브·피드) */
+model ScopedSearchQuery {
+  id           String   @id @default(cuid())
+  scope        String
+  query        String
+  displayQuery String   @default("")
+  count        Int      @default(1)
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@unique([scope, query])
+  @@index([scope, count(sort: Desc)])
+}
+
 /** 정규화된 검색어 단위 집계 (Keyword) */
 model SearchQuery {
   id              String    @id @default(cuid())

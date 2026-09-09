@@ -17,7 +17,7 @@ export async function RightPanelAsync() {
 
   const [countryCode, raw] = await Promise.all([
     getRequestCountryCode(),
-    getCachedSidebarPanelData(),
+    getCachedSidebarPanelData(pathname),
   ]);
   const eventPins = resolveSubculturePinsForUser(raw.eventPins, countryCode).slice(0, 12);
 

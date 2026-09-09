@@ -166,6 +166,21 @@ export function HeaderSearch({
     if (term.length < 1) return;
     setOpen(false);
 
+    if (
+      searchContext.scope === "used" ||
+      searchContext.scope === "market" ||
+      searchContext.scope === "live" ||
+      searchContext.scope === "wiki" ||
+      searchContext.scope === "community" ||
+      searchContext.scope === "social"
+    ) {
+      void fetch("/api/search/scoped", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope: searchContext.scope, q: term }),
+      }).catch(() => undefined);
+    }
+
     if (searchContext.inPage) {
       const params = new URLSearchParams(searchParams.toString());
       params.set("q", term);

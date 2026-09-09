@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { getCachedSidebarPanelData } from "@/lib/cached-data";
 import { resolveSubculturePinsForUser } from "@/lib/subculture-event-countries";
 import { getRequestCountryCode } from "@/lib/i18n/server";
@@ -8,14 +9,16 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const countryParam = searchParams.get("country");
+    const pathname = searchParams.get("pathname") ?? (await headers()).get("x-pathname") ?? "/";
     const countryCode = countryParam?.toUpperCase() || (await getRequestCountryCode());
-    const { trendingQueries, tips, sidebarAds, eventPins } =
-      await getCachedSidebarPanelData();
+    const { trendingQueries, searchRankingScope, tips, sidebarAds, eventPins } =
+      await getCachedSidebarPanelData(pathname);
     const filteredPins = resolveSubculturePinsForUser(eventPins, countryCode).slice(0, 12);
     return NextResponse.json(
       {
         ok: true,
         trendingQueries,
+        searchRankingScope,
         animes: [],
         tips,
         sidebarAds,

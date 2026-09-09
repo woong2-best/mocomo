@@ -12,12 +12,14 @@ import {
 } from "@/components/layout/search-ranking-sidebar-list";
 import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
 import { useLocale } from "@/components/providers/locale-provider";
+import type { SidebarSearchRankingScope } from "@/lib/scoped-search-rank";
 import type { MapEventPin } from "@/lib/subculture-events";
 
 export type SidebarPanelData = {
   /** @deprecated 검색어 순위로 대체 — 하위 호환 */
   animes?: { id: string; slug: string; title: string; titleEn: string | null; viewCount: number }[];
   trendingQueries: SidebarTrendingQuery[];
+  searchRankingScope?: SidebarSearchRankingScope;
   tips: {
     rank: number;
     total: number;
@@ -43,6 +45,7 @@ export function RightPanelSkeleton() {
 
 export function RightPanelContent({
   trendingQueries,
+  searchRankingScope = "global",
   sidebarAds,
   eventPins,
 }: SidebarPanelData) {
@@ -87,7 +90,7 @@ export function RightPanelContent({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <SearchRankingSidebarList items={trendingQueries ?? []} />
+          <SearchRankingSidebarList items={trendingQueries ?? []} scope={searchRankingScope} />
         </CardContent>
       </Card>
 

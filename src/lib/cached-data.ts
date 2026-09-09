@@ -11,6 +11,7 @@ import { getWeeklyHighlights } from "@/lib/weekly-highlights";
 import { getSubcultureMapPins } from "@/lib/subculture-events";
 import { feedPostListSelect, mapFeedPost } from "@/lib/feed-query";
 import { platformPostWhere } from "@/lib/post-scope";
+import { getCachedSidebarSearchRanking } from "@/lib/scoped-search-rank";
 
 export const getCachedWeeklyHighlights = unstable_cache(
   async () => getWeeklyHighlights(3),
@@ -160,24 +161,16 @@ export const getCachedExploreData = unstable_cache(
   { revalidate: 60 }
 );
 
-export const getCachedTrendingSearchQueries = unstable_cache(
-  async () => {
-    const { getTrendingFromSnapshot } = await import("@/lib/search/trends");
-    return getTrendingFromSnapshot("query", "7d", 10);
-  },
-  ["sidebar-search-ranking-v1"],
-  { revalidate: 120 }
-);
-
 /** 우측 패널 — 서버에서 직접 로드 (클라이언트 fetch waterfall 제거) */
-export async function getCachedSidebarPanelData() {
-  const [trendingQueries, tips, sidebarAds, eventPins] = await Promise.all([
-    getCachedTrendingSearchQueries(),
-    getCachedSidebarTips(),
-    getCachedSidebarAds(),
-    getSubcultureMapPins(160),
-  ]);
-  return { trendingQueries, tips, sidebarAds, eventPins };
+export async function getCachedSidebarPanelData(pathname = "/") {
+  const [{ scope: searchRankingScope, items: trendingQueries }, tips, sidebarAds, eventPins] =
+    await Promise.all([
+      getCachedSidebarSearchRanking(pathname),
+      getCachedSidebarTips(),
+      getCachedSidebarAds(),
+      getSubcultureMapPins(160),
+    ]);
+  return { trendingQueries, searchRankingScope, tips, sidebarAds, eventPins };
 }
 
 export const getCachedRankingsData = unstable_cache(

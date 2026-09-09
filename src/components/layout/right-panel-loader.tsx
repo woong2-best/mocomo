@@ -16,7 +16,7 @@ import { ProfileRightPanel } from "@/components/layout/profile-right-panel";
 
 /** 필요한 페이지에서만 /api/sidebar 호출 (라이브·메시지·방송방 등 제외) */
 export function RightPanelLoader() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "/";
   const show = shouldShowRightPanel(pathname);
   const showDefault = shouldShowDefaultRightPanel(pathname);
   const [data, setData] = useState<SidebarPanelData | null>(null);
@@ -29,13 +29,17 @@ export function RightPanelLoader() {
     let cancelled = false;
     const ac = new AbortController();
 
-    (async () => {
+    void (async () => {
       try {
-        const res = await fetch("/api/sidebar", { signal: ac.signal });
+        const res = await fetch(
+          `/api/sidebar?pathname=${encodeURIComponent(pathname)}`,
+          { signal: ac.signal }
+        );
         const body = await res.json();
         if (cancelled || !body.ok) return;
         setData({
           trendingQueries: body.trendingQueries ?? [],
+          searchRankingScope: body.searchRankingScope ?? "global",
           tips: body.tips ?? [],
           sidebarAds: body.sidebarAds ?? [],
           eventPins: body.eventPins ?? [],
@@ -44,6 +48,7 @@ export function RightPanelLoader() {
         if (!cancelled) {
           setData({
             trendingQueries: [],
+            searchRankingScope: "global",
             tips: [],
             sidebarAds: [],
             eventPins: [],
