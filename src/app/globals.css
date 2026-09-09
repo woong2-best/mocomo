@@ -761,17 +761,28 @@ html[data-client="app"] .native-live-pad {
     outline: none;
   }
 
-  .subculture-events-map--immersive .maplibregl-ctrl-group {
+  .subculture-events-map--immersive .maplibregl-ctrl-bottom-right {
+    top: 50%;
+    right: 12px;
+    bottom: auto;
+    transform: translateY(-50%);
+  }
+
+  .subculture-events-map--immersive .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group {
     background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.15);
+    margin: 0;
   }
 
-  .subculture-events-map--immersive .maplibregl-ctrl-group button {
+  .subculture-events-map--immersive .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group button {
     filter: invert(1);
   }
 
   .subculture-events-map--immersive .maplibregl-ctrl-attrib {
+    right: 12px;
+    bottom: 8px;
+    margin: 0;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(6px);
     color: rgba(255, 255, 255, 0.75);

@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { ChevronLeft, Globe, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Globe, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubcultureEventPinCard } from "@/components/events/subculture-event-pin-card";
 import { SubcultureEventsMapLazy } from "@/components/events/subculture-events-map-lazy";
@@ -29,6 +27,25 @@ const LEGEND_CATEGORIES = [
   "maid_cafe",
   "other",
 ] as const;
+
+function MapOverlayChip({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-white/15 bg-black/45 backdrop-blur-md shadow-lg text-white",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function EventsMapView({
   initialPins,
@@ -98,52 +115,50 @@ export function EventsMapView({
         )}
       </div>
 
-      <div className="absolute inset-x-0 top-0 z-20 p-3 sm:p-4 lg:p-5 pointer-events-none">
-        <div className="events-map-overlay pointer-events-auto max-w-2xl rounded-2xl border border-white/15 bg-black/45 backdrop-blur-md shadow-xl px-3 py-3 sm:px-4 sm:py-4 text-white">
-          <Link href="/events">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1 -ml-2 mb-1 h-8 text-white/90 hover:text-white hover:bg-white/10"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              이벤트
-            </Button>
-          </Link>
-          <div className="flex items-start gap-2">
-            <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2 min-w-0 flex-1">
-              <MapPin className="h-6 w-6 text-violet-300 shrink-0" />
-              <span className="min-w-0">서브컬처·애니 행사 지도</span>
-            </h1>
-            <button
-              type="button"
-              aria-pressed={globalMode}
-              aria-label={globalMode ? "내 국가 행사만 보기" : "전 세계 행사 보기"}
-              title={globalMode ? "내 국가 행사만 보기" : "전 세계 행사 보기"}
-              onClick={toggleGlobal}
-              className={cn(
-                "shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-xl border transition-colors",
-                globalMode
-                  ? "bg-violet-500 text-white border-violet-400 shadow-sm"
-                  : "bg-white/10 text-white/80 border-white/20 hover:bg-white/15 hover:text-white"
-              )}
-            >
-              <Globe className="h-4 w-4" />
-            </button>
-          </div>
-          <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] sm:text-[11px] text-white/75">
-            {LEGEND_CATEGORIES.map((key) => (
-              <li key={key} className="inline-flex items-center gap-1.5">
-                <span
-                  className="inline-block h-2 w-2 rounded-full shrink-0 ring-1 ring-white/30"
-                  style={{ background: SUBCULTURE_EVENT_CATEGORY_COLORS[key] }}
-                  aria-hidden
-                />
-                {SUBCULTURE_EVENT_CATEGORY_LABELS[key]}
-              </li>
-            ))}
-          </ul>
-        </div>
+      {/* Title — top-left chip on globe */}
+      <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 pointer-events-none">
+        <MapOverlayChip className="pointer-events-auto px-3 py-2 sm:px-4 sm:py-2.5">
+          <h1 className="text-sm sm:text-base font-bold flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-violet-300 shrink-0" />
+            <span>서브컬처·애니 행사 지도</span>
+          </h1>
+        </MapOverlayChip>
+      </div>
+
+      {/* Legend — individual chips below title */}
+      <div className="absolute top-[3.25rem] sm:top-[3.75rem] left-3 sm:left-4 z-20 flex flex-wrap gap-1.5 sm:gap-2 max-w-[calc(100%-4.5rem)] pointer-events-none">
+        {LEGEND_CATEGORIES.map((key) => (
+          <MapOverlayChip
+            key={key}
+            className="pointer-events-auto inline-flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1 text-[10px] sm:text-[11px] text-white/90"
+          >
+            <span
+              className="inline-block h-2 w-2 rounded-full shrink-0 ring-1 ring-white/30"
+              style={{ background: SUBCULTURE_EVENT_CATEGORY_COLORS[key] }}
+              aria-hidden
+            />
+            {SUBCULTURE_EVENT_CATEGORY_LABELS[key]}
+          </MapOverlayChip>
+        ))}
+      </div>
+
+      {/* Globe toggle — top-right inside map area */}
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 pointer-events-auto">
+        <button
+          type="button"
+          aria-pressed={globalMode}
+          aria-label={globalMode ? "내 국가 행사만 보기" : "전 세계 행사 보기"}
+          title={globalMode ? "내 국가 행사만 보기" : "전 세계 행사 보기"}
+          onClick={toggleGlobal}
+          className={cn(
+            "inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border backdrop-blur-md shadow-lg transition-colors",
+            globalMode
+              ? "bg-violet-500/90 text-white border-violet-400/80"
+              : "bg-black/45 text-white/85 border-white/15 hover:bg-black/55 hover:text-white"
+          )}
+        >
+          <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
       </div>
 
       <div className="lg:hidden absolute inset-x-0 bottom-0 z-20 p-3 pb-safe pointer-events-none">
