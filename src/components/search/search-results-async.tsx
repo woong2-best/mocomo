@@ -13,7 +13,13 @@ import { recordSearchEvent } from "@/lib/search/record";
 import { getRelatedSearchQueries } from "@/lib/search/suggest";
 import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
-export async function SearchResultsAsync({ query }: { query: string }) {
+export async function SearchResultsAsync({
+  query,
+  scope = "global",
+}: {
+  query: string;
+  scope?: "global" | "social";
+}) {
   if (!query) return null;
   const q = query.trim();
   if (q.length < 1) {
@@ -30,11 +36,13 @@ export async function SearchResultsAsync({ query }: { query: string }) {
   ]);
   const cached = await unstable_cache(
     () => runFastSearch(q, canViewNsfw),
-    ["fast-search-page-v3-nsfw", searchKey, canViewNsfw ? "adult" : "safe"],
+    ["fast-search-page-v3-nsfw", searchKey, canViewNsfw ? "adult" : "safe", scope],
     { revalidate: 30 }
   )();
   const users = await enrichSearchUsersWithFollowStatus(viewerId, cached.users);
-  const { animes, posts, liveStreams } = cached;
+  const animes = scope === "social" ? [] : cached.animes;
+  const posts = cached.posts;
+  const liveStreams = scope === "social" ? [] : cached.liveStreams;
   const resultCount =
     users.length + animes.length + posts.length + liveStreams.length;
   void recordSearchEvent({
@@ -138,7 +146,7 @@ export async function SearchResultsAsync({ query }: { query: string }) {
             {related.map((r) => (
               <Link
                 key={r.normalized}
-                href={`/search?q=${encodeURIComponent(r.query)}`}
+                href={`/search?q=${encodeURIComponent(r.query)}${scope === "social" ? "&scope=social" : ""}`}
                 className="rounded-full border px-3 py-1 text-xs hover:border-primary/40 hover:bg-muted/50"
               >
                 {r.query}

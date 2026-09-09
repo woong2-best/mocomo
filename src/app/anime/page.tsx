@@ -14,7 +14,7 @@ export const revalidate = 120;
 export default async function AnimeHubPage({
   searchParams,
 }: {
-  searchParams: Promise<{ genre?: string }>;
+  searchParams: Promise<{ genre?: string; q?: string }>;
 }) {
   try {
     await repairBrokenAnimeSlugs(db);
@@ -22,8 +22,9 @@ export default async function AnimeHubPage({
     /* DB 미연결 시 무시 */
   }
 
-  const { genre: genreRaw } = await searchParams;
+  const { genre: genreRaw, q: qRaw } = await searchParams;
   const activeGenre = genreRaw ? genreFromParam(genreRaw) : null;
+  const q = qRaw?.trim() ?? "";
   const session = await auth().catch(() => null);
 
   let popular: Awaited<ReturnType<typeof getCachedCultureWikiPopular>> = [];
@@ -35,7 +36,17 @@ export default async function AnimeHubPage({
       getCachedCultureWikiPopular(),
       getCachedCultureWikiRecent(),
       db.anime.findMany({
-        where: activeGenre ? { genre: activeGenre } : undefined,
+        where: {
+          ...(activeGenre ? { genre: activeGenre } : {}),
+          ...(q
+            ? {
+                OR: [
+                  { title: { contains: q, mode: "insensitive" } },
+                  { titleEn: { contains: q, mode: "insensitive" } },
+                ],
+              }
+            : {}),
+        },
         take: 80,
         orderBy: activeGenre ? { title: "asc" } : { updatedAt: "desc" },
         select: {

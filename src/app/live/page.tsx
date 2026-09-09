@@ -18,7 +18,7 @@ function parseLiveHubViewParam(raw?: string | null): "explore" | "following" {
 export default async function LivePage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; mode?: string; notice?: string; view?: string }>;
+  searchParams: Promise<{ category?: string; mode?: string; notice?: string; view?: string; q?: string }>;
 }) {
   if (!isLiveFeatureEnabled()) {
     return <LiveFeatureDisabledNotice />;

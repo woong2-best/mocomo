@@ -13,10 +13,11 @@ function parseSort(raw: string | undefined): HashtagSort {
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; sort?: string }>;
+  searchParams: Promise<{ q?: string; sort?: string; scope?: string }>;
 }) {
-  const { q, sort: sortParam } = await searchParams;
+  const { q, sort: sortParam, scope: scopeParam } = await searchParams;
   const query = q?.trim() || "";
+  const scope = scopeParam === "social" ? "social" : "global";
   const hashtagTag = parseHashtagFromQuery(query);
   const sort = parseSort(sortParam);
 
@@ -33,7 +34,7 @@ export default async function SearchPage({
               「<span className="font-medium text-foreground">{query}</span>」 결과
             </p>
             <Suspense fallback={<CardRowsSkeleton rows={8} />}>
-              <SearchResultsAsync query={query} />
+              <SearchResultsAsync query={query} scope={scope} />
             </Suspense>
           </>
         )

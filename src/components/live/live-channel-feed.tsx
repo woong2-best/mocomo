@@ -12,12 +12,13 @@ function parseLiveHubViewParam(raw?: string | null): "explore" | "following" {
 export async function LiveChannelFeed({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; mode?: string; view?: string }>;
+  searchParams: Promise<{ category?: string; mode?: string; view?: string; q?: string }>;
 }) {
-  const { category: categoryRaw, mode: modeRaw, view: viewRaw } = await searchParams;
+  const { category: categoryRaw, mode: modeRaw, view: viewRaw, q: qRaw } = await searchParams;
   const category = parseLiveCategoryParam(categoryRaw);
   const mode = parseLiveHubModeParam(modeRaw);
   const view = parseLiveHubViewParam(viewRaw);
+  const q = qRaw?.trim().toLowerCase() ?? "";
   const canViewNsfw = await resolveCanViewNsfw(await getAuthUserId());
 
   let channels: Awaited<ReturnType<typeof getLiveHubChannelFeed>>["channels"] = [];
@@ -26,6 +27,17 @@ export async function LiveChannelFeed({
   try {
     ({ channels, hosts } = await getLiveHubChannelFeed(category, mode));
     channels = filterNsfwChannels(channels, canViewNsfw);
+    if (q) {
+      const hostById = Object.fromEntries(hosts.map((h) => [h.id, h]));
+      channels = channels.filter((ch) => {
+        const host = hostById[ch.createdBy];
+        return (
+          ch.name.toLowerCase().includes(q) ||
+          host?.username.toLowerCase().includes(q) ||
+          (host?.name?.toLowerCase().includes(q) ?? false)
+        );
+      });
+    }
   } catch {
     /* DB 미마이그레이션 */
   }

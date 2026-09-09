@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus, Users } from "lucide-react";
 import {
   COMMUNITY_CATEGORY_OPTIONS,
@@ -150,12 +151,22 @@ export function CommunitiesHubClient({
   communities: CommunityHubItem[];
   loadError?: string | null;
 }) {
+  const searchParams = useSearchParams();
+  const query = (searchParams.get("q") ?? "").trim().toLowerCase();
   const [tab, setTab] = useState<TabId>("ALL");
 
   const filtered = useMemo(() => {
-    if (tab === "ALL") return communities;
-    return communities.filter((c) => c.category === tab);
-  }, [communities, tab]);
+    let rows = tab === "ALL" ? communities : communities.filter((c) => c.category === tab);
+    if (query) {
+      rows = rows.filter(
+        (c) =>
+          c.name.toLowerCase().includes(query) ||
+          c.slug.toLowerCase().includes(query) ||
+          (c.description?.toLowerCase().includes(query) ?? false)
+      );
+    }
+    return rows;
+  }, [communities, tab, query]);
 
   const featured = useMemo(() => filtered.slice(0, 4), [filtered]);
   const list = filtered;
@@ -235,9 +246,11 @@ export function CommunitiesHubClient({
       ) : filtered.length === 0 ? (
         <div className="px-4 py-14 text-center space-y-3">
           <p className="text-sm text-muted-foreground">
-            {tab === "ALL"
-              ? "아직 커뮤니티가 없습니다. 첫 커뮤니티를 만들어보세요!"
-              : "이 카테고리에 커뮤니티가 없습니다."}
+            {query
+              ? `"${searchParams.get("q")}"에 맞는 커뮤니티가 없습니다.`
+              : tab === "ALL"
+                ? "아직 커뮤니티가 없습니다. 첫 커뮤니티를 만들어보세요!"
+                : "이 카테고리에 커뮤니티가 없습니다."}
           </p>
           <Link
             href="/communities/new"

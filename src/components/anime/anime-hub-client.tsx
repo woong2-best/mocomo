@@ -5,7 +5,6 @@ import { Tv } from "lucide-react";
 import type { AnimeGenre } from "@prisma/client";
 import type { CultureWikiHubItem } from "@/lib/culture-wiki-hub-data";
 import { AnimeAddButton } from "@/components/anime/anime-add-button";
-import { AnimeHubSearch } from "@/components/anime/anime-hub-search";
 import { AnimeHubWidgets } from "@/components/anime/anime-hub-widgets";
 import { AnimeGenreBar } from "@/components/anime/anime-genre-bar";
 import { AnimeHubCatalog, type AnimeHubCatalogItem } from "@/components/anime/anime-hub-catalog";
@@ -38,8 +37,6 @@ export function AnimeHubClient({
         </NativePageTitle>
         <AnimeAddButton />
       </div>
-
-      <AnimeHubSearch />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <div className="space-y-4 min-w-0">

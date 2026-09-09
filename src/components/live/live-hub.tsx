@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 import { LiveStreamCardMemo } from "@/components/live/live-channel-grid";
 import {
   Radio,
-  Search,
   Heart,
   BadgeCheck,
   Calendar,
@@ -15,8 +14,6 @@ import { LivePageActions } from "@/components/live/live-page-actions";
 import { LiveCategoryFilter } from "@/components/live/live-category-filter";
 import { LiveScheduledCard } from "@/components/live/live-scheduled-card";
 import type { LiveStreamCategory } from "@prisma/client";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import { LivePageChrome, LivePageTitle } from "@/components/live/live-page-chrome";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -97,21 +94,6 @@ export function LiveHub({
           <LivePageActions variant="header" />
         </div>
       </header>
-
-      <form action="/search" method="get" className="flex gap-2 max-w-2xl">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            name="q"
-            placeholder={t("live.searchPlaceholder")}
-            className="pl-9 rounded-xl h-11 bg-card/80"
-            minLength={2}
-          />
-        </div>
-        <Button type="submit" variant="secondary" className="rounded-xl shrink-0 h-11 px-5">
-          {t("common.search")}
-        </Button>
-      </form>
 
       <LiveCategoryFilter />
 

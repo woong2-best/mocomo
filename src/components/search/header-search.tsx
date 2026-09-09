@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, X } from "lucide-react";
 import type { FastSearchResult } from "@/lib/search-fast";
 import { SearchPreviewPanel } from "@/components/search/search-preview-panel";
-import { useLocale } from "@/components/providers/locale-provider";
+import { getHeaderSearchContext } from "@/lib/header-search-context";
 import { cn } from "@/lib/utils";
 
 type PanelRect = { top: number; left: number; width: number };
@@ -24,12 +24,15 @@ export function HeaderSearch({
   className?: string;
 }) {
   const router = useRouter();
-  const { t } = useLocale();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchContext = getHeaderSearchContext(pathname ?? "");
   const isOnSearchPage = pathname === "/search";
-  const urlQuery = isOnSearchPage ? (searchParams.get("q") ?? "") : "";
-  const [q, setQ] = useState(isOnSearchPage ? urlQuery : defaultQuery);
+  const urlScope = searchParams.get("scope");
+  const isSocialScope = searchContext.scope === "social" || urlScope === "social";
+  const usesPageQuery = isOnSearchPage || searchContext.inPage;
+  const urlQuery = usesPageQuery ? (searchParams.get("q") ?? "") : "";
+  const [q, setQ] = useState(usesPageQuery ? urlQuery : defaultQuery);
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<FastSearchResult | null>(null);
   const [panelRect, setPanelRect] = useState<PanelRect | null>(null);
@@ -45,6 +48,10 @@ export function HeaderSearch({
   }, []);
 
   const fetchPreview = useCallback((term: string) => {
+    if (searchContext.inPage) {
+      setResults(null);
+      return;
+    }
     const trimmed = term.trim();
     if (trimmed.length < 1) {
       setResults(null);
@@ -75,18 +82,18 @@ export function HeaderSearch({
         if (!ac.signal.aborted) setResults(null);
       }
     });
-  }, []);
+  }, [searchContext.inPage]);
 
   // Keep input in sync with URL / defaultQuery; close preview after navigation.
   useEffect(() => {
-    if (isOnSearchPage) {
+    if (usesPageQuery) {
       setQ(urlQuery);
       setOpen(false);
       setResults(null);
       return;
     }
     setQ(defaultQuery);
-  }, [defaultQuery, isOnSearchPage, urlQuery]);
+  }, [defaultQuery, usesPageQuery, urlQuery]);
 
   // Fetch only while the panel is open (any page, including /search).
   useEffect(() => {
@@ -158,6 +165,20 @@ export function HeaderSearch({
     const term = q.trim();
     if (term.length < 1) return;
     setOpen(false);
+
+    if (searchContext.inPage) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("q", term);
+      const qs = params.toString();
+      router.replace(qs ? `${searchContext.basePath}?${qs}` : searchContext.basePath);
+      return;
+    }
+
+    if (isSocialScope) {
+      router.push(`/search?q=${encodeURIComponent(term)}&scope=social`);
+      return;
+    }
+
     router.push(`/search?q=${encodeURIComponent(term)}`);
   }
 
@@ -165,10 +186,16 @@ export function HeaderSearch({
     setQ("");
     setResults(null);
     setOpen(false);
-    if (isOnSearchPage) {
-      router.push("/search");
+
+    if (usesPageQuery) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("q");
+      const qs = params.toString();
+      const base = searchContext.inPage ? searchContext.basePath : "/search";
+      router.replace(qs ? `${base}?${qs}` : base);
       return;
     }
+
     inputRef.current?.focus();
   }
 
@@ -237,6 +264,7 @@ export function HeaderSearch({
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
+                if (searchContext.inPage) return;
                 if (e.target.value.trim().length >= 1) setOpen(true);
                 else {
                   setOpen(false);
@@ -244,6 +272,7 @@ export function HeaderSearch({
                 }
               }}
               onFocus={() => {
+                if (searchContext.inPage) return;
                 if (trimmed.length >= 1) setOpen(true);
               }}
               onKeyDown={(e) => {
@@ -251,8 +280,8 @@ export function HeaderSearch({
                 e.preventDefault();
                 goFullSearch();
               }}
-              aria-label={t("search.placeholder")}
-              placeholder="Search"
+              aria-label={searchContext.placeholder}
+              placeholder={searchContext.placeholder}
               autoComplete="off"
               enterKeyHint="search"
               className="h-11 w-full bg-transparent px-3 pr-9 text-sm outline-none placeholder:text-muted-foreground/70"
@@ -277,7 +306,7 @@ export function HeaderSearch({
           <button
             type="submit"
             className="inline-flex h-11 shrink-0 items-center justify-center bg-folk-terracotta px-3.5 text-white transition-colors hover:brightness-110"
-            aria-label={t("search.placeholder")}
+            aria-label={searchContext.placeholder}
           >
             <Search className="h-4 w-4" strokeWidth={2.5} />
           </button>

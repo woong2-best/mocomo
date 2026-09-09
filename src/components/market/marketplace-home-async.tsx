@@ -71,7 +71,7 @@ export async function MarketplaceHomeAsync({
               </Link>
             </div>
           </div>
-          <MarketToolbar initialQuery={q ?? ""} />
+          <MarketToolbar />
         </div>
       </MarketPageTitle>
 

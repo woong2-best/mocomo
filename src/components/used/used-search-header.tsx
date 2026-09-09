@@ -1,9 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
-import { Search, LayoutGrid } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useTransition } from "react";
+import { LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { USED_CATEGORIES } from "@/lib/used-market";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
@@ -13,7 +12,6 @@ import { UsedSubcultureFilters } from "@/components/used/used-subculture-filters
 export function UsedSearchHeader() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [isPending, startTransition] = useTransition();
 
   function apply(updates: Record<string, string | null>) {
@@ -27,11 +25,6 @@ export function UsedSearchHeader() {
     });
   }
 
-  function submitUnifiedSearch(e: React.FormEvent) {
-    e.preventDefault();
-    apply({ q: q.trim() || null });
-  }
-
   const activeQ = searchParams.get("q");
 
   return (
@@ -41,39 +34,20 @@ export function UsedSearchHeader() {
         isPending && "opacity-60"
       )}
     >
-      <section className="space-y-2">
-        <form onSubmit={submitUnifiedSearch} className="flex gap-2">
-          <div className="flex-1 flex items-center gap-2 rounded-xl bg-muted/50 border border-border px-3 h-11">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="어떤 상품을 찾으세요?"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
-          </div>
-          <Button type="submit" variant="secondary" size="default" className="h-11 shrink-0">
-            검색
-          </Button>
-        </form>
-        {activeQ && (
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] text-muted-foreground">
-              검색: <span className="text-foreground font-medium">&quot;{activeQ}&quot;</span>
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setQ("");
-                apply({ q: null });
-              }}
-              className="text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-            >
-              검색어 지우기
-            </button>
-          </div>
-        )}
-      </section>
+      {activeQ ? (
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <p className="text-[10px] text-muted-foreground">
+            검색: <span className="text-foreground font-medium">&quot;{activeQ}&quot;</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => apply({ q: null })}
+            className="text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+          >
+            검색어 지우기
+          </button>
+        </div>
+      ) : null}
 
       <UsedWorkProductFilters onNavigate={apply} isPending={isPending} />
 

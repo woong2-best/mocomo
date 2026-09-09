@@ -2,7 +2,9 @@ import { Suspense } from "react";
 import { HomeShell } from "@/components/home/home-shell";
 import { HomeHighlightsAsync } from "@/components/home/home-highlights-async";
 import { HomeFeedAsync } from "@/components/home/home-feed-async";
+import { SearchResultsAsync } from "@/components/search/search-results-async";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import { CardRowsSkeleton } from "@/components/ui/content-skeletons";
 
 export const metadata = {
   title: "MoCoMo",
@@ -21,7 +23,27 @@ function FeedFallback() {
   );
 }
 
-export default function FeedPage() {
+export default async function FeedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const query = q?.trim() ?? "";
+
+  if (query) {
+    return (
+      <AppPageChrome maxWidth="6xl" spacing="sm" className="!px-4 lg:!px-6">
+        <p className="text-sm text-muted-foreground mb-4">
+          「<span className="font-medium text-foreground">{query}</span>」 결과
+        </p>
+        <Suspense fallback={<CardRowsSkeleton rows={8} />}>
+          <SearchResultsAsync query={query} scope="social" />
+        </Suspense>
+      </AppPageChrome>
+    );
+  }
+
   return (
     <AppPageChrome maxWidth="6xl" spacing="sm" className="!px-4 lg:!px-6">
       <Suspense
