@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { splitStoredBirthDate } from "@/lib/birth-date";
+import { birthDateCollectionMeta } from "@/lib/age-policy";
 import { validateUsernameAndName } from "@/lib/forbidden-admin-sequence";
 import { parseBirthDateInput } from "@/lib/used-youth-protection";
 import type { Prisma } from "@prisma/client";
@@ -56,6 +57,8 @@ export type ProfileSettingsSnapshot = {
   locale: string;
   countryCode: string;
   timeZone: string;
+  feedRecommendationEnabled: boolean;
+  showLikeCounts: boolean;
 };
 
 export async function getProfileSettingsForUser(
@@ -101,6 +104,8 @@ export async function getProfileSettingsForUser(
     locale: user.locale,
     countryCode: user.countryCode,
     timeZone: user.timeZone,
+    feedRecommendationEnabled: user.feedRecommendationEnabled,
+    showLikeCounts: user.showLikeCounts,
   };
 }
 
@@ -193,6 +198,8 @@ export async function applyProfileUpdateForUser(
     name?: string | null;
     image?: string | null;
     birthDate?: Date | null;
+    birthDateSource?: "SIGNUP" | "OAUTH_COMPLETE" | "PROFILE_EDIT" | "ADMIN";
+    birthDateCollectedAt?: Date | null;
   } = {};
   if (showNsfw !== undefined) userUpdate.showNsfw = showNsfw;
   if (usernameChanged && nextUsername) userUpdate.username = nextUsername;
@@ -201,6 +208,7 @@ export async function applyProfileUpdateForUser(
 
   if (clearBirthDate) {
     userUpdate.birthDate = null;
+    userUpdate.birthDateCollectedAt = null;
   } else if (
     birthYear !== undefined &&
     birthMonth !== undefined &&
@@ -209,6 +217,7 @@ export async function applyProfileUpdateForUser(
     const birth = parseBirthDateInput(birthYear, birthMonth, birthDay);
     if (!birth) return { error: "올바른 생년월일을 입력해 주세요." };
     userUpdate.birthDate = birth;
+    Object.assign(userUpdate, birthDateCollectionMeta("PROFILE_EDIT"));
   }
 
   await db.$transaction(async (tx) => {

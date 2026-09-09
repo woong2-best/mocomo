@@ -108,8 +108,16 @@ export async function GET(req: NextRequest) {
             showBirthdayOnProfile: settings.showBirthdayOnProfile,
             usernameChangesRemaining: settings.usernameChangesRemaining,
             usernameChangeResetAt: settings.usernameChangeResetAt,
+            feedRecommendationEnabled: settings.feedRecommendationEnabled,
+            showLikeCounts: settings.showLikeCounts,
           }
         : null,
+      preferences: settings
+        ? {
+            feedRecommendationEnabled: settings.feedRecommendationEnabled,
+            showLikeCounts: settings.showLikeCounts,
+          }
+        : { feedRecommendationEnabled: true, showLikeCounts: true },
     },
   });
 }
@@ -134,6 +142,8 @@ const patchSchema = z.object({
   locale: z.string().optional(),
   countryCode: z.string().min(2).max(8).optional(),
   timeZone: z.string().min(1).max(64).optional(),
+  feedRecommendationEnabled: z.boolean().optional(),
+  showLikeCounts: z.boolean().optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -241,6 +251,18 @@ export async function PATCH(req: NextRequest) {
           ? { countryCode: data.countryCode.trim().toUpperCase() }
           : {}),
         ...(data.timeZone ? { timeZone: normalizeTimeZone(data.timeZone) } : {}),
+      },
+    });
+  }
+
+  if (data.feedRecommendationEnabled !== undefined || data.showLikeCounts !== undefined) {
+    await db.user.update({
+      where: { id: auth.user.id },
+      data: {
+        ...(data.feedRecommendationEnabled !== undefined
+          ? { feedRecommendationEnabled: data.feedRecommendationEnabled }
+          : {}),
+        ...(data.showLikeCounts !== undefined ? { showLikeCounts: data.showLikeCounts } : {}),
       },
     });
   }

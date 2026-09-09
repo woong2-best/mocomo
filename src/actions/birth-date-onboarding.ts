@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuthForAction } from "@/lib/auth";
 import { parseBirthDateInput } from "@/lib/birth-date";
+import { birthDateCollectionMeta } from "@/lib/age-policy";
 
 export async function completeBirthDateOnboarding(input: {
   birthYear: number;
@@ -20,7 +21,10 @@ export async function completeBirthDateOnboarding(input: {
 
   await db.user.update({
     where: { id: user.id },
-    data: { birthDate },
+    data: {
+      birthDate,
+      ...birthDateCollectionMeta("OAUTH_COMPLETE"),
+    },
   });
 
   revalidatePath("/settings/profile");

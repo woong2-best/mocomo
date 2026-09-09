@@ -13,6 +13,7 @@ import { useTheme } from "@/theme/ThemeContext";
 import { TranslatableText } from "@/ui/TranslatableText";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { useAuth } from "@/auth/AuthContext";
+import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
 type Props = {
@@ -143,6 +144,7 @@ function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const { user } = useAuth();
+  const showLikeCounts = useShowLikeCounts();
 
   const [liked, setLiked] = useState(!!item.liked);
   const [likeCount, setLikeCount] = useState(item.likeCount);
@@ -222,7 +224,7 @@ function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
           )}
           <Pressable onPress={onLike} style={styles.railBtn} hitSlop={12}>
             <Text style={styles.railIcon}>{liked ? "♥" : "♡"}</Text>
-            <Text style={styles.railCount}>{likeCount}</Text>
+            {showLikeCounts ? <Text style={styles.railCount}>{likeCount}</Text> : null}
           </Pressable>
           <View style={styles.railBtn}>
             <Text style={styles.railIcon}>💬</Text>

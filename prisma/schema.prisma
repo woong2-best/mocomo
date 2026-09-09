@@ -104,6 +104,14 @@ enum LiveVisibility {
   PRIVATE
 }
 
+/** 생년월일 수집 경로 — 국가별 연령 정책 분기용 */
+enum BirthDateSource {
+  SIGNUP
+  OAUTH_COMPLETE
+  PROFILE_EDIT
+  ADMIN
+}
+
 enum LiveSupportEventType {
   GENERAL
   TTS
@@ -214,6 +222,10 @@ model User {
   /** IANA Time Zone (e.g. America/New_York) — calendar / day boundaries; not derived from country alone */
   timeZone      String    @default("UTC")
   feedDisplayMode FeedDisplayMode @default(TIMELINE)
+  /** 참여도 기반 For You 추천 — Off 시 최신순 피드 */
+  feedRecommendationEnabled Boolean @default(true)
+  /** 좋아요 수 UI 표시 — Off 시 본인·타인 모두 숨김 */
+  showLikeCounts Boolean @default(true)
   /** 트위터 Protect와 동일 — 잠금 시 승인된 팔로워만 글 열람, 새 팔로우는 요청 */
   postsLocked   Boolean   @default(false)
   phone         String?   @unique
@@ -231,6 +243,8 @@ model User {
   /** 중고거래 청소년 보호 — 만 19세 이상 성인 인증 */
   adultVerifiedAt DateTime?
   birthDate       DateTime? @db.Date
+  birthDateSource BirthDateSource @default(SIGNUP)
+  birthDateCollectedAt DateTime?
   /** 경매 낙찰 미결제 등으로 중고거래 영구 제한 */
   usedMarketBannedAt         DateTime?
   usedMarketBanReason        String?

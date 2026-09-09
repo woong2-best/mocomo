@@ -24,6 +24,7 @@ import {
 } from "@/api/social";
 import { parsePostComments, postCommentsQueryOptions } from "@/api/post-comments-query";
 import { useAuth } from "@/auth/AuthContext";
+import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { FeedPostMediaCarousel } from "@/features/feed/FeedPostMediaCarousel";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
@@ -41,6 +42,7 @@ export function PostDetailScreen() {
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const { width: windowWidth } = useWindowDimensions();
   const { user } = useAuth();
+  const showLikeCounts = useShowLikeCounts();
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "PostDetail">>();
@@ -157,7 +159,8 @@ export function PostDetailScreen() {
                 <View style={styles.actions}>
                   <Pressable onPress={() => likeMut.mutate()} hitSlop={8}>
                     <Text style={[styles.action, post.liked && styles.liked]}>
-                      {post.liked ? "♥" : "♡"} {post._count?.likes ?? 0}
+                      {post.liked ? "♥" : "♡"}
+                      {showLikeCounts ? ` ${post._count?.likes ?? 0}` : ""}
                     </Text>
                   </Pressable>
                   <Text style={styles.action}>💬 {post._count?.comments ?? 0}</Text>

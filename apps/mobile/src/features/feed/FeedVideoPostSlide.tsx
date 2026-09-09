@@ -34,6 +34,7 @@ import {
 } from "@/ui/CollapsibleVideoCaption";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { useAuth } from "@/auth/AuthContext";
+import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 
 /** Instagram Reels-style edge hold width — narrow so center taps / right rail stay safe. */
 const EDGE_HOLD_WIDTH = 52;
@@ -259,6 +260,7 @@ function FeedVideoPostSlideInner({
 }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
+  const showLikeCounts = useShowLikeCounts();
   const listRef = useRef<FlatList<ReelItem>>(null);
   const [videoIndex, setVideoIndex] = useState(
     Math.min(Math.max(initialVideoIndex, 0), Math.max(group.videos.length - 1, 0))
@@ -492,7 +494,7 @@ function FeedVideoPostSlideInner({
             size={28}
             color={liked ? "#FF3B5C" : "#fff"}
           />
-          <Text style={styles.railCount}>{likeCount}</Text>
+          {showLikeCounts ? <Text style={styles.railCount}>{likeCount}</Text> : null}
         </Pressable>
         <Pressable
           onPressIn={() => onPrefetchComments?.(current.postId)}

@@ -59,6 +59,7 @@ import { RESERVED_USERNAMES } from "@/lib/username-policy";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
 import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
 import { parseBirthDateInput } from "@/lib/birth-date";
+import { birthDateCollectionMeta } from "@/lib/age-policy";
 import { z } from "zod";
 
 const birthDateSignupFields = {
@@ -593,6 +594,7 @@ export async function registerUser(
           countryCode: countryCode.toUpperCase(),
           timeZone,
           birthDate,
+          ...birthDateCollectionMeta("SIGNUP"),
         },
       });
       userId = updated.id;
@@ -609,6 +611,7 @@ export async function registerUser(
           countryCode: countryCode.toUpperCase(),
           timeZone,
           birthDate,
+          ...birthDateCollectionMeta("SIGNUP"),
         },
       });
       userId = user.id;

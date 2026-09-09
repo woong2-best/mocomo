@@ -1,0 +1,49 @@
+{
+  "version": "2026-09-v1",
+  "sections": {
+    "recommendation-and-infinite-scroll": {
+      "heading": {
+        "default": "추천 알고리즘 및 무한스크롤",
+        "KR": "추천 알고리즘 및 무한스크롤",
+        "US": "Recommendation Algorithm and Infinite Scroll",
+        "JP": "おすすめアルゴリズムおよび無限スクロール"
+      },
+      "paragraphs": {
+        "default": [
+          "본 서비스는 참여도 기반 추천 알고리즘 및 연속 콘텐츠 노출(무한스크롤) 기능을 사용하며, 이용자는 가입 시 본 약관에 동의함으로써 해당 기능의 사용에 동의한 것으로 간주됩니다."
+        ],
+        "KR": [
+          "본 서비스는 참여도 기반 추천 알고리즘 및 연속 콘텐츠 노출(무한스크롤) 기능을 사용하며, 이용자는 가입 시 본 약관에 동의함으로써 해당 기능의 사용에 동의한 것으로 간주됩니다."
+        ],
+        "US": [
+          "The Service uses an engagement-based recommendation algorithm and continuous content exposure (infinite scroll). By signing up and agreeing to these Terms, you consent to the use of these features."
+        ],
+        "JP": [
+          "本サービスはエンゲージメントに基づくおすすめアルゴリズムおよび連続的なコンテンツ表示（無限スクロール）機能を使用します。利用者は登録時に本規約に同意することにより、当該機能の利用に同意したものとみなされます。"
+        ]
+      }
+    },
+    "psychological-impact-disclaimer": {
+      "heading": {
+        "default": "심리적·행동적 영향에 관한 면책",
+        "KR": "심리적·행동적 영향에 관한 면책",
+        "US": "Disclaimer Regarding Psychological and Behavioral Effects",
+        "JP": "心理的・行動的影響に関する免責"
+      },
+      "paragraphs": {
+        "default": [
+          "회사는 이용자의 서비스 이용으로 발생할 수 있는 심리적·행동적 영향에 대해 [법률 검토 후 확정될 면책 범위]의 책임을 부담하지 않습니다."
+        ],
+        "KR": [
+          "회사는 이용자의 서비스 이용으로 발생할 수 있는 심리적·행동적 영향에 대해 [법률 검토 후 확정될 면책 범위]의 책임을 부담하지 않습니다."
+        ],
+        "US": [
+          "The Company shall not be liable for psychological or behavioral effects that may arise from your use of the Service, to the extent of [scope of disclaimer to be finalized after legal review]."
+        ],
+        "JP": [
+          "当社は、利用者のサービス利用に起因しうる心理的・行動的影響について、[法務審査後に確定する免責範囲]の範囲内で責任を負いません。"
+        ]
+      }
+    }
+  }
+}

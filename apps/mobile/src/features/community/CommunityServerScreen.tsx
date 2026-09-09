@@ -25,6 +25,7 @@ import { trackRecentCommunity } from "@/features/community/recent-communities";
 import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
+import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
@@ -62,6 +63,7 @@ export function CommunityServerScreen() {
   const [tab, setTab] = useState<PostsTab>("all");
   const [channelOpen, setChannelOpen] = useState(false);
   const [openingSlug, setOpeningSlug] = useState<string | null>(null);
+  const showLikeCounts = useShowLikeCounts();
 
   const detailQuery = useQuery({
     queryKey: ["mobile-community", route.params.slug],
@@ -126,13 +128,14 @@ export function CommunityServerScreen() {
               {postTitle(post)}
             </Text>
             <Text style={styles.postMeta}>
-              @{post.author.username} · ♥ {post.likeCount} · 💬 {post.commentCount}
+              @{post.author.username}
+              {showLikeCounts ? ` · ♥ ${post.likeCount}` : ""} · 💬 {post.commentCount}
             </Text>
           </View>
         </Pressable>
       );
     },
-    [navigation, posts.length, styles]
+    [navigation, posts.length, showLikeCounts, styles]
   );
 
   return (

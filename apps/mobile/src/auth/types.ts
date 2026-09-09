@@ -16,4 +16,8 @@ export type MobileAuthUser = {
     following: number;
   };
   hasPassword?: boolean;
+  preferences?: {
+    feedRecommendationEnabled: boolean;
+    showLikeCounts: boolean;
+  };
 };

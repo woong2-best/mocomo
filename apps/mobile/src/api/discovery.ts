@@ -71,10 +71,13 @@ export async function patchMe(body: {
   locale?: string;
   countryCode?: string;
   timeZone?: string;
+  feedRecommendationEnabled?: boolean;
+  showLikeCounts?: boolean;
 }) {
   return apiRequest<{ ok: boolean }>(MobileApi.me, {
     method: "PATCH",
     body,
+    auth: true,
   });
 }
 

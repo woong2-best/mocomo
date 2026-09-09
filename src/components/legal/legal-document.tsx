@@ -59,7 +59,15 @@ function renderBlock(block: LegalDocument["blocks"][number], key: number) {
   }
 }
 
-export function LegalDocumentView({ document }: { document: LegalDocument }) {
+export function LegalDocumentView({
+  document,
+  supplementalBlocks = [],
+}: {
+  document: LegalDocument;
+  supplementalBlocks?: LegalDocument["blocks"];
+}) {
+  const blocks = [...document.blocks, ...supplementalBlocks];
+
   return (
     <article className="max-w-3xl mx-auto">
       <header className="mb-8">
@@ -70,7 +78,7 @@ export function LegalDocumentView({ document }: { document: LegalDocument }) {
         )}
       </header>
 
-      <div>{document.blocks.map((block, i) => renderBlock(block, i))}</div>
+      <div>{blocks.map((block, i) => renderBlock(block, i))}</div>
 
       <footer className="mt-12 pt-6 border-t border-border">
         <p className="text-xs text-muted-foreground mb-3">관련 문서</p>

@@ -14,6 +14,7 @@ import { ShareGlobeIcon } from "@/ui/ShareGlobeIcon";
 import { PerformanceBudgets } from "@/perf/budgets";
 import { formatViewCount, recordPostViewOnce } from "@/lib/post-view";
 import { useTheme } from "@/theme/ThemeContext";
+import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
 type Props = {
@@ -51,6 +52,7 @@ function FeedPostCardInner({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { width: windowWidth } = useWindowDimensions();
   const { status, user } = useAuth();
+  const showLikeCounts = useShowLikeCounts();
   const mediaLayout = Math.min(windowWidth - spacing.md * 2, PerformanceBudgets.feedMediaLayoutMax);
 
   const [liked, setLiked] = useState(!!post.liked);
@@ -238,7 +240,9 @@ function FeedPostCardInner({
               size={20}
               color={liked ? colors.terracotta : colors.textMuted}
             />
-            <Text style={[styles.actionText, liked && styles.liked]}>{likeCount}</Text>
+            {showLikeCounts ? (
+              <Text style={[styles.actionText, liked && styles.liked]}>{likeCount}</Text>
+            ) : null}
           </Pressable>
           <Pressable onPress={openPost} hitSlop={10} style={styles.actionBtn} disabled={!onPressPost}>
             <Ionicons name="chatbox-outline" size={19} color={colors.textMuted} />

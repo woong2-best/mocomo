@@ -31,7 +31,18 @@ export async function GET(req: NextRequest) {
         : "for_you";
 
     const viewerId = await getMobileUserId(req);
-    const effectiveMode: FeedMode = viewerId ? mode : "latest";
+    let effectiveMode: FeedMode = viewerId ? mode : "latest";
+
+    if (viewerId && effectiveMode === "for_you") {
+      const prefs = await db.user.findUnique({
+        where: { id: viewerId },
+        select: { feedRecommendationEnabled: true },
+      });
+      if (prefs && !prefs.feedRecommendationEnabled) {
+        effectiveMode = "latest";
+      }
+    }
+
     const canViewNsfw = await resolveCanViewNsfw(viewerId);
 
     const posts = await resolveFeedPage({

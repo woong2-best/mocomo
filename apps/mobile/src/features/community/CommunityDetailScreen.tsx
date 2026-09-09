@@ -30,6 +30,7 @@ import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
+import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
@@ -64,6 +65,7 @@ export function CommunityDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "CommunityDetail">>();
   const queryClient = useQueryClient();
+  const showLikeCounts = useShowLikeCounts();
   const [joinMsg, setJoinMsg] = useState<string | null>(null);
   const [openingSlug, setOpeningSlug] = useState<string | null>(null);
   const [uploadingKind, setUploadingKind] = useState<"icon" | "banner" | null>(null);
@@ -338,7 +340,8 @@ export function CommunityDetailScreen() {
                     {p.title || p.content}
                   </Text>
                   <Text style={styles.postMeta}>
-                    @{p.author.username} · ♥ {p.likeCount} · 💬 {p.commentCount}
+                    @{p.author.username}
+                    {showLikeCounts ? ` · ♥ ${p.likeCount}` : ""} · 💬 {p.commentCount}
                   </Text>
                 </Pressable>
               ))
