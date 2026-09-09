@@ -7,7 +7,7 @@ export async function GET(req: Request) {
     const global = searchParams.get("global") === "1";
     const country = searchParams.get("country") ?? undefined;
     const pins = global
-      ? await getSubcultureMapPins(280)
+      ? await getSubcultureMapPins(520)
       : await getSubcultureMapPinsForUser(200, country ?? undefined);
     return NextResponse.json(
       { ok: true, pins },

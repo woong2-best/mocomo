@@ -1,58 +1,25 @@
 import { COUNTRIES, countryDisplayName, countryFlag, type Locale } from "@/lib/i18n/config";
+import {
+  GLOBAL_DISCOVERY_REGIONS,
+  SUBCULTURE_COUNTRY_CODES,
+  type SubcultureEventCountryCode,
+} from "@/lib/subculture-event-global-config";
 
-/** 서브컬처 행사 국가 코드 (ISO 3166-1 alpha-2 소문자) */
-export type SubcultureEventCountry =
-  | "kr"
-  | "us"
-  | "jp"
-  | "cn"
-  | "tw"
-  | "th"
-  | "vn"
-  | "ph"
-  | "id"
-  | "gb"
-  | "de"
-  | "fr"
-  | "ca"
-  | "au"
-  | "other";
+export type SubcultureEventCountry = SubcultureEventCountryCode | "other";
+
+export type { SubcultureEventCountryCode };
 
 export const SUBCULTURE_EVENT_COUNTRIES: SubcultureEventCountry[] = [
-  "kr",
-  "us",
-  "jp",
-  "cn",
-  "tw",
-  "th",
-  "vn",
-  "ph",
-  "id",
-  "gb",
-  "de",
-  "fr",
-  "ca",
-  "au",
+  ...SUBCULTURE_COUNTRY_CODES,
   "other",
 ];
 
 const USER_TO_EVENT: Record<string, SubcultureEventCountry> = {
-  KR: "kr",
-  US: "us",
-  JP: "jp",
-  CN: "cn",
-  TW: "tw",
-  TH: "th",
-  VN: "vn",
-  PH: "ph",
-  ID: "id",
-  GB: "gb",
-  DE: "de",
-  FR: "fr",
-  CA: "ca",
-  AU: "au",
   OTHER: "other",
 };
+for (const code of SUBCULTURE_COUNTRY_CODES) {
+  USER_TO_EVENT[code.toUpperCase()] = code;
+}
 
 export const SUBCULTURE_EVENT_COUNTRY_LABELS: Record<SubcultureEventCountry, string> = {
   kr: "한국",
@@ -64,31 +31,55 @@ export const SUBCULTURE_EVENT_COUNTRY_LABELS: Record<SubcultureEventCountry, str
   vn: "베트남",
   ph: "필리핀",
   id: "인도네시아",
+  sg: "싱가포르",
+  my: "말레이시아",
+  la: "라오스",
+  kh: "캄보디아",
+  mm: "미얀마",
+  bn: "브루나이",
+  hk: "홍콩",
+  mo: "마카오",
   gb: "영국",
-  de: "독일",
   fr: "프랑스",
+  de: "독일",
+  es: "스페인",
+  it: "이탈리아",
+  ru: "러시아",
   ca: "캐나다",
+  br: "브라질",
+  mx: "멕시코",
+  ar: "아르헨티나",
+  cl: "칠레",
+  co: "콜롬비아",
+  pe: "페루",
   au: "호주",
+  nz: "뉴질랜드",
+  fi: "핀란드",
+  se: "스웨덴",
+  no: "노르웨이",
+  dk: "덴마크",
+  pl: "폴란드",
+  ro: "루마니아",
+  hu: "헝가리",
+  cz: "체코",
+  at: "오스트리아",
+  ch: "스위스",
+  nl: "네덜란드",
+  be: "벨기에",
+  pt: "포르투갈",
+  gr: "그리스",
+  ua: "우크라이나",
+  tr: "터키",
+  sa: "사우디아라비아",
+  ae: "아랍에미리트",
+  il: "이스라엘",
+  za: "남아프리카공화국",
   other: "글로벌",
 };
 
-const EVENT_COUNTRY_ISO: Record<SubcultureEventCountry, string> = {
-  kr: "KR",
-  us: "US",
-  jp: "JP",
-  cn: "CN",
-  tw: "TW",
-  th: "TH",
-  vn: "VN",
-  ph: "PH",
-  id: "ID",
-  gb: "GB",
-  de: "DE",
-  fr: "FR",
-  ca: "CA",
-  au: "AU",
-  other: "OTHER",
-};
+const EVENT_COUNTRY_ISO: Record<SubcultureEventCountry, string> = Object.fromEntries(
+  SUBCULTURE_EVENT_COUNTRIES.map((c) => [c, c === "other" ? "OTHER" : c.toUpperCase()])
+) as Record<SubcultureEventCountry, string>;
 
 export function eventCountryDisplayLabel(country: SubcultureEventCountry, locale: Locale): string {
   if (country === "other") {
@@ -101,27 +92,19 @@ export function eventCountryDisplayLabel(country: SubcultureEventCountry, locale
   return countryDisplayName(EVENT_COUNTRY_ISO[country], nameLocale);
 }
 
-/** 지도 기본 뷰 — 해당 국가 행사가 없을 때 */
+/** 지도 기본 뷰 */
 export const SUBCULTURE_MAP_DEFAULTS: Record<
   SubcultureEventCountry,
   { lat: number; lng: number; zoom: number }
 > = {
-  kr: { lat: 36.5, lng: 127.8, zoom: 7 },
-  us: { lat: 39.8, lng: -98.5, zoom: 4 },
-  jp: { lat: 36.2, lng: 138.2, zoom: 5 },
-  cn: { lat: 35.0, lng: 105.0, zoom: 4 },
-  tw: { lat: 23.7, lng: 121.0, zoom: 7 },
-  th: { lat: 13.7, lng: 100.5, zoom: 6 },
-  vn: { lat: 16.0, lng: 108.0, zoom: 5 },
-  ph: { lat: 12.8, lng: 122.0, zoom: 5 },
-  id: { lat: -2.5, lng: 118.0, zoom: 4 },
-  gb: { lat: 54.0, lng: -2.5, zoom: 6 },
-  de: { lat: 51.2, lng: 10.4, zoom: 6 },
-  fr: { lat: 46.6, lng: 2.2, zoom: 6 },
-  ca: { lat: 56.0, lng: -96.0, zoom: 4 },
-  au: { lat: -25.3, lng: 133.8, zoom: 4 },
+  ...Object.fromEntries(
+    GLOBAL_DISCOVERY_REGIONS.map((r) => [
+      r.country,
+      { lat: r.center.lat, lng: r.center.lng, zoom: r.zoom },
+    ])
+  ),
   other: { lat: 20.0, lng: 0.0, zoom: 2 },
-};
+} as Record<SubcultureEventCountry, { lat: number; lng: number; zoom: number }>;
 
 export function userCountryToEventCountry(userCountryCode: string): SubcultureEventCountry {
   const code = userCountryCode.toUpperCase();
@@ -133,14 +116,16 @@ export function eventCountryFlag(country: SubcultureEventCountry): string {
   return countryFlag(country.toUpperCase());
 }
 
-export function eventCountryFromExternalKey(externalKey?: string | null): SubcultureEventCountry | null {
+export function eventCountryFromExternalKey(
+  externalKey?: string | null
+): SubcultureEventCountry | null {
   if (!externalKey) return null;
   const key = externalKey.toLowerCase();
-  for (const c of SUBCULTURE_EVENT_COUNTRIES) {
-    if (c === "other") continue;
+  for (const c of SUBCULTURE_COUNTRY_CODES) {
     if (
       key.startsWith(`official-${c}-`) ||
       key.startsWith(`auto-${c}-`) ||
+      key.startsWith(`auto-wiki-${c}-`) ||
       key.includes(`-${c}-`)
     ) {
       return c;
@@ -159,16 +144,46 @@ export function eventCountryFromExternalKey(externalKey?: string | null): Subcul
   if (key.startsWith("venue-maid-th-")) return "th";
   if (key.startsWith("venue-maid-tw-")) return "tw";
   if (key.startsWith("venue-maid-us-")) return "us";
-  if (key.startsWith("venue-maid-") && !key.includes("-jp-") && !key.includes("-th-") && !key.includes("-tw-") && !key.includes("-us-")) {
+  if (
+    key.startsWith("venue-maid-") &&
+    !key.includes("-jp-") &&
+    !key.includes("-th-") &&
+    !key.includes("-tw-") &&
+    !key.includes("-us-")
+  ) {
     return "kr";
   }
-  if (key.startsWith("auto-comicw") || key.startsWith("auto-gstar") || key.startsWith("auto-seoulpopcon") || key.startsWith("official-comicw") || key.startsWith("official-gstar") || key.startsWith("official-seoul")) {
+  if (
+    key.startsWith("auto-comicw") ||
+    key.startsWith("auto-gstar") ||
+    key.startsWith("auto-seoulpopcon") ||
+    key.startsWith("official-comicw") ||
+    key.startsWith("official-gstar") ||
+    key.startsWith("official-seoul")
+  ) {
     return "kr";
   }
-  if (key.startsWith("auto-animeexpo") || key.startsWith("auto-comiccon") || key.startsWith("official-us-")) {
+  if (
+    key.startsWith("auto-animeexpo") ||
+    key.startsWith("auto-comiccon") ||
+    key.startsWith("official-us-")
+  ) {
     return "us";
   }
   return null;
+}
+
+function nearestRegionByCoords(lat: number, lng: number): SubcultureEventCountryCode | null {
+  let best: SubcultureEventCountryCode | null = null;
+  let bestD = Infinity;
+  for (const r of GLOBAL_DISCOVERY_REGIONS) {
+    const d = (r.center.lat - lat) ** 2 + (r.center.lng - lng) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = r.country;
+    }
+  }
+  return best;
 }
 
 export function inferEventCountryFromCoords(
@@ -182,7 +197,10 @@ export function inferEventCountryFromCoords(
   if (lat >= 33 && lat <= 39.5 && lng >= 124 && lng <= 132) return "kr";
   if (lat >= 30 && lat <= 46 && lng >= 129 && lng <= 146) return "jp";
   if (lat >= 21.5 && lat <= 25.5 && lng >= 119 && lng <= 122.5) return "tw";
-  if (lat >= 18 && lat <= 54 && lng >= 73 && lng <= 135) {
+  if (lat >= 22 && lat <= 22.6 && lng >= 113.8 && lng <= 114.5) return "hk";
+  if (lat >= 22.1 && lat <= 22.3 && lng >= 113.5 && lng <= 113.6) return "mo";
+  if (lat >= 1 && lat <= 1.5 && lng >= 103.6 && lng <= 104.1) return "sg";
+  if (lat >= 18 && lat <= 42 && lng >= 73 && lng <= 135) {
     if (lat >= 18 && lat <= 24 && lng >= 100 && lng <= 110) return "th";
     if (lat >= 8 && lat <= 24 && lng >= 102 && lng <= 110) return "vn";
     if (lat >= 18 && lat <= 42 && lng >= 73 && lng <= 135) return "cn";
@@ -192,11 +210,21 @@ export function inferEventCountryFromCoords(
   if (lat >= 49 && lat <= 61 && lng >= -8.5 && lng <= 2) return "gb";
   if (lat >= 47 && lat <= 55 && lng >= 5.5 && lng <= 15.5) return "de";
   if (lat >= 41 && lat <= 51.5 && lng >= -5.5 && lng <= 10) return "fr";
+  if (lat >= 36 && lat <= 44 && lng >= -10 && lng <= 5) return "es";
+  if (lat >= 36 && lat <= 47 && lng >= 6 && lng <= 19) return "it";
+  if (lat >= 41 && lat <= 82 && lng >= 19 && lng <= 180) return "ru";
   if (lat >= 24 && lat <= 50 && lng >= -125 && lng <= -66) return "us";
   if (lat >= 41 && lat <= 84 && lng >= -141 && lng <= -52) return "ca";
-  if (lat >= -44 && lat <= -10 && lng >= 112 && lng <= 154) return "au";
+  if (lat >= -35 && lat <= -10 && lng >= 112 && lng <= 180) return "au";
+  if (lat >= -47 && lat <= -34 && lng >= 166 && lng <= 179) return "nz";
+  if (lat >= -35 && lat <= 5 && lng >= -75 && lng <= -34) return "br";
+  if (lat >= 14 && lat <= 33 && lng >= -118 && lng <= -86) return "mx";
+  if (lat >= -55 && lat <= -21 && lng >= -75 && lng <= -53) return "ar";
+  if (lat >= -56 && lat <= -17 && lng >= -76 && lng <= -66) return "cl";
+  if (lat >= -35 && lat <= 25 && lng >= 24 && lng <= 36) return "za";
+  if (lat >= 22 && lat <= 32 && lng >= 34 && lng <= 56) return "ae";
 
-  return lng >= 132 ? "jp" : "kr";
+  return nearestRegionByCoords(lat, lng) ?? "other";
 }
 
 export function resolveSubculturePinsForUser<T extends { country: SubcultureEventCountry }>(
@@ -207,8 +235,7 @@ export function resolveSubculturePinsForUser<T extends { country: SubcultureEven
   const local = pins.filter((p) => p.country === target);
   if (local.length > 0) return local;
   if (target === "other") {
-    const majors: SubcultureEventCountry[] = ["kr", "jp", "us"];
-    return pins.filter((p) => majors.includes(p.country)).slice(0, 24);
+    return pins.slice(0, 48);
   }
   return local;
 }
@@ -227,7 +254,6 @@ export function isKoreaEventCountry(country: SubcultureEventCountry): boolean {
   return country === "kr";
 }
 
-/** 회원가입·설정 국가 목록과 동기화 */
 export function isSupportedUserCountry(code: string): boolean {
   return COUNTRIES.some((c) => c.code === code.toUpperCase());
 }

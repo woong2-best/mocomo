@@ -79,7 +79,7 @@
       "maxDuration": 60
     },
     "src/app/api/cron/subculture-events/route.ts": {
-      "maxDuration": 120
+      "maxDuration": 300
     },
     "src/app/api/cron/abandoned-live/route.ts": {
       "maxDuration": 60

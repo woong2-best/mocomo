@@ -19,6 +19,7 @@ import {
   fetchAnimeExpoEvents,
   fetchComicConEvents,
 } from "@/lib/subculture-event-fetch/sources/usa";
+import { fetchGlobalWikipediaEvents } from "@/lib/subculture-event-fetch/sources/global-wikipedia";
 
 const FETCHERS: { sourceId: string; run: () => Promise<FetchedSubcultureEvent[]> }[] = [
   { sourceId: "comicw", run: fetchComicWorldEvents },
@@ -30,6 +31,7 @@ const FETCHERS: { sourceId: string; run: () => Promise<FetchedSubcultureEvent[]>
   { sourceId: "tgs", run: fetchTgsEvents },
   { sourceId: "animeexpo", run: fetchAnimeExpoEvents },
   { sourceId: "comiccon", run: fetchComicConEvents },
+  { sourceId: "global-wiki", run: fetchGlobalWikipediaEvents },
 ];
 
 function seedToFetched(seed: SubcultureEventSeed): FetchedSubcultureEvent {

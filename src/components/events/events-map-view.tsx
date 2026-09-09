@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Globe, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubcultureEventPinCard } from "@/components/events/subculture-event-pin-card";
@@ -8,6 +8,7 @@ import { EventsMapSpaceDecor } from "@/components/events/events-map-space-decor"
 import { SubcultureEventsMapLazy } from "@/components/events/subculture-events-map-lazy";
 import {
   getSubcultureMapDefaultView,
+  resolveSubculturePinsForUser,
   type SubcultureEventCountry,
 } from "@/lib/subculture-event-countries";
 import {
@@ -56,35 +57,20 @@ export function EventsMapView({
   eventCountry: SubcultureEventCountry;
 }) {
   const { countryCode } = useLocale();
-  const [globalMode, setGlobalMode] = useState(false);
-  const [globalPins, setGlobalPins] = useState<MapEventPin[] | null>(null);
-  const [loadingGlobal, setLoadingGlobal] = useState(false);
+  const [globalMode, setGlobalMode] = useState(true);
 
   const localDefaultView = useMemo(
     () => getSubcultureMapDefaultView(countryCode),
     [countryCode]
   );
 
-  const loadGlobalPins = useCallback(async () => {
-    setLoadingGlobal(true);
-    try {
-      const res = await fetch("/api/events/map?global=1", { credentials: "same-origin" });
-      const data = (await res.json()) as { pins?: MapEventPin[] };
-      setGlobalPins(Array.isArray(data.pins) ? data.pins : []);
-    } catch {
-      setGlobalPins([]);
-    } finally {
-      setLoadingGlobal(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (globalMode && globalPins === null) {
-      void loadGlobalPins();
-    }
-  }, [globalMode, globalPins, loadGlobalPins]);
-
-  const pins = globalMode ? (globalPins ?? []) : initialPins;
+  const pins = useMemo(
+    () =>
+      globalMode
+        ? initialPins
+        : resolveSubculturePinsForUser(initialPins, countryCode).slice(0, 200),
+    [globalMode, initialPins, countryCode]
+  );
   const eventPins = useMemo(
     () => pins.filter((p) => p.category !== "maid_cafe"),
     [pins]
@@ -102,18 +88,12 @@ export function EventsMapView({
   return (
     <div className="events-map-immersive relative h-full w-full min-h-0">
       <div className="absolute inset-0 z-0">
-        {loadingGlobal && globalMode ? (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-white/80 bg-black">
-            전 세계 행사 불러오는 중…
-          </div>
-        ) : (
-          <SubcultureEventsMapLazy
-            pins={pins}
-            immersive
-            interactive
-            defaultView={mapView}
-          />
-        )}
+        <SubcultureEventsMapLazy
+          pins={pins}
+          immersive
+          interactive
+          defaultView={mapView}
+        />
       </div>
 
       <EventsMapSpaceDecor />
@@ -172,7 +152,7 @@ export function EventsMapView({
           {eventPins.length === 0 ? (
             <Card className="rounded-xl bg-white/5 border-white/10 text-white">
               <CardContent className="p-6 text-center text-white/70 text-sm">
-                {loadingGlobal ? "불러오는 중…" : "등록된 행사가 없습니다."}
+                등록된 행사가 없습니다.
               </CardContent>
             </Card>
           ) : (

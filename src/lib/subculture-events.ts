@@ -7,12 +7,15 @@ import {
   type SubcultureEventCountry,
 } from "@/lib/subculture-event-seeds";
 import {
+  eventCountryFromExternalKey,
   inferEventCountryFromCoords,
   isKoreaEventCountry,
   resolveSubculturePinsForUser,
 } from "@/lib/subculture-event-countries";
 import { fetchAllSubcultureEvents } from "@/lib/subculture-event-fetch";
+import { nominatimSearchPlaceInCountry } from "@/lib/subculture-event-fetch/nominatim-country";
 import type { FetchedSubcultureEvent } from "@/lib/subculture-event-fetch/types";
+import { regionByCountry } from "@/lib/subculture-event-global-config";
 import { type MapEventPin } from "@/lib/subculture-event-pins";
 
 export type { MapEventPin } from "@/lib/subculture-event-pins";
@@ -128,7 +131,7 @@ function sortMapPins(pins: MapEventPin[]): MapEventPin[] {
 export async function getSubcultureMapPins(limit = 240): Promise<MapEventPin[]> {
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v8", String(limit)],
+    ["subculture-map-pins-v9", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
 }
@@ -281,23 +284,6 @@ export async function syncSubcultureEventsIfDue(options?: {
   };
 }
 
-async function geocodeWithNominatim(query: string): Promise<{ lat: number; lng: number; label: string } | null> {
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-    const res = await fetch(url, {
-      headers: { "User-Agent": "mocomo-subculture-events/1.0" },
-      next: { revalidate: 86400 },
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { lat: string; lon: string; display_name: string }[];
-    const hit = data[0];
-    if (!hit) return null;
-    return { lat: Number(hit.lat), lng: Number(hit.lon), label: hit.display_name };
-  } catch {
-    return null;
-  }
-}
-
 /** 좌표 없는 행사 — 한국은 카카오, 그 외 Nominatim (cron·수동) */
 export async function geocodePendingSubcultureEvents(max = 5): Promise<number> {
   try {
@@ -320,10 +306,15 @@ export async function geocodePendingSubcultureEvents(max = 5): Promise<number> {
     const q = [row.venueName, row.address].filter(Boolean).join(" ");
     if (!q.trim()) continue;
     try {
-      const country = inferEventCountryFromCoords(row.lat ?? 0, row.lng ?? 0, row.externalKey);
+      const country =
+        eventCountryFromExternalKey(row.externalKey) ??
+        inferEventCountryFromCoords(row.lat ?? 0, row.lng ?? 0, row.externalKey);
+      const region = country !== "other" ? regionByCountry(country) : undefined;
       const coord = isKoreaEventCountry(country)
         ? await kakaoSearchPlace(q)
-        : await geocodeWithNominatim(q);
+        : region
+          ? await nominatimSearchPlaceInCountry(q, region.iso, region.acceptLanguage)
+          : null;
       if (!coord) continue;
       await db.subcultureEventPin.update({
         where: { id: row.id },

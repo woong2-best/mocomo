@@ -7,6 +7,7 @@
  * - 서울일러스트코리아 / 서일페 / 일러스타 / AGF / BIAF
  */
 
+import { GLOBAL_SUBCULTURE_EVENT_SEEDS } from "@/lib/subculture-event-seeds-global";
 import { INTERNATIONAL_SUBCULTURE_EVENT_SEEDS } from "@/lib/subculture-event-seeds-international";
 import { MAID_CAFE_SEEDS } from "@/lib/subculture-maid-cafe-seeds";
 import type { SubcultureEventCountry } from "@/lib/subculture-event-countries";
@@ -296,5 +297,6 @@ export const SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
 export const ALL_SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   ...SUBCULTURE_EVENT_SEEDS,
   ...INTERNATIONAL_SUBCULTURE_EVENT_SEEDS,
+  ...GLOBAL_SUBCULTURE_EVENT_SEEDS,
   ...MAID_CAFE_SEEDS,
 ];

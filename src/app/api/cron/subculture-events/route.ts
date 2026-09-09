@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   try {
     const result = await syncSubcultureEventsIfDue({
       force: true,
-      geocodeMax: 8,
+      geocodeMax: 40,
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
