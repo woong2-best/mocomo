@@ -65,7 +65,8 @@ export function UsedDetailBottomBar({
       return;
     }
     const res = await toggleUsedFavorite(listingId);
-    if ("favorited" in res && res.favorited !== undefined) setFavorited(res.favorited);
+    if ("error" in res) return;
+    setFavorited(res.favorited);
   }
 
   async function openChat() {
