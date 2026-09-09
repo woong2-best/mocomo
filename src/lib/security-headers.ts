@@ -17,6 +17,9 @@ const CSP_BASE = [
 const KAKAO_MAP_SCRIPT_SRC =
   "https://dapi.kakao.com https://t1.daumcdn.net https://ssl.daumcdn.net";
 
+/** MapLibre GL JS — Web Worker bootstrap via blob: URLs (서브컬처 행사 지도 등) */
+const MAPLIBRE_SCRIPT_SRC = "blob:";
+
 /** APT corner scene viewer — Three.js via unpkg import map */
 export const APT_SCENE_VIEWER_HEADERS: { key: string; value: string }[] = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -55,7 +58,7 @@ export const SECURITY_HEADERS: { key: string; value: string }[] = [
     key: "Content-Security-Policy",
     value: [
       ...CSP_BASE,
-      `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://js.stripe.com ${PORTONE_SCRIPT_SRC} ${KAKAO_MAP_SCRIPT_SRC}`,
+      `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' ${MAPLIBRE_SCRIPT_SRC} https://challenges.cloudflare.com https://js.stripe.com ${PORTONE_SCRIPT_SRC} ${KAKAO_MAP_SCRIPT_SRC}`,
       `frame-src 'self' ${EMBED_FRAME_SRC} ${PORTONE_FRAME_SRC}`,
       "frame-ancestors 'none'",
     ].join("; "),
