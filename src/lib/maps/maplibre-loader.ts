@@ -11,9 +11,12 @@ export async function loadMapLibre() {
     !workerUrlConfigured &&
     typeof (api as { setWorkerUrl?: (url: string) => void }).setWorkerUrl === "function"
   ) {
-    (api as { setWorkerUrl: (url: string) => void }).setWorkerUrl(
-      "/maplibre/maplibre-gl-worker.mjs"
-    );
+    const workerPath = "/maplibre/maplibre-gl-worker.mjs";
+    const workerUrl =
+      typeof window !== "undefined"
+        ? new URL(workerPath, window.location.origin).href
+        : workerPath;
+    (api as { setWorkerUrl: (url: string) => void }).setWorkerUrl(workerUrl);
     workerUrlConfigured = true;
   }
 

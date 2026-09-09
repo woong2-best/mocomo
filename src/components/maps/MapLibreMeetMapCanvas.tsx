@@ -64,6 +64,7 @@ export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onEr
           center: [center.lng, center.lat],
           zoom,
           attributionControl: {},
+          fadeDuration: 0,
         });
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
         mapRef.current = map;

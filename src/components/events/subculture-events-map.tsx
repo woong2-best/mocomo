@@ -188,6 +188,8 @@ export function SubcultureEventsMap({
           : [135, 28],
         zoom: defaultView?.zoom ?? 3,
         attributionControl: interactive ? { compact: true } : false,
+        // Site CSS disables transitions globally; skip canvas fade-in.
+        fadeDuration: 0,
       });
 
       if (interactive) {
@@ -202,11 +204,6 @@ export function SubcultureEventsMap({
         map.touchZoomRotate.disable();
       }
 
-      map.on("style.load", () => {
-        // Globe at low zoom → flat satellite as you zoom in (MapLibre projection blend)
-        map.setProjection({ type: "globe" });
-      });
-
       const resize = () => {
         try {
           map.resize();
@@ -215,9 +212,18 @@ export function SubcultureEventsMap({
         }
       };
       map.once("load", () => {
+        // Globe after full style+worker init (style.load alone can race worker setup)
+        try {
+          map.setProjection({ type: "globe" });
+        } catch {
+          /* mercator fallback */
+        }
         resize();
         fitMapToPins(map, pins, defaultView);
         setReady(true);
+      });
+      map.once("error", (event) => {
+        console.error("[subculture-events-map]", event.error ?? event);
       });
       requestAnimationFrame(resize);
       resizeObserver = new ResizeObserver(resize);
@@ -340,7 +346,10 @@ export function SubcultureEventsMap({
   }
 
   return (
-    <div className={cn("relative rounded-xl overflow-hidden border border-border/60 subculture-events-map", className)}>
+    <div
+      className={cn("relative rounded-xl overflow-hidden border border-border/60 subculture-events-map", className)}
+      data-functional-canvas
+    >
       <div ref={containerRef} className={cn("w-full z-0", heightClassName)} />
       {!ready && (
         <div

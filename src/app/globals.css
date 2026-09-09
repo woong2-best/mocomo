@@ -858,7 +858,9 @@ html[data-visible-animations="off"] .konvajs-content,
 html[data-visible-animations="off"] .konvajs-content canvas,
 html[data-visible-animations="off"] [data-functional-canvas],
 html[data-visible-animations="off"] [data-functional-canvas] canvas,
-html[data-visible-animations="off"] canvas[data-forensic-canvas] {
+html[data-visible-animations="off"] canvas[data-forensic-canvas],
+html[data-visible-animations="off"] .maplibregl-map,
+html[data-visible-animations="off"] .maplibregl-map .maplibregl-canvas {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
