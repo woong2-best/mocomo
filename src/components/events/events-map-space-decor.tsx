@@ -3,7 +3,7 @@
 export function EventsMapSpaceDecor() {
   return (
     <div
-      className="events-map-space-decor absolute inset-0 z-[1] pointer-events-none overflow-hidden"
+      className="events-map-space-decor absolute inset-0 z-[5] pointer-events-none overflow-hidden"
       aria-hidden
     >
       {/* Mars — lower-left void */}
