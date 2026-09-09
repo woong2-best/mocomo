@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { resolveUsedMarketLocality } from "@/lib/used-market-locality";
 import { buildUsedMarketParams } from "@/lib/used-ranking/params";
 import type { UsedMarketQuery } from "@/lib/used-ranking/types";
 import type { QueryHydrator } from "@/lib/feed-ranking/pipeline/types";
@@ -14,6 +15,7 @@ export const usedMarketViewerHydrator: QueryHydrator<UsedMarketQuery> = {
       favoriteWorks: new Set<string>(),
       blockedIds: new Set<string>(),
       countryCode: query.countryCode ?? null,
+      serviceRegion: query.serviceRegion ?? null,
       preferredRegion: query.preferredRegion ?? null,
       preferredSido: query.preferredSido ?? null,
     };
@@ -21,11 +23,8 @@ export const usedMarketViewerHydrator: QueryHydrator<UsedMarketQuery> = {
     if (!query.userId) return base;
 
     const userId = query.userId;
-    const [user, favorites, blocks, recentListings] = await Promise.all([
-      db.user.findUnique({
-        where: { id: userId },
-        select: { countryCode: true },
-      }),
+    const [locality, favorites, blocks, recentListings] = await Promise.all([
+      resolveUsedMarketLocality(userId),
       db.usedFavorite.findMany({
         where: { userId },
         select: {
@@ -58,8 +57,13 @@ export const usedMarketViewerHydrator: QueryHydrator<UsedMarketQuery> = {
 
     return {
       ...base,
-      countryCode: user?.countryCode || base.countryCode,
-      preferredRegion: recentListings[0]?.region ?? favorites[0]?.listing.region ?? null,
+      countryCode: locality.countryCode,
+      serviceRegion: locality.serviceRegion,
+      preferredRegion:
+        locality.serviceRegion ??
+        recentListings[0]?.region ??
+        favorites[0]?.listing.region ??
+        null,
       favoriteListingIds,
       favoriteCategories,
       favoriteWorks,

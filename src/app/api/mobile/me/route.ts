@@ -22,6 +22,7 @@ import {
 } from "@/lib/profile-update-service";
 import { isValidUsername, normalizeUsername } from "@/lib/username-policy";
 import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
+import { defaultUsedRegionForCountry, isValidUsedRegion } from "@/lib/used-regions-global";
 
 const meSelect = {
   id: true,
@@ -30,6 +31,7 @@ const meSelect = {
   image: true,
   locale: true,
   countryCode: true,
+  usedServiceRegion: true,
   timeZone: true,
   createdAt: true,
   isBanned: true,
@@ -84,6 +86,7 @@ export async function GET(req: NextRequest) {
       image: user.image,
       locale: user.locale,
       countryCode: user.countryCode,
+      usedServiceRegion: user.usedServiceRegion,
       timeZone: user.timeZone,
       bio: user.profile?.bio ?? null,
       bannerUrl: user.profile?.bannerUrl ?? null,
@@ -141,6 +144,7 @@ const patchSchema = z.object({
   clearBirthDate: z.boolean().optional(),
   locale: z.string().optional(),
   countryCode: z.string().min(2).max(8).optional(),
+  usedServiceRegion: z.string().min(1).max(80).optional(),
   timeZone: z.string().min(1).max(64).optional(),
   feedRecommendationEnabled: z.boolean().optional(),
   showLikeCounts: z.boolean().optional(),
@@ -236,23 +240,45 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  if (data.locale || data.countryCode || data.timeZone) {
+  if (data.locale || data.countryCode || data.timeZone || data.usedServiceRegion) {
     if (data.countryCode) {
       const countryBlock = assertCountrySelectable(data.countryCode);
       if (countryBlock) {
         return NextResponse.json({ error: countryBlock.error }, { status: 403 });
       }
     }
+    const storedCountry = await db.user.findUnique({
+      where: { id: auth.user.id },
+      select: { countryCode: true },
+    });
+    const nextCountry = data.countryCode
+      ? data.countryCode.trim().toUpperCase()
+      : storedCountry?.countryCode ?? "KR";
+    if (
+      data.usedServiceRegion &&
+      !isValidUsedRegion(data.usedServiceRegion, nextCountry)
+    ) {
+      return NextResponse.json({ error: "올바른 서비스 지역을 선택해 주세요." }, { status: 400 });
+    }
     await db.user.update({
       where: { id: auth.user.id },
       data: {
         ...(data.locale ? { locale: normalizeLocale(data.locale) } : {}),
         ...(data.countryCode
-          ? { countryCode: data.countryCode.trim().toUpperCase() }
+          ? {
+              countryCode: data.countryCode.trim().toUpperCase(),
+              usedServiceRegion: defaultUsedRegionForCountry(data.countryCode),
+            }
+          : {}),
+        ...(data.usedServiceRegion
+          ? { usedServiceRegion: data.usedServiceRegion.trim() }
           : {}),
         ...(data.timeZone ? { timeZone: normalizeTimeZone(data.timeZone) } : {}),
       },
     });
+    if (data.countryCode || data.usedServiceRegion) {
+      revalidatePath("/used");
+    }
   }
 
   if (data.feedRecommendationEnabled !== undefined || data.showLikeCounts !== undefined) {

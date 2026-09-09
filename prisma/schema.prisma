@@ -219,6 +219,8 @@ model User {
   supportTierReceived  SupportTierLevel @default(SEED)
   locale        String    @default("ko")
   countryCode   String    @default("KR")
+  /** 중고거래 서비스 지역 (동네) — countryCode와 함께 로컬 이웃 매칭 */
+  usedServiceRegion String?
   /** IANA Time Zone (e.g. America/New_York) — calendar / day boundaries; not derived from country alone */
   timeZone      String    @default("UTC")
   feedDisplayMode FeedDisplayMode @default(TIMELINE)

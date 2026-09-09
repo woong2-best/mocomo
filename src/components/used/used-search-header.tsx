@@ -9,7 +9,15 @@ import { UsedRegionFilter } from "@/components/used/used-region-filter";
 import { UsedWorkProductFilters } from "@/components/used/used-work-product-filters";
 import { UsedSubcultureFilters } from "@/components/used/used-subculture-filters";
 
-export function UsedSearchHeader() {
+type UsedSearchHeaderProps = {
+  viewerCountryCode: string;
+  viewerServiceRegion?: string | null;
+};
+
+export function UsedSearchHeader({
+  viewerCountryCode,
+  viewerServiceRegion,
+}: UsedSearchHeaderProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -109,7 +117,12 @@ export function UsedSearchHeader() {
         </div>
       </section>
 
-      <UsedRegionFilter onNavigate={apply} isPending={isPending} />
+      <UsedRegionFilter
+        viewerCountryCode={viewerCountryCode}
+        viewerServiceRegion={viewerServiceRegion}
+        onNavigate={apply}
+        isPending={isPending}
+      />
     </div>
   );
 }

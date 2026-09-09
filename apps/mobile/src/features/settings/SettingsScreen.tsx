@@ -23,6 +23,7 @@ import { CreatorCallSettingsCard } from "@/features/settings/CreatorCallSettings
 import { FeedDisplaySettingsCard } from "@/features/settings/FeedDisplaySettingsCard";
 import { MessageComposerSettingsCard } from "@/features/settings/MessageComposerSettingsCard";
 import { AccountDeletionCard } from "@/features/settings/AccountDeletionCard";
+import { UsedServiceRegionCard } from "@/features/settings/UsedServiceRegionCard";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
@@ -162,6 +163,8 @@ export function SettingsScreen() {
               onPress={() => void saveLocale()}
             />
           </FolkCard>
+
+          <UsedServiceRegionCard />
 
           {checkoutMeta.data?.configured ? (
             <FolkCard>

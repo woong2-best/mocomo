@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { compactWorkKey, normalizeWorkTitle } from "@/lib/used-catalog";
 import { createNotification } from "@/lib/notifications";
 import { formatUsedPrice } from "@/lib/used-market";
+import { isListingInServiceArea } from "@/lib/used-market-locality";
 import type { UsedListing } from "@prisma/client";
 
 const WTB_COOLDOWN_MS = 6 * 60 * 60 * 1000;
@@ -52,10 +53,12 @@ export async function notifyWtbAlertsForListing(listingId: string): Promise<numb
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.status !== "SELLING") return 0;
 
+  const listingCountry = (listing.meetCountry ?? "KR").trim().toUpperCase();
   const alerts = await db.subcultureWtbAlert.findMany({
     where: {
       active: true,
       userId: { not: listing.sellerId },
+      user: { countryCode: listingCountry },
       OR: [
         listing.animeSlug ? { animeSlug: listing.animeSlug } : undefined,
         listing.workTitle ? { workTitle: listing.workTitle } : undefined,
@@ -63,12 +66,22 @@ export async function notifyWtbAlertsForListing(listingId: string): Promise<numb
       ].filter(Boolean) as { animeSlug?: string; workTitle?: string; productType?: string }[],
     },
     take: 200,
+    include: {
+      user: { select: { countryCode: true, usedServiceRegion: true } },
+    },
   });
 
   const now = Date.now();
   let sent = 0;
   for (const alert of alerts) {
     if (!listingMatchesAlert(listing, alert)) continue;
+    const serviceRegion = alert.user.usedServiceRegion?.trim();
+    if (
+      serviceRegion &&
+      !isListingInServiceArea(listing.region, serviceRegion, alert.user.countryCode)
+    ) {
+      continue;
+    }
     if (alert.lastNotifiedAt && now - alert.lastNotifiedAt.getTime() < WTB_COOLDOWN_MS) continue;
 
     await createNotification({

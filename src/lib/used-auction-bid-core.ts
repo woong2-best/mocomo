@@ -3,6 +3,7 @@
  */
 
 import { db } from "@/lib/db";
+import { assertUsedMarketTradeAccess } from "@/lib/used-market-locale-scope";
 import {
   extendedAuctionEndsAt,
   isAuctionLive,
@@ -49,6 +50,20 @@ export async function executeUsedAuctionBid(
     return { error: `입찰가는 ${maxUsedListingPriceLabel(listing.currency)} 이하입니다.` };
   }
   if (listing.sellerId === input.userId) return { error: "본인 경매에는 입찰할 수 없습니다." };
+
+  const bidder = await db.user.findUnique({
+    where: { id: input.userId },
+    select: { countryCode: true },
+  });
+  if (bidder) {
+    const tradeErr = await assertUsedMarketTradeAccess({
+      userId: input.userId,
+      buyerCountry: bidder.countryCode,
+      listing,
+    });
+    if (tradeErr) return { error: tradeErr };
+  }
+
   if (!isAuctionLive(listing)) return { error: "마감된 경매입니다." };
 
   const minBid = minNextBidAmount(listing);

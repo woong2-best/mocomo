@@ -24,11 +24,13 @@ export async function computeUsedMarketRanking(
     filterSaleType?: "FIXED" | "AUCTION";
     liveAuctionOnly?: boolean;
     preferredRegion?: string | null;
+    viewerCountryCode?: string;
   },
   limit = USED_MARKET_LIST_LIMIT
 ) {
   const { selected, stats } = await runUsedMarketPipeline({
     userId,
+    viewerCountryCode: opts?.viewerCountryCode,
     ...opts,
   });
 
@@ -77,6 +79,7 @@ export async function getOrComputeUsedMarketRanking(
     filterSaleType?: "FIXED" | "AUCTION";
     liveAuctionOnly?: boolean;
     preferredRegion?: string | null;
+    viewerCountryCode?: string;
   },
   limit = USED_MARKET_LIST_LIMIT
 ): Promise<RankedUsedListing[]> {
@@ -109,6 +112,7 @@ export async function getOrComputeUsedMarketRanking(
 
 export async function runUsedMarketRankingLive(opts?: {
   userId?: string | null;
+  viewerCountryCode?: string;
   filterCategory?: string;
   filterSaleType?: "FIXED" | "AUCTION";
   liveAuctionOnly?: boolean;
@@ -117,6 +121,7 @@ export async function runUsedMarketRankingLive(opts?: {
 }) {
   const { selected } = await runUsedMarketPipeline({
     userId: opts?.userId ?? null,
+    viewerCountryCode: opts?.viewerCountryCode,
     filterCategory: opts?.filterCategory,
     filterSaleType: opts?.filterSaleType,
     liveAuctionOnly: opts?.liveAuctionOnly,

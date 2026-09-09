@@ -5,6 +5,7 @@ export type MobileAuthUser = {
   image: string | null;
   locale?: string | null;
   countryCode?: string | null;
+  usedServiceRegion?: string | null;
   timeZone?: string | null;
   bio?: string | null;
   bannerUrl?: string | null;

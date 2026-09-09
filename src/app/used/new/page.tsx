@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getCachedCurrentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { defaultUsedRegionForCountry } from "@/lib/used-regions-global";
 import { UsedPostForm } from "@/components/used/used-post-form";
 import { isUsedMarketEligible } from "@/lib/used-bank-auth";
 import { usedMarketVerifyPath } from "@/lib/used-market-verify-path";
@@ -32,7 +34,13 @@ export default async function UsedNewPage() {
     redirect(usedMarketVerifyPath("/used/new", user.countryCode));
   }
 
-  const sns = user.profile?.snsLinks as { location?: string } | null | undefined;
+  const usedServiceRegion =
+    (
+      await db.user.findUnique({
+        where: { id: user.id },
+        select: { usedServiceRegion: true },
+      })
+    )?.usedServiceRegion?.trim() || null;
 
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
@@ -54,7 +62,7 @@ export default async function UsedNewPage() {
           : "사진·가격·거래 지역을 입력해 글을 올려 보세요."}
       </p>
       <UsedPostForm
-        defaultRegion={sns?.location}
+        defaultRegion={usedServiceRegion ?? defaultUsedRegionForCountry(user.countryCode)}
         sellerAdultVerified={isUsedAdultVerified(user)}
         sellerCountryCode={user.countryCode}
       />

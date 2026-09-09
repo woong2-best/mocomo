@@ -3,6 +3,7 @@ import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId, requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { resolveUsedMarketBrowse, type UsedMarketBrowseMode } from "@/lib/used-ranking";
+import { resolveUsedViewerCountry } from "@/lib/used-market-locale-scope";
 import { listingImages } from "@/lib/used-market";
 import {
   createMobileUsedListing,
@@ -43,10 +44,12 @@ export async function GET(req: NextRequest) {
 
   const viewerId = await getMobileUserId(req);
   const canViewNsfw = await resolveCanViewNsfw(viewerId);
+  const viewerCountryCode = await resolveUsedViewerCountry({ userId: viewerId });
 
   const listings = filterNsfwItems(
     await resolveUsedMarketBrowse({
       userId: viewerId,
+      viewerCountryCode,
       mode: browseMode,
       status: "SELLING",
       take,

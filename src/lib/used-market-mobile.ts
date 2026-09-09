@@ -1,6 +1,8 @@
 import { Prisma, type UsedListingCategory, type UsedRestrictedKind } from "@prisma/client";
 import { db } from "@/lib/db";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
+import { assertSellerListingRegion } from "@/lib/used-market-locality";
+import { assertUsedMarketTradeAccess } from "@/lib/used-market-locale-scope";
 import {
   assertUsedAdultForRestricted,
   isUsedRestrictedKind,
@@ -36,6 +38,7 @@ import { getOrCreateDmForUser, sendMobileDmMessage } from "@/lib/chat-dm-service
 const usedMarketUserSelect = {
   id: true,
   countryCode: true,
+  usedServiceRegion: true,
   stripeOnboardingCompleted: true,
   stripeConnectOnboardedAt: true,
   phoneVerified: true,
@@ -102,6 +105,16 @@ export async function createMobileUsedListing(
     return { error: "올바른 거래 지역을 선택해 주세요." as const };
   }
 
+  const sellerServiceRegion = user.usedServiceRegion?.trim() || null;
+  if (sellerServiceRegion) {
+    const listingRegionErr = assertSellerListingRegion(
+      user.countryCode,
+      sellerServiceRegion,
+      data.region
+    );
+    if (listingRegionErr) return { error: listingRegionErr };
+  }
+
   const isAuction = data.saleType === "AUCTION";
   if (isAuction && price <= 0) return { error: "경매 시작가를 입력해 주세요." as const };
   if (isAuction && !data.auctionHours) return { error: "경매 기간을 선택해 주세요." as const };
@@ -131,7 +144,13 @@ export async function createMobileUsedListing(
     let meetLat = data.meetLat;
     let meetLng = data.meetLng;
     const meetPlaceTrim = data.meetPlace?.trim() || null;
-    const meetCountry = normalizeMeetCountry(data.meetCountry ?? user.countryCode);
+    const meetCountry = normalizeMeetCountry(user.countryCode);
+    if (
+      data.meetCountry &&
+      normalizeMeetCountry(data.meetCountry) !== meetCountry
+    ) {
+      return { error: "본인 국가의 거래 지역만 등록할 수 있습니다." as const };
+    }
     if (
       (meetLat == null || meetLng == null) &&
       meetPlaceTrim &&
@@ -156,6 +175,13 @@ export async function createMobileUsedListing(
     const normalizedWork = normalizeWorkTitle(data.workTitle);
     const animeSlug =
       subculture.animeSlug ?? (await resolveAnimeSlugFromWorkTitle(normalizedWork));
+
+    if (!sellerServiceRegion) {
+      await db.user.update({
+        where: { id: userId },
+        data: { usedServiceRegion: data.region.trim() },
+      });
+    }
 
     const listing = await db.usedListing.create({
       data: {
@@ -254,6 +280,21 @@ export async function listMobileMyUsedListings(userId: string) {
 }
 
 export async function toggleMobileUsedFavorite(userId: string, listingId: string) {
+  const user = await loadUsedMarketUser(userId);
+  if (!user) return { error: "로그인이 필요합니다." as const };
+
+  const listing = await db.usedListing.findUnique({
+    where: { id: listingId },
+    select: { sellerId: true, meetCountry: true, region: true },
+  });
+  if (!listing) return { error: "게시글을 찾을 수 없습니다." as const };
+  const tradeErr = await assertUsedMarketTradeAccess({
+    userId,
+    buyerCountry: user.countryCode,
+    listing,
+  });
+  if (tradeErr) return { error: tradeErr };
+
   const existing = await db.usedFavorite.findUnique({
     where: { userId_listingId: { userId, listingId } },
   });
@@ -278,6 +319,12 @@ export async function startMobileUsedTradeChat(userId: string, listingId: string
   });
   if (!listing) return { error: "게시글을 찾을 수 없습니다." as const };
   if (listing.sellerId === userId) return { error: "본인 글에는 채팅할 수 없습니다." as const };
+  const tradeErr = await assertUsedMarketTradeAccess({
+    userId,
+    buyerCountry: user.countryCode,
+    listing,
+  });
+  if (tradeErr) return { error: tradeErr };
   if (listing.status === "SOLD") return { error: "이미 거래 완료된 상품입니다." as const };
   if (
     listing.saleType === "AUCTION" &&
@@ -343,6 +390,12 @@ export async function placeMobileUsedAuctionBid(
     if (!listing || listing.saleType !== "AUCTION") {
       return { error: "경매 상품이 아닙니다." as const };
     }
+    const tradeErr = await assertUsedMarketTradeAccess({
+      userId,
+      buyerCountry: user.countryCode,
+      listing,
+    });
+    if (tradeErr) return { error: tradeErr };
     const adultErr = assertUsedAdultForRestricted(user, listing.restrictedKind ?? "NONE");
     if (adultErr) return { error: adultErr, needsAdultVerify: true as const };
 

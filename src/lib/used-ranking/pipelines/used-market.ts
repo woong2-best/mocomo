@@ -23,6 +23,7 @@ export const usedMarketPipeline: CandidatePipelineConfig<
 
 export async function runUsedMarketPipeline(opts: {
   userId: string | null;
+  viewerCountryCode?: string | null;
   filterCategory?: string;
   filterSaleType?: "FIXED" | "AUCTION";
   liveAuctionOnly?: boolean;
@@ -30,7 +31,8 @@ export async function runUsedMarketPipeline(opts: {
 }) {
   const initialQuery: UsedMarketQuery = {
     userId: opts.userId,
-    countryCode: null,
+    countryCode: opts.viewerCountryCode ?? null,
+    serviceRegion: null,
     preferredRegion: opts.preferredRegion ?? null,
     preferredSido: null,
     params: buildUsedMarketParams(),

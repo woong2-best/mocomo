@@ -13,6 +13,7 @@ import {
 } from "@/lib/i18n/config";
 import { TIMEZONE_COOKIE, normalizeTimeZone } from "@/lib/i18n/timezone";
 import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
+import { defaultUsedRegionForCountry } from "@/lib/used-regions-global";
 
 const localeSchema = z.object({
   locale: z.string().refine((v) => isLocale(v), "Invalid locale"),
@@ -57,6 +58,7 @@ export async function updateUserLocale(data: {
       data: {
         locale,
         countryCode,
+        usedServiceRegion: defaultUsedRegionForCountry(countryCode),
         ...(timeZone ? { timeZone } : {}),
       },
     });

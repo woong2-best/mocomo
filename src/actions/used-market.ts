@@ -13,10 +13,6 @@ import {
   type SubcultureLimitedKind,
   type SubcultureTradeMode,
 } from "@prisma/client";
-import {
-  getSidoRegionPrefix,
-  USED_SHIPPING_REGION,
-} from "@/lib/korea-regions";
 import { isValidUsedRegion as validateUsedRegion } from "@/lib/used-regions-global";
 import { finalizeExpiredAuctionIfNeeded } from "@/actions/used-auction";
 import {
@@ -49,6 +45,8 @@ import { isKakaoLocalConfigured } from "@/lib/kakao-local";
 import { geocodeMeetQuery } from "@/lib/maps/geocode";
 import { isKakaoMapCountry, normalizeMeetCountry } from "@/lib/maps/select-engine";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
+import { assertSellerListingRegion } from "@/lib/used-market-locality";
+import { defaultUsedRegionForCountry } from "@/lib/used-regions-global";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 import {
@@ -57,6 +55,35 @@ import {
   isUsedRestrictedKind,
   USED_ADULT_SELLER_MSG,
 } from "@/lib/used-youth-protection";
+import {
+  assertUsedMarketListingVisible,
+  assertUsedMarketTradeAccess,
+  buildScopedUsedListingWhere,
+  resolveUsedMarketScope,
+} from "@/lib/used-market-locale-scope";
+
+export async function updateUsedServiceRegion(region: string) {
+  const user = await requireAuth();
+  const trimmed = region.trim();
+  if (!trimmed) return { error: "서비스 지역을 선택해 주세요." };
+  if (!validateUsedRegion(trimmed, user.countryCode)) {
+    return { error: "올바른 서비스 지역을 선택해 주세요." };
+  }
+
+  try {
+    await db.user.update({
+      where: { id: user.id },
+      data: { usedServiceRegion: trimmed },
+    });
+  } catch {
+    return { error: "서비스 지역 저장에 실패했습니다." };
+  }
+
+  revalidatePath("/used");
+  revalidatePath("/used/new");
+  revalidatePath("/settings");
+  return { success: true as const, region: trimmed };
+}
 
 export async function isUsedDbReady() {
   try {
@@ -67,40 +94,46 @@ export async function isUsedDbReady() {
   }
 }
 
-export async function getUsedListings(params?: {
-  q?: string;
-  category?: string;
-  region?: string;
-  /** ISO country filter (meetCountry) */
-  country?: string;
-  /** 시·도 전체 — 해당 시·도 접두사로 region 필터 */
-  sido?: string;
-  status?: UsedListingStatus;
-  sellerId?: string;
-  take?: number;
-  /** FIXED | AUCTION */
-  saleType?: "FIXED" | "AUCTION";
-  /** 진행 중 경매만 (마감 전) */
-  liveAuctionOnly?: boolean;
-  /** 작품명 (IP) — 정확 일치 */
-  work?: string;
-  /** 상품 종류 ID */
-  product?: string;
-  /** SubcultureConditionGrade */
-  condition?: string;
-  /** SubcultureLimitedKind */
-  limited?: string;
-  /** SubcultureTradeMode */
-  trade?: string;
-  /** Anime wiki slug */
-  anime?: string;
-}) {
+export async function getUsedListings(
+  params?: {
+    q?: string;
+    category?: string;
+    region?: string;
+    /** @deprecated ignored — viewer country is enforced server-side */
+    country?: string;
+    /** @deprecated use options.viewerId */
+    viewerCountryCode?: string;
+    /** 시·도 — 서비스 지역 내에서만 적용 */
+    sido?: string;
+    status?: UsedListingStatus;
+    sellerId?: string;
+    take?: number;
+    saleType?: "FIXED" | "AUCTION";
+    liveAuctionOnly?: boolean;
+    work?: string;
+    product?: string;
+    condition?: string;
+    limited?: string;
+    trade?: string;
+    anime?: string;
+  },
+  options?: { viewerId?: string | null; sessionCountry?: string | null }
+) {
   const status = params?.status ?? "SELLING";
-  const where: Prisma.UsedListingWhereInput = { status };
+  const locality = await resolveUsedMarketScope({
+    userId: options?.viewerId,
+    sessionCountry: options?.sessionCountry ?? params?.viewerCountryCode ?? null,
+  });
+  const andFilters: Prisma.UsedListingWhereInput[] = [
+    buildScopedUsedListingWhere(locality, {
+      region: params?.region,
+      sido: params?.sido,
+    }),
+    { status },
+  ];
 
-  if (params?.saleType) where.saleType = params.saleType;
+  if (params?.saleType) andFilters.push({ saleType: params.saleType });
 
-  const andFilters: Prisma.UsedListingWhereInput[] = [];
   if (params?.liveAuctionOnly) {
     andFilters.push({
       saleType: "AUCTION",
@@ -109,11 +142,11 @@ export async function getUsedListings(params?: {
     });
   }
 
-  if (params?.category) where.category = params.category as UsedListingCategory;
+  if (params?.category) andFilters.push({ category: params.category as UsedListingCategory });
 
   const workCompact = compactWorkKey(params?.work);
   if (params?.anime?.trim()) {
-    where.animeSlug = params.anime.trim();
+    andFilters.push({ animeSlug: params.anime.trim() });
   } else if (workCompact) {
     andFilters.push({
       OR: [
@@ -124,31 +157,18 @@ export async function getUsedListings(params?: {
   }
 
   if (params?.product?.trim() && isValidProductType(params.product.trim())) {
-    where.productType = params.product.trim();
+    andFilters.push({ productType: params.product.trim() });
   }
   if (params?.condition?.trim()) {
-    where.conditionGrade = params.condition.trim() as SubcultureConditionGrade;
+    andFilters.push({ conditionGrade: params.condition.trim() as SubcultureConditionGrade });
   }
   if (params?.limited?.trim()) {
-    where.limitedKind = params.limited.trim() as SubcultureLimitedKind;
+    andFilters.push({ limitedKind: params.limited.trim() as SubcultureLimitedKind });
   }
   if (params?.trade?.trim()) {
-    where.tradeMode = params.trade.trim() as SubcultureTradeMode;
+    andFilters.push({ tradeMode: params.trade.trim() as SubcultureTradeMode });
   }
-  if (params?.sido) {
-    if (params.sido === "__shipping__") {
-      where.region = USED_SHIPPING_REGION;
-    } else {
-      const prefix = getSidoRegionPrefix(params.sido);
-      if (prefix) where.region = { startsWith: prefix };
-    }
-  } else if (params?.region) {
-    where.region = params.region;
-  }
-  if (params?.country?.trim()) {
-    where.meetCountry = params.country.trim().toUpperCase();
-  }
-  if (params?.sellerId) where.sellerId = params.sellerId;
+  if (params?.sellerId) andFilters.push({ sellerId: params.sellerId });
   if (params?.q?.trim()) {
     andFilters.push({
       OR: [
@@ -157,7 +177,8 @@ export async function getUsedListings(params?: {
       ],
     });
   }
-  if (andFilters.length) where.AND = andFilters;
+
+  const where: Prisma.UsedListingWhereInput = { AND: andFilters };
 
   const orderBy: Prisma.UsedListingOrderByWithRelationInput[] = params?.liveAuctionOnly
     ? [{ auctionEndsAt: "asc" }, { createdAt: "desc" }]
@@ -228,6 +249,12 @@ export async function getUsedListing(id: string, viewerId?: string) {
       });
     }
     if (!listing) return null;
+
+    const visibilityErr = await assertUsedMarketListingVisible({
+      userId: viewerId,
+      listing,
+    });
+    if (visibilityErr) return null;
 
     const isAuction = listing.saleType === "AUCTION";
     const auctionExpired =
@@ -434,6 +461,20 @@ export async function createUsedListing(data: {
     return { error: "올바른 거래 지역을 선택해 주세요." };
   }
 
+  const sellerRow = await db.user.findUnique({
+    where: { id: user.id },
+    select: { usedServiceRegion: true },
+  });
+  const sellerServiceRegion = sellerRow?.usedServiceRegion?.trim() || null;
+  if (sellerServiceRegion) {
+    const regionErr = assertSellerListingRegion(
+      user.countryCode,
+      sellerServiceRegion,
+      data.region
+    );
+    if (regionErr) return { error: regionErr };
+  }
+
   const isAuction = data.saleType === "AUCTION";
   if (isAuction && price <= 0) return { error: "경매 시작가를 입력해 주세요." };
   if (isAuction && !data.auctionHours) return { error: "경매 기간을 선택해 주세요." };
@@ -487,7 +528,13 @@ export async function createUsedListing(data: {
     let meetLat = data.meetLat;
     let meetLng = data.meetLng;
     const meetPlaceTrim = data.meetPlace?.trim() || null;
-    const meetCountry = normalizeMeetCountry(data.meetCountry ?? user.countryCode);
+    const meetCountry = normalizeMeetCountry(user.countryCode);
+    if (
+      data.meetCountry &&
+      normalizeMeetCountry(data.meetCountry) !== meetCountry
+    ) {
+      return { error: "본인 국가의 거래 지역만 등록할 수 있습니다." };
+    }
     if (
       (meetLat == null || meetLng == null) &&
       meetPlaceTrim &&
@@ -518,6 +565,13 @@ export async function createUsedListing(data: {
     const normalizedWork = normalizeWorkTitle(data.workTitle);
     const animeSlug =
       subculture.animeSlug ?? (await resolveAnimeSlugFromWorkTitle(normalizedWork));
+
+    if (!sellerServiceRegion) {
+      await db.user.update({
+        where: { id: user.id },
+        data: { usedServiceRegion: data.region.trim() },
+      });
+    }
 
     const listing = await db.usedListing.create({
       data: {
@@ -628,6 +682,18 @@ export async function deleteUsedListing(listingId: string) {
 
 export async function toggleUsedFavorite(listingId: string) {
   const user = await requireAuth();
+  const listing = await db.usedListing.findUnique({
+    where: { id: listingId },
+    select: { sellerId: true, meetCountry: true, region: true },
+  });
+  if (!listing) return { error: "게시글을 찾을 수 없습니다." };
+  const tradeErr = await assertUsedMarketTradeAccess({
+    userId: user.id,
+    buyerCountry: user.countryCode,
+    listing,
+  });
+  if (tradeErr) return { error: tradeErr };
+
   const existing = await db.usedFavorite.findUnique({
     where: { userId_listingId: { userId: user.id, listingId } },
   });
@@ -683,6 +749,12 @@ export async function startUsedTradeChat(listingId: string) {
   });
   if (!listing) return { error: "게시글을 찾을 수 없습니다." };
   if (listing.sellerId === user.id) return { error: "본인 글에는 채팅할 수 없습니다." };
+  const tradeErr = await assertUsedMarketTradeAccess({
+    userId: user.id,
+    buyerCountry: user.countryCode,
+    listing,
+  });
+  if (tradeErr) return { error: tradeErr };
   if (listing.status === "SOLD") return { error: "이미 거래 완료된 상품입니다." };
   if (
     listing.saleType === "AUCTION" &&

@@ -10,6 +10,7 @@ import {
 import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
 import { formatUsedPrice, normalizeUsedCurrency } from "@/lib/used-market";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
+import { assertUsedMarketTradeAccess } from "@/lib/used-market-locale-scope";
 import { assertUsedAdultForRestricted } from "@/lib/used-youth-protection";
 import {
   getUsedAuctionConfig,
@@ -139,6 +140,12 @@ export async function placeUsedAuctionBid(
     if (!listing || listing.saleType !== "AUCTION") {
       return { error: "경매 상품이 아닙니다." };
     }
+    const tradeErr = await assertUsedMarketTradeAccess({
+      userId: user.id,
+      buyerCountry: user.countryCode,
+      listing,
+    });
+    if (tradeErr) return { error: tradeErr };
     const adultErr = assertUsedAdultForRestricted(
       user,
       listing.restrictedKind ?? "NONE"
@@ -225,6 +232,12 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
       return { error: "경매 상품이 아닙니다." };
     }
     if (listing.sellerId === user.id) return { error: "본인 상품은 구매할 수 없습니다." };
+    const tradeErr = await assertUsedMarketTradeAccess({
+      userId: user.id,
+      buyerCountry: user.countryCode,
+      listing,
+    });
+    if (tradeErr) return { error: tradeErr };
     if (!isAuctionLive(listing)) {
       return { error: "마감된 경매입니다." };
     }

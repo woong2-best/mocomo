@@ -58,6 +58,7 @@ import {
 import { RESERVED_USERNAMES } from "@/lib/username-policy";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
 import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
+import { defaultUsedRegionForCountry } from "@/lib/used-regions-global";
 import { parseBirthDateInput } from "@/lib/birth-date";
 import { birthDateCollectionMeta } from "@/lib/age-policy";
 import { z } from "zod";
@@ -592,6 +593,7 @@ export async function registerUser(
           emailVerified: null,
           locale,
           countryCode: countryCode.toUpperCase(),
+          usedServiceRegion: defaultUsedRegionForCountry(countryCode),
           timeZone,
           birthDate,
           ...birthDateCollectionMeta("SIGNUP"),
@@ -609,6 +611,7 @@ export async function registerUser(
           emailVerified: null,
           locale,
           countryCode: countryCode.toUpperCase(),
+          usedServiceRegion: defaultUsedRegionForCountry(countryCode),
           timeZone,
           birthDate,
           ...birthDateCollectionMeta("SIGNUP"),

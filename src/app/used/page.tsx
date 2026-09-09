@@ -4,6 +4,7 @@ import { Package } from "lucide-react";
 import { getUsedListings, isUsedDbReady } from "@/actions/used-market";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { resolveUsedMarketScope } from "@/lib/used-market-locale-scope";
 import { DbSetupBanner } from "@/components/ui/db-setup-banner";
 import { UsedListingGrid } from "@/components/used/used-listing-grid";
 import { UsedSearchHeader } from "@/components/used/used-search-header";
@@ -30,27 +31,32 @@ async function UsedFeed({
     anime?: string;
   }>;
 }) {
-  const { q, category, region, country, sido, mode, work, product, condition, limited, trade, anime } =
+  const { q, category, region, sido, mode, work, product, condition, limited, trade, anime } =
     await searchParams;
 
-  const [dbReady, listings, session] = await Promise.all([
+  const session = await auth();
+  const [dbReady, listings] = await Promise.all([
     isUsedDbReady(),
-    getUsedListings({
-      q,
-      category,
-      region,
-      country,
-      sido,
-      work,
-      product,
-      condition,
-      limited,
-      trade,
-      anime,
-      status: "SELLING",
-      liveAuctionOnly: mode === "auction",
-    }),
-    auth(),
+    getUsedListings(
+      {
+        q,
+        category,
+        region,
+        sido,
+        work,
+        product,
+        condition,
+        limited,
+        trade,
+        anime,
+        status: "SELLING",
+        liveAuctionOnly: mode === "auction",
+      },
+      {
+        viewerId: session?.user?.id ?? null,
+        sessionCountry: session?.user?.countryCode ?? null,
+      }
+    ),
   ]);
 
   const viewerPrefs = session?.user?.id
@@ -106,9 +112,18 @@ export default async function UsedHomePage({
     product?: string;
   }>;
 }) {
+  const session = await auth();
+  const scope = await resolveUsedMarketScope({
+    userId: session?.user?.id,
+    sessionCountry: session?.user?.countryCode,
+  });
+
   return (
     <div className="space-y-4">
-      <UsedSearchHeader />
+      <UsedSearchHeader
+        viewerCountryCode={scope.countryCode}
+        viewerServiceRegion={scope.serviceRegion}
+      />
       <Suspense fallback={<UsedFeedSkeleton />}>
         <UsedFeed searchParams={searchParams} />
       </Suspense>

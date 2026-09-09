@@ -1,5 +1,6 @@
 import type { UsedListingCategory } from "@prisma/client";
 import { db } from "@/lib/db";
+import { buildUsedListingLocalityWhere } from "@/lib/used-market-locality";
 import { usedBool, usedNum } from "@/lib/used-ranking/params";
 import type { UsedListingCandidate, UsedMarketBucket, UsedMarketQuery } from "@/lib/used-ranking/types";
 import type { Source } from "@/lib/feed-ranking/pipeline/types";
@@ -39,14 +40,30 @@ type ListingRow = {
 };
 
 function baseWhere(query: UsedMarketQuery) {
-  const where: Record<string, unknown> = { status: "SELLING" };
-  if (query.filterCategory) where.category = query.filterCategory;
-  if (query.filterSaleType) where.saleType = query.filterSaleType;
-  if (query.liveAuctionOnly) {
-    where.saleType = "AUCTION";
-    where.auctionEndsAt = { gt: new Date() };
+  const and: Record<string, unknown>[] = [{ status: "SELLING" }];
+  if (query.countryCode) {
+    and.push(
+      buildUsedListingLocalityWhere(
+        {
+          countryCode: query.countryCode,
+          serviceRegion: query.serviceRegion ?? null,
+        },
+        {
+          region: query.preferredRegion ?? undefined,
+          sido: query.preferredSido ?? undefined,
+        }
+      ) as Record<string, unknown>
+    );
   }
-  return where;
+  if (query.filterCategory) and.push({ category: query.filterCategory });
+  if (query.filterSaleType) and.push({ saleType: query.filterSaleType });
+  if (query.liveAuctionOnly) {
+    and.push({
+      saleType: "AUCTION",
+      auctionEndsAt: { gt: new Date() },
+    });
+  }
+  return and.length === 1 ? and[0]! : { AND: and };
 }
 
 function toCandidate(

@@ -70,6 +70,7 @@ export async function patchMe(body: {
   bio?: string;
   locale?: string;
   countryCode?: string;
+  usedServiceRegion?: string;
   timeZone?: string;
   feedRecommendationEnabled?: boolean;
   showLikeCounts?: boolean;
