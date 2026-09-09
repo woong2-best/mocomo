@@ -45,7 +45,7 @@ export function RightPanelContent({ sidebarAds, eventPins }: SidebarPanelData) {
         }));
 
   return (
-    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 h-full shell-col-pad folk-panel-aside space-y-3 overflow-hidden overscroll-none">
+    <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 h-full flex-col min-h-0 shell-col-pad folk-panel-aside gap-3 overflow-hidden overscroll-none">
       <Card className="overflow-hidden border-folk-gold/40 bg-folk-gold/5">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-2">
@@ -67,7 +67,9 @@ export function RightPanelContent({ sidebarAds, eventPins }: SidebarPanelData) {
         </CardContent>
       </Card>
 
-      {eventPins.length > 0 && <SidebarEventMapCard pins={eventPins} />}
+      {eventPins.length > 0 && (
+        <SidebarEventMapCard pins={eventPins} className="flex-1 min-h-0" />
+      )}
     </aside>
   );
 }

@@ -2,25 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
-import { ko } from "date-fns/locale";
-import { ChevronLeft, ExternalLink, Globe, MapPin } from "lucide-react";
+import { ChevronLeft, Globe, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { SubcultureEventPinCard } from "@/components/events/subculture-event-pin-card";
 import { SubcultureEventsMapLazy } from "@/components/events/subculture-events-map-lazy";
 import { NativePageTitle } from "@/components/layout/app-page-chrome";
 import {
-  eventCountryFlag,
   getSubcultureMapDefaultView,
-  SUBCULTURE_EVENT_COUNTRY_LABELS,
-  subcultureCountrySummary,
   type SubcultureEventCountry,
 } from "@/lib/subculture-event-countries";
 import {
   SUBCULTURE_EVENT_CATEGORY_COLORS,
   SUBCULTURE_EVENT_CATEGORY_LABELS,
 } from "@/lib/subculture-event-types";
-import { mapLinkForEvent, type MapEventPin } from "@/lib/subculture-event-pins";
+import type { MapEventPin } from "@/lib/subculture-event-pins";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
@@ -35,77 +31,14 @@ const LEGEND_CATEGORIES = [
   "other",
 ] as const;
 
-function PinListCard({ p }: { p: MapEventPin }) {
-  const mapLink = mapLinkForEvent(p);
-  const isMaid = p.category === "maid_cafe";
-  return (
-    <Card className="rounded-2xl">
-      <CardContent className="p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-semibold flex items-center gap-2 flex-wrap">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
-              style={{
-                background:
-                  SUBCULTURE_EVENT_CATEGORY_COLORS[p.category] ??
-                  SUBCULTURE_EVENT_CATEGORY_COLORS.other,
-              }}
-              aria-hidden
-            />
-            <span>{eventCountryFlag(p.country)}</span>
-            {p.title}
-          </p>
-          {p.description && (
-            <p className="text-xs text-muted-foreground mt-1">{p.description}</p>
-          )}
-          <p className="text-sm text-muted-foreground mt-1">
-            {isMaid ? (
-              <span className="text-pink-500 font-medium">상설 영업</span>
-            ) : (
-              <>
-                {format(new Date(p.startsAt), "yyyy년 M월 d일 (EEE)", { locale: ko })}
-                {p.endsAt &&
-                  ` — ${format(new Date(p.endsAt), "M월 d일", { locale: ko })}`}
-              </>
-            )}
-          </p>
-          {p.venueName && <p className="text-sm mt-1">📍 {p.venueName}</p>}
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <a
-            href={mapLink.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-          >
-            {mapLink.label}
-            <ExternalLink className="h-3 w-3" />
-          </a>
-          {p.sourceUrl && (
-            <a
-              href={p.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-1"
-            >
-              공식
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function EventsMapView({
   initialPins,
-  eventCountry,
+  eventCountry: _eventCountry,
 }: {
   initialPins: MapEventPin[];
   eventCountry: SubcultureEventCountry;
 }) {
-  const { countryCode, locale } = useLocale();
+  const { countryCode } = useLocale();
   const [globalMode, setGlobalMode] = useState(false);
   const [globalPins, setGlobalPins] = useState<MapEventPin[] | null>(null);
   const [loadingGlobal, setLoadingGlobal] = useState(false);
@@ -144,9 +77,6 @@ export function EventsMapView({
     [pins]
   );
   const mapView = globalMode ? GLOBAL_MAP_VIEW : localDefaultView;
-  const summary = globalMode
-    ? "🌐 전 세계 서브컬처·애니 행사 + 메이드 카페"
-    : subcultureCountrySummary(countryCode, locale);
 
   function toggleGlobal() {
     setGlobalMode((v) => !v);
@@ -183,23 +113,7 @@ export function EventsMapView({
               <Globe className="h-5 w-5" />
             </button>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            {summary} · 매일 cron 갱신
-          </p>
         </NativePageTitle>
-        <p className="text-xs text-muted-foreground mt-1">
-          {globalMode ? (
-            <>
-              🌐 전 세계 행사·메이드 카페 표시 중 (일본·태국·대만 포함) · 지구본을 다시 누르면 내
-              국가만
-            </>
-          ) : (
-            <>
-              {eventCountryFlag(eventCountry)} {SUBCULTURE_EVENT_COUNTRY_LABELS[eventCountry]} 기준 · 해외
-              지점은 지구본(🌐) · 설정에서 국가 변경 가능
-            </>
-          )}
-        </p>
         <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
           {LEGEND_CATEGORIES.map((key) => (
             <li key={key} className="inline-flex items-center gap-1.5">
@@ -227,7 +141,7 @@ export function EventsMapView({
         />
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-3 lg:hidden">
         <h2 className="text-sm font-semibold text-muted-foreground">다가오는 행사</h2>
         {eventPins.length === 0 ? (
           <Card>
@@ -236,17 +150,17 @@ export function EventsMapView({
             </CardContent>
           </Card>
         ) : (
-          eventPins.map((p) => <PinListCard key={p.id} p={p} />)
+          eventPins.map((p) => <SubcultureEventPinCard key={p.id} pin={p} />)
         )}
       </div>
 
       {maidPins.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-3 lg:hidden">
           <h2 className="text-sm font-semibold text-pink-500">
             메이드 카페 · 상설 ({maidPins.length})
           </h2>
           {maidPins.map((p) => (
-            <PinListCard key={p.id} p={p} />
+            <SubcultureEventPinCard key={p.id} pin={p} />
           ))}
         </div>
       )}
