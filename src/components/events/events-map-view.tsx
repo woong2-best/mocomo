@@ -20,8 +20,8 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
 const GLOBAL_MAP_VIEW = { lat: 20, lng: 10, zoom: 1.4 };
-/** Above this zoom, Mars decor hides so it never floats over satellite tiles */
-const MARS_DECOR_MAX_ZOOM = 4.5;
+/** Whole-globe view only — any zoom-in removes Mars HUD decor immediately */
+const MARS_DECOR_MAX_ZOOM = 2.2;
 
 const LEGEND_CATEGORIES = [
   "comic",
@@ -95,9 +95,9 @@ export function EventsMapView({
 
   return (
     <div className="events-map-immersive relative h-full w-full min-h-0 bg-[#020208]">
-      <EventsMapSpaceDecor marsVisible={marsDecorVisible} />
+      <EventsMapSpaceDecor />
 
-      <div className="absolute inset-0 z-[1]">
+      <div className="absolute inset-0 z-[1] isolate">
         <SubcultureEventsMapLazy
           pins={pins}
           immersive
@@ -133,6 +133,25 @@ export function EventsMapView({
           </MapOverlayChip>
         ))}
       </div>
+
+      {/* Mars — HUD corner decor (not a map layer; unmounts on zoom-in) */}
+      {marsDecorVisible ? (
+        <div
+          className="events-map-mars-hud absolute top-[4.5rem] right-4 sm:top-[5rem] sm:right-5 z-[15] pointer-events-none"
+          aria-hidden
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/events/mars-decor.png"
+            alt=""
+            className="events-map-mars-img"
+            width={88}
+            height={88}
+            decoding="async"
+            draggable={false}
+          />
+        </div>
+      ) : null}
 
       {/* Globe toggle — top-right inside map area */}
       <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 pointer-events-auto">

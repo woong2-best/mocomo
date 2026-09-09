@@ -172,6 +172,8 @@ export function SubcultureEventsMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<MapLibreMarker[]>([]);
+  const onZoomChangeRef = useRef(onZoomChange);
+  onZoomChangeRef.current = onZoomChange;
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -225,8 +227,9 @@ export function SubcultureEventsMap({
           /* ignore */
         }
       };
-      const emitZoom = () => onZoomChange?.(map.getZoom());
+      const emitZoom = () => onZoomChangeRef.current?.(map.getZoom());
       map.on("zoom", emitZoom);
+      map.on("zoomend", emitZoom);
       map.on("moveend", emitZoom);
 
       map.once("load", () => {
