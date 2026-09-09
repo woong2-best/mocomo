@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Globe, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubcultureEventPinCard } from "@/components/events/subculture-event-pin-card";
+import { EventsMapSpaceDecor } from "@/components/events/events-map-space-decor";
 import { SubcultureEventsMapLazy } from "@/components/events/subculture-events-map-lazy";
 import {
   getSubcultureMapDefaultView,
@@ -114,6 +115,8 @@ export function EventsMapView({
           />
         )}
       </div>
+
+      <EventsMapSpaceDecor />
 
       {/* Title — top-left chip on globe */}
       <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 pointer-events-none">
