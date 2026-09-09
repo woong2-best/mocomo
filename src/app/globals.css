@@ -797,7 +797,27 @@ html[data-client="app"] .native-live-pad {
     border-radius: 12px;
     font-size: 12px;
     line-height: 1.45;
+    color: #0f172a;
+    background: #fff;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  }
+
+  .subculture-map-popup-title {
+    display: block;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .subculture-map-popup-venue {
+    color: #1d4ed8;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .subculture-map-popup-venue:hover {
+    color: #1e40af;
   }
 
   .subculture-map-popup-img {
@@ -845,7 +865,8 @@ html[data-client="app"] .native-live-pad {
     display: block;
     margin-top: 4px;
     font-size: 11px;
-    color: hsl(var(--muted-foreground));
+    color: #475569;
+    font-weight: 500;
   }
 }
 

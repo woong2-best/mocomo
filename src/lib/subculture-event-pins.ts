@@ -21,6 +21,14 @@ export type MapEventPin = {
   roadViewImageUrl?: string | null;
 };
 
+export function googleSearchUrlForEvent(pin: MapEventPin): string {
+  const parts = [pin.venueName, pin.title, pin.country !== "other" ? pin.country : null].filter(
+    Boolean
+  );
+  const q = encodeURIComponent(parts.join(" "));
+  return `https://www.google.com/search?q=${q}`;
+}
+
 export function mapLinkForEvent(pin: MapEventPin): { label: string; url: string } {
   if (isKoreaEventCountry(pin.country)) {
     return {

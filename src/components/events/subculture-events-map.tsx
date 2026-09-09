@@ -7,6 +7,7 @@ import type {
   StyleSpecification,
 } from "maplibre-gl";
 import type { MapEventPin } from "@/lib/subculture-events";
+import { googleSearchUrlForEvent } from "@/lib/subculture-event-pins";
 import { eventCountryFlag } from "@/lib/subculture-event-countries";
 import { SUBCULTURE_EVENT_CATEGORY_COLORS } from "@/lib/subculture-event-types";
 import { loadMapLibre } from "@/lib/maps/maplibre-loader";
@@ -95,10 +96,15 @@ function buildPinPopupHtml(pin: MapEventPin): string {
         ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--maid">메이드 카페</span>'
         : "";
   const countryLabel = eventCountryFlag(pin.country);
-  const venue = pin.venueName ? escapeHtml(pin.venueName) : "";
+  const venueBlock = pin.venueName
+    ? `<a href="${escapeHtml(googleSearchUrlForEvent(pin))}" target="_blank" rel="noopener noreferrer" class="subculture-map-popup-venue">${escapeHtml(pin.venueName)}</a>`
+    : "";
 
-  return `${imageBlock}${roadViewBlock}${official}<strong>${escapeHtml(pin.title)}</strong><span class="subculture-map-popup-meta">${countryLabel} ${dateStr}${venue ? ` · ${venue}` : ""}</span>`;
+  return `${imageBlock}${roadViewBlock}${official}<strong class="subculture-map-popup-title">${escapeHtml(pin.title)}</strong><span class="subculture-map-popup-meta">${countryLabel} ${dateStr}${venueBlock ? ` · ${venueBlock}` : ""}</span>`;
 }
+
+/** 핀 클릭 시 위성 뷰 2단계(건물·블록 단위) 줌 */
+const PIN_FOCUS_ZOOM = 16;
 
 function fitMapToPins(
   map: MapLibreMap,
@@ -251,6 +257,12 @@ export function SubcultureEventsMap({
           .addTo(map);
 
         marker.getElement().addEventListener("click", () => {
+          map.flyTo({
+            center: [pin.lng, pin.lat],
+            zoom: Math.max(map.getZoom(), PIN_FOCUS_ZOOM),
+            duration: 700,
+            essential: true,
+          });
           onPinClick?.(pin);
         });
 
