@@ -4,22 +4,13 @@ import type { SupportTierLevel } from "@prisma/client";
 import { FALLBACK_SIDEBAR_ADS } from "@/lib/default-ads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { Search, Megaphone, Plus } from "lucide-react";
+import { Megaphone, Plus } from "lucide-react";
 import { SponsorEventSpot } from "@/components/events/sponsor-event-spot";
-import {
-  SearchRankingSidebarList,
-  type SidebarTrendingQuery,
-} from "@/components/layout/search-ranking-sidebar-list";
 import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
 import { useLocale } from "@/components/providers/locale-provider";
-import type { SidebarSearchRankingScope } from "@/lib/scoped-search-rank-shared";
 import type { MapEventPin } from "@/lib/subculture-events";
 
 export type SidebarPanelData = {
-  /** @deprecated 검색어 순위로 대체 — 하위 호환 */
-  animes?: { id: string; slug: string; title: string; titleEn: string | null; viewCount: number }[];
-  trendingQueries: SidebarTrendingQuery[];
-  searchRankingScope?: SidebarSearchRankingScope;
   tips: {
     rank: number;
     total: number;
@@ -38,17 +29,11 @@ export function RightPanelSkeleton() {
   return (
     <aside className="hidden lg:block w-64 xl:w-72 shrink-0 h-full shell-col-pad folk-panel-aside space-y-3 overflow-y-auto overscroll-contain animate-pulse">
       <div className="h-48 rounded-2xl bg-muted" />
-      <div className="h-36 rounded-2xl bg-muted" />
     </aside>
   );
 }
 
-export function RightPanelContent({
-  trendingQueries,
-  searchRankingScope = "global",
-  sidebarAds,
-  eventPins,
-}: SidebarPanelData) {
+export function RightPanelContent({ sidebarAds, eventPins }: SidebarPanelData) {
   const { t } = useLocale();
   const ads =
     sidebarAds.length > 0
@@ -79,18 +64,6 @@ export function RightPanelContent({
         </CardHeader>
         <CardContent className="space-y-3">
           <SponsorEventSpot fallbackAds={ads} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-cobalt dark:text-white">
-            <Search className="h-4 w-4 text-folk-cobalt dark:text-white" />
-            {t("sidebar.searchRanking")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <SearchRankingSidebarList items={trendingQueries ?? []} scope={searchRankingScope} />
         </CardContent>
       </Card>
 

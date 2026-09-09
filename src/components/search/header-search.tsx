@@ -6,7 +6,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, X } from "lucide-react";
 import type { FastSearchResult } from "@/lib/search-fast";
 import { SearchPreviewPanel } from "@/components/search/search-preview-panel";
+import { SearchRankingFocusPanel } from "@/components/search/search-ranking-focus-panel";
 import { getHeaderSearchContext } from "@/lib/header-search-context";
+import type {
+  SidebarSearchRankingItem,
+  SidebarSearchRankingScope,
+} from "@/lib/scoped-search-rank-shared";
 import { cn } from "@/lib/utils";
 
 type PanelRect = { top: number; left: number; width: number };
@@ -35,6 +40,9 @@ export function HeaderSearch({
   const [q, setQ] = useState(usesPageQuery ? urlQuery : defaultQuery);
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<FastSearchResult | null>(null);
+  const [rankings, setRankings] = useState<SidebarSearchRankingItem[]>([]);
+  const [rankScope, setRankScope] = useState<SidebarSearchRankingScope>("global");
+  const [rankPending, setRankPending] = useState(false);
   const [panelRect, setPanelRect] = useState<PanelRect | null>(null);
   const [mounted, setMounted] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -47,11 +55,20 @@ export function HeaderSearch({
     setMounted(true);
   }, []);
 
+  const loadRankings = useCallback(() => {
+    setRankPending(true);
+    void fetch(`/api/search/ranking?pathname=${encodeURIComponent(pathname ?? "/")}`)
+      .then((res) => res.json())
+      .then((body: { ok?: boolean; items?: SidebarSearchRankingItem[]; scope?: SidebarSearchRankingScope }) => {
+        if (!body.ok) return;
+        setRankings(body.items ?? []);
+        setRankScope(body.scope ?? "global");
+      })
+      .catch(() => undefined)
+      .finally(() => setRankPending(false));
+  }, [pathname]);
+
   const fetchPreview = useCallback((term: string) => {
-    if (searchContext.inPage) {
-      setResults(null);
-      return;
-    }
     const trimmed = term.trim();
     if (trimmed.length < 1) {
       setResults(null);
@@ -82,9 +99,8 @@ export function HeaderSearch({
         if (!ac.signal.aborted) setResults(null);
       }
     });
-  }, [searchContext.inPage]);
+  }, []);
 
-  // Keep input in sync with URL / defaultQuery; close preview after navigation.
   useEffect(() => {
     if (usesPageQuery) {
       setQ(urlQuery);
@@ -95,26 +111,30 @@ export function HeaderSearch({
     setQ(defaultQuery);
   }, [defaultQuery, usesPageQuery, urlQuery]);
 
-  // Fetch only while the panel is open (any page, including /search).
   useEffect(() => {
     if (!open) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchPreview(q), 280);
-    return () => {
+    const trimmed = q.trim();
+    if (trimmed.length >= 1 && !searchContext.inPage) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [q, open, fetchPreview]);
+      debounceRef.current = setTimeout(() => fetchPreview(q), 280);
+      return () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+      };
+    }
+    return undefined;
+  }, [q, open, fetchPreview, searchContext.inPage]);
 
   useEffect(() => {
     setOpen(false);
     setResults(null);
+    setRankings([]);
   }, [pathname]);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
       const target = e.target as Node;
       if (wrapRef.current?.contains(target)) return;
-      if (target instanceof Element && target.closest("[data-search-preview-panel]")) return;
+      if (target instanceof Element && target.closest("[data-search-dropdown-panel]")) return;
       setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
@@ -138,18 +158,19 @@ export function HeaderSearch({
   }, []);
 
   const trimmed = q.trim();
-  const showPanel = open && trimmed.length >= 1;
+  const showTypingPreview = open && trimmed.length >= 1 && !searchContext.inPage;
+  const showRankingPanel = open && !showTypingPreview;
+  const showDropdown = showTypingPreview || showRankingPanel;
 
   useLayoutEffect(() => {
-    if (!showPanel) {
+    if (!showDropdown) {
       setPanelRect(null);
       return;
     }
     updatePanelRect();
     const onScroll = (e: Event) => {
       const target = e.target;
-      if (target instanceof Element && target.closest("[data-search-preview-panel]")) return;
-      // Keep panel aligned while typing; close only when the page/shell scrolls.
+      if (target instanceof Element && target.closest("[data-search-dropdown-panel]")) return;
       setOpen(false);
     };
     window.addEventListener("resize", updatePanelRect);
@@ -158,7 +179,7 @@ export function HeaderSearch({
       window.removeEventListener("resize", updatePanelRect);
       window.removeEventListener("scroll", onScroll, true);
     };
-  }, [showPanel, updatePanelRect, q, results, pending]);
+  }, [showDropdown, updatePanelRect, q, results, pending, rankings, rankPending]);
 
   function goFullSearch(e?: React.FormEvent) {
     e?.preventDefault();
@@ -200,7 +221,8 @@ export function HeaderSearch({
   function clearQuery() {
     setQ("");
     setResults(null);
-    setOpen(false);
+    setOpen(true);
+    loadRankings();
 
     if (usesPageQuery) {
       const params = new URLSearchParams(searchParams.toString());
@@ -212,6 +234,14 @@ export function HeaderSearch({
     }
 
     inputRef.current?.focus();
+  }
+
+  function onInputFocus() {
+    setOpen(true);
+    loadRankings();
+    if (!searchContext.inPage && trimmed.length >= 1) {
+      fetchPreview(q);
+    }
   }
 
   const suggestions = results?.suggestions ?? [];
@@ -226,23 +256,14 @@ export function HeaderSearch({
     (results?.posts.length ?? 0) > 0 ||
     (results?.liveStreams.length ?? 0) > 0;
 
-  const panelProps = {
-    trimmed,
-    pending,
-    results,
-    hasHits,
-    onClose: () => setOpen(false),
-    onFullSearch: () => goFullSearch(),
-  };
-
-  const previewPanel =
-    showPanel &&
+  const dropdownPanel =
+    showDropdown &&
     mounted &&
     panelRect &&
     createPortal(
       <div
-        data-search-preview-panel
-        className="pointer-events-auto"
+        data-search-dropdown-panel
+        className="pointer-events-auto overflow-hidden rounded-xl border-2 border-folk-terracotta/50 bg-background shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
         style={{
           position: "fixed",
           top: panelRect.top,
@@ -251,7 +272,24 @@ export function HeaderSearch({
           zIndex: SEARCH_PREVIEW_Z,
         }}
       >
-        <SearchPreviewPanel {...panelProps} />
+        {showTypingPreview ? (
+          <SearchPreviewPanel
+            trimmed={trimmed}
+            pending={pending}
+            results={results}
+            hasHits={hasHits}
+            onClose={() => setOpen(false)}
+            onFullSearch={() => goFullSearch()}
+          />
+        ) : (
+          <SearchRankingFocusPanel
+            scope={rankScope}
+            items={rankings}
+            pending={rankPending}
+            filter={searchContext.inPage ? q : undefined}
+            onPick={() => setOpen(false)}
+          />
+        )}
       </div>,
       document.body
     );
@@ -267,7 +305,7 @@ export function HeaderSearch({
           className={cn(
             "flex w-full items-stretch overflow-hidden rounded-xl border-2 border-folk-cobalt/35 bg-background shadow-[2px_3px_0_hsl(var(--folk-cobalt)/0.1)] transition-all",
             "focus-within:border-folk-terracotta focus-within:shadow-[3px_4px_0_hsl(var(--folk-terracotta)/0.18)]",
-            showPanel && "border-folk-terracotta shadow-[3px_4px_0_hsl(var(--folk-terracotta)/0.18)]"
+            showDropdown && "border-folk-terracotta shadow-[3px_4px_0_hsl(var(--folk-terracotta)/0.18)]"
           )}
           role="search"
         >
@@ -279,17 +317,15 @@ export function HeaderSearch({
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
-                if (searchContext.inPage) return;
-                if (e.target.value.trim().length >= 1) setOpen(true);
-                else {
-                  setOpen(false);
+                setOpen(true);
+                if (!searchContext.inPage && e.target.value.trim().length >= 1) {
+                  /* preview fetched via effect */
+                } else if (e.target.value.trim().length < 1) {
                   setResults(null);
+                  loadRankings();
                 }
               }}
-              onFocus={() => {
-                if (searchContext.inPage) return;
-                if (trimmed.length >= 1) setOpen(true);
-              }}
+              onFocus={onInputFocus}
               onKeyDown={(e) => {
                 if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
                 e.preventDefault();
@@ -327,7 +363,7 @@ export function HeaderSearch({
           </button>
         </form>
       </div>
-      {previewPanel}
+      {dropdownPanel}
     </>
   );
 }

@@ -15,7 +15,7 @@ import {
 } from "@/components/layout/right-panel-content";
 import { ProfileRightPanel } from "@/components/layout/profile-right-panel";
 
-/** 서버 prefetch + 클라이언트 네비게이션 시 pathname별 sidebar fetch */
+/** 서버 prefetch + 클라이언트 네비게이션 시 sidebar fetch */
 export function RightPanelHydrated({
   initialData,
   countryCode: initialCountryCode,
@@ -42,29 +42,18 @@ export function RightPanelHydrated({
 
     void (async () => {
       try {
-        const params = new URLSearchParams({
-          country: countryCode || initialCountryCode,
-          pathname,
-        });
+        const params = new URLSearchParams({ country: countryCode || initialCountryCode });
         const res = await fetch(`/api/sidebar?${params.toString()}`, { signal: ac.signal });
         const body = await res.json();
         if (cancelled || !body.ok) return;
         setData({
-          trendingQueries: body.trendingQueries ?? [],
-          searchRankingScope: body.searchRankingScope ?? "global",
           tips: body.tips ?? [],
           sidebarAds: body.sidebarAds ?? [],
           eventPins: body.eventPins ?? [],
         });
       } catch {
         if (!cancelled) {
-          setData({
-            trendingQueries: [],
-            searchRankingScope: "global",
-            tips: [],
-            sidebarAds: [],
-            eventPins: [],
-          });
+          setData({ tips: [], sidebarAds: [], eventPins: [] });
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -75,7 +64,7 @@ export function RightPanelHydrated({
       cancelled = true;
       ac.abort();
     };
-  }, [showDefault, pathname, countryCode, initialCountryCode]);
+  }, [showDefault, countryCode, initialCountryCode]);
 
   if (!show) return null;
   if (isProfilePath(pathname)) return <ProfileRightPanel />;

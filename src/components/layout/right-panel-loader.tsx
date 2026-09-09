@@ -31,28 +31,17 @@ export function RightPanelLoader() {
 
     void (async () => {
       try {
-        const res = await fetch(
-          `/api/sidebar?pathname=${encodeURIComponent(pathname)}`,
-          { signal: ac.signal }
-        );
+        const res = await fetch("/api/sidebar", { signal: ac.signal });
         const body = await res.json();
         if (cancelled || !body.ok) return;
         setData({
-          trendingQueries: body.trendingQueries ?? [],
-          searchRankingScope: body.searchRankingScope ?? "global",
           tips: body.tips ?? [],
           sidebarAds: body.sidebarAds ?? [],
           eventPins: body.eventPins ?? [],
         });
       } catch {
         if (!cancelled) {
-          setData({
-            trendingQueries: [],
-            searchRankingScope: "global",
-            tips: [],
-            sidebarAds: [],
-            eventPins: [],
-          });
+          setData({ tips: [], sidebarAds: [], eventPins: [] });
         }
       }
     })();
