@@ -12,7 +12,7 @@ export type SidebarTrendingQuery = {
   count: number;
 };
 
-/** 사이드바 검색어 순위 TOP10 */
+/** 사이드바 검색어 순위 TOP5 */
 export function SearchRankingSidebarList({
   items,
   scope = "global",

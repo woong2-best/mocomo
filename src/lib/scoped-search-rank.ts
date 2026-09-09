@@ -6,12 +6,17 @@ import type { HeaderSearchScope } from "@/lib/header-search-context";
 import { getTrendingFromSnapshot } from "@/lib/search/trends";
 import {
   getSidebarSearchRankingScope,
+  SIDEBAR_SEARCH_RANKING_LIMIT,
   type SidebarSearchRankingItem,
   type SidebarSearchRankingScope,
 } from "@/lib/scoped-search-rank-shared";
 
 export type { SidebarSearchRankingItem, SidebarSearchRankingScope } from "@/lib/scoped-search-rank-shared";
-export { getSidebarSearchRankingScope, searchRankingHref } from "@/lib/scoped-search-rank-shared";
+export {
+  getSidebarSearchRankingScope,
+  searchRankingHref,
+  SIDEBAR_SEARCH_RANKING_LIMIT,
+} from "@/lib/scoped-search-rank-shared";
 
 const SCOPED_BUCKETS = new Set<string>(["used", "market", "community", "live", "feed"]);
 
@@ -59,7 +64,10 @@ export async function recordScopedSearch(
   }
 }
 
-async function fetchScopedRanking(scope: string, limit = 10): Promise<SidebarSearchRankingItem[]> {
+async function fetchScopedRanking(
+  scope: string,
+  limit = SIDEBAR_SEARCH_RANKING_LIMIT
+): Promise<SidebarSearchRankingItem[]> {
   try {
     const rows = await db.scopedSearchQuery.findMany({
       where: { scope },
@@ -78,7 +86,7 @@ async function fetchScopedRanking(scope: string, limit = 10): Promise<SidebarSea
   }
 }
 
-async function fetchWikiRanking(limit = 10): Promise<SidebarSearchRankingItem[]> {
+async function fetchWikiRanking(limit = SIDEBAR_SEARCH_RANKING_LIMIT): Promise<SidebarSearchRankingItem[]> {
   try {
     const rows = await db.wikiSearchQuery.findMany({
       take: limit,
@@ -96,7 +104,7 @@ async function fetchWikiRanking(limit = 10): Promise<SidebarSearchRankingItem[]>
   }
 }
 
-async function fetchFeedRanking(limit = 10): Promise<SidebarSearchRankingItem[]> {
+async function fetchFeedRanking(limit = SIDEBAR_SEARCH_RANKING_LIMIT): Promise<SidebarSearchRankingItem[]> {
   const rows = await getTrendingFromSnapshot("query", "7d", limit);
   return rows.map((row) => ({
     rank: row.rank,
@@ -108,7 +116,7 @@ async function fetchFeedRanking(limit = 10): Promise<SidebarSearchRankingItem[]>
 
 export async function getSidebarSearchRanking(
   pathname: string,
-  limit = 10
+  limit = SIDEBAR_SEARCH_RANKING_LIMIT
 ): Promise<{ scope: SidebarSearchRankingScope; items: SidebarSearchRankingItem[] }> {
   const scope = getSidebarSearchRankingScope(pathname);
 
@@ -130,7 +138,10 @@ export async function getSidebarSearchRanking(
   return { scope, items };
 }
 
-export function getCachedSidebarSearchRanking(pathname: string, limit = 10) {
+export function getCachedSidebarSearchRanking(
+  pathname: string,
+  limit = SIDEBAR_SEARCH_RANKING_LIMIT
+) {
   const scope = getSidebarSearchRankingScope(pathname);
   return unstable_cache(
     () => getSidebarSearchRanking(pathname, limit),

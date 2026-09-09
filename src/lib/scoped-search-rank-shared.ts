@@ -1,5 +1,7 @@
 import { getHeaderSearchContext } from "@/lib/header-search-context";
 
+export const SIDEBAR_SEARCH_RANKING_LIMIT = 5;
+
 export type SidebarSearchRankingScope =
   | "used"
   | "market"
