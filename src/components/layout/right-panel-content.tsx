@@ -27,7 +27,7 @@ export type SidebarPanelData = {
 
 export function RightPanelSkeleton() {
   return (
-    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 h-full shell-col-pad folk-panel-aside space-y-3 overflow-y-auto overscroll-contain animate-pulse">
+    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 h-full shell-col-pad folk-panel-aside space-y-3 overflow-hidden overscroll-none animate-pulse">
       <div className="h-48 rounded-2xl bg-muted" />
     </aside>
   );
@@ -45,7 +45,7 @@ export function RightPanelContent({ sidebarAds, eventPins }: SidebarPanelData) {
         }));
 
   return (
-    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 h-full shell-col-pad folk-panel-aside space-y-3 overflow-y-auto overscroll-contain">
+    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 h-full shell-col-pad folk-panel-aside space-y-3 overflow-hidden overscroll-none">
       <Card className="overflow-hidden border-folk-gold/40 bg-folk-gold/5">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-2">
