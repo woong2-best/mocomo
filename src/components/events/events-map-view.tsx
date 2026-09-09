@@ -1,21 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Globe, MapPin } from "lucide-react";
+import { useMemo } from "react";
+import { MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubcultureEventPinCard } from "@/components/events/subculture-event-pin-card";
 import { EventsMapSpaceDecor } from "@/components/events/events-map-space-decor";
 import { SubcultureEventsMapLazy } from "@/components/events/subculture-events-map-lazy";
-import {
-  getSubcultureMapDefaultView,
-  resolveSubculturePinsForUser,
-  type SubcultureEventCountry,
-} from "@/lib/subculture-event-countries";
+import { getSubcultureGlobeInitialView } from "@/lib/subculture-event-countries";
+import type { SubcultureEventCountry } from "@/lib/subculture-event-countries";
 import type { MapEventPin } from "@/lib/subculture-event-pins";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
-
-const GLOBAL_MAP_VIEW = { lat: 20, lng: 10, zoom: 1.4 };
 
 function MapOverlayChip({
   children,
@@ -76,29 +71,16 @@ export function EventsMapView({
   eventCountry: SubcultureEventCountry;
 }) {
   const { countryCode } = useLocale();
-  const [globalMode, setGlobalMode] = useState(true);
 
-  const localDefaultView = useMemo(
-    () => getSubcultureMapDefaultView(countryCode),
+  const globeInitialView = useMemo(
+    () => getSubcultureGlobeInitialView(countryCode),
     [countryCode]
   );
 
-  const pins = useMemo(
-    () =>
-      globalMode
-        ? initialPins
-        : resolveSubculturePinsForUser(initialPins, countryCode).slice(0, 200),
-    [globalMode, initialPins, countryCode]
-  );
   const eventPins = useMemo(
-    () => pins.filter((p) => p.category !== "maid_cafe"),
-    [pins]
+    () => initialPins.filter((p) => p.category !== "maid_cafe"),
+    [initialPins]
   );
-  const mapView = globalMode ? GLOBAL_MAP_VIEW : localDefaultView;
-
-  function toggleGlobal() {
-    setGlobalMode((v) => !v);
-  }
 
   return (
     <div className="events-map-immersive relative h-full w-full min-h-0 bg-[#020208]">
@@ -109,7 +91,8 @@ export function EventsMapView({
           pins={eventPins}
           immersive
           interactive
-          defaultView={mapView}
+          defaultView={globeInitialView}
+          respectDefaultView
         />
       </div>
 
@@ -123,27 +106,8 @@ export function EventsMapView({
         </MapOverlayChip>
       </div>
 
-      {/* Globe toggle — top-right */}
-      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 pointer-events-auto">
-        <button
-          type="button"
-          aria-pressed={globalMode}
-          aria-label={globalMode ? "내 국가 행사만 보기" : "전 세계 행사 보기"}
-          title={globalMode ? "내 국가 행사만 보기" : "전 세계 행사 보기"}
-          onClick={toggleGlobal}
-          className={cn(
-            "inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border backdrop-blur-md shadow-lg transition-colors",
-            globalMode
-              ? "bg-violet-500/90 text-white border-violet-400/80"
-              : "bg-black/45 text-white/85 border-white/15 hover:bg-black/55 hover:text-white"
-          )}
-        >
-          <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
-        </button>
-      </div>
-
-      {/* Desktop — scrollable events only (replaces shell right panel on this page) */}
-      <div className="hidden lg:flex absolute top-16 right-4 bottom-4 z-20 w-72 xl:w-80 pointer-events-none">
+      {/* Desktop — scrollable events only */}
+      <div className="hidden lg:flex absolute top-4 right-4 bottom-4 z-20 w-72 xl:w-80 pointer-events-none">
         <EventsMapPinList eventPins={eventPins} className="w-full" />
       </div>
 

@@ -261,3 +261,13 @@ export function isSupportedUserCountry(code: string): boolean {
 export function getSubcultureMapDefaultView(userCountryCode: string) {
   return SUBCULTURE_MAP_DEFAULTS[userCountryToEventCountry(userCountryCode)];
 }
+
+/** /events/map 지구본 초기 뷰 — 전 세계 핀 + 사용자 국가가 화면 중앙 쪽을 향함 */
+export function getSubcultureGlobeInitialView(userCountryCode: string): {
+  lat: number;
+  lng: number;
+  zoom: number;
+} {
+  const { lat, lng } = SUBCULTURE_MAP_DEFAULTS[userCountryToEventCountry(userCountryCode)];
+  return { lat, lng, zoom: 1.55 };
+}

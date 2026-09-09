@@ -21,6 +21,7 @@ export function SubcultureEventsMapLazy({
   onPinClick,
   onZoomChange,
   defaultView,
+  respectDefaultView,
 }: {
   pins: MapEventPin[];
   heightClassName?: string;
@@ -30,6 +31,7 @@ export function SubcultureEventsMapLazy({
   onPinClick?: (pin: MapEventPin) => void;
   onZoomChange?: (zoom: number) => void;
   defaultView?: { lat: number; lng: number; zoom: number };
+  respectDefaultView?: boolean;
 }) {
   if (pins.length === 0) {
     return (
@@ -55,6 +57,7 @@ export function SubcultureEventsMapLazy({
       onPinClick={onPinClick}
       onZoomChange={onZoomChange}
       defaultView={defaultView}
+      respectDefaultView={respectDefaultView}
     />
   );
 }

@@ -158,6 +158,7 @@ export function SubcultureEventsMap({
   onPinClick,
   onZoomChange,
   defaultView,
+  respectDefaultView = false,
 }: {
   pins: MapEventPin[];
   className?: string;
@@ -168,6 +169,8 @@ export function SubcultureEventsMap({
   /** Globe void decor — hide Mars overlay once user zooms past ~city level */
   onZoomChange?: (zoom: number) => void;
   defaultView?: { lat: number; lng: number; zoom: number };
+  /** true면 fitBounds 생략하고 defaultView 그대로 사용 (지구본 초기 각도) */
+  respectDefaultView?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -240,7 +243,12 @@ export function SubcultureEventsMap({
           /* mercator fallback */
         }
         resize();
-        fitMapToPins(map, pins, defaultView);
+        if (respectDefaultView && defaultView) {
+          map.setCenter([defaultView.lng, defaultView.lat]);
+          map.setZoom(defaultView.zoom);
+        } else {
+          fitMapToPins(map, pins, defaultView);
+        }
         emitZoom();
         setReady(true);
       });
