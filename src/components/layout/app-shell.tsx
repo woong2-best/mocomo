@@ -9,7 +9,11 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { SuspendedAccountBanner } from "@/components/account/suspended-account-banner";
 import { FolkArtStage } from "@/components/brand/folk-decor";
-import { mainScrollPaddingClass, shouldHideMobileNav } from "@/lib/mobile-shell";
+import {
+  isEventsMapImmersivePath,
+  mainScrollPaddingClass,
+  shouldHideMobileNav,
+} from "@/lib/mobile-shell";
 import { isMobileHubChromePath } from "@/lib/floating-tab-nav";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { isAptImmersivePath } from "@/lib/apt-route";
@@ -36,6 +40,7 @@ function AppShellInner({
   const isAptImmersive = isAptImmersivePath(pathname ?? "");
   const isReelsImmersive =
     pathname === REELS_PATH || pathname.startsWith(`${REELS_PATH}/`);
+  const isEventsMapImmersive = isEventsMapImmersivePath(pathname);
   const hideMobileNav = shouldHideMobileNav(pathname);
   const isHubChrome = isMobileHubChromePath(pathname);
   const mainPb = mainScrollPaddingClass(pathname);
@@ -68,7 +73,9 @@ function AppShellInner({
   // 메시지 라우트는 확정 높이가 필요하다(입력창을 하단에 고정하고 목록만 스크롤).
   // min-h-full 은 height:auto 라 h-full 체인을 무너뜨려 입력창이 잘려 사라진다.
   const motionClass =
-    isMessagesRoute || isCommunityServerRoute ? "h-full min-h-0" : "min-h-full";
+    isMessagesRoute || isCommunityServerRoute || isEventsMapImmersive
+      ? "h-full min-h-0"
+      : "min-h-full";
 
   const pageMotion =
     reduced || isProfileRoute || sameCommunityNav || sameMessagesNav || skipHubMotion ? (
@@ -107,6 +114,28 @@ function AppShellInner({
     return <main className="fixed inset-0 z-40 overflow-hidden bg-black">{children}</main>;
   }
 
+  if (isEventsMapImmersive) {
+    return (
+      <>
+        <Header />
+        <SuspendedAccountBanner />
+        <div className="flex h-app overflow-hidden">
+          <Sidebar />
+          <main
+            id="mocomo-main-scroll"
+            className={cn(
+              "flex-1 min-w-0 min-h-0 overflow-hidden bg-black",
+              showRightPanel && "shell-col-divider-r"
+            )}
+          >
+            {pageMotion}
+          </main>
+          {showRightPanel ? rightPanel : null}
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Header />
@@ -136,7 +165,7 @@ function AppShellInner({
         {showRightPanel ? rightPanel : null}
       </div>
       {!hideMobileNav && <MobileNav />}
-      {!isMessagesRoute && !isCommunityServerRoute && (
+      {!isMessagesRoute && !isCommunityServerRoute && !isEventsMapImmersive && (
         <footer
           className={cn(
             "border-t border-border py-3 px-4 lg:px-6 bg-muted/20 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:pb-3",

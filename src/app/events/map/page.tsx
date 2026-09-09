@@ -1,4 +1,3 @@
-import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { EventsMapView } from "@/components/events/events-map-view";
 import { getRequestCountryCode } from "@/lib/i18n/server";
 import { userCountryToEventCountry } from "@/lib/subculture-event-countries";
@@ -11,9 +10,5 @@ export default async function EventsMapPage() {
   const pins = await getSubcultureMapPinsForUser(200, countryCode);
   const eventCountry = userCountryToEventCountry(countryCode);
 
-  return (
-    <AppPageChrome maxWidth="4xl">
-      <EventsMapView initialPins={pins} eventCountry={eventCountry} />
-    </AppPageChrome>
-  );
+  return <EventsMapView initialPins={pins} eventCountry={eventCountry} />;
 }

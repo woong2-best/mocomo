@@ -761,6 +761,26 @@ html[data-client="app"] .native-live-pad {
     outline: none;
   }
 
+  .subculture-events-map--immersive .maplibregl-ctrl-group {
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .subculture-events-map--immersive .maplibregl-ctrl-group button {
+    filter: invert(1);
+  }
+
+  .subculture-events-map--immersive .maplibregl-ctrl-attrib {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(6px);
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .subculture-events-map--immersive .maplibregl-ctrl-attrib a {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
   .subculture-map-popup .maplibregl-popup-content {
     padding: 10px 12px;
     border-radius: 12px;

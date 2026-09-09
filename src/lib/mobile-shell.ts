@@ -17,6 +17,11 @@ export function isUsedDetailPath(pathname: string): boolean {
   return !USED_SECTION_PATHS.has(match[1]);
 }
 
+/** /events/map — 메인 영역 전체를 MapLibre 지구본으로 채움 */
+export function isEventsMapImmersivePath(pathname: string): boolean {
+  return pathname === "/events/map";
+}
+
 /** 하단 탭 숨김 — 채팅방·중고 상세·라이브 방·APT 몰입 등 자체 하단 UI */
 export function shouldHideMobileNav(pathname: string): boolean {
   if (/^\/messages\/[^/]+$/.test(pathname)) return true;
@@ -26,6 +31,7 @@ export function shouldHideMobileNav(pathname: string): boolean {
   if (pathname === "/discover") return true;
   if (pathname === APT_GAME_PATH) return true;
   if (pathname === REELS_PATH || pathname.startsWith(`${REELS_PATH}/`)) return true;
+  if (isEventsMapImmersivePath(pathname)) return true;
   return false;
 }
 

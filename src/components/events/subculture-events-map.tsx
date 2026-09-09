@@ -148,6 +148,7 @@ export function SubcultureEventsMap({
   className,
   heightClassName = "h-44",
   interactive = true,
+  immersive = false,
   onPinClick,
   defaultView,
 }: {
@@ -155,6 +156,7 @@ export function SubcultureEventsMap({
   className?: string;
   heightClassName?: string;
   interactive?: boolean;
+  immersive?: boolean;
   onPinClick?: (pin: MapEventPin) => void;
   defaultView?: { lat: number; lng: number; zoom: number };
 }) {
@@ -193,7 +195,10 @@ export function SubcultureEventsMap({
       });
 
       if (interactive) {
-        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+        map.addControl(
+          new maplibregl.NavigationControl({ showCompass: false }),
+          immersive ? "bottom-right" : "top-left"
+        );
       } else {
         map.dragPan.disable();
         map.scrollZoom.disable();
@@ -347,14 +352,22 @@ export function SubcultureEventsMap({
 
   return (
     <div
-      className={cn("relative rounded-xl overflow-hidden border border-border/60 subculture-events-map", className)}
+      className={cn(
+        immersive
+          ? "absolute inset-0 overflow-hidden subculture-events-map subculture-events-map--immersive"
+          : "relative rounded-xl overflow-hidden border border-border/60 subculture-events-map",
+        className
+      )}
       data-functional-canvas
     >
-      <div ref={containerRef} className={cn("w-full z-0", heightClassName)} />
+      <div ref={containerRef} className={cn("w-full h-full z-0", heightClassName)} />
       {!ready && (
         <div
           className={cn(
-            "absolute inset-0 flex items-center justify-center text-xs text-muted-foreground bg-muted/40",
+            "absolute inset-0 flex items-center justify-center text-xs z-10",
+            immersive
+              ? "text-white/70 bg-black"
+              : "text-muted-foreground bg-muted/40",
             heightClassName
           )}
         >
