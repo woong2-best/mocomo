@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Map as LeafletMap } from "leaflet";
+import type {
+  Map as MapLibreMap,
+  Marker as MapLibreMarker,
+  StyleSpecification,
+} from "maplibre-gl";
 import type { MapEventPin } from "@/lib/subculture-events";
 import { eventCountryFlag } from "@/lib/subculture-event-countries";
 import { SUBCULTURE_EVENT_CATEGORY_COLORS } from "@/lib/subculture-event-types";
@@ -9,10 +13,143 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
-import "leaflet/dist/leaflet.css";
+// --- Leaflet (legacy — horizontal tile repeat on zoom-out) ---
+// import type { Map as LeafletMap } from "leaflet";
+// import "leaflet/dist/leaflet.css";
+//
+// function pinHtml(color: string) {
+//   return `<div style="width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 6px rgba(0,0,0,.35)"></div>`;
+// }
 
-function pinHtml(color: string) {
-  return `<div style="width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 6px rgba(0,0,0,.35)"></div>`;
+const SATELLITE_STYLE = {
+  version: 8 as const,
+  sources: {
+    "satellite-tiles": {
+      type: "raster" as const,
+      tiles: [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      ],
+      tileSize: 256,
+      attribution: "Tiles &copy; Esri",
+    },
+  },
+  layers: [
+    {
+      id: "satellite-layer",
+      type: "raster" as const,
+      source: "satellite-tiles",
+      minzoom: 0,
+      maxzoom: 22,
+    },
+  ],
+} satisfies StyleSpecification;
+
+async function loadMapLibre() {
+  const mod = await import("maplibre-gl");
+  await import("maplibre-gl/dist/maplibre-gl.css");
+  const api = (mod as { default?: typeof mod }).default ?? mod;
+  if (typeof (api as { Map?: unknown }).Map !== "function") {
+    throw new Error("MapLibre Map constructor missing");
+  }
+  return api as typeof import("maplibre-gl");
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function safeHttpUrl(url: string | null | undefined): string | null {
+  if (!url?.trim()) return null;
+  try {
+    const parsed = new URL(url.trim());
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return parsed.href;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function createPinElement(color: string): HTMLDivElement {
+  const el = document.createElement("div");
+  el.className = "subculture-event-pin";
+  el.style.cssText = `width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 6px rgba(0,0,0,.35);cursor:pointer`;
+  return el;
+}
+
+function buildPinPopupHtml(pin: MapEventPin): string {
+  const imageUrl = safeHttpUrl(pin.imageUrl);
+  const roadViewUrl = safeHttpUrl(pin.roadViewImageUrl);
+
+  const imageBlock = imageUrl
+    ? `<img src="${escapeHtml(imageUrl)}" alt="" class="subculture-map-popup-img" loading="lazy" decoding="async" />`
+    : "";
+  const roadViewBlock = roadViewUrl
+    ? `<figure class="subculture-map-popup-roadview"><img src="${escapeHtml(roadViewUrl)}" alt="로드뷰" loading="lazy" decoding="async" /><figcaption>로드뷰</figcaption></figure>`
+    : "";
+
+  const dateStr =
+    pin.category === "maid_cafe"
+      ? "상설"
+      : format(new Date(pin.startsAt), "M/d", { locale: ko });
+  const official =
+    pin.source === "official" || pin.source === "auto"
+      ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--official">공식 자동</span>'
+      : pin.category === "maid_cafe"
+        ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--maid">메이드 카페</span>'
+        : "";
+  const countryLabel = eventCountryFlag(pin.country);
+  const venue = pin.venueName ? escapeHtml(pin.venueName) : "";
+
+  return `${imageBlock}${roadViewBlock}${official}<strong>${escapeHtml(pin.title)}</strong><span class="subculture-map-popup-meta">${countryLabel} ${dateStr}${venue ? ` · ${venue}` : ""}</span>`;
+}
+
+function fitMapToPins(
+  map: MapLibreMap,
+  pins: MapEventPin[],
+  defaultView?: { lat: number; lng: number; zoom: number }
+) {
+  if (pins.length === 1) {
+    map.setCenter([pins[0]!.lng, pins[0]!.lat]);
+    map.setZoom(defaultView?.zoom ?? 11);
+    return;
+  }
+  if (pins.length > 1) {
+    const lngs = pins.map((p) => p.lng);
+    const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+    const maxZoom =
+      lngSpan > 40 ? 4 : lngSpan > 20 ? 5 : lngSpan > 8 ? 6 : lngSpan > 4 ? 7 : 10;
+    let minLng = lngs[0]!;
+    let maxLng = lngs[0]!;
+    let minLat = pins[0]!.lat;
+    let maxLat = pins[0]!.lat;
+    for (const pin of pins) {
+      minLng = Math.min(minLng, pin.lng);
+      maxLng = Math.max(maxLng, pin.lng);
+      minLat = Math.min(minLat, pin.lat);
+      maxLat = Math.max(maxLat, pin.lat);
+    }
+    map.fitBounds(
+      [
+        [minLng, minLat],
+        [maxLng, maxLat],
+      ],
+      { padding: 32, maxZoom, duration: 0 }
+    );
+    return;
+  }
+  if (defaultView) {
+    map.setCenter([defaultView.lng, defaultView.lat]);
+    map.setZoom(defaultView.zoom);
+  } else {
+    map.setCenter([133.5, 36.2]);
+    map.setZoom(5);
+  }
 }
 
 export function SubcultureEventsMap({
@@ -31,96 +168,163 @@ export function SubcultureEventsMap({
   defaultView?: { lat: number; lng: number; zoom: number };
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<LeafletMap | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const markersRef = useRef<MapLibreMarker[]>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || pins.length === 0) return;
 
     let cancelled = false;
+    let resizeObserver: ResizeObserver | null = null;
 
     (async () => {
-      const L = (await import("leaflet")).default;
+      const maplibregl = await loadMapLibre();
       if (cancelled || !containerRef.current) return;
 
       if (mapRef.current) {
+        for (const marker of markersRef.current) marker.remove();
+        markersRef.current = [];
         mapRef.current.remove();
         mapRef.current = null;
       }
 
-      const map = L.map(containerRef.current, {
-        zoomControl: interactive,
-        attributionControl: interactive,
-        dragging: interactive,
-        scrollWheelZoom: interactive,
-        doubleClickZoom: interactive,
-        touchZoom: interactive,
+      const map = new maplibregl.Map({
+        container: containerRef.current,
+        style: SATELLITE_STYLE,
+        center: defaultView
+          ? [defaultView.lng, defaultView.lat]
+          : [135, 28],
+        zoom: defaultView?.zoom ?? 3,
+        attributionControl: interactive ? { compact: true } : false,
       });
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: interactive
-          ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-          : "",
-      }).addTo(map);
+      if (interactive) {
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+      } else {
+        map.dragPan.disable();
+        map.scrollZoom.disable();
+        map.boxZoom.disable();
+        map.dragRotate.disable();
+        map.keyboard.disable();
+        map.doubleClickZoom.disable();
+        map.touchZoomRotate.disable();
+      }
 
-      const bounds: [number, number][] = [];
+      map.on("style.load", () => {
+        // Globe at low zoom → flat satellite as you zoom in (MapLibre projection blend)
+        map.setProjection({ type: "globe" });
+      });
+
+      const resize = () => {
+        try {
+          map.resize();
+        } catch {
+          /* ignore */
+        }
+      };
+      map.once("load", () => {
+        resize();
+        fitMapToPins(map, pins, defaultView);
+        setReady(true);
+      });
+      requestAnimationFrame(resize);
+      resizeObserver = new ResizeObserver(resize);
+      resizeObserver.observe(containerRef.current);
 
       for (const pin of pins) {
         const color =
           SUBCULTURE_EVENT_CATEGORY_COLORS[pin.category] ??
           SUBCULTURE_EVENT_CATEGORY_COLORS.other;
-        const marker = L.marker([pin.lat, pin.lng], {
-          icon: L.divIcon({
-            className: "subculture-event-pin",
-            html: pinHtml(color),
-            iconSize: [14, 14],
-            iconAnchor: [7, 7],
-          }),
-        }).addTo(map);
+        const popup = new maplibregl.Popup({
+          closeButton: false,
+          maxWidth: "240px",
+          className: "subculture-map-popup",
+          offset: 12,
+        }).setHTML(buildPinPopupHtml(pin));
 
-        const dateStr =
-          pin.category === "maid_cafe"
-            ? "상설"
-            : format(new Date(pin.startsAt), "M/d", { locale: ko });
-        const official =
-          pin.source === "official" || pin.source === "auto"
-            ? '<span style="font-size:10px;color:#7c3aed">공식 자동</span><br/>'
-            : pin.category === "maid_cafe"
-              ? '<span style="font-size:10px;color:#ec4899">메이드 카페</span><br/>'
-              : "";
-        const countryLabel = eventCountryFlag(pin.country);
-        const popup = `${official}<strong>${pin.title}</strong><br/><span style="font-size:11px">${countryLabel} ${dateStr} · ${pin.venueName ?? ""}</span>`;
-        marker.bindPopup(popup, { closeButton: false, maxWidth: 200 });
+        const marker = new maplibregl.Marker({ element: createPinElement(color) })
+          .setLngLat([pin.lng, pin.lat])
+          .setPopup(popup)
+          .addTo(map);
 
-        if (onPinClick) {
-          marker.on("click", () => onPinClick(pin));
-        }
-
-        bounds.push([pin.lat, pin.lng]);
-      }
-
-      if (bounds.length === 1) {
-        map.setView(bounds[0], defaultView?.zoom ?? 11);
-      } else if (bounds.length > 1) {
-        const lngs = bounds.map((b) => b[1]);
-        const lngSpan = Math.max(...lngs) - Math.min(...lngs);
-        map.fitBounds(bounds, {
-          padding: [32, 32],
-          maxZoom: lngSpan > 40 ? 4 : lngSpan > 20 ? 5 : lngSpan > 8 ? 6 : lngSpan > 4 ? 7 : 10,
+        marker.getElement().addEventListener("click", () => {
+          onPinClick?.(pin);
         });
-      } else if (defaultView) {
-        map.setView([defaultView.lat, defaultView.lng], defaultView.zoom);
-      } else {
-        map.setView([36.2, 133.5], 5);
+
+        markersRef.current.push(marker);
       }
 
       mapRef.current = map;
-      setReady(true);
+
+      // --- Leaflet (legacy) ---
+      // const L = (await import("leaflet")).default;
+      // const map = L.map(containerRef.current, {
+      //   zoomControl: interactive,
+      //   attributionControl: interactive,
+      //   dragging: interactive,
+      //   scrollWheelZoom: interactive,
+      //   doubleClickZoom: interactive,
+      //   touchZoom: interactive,
+      // });
+      // L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      //   maxZoom: 19,
+      //   attribution: interactive
+      //     ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+      //     : "",
+      // }).addTo(map);
+      // for (const pin of pins) {
+      //   const color =
+      //     SUBCULTURE_EVENT_CATEGORY_COLORS[pin.category] ??
+      //     SUBCULTURE_EVENT_CATEGORY_COLORS.other;
+      //   const marker = L.marker([pin.lat, pin.lng], {
+      //     icon: L.divIcon({
+      //       className: "subculture-event-pin",
+      //       html: pinHtml(color),
+      //       iconSize: [14, 14],
+      //       iconAnchor: [7, 7],
+      //     }),
+      //   }).addTo(map);
+      //   const dateStr =
+      //     pin.category === "maid_cafe"
+      //       ? "상설"
+      //       : format(new Date(pin.startsAt), "M/d", { locale: ko });
+      //   const official =
+      //     pin.source === "official" || pin.source === "auto"
+      //       ? '<span style="font-size:10px;color:#7c3aed">공식 자동</span><br/>'
+      //       : pin.category === "maid_cafe"
+      //         ? '<span style="font-size:10px;color:#ec4899">메이드 카페</span><br/>'
+      //         : "";
+      //   const countryLabel = eventCountryFlag(pin.country);
+      //   const popup = `${official}<strong>${pin.title}</strong><br/><span style="font-size:11px">${countryLabel} ${dateStr} · ${pin.venueName ?? ""}</span>`;
+      //   marker.bindPopup(popup, { closeButton: false, maxWidth: 200 });
+      //   if (onPinClick) {
+      //     marker.on("click", () => onPinClick(pin));
+      //   }
+      //   bounds.push([pin.lat, pin.lng]);
+      // }
+      // if (bounds.length === 1) {
+      //   map.setView(bounds[0], defaultView?.zoom ?? 11);
+      // } else if (bounds.length > 1) {
+      //   const lngs = bounds.map((b) => b[1]);
+      //   const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+      //   map.fitBounds(bounds, {
+      //     padding: [32, 32],
+      //     maxZoom: lngSpan > 40 ? 4 : lngSpan > 20 ? 5 : lngSpan > 8 ? 6 : lngSpan > 4 ? 7 : 10,
+      //   });
+      // } else if (defaultView) {
+      //   map.setView([defaultView.lat, defaultView.lng], defaultView.zoom);
+      // } else {
+      //   map.setView([36.2, 133.5], 5);
+      // }
+      // mapRef.current = map;
     })();
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
+      for (const marker of markersRef.current) marker.remove();
+      markersRef.current = [];
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -145,7 +349,7 @@ export function SubcultureEventsMap({
   }
 
   return (
-    <div className={cn("relative rounded-xl overflow-hidden border border-border/60", className)}>
+    <div className={cn("relative rounded-xl overflow-hidden border border-border/60 subculture-events-map", className)}>
       <div ref={containerRef} className={cn("w-full z-0", heightClassName)} />
       {!ready && (
         <div

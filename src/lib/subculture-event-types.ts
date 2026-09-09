@@ -14,6 +14,8 @@ export type SubcultureEventSeed = {
   endsAt: string;
   sourceUrl: string;
   officialNoticeUrl?: string;
+  imageUrl?: string;
+  roadViewImageUrl?: string;
 };
 
 export const SUBCULTURE_EVENT_CATEGORY_LABELS: Record<string, string> = {
@@ -25,7 +27,7 @@ export const SUBCULTURE_EVENT_CATEGORY_LABELS: Record<string, string> = {
   other: "기타",
 };
 
-/** 지도 핀 색 (범례·Leaflet 공통) */
+/** 지도 핀 색 (범례·MapLibre 공통) */
 export const SUBCULTURE_EVENT_CATEGORY_COLORS: Record<string, string> = {
   comic: "#8b5cf6",
   anime: "#3b82f6",

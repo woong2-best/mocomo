@@ -66,6 +66,8 @@ function mapRowsToPins(
       endsAt: r.endsAt?.toISOString() ?? null,
       sourceUrl: r.sourceUrl,
       source: r.source,
+      imageUrl: null,
+      roadViewImageUrl: null,
     }));
 }
 
@@ -106,6 +108,8 @@ export async function querySubcultureMapPins(limit: number): Promise<MapEventPin
       endsAt: e.endsAt,
       sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
       source: e.externalKey.startsWith("auto-") ? "auto" : "official",
+      imageUrl: e.imageUrl ?? null,
+      roadViewImageUrl: e.roadViewImageUrl ?? null,
     }))
   ).slice(0, limit);
 }

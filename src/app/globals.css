@@ -756,6 +756,66 @@ html[data-client="app"] .native-live-pad {
     background: hsl(var(--folk-cobalt) / 0.28);
     border-radius: 9999px;
   }
+
+  .subculture-events-map .maplibregl-canvas {
+    outline: none;
+  }
+
+  .subculture-map-popup .maplibregl-popup-content {
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 1.45;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  }
+
+  .subculture-map-popup-img {
+    display: block;
+    width: 100%;
+    max-height: 140px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+
+  .subculture-map-popup-roadview {
+    margin: 0 0 8px;
+  }
+
+  .subculture-map-popup-roadview img {
+    display: block;
+    width: 100%;
+    max-height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  .subculture-map-popup-roadview figcaption {
+    margin-top: 4px;
+    font-size: 10px;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .subculture-map-popup-badge {
+    display: inline-block;
+    font-size: 10px;
+    margin-bottom: 4px;
+  }
+
+  .subculture-map-popup-badge--official {
+    color: #7c3aed;
+  }
+
+  .subculture-map-popup-badge--maid {
+    color: #ec4899;
+  }
+
+  .subculture-map-popup-meta {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+  }
 }
 
 /*

@@ -15,6 +15,10 @@ export type MapEventPin = {
   endsAt: string | null;
   sourceUrl: string | null;
   source: string;
+  /** 장소·행사 대표 이미지 (팝업 미리보기) */
+  imageUrl?: string | null;
+  /** 로드뷰·거리뷰 정적 사진 URL (유료 API 대신 마커 데이터 사용) */
+  roadViewImageUrl?: string | null;
 };
 
 export function mapLinkForEvent(pin: MapEventPin): { label: string; url: string } {
