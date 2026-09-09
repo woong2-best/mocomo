@@ -35,7 +35,7 @@ export function UsedDetailActions({
       return;
     }
     const res = await toggleUsedFavorite(listingId);
-    if ("favorited" in res) setFavorited(res.favorited);
+    if ("favorited" in res && res.favorited !== undefined) setFavorited(res.favorited);
   }
 
   async function setStatus(next: "RESERVED" | "SOLD" | "SELLING") {
