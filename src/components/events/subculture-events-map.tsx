@@ -9,6 +9,7 @@ import type {
 import type { MapEventPin } from "@/lib/subculture-events";
 import { eventCountryFlag } from "@/lib/subculture-event-countries";
 import { SUBCULTURE_EVENT_CATEGORY_COLORS } from "@/lib/subculture-event-types";
+import { loadMapLibre } from "@/lib/maps/maplibre-loader";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -43,16 +44,6 @@ const SATELLITE_STYLE = {
     },
   ],
 } satisfies StyleSpecification;
-
-async function loadMapLibre() {
-  const mod = await import("maplibre-gl");
-  await import("maplibre-gl/dist/maplibre-gl.css");
-  const api = (mod as { default?: typeof mod }).default ?? mod;
-  if (typeof (api as { Map?: unknown }).Map !== "function") {
-    throw new Error("MapLibre Map constructor missing");
-  }
-  return api as typeof import("maplibre-gl");
-}
 
 function escapeHtml(value: string): string {
   return value

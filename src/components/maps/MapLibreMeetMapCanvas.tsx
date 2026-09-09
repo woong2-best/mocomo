@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from "maplibre-gl";
+import { loadMapLibre } from "@/lib/maps/maplibre-loader";
 import type { MeetCoords } from "@/lib/maps/types";
 import { cn } from "@/lib/utils";
 
@@ -36,16 +37,6 @@ const OSM_STYLE = {
     },
   ],
 } satisfies StyleSpecification;
-
-async function loadMapLibre() {
-  const mod = await import("maplibre-gl");
-  await import("maplibre-gl/dist/maplibre-gl.css");
-  const api = (mod as { default?: typeof mod }).default ?? mod;
-  if (typeof (api as { Map?: unknown }).Map !== "function") {
-    throw new Error("MapLibre Map constructor missing");
-  }
-  return api as typeof import("maplibre-gl");
-}
 
 export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onError, onReady, className }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
