@@ -156,6 +156,7 @@ export function SubcultureEventsMap({
   interactive = true,
   immersive = false,
   onPinClick,
+  onZoomChange,
   defaultView,
 }: {
   pins: MapEventPin[];
@@ -164,6 +165,8 @@ export function SubcultureEventsMap({
   interactive?: boolean;
   immersive?: boolean;
   onPinClick?: (pin: MapEventPin) => void;
+  /** Globe void decor — hide Mars overlay once user zooms past ~city level */
+  onZoomChange?: (zoom: number) => void;
   defaultView?: { lat: number; lng: number; zoom: number };
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -222,6 +225,10 @@ export function SubcultureEventsMap({
           /* ignore */
         }
       };
+      const emitZoom = () => onZoomChange?.(map.getZoom());
+      map.on("zoom", emitZoom);
+      map.on("moveend", emitZoom);
+
       map.once("load", () => {
         // Globe after full style+worker init (style.load alone can race worker setup)
         try {
@@ -231,6 +238,7 @@ export function SubcultureEventsMap({
         }
         resize();
         fitMapToPins(map, pins, defaultView);
+        emitZoom();
         setReady(true);
       });
       map.once("error", (event) => {

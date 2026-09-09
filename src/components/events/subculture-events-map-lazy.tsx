@@ -19,6 +19,7 @@ export function SubcultureEventsMapLazy({
   interactive = true,
   immersive = false,
   onPinClick,
+  onZoomChange,
   defaultView,
 }: {
   pins: MapEventPin[];
@@ -27,6 +28,7 @@ export function SubcultureEventsMapLazy({
   interactive?: boolean;
   immersive?: boolean;
   onPinClick?: (pin: MapEventPin) => void;
+  onZoomChange?: (zoom: number) => void;
   defaultView?: { lat: number; lng: number; zoom: number };
 }) {
   if (pins.length === 0) {
@@ -51,6 +53,7 @@ export function SubcultureEventsMapLazy({
       interactive={interactive}
       immersive={immersive}
       onPinClick={onPinClick}
+      onZoomChange={onZoomChange}
       defaultView={defaultView}
     />
   );

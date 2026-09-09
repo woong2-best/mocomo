@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Globe, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubcultureEventPinCard } from "@/components/events/subculture-event-pin-card";
@@ -20,6 +20,8 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
 const GLOBAL_MAP_VIEW = { lat: 20, lng: 10, zoom: 1.4 };
+/** Above this zoom, Mars decor hides so it never floats over satellite tiles */
+const MARS_DECOR_MAX_ZOOM = 4.5;
 
 const LEGEND_CATEGORIES = [
   "comic",
@@ -58,6 +60,12 @@ export function EventsMapView({
 }) {
   const { countryCode } = useLocale();
   const [globalMode, setGlobalMode] = useState(true);
+  const [mapZoom, setMapZoom] = useState(GLOBAL_MAP_VIEW.zoom);
+  const marsDecorVisible = mapZoom <= MARS_DECOR_MAX_ZOOM;
+
+  const handleZoomChange = useCallback((zoom: number) => {
+    setMapZoom(zoom);
+  }, []);
 
   const localDefaultView = useMemo(
     () => getSubcultureMapDefaultView(countryCode),
@@ -86,17 +94,18 @@ export function EventsMapView({
   }
 
   return (
-    <div className="events-map-immersive relative h-full w-full min-h-0">
-      <div className="absolute inset-0 z-0">
+    <div className="events-map-immersive relative h-full w-full min-h-0 bg-[#020208]">
+      <EventsMapSpaceDecor marsVisible={marsDecorVisible} />
+
+      <div className="absolute inset-0 z-[1]">
         <SubcultureEventsMapLazy
           pins={pins}
           immersive
           interactive
           defaultView={mapView}
+          onZoomChange={handleZoomChange}
         />
       </div>
-
-      <EventsMapSpaceDecor />
 
       {/* Title — top-left chip on globe */}
       <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 pointer-events-none">
