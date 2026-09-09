@@ -106,7 +106,7 @@ async function fetchWikiRanking(limit = SIDEBAR_SEARCH_RANKING_LIMIT): Promise<S
 
 async function fetchFeedRanking(limit = SIDEBAR_SEARCH_RANKING_LIMIT): Promise<SidebarSearchRankingItem[]> {
   const rows = await getTrendingFromSnapshot("query", "7d", limit);
-  return rows.map((row) => ({
+  return rows.slice(0, limit).map((row) => ({
     rank: row.rank,
     id: row.id,
     label: row.label,
@@ -135,7 +135,7 @@ export async function getSidebarSearchRanking(
       items = await fetchScopedRanking(scope, limit);
   }
 
-  return { scope, items };
+  return { scope, items: items.slice(0, limit) };
 }
 
 export function getCachedSidebarSearchRanking(
@@ -145,7 +145,7 @@ export function getCachedSidebarSearchRanking(
   const scope = getSidebarSearchRankingScope(pathname);
   return unstable_cache(
     () => getSidebarSearchRanking(pathname, limit),
-    ["sidebar-search-ranking-v2", scope, pathname.split("?")[0] || "/"],
+    ["sidebar-search-ranking-v3", scope, pathname.split("?")[0] || "/", String(limit)],
     { revalidate: 120 }
   )();
 }

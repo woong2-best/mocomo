@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { SidebarSearchRankingScope } from "@/lib/scoped-search-rank-shared";
-import { searchRankingHref } from "@/lib/scoped-search-rank-shared";
+import { searchRankingHref, SIDEBAR_SEARCH_RANKING_LIMIT } from "@/lib/scoped-search-rank-shared";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export type SidebarTrendingQuery = {
@@ -22,7 +22,9 @@ export function SearchRankingSidebarList({
 }) {
   const { t } = useLocale();
 
-  if (items.length === 0) {
+  const visibleItems = items.slice(0, SIDEBAR_SEARCH_RANKING_LIMIT);
+
+  if (visibleItems.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">{t("sidebar.searchRankingEmpty")}</p>
     );
@@ -30,7 +32,7 @@ export function SearchRankingSidebarList({
 
   return (
     <ol className="space-y-2">
-      {items.map((item) => (
+      {visibleItems.map((item) => (
         <li key={item.id}>
           <Link
             href={searchRankingHref(scope, item.label)}
