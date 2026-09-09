@@ -95,7 +95,9 @@ export function MessagesInboxScreen() {
           <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.headerBtn}>
             <Ionicons name="chevron-back" size={24} color={colors.cobalt} />
           </Pressable>
-        ) : (
+        ) : null}
+        <Text style={styles.headerTitle}>메세지</Text>
+        {isTab ? (
           <Pressable
             onPress={() => setMarketingOpen(true)}
             hitSlop={10}
@@ -109,16 +111,9 @@ export function MessagesInboxScreen() {
               style={styles.marketingIconGlow}
             />
           </Pressable>
+        ) : (
+          <View style={styles.headerBtn} />
         )}
-        <Text style={styles.headerTitle}>메시지</Text>
-        <Pressable
-          onPress={() => navigation.navigate("MessagesNew")}
-          hitSlop={10}
-          style={styles.headerBtn}
-          accessibilityLabel="새 메시지"
-        >
-          <Ionicons name="create-outline" size={22} color={colors.cobalt} />
-        </Pressable>
       </View>
 
       {loading ? (
@@ -171,7 +166,13 @@ function createThemedStyles(colors: ThemeColors) {
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 8,
     },
-    headerTitle: { fontSize: 22, fontWeight: "800", color: colors.text, letterSpacing: -0.3 },
+    headerTitle: {
+      flex: 1,
+      fontSize: 22,
+      fontWeight: "800",
+      color: colors.text,
+      letterSpacing: -0.3,
+    },
     row: {
       flexDirection: "row",
       alignItems: "center",

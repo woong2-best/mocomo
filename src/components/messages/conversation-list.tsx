@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { MessageSquare, PenSquare } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SupportTierLevel } from "@prisma/client";
@@ -58,29 +58,8 @@ export function ConversationList({
       )}
     >
       <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between gap-2 shrink-0">
-        {isNativeApp ? (
-          <>
-            <CreatorMarketingHeaderButton onClick={() => setMarketingOpen(true)} />
-            <h1 className="font-bold text-lg tracking-tight flex-1 text-center">메시지</h1>
-            <Button asChild size="icon" variant="ghost" className="rounded-full h-9 w-9 shrink-0">
-              <Link href="/messages/new" aria-label="새 메시지">
-                <PenSquare className="h-5 w-5" />
-              </Link>
-            </Button>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-1 min-w-0">
-              <CreatorMarketingHeaderButton onClick={() => setMarketingOpen(true)} />
-              <h1 className="font-bold text-lg tracking-tight">메시지</h1>
-            </div>
-            <Button asChild size="icon" variant="ghost" className="rounded-full h-9 w-9 shrink-0">
-              <Link href="/messages/new" aria-label="새 메시지">
-                <PenSquare className="h-5 w-5" />
-              </Link>
-            </Button>
-          </>
-        )}
+        <h1 className="font-bold text-lg tracking-tight flex-1 min-w-0">메세지</h1>
+        <CreatorMarketingHeaderButton onClick={() => setMarketingOpen(true)} />
       </div>
       <CreatorMarketingDialog open={marketingOpen} onOpenChange={setMarketingOpen} />
 
