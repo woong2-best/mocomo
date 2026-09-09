@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import type { SidebarSearchRankingScope } from "@/lib/scoped-search-rank";
-import { searchRankingHref } from "@/lib/scoped-search-rank";
+import type { SidebarSearchRankingScope } from "@/lib/scoped-search-rank-shared";
+import { searchRankingHref } from "@/lib/scoped-search-rank-shared";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export type SidebarTrendingQuery = {

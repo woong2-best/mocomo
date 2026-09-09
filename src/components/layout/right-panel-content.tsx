@@ -12,7 +12,7 @@ import {
 } from "@/components/layout/search-ranking-sidebar-list";
 import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
 import { useLocale } from "@/components/providers/locale-provider";
-import type { SidebarSearchRankingScope } from "@/lib/scoped-search-rank";
+import type { SidebarSearchRankingScope } from "@/lib/scoped-search-rank-shared";
 import type { MapEventPin } from "@/lib/subculture-events";
 
 export type SidebarPanelData = {

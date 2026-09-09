@@ -1,24 +1,17 @@
+import "server-only";
+
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
-import { getHeaderSearchContext, type HeaderSearchScope } from "@/lib/header-search-context";
-import { getPopularWikiSearchQueries } from "@/lib/wiki-search";
+import type { HeaderSearchScope } from "@/lib/header-search-context";
 import { getTrendingFromSnapshot } from "@/lib/search/trends";
+import {
+  getSidebarSearchRankingScope,
+  type SidebarSearchRankingItem,
+  type SidebarSearchRankingScope,
+} from "@/lib/scoped-search-rank-shared";
 
-export type SidebarSearchRankingScope =
-  | "used"
-  | "market"
-  | "community"
-  | "feed"
-  | "live"
-  | "wiki"
-  | "global";
-
-export type SidebarSearchRankingItem = {
-  rank: number;
-  id: string;
-  label: string;
-  count: number;
-};
+export type { SidebarSearchRankingItem, SidebarSearchRankingScope } from "@/lib/scoped-search-rank-shared";
+export { getSidebarSearchRankingScope, searchRankingHref } from "@/lib/scoped-search-rank-shared";
 
 const SCOPED_BUCKETS = new Set<string>(["used", "market", "community", "live", "feed"]);
 
@@ -31,7 +24,10 @@ function normalizeKey(raw: string): string {
 }
 
 /** Record a scoped search for sidebar rankings. */
-export async function recordScopedSearch(scope: HeaderSearchScope | SidebarSearchRankingScope, raw: string) {
+export async function recordScopedSearch(
+  scope: HeaderSearchScope | SidebarSearchRankingScope,
+  raw: string
+) {
   const original = clampQuery(raw);
   if (original.length < 1) return;
   const key = normalizeKey(original);
@@ -83,13 +79,21 @@ async function fetchScopedRanking(scope: string, limit = 10): Promise<SidebarSea
 }
 
 async function fetchWikiRanking(limit = 10): Promise<SidebarSearchRankingItem[]> {
-  const rows = await getPopularWikiSearchQueries(limit);
-  return rows.map((row, i) => ({
-    rank: i + 1,
-    id: `wiki:${row.query}`,
-    label: row.query,
-    count: row.count,
-  }));
+  try {
+    const rows = await db.wikiSearchQuery.findMany({
+      take: limit,
+      orderBy: [{ count: "desc" }, { updatedAt: "desc" }],
+      select: { query: true, count: true },
+    });
+    return rows.map((row, i) => ({
+      rank: i + 1,
+      id: `wiki:${row.query}`,
+      label: row.query,
+      count: row.count,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 async function fetchFeedRanking(limit = 10): Promise<SidebarSearchRankingItem[]> {
@@ -100,43 +104,6 @@ async function fetchFeedRanking(limit = 10): Promise<SidebarSearchRankingItem[]>
     label: row.label,
     count: row.count,
   }));
-}
-
-async function fetchGlobalRanking(limit = 10): Promise<SidebarSearchRankingItem[]> {
-  return fetchFeedRanking(limit);
-}
-
-/** Resolve sidebar ranking bucket from pathname. */
-export function getSidebarSearchRankingScope(pathname: string): SidebarSearchRankingScope {
-  const ctx = getHeaderSearchContext(pathname);
-  if (ctx.scope === "wiki") return "wiki";
-  if (ctx.scope === "used") return "used";
-  if (ctx.scope === "market") return "market";
-  if (ctx.scope === "community") return "community";
-  if (ctx.scope === "live") return "live";
-  if (ctx.scope === "social" && ctx.inPage) return "feed";
-  if (ctx.scope === "social") return "feed";
-  return "global";
-}
-
-export function searchRankingHref(scope: SidebarSearchRankingScope, label: string): string {
-  const q = encodeURIComponent(label);
-  switch (scope) {
-    case "used":
-      return `/used?q=${q}`;
-    case "market":
-      return `/market?q=${q}`;
-    case "community":
-      return `/communities?q=${q}`;
-    case "live":
-      return `/live?q=${q}`;
-    case "wiki":
-      return `/anime?q=${q}`;
-    case "feed":
-      return `/feed?q=${q}`;
-    default:
-      return `/search?q=${q}`;
-  }
 }
 
 export async function getSidebarSearchRanking(
@@ -154,7 +121,7 @@ export async function getSidebarSearchRanking(
       items = await fetchFeedRanking(limit);
       break;
     case "global":
-      items = await fetchGlobalRanking(limit);
+      items = await fetchFeedRanking(limit);
       break;
     default:
       items = await fetchScopedRanking(scope, limit);
