@@ -16,6 +16,11 @@ export type SidebarSearchRankingItem = {
   id: string;
   label: string;
   count: number;
+  /** Post rows link to /post/:id; search rows use searchRankingHref. */
+  href?: string;
+  authorName?: string | null;
+  imageCount?: number;
+  videoCount?: number;
 };
 
 /** Resolve sidebar ranking bucket from pathname. */

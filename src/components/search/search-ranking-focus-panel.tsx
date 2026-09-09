@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { ImageIcon, Loader2, Play } from "lucide-react";
 import {
   searchRankingHref,
   type SidebarSearchRankingItem,
@@ -16,6 +16,37 @@ const RANK_COLORS = [
   "text-muted-foreground",
   "text-muted-foreground",
 ];
+
+function itemHref(scope: SidebarSearchRankingScope, item: SidebarSearchRankingItem): string {
+  return item.href ?? searchRankingHref(scope, item.label);
+}
+
+function MediaIndicators({
+  imageCount = 0,
+  videoCount = 0,
+}: {
+  imageCount?: number;
+  videoCount?: number;
+}) {
+  if (imageCount < 1 && videoCount < 1) return null;
+
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5 text-muted-foreground">
+      {imageCount > 0 && (
+        <span className="inline-flex items-center gap-0.5">
+          <ImageIcon className="h-3.5 w-3.5" aria-hidden />
+          <span className="text-[11px] tabular-nums">{imageCount}</span>
+        </span>
+      )}
+      {videoCount > 0 && (
+        <span className="inline-flex items-center gap-0.5">
+          <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
+          <span className="text-[11px] tabular-nums">{videoCount}</span>
+        </span>
+      )}
+    </span>
+  );
+}
 
 export function SearchRankingFocusPanel({
   scope,
@@ -34,7 +65,11 @@ export function SearchRankingFocusPanel({
 }) {
   const needle = filter?.trim().toLowerCase() ?? "";
   const visible = (needle
-    ? items.filter((item) => item.label.toLowerCase().includes(needle))
+    ? items.filter(
+        (item) =>
+          item.label.toLowerCase().includes(needle) ||
+          item.authorName?.toLowerCase().includes(needle)
+      )
     : items
   ).slice(0, 5);
 
@@ -55,44 +90,41 @@ export function SearchRankingFocusPanel({
   }
 
   return (
-    <div className={cn("grid grid-cols-[1fr_auto] gap-3 p-3 sm:p-4", className)}>
-      <ol className="min-w-0 space-y-2.5">
-        {visible.map((item, index) => (
-          <li key={item.id}>
-            <Link
-              href={searchRankingHref(scope, item.label)}
-              onClick={onPick}
-              className="group flex items-start gap-2.5 rounded-lg px-1 py-0.5 hover:bg-muted/40"
+    <ol className={cn("space-y-0.5 p-3 sm:p-4", className)}>
+      {visible.map((item, index) => (
+        <li key={item.id}>
+          <Link
+            href={itemHref(scope, item)}
+            onClick={onPick}
+            className="group flex items-center gap-2.5 rounded-lg px-1 py-1.5 hover:bg-muted/40"
+          >
+            <span
+              className={cn(
+                "w-5 shrink-0 text-base font-bold tabular-nums leading-none",
+                RANK_COLORS[index] ?? "text-muted-foreground"
+              )}
             >
-              <span
-                className={cn(
-                  "w-5 shrink-0 text-base font-bold tabular-nums leading-snug",
-                  RANK_COLORS[index] ?? "text-muted-foreground"
-                )}
-              >
-                {item.rank}
-              </span>
-              <span className="min-w-0 text-sm font-medium text-foreground group-hover:underline underline-offset-2">
+              {item.rank}
+            </span>
+
+            <span className="flex min-w-0 flex-1 items-center gap-1.5">
+              <span className="min-w-0 truncate text-sm font-medium text-foreground group-hover:underline underline-offset-2">
                 {item.label}
               </span>
-            </Link>
-          </li>
-        ))}
-      </ol>
+              <MediaIndicators imageCount={item.imageCount} videoCount={item.videoCount} />
+            </span>
 
-      <div className="flex w-[4.5rem] shrink-0 flex-col gap-2 sm:w-20">
-        {visible.map((item) => (
-          <Link
-            key={`chip-${item.id}`}
-            href={searchRankingHref(scope, item.label)}
-            onClick={onPick}
-            className="flex h-9 items-center justify-center rounded-md border border-border/70 bg-muted/30 px-1 text-[10px] font-semibold text-foreground/90 hover:border-folk-terracotta/40 hover:bg-muted/60 truncate"
-            title={item.label}
-          >
-            <span className="truncate">{item.label}</span>
+            {item.authorName ? (
+              <span
+                className="max-w-[4.5rem] shrink-0 truncate text-xs text-muted-foreground sm:max-w-[5.5rem]"
+                title={item.authorName}
+              >
+                {item.authorName}
+              </span>
+            ) : null}
           </Link>
-        ))}
-      </div>
-    </div>
+        </li>
+      ))}
+    </ol>
   );
 }
