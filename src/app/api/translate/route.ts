@@ -4,6 +4,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { translatePostContent } from "@/lib/content-translate";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { detectTextLanguage } from "@/lib/text-language";
+import { isTextWorthTranslating } from "@/lib/translate-text-filter";
 
 const bodySchema = z.object({
   text: z.string().min(1).max(2000),
@@ -22,6 +23,14 @@ export async function POST(req: NextRequest) {
     const { text } = parsed.data;
     /** Always translate to the viewer's UI language (ko / en / ja / zh). */
     const targetLocale = await getRequestLocale();
+
+    if (!isTextWorthTranslating(text)) {
+      return NextResponse.json(
+        { ok: true, translated: text, sourceLang: null },
+        { headers: { "Cache-Control": "private, max-age=3600" } }
+      );
+    }
+
     const sourceLang = detectTextLanguage(text);
 
     if (!sourceLang || sourceLang === targetLocale) {

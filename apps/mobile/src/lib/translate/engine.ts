@@ -8,6 +8,7 @@ import {
   splitTranslatableSegments,
 } from "@/lib/translate/preserve-segments";
 import { enqueueTranslation } from "@/lib/translate/queue";
+import { isTextWorthTranslating } from "@/lib/translate/text-filter";
 
 export const MAX_TRANSLATE_CHARS = 2000;
 const CHUNK_CHARS = 380;
@@ -73,7 +74,7 @@ export async function translateTextOnDevice(
   targetLocale: Locale
 ): Promise<ClientTranslateResult | null> {
   const trimmed = text.trim();
-  if (!trimmed) return null;
+  if (!trimmed || !isTextWorthTranslating(trimmed)) return null;
 
   const slice = trimmed.length > MAX_TRANSLATE_CHARS ? trimmed.slice(0, MAX_TRANSLATE_CHARS) : trimmed;
   const sourceLanguage = detectSourceMlKit(slice);
@@ -90,6 +91,11 @@ export async function translateTextOnDevice(
     for (const segment of segments) {
       if (segment.kind !== "text") continue;
       if (!segment.value.trim()) {
+        textIndex += 1;
+        continue;
+      }
+      if (!isTextWorthTranslating(segment.value)) {
+        translatedParts.set(textIndex, segment.value);
         textIndex += 1;
         continue;
       }

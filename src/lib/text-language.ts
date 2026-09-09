@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n/config";
+import { isTextWorthTranslating } from "@/lib/translate-text-filter";
 
 /** UI 언어별 원문 언어 표기 (트위터 "원문 언어 영어" 스타일) */
 const SOURCE_LANGUAGE_LABELS: Partial<Record<Locale, Partial<Record<Locale, string>>>> = {
@@ -52,6 +53,7 @@ export function detectTextLanguage(text: string): Locale | null {
 }
 
 export function needsTranslation(text: string, userLocale: Locale): boolean {
+  if (!isTextWorthTranslating(text)) return false;
   const detected = detectTextLanguage(text);
   return Boolean(detected && detected !== userLocale);
 }

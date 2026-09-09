@@ -7,6 +7,7 @@ import {
   nllbToLocale,
   type NllbCode,
 } from "@/lib/client-translate/nllb-codes";
+import { isTextWorthTranslating } from "@/lib/translate-text-filter";
 
 function stripNoise(text: string): string {
   return text
@@ -18,6 +19,8 @@ function stripNoise(text: string): string {
 
 /** Detect source NLLB language code for UGC text. */
 export function detectSourceNllb(text: string): NllbCode | null {
+  if (!isTextWorthTranslating(text)) return null;
+
   const sample = stripNoise(text);
   if (sample.length < 2) return null;
 

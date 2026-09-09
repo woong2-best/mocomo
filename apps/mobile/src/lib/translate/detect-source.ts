@@ -2,6 +2,7 @@ import { franc } from "franc";
 import type { Locale } from "@/i18n";
 import { TranslateLanguage } from "@react-native-ml-kit/translate-text";
 import { localeToMlKit, mlKitToLocale } from "@/lib/translate/mlkit-locale";
+import { isTextWorthTranslating } from "@/lib/translate/text-filter";
 
 function stripNoise(text: string): string {
   return text
@@ -98,6 +99,8 @@ const FRANC_TO_ML: Record<string, TranslateLanguage> = {
 };
 
 export function detectSourceMlKit(text: string): TranslateLanguage | null {
+  if (!isTextWorthTranslating(text)) return null;
+
   const heuristic = detectHeuristicMl(text);
   if (heuristic) return heuristic;
 

@@ -7,6 +7,7 @@ import {
   splitTranslatableSegments,
 } from "@/lib/client-translate/preserve-segments";
 import { enqueueTranslation } from "@/lib/client-translate/queue";
+import { isTextWorthTranslating } from "@/lib/translate-text-filter";
 
 export const CLIENT_TRANSLATE_MODEL = "Xenova/nllb-200-distilled-600M";
 export const MAX_TRANSLATE_CHARS = 2000;
@@ -166,7 +167,7 @@ export async function translateTextClientSide(
   targetLocale: Locale
 ): Promise<ClientTranslateResult | null> {
   const trimmed = text.trim();
-  if (!trimmed) return null;
+  if (!trimmed || !isTextWorthTranslating(trimmed)) return null;
 
   const slice = trimmed.length > MAX_TRANSLATE_CHARS ? trimmed.slice(0, MAX_TRANSLATE_CHARS) : trimmed;
   const sourceNllb = detectSourceNllb(slice);
@@ -182,6 +183,11 @@ export async function translateTextClientSide(
     for (const segment of segments) {
       if (segment.kind !== "text") continue;
       if (!segment.value.trim()) {
+        textIndex += 1;
+        continue;
+      }
+      if (!isTextWorthTranslating(segment.value)) {
+        translatedParts.set(textIndex, segment.value);
         textIndex += 1;
         continue;
       }
