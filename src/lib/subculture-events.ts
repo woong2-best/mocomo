@@ -18,6 +18,7 @@ import {
   geocodeEventVenueInCountry,
   isGenericVenueTitle,
   isPinCoordinateValid,
+  verifiedVenueForEvent,
 } from "@/lib/subculture-event-geocode";
 import { type MapEventPin } from "@/lib/subculture-event-pins";
 
@@ -46,8 +47,10 @@ function isValidPinRow(row: {
   lng: number | null;
   externalKey: string | null;
 }): boolean {
-  if (row.lat == null || row.lng == null) return false;
   if (row.externalKey?.startsWith("auto-wiki-")) return false;
+  const verified = verifiedVenueForEvent(row.externalKey);
+  if (verified) return true;
+  if (row.lat == null || row.lng == null) return false;
   if (isGenericVenueTitle(row.title) || (row.venueName && isGenericVenueTitle(row.venueName))) {
     return false;
   }
@@ -75,24 +78,29 @@ function mapRowsToPins(
 ): MapEventPin[] {
   return rows
     .filter(isValidPinRow)
-    .map((r) => ({
+    .map((r) => {
+      const verified = verifiedVenueForEvent(r.externalKey);
+      const lat = verified?.lat ?? r.lat!;
+      const lng = verified?.lng ?? r.lng!;
+      return {
       id: r.id,
       title: r.title,
-      country: inferEventCountry(r.lat!, r.lng!, r.externalKey),
+      country: inferEventCountry(lat, lng, r.externalKey),
       category: r.category,
       categoryLabel:
         SUBCULTURE_EVENT_CATEGORY_LABELS[r.category] ?? r.category,
-      venueName: r.venueName,
+      venueName: verified?.venueName ?? r.venueName,
       description: r.description,
-      lat: r.lat!,
-      lng: r.lng!,
+      lat,
+      lng,
       startsAt: r.startsAt.toISOString(),
       endsAt: r.endsAt?.toISOString() ?? null,
       sourceUrl: r.sourceUrl,
       source: r.source,
       imageUrl: null,
       roadViewImageUrl: null,
-    }));
+    };
+    });
 }
 
 /** DB 조회 — cron이 1시간마다 공식 사이트에서 자동 수집 반영 */
@@ -162,7 +170,7 @@ function sortMapPins(pins: MapEventPin[]): MapEventPin[] {
 export async function getSubcultureMapPins(limit = 240): Promise<MapEventPin[]> {
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v10", String(limit)],
+    ["subculture-map-pins-v11", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
 }
@@ -190,21 +198,23 @@ export async function upsertFetchedSubcultureEvents(
     await Promise.all(
       chunk.map(async (e) => {
         if (e.externalKey.startsWith("auto-wiki-")) return;
+        const verified = verifiedVenueForEvent(e.externalKey);
         const country = e.country ?? eventCountryFromExternalKey(e.externalKey) ?? "other";
-        const coordsValid =
-          e.lat != null &&
-          e.lng != null &&
-          isPinCoordinateValid(country, e.lat, e.lng) &&
-          !isGenericVenueTitle(e.title) &&
-          !isGenericVenueTitle(e.venueName);
+        const coordsValid = verified
+          ? true
+          : e.lat != null &&
+            e.lng != null &&
+            isPinCoordinateValid(country, e.lat, e.lng) &&
+            !isGenericVenueTitle(e.title) &&
+            !isGenericVenueTitle(e.venueName);
         const payload = {
           title: e.title,
           description: e.description,
           category: e.category,
-          venueName: e.venueName,
-          address: e.address,
-          lat: coordsValid ? e.lat : null,
-          lng: coordsValid ? e.lng : null,
+          venueName: verified?.venueName ?? e.venueName,
+          address: verified?.address ?? e.address,
+          lat: verified ? verified.lat : coordsValid ? e.lat : null,
+          lng: verified ? verified.lng : coordsValid ? e.lng : null,
           startsAt: new Date(e.startsAt),
           endsAt: new Date(e.endsAt),
           sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,

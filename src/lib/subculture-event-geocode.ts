@@ -62,6 +62,24 @@ const COUNTRY_BOUNDS: Record<
   za: { minLat: -35, maxLat: -22, minLng: 16, maxLng: 33 },
 };
 
+/** 공식 시드 — 지오코딩 오류 방지용 확정 좌표 */
+export const VERIFIED_EVENT_VENUES: Record<
+  string,
+  { lat: number; lng: number; venueName: string; address: string }
+> = {
+  "official-ca-anime-north-2027": {
+    lat: 43.689661,
+    lng: -79.578564,
+    venueName: "Delta Hotels by Marriott Toronto Airport & Conference Centre",
+    address: "655 Dixon Rd, Etobicoke, ON M9W 1J3, Canada",
+  },
+};
+
+export function verifiedVenueForEvent(externalKey: string | null | undefined) {
+  if (!externalKey) return null;
+  return VERIFIED_EVENT_VENUES[externalKey] ?? null;
+}
+
 const GENERIC_VENUE_TITLES = new Set([
   "comic book convention",
   "comic convention",
