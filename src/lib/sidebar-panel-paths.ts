@@ -28,6 +28,7 @@ export function shouldShowRightPanel(pathname: string): boolean {
   if (/^\/c\/[^/]+/.test(pathname)) return false;
   if (pathname.startsWith("/apt")) return false;
   if (pathname.startsWith("/voice/") && pathname !== "/voice/new") return false;
+  if (pathname === "/events/map") return false;
   return true;
 }
 
