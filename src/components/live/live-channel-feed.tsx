@@ -33,8 +33,7 @@ export async function LiveChannelFeed({
         const host = hostById[ch.createdBy];
         return (
           ch.name.toLowerCase().includes(q) ||
-          host?.username.toLowerCase().includes(q) ||
-          (host?.name?.toLowerCase().includes(q) ?? false)
+          host?.username.toLowerCase().includes(q)
         );
       });
     }
