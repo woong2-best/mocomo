@@ -13,9 +13,12 @@ import {
   resolveSubculturePinsForUser,
 } from "@/lib/subculture-event-countries";
 import { fetchAllSubcultureEvents } from "@/lib/subculture-event-fetch";
-import { nominatimSearchPlaceInCountry } from "@/lib/subculture-event-fetch/nominatim-country";
 import type { FetchedSubcultureEvent } from "@/lib/subculture-event-fetch/types";
-import { regionByCountry } from "@/lib/subculture-event-global-config";
+import {
+  geocodeEventVenueInCountry,
+  isGenericVenueTitle,
+  isPinCoordinateValid,
+} from "@/lib/subculture-event-geocode";
 import { type MapEventPin } from "@/lib/subculture-event-pins";
 
 export type { MapEventPin } from "@/lib/subculture-event-pins";
@@ -36,6 +39,24 @@ function inferEventCountry(
   return inferEventCountryFromCoords(lat, lng, externalKey);
 }
 
+function isValidPinRow(row: {
+  title: string;
+  venueName: string | null;
+  lat: number | null;
+  lng: number | null;
+  externalKey: string | null;
+}): boolean {
+  if (row.lat == null || row.lng == null) return false;
+  if (row.externalKey?.startsWith("auto-wiki-")) return false;
+  if (isGenericVenueTitle(row.title) || (row.venueName && isGenericVenueTitle(row.venueName))) {
+    return false;
+  }
+  const country =
+    eventCountryFromExternalKey(row.externalKey) ??
+    inferEventCountryFromCoords(row.lat, row.lng, row.externalKey);
+  return isPinCoordinateValid(country, row.lat, row.lng);
+}
+
 function mapRowsToPins(
   rows: {
     id: string;
@@ -53,7 +74,7 @@ function mapRowsToPins(
   }[]
 ): MapEventPin[] {
   return rows
-    .filter((r) => r.lat != null && r.lng != null)
+    .filter(isValidPinRow)
     .map((r) => ({
       id: r.id,
       title: r.title,
@@ -97,23 +118,33 @@ export async function querySubcultureMapPins(limit: number): Promise<MapEventPin
 
   const { events } = await fetchAllSubcultureEvents();
   return sortMapPins(
-    events.map((e, i) => ({
-      id: `auto-fallback-${e.externalKey}-${i}`,
-      title: e.title,
-      country: e.country,
-      category: e.category,
-      categoryLabel: SUBCULTURE_EVENT_CATEGORY_LABELS[e.category] ?? e.category,
-      venueName: e.venueName,
-      description: e.description ?? null,
-      lat: e.lat,
-      lng: e.lng,
-      startsAt: e.startsAt,
-      endsAt: e.endsAt,
-      sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
-      source: e.externalKey.startsWith("auto-") ? "auto" : "official",
-      imageUrl: e.imageUrl ?? null,
-      roadViewImageUrl: e.roadViewImageUrl ?? null,
-    }))
+    events
+      .filter((e) => {
+        if (e.externalKey.startsWith("auto-wiki-")) return false;
+        if (isGenericVenueTitle(e.title) || isGenericVenueTitle(e.venueName)) return false;
+        return isPinCoordinateValid(
+          e.country ?? eventCountryFromExternalKey(e.externalKey) ?? "other",
+          e.lat,
+          e.lng
+        );
+      })
+      .map((e, i) => ({
+        id: `auto-fallback-${e.externalKey}-${i}`,
+        title: e.title,
+        country: e.country,
+        category: e.category,
+        categoryLabel: SUBCULTURE_EVENT_CATEGORY_LABELS[e.category] ?? e.category,
+        venueName: e.venueName,
+        description: e.description ?? null,
+        lat: e.lat,
+        lng: e.lng,
+        startsAt: e.startsAt,
+        endsAt: e.endsAt,
+        sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
+        source: e.externalKey.startsWith("auto-") ? "auto" : "official",
+        imageUrl: e.imageUrl ?? null,
+        roadViewImageUrl: e.roadViewImageUrl ?? null,
+      }))
   ).slice(0, limit);
 }
 
@@ -131,7 +162,7 @@ function sortMapPins(pins: MapEventPin[]): MapEventPin[] {
 export async function getSubcultureMapPins(limit = 240): Promise<MapEventPin[]> {
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v9", String(limit)],
+    ["subculture-map-pins-v10", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
 }
@@ -158,14 +189,22 @@ export async function upsertFetchedSubcultureEvents(
     const chunk = events.slice(i, i + chunkSize);
     await Promise.all(
       chunk.map(async (e) => {
+        if (e.externalKey.startsWith("auto-wiki-")) return;
+        const country = e.country ?? eventCountryFromExternalKey(e.externalKey) ?? "other";
+        const coordsValid =
+          e.lat != null &&
+          e.lng != null &&
+          isPinCoordinateValid(country, e.lat, e.lng) &&
+          !isGenericVenueTitle(e.title) &&
+          !isGenericVenueTitle(e.venueName);
         const payload = {
           title: e.title,
           description: e.description,
           category: e.category,
           venueName: e.venueName,
           address: e.address,
-          lat: e.lat,
-          lng: e.lng,
+          lat: coordsValid ? e.lat : null,
+          lng: coordsValid ? e.lng : null,
           startsAt: new Date(e.startsAt),
           endsAt: new Date(e.endsAt),
           sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
@@ -201,6 +240,41 @@ export async function upsertFetchedSubcultureEvents(
   }
 
   return events.length;
+}
+
+/** Wikipedia·잘못된 좌표 핀 정리 */
+export async function purgeInvalidSubculturePins(): Promise<number> {
+  try {
+    const wikiRemoved = await db.subcultureEventPin.deleteMany({
+      where: { externalKey: { startsWith: "auto-wiki-" } },
+    });
+
+    const rows = await db.subcultureEventPin.findMany({
+      where: { lat: { not: null }, lng: { not: null } },
+      select: {
+        id: true,
+        title: true,
+        venueName: true,
+        lat: true,
+        lng: true,
+        externalKey: true,
+      },
+    });
+
+    let nulled = 0;
+    for (const row of rows) {
+      if (!isValidPinRow(row)) {
+        await db.subcultureEventPin.update({
+          where: { id: row.id },
+          data: { lat: null, lng: null },
+        });
+        nulled += 1;
+      }
+    }
+    return wikiRemoved.count + nulled;
+  } catch {
+    return 0;
+  }
 }
 
 /** @deprecated upsertFetchedSubcultureEvents 사용 */
@@ -267,6 +341,10 @@ export async function syncSubcultureEventsIfDue(options?: {
   const { events, results } = await fetchAllSubcultureEvents();
   await upsertFetchedSubcultureEvents(events);
   const geocoded = await geocodePendingSubcultureEvents(geocodeMax);
+  const purged = await purgeInvalidSubculturePins();
+  if (purged > 0) {
+    console.info("[subculture-events] purged invalid pins:", purged);
+  }
   await touchSubcultureSyncMeta();
 
   try {
@@ -309,13 +387,16 @@ export async function geocodePendingSubcultureEvents(max = 5): Promise<number> {
       const country =
         eventCountryFromExternalKey(row.externalKey) ??
         inferEventCountryFromCoords(row.lat ?? 0, row.lng ?? 0, row.externalKey);
-      const region = country !== "other" ? regionByCountry(country) : undefined;
-      const coord = isKoreaEventCountry(country)
+      const raw = isKoreaEventCountry(country)
         ? await kakaoSearchPlace(q)
-        : region
-          ? await nominatimSearchPlaceInCountry(q, region.iso, region.acceptLanguage)
-          : null;
-      if (!coord) continue;
+        : await geocodeEventVenueInCountry(country, row.venueName, row.address);
+      const coord =
+        raw && "label" in raw
+          ? raw
+          : raw
+            ? { lat: raw.lat, lng: raw.lng, label: q }
+            : null;
+      if (!coord || !isPinCoordinateValid(country, coord.lat, coord.lng)) continue;
       await db.subcultureEventPin.update({
         where: { id: row.id },
         data: { lat: coord.lat, lng: coord.lng, address: coord.label },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubcultureEventPinCard } from "@/components/events/subculture-event-pin-card";
@@ -11,6 +11,8 @@ import type { SubcultureEventCountry } from "@/lib/subculture-event-countries";
 import type { MapEventPin } from "@/lib/subculture-event-pins";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
+
+const MARS_DECOR_MAX_ZOOM = 2.2;
 
 function MapOverlayChip({
   children,
@@ -71,6 +73,12 @@ export function EventsMapView({
   eventCountry: SubcultureEventCountry;
 }) {
   const { countryCode } = useLocale();
+  const [mapZoom, setMapZoom] = useState(1.55);
+  const marsVisible = mapZoom <= MARS_DECOR_MAX_ZOOM;
+
+  const handleZoomChange = useCallback((zoom: number) => {
+    setMapZoom(zoom);
+  }, []);
 
   const globeInitialView = useMemo(
     () => getSubcultureGlobeInitialView(countryCode),
@@ -93,8 +101,27 @@ export function EventsMapView({
           interactive
           defaultView={globeInitialView}
           respectDefaultView
+          onZoomChange={handleZoomChange}
         />
       </div>
+
+      {marsVisible ? (
+        <div
+          className="events-map-mars-hud absolute bottom-24 left-6 sm:bottom-28 sm:left-8 z-[15] pointer-events-none"
+          aria-hidden
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/events/mars-decor.png"
+            alt=""
+            className="events-map-mars-img"
+            width={96}
+            height={96}
+            decoding="async"
+            draggable={false}
+          />
+        </div>
+      ) : null}
 
       {/* Title — top-left chip on globe */}
       <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 pointer-events-none">
