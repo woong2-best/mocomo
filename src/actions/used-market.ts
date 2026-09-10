@@ -79,8 +79,8 @@ export async function updateUsedServiceRegion(region: string) {
     return { error: "서비스 지역 저장에 실패했습니다." };
   }
 
-  revalidatePath("/used");
-  revalidatePath("/used/new");
+  revalidatePath("/market");
+  revalidatePath("/market/new");
   revalidatePath("/settings");
   return { success: true as const, region: trimmed };
 }
@@ -620,8 +620,8 @@ export async function createUsedListing(data: {
       },
     });
     void notifyWtbAlertsForListing(listing.id).catch(() => undefined);
-    revalidatePath("/used");
-    revalidatePath("/used/my");
+    revalidatePath("/market");
+    revalidatePath("/market/my");
     return { listingId: listing.id };
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -661,9 +661,9 @@ export async function updateUsedListingStatus(listingId: string, status: UsedLis
   if (status === "SOLD") {
     void finalizeUsedListingSold(listingId).catch(() => undefined);
   }
-  revalidatePath(`/used/${listingId}`);
-  revalidatePath("/used/my");
-  revalidatePath("/used");
+  revalidatePath(`/market/${listingId}`);
+  revalidatePath("/market/my");
+  revalidatePath("/market");
   return { success: true };
 }
 
@@ -675,8 +675,8 @@ export async function deleteUsedListing(listingId: string) {
   if (!listing || listing.sellerId !== user.id) return { error: "권한이 없습니다." };
 
   await db.usedListing.delete({ where: { id: listingId } });
-  revalidatePath("/used");
-  revalidatePath("/used/my");
+  revalidatePath("/market");
+  revalidatePath("/market/my");
   return { success: true };
 }
 
@@ -699,11 +699,11 @@ export async function toggleUsedFavorite(listingId: string) {
   });
   if (existing) {
     await db.usedFavorite.delete({ where: { id: existing.id } });
-    revalidatePath(`/used/${listingId}`);
+    revalidatePath(`/market/${listingId}`);
     return { favorited: false };
   }
   await db.usedFavorite.create({ data: { userId: user.id, listingId } });
-  revalidatePath(`/used/${listingId}`);
+  revalidatePath(`/market/${listingId}`);
   return { favorited: true };
 }
 
@@ -793,7 +793,7 @@ export async function startUsedTradeChat(listingId: string) {
     /* 메시지 실패해도 방으로 이동 */
   }
 
-  revalidatePath(`/used/${listingId}`);
+  revalidatePath(`/market/${listingId}`);
   return { roomId: dm.room.id };
 }
 

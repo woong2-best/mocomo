@@ -87,7 +87,7 @@ export function UsedListingCard({
 
   return (
     <Link
-      href={`/used/${listing.id}`}
+      href={`/market/${listing.id}`}
       prefetch={false}
       className={cn("block group used-listing-card h-full", dense && "used-listing-card--dense")}
     >

@@ -22,10 +22,9 @@ export type DrawerRoute =
   | "Reels"
   | "LegalPolicies";
 
-/** Floating glass tabs: 홈 · 마켓 · 중고 · 메세지 */
+/** Floating glass tabs: 홈 · MCM(마켓) · 메세지 */
 export type RootTabParamList = {
   Home: undefined;
-  Market: undefined;
   Used: undefined;
   Messages: undefined;
 };

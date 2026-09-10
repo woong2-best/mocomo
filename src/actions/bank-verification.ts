@@ -71,10 +71,10 @@ async function requirePhoneVerificationUser() {
 function revalidateBankPaths() {
   revalidatePath("/settings/bank");
   revalidatePath("/settings");
-  revalidatePath("/used");
-  revalidatePath("/used/new");
-  revalidatePath("/used/my");
-  revalidatePath("/used/verify");
+  revalidatePath("/market");
+  revalidatePath("/market/new");
+  revalidatePath("/market/my");
+  revalidatePath("/market/verify");
   revalidatePath("/market/seller/register");
   revalidatePath("/wallet");
   revalidatePath("/support");

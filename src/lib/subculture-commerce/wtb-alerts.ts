@@ -89,7 +89,7 @@ export async function notifyWtbAlertsForListing(listingId: string): Promise<numb
       type: "subculture_wtb",
       title: "WTB 조건 상품 등록",
       body: `${listing.title} · ${formatUsedPrice(listing.price, listing.currency)}`,
-      link: `/used/${listing.id}`,
+      link: `/market/${listing.id}`,
       actorId: listing.sellerId,
     });
 

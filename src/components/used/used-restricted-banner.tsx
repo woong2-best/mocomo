@@ -15,7 +15,7 @@ export function UsedRestrictedBanner({
   if (!isUsedRestrictedKind(restrictedKind)) return null;
 
   const label = usedRestrictedLabel(restrictedKind);
-  const verifyHref = `/used/adult-verify?callbackUrl=${encodeURIComponent(`/used/${listingId}`)}&kind=${restrictedKind}`;
+  const verifyHref = `/market/adult-verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}&kind=${restrictedKind}`;
 
   return (
     <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 flex gap-3">

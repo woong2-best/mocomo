@@ -36,7 +36,7 @@ function searchHref(a: WtbAlertRow): string {
   if (a.animeSlug) params.set("anime", a.animeSlug);
   else if (a.workTitle) params.set("work", a.workTitle);
   if (a.productType) params.set("product", a.productType);
-  return `/used?${params.toString()}`;
+  return `/market?${params.toString()}`;
 }
 
 export function UsedWtbAlertList({ alerts: initial }: { alerts: WtbAlertRow[] }) {

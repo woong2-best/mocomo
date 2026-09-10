@@ -220,12 +220,12 @@ export async function updateUsedMarketAppealStatus(
       type: "SYSTEM",
       title: msg.title,
       body,
-      link: "/used/appeal",
+      link: "/market/appeal",
     });
   }
 
   revalidatePath("/admin/used-market");
-  revalidatePath("/used/appeal");
-  revalidatePath("/used");
+  revalidatePath("/market/appeal");
+  revalidatePath("/market");
   return { success: true };
 }

@@ -12,10 +12,11 @@ import { getServerTranslator } from "@/lib/i18n/server";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { assertUsedMarketCountryAllowed } from "@/lib/used-regions-global";
 import { usedMarketBlockedRegionMsg } from "@/lib/used-bank-auth";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
 export default async function UsedNewPage() {
   const user = await getCachedCurrentUser();
-  if (!user) redirect("/auth/signin?callbackUrl=/used/new");
+  if (!user) redirect("/auth/signin?callbackUrl=/market/new");
   const { locale } = await getServerTranslator();
 
   const regionErr = assertUsedMarketCountryAllowed(user.countryCode);
@@ -23,15 +24,15 @@ export default async function UsedNewPage() {
     return (
       <AppPageChrome maxWidth="lg" spacing="sm" className="py-8 text-center">
         <p className="text-muted-foreground">{usedMarketBlockedRegionMsg(locale)}</p>
-        <Link href="/used" className="text-primary underline text-sm">
-          {locale === "en" ? "Back to marketplace" : "중고거래 홈으로"}
+        <Link href="/market" className="text-primary underline text-sm">
+          {locale === "en" ? `Back to ${MARKET_BRAND_NAME}` : `${MARKET_BRAND_NAME} 홈으로`}
         </Link>
       </AppPageChrome>
     );
   }
 
   if (!isUsedMarketEligible(user)) {
-    redirect(usedMarketVerifyPath("/used/new", user.countryCode));
+    redirect(usedMarketVerifyPath("/market/new", user.countryCode));
   }
 
   const usedServiceRegion =
@@ -45,11 +46,11 @@ export default async function UsedNewPage() {
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
       <Link
-        href="/used"
+        href="/market"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-medium"
       >
         <ChevronLeft className="h-4 w-4" />
-        {locale === "en" ? "Marketplace" : "중고거래 홈"}
+        {MARKET_BRAND_NAME}
       </Link>
       <NativePageTitle>
         <h1 className="text-xl font-bold">

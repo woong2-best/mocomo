@@ -39,8 +39,8 @@ export async function markAuctionPaymentComplete(listingId: string) {
     },
   });
 
-  revalidatePath(`/used/${listingId}`);
-  revalidatePath("/used/my");
+  revalidatePath(`/market/${listingId}`);
+  revalidatePath("/market/my");
   return { success: true };
 }
 

@@ -43,10 +43,10 @@ const protectedRoutes = [
   "/star",
   "/my-page",
   "/wallet",
-  "/used/new",
-  "/used/my",
-  "/used/verify",
-  "/used/adult-verify",
+  "/market/new",
+  "/market/my",
+  "/market/verify",
+  "/market/adult-verify",
   "/premium",
   "/support",
   "/voice",
@@ -130,6 +130,23 @@ export default edgeAuth(async (req) => {
     req.nextUrl.hostname
   );
   const { pathname } = req.nextUrl;
+
+  if (pathname.startsWith("/star-market")) {
+    const url = req.nextUrl.clone();
+    url.pathname = DEFAULT_LANDING_PATH;
+    url.search = "";
+    const res = NextResponse.redirect(url);
+    stampAppClientIfNeeded(req, res);
+    return res;
+  }
+
+  if (pathname === "/used" || pathname.startsWith("/used/")) {
+    const url = req.nextUrl.clone();
+    url.pathname = pathname.replace(/^\/used/, "/market") || "/market";
+    const res = NextResponse.redirect(url);
+    stampAppClientIfNeeded(req, res);
+    return res;
+  }
 
   if (isAptPublicBlockedPath(pathname)) {
     if (pathname.startsWith("/api/")) {

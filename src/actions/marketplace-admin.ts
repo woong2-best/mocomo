@@ -19,6 +19,7 @@ import {
 import { applyMarketplaceSanction, clearMarketplaceSanction } from "@/lib/marketplace/sanctions";
 import { MARKETPLACE_REPORT_ESCALATE_COUNT } from "@/lib/marketplace/protection-config";
 import { executeMarketplaceDisputeResolution } from "@/lib/marketplace/dispute-resolution";
+import { markMarketplaceOrderDelivered } from "@/lib/marketplace/delivery-pipeline";
 
 export async function resolveMarketplaceDispute(
   disputeId: string,
@@ -66,39 +67,42 @@ export async function adminSetMarketplaceOrderStatus(
   const order = await db.marketplaceOrder.findUnique({ where: { id: orderId } });
   if (!order) return { error: "주문을 찾을 수 없습니다." };
 
-  await db.marketplaceOrder.update({
-    where: { id: orderId },
-    data: {
-      status,
-      confirmedAt: status === "CONFIRMED" ? new Date() : order.confirmedAt,
-      autoConfirmAt:
-        status === "DELIVERED"
-          ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-          : order.autoConfirmAt,
-      adminReviewRequired: status === "ADMIN_REVIEW" ? true : order.adminReviewRequired,
-    },
-  });
-
-  const shipStatus =
-    status === "PREPARING"
-      ? "PREPARING"
-      : status === "SHIPPED"
-        ? "IN_TRANSIT"
-        : status === "DELIVERED" || status === "CONFIRMED"
-          ? "DELIVERED"
-          : "PREPARING";
-
-  if (status !== "PAID" && status !== "ADMIN_REVIEW") {
-    await db.marketplaceShipment.upsert({
-      where: { orderId },
-      create: { orderId, status: shipStatus },
-      update: {
-        status: shipStatus,
-        ...(status === "DELIVERED" || status === "CONFIRMED"
-          ? { deliveredAt: new Date() }
-          : {}),
+  if (status === "DELIVERED") {
+    const delivered = await markMarketplaceOrderDelivered({
+      orderId,
+      source: "admin",
+      actorId: admin.id,
+    });
+    if ("error" in delivered) return delivered;
+  } else {
+    await db.marketplaceOrder.update({
+      where: { id: orderId },
+      data: {
+        status,
+        confirmedAt: status === "CONFIRMED" ? new Date() : order.confirmedAt,
+        adminReviewRequired: status === "ADMIN_REVIEW" ? true : order.adminReviewRequired,
       },
     });
+
+    const shipStatus =
+      status === "PREPARING"
+        ? "PREPARING"
+        : status === "SHIPPED"
+          ? "IN_TRANSIT"
+          : status === "CONFIRMED"
+            ? "DELIVERED"
+            : "PREPARING";
+
+    if (status !== "PAID" && status !== "ADMIN_REVIEW") {
+      await db.marketplaceShipment.upsert({
+        where: { orderId },
+        create: { orderId, status: shipStatus },
+        update: {
+          status: shipStatus,
+          ...(status === "CONFIRMED" ? { deliveredAt: new Date(), deliverySignalSource: "admin" } : {}),
+        },
+      });
+    }
   }
 
   if (status === "CONFIRMED") {

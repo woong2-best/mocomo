@@ -19,7 +19,7 @@ export function UsedWriteFab() {
       )}
       aria-label="글쓰기"
     >
-      <Link href="/used/new" prefetch>
+      <Link href="/market/new" prefetch>
         +
       </Link>
     </Button>

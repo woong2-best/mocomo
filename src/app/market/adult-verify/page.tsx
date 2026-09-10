@@ -14,10 +14,10 @@ export default async function UsedAdultVerifyPage({
   searchParams: Promise<{ callbackUrl?: string; kind?: string }>;
 }) {
   const user = await getCachedCurrentUser();
-  if (!user) redirect("/auth/signin?callbackUrl=/used/adult-verify");
+  if (!user) redirect("/auth/signin?callbackUrl=/market/adult-verify");
 
   const { callbackUrl, kind } = await searchParams;
-  const next = callbackUrl?.startsWith("/used") ? callbackUrl : "/used";
+  const next = callbackUrl?.startsWith("/market") ? callbackUrl : "/market";
 
   if (!isUsedMarketEligible(user)) {
     redirect(usedMarketVerifyPath(next, user.countryCode));

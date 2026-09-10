@@ -24,7 +24,6 @@ const ROOT_PATHS = new Set([
   "/games",
   "/notifications",
   "/messages",
-  "/used",
   "/discover",
   "/live",
   "/voice",
@@ -60,7 +59,6 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   if (pathname === "/live") return t("nav.live");
   if (pathname.startsWith("/live/")) return t("nav.live");
   if (pathname === "/market") return t("nav.market");
-  if (pathname.startsWith("/market/")) return t("nav.market");
   if (pathname === "/cosplay/apply") return "코스어 등록";
   if (pathname.startsWith("/cosplay")) return "코스프레";
   if (pathname === "/messages/new") return "새 메시지";
@@ -68,9 +66,8 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   if (pathname === "/apt/cohabitation") return "동거 관리";
   if (pathname === "/notifications") return t("nav.notifications");
   if (pathname === "/messages") return t("nav.messages");
-  if (pathname === "/used") return t("nav.used");
-  if (pathname === "/used/new") return "글쓰기";
-  if (pathname === "/used/my") return "내 글";
+  if (pathname === "/market/new") return "글쓰기";
+  if (pathname === "/market/my") return "내 글";
   if (pathname === "/discover") return t("nav.discover");
   if (pathname === "/discover/matches") return "매칭 목록";
   if (pathname === "/discover/settings") return "매칭 설정";
@@ -109,16 +106,13 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   if (pathname.startsWith("/anime/")) return t("nav.anime");
   if (pathname === "/cosplay/profiles") return "코스어 프로필";
   if (pathname === "/cosplay/board/new") return "글쓰기";
-  if (pathname === "/used/adult-verify") return "성인 인증";
-  if (pathname === "/used/verify") return "본인 확인";
+  if (pathname === "/market/adult-verify") return "성인 인증";
+  if (pathname === "/market/verify") return "본인 확인";
   if (pathname.startsWith("/wallet")) return "지갑";
-  if (pathname.startsWith("/market/sell-item")) return "판매 등록";
-  if (pathname.startsWith("/market/seller")) return "판매자";
-  if (pathname.startsWith("/market/i/")) return "상품";
-  if (pathname.startsWith("/market/sell")) return "판매 등록";
-  if (pathname.startsWith("/market/digital/")) return "디지털 굿즈";
-  if (pathname.startsWith("/market/goods/")) return "실물 굿즈";
-  if (pathname.startsWith("/market/emoticons/")) return "이모티콘";
+  if (pathname.match(/^\/market\/[^/]+$/) && pathname !== "/market/new" && pathname !== "/market/my") {
+    return "상품";
+  }
+  if (pathname.startsWith("/market/")) return t("nav.market");
   if (pathname.startsWith("/works")) return "크리에이터 작품";
   if (pathname.startsWith("/webtoon")) return "일러스트";
   if (pathname.startsWith("/payments/")) return "결제";

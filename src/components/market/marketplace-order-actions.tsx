@@ -60,7 +60,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
         <section className="rounded-xl border border-border/60 p-3 space-y-2">
           <p className="text-sm font-semibold">배송 처리</p>
           <p className="text-[11px] text-muted-foreground">
-            MoCoMo는 배송을 대행하지 않습니다. 배송사·송장만 기록합니다.
+            MoCoMo는 배송을 대행하지 않습니다. 송장 등록 후 택배 추적으로 배송완료가 자동 확인됩니다.
           </p>
 
           <div className="flex flex-wrap gap-2">
@@ -137,25 +137,6 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
               }
             >
               발송 완료
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              disabled={pending}
-              onClick={() =>
-                run(() =>
-                  sellerUpdateShipment({
-                    orderId: order.id,
-                    carrierCode,
-                    trackingNumber: tracking || order.shipment?.trackingNumber || "N/A",
-                    status: "DELIVERED",
-                    proofUrls: proofUrls.split(/[,\s]+/).map((u) => u.trim()).filter(Boolean),
-                  })
-                )
-              }
-            >
-              배송 완료
             </Button>
           </div>
         </section>
@@ -254,7 +235,8 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                 송금 완료 표시
               </Button>
             )}
-            {(order.status === "DELIVERED" || order.status === "SHIPPED") && (
+            {order.status === "DELIVERED" &&
+              order.shipment?.deliverySignalSource !== "fallback" && (
               <Button
                 type="button"
                 size="sm"
@@ -263,6 +245,12 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
               >
                 구매 확정
               </Button>
+            )}
+            {order.status === "DELIVERED" &&
+              order.shipment?.deliverySignalSource === "fallback" && (
+              <p className="text-[11px] text-muted-foreground w-full">
+                배송 추적 자동 처리 주문은 72시간 후 자동 구매확정됩니다.
+              </p>
             )}
             {["AWAITING_PAYMENT", "PAID", "PREPARING"].includes(order.status) && (
               <Button

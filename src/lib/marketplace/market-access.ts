@@ -28,10 +28,16 @@ export const MARKET_UNAVAILABLE_EN =
   "Marketplace is available in Stripe-supported regions only. Community features remain available.";
 
 export const MARKET_STRIPE_DISCLAIMER_KO =
-  "Stripe 안전 결제 · 입점비 무료 · 플랫폼 수수료 10% · 배송·물류 책임은 판매자에게 있습니다.";
+  "Stripe 안전 결제 · 입점비 무료 · 플랫폼 수수료 10% · 판매자와 같은 국가 내 거래만 · 배송·물류 책임은 판매자에게 있습니다.";
 
 export const MARKET_STRIPE_DISCLAIMER_EN =
-  "Stripe secure checkout · Free seller onboarding · 10% platform fee · Sellers are responsible for shipping.";
+  "Stripe secure checkout · Free seller onboarding · 10% platform fee · Domestic trades only (same country as seller) · Sellers are responsible for shipping.";
+
+export const MARKET_DOMESTIC_ONLY_KO =
+  "스타 마켓은 판매자와 같은 국가 내 거래만 지원합니다.";
+
+export const MARKET_DOMESTIC_ONLY_EN =
+  "Star Market supports domestic trades only — buyer and seller must be in the same country.";
 
 export function normalizeMarketCountry(code: string | null | undefined): string {
   return (code ?? "").trim().toUpperCase();
@@ -77,11 +83,62 @@ function marketBlockedMessage(countryCode: string): { message: string; messageEn
   return { message: MARKET_UNAVAILABLE_KO, messageEn: MARKET_UNAVAILABLE_EN };
 }
 
+/** Buyer side country for domestic-only trade (ship dest for physical, profile/geo for digital). */
+export function resolveDomesticTradeCountry(input: {
+  userCountryCode?: string | null;
+  shipCountry?: string | null;
+  geoCountry?: string | null;
+  needsShipping?: boolean;
+}): string {
+  const { countryCode, shipCountry } = resolveMarketCountry(input);
+  if (input.needsShipping && shipCountry) return shipCountry;
+  return countryCode;
+}
+
+export function assertSameCountryMarketTrade(input: {
+  sellerCountryCode: string | null | undefined;
+  userCountryCode?: string | null;
+  shipCountry?: string | null;
+  geoCountry?: string | null;
+  needsShipping?: boolean;
+}): MarketAccessResult {
+  const seller = normalizeSellerCountry(input.sellerCountryCode);
+  const buyerSide = normalizeMarketCountry(
+    resolveDomesticTradeCountry({
+      userCountryCode: input.userCountryCode,
+      shipCountry: input.shipCountry,
+      geoCountry: input.geoCountry,
+      needsShipping: input.needsShipping,
+    })
+  );
+
+  if (!seller) {
+    return {
+      allowed: false,
+      countryCode: buyerSide,
+      message: "판매자 국가 정보를 확인할 수 없습니다.",
+      messageEn: "Seller country could not be verified.",
+    };
+  }
+
+  if (buyerSide !== seller) {
+    return {
+      allowed: false,
+      countryCode: buyerSide,
+      message: MARKET_DOMESTIC_ONLY_KO,
+      messageEn: MARKET_DOMESTIC_ONLY_EN,
+    };
+  }
+
+  return { allowed: true, countryCode: buyerSide };
+}
+
 export function assertMarketAccess(input: {
   userCountryCode?: string | null;
   shipCountry?: string | null;
   geoCountry?: string | null;
   sellerCountryCode?: string | null;
+  needsShipping?: boolean;
   locale?: "ko" | "en";
 }): MarketAccessResult {
   const { countryCode, shipCountry } = resolveMarketCountry(input);
@@ -118,6 +175,17 @@ export function assertMarketAccess(input: {
     };
   }
 
+  if (seller) {
+    const domestic = assertSameCountryMarketTrade({
+      sellerCountryCode: seller,
+      userCountryCode: input.userCountryCode,
+      shipCountry: input.shipCountry,
+      geoCountry: input.geoCountry,
+      needsShipping: input.needsShipping,
+    });
+    if (!domestic.allowed) return domestic;
+  }
+
   return { allowed: true, countryCode };
 }
 
@@ -126,6 +194,7 @@ export function assertMarketAccessFromRequest(input: {
   shipCountry?: string | null;
   headers?: Headers;
   sellerCountryCode?: string | null;
+  needsShipping?: boolean;
   locale?: "ko" | "en";
 }): MarketAccessResult {
   const geo = input.headers ? getRequestCountryFromHeaders(input.headers) : null;
@@ -134,6 +203,7 @@ export function assertMarketAccessFromRequest(input: {
     shipCountry: input.shipCountry,
     geoCountry: geo,
     sellerCountryCode: input.sellerCountryCode,
+    needsShipping: input.needsShipping,
     locale: input.locale,
   });
 }

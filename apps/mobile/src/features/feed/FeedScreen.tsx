@@ -157,7 +157,6 @@ export function FeedScreen() {
       if (
         route === "Home" ||
         route === "Messages" ||
-        route === "Market" ||
         route === "Used"
       ) {
         navigation.navigate("Main", { screen: route as keyof RootTabParamList });

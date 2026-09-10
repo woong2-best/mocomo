@@ -45,7 +45,7 @@ export function UsedRegionFilter({
       if (v) params.set(k, v);
       else params.delete(k);
     });
-    router.replace(`/used?${params.toString()}`);
+    router.replace(`/market?${params.toString()}`);
   }
 
   if (!isKoreaUsedMarketCountry(viewerCountry)) {

@@ -195,7 +195,7 @@ export function UsedPostForm({
       return;
     }
     if ("listingId" in res && res.listingId) {
-      router.push(`/used/${res.listingId}`);
+      router.push(`/market/${res.listingId}`);
       return;
     }
     setError("등록에 실패했습니다. 다시 시도해 주세요.");
@@ -414,7 +414,7 @@ export function UsedPostForm({
         {restrictedKind !== "NONE" && !sellerAdultVerified && (
           <p className="text-xs text-amber-700 dark:text-amber-400">
             이 품목을 등록하려면{" "}
-            <Link href="/used/adult-verify?callbackUrl=/used/new" className="underline font-medium">
+            <Link href="/market/adult-verify?callbackUrl=/market/new" className="underline font-medium">
               성인 인증
             </Link>
             이 필요합니다.

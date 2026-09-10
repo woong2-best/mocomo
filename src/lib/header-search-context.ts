@@ -23,11 +23,11 @@ function matchPath(pathname: string, base: string): boolean {
 export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
   const path = pathname.split("?")[0] || "/";
 
-  if (matchPath(path, "/used")) {
+  if (matchPath(path, "/market")) {
     return {
       scope: "used",
       placeholder: "어떤 상품을 찾으세요?",
-      basePath: "/used",
+      basePath: "/market",
       inPage: true,
     };
   }

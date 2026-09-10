@@ -66,7 +66,7 @@ export function UsedAuctionBidSheet({
       });
       if ("error" in res && res.error) {
         if (needsSettlementAccount(res.error)) {
-          router.push(walletSettlementPath(`/used/${listingId}`));
+          router.push(walletSettlementPath(`/market/${listingId}`));
           return;
         }
         if (res.error.includes("중고거래 이용이 제한")) {
@@ -128,7 +128,7 @@ export function UsedAuctionBidSheet({
         setError("Stripe를 불러오지 못했습니다.");
         return;
       }
-      const returnUrl = stripePaymentIntentReturnUrlClient(pay.orderId, `/used/${listingId}`);
+      const returnUrl = stripePaymentIntentReturnUrlClient(pay.orderId, `/market/${listingId}`);
       const { error: confirmError } = await stripe.confirmCardPayment(pay.clientSecret, {
         return_url: returnUrl,
       });
@@ -173,7 +173,7 @@ export function UsedAuctionBidSheet({
     setBusy(false);
     if ("error" in res && res.error) {
       if (needsSettlementAccount(res.error)) {
-        router.push(walletSettlementPath(`/used/${listingId}`));
+        router.push(walletSettlementPath(`/market/${listingId}`));
         return;
       }
       if (res.error.includes("중고거래 이용이 제한")) {

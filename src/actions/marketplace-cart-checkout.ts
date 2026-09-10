@@ -9,6 +9,7 @@ import {
   computeFeesForCheckoutMode,
   resolveCheckoutRouting,
 } from "@/lib/marketplace/payment-routing";
+import { assertSameCountryMarketTrade } from "@/lib/marketplace/market-access";
 import {
   listingShipsToCountry,
   normalizeShipCountry,
@@ -53,7 +54,7 @@ export async function groupMarketplaceCartLines(items: MarketplaceCartLine[]) {
       shippingFeeFixed: true,
       shipToCountries: true,
       shipsWorldwide: true,
-      sellerProfile: { select: { displayName: true } },
+      sellerProfile: { select: { displayName: true, sellingMarket: true } },
     },
   });
 
@@ -124,6 +125,18 @@ async function initMultiItemStripeCartOrder(
   if (ofacBlock) return ofacBlock;
 
   const needsShipping = group.lines.some((l) => l.listing.type !== "DIGITAL");
+  const sellerMarket = group.lines[0]?.listing.sellerProfile?.sellingMarket;
+  const domestic = assertSameCountryMarketTrade({
+    sellerCountryCode: sellerMarket,
+    userCountryCode: buyer.countryCode,
+    shipCountry: input.shipCountry,
+    geoCountry: getRequestCountryFromHeaders(hdrs),
+    needsShipping,
+  });
+  if (!domestic.allowed) {
+    return { error: domestic.message };
+  }
+
   if (needsShipping) {
     if (!input.shipName?.trim() || !input.shipCountry?.trim() || !input.shipAddress1?.trim()) {
       return { error: "배송지(이름·국가·주소)를 입력해 주세요." };

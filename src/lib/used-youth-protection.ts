@@ -69,8 +69,8 @@ export function assertUsedAdultForRestricted(
 
 export function usedAdultVerifyUrl(listingId: string, kind?: string) {
   const params = new URLSearchParams({
-    callbackUrl: `/used/${listingId}`,
+    callbackUrl: `/market/${listingId}`,
   });
   if (kind && kind !== "NONE") params.set("kind", kind);
-  return `/used/adult-verify?${params.toString()}`;
+  return `/market/adult-verify?${params.toString()}`;
 }

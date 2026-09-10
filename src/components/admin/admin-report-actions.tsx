@@ -14,7 +14,7 @@ function targetHref(
   reportedUsername?: string | null
 ): string | null {
   if (targetType === "POST") return `/post/${targetId}`;
-  if (targetType === "USED_LISTING") return `/used/${targetId}`;
+  if (targetType === "USED_LISTING") return `/market/${targetId}`;
   if (targetType === "USER" && reportedUsername) return `/u/${reportedUsername}`;
   return null;
 }

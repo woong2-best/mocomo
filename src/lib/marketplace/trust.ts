@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import {
   MARKETPLACE_NEW_SELLER_DAYS,
   MARKETPLACE_NEW_SELLER_MAX_ORDERS,
-  MARKETPLACE_SETTLEMENT_DELAY_DAYS,
   MARKETPLACE_TRUST_TIERS,
 } from "@/lib/marketplace/protection-config";
 import { syncSellerStripeReserve } from "@/lib/marketplace/stripe-connect-reserve";
@@ -84,18 +83,6 @@ export function isNewSellerProfile(profile: {
     profile.confirmedOrderCount < MARKETPLACE_NEW_SELLER_MAX_ORDERS ||
     ageDays < MARKETPLACE_NEW_SELLER_DAYS
   );
-}
-
-/** Days to wait after confirm before releasing escrow */
-export function settlementDelayDaysForSeller(profile: {
-  createdAt: Date;
-  confirmedOrderCount: number;
-  trustTier: MarketplaceTrustTier;
-}): number {
-  if (isNewSellerProfile(profile)) {
-    return MARKETPLACE_SETTLEMENT_DELAY_DAYS.NEW;
-  }
-  return MARKETPLACE_SETTLEMENT_DELAY_DAYS[profile.trustTier] ?? 3;
 }
 
 export async function refreshSellerTrust(sellerUserId: string) {

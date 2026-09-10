@@ -76,7 +76,7 @@ export function UsedAuctionBottomBar({
 
   async function toggleFav() {
     if (!isLoggedIn) {
-      router.push(`/auth/signin?callbackUrl=/used/${listingId}`);
+      router.push(`/auth/signin?callbackUrl=/market/${listingId}`);
       return;
     }
     const res = await toggleUsedFavorite(listingId);
@@ -91,7 +91,7 @@ export function UsedAuctionBottomBar({
     setLoading(false);
     if ("error" in res && res.error) {
       if (needsSettlementAccount(res.error)) {
-        router.push(walletSettlementPath(`/used/${listingId}`));
+        router.push(walletSettlementPath(`/market/${listingId}`));
         return;
       }
       setBarError(res.error);
@@ -273,7 +273,7 @@ export function UsedAuctionBottomBar({
           </Button>
         ) : (
           <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">
-            <Link href={`/auth/signin?callbackUrl=/used/${listingId}`}>
+            <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>
               <Gavel className="h-5 w-5" />
               로그인 후 입찰
             </Link>
@@ -307,7 +307,7 @@ export function UsedAuctionBottomBar({
         />
       ) : (
         <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">
-          <Link href={`/auth/signin?callbackUrl=/used/${listingId}`}>
+          <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>
             <Gavel className="h-5 w-5" />
             로그인 후 입찰
           </Link>

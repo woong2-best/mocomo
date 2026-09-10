@@ -15,7 +15,7 @@ const tabs = [
     match: (p: string) => p.startsWith("/market/sell-item"),
   },
   { href: "/webtoon", label: "일러스트", match: (p: string) => p.startsWith("/webtoon") },
-  { href: "/used", label: "중고", match: (p: string) => p.startsWith("/used") },
+  { href: "/market", label: "중고", match: (p: string) => p.startsWith("/market") },
 ];
 
 export function MarketNav() {

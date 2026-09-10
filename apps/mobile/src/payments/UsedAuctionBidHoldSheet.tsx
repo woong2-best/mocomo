@@ -83,7 +83,7 @@ export function UsedAuctionBidHoldSheet({
   async function openAuthenticate(clientSecret: string, oid: string) {
     const pk = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
     if (!pk) throw new Error("Stripe 설정이 없습니다.");
-    const returnTo = encodeURIComponent(`/used/${listingId}`);
+    const returnTo = encodeURIComponent(`/market/${listingId}`);
     const authUrl = `${process.env.EXPO_PUBLIC_API_BASE_URL ?? ""}/payments/authenticate?order_id=${encodeURIComponent(oid)}&client_secret=${encodeURIComponent(clientSecret)}&return_to=${returnTo}`;
     const result = await WebBrowser.openAuthSessionAsync(authUrl, RETURN_PREFIX, {
       preferEphemeralSession: false,

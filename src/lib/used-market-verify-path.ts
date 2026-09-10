@@ -11,12 +11,12 @@ export type UsedMarketVerifyUser = {
 
 /** KR → Stripe Connect (wallet) · overseas → phone OTP at /used/verify */
 export function usedMarketVerifyPath(callbackUrl?: string, countryCode?: string): string {
-  const next = callbackUrl?.startsWith("/") ? callbackUrl : "/used/new";
+  const next = callbackUrl?.startsWith("/") ? callbackUrl : "/market/new";
   if (isKoreaUsedMarketCountry(countryCode)) {
     return walletSettlementPath(next);
   }
   const params = new URLSearchParams({ callbackUrl: next });
-  return `/used/verify?${params.toString()}`;
+  return `/market/verify?${params.toString()}`;
 }
 
 export function assertUsedMarketVerified(
@@ -27,6 +27,6 @@ export function assertUsedMarketVerified(
   if (isUsedMarketEligible(user)) return null;
   return {
     error: usedMarketVerificationRequiredMsg(user.countryCode, locale),
-    redirectTo: usedMarketVerifyPath("/used/new", user.countryCode),
+    redirectTo: usedMarketVerifyPath("/market/new", user.countryCode),
   };
 }

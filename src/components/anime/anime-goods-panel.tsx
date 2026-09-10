@@ -69,7 +69,7 @@ export function AnimeGoodsPanel({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">위키 굿즈 정보</p>
         <Link
-          href={`/used?anime=${encodeURIComponent(slug)}`}
+          href={`/market?anime=${encodeURIComponent(slug)}`}
           className="text-sm font-semibold text-primary hover:underline"
         >
           중고거래에서 찾기 →

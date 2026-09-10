@@ -199,7 +199,7 @@ export async function transferToNextBidder(
       type: "ended",
       title: "경매 거래 무산",
       body: `${listing.title} — 차순위 입찰자가 없습니다. 다시 등록할 수 있습니다.`,
-      link: `/used/${listingId}`,
+      link: `/market/${listingId}`,
     });
     return { transferred: false, relisted: true };
   }
@@ -308,7 +308,7 @@ export async function promoteNextAuctionWinner(
       type: "ended",
       title: "경매 거래 무산",
       body: `${listing.title} — 차순위 입찰자가 없습니다.`,
-      link: `/used/${listingId}`,
+      link: `/market/${listingId}`,
     });
     return { transferred: false, relisted: true };
   }
@@ -359,7 +359,7 @@ export async function promoteNextAuctionWinner(
     },
   });
 
-  const link = `/used/${listingId}`;
+  const link = `/market/${listingId}`;
   await sendUsedAuctionNotification({
     userId: next.bidderId,
     type: "won",
@@ -422,7 +422,7 @@ export async function processPaymentTimeout(listingId: string, config?: UsedAuct
     type: "ended",
     title: "낙찰자 결제 미이행",
     body: `${listing.title} — 차순위 입찰자에게 승계합니다.`,
-    link: `/used/${listingId}`,
+    link: `/market/${listingId}`,
   });
 
   const transfer = await promoteNextAuctionWinner(listingId, config, { incrementForfeitCount: true });
@@ -435,7 +435,7 @@ export async function processPaymentReminders(listingId: string) {
   if (!listing.winningBidderId) return;
 
   const remaining = listing.paymentDueAt.getTime() - Date.now();
-  const link = `/used/${listingId}`;
+  const link = `/market/${listingId}`;
 
   if (!listing.paymentReminder1hSent && remaining <= 60 * 60 * 1000 && remaining > 10 * 60 * 1000) {
     await db.usedListing.update({

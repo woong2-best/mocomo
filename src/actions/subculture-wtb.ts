@@ -20,9 +20,9 @@ export async function createSubcultureWtbAlert(input: {
   const user = await requireAuth();
   const result = await createWtbAlert(user.id, input);
   if ("error" in result) return result;
-  revalidatePath("/used");
-  revalidatePath("/used/my");
-  revalidatePath("/used/wtb");
+  revalidatePath("/market");
+  revalidatePath("/market/my");
+  revalidatePath("/market/wtb");
   return result;
 }
 
@@ -35,8 +35,8 @@ export async function removeSubcultureWtbAlert(alertId: string) {
   const user = await requireAuth();
   const result = await deactivateWtbAlert(user.id, alertId);
   if ("error" in result) return result;
-  revalidatePath("/used");
-  revalidatePath("/used/my");
-  revalidatePath("/used/wtb");
+  revalidatePath("/market");
+  revalidatePath("/market/my");
+  revalidatePath("/market/wtb");
   return result;
 }

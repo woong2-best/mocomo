@@ -9,6 +9,7 @@ import {
   confirmAndMaybeSettle,
   releaseDueMarketplaceSettlementsBatch,
 } from "@/lib/marketplace/escrow";
+import { syncMarketplaceOrderAuthHoldExpiry } from "@/lib/marketplace/auth-hold-sync";
 import { MARKETPLACE_DISPUTE_WINDOW_HOURS } from "@/lib/marketplace/protection-config";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
@@ -165,6 +166,10 @@ export async function fulfillMarketplaceOrder(params: {
     detail: holdForReview ? "paid_admin_review" : "paid_escrow_held",
     metadata: { amount: params.amount, paymentRef: params.paymentRef },
   });
+
+  if (!holdForReview && order.checkoutMode === "STRIPE") {
+    void syncMarketplaceOrderAuthHoldExpiry(order.id).catch(() => null);
+  }
 
   await createNotification({
     userId: order.sellerId,

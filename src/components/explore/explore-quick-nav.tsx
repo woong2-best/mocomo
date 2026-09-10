@@ -43,8 +43,8 @@ const TILES = [
     iconClass: "text-folk-cobalt",
   },
   {
-    href: "/used",
-    labelKey: "nav.used" as MessageKey,
+    href: "/market",
+    labelKey: "nav.market" as MessageKey,
     subKey: "explore.usedSub" as MessageKey,
     icon: Tags,
     className: "border-border/70 bg-muted/30 text-foreground",

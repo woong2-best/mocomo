@@ -80,7 +80,7 @@ export async function proposeUsedAuctionPrice(listingId: string, amount: number)
     actorId: user.id,
   });
 
-  revalidatePath(`/used/${listingId}`);
+  revalidatePath(`/market/${listingId}`);
   revalidatePath(`/messages/${listing.activeNegotiationRoomId}`);
   return { success: true, amount: price };
 }
@@ -147,7 +147,7 @@ export async function acceptUsedAuctionPrice(offerId: string) {
     actorId: user.id,
   });
 
-  revalidatePath(`/used/${listing.id}`);
+  revalidatePath(`/market/${listing.id}`);
   revalidatePath(`/messages/${offer.roomId}`);
   return { success: true, amount: offer.amount };
 }
@@ -185,7 +185,7 @@ export async function rejectUsedAuctionPrice(offerId: string) {
     actorId: user.id,
   });
 
-  revalidatePath(`/used/${offer.listingId}`);
+  revalidatePath(`/market/${offer.listingId}`);
   return { success: true };
 }
 
@@ -214,7 +214,7 @@ export async function declineUsedAuctionNegotiation(listingId: string) {
     });
   }
 
-  revalidatePath(`/used/${listingId}`);
+  revalidatePath(`/market/${listingId}`);
   return { success: true };
 }
 

@@ -127,10 +127,10 @@ export async function submitUsedMarketAppeal(data: z.infer<typeof appealSchema>)
     type: "SYSTEM",
     title: "중고거래 이의 신청 접수",
     body: "이의 신청이 정상적으로 접수되었습니다. 검토 결과를 알려드리겠습니다.",
-    link: "/used/appeal",
+    link: "/market/appeal",
   });
 
-  revalidatePath("/used/appeal");
-  revalidatePath("/used");
+  revalidatePath("/market/appeal");
+  revalidatePath("/market");
   return { success: true, appealId: appeal.id };
 }

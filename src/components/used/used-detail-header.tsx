@@ -38,7 +38,7 @@ export function UsedDetailHeader({
   async function remove() {
     setDeleting(true);
     await deleteUsedListing(listingId);
-    router.push("/used/my");
+    router.push("/market/my");
   }
 
   return (
@@ -48,10 +48,10 @@ export function UsedDetailHeader({
       )}
       <div className="flex items-center justify-between px-2 py-2">
         <div className="flex items-center gap-1">
-          <Link href="/used" className="p-2 -ml-1 rounded-lg hover:bg-muted" aria-label="뒤로">
+          <Link href="/market" className="p-2 -ml-1 rounded-lg hover:bg-muted" aria-label="뒤로">
             <ChevronLeft className="h-5 w-5" />
           </Link>
-          <Link href="/used" className="p-2 rounded-lg hover:bg-muted" aria-label="중고거래 홈">
+          <Link href="/market" className="p-2 rounded-lg hover:bg-muted" aria-label="More Commerce Moment">
             <Home className="h-5 w-5" />
           </Link>
         </div>

@@ -6187,6 +6187,10 @@ model MarketplaceOrder {
   escrowHeld         Boolean                @default(true)
   settledAt          DateTime?
   settlementHeldReason String?
+  /** Stripe manual-capture auth hold expiry (synced from PI capture_before) */
+  authHoldExpiresAt  DateTime?
+  /** When settlement entered BLOCKED for payment/auth recovery */
+  settlementBlockedAt DateTime?
   autoConfirmAt      DateTime?
   confirmedAt        DateTime?
   cancelledAt        DateTime?
@@ -6264,6 +6268,8 @@ model MarketplaceShipment {
   status         MarketplaceShipmentStatus @default(PREPARING)
   shippedAt      DateTime?
   deliveredAt    DateTime?
+  /** How delivery was confirmed: 17track | poll | fallback | manual | admin */
+  deliverySignalSource String?
   createdAt      DateTime                 @default(now())
   updatedAt      DateTime                 @updatedAt
 

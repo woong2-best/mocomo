@@ -31,7 +31,7 @@ export function UsedDetailActions({
 
   async function toggleFav() {
     if (!isLoggedIn) {
-      router.push("/auth/signin?callbackUrl=/used/" + listingId);
+      router.push("/auth/signin?callbackUrl=/market/" + listingId);
       return;
     }
     const res = await toggleUsedFavorite(listingId);
@@ -53,7 +53,7 @@ export function UsedDetailActions({
   async function confirmRemove() {
     setBusy(true);
     await deleteUsedListing(listingId);
-    router.push("/used/my");
+    router.push("/market/my");
   }
 
   if (isSeller) {
@@ -143,7 +143,7 @@ export function UsedDetailActions({
         <UsedTradeChatButton listingId={listingId} />
       ) : (
         <Button asChild variant="secondary" size="lg" className="flex-1 h-12">
-          <a href={`/auth/signin?callbackUrl=/used/${listingId}`}>로그인 후 채팅</a>
+          <a href={`/auth/signin?callbackUrl=/market/${listingId}`}>로그인 후 채팅</a>
         </Button>
       )}
     </div>

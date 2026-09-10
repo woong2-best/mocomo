@@ -23,7 +23,7 @@ export async function UsedWtbMySection() {
           WTB 알림 ({alerts.length})
         </h2>
         {alerts.length > 0 && (
-          <Link href="/used/wtb" className="text-xs font-semibold text-primary hover:underline">
+          <Link href="/market/wtb" className="text-xs font-semibold text-primary hover:underline">
             전체 보기
           </Link>
         )}

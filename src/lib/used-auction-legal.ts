@@ -11,7 +11,7 @@ export const USED_AUCTION_C2C_DISCLOSURE =
 /** 제재 후 이의 신청 기한(일) */
 export const USED_MARKET_APPEAL_WINDOW_DAYS = 7;
 
-export const USED_MARKET_APPEAL_PATH = "/used/appeal";
+export const USED_MARKET_APPEAL_PATH = "/market/appeal";
 
 export function usedMarketAppealMailto(subject: string): string {
   return `mailto:${LEGAL_CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`;

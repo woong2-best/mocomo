@@ -50,7 +50,7 @@ export function ContentModerationBar({
         return;
       }
       if (targetType === "POST") router.push("/");
-      else if (targetType === "USED_LISTING") router.push("/used");
+      else if (targetType === "USED_LISTING") router.push("/market");
       else router.refresh();
     });
   }

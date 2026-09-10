@@ -5,8 +5,8 @@
 /** Buyer dispute window after delivery before auto-confirm + capture (hours) */
 export const MARKETPLACE_DISPUTE_WINDOW_HOURS = 72;
 
-/** Shipped but no delivery signal → treat as delivered (days from shippedAt) */
-export const MARKETPLACE_DELIVERY_FALLBACK_DAYS = 45;
+/** Shipped but no delivery signal → treat as delivered (days from shippedAt). Keep ≤ card auth window (~30d EA). */
+export const MARKETPLACE_DELIVERY_FALLBACK_DAYS = 14;
 
 /** @deprecated Use MARKETPLACE_DISPUTE_WINDOW_HOURS for post-delivery timing */
 export const MARKETPLACE_AUTO_CONFIRM_DAYS = 7;
@@ -23,13 +23,8 @@ export const MARKETPLACE_TRUST_TIERS = {
   PREMIUM: { min: 85, max: 100 },
 } as const;
 
-/** Escrow release delay (days after confirm) by tier — 0 = immediate on confirm */
-export const MARKETPLACE_SETTLEMENT_DELAY_DAYS: Record<string, number> = {
-  NEW: 7,
-  STANDARD: 3,
-  TRUSTED: 1,
-  PREMIUM: 0,
-};
+/** Re-auth cron fires when hold expires within this many hours */
+export const MARKETPLACE_REAUTH_LEAD_HOURS = 24;
 
 /** Risk score at/above this → admin review */
 export const MARKETPLACE_RISK_ADMIN_REVIEW_THRESHOLD = 70;
@@ -64,13 +59,15 @@ export const MARKETPLACE_ROLLING_RESERVE_BPS: Record<string, number> = {
   PREMIUM: 0,
 };
 
-/** Stripe Connect payout delay (days) by trust tier — complements MoCoMo escrow delay */
-export const MARKETPLACE_ROLLING_RESERVE_PAYOUT_DAYS: Record<string, number> = {
-  NEW: 14,
-  STANDARD: 7,
-  TRUSTED: 3,
-  PREMIUM: 0,
-};
+/**
+ * Uniform Stripe Connect payout delay (days) — tier-independent; sanctions may override.
+ * Stripe enforces a per-account minimum (often 2 for US Express). syncSellerStripeReserve
+ * falls back to higher delay_days if the API rejects a lower value.
+ */
+export const MARKETPLACE_PAYOUT_DELAY_DAYS = 2;
+
+/** Payment/auth BLOCKED orders auto-closed after this many days without recovery */
+export const MARKETPLACE_SETTLEMENT_BLOCKED_GRACE_DAYS = 5;
 
 export const MARKETPLACE_DISPUTE_REASONS = [
   { id: "NOT_RECEIVED", label: "상품 미도착" },

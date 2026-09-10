@@ -11,7 +11,12 @@ import {
   MARKETPLACE_DISPUTE_WINDOW_HOURS,
 } from "@/lib/marketplace/protection-config";
 
-export type DeliverySignalSource = "17track" | "manual" | "fallback" | "poll";
+export type DeliverySignalSource =
+  | "17track"
+  | "manual"
+  | "fallback"
+  | "poll"
+  | "admin";
 
 const TERMINAL_ORDER_STATUSES = new Set([
   "CONFIRMED",
@@ -69,11 +74,13 @@ export async function markMarketplaceOrderDelivered(input: {
       orderId: order.id,
       status: "DELIVERED",
       deliveredAt,
-      shippedAt: deliveredAt,
+      shippedAt: order.shipment?.shippedAt ?? deliveredAt,
+      deliverySignalSource: input.source,
     },
     update: {
       status: "DELIVERED",
       deliveredAt,
+      deliverySignalSource: input.source,
     },
   });
 
@@ -120,14 +127,14 @@ export async function applyMarketplaceTrackingUpdate(input: {
   const trackingNumber = input.trackingNumber.trim();
   if (!trackingNumber) return null;
 
-  let shipment = input.orderTag
-    ? await db.marketplaceShipment.findFirst({
-        where: { orderId: input.orderTag, trackingNumber },
-        select: { orderId: true, status: true },
-      })
-    : null;
+  let shipment: { orderId: string; status: string } | null = null;
 
-  if (!shipment) {
+  if (input.orderTag) {
+    shipment = await db.marketplaceShipment.findFirst({
+      where: { orderId: input.orderTag, trackingNumber },
+      select: { orderId: true, status: true },
+    });
+  } else {
     shipment = await db.marketplaceShipment.findFirst({
       where: { trackingNumber },
       orderBy: { updatedAt: "desc" },

@@ -18,7 +18,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { Landmark, ShieldCheck } from "lucide-react";
 
 export function UsedBankVerifyForm({
-  callbackUrl = "/used/new",
+  callbackUrl = "/market/new",
   mode = "used",
   emailVerified = true,
 }: {

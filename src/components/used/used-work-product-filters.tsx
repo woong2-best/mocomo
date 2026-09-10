@@ -35,7 +35,7 @@ export function UsedWorkProductFilters({ onNavigate, isPending }: UsedWorkProduc
       if (v) params.set(k, v);
       else params.delete(k);
     });
-    router.replace(`/used?${params.toString()}`);
+    router.replace(`/market?${params.toString()}`);
   }
 
   function submitDetailedSearch(e: React.FormEvent) {

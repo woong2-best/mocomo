@@ -16,14 +16,13 @@ export function floatingTabClearanceCss(): string {
   return `calc(${base}px + max(env(safe-area-inset-bottom, 0px), 8px))`;
 }
 
-/** Primary app tabs — 홈 · 마켓 · 중고 · 메세지 (RN parity) */
-export const MOBILE_PRIMARY_TAB_HREFS = ["/feed", "/market", "/used", "/messages"] as const;
+/** Primary app tabs — 홈 · MCM(마켓) · 메세지 (RN parity) */
+export const MOBILE_PRIMARY_TAB_HREFS = ["/feed", "/market", "/messages"] as const;
 
 export function isMobilePrimaryTabPath(pathname: string): boolean {
   if (!pathname) return false;
   if (pathname === "/feed" || pathname.startsWith("/feed/")) return true;
   if (pathname === "/market" || pathname.startsWith("/market/")) return true;
-  if (pathname === "/used" || pathname.startsWith("/used/")) return true;
   if (pathname === "/messages") return true;
   return false;
 }

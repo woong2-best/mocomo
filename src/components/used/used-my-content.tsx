@@ -60,7 +60,7 @@ export async function UsedMyContent({ userId }: { userId: string }) {
             {myBids.map((b) => (
               <li key={b.id}>
                 <Link
-                  href={`/used/${b.listing.id}`}
+                  href={`/market/${b.listing.id}`}
                   prefetch
                   className="block p-3 rounded-xl border bg-card hover:bg-muted/50"
                 >

@@ -20,7 +20,7 @@ export function handleMobileDeepLink(url: string): boolean {
 
   const screen = ROUTE_ALIASES[path];
   if (screen === "Main") {
-    return navigateFromPush("Main", { screen: "Market" });
+    return navigateFromPush("Main", { screen: "Used" });
   }
   if (screen) {
     return navigateFromPush(screen);

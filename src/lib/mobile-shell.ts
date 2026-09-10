@@ -8,13 +8,20 @@ import { APT_GAME_PATH, REELS_PATH } from "@/lib/site-routes";
 export const HEADER_REM = "3.5rem";
 export const MOBILE_NAV_REM = "calc(92px + max(env(safe-area-inset-bottom, 0px), 8px))";
 
-const USED_SECTION_PATHS = new Set(["new", "my", "verify", "adult-verify"]);
+const MARKET_SECTION_PATHS = new Set([
+  "new",
+  "my",
+  "verify",
+  "adult-verify",
+  "appeal",
+  "wtb",
+]);
 
 /** /used/[id] 상세 (글쓰기·인증 페이지 제외) */
 export function isUsedDetailPath(pathname: string): boolean {
-  const match = pathname.match(/^\/used\/([^/]+)$/);
+  const match = pathname.match(/^\/market\/([^/]+)$/);
   if (!match) return false;
-  return !USED_SECTION_PATHS.has(match[1]);
+  return !MARKET_SECTION_PATHS.has(match[1]);
 }
 
 /** /events/map — 메인 영역 전체를 MapLibre 지구본으로 채움 */

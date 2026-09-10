@@ -30,6 +30,7 @@ export async function getMarketplaceCheckoutEligibility(input: {
     select: {
       id: true,
       status: true,
+      type: true,
       sellerId: true,
       sellerProfile: {
         select: {
@@ -64,6 +65,8 @@ export async function getMarketplaceCheckoutEligibility(input: {
     userCountryCode: userCountry,
     shipCountry: input.shipCountry,
     geoCountry: input.headers ? getRequestCountryFromHeaders(input.headers) : null,
+    sellerCountryCode: listing.sellerProfile?.sellingMarket,
+    needsShipping: listing.type !== "DIGITAL",
     locale: input.locale,
   });
 

@@ -16,7 +16,7 @@ import { usedMarketPhoneCountryLabel } from "@/lib/used-phone-countries";
 import { Phone, ShieldCheck } from "lucide-react";
 
 export function UsedPhoneVerifyForm({
-  callbackUrl = "/used/new",
+  callbackUrl = "/market/new",
   countryCode = "US",
 }: {
   callbackUrl?: string;

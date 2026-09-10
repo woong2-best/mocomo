@@ -40,7 +40,7 @@ export function shouldHideNativeAppHeader(pathname: string): boolean {
 }
 
 export function shouldHideNativeComposeFab(pathname: string): boolean {
-  if (pathname === "/used" || pathname.startsWith("/used/")) return true;
+  if (pathname === "/market" || pathname.startsWith("/market/")) return true;
   if (shouldHideNativeAppNav(pathname)) return true;
   return false;
 }

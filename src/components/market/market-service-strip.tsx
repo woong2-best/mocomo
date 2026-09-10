@@ -20,7 +20,7 @@ const SERVICES = [
   { href: "/market?type=PREORDER", label: "예약판매", icon: Truck, tone: "text-amber-700" },
   { href: "/market/seller/register", label: "판매 시작", icon: Store, tone: "text-folk-terracotta" },
   { href: "/webtoon", label: "일러스트", icon: Brush, tone: "text-sky-700" },
-  { href: "/used", label: "중고·경매", icon: Tags, tone: "text-amber-600" },
+  { href: "/market", label: "중고·경매", icon: Tags, tone: "text-amber-600" },
   { href: "/market/orders", label: "내 주문", icon: ClipboardList, tone: "text-folk-cobalt" },
   { href: "/market/seller", label: "판매자", icon: Store, tone: "text-folk-terracotta" },
 ] as const;

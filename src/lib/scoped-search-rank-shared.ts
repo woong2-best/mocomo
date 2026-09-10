@@ -40,7 +40,7 @@ export function searchRankingHref(scope: SidebarSearchRankingScope, label: strin
   const q = encodeURIComponent(label);
   switch (scope) {
     case "used":
-      return `/used?q=${q}`;
+      return `/market?q=${q}`;
     case "market":
       return `/market?q=${q}`;
     case "community":

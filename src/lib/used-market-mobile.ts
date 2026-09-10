@@ -411,7 +411,7 @@ export async function placeMobileUsedAuctionBid(
       return result;
     }
 
-    const link = `/used/${listingId}`;
+    const link = `/market/${listingId}`;
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "bid",

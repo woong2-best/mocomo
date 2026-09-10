@@ -8,16 +8,16 @@ export default async function UsedMarketAppealPage() {
   const ctx = await getUsedMarketAppealContext();
   if ("error" in ctx) {
     if (ctx.error === "로그인이 필요합니다.") {
-      redirect("/auth/signin?callbackUrl=/used/appeal");
+      redirect("/auth/signin?callbackUrl=/market/appeal");
     }
-    redirect("/used");
+    redirect("/market");
   }
 
   return (
     <AppPageChrome maxWidth="2xl" className="py-8">
       <div className="space-y-6">
         <div>
-          <Link href="/used" className="text-sm text-muted-foreground hover:text-primary">
+          <Link href="/market" className="text-sm text-muted-foreground hover:text-primary">
             ← 중고거래
           </Link>
           <h1 className="text-2xl font-bold mt-2">중고거래 이용 제한 이의 신청</h1>

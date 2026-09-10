@@ -34,7 +34,7 @@ export function UsedTradeChatButton({
     setLoading(false);
     if ("error" in res && res.error) {
       if (needsVerification(res.error)) {
-        router.push(usedMarketVerifyPath(`/used/${listingId}`, countryCode));
+        router.push(usedMarketVerifyPath(`/market/${listingId}`, countryCode));
         return;
       }
       setError(res.error);

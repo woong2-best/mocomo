@@ -9,7 +9,6 @@ import type { MobileLiveCategoryId } from "@/features/live/live-categories";
 import { fetchMarketplaceList } from "@/api/marketplace";
 import { fetchDmInbox } from "@/api/messages";
 import { fetchProfileEditState } from "@/api/profile";
-import { fetchStarMarketList } from "@/api/star-market";
 import { fetchPaymentMethods } from "@/payments/stripe-setup";
 import type { DrawerRoute, RootTabParamList } from "@/navigation/types";
 
@@ -49,7 +48,6 @@ export function warmTabBundles(): void {
   if (bundlesWarmed) return;
   bundlesWarmed = true;
   void import("@/features/messages/MessagesInboxScreen");
-  void import("@/features/market/MarketScreen");
   void import("@/features/marketplace/MarketplaceListScreen");
   void import("@/features/messages/MessagesNewScreen");
 }
@@ -77,12 +75,6 @@ export function prefetchTabQueries(queryClient: QueryClient): void {
   void queryClient.prefetchQuery({
     queryKey: ["mobile-dm-inbox"],
     queryFn: fetchDmInbox,
-    staleTime: STALE_MS,
-  });
-
-  void queryClient.prefetchQuery({
-    queryKey: ["mobile-star-market", "ALL", ""],
-    queryFn: () => fetchStarMarketList({ type: "ALL", take: 48 }),
     staleTime: STALE_MS,
   });
 
@@ -168,13 +160,6 @@ export function prefetchTabForRoute(
         staleTime: STALE_MS,
       });
       break;
-    case "Market":
-      void queryClient.prefetchQuery({
-        queryKey: ["mobile-star-market", "ALL", ""],
-        queryFn: () => fetchStarMarketList({ type: "ALL", take: 48 }),
-        staleTime: STALE_MS,
-      });
-      break;
     case "Used":
       void queryClient.prefetchQuery({
         queryKey: ["mobile-marketplace", DEFAULT_MARKETPLACE_QUERY],
@@ -195,9 +180,6 @@ export function prefetchDrawerRoute(queryClient: QueryClient, route: DrawerRoute
   switch (route) {
     case "Home":
     case "Messages":
-    case "Market":
-      prefetchTabForRoute(queryClient, route);
-      return;
     case "LiveList":
       prefetchLiveHubInfinite(queryClient, "ALL");
       return;

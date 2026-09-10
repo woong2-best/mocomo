@@ -277,7 +277,7 @@ export async function PATCH(req: NextRequest) {
       },
     });
     if (data.countryCode || data.usedServiceRegion) {
-      revalidatePath("/used");
+      revalidatePath("/market");
     }
   }
 

@@ -16,7 +16,7 @@ export default async function UsedVerifyPage({
 }) {
   const user = await getCachedCurrentUser();
   const { callbackUrl } = await searchParams;
-  const next = callbackUrl?.startsWith("/") ? callbackUrl : "/used/new";
+  const next = callbackUrl?.startsWith("/") ? callbackUrl : "/market/new";
   const { locale } = await getServerTranslator();
 
   if (!user) {
@@ -34,7 +34,7 @@ export default async function UsedVerifyPage({
   return (
     <AppPageChrome maxWidth="2xl" spacing="sm" className="py-6 space-y-4">
       <div>
-        <Link href="/used" className="text-sm text-muted-foreground hover:text-foreground underline">
+        <Link href="/market" className="text-sm text-muted-foreground hover:text-foreground underline">
           {locale === "en" ? "Back to marketplace" : "중고거래 홈"}
         </Link>
         <h1 className="text-xl font-bold mt-2">

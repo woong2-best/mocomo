@@ -15,15 +15,13 @@ type IconName = keyof typeof Ionicons.glyphMap;
 
 const TAB_LABEL_KEYS: Record<keyof RootTabParamList, string> = {
   Home: "nav.home",
-  Market: "nav.market",
-  Used: "nav.used",
+  Used: "nav.market",
   Messages: "nav.messages",
 };
 
 const TAB_ICONS: Record<keyof RootTabParamList, { active: IconName; inactive: IconName }> = {
   Home: { active: "home", inactive: "home-outline" },
-  Market: { active: "storefront", inactive: "storefront-outline" },
-  Used: { active: "pricetag", inactive: "pricetag-outline" },
+  Used: { active: "storefront", inactive: "storefront-outline" },
   Messages: { active: "paper-plane", inactive: "paper-plane-outline" },
 };
 

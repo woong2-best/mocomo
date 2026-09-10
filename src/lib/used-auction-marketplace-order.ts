@@ -406,7 +406,7 @@ export async function finalizeUsedAuctionWinner(input: {
     "기한 내 미결제 시 중고거래 이용이 제한됩니다.",
   ]).catch(() => {});
 
-  const link = `/used/${input.listingId}`;
+  const link = `/market/${input.listingId}`;
   await sendUsedAuctionNotification({
     userId: input.winnerId,
     type: "won",

@@ -38,12 +38,7 @@ function MainTabs() {
       screenOptions={{ headerShown: false, lazy: true, freezeOnBlur: true }}
     >
       <Tab.Screen name="Home" component={FeedScreen} options={{ title: t("nav.home") }} />
-      <Tab.Screen
-        name="Market"
-        getComponent={() => require("@/features/market/MarketScreen").MarketScreen}
-        options={{ title: t("nav.market") }}
-      />
-      <Tab.Screen name="Used" getComponent={() => UsedTabScreen} options={{ title: t("nav.used") }} />
+      <Tab.Screen name="Used" getComponent={() => UsedTabScreen} options={{ title: t("nav.market") }} />
       <Tab.Screen
         name="Messages"
         getComponent={() =>

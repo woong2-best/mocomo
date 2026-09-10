@@ -615,7 +615,7 @@ export async function reauthorizeExpiringBidHoldsBatch(limit = 30) {
           type: "outbid",
           title: "입찰 hold 자동 갱신됨",
           body: "카드 승인이 자동으로 갱신되었습니다. 경매를 계속 진행할 수 있습니다.",
-          link: `/used/${bid.listingId}`,
+          link: `/market/${bid.listingId}`,
         });
         safeLogWarn("used-auction-hold-reauth-auto", {
           bidId: bid.id,
@@ -638,7 +638,7 @@ export async function reauthorizeExpiringBidHoldsBatch(limit = 30) {
           type: "outbid",
           title: "입찰 hold 갱신 필요",
           body: `카드 승인 갱신에 실패했습니다 (${result.reason}). 경매 페이지에서 동일 금액으로 다시 입찰해 주세요.`,
-          link: `/used/${bid.listingId}`,
+          link: `/market/${bid.listingId}`,
         });
         reauthorized += 1;
       }

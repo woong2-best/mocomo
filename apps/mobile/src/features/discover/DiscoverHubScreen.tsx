@@ -24,7 +24,7 @@ const SECTIONS: {
   { title: "메세지", subtitle: "DM", target: { kind: "tab", route: "Messages" }, icon: "chatbubbles-outline" },
   { title: "STAR", subtitle: "저장한 게시물", target: { kind: "stack", route: "StarList" }, icon: "star-outline" },
   { title: "애니·위키", subtitle: "작품 탐색", target: { kind: "stack", route: "AnimeList" }, icon: "book-outline" },
-  { title: "STAR 마켓", subtitle: "크리에이터 상품", target: { kind: "tab", route: "Market" }, icon: "storefront-outline" },
+  { title: "MCM", subtitle: "More Commerce Moment", target: { kind: "tab", route: "Used" }, icon: "storefront-outline" },
   { title: "커뮤니티", subtitle: "관심사 모임", target: { kind: "stack", route: "CommunityList" }, icon: "people-outline" },
   { title: "이벤트", subtitle: "참여·대회", target: { kind: "stack", route: "EventsList" }, icon: "calendar-outline" },
   { title: "게임", subtitle: "미니게임 허브", target: { kind: "stack", route: "GamesHub" }, icon: "game-controller-outline" },

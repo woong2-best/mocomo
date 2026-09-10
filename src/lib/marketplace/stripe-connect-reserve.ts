@@ -9,14 +9,46 @@ import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { safeLogInfo, safeLogWarn } from "@/lib/safe-log";
 import { logMarketplaceAudit, MarketplaceAuditActions } from "@/lib/marketplace/audit";
 import {
+  MARKETPLACE_PAYOUT_DELAY_DAYS,
   MARKETPLACE_ROLLING_RESERVE_BPS,
-  MARKETPLACE_ROLLING_RESERVE_PAYOUT_DAYS,
 } from "@/lib/marketplace/protection-config";
 
 export type RollingReservePolicy = {
   reserveBps: number;
   payoutDelayDays: number;
 };
+
+/** Apply payout delay; bump to Stripe-allowed minimum on rejection. */
+export async function applyConnectPayoutDelayDays(
+  stripe: ReturnType<typeof getStripe>,
+  accountId: string,
+  requestedDays: number,
+  metadata?: Record<string, string>
+): Promise<number> {
+  const candidates = [...new Set([requestedDays, 2, 7, 14, 30])]
+    .filter((d) => d >= 0)
+    .sort((a, b) => a - b);
+
+  let lastError: unknown;
+  for (const delayDays of candidates) {
+    if (delayDays < requestedDays) continue;
+    try {
+      await stripe.accounts.update(accountId, {
+        settings: {
+          payouts: {
+            schedule: { delay_days: delayDays },
+          },
+        },
+        ...(metadata ? { metadata } : {}),
+      });
+      return delayDays;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Stripe payout delay update failed");
+}
 
 export function computeRollingReservePolicy(profile: {
   trustTier: MarketplaceTrustTier;
@@ -27,8 +59,7 @@ export function computeRollingReservePolicy(profile: {
   settlementBlocked: boolean;
 }): RollingReservePolicy {
   let reserveBps = MARKETPLACE_ROLLING_RESERVE_BPS[profile.trustTier] ?? 1000;
-  let payoutDelayDays =
-    MARKETPLACE_ROLLING_RESERVE_PAYOUT_DAYS[profile.trustTier] ?? 7;
+  let payoutDelayDays = MARKETPLACE_PAYOUT_DELAY_DAYS;
 
   const sales = Math.max(1, profile.confirmedOrderCount);
   const disputeRate = profile.disputedOrderCount / sales;
@@ -87,23 +118,28 @@ export async function syncSellerStripeReserve(
 
   try {
     const stripe = getStripe();
-    await stripe.accounts.update(accountId, {
-      settings: {
-        payouts: {
-          schedule: {
-            delay_days: policy.payoutDelayDays,
-          },
-        },
-      },
-      metadata: {
+    const appliedDelayDays = await applyConnectPayoutDelayDays(
+      stripe,
+      accountId,
+      policy.payoutDelayDays,
+      {
         mocomoReserveBps: String(policy.reserveBps),
         mocomoTrustTier: profile.trustTier,
-      },
-    });
+      }
+    );
+
+    if (appliedDelayDays !== policy.payoutDelayDays) {
+      await db.marketplaceSellerProfile.update({
+        where: { id: profile.id },
+        data: { stripePayoutDelayDays: appliedDelayDays },
+      });
+    }
+
     safeLogInfo("stripe-connect-reserve", {
       sellerUserId,
       reserveBps: policy.reserveBps,
-      payoutDelayDays: policy.payoutDelayDays,
+      payoutDelayDays: appliedDelayDays,
+      requestedDelayDays: policy.payoutDelayDays,
     });
   } catch (e) {
     safeLogWarn("stripe-connect-reserve", {

@@ -4,7 +4,8 @@ import { isStripeConnectPayoutReady } from "@/lib/stripe-connect";
 import { recordMarketplaceSettlementLedger, recordPlatformFee, recordPaymentGross } from "@/lib/settlement";
 import { logMarketplaceAudit, MarketplaceAuditActions } from "@/lib/marketplace/audit";
 import { finalizeUsedListingSold } from "@/lib/subculture-commerce/sale-records";
-import { refreshSellerTrust, settlementDelayDaysForSeller } from "@/lib/marketplace/trust";
+import { refreshSellerTrust } from "@/lib/marketplace/trust";
+import { handleMarketplaceCaptureFailure } from "@/lib/marketplace/capture-failure";
 import { createNotification } from "@/lib/notifications";
 import { formatUsd } from "@/lib/money";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
@@ -14,13 +15,13 @@ import {
 } from "@/lib/marketplace/stripe-payment";
 
 /**
- * Escrow: auth hold until purchase confirm (+ tier delay), then PI capture.
+ * Escrow: auth hold until purchase confirm, then PI capture.
  * Connect destination transfer + application fee occur at capture — not before.
  * Dispute exposure after capture sits in seller Connect account reserve.
  */
 export async function releaseMarketplaceEscrow(
   orderId: string,
-  opts?: { actorId?: string | null; force?: boolean }
+  opts?: { actorId?: string | null; force?: boolean; _captureRetried?: boolean }
 ): Promise<{ ok: true } | { error: string; deferred?: boolean }> {
   const order = await db.marketplaceOrder.findUnique({
     where: { id: orderId },
@@ -85,26 +86,6 @@ export async function releaseMarketplaceEscrow(
     return { error: "영구 판매 금지 계정입니다." };
   }
 
-  if (!opts?.force && order.confirmedAt && profile) {
-    const delayDays = settlementDelayDaysForSeller(profile);
-    const readyAt = new Date(
-      order.confirmedAt.getTime() + delayDays * 24 * 60 * 60 * 1000
-    );
-    if (Date.now() < readyAt.getTime()) {
-      await db.marketplaceOrder.update({
-        where: { id: orderId },
-        data: {
-          settlementStatus: "HELD",
-          settlementHeldReason: `신규/신뢰도 정책: ${delayDays}일 후 정산 (${readyAt.toISOString().slice(0, 10)})`,
-        },
-      });
-      return {
-        error: `정산 대기 중 (예정: ${readyAt.toISOString().slice(0, 10)})`,
-        deferred: true,
-      };
-    }
-  }
-
   if (order.adminReviewRequired && !opts?.force) {
     await db.marketplaceOrder.update({
       where: { id: orderId },
@@ -135,19 +116,17 @@ export async function releaseMarketplaceEscrow(
   const storedRef = order.stripePaymentIntentId ?? order.stripeCheckoutSessionId;
   const captureRes = await captureMarketplacePaymentIntent(storedRef);
   if ("error" in captureRes) {
-    await logMarketplaceAudit({
-      orderId,
-      actorId: opts?.actorId,
-      action: MarketplaceAuditActions.SETTLEMENT_BLOCKED,
-      detail: captureRes.error,
-    });
-    if (order.usedListingId) {
-      const { handleUsedAuctionOrderCaptureFailure } = await import(
-        "@/lib/used-auction-marketplace-order"
-      );
-      await handleUsedAuctionOrderCaptureFailure(orderId, captureRes.error).catch((e) => {
-        safeLogWarn("used-auction-capture-fail-handoff", { orderId, err: String(e) });
+    if (!opts?._captureRetried) {
+      const failure = await handleMarketplaceCaptureFailure(orderId, captureRes.error, {
+        actorId: opts?.actorId,
       });
+      if (failure.handled && failure.renewed) {
+        return releaseMarketplaceEscrow(orderId, {
+          actorId: opts?.actorId,
+          force: opts?.force,
+          _captureRetried: true,
+        });
+      }
     }
     return { error: `정산 캡처 실패: ${captureRes.error}` };
   }
@@ -185,6 +164,8 @@ export async function releaseMarketplaceEscrow(
       settledAt: new Date(),
       stripeTransferId: settlementRef ?? null,
       settlementHeldReason: null,
+      settlementBlockedAt: null,
+      authHoldExpiresAt: null,
     },
   });
 

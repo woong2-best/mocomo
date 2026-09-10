@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
-import { Home, Send, Store, Tags, LogIn } from "lucide-react";
+import { Home, Send, Store, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -31,15 +31,9 @@ const signedInTabs: TabDef[] = [
     href: "/market",
     icon: Store,
     labelKey: "nav.market",
-    match: (p) => p === "/market" || p.startsWith("/market/"),
-  },
-  {
-    href: "/used",
-    icon: Tags,
-    labelKey: "nav.used",
     match: (p) =>
-      p === "/used" ||
-      (p.startsWith("/used/") && !isUsedDetailPath(p)),
+      p === "/market" ||
+      (p.startsWith("/market/") && !isUsedDetailPath(p)),
   },
   {
     href: "/messages",
@@ -60,13 +54,7 @@ const guestTabs: TabDef[] = [
     href: "/market",
     icon: Store,
     labelKey: "nav.market",
-    match: (p) => p === "/market" || p.startsWith("/market/"),
-  },
-  {
-    href: "/used",
-    icon: Tags,
-    labelKey: "nav.used",
-    match: (p) => p === "/used" || (p.startsWith("/used/") && !isUsedDetailPath(p)),
+    match: (p) => p === "/market" || (p.startsWith("/market/") && !isUsedDetailPath(p)),
   },
   {
     href: "/auth/signin",

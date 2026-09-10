@@ -29,7 +29,7 @@ export function UsedSearchHeader({
       else params.delete(k);
     });
     startTransition(() => {
-      router.replace(`/used?${params.toString()}`);
+      router.replace(`/market?${params.toString()}`);
     });
   }
 

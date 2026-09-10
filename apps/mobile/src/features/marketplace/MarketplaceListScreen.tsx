@@ -174,7 +174,7 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
 
       <View style={styles.titleRow}>
         <Ionicons name="pricetag" size={22} color={colors.brand} />
-        <Text style={styles.pageTitle}>중고거래</Text>
+        <Text style={styles.pageTitle}>More Commerce Moment</Text>
       </View>
 
       <View style={styles.actionRow}>

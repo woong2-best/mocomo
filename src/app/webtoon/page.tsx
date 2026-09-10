@@ -24,9 +24,9 @@ export default async function WebtoonHomePage({
         <div>
           <h1 className="text-xl font-bold">일러스트 작품</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            픽시브형 열람·구매. 실물·주문제작·디지털 마켓은{" "}
+            픽시브형 열람·구매. 커머스 거래는{" "}
             <Link href="/market" className="text-primary hover:underline">
-              MARKET
+              More Commerce Moment
             </Link>
             을 이용하세요.
           </p>

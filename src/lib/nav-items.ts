@@ -42,7 +42,6 @@ export const mainNavItems: NavItem[] = [
   { href: "/star", icon: Star, labelKey: "nav.star" },
   { href: "/live", icon: Radio, labelKey: "nav.live" },
   { href: "/market", icon: Store, labelKey: "nav.market" },
-  { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/anime", icon: Tv, labelKey: "nav.anime" },
   { href: "/wallet", icon: Wallet, labelKey: "nav.wallet" },
 ];

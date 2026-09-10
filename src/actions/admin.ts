@@ -340,9 +340,9 @@ export async function adminForceDeleteUsedListing(listingId: string, modReason?:
     },
   });
 
-  revalidatePath("/used");
+  revalidatePath("/market");
   revalidatePath("/admin");
-  revalidatePath(`/used/${listingId}`);
+  revalidatePath(`/market/${listingId}`);
   return { success: true };
 }
 

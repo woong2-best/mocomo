@@ -60,9 +60,9 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
           type: "ended",
           title: "경매 유찰 (낙찰가 미달)",
           body: captureCheck.error,
-          link: `/used/${listingId}`,
+          link: `/market/${listingId}`,
         });
-        revalidatePath(`/used/${listingId}`);
+        revalidatePath(`/market/${listingId}`);
         return;
       }
 
@@ -89,12 +89,12 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
         type: "ended",
         title: listing.bidCount > 0 ? "경매 유찰" : "경매 종료 (입찰 없음)",
         body: listing.title,
-        link: `/used/${listingId}`,
+        link: `/market/${listingId}`,
       });
     }
-    revalidatePath(`/used/${listingId}`);
-    revalidatePath("/used");
-    revalidatePath("/used/my");
+    revalidatePath(`/market/${listingId}`);
+    revalidatePath("/market");
+    revalidatePath("/market/my");
   } catch {
     /* 스키마 미적용 */
   }
@@ -164,7 +164,7 @@ export async function placeUsedAuctionBid(
       return result;
     }
 
-    const link = `/used/${listingId}`;
+    const link = `/market/${listingId}`;
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "bid",
@@ -195,8 +195,8 @@ export async function placeUsedAuctionBid(
     ) {
       const activated = await activateUsedAuctionStripeOrder(listingId, user.id);
       if ("ok" in activated && activated.ok) {
-        revalidatePath(`/used/${listingId}`);
-        revalidatePath("/used");
+        revalidatePath(`/market/${listingId}`);
+        revalidatePath("/market");
         revalidatePath(`/market/orders/${activated.orderId}`);
         return {
           success: true,
@@ -207,8 +207,8 @@ export async function placeUsedAuctionBid(
       }
     }
 
-    revalidatePath(`/used/${listingId}`);
-    revalidatePath("/used");
+    revalidatePath(`/market/${listingId}`);
+    revalidatePath("/market");
     return { success: true, amount: result.amount, extended: result.extended };
   } catch (e) {
     console.error("[placeUsedAuctionBid]", e);
@@ -283,9 +283,9 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
       currency: listing.currency,
       paymentDeadlineHours: config.paymentDeadlineHours,
     });
-    revalidatePath(`/used/${listingId}`);
-    revalidatePath("/used");
-    revalidatePath("/used/my");
+    revalidatePath(`/market/${listingId}`);
+    revalidatePath("/market");
+    revalidatePath("/market/my");
     return { success: true, amount: buyNow };
   } catch (e) {
     console.error("[buyNowUsedAuction]", e);
@@ -348,7 +348,7 @@ export async function cancelUsedAuction(listingId: string) {
       saleType: "FIXED",
     },
   });
-  revalidatePath(`/used/${listingId}`);
-  revalidatePath("/used/my");
+  revalidatePath(`/market/${listingId}`);
+  revalidatePath("/market/my");
   return { success: true };
 }

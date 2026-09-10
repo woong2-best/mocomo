@@ -61,7 +61,7 @@ export function UsedDetailBottomBar({
 
   async function toggleFav() {
     if (!isLoggedIn) {
-      router.push(`/auth/signin?callbackUrl=/used/${listingId}`);
+      router.push(`/auth/signin?callbackUrl=/market/${listingId}`);
       return;
     }
     const res = await toggleUsedFavorite(listingId);
@@ -76,7 +76,7 @@ export function UsedDetailBottomBar({
     setLoading(false);
     if ("error" in res && res.error) {
       if (needsSettlementAccount(res.error)) {
-        router.push(walletSettlementPath(`/used/${listingId}`));
+        router.push(walletSettlementPath(`/market/${listingId}`));
         return;
       }
       if ("needsAdultVerify" in res && res.needsAdultVerify) {
@@ -190,7 +190,7 @@ export function UsedDetailBottomBar({
           </Button>
         ) : (
           <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl">
-            <Link href={`/auth/signin?callbackUrl=/used/${listingId}`}>로그인 후 성인 인증</Link>
+            <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>로그인 후 성인 인증</Link>
           </Button>
         )}
       </div>
@@ -231,7 +231,7 @@ export function UsedDetailBottomBar({
         </Button>
       ) : (
         <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl">
-          <Link href={`/auth/signin?callbackUrl=/used/${listingId}`}>로그인 후 채팅</Link>
+          <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>로그인 후 채팅</Link>
         </Button>
       )}
       </div>

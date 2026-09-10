@@ -69,6 +69,8 @@ export function resolveCheckoutRouting(input: {
   userCountryCode?: string | null;
   shipCountry?: string | null;
   geoCountry?: string | null;
+  sellerCountryCode?: string | null;
+  needsShipping?: boolean;
   locale?: Locale;
 }): CheckoutRoutingResult {
   const buyerCountry = resolveBuyerCountry(input);
@@ -76,6 +78,8 @@ export function resolveCheckoutRouting(input: {
     userCountryCode: input.userCountryCode,
     shipCountry: input.shipCountry,
     geoCountry: input.geoCountry,
+    sellerCountryCode: input.sellerCountryCode,
+    needsShipping: input.needsShipping,
   });
 
   const locale = input.locale ?? "ko";
