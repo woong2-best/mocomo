@@ -50,22 +50,26 @@ export function SponsorEventSpot({ fallbackAds }: { fallbackAds: FallbackAd[] })
   }, [pathname]);
 
   if (!loaded) {
-    return <div className="h-36 rounded-xl bg-muted/60 animate-pulse" />;
+    return <div className="aspect-[4/5] w-full bg-muted/60 animate-pulse" />;
   }
 
   if (event) {
     return (
       <Link
         href="/events"
-        className="block rounded-xl overflow-hidden border border-border/60 hover:border-primary/40"
+        className="group relative block w-full overflow-hidden hover:opacity-95 transition-opacity"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={event.imageUrl}
-          alt={event.title}
-          className="w-full aspect-square object-cover"
+          alt=""
+          className="block w-full aspect-[4/5] object-cover"
         />
-        <p className="text-xs p-2 font-medium line-clamp-2">{event.title}</p>
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pb-3 pt-10">
+          <p className="text-sm font-bold text-white line-clamp-2 group-hover:text-folk-gold transition-colors">
+            {event.title}
+          </p>
+        </div>
       </Link>
     );
   }
@@ -87,16 +91,22 @@ export function SponsorEventSpot({ fallbackAds }: { fallbackAds: FallbackAd[] })
       {ads.map((ad) => {
         const href = sanitizeAdLink(ad.linkUrl);
         const external = isExternalUrl(href);
+        const title = localizeSidebarAdTitle(ad, t);
         return (
           <Link
             key={ad.id}
             href={href}
             {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-            className="block rounded-xl overflow-hidden border border-border/60 hover:border-primary/40"
+            className="group relative block w-full overflow-hidden hover:opacity-95 transition-opacity"
+            aria-label={title}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ad.imageUrl} alt={ad.title} className="w-full aspect-square object-cover" />
-            <p className="text-xs p-2 font-medium">{localizeSidebarAdTitle(ad, t)}</p>
+            <img src={ad.imageUrl} alt="" className="block w-full aspect-[4/5] object-cover" />
+            {ad.ctaLabel ? (
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-3 pb-3 pt-8">
+                <p className="text-[11px] font-semibold text-folk-gold">{ad.ctaLabel} →</p>
+              </div>
+            ) : null}
           </Link>
         );
       })}

@@ -47,7 +47,7 @@ export function RightPanelContent({ sidebarAds, eventPins }: SidebarPanelData) {
   return (
     <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 h-full flex-col min-h-0 shell-col-pad folk-panel-aside gap-3 overflow-hidden overscroll-none">
       <Card className="overflow-hidden border-folk-gold/40 bg-folk-gold/5">
-        <CardHeader className="pb-2">
+        <CardHeader className="px-3 py-2.5 pb-2">
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-terracotta">
               <Megaphone className="h-4 w-4" />
@@ -62,7 +62,7 @@ export function RightPanelContent({ sidebarAds, eventPins }: SidebarPanelData) {
             </Link>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="p-0">
           <SponsorEventSpot fallbackAds={ads} />
         </CardContent>
       </Card>
