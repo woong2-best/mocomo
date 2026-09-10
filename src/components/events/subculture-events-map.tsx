@@ -154,6 +154,7 @@ export function SubcultureEventsMap({
   className,
   heightClassName = "h-44",
   interactive = true,
+  showNavigationControls,
   immersive = false,
   onPinClick,
   onZoomChange,
@@ -163,7 +164,10 @@ export function SubcultureEventsMap({
   pins: MapEventPin[];
   className?: string;
   heightClassName?: string;
+  /** 드래그·휠 줌 등 지도 조작 (false면 정적 미리보기) */
   interactive?: boolean;
+  /** +/- 줌 버튼 (기본: immersive 전체화면 지도만) */
+  showNavigationControls?: boolean;
   immersive?: boolean;
   onPinClick?: (pin: MapEventPin) => void;
   /** Globe void decor — hide Mars overlay once user zooms past ~city level */
@@ -172,6 +176,7 @@ export function SubcultureEventsMap({
   /** true면 fitBounds 생략하고 defaultView 그대로 사용 (지구본 초기 각도) */
   respectDefaultView?: boolean;
 }) {
+  const navigationControls = showNavigationControls ?? immersive;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<MapLibreMarker[]>([]);
@@ -208,12 +213,7 @@ export function SubcultureEventsMap({
         fadeDuration: 0,
       });
 
-      if (interactive) {
-        map.addControl(
-          new maplibregl.NavigationControl({ showCompass: false }),
-          immersive ? "bottom-right" : "top-left"
-        );
-      } else {
+      if (!interactive) {
         map.dragPan.disable();
         map.scrollZoom.disable();
         map.boxZoom.disable();
@@ -221,6 +221,11 @@ export function SubcultureEventsMap({
         map.keyboard.disable();
         map.doubleClickZoom.disable();
         map.touchZoomRotate.disable();
+      } else if (navigationControls) {
+        map.addControl(
+          new maplibregl.NavigationControl({ showCompass: false }),
+          immersive ? "bottom-right" : "top-left"
+        );
       }
 
       const resize = () => {
@@ -365,7 +370,7 @@ export function SubcultureEventsMap({
       setReady(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pins identity drives rebuild
-  }, [pins, interactive, defaultView]);
+  }, [pins, interactive, navigationControls, defaultView]);
 
   if (pins.length === 0) {
     return (

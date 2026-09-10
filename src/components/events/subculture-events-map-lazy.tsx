@@ -17,6 +17,7 @@ export function SubcultureEventsMapLazy({
   heightClassName = "h-44",
   className,
   interactive = true,
+  showNavigationControls,
   immersive = false,
   onPinClick,
   onZoomChange,
@@ -27,6 +28,7 @@ export function SubcultureEventsMapLazy({
   heightClassName?: string;
   className?: string;
   interactive?: boolean;
+  showNavigationControls?: boolean;
   immersive?: boolean;
   onPinClick?: (pin: MapEventPin) => void;
   onZoomChange?: (zoom: number) => void;
@@ -53,6 +55,7 @@ export function SubcultureEventsMapLazy({
       heightClassName={immersive ? "h-full" : heightClassName}
       className={className}
       interactive={interactive}
+      showNavigationControls={showNavigationControls}
       immersive={immersive}
       onPinClick={onPinClick}
       onZoomChange={onZoomChange}

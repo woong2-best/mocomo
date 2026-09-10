@@ -54,7 +54,8 @@ export function SidebarEventMapCard({
           <SubcultureEventsMapLazy
             pins={localPins}
             heightClassName="h-40"
-            interactive={false}
+            interactive
+            showNavigationControls={false}
             defaultView={defaultView}
           />
         </div>
