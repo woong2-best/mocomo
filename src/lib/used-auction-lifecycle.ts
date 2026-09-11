@@ -7,6 +7,7 @@ import {
   type UsedAuctionConfigSlice,
 } from "@/lib/used-auction-config";
 import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
+import { forfeitWinnerDeposit } from "@/lib/auction-deposit";
 import { voidActiveHoldForBidder } from "@/lib/used-auction-bid-hold";
 import { USED_MARKET_BAN_MESSAGE } from "@/lib/used-market-access";
 import { recordAuctionPaymentTimeoutSanction } from "@/lib/used-market-sanction-log";
@@ -407,6 +408,13 @@ export async function processPaymentTimeout(listingId: string, config?: UsedAuct
   });
 
   await banUserFromUsedMarket(winnerId, listingId);
+
+  await forfeitWinnerDeposit({
+    listingId,
+    winnerId,
+    sellerId: listing.sellerId,
+    note: "payment_timeout",
+  });
 
   await voidActiveHoldForBidder(listingId, winnerId, "payment_timeout");
 

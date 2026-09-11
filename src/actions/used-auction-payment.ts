@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
+import { refundWinnerDepositOnPaymentComplete } from "@/lib/auction-deposit";
 import { getUsedListingMarketplaceOrderId, usedOrderLink } from "@/lib/used-auction-marketplace-order";
 
 /** 낙찰자 — Stripe 주문이 있으면 주문 페이지로, 없으면 honor 결제 완료 신고 */
@@ -38,6 +39,8 @@ export async function markAuctionPaymentComplete(listingId: string) {
       paymentCompletedAt: new Date(),
     },
   });
+
+  await refundWinnerDepositOnPaymentComplete(listingId, user.id);
 
   revalidatePath(`/market/${listingId}`);
   revalidatePath("/market/my");

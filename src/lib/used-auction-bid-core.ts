@@ -11,6 +11,15 @@ import {
 } from "@/lib/used-auction";
 import { formatUsedPrice, maxUsedListingPrice, maxUsedListingPriceLabel, normalizeUsedCurrency } from "@/lib/used-market";
 import {
+  AUCTION_BID_DEPOSIT_MOCO,
+  INSUFFICIENT_DEPOSIT_ERROR,
+  isMocoBidDepositRequired,
+  getMocoBalanceSnapshot,
+  lockBidDepositInTransaction,
+  mapDepositError,
+  refundActiveDepositForBidder,
+} from "@/lib/auction-deposit";
+import {
   resolveBidHoldMode,
   validateBidHoldAmount,
   verifyUsedAuctionBidHold,
@@ -76,6 +85,14 @@ export async function executeUsedAuctionBid(
     };
   }
 
+  const mocoDepositRequired = await isMocoBidDepositRequired(listing);
+  if (mocoDepositRequired) {
+    const balance = await getMocoBalanceSnapshot(input.userId);
+    if (balance.availableMocoBalance < AUCTION_BID_DEPOSIT_MOCO) {
+      return { error: INSUFFICIENT_DEPOSIT_ERROR };
+    }
+  }
+
   const holdMode = await resolveBidHoldMode({ listing });
   const currency = normalizeUsedCurrency(listing.currency);
   const holdRequired = holdMode === "stripe";
@@ -127,7 +144,7 @@ export async function executeUsedAuctionBid(
       const minFresh = minNextBidAmount(fresh);
       if (bidAmount < minFresh) throw new Error("LOW_BID");
 
-      await tx.usedAuctionBid.create({
+      const bid = await tx.usedAuctionBid.create({
         data: {
           listingId: input.listingId,
           bidderId: input.userId,
@@ -143,6 +160,14 @@ export async function executeUsedAuctionBid(
             : {}),
         },
       });
+
+      if (mocoDepositRequired) {
+        await lockBidDepositInTransaction(tx, {
+          userId: input.userId,
+          listingId: input.listingId,
+          bidId: bid.id,
+        });
+      }
       await tx.usedListing.update({
         where: { id: input.listingId },
         data: {
@@ -160,6 +185,8 @@ export async function executeUsedAuctionBid(
       });
     });
   } catch (e) {
+    const depositErr = mapDepositError(e);
+    if (depositErr) return { error: depositErr };
     if (e instanceof Error) {
       if (e.message === "CLOSED") return { error: "마감된 경매입니다." };
       if (e.message === "LOW_BID") {
@@ -176,6 +203,9 @@ export async function executeUsedAuctionBid(
 
   if (prevBidderId && prevBidderId !== input.userId) {
     await voidActiveHoldForBidder(input.listingId, prevBidderId, "outbid");
+    if (mocoDepositRequired) {
+      await refundActiveDepositForBidder(input.listingId, prevBidderId, "outbid");
+    }
   }
 
   return { success: true, amount: bidAmount, extended: !!extendTo, holdRequired };

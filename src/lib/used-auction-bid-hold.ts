@@ -656,4 +656,7 @@ export async function onAuctionEndedVoidHolds(listingId: string, winnerId: strin
   } else {
     await voidAllListingBidHolds(listingId, "auction_unsold");
   }
+
+  const { onAuctionEndedReleaseDeposits } = await import("@/lib/auction-deposit");
+  await onAuctionEndedReleaseDeposits(listingId, winnerId);
 }

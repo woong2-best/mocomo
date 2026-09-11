@@ -217,6 +217,9 @@ export async function activateUsedAuctionStripeOrder(
     return { error: fulfilled.error };
   }
 
+  const { refundWinnerDepositOnPaymentComplete } = await import("@/lib/auction-deposit");
+  await refundWinnerDepositOnPaymentComplete(listingId, winnerId);
+
   return { ok: true, orderId: order.id, stripe: true };
 }
 
@@ -247,6 +250,21 @@ export async function handleUsedAuctionOrderCaptureFailure(orderId: string, reas
 
   const listingId = order.usedListingId;
   const failedWinnerId = order.buyerId;
+
+  const listing = await db.usedListing.findUnique({
+    where: { id: listingId },
+    select: { sellerId: true },
+  });
+
+  if (listing) {
+    const { forfeitWinnerDeposit } = await import("@/lib/auction-deposit");
+    await forfeitWinnerDeposit({
+      listingId,
+      winnerId: failedWinnerId,
+      sellerId: listing.sellerId,
+      note: reason,
+    });
+  }
 
   await db.marketplaceOrder.update({
     where: { id: orderId },
