@@ -42,36 +42,38 @@ export function Sidebar() {
     >
       <aside
         className={cn(
-          "flex h-full w-[17rem] xl:w-[18rem] min-h-0 flex-col shrink-0 shell-col-pad shell-col-divider-r folk-sidebar-panel gap-2 overflow-hidden overscroll-none",
+          "flex h-full w-[17rem] xl:w-[18rem] min-h-0 flex-col shrink-0 shell-col-pad shell-col-divider-r folk-sidebar-panel overflow-hidden overscroll-none",
           !open && "pointer-events-none invisible"
         )}
       >
-        <nav className="sidebar-nav-scroll flex min-h-0 flex-1 flex-col gap-2">
-          {navItems.map(({ href, icon: Icon, labelKey }) => (
-            <Link
-              key={href}
-              href={href}
-              prefetch={href === "/live" || href === "/messages" ? false : undefined}
-              className={cn("sidebar-block drop-shadow-sm", isActive(href) && "sidebar-block-active")}
-            >
-              <span
-                className={cn(
-                  "sidebar-block-icon flex h-9 w-9 items-center justify-center rounded-lg shrink-0 border-2",
-                  isActive(href) && "sidebar-block-icon-active"
-                )}
+        <div className="folk-sidebar-nav-stack">
+          <nav className="folk-sidebar-nav" aria-label="주요 메뉴">
+            {navItems.map(({ href, icon: Icon, labelKey }) => (
+              <Link
+                key={href}
+                href={href}
+                prefetch={href === "/live" || href === "/messages" ? false : undefined}
+                className={cn("sidebar-block drop-shadow-sm", isActive(href) && "sidebar-block-active")}
               >
-                <Icon className="h-4 w-4" />
-              </span>
-              <span className="truncate">{t(labelKey)}</span>
-            </Link>
-          ))}
-        </nav>
+                <span
+                  className={cn(
+                    "sidebar-block-icon flex items-center justify-center rounded-lg shrink-0 border-2",
+                    isActive(href) && "sidebar-block-icon-active"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="truncate">{t(labelKey)}</span>
+              </Link>
+            ))}
+          </nav>
 
-        <div className="folk-sidebar-compose shrink-0 space-y-2">
-          <ComposeOpenButton className="folk-sidebar-compose-btn">
-            <PenSquare className="h-4 w-4 shrink-0" />
-            {t("nav.compose")}
-          </ComposeOpenButton>
+          <div className="folk-sidebar-compose">
+            <ComposeOpenButton className="folk-sidebar-compose-btn">
+              <PenSquare className="h-4 w-4 shrink-0" />
+              {t("nav.compose")}
+            </ComposeOpenButton>
+          </div>
         </div>
       </aside>
     </div>

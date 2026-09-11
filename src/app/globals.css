@@ -679,9 +679,9 @@ html[data-client="app"] .native-live-pad {
     @apply absolute inset-0 pointer-events-none;
     background: linear-gradient(
       to bottom,
-      rgba(8, 16, 38, 0.48) 0%,
-      rgba(8, 16, 38, 0.32) 50%,
-      rgba(8, 16, 38, 0.22) 100%
+      rgba(8, 16, 38, 0.62) 0%,
+      rgba(8, 16, 38, 0.42) 50%,
+      rgba(8, 16, 38, 0.3) 100%
     );
   }
 
@@ -689,8 +689,21 @@ html[data-client="app"] .native-live-pad {
     @apply relative z-10;
   }
 
+  .folk-sidebar-nav-stack {
+    @apply flex min-h-0 flex-1 flex-col justify-center overflow-y-auto overscroll-contain;
+    gap: clamp(0.5rem, 1.5vh, 0.875rem);
+    padding-block: clamp(0.5rem, 2.5vh, 1.5rem);
+  }
+
+  .folk-sidebar-nav {
+    @apply flex flex-col;
+    gap: clamp(0.375rem, 1.35vh, 0.625rem);
+  }
+
   .folk-sidebar-panel .sidebar-block {
-    @apply border-white/30 bg-white/10 text-white backdrop-blur-md shadow-none hover:border-folk-terracotta/80 hover:bg-white/20;
+    @apply border-white/25 bg-white/10 text-white backdrop-blur-sm shadow-none hover:border-folk-terracotta/80 hover:bg-white/15;
+    padding-top: clamp(0.625rem, 1.5vh, 0.875rem);
+    padding-bottom: clamp(0.625rem, 1.5vh, 0.875rem);
   }
 
   .folk-sidebar-panel .sidebar-block:hover {
@@ -702,19 +715,31 @@ html[data-client="app"] .native-live-pad {
   }
 
   .folk-sidebar-panel .sidebar-block-icon {
-    @apply border-white/25 bg-white/10 text-folk-gold backdrop-blur-sm;
+    @apply isolate border-white/30 text-folk-gold;
+    height: clamp(2rem, 4.2vh, 2.25rem);
+    width: clamp(2rem, 4.2vh, 2.25rem);
+    background-color: rgba(10, 18, 42, 0.88);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .folk-sidebar-panel .sidebar-block-icon-active {
-    @apply border-white/40 bg-folk-terracotta/90 text-white shadow-folk-sm backdrop-blur-sm;
+    @apply border-white/40 text-white shadow-folk-sm;
+    background-color: hsl(var(--folk-terracotta));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .folk-sidebar-compose {
-    @apply rounded-2xl border-t border-white/20 bg-transparent p-2 pt-3 backdrop-blur-sm;
+    @apply shrink-0 rounded-2xl border-t border-white/20 bg-transparent backdrop-blur-sm;
+    margin-top: clamp(0.125rem, 0.5vh, 0.375rem);
+    padding: clamp(0.375rem, 1vh, 0.5rem) clamp(0.5rem, 1vh, 0.5rem) 0;
   }
 
   .folk-sidebar-compose-btn {
-    @apply flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-white/40 bg-white/10 py-3.5 text-sm font-semibold text-white backdrop-blur-md shadow-none transition-all hover:border-folk-terracotta/80 hover:bg-white/20 active:scale-[0.98];
+    @apply flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-white/40 bg-white/10 text-sm font-semibold text-white backdrop-blur-sm shadow-none transition-all hover:border-folk-terracotta/80 hover:bg-white/15 active:scale-[0.98];
+    padding-top: clamp(0.625rem, 1.5vh, 0.875rem);
+    padding-bottom: clamp(0.625rem, 1.5vh, 0.875rem);
   }
 
   /* 3-column shell — 동일 패딩·구분선 */
