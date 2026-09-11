@@ -211,8 +211,9 @@ export async function upsertFetchedSubcultureEvents(
         if (e.externalKey.startsWith("auto-wiki-")) return;
         const verified = verifiedVenueForEvent(e.externalKey);
         const country = e.country ?? eventCountryFromExternalKey(e.externalKey) ?? "other";
-        const fromMaster =
-          !verified && resolveVenueCoordsFromMaster(country, e.venueName, e.address);
+        const fromMaster = verified
+          ? null
+          : resolveVenueCoordsFromMaster(country, e.venueName, e.address);
         const coordsValid = verified
           ? true
           : fromMaster
