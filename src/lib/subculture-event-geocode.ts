@@ -2,6 +2,10 @@ import type { SubcultureEventCountryCode } from "@/lib/subculture-event-global-c
 import { regionByCountry } from "@/lib/subculture-event-global-config";
 import { nominatimSearchPlaceInCountry } from "@/lib/subculture-event-fetch/nominatim-country";
 import type { SubcultureEventCountry } from "@/lib/subculture-event-countries";
+import {
+  masterVenueToCoords,
+  resolveMasterVenue,
+} from "@/lib/subculture-event-venues-master";
 
 /** ISO 국가별 대략적 경계 — 핀 좌표 검증 */
 const COUNTRY_BOUNDS: Record<
@@ -122,20 +126,45 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Nominatim — 주소 우선, 국가 경계 검증 */
+/** 행사장 마스터 DB → 좌표 (API 호출 없음) */
+export function resolveVenueCoordsFromMaster(
+  country: SubcultureEventCountry,
+  venueName: string | null | undefined,
+  address?: string | null
+): { lat: number; lng: number; label: string; venueName: string } | null {
+  const master = resolveMasterVenue(country, venueName, address);
+  if (!master) return null;
+  if (!isPinCoordinateValid(country === "other" ? master.country : country, master.lat, master.lng)) {
+    return null;
+  }
+  const coords = masterVenueToCoords(master);
+  return {
+    lat: coords.lat,
+    lng: coords.lng,
+    label: coords.address,
+    venueName: coords.venueName,
+  };
+}
+
+/** 마스터 DB 우선 → Nominatim 폴백, 국가 경계 검증 */
 export async function geocodeEventVenueInCountry(
   country: SubcultureEventCountry,
   venueName: string | null | undefined,
   address: string | null | undefined
 ): Promise<{ lat: number; lng: number; label: string } | null> {
-  if (country === "other") return null;
-  const region = regionByCountry(country);
-  if (!region) return null;
-
   const venue = venueName?.trim() ?? "";
   const addr = address?.trim() ?? "";
   if (!venue && !addr) return null;
   if (venue && isGenericVenueTitle(venue)) return null;
+
+  const fromMaster = resolveVenueCoordsFromMaster(country, venueName, address);
+  if (fromMaster) {
+    return { lat: fromMaster.lat, lng: fromMaster.lng, label: fromMaster.label };
+  }
+
+  if (country === "other") return null;
+  const region = regionByCountry(country);
+  if (!region) return null;
 
   const queries = [
     addr.length > 8 ? addr : null,

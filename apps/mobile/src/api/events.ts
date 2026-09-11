@@ -49,6 +49,7 @@ export type MapEventPin = {
   endsAt: string | null;
   sourceUrl: string | null;
   source: string;
+  phase?: "ongoing" | "upcoming" | "past" | "permanent";
 };
 
 export async function fetchEventsList() {

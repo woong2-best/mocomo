@@ -9,6 +9,7 @@ import {
   SUBCULTURE_EVENT_CATEGORY_COLORS,
 } from "@/lib/subculture-event-types";
 import { mapLinkForEvent, type MapEventPin } from "@/lib/subculture-event-pins";
+import { SUBCULTURE_EVENT_PHASE_LABELS } from "@/lib/subculture-event-phase";
 import { cn } from "@/lib/utils";
 
 export function SubcultureEventPinCard({
@@ -21,6 +22,12 @@ export function SubcultureEventPinCard({
   const mapLink = mapLinkForEvent(pin);
   const isMaid = pin.category === "maid_cafe";
   const isSidebar = variant === "sidebar";
+  const phaseLabel =
+    pin.phase === "ongoing"
+      ? SUBCULTURE_EVENT_PHASE_LABELS.ongoing
+      : pin.phase === "upcoming"
+        ? SUBCULTURE_EVENT_PHASE_LABELS.upcoming
+        : null;
 
   return (
     <Card className={cn("rounded-2xl", isSidebar && "rounded-xl shadow-none")}>
@@ -48,6 +55,18 @@ export function SubcultureEventPinCard({
             />
             <span>{eventCountryFlag(pin.country)}</span>
             {pin.title}
+            {phaseLabel && (
+              <span
+                className={cn(
+                  "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+                  pin.phase === "ongoing"
+                    ? "bg-emerald-500/15 text-emerald-600"
+                    : "bg-violet-500/10 text-violet-600"
+                )}
+              >
+                {phaseLabel}
+              </span>
+            )}
           </p>
           {pin.description && (
             <p

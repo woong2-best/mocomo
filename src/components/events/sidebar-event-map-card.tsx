@@ -30,6 +30,14 @@ export function SidebarEventMapCard({
     () => localPins.filter((p) => p.category !== "maid_cafe"),
     [localPins]
   );
+  const ongoingPins = useMemo(
+    () => eventPins.filter((p) => p.phase === "ongoing"),
+    [eventPins]
+  );
+  const upcomingPins = useMemo(
+    () => eventPins.filter((p) => p.phase === "upcoming"),
+    [eventPins]
+  );
   const maidPins = useMemo(
     () => localPins.filter((p) => p.category === "maid_cafe"),
     [localPins]
@@ -61,10 +69,23 @@ export function SidebarEventMapCard({
         </div>
 
         <div className="subculture-sidebar-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 space-y-3">
-          {eventPins.length > 0 && (
+          {ongoingPins.length > 0 && (
             <div className="space-y-2">
-              <h2 className="text-xs font-semibold text-muted-foreground">다가오는 행사</h2>
-              {eventPins.map((p) => (
+              <h2 className="text-xs font-semibold text-emerald-600">
+                진행 중인 행사 ({ongoingPins.length})
+              </h2>
+              {ongoingPins.map((p) => (
+                <SubcultureEventPinCard key={p.id} pin={p} variant="sidebar" />
+              ))}
+            </div>
+          )}
+
+          {upcomingPins.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="text-xs font-semibold text-muted-foreground">
+                예정된 행사 ({upcomingPins.length})
+              </h2>
+              {upcomingPins.map((p) => (
                 <SubcultureEventPinCard key={p.id} pin={p} variant="sidebar" />
               ))}
             </div>

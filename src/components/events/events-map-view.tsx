@@ -40,6 +40,9 @@ function EventsMapPinList({
   eventPins: MapEventPin[];
   className?: string;
 }) {
+  const ongoing = eventPins.filter((p) => p.phase === "ongoing");
+  const upcoming = eventPins.filter((p) => p.phase === "upcoming");
+
   return (
     <div
       className={cn(
@@ -48,7 +51,9 @@ function EventsMapPinList({
       )}
     >
       <h2 className="shrink-0 px-3 pt-3 pb-2 text-xs font-semibold text-white/80 border-b border-white/10">
-        다가오는 행사 ({eventPins.length})
+        행사 지도
+        {ongoing.length > 0 && ` · 진행 ${ongoing.length}`}
+        {upcoming.length > 0 && ` · 예정 ${upcoming.length}`}
       </h2>
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-3 space-y-3 subculture-sidebar-scroll">
         {eventPins.length === 0 ? (
@@ -58,7 +63,14 @@ function EventsMapPinList({
             </CardContent>
           </Card>
         ) : (
-          eventPins.map((p) => <SubcultureEventPinCard key={p.id} pin={p} variant="sidebar" />)
+          <>
+            {ongoing.map((p) => (
+              <SubcultureEventPinCard key={p.id} pin={p} variant="sidebar" />
+            ))}
+            {upcoming.map((p) => (
+              <SubcultureEventPinCard key={p.id} pin={p} variant="sidebar" />
+            ))}
+          </>
         )}
       </div>
     </div>

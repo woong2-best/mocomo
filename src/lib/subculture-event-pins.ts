@@ -1,5 +1,6 @@
 import type { SubcultureEventCountry } from "@/lib/subculture-event-seeds";
 import { isKoreaEventCountry } from "@/lib/subculture-event-countries";
+import type { SubcultureEventPhase } from "@/lib/subculture-event-phase";
 
 export type MapEventPin = {
   id: string;
@@ -15,6 +16,8 @@ export type MapEventPin = {
   endsAt: string | null;
   sourceUrl: string | null;
   source: string;
+  /** 진행 중 · 예정 · 상설 — 지도·목록 표시 */
+  phase: SubcultureEventPhase;
   /** 장소·행사 대표 이미지 (팝업 미리보기) */
   imageUrl?: string | null;
   /** 로드뷰·거리뷰 정적 사진 URL (유료 API 대신 마커 데이터 사용) */

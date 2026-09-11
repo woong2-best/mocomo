@@ -89,6 +89,12 @@ function buildPinPopupHtml(pin: MapEventPin): string {
     pin.category === "maid_cafe"
       ? "상설"
       : format(new Date(pin.startsAt), "M/d", { locale: ko });
+  const phaseBadge =
+    pin.phase === "ongoing"
+      ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--ongoing">진행 중</span>'
+      : pin.phase === "upcoming"
+        ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--upcoming">예정</span>'
+        : "";
   const official =
     pin.source === "official" || pin.source === "auto"
       ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--official">공식 자동</span>'
@@ -100,7 +106,7 @@ function buildPinPopupHtml(pin: MapEventPin): string {
     ? `<a href="${escapeHtml(googleSearchUrlForEvent(pin))}" target="_blank" rel="noopener noreferrer" class="subculture-map-popup-venue">${escapeHtml(pin.venueName)}</a>`
     : "";
 
-  return `${imageBlock}${roadViewBlock}${official}<strong class="subculture-map-popup-title">${escapeHtml(pin.title)}</strong><span class="subculture-map-popup-meta">${countryLabel} ${dateStr}${venueBlock ? ` · ${venueBlock}` : ""}</span>`;
+  return `${imageBlock}${roadViewBlock}${phaseBadge}${official}<strong class="subculture-map-popup-title">${escapeHtml(pin.title)}</strong><span class="subculture-map-popup-meta">${countryLabel} ${dateStr}${venueBlock ? ` · ${venueBlock}` : ""}</span>`;
 }
 
 /** 핀 클릭 시 위성 뷰 2단계(건물·블록 단위) 줌 */

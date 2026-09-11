@@ -18,9 +18,11 @@ import {
   geocodeEventVenueInCountry,
   isGenericVenueTitle,
   isPinCoordinateValid,
+  resolveVenueCoordsFromMaster,
   verifiedVenueForEvent,
 } from "@/lib/subculture-event-geocode";
 import { type MapEventPin } from "@/lib/subculture-event-pins";
+import { inferSubcultureEventPhase } from "@/lib/subculture-event-phase";
 
 export type { MapEventPin } from "@/lib/subculture-event-pins";
 export { mapLinkForEvent } from "@/lib/subculture-event-pins";
@@ -82,24 +84,27 @@ function mapRowsToPins(
       const verified = verifiedVenueForEvent(r.externalKey);
       const lat = verified?.lat ?? r.lat!;
       const lng = verified?.lng ?? r.lng!;
+      const startsAt = r.startsAt.toISOString();
+      const endsAt = r.endsAt?.toISOString() ?? null;
       return {
-      id: r.id,
-      title: r.title,
-      country: inferEventCountry(lat, lng, r.externalKey),
-      category: r.category,
-      categoryLabel:
-        SUBCULTURE_EVENT_CATEGORY_LABELS[r.category] ?? r.category,
-      venueName: verified?.venueName ?? r.venueName,
-      description: r.description,
-      lat,
-      lng,
-      startsAt: r.startsAt.toISOString(),
-      endsAt: r.endsAt?.toISOString() ?? null,
-      sourceUrl: r.sourceUrl,
-      source: r.source,
-      imageUrl: null,
-      roadViewImageUrl: null,
-    };
+        id: r.id,
+        title: r.title,
+        country: inferEventCountry(lat, lng, r.externalKey),
+        category: r.category,
+        categoryLabel:
+          SUBCULTURE_EVENT_CATEGORY_LABELS[r.category] ?? r.category,
+        venueName: verified?.venueName ?? r.venueName,
+        description: r.description,
+        lat,
+        lng,
+        startsAt,
+        endsAt,
+        sourceUrl: r.sourceUrl,
+        source: r.source,
+        phase: inferSubcultureEventPhase(startsAt, endsAt, r.category),
+        imageUrl: null,
+        roadViewImageUrl: null,
+      };
     });
 }
 
@@ -150,18 +155,24 @@ export async function querySubcultureMapPins(limit: number): Promise<MapEventPin
         endsAt: e.endsAt,
         sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
         source: e.externalKey.startsWith("auto-") ? "auto" : "official",
+        phase: inferSubcultureEventPhase(e.startsAt, e.endsAt, e.category),
         imageUrl: e.imageUrl ?? null,
         roadViewImageUrl: e.roadViewImageUrl ?? null,
       }))
   ).slice(0, limit);
 }
 
-/** 행사 일정 우선, 메이드 카페(상설)는 뒤로 */
+/** 진행 중 → 예정 → 상설(메이드) 순, 각 그룹 내 시작일 오름차순 */
 function sortMapPins(pins: MapEventPin[]): MapEventPin[] {
+  const phaseRank = (p: MapEventPin) => {
+    if (p.phase === "ongoing") return 0;
+    if (p.phase === "upcoming") return 1;
+    if (p.phase === "permanent") return 2;
+    return 3;
+  };
   return [...pins].sort((a, b) => {
-    const aMaid = a.category === "maid_cafe" ? 1 : 0;
-    const bMaid = b.category === "maid_cafe" ? 1 : 0;
-    if (aMaid !== bMaid) return aMaid - bMaid;
+    const pr = phaseRank(a) - phaseRank(b);
+    if (pr !== 0) return pr;
     return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
   });
 }
@@ -170,7 +181,7 @@ function sortMapPins(pins: MapEventPin[]): MapEventPin[] {
 export async function getSubcultureMapPins(limit = 240): Promise<MapEventPin[]> {
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v11", String(limit)],
+    ["subculture-map-pins-v12", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
 }
@@ -200,21 +211,25 @@ export async function upsertFetchedSubcultureEvents(
         if (e.externalKey.startsWith("auto-wiki-")) return;
         const verified = verifiedVenueForEvent(e.externalKey);
         const country = e.country ?? eventCountryFromExternalKey(e.externalKey) ?? "other";
+        const fromMaster =
+          !verified && resolveVenueCoordsFromMaster(country, e.venueName, e.address);
         const coordsValid = verified
           ? true
-          : e.lat != null &&
-            e.lng != null &&
-            isPinCoordinateValid(country, e.lat, e.lng) &&
-            !isGenericVenueTitle(e.title) &&
-            !isGenericVenueTitle(e.venueName);
+          : fromMaster
+            ? true
+            : e.lat != null &&
+              e.lng != null &&
+              isPinCoordinateValid(country, e.lat, e.lng) &&
+              !isGenericVenueTitle(e.title) &&
+              !isGenericVenueTitle(e.venueName);
         const payload = {
           title: e.title,
           description: e.description,
           category: e.category,
-          venueName: verified?.venueName ?? e.venueName,
-          address: verified?.address ?? e.address,
-          lat: verified ? verified.lat : coordsValid ? e.lat : null,
-          lng: verified ? verified.lng : coordsValid ? e.lng : null,
+          venueName: verified?.venueName ?? fromMaster?.venueName ?? e.venueName,
+          address: verified?.address ?? fromMaster?.label ?? e.address,
+          lat: verified ? verified.lat : fromMaster?.lat ?? coordsValid ? e.lat : null,
+          lng: verified ? verified.lng : fromMaster?.lng ?? coordsValid ? e.lng : null,
           startsAt: new Date(e.startsAt),
           endsAt: new Date(e.endsAt),
           sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
@@ -397,6 +412,22 @@ export async function geocodePendingSubcultureEvents(max = 5): Promise<number> {
       const country =
         eventCountryFromExternalKey(row.externalKey) ??
         inferEventCountryFromCoords(row.lat ?? 0, row.lng ?? 0, row.externalKey);
+
+      const fromMaster = resolveVenueCoordsFromMaster(country, row.venueName, row.address);
+      if (fromMaster) {
+        await db.subcultureEventPin.update({
+          where: { id: row.id },
+          data: {
+            lat: fromMaster.lat,
+            lng: fromMaster.lng,
+            address: fromMaster.label,
+            venueName: fromMaster.venueName,
+          },
+        });
+        updated += 1;
+        continue;
+      }
+
       const coord = isKoreaEventCountry(country)
         ? await kakaoSearchPlace(q)
         : await geocodeEventVenueInCountry(country, row.venueName, row.address);
