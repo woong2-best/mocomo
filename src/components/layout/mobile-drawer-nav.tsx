@@ -6,15 +6,14 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, PenSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCompose } from "@/components/compose/compose-provider";
 import { mainNavItems } from "@/lib/nav-items";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { isNavItemActive, resolveMyPageHref } from "@/lib/nav-active";
-import { BrandLogo } from "@/components/brand/brand-logo";
-import { BRAND } from "@/lib/brand";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { springSnappy } from "@/lib/motion-presets";
 
@@ -30,6 +29,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
   const { data: session } = useSession();
   const { t } = useLocale();
   const reduced = usePrefersReducedMotion();
+  const { openCompose } = useCompose();
   const [mounted, setMounted] = useState(false);
   const ownProfilePath = session?.user?.username ? `/u/${session.user.username}` : null;
 
@@ -76,49 +76,65 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
               role="dialog"
               aria-modal="true"
               aria-label="사이드 메뉴"
-              className="mobile-drawer-panel"
+              className="mobile-drawer-panel folk-sidebar-panel"
               style={{ width: PANEL_WIDTH }}
               initial={reduced ? false : { x: "-100%" }}
               animate={reduced ? undefined : { x: 0 }}
               exit={reduced ? undefined : { x: "-100%" }}
               transition={springSnappy}
             >
-              <div className="mobile-drawer-header">
-                <div className="flex min-w-0 items-center gap-2">
-                  <BrandLogo size={28} />
-                  <span className="truncate font-display text-base font-bold text-[hsl(var(--folk-cobalt))] dark:text-[hsl(var(--folk-cream))]">
-                    {BRAND.name}
-                  </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="mobile-drawer-close"
+                onClick={() => onOpenChange(false)}
+                aria-label="메뉴 닫기"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+
+              <div className="folk-sidebar-nav-stack mobile-drawer-nav-stack">
+                <nav className="folk-sidebar-nav" aria-label="주요 메뉴">
+                  {items.map(({ href, icon: Icon, labelKey }) => {
+                    const active = isNavItemActive(pathname, href, navHrefs, ownProfilePath);
+
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        prefetch={href === "/live" || href === "/messages" ? false : undefined}
+                        onClick={() => onOpenChange(false)}
+                        className={cn("sidebar-block drop-shadow-sm", active && "sidebar-block-active")}
+                      >
+                        <span
+                          className={cn(
+                            "sidebar-block-icon flex items-center justify-center rounded-lg shrink-0 border-2",
+                            active && "sidebar-block-icon-active"
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="truncate">{t(labelKey)}</span>
+                      </Link>
+                    );
+                  })}
+                </nav>
+
+                <div className="folk-sidebar-compose">
+                  <button
+                    type="button"
+                    className="folk-sidebar-compose-btn"
+                    onClick={() => {
+                      onOpenChange(false);
+                      openCompose();
+                    }}
+                  >
+                    <PenSquare className="h-4 w-4 shrink-0" />
+                    {t("nav.compose")}
+                  </button>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0 rounded-full"
-                  onClick={() => onOpenChange(false)}
-                  aria-label="메뉴 닫기"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
               </div>
-
-              <nav className="mobile-drawer-nav" aria-label="주요 메뉴">
-                {items.map(({ href, icon: Icon, labelKey }) => {
-                  const active = isNavItemActive(pathname, href, navHrefs, ownProfilePath);
-
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      onClick={() => onOpenChange(false)}
-                      className={cn("mobile-drawer-item", active && "mobile-drawer-item-active")}
-                    >
-                      <Icon className="h-[22px] w-[22px] shrink-0 text-muted-foreground" strokeWidth={2} />
-                      <span className="truncate">{t(labelKey)}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
             </motion.aside>
           </>
         ) : null}
