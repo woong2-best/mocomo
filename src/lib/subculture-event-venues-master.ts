@@ -269,10 +269,18 @@ export const SUBCULTURE_VENUE_MASTER: MasterVenue[] = [
     "sao-paulo-expo",
     "br",
     "São Paulo Expo",
-    "Rodovia dos Imigrantes, 1.5 km - Vila Água Funda, São Paulo - SP, 04329-900, Brazil",
-    -23.7034,
-    -46.6994,
-    ["sao paulo expo", "são paulo expo", "expo center sao paulo", "rodovia dos imigrantes"]
+    "Rodovia dos Imigrantes, km 1,5 - Vila Água Funda, São Paulo - SP, 04329-900, Brazil",
+    -23.6459496,
+    -46.6296725,
+    [
+      "sao paulo expo",
+      "são paulo expo",
+      "centro de exposicoes imigrantes",
+      "centro de convenções imigrantes",
+      "rodovia dos imigrantes km 1",
+      "vila agua funda expo",
+    ],
+    "122q9t55"
   ),
   v(
     "distrito-anhembi",

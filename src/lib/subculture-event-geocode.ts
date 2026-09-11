@@ -77,6 +77,13 @@ export const VERIFIED_EVENT_VENUES: Record<
     venueName: "Delta Hotels by Marriott Toronto Airport & Conference Centre",
     address: "655 Dixon Rd, Etobicoke, ON M9W 1J3, Canada",
   },
+  "official-br-ccxp-2026": {
+    lat: -23.6459496,
+    lng: -46.6296725,
+    venueName: "São Paulo Expo",
+    address:
+      "Rodovia dos Imigrantes, km 1,5 - Vila Água Funda, São Paulo - SP, 04329-900, Brazil",
+  },
 };
 
 export function verifiedVenueForEvent(externalKey: string | null | undefined) {

@@ -24,6 +24,7 @@
     "oauth:discord": "tsx scripts/discord-oauth-setup.ts",
     "oauth:migrate-google": "tsx scripts/migrate-google-oauth-encryption.ts",
     "oauth:migrate": "tsx scripts/migrate-google-oauth-encryption.ts",
+    "subculture:migrate-venues": "tsx scripts/migrate-subculture-venue-coords.ts",
     "i18n:extract": "node scripts/i18n/extract-to-json.mjs",
     "i18n:generate": "node scripts/i18n/generate-locales.mjs",
     "postinstall": "prisma generate && node scripts/copy-mediapipe-assets.cjs && node scripts/copy-avatar-assets.cjs && node scripts/copy-maplibre-worker.cjs",

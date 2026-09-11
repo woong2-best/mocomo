@@ -62,12 +62,35 @@ function isValidPinRow(row: {
   return isPinCoordinateValid(country, row.lat, row.lng);
 }
 
+function resolvePinLocation(row: {
+  venueName: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  externalKey: string | null;
+}): { lat: number; lng: number; venueName: string | null } | null {
+  if (row.lat == null || row.lng == null) return null;
+  const verified = verifiedVenueForEvent(row.externalKey);
+  if (verified) {
+    return { lat: verified.lat, lng: verified.lng, venueName: verified.venueName };
+  }
+  const country =
+    eventCountryFromExternalKey(row.externalKey) ??
+    inferEventCountryFromCoords(row.lat, row.lng, row.externalKey);
+  const fromMaster = resolveVenueCoordsFromMaster(country, row.venueName, row.address);
+  if (fromMaster) {
+    return { lat: fromMaster.lat, lng: fromMaster.lng, venueName: fromMaster.venueName };
+  }
+  return { lat: row.lat, lng: row.lng, venueName: row.venueName };
+}
+
 function mapRowsToPins(
   rows: {
     id: string;
     title: string;
     category: string;
     venueName: string | null;
+    address: string | null;
     description: string | null;
     lat: number | null;
     lng: number | null;
@@ -81,9 +104,9 @@ function mapRowsToPins(
   return rows
     .filter(isValidPinRow)
     .map((r) => {
-      const verified = verifiedVenueForEvent(r.externalKey);
-      const lat = verified?.lat ?? r.lat!;
-      const lng = verified?.lng ?? r.lng!;
+      const location = resolvePinLocation(r);
+      if (!location) return null;
+      const { lat, lng, venueName } = location;
       const startsAt = r.startsAt.toISOString();
       const endsAt = r.endsAt?.toISOString() ?? null;
       return {
@@ -93,7 +116,7 @@ function mapRowsToPins(
         category: r.category,
         categoryLabel:
           SUBCULTURE_EVENT_CATEGORY_LABELS[r.category] ?? r.category,
-        venueName: verified?.venueName ?? r.venueName,
+        venueName,
         description: r.description,
         lat,
         lng,
@@ -105,7 +128,8 @@ function mapRowsToPins(
         imageUrl: null,
         roadViewImageUrl: null,
       };
-    });
+    })
+    .filter((pin): pin is MapEventPin => pin != null);
 }
 
 /** DB 조회 — cron이 1시간마다 공식 사이트에서 자동 수집 반영 */
@@ -181,7 +205,7 @@ function sortMapPins(pins: MapEventPin[]): MapEventPin[] {
 export async function getSubcultureMapPins(limit = 240): Promise<MapEventPin[]> {
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v12", String(limit)],
+    ["subculture-map-pins-v14", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
 }
@@ -347,6 +371,106 @@ async function isSubcultureSyncDue(): Promise<boolean> {
   }
 }
 
+/** 마스터 DB와 불일치하는 기존 핀 좌표 일괄 보정 */
+export async function reconcileSubcultureVenueCoordsFromMaster(): Promise<{
+  updated: number;
+  samples: string[];
+}> {
+  try {
+    await db.subcultureEventPin.findFirst({ select: { id: true } });
+  } catch {
+    return { updated: 0, samples: [] };
+  }
+
+  const rows = await db.subcultureEventPin.findMany({
+    where: {
+      externalKey: { not: SUBCULTURE_SYNC_META_KEY },
+      venueName: { not: null },
+    },
+    select: {
+      id: true,
+      title: true,
+      venueName: true,
+      address: true,
+      lat: true,
+      lng: true,
+      externalKey: true,
+    },
+  });
+
+  let updated = 0;
+  const samples: string[] = [];
+
+  for (const row of rows) {
+    const verified = verifiedVenueForEvent(row.externalKey);
+    const country =
+      eventCountryFromExternalKey(row.externalKey) ??
+      (row.lat != null && row.lng != null
+        ? inferEventCountryFromCoords(row.lat, row.lng, row.externalKey)
+        : "other");
+
+    const master = verified
+      ? {
+          lat: verified.lat,
+          lng: verified.lng,
+          label: verified.address,
+          venueName: verified.venueName,
+        }
+      : resolveVenueCoordsFromMaster(country, row.venueName, row.address);
+    if (!master) continue;
+
+    const latSame = row.lat != null && Math.abs(row.lat - master.lat) < 1e-6;
+    const lngSame = row.lng != null && Math.abs(row.lng - master.lng) < 1e-6;
+    const venueSame = row.venueName === master.venueName;
+    if (latSame && lngSame && venueSame) continue;
+
+    await db.subcultureEventPin.update({
+      where: { id: row.id },
+      data: {
+        lat: master.lat,
+        lng: master.lng,
+        address: master.label,
+        venueName: master.venueName,
+      },
+    });
+    updated += 1;
+    if (samples.length < 12) {
+      samples.push(
+        `${row.externalKey ?? row.id}: ${row.venueName} → ${master.venueName} (${master.lat}, ${master.lng})`
+      );
+    }
+  }
+
+  return { updated, samples };
+}
+
+/** 지오코딩 Redis 캐시 없음 — Next.js unstable_cache 태그만 무효화 */
+export async function revalidateSubcultureMapPinsCache(): Promise<void> {
+  try {
+    const { revalidateTag } = await import("next/cache");
+    revalidateTag(SUBCULTURE_MAP_PINS_CACHE_TAG);
+  } catch {
+    /* script/standalone — cache key bump handles invalidation on deploy */
+  }
+}
+
+/** 마스터 보정 + pending geocode + invalid purge — 일회성·cron 공용 */
+export async function remediateSubcultureEventCoords(options?: {
+  geocodeMax?: number;
+}): Promise<{
+  reconciled: number;
+  geocoded: number;
+  purged: number;
+  reconcileSamples: string[];
+}> {
+  const { updated: reconciled, samples: reconcileSamples } =
+    await reconcileSubcultureVenueCoordsFromMaster();
+  const geocoded = await geocodePendingSubcultureEvents(options?.geocodeMax ?? 100);
+  const purged = await purgeInvalidSubculturePins();
+  await revalidateSubcultureMapPinsCache();
+  return { reconciled, geocoded, purged, reconcileSamples };
+}
+
 /** 공식 사이트 자동 수집 + DB 반영 — cron 1시간마다 */
 export async function syncSubcultureEventsIfDue(options?: {
   force?: boolean;
@@ -354,6 +478,7 @@ export async function syncSubcultureEventsIfDue(options?: {
 }): Promise<{
   synced: boolean;
   geocoded: number;
+  reconciled: number;
   fetched: number;
   fetchErrors: string[];
 }> {
@@ -361,28 +486,24 @@ export async function syncSubcultureEventsIfDue(options?: {
   const geocodeMax = options?.geocodeMax ?? 5;
 
   if (!force && !(await isSubcultureSyncDue())) {
-    return { synced: false, geocoded: 0, fetched: 0, fetchErrors: [] };
+    return { synced: false, geocoded: 0, reconciled: 0, fetched: 0, fetchErrors: [] };
   }
 
   const { events, results } = await fetchAllSubcultureEvents();
   await upsertFetchedSubcultureEvents(events);
+  const { reconciled } = await reconcileSubcultureVenueCoordsFromMaster();
   const geocoded = await geocodePendingSubcultureEvents(geocodeMax);
   const purged = await purgeInvalidSubculturePins();
   if (purged > 0) {
     console.info("[subculture-events] purged invalid pins:", purged);
   }
   await touchSubcultureSyncMeta();
-
-  try {
-    const { revalidateTag } = await import("next/cache");
-    revalidateTag(SUBCULTURE_MAP_PINS_CACHE_TAG);
-  } catch {
-    /* ignore */
-  }
+  await revalidateSubcultureMapPinsCache();
 
   return {
     synced: true,
     geocoded,
+    reconciled,
     fetched: events.length,
     fetchErrors: results.filter((r) => r.error).map((r) => `${r.sourceId}: ${r.error}`),
   };
