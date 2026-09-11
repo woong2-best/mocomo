@@ -101,35 +101,35 @@ function mapRowsToPins(
     externalKey: string | null;
   }[]
 ): MapEventPin[] {
-  return rows
-    .filter(isValidPinRow)
-    .map((r) => {
-      const location = resolvePinLocation(r);
-      if (!location) return null;
-      const { lat, lng, venueName } = location;
-      const startsAt = r.startsAt.toISOString();
-      const endsAt = r.endsAt?.toISOString() ?? null;
-      return {
-        id: r.id,
-        title: r.title,
-        country: inferEventCountry(lat, lng, r.externalKey),
-        category: r.category,
-        categoryLabel:
-          SUBCULTURE_EVENT_CATEGORY_LABELS[r.category] ?? r.category,
-        venueName,
-        description: r.description,
-        lat,
-        lng,
-        startsAt,
-        endsAt,
-        sourceUrl: r.sourceUrl,
-        source: r.source,
-        phase: inferSubcultureEventPhase(startsAt, endsAt, r.category),
-        imageUrl: null,
-        roadViewImageUrl: null,
-      };
-    })
-    .filter((pin): pin is MapEventPin => pin != null);
+  const pins: MapEventPin[] = [];
+  for (const r of rows) {
+    if (!isValidPinRow(r)) continue;
+    const location = resolvePinLocation(r);
+    if (!location) continue;
+    const { lat, lng, venueName } = location;
+    const startsAt = r.startsAt.toISOString();
+    const endsAt = r.endsAt?.toISOString() ?? null;
+    pins.push({
+      id: r.id,
+      title: r.title,
+      country: inferEventCountry(lat, lng, r.externalKey),
+      category: r.category,
+      categoryLabel:
+        SUBCULTURE_EVENT_CATEGORY_LABELS[r.category] ?? r.category,
+      venueName,
+      description: r.description,
+      lat,
+      lng,
+      startsAt,
+      endsAt,
+      sourceUrl: r.sourceUrl,
+      source: r.source,
+      phase: inferSubcultureEventPhase(startsAt, endsAt, r.category),
+      imageUrl: null,
+      roadViewImageUrl: null,
+    });
+  }
+  return pins;
 }
 
 /** DB 조회 — cron이 1시간마다 공식 사이트에서 자동 수집 반영 */
@@ -491,7 +491,7 @@ export async function syncSubcultureEventsIfDue(options?: {
 
   const { events, results } = await fetchAllSubcultureEvents();
   await upsertFetchedSubcultureEvents(events);
-  const { reconciled } = await reconcileSubcultureVenueCoordsFromMaster();
+  const { updated: reconciled } = await reconcileSubcultureVenueCoordsFromMaster();
   const geocoded = await geocodePendingSubcultureEvents(geocodeMax);
   const purged = await purgeInvalidSubculturePins();
   if (purged > 0) {
