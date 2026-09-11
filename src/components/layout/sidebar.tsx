@@ -42,11 +42,11 @@ export function Sidebar() {
     >
       <aside
         className={cn(
-          "flex h-full w-[17rem] xl:w-[18rem] flex-col shrink-0 shell-col-pad shell-col-divider-r folk-sidebar-panel space-y-3 overflow-hidden overscroll-none",
+          "flex h-full w-[17rem] xl:w-[18rem] min-h-0 flex-col shrink-0 shell-col-pad shell-col-divider-r folk-sidebar-panel gap-2 overflow-hidden overscroll-none",
           !open && "pointer-events-none invisible"
         )}
       >
-        <nav className="flex flex-col gap-2">
+        <nav className="sidebar-nav-scroll flex min-h-0 flex-1 flex-col gap-2">
           {navItems.map(({ href, icon: Icon, labelKey }) => (
             <Link
               key={href}
@@ -67,7 +67,7 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className="folk-sidebar-compose mt-auto shrink-0 space-y-2">
+        <div className="folk-sidebar-compose shrink-0 space-y-2">
           <ComposeOpenButton className="folk-sidebar-compose-btn">
             <PenSquare className="h-4 w-4 shrink-0" />
             {t("nav.compose")}
