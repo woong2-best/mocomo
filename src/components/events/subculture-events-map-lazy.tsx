@@ -20,6 +20,8 @@ export function SubcultureEventsMapLazy({
   showNavigationControls,
   immersive = false,
   onPinClick,
+  onMapClick,
+  pinDropMode,
   onZoomChange,
   defaultView,
   respectDefaultView,
@@ -31,11 +33,13 @@ export function SubcultureEventsMapLazy({
   showNavigationControls?: boolean;
   immersive?: boolean;
   onPinClick?: (pin: MapEventPin) => void;
+  onMapClick?: (coords: { lat: number; lng: number }) => void;
+  pinDropMode?: boolean;
   onZoomChange?: (zoom: number) => void;
   defaultView?: { lat: number; lng: number; zoom: number };
   respectDefaultView?: boolean;
 }) {
-  if (pins.length === 0) {
+  if (!immersive && pins.length === 0) {
     return (
       <div
         className={cn(
@@ -58,6 +62,8 @@ export function SubcultureEventsMapLazy({
       showNavigationControls={showNavigationControls}
       immersive={immersive}
       onPinClick={onPinClick}
+      onMapClick={onMapClick}
+      pinDropMode={pinDropMode}
       onZoomChange={onZoomChange}
       defaultView={defaultView}
       respectDefaultView={respectDefaultView}

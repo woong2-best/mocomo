@@ -21,6 +21,7 @@ export function SubcultureEventPinCard({
 }) {
   const mapLink = mapLinkForEvent(pin);
   const isMaid = pin.category === "maid_cafe";
+  const isUserRec = pin.category === "user_recommendation";
   const isSidebar = variant === "sidebar";
   const phaseLabel =
     pin.phase === "ongoing"
@@ -84,7 +85,9 @@ export function SubcultureEventPinCard({
               isSidebar ? "text-[11px]" : "text-sm"
             )}
           >
-            {isMaid ? (
+            {isUserRec ? (
+              <span className="text-emerald-500 font-medium">유저 추천</span>
+            ) : isMaid ? (
               <span className="text-pink-500 font-medium">상설 영업</span>
             ) : (
               <>

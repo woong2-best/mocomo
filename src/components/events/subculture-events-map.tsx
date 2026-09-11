@@ -86,8 +86,10 @@ function buildPinPopupHtml(pin: MapEventPin): string {
     : "";
 
   const dateStr =
-    pin.category === "maid_cafe"
-      ? "상설"
+    pin.category === "maid_cafe" || pin.category === "user_recommendation"
+      ? pin.category === "user_recommendation"
+        ? "추천"
+        : "상설"
       : format(new Date(pin.startsAt), "M/d", { locale: ko });
   const phaseBadge =
     pin.phase === "ongoing"
@@ -100,7 +102,9 @@ function buildPinPopupHtml(pin: MapEventPin): string {
       ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--official">공식 자동</span>'
       : pin.category === "maid_cafe"
         ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--maid">메이드 카페</span>'
-        : "";
+        : pin.category === "user_recommendation"
+          ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--ongoing">유저 추천</span>'
+          : "";
   const countryLabel = eventCountryFlag(pin.country);
   const venueBlock = pin.venueName
     ? `<a href="${escapeHtml(googleSearchUrlForEvent(pin))}" target="_blank" rel="noopener noreferrer" class="subculture-map-popup-venue">${escapeHtml(pin.venueName)}</a>`
@@ -163,6 +167,8 @@ export function SubcultureEventsMap({
   showNavigationControls,
   immersive = false,
   onPinClick,
+  onMapClick,
+  pinDropMode = false,
   onZoomChange,
   defaultView,
   respectDefaultView = false,
@@ -176,6 +182,10 @@ export function SubcultureEventsMap({
   showNavigationControls?: boolean;
   immersive?: boolean;
   onPinClick?: (pin: MapEventPin) => void;
+  /** 지도 클릭 (추천 핀 추가 모드) */
+  onMapClick?: (coords: { lat: number; lng: number }) => void;
+  /** true면 지도 클릭으로 좌표 선택 */
+  pinDropMode?: boolean;
   /** Globe void decor — hide Mars overlay once user zooms past ~city level */
   onZoomChange?: (zoom: number) => void;
   defaultView?: { lat: number; lng: number; zoom: number };
@@ -188,10 +198,13 @@ export function SubcultureEventsMap({
   const markersRef = useRef<MapLibreMarker[]>([]);
   const onZoomChangeRef = useRef(onZoomChange);
   onZoomChangeRef.current = onZoomChange;
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!containerRef.current || pins.length === 0) return;
+    if (!containerRef.current) return;
+    if (!immersive && pins.length === 0) return;
 
     let cancelled = false;
     let resizeObserver: ResizeObserver | null = null;
@@ -265,6 +278,9 @@ export function SubcultureEventsMap({
       });
       map.once("error", (event) => {
         console.error("[subculture-events-map]", event.error ?? event);
+      });
+      map.on("click", (event) => {
+        onMapClickRef.current?.({ lat: event.lngLat.lat, lng: event.lngLat.lng });
       });
       requestAnimationFrame(resize);
       resizeObserver = new ResizeObserver(resize);
@@ -376,9 +392,9 @@ export function SubcultureEventsMap({
       setReady(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pins identity drives rebuild
-  }, [pins, interactive, navigationControls, defaultView]);
+  }, [pins, interactive, navigationControls, defaultView, immersive]);
 
-  if (pins.length === 0) {
+  if (!immersive && pins.length === 0) {
     return (
       <div
         className={cn(
@@ -401,8 +417,14 @@ export function SubcultureEventsMap({
         className
       )}
       data-functional-canvas
+      data-pin-drop={pinDropMode ? "true" : undefined}
     >
       <div ref={containerRef} className={cn("w-full h-full z-0", heightClassName)} />
+      {pinDropMode && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none rounded-full bg-emerald-600/90 px-3 py-1.5 text-xs font-medium text-white shadow-lg">
+          지도를 클릭해 장소를 추가하세요
+        </div>
+      )}
       {!ready && (
         <div
           className={cn(

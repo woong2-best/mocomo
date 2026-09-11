@@ -823,6 +823,36 @@ html[data-client="app"] .native-live-pad {
     color: rgba(255, 255, 255, 0.85);
   }
 
+  .subculture-events-map[data-pin-drop="true"] .maplibregl-canvas {
+    cursor: crosshair !important;
+  }
+
+  .events-map-panel-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    min-height: 56px;
+    border-radius: 8px 0 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-right: none;
+    background: rgba(255, 255, 255, 0.95);
+    color: rgba(15, 23, 42, 0.75);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+    transition: background 0.15s ease;
+  }
+
+  .events-map-panel-toggle:hover {
+    background: #fff;
+    color: rgba(15, 23, 42, 0.95);
+  }
+
+  .events-map-panel-toggle--collapsed {
+    border-radius: 8px 0 0 8px;
+    border-right: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
   .subculture-map-popup .maplibregl-popup-content {
     padding: 10px 12px;
     border-radius: 12px;
