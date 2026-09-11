@@ -240,6 +240,16 @@ export function resolveSubculturePinsForUser<T extends { country: SubcultureEven
   return local;
 }
 
+/** 사이드바 — 행사 N개 + 상설 메이드 카페는 항상 지도에 포함 */
+export function selectSidebarEventPins<T extends { category: string }>(
+  pins: T[],
+  eventLimit = 12
+): T[] {
+  const maidPins = pins.filter((p) => p.category === "maid_cafe");
+  const eventPins = pins.filter((p) => p.category !== "maid_cafe").slice(0, eventLimit);
+  return [...eventPins, ...maidPins];
+}
+
 export function subcultureCountrySummary(userCountryCode: string, locale: Locale = "ko"): string {
   const target = userCountryToEventCountry(userCountryCode);
   const label = eventCountryDisplayLabel(target, locale);

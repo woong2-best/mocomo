@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getCachedSidebarPanelData } from "@/lib/cached-data";
-import { resolveSubculturePinsForUser } from "@/lib/subculture-event-countries";
+import {
+  resolveSubculturePinsForUser,
+  selectSidebarEventPins,
+} from "@/lib/subculture-event-countries";
 import { getRequestCountryCode } from "@/lib/i18n/server";
 
 /** 우측 패널 데이터 — CDN/브라우저 캐시로 반복 요청 완화 */
@@ -10,7 +13,9 @@ export async function GET(req: Request) {
     const countryParam = searchParams.get("country");
     const countryCode = countryParam?.toUpperCase() || (await getRequestCountryCode());
     const { tips, sidebarAds, eventPins } = await getCachedSidebarPanelData();
-    const filteredPins = resolveSubculturePinsForUser(eventPins, countryCode).slice(0, 12);
+    const filteredPins = selectSidebarEventPins(
+      resolveSubculturePinsForUser(eventPins, countryCode)
+    );
     return NextResponse.json(
       {
         ok: true,

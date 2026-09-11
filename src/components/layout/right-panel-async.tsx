@@ -1,6 +1,9 @@
 import { headers } from "next/headers";
 import { getCachedSidebarPanelData } from "@/lib/cached-data";
-import { resolveSubculturePinsForUser } from "@/lib/subculture-event-countries";
+import {
+  resolveSubculturePinsForUser,
+  selectSidebarEventPins,
+} from "@/lib/subculture-event-countries";
 import { getRequestCountryCode } from "@/lib/i18n/server";
 import {
   shouldShowDefaultRightPanel,
@@ -19,7 +22,9 @@ export async function RightPanelAsync() {
     getRequestCountryCode(),
     getCachedSidebarPanelData(pathname),
   ]);
-  const eventPins = resolveSubculturePinsForUser(raw.eventPins, countryCode).slice(0, 12);
+  const eventPins = selectSidebarEventPins(
+    resolveSubculturePinsForUser(raw.eventPins, countryCode)
+  );
 
   return (
     <RightPanelHydrated

@@ -40,7 +40,7 @@ function MapOverlayChip({
   );
 }
 
-function filterPinsByTab(pins: MapEventPin[], tab: EventMapPanelTab): MapEventPin[] {
+function filterListPinsByTab(pins: MapEventPin[], tab: EventMapPanelTab): MapEventPin[] {
   if (tab === "maid_cafe") {
     return pins.filter((p) => p.category === "maid_cafe");
   }
@@ -50,6 +50,17 @@ function filterPinsByTab(pins: MapEventPin[], tab: EventMapPanelTab): MapEventPi
   return pins.filter(
     (p) => p.category !== "maid_cafe" && p.category !== "user_recommendation"
   );
+}
+
+/** 행사장 탭에서도 메이드 카페 핀은 지도에 표시 */
+function filterMapPinsByTab(pins: MapEventPin[], tab: EventMapPanelTab): MapEventPin[] {
+  if (tab === "maid_cafe") {
+    return pins.filter((p) => p.category === "maid_cafe");
+  }
+  if (tab === "recommendation") {
+    return pins.filter((p) => p.category === "user_recommendation");
+  }
+  return pins.filter((p) => p.category !== "user_recommendation");
 }
 
 function EventsMapSidePanel({
@@ -78,7 +89,7 @@ function EventsMapSidePanel({
   showToggle?: boolean;
 }) {
   const { data: session } = useSession();
-  const tabPins = useMemo(() => filterPinsByTab(pins, activeTab), [pins, activeTab]);
+  const tabPins = useMemo(() => filterListPinsByTab(pins, activeTab), [pins, activeTab]);
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -351,7 +362,7 @@ export function EventsMapView({
   );
 
   const visibleMapPins = useMemo(
-    () => filterPinsByTab(allPins, activeTab),
+    () => filterMapPinsByTab(allPins, activeTab),
     [allPins, activeTab]
   );
 

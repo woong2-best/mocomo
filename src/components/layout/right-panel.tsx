@@ -5,7 +5,10 @@ import {
 } from "@/lib/cached-data";
 import { RightPanelContent } from "@/components/layout/right-panel-content";
 import { getSubcultureMapPins } from "@/lib/subculture-events";
-import { resolveSubculturePinsForUser } from "@/lib/subculture-event-countries";
+import {
+  resolveSubculturePinsForUser,
+  selectSidebarEventPins,
+} from "@/lib/subculture-event-countries";
 import { getRequestCountryCode } from "@/lib/i18n/server";
 
 export { RightPanelSkeleton } from "@/components/layout/right-panel-content";
@@ -18,7 +21,10 @@ export async function RightPanel() {
       getCachedSidebarPanelData(),
       getSubcultureMapPins(160),
     ]);
-    const eventPins = resolveSubculturePinsForUser(allPins, countryCode).slice(0, 36);
+    const eventPins = selectSidebarEventPins(
+      resolveSubculturePinsForUser(allPins, countryCode),
+      24
+    );
     return (
       <RightPanelContent
         tips={raw.tips}
