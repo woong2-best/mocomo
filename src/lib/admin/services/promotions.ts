@@ -11,7 +11,7 @@ import type { FeePromotionSnapshot } from "@/lib/promotion/fee-stack";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import type { AdminActor } from "@/lib/admin/access";
 import { createNotification, createNotificationsMany } from "@/lib/notifications";
-import { pickActiveFeeCouponForUser } from "@/lib/admin/services/coupons";
+import { pickActiveFeeCouponForUser } from "@/lib/coupon/pick-active-fee";
 import { previewFeeWithBenefits } from "@/lib/promotion/fee-stack";
 
 function slugify(name: string) {

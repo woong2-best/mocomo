@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { redeemCouponCode } from "@/lib/admin/services/coupons";
+import { redeemCouponCode } from "@/lib/coupon/redeem-code";
 
 export const dynamic = "force-dynamic";
 

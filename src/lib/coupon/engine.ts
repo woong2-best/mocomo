@@ -1,5 +1,5 @@
 import { calcPlatformFee } from "@/lib/utils";
-import { PLATFORM_FEE_RATE } from "@/lib/settlement";
+import { PLATFORM_FEE_RATE } from "@/lib/fees/constants";
 
 export type FeeCouponSnapshot = {
   assignmentId: string;
