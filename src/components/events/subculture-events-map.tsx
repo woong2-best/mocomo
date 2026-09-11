@@ -172,6 +172,7 @@ export function SubcultureEventsMap({
   onZoomChange,
   defaultView,
   respectDefaultView = false,
+  showAttribution = true,
 }: {
   pins: MapEventPin[];
   className?: string;
@@ -191,6 +192,8 @@ export function SubcultureEventsMap({
   defaultView?: { lat: number; lng: number; zoom: number };
   /** true면 fitBounds 생략하고 defaultView 그대로 사용 (지구본 초기 각도) */
   respectDefaultView?: boolean;
+  /** false면 Esri 등 타일 저작권 표시 숨김 (사이드바 미리보기) */
+  showAttribution?: boolean;
 }) {
   const navigationControls = showNavigationControls ?? immersive;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -227,7 +230,7 @@ export function SubcultureEventsMap({
           ? [defaultView.lng, defaultView.lat]
           : [135, 28],
         zoom: defaultView?.zoom ?? 3,
-        attributionControl: interactive ? { compact: true } : false,
+        attributionControl: interactive && showAttribution ? { compact: true } : false,
         // Site CSS disables transitions globally; skip canvas fade-in.
         fadeDuration: 0,
       });
@@ -392,7 +395,7 @@ export function SubcultureEventsMap({
       setReady(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pins identity drives rebuild
-  }, [pins, interactive, navigationControls, defaultView, immersive]);
+  }, [pins, interactive, navigationControls, defaultView, immersive, showAttribution]);
 
   if (!immersive && pins.length === 0) {
     return (

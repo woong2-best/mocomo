@@ -44,10 +44,10 @@ export function SidebarEventMapCard({
           </CardTitle>
           <Link
             href="/events/map"
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white/85 transition-colors hover:bg-white/20 hover:text-white"
             aria-label={t("sidebar.eventsMapExpand")}
           >
-            <Info className="h-4 w-4" />
+            <Info className="h-3.5 w-3.5" strokeWidth={2.25} />
           </Link>
         </div>
       </CardHeader>
@@ -58,6 +58,7 @@ export function SidebarEventMapCard({
             heightClassName="h-44"
             interactive
             showNavigationControls={false}
+            showAttribution={false}
             defaultView={defaultView}
             className="subculture-events-map--sidebar"
           />
