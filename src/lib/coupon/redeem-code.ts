@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 import { formatCouponBenefit } from "@/lib/coupon/engine";
 
 async function appendRedeemHistory(couponId: string, userId: string) {
