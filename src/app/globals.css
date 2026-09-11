@@ -793,6 +793,14 @@ html[data-client="app"] .native-live-pad {
     display: none !important;
   }
 
+  .subculture-events-map--sidebar .maplibregl-canvas {
+    cursor: grab;
+  }
+
+  .subculture-events-map--sidebar .maplibregl-canvas:active {
+    cursor: grabbing;
+  }
+
   .subculture-events-map--immersive {
     background: transparent;
   }
