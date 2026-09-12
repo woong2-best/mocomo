@@ -25,6 +25,7 @@ import {
   Search,
   Globe,
   Fingerprint,
+  MapPin,
 } from "lucide-react";
 import type { AdminPermission } from "@/lib/admin/permissions";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
@@ -48,6 +49,7 @@ export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
   { href: "/admin/live", label: "라이브 관리", icon: Radio, permission: "live" },
   { href: "/admin/streaming-accounts", label: "스트리밍 계정", icon: Radio, permission: "live" },
   { href: "/admin/reports", label: "신고 관리", icon: ShieldAlert, permission: "reports" },
+  { href: "/admin/events-map", label: "행사 지도 핀", icon: MapPin, permission: "reports" },
   { href: "/admin/watermark/forensics", label: "워터마크 포렌식", icon: Fingerprint, permission: "reports" },
   { href: "/admin/ads", label: "광고 관리", icon: Megaphone, permission: "ads" },
   { href: "/admin/statistics", label: "통계", icon: BarChart3, permission: "statistics" },

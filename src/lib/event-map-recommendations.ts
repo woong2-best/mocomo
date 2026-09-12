@@ -33,6 +33,11 @@ export function recommendationRowToMapPin(row: EventMapUserRecommendationRow): M
   };
 }
 
+/** Map pin id (`user-rec-{id}`) or raw DB id → cuid */
+export function normalizeEventMapRecommendationId(id: string): string {
+  return id.startsWith("user-rec-") ? id.slice("user-rec-".length) : id;
+}
+
 export async function getEventMapUserRecommendations(limit = 200): Promise<MapEventPin[]> {
   const rows = await db.eventMapUserRecommendation.findMany({
     take: limit,

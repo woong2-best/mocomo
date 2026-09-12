@@ -5,6 +5,8 @@ import type { AccountStatus, ReportStatus, ReportTargetType } from "@prisma/clie
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
+import { normalizeEventMapRecommendationId } from "@/lib/event-map-recommendations";
+import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 
 async function logSuspensionChange(params: {
   userId: string;
@@ -294,6 +296,72 @@ export async function getPendingReports() {
       reportedUser: { select: { id: true, username: true } },
     },
   });
+}
+
+export async function getAdminEventMapRecommendations(limit = 100) {
+  await requireAdmin();
+  return db.eventMapUserRecommendation.findMany({
+    take: limit,
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      description: true,
+      lat: true,
+      lng: true,
+      createdAt: true,
+      user: { select: { username: true, name: true } },
+    },
+  });
+}
+
+export async function adminForceDeleteEventMapRecommendation(
+  rawId: string,
+  modReason?: string
+) {
+  const admin = await requireAdmin();
+  const id = normalizeEventMapRecommendationId(rawId);
+
+  const rec = await db.eventMapUserRecommendation.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      lat: true,
+      lng: true,
+    },
+  });
+  if (!rec) return { error: "추천 장소를 찾을 수 없습니다." };
+
+  await db.eventMapUserRecommendation.delete({ where: { id } });
+  await db.modLog.create({
+    data: {
+      actorId: admin.id,
+      targetId: rec.userId,
+      action: "force_delete_event_map_recommendation",
+      reason: modReason ?? "관리자 강제 삭제",
+      metadata: {
+        recommendationId: rec.id,
+        title: rec.title,
+        lat: rec.lat,
+        lng: rec.lng,
+      },
+    },
+  });
+  await logSiteAdminAudit({
+    actorId: admin.id,
+    action: "MODERATION_ACTION",
+    targetType: "event_map_recommendation",
+    targetId: rec.id,
+    metadata: { title: rec.title, userId: rec.userId },
+  });
+
+  revalidatePath("/events/map");
+  revalidatePath("/admin/events-map");
+  revalidatePath("/admin");
+  return { success: true };
 }
 
 export async function adminForceDeletePost(postId: string, modReason?: string) {
