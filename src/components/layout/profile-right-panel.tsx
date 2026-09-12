@@ -12,7 +12,7 @@ export function ProfileRightPanel() {
   const { t } = useLocale();
 
   return (
-    <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 h-full flex-col folk-panel-aside overflow-hidden">
+    <aside className="hidden lg:flex w-56 xl:w-60 shrink-0 h-full flex-col folk-panel-aside overflow-hidden">
       <ProfileCalendar />
       <div className="min-h-0 flex-1 overflow-hidden">
         <WhoToFollowPanel />

@@ -88,7 +88,7 @@ export function DesktopAdRails() {
         <AdRailColumn
           ads={rails.left}
           side="left"
-          className="absolute top-[4.5rem] left-[19.25rem]"
+          className="absolute top-[4.5rem] left-[16.75rem]"
         />
       )}
       {rails.right.length > 0 && (
@@ -97,7 +97,7 @@ export function DesktopAdRails() {
           side="right"
           className={cn(
             "absolute top-[4.5rem]",
-            hasRightPanel ? "right-[19.25rem]" : "right-4"
+            hasRightPanel ? "right-[16.25rem]" : "right-4"
           )}
         />
       )}
