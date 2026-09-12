@@ -146,6 +146,7 @@ export function WalletHub({
           <GemBalancePanel
             balance={gemBalance}
             minTopupMoco={minTopupMoco}
+            paymentMethods={paymentMethods}
             purchases={gemPurchases}
             lowBalanceNotice={lowBalanceNotice}
           />

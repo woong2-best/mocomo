@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { Loader2, ShieldCheck } from "lucide-react";
-import { createGemTopupCheckout } from "@/actions/gems";
+import { payGemTopupWithSavedCard } from "@/actions/gems";
+import { confirmCheckoutPayment } from "@/actions/checkout-payment";
 import {
   MOCO_PURCHASE_TERMS_COPY,
   MOCO_TOPUP_INPUT_MAX_DIGITS,
@@ -10,6 +13,8 @@ import {
   sanitizeMocoTopupInput,
 } from "@/lib/gems/constants";
 import { formatMocoDisplay } from "@/lib/gems/display";
+import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
+import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
 import { cn } from "@/lib/utils";
 
 type GemPurchaseRow = {
@@ -25,6 +30,7 @@ type GemPurchaseRow = {
 type Props = {
   balance: number;
   minTopupMoco: number;
+  paymentMethods: SavedPaymentMethod[];
   purchases: GemPurchaseRow[];
   lowBalanceNotice?: boolean;
 };
@@ -100,15 +106,73 @@ function AtmActionKey({
   );
 }
 
-export function GemBalancePanel({ balance, minTopupMoco, purchases, lowBalanceNotice }: Props) {
+export function GemBalancePanel({
+  balance,
+  minTopupMoco,
+  paymentMethods,
+  purchases,
+  lowBalanceNotice,
+}: Props) {
+  const router = useRouter();
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
   const [statusLine, setStatusLine] = useState("충전할 MOCO 수량을 입력해 주세요.");
   const [pending, startTransition] = useTransition();
+  const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
+
+  const defaultCard = useMemo(
+    () => paymentMethods.find((m) => m.isDefault) ?? paymentMethods[0] ?? null,
+    [paymentMethods],
+  );
+
+  useEffect(() => {
+    const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    if (pk) setStripePromise(loadStripe(pk));
+  }, []);
 
   const parsedPreview = parseMocoTopupCount(amount);
   const displayAmount = amount ? Number(amount).toLocaleString() : "0";
+
+  const handle3ds = useCallback(
+    async (secret: string, orderId: string) => {
+      if (!stripePromise) {
+        setError("Stripe를 불러오지 못했습니다.");
+        return;
+      }
+      const stripe = await stripePromise;
+      if (!stripe) {
+        setError("Stripe를 불러오지 못했습니다.");
+        return;
+      }
+      const returnUrl = stripePaymentIntentReturnUrlClient(orderId, "/wallet");
+      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(secret, {
+        return_url: returnUrl,
+      });
+      if (confirmError) {
+        setError(confirmError.message ?? "카드 인증에 실패했습니다.");
+        setStatusLine(confirmError.message ?? "카드 인증에 실패했습니다.");
+        return;
+      }
+      if (paymentIntent?.status !== "succeeded") {
+        setError("결제가 완료되지 않았습니다.");
+        setStatusLine("결제가 완료되지 않았습니다.");
+        return;
+      }
+      const done = await confirmCheckoutPayment(orderId);
+      if ("error" in done && done.error) {
+        setError(done.error);
+        setStatusLine(done.error);
+        return;
+      }
+      if ("success" in done && done.success) {
+        setAmount("");
+        setStatusLine("충전이 완료되었습니다.");
+        router.refresh();
+      }
+    },
+    [router, stripePromise],
+  );
 
   function appendDigit(digit: string) {
     if (pending) return;
@@ -139,18 +203,32 @@ export function GemBalancePanel({ balance, minTopupMoco, purchases, lowBalanceNo
       setStatusLine("1 MOCO 이상 입력해 주세요.");
       return;
     }
+    if (!defaultCard) {
+      setError("등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.");
+      setStatusLine("등록된 카드가 없습니다.");
+      return;
+    }
     setError("");
-    setStatusLine("결제 화면으로 이동합니다…");
+    setStatusLine("등록된 카드로 결제 중…");
     startTransition(async () => {
-      const res = await createGemTopupCheckout(moco, true);
+      const res = await payGemTopupWithSavedCard(moco, defaultCard.id, true);
       if ("error" in res && res.error) {
         setError(res.error);
         setStatusLine(res.error);
         return;
       }
-      if ("checkoutUrl" in res && res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
+      if ("requiresAction" in res && res.requiresAction && res.clientSecret && res.orderId) {
+        await handle3ds(res.clientSecret, res.orderId);
+        return;
       }
+      if ("success" in res && res.success) {
+        setAmount("");
+        setStatusLine("충전이 완료되었습니다.");
+        router.refresh();
+        return;
+      }
+      setError("결제에 실패했습니다. 다시 시도해 주세요.");
+      setStatusLine("결제에 실패했습니다.");
     });
   }
 
@@ -200,6 +278,14 @@ export function GemBalancePanel({ balance, minTopupMoco, purchases, lowBalanceNo
               <span className="shrink-0 text-sm font-bold text-slate-400">MOCO</span>
             </div>
             <p className="mt-1.5 text-[11px] text-slate-500">1 단위 정수 · 최소 {minTopupMoco} MOCO</p>
+            {defaultCard ? (
+              <p className="mt-2 text-[11px] text-slate-400">
+                결제 카드 · {defaultCard.brand.toUpperCase()} ···{defaultCard.last4}
+                {defaultCard.isDefault ? " (기본)" : ""}
+              </p>
+            ) : (
+              <p className="mt-2 text-[11px] text-amber-400/90">등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.</p>
+            )}
           </div>
         </div>
 
@@ -250,7 +336,13 @@ export function GemBalancePanel({ balance, minTopupMoco, purchases, lowBalanceNo
               label="확인"
               subLabel="OK"
               tone="confirm"
-              disabled={pending || !amount || parsedPreview == null || parsedPreview < minTopupMoco}
+              disabled={
+                pending ||
+                !defaultCard ||
+                !amount ||
+                parsedPreview == null ||
+                parsedPreview < minTopupMoco
+              }
               onPress={submitTopup}
               className="col-start-4 row-start-3 row-span-2 h-full min-h-[6.9rem]"
             />

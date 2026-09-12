@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
 import {
+  payCheckoutWithSavedMethod,
+  prepareCheckoutPaymentIntent,
+} from "@/lib/stripe-pay-intent-service";
+import {
   GEM_PURCHASE_TERMS_COPY,
   MIN_MOCO_TOPUP_COUNT,
   quoteGemTopup,
@@ -63,6 +67,63 @@ export async function createGemTopupCheckout(moco: number, purchaseTermsAccepted
     purchaseTermsAccepted: true,
     platform: "web",
   });
+}
+
+/** 지갑 등록 카드로 MOCO 충전 (Stripe Checkout 리다이렉트 없음) */
+export async function payGemTopupWithSavedCard(
+  moco: number,
+  paymentMethodId: string | undefined,
+  purchaseTermsAccepted?: boolean
+) {
+  const user = await requireAuth();
+  const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
+  const limited = await checkRateLimit(authLimiter, `gem-topup:${user.id}`);
+  if (!limited.success) {
+    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+  }
+  if (!purchaseTermsAccepted) {
+    return { error: "충전 전 약관에 동의해 주세요." };
+  }
+
+  const quote = quoteGemTopup(moco);
+  if (!quote.ok) return { error: quote.error };
+
+  const prepared = await prepareCheckoutPaymentIntent({
+    userId: user.id,
+    email: user.email,
+    type: "GEM_TOPUP",
+    amount: quote.usdCents,
+    orderName: quote.orderName,
+    metadata: { gemAmount: quote.moco },
+  });
+  if ("error" in prepared && prepared.error) {
+    return { error: prepared.error };
+  }
+  if (!("orderId" in prepared) || !prepared.orderId) {
+    return { error: "결제 준비에 실패했습니다." };
+  }
+
+  const pmId =
+    paymentMethodId ??
+    prepared.methods.find((m) => m.isDefault)?.id ??
+    prepared.methods[0]?.id;
+  if (!pmId) {
+    return { error: "등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요." };
+  }
+
+  const result = await payCheckoutWithSavedMethod(user.id, prepared.orderId, pmId, {
+    purchaseTermsAccepted: true,
+    platform: "web",
+  });
+
+  if ("success" in result && result.success) {
+    revalidatePath("/wallet");
+  }
+
+  return {
+    ...result,
+    publishableKey: prepared.publishableKey,
+  };
 }
 
 export async function requestGemRefund(gemPurchaseId: string) {
