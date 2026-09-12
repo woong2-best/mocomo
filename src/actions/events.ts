@@ -107,6 +107,49 @@ export async function joinEvent(eventId: string, entryUrl?: string) {
   return { participant };
 }
 
+/** 결제한 광고 — 이미지·링크만 수정 (소유자) */
+export async function updateEventAdCreative(
+  eventId: string,
+  data: { imageUrl?: string; linkUrl?: string }
+) {
+  const user = await requireAuth();
+  const event = await db.event.findUnique({ where: { id: eventId } });
+  if (!event || event.createdById !== user.id) {
+    return { error: "광고를 찾을 수 없습니다." };
+  }
+  if (!event.registrationFeePaid) {
+    return { error: "결제된 광고만 수정할 수 있습니다." };
+  }
+
+  const imageUrl = data.imageUrl?.trim() || event.imageUrl;
+  const linkUrl = data.linkUrl?.trim() || event.linkUrl;
+  if (!imageUrl) return { error: "이미지가 필요합니다." };
+  if (!linkUrl) return { error: "링크가 필요합니다." };
+
+  await db.event.update({
+    where: { id: eventId },
+    data: {
+      imageUrl,
+      linkUrl,
+      title: adTitleFromLink(linkUrl),
+    },
+  });
+
+  revalidatePath("/events");
+  revalidatePath("/");
+  revalidatePath("/events/new");
+  return { success: true as const };
+}
+
+function adTitleFromLink(linkUrl: string): string {
+  try {
+    const href = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
+    return new URL(href).hostname.replace(/^www\./, "") || "광고";
+  } catch {
+    return "광고";
+  }
+}
+
 export async function getEvents() {
   return db.event.findMany({
     where: publishedEventWhere,

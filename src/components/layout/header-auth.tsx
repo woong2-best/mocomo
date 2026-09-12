@@ -6,7 +6,7 @@ import type { SupportTierLevel } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
 import { NotificationBellLink } from "@/components/notifications/notification-bell-link";
-import { OreTierBadge } from "@/components/support/ore-tier-button";
+import { OreIcon } from "@/components/support/ore-icon";
 import { SupportTierInfoPopover } from "@/components/support/support-tier-info-popover";
 import { resolveProfileDisplayTier } from "@/lib/settlement-moco/balance";
 import { getTierInfo } from "@/lib/tiers";
@@ -28,13 +28,15 @@ export function HeaderAuth({ compact = false }: { compact?: boolean }) {
         <NotificationBellLink />
         {!compact && (
           <SupportTierInfoPopover align="end" side="bottom">
-            <button
+            <Button
               type="button"
-              className="hidden sm:inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              variant="ghost"
+              size="icon"
+              className="rounded-xl hidden sm:inline-flex"
               aria-label={`${tierInfo.labelKo} (${tierInfo.label}) · 등급 안내`}
             >
-              <OreTierBadge tier={displayTier} showLabel={false} size="sm" />
-            </button>
+              <OreIcon tier={displayTier} size={20} />
+            </Button>
           </SupportTierInfoPopover>
         )}
         <ProfileMenu displayTier={displayTier} />

@@ -26,11 +26,11 @@ export async function fetchFeedAdPool(): Promise<FeedAdData[]> {
     .filter((e): e is typeof e & { imageUrl: string } => !!e.imageUrl?.trim())
     .map((e) => ({
       id: `event-${e.id}`,
-      title: e.title,
+      title: e.linkUrl?.trim() ? adTitleFromLink(e.linkUrl) : e.title,
       imageUrl: e.imageUrl,
       linkUrl: e.linkUrl?.trim() || "/events",
       sponsorName: e.createdBy?.name || e.createdBy?.username || "MoCoMo",
-      ctaLabel: "참가하기",
+      ctaLabel: "바로가기",
       adCategory: "광고",
     }));
 
@@ -45,6 +45,15 @@ export async function fetchFeedAdPool(): Promise<FeedAdData[]> {
   }));
 
   return [...eventAds, ...slotAds];
+}
+
+function adTitleFromLink(linkUrl: string): string {
+  try {
+    const href = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
+    return new URL(href).hostname.replace(/^www\./, "");
+  } catch {
+    return "광고";
+  }
 }
 
 export const getCachedFeedAdPool = unstable_cache(
