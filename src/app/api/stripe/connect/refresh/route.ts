@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { refreshWalletConnectLink } from "@/lib/wallet-stripe-connect";
-import { isSafeReturnPath } from "@/lib/safe-link";
-
 /** Account Link 만료 시 refresh_url — 새 onboarding 링크 발급 후 리다이렉트 */
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -11,9 +9,6 @@ export async function GET(req: NextRequest) {
   }
 
   const fromApp = req.nextUrl.searchParams.get("app") === "1";
-  const returnRaw = req.nextUrl.searchParams.get("return");
-  const returnTo =
-    typeof returnRaw === "string" && isSafeReturnPath(returnRaw) ? returnRaw : "/wallet?tab=earnings";
 
   const { db } = await import("@/lib/db");
   const user = await db.user.findUnique({
@@ -26,10 +21,13 @@ export async function GET(req: NextRequest) {
   }
 
   const link = await refreshWalletConnectLink(user.stripeConnectAccountId);
-  if ("error" in link) {
+  if ("error" in link || !("url" in link)) {
     return NextResponse.redirect(new URL("/wallet?tab=earnings&connect=error", req.url));
   }
 
-  const dest = returnTo + (fromApp ? (returnTo.includes("?") ? "&app=1" : "?app=1") : "");
-  return NextResponse.redirect(new URL(dest, req.url));
+  if (fromApp) {
+    const sep = link.url.includes("?") ? "&" : "?";
+    return NextResponse.redirect(`${link.url}${sep}app=1`);
+  }
+  return NextResponse.redirect(link.url);
 }

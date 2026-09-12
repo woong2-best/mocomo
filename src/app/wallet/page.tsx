@@ -93,6 +93,7 @@ export default async function WalletPage({
       : {
           registered: false,
           payoutsEnabled: false,
+          hasConnectAccount: false,
           profile: null,
           settlementMocoPoints: 0,
           earnedMocoPoints: 0,

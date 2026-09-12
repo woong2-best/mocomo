@@ -1,10 +1,26 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Linking, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchSettlementStatus, registerSettlement } from "@/api/settlement";
+import { fetchSettlementStatus } from "@/api/settlement";
+import { apiRequest } from "@/api/client";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+
+async function startExpressConnect(requestCardPayments = false) {
+  return apiRequest<{ url: string }>("/api/mobile/settlements/connect-account", {
+    method: "POST",
+    body: { requestCardPayments },
+    auth: true,
+  });
+}
+
+async function openExpressDashboard() {
+  return apiRequest<{ url: string }>("/api/mobile/settlements/connect-dashboard", {
+    method: "POST",
+    auth: true,
+  });
+}
 
 export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }) {
   const { colors } = useTheme();
@@ -12,48 +28,35 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
   const queryClient = useQueryClient();
   const statusQuery = useQuery({ queryKey: ["mobile-settlement"], queryFn: fetchSettlementStatus });
 
-  const [legalName, setLegalName] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
-  const [accountHolderName, setAccountHolderName] = useState("");
-  const [addressLine1, setAddressLine1] = useState("");
-  const [city, setCity] = useState("");
-  const [postalCode, setPostalCode] = useState("");
-  const [bankCode, setBankCode] = useState("004");
-  const [taxAccepted, setTaxAccepted] = useState(false);
-  const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const connected = !!statusQuery.data?.payoutsEnabled;
+  const data = statusQuery.data;
+  const linked = !!data?.registered || !!data?.payoutsEnabled;
+  const connected = !!data?.payoutsEnabled;
 
-  async function submit() {
+  async function openOnboarding() {
     setBusy(true);
     setError("");
-    setMsg("");
     try {
-      const res = await registerSettlement({
-        countryCode: "KR",
-        legalName,
-        birthYear: 1990,
-        birthMonth: 1,
-        birthDay: 1,
-        addressLine1,
-        city,
-        postalCode,
-        accountNumber,
-        accountHolderName,
-        bankCode,
-        taxAttestationAccepted: true,
-      });
-      if ("error" in res && typeof res.error === "string") {
-        setError(res.error);
-        return;
-      }
-      setMsg("Reward 정산 등록이 완료되었습니다.");
-      void queryClient.invalidateQueries({ queryKey: ["mobile-settlement"] });
+      const res = await startExpressConnect(false);
+      await Linking.openURL(res.url);
       onConnected?.();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "정산 등록에 실패했습니다.");
+      setError(e instanceof Error ? e.message : "Stripe 연동을 시작할 수 없습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function openDashboard() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await openExpressDashboard();
+      await Linking.openURL(res.url);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Stripe 대시보드를 열 수 없습니다.");
     } finally {
       setBusy(false);
     }
@@ -66,70 +69,41 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
   return (
     <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
       <Text style={[styles.heading, { color: colors.text }]}>Reward 정산 등록</Text>
+      <Text style={[styles.body, { color: colors.textMuted }]}>
+        Stripe의 안전한 글로벌 정산망을 통해 본인 명의의 현지 은행 계좌를 연동합니다.
+      </Text>
 
-      {connected && statusQuery.data?.profile ? (
+      {connected && data?.profile ? (
         <View style={[styles.okBox, { borderColor: colors.success }]}>
           <Text style={[styles.okText, { color: colors.success }]}>✓ Reward 정산 등록 완료</Text>
           <Text style={[styles.body, { color: colors.textMuted }]}>
-            {statusQuery.data.profile.legalName} · ****{statusQuery.data.profile.accountNumberLast4}
-          </Text>
-          <Text style={[styles.body, { color: colors.textMuted }]}>
-            정산 MOCO {statusQuery.data.settlementMocoPoints.toLocaleString()} · 월말 자동 지급
+            {data.profile.legalName} · ****{data.profile.accountNumberLast4}
           </Text>
         </View>
-      ) : (
-        <>
-          <Text style={[styles.body, { color: colors.textMuted }]}>
-            Stripe 방문 없이 계좌·본인 정보를 입력하면 Reward 정산이 등록됩니다.
-          </Text>
-          <Field label="실명" value={legalName} onChangeText={setLegalName} colors={colors} />
-          <Field label="주소" value={addressLine1} onChangeText={setAddressLine1} colors={colors} />
-          <Field label="도시" value={city} onChangeText={setCity} colors={colors} />
-          <Field label="우편번호" value={postalCode} onChangeText={setPostalCode} colors={colors} />
-          <Field label="은행코드" value={bankCode} onChangeText={setBankCode} colors={colors} />
-          <Field label="계좌번호" value={accountNumber} onChangeText={setAccountNumber} colors={colors} />
-          <Field label="예금주" value={accountHolderName} onChangeText={setAccountHolderName} colors={colors} />
-          <FolkButton
-            label={taxAccepted ? "W-8BEN 동의됨" : "W-8BEN 동의 (미국 거주자 아님)"}
-            variant="ghost"
-            onPress={() => setTaxAccepted((v) => !v)}
-          />
-          <FolkButton label={busy ? "등록 중…" : "Reward 정산 등록"} onPress={() => void submit()} loading={busy} disabled={!taxAccepted} />
-        </>
-      )}
+      ) : linked ? (
+        <Text style={[styles.body, { color: colors.cobalt }]}>
+          Stripe 온보딩을 이어서 완료해 주세요.
+        </Text>
+      ) : null}
 
-      {msg ? <Text style={[styles.body, { color: colors.textMuted }]}>{msg}</Text> : null}
-      {error ? <Text style={[styles.body, { color: colors.danger }]}>{error}</Text> : null}
-    </View>
-  );
-}
+      <FolkButton
+        label={
+          busy
+            ? "Stripe 열기…"
+            : linked
+              ? "연동 완료 · 계좌 정보 수정하기"
+              : "Stripe 정산 계좌 연동하기"
+        }
+        onPress={() => void (linked ? openDashboard() : openOnboarding())}
+        loading={busy}
+      />
 
-function Field({
-  label,
-  value,
-  onChangeText,
-  colors,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (v: string) => void;
-  colors: ThemeColors;
-}) {
-  return (
-    <View style={{ gap: 4 }}>
-      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted }}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        style={{
-          borderWidth: 1,
-          borderColor: colors.hairline,
-          borderRadius: 10,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-          color: colors.text,
-          backgroundColor: colors.surface,
-        }}
+      {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+
+      <FolkButton
+        label="상태 새로고침"
+        variant="secondary"
+        onPress={() => void queryClient.invalidateQueries({ queryKey: ["mobile-settlement"] })}
       />
     </View>
   );
@@ -142,17 +116,12 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 16,
       padding: spacing.md,
       marginHorizontal: spacing.md,
-      marginTop: spacing.md,
       gap: spacing.sm,
     },
     heading: { fontSize: 16, fontWeight: "900" },
-    body: { fontSize: 12, fontWeight: "600", lineHeight: 18 },
-    okBox: {
-      borderWidth: 1,
-      borderRadius: 12,
-      padding: spacing.sm,
-      gap: 4,
-    },
-    okText: { fontSize: 13, fontWeight: "800" },
+    body: { fontSize: 13, lineHeight: 18, fontWeight: "600" },
+    okBox: { borderWidth: 1, borderRadius: 12, padding: spacing.sm, gap: 4 },
+    okText: { fontWeight: "800", fontSize: 14 },
+    error: { fontSize: 13, fontWeight: "600" },
   });
 }

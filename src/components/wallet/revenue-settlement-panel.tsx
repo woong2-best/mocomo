@@ -76,6 +76,7 @@ export function RevenueSettlementPanel({ data, earnings: initialEarnings, settle
       <SettlementRegistrationPanel
         registered={settlement.registered}
         payoutsEnabled={settlement.payoutsEnabled}
+        hasConnectAccount={settlement.hasConnectAccount}
         profile={settlement.profile}
       />
 

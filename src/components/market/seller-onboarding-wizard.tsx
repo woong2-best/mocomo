@@ -32,7 +32,7 @@ import { ChevronRight } from "lucide-react";
 type OnboardingState = Awaited<ReturnType<typeof getSellerOnboardingState>>;
 
 const SETTLEMENT_REGISTER_COPY =
-  "MoCoMo 앱에서 계좌번호·실명·생년월일·주소를 입력하면 Reward 정산 등록이 완료됩니다. Stripe 웹사이트 방문이 필요 없습니다.";
+  "Stripe Express 온보딩을 통해 본인 명의 현지 은행 계좌를 안전하게 연동합니다.";
 
 export function SellerOnboardingWizard({
   initialState,
@@ -504,8 +504,8 @@ export function SellerOnboardingWizard({
                 <SettlementRegistrationPanel
                   registered={!!state.connectReady || !!(state.signedIn && state.stripeStarted)}
                   payoutsEnabled={!!state.connectReady}
+                  hasConnectAccount={!!state.stripeStarted}
                   profile={null}
-                  defaultCountry={state.signedIn ? state.sellingMarket : "KR"}
                   requestCardPayments
                 />
               </>

@@ -216,6 +216,7 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
   const empty = {
     registered: false,
     payoutsEnabled: false,
+    hasConnectAccount: false,
     profile: null,
     settlementMocoPoints: 0,
     earnedMocoPoints: 0,
@@ -258,8 +259,9 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
     });
 
     return {
-      registered: !!profile?.registeredAt,
+      registered: !!profile?.registeredAt || !!userRow?.stripeConnectAccountId,
       payoutsEnabled: profile?.payoutsEnabled ?? userRow?.stripeOnboardingCompleted ?? false,
+      hasConnectAccount: !!userRow?.stripeConnectAccountId,
       profile: profile
         ? {
             countryCode: profile.countryCode,

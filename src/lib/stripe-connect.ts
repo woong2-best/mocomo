@@ -168,34 +168,41 @@ export async function updateCustomConnectAccount(
   }
 }
 
-/** @deprecated Express 대체 — Custom 등록은 registerCreatorSettlement 사용 */
-export async function createExpressConnectAccount(_input: {
+/** @deprecated settlement-express-connect.ensureExpressConnectAccount */
+export async function createExpressConnectAccount(input: {
   userId: string;
   email?: string | null;
   countryCode: string;
+  requestCardPayments?: boolean;
 }): Promise<{ accountId: string } | { error: string }> {
-  return { error: "Express Connect는 더 이상 지원되지 않습니다. 앱 내 정산 등록을 이용해 주세요." };
+  const { ensureExpressConnectAccount } = await import("@/lib/settlement-express-connect");
+  return ensureExpressConnectAccount(input.userId, {
+    requestCardPayments: input.requestCardPayments,
+  });
 }
 
-/** @deprecated Custom 화이트라벨 — Stripe 리다이렉트 없음 */
-export async function createSellerAccountOnboardingLink(_input: {
-  accountId: string;
-}): Promise<{ url: string } | { error: string }> {
-  return { error: "Stripe 온보딩 페이지는 사용하지 않습니다. 마이페이지에서 정산 등록을 완료해 주세요." };
+export async function createSellerAccountOnboardingLink(input: { accountId: string }) {
+  const { createExpressOnboardingLink } = await import("@/lib/settlement-express-connect");
+  return createExpressOnboardingLink(input.accountId);
 }
 
-/** @deprecated registerCreatorSettlement 사용 */
-export async function startSellerConnectOnboarding(_input: {
+export async function startSellerConnectOnboarding(input: {
   userId: string;
   email?: string | null;
   stripeConnectAccountId?: string | null;
   countryCode: string;
+  requestCardPayments?: boolean;
 }): Promise<{ accountId: string; url: string } | { error: string }> {
-  return { error: "Stripe 온보딩 페이지는 사용하지 않습니다. 마이페이지에서 정산 등록을 완료해 주세요." };
+  const { startExpressConnectOnboarding } = await import("@/lib/settlement-express-connect");
+  const result = await startExpressConnectOnboarding(input.userId, {
+    requestCardPayments: input.requestCardPayments,
+  });
+  if ("error" in result) return result;
+  return { accountId: result.accountId, url: result.url };
 }
 
-export async function refreshSellerConnectLink(_accountId: string) {
-  return createSellerAccountOnboardingLink({ accountId: _accountId });
+export async function refreshSellerConnectLink(accountId: string) {
+  return createSellerAccountOnboardingLink({ accountId });
 }
 
 export async function pullAndSyncStripeConnectAccount(
