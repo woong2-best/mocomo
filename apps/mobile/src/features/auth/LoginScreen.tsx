@@ -30,11 +30,11 @@ import { useTheme } from "@/theme/ThemeContext";
 import { spacing } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
-/** Matches the flat lower half of the welcome artwork so edges never show. */
-const BACKDROP = "#001959";
-/** Intrinsic shape of welcome-bg.png and where its line art stops. */
-const BACKDROP_ASPECT = 472 / 1024;
-const BACKDROP_ART_END = 0.527;
+/** Matches the night-sky fill of welcome-bg.jpg so letterbox edges never show. */
+const BACKDROP = "#0a1648";
+/** Intrinsic shape of welcome-bg.jpg (576×1024) and where the hero art ends. */
+const BACKDROP_ASPECT = 576 / 1024;
+const BACKDROP_ART_END = 0.48;
 /** Breathing room between the artwork and the first row of buttons. */
 const ART_GAP = 26;
 
@@ -193,7 +193,7 @@ export function LoginScreen({ navigation }: Props) {
   return (
     <View style={[styles.flex, { backgroundColor: BACKDROP }]}>
       <Image
-        source={require("../../../assets/welcome-bg.png")}
+        source={require("../../../assets/welcome-bg.jpg")}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         contentPosition="top center"

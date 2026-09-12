@@ -147,7 +147,8 @@ export async function payWithGems(input: {
 
   if ("error" in result && result.error) {
     const messages: Record<string, string> = {
-      INSUFFICIENT_GEMS_BALANCE: "젬 잔액이 부족합니다. 지갑에서 충전해 주세요.",
+      INSUFFICIENT_GEMS_BALANCE: "MOCO 잔액이 부족합니다. 지갑에서 충전해 주세요.",
+      INSUFFICIENT_MOCO_BALANCE: "MOCO 잔액이 부족합니다. 지갑에서 충전해 주세요.",
     };
     return { error: messages[result.error] ?? result.error };
   }

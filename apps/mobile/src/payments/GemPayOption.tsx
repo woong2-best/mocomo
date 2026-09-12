@@ -17,8 +17,8 @@ type Props = {
   onTopupPress?: () => void;
 };
 
-function formatGems(gems: number) {
-  return `${Math.max(0, gems).toLocaleString()} Gems`;
+function formatMoco(moco: number) {
+  return `${Math.max(0, moco).toLocaleString()} MOCO`;
 }
 
 export function GemPayOption({
@@ -35,9 +35,9 @@ export function GemPayOption({
   const styles = createStyles();
   const [pending, setPending] = useState(false);
   const canPay = gemsRequired > 0 && gemBalance >= gemsRequired;
-  const gemEligible = body.type === "TIP" || body.type === "POST_MEDIA";
+  const mocoEligible = body.type === "TIP" || body.type === "POST_MEDIA";
 
-  if (!gemEligible) return null;
+  if (!mocoEligible) return null;
 
   async function handlePay() {
     if (!canPay) return;
@@ -50,7 +50,7 @@ export function GemPayOption({
       });
       onSuccess();
     } catch (e: unknown) {
-      onError(e instanceof Error ? e.message : "젬 결제에 실패했습니다.");
+      onError(e instanceof Error ? e.message : "MOCO 결제에 실패했습니다.");
     } finally {
       setPending(false);
     }
@@ -66,20 +66,20 @@ export function GemPayOption({
         },
       ]}
     >
-      <Text style={[styles.title, { color: colors.text }]}>💎 젬 잔액으로 결제</Text>
+      <Text style={[styles.title, { color: colors.text }]}>MOCO 잔액으로 결제</Text>
       <Text style={[styles.meta, { color: colors.textMuted }]}>
-        보유 {formatGems(gemBalance)} · 필요 {formatGems(gemsRequired)}
+        보유 {formatMoco(gemBalance)} · 필요 {formatMoco(gemsRequired)}
       </Text>
       <Text style={[styles.hint, { color: colors.textMuted }]}>{amountLabel} · 즉시 결제</Text>
       <FolkButton
-        label={pending ? "결제 중…" : canPay ? `${formatGems(gemsRequired)}로 결제` : "젬 잔액 부족"}
+        label={pending ? "결제 중…" : canPay ? `${formatMoco(gemsRequired)}로 결제` : "MOCO 잔액 부족"}
         onPress={() => void handlePay()}
         loading={pending}
         disabled={disabled || !canPay}
       />
       {!canPay && onTopupPress ? (
         <Pressable onPress={onTopupPress}>
-          <Text style={[styles.topupLink, { color: colors.cobalt }]}>지갑에서 젬 충전</Text>
+          <Text style={[styles.topupLink, { color: colors.cobalt }]}>지갑에서 MOCO 충전</Text>
         </Pressable>
       ) : null}
     </View>

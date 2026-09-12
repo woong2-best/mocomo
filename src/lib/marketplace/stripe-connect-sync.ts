@@ -65,6 +65,13 @@ export async function syncStripeConnectAccountToDb(account: Stripe.Account): Pro
     },
   });
 
+  if (snap.readyForPayouts) {
+    await db.creatorSettlementProfile.updateMany({
+      where: { userId },
+      data: { payoutsEnabled: true, registeredAt: now },
+    });
+  }
+
   const profile = await db.marketplaceSellerProfile.findUnique({
     where: { userId },
     select: {

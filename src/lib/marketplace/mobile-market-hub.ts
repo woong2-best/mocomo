@@ -115,18 +115,10 @@ export async function listCreatorSellerListingsForUser(userId: string, take = 24
 }
 
 export async function listPaidSponsorEventsForMobile() {
-  return db.event.findMany({
-    where: {
-      endsAt: { gte: new Date() },
-      createdById: { not: null },
-      registrationFeePaid: true,
-      status: "PUBLISHED",
-      imageUrl: { not: null },
-    },
-    select: { id: true, title: true, imageUrl: true },
-    orderBy: { startsAt: "asc" },
-    take: 60,
-  });
+  const { listEligibleSponsorEventsForMobile } = await import(
+    "@/lib/sponsored-ad/eligible-events"
+  );
+  return listEligibleSponsorEventsForMobile();
 }
 
 /** 시간(시) 단위 로테이션 — 모바일 광고 배너 */

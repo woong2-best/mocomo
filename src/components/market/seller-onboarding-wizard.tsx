@@ -13,10 +13,8 @@ import {
   markSellerConnectReturn,
   registerSellerAccount,
   resendSellerEmailCode,
-  resumeSellerConnectFromOnboarding,
   saveSellerAgreements,
   saveSellerInfo,
-  startSellerStripeConnectOnboarding,
   verifySellerEmailCode,
 } from "@/actions/marketplace-seller-onboarding";
 import {
@@ -24,7 +22,7 @@ import {
   toSellerOnboardingUiStep,
   type SellerOnboardingStepId,
 } from "@/lib/marketplace/seller-onboarding";
-import { openStripeConnectOnboardingUrl } from "@/lib/marketplace/open-stripe-connect-url";
+import { SettlementRegistrationPanel } from "@/components/wallet/settlement-registration-panel";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { MARKET_STRIPE_DISCLAIMER_KO } from "@/lib/marketplace/market-access";
 import { MARKET_BRAND_FULL } from "@/lib/market-brand";
@@ -33,8 +31,8 @@ import { ChevronRight } from "lucide-react";
 
 type OnboardingState = Awaited<ReturnType<typeof getSellerOnboardingState>>;
 
-const STRIPE_ONBOARDING_COPY =
-  "Stripe로 안전하게 본인 확인 및 정산 계좌를 등록해 주세요. 신분증·사업자 정보·계좌는 Stripe에서 직접 수집합니다.";
+const SETTLEMENT_REGISTER_COPY =
+  "MoCoMo 앱에서 계좌번호·실명·생년월일·주소를 입력하면 Reward 정산 등록이 완료됩니다. Stripe 웹사이트 방문이 필요 없습니다.";
 
 export function SellerOnboardingWizard({
   initialState,
@@ -147,11 +145,8 @@ export function SellerOnboardingWizard({
         else refreshState();
       });
     } else if (connectParam === "refresh") {
-      startTransition(async () => {
-        const res = await resumeSellerConnectFromOnboarding({ fromApp, returnTo });
-        if ("url" in res && res.url) openStripeConnectOnboardingUrl(res.url, fromApp);
-        if ("error" in res && res.error) setError(res.error);
-      });
+      setMessage("아래에서 Reward 정산 등록을 완료해 주세요.");
+      refreshState();
     }
   }, [connectParam, fromApp, returnTo, router]);
 
@@ -318,35 +313,6 @@ export function SellerOnboardingWizard({
     });
   }
 
-  async function handleStripeConnect() {
-    setError("");
-    setMessage("");
-    startTransition(async () => {
-      const res = await startSellerStripeConnectOnboarding({ fromApp, returnTo });
-      if ("error" in res && res.error) {
-        setError(res.error);
-        return;
-      }
-      if ("url" in res && res.url) {
-        openStripeConnectOnboardingUrl(res.url, fromApp);
-      }
-    });
-  }
-
-  async function handleResumeStripe() {
-    setError("");
-    startTransition(async () => {
-      const res = await resumeSellerConnectFromOnboarding({ fromApp, returnTo });
-      if ("error" in res && res.error) {
-        setError(res.error);
-        return;
-      }
-      if ("url" in res && res.url) {
-        openStripeConnectOnboardingUrl(res.url, fromApp);
-      }
-    });
-  }
-
   let effectiveStep: SellerOnboardingStepId =
     state.signedIn && step === "ACCOUNT" ? "AGREEMENTS" : step;
   if (effectiveStep === "PHONE" || effectiveStep === "KYC") {
@@ -360,14 +326,9 @@ export function SellerOnboardingWizard({
     if (effectiveStep === "AGREEMENTS") return "약관 동의";
     if (effectiveStep === "EMAIL") return "이메일 인증";
     if (effectiveStep === "SELLER_INFO") return "판매자 · 사업자 정보";
-    if (effectiveStep === "SETTLEMENT") return "Stripe 본인 확인 · 정산";
+    if (effectiveStep === "SETTLEMENT") return "Reward 정산 등록";
     return "가입 완료";
   }, [effectiveStep]);
-
-  const stripeMessage =
-    state.signedIn && "stripeStatusMessage" in state
-      ? state.stripeStatusMessage
-      : STRIPE_ONBOARDING_COPY;
 
   return (
     <div className="mx-auto w-full max-w-lg">
@@ -532,38 +493,21 @@ export function SellerOnboardingWizard({
           <div className="space-y-4">
             {!marketEligible ? (
               <p className="text-sm text-destructive leading-relaxed">
-                선택한 판매 국가에서는 마켓플레이스 판매자 등록을 지원하지 않습니다. Stripe 지원
-                국가를 선택해 주세요.
+                선택한 판매 국가에서는 마켓플레이스 판매자 등록을 지원하지 않습니다. 지원 국가를
+                선택해 주세요.
               </p>
             ) : (
               <>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {stripeMessage} {MARKET_STRIPE_DISCLAIMER_KO}
+                  {SETTLEMENT_REGISTER_COPY} {MARKET_STRIPE_DISCLAIMER_KO}
                 </p>
-                {state.signedIn && "stripeRequirementsDue" in state && state.stripeRequirementsDue && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                    Stripe에서 추가 정보 제출이 필요합니다. 온보딩을 이어서 완료해 주세요.
-                  </div>
-                )}
-                {state.signedIn && "stripeDisabled" in state && state.stripeDisabled && (
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                    Stripe 계정 확인이 필요합니다. 온보딩을 다시 진행해 주세요.
-                  </div>
-                )}
-                <Button type="button" className="w-full" disabled={pending} onClick={handleStripeConnect}>
-                  Stripe 온보딩 시작
-                </Button>
-                {state.signedIn && "stripeStarted" in state && state.stripeStarted && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full"
-                    disabled={pending}
-                    onClick={handleResumeStripe}
-                  >
-                    Stripe 온보딩 이어서 하기
-                  </Button>
-                )}
+                <SettlementRegistrationPanel
+                  registered={!!state.connectReady || !!(state.signedIn && state.stripeStarted)}
+                  payoutsEnabled={!!state.connectReady}
+                  profile={null}
+                  defaultCountry={state.signedIn ? state.sellingMarket : "KR"}
+                  requestCardPayments
+                />
               </>
             )}
           </div>

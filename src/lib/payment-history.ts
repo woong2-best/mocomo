@@ -37,7 +37,7 @@ const TYPE_LABELS: Record<PaymentIntentType, string> = {
   USED_AUCTION_BID_HOLD: "경매 입찰 hold",
   FLOWER: "Flower",
   MOCO_TOPUP: "MOCO 충전",
-  GEM_TOPUP: "젬 충전",
+  GEM_TOPUP: "MOCO 충전",
   CALL_BOOKING: "통화 예약",
 };
 

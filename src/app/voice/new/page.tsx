@@ -377,7 +377,7 @@ export default function NewVoicePage() {
                   value={minViewerTier}
                   onChange={(e) => setMinViewerTier(e.target.value as SupportTierLevel)}
                 >
-                  {SUPPORT_TIERS.filter((t) => t.minAmount >= 10_000).map((t) => (
+                  {SUPPORT_TIERS.filter((t) => t.minAmount >= 50).map((t) => (
                     <option key={t.level} value={t.level}>
                       {tierLabelKo(t.level)} 이상 후원자
                     </option>

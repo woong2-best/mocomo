@@ -16,6 +16,7 @@ import { uploadImageBlob } from "@/lib/client-upload";
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import { EventCard } from "@/components/events/event-card";
 import { PaymentLegalNotice } from "@/components/legal/legal-entity-notice";
+import { EventSponsoredAdMocoPay } from "@/components/events/event-sponsored-ad-moco-pay";
 import { PayButton } from "@/components/payments/pay-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,9 +46,11 @@ const fieldClass =
 export function EventCreateForm({
   paymentsEnabled,
   paidEventId,
+  purchasedMoco = 0,
 }: {
   paymentsEnabled: boolean;
   paidEventId?: string | null;
+  purchasedMoco?: number;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -64,6 +67,7 @@ export function EventCreateForm({
   const [cropOpen, setCropOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [eventId, setEventId] = useState<string | null>(paidEventId ?? null);
+  const [mocoPaidSuccess, setMocoPaidSuccess] = useState(false);
   const [error, setError] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -156,7 +160,7 @@ export function EventCreateForm({
     if ("eventId" in res && res.eventId) setEventId(res.eventId);
   }
 
-  if (paidEventId) {
+  if (paidEventId || mocoPaidSuccess) {
     return (
       <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 space-y-4">
         <p className="font-semibold text-foreground">이벤트 등록이 완료되었습니다!</p>
@@ -193,12 +197,19 @@ export function EventCreateForm({
             >
               {formatUsd(registrationFee)} 결제하고 공개하기
             </PayButton>
+            <p className="text-center text-xs text-muted-foreground">또는</p>
           </>
         ) : (
-          <p className="text-sm text-destructive">
-            결제 설정(Stripe)이 필요합니다. 관리자에게 문의해 주세요.
+          <p className="text-sm text-muted-foreground">
+            카드 결제(Stripe)는 현재 사용할 수 없습니다. MOCO로 광고를 시작할 수 있습니다.
           </p>
         )}
+        <EventSponsoredAdMocoPay
+          eventId={eventId}
+          defaultDays={durationDays}
+          purchasedMoco={purchasedMoco}
+          onSuccess={() => setMocoPaidSuccess(true)}
+        />
       </div>
     );
   }

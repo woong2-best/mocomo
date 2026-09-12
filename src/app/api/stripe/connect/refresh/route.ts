@@ -25,13 +25,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/wallet?tab=earnings", req.url));
   }
 
-  const link = await refreshWalletConnectLink(user.stripeConnectAccountId, {
-    fromApp,
-    returnTo,
-  });
+  const link = await refreshWalletConnectLink(user.stripeConnectAccountId);
   if ("error" in link) {
     return NextResponse.redirect(new URL("/wallet?tab=earnings&connect=error", req.url));
   }
 
-  return NextResponse.redirect(link.url);
+  const dest = returnTo + (fromApp ? (returnTo.includes("?") ? "&app=1" : "?app=1") : "");
+  return NextResponse.redirect(new URL(dest, req.url));
 }

@@ -1,3 +1,4 @@
+import type { SupportTierLevel } from "@prisma/client";
 import "next-auth";
 
 declare module "next-auth" {
@@ -9,6 +10,8 @@ declare module "next-auth" {
     locale?: string;
     countryCode?: string;
     timeZone?: string;
+    supportTierSent?: SupportTierLevel;
+    earnedMocoTier?: SupportTierLevel;
   }
 
   interface Session {
@@ -29,6 +32,8 @@ declare module "next-auth" {
       isDeleted?: boolean;
       isOperator?: boolean;
       isStaff?: boolean;
+      supportTierSent?: SupportTierLevel;
+      earnedMocoTier?: SupportTierLevel;
     };
   }
 }
@@ -48,5 +53,7 @@ declare module "next-auth/jwt" {
     isDeleted?: boolean;
     isOperator?: boolean;
     isStaff?: boolean;
+    supportTierSent?: SupportTierLevel;
+    earnedMocoTier?: SupportTierLevel;
   }
 }

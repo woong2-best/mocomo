@@ -10,4 +10,10 @@ export const AUCTION_DEPOSIT_USD_CENTS_PER_MOCO = AUCTION_MOCO_USD_VALUE * 100;
 
 export const AUCTION_DEPOSIT_SOURCE_FORFEIT = "AUCTION_DEPOSIT_FORFEIT";
 
-export const INSUFFICIENT_DEPOSIT_ERROR = "보증금 MOCO가 부족합니다.";
+/** 경매 참여 최소 지갑 잔액 (available MOCO) */
+export const AUCTION_MIN_WALLET_MOCO = AUCTION_BID_DEPOSIT_MOCO;
+
+export const INSUFFICIENT_DEPOSIT_ERROR =
+  "지갑에 최소 2 MOCO 이상 있어야 경매에 참여할 수 있습니다. MOCO를 충전한 뒤 다시 시도해 주세요.";
+
+export const AUCTION_FORFEIT_PENALTY_MOCO = AUCTION_BID_DEPOSIT_MOCO;

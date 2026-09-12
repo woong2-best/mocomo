@@ -1,11 +1,7 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Linking, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  fetchStripeConnectDashboard,
-  fetchStripeConnectStatus,
-  startStripeConnectOnboarding,
-} from "@/api/stripe-connect";
+import { fetchSettlementStatus, registerSettlement } from "@/api/settlement";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -14,56 +10,53 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
-  const statusQuery = useQuery({ queryKey: ["mobile-stripe-connect"], queryFn: fetchStripeConnectStatus });
+  const statusQuery = useQuery({ queryKey: ["mobile-settlement"], queryFn: fetchSettlementStatus });
 
+  const [legalName, setLegalName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [accountHolderName, setAccountHolderName] = useState("");
+  const [addressLine1, setAddressLine1] = useState("");
+  const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [bankCode, setBankCode] = useState("004");
+  const [taxAccepted, setTaxAccepted] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState<"onboard" | "dashboard" | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const connected = !!statusQuery.data?.stripeOnboardingCompleted;
+  const connected = !!statusQuery.data?.payoutsEnabled;
 
-  async function connect() {
-    setBusy("onboard");
+  async function submit() {
+    setBusy(true);
     setError("");
     setMsg("");
     try {
-      const res = await startStripeConnectOnboarding();
+      const res = await registerSettlement({
+        countryCode: "KR",
+        legalName,
+        birthYear: 1990,
+        birthMonth: 1,
+        birthDay: 1,
+        addressLine1,
+        city,
+        postalCode,
+        accountNumber,
+        accountHolderName,
+        bankCode,
+        taxAttestationAccepted: true,
+      });
       if ("error" in res && typeof res.error === "string") {
         setError(res.error);
         return;
       }
-      if (res.url) {
-        await Linking.openURL(res.url);
-        setMsg("Stripe에서 정산 계좌 설정을 완료한 뒤 돌아와 새로고침해 주세요.");
-      }
+      setMsg("Reward 정산 등록이 완료되었습니다.");
+      void queryClient.invalidateQueries({ queryKey: ["mobile-settlement"] });
+      onConnected?.();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Stripe 연결에 실패했습니다.");
+      setError(e instanceof Error ? e.message : "정산 등록에 실패했습니다.");
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
-  }
-
-  async function openDashboard() {
-    setBusy("dashboard");
-    setError("");
-    try {
-      const res = await fetchStripeConnectDashboard();
-      if ("error" in res && typeof res.error === "string") {
-        setError(res.error);
-        return;
-      }
-      if (res.url) await Linking.openURL(res.url);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Stripe 대시보드를 열 수 없습니다.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  function refresh() {
-    void queryClient.invalidateQueries({ queryKey: ["mobile-stripe-connect"] });
-    void queryClient.invalidateQueries({ queryKey: ["mobile-wallet"] });
-    onConnected?.();
   }
 
   if (statusQuery.isLoading) {
@@ -72,39 +65,72 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
 
   return (
     <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
-      <Text style={[styles.heading, { color: colors.text }]}>수익 정산 계좌 연동</Text>
+      <Text style={[styles.heading, { color: colors.text }]}>Reward 정산 등록</Text>
 
-      {connected ? (
-        <>
-          <View style={[styles.okBox, { borderColor: colors.success }]}>
-            <Text style={[styles.okText, { color: colors.success }]}>✓ Stripe 정산 계좌 연동 완료</Text>
-            <Text style={[styles.body, { color: colors.textMuted }]}>
-              수익은 Stripe Connect를 통해 등록한 계좌로 정산됩니다.
-            </Text>
-          </View>
-          <FolkButton
-            label={busy === "dashboard" ? "열기 중…" : "정산 계좌/내역 관리"}
-            onPress={() => void openDashboard()}
-            loading={busy === "dashboard"}
-          />
-        </>
+      {connected && statusQuery.data?.profile ? (
+        <View style={[styles.okBox, { borderColor: colors.success }]}>
+          <Text style={[styles.okText, { color: colors.success }]}>✓ Reward 정산 등록 완료</Text>
+          <Text style={[styles.body, { color: colors.textMuted }]}>
+            {statusQuery.data.profile.legalName} · ****{statusQuery.data.profile.accountNumberLast4}
+          </Text>
+          <Text style={[styles.body, { color: colors.textMuted }]}>
+            정산 MOCO {statusQuery.data.settlementMocoPoints.toLocaleString()} · 월말 자동 지급
+          </Text>
+        </View>
       ) : (
         <>
           <Text style={[styles.body, { color: colors.textMuted }]}>
-            Stripe Connect Express로 본인 확인 및 정산 계좌를 등록합니다.
+            Stripe 방문 없이 계좌·본인 정보를 입력하면 Reward 정산이 등록됩니다.
           </Text>
+          <Field label="실명" value={legalName} onChangeText={setLegalName} colors={colors} />
+          <Field label="주소" value={addressLine1} onChangeText={setAddressLine1} colors={colors} />
+          <Field label="도시" value={city} onChangeText={setCity} colors={colors} />
+          <Field label="우편번호" value={postalCode} onChangeText={setPostalCode} colors={colors} />
+          <Field label="은행코드" value={bankCode} onChangeText={setBankCode} colors={colors} />
+          <Field label="계좌번호" value={accountNumber} onChangeText={setAccountNumber} colors={colors} />
+          <Field label="예금주" value={accountHolderName} onChangeText={setAccountHolderName} colors={colors} />
           <FolkButton
-            label={busy === "onboard" ? "연결 중…" : "Stripe 정산 계좌 연결하기"}
-            onPress={() => void connect()}
-            loading={busy === "onboard"}
+            label={taxAccepted ? "W-8BEN 동의됨" : "W-8BEN 동의 (미국 거주자 아님)"}
+            variant="ghost"
+            onPress={() => setTaxAccepted((v) => !v)}
           />
+          <FolkButton label={busy ? "등록 중…" : "Reward 정산 등록"} onPress={() => void submit()} loading={busy} disabled={!taxAccepted} />
         </>
       )}
 
       {msg ? <Text style={[styles.body, { color: colors.textMuted }]}>{msg}</Text> : null}
       {error ? <Text style={[styles.body, { color: colors.danger }]}>{error}</Text> : null}
+    </View>
+  );
+}
 
-      <FolkButton label="상태 새로고침" variant="ghost" onPress={refresh} />
+function Field({
+  label,
+  value,
+  onChangeText,
+  colors,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  colors: ThemeColors;
+}) {
+  return (
+    <View style={{ gap: 4 }}>
+      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted }}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        style={{
+          borderWidth: 1,
+          borderColor: colors.hairline,
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          color: colors.text,
+          backgroundColor: colors.surface,
+        }}
+      />
     </View>
   );
 }

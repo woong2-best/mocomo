@@ -29,7 +29,7 @@ export async function getMyGemBalance() {
 export async function createGemTopupCheckout(gems: number, purchaseTermsAccepted?: boolean) {
   const user = await requireAuth();
   const pack = findGemTopupPackage(gems);
-  if (!pack) return { error: "유효하지 않은 젬 패키지입니다." };
+  if (!pack) return { error: "유효하지 않은 MOCO 패키지입니다." };
 
   return createStripeCheckoutForUser({
     userId: user.id,
@@ -50,9 +50,7 @@ export async function requestGemRefund(gemPurchaseId: string) {
     const code = result.error;
     const messages: Record<string, string> = {
       UNAUTHORIZED: "환불 권한이 없습니다.",
-      ALREADY_REFUNDED: "이미 환불된 구매입니다.",
-      NO_REMAINING_GEMS_TO_REFUND: "환불 가능한 미사용 젬이 없습니다.",
-      REFUND_WINDOW_EXPIRED: "환불 기한이 지났습니다.",
+      REFUND_NOT_ALLOWED: "구매 MOCO는 환불할 수 없습니다.",
     };
     return { error: messages[code] ?? code };
   }
@@ -91,8 +89,8 @@ export async function tipWithGems(
     channelId,
   });
   if ("error" in result) {
-    if (result.error === "INSUFFICIENT_GEMS_BALANCE") {
-      return { error: "젬 잔액이 부족합니다. 충전 후 다시 시도해 주세요." };
+    if (result.error === "INSUFFICIENT_MOCO_BALANCE") {
+      return { error: "MOCO 잔액이 부족합니다. 충전 후 다시 시도해 주세요." };
     }
     return { error: result.error };
   }
@@ -116,8 +114,8 @@ export async function liveTipWithGems(input: {
     message: input.message,
   });
   if ("error" in result) {
-    if (result.error === "INSUFFICIENT_GEMS_BALANCE") {
-      return { error: "젬 잔액이 부족합니다." };
+    if (result.error === "INSUFFICIENT_MOCO_BALANCE") {
+      return { error: "MOCO 잔액이 부족합니다." };
     }
     return { error: result.error };
   }

@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import type { SupportTierLevel } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
-import { Gem } from "lucide-react";
 import { NotificationBellLink } from "@/components/notifications/notification-bell-link";
+import { OreTierBadge } from "@/components/support/ore-tier-button";
 import { SupportTierInfoPopover } from "@/components/support/support-tier-info-popover";
+import { resolveProfileDisplayTier } from "@/lib/settlement-moco/balance";
+import { getTierInfo } from "@/lib/tiers";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export function HeaderAuth({ compact = false }: { compact?: boolean }) {
@@ -14,18 +17,27 @@ export function HeaderAuth({ compact = false }: { compact?: boolean }) {
   const { t } = useLocale();
 
   if (session?.user) {
+    const displayTier = resolveProfileDisplayTier(
+      (session.user.supportTierSent ?? "SEED") as SupportTierLevel,
+      (session.user.earnedMocoTier ?? "SEED") as SupportTierLevel
+    );
+    const tierInfo = getTierInfo(displayTier);
+
     return (
       <>
         <NotificationBellLink />
         {!compact && (
           <SupportTierInfoPopover align="end" side="bottom">
-            <Button variant="outline" size="sm" className="gap-1 rounded-xl hidden sm:inline-flex">
-              <Gem className="h-4 w-4" />
-              <span className="text-xs">{t("nav.tier")}</span>
-            </Button>
+            <button
+              type="button"
+              className="hidden sm:inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={`${tierInfo.labelKo} (${tierInfo.label}) · 등급 안내`}
+            >
+              <OreTierBadge tier={displayTier} showLabel={false} size="sm" />
+            </button>
           </SupportTierInfoPopover>
         )}
-        <ProfileMenu />
+        <ProfileMenu displayTier={displayTier} />
       </>
     );
   }

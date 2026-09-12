@@ -1,17 +1,23 @@
 export const SETTLEMENT_ACCOUNT_REQUIRED_MSG =
-  "수익 정산 계좌 연동이 필요합니다. 지갑 → 수익 탭에서 Stripe Connect로 정산 계좌를 등록해 주세요.";
+  "Reward 정산 등록이 필요합니다. 마이페이지에서 계좌번호·실명·주소를 입력해 정산을 등록해 주세요.";
 
 export const SETTLEMENT_ACCOUNT_REQUIRED_CODE = "SETTLEMENT_ACCOUNT_REQUIRED";
 
 export type SettlementAccountUser = {
   stripeOnboardingCompleted?: boolean;
   stripeConnectOnboardedAt?: Date | null;
+  creatorSettlementProfile?: { registeredAt?: Date | null; payoutsEnabled?: boolean } | null;
 };
 
-/** Stripe Connect Express 온보딩 완료 여부 */
+/** Stripe Connect Custom 정산 등록 완료 여부 */
 export function hasSettlementAccount(user: SettlementAccountUser | null | undefined): boolean {
   if (!user) return false;
-  return !!(user.stripeOnboardingCompleted || user.stripeConnectOnboardedAt);
+  return !!(
+    user.creatorSettlementProfile?.payoutsEnabled ||
+    user.creatorSettlementProfile?.registeredAt ||
+    user.stripeOnboardingCompleted ||
+    user.stripeConnectOnboardedAt
+  );
 }
 
 export function assertSettlementAccount(user: SettlementAccountUser | null | undefined): string | null {
@@ -19,7 +25,7 @@ export function assertSettlementAccount(user: SettlementAccountUser | null | und
   return SETTLEMENT_ACCOUNT_REQUIRED_MSG;
 }
 
-/** 지갑 수익 탭 — Stripe Connect 연동 UI */
+/** 지갑 Reward 탭 — 앱 내 정산 등록 UI */
 export function walletSettlementPath(callbackUrl?: string): string {
   const base = "/wallet?tab=earnings";
   if (!callbackUrl?.startsWith("/")) return base;

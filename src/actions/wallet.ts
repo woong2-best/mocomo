@@ -52,73 +52,11 @@ export async function saveBankAccount(data: {
   }
 }
 
-export async function requestPayout(amount: number) {
-  const user = await requireAuth();
-  if (amount < MIN_PAYOUT_KRW) {
-    return { error: `최소 출금 금액은 ${formatUsd(MIN_PAYOUT_KRW)}입니다.` };
-  }
-
-  try {
-    const verified = await db.user.findUnique({
-      where: { id: user.id },
-      select: {
-        stripeOnboardingCompleted: true,
-        stripeConnectAccountId: true,
-        name: true,
-      },
-    });
-
-    if (!verified?.stripeOnboardingCompleted || !verified.stripeConnectAccountId) {
-      return { error: "Stripe Connect 정산 계좌 연동을 먼저 완료해 주세요." };
-    }
-
-    const payoutBank = {
-      bankName: "Stripe Connect",
-      accountNumber: verified.stripeConnectAccountId.slice(-8),
-      holderName: verified.name ?? "Stripe",
-    };
-
-    const wallet = await db.wallet.findUnique({ where: { userId: user.id } });
-    const available = wallet?.availableBalance ?? 0;
-    const pending = await db.payoutRequest.aggregate({
-      where: { userId: user.id, status: { in: ["PENDING", "APPROVED"] } },
-      _sum: { amount: true },
-    });
-    const reserved = pending._sum.amount ?? 0;
-    if (amount > available - reserved) {
-      return { error: "출금 가능 잔액이 부족합니다." };
-    }
-
-    await db.$transaction(async (tx) => {
-      const w = await tx.wallet.update({
-        where: { userId: user.id },
-        data: { availableBalance: { decrement: amount } },
-      });
-      await tx.payoutRequest.create({
-        data: {
-          userId: user.id,
-          amount,
-          bankName: payoutBank.bankName,
-          accountNumber: payoutBank.accountNumber,
-          holderName: payoutBank.holderName,
-        },
-      });
-      await tx.ledgerEntry.create({
-        data: {
-          userId: user.id,
-          type: "PAYOUT_REQUEST",
-          amount,
-          balanceAfter: w.availableBalance,
-          memo: "출금 신청",
-        },
-      });
-    });
-
-    revalidatePath("/wallet");
-    revalidatePath("/support");
-    revalidatePath("/admin/finance");
-    return { success: true };
-  } catch {
-    return { error: "출금 신청에 실패했습니다." };
-  }
+/** @deprecated 월말 자동 Reward 지급으로 대체 */
+export async function requestPayout(_amount: number) {
+  await requireAuth();
+  return {
+    error:
+      "수동 출금은 지원하지 않습니다. 정산 MOCO는 매월 말 크리에이터 활동 성과 보수(Reward)로 자동 지급됩니다.",
+  };
 }

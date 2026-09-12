@@ -18,6 +18,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Gavel, Zap } from "lucide-react";
 import { USED_AUCTION_BID_CONSENT_LABEL } from "@/lib/used-auction-legal";
+import {
+  AUCTION_MIN_WALLET_MOCO,
+  INSUFFICIENT_DEPOSIT_ERROR,
+} from "@/lib/auction-deposit/constants";
 import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
 import Link from "next/link";
 
@@ -37,6 +41,7 @@ export function UsedAuctionBidSheet({
   quickBids,
   restrictedKind = "NONE",
   currency,
+  availableMocoBalance,
 }: {
   listingId: string;
   minBid: number;
@@ -44,6 +49,8 @@ export function UsedAuctionBidSheet({
   quickBids?: number[];
   restrictedKind?: UsedRestrictedKind | string;
   currency?: string | null;
+  /** 로그인 사용자 available MOCO (mocoPoints + gemBalance) */
+  availableMocoBalance?: number | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -58,6 +65,24 @@ export function UsedAuctionBidSheet({
   const [methods, setMethods] = useState<SavedPaymentMethod[]>([]);
   const [selectedPm, setSelectedPm] = useState<string | null>(null);
   const [publishableKey, setPublishableKey] = useState("");
+  const [walletWarning, setWalletWarning] = useState("");
+
+  function tryOpenBidSheet() {
+    if (
+      availableMocoBalance != null &&
+      availableMocoBalance < AUCTION_MIN_WALLET_MOCO
+    ) {
+      setWalletWarning(INSUFFICIENT_DEPOSIT_ERROR);
+      return;
+    }
+    setWalletWarning("");
+    setAmount(String(minBid));
+    setBidConsent(false);
+    setBuyNowConsent(false);
+    setHoldOrderId(null);
+    setMethods([]);
+    setOpen(true);
+  }
 
   const finishBid = useCallback(
     async (bidAmount: number, paymentIntentDbId?: string) => {
@@ -207,18 +232,34 @@ export function UsedAuctionBidSheet({
         variant="secondary"
         size="lg"
         className="flex-1 h-12 rounded-xl font-semibold gap-2 bg-orange-600 hover:bg-orange-700 text-white"
-        onClick={() => {
-          setAmount(String(minBid));
-          setBidConsent(false);
-          setBuyNowConsent(false);
-          setHoldOrderId(null);
-          setMethods([]);
-          setOpen(true);
-        }}
+        onClick={tryOpenBidSheet}
       >
         <Gavel className="h-5 w-5" />
         입찰하기
       </Button>
+
+      {walletWarning ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/55"
+            aria-label="닫기"
+            onClick={() => setWalletWarning("")}
+          />
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-border bg-card p-5 space-y-4 shadow-xl">
+            <h3 className="text-lg font-bold">경매 참여 불가</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">{walletWarning}</p>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" className="flex-1" asChild>
+                <Link href="/wallet">MOCO 충전</Link>
+              </Button>
+              <Button type="button" className="flex-1" onClick={() => setWalletWarning("")}>
+                확인
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {open && (
         <div className="fixed inset-0 z-[60] flex flex-col justify-end">

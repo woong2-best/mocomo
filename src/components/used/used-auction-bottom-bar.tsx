@@ -46,6 +46,7 @@ export function UsedAuctionBottomBar({
   restrictedKind = "NONE",
   viewerAdultVerified = false,
   currency,
+  availableMocoBalance,
 }: {
   listingId: string;
   isSeller: boolean;
@@ -62,6 +63,7 @@ export function UsedAuctionBottomBar({
   restrictedKind?: UsedRestrictedKind | string;
   viewerAdultVerified?: boolean;
   currency?: string | null;
+  availableMocoBalance?: number | null;
 }) {
   const needsAdult =
     isUsedRestrictedKind(restrictedKind) && !isSeller && !viewerAdultVerified;
@@ -304,6 +306,7 @@ export function UsedAuctionBottomBar({
           buyNowPrice={buyNowPrice}
           restrictedKind={restrictedKind}
           currency={currency}
+          availableMocoBalance={availableMocoBalance}
         />
       ) : (
         <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">

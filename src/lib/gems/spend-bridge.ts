@@ -5,7 +5,7 @@ import { PLATFORM_MARGIN_RATE } from "@/lib/gems/constants";
 import { spendGemsOnGift } from "@/lib/gems/gift";
 import type { GiftEventSource } from "@/lib/gems/constants";
 
-/** Gem amount equals USD cents (1 gem = $0.01) */
+/** MOCO amount equals USD cents (1 MOCO = $0.01) */
 function gemsToAmountCents(gems: number) {
   return gems;
 }

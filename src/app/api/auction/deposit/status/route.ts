@@ -5,7 +5,9 @@ import { db } from "@/lib/db";
 import {
   AUCTION_BID_DEPOSIT_MOCO,
   AUCTION_BID_DEPOSIT_USD,
+  AUCTION_MIN_WALLET_MOCO,
   AUCTION_MOCO_USD_VALUE,
+  canParticipateInAuction,
   getMocoBalanceSnapshot,
   getSellerHarmScoreTotal,
 } from "@/lib/auction-deposit";
@@ -50,6 +52,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     depositRequiredMoco: AUCTION_BID_DEPOSIT_MOCO,
     depositRequiredUsd: AUCTION_BID_DEPOSIT_USD,
+    minWalletMoco: AUCTION_MIN_WALLET_MOCO,
+    canParticipate: canParticipateInAuction(balance),
     mocoUsdValue: AUCTION_MOCO_USD_VALUE,
     availableMocoBalance: balance.availableMocoBalance,
     lockedMocoBalance: balance.lockedMocoBalance,

@@ -7,7 +7,7 @@ import type { PaymentIntentType } from "@prisma/client";
 import { payWithGems } from "@/actions/checkout-payment";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatGemDisplay } from "@/lib/gems/display";
+import { formatMocoDisplay } from "@/lib/gems/display";
 
 type Props = {
   type: PaymentIntentType;
@@ -59,9 +59,9 @@ export function GemPayOption({
       <div className="flex items-center gap-2">
         <Gem className="h-5 w-5 text-primary shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="font-bold text-sm">젬 잔액으로 결제</p>
+          <p className="font-bold text-sm">MOCO 잔액으로 결제</p>
           <p className="text-xs text-muted-foreground">
-            보유 {formatGemDisplay(gemBalance)} · 필요 {formatGemDisplay(gemsRequired)}
+            보유 {formatMocoDisplay(gemBalance)} · 필요 {formatMocoDisplay(gemsRequired)}
           </p>
         </div>
       </div>
@@ -76,18 +76,18 @@ export function GemPayOption({
         {pending ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            젬 결제 중…
+            MOCO 결제 중…
           </>
         ) : canPay ? (
-          `${formatGemDisplay(gemsRequired)}로 결제`
+          `${formatMocoDisplay(gemsRequired)}로 결제`
         ) : (
-          "젬 잔액 부족"
+          "MOCO 잔액 부족"
         )}
       </Button>
       {!canPay ? (
         <p className="text-[11px] text-center">
           <Link href="/wallet" className="text-primary font-semibold underline">
-            지갑에서 젬 충전
+            지갑에서 MOCO 충전
           </Link>
         </p>
       ) : null}

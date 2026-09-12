@@ -46,13 +46,24 @@ export type CreatorPayoutBatchResult = {
   failed: number;
 };
 
-/** Cron batch — aggregate unpayout GiftEvents, Stripe Transfer once per creator */
+/** @deprecated MOCO 후원은 정산 MOCO 적립 → 월말 Reward 지급. 레거시 GiftEvent만 처리 */
 export async function processCreatorPayouts(): Promise<CreatorPayoutBatchResult> {
   const unpayoutEvents = await db.giftEvent.findMany({
     where: { payoutBatchId: null },
   });
 
-  const groupedByCreator = groupBy(unpayoutEvents, "creatorId");
+  const settlementCredited = await db.platformWalletLedger.findMany({
+    where: {
+      bucket: "SETTLEMENT_MOCO",
+      referenceType: "gift_event",
+      referenceId: { in: unpayoutEvents.map((e) => e.id) },
+    },
+    select: { referenceId: true },
+  });
+  const creditedIds = new Set(settlementCredited.map((r) => r.referenceId));
+  const legacyEvents = unpayoutEvents.filter((e) => !creditedIds.has(e.id));
+
+  const groupedByCreator = groupBy(legacyEvents, "creatorId");
   const result: CreatorPayoutBatchResult = {
     processed: 0,
     skipped: 0,

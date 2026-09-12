@@ -13,6 +13,7 @@ import { formatUsedPrice, maxUsedListingPrice, maxUsedListingPriceLabel, normali
 import {
   AUCTION_BID_DEPOSIT_MOCO,
   INSUFFICIENT_DEPOSIT_ERROR,
+  canParticipateInAuction,
   isMocoBidDepositRequired,
   getMocoBalanceSnapshot,
   lockBidDepositInTransaction,
@@ -88,7 +89,7 @@ export async function executeUsedAuctionBid(
   const mocoDepositRequired = await isMocoBidDepositRequired(listing);
   if (mocoDepositRequired) {
     const balance = await getMocoBalanceSnapshot(input.userId);
-    if (balance.availableMocoBalance < AUCTION_BID_DEPOSIT_MOCO) {
+    if (!canParticipateInAuction(balance)) {
       return { error: INSUFFICIENT_DEPOSIT_ERROR };
     }
   }

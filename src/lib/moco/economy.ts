@@ -1,7 +1,7 @@
 /**
  * MOCO 가상재화 — 두 종류:
- * - 구매 MOCO (PlatformWallet.mocoPoints): 현금 결제로 산 소비성 포인트. 환불·인출 불가, 이월만.
- * - 정산 MOCO (PlatformWallet.settlementMocoPoints): 크리에이터 활동 성과 스코어. 월말 Reward 지급 후 0 리셋.
+ * - purchasedMoco (User.gemBalance + PlatformWallet.mocoPoints): 충전만으로 정산 등급·출금 불가.
+ * - earnedMoco (PlatformWallet.settlementMocoPoints): 후원 수령 시 1:1 적립, 월간 등급 차감 후 잔여 이월.
  * 1 MOCO = 10 KRW 표시 단위 (체크아웃·탑업).
  * 경매 입찰 보증금 가치: 1 MOCO = $5 — src/lib/auction-deposit/constants.ts
  */

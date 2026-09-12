@@ -1,5 +1,11 @@
 export * from "@/lib/gems/constants";
-export { formatGemDisplay, formatGemUsdEquivalent } from "@/lib/gems/display";
+export {
+  formatMocoDisplay,
+  formatMocoUsdEquivalent,
+  formatGemDisplay,
+  formatGemUsdEquivalent,
+} from "@/lib/gems/display";
+export { MOCO_PURCHASE_TERMS_COPY, GEM_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
 export { getGemCheckoutQuote } from "@/lib/gems/checkout-quote";
 export { payCheckoutWithGems } from "@/lib/gems/checkout-pay";
 export { syncUserGemBalance, getUserGemBalance } from "@/lib/gems/balance";

@@ -251,6 +251,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             locale?: string;
             countryCode?: string;
             timeZone?: string;
+            supportTierSent?: string;
+            earnedMocoTier?: string;
             isBanned?: boolean;
             accountStatus?: string;
             isSuspendedReadOnly?: boolean;
@@ -293,6 +295,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             locale: true,
             countryCode: true,
             timeZone: true,
+            supportTierSent: true,
+            earnedMocoTier: true,
             isBanned: true,
             accountStatus: true,
             deletedAt: true,
@@ -306,6 +310,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.locale = dbUser.locale;
           token.countryCode = dbUser.countryCode;
           token.timeZone = dbUser.timeZone;
+          token.supportTierSent = dbUser.supportTierSent;
+          token.earnedMocoTier = dbUser.earnedMocoTier;
           token.isBanned = isServiceBanned(dbUser);
           token.accountStatus = dbUser.accountStatus;
           token.isSuspendedReadOnly = isSuspendedReadOnly(dbUser);

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import type { SupportTierLevel } from "@prisma/client";
 import { clearLocalHomeData } from "@/lib/apt/local-home-store";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
@@ -14,14 +15,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, Gem, LogOut, ChevronDown, MessageSquare, Users } from "lucide-react";
+import { User, Settings, LogOut, ChevronDown, MessageSquare, Users } from "lucide-react";
+import { OreIcon } from "@/components/support/ore-icon";
+import { getTierInfo } from "@/lib/tiers";
 import { AccountSwitcherDialog } from "@/components/auth/account-switcher-dialog";
 import { useLocale } from "@/components/providers/locale-provider";
 
-export function ProfileMenu() {
+export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTierLevel }) {
   const { data: session } = useSession();
   const { t } = useLocale();
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const tierInfo = getTierInfo(displayTier);
 
   if (!session?.user) return null;
 
@@ -81,9 +85,8 @@ export function ProfileMenu() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/support">
-              <Gem className="h-4 w-4 shrink-0" />
-              등급
+            <Link href="/support" aria-label={`${tierInfo.labelKo} (${tierInfo.label}) · 등급`}>
+              <OreIcon tier={displayTier} size={16} />
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

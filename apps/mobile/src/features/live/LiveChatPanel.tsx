@@ -284,7 +284,7 @@ export function LiveChatPanel({
                     </Text>
                     {item.broadcastRole === "MANAGER" ? (
                       <Image
-                        source={require("../../../assets/manager-badge.png")}
+                        source={require("../../../assets/manager-badge.jpg")}
                         style={{ width: 18, height: 18 }}
                         contentFit="contain"
                       />

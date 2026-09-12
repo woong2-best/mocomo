@@ -217,6 +217,8 @@ model User {
   supportTierSent      SupportTierLevel @default(SEED)
   totalSupportReceived Int              @default(0)
   supportTierReceived  SupportTierLevel @default(SEED)
+  /** earned MOCO 잔액 기준 정산 등급 — 월간 정산·후원 수령 시 실시간 갱신 */
+  earnedMocoTier       SupportTierLevel @default(SEED)
   locale        String    @default("ko")
   countryCode   String    @default("KR")
   /** 중고거래 서비스 지역 (동네) — countryCode와 함께 로컬 이웃 매칭 */
@@ -388,6 +390,8 @@ model User {
   usedListingChats UsedListingChat[] @relation("UsedListingChatBuyer")
   usedAuctionBids  UsedAuctionBid[]
   auctionDeposits  AuctionDeposit[]
+  sponsoredAdCampaigns SponsoredAdCampaign[]
+  mocoTransactionHistory MocoTransactionHistory[]
   sellerHarmScores SellerHarmScore[] @relation("SellerHarmScoreRecipient")
   usedAuctionWins  UsedListing[]     @relation("UsedAuctionWinner")
   usedAuctionWinningBids UsedListing[] @relation("UsedAuctionWinningBidder")
@@ -981,6 +985,7 @@ enum SupportTierLevel {
   SEED
   STONE
   BRONZE
+  BRASS
   SILVER
   GOLD
   CRYSTAL
@@ -2867,6 +2872,51 @@ model AuctionDeposit {
   @@index([listingId, userId, status])
 }
 
+enum MocoTransactionType {
+  AD_PURCHASE
+  AUCTION_PENALTY
+}
+
+/** MOCO 소멸(Burn) 감사 원장 — 유저 지갑 내역 (플랫폼 이체 없음) */
+model MocoTransactionHistory {
+  id          String              @id @default(cuid())
+  userId      String
+  /** 차감 시 음수 */
+  amount      Int
+  type        MocoTransactionType
+  reason      String
+  referenceId String
+  metadata    Json?
+  createdAt   DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([type, referenceId])
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+}
+
+/** 시간 기반 스폰서드 광고 — 24시간(1일)당 1 MOCO, purchasedMoco 즉시 차감 */
+model SponsoredAdCampaign {
+  id         String   @id @default(cuid())
+  userId     String
+  /** EVENT | POST | LISTING … */
+  targetType String   @db.VarChar(32)
+  targetId   String
+  days       Int
+  mocoPaid   Int
+  startsAt   DateTime @default(now())
+  expiresAt  DateTime
+  status     String   @default("ACTIVE") @db.VarChar(16)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+  @@index([status, expiresAt])
+  @@index([userId, createdAt])
+}
+
 /** 노쇼·결제 거부 시 몰수된 보증금 — 판매자 직접 이전 금지, 플랫폼 위약금 매출 */
 model PlatformPenaltyRevenue {
   id               String   @id @default(cuid())
@@ -4270,11 +4320,11 @@ model SettlementLedgerEntry {
 model PlatformWallet {
   id              String   @id @default(cuid())
   userId          String   @unique
-  /** 구매 MOCO (availableMocoBalance) — 현금 환불·인출 불가, 이월만 */
+  /** purchasedMoco — 마켓·경매 충전분 (환불·인출·정산 등급 불가) */
   mocoPoints      Int      @default(0)
   /** 경매 입찰 보증금 등 동결 MOCO (lockedMocoBalance) */
   lockedMocoBalance Int    @default(0)
-  /** 정산 MOCO — 크리에이터 성과 스코어, 월말 Reward 지급 후 0 리셋 */
+  /** earnedMoco — 후원 수령분, 월간 정산 차감 후 잔여 이월 */
   settlementMocoPoints Int @default(0)
   siteCreditKrw   Int      @default(0)
   promoCreditKrw  Int      @default(0)
@@ -4341,6 +4391,10 @@ model CreatorRewardPayoutBatch {
   periodYear           Int
   periodMonth          Int
   settlementMocoBefore Int
+  achievedTier         SupportTierLevel @default(SEED)
+  deductedMoco         Int              @default(0)
+  rolloverMoco         Int              @default(0)
+  rewardUsd            Int              @default(0)
   grossAmountMinor     Int
   withholdingMinor     Int
   netAmountMinor       Int

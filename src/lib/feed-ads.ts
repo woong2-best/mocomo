@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import type { FeedAdData } from "@/lib/default-ads";
+import { listEligibleSponsorEvents } from "@/lib/sponsored-ad/eligible-events";
 
 /** AdSlot 피드 광고 + 결제 완료 이벤트를 트위터/X 스타일 인피드 광고 풀로 합침 */
 export async function fetchFeedAdPool(): Promise<FeedAdData[]> {
@@ -18,24 +19,7 @@ export async function fetchFeedAdPool(): Promise<FeedAdData[]> {
         adCategory: true,
       },
     }),
-    db.event.findMany({
-      where: {
-        endsAt: { gte: new Date() },
-        createdById: { not: null },
-        registrationFeePaid: true,
-        status: "PUBLISHED",
-        imageUrl: { not: null },
-      },
-      select: {
-        id: true,
-        title: true,
-        imageUrl: true,
-        linkUrl: true,
-        createdBy: { select: { name: true, username: true } },
-      },
-      orderBy: { startsAt: "asc" },
-      take: 24,
-    }),
+    listEligibleSponsorEvents(),
   ]);
 
   const eventAds: FeedAdData[] = events
@@ -65,6 +49,6 @@ export async function fetchFeedAdPool(): Promise<FeedAdData[]> {
 
 export const getCachedFeedAdPool = unstable_cache(
   async () => fetchFeedAdPool(),
-  ["feed-ad-pool-v1"],
+  ["feed-ad-pool-v2"],
   { revalidate: 60 }
 );

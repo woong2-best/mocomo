@@ -24,6 +24,8 @@ export const CREDENTIALS_JWT_USER_SELECT = {
   locale: true,
   countryCode: true,
   timeZone: true,
+  supportTierSent: true,
+  earnedMocoTier: true,
 } as const;
 
 export type CredentialsJwtUser = Pick<
@@ -44,6 +46,8 @@ export type CredentialsJwtUser = Pick<
   | "locale"
   | "countryCode"
   | "timeZone"
+  | "supportTierSent"
+  | "earnedMocoTier"
 >;
 
 export function toCredentialsAuthUser(user: CredentialsJwtUser) {
@@ -62,6 +66,8 @@ export function toCredentialsAuthUser(user: CredentialsJwtUser) {
     locale: user.locale,
     countryCode: user.countryCode,
     timeZone: user.timeZone,
+    supportTierSent: user.supportTierSent,
+    earnedMocoTier: user.earnedMocoTier,
     isOperator: isOperatorIdentity({
       username: user.username,
       role,
@@ -87,6 +93,8 @@ export function hydrateTokenFromCredentialsUser(
     locale?: string;
     countryCode?: string;
     timeZone?: string;
+    supportTierSent?: string;
+    earnedMocoTier?: string;
     isBanned?: boolean;
     accountStatus?: string;
     isSuspendedReadOnly?: boolean;
@@ -101,6 +109,8 @@ export function hydrateTokenFromCredentialsUser(
   token.locale = user.locale;
   token.countryCode = user.countryCode;
   token.timeZone = user.timeZone;
+  token.supportTierSent = user.supportTierSent;
+  token.earnedMocoTier = user.earnedMocoTier;
   token.isBanned = user.isBanned;
   token.accountStatus = user.accountStatus;
   token.isSuspendedReadOnly = user.isSuspendedReadOnly;

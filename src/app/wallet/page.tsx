@@ -7,13 +7,13 @@ import { getMyWallet, getMyWalletEarnings, getMyPaymentHistory } from "@/actions
 import { getMyGemBalance, getMyGemPurchases } from "@/actions/gems";
 import { WalletHub } from "@/components/wallet/wallet-hub";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
-import { db } from "@/lib/db";
+import { getCreatorSettlementStatus } from "@/actions/settlement-register";
 
 export default async function WalletPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/wallet");
 
-  const [data, earnings, paymentData, tipHistory, paymentHistory, gemData, gemPurchases, user] =
+  const [data, earnings, paymentData, tipHistory, paymentHistory, gemData, gemPurchases, settlement] =
     await Promise.all([
     getMyWallet(),
     getMyWalletEarnings(),
@@ -22,17 +22,10 @@ export default async function WalletPage() {
     getMyPaymentHistory(),
     getMyGemBalance(),
     getMyGemPurchases(),
-    db.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        stripeOnboardingCompleted: true,
-      },
-    }),
+    getCreatorSettlementStatus(),
   ]);
 
   if (!tipHistory) redirect("/auth/signin?callbackUrl=/wallet");
-
-  const stripeOnboardingCompleted = !!user?.stripeOnboardingCompleted;
 
   return (
     <AppPageChrome spacing="sm">
@@ -49,7 +42,7 @@ export default async function WalletPage() {
           gemBalance={gemData.balance}
           gemPackages={gemData.packages}
           gemPurchases={gemPurchases.purchases}
-          stripeOnboardingCompleted={stripeOnboardingCompleted}
+          settlement={settlement}
         />
       </Suspense>
     </AppPageChrome>

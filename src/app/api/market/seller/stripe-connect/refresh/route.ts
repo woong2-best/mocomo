@@ -25,15 +25,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/market/seller/register", req.url));
   }
 
-  const link = await refreshSellerConnectLink(user.stripeConnectAccountId, {
-    fromApp,
-    returnTo,
-  });
+  const link = await refreshSellerConnectLink(user.stripeConnectAccountId);
   if ("error" in link) {
     return NextResponse.redirect(
       new URL(`/market/seller/register?connect=error`, req.url)
     );
   }
 
-  return NextResponse.redirect(link.url);
+  const dest = returnTo ?? "/market/seller/register";
+  return NextResponse.redirect(new URL(fromApp ? `${dest}?app=1` : dest, req.url));
 }

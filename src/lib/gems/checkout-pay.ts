@@ -14,7 +14,7 @@ export async function payCheckoutWithGems(input: {
   metadata: Record<string, unknown>;
 }) {
   if (!GEM_ELIGIBLE.includes(input.type)) {
-    return { error: "젬으로 결제할 수 없는 유형입니다." as const };
+    return { error: "MOCO로 결제할 수 없는 유형입니다." as const };
   }
 
   const gems = input.amountUsdCents;

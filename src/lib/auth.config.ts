@@ -39,6 +39,8 @@ export const authConfig = {
         session.user.isDeleted = Boolean(token.isDeleted);
         session.user.isOperator = Boolean(token.isOperator);
         session.user.isStaff = Boolean(token.isStaff);
+        session.user.supportTierSent = token.supportTierSent;
+        session.user.earnedMocoTier = token.earnedMocoTier;
       }
       return session;
     },

@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { SupportTierLevel } from "@prisma/client";
-import { getTierInfo, supportTierPath } from "@/lib/tiers";
-import { formatUsd } from "@/lib/money";
+import { formatTierThreshold, getTierInfo, supportTierPath } from "@/lib/tiers";
 import { OreIcon } from "@/components/support/ore-icon";
 import { SupportTierInfoPopover } from "@/components/support/support-tier-info-popover";
 import { cn } from "@/lib/utils";
@@ -34,7 +33,7 @@ export function OreTierButton({
         </span>
         {showAmount && (
           <span className="text-[10px] text-muted-foreground">
-            {info.minAmount === 0 ? `${formatUsd(0)}~` : `${formatUsd(info.minAmount)}~`}
+            {formatTierThreshold(info.minAmount)}
           </span>
         )}
       </span>

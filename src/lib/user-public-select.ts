@@ -1,4 +1,5 @@
 import type { Prisma, SupportTierLevel } from "@prisma/client";
+import { profileDisplayTier } from "@/lib/user-display-tier";
 
 export const DELETED_USER_DISPLAY_NAME = "탈퇴한 사용자";
 
@@ -9,6 +10,7 @@ export const userPublicSelect = {
   name: true,
   image: true,
   supportTierSent: true,
+  earnedMocoTier: true,
   postsLocked: true,
   deletedAt: true,
 } satisfies Prisma.UserSelect;
@@ -18,6 +20,7 @@ export const userPublicSelectMinimal = {
   username: true,
   image: true,
   supportTierSent: true,
+  earnedMocoTier: true,
   deletedAt: true,
 } satisfies Prisma.UserSelect;
 
@@ -27,9 +30,18 @@ export type UserPublicFields = {
   name?: string | null;
   image: string | null;
   supportTierSent: SupportTierLevel;
+  earnedMocoTier?: SupportTierLevel;
   postsLocked?: boolean;
   deletedAt?: Date | null;
 };
+
+/** 피드·채팅·프로필 뱃지 등급 (보낸 등급 + earned 정산 등급) */
+export function userBadgeTier(user: UserPublicFields): SupportTierLevel {
+  return profileDisplayTier({
+    supportTierSent: user.supportTierSent,
+    earnedMocoTier: user.earnedMocoTier,
+  });
+}
 
 /** 프로필 설정 이름 — 피드·게시물·프로필·코스어 등 전역 표시용 */
 export function userDisplayName(user: {

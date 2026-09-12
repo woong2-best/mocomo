@@ -63,6 +63,7 @@ const profileUserSelect = {
   image: true,
   createdAt: true,
   supportTierSent: true,
+  earnedMocoTier: true,
   totalSupportReceived: true,
   supportTierReceived: true,
   countryCode: true,

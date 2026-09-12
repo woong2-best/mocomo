@@ -349,7 +349,7 @@ export async function payFlowerRedeem(
     await creditSellerEarning(redeem.userId, redeem.netAmountKrw, {
       referenceType: "flower_redeem",
       referenceId: redeem.id,
-      memo: `Flower Gift 환전 #${redeem.id.slice(0, 8)}`,
+      memo: `Flower Gift Reward #${redeem.id.slice(0, 8)}`,
     });
   }
 

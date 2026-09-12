@@ -1,28 +1,15 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { listEligibleSponsorEventsForMobile } from "@/lib/sponsored-ad/eligible-events";
 import {
   pickSponsorEvent,
   SPONSOR_ROTATION_COOKIE,
   type SponsorEventCandidate,
 } from "@/lib/sponsor-event-rotation";
 
-const sponsorEventWhere = {
-  endsAt: { gte: new Date() },
-  createdById: { not: null },
-  registrationFeePaid: true,
-  status: "PUBLISHED" as const,
-  imageUrl: { not: null },
-};
-
 export async function GET() {
   try {
-    const rows = await db.event.findMany({
-      where: sponsorEventWhere,
-      select: { id: true, title: true, imageUrl: true },
-      orderBy: { startsAt: "asc" },
-      take: 60,
-    });
+    const rows = await listEligibleSponsorEventsForMobile();
 
     const pool: SponsorEventCandidate[] = rows
       .filter((e): e is typeof e & { imageUrl: string } => !!e.imageUrl?.trim())

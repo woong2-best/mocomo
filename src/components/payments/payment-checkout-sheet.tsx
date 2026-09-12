@@ -32,7 +32,7 @@ import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-
 import { CreditCard, Loader2, Plus } from "lucide-react";
 import { StripeOverseasPaymentNotice } from "@/components/payments/stripe-overseas-payment-notice";
 import { PurchaseChargebackTermsNotice } from "@/components/payments/purchase-chargeback-terms-notice";
-import { GEM_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
+import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
 import { startCreatorSubscriptionCheckout } from "@/actions/subscriptions";
 import { RecurringDonationTermsNotice } from "@/components/payments/recurring-donation-terms-notice";
 
@@ -275,7 +275,7 @@ export function PaymentCheckoutSheet({
                 onChange={(e) => setPurchaseTermsAccepted(e.target.checked)}
                 className="mt-0.5"
               />
-              <span className="text-[11px] text-muted-foreground leading-relaxed">{GEM_PURCHASE_TERMS_COPY}</span>
+              <span className="text-[11px] text-muted-foreground leading-relaxed">{MOCO_PURCHASE_TERMS_COPY}</span>
             </label>
           ) : (
             <PurchaseChargebackTermsNotice
@@ -291,7 +291,7 @@ export function PaymentCheckoutSheet({
           ) : isRecurringSubscription ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Stripe에서 카드 등록 후 <strong>매월 자동 결제</strong>됩니다. 젬이 아닌 카드 정기
+                Stripe에서 카드 등록 후 <strong>매월 자동 결제</strong>됩니다. MOCO가 아닌 카드 정기
                 결제입니다.
               </p>
               {error ? <p className="text-sm text-destructive">{error}</p> : null}

@@ -8,6 +8,7 @@ const TIER_META: Record<
   SEED: { label: "Seed", color: "#84cc16", icon: "https://mocomo.net/support/tiers/seed.png" },
   STONE: { label: "Stone", color: "#78716c", icon: "https://mocomo.net/support/tiers/stone.png" },
   BRONZE: { label: "Bronze", color: "#b45309", icon: "https://mocomo.net/support/tiers/bronze.png" },
+  BRASS: { label: "Brass", color: "#b5a642", icon: "https://mocomo.net/support/tiers/brass.png" },
   SILVER: { label: "Silver", color: "#94a3b8", icon: "https://mocomo.net/support/tiers/silver.png" },
   GOLD: { label: "Gold", color: "#eab308", icon: "https://mocomo.net/support/tiers/gold.png" },
   CRYSTAL: { label: "Crystal", color: "#ec4899", icon: "https://mocomo.net/support/tiers/crystal.png" },

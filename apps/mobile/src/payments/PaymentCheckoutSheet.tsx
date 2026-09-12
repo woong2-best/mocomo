@@ -193,7 +193,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
     try {
       if (isGemTopup) {
         const gems = Number(body.metadata.gemAmount ?? 0);
-        if (!gems) throw new Error("젬 패키지 정보가 없습니다.");
+        if (!gems) throw new Error("MOCO 패키지 정보가 없습니다.");
         const res = await openGemTopupCheckout(gems);
         if ("error" in res) throw new Error(res.error);
         onClose();
@@ -282,7 +282,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
           <View style={[styles.termsNotice, { borderColor: `${colors.terracotta}66` }]}>
             {isGemTopup ? (
               <>
-                <Text style={[styles.termsTitle, { color: colors.text }]}>젬 충전 약관</Text>
+                <Text style={[styles.termsTitle, { color: colors.text }]}>MOCO 충전 약관</Text>
                 <Text style={[styles.termsBullet, { color: colors.textMuted }]}>{GEM_PURCHASE_TERMS_COPY}</Text>
               </>
             ) : (

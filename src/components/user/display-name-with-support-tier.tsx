@@ -2,12 +2,14 @@ import type { SupportTierLevel } from "@prisma/client";
 import { OreTierBadge, OreTierBadgePopover } from "@/components/support/ore-tier-button";
 import { UserProfileLink } from "@/components/user/user-profile-link";
 import { getTierInfo } from "@/lib/tiers";
+import { resolveProfileDisplayTier } from "@/lib/settlement-moco/balance";
 import { cn } from "@/lib/utils";
 
 /** 닉네임 옆 총 후원금액(누적 후원) 등급 — 참여 제한 없이 표시만 */
 export function DisplayNameWithSupportTier({
   name,
   tier = "SEED",
+  earnedMocoTier,
   className,
   nameClassName,
   compact = false,
@@ -17,6 +19,8 @@ export function DisplayNameWithSupportTier({
 }: {
   name: React.ReactNode;
   tier?: SupportTierLevel;
+  /** earned MOCO 정산 등급 — 있으면 tier와 비교해 높은 쪽 표시 */
+  earnedMocoTier?: SupportTierLevel;
   className?: string;
   nameClassName?: string;
   /** true면 광석 아이콘만 (채팅·목록) */
@@ -27,7 +31,10 @@ export function DisplayNameWithSupportTier({
   /** 있으면 닉네임을 프로필 링크로 (채팅 등) */
   profileUsername?: string;
 }) {
-  const info = getTierInfo(tier);
+  const displayTier = earnedMocoTier
+    ? resolveProfileDisplayTier(tier, earnedMocoTier)
+    : tier;
+  const info = getTierInfo(displayTier);
   const Comp = as;
   const nameEl = profileUsername ? (
     <UserProfileLink
@@ -41,9 +48,9 @@ export function DisplayNameWithSupportTier({
   );
 
   const tierBadge = tierInteractive ? (
-    <OreTierBadgePopover tier={tier} size="sm" showLabel={!compact} />
+    <OreTierBadgePopover tier={displayTier} size="sm" showLabel={!compact} />
   ) : (
-    <OreTierBadge tier={tier} size="sm" showLabel={!compact} className="shrink-0" />
+    <OreTierBadge tier={displayTier} size="sm" showLabel={!compact} className="shrink-0" />
   );
 
   return (

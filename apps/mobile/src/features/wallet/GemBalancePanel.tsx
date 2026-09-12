@@ -7,25 +7,23 @@ import {
   Text,
   View,
 } from "react-native";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchGemsWallet, refundGemPurchase, type GemPackage } from "@/api/gems";
+import { useQuery } from "@tanstack/react-query";
+import { fetchGemsWallet, type GemPackage } from "@/api/gems";
 import { openGemTopupCheckout } from "@/payments/gem-topup";
-import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
-function formatGems(gems: number) {
-  return `${Math.max(0, gems).toLocaleString()} Gems`;
+function formatMoco(moco: number) {
+  return `${Math.max(0, moco).toLocaleString()} MOCO`;
 }
 
-function formatUsdFromGems(gems: number) {
-  return `$${(gems / 100).toFixed(2)}`;
+function formatUsdFromMoco(moco: number) {
+  return `$${(moco / 100).toFixed(2)}`;
 }
 
 export function GemBalancePanel() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const queryClient = useQueryClient();
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -54,29 +52,16 @@ export function GemBalancePanel() {
     }
   }
 
-  async function handleRefund(purchaseId: string) {
-    setBusy(true);
-    try {
-      await refundGemPurchase(purchaseId);
-      await queryClient.invalidateQueries({ queryKey: ["mobile-gems-wallet"] });
-      Alert.alert("환불", "환불이 처리되었습니다.");
-    } catch (e: unknown) {
-      Alert.alert("환불", e instanceof Error ? e.message : "환불에 실패했습니다.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (query.isLoading) {
     return <ActivityIndicator color={colors.cobalt} style={{ marginVertical: spacing.md }} />;
   }
 
   return (
     <View style={[styles.card, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
-      <Text style={[styles.title, { color: colors.text }]}>💎 젬 (Gems)</Text>
-      <Text style={[styles.balance, { color: colors.text }]}>{formatGems(balance)}</Text>
+      <Text style={[styles.title, { color: colors.text }]}>구매 MOCO</Text>
+      <Text style={[styles.balance, { color: colors.text }]}>{formatMoco(balance)}</Text>
       <Text style={[styles.sub, { color: colors.textMuted }]}>
-        ≈ {formatUsdFromGems(balance)} · 후원·유료 미디어
+        ≈ {formatUsdFromMoco(balance)} · 후원·유료 미디어 · 환불·인출 불가
       </Text>
 
       <Text style={[styles.sectionLabel, { color: colors.text }]}>충전 패키지</Text>
@@ -88,49 +73,31 @@ export function GemBalancePanel() {
             disabled={busy}
             style={[styles.packBtn, { borderColor: colors.hairline }]}
           >
-            <Text style={[styles.packGems, { color: colors.text }]}>{formatGems(pack.gems)}</Text>
-            <Text style={[styles.packUsd, { color: colors.textMuted }]}>{formatUsdFromGems(pack.gems)}</Text>
+            <Text style={[styles.packTitle, { color: colors.text }]}>{formatMoco(pack.gems)}</Text>
+            <Text style={[styles.packSub, { color: colors.textMuted }]}>{pack.label.split("(")[1]?.replace(")", "") ?? ""}</Text>
           </Pressable>
         ))}
       </View>
 
       <Pressable onPress={() => setTermsAccepted((v) => !v)} style={styles.termsRow}>
-        <View
-          style={[
-            styles.checkbox,
-            {
-              borderColor: termsAccepted ? colors.cobalt : colors.hairline,
-              backgroundColor: termsAccepted ? `${colors.cobalt}33` : "transparent",
-            },
-          ]}
-        />
-        <Text style={[styles.termsText, { color: colors.textMuted }]}>{termsCopy}</Text>
+        <Text style={{ color: termsAccepted ? colors.cobalt : colors.textMuted }}>{termsAccepted ? "☑" : "☐"}</Text>
+        <Text style={[styles.terms, { color: colors.textMuted }]}>{termsCopy}</Text>
       </Pressable>
 
       {purchases.length > 0 ? (
         <>
-          <Text style={[styles.sectionLabel, { color: colors.text, marginTop: spacing.sm }]}>
-            충전 내역
-          </Text>
-          {purchases.slice(0, 8).map((p) => (
+          <Text style={[styles.sectionLabel, { color: colors.text, marginTop: spacing.sm }]}>충전 내역</Text>
+          {purchases.map((p) => (
             <View key={p.id} style={[styles.purchaseRow, { borderColor: colors.hairline }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.purchaseTitle, { color: colors.text }]}>
-                  {formatGems(p.gems)}
-                  {p.refunded ? " · 환불됨" : ""}
+                  {formatMoco(p.gems)}
+                  {p.remainingGems < p.gems ? " · 일부 사용" : ""}
                 </Text>
-                <Text style={[styles.purchaseMeta, { color: colors.textMuted }]}>
-                  잔여 {formatGems(p.remainingGems)}
+                <Text style={[styles.purchaseSub, { color: colors.textMuted }]}>
+                  잔여 {formatMoco(p.remainingGems)}
                 </Text>
               </View>
-              {!p.refunded && p.remainingGems > 0 ? (
-                <FolkButton
-                  label="환불"
-                  variant="ghost"
-                  onPress={() => void handleRefund(p.id)}
-                  disabled={busy}
-                />
-              ) : null}
             </View>
           ))}
         </>
@@ -143,35 +110,36 @@ function createStyles(_colors: ThemeColors) {
   return StyleSheet.create({
     card: {
       borderWidth: 1,
-      borderRadius: 20,
-      padding: spacing.lg,
-      marginBottom: spacing.md,
+      borderRadius: 16,
+      padding: spacing.md,
+      marginHorizontal: spacing.md,
+      gap: spacing.sm,
     },
     title: { fontSize: 16, fontWeight: "900" },
-    balance: { fontSize: 28, fontWeight: "900", marginTop: spacing.xs },
-    sub: { fontSize: 12, fontWeight: "600", marginTop: 2 },
-    sectionLabel: { fontSize: 14, fontWeight: "800", marginTop: spacing.md, marginBottom: spacing.sm },
+    balance: { fontSize: 28, fontWeight: "900" },
+    sub: { fontSize: 12, fontWeight: "600" },
+    sectionLabel: { fontSize: 14, fontWeight: "800", marginTop: spacing.xs },
     packGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
     packBtn: {
-      width: "47%",
       borderWidth: 1,
-      borderRadius: 14,
-      padding: spacing.md,
+      borderRadius: 12,
+      padding: spacing.sm,
+      minWidth: "45%",
+      flexGrow: 1,
     },
-    packGems: { fontWeight: "800", fontSize: 14 },
-    packUsd: { fontSize: 11, fontWeight: "600", marginTop: 2 },
-    termsRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm, marginTop: spacing.md },
-    checkbox: { width: 18, height: 18, borderWidth: 1.5, borderRadius: 4, marginTop: 2 },
-    termsText: { flex: 1, fontSize: 10, fontWeight: "600", lineHeight: 15 },
+    packTitle: { fontWeight: "800", fontSize: 14 },
+    packSub: { fontSize: 11, marginTop: 2 },
+    termsRow: { flexDirection: "row", gap: spacing.sm, alignItems: "flex-start" },
+    terms: { flex: 1, fontSize: 11, lineHeight: 16 },
     purchaseRow: {
       flexDirection: "row",
       alignItems: "center",
       borderWidth: 1,
       borderRadius: 12,
       padding: spacing.sm,
-      marginBottom: spacing.xs,
+      gap: spacing.sm,
     },
     purchaseTitle: { fontWeight: "700", fontSize: 13 },
-    purchaseMeta: { fontSize: 11, fontWeight: "600", marginTop: 2 },
+    purchaseSub: { fontSize: 11, marginTop: 2 },
   });
 }

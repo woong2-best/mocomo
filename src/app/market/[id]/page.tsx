@@ -56,6 +56,7 @@ import { UsedSaleStatsPanel } from "@/components/used/used-sale-stats-panel";
 import { UsedWtbAlertPanel } from "@/components/used/used-wtb-alert-panel";
 
 import { isAuctionListing, minNextBidAmount } from "@/lib/used-auction";
+import { getMocoBalanceSnapshot } from "@/lib/auction-deposit";
 import { UsedRestrictedBanner } from "@/components/used/used-restricted-banner";
 import { UsedAuctionLegalNotice } from "@/components/used/used-auction-legal-notice";
 import { isUsedRestrictedKind } from "@/lib/used-youth-protection";
@@ -125,6 +126,11 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
   const status = listing.status as UsedListingStatus;
 
   const isAuction = isAuctionListing(listing);
+
+  const auctionWalletMoco =
+    session?.user?.id && isAuction
+      ? (await getMocoBalanceSnapshot(session.user.id)).availableMocoBalance
+      : null;
 
   const statusBadge =
 
@@ -485,6 +491,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           viewerAdultVerified={viewerAdultVerified}
 
           currency={listing.currency}
+
+          availableMocoBalance={auctionWalletMoco}
 
         />
 

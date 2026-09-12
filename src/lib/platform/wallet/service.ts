@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 
 export type WalletBucket =
   | "MOCO_POINTS"
+  | "SETTLEMENT_MOCO"
   | "SITE_CREDIT"
   | "PROMO_CREDIT"
   | "REFUND_CREDIT";
@@ -18,11 +19,13 @@ export async function getOrCreatePlatformWallet(userId: string) {
 function bucketField(bucket: WalletBucket) {
   return bucket === "MOCO_POINTS"
     ? "mocoPoints"
-    : bucket === "SITE_CREDIT"
-      ? "siteCreditKrw"
-      : bucket === "PROMO_CREDIT"
-        ? "promoCreditKrw"
-        : "refundCreditKrw";
+    : bucket === "SETTLEMENT_MOCO"
+      ? "settlementMocoPoints"
+      : bucket === "SITE_CREDIT"
+        ? "siteCreditKrw"
+        : bucket === "PROMO_CREDIT"
+          ? "promoCreditKrw"
+          : "refundCreditKrw";
 }
 
 /** 포인트/크레딧 증가. 멱등: 동일 referenceType+referenceId 재호출 시 스킵 */

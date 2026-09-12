@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { formatUsd } from "@/lib/money";
 import {
+  formatTierMoco,
+  formatTierThreshold,
   getTierDetailProgress,
   getTierInfo,
   parseSupportTierSlug,
@@ -64,10 +65,10 @@ export default async function SupportTierDetailPage({
         </p>
         <p className="text-sm text-muted-foreground mt-0.5">{info.labelKo}</p>
         <p className="text-base font-semibold mt-3 tabular-nums">
-          {info.minAmount === 0 ? `${formatUsd(0)}~` : `${formatUsd(info.minAmount)}~`}
+          {formatTierThreshold(info.minAmount)}
         </p>
         <p className="text-xs text-muted-foreground mt-2 max-w-sm">
-          사이트 전체 누적 후원(보낸 금액) 기준 등급입니다.
+          MOCO 구매가 아닌, 다른 사용자에게 후원을 완료한 누적 MOCO 기준 등급입니다.
         </p>
       </section>
 
@@ -75,7 +76,7 @@ export default async function SupportTierDetailPage({
         <section className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">내 누적 후원</span>
-            <span className="font-semibold tabular-nums">{formatUsd(total)}</span>
+            <span className="font-semibold tabular-nums">{formatTierMoco(total)}</span>
           </div>
           <div className="h-2.5 rounded-full bg-muted overflow-hidden">
             <div

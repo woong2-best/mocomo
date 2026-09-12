@@ -29,6 +29,7 @@ export type GridPost = {
     name?: string | null;
     image: string | null;
     supportTierSent: SupportTierLevel;
+    earnedMocoTier?: SupportTierLevel;
   };
   collaborators?: {
     id?: string;
@@ -96,6 +97,7 @@ export function FeedPostCard({
               <DisplayNameWithSupportTier
                 name={displayName}
                 tier={post.author.supportTierSent ?? "SEED"}
+                earnedMocoTier={post.author.earnedMocoTier ?? undefined}
                 nameClassName="font-semibold text-sm"
                 compact
               />

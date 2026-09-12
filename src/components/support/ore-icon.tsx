@@ -22,7 +22,7 @@ export function OreIcon({
         alt=""
         width={size}
         height={size}
-        className={cn("shrink-0 object-contain drop-shadow-sm", className)}
+        className={cn("shrink-0 rounded-full object-contain drop-shadow-sm", className)}
         aria-hidden
         draggable={false}
       />
@@ -64,6 +64,13 @@ function OreShape({ tier, fill }: { tier: SupportTierLevel; fill: string }) {
       return <path d="M6 18 L12 5 L18 18 Z" fill={fill} />;
     case "BRONZE":
       return <polygon points="12,4 20,20 4,20" fill={fill} />;
+    case "BRASS":
+      return (
+        <>
+          <polygon points="12,4 20,20 4,20" fill={fill} />
+          <polygon points="12,7 17,18 7,18" fill="#fff" opacity="0.2" />
+        </>
+      );
     case "SILVER":
       return <polygon points="12,3 21,12 12,21 3,12" fill={fill} />;
     case "GOLD":

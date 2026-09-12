@@ -34,7 +34,9 @@ type Props = {
     refundedUsd: number | null;
     createdAt: Date;
   }[];
-  stripeOnboardingCompleted: boolean;
+  settlement: Awaited<
+    ReturnType<typeof import("@/actions/settlement-register").getCreatorSettlementStatus>
+  >;
 };
 
 type Tab = "wallet" | "earnings";
@@ -52,7 +54,7 @@ export function WalletHub({
   gemBalance,
   gemPackages,
   gemPurchases,
-  stripeOnboardingCompleted,
+  settlement,
 }: Props) {
   const router = useRouter();
   const params = useSearchParams();
@@ -103,12 +105,12 @@ export function WalletHub({
 
   return (
     <div className="max-w-lg mx-auto space-y-5 pb-8">
-      {safeCallbackUrl && !stripeOnboardingCompleted ? (
+      {safeCallbackUrl && !settlement.payoutsEnabled ? (
         <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm space-y-1">
-          <p className="font-bold text-foreground">수익 정산 계좌 연동</p>
+          <p className="font-bold text-foreground">Reward 정산 등록</p>
           <p className="text-muted-foreground leading-relaxed">
-            판매·중고거래·크리에이터 수익을 받으려면 아래에서 Stripe Connect로 정산 계좌를
-            연동해 주세요.
+            판매·중고거래·크리에이터 활동 보상을 받으려면 아래에서 계좌·본인 정보를 입력해
+            정산을 등록해 주세요.
           </p>
           <Link href={safeCallbackUrl} className="text-primary font-semibold text-xs underline">
             나중에 — 이전 화면으로
@@ -152,7 +154,7 @@ export function WalletHub({
           <RevenueSettlementPanel
             data={data}
             earnings={earnings}
-            stripeOnboardingCompleted={stripeOnboardingCompleted}
+            settlement={settlement}
             callbackUrl={safeCallbackUrl ?? "/wallet?tab=earnings"}
           />
         </>

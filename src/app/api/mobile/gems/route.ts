@@ -144,7 +144,8 @@ export async function POST(req: NextRequest) {
     });
     if ("error" in result && result.error) {
       const messages: Record<string, string> = {
-        INSUFFICIENT_GEMS_BALANCE: "젬 잔액이 부족합니다.",
+        INSUFFICIENT_GEMS_BALANCE: "MOCO 잔액이 부족합니다.",
+        INSUFFICIENT_MOCO_BALANCE: "MOCO 잔액이 부족합니다.",
       };
       return NextResponse.json(
         { error: messages[result.error] ?? result.error },
@@ -163,16 +164,10 @@ export async function POST(req: NextRequest) {
   }
 
   const refund = await processRefundRequest(data.gemPurchaseId, auth.user.id);
-  if ("error" in refund && refund.error) {
-    const code = refund.error;
-    const messages: Record<string, string> = {
-      UNAUTHORIZED: "환불 권한이 없습니다.",
-      ALREADY_REFUNDED: "이미 환불되었습니다.",
-      NO_REMAINING_GEMS_TO_REFUND: "환불 가능한 젬이 없습니다.",
-      REFUND_WINDOW_EXPIRED: "환불 기한이 지났습니다.",
-    };
-    return NextResponse.json({ error: messages[code] ?? code }, { status: 422 });
-  }
-
-  return NextResponse.json({ success: true, ...refund });
+  const code = "error" in refund ? refund.error : "REFUND_NOT_ALLOWED";
+  const messages: Record<string, string> = {
+    UNAUTHORIZED: "환불 권한이 없습니다.",
+    REFUND_NOT_ALLOWED: "구매 MOCO는 환불할 수 없습니다.",
+  };
+  return NextResponse.json({ error: messages[code] ?? code }, { status: 422 });
 }

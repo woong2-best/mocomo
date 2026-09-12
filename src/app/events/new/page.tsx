@@ -12,6 +12,7 @@ import {
   EVENT_REGISTRATION_MAX_FEE_KRW,
 } from "@/lib/event-registration";
 import { formatUsd } from "@/lib/money";
+import { getPurchasedMoco } from "@/lib/settlement-moco/balance";
 
 export default async function NewEventPage({
   searchParams,
@@ -25,6 +26,7 @@ export default async function NewEventPage({
 
   const { eventId, paid } = await searchParams;
   const paidSuccess = paid === "1" && !!eventId;
+  const purchasedMoco = await getPurchasedMoco(session.user.id);
 
   return (
     <AppPageChrome maxWidth="5xl" spacing="sm">
@@ -44,9 +46,9 @@ export default async function NewEventPage({
             이벤트 등록
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            등록비 하루 {formatUsd(EVENT_REGISTRATION_FEE_PER_DAY_KRW)} (최대{" "}
+            카드 등록비 하루 {formatUsd(EVENT_REGISTRATION_FEE_PER_DAY_KRW)} (최대{" "}
             {EVENT_REGISTRATION_MAX_DAYS}일 · {formatUsd(EVENT_REGISTRATION_MAX_FEE_KRW)}
-            ) · 결제 후 목록에 공개됩니다
+            ) · 또는 MOCO 스폰서드 광고 1일 = 1 MOCO · 결제 후 목록·피드에 공개
           </p>
         </div>
       </NativePageTitle>
@@ -54,6 +56,7 @@ export default async function NewEventPage({
       <EventCreateForm
         paymentsEnabled={isPaymentsConfigured()}
         paidEventId={paidSuccess ? eventId : null}
+        purchasedMoco={purchasedMoco}
       />
     </AppPageChrome>
   );

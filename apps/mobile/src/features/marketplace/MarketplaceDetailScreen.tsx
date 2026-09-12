@@ -20,6 +20,10 @@ import {
   startMarketplaceTradeChat,
   toggleMarketplaceFavorite,
 } from "@/api/marketplace";
+import {
+  AUCTION_INSUFFICIENT_WALLET_MSG,
+  fetchAuctionDepositStatus,
+} from "@/api/auction-deposit";
 import { UsedAuctionBidHoldSheet } from "@/payments/UsedAuctionBidHoldSheet";
 import { ApiError } from "@/api/client";
 import { UsedMeetMapCard } from "@/features/marketplace/UsedMeetMapCard";
@@ -65,6 +69,12 @@ export function MarketplaceDetailScreen() {
     queryFn: () => fetchMarketplaceDetail(route.params.id),
   });
   const item = query.data?.item;
+
+  const depositQuery = useQuery({
+    queryKey: ["mobile-auction-deposit", route.params.id],
+    queryFn: () => fetchAuctionDepositStatus(route.params.id),
+    enabled: !!item?.auctionLive && !item?.isOwner,
+  });
   const nsfwGate = !!item?.isNsfw && !item?.isOwner;
 
   const invalidate = () =>
@@ -122,7 +132,18 @@ export function MarketplaceDetailScreen() {
     },
   });
 
-  const onBid = () => {
+  const onBid = async () => {
+    try {
+      const deposit =
+        depositQuery.data ?? (await fetchAuctionDepositStatus(route.params.id));
+      if (!deposit.canParticipate) {
+        Alert.alert("경매 참여 불가", AUCTION_INSUFFICIENT_WALLET_MSG);
+        return;
+      }
+    } catch {
+      Alert.alert("경매 참여 불가", "지갑 잔액을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
     const amount = Number(bidText.replace(/,/g, ""));
     if (!Number.isFinite(amount) || amount <= 0) {
       Alert.alert("입찰가", "올바른 금액을 입력해 주세요.");

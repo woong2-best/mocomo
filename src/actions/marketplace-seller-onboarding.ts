@@ -452,7 +452,6 @@ export async function startSellerStripeConnectOnboarding(input: StartStripeConne
       email: dbUser.email,
       stripeConnectAccountId: dbUser.stripeConnectAccountId,
       countryCode: country,
-      urlContext: { fromApp: input.fromApp, returnTo: input.returnTo ?? null },
     });
 
     if ("error" in result) return { error: result.error };
@@ -593,10 +592,7 @@ export async function resumeSellerConnectFromOnboarding(input: StartStripeConnec
       return startSellerStripeConnectOnboarding(input);
     }
 
-    const link = await refreshSellerConnectLink(dbUser.stripeConnectAccountId, {
-      fromApp: input.fromApp,
-      returnTo: input.returnTo ?? null,
-    });
+    const link = await refreshSellerConnectLink(dbUser.stripeConnectAccountId);
     if ("error" in link) return { error: link.error };
     return { url: link.url };
   } catch (e) {

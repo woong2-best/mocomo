@@ -44,6 +44,7 @@ export function ProfileHeader({
     image: string | null;
     accountStatus?: AccountStatus;
     supportTierSent: SupportTierLevel;
+    earnedMocoTier?: SupportTierLevel;
     countryCode?: string;
     birthDate?: Date | null;
     createdAt: Date;
@@ -111,6 +112,7 @@ export function ProfileHeader({
             <DisplayNameWithSupportTier
               name={displayName}
               tier={user.supportTierSent}
+              earnedMocoTier={user.earnedMocoTier}
               nameClassName="font-bold"
               compact
               tierInteractive
@@ -189,6 +191,7 @@ export function ProfileHeader({
               <DisplayNameWithSupportTier
                 name={displayName}
                 tier={user.supportTierSent}
+                earnedMocoTier={user.earnedMocoTier}
                 nameClassName="text-xl font-bold"
                 tierInteractive
               />

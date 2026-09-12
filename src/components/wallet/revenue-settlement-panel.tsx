@@ -1,47 +1,35 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { requestPayout } from "@/actions/wallet";
-import { WalletCardStack, WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
+import { WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
 import { WalletEarningsExportPanel } from "@/components/wallet/wallet-earnings-export-panel";
-import { WalletStripeConnectPanel } from "@/components/wallet/wallet-stripe-connect-panel";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { MIN_PAYOUT_KRW } from "@/lib/settlement";
-import { formatUsd } from "@/lib/money";
+import { SettlementRegistrationPanel } from "@/components/wallet/settlement-registration-panel";
+import { formatKrw } from "@/lib/money";
+import { mocoToKrw } from "@/lib/moco/economy";
 import { LEDGER_LABELS } from "@/lib/wallet-labels";
+import { REWARD_TERMS_LABEL } from "@/lib/settlement-moco/constants";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import { cn } from "@/lib/utils";
 
 type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWallet>>;
 
+type SettlementStatus = Awaited<
+  ReturnType<typeof import("@/actions/settlement-register").getCreatorSettlementStatus>
+>;
+
 type Props = {
   data: WalletData;
   earnings: WalletEarningsAnalytics;
-  stripeOnboardingCompleted: boolean;
+  settlement: SettlementStatus;
   callbackUrl?: string | null;
 };
 
-function fmtUsd(n: number) {
-  return formatUsd(n);
-}
-
-export function RevenueSettlementPanel({
-  data,
-  earnings: initialEarnings,
-  stripeOnboardingCompleted,
-}: Props) {
-  const router = useRouter();
+export function RevenueSettlementPanel({ data, earnings: initialEarnings, settlement }: Props) {
   const [earnings, setEarnings] = useState(initialEarnings);
   const [year, setYear] = useState(initialEarnings.year);
   const [pending, startTransition] = useTransition();
-  const [payoutAmount, setPayoutAmount] = useState("");
-  const [msg, setMsg] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const yearTransactions = earnings.transactions ?? [];
-  const withdrawable = Math.max(0, data.availableBalance - data.pendingPayout);
+  const settlementKrw = mocoToKrw(settlement.settlementMocoPoints);
 
   function changeYear(nextYear: number) {
     setYear(nextYear);
@@ -52,29 +40,20 @@ export function RevenueSettlementPanel({
     });
   }
 
-  async function submitPayout(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setMsg("");
-    const res = await requestPayout(Number(payoutAmount));
-    setLoading(false);
-    if ("error" in res && res.error) setMsg(res.error);
-    else {
-      setMsg("출금 신청이 접수되었습니다.");
-      setPayoutAmount("");
-      router.refresh();
-    }
-  }
-
   return (
     <div className="space-y-4">
-      <WalletCardStack
-        withdrawable={withdrawable}
-        totalEarned={data.totalEarned}
-        totalWithdrawn={data.totalWithdrawn}
-        pendingPayout={data.pendingPayout}
-        bankLabel={stripeOnboardingCompleted ? "Stripe Connect" : null}
-      />
+      <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-2">
+        <p className="text-sm text-muted-foreground">earned MOCO (후원 수령 · 정산 대상)</p>
+        <p className="text-3xl font-black tabular-nums">
+          {settlement.settlementMocoPoints.toLocaleString()} MOCO
+        </p>
+        <p className="text-sm text-muted-foreground">
+          등급 {settlement.earnedMocoTier ?? "SEED"} · 매월 1일 등급 차감 후 {REWARD_TERMS_LABEL} 지급 · 잔여 이월
+        </p>
+        <p className="text-xs text-muted-foreground">
+          purchased MOCO {settlement.purchasedMocoPoints.toLocaleString()} (충전만으로는 정산 등급·출금 불가)
+        </p>
+      </div>
 
       <div className="space-y-2">
         {data.recent.slice(0, 6).map((e) => (
@@ -82,48 +61,45 @@ export function RevenueSettlementPanel({
             key={e.id}
             title={LEDGER_LABELS[e.type] ?? e.type}
             subtitle={e.memo ?? undefined}
-            right={`${e.type === "PAYOUT_REQUEST" ? "-" : "+"}${fmtUsd(e.amount)}`}
-            tone={e.type === "SELLER_EARNING" ? "cobalt" : e.type === "PAYOUT_REQUEST" ? "terracotta" : "muted"}
+            right={`+${e.amount}`}
+            tone={e.type === "SELLER_EARNING" ? "cobalt" : "muted"}
           />
         ))}
         {data.recent.length === 0 ? (
-          <WalletMembershipStrip title="아직 정산 내역이 없습니다" subtitle="후원·판매 수익이 여기에 표시됩니다" />
+          <WalletMembershipStrip
+            title="아직 활동 보상 내역이 없습니다"
+            subtitle="후원·판매·구독 수익이 정산 MOCO로 적립됩니다"
+          />
         ) : null}
       </div>
 
-      <WalletStripeConnectPanel stripeOnboardingCompleted={stripeOnboardingCompleted} />
+      <SettlementRegistrationPanel
+        registered={settlement.registered}
+        payoutsEnabled={settlement.payoutsEnabled}
+        profile={settlement.profile}
+      />
 
-      <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
-        <p className="font-bold">출금 신청</p>
-        {!stripeOnboardingCompleted ? (
-          <p className="text-sm text-muted-foreground">
-            출금 전 Stripe Connect 정산 계좌 연동을 완료해 주세요.
-          </p>
-        ) : (
-          <form onSubmit={submitPayout} className="space-y-2">
-            <Input
-              type="number"
-              placeholder={`금액 (최소 ${formatUsd(MIN_PAYOUT_KRW)})`}
-              value={payoutAmount}
-              onChange={(e) => setPayoutAmount(e.target.value)}
-              min={MIN_PAYOUT_KRW}
-              max={withdrawable}
-              required
+      {settlement.recentRewards.length > 0 ? (
+        <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-2">
+          <p className="font-bold">Reward 지급 내역</p>
+          {settlement.recentRewards.map((batch) => (
+            <WalletMembershipStrip
+              key={batch.id}
+              title={`${batch.periodYear}.${String(batch.periodMonth).padStart(2, "0")} ${REWARD_TERMS_LABEL}`}
+              subtitle={batch.status}
+              right={
+                batch.currency === "krw"
+                  ? formatKrw(batch.netAmountMinor)
+                  : `${batch.netAmountMinor}`
+              }
+              tone={batch.status === "COMPLETED" ? "forest" : "muted"}
             />
-            <Button
-              type="submit"
-              variant="secondary"
-              disabled={loading || withdrawable < MIN_PAYOUT_KRW}
-              className="w-full"
-            >
-              출금 신청
-            </Button>
-          </form>
-        )}
-      </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className={cn("space-y-4 pt-2 border-t border-border/50", pending && "opacity-70 pointer-events-none")}>
-        <p className="text-sm font-bold px-1">연간 수익 분석</p>
+        <p className="text-sm font-bold px-1">연간 활동 분석</p>
         <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
           {earnings.years.map((y) => (
             <button
@@ -142,50 +118,13 @@ export function RevenueSettlementPanel({
           ))}
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <StatCard label="수익" value={earnings.yearEarned} tone="up" />
-          <StatCard label="지출" value={earnings.yearWithdrawn} tone="down" />
-          <StatCard label="순수익" value={earnings.yearNet} tone={earnings.yearNet >= 0 ? "up" : "down"} />
-        </div>
-
         <WalletEarningsExportPanel
-          transactions={yearTransactions}
+          transactions={earnings.transactions ?? []}
           months={earnings.months}
           year={earnings.year}
           yearNet={earnings.yearNet}
         />
-
-        {earnings.bySource.length > 0 ? (
-          <div className="space-y-2">
-            <p className="text-sm font-bold px-1">수익 출처</p>
-            {earnings.bySource.map((s) => (
-              <WalletMembershipStrip key={s.key} title={s.label} right={fmtUsd(s.amount)} tone="forest" />
-            ))}
-          </div>
-        ) : null}
       </div>
-
-      {msg ? <p className="text-sm text-center text-muted-foreground">{msg}</p> : null}
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: "up" | "down";
-}) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card p-3 text-center">
-      <p className="text-[11px] text-muted-foreground font-semibold">{label}</p>
-      <p className={cn("text-base font-black mt-1", tone === "up" ? "text-emerald-700" : "text-red-700")}>
-        {tone === "down" && value > 0 ? "-" : ""}
-        {formatUsd(Math.abs(value))}
-      </p>
     </div>
   );
 }

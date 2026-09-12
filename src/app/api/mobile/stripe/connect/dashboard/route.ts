@@ -16,9 +16,5 @@ export async function GET(req: NextRequest) {
   }
 
   const link = await createWalletConnectDashboardLink(status.stripeConnectAccountId);
-  if ("error" in link) {
-    return NextResponse.json({ error: link.error }, { status: 422 });
-  }
-
-  return NextResponse.json({ url: link.url });
+  return NextResponse.json({ error: link.error }, { status: 422 });
 }

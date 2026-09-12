@@ -7,33 +7,96 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getOrCreatePlatformWallet } from "@/lib/platform/wallet/service";
-import { isListingBidHoldEnabled } from "@/lib/used-auction-bid-hold";
 import {
   AUCTION_BID_DEPOSIT_MOCO,
   AUCTION_DEPOSIT_SOURCE_FORFEIT,
-  AUCTION_DEPOSIT_USD_CENTS_PER_MOCO,
   INSUFFICIENT_DEPOSIT_ERROR,
 } from "@/lib/auction-deposit/constants";
+import {
+  AUCTION_PENALTY_REASON,
+  burnLockedMocoWithHistory,
+} from "@/lib/moco/transaction-history";
 
 type Tx = Prisma.TransactionClient;
 
 export type MocoBalanceSnapshot = {
+  /** mocoPoints + gemBalance (구매 MOCO 합산) */
   availableMocoBalance: number;
   lockedMocoBalance: number;
+  mocoPointsBalance: number;
+  purchasedGemBalance: number;
 };
 
 export async function getMocoBalanceSnapshot(userId: string): Promise<MocoBalanceSnapshot> {
-  const wallet = await getOrCreatePlatformWallet(userId);
+  const [wallet, user] = await Promise.all([
+    getOrCreatePlatformWallet(userId),
+    db.user.findUnique({ where: { id: userId }, select: { gemBalance: true } }),
+  ]);
+  const mocoPointsBalance = wallet.mocoPoints;
+  const purchasedGemBalance = user?.gemBalance ?? 0;
   return {
-    availableMocoBalance: wallet.mocoPoints,
+    availableMocoBalance: mocoPointsBalance + purchasedGemBalance,
     lockedMocoBalance: wallet.lockedMocoBalance,
+    mocoPointsBalance,
+    purchasedGemBalance,
   };
 }
 
-export async function isMocoBidDepositRequired(listing: {
+export function canParticipateInAuction(balance: Pick<MocoBalanceSnapshot, "availableMocoBalance">): boolean {
+  return balance.availableMocoBalance >= AUCTION_BID_DEPOSIT_MOCO;
+}
+
+/** 경매 입찰 — 항상 2 MOCO 보증금(미구매 시 몰수) 적용 */
+export async function isMocoBidDepositRequired(_listing: {
   depositEnabled: boolean;
 }): Promise<boolean> {
-  return isListingBidHoldEnabled(listing);
+  return true;
+}
+
+async function consumePurchasedGemsForDeposit(
+  tx: Tx,
+  userId: string,
+  gems: number,
+  referenceId: string
+) {
+  if (gems <= 0) return;
+  const purchases = await tx.gemPurchase.findMany({
+    where: { fanId: userId, remainingGems: { gt: 0 }, refunded: false },
+    orderBy: { createdAt: "asc" },
+  });
+  let remaining = gems;
+  for (const purchase of purchases) {
+    if (remaining <= 0) break;
+    const deduct = Math.min(purchase.remainingGems, remaining);
+    await tx.gemPurchase.update({
+      where: { id: purchase.id },
+      data: { remainingGems: purchase.remainingGems - deduct },
+    });
+    remaining -= deduct;
+  }
+  if (remaining > 0) throw new Error("INSUFFICIENT_DEPOSIT");
+
+  const agg = await tx.gemPurchase.aggregate({
+    where: { fanId: userId, refunded: false },
+    _sum: { remainingGems: true },
+  });
+  await tx.user.update({
+    where: { id: userId },
+    data: { gemBalance: agg._sum.remainingGems ?? 0 },
+  });
+
+  const wallet = await tx.platformWallet.findUnique({ where: { userId } });
+  if (wallet) {
+    await appendDepositLedger(tx, {
+      walletId: wallet.id,
+      bucket: "MOCO_POINTS",
+      delta: -gems,
+      balanceAfter: wallet.mocoPoints,
+      reason: "경매 보증금 — 구매 MOCO 차감",
+      referenceType: "auction_deposit_gem_lock",
+      referenceId,
+    });
+  }
 }
 
 async function appendDepositLedger(
@@ -110,17 +173,28 @@ export async function lockBidDepositInTransaction(
     (await tx.platformWallet.findUnique({ where: { userId: input.userId } })) ??
     (await tx.platformWallet.create({ data: { userId: input.userId } }));
 
-  const moved = await tx.platformWallet.updateMany({
-    where: {
-      id: wallet.id,
-      mocoPoints: { gte: amountMoco },
-    },
-    data: {
-      mocoPoints: { decrement: amountMoco },
-      lockedMocoBalance: { increment: amountMoco },
-    },
-  });
-  if (moved.count === 0) throw new Error("INSUFFICIENT_DEPOSIT");
+  const fromPoints = Math.min(wallet.mocoPoints, amountMoco);
+  const fromGems = amountMoco - fromPoints;
+
+  if (fromPoints > 0) {
+    const moved = await tx.platformWallet.updateMany({
+      where: { id: wallet.id, mocoPoints: { gte: fromPoints } },
+      data: {
+        mocoPoints: { decrement: fromPoints },
+        lockedMocoBalance: { increment: fromPoints },
+      },
+    });
+    if (moved.count === 0) throw new Error("INSUFFICIENT_DEPOSIT");
+  }
+
+  if (fromGems > 0) {
+    await consumePurchasedGemsForDeposit(tx, input.userId, fromGems, input.bidId);
+    const gemLocked = await tx.platformWallet.updateMany({
+      where: { id: wallet.id },
+      data: { lockedMocoBalance: { increment: fromGems } },
+    });
+    if (gemLocked.count === 0) throw new Error("INSUFFICIENT_DEPOSIT");
+  }
 
   const updated = await tx.platformWallet.findUniqueOrThrow({ where: { id: wallet.id } });
 
@@ -135,16 +209,18 @@ export async function lockBidDepositInTransaction(
   });
 
   const lockRef = `auction_deposit_lock:${input.bidId}`;
-  await appendDepositLedger(tx, {
-    walletId: wallet.id,
-    bucket: "MOCO_POINTS",
-    delta: -amountMoco,
-    balanceAfter: updated.mocoPoints,
-    reason: "경매 입찰 보증금 동결",
-    referenceType: "auction_deposit_lock",
-    referenceId: lockRef,
-    metadata: { listingId: input.listingId, bidId: input.bidId },
-  });
+  if (fromPoints > 0) {
+    await appendDepositLedger(tx, {
+      walletId: wallet.id,
+      bucket: "MOCO_POINTS",
+      delta: -fromPoints,
+      balanceAfter: updated.mocoPoints,
+      reason: "경매 입찰 보증금 동결",
+      referenceType: "auction_deposit_lock",
+      referenceId: lockRef,
+      metadata: { listingId: input.listingId, bidId: input.bidId, fromPoints, fromGems },
+    });
+  }
   await appendDepositLedger(tx, {
     walletId: wallet.id,
     bucket: "MOCO_LOCKED",
@@ -153,7 +229,7 @@ export async function lockBidDepositInTransaction(
     reason: "경매 입찰 보증금 동결",
     referenceType: "auction_deposit_lock",
     referenceId: lockRef,
-    metadata: { listingId: input.listingId, bidId: input.bidId },
+    metadata: { listingId: input.listingId, bidId: input.bidId, fromPoints, fromGems },
   });
 }
 
@@ -280,7 +356,7 @@ export async function refundWinnerDepositOnPaymentComplete(
 
 /**
  * 노쇼·결제 거부 — LOCKED → FORFEITED
- * - 몰수 MOCO → PlatformPenaltyRevenue (판매자 직접 이전 금지)
+ * - lockedMoco Burn + MocoTransactionHistory (플랫폼 이체 없음)
  * - 판매자 → SellerHarmScore (1 MOCO = 1 스코어, 현금 인출 불가)
  */
 export async function forfeitWinnerDeposit(input: {
@@ -310,51 +386,18 @@ export async function forfeitWinnerDeposit(input: {
     });
     if (statusUpdated.count === 0) return { forfeited: false };
 
-    const wallet = await tx.platformWallet.findUnique({ where: { userId: deposit.userId } });
-    if (!wallet) return { forfeited: false };
-
-    const balanceUpdated = await tx.platformWallet.updateMany({
-      where: {
-        id: wallet.id,
-        lockedMocoBalance: { gte: deposit.amountMoco },
+    await burnLockedMocoWithHistory(tx, {
+      userId: deposit.userId,
+      amountMoco: deposit.amountMoco,
+      type: "AUCTION_PENALTY",
+      reason: AUCTION_PENALTY_REASON,
+      referenceId: deposit.id,
+      metadata: {
+        listingId: input.listingId,
+        depositId: deposit.id,
+        note: input.note ?? "payment_timeout",
       },
-      data: {
-        lockedMocoBalance: { decrement: deposit.amountMoco },
-      },
     });
-    if (balanceUpdated.count === 0) {
-      throw new Error("FORFEIT_BALANCE_MISMATCH");
-    }
-
-    const updated = await tx.platformWallet.findUniqueOrThrow({ where: { id: wallet.id } });
-    const forfeitRef = `auction_deposit_forfeit:${deposit.id}`;
-
-    await appendDepositLedger(tx, {
-      walletId: wallet.id,
-      bucket: "MOCO_LOCKED",
-      delta: -deposit.amountMoco,
-      balanceAfter: updated.lockedMocoBalance,
-      reason: "경매 입찰 보증금 몰수",
-      referenceType: "auction_deposit_forfeit",
-      referenceId: forfeitRef,
-      metadata: { listingId: input.listingId, depositId: deposit.id },
-    });
-
-    const existingPenalty = await tx.platformPenaltyRevenue.findUnique({
-      where: { sourceId: deposit.id },
-    });
-    if (!existingPenalty) {
-      await tx.platformPenaltyRevenue.create({
-        data: {
-          amountMoco: deposit.amountMoco,
-          usdValueCents: deposit.amountMoco * AUCTION_DEPOSIT_USD_CENTS_PER_MOCO,
-          sourceType: AUCTION_DEPOSIT_SOURCE_FORFEIT,
-          sourceId: deposit.id,
-          listingId: input.listingId,
-          forfeitingUserId: input.winnerId,
-        },
-      });
-    }
 
     const harmKey = {
       sourceType: AUCTION_DEPOSIT_SOURCE_FORFEIT,
