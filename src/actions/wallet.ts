@@ -17,12 +17,40 @@ export async function getMyWallet() {
 
 export async function getMyWalletEarnings(year?: number) {
   const user = await requireAuth();
-  return getWalletEarningsAnalytics(user.id, year);
+  try {
+    return await getWalletEarningsAnalytics(user.id, year);
+  } catch (e) {
+    console.error("[getMyWalletEarnings]", e);
+    const currentYear = new Date().getFullYear();
+    const y = year && year >= 2000 && year <= currentYear + 1 ? year : currentYear;
+    return {
+      year: y,
+      years: [y],
+      months: [],
+      transactions: [],
+      yearEarned: 0,
+      yearWithdrawn: 0,
+      yearNet: 0,
+      bySource: [],
+      summary: {
+        availableBalance: 0,
+        totalEarned: 0,
+        totalWithdrawn: 0,
+        pendingPayout: 0,
+        withdrawable: 0,
+      },
+    };
+  }
 }
 
 export async function getMyPaymentHistory() {
   const user = await requireAuth();
-  return getPaymentHistoryForUser(user.id);
+  try {
+    return await getPaymentHistoryForUser(user.id);
+  } catch (e) {
+    console.error("[getMyPaymentHistory]", e);
+    return [];
+  }
 }
 
 export async function saveBankAccount(data: {

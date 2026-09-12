@@ -197,7 +197,7 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
       referenceType = "post_media";
       const mediaId = metaStr(meta, "mediaId");
       const media = mediaId ? mediaById.get(mediaId) : null;
-      const postId = metaStr(meta, "postId") ?? media?.postId ?? media?.post.id;
+      const postId = metaStr(meta, "postId") ?? media?.postId ?? media?.post?.id;
       const post = postId ? postById.get(postId) ?? media?.post : media?.post;
       if (post) {
         creatorUsername = post.author.username;

@@ -216,22 +216,27 @@ export async function getMyTipHistory() {
 
   const userId = session.user.id;
 
-  const [sentTips, receivedTips] = await Promise.all([
-    db.tip.findMany({
-      where: { senderId: userId },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-      include: { receiver: { select: { username: true, name: true } } },
-    }),
-    db.tip.findMany({
-      where: { receiverId: userId },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-      include: { sender: { select: { username: true, name: true } } },
-    }),
-  ]);
+  try {
+    const [sentTips, receivedTips] = await Promise.all([
+      db.tip.findMany({
+        where: { senderId: userId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        include: { receiver: { select: { username: true, name: true } } },
+      }),
+      db.tip.findMany({
+        where: { receiverId: userId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        include: { sender: { select: { username: true, name: true } } },
+      }),
+    ]);
 
-  return { sentTips, receivedTips };
+    return { sentTips, receivedTips };
+  } catch (e) {
+    console.error("[getMyTipHistory]", e);
+    return { sentTips: [], receivedTips: [] };
+  }
 }
 
 export type TipHistory = NonNullable<Awaited<ReturnType<typeof getMyTipHistory>>>;

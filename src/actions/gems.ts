@@ -74,6 +74,15 @@ export async function submitGemUnauthorizedClaim(input: {
   return { success: true as const, claimId: result.claim.id };
 }
 
+async function gemSpendRateLimit(userId: string) {
+  const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
+  const limited = await checkRateLimit(authLimiter, `gem-spend:${userId}`);
+  if (!limited.success) {
+    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+  }
+  return null;
+}
+
 export async function tipWithGems(
   creatorId: string,
   gems: number,
@@ -81,6 +90,15 @@ export async function tipWithGems(
   channelId?: string
 ) {
   const user = await requireAuth();
+  const limited = await gemSpendRateLimit(user.id);
+  if (limited) return limited;
+  const { validatePaymentInput } = await import("@/lib/stripe-checkout-validate");
+  const validation = await validatePaymentInput(user.id, {
+    type: "TIP",
+    amount: gems,
+    metadata: { receiverId: creatorId, message, channelId },
+  });
+  if (validation) return validation;
   const result = await spendGemsOnProfileTip({
     fanId: user.id,
     creatorId,
@@ -106,6 +124,19 @@ export async function liveTipWithGems(input: {
   message?: string;
 }) {
   const user = await requireAuth();
+  const limited = await gemSpendRateLimit(user.id);
+  if (limited) return limited;
+  const { validatePaymentInput } = await import("@/lib/stripe-checkout-validate");
+  const validation = await validatePaymentInput(user.id, {
+    type: "TIP",
+    amount: input.gems,
+    metadata: {
+      receiverId: input.creatorId,
+      channelId: input.channelId,
+      message: input.message,
+    },
+  });
+  if (validation) return validation;
   const result = await spendGemsOnLiveTip({
     fanId: user.id,
     creatorId: input.creatorId,
@@ -124,6 +155,8 @@ export async function liveTipWithGems(input: {
 
 export async function purchasePostMediaWithGems(mediaId: string, gems: number) {
   const user = await requireAuth();
+  const limited = await gemSpendRateLimit(user.id);
+  if (limited) return limited;
   const result = await spendGemsOnPostMedia({
     fanId: user.id,
     mediaId,
@@ -139,22 +172,27 @@ export async function purchasePostMediaWithGems(mediaId: string, gems: number) {
 
 export async function getMyGemPurchases(take = 30) {
   const user = await requireAuth();
-  const [purchases, balance] = await Promise.all([
-    db.gemPurchase.findMany({
-      where: { fanId: user.id },
-      orderBy: { createdAt: "desc" },
-      take,
-      select: {
-        id: true,
-        gems: true,
-        remainingGems: true,
-        krwAmount: true,
-        refunded: true,
-        refundedUsd: true,
-        createdAt: true,
-      },
-    }),
-    getUserGemBalance(user.id),
-  ]);
-  return { purchases, balance };
+  try {
+    const [purchases, balance] = await Promise.all([
+      db.gemPurchase.findMany({
+        where: { fanId: user.id },
+        orderBy: { createdAt: "desc" },
+        take,
+        select: {
+          id: true,
+          gems: true,
+          remainingGems: true,
+          krwAmount: true,
+          refunded: true,
+          refundedUsd: true,
+          createdAt: true,
+        },
+      }),
+      getUserGemBalance(user.id),
+    ]);
+    return { purchases, balance };
+  } catch (e) {
+    console.error("[getMyGemPurchases]", e);
+    return { purchases: [], balance: 0 };
+  }
 }

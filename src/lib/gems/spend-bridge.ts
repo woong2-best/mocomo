@@ -106,6 +106,12 @@ export async function spendGemsOnLiveTip(input: {
   message?: string;
   liveSupportType?: import("@prisma/client").LiveSupportEventType;
 }) {
+  const { assertLiveDonationsAllowed } = await import(
+    "@/lib/streaming-accounts/donation-guard"
+  );
+  const donationCheck = await assertLiveDonationsAllowed(input.channelId);
+  if (!donationCheck.ok) return { error: donationCheck.error as string };
+
   const amountCents = gemsToAmountCents(input.gems);
   const platformFee = Math.floor(amountCents * PLATFORM_MARGIN_RATE);
 

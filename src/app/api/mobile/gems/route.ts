@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import type { PaymentIntentType } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { db } from "@/lib/db";
@@ -10,26 +9,8 @@ import {
   GEM_PURCHASE_TERMS_COPY,
 } from "@/lib/gems/constants";
 import { getUserGemBalance } from "@/lib/gems/balance";
-import { payCheckoutWithGems } from "@/lib/gems/checkout-pay";
+import { payCheckoutWithGemsFromOrder } from "@/lib/gems/checkout-pay";
 import { processRefundRequest } from "@/lib/gems/refund";
-import { safeReturnPath } from "@/lib/donation-metadata";
-
-function gemPayRedirectPath(type: PaymentIntentType, metadata: Record<string, unknown>): string {
-  if (type === "TIP") {
-    const channelId = typeof metadata.channelId === "string" ? metadata.channelId : undefined;
-    if (channelId) return `/voice/${channelId}`;
-    const username = typeof metadata.username === "string" ? metadata.username : undefined;
-    const returnPath = typeof metadata.returnPath === "string" ? metadata.returnPath : undefined;
-    return safeReturnPath(returnPath, username ? `/u/${username}` : "/support");
-  }
-  if (type === "POST_MEDIA") {
-    const postId = typeof metadata.postId === "string" ? metadata.postId : undefined;
-    if (postId) return `/post/${postId}`;
-    const username = typeof metadata.username === "string" ? metadata.username : undefined;
-    return username ? `/u/${username}?paid=1` : "/";
-  }
-  return "/wallet";
-}
 
 /** GET — gem balance + packages */
 export async function GET(req: NextRequest) {
@@ -76,9 +57,8 @@ const topupSchema = z.object({
 
 const paySchema = z.object({
   action: z.literal("pay"),
-  type: z.enum(["TIP", "POST_MEDIA"]),
-  amount: z.number().int().positive(),
-  metadata: z.record(z.unknown()).default({}),
+  orderId: z.string().min(1).max(64),
+  purchaseTermsAccepted: z.literal(true),
 });
 
 const refundSchema = z.object({
@@ -136,11 +116,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (data.action === "pay") {
-    const result = await payCheckoutWithGems({
-      userId: auth.user.id,
-      type: data.type,
-      amountUsdCents: data.amount,
-      metadata: data.metadata,
+    const result = await payCheckoutWithGemsFromOrder(auth.user.id, data.orderId, {
+      purchaseTermsAccepted: true,
+      platform: "mobile",
     });
     if ("error" in result && result.error) {
       const messages: Record<string, string> = {
@@ -155,8 +133,8 @@ export async function POST(req: NextRequest) {
     if ("success" in result && result.success) {
       return NextResponse.json({
         success: true,
-        type: data.type,
-        redirectPath: gemPayRedirectPath(data.type, data.metadata),
+        type: result.type,
+        redirectPath: result.redirectPath,
         balance: "balance" in result ? result.balance : undefined,
       });
     }

@@ -12,8 +12,13 @@ import {
 
 export async function getMyPaymentMethods() {
   const user = await requireAuth();
-  const methods = await listSavedPaymentMethods(user.id);
-  return { methods, configured: methods.length >= 0 };
+  try {
+    const methods = await listSavedPaymentMethods(user.id);
+    return { methods, configured: methods.length >= 0 };
+  } catch (e) {
+    console.error("[getMyPaymentMethods] listSavedPaymentMethods", e);
+    return { methods: [], configured: false };
+  }
 }
 
 export async function startAddPaymentMethod(returnPath?: string) {

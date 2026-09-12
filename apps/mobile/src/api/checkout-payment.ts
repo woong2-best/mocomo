@@ -31,6 +31,19 @@ export async function payCheckoutWithSavedCard(orderId: string, paymentMethodId:
   });
 }
 
+export async function payCheckoutWithGems(orderId: string) {
+  return apiRequest<{
+    success: true;
+    type: string;
+    redirectPath?: string;
+    balance?: number;
+    alreadyPaid?: boolean;
+  }>(MobileApi.checkoutIntent, {
+    method: "PATCH",
+    body: { mode: "gems", orderId, purchaseTermsAccepted: true },
+  });
+}
+
 export async function finalizeCheckoutPayment(orderId: string) {
   return apiRequest<{ success: true; type: string; alreadyPaid?: boolean }>(MobileApi.checkoutIntent, {
     method: "PATCH",

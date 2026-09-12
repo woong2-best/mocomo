@@ -314,13 +314,12 @@ export function PaymentCheckoutSheet({
             <div className="space-y-3">
               {gemEligible ? (
                 <GemPayOption
-                  type={type}
-                  amountUsdCents={amount}
-                  metadata={metadata}
+                  orderId={orderId}
                   gemBalance={gemBalance}
                   gemsRequired={gemsRequired}
                   amountLabel={amountLabel}
-                  disabled={loading || pending}
+                  disabled={loading || pending || !purchaseTermsAccepted}
+                  purchaseTermsAccepted={purchaseTermsAccepted}
                   onError={setError}
                   onSuccess={(result) => {
                     onOpenChange(false);

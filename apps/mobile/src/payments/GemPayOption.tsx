@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import type { CheckoutBody } from "@/api/checkout";
-import { payWithGemsMobile } from "@/api/gems";
+import { payCheckoutWithGems } from "@/api/checkout-payment";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
 type Props = {
-  body: CheckoutBody;
+  orderId: string | null;
   gemBalance: number;
   gemsRequired: number;
   amountLabel: string;
@@ -22,7 +21,7 @@ function formatMoco(moco: number) {
 }
 
 export function GemPayOption({
-  body,
+  orderId,
   gemBalance,
   gemsRequired,
   amountLabel,
@@ -34,20 +33,13 @@ export function GemPayOption({
   const { colors } = useTheme();
   const styles = createStyles();
   const [pending, setPending] = useState(false);
-  const canPay = gemsRequired > 0 && gemBalance >= gemsRequired;
-  const mocoEligible = body.type === "TIP" || body.type === "POST_MEDIA";
-
-  if (!mocoEligible) return null;
+  const canPay = gemsRequired > 0 && gemBalance >= gemsRequired && !!orderId;
 
   async function handlePay() {
-    if (!canPay) return;
+    if (!orderId || !canPay) return;
     setPending(true);
     try {
-      await payWithGemsMobile({
-        type: body.type as "TIP" | "POST_MEDIA",
-        amount: body.amount,
-        metadata: body.metadata,
-      });
+      await payCheckoutWithGems(orderId);
       onSuccess();
     } catch (e: unknown) {
       onError(e instanceof Error ? e.message : "MOCO 결제에 실패했습니다.");

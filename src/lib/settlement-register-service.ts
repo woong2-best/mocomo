@@ -213,57 +213,75 @@ export async function registerCreatorSettlementForUser(
 }
 
 export async function getCreatorSettlementStatusForUser(userId: string) {
-  const profile = await db.creatorSettlementProfile.findUnique({
-    where: { userId },
-  });
-  const userRow = await db.user.findUnique({
-    where: { id: userId },
-    select: {
-      stripeOnboardingCompleted: true,
-      stripeConnectAccountId: true,
-    },
-  });
-  const [settlementMoco, userGems, userTier] = await Promise.all([
-    db.platformWallet.findUnique({
-      where: { userId },
-      select: { settlementMocoPoints: true, mocoPoints: true },
-    }),
-    db.user.findUnique({
-      where: { id: userId },
-      select: { gemBalance: true },
-    }),
-    db.user.findUnique({
-      where: { id: userId },
-      select: { earnedMocoTier: true },
-    }),
-  ]);
-  const recentRewards = await db.creatorRewardPayoutBatch.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 6,
-  });
-
-  return {
-    registered: !!profile?.registeredAt,
-    payoutsEnabled: profile?.payoutsEnabled ?? userRow?.stripeOnboardingCompleted ?? false,
-    profile: profile
-      ? {
-          countryCode: profile.countryCode,
-          legalName: profile.legalName,
-          accountNumberLast4: profile.accountNumberLast4,
-          accountHolderName: profile.accountHolderName,
-          bankCode: profile.bankCode,
-          taxFormType: profile.taxFormType,
-          registeredAt: profile.registeredAt,
-        }
-      : null,
-    /** earnedMoco — 후원 수령·정산 대상 (월간 차감 후 이월) */
-    settlementMocoPoints: settlementMoco?.settlementMocoPoints ?? 0,
-    earnedMocoPoints: settlementMoco?.settlementMocoPoints ?? 0,
-    earnedMocoTier: userTier?.earnedMocoTier ?? "SEED",
-    /** purchasedMoco — 충전만으로는 정산 등급·출금 불가 */
-    purchasedMocoPoints:
-      (userGems?.gemBalance ?? 0) + (settlementMoco?.mocoPoints ?? 0),
-    recentRewards,
+  const empty = {
+    registered: false,
+    payoutsEnabled: false,
+    profile: null,
+    settlementMocoPoints: 0,
+    earnedMocoPoints: 0,
+    earnedMocoTier: "SEED" as const,
+    purchasedMocoPoints: 0,
+    recentRewards: [] as Awaited<
+      ReturnType<typeof db.creatorRewardPayoutBatch.findMany>
+    >,
   };
+
+  try {
+    const profile = await db.creatorSettlementProfile.findUnique({
+      where: { userId },
+    });
+    const userRow = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        stripeOnboardingCompleted: true,
+        stripeConnectAccountId: true,
+      },
+    });
+    const [settlementMoco, userGems, userTier] = await Promise.all([
+      db.platformWallet.findUnique({
+        where: { userId },
+        select: { settlementMocoPoints: true, mocoPoints: true },
+      }),
+      db.user.findUnique({
+        where: { id: userId },
+        select: { gemBalance: true },
+      }),
+      db.user.findUnique({
+        where: { id: userId },
+        select: { earnedMocoTier: true },
+      }),
+    ]);
+    const recentRewards = await db.creatorRewardPayoutBatch.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    });
+
+    return {
+      registered: !!profile?.registeredAt,
+      payoutsEnabled: profile?.payoutsEnabled ?? userRow?.stripeOnboardingCompleted ?? false,
+      profile: profile
+        ? {
+            countryCode: profile.countryCode,
+            legalName: profile.legalName,
+            accountNumberLast4: profile.accountNumberLast4,
+            accountHolderName: profile.accountHolderName,
+            bankCode: profile.bankCode,
+            taxFormType: profile.taxFormType,
+            registeredAt: profile.registeredAt,
+          }
+        : null,
+      /** earnedMoco — 후원 수령·정산 대상 (월간 차감 후 이월) */
+      settlementMocoPoints: settlementMoco?.settlementMocoPoints ?? 0,
+      earnedMocoPoints: settlementMoco?.settlementMocoPoints ?? 0,
+      earnedMocoTier: userTier?.earnedMocoTier ?? "SEED",
+      /** purchasedMoco — 충전만으로는 정산 등급·출금 불가 */
+      purchasedMocoPoints:
+        (userGems?.gemBalance ?? 0) + (settlementMoco?.mocoPoints ?? 0),
+      recentRewards,
+    };
+  } catch (e) {
+    console.error("[getCreatorSettlementStatusForUser]", e);
+    return empty;
+  }
 }

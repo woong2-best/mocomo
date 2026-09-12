@@ -336,7 +336,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
             <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
               {gemEligible ? (
                 <GemPayOption
-                  body={body}
+                  orderId={orderId}
                   gemBalance={gemBalance}
                   gemsRequired={gemsRequired}
                   amountLabel={formatAmount(body.type, body.amount)}

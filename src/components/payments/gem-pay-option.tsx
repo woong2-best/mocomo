@@ -3,48 +3,49 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { Gem, Loader2 } from "lucide-react";
-import type { PaymentIntentType } from "@prisma/client";
 import { payWithGems } from "@/actions/checkout-payment";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatMocoDisplay } from "@/lib/gems/display";
 
 type Props = {
-  type: PaymentIntentType;
-  amountUsdCents: number;
-  metadata: Record<string, unknown>;
+  orderId: string | null;
   gemBalance: number;
   gemsRequired: number;
   amountLabel: string;
   disabled?: boolean;
+  purchaseTermsAccepted?: boolean;
   onSuccess?: (result: { type: string; redirectPath?: string }) => void;
   onError?: (message: string) => void;
 };
 
 export function GemPayOption({
-  type,
-  amountUsdCents,
-  metadata,
+  orderId,
   gemBalance,
   gemsRequired,
   amountLabel,
   disabled,
+  purchaseTermsAccepted,
   onSuccess,
   onError,
 }: Props) {
   const [pending, startTransition] = useTransition();
-  const canPay = gemsRequired > 0 && gemBalance >= gemsRequired;
+  const canPay = gemsRequired > 0 && gemBalance >= gemsRequired && !!orderId;
 
   function handlePay() {
-    if (!canPay) return;
+    if (!orderId || !canPay) return;
+    if (!purchaseTermsAccepted) {
+      onError?.("결제 전 이용약관에 동의해 주세요.");
+      return;
+    }
     startTransition(async () => {
-      const res = await payWithGems({ type, amount: amountUsdCents, metadata });
+      const res = await payWithGems(orderId, true);
       if ("error" in res && res.error) {
         onError?.(res.error);
         return;
       }
       if ("success" in res && res.success) {
-        onSuccess?.({ type: res.type ?? type, redirectPath: res.redirectPath });
+        onSuccess?.({ type: res.type, redirectPath: res.redirectPath });
       }
     });
   }

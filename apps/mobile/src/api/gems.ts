@@ -32,16 +32,13 @@ export async function topupGems(gems: number) {
   });
 }
 
-export async function payWithGemsMobile(input: {
-  type: "TIP" | "POST_MEDIA";
-  amount: number;
-  metadata: Record<string, unknown>;
-}) {
+/** @deprecated payCheckoutWithGems(orderId) from checkout-payment 사용 */
+export async function payWithGemsMobile(input: { orderId: string }) {
   return apiRequest<{ success: true; type: string; redirectPath?: string; balance?: number }>(
     MobileApi.gems,
     {
       method: "POST",
-      body: { action: "pay", ...input },
+      body: { action: "pay", orderId: input.orderId, purchaseTermsAccepted: true },
       auth: true,
     }
   );

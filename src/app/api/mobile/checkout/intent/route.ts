@@ -10,6 +10,7 @@ import {
   payCheckoutWithSavedMethod,
   prepareCheckoutPaymentIntent,
 } from "@/lib/stripe-pay-intent-service";
+import { payCheckoutWithGemsFromOrder } from "@/lib/gems/checkout-pay";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
 import { stripePaymentAuthenticateUrl } from "@/lib/stripe-payment-return-url";
 
@@ -84,6 +85,11 @@ const confirmSchema = z.discriminatedUnion("mode", [
     orderId: z.string().min(1),
   }),
   z.object({
+    mode: z.literal("gems"),
+    orderId: z.string().min(1).max(64),
+    purchaseTermsAccepted: z.literal(true),
+  }),
+  z.object({
     mode: z.literal("checkout"),
     type: z.string().min(1),
     amount: z.number().int().positive(),
@@ -137,6 +143,24 @@ export async function PATCH(req: NextRequest) {
     const result = await confirmCheckoutPaymentIntent(auth.user.id, parsed.data.orderId);
     if ("error" in result && result.error) {
       return NextResponse.json({ error: result.error }, { status: 422 });
+    }
+    return NextResponse.json(result);
+  }
+
+  if (parsed.data.mode === "gems") {
+    const result = await payCheckoutWithGemsFromOrder(auth.user.id, parsed.data.orderId, {
+      purchaseTermsAccepted: true,
+      platform: "mobile",
+    });
+    if ("error" in result && result.error) {
+      const messages: Record<string, string> = {
+        INSUFFICIENT_GEMS_BALANCE: "MOCO 잔액이 부족합니다.",
+        INSUFFICIENT_MOCO_BALANCE: "MOCO 잔액이 부족합니다.",
+      };
+      return NextResponse.json(
+        { error: messages[result.error] ?? result.error },
+        { status: 422 }
+      );
     }
     return NextResponse.json(result);
   }

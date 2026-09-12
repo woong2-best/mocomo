@@ -9,7 +9,7 @@ import {
   prepareCheckoutPaymentIntent,
 } from "@/lib/stripe-pay-intent-service";
 import { payCheckoutWithMoco } from "@/lib/moco-checkout-service";
-import { payCheckoutWithGems } from "@/lib/gems/checkout-pay";
+import { payCheckoutWithGemsFromOrder } from "@/lib/gems/checkout-pay";
 import { safeReturnPath } from "@/lib/donation-metadata";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
 import type { PaymentIntentType } from "@prisma/client";
@@ -44,6 +44,15 @@ function revalidateAfterPayment(type: string) {
   }
 }
 
+async function checkoutRateLimit(userId: string, bucket: string) {
+  const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
+  const limited = await checkRateLimit(authLimiter, `${bucket}:${userId}`);
+  if (!limited.success) {
+    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+  }
+  return null;
+}
+
 export async function prepareCheckoutPayment(input: {
   type: PaymentIntentType;
   amount: number;
@@ -51,6 +60,8 @@ export async function prepareCheckoutPayment(input: {
   metadata: Record<string, unknown>;
 }) {
   const user = await requireAuth();
+  const limited = await checkoutRateLimit(user.id, "checkout-prepare");
+  if (limited) return limited;
   return prepareCheckoutPaymentIntent({
     userId: user.id,
     email: user.email,
@@ -60,11 +71,8 @@ export async function prepareCheckoutPayment(input: {
 
 export async function payWithMoco(orderId: string, purchaseTermsAccepted?: boolean) {
   const user = await requireAuth();
-  const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
-  const limited = await checkRateLimit(authLimiter, `moco-pay:${user.id}`);
-  if (!limited.success) {
-    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
-  }
+  const limited = await checkoutRateLimit(user.id, "moco-pay");
+  if (limited) return limited;
   if (!orderId || typeof orderId !== "string" || orderId.length > 64) {
     return { error: "잘못된 결제 요청입니다." };
   }
@@ -84,6 +92,8 @@ export async function payWithSavedCard(
   purchaseTermsAccepted?: boolean
 ) {
   const user = await requireAuth();
+  const limited = await checkoutRateLimit(user.id, "card-pay");
+  if (limited) return limited;
   const result = await payCheckoutWithSavedMethod(user.id, orderId, paymentMethodId, {
     purchaseTermsAccepted,
     platform: "web",
@@ -96,6 +106,8 @@ export async function payWithSavedCard(
 
 export async function confirmCheckoutPayment(orderId: string) {
   const user = await requireAuth();
+  const limited = await checkoutRateLimit(user.id, "checkout-confirm");
+  if (limited) return limited;
   const result = await confirmCheckoutPaymentIntent(user.id, orderId);
   if ("success" in result && result.success) {
     revalidateAfterPayment(result.type);
@@ -103,46 +115,18 @@ export async function confirmCheckoutPayment(orderId: string) {
   return result;
 }
 
-function gemPayRedirectPath(
-  type: PaymentIntentType,
-  metadata: Record<string, unknown>
-): string {
-  if (type === "TIP") {
-    const username = typeof metadata.username === "string" ? metadata.username : undefined;
-    const channelId = typeof metadata.channelId === "string" ? metadata.channelId : undefined;
-    const returnPath = typeof metadata.returnPath === "string" ? metadata.returnPath : undefined;
-    if (channelId) return `/voice/${channelId}`;
-    return safeReturnPath(returnPath, username ? `/u/${username}` : "/support");
-  }
-  if (type === "POST_MEDIA") {
-    const returnPath = typeof metadata.returnPath === "string" ? metadata.returnPath : undefined;
-    const username = typeof metadata.username === "string" ? metadata.username : undefined;
-    if (returnPath) return safeReturnPath(returnPath, "/");
-    if (username) return `/u/${username}?paid=1`;
-    const postId = typeof metadata.postId === "string" ? metadata.postId : undefined;
-    if (postId) return `/post/${postId}`;
-    return "/";
-  }
-  return "/wallet";
-}
-
-export async function payWithGems(input: {
-  type: PaymentIntentType;
-  amount: number;
-  metadata: Record<string, unknown>;
-}) {
+/** MOCO(gem) 결제 — prepareCheckoutPayment의 orderId만 사용 (클라이언트 금액 불가) */
+export async function payWithGems(orderId: string, purchaseTermsAccepted?: boolean) {
   const user = await requireAuth();
-  const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
-  const limited = await checkRateLimit(authLimiter, `gem-pay:${user.id}`);
-  if (!limited.success) {
-    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+  const limited = await checkoutRateLimit(user.id, "gem-pay");
+  if (limited) return limited;
+  if (!orderId || typeof orderId !== "string" || orderId.length > 64) {
+    return { error: "잘못된 결제 요청입니다." };
   }
 
-  const result = await payCheckoutWithGems({
-    userId: user.id,
-    type: input.type,
-    amountUsdCents: input.amount,
-    metadata: input.metadata,
+  const result = await payCheckoutWithGemsFromOrder(user.id, orderId, {
+    purchaseTermsAccepted,
+    platform: "web",
   });
 
   if ("error" in result && result.error) {
@@ -154,11 +138,11 @@ export async function payWithGems(input: {
   }
 
   if ("success" in result && result.success) {
-    revalidateAfterPayment(input.type);
+    revalidateAfterPayment(result.type);
     return {
       success: true as const,
-      type: input.type,
-      redirectPath: gemPayRedirectPath(input.type, input.metadata),
+      type: result.type,
+      redirectPath: result.redirectPath,
       balance: "balance" in result ? result.balance : undefined,
     };
   }
@@ -174,6 +158,8 @@ export async function createStripeCheckoutRedirect(input: {
   purchaseTermsAccepted?: boolean;
 }) {
   const user = await requireAuth();
+  const limited = await checkoutRateLimit(user.id, "checkout-redirect");
+  if (limited) return limited;
   return createStripeCheckoutForUser({
     userId: user.id,
     email: user.email,
