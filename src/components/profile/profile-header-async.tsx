@@ -7,7 +7,6 @@ import {
   getViewerCreatorSubscription,
 } from "@/actions/profile-page";
 import { creatorSubscriptionPriceForUser } from "@/lib/creator-subscription";
-import { getViewerSupportForCreator } from "@/actions/support";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileHeaderActionBar } from "@/components/profile/profile-header-action-bar";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
@@ -31,39 +30,23 @@ function PinnedPostSkeleton() {
 async function ProfileHeaderActionBarAsync({
   userId,
   username,
-  displayName,
   isFollowing,
   followRequested,
   postsLocked,
-  subscriptionPriceKrw,
-  paymentsEnabled,
 }: {
   userId: string;
   username: string;
-  displayName: string;
   isFollowing: boolean;
   followRequested: boolean;
   postsLocked: boolean;
-  subscriptionPriceKrw: number;
-  paymentsEnabled: boolean;
 }) {
-  const [viewerSupport, viewerSub] = await Promise.all([
-    getViewerSupportForCreator(userId),
-    getViewerCreatorSubscription(userId),
-  ]);
-
   return (
     <ProfileHeaderActionBar
       userId={userId}
       username={username}
-      displayName={displayName}
       initialFollowing={isFollowing}
       initialRequested={followRequested}
       postsLocked={postsLocked}
-      subscriptionPriceKrw={subscriptionPriceKrw}
-      paymentsEnabled={paymentsEnabled}
-      subscribed={"subscribed" in viewerSub ? viewerSub.subscribed : false}
-      viewerSupport={viewerSupport}
     />
   );
 }
@@ -145,12 +128,9 @@ export async function ProfileHeaderAsync({ username }: { username: string }) {
               <ProfileHeaderActionBarAsync
                 userId={header.user.id}
                 username={header.user.username}
-                displayName={displayName}
                 isFollowing={header.isFollowing}
                 followRequested={header.followRequested}
                 postsLocked={header.user.postsLocked}
-                subscriptionPriceKrw={subscriptionPriceKrw}
-                paymentsEnabled={paymentsEnabled}
               />
             </Suspense>
           )
