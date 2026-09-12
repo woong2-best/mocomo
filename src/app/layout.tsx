@@ -47,7 +47,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F5F0E8",
+  themeColor: "#111929",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -73,6 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html
       lang={locale}
+      className="dark"
       data-client={initialPlatform}
       data-visible-animations="off"
       data-build={buildId}
@@ -83,7 +84,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className={`${folkDisplay.variable} ${geistSans.variable} ${geistMono.variable} font-sans folk-canvas`}>
         <div className="folk-app-shell">
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
             <AppProviders
               initialLocale={locale}
               initialCountryCode={countryCode}

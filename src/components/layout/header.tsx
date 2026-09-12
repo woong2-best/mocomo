@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { HeaderSearch } from "@/components/search/header-search";
 import { BRAND } from "@/lib/brand";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { HeaderAuth } from "@/components/layout/header-auth";
 import { MobileDrawerNav, MobileMenuButton } from "@/components/layout/mobile-drawer-nav";
 import { MobileHubHeader } from "@/components/layout/mobile-hub-header";
@@ -56,7 +55,6 @@ export function Header() {
           <SidebarToggleButton />
           <HeaderSearchSlot className="app-header-interactive flex flex-1 justify-center max-w-2xl mx-auto min-w-0" />
           <div className="app-header-interactive flex items-center gap-0.5 sm:gap-1.5 shrink-0">
-            <ThemeToggle />
             <HeaderAuth />
           </div>
         </header>
@@ -102,7 +100,6 @@ export function Header() {
               <Search className="h-5 w-5" />
             </Link>
           )}
-          <ThemeToggle />
           <HeaderAuth />
         </div>
       </header>
