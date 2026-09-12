@@ -95,15 +95,15 @@ export function SidebarEventMapCard({
       </CardHeader>
 
       <CardContent className="flex flex-col flex-1 min-h-0 p-0 gap-0">
-        <div className="px-3 pb-2 shrink-0">
+        <div className="flex flex-1 min-h-0 flex-col px-3 pb-2">
           <SubcultureEventsMapLazy
             pins={mapPins}
-            heightClassName="h-40 sm:h-44"
+            heightClassName="h-full min-h-40"
             interactive
             showNavigationControls={false}
             showAttribution={false}
             defaultView={defaultView}
-            className="subculture-events-map--sidebar"
+            className="subculture-events-map--sidebar flex-1 min-h-0 h-full"
           />
         </div>
 
