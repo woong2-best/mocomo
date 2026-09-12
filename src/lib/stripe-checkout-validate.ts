@@ -59,16 +59,13 @@ export async function validatePaymentInput(
   }
   if (input.type === "GEM_TOPUP") {
     const gems = Number(input.metadata.gemAmount);
-    const { findGemTopupPackage, MIN_GEM_TOPUP_USD } = await import("@/lib/gems/constants");
-    const pack = findGemTopupPackage(gems);
-    if (!pack) {
-      return { error: "유효하지 않은 젬 패키지입니다." };
+    const { quoteGemTopup } = await import("@/lib/gems/constants");
+    const quote = quoteGemTopup(gems);
+    if (!quote.ok) {
+      return { error: quote.error };
     }
-    if (pack.usdCents !== input.amount) {
-      return { error: "젬 충전 금액이 패키지와 일치하지 않습니다." };
-    }
-    if (pack.usdCents < MIN_GEM_TOPUP_USD * 100) {
-      return { error: `최소 충전 금액은 $${MIN_GEM_TOPUP_USD.toFixed(2)} USD입니다.` };
+    if (quote.usdCents !== input.amount) {
+      return { error: "충전 금액이 일치하지 않습니다." };
     }
     return null;
   }

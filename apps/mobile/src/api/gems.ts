@@ -1,8 +1,6 @@
 import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
 
-export type GemPackage = { gems: number; usdCents: number; label: string };
-
 export type GemPurchaseRow = {
   id: string;
   gems: number;
@@ -15,7 +13,8 @@ export type GemPurchaseRow = {
 
 export type GemsWalletResponse = {
   balance: number;
-  packages: GemPackage[];
+  minTopupMoco: number;
+  maxTopupMoco: number;
   termsCopy: string;
   purchases: GemPurchaseRow[];
 };
@@ -24,10 +23,10 @@ export async function fetchGemsWallet() {
   return apiRequest<GemsWalletResponse>(MobileApi.gems, { auth: true });
 }
 
-export async function topupGems(gems: number) {
+export async function topupGems(moco: number) {
   return apiRequest<{ checkoutUrl: string; orderId: string }>(MobileApi.gems, {
     method: "POST",
-    body: { action: "topup", gems, purchaseTermsAccepted: true },
+    body: { action: "topup", moco, purchaseTermsAccepted: true },
     auth: true,
   });
 }

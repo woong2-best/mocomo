@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { PRICE_PER_GEM_USD, findGemTopupPackage } from "@/lib/gems/constants";
+import { PRICE_PER_MOCO_USD, quoteGemTopup } from "@/lib/gems/constants";
 import { syncUserGemBalance } from "@/lib/gems/balance";
 
 export async function fulfillGemTopup(input: {
@@ -9,13 +9,17 @@ export async function fulfillGemTopup(input: {
   amountUsdCents: number;
   gemsFromMeta?: number;
 }) {
-  const pack = input.gemsFromMeta != null ? findGemTopupPackage(input.gemsFromMeta) : null;
-  const gems = pack?.gems ?? input.gemsFromMeta;
-  if (!gems || gems <= 0) {
-    return { error: "젬 충전량을 확인할 수 없습니다." as const };
+  const gems = input.gemsFromMeta;
+  if (gems == null) {
+    return { error: "MOCO 충전량을 확인할 수 없습니다." as const };
   }
-  if (pack && pack.usdCents !== input.amountUsdCents) {
-    return { error: "젬 충전 금액이 패키지와 일치하지 않습니다." as const };
+
+  const quote = quoteGemTopup(gems);
+  if (!quote.ok) {
+    return { error: quote.error as const };
+  }
+  if (quote.usdCents !== input.amountUsdCents) {
+    return { error: "충전 금액이 일치하지 않습니다." as const };
   }
 
   const existing = await db.gemPurchase.findUnique({
@@ -32,13 +36,13 @@ export async function fulfillGemTopup(input: {
     data: {
       fanId: input.fanId,
       krwAmount,
-      gems,
-      remainingGems: gems,
-      pricePerGemUsd: PRICE_PER_GEM_USD,
+      gems: quote.moco,
+      remainingGems: quote.moco,
+      pricePerGemUsd: PRICE_PER_MOCO_USD,
       stripePaymentIntentId: input.stripePaymentIntentId,
     },
   });
 
   const balance = await syncUserGemBalance(input.fanId);
-  return { success: true as const, gems, balance };
+  return { success: true as const, gems: quote.moco, balance };
 }

@@ -9,7 +9,7 @@ import { WalletHub } from "@/components/wallet/wallet-hub";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { getCreatorSettlementStatus } from "@/actions/settlement-register";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
-import { GEM_TOPUP_PACKAGES } from "@/lib/gems/constants";
+import { MAX_MOCO_TOPUP_COUNT, MIN_MOCO_TOPUP_COUNT } from "@/lib/gems/constants";
 
 const EMPTY_EARNINGS = (): WalletEarningsAnalytics => {
   const year = new Date().getFullYear();
@@ -32,9 +32,16 @@ const EMPTY_EARNINGS = (): WalletEarningsAnalytics => {
   };
 };
 
-export default async function WalletPage() {
+export default async function WalletPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ topup?: string }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/wallet");
+
+  const params = await searchParams;
+  const lowBalanceNotice = params.topup === "1";
 
   const results = await Promise.allSettled([
     getMyWallet(),
@@ -73,7 +80,12 @@ export default async function WalletPage() {
   const gemData =
     results[5].status === "fulfilled"
       ? results[5].value
-      : { balance: 0, packages: GEM_TOPUP_PACKAGES, termsCopy: "" };
+      : {
+          balance: 0,
+          minTopupMoco: MIN_MOCO_TOPUP_COUNT,
+          maxTopupMoco: MAX_MOCO_TOPUP_COUNT,
+          termsCopy: "",
+        };
   const gemPurchases =
     results[6].status === "fulfilled" ? results[6].value : { purchases: [], balance: 0 };
   const settlement =
@@ -105,9 +117,11 @@ export default async function WalletPage() {
           tipHistory={tipHistory}
           paymentHistory={paymentHistory}
           gemBalance={gemData.balance}
-          gemPackages={gemData.packages}
+          minTopupMoco={gemData.minTopupMoco}
+          maxTopupMoco={gemData.maxTopupMoco}
           gemPurchases={gemPurchases.purchases}
           settlement={settlement}
+          lowBalanceNotice={lowBalanceNotice}
         />
       </Suspense>
     </AppPageChrome>

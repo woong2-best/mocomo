@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
 import {
-  GEM_TOPUP_PACKAGES,
   GEM_PURCHASE_TERMS_COPY,
-  findGemTopupPackage,
+  MAX_MOCO_TOPUP_COUNT,
+  MIN_MOCO_TOPUP_COUNT,
+  quoteGemTopup,
 } from "@/lib/gems/constants";
 import { getUserGemBalance } from "@/lib/gems/balance";
 import {
@@ -22,23 +23,47 @@ import { db } from "@/lib/db";
 
 export async function getMyGemBalance() {
   const user = await requireAuth();
-  const balance = await getUserGemBalance(user.id);
-  return { balance, packages: GEM_TOPUP_PACKAGES, termsCopy: GEM_PURCHASE_TERMS_COPY };
+  try {
+    const balance = await getUserGemBalance(user.id);
+    return {
+      balance,
+      minTopupMoco: MIN_MOCO_TOPUP_COUNT,
+      maxTopupMoco: MAX_MOCO_TOPUP_COUNT,
+      termsCopy: GEM_PURCHASE_TERMS_COPY,
+    };
+  } catch (e) {
+    console.error("[getMyGemBalance]", e);
+    return {
+      balance: 0,
+      minTopupMoco: MIN_MOCO_TOPUP_COUNT,
+      maxTopupMoco: MAX_MOCO_TOPUP_COUNT,
+      termsCopy: GEM_PURCHASE_TERMS_COPY,
+    };
+  }
 }
 
-export async function createGemTopupCheckout(gems: number, purchaseTermsAccepted?: boolean) {
+export async function createGemTopupCheckout(moco: number, purchaseTermsAccepted?: boolean) {
   const user = await requireAuth();
-  const pack = findGemTopupPackage(gems);
-  if (!pack) return { error: "유효하지 않은 MOCO 패키지입니다." };
+  const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
+  const limited = await checkRateLimit(authLimiter, `gem-topup:${user.id}`);
+  if (!limited.success) {
+    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+  }
+  if (!purchaseTermsAccepted) {
+    return { error: "충전 전 약관에 동의해 주세요." };
+  }
+
+  const quote = quoteGemTopup(moco);
+  if (!quote.ok) return { error: quote.error };
 
   return createStripeCheckoutForUser({
     userId: user.id,
     email: user.email,
     type: "GEM_TOPUP",
-    amount: pack.usdCents,
-    orderName: pack.label,
-    metadata: { gemAmount: pack.gems },
-    purchaseTermsAccepted,
+    amount: quote.usdCents,
+    orderName: quote.orderName,
+    metadata: { gemAmount: quote.moco },
+    purchaseTermsAccepted: true,
     platform: "web",
   });
 }
@@ -157,6 +182,17 @@ export async function purchasePostMediaWithGems(mediaId: string, gems: number) {
   const user = await requireAuth();
   const limited = await gemSpendRateLimit(user.id);
   if (limited) return limited;
+  const media = await db.postMedia.findUnique({
+    where: { id: mediaId },
+    include: { post: { select: { instantPurchasePriceKrw: true } } },
+  });
+  if (media) {
+    const priceCents = media.priceKrw > 0 ? media.priceKrw : media.post.instantPurchasePriceKrw;
+    const { usdCentsToMocoRequired } = await import("@/lib/gems/constants");
+    if (gems !== usdCentsToMocoRequired(priceCents)) {
+      return { error: "가격이 변경되었습니다. 다시 시도해 주세요." };
+    }
+  }
   const result = await spendGemsOnPostMedia({
     fanId: user.id,
     mediaId,

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatUsd } from "@/lib/money";
 import { EARNING_CATEGORY_LABELS } from "@/lib/wallet-earning-categories";
@@ -34,7 +33,7 @@ export function PaymentHistoryPanel({ items }: Props) {
         <p className="text-sm text-muted-foreground px-4 py-8 text-center">결제 내역이 없습니다.</p>
       ) : (
         <ul className="max-h-[min(70vh,480px)] overflow-y-auto overscroll-contain divide-y divide-border/40">
-          {items.map((item, i) => {
+          {items.map((item) => {
             const title = item.contentTitle;
             const subtitle =
               item.creatorUsername && item.contentSubtitle !== `@${item.creatorUsername}`
@@ -60,11 +59,8 @@ export function PaymentHistoryPanel({ items }: Props) {
             );
 
             return (
-              <motion.li
+              <li
                 key={item.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.22 }}
                 className={cn(item.href && "hover:bg-muted/20 transition-colors")}
               >
                 {item.href ? (
@@ -74,7 +70,7 @@ export function PaymentHistoryPanel({ items }: Props) {
                 ) : (
                   <div className="px-4 py-3.5">{inner}</div>
                 )}
-              </motion.li>
+              </li>
             );
           })}
         </ul>

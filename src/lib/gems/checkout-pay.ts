@@ -7,6 +7,7 @@ import {
   assertAndRecordPurchaseTermsConsent,
 } from "@/lib/purchase-terms-consent";
 import type { PurchaseTermsPlatform } from "@/lib/purchase-chargeback-terms";
+import { usdCentsToMocoRequired } from "@/lib/gems/constants";
 import {
   spendGemsOnLiveTip,
   spendGemsOnPostMedia,
@@ -25,11 +26,11 @@ function metaRecord(metadata: unknown): Record<string, unknown> {
 async function executeGemSpend(
   userId: string,
   type: PaymentIntentType,
-  amount: number,
+  amountUsdCents: number,
   metadata: Record<string, unknown>
 ) {
-  const gems = amount;
-  if (!Number.isInteger(gems) || gems <= 0) {
+  const gems = usdCentsToMocoRequired(amountUsdCents);
+  if (gems <= 0) {
     return { error: "유효하지 않은 결제 금액입니다." as const };
   }
 

@@ -82,12 +82,12 @@ export function GemPayOption({
         ) : canPay ? (
           `${formatMocoDisplay(gemsRequired)}로 결제`
         ) : (
-          "MOCO 잔액 부족"
+          "MOCO 잔액 확인"
         )}
       </Button>
       {!canPay ? (
         <p className="text-[11px] text-center">
-          <Link href="/wallet" className="text-primary font-semibold underline">
+          <Link href="/wallet?topup=1" className="text-primary font-semibold underline">
             지갑에서 MOCO 충전
           </Link>
         </p>

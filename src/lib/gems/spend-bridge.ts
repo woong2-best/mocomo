@@ -1,13 +1,12 @@
 import { db } from "@/lib/db";
 import { tierFromAmount } from "@/lib/tiers";
 import { notifyTip } from "@/lib/notifications";
-import { PLATFORM_MARGIN_RATE } from "@/lib/gems/constants";
+import { MOCO_USD_CENTS, PLATFORM_MARGIN_RATE, usdCentsToMocoRequired } from "@/lib/gems/constants";
 import { spendGemsOnGift } from "@/lib/gems/gift";
 import type { GiftEventSource } from "@/lib/gems/constants";
 
-/** MOCO amount equals USD cents (1 MOCO = $0.01) */
 function gemsToAmountCents(gems: number) {
-  return gems;
+  return gems * MOCO_USD_CENTS;
 }
 
 async function updateSupportStats(senderId: string, receiverId: string, amountCents: number) {
@@ -195,7 +194,8 @@ export async function spendGemsOnPostMedia(input: {
 
   const priceCents = media.priceKrw > 0 ? media.priceKrw : media.post.instantPurchasePriceKrw;
   if (priceCents <= 0) return { error: "무료 미디어는 구매가 필요 없습니다." as const };
-  if (input.gems !== priceCents) {
+  const requiredMoco = usdCentsToMocoRequired(priceCents);
+  if (input.gems !== requiredMoco) {
     return { error: "가격이 일치하지 않습니다." as const };
   }
 

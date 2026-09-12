@@ -5,11 +5,13 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { fetchGemsWallet, type GemPackage } from "@/api/gems";
+import { fetchGemsWallet } from "@/api/gems";
 import { openGemTopupCheckout } from "@/payments/gem-topup";
+import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -17,15 +19,12 @@ function formatMoco(moco: number) {
   return `${Math.max(0, moco).toLocaleString()} MOCO`;
 }
 
-function formatUsdFromMoco(moco: number) {
-  return `$${(moco / 100).toFixed(2)}`;
-}
-
 export function GemBalancePanel() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [amount, setAmount] = useState("1");
 
   const query = useQuery({
     queryKey: ["mobile-gems-wallet"],
@@ -34,18 +33,24 @@ export function GemBalancePanel() {
 
   const data = query.data;
   const balance = data?.balance ?? 0;
-  const packages = data?.packages ?? [];
+  const minTopup = data?.minTopupMoco ?? 1;
+  const maxTopup = data?.maxTopupMoco ?? 200;
   const purchases = data?.purchases ?? [];
   const termsCopy = data?.termsCopy ?? "";
 
-  async function handleTopup(pack: GemPackage) {
+  async function handleTopup() {
     if (!termsAccepted) {
       Alert.alert("약관 동의", "충전 전 약관에 동의해 주세요.");
       return;
     }
+    const moco = Number.parseInt(amount, 10);
+    if (!Number.isFinite(moco)) {
+      Alert.alert("충전", "MOCO 개수를 입력해 주세요.");
+      return;
+    }
     setBusy(true);
     try {
-      const res = await openGemTopupCheckout(pack.gems);
+      const res = await openGemTopupCheckout(moco);
       if ("error" in res) Alert.alert("충전", res.error);
     } finally {
       setBusy(false);
@@ -60,29 +65,26 @@ export function GemBalancePanel() {
     <View style={[styles.card, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
       <Text style={[styles.title, { color: colors.text }]}>구매 MOCO</Text>
       <Text style={[styles.balance, { color: colors.text }]}>{formatMoco(balance)}</Text>
-      <Text style={[styles.sub, { color: colors.textMuted }]}>
-        ≈ {formatUsdFromMoco(balance)} · 후원·유료 미디어 · 환불·인출 불가
-      </Text>
+      <Text style={[styles.sub, { color: colors.textMuted }]}>후원·유료 미디어 · 환불·인출 불가</Text>
 
-      <Text style={[styles.sectionLabel, { color: colors.text }]}>충전 패키지</Text>
-      <View style={styles.packGrid}>
-        {packages.map((pack) => (
-          <Pressable
-            key={pack.gems}
-            onPress={() => void handleTopup(pack)}
-            disabled={busy}
-            style={[styles.packBtn, { borderColor: colors.hairline }]}
-          >
-            <Text style={[styles.packTitle, { color: colors.text }]}>{formatMoco(pack.gems)}</Text>
-            <Text style={[styles.packSub, { color: colors.textMuted }]}>{pack.label.split("(")[1]?.replace(")", "") ?? ""}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <Text style={[styles.sectionLabel, { color: colors.text }]}>충전할 MOCO</Text>
+      <TextInput
+        value={amount}
+        onChangeText={setAmount}
+        keyboardType="number-pad"
+        editable={!busy}
+        style={[styles.input, { borderColor: colors.hairline, color: colors.text }]}
+      />
+      <Text style={[styles.hint, { color: colors.textMuted }]}>
+        {minTopup.toLocaleString()}~{maxTopup.toLocaleString()} MOCO
+      </Text>
 
       <Pressable onPress={() => setTermsAccepted((v) => !v)} style={styles.termsRow}>
         <Text style={{ color: termsAccepted ? colors.cobalt : colors.textMuted }}>{termsAccepted ? "☑" : "☐"}</Text>
         <Text style={[styles.terms, { color: colors.textMuted }]}>{termsCopy}</Text>
       </Pressable>
+
+      <FolkButton label={busy ? "이동 중…" : "MOCO 충전"} onPress={() => void handleTopup()} loading={busy} />
 
       {purchases.length > 0 ? (
         <>
@@ -119,16 +121,15 @@ function createStyles(_colors: ThemeColors) {
     balance: { fontSize: 28, fontWeight: "900" },
     sub: { fontSize: 12, fontWeight: "600" },
     sectionLabel: { fontSize: 14, fontWeight: "800", marginTop: spacing.xs },
-    packGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-    packBtn: {
+    input: {
       borderWidth: 1,
       borderRadius: 12,
-      padding: spacing.sm,
-      minWidth: "45%",
-      flexGrow: 1,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.sm,
+      fontSize: 16,
+      fontWeight: "700",
     },
-    packTitle: { fontWeight: "800", fontSize: 14 },
-    packSub: { fontSize: 11, marginTop: 2 },
+    hint: { fontSize: 11, fontWeight: "600" },
     termsRow: { flexDirection: "row", gap: spacing.sm, alignItems: "flex-start" },
     terms: { flex: 1, fontSize: 11, lineHeight: 16 },
     purchaseRow: {

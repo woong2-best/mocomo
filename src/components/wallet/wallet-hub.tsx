@@ -24,7 +24,9 @@ type Props = {
   tipHistory: TipHistory;
   paymentHistory: PaymentHistoryItem[];
   gemBalance: number;
-  gemPackages: readonly { gems: number; usdCents: number; label: string }[];
+  minTopupMoco: number;
+  maxTopupMoco: number;
+  lowBalanceNotice?: boolean;
   gemPurchases: {
     id: string;
     gems: number;
@@ -52,7 +54,9 @@ export function WalletHub({
   tipHistory,
   paymentHistory,
   gemBalance,
-  gemPackages,
+  minTopupMoco,
+  maxTopupMoco,
+  lowBalanceNotice,
   gemPurchases,
   settlement,
 }: Props) {
@@ -141,7 +145,13 @@ export function WalletHub({
 
       {tab === "wallet" ? (
         <>
-          <GemBalancePanel balance={gemBalance} packages={gemPackages} purchases={gemPurchases} />
+          <GemBalancePanel
+            balance={gemBalance}
+            minTopupMoco={minTopupMoco}
+            maxTopupMoco={maxTopupMoco}
+            purchases={gemPurchases}
+            lowBalanceNotice={lowBalanceNotice}
+          />
           <PaymentMethodsPanel methods={paymentMethods} />
           <PaymentHistoryPanel items={paymentHistory} />
           <p className="text-center text-xs text-muted-foreground px-4">

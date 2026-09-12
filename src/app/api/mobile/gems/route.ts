@@ -5,8 +5,10 @@ import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { db } from "@/lib/db";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
 import {
-  GEM_TOPUP_PACKAGES,
   GEM_PURCHASE_TERMS_COPY,
+  MAX_MOCO_TOPUP_COUNT,
+  MIN_MOCO_TOPUP_COUNT,
+  quoteGemTopup,
 } from "@/lib/gems/constants";
 import { getUserGemBalance } from "@/lib/gems/balance";
 import { payCheckoutWithGemsFromOrder } from "@/lib/gems/checkout-pay";
@@ -40,7 +42,8 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     balance,
-    packages: GEM_TOPUP_PACKAGES,
+    minTopupMoco: MIN_MOCO_TOPUP_COUNT,
+    maxTopupMoco: MAX_MOCO_TOPUP_COUNT,
     termsCopy: GEM_PURCHASE_TERMS_COPY,
     purchases: purchases.map((p) => ({
       ...p,
@@ -51,7 +54,7 @@ export async function GET(req: NextRequest) {
 
 const topupSchema = z.object({
   action: z.literal("topup"),
-  gems: z.number().int().positive(),
+  moco: z.number().int().positive(),
   purchaseTermsAccepted: z.literal(true),
 });
 
@@ -91,9 +94,9 @@ export async function POST(req: NextRequest) {
   const data = parsed.data;
 
   if (data.action === "topup") {
-    const pack = GEM_TOPUP_PACKAGES.find((p) => p.gems === data.gems);
-    if (!pack) {
-      return NextResponse.json({ error: "유효하지 않은 패키지입니다." }, { status: 422 });
+    const quote = quoteGemTopup(data.moco);
+    if (!quote.ok) {
+      return NextResponse.json({ error: quote.error }, { status: 422 });
     }
     const dbUser = await db.user.findUnique({
       where: { id: auth.user.id },
@@ -103,9 +106,9 @@ export async function POST(req: NextRequest) {
       userId: auth.user.id,
       email: dbUser?.email,
       type: "GEM_TOPUP",
-      amount: pack.usdCents,
-      orderName: pack.label,
-      metadata: { gemAmount: pack.gems },
+      amount: quote.usdCents,
+      orderName: quote.orderName,
+      metadata: { gemAmount: quote.moco },
       platform: "mobile",
       purchaseTermsAccepted: true,
     });
