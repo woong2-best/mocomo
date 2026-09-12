@@ -822,27 +822,19 @@ html[data-client="app"] .native-live-pad {
     background: transparent;
   }
 
-  .subculture-events-map--immersive .maplibregl-ctrl-bottom-right {
-    top: 50%;
-    right: 12px;
-    bottom: auto;
-    transform: translateY(-50%);
+  .subculture-events-map--immersive .maplibregl-ctrl-bottom-left {
+    left: 8px;
+    bottom: 8px;
+    z-index: 2;
   }
 
-  .subculture-events-map--immersive .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group {
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    margin: 0;
-  }
-
-  .subculture-events-map--immersive .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group button {
-    filter: invert(1);
+  @media (max-width: 1023px) {
+    .events-map-immersive .subculture-events-map--immersive .maplibregl-ctrl-bottom-left {
+      bottom: calc(min(48vh, 360px) + 12px);
+    }
   }
 
   .subculture-events-map--immersive .maplibregl-ctrl-attrib {
-    right: 12px;
-    bottom: 8px;
     margin: 0;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(6px);

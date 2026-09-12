@@ -387,6 +387,7 @@ export function EventsMapView({
           pins={visibleMapPins}
           immersive
           interactive
+          showNavigationControls={false}
           defaultView={globeInitialView}
           respectDefaultView
           onZoomChange={handleZoomChange}

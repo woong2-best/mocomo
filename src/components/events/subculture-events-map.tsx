@@ -195,7 +195,7 @@ export function SubcultureEventsMap({
   /** false면 Esri 등 타일 저작권 표시 숨김 (사이드바 미리보기) */
   showAttribution?: boolean;
 }) {
-  const navigationControls = showNavigationControls ?? immersive;
+  const navigationControls = showNavigationControls ?? false;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<MapLibreMarker[]>([]);
@@ -230,7 +230,7 @@ export function SubcultureEventsMap({
           ? [defaultView.lng, defaultView.lat]
           : [135, 28],
         zoom: defaultView?.zoom ?? 3,
-        attributionControl: interactive && showAttribution ? { compact: true } : false,
+        attributionControl: false,
         // Site CSS disables transitions globally; skip canvas fade-in.
         fadeDuration: 0,
       });
@@ -243,11 +243,19 @@ export function SubcultureEventsMap({
         map.keyboard.disable();
         map.doubleClickZoom.disable();
         map.touchZoomRotate.disable();
-      } else if (navigationControls) {
-        map.addControl(
-          new maplibregl.NavigationControl({ showCompass: false }),
-          immersive ? "bottom-right" : "top-left"
-        );
+      } else {
+        if (showAttribution) {
+          map.addControl(
+            new maplibregl.AttributionControl({ compact: true }),
+            immersive ? "bottom-left" : "bottom-right"
+          );
+        }
+        if (navigationControls) {
+          map.addControl(
+            new maplibregl.NavigationControl({ showCompass: false }),
+            immersive ? "bottom-right" : "top-left"
+          );
+        }
       }
 
       const resize = () => {
