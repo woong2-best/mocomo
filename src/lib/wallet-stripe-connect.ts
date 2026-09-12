@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import {
+  createExpressDashboardLink,
   createExpressOnboardingLink,
   startExpressConnectOnboarding,
   syncUserExpressConnectFromStripe,
@@ -16,6 +17,10 @@ export async function startWalletStripeConnectOnboarding(input: {
 
 export async function refreshWalletConnectLink(accountId: string) {
   return createExpressOnboardingLink(accountId);
+}
+
+export async function createWalletConnectDashboardLink(accountId: string) {
+  return createExpressDashboardLink(accountId);
 }
 
 export async function syncWalletConnectFromStripe(userId: string, accountId: string) {

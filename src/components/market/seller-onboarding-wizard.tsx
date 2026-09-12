@@ -502,9 +502,12 @@ export function SellerOnboardingWizard({
                   {SETTLEMENT_REGISTER_COPY} {MARKET_STRIPE_DISCLAIMER_KO}
                 </p>
                 <SettlementRegistrationPanel
-                  registered={!!state.connectReady || !!(state.signedIn && state.stripeStarted)}
+                  registered={
+                    !!state.connectReady ||
+                    (state.signedIn && "stripeStarted" in state && !!state.stripeStarted)
+                  }
                   payoutsEnabled={!!state.connectReady}
-                  hasConnectAccount={!!state.stripeStarted}
+                  hasConnectAccount={state.signedIn && "stripeStarted" in state && !!state.stripeStarted}
                   profile={null}
                   requestCardPayments
                 />

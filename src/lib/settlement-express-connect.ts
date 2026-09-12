@@ -149,6 +149,11 @@ export async function createExpressDashboardLink(
   }
 }
 
+function stripeDobToDate(dob: Stripe.Account.Individual.Dob | null | undefined): Date | null {
+  if (dob?.year == null || dob.month == null || dob.day == null) return null;
+  return new Date(dob.year, dob.month - 1, dob.day);
+}
+
 function profileNameFromStripeAccount(account: Stripe.Account): string {
   const ind = account.individual;
   if (ind?.first_name || ind?.last_name) {
@@ -165,6 +170,7 @@ export async function syncSettlementProfileFromStripeAccount(
   const country = (account.country ?? "US").toUpperCase();
   const ind = account.individual;
   const dob = ind?.dob;
+  const dobDate = stripeDobToDate(dob);
   const addr = ind?.address;
 
   let accountLast4 = "0000";
@@ -190,9 +196,7 @@ export async function syncSettlementProfileFromStripeAccount(
       userId,
       countryCode: country,
       legalName: profileNameFromStripeAccount(account),
-      dateOfBirth: dob
-        ? new Date(dob.year, (dob.month ?? 1) - 1, dob.day ?? 1)
-        : new Date("1990-01-01"),
+      dateOfBirth: dobDate ?? new Date("1990-01-01"),
       addressLine1: addr?.line1 ?? "—",
       addressLine2: addr?.line2 ?? undefined,
       city: addr?.city ?? "—",
@@ -210,9 +214,7 @@ export async function syncSettlementProfileFromStripeAccount(
     update: {
       countryCode: country,
       legalName: profileNameFromStripeAccount(account),
-      ...(dob
-        ? { dateOfBirth: new Date(dob.year, (dob.month ?? 1) - 1, dob.day ?? 1) }
-        : {}),
+      ...(dobDate ? { dateOfBirth: dobDate } : {}),
       addressLine1: addr?.line1 ?? undefined,
       addressLine2: addr?.line2 ?? undefined,
       city: addr?.city ?? undefined,
