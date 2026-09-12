@@ -149,7 +149,9 @@ export async function createExpressDashboardLink(
   }
 }
 
-function stripeDobToDate(dob: Stripe.Account.Individual.Dob | null | undefined): Date | null {
+type StripeDobParts = { year: number | null; month: number | null; day: number | null };
+
+function stripeDobToDate(dob: StripeDobParts | null | undefined): Date | null {
   if (dob?.year == null || dob.month == null || dob.day == null) return null;
   return new Date(dob.year, dob.month - 1, dob.day);
 }
