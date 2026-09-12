@@ -16,7 +16,7 @@ export async function fulfillGemTopup(input: {
 
   const quote = quoteGemTopup(gems);
   if (!quote.ok) {
-    return { error: quote.error as const };
+    return { error: quote.error };
   }
   if (quote.usdCents !== input.amountUsdCents) {
     return { error: "충전 금액이 일치하지 않습니다." as const };
