@@ -75,10 +75,30 @@ export type GemTopupQuote =
   | { ok: true; moco: number; usdCents: number; orderName: string }
   | { ok: false; error: string };
 
+/** UI 입력 — 숫자만, 정수 단위 */
+export function sanitizeMocoTopupInput(raw: string): string {
+  return raw.replace(/\D/g, "").slice(0, String(MAX_MOCO_TOPUP_COUNT).length);
+}
+
+/** 정수 MOCO 파싱 (0.5, 1.2 등 소수 거부) */
+export function parseMocoTopupCount(raw: string | number): number | null {
+  if (typeof raw === "number") {
+    if (!Number.isFinite(raw) || !Number.isInteger(raw)) return null;
+    return raw;
+  }
+  const trimmed = raw.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const n = Number.parseInt(trimmed, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
 /** 서버 전용 — 클라이언트 금액·환율 입력 불가 */
 export function quoteGemTopup(mocoInput: number): GemTopupQuote {
-  const moco = Math.floor(Number(mocoInput));
-  if (!Number.isFinite(moco) || moco < MIN_MOCO_TOPUP_COUNT) {
+  if (!Number.isFinite(mocoInput) || !Number.isInteger(mocoInput)) {
+    return { ok: false, error: "MOCO는 1 단위 정수로만 충전할 수 있습니다." };
+  }
+  const moco = mocoInput;
+  if (moco < MIN_MOCO_TOPUP_COUNT) {
     return { ok: false, error: `최소 ${MIN_MOCO_TOPUP_COUNT} MOCO부터 충전할 수 있습니다.` };
   }
   if (moco > MAX_MOCO_TOPUP_COUNT) {

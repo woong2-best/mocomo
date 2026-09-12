@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Gem, Loader2 } from "lucide-react";
+import { Gem, Loader2, ShieldCheck } from "lucide-react";
 import { createGemTopupCheckout } from "@/actions/gems";
-import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
+import {
+  MOCO_PURCHASE_TERMS_COPY,
+  parseMocoTopupCount,
+  sanitizeMocoTopupInput,
+} from "@/lib/gems/constants";
 import { formatMocoDisplay } from "@/lib/gems/display";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 type GemPurchaseRow = {
   id: string;
@@ -26,6 +30,8 @@ type Props = {
   lowBalanceNotice?: boolean;
 };
 
+const QUICK_AMOUNTS = [1, 5, 10, 25, 50, 100] as const;
+
 export function GemBalancePanel({
   balance,
   minTopupMoco,
@@ -38,14 +44,30 @@ export function GemBalancePanel({
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
+  const displayAmount = amount || "0";
+  const parsedPreview = parseMocoTopupCount(amount);
+
+  function setQuickAmount(n: number) {
+    setAmount(String(Math.min(maxTopupMoco, Math.max(minTopupMoco, n))));
+    if (error) setError("");
+  }
+
   function submitTopup() {
     if (!termsAccepted) {
       setError("충전 전 약관에 동의해 주세요.");
       return;
     }
-    const moco = Number.parseInt(amount, 10);
-    if (!Number.isFinite(moco)) {
-      setError("충전할 MOCO 개수를 입력해 주세요.");
+    const moco = parseMocoTopupCount(amount);
+    if (moco == null) {
+      setError("MOCO는 1 단위 정수로만 입력할 수 있습니다.");
+      return;
+    }
+    if (moco < minTopupMoco) {
+      setError(`최소 ${minTopupMoco} MOCO부터 충전할 수 있습니다.`);
+      return;
+    }
+    if (moco > maxTopupMoco) {
+      setError(`1회 충전은 최대 ${maxTopupMoco.toLocaleString()} MOCO까지 가능합니다.`);
       return;
     }
     setError("");
@@ -62,51 +84,131 @@ export function GemBalancePanel({
   }
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
-      <div className="px-4 py-4 border-b border-border/40 bg-gradient-to-br from-primary/8 to-transparent">
+    <div className="overflow-hidden rounded-2xl border border-slate-700/80 bg-gradient-to-b from-[#0c1220] to-[#111827] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.45)]">
+      {/* ATM header strip */}
+      <div className="flex items-center justify-between border-b border-slate-700/60 bg-[#0a0f18] px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <Gem className="h-5 w-5 text-primary" />
-          <p className="font-black text-lg">구매 MOCO</p>
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/40" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          </span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+            MOCO 충전 터미널
+          </span>
         </div>
-        <p className="text-3xl font-black mt-2 tabular-nums">{formatMocoDisplay(balance)}</p>
-        <p className="text-xs text-muted-foreground mt-1">후원·유료 미디어 · 환불·인출 불가</p>
+        <ShieldCheck className="h-4 w-4 text-slate-500" aria-hidden />
+      </div>
+
+      {/* Balance display — LED-style */}
+      <div className="border-b border-slate-700/50 px-4 py-5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">현재 잔액</p>
+        <div className="mt-2 rounded-xl border border-slate-700/70 bg-[#060a12] px-4 py-3 shadow-inner">
+          <p className="font-mono text-3xl font-bold tabular-nums tracking-tight text-emerald-300">
+            {formatMocoDisplay(balance)}
+          </p>
+        </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+          후원·유료 미디어 전용 · 환불·인출 불가
+        </p>
       </div>
 
       {lowBalanceNotice ? (
-        <div className="mx-4 mt-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-sm">
-          <p className="font-semibold text-foreground">MOCO 잔액이 부족합니다</p>
-          <p className="text-muted-foreground text-xs mt-0.5 leading-relaxed">
+        <div className="mx-4 mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+          <p className="text-sm font-semibold text-amber-200">MOCO 잔액이 부족합니다</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-amber-200/70">
             결제를 계속하려면 아래에서 충전해 주세요.
           </p>
         </div>
       ) : null}
 
-      <div className="p-4 space-y-3">
-        <div className="space-y-2">
-          <label htmlFor="moco-topup-amount" className="text-sm font-bold">
-            충전할 MOCO
+      <div className="space-y-4 p-4">
+        {/* Amount entry screen */}
+        <div>
+          <label htmlFor="moco-topup-amount" className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            충전 수량 (정수 단위)
           </label>
-          <Input
-            id="moco-topup-amount"
-            type="number"
-            min={minTopupMoco}
-            max={maxTopupMoco}
-            step={1}
-            inputMode="numeric"
-            value={amount}
-            onChange={(e) => {
-              setAmount(e.target.value);
-              if (error) setError("");
-            }}
-            disabled={pending}
-            className="rounded-xl tabular-nums"
-          />
-          <p className="text-[11px] text-muted-foreground">
-            {minTopupMoco.toLocaleString()}~{maxTopupMoco.toLocaleString()} MOCO
+          <div
+            className={cn(
+              "mt-2 rounded-xl border bg-[#060a12] px-4 py-3 shadow-inner transition-colors",
+              error && parsedPreview == null
+                ? "border-red-500/50"
+                : "border-slate-600/80 focus-within:border-emerald-500/50",
+            )}
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <input
+                id="moco-topup-amount"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                spellCheck={false}
+                value={displayAmount}
+                onChange={(e) => {
+                  setAmount(sanitizeMocoTopupInput(e.target.value));
+                  if (error) setError("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "." || e.key === "," || e.key === "e" || e.key === "E" || e.key === "-") {
+                    e.preventDefault();
+                  }
+                }}
+                disabled={pending}
+                className="min-w-0 flex-1 bg-transparent font-mono text-4xl font-bold tabular-nums tracking-tight text-white outline-none placeholder:text-slate-600"
+                placeholder="1"
+                aria-describedby="moco-topup-hint"
+              />
+              <span className="shrink-0 text-sm font-bold text-slate-400">MOCO</span>
+            </div>
+          </div>
+          <p id="moco-topup-hint" className="mt-1.5 text-[11px] text-slate-500">
+            {minTopupMoco.toLocaleString()}~{maxTopupMoco.toLocaleString()} MOCO · 1 단위 정수만 가능
           </p>
         </div>
 
-        <label className="flex items-start gap-2 cursor-pointer">
+        {/* Quick amount keypad */}
+        <div>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">빠른 선택</p>
+          <div className="grid grid-cols-3 gap-2">
+            {QUICK_AMOUNTS.filter((n) => n <= maxTopupMoco).map((n) => (
+              <button
+                key={n}
+                type="button"
+                disabled={pending}
+                onClick={() => setQuickAmount(n)}
+                className={cn(
+                  "rounded-lg border py-2.5 font-mono text-sm font-bold tabular-nums transition-colors",
+                  parsedPreview === n
+                    ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-300"
+                    : "border-slate-700 bg-slate-800/60 text-slate-200 hover:border-slate-500 hover:bg-slate-800",
+                )}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setQuickAmount(maxTopupMoco)}
+              className="rounded-lg border border-slate-700 bg-slate-800/60 py-2.5 font-mono text-sm font-bold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-800"
+            >
+              MAX
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                setAmount("");
+                if (error) setError("");
+              }}
+              className="rounded-lg border border-slate-700 bg-slate-800/40 py-2.5 text-sm font-bold text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200"
+            >
+              CLEAR
+            </button>
+          </div>
+        </div>
+
+        <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-slate-700/50 bg-slate-900/40 px-3 py-2.5">
           <input
             type="checkbox"
             checked={termsAccepted}
@@ -116,42 +218,45 @@ export function GemBalancePanel({
                 setError("");
               }
             }}
-            className="mt-0.5"
+            className="mt-0.5 accent-emerald-500"
           />
-          <span className="text-[11px] text-muted-foreground leading-relaxed">{MOCO_PURCHASE_TERMS_COPY}</span>
+          <span className="text-[11px] leading-relaxed text-slate-400">{MOCO_PURCHASE_TERMS_COPY}</span>
         </label>
 
         <Button
           type="button"
-          className="w-full rounded-xl"
-          disabled={pending}
+          className="h-12 w-full rounded-xl bg-emerald-600 text-base font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 disabled:opacity-50"
+          disabled={pending || !amount || parsedPreview == null || parsedPreview < minTopupMoco}
           onClick={submitTopup}
         >
           {pending ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Stripe로 이동 중…
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              결제 화면으로 이동 중…
             </>
           ) : (
-            "MOCO 충전"
+            <>
+              <Gem className="mr-2 h-4 w-4" />
+              MOCO 충전 확인
+            </>
           )}
         </Button>
 
         {purchases.length > 0 ? (
-          <div className="space-y-2 pt-2">
-            <p className="text-sm font-bold">충전 내역</p>
-            <ul className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-2 border-t border-slate-700/50 pt-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">충전 내역</p>
+            <ul className="max-h-40 space-y-1.5 overflow-y-auto">
               {purchases.map((p) => (
                 <li
                   key={p.id}
-                  className="flex items-center justify-between gap-2 rounded-xl border border-border/50 px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-2 rounded-lg border border-slate-700/50 bg-slate-900/30 px-3 py-2 text-sm"
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold truncate">
+                    <p className="truncate font-mono font-semibold tabular-nums text-slate-200">
                       {formatMocoDisplay(p.gems)}
                       {p.remainingGems < p.gems ? " · 일부 사용" : ""}
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-[11px] text-slate-500">
                       {new Date(p.createdAt).toLocaleDateString("ko-KR")} · 잔여{" "}
                       {formatMocoDisplay(p.remainingGems)}
                     </p>
@@ -162,7 +267,11 @@ export function GemBalancePanel({
           </div>
         ) : null}
 
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {error ? (
+          <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
     </div>
   );
