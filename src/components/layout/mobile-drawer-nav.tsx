@@ -22,7 +22,10 @@ type MobileDrawerNavProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-const PANEL_WIDTH = "min(86vw, 360px)";
+/** sidebar-bg.png — 460px art cropped to 363px (right trim). Panel tracks that ratio. */
+const SIDEBAR_BG_CROP_RATIO = 363 / 460;
+const PANEL_MAX_PX = Math.round(360 * SIDEBAR_BG_CROP_RATIO);
+const PANEL_WIDTH = `min(${Math.round(86 * SIDEBAR_BG_CROP_RATIO)}vw, ${PANEL_MAX_PX}px)`;
 
 export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
   const pathname = usePathname() ?? "";
