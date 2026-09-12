@@ -25,7 +25,6 @@ type Props = {
   paymentHistory: PaymentHistoryItem[];
   gemBalance: number;
   minTopupMoco: number;
-  maxTopupMoco: number;
   lowBalanceNotice?: boolean;
   gemPurchases: {
     id: string;
@@ -55,7 +54,6 @@ export function WalletHub({
   paymentHistory,
   gemBalance,
   minTopupMoco,
-  maxTopupMoco,
   lowBalanceNotice,
   gemPurchases,
   settlement,
@@ -148,7 +146,6 @@ export function WalletHub({
           <GemBalancePanel
             balance={gemBalance}
             minTopupMoco={minTopupMoco}
-            maxTopupMoco={maxTopupMoco}
             purchases={gemPurchases}
             lowBalanceNotice={lowBalanceNotice}
           />

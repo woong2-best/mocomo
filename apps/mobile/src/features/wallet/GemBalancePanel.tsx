@@ -5,24 +5,22 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { fetchGemsWallet } from "@/api/gems";
 import { openGemTopupCheckout } from "@/payments/gem-topup";
-import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
-const QUICK_AMOUNTS = [1, 5, 10, 25, 50, 100] as const;
+const INPUT_MAX_DIGITS = 7;
 
 function formatMoco(moco: number) {
   return `${Math.max(0, moco).toLocaleString()} MOCO`;
 }
 
 function sanitizeAmount(raw: string) {
-  return raw.replace(/\D/g, "").slice(0, 3);
+  return raw.replace(/\D/g, "").slice(0, INPUT_MAX_DIGITS);
 }
 
 function parseAmount(raw: string): number | null {
@@ -32,12 +30,74 @@ function parseAmount(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function NumKey({
+  label,
+  disabled,
+  onPress,
+  style,
+}: {
+  label: string;
+  disabled?: boolean;
+  onPress: () => void;
+  style?: object;
+}) {
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.numKey,
+        style,
+        pressed && styles.keyPressed,
+        disabled && styles.keyDisabled,
+      ]}
+    >
+      <Text style={styles.numKeyText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function ActionKey({
+  label,
+  sub,
+  tone,
+  disabled,
+  onPress,
+  style,
+}: {
+  label: string;
+  sub?: string;
+  tone: "clear" | "confirm";
+  disabled?: boolean;
+  onPress: () => void;
+  style?: object;
+}) {
+  const isConfirm = tone === "confirm";
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.actionKey,
+        isConfirm ? styles.confirmKey : styles.clearKey,
+        style,
+        pressed && styles.keyPressed,
+        disabled && styles.keyDisabled,
+      ]}
+    >
+      <Text style={[styles.actionKeyLabel, isConfirm ? styles.confirmText : styles.clearText]}>{label}</Text>
+      {sub ? <Text style={[styles.actionKeySub, isConfirm ? styles.confirmText : styles.clearText]}>{sub}</Text> : null}
+    </Pressable>
+  );
+}
+
 export function GemBalancePanel() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [amount, setAmount] = useState("1");
+  const [amount, setAmount] = useState("");
+  const [statusLine, setStatusLine] = useState("충전할 MOCO 수량을 입력해 주세요.");
 
   const query = useQuery({
     queryKey: ["mobile-gems-wallet"],
@@ -47,10 +107,23 @@ export function GemBalancePanel() {
   const data = query.data;
   const balance = data?.balance ?? 0;
   const minTopup = data?.minTopupMoco ?? 1;
-  const maxTopup = data?.maxTopupMoco ?? 200;
   const purchases = data?.purchases ?? [];
   const termsCopy = data?.termsCopy ?? "";
   const parsed = parseAmount(amount);
+  const displayAmount = amount ? Number(amount).toLocaleString() : "0";
+
+  function appendDigit(digit: string) {
+    if (busy) return;
+    const next = sanitizeAmount(amount + digit).replace(/^0+(?=\d)/, "");
+    setAmount(next);
+    setStatusLine("수량을 확인한 뒤 [확인]을 눌러 주세요.");
+  }
+
+  function backspace() {
+    if (busy || !amount) return;
+    setAmount(amount.slice(0, -1));
+    setStatusLine("충전할 MOCO 수량을 입력해 주세요.");
+  }
 
   async function handleTopup() {
     if (!termsAccepted) {
@@ -58,22 +131,18 @@ export function GemBalancePanel() {
       return;
     }
     const moco = parseAmount(amount);
-    if (moco == null) {
-      Alert.alert("충전", "MOCO는 1 단위 정수로만 입력할 수 있습니다.");
-      return;
-    }
-    if (moco < minTopup) {
+    if (moco == null || moco < minTopup) {
       Alert.alert("충전", `최소 ${minTopup} MOCO부터 충전할 수 있습니다.`);
       return;
     }
-    if (moco > maxTopup) {
-      Alert.alert("충전", `1회 충전은 최대 ${maxTopup.toLocaleString()} MOCO까지 가능합니다.`);
-      return;
-    }
     setBusy(true);
+    setStatusLine("결제 화면으로 이동합니다…");
     try {
       const res = await openGemTopupCheckout(moco);
-      if ("error" in res) Alert.alert("충전", res.error);
+      if ("error" in res) {
+        Alert.alert("충전", res.error);
+        setStatusLine(res.error);
+      }
     } finally {
       setBusy(false);
     }
@@ -84,192 +153,275 @@ export function GemBalancePanel() {
   }
 
   return (
-    <View style={[styles.card, { borderColor: "#334155", backgroundColor: "#0c1220" }]}>
-      <View style={styles.headerStrip}>
-        <View style={styles.statusDot} />
-        <Text style={styles.headerLabel}>MOCO 충전 터미널</Text>
-      </View>
+    <View style={styles.shell}>
+      <View style={styles.body}>
+        <View style={styles.fascia}>
+          <View style={styles.statusDot} />
+          <Text style={styles.fasciaLabel}>MoCoMo ATM</Text>
+          <Text style={styles.fasciaSecure}>SECURE</Text>
+        </View>
 
-      <Text style={styles.sectionCaption}>현재 잔액</Text>
-      <View style={styles.balanceScreen}>
-        <Text style={styles.balance}>{formatMoco(balance)}</Text>
-      </View>
-      <Text style={styles.sub}>후원·유료 미디어 · 환불·인출 불가</Text>
+        <View style={styles.bezel}>
+          <View style={styles.screen}>
+            <Text style={styles.screenCaption}>현재 잔액</Text>
+            <Text style={styles.balance}>{formatMoco(balance)}</Text>
+            <View style={styles.divider} />
+            <Text style={styles.screenCaption}>충전 수량</Text>
+            <View style={styles.amountRow}>
+              <Text style={styles.amountValue}>{displayAmount}</Text>
+              <Text style={styles.amountUnit}>MOCO</Text>
+            </View>
+            <Text style={styles.hint}>1 단위 정수 · 최소 {minTopup} MOCO</Text>
+          </View>
+        </View>
 
-      <Text style={styles.sectionCaption}>충전 수량 (정수 단위)</Text>
-      <View style={styles.amountScreen}>
-        <TextInput
-          value={amount}
-          onChangeText={(t) => setAmount(sanitizeAmount(t))}
-          keyboardType="number-pad"
-          editable={!busy}
-          style={styles.amountInput}
-          placeholder="1"
-          placeholderTextColor="#475569"
-        />
-        <Text style={styles.amountUnit}>MOCO</Text>
-      </View>
-      <Text style={styles.hint}>
-        {minTopup.toLocaleString()}~{maxTopup.toLocaleString()} MOCO · 1 단위 정수만 가능
-      </Text>
+        <View style={styles.ticker}>
+          <Text style={styles.tickerText}>{busy ? "결제 화면으로 이동 중…" : statusLine}</Text>
+        </View>
 
-      <View style={styles.quickGrid}>
-        {QUICK_AMOUNTS.filter((n) => n <= maxTopup).map((n) => (
-          <Pressable
-            key={n}
-            disabled={busy}
-            onPress={() => setAmount(String(n))}
-            style={[styles.quickBtn, parsed === n && styles.quickBtnActive]}
-          >
-            <Text style={[styles.quickBtnText, parsed === n && styles.quickBtnTextActive]}>{n}</Text>
-          </Pressable>
-        ))}
-        <Pressable disabled={busy} onPress={() => setAmount(String(maxTopup))} style={styles.quickBtn}>
-          <Text style={styles.quickBtnText}>MAX</Text>
+        <View style={styles.keypadWell}>
+          <View style={styles.keypadRow}>
+            <View style={styles.numPad}>
+              {[["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"]].map((row) => (
+                <View key={row.join("-")} style={styles.numRow}>
+                  {row.map((digit) => (
+                    <NumKey
+                      key={digit}
+                      label={digit}
+                      disabled={busy}
+                      onPress={() => appendDigit(digit)}
+                      style={styles.numCell}
+                    />
+                  ))}
+                </View>
+              ))}
+              <NumKey label="0" disabled={busy} onPress={() => appendDigit("0")} style={styles.zeroKey} />
+            </View>
+            <View style={styles.actionCol}>
+              <ActionKey
+                label="지우기"
+                sub="←"
+                tone="clear"
+                disabled={busy || !amount}
+                onPress={backspace}
+                style={styles.actionCellTop}
+              />
+              <ActionKey
+                label="확인"
+                sub="OK"
+                tone="confirm"
+                disabled={busy || !amount || parsed == null || parsed < minTopup}
+                onPress={() => void handleTopup()}
+                style={styles.actionCellBottom}
+              />
+            </View>
+          </View>
+        </View>
+
+        <Pressable onPress={() => setTermsAccepted((v) => !v)} style={styles.termsRow}>
+          <Text style={{ color: termsAccepted ? "#34d399" : colors.textMuted }}>{termsAccepted ? "☑" : "☐"}</Text>
+          <Text style={styles.terms}>{termsCopy}</Text>
         </Pressable>
-        <Pressable disabled={busy} onPress={() => setAmount("")} style={styles.quickBtn}>
-          <Text style={styles.quickBtnText}>CLR</Text>
-        </Pressable>
-      </View>
 
-      <Pressable onPress={() => setTermsAccepted((v) => !v)} style={styles.termsRow}>
-        <Text style={{ color: termsAccepted ? "#34d399" : colors.textMuted }}>{termsAccepted ? "☑" : "☐"}</Text>
-        <Text style={styles.terms}>{termsCopy}</Text>
-      </Pressable>
-
-      <FolkButton
-        label={busy ? "이동 중…" : "MOCO 충전 확인"}
-        onPress={() => void handleTopup()}
-        loading={busy}
-        disabled={!amount || parsed == null || parsed < minTopup}
-      />
-
-      {purchases.length > 0 ? (
-        <>
-          <Text style={[styles.sectionCaption, { marginTop: spacing.sm }]}>충전 내역</Text>
-          {purchases.map((p) => (
-            <View key={p.id} style={styles.purchaseRow}>
-              <View style={{ flex: 1 }}>
+        {purchases.length > 0 ? (
+          <>
+            <Text style={styles.historyCaption}>충전 내역</Text>
+            {purchases.map((p) => (
+              <View key={p.id} style={styles.purchaseRow}>
                 <Text style={styles.purchaseTitle}>
                   {formatMoco(p.gems)}
                   {p.remainingGems < p.gems ? " · 일부 사용" : ""}
                 </Text>
                 <Text style={styles.purchaseSub}>잔여 {formatMoco(p.remainingGems)}</Text>
               </View>
-            </View>
-          ))}
-        </>
-      ) : null}
+            ))}
+          </>
+        ) : null}
+      </View>
     </View>
   );
 }
 
+const styles = StyleSheet.create({
+  numKey: {
+    height: 52,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#8a9199",
+    backgroundColor: "#e3e6ea",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  numKeyText: { fontSize: 24, fontWeight: "900", color: "#1a1f26" },
+  actionKey: {
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  clearKey: { backgroundColor: "#f5c842", borderColor: "#9a7a12" },
+  confirmKey: { backgroundColor: "#2db868", borderColor: "#1f6b3f" },
+  clearText: { color: "#5c3d00" },
+  confirmText: { color: "#0b2e18" },
+  actionKeyLabel: { fontSize: 15, fontWeight: "900" },
+  actionKeySub: { fontSize: 10, fontWeight: "800", marginTop: 2 },
+  keyPressed: { transform: [{ translateY: 2 }], opacity: 0.92 },
+  keyDisabled: { opacity: 0.45 },
+  keypadRow: { flexDirection: "row", gap: 8 },
+  numPad: { flex: 3, gap: 8 },
+  numRow: { flexDirection: "row", gap: 8 },
+  numCell: { flex: 1 },
+  zeroKey: { width: "100%" },
+  actionCol: { flex: 1, gap: 8 },
+  actionCellTop: { flex: 1, minHeight: 112 },
+  actionCellBottom: { flex: 1, minHeight: 112 },
+});
+
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    card: {
-      borderWidth: 1,
-      borderRadius: 16,
-      padding: spacing.md,
+    shell: {
       marginHorizontal: spacing.md,
-      gap: spacing.sm,
-      overflow: "hidden",
+      borderRadius: 20,
+      borderWidth: 2,
+      borderColor: "#6b7280",
+      backgroundColor: "#aeb4bd",
+      padding: 6,
     },
-    headerStrip: {
+    body: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: "#4b5563",
+      backgroundColor: "#0b1018",
+      overflow: "hidden",
+      paddingBottom: spacing.md,
+    },
+    fascia: {
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
-      marginBottom: 4,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: "#374151",
+      backgroundColor: "#111827",
     },
-    statusDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: "#34d399",
-    },
-    headerLabel: {
+    statusDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#34d399" },
+    fasciaLabel: {
+      flex: 1,
       fontSize: 10,
       fontWeight: "800",
-      letterSpacing: 1.5,
+      letterSpacing: 2,
       color: "#94a3b8",
-      textTransform: "uppercase",
     },
-    sectionCaption: {
-      fontSize: 11,
-      fontWeight: "700",
-      letterSpacing: 0.5,
-      color: "#64748b",
-      textTransform: "uppercase",
-    },
-    balanceScreen: {
-      backgroundColor: "#060a12",
-      borderWidth: 1,
-      borderColor: "#334155",
+    fasciaSecure: { fontSize: 10, fontWeight: "700", color: "#64748b" },
+    bezel: {
+      marginHorizontal: spacing.md,
+      marginTop: spacing.md,
       borderRadius: 12,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      borderWidth: 2,
+      borderColor: "#374151",
+      backgroundColor: "#030712",
+      padding: 4,
+    },
+    screen: {
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: "#1f2937",
+      backgroundColor: "#060d18",
+      padding: spacing.md,
+    },
+    screenCaption: {
+      fontSize: 10,
+      fontWeight: "800",
+      letterSpacing: 1,
+      color: "#22d3ee",
+      opacity: 0.8,
     },
     balance: {
-      fontSize: 28,
+      marginTop: 4,
+      fontSize: 22,
       fontWeight: "900",
       color: "#6ee7b7",
       fontVariant: ["tabular-nums"],
     },
-    sub: { fontSize: 11, fontWeight: "600", color: "#64748b" },
-    amountScreen: {
+    divider: {
+      height: 1,
+      marginVertical: spacing.sm,
+      backgroundColor: "#334155",
+    },
+    amountRow: {
       flexDirection: "row",
       alignItems: "baseline",
-      backgroundColor: "#060a12",
+      marginTop: 6,
       borderWidth: 1,
-      borderColor: "#475569",
-      borderRadius: 12,
-      paddingHorizontal: spacing.md,
+      borderColor: "#334155",
+      borderRadius: 8,
+      backgroundColor: "#020617",
+      paddingHorizontal: spacing.sm,
       paddingVertical: spacing.sm,
       gap: spacing.sm,
     },
-    amountInput: {
+    amountValue: {
       flex: 1,
       fontSize: 36,
       fontWeight: "900",
       color: "#f8fafc",
       fontVariant: ["tabular-nums"],
-      padding: 0,
     },
     amountUnit: { fontSize: 14, fontWeight: "800", color: "#94a3b8" },
-    hint: { fontSize: 11, fontWeight: "600", color: "#64748b" },
-    quickGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8,
-    },
-    quickBtn: {
-      minWidth: "30%",
-      flexGrow: 1,
+    hint: { marginTop: 6, fontSize: 11, fontWeight: "600", color: "#64748b" },
+    ticker: {
+      marginHorizontal: spacing.md,
+      marginTop: spacing.sm,
+      borderRadius: 8,
       borderWidth: 1,
-      borderColor: "#334155",
-      borderRadius: 10,
-      backgroundColor: "#1e293b",
-      paddingVertical: 10,
-      alignItems: "center",
+      borderColor: "#78350f",
+      backgroundColor: "#1a1205",
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 8,
     },
-    quickBtnActive: {
-      borderColor: "#34d399",
-      backgroundColor: "rgba(52, 211, 153, 0.12)",
+    tickerText: { fontSize: 12, fontWeight: "700", color: "#fcd34d" },
+    keypadWell: {
+      marginHorizontal: spacing.md,
+      marginTop: spacing.md,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: "#6b7280",
+      backgroundColor: "#b8bcc4",
+      padding: spacing.sm,
     },
-    quickBtnText: {
-      fontSize: 14,
-      fontWeight: "800",
-      color: "#e2e8f0",
-      fontVariant: ["tabular-nums"],
+    termsRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      alignItems: "flex-start",
+      marginHorizontal: spacing.md,
+      marginTop: spacing.md,
     },
-    quickBtnTextActive: { color: "#6ee7b7" },
-    termsRow: { flexDirection: "row", gap: spacing.sm, alignItems: "flex-start" },
     terms: { flex: 1, fontSize: 11, lineHeight: 16, color: "#94a3b8" },
+    historyCaption: {
+      marginHorizontal: spacing.md,
+      marginTop: spacing.sm,
+      fontSize: 10,
+      fontWeight: "800",
+      letterSpacing: 1,
+      color: "#64748b",
+    },
     purchaseRow: {
-      flexDirection: "row",
-      alignItems: "center",
+      marginHorizontal: spacing.md,
+      marginTop: spacing.xs,
       borderWidth: 1,
       borderColor: "#334155",
-      borderRadius: 10,
+      borderRadius: 8,
       padding: spacing.sm,
       backgroundColor: "rgba(15, 23, 42, 0.5)",
     },

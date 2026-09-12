@@ -14,7 +14,6 @@ export type GemPurchaseRow = {
 export type GemsWalletResponse = {
   balance: number;
   minTopupMoco: number;
-  maxTopupMoco: number;
   termsCopy: string;
   purchases: GemPurchaseRow[];
 };

@@ -17,7 +17,15 @@ export const MOCO_TO_USD_RATE = MOCO_USD_VALUE;
 export const GEM_TO_USD_RATE = MOCO_USD_VALUE;
 
 export const MIN_MOCO_TOPUP_COUNT = 1;
-export const MAX_MOCO_TOPUP_COUNT = 200;
+
+/** Stripe Checkout USD cents ceiling (~$999,999.99) — not a user-facing cap */
+export const MOCO_TOPUP_STRIPE_MAX_USD_CENTS = 99_999_999;
+
+/** @deprecated no user-facing top-up cap */
+export const MAX_MOCO_TOPUP_COUNT = Math.floor(MOCO_TOPUP_STRIPE_MAX_USD_CENTS / MOCO_USD_CENTS);
+
+/** Keypad input digit limit (matches Stripe ceiling) */
+export const MOCO_TOPUP_INPUT_MAX_DIGITS = String(MAX_MOCO_TOPUP_COUNT).length;
 
 /** @deprecated MIN_MOCO_TOPUP_COUNT */
 export const MIN_GEM_TOPUP_USD = MOCO_USD_VALUE;
@@ -77,7 +85,7 @@ export type GemTopupQuote =
 
 /** UI 입력 — 숫자만, 정수 단위 */
 export function sanitizeMocoTopupInput(raw: string): string {
-  return raw.replace(/\D/g, "").slice(0, String(MAX_MOCO_TOPUP_COUNT).length);
+  return raw.replace(/\D/g, "").slice(0, MOCO_TOPUP_INPUT_MAX_DIGITS);
 }
 
 /** 정수 MOCO 파싱 (0.5, 1.2 등 소수 거부) */
@@ -101,16 +109,14 @@ export function quoteGemTopup(mocoInput: number): GemTopupQuote {
   if (moco < MIN_MOCO_TOPUP_COUNT) {
     return { ok: false, error: `최소 ${MIN_MOCO_TOPUP_COUNT} MOCO부터 충전할 수 있습니다.` };
   }
-  if (moco > MAX_MOCO_TOPUP_COUNT) {
-    return {
-      ok: false,
-      error: `1회 충전은 최대 ${MAX_MOCO_TOPUP_COUNT.toLocaleString()} MOCO까지 가능합니다.`,
-    };
+  const usdCents = mocoToUsdCents(moco);
+  if (usdCents > MOCO_TOPUP_STRIPE_MAX_USD_CENTS) {
+    return { ok: false, error: "결제 가능한 최대 금액을 초과했습니다." };
   }
   return {
     ok: true,
     moco,
-    usdCents: mocoToUsdCents(moco),
+    usdCents,
     orderName: `${moco.toLocaleString()} MOCO 충전`,
   };
 }

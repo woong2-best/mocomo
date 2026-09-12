@@ -6,7 +6,6 @@ import { db } from "@/lib/db";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
 import {
   GEM_PURCHASE_TERMS_COPY,
-  MAX_MOCO_TOPUP_COUNT,
   MIN_MOCO_TOPUP_COUNT,
   quoteGemTopup,
 } from "@/lib/gems/constants";
@@ -43,7 +42,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     balance,
     minTopupMoco: MIN_MOCO_TOPUP_COUNT,
-    maxTopupMoco: MAX_MOCO_TOPUP_COUNT,
     termsCopy: GEM_PURCHASE_TERMS_COPY,
     purchases: purchases.map((p) => ({
       ...p,

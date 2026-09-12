@@ -5,7 +5,6 @@ import { requireAuth } from "@/lib/auth";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
 import {
   GEM_PURCHASE_TERMS_COPY,
-  MAX_MOCO_TOPUP_COUNT,
   MIN_MOCO_TOPUP_COUNT,
   quoteGemTopup,
 } from "@/lib/gems/constants";
@@ -28,7 +27,6 @@ export async function getMyGemBalance() {
     return {
       balance,
       minTopupMoco: MIN_MOCO_TOPUP_COUNT,
-      maxTopupMoco: MAX_MOCO_TOPUP_COUNT,
       termsCopy: GEM_PURCHASE_TERMS_COPY,
     };
   } catch (e) {
@@ -36,7 +34,6 @@ export async function getMyGemBalance() {
     return {
       balance: 0,
       minTopupMoco: MIN_MOCO_TOPUP_COUNT,
-      maxTopupMoco: MAX_MOCO_TOPUP_COUNT,
       termsCopy: GEM_PURCHASE_TERMS_COPY,
     };
   }

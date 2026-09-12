@@ -9,7 +9,7 @@ import { WalletHub } from "@/components/wallet/wallet-hub";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { getCreatorSettlementStatus } from "@/actions/settlement-register";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
-import { MAX_MOCO_TOPUP_COUNT, MIN_MOCO_TOPUP_COUNT } from "@/lib/gems/constants";
+import { MIN_MOCO_TOPUP_COUNT } from "@/lib/gems/constants";
 
 const EMPTY_EARNINGS = (): WalletEarningsAnalytics => {
   const year = new Date().getFullYear();
@@ -83,7 +83,6 @@ export default async function WalletPage({
       : {
           balance: 0,
           minTopupMoco: MIN_MOCO_TOPUP_COUNT,
-          maxTopupMoco: MAX_MOCO_TOPUP_COUNT,
           termsCopy: "",
         };
   const gemPurchases =
@@ -118,7 +117,6 @@ export default async function WalletPage({
           paymentHistory={paymentHistory}
           gemBalance={gemData.balance}
           minTopupMoco={gemData.minTopupMoco}
-          maxTopupMoco={gemData.maxTopupMoco}
           gemPurchases={gemPurchases.purchases}
           settlement={settlement}
           lowBalanceNotice={lowBalanceNotice}
