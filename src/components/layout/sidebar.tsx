@@ -36,13 +36,13 @@ export function Sidebar() {
     <div
       className={cn(
         "hidden lg:block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out",
-        open ? "w-[17rem] xl:w-[18rem]" : "w-0"
+        open ? "w-[14.5rem]" : "w-0"
       )}
       aria-hidden={!open}
     >
       <aside
         className={cn(
-          "flex h-full w-[17rem] xl:w-[18rem] min-h-0 flex-col shrink-0 shell-col-pad shell-col-divider-r folk-sidebar-panel overflow-hidden overscroll-none",
+          "flex h-full w-[14.5rem] min-h-0 flex-col shrink-0 shell-col-pad shell-col-divider-r folk-sidebar-panel overflow-hidden overscroll-none",
           !open && "pointer-events-none invisible"
         )}
       >

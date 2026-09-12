@@ -438,14 +438,19 @@ html[data-client="app"] .native-live-pad {
     padding-top: calc(env(safe-area-inset-top, 0px) + 3.25rem);
   }
 
-  .mobile-drawer-nav-stack .folk-sidebar-nav,
-  .mobile-drawer-nav-stack .folk-sidebar-compose {
+  .folk-sidebar-nav-stack .folk-sidebar-nav,
+  .folk-sidebar-nav-stack .folk-sidebar-compose {
     width: 100%;
-    max-width: 15.25rem;
+    max-width: 11.75rem;
     margin-inline: auto;
   }
 
-  .mobile-drawer-panel .sidebar-block {
+  .folk-sidebar-panel.shell-col-pad {
+    @apply px-3;
+  }
+
+  .mobile-drawer-panel .sidebar-block,
+  .folk-sidebar-panel .sidebar-block {
     @apply px-3;
   }
 
@@ -639,8 +644,8 @@ html[data-client="app"] .native-live-pad {
   .folk-sidebar-panel {
     @apply relative overflow-hidden overscroll-none;
     background-image: url("/home/sidebar-bg.png");
-    /* 363×1024 — width-fit keeps the crop ratio; left/bottom anchors the hero art */
-    background-size: 100% auto;
+    /* 363×1024 crop — height-fit only; panel clips the right, no horizontal stretch */
+    background-size: auto 100%;
     background-position: left bottom;
     background-repeat: no-repeat;
     scrollbar-width: none;
