@@ -8,6 +8,11 @@ import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-up
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageCropDialog } from "@/components/media/image-crop-dialog";
+import {
+  SPONSORED_AD_ASPECT,
+  SPONSORED_AD_IMAGE_MAX_HEIGHT,
+  SPONSORED_AD_IMAGE_MAX_WIDTH,
+} from "@/lib/sponsored-ad/constants";
 
 const fieldClass =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#A855F7]/40";
@@ -91,7 +96,7 @@ export function EventAdEditPanel({
               <img
                 src={imageUrl}
                 alt=""
-                className="h-28 w-28 rounded-xl object-cover border border-border aspect-square"
+                className="w-28 rounded-xl object-cover border border-border aspect-[4/5]"
               />
               <label className="absolute inset-0 cursor-pointer rounded-xl">
                 <span className="sr-only">이미지 변경</span>
@@ -108,7 +113,7 @@ export function EventAdEditPanel({
               </Button>
             </div>
           ) : (
-            <label className="flex h-28 w-28 cursor-pointer items-center justify-center rounded-xl border border-dashed border-border aspect-square hover:border-[#A855F7]/40">
+            <label className="flex w-28 cursor-pointer items-center justify-center rounded-xl border border-dashed border-border aspect-[4/5] hover:border-[#A855F7]/40">
               <span className="text-xs text-muted-foreground">이미지</span>
               <input type="file" accept="image/*" className="hidden" onChange={onImagePick} />
             </label>
@@ -152,12 +157,14 @@ export function EventAdEditPanel({
           open={cropOpen}
           onOpenChange={closeCropDialog}
           imageSrc={cropSrc}
-          aspect={1}
+          aspect={SPONSORED_AD_ASPECT}
           lockAspect
+          objectFit="contain"
+          showSponsorPreview
           title="광고 이미지"
-          description="1:1 비율로 잘라 주세요."
-          maxWidth={1200}
-          maxHeight={1200}
+          description="스폰서 슬롯(4:5) 비율로 맞춰 주세요. 전체 이미지가 보이도록 조절한 뒤 원하는 영역을 선택하세요."
+          maxWidth={SPONSORED_AD_IMAGE_MAX_WIDTH}
+          maxHeight={SPONSORED_AD_IMAGE_MAX_HEIGHT}
           uploadFilename="event-ad.jpg"
           onComplete={(url) => {
             setImageUrl(url);

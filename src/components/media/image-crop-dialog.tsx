@@ -27,6 +27,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import { SponsorAdPreviewFrame } from "@/components/events/sponsor-ad-preview-frame";
 import { cn } from "@/lib/utils";
 
 export type CropAspectPreset = {
@@ -63,6 +64,10 @@ type ImageCropDialogProps = {
   /** true면 비율 고정(프로필 등) */
   lockAspect?: boolean;
   aspectPresets?: CropAspectPreset[];
+  /** cover=영역 채움(기본), contain=전체 이미지가 보이도록 */
+  objectFit?: "cover" | "contain";
+  /** 사이드바 스폰서 슬롯 실시간 미리보기 */
+  showSponsorPreview?: boolean;
 };
 
 function resetTransforms() {
@@ -93,6 +98,8 @@ export function ImageCropDialog({
   onWatermarkOptionsChange,
   lockAspect = false,
   aspectPresets = DEFAULT_ASPECT_PRESETS,
+  objectFit = "cover",
+  showSponsorPreview = false,
 }: ImageCropDialogProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -101,8 +108,11 @@ export function ImageCropDialog({
   const [flipV, setFlipV] = useState(false);
   const [cropAspect, setCropAspect] = useState<number | undefined>(aspect);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [livePreviewUrl, setLivePreviewUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  const minZoom = objectFit === "contain" ? 0.5 : 1;
 
   const presets = lockAspect
     ? aspectPresets.filter((p) => p.aspect === aspect)
@@ -119,11 +129,63 @@ export function ImageCropDialog({
     setCroppedAreaPixels(t.croppedAreaPixels);
     setCropAspect(lockAspect ? aspect : aspect);
     setError("");
+    setLivePreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
   }, [open, imageSrc, aspect, lockAspect]);
 
   const onCropComplete = useCallback((_: Area, pixels: Area) => {
     setCroppedAreaPixels(pixels);
   }, []);
+
+  useEffect(() => {
+    if (!showSponsorPreview || !open || !croppedAreaPixels) return;
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const blob = await getCroppedImageBlob(imageSrc, croppedAreaPixels, {
+          rotation,
+          flipHorizontal: flipH,
+          flipVertical: flipV,
+          maxWidth: Math.min(maxWidth, 480),
+          maxHeight: Math.min(maxHeight, 600),
+          mimeType: "image/jpeg",
+          quality: 0.75,
+        });
+        if (cancelled) return;
+        const url = URL.createObjectURL(blob);
+        setLivePreviewUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
+      } catch {
+        // preview generation is best-effort
+      }
+    }, 120);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [
+    showSponsorPreview,
+    open,
+    croppedAreaPixels,
+    imageSrc,
+    rotation,
+    flipH,
+    flipV,
+    maxWidth,
+    maxHeight,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (livePreviewUrl) URL.revokeObjectURL(livePreviewUrl);
+    };
+  }, [livePreviewUrl]);
 
   function handleReset() {
     const t = resetTransforms();
@@ -196,25 +258,60 @@ export function ImageCropDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="relative w-full h-[min(44vh,320px)] sm:h-[min(48vh,360px)] bg-neutral-900 shrink-0 touch-none">
-          <Cropper
-            image={imageSrc}
-            crop={crop}
-            zoom={zoom}
-            rotation={rotation}
-            transform={cropperTransform}
-            aspect={cropAspect}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onRotationChange={setRotation}
-            onCropComplete={onCropComplete}
-            objectFit="cover"
-            restrictPosition
-            minZoom={1}
-            maxZoom={6}
-            zoomWithScroll
-          />
+        <div
+          className={cn(
+            "px-5 pb-3 shrink-0",
+            showSponsorPreview && "grid gap-4 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-start"
+          )}
+        >
+          <div
+            className={cn(
+              "relative w-full bg-neutral-900 touch-none overflow-hidden rounded-xl",
+              showSponsorPreview
+                ? "aspect-[4/5] max-h-[min(52vh,420px)]"
+                : "h-[min(44vh,320px)] sm:h-[min(48vh,360px)]"
+            )}
+          >
+            <Cropper
+              image={imageSrc}
+              crop={crop}
+              zoom={zoom}
+              rotation={rotation}
+              transform={cropperTransform}
+              aspect={cropAspect}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onRotationChange={setRotation}
+              onCropComplete={onCropComplete}
+              objectFit={objectFit}
+              restrictPosition={objectFit === "cover"}
+              minZoom={minZoom}
+              maxZoom={6}
+              zoomWithScroll
+            />
+          </div>
+
+          {showSponsorPreview ? (
+            <div className="hidden sm:block space-y-2">
+              <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                스폰서 노출 미리보기
+              </p>
+              <SponsorAdPreviewFrame imageUrl={livePreviewUrl} />
+              <p className="text-[10px] text-muted-foreground leading-snug">
+                사이드바 스폰서 슬롯에 이렇게 표시됩니다.
+              </p>
+            </div>
+          ) : null}
         </div>
+
+        {showSponsorPreview ? (
+          <div className="px-5 pb-3 sm:hidden space-y-2 shrink-0">
+            <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+              스폰서 노출 미리보기
+            </p>
+            <SponsorAdPreviewFrame imageUrl={livePreviewUrl} hideHeader />
+          </div>
+        ) : null}
 
         <div className="shrink-0 border-t border-border bg-background pb-safe">
           {watermarkCreditLabel && watermarkOptions && onWatermarkOptionsChange ? (
@@ -339,8 +436,10 @@ export function ImageCropDialog({
               size="icon"
               className="rounded-xl h-10 w-10"
               title="축소"
-              disabled={busy || zoom <= 1}
-              onClick={() => setZoom((z) => Math.max(1, Math.round((z - 0.15) * 100) / 100))}
+              disabled={busy || zoom <= minZoom}
+              onClick={() =>
+                setZoom((z) => Math.max(minZoom, Math.round((z - 0.15) * 100) / 100))
+              }
             >
               <ZoomOut className="h-4 w-4" />
             </Button>
@@ -378,7 +477,7 @@ export function ImageCropDialog({
               </div>
               <input
                 type="range"
-                min={1}
+                min={minZoom}
                 max={6}
                 step={0.01}
                 value={zoom}

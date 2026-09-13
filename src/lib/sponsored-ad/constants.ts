@@ -3,6 +3,13 @@ import { PRICE_PER_MOCO_USD } from "@/lib/gems/constants";
 /** 24시간(1일)당 1 MOCO */
 export const SPONSORED_AD_MOCO_PER_DAY = 1;
 
+/** 사이드바 스폰서 슬롯 노출 비율 (4:5) */
+export const SPONSORED_AD_ASPECT = 4 / 5;
+
+/** 업로드 이미지 최대 크기 (4:5) */
+export const SPONSORED_AD_IMAGE_MAX_WIDTH = 960;
+export const SPONSORED_AD_IMAGE_MAX_HEIGHT = 1200;
+
 export const SPONSORED_AD_MAX_DAYS = 100;
 
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;

@@ -12,10 +12,14 @@ import { uploadImageBlob } from "@/lib/client-upload";
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import {
   calcSponsoredAdMoco,
+  SPONSORED_AD_ASPECT,
+  SPONSORED_AD_IMAGE_MAX_HEIGHT,
+  SPONSORED_AD_IMAGE_MAX_WIDTH,
   SPONSORED_AD_MAX_DAYS,
   SPONSORED_AD_MOCO_PER_DAY,
 } from "@/lib/sponsored-ad/constants";
 import { EventAdEditPanel } from "@/components/events/event-ad-edit-panel";
+import { SponsorAdPreviewFrame } from "@/components/events/sponsor-ad-preview-frame";
 import { PaymentLegalNotice } from "@/components/legal/legal-entity-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,7 +170,7 @@ export function EventCreateForm({
           <img
             src={successImageUrl}
             alt=""
-            className="mx-auto h-40 w-40 rounded-2xl object-cover border border-border"
+            className="mx-auto w-40 rounded-2xl object-cover border border-border aspect-[4/5]"
           />
         ) : null}
         <EventAdEditPanel
@@ -218,7 +222,7 @@ export function EventCreateForm({
                 <img
                   src={mainImageUrl}
                   alt=""
-                  className="h-36 w-36 rounded-xl object-cover border border-border aspect-square"
+                  className="w-36 rounded-xl object-cover border border-border aspect-[4/5]"
                 />
                 <Button
                   type="button"
@@ -231,7 +235,7 @@ export function EventCreateForm({
                 </Button>
               </div>
             ) : (
-              <label className="flex h-36 w-36 cursor-pointer items-center justify-center rounded-xl border border-dashed border-border aspect-square hover:border-[#A855F7]/40 hover:bg-[#A855F7]/5 transition-colors">
+              <label className="flex w-36 cursor-pointer items-center justify-center rounded-xl border border-dashed border-border aspect-[4/5] hover:border-[#A855F7]/40 hover:bg-[#A855F7]/5 transition-colors">
                 <span className="text-sm text-muted-foreground">이미지 업로드</span>
                 <input type="file" accept="image/*" className="hidden" onChange={onMainImagePick} />
               </label>
@@ -300,12 +304,14 @@ export function EventCreateForm({
             open={cropOpen}
             onOpenChange={closeCropDialog}
             imageSrc={cropSrc}
-            aspect={1}
+            aspect={SPONSORED_AD_ASPECT}
             lockAspect
+            objectFit="contain"
+            showSponsorPreview
             title="광고 이미지"
-            description="1:1 비율로 잘라 주세요."
-            maxWidth={1200}
-            maxHeight={1200}
+            description="스폰서 슬롯(4:5) 비율로 맞춰 주세요. 전체 이미지가 보이도록 조절한 뒤 원하는 영역을 선택하세요."
+            maxWidth={SPONSORED_AD_IMAGE_MAX_WIDTH}
+            maxHeight={SPONSORED_AD_IMAGE_MAX_HEIGHT}
             uploadFilename="event-ad.jpg"
             onComplete={(url) => {
               setMainImageUrl(url);
@@ -340,23 +346,13 @@ export function EventCreateForm({
       <aside className="hidden lg:block">
         <div className="sticky top-24 space-y-3">
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Preview
+            스폰서 노출 미리보기
           </p>
-          <div
-            className={cn(
-              "overflow-hidden rounded-2xl border border-border bg-card aspect-square",
-              mainImageUrl && "ring-1 ring-[#A855F7]/20"
-            )}
-          >
-            {mainImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={mainImageUrl} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-muted text-sm text-muted-foreground">
-                이미지 미리보기
-              </div>
-            )}
-          </div>
+          <SponsorAdPreviewFrame
+            imageUrl={mainImageUrl || null}
+            ctaLabel={linkUrl.trim() ? "참가하기" : undefined}
+            className={cn(mainImageUrl && "ring-1 ring-[#A855F7]/20")}
+          />
           {linkUrl.trim() && (
             <p className="text-[11px] text-muted-foreground break-all">→ {linkUrl.trim()}</p>
           )}
