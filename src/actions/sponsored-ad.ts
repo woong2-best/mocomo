@@ -86,10 +86,7 @@ export async function registerEventSponsoredAd(data: {
       return { ok: false as const, error: "MOCO가 없으면 광고를 등록할 수 없습니다." };
     }
     if (purchasedMoco < mocoCost) {
-      return {
-        ok: false as const,
-        error: `MOCO가 부족합니다. ${mocoCost} MOCO 필요 · 보유 ${purchasedMoco.toLocaleString()} MOCO`,
-      };
+      return { ok: false as const, error: "MOCO를 충전해주세요." };
     }
   }
 

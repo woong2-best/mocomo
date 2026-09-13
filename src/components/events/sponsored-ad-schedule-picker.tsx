@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   addMonths,
   eachDayOfInterval,
@@ -16,6 +16,7 @@ import { ko } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AppleWheelPicker } from "@/components/ui/apple-wheel-picker";
 import { Button } from "@/components/ui/button";
+import { SPONSORED_AD_MAX_DAYS } from "@/lib/sponsored-ad/constants";
 import {
   combineDateAndTime,
   daysFromCalendarRange,
@@ -32,7 +33,6 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
 type SponsoredAdSchedulePickerProps = {
   startTime: Date;
   days: number;
-  maxDays: number;
   isOperator?: boolean;
   onChange: (startTime: Date, days: number) => void;
   disabled?: boolean;
@@ -59,18 +59,22 @@ function isMinuteDisabled(day: Date, hour: number, minute: number, minTime: Date
 export function SponsoredAdSchedulePicker({
   startTime,
   days,
-  maxDays,
   isOperator = false,
   onChange,
   disabled,
 }: SponsoredAdSchedulePickerProps) {
   const [minTime, setMinTime] = useState(() => defaultSponsoredAdStartTime());
   const [rangeStart, setRangeStart] = useState(() => startOfDay(startTime));
-  const [rangeEnd, setRangeEnd] = useState(() => endDayFromStartAndDays(startOfDay(startTime), days));
+  const [rangeEnd, setRangeEnd] = useState(() =>
+    endDayFromStartAndDays(startOfDay(startTime), days)
+  );
   const [hour, setHour] = useState(() => startTime.getHours());
-  const [minute, setMinute] = useState(() => startTime.getMinutes() - (startTime.getMinutes() % 5));
+  const [minute, setMinute] = useState(
+    () => startTime.getMinutes() - (startTime.getMinutes() % 5)
+  );
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(startTime));
-  const [pickingEnd, setPickingEnd] = useState(false);
+  const [anchorDay, setAnchorDay] = useState<Date | null>(null);
+  const syncingFromParent = useRef(false);
 
   const summary = useMemo(
     () => sponsoredAdScheduleSummary(startTime, days),
@@ -83,10 +87,12 @@ export function SponsoredAdSchedulePicker({
   }, []);
 
   useEffect(() => {
+    syncingFromParent.current = true;
     setRangeStart(startOfDay(startTime));
     setRangeEnd(endDayFromStartAndDays(startOfDay(startTime), days));
     setHour(startTime.getHours());
     setMinute(startTime.getMinutes() - (startTime.getMinutes() % 5));
+    syncingFromParent.current = false;
   }, [startTime, days]);
 
   const calendarDays = useMemo(() => {
@@ -112,89 +118,78 @@ export function SponsoredAdSchedulePicker({
     [rangeStart, hour, minTime]
   );
 
-  useEffect(() => {
-    if (!availableHours.includes(hour) && availableHours.length > 0) {
-      setHour(availableHours[0]);
-    }
-  }, [availableHours, hour]);
-
-  useEffect(() => {
-    if (!availableMinutes.includes(minute) && availableMinutes.length > 0) {
-      setMinute(availableMinutes[0]);
-    }
-  }, [availableMinutes, minute]);
-
-  function emit(nextStartDay: Date, nextEndDay: Date, nextHour: number, nextMinute: number) {
-    let start = combineDateAndTime(nextStartDay, nextHour, nextMinute);
-    start = roundUpToNextFiveMinutes(start);
-    if (start.getTime() < minTime.getTime()) {
-      start = roundUpToNextFiveMinutes(minTime);
-    }
-    let nextDays = daysFromCalendarRange(nextStartDay, nextEndDay);
-    nextDays = Math.min(nextDays, maxDays);
-    const adjustedEnd = endDayFromStartAndDays(nextStartDay, nextDays);
-    onChange(start, nextDays);
-    setRangeEnd(adjustedEnd);
-  }
-
-  function onDayClick(day: Date) {
-    if (isDayDisabled(day, minTime)) return;
-    const d = startOfDay(day);
-
-    if (!pickingEnd || isSameDay(d, rangeStart)) {
-      setRangeStart(d);
-      setRangeEnd(d);
-      setPickingEnd(true);
-      emit(d, d, hour, minute);
-      return;
-    }
-
-    let start = rangeStart;
-    let end = d;
-    if (end.getTime() < start.getTime()) {
-      [start, end] = [end, start];
-    }
-
-    const span = daysFromCalendarRange(start, end);
-    if (span > maxDays) {
-      end = endDayFromStartAndDays(start, maxDays);
-    }
-
-    setRangeStart(start);
-    setRangeEnd(end);
-    setPickingEnd(false);
-    emit(start, end, hour, minute);
-  }
-
-  function onHourChange(nextHour: number) {
-    setHour(nextHour);
-    emit(rangeStart, rangeEnd, nextHour, minute);
-  }
-
-  function onMinuteChange(nextMinute: number) {
-    setMinute(nextMinute);
-    emit(rangeStart, rangeEnd, hour, nextMinute);
-  }
-
   const rangeInterval = useMemo(() => {
     const a = rangeStart.getTime() <= rangeEnd.getTime() ? rangeStart : rangeEnd;
     const b = rangeStart.getTime() <= rangeEnd.getTime() ? rangeEnd : rangeStart;
     return { start: a, end: b };
   }, [rangeStart, rangeEnd]);
 
+  function emit(nextStartDay: Date, nextEndDay: Date, nextHour: number, nextMinute: number) {
+    if (syncingFromParent.current) return;
+
+    let start = combineDateAndTime(nextStartDay, nextHour, nextMinute);
+    start = roundUpToNextFiveMinutes(start);
+    if (start.getTime() < minTime.getTime()) {
+      start = roundUpToNextFiveMinutes(minTime);
+    }
+
+    let nextDays = daysFromCalendarRange(nextStartDay, nextEndDay);
+    nextDays = Math.min(nextDays, SPONSORED_AD_MAX_DAYS);
+
+    const visualEnd = endDayFromStartAndDays(nextStartDay, nextDays);
+    setRangeEnd(visualEnd);
+    onChange(start, nextDays);
+  }
+
+  function onDayClick(day: Date) {
+    if (isDayDisabled(day, minTime)) return;
+    const d = startOfDay(day);
+
+    if (!anchorDay || isSameDay(d, anchorDay)) {
+      setAnchorDay(d);
+      setRangeStart(d);
+      setRangeEnd(d);
+      emit(d, d, hour, minute);
+      return;
+    }
+
+    let start = anchorDay;
+    let end = d;
+    if (end.getTime() < start.getTime()) {
+      [start, end] = [end, start];
+    }
+
+    setAnchorDay(start);
+    setRangeStart(start);
+    setRangeEnd(end);
+    emit(start, end, hour, minute);
+  }
+
+  function onHourChange(nextHour: number) {
+    setHour(nextHour);
+    emit(rangeInterval.start, rangeInterval.end, nextHour, minute);
+  }
+
+  function onMinuteChange(nextMinute: number) {
+    setMinute(nextMinute);
+    emit(rangeInterval.start, rangeInterval.end, hour, nextMinute);
+  }
+
+  const today = startOfDay(new Date());
+
   return (
     <div className="space-y-3">
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label className="text-xs font-medium text-muted-foreground">게재 기간</label>
         <p className="text-[11px] text-muted-foreground">
-          달력에서 시작일과 종료일을 선택하세요. 같은 시각 기준 24시간 단위로 계산됩니다.
+          시작일 → 종료일을 달력에서 선택 · 같은 시각 기준 24시간 단위
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-muted/15">
-        <div className="grid sm:grid-cols-[minmax(0,1fr)_148px]">
-          <div className="border-b sm:border-b-0 sm:border-r border-border/60 p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
+      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/50 shadow-sm">
+        <div className="grid sm:grid-cols-[minmax(0,1fr)_120px]">
+          <div className="border-b sm:border-b-0 sm:border-r border-border/50 p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -220,7 +215,7 @@ export function SponsoredAdSchedulePicker({
               </Button>
             </div>
 
-            <div className="grid grid-cols-7 gap-0.5 text-center text-[10px] text-muted-foreground mb-1">
+            <div className="grid grid-cols-7 gap-y-0.5 text-center text-[10px] text-muted-foreground mb-0.5">
               {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
                 <div key={d} className="py-1">
                   {d}
@@ -228,48 +223,74 @@ export function SponsoredAdSchedulePicker({
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-0.5">
+            <div className="grid grid-cols-7 gap-y-0.5">
               {calendarDays.map((day) => {
                 const inMonth = isSameMonth(day, viewMonth);
                 const dayDisabled = isDayDisabled(day, minTime);
+                const dayStart = startOfDay(day);
                 const inRange =
                   !dayDisabled &&
-                  isWithinInterval(startOfDay(day), {
+                  isWithinInterval(dayStart, {
                     start: rangeInterval.start,
                     end: rangeInterval.end,
                   });
-                const isStart = isSameDay(day, rangeInterval.start);
-                const isEnd = isSameDay(day, rangeInterval.end);
+                const isRangeStart = isSameDay(day, rangeInterval.start);
+                const isRangeEnd = isSameDay(day, rangeInterval.end);
+                const isToday = isSameDay(day, today);
+                const dow = day.getDay();
+                const solo = isRangeStart && isRangeEnd;
+                const weekStart = inRange && dow === 0 && !isRangeStart;
+                const weekEnd = inRange && dow === 6 && !isRangeEnd;
 
                 return (
-                  <button
-                    key={day.toISOString()}
-                    type="button"
-                    disabled={dayDisabled || disabled}
-                    onClick={() => onDayClick(day)}
-                    className={cn(
-                      "relative aspect-square text-xs transition-colors",
-                      !inMonth && "text-muted-foreground/35",
-                      dayDisabled && "opacity-30 cursor-not-allowed",
-                      inRange && "bg-primary/15",
-                      isStart && "rounded-l-full",
-                      isEnd && "rounded-r-full",
-                      isStart && isEnd && "rounded-full",
-                      (isStart || isEnd) && "bg-primary text-primary-foreground font-semibold z-[1]"
-                    )}
-                  >
-                    <span className="relative z-[2]">{format(day, "d")}</span>
-                  </button>
+                  <div key={day.toISOString()} className="relative flex items-center justify-center py-0.5">
+                    {inRange && !solo ? (
+                      <span
+                        className={cn(
+                          "pointer-events-none absolute inset-y-1 bg-folk-terracotta/22",
+                          isRangeStart && "left-1/2 right-0 rounded-l-full",
+                          isRangeEnd && "left-0 right-1/2 rounded-r-full",
+                          !isRangeStart && !isRangeEnd && "inset-x-0",
+                          weekStart && "left-0 rounded-l-full",
+                          weekEnd && "right-0 rounded-r-full"
+                        )}
+                        aria-hidden
+                      />
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={dayDisabled || disabled}
+                      onClick={() => onDayClick(day)}
+                      className={cn(
+                        "relative z-[1] flex h-9 w-9 items-center justify-center rounded-full text-sm transition-transform",
+                        !inMonth && "text-muted-foreground/35",
+                        dayDisabled && "opacity-30 cursor-not-allowed",
+                        !inRange && !isToday && "hover:bg-muted/60",
+                        isToday && !inRange && "ring-1 ring-folk-terracotta/50 text-folk-terracotta",
+                        inRange && (isRangeStart || isRangeEnd || solo)
+                          ? "bg-folk-terracotta text-white font-semibold shadow-sm scale-105"
+                          : inRange
+                            ? "text-foreground font-medium"
+                            : "text-foreground/80"
+                      )}
+                    >
+                      {format(day, "d")}
+                    </button>
+                  </div>
                 );
               })}
             </div>
 
-            <p className="mt-3 text-[10px] text-muted-foreground text-center">
-              {pickingEnd ? "종료일을 선택하세요" : `${format(rangeInterval.start, "M월 d일")} ~ ${format(rangeInterval.end, "M월 d일")}`}
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              {anchorDay && !isSameDay(rangeInterval.start, rangeInterval.end)
+                ? `${format(rangeInterval.start, "M월 d일")} ~ ${format(rangeInterval.end, "M월 d일")} · ${days}일`
+                : anchorDay
+                  ? "종료일을 선택하세요"
+                  : "시작일을 선택하세요"}
             </p>
           </div>
 
-          <div className="flex bg-muted/10 min-h-[200px]">
+          <div className="flex items-stretch justify-center gap-0 px-1 py-2 sm:py-3 bg-muted/20">
             <AppleWheelPicker
               items={availableHours.length > 0 ? availableHours : HOURS}
               value={availableHours.includes(hour) ? hour : (availableHours[0] ?? 0)}
@@ -289,20 +310,20 @@ export function SponsoredAdSchedulePicker({
           </div>
         </div>
 
-        <div className="border-t border-border/60 px-4 py-3 space-y-2 bg-muted/10">
-          <div className="flex items-center justify-between text-sm gap-3">
-            <span className="text-muted-foreground shrink-0">시작</span>
+        <div className="border-t border-border/50 px-4 py-3 space-y-1.5 bg-muted/10 text-sm">
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">시작</span>
             <span className="font-medium tabular-nums text-right">{summary.startLabel}</span>
           </div>
-          <div className="flex items-center justify-between text-sm gap-3">
-            <span className="text-muted-foreground shrink-0">종료</span>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">종료</span>
             <span className="font-medium tabular-nums text-right">{summary.endLabel}</span>
           </div>
-          <div className="flex items-center justify-between text-sm pt-1 border-t border-border/40 gap-3">
-            <span className="text-muted-foreground shrink-0">
+          <div className="flex justify-between gap-3 pt-1.5 border-t border-border/40">
+            <span className="text-muted-foreground">
               {days}일 · {isOperator ? "운영자 면제" : "차감 MOCO"}
             </span>
-            <span className="font-bold text-primary tabular-nums">
+            <span className="font-bold text-folk-terracotta tabular-nums">
               {isOperator ? "0 MOCO" : `${summary.moco} MOCO`}
             </span>
           </div>

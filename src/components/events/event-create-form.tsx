@@ -10,7 +10,6 @@ import {
   SPONSORED_AD_ASPECT,
   SPONSORED_AD_IMAGE_MAX_HEIGHT,
   SPONSORED_AD_IMAGE_MAX_WIDTH,
-  SPONSORED_AD_MAX_DAYS,
   SPONSORED_AD_MOCO_PER_DAY,
 } from "@/lib/sponsored-ad/constants";
 import {
@@ -62,15 +61,9 @@ export function EventCreateForm({
   );
   const mocoCost = schedule.moco;
 
-  const maxAffordableDays = Math.floor(purchasedMoco / SPONSORED_AD_MOCO_PER_DAY);
-  const maxSelectableDays = isOperator
-    ? Math.min(EVENT_REGISTRATION_MAX_DAYS, SPONSORED_AD_MAX_DAYS)
-    : Math.min(EVENT_REGISTRATION_MAX_DAYS, SPONSORED_AD_MAX_DAYS, maxAffordableDays);
   const durationTooLong = durationDays > EVENT_REGISTRATION_MAX_DAYS;
   const startInPast = validateSponsoredAdSchedule(startTime, durationDays) != null;
-  const cannotAffordDuration =
-    !isOperator && (purchasedMoco < mocoCost || durationDays > maxAffordableDays);
-  const hasMoco = isOperator || purchasedMoco >= SPONSORED_AD_MOCO_PER_DAY;
+  const insufficientMoco = !isOperator && purchasedMoco < mocoCost;
 
   async function onMainImagePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -97,10 +90,6 @@ export function EventCreateForm({
     e.preventDefault();
     setError("");
 
-    if (!hasMoco && !isOperator) {
-      setError("MOCO가 없으면 광고를 등록할 수 없습니다.");
-      return;
-    }
     if (!mainImageUrl.trim()) {
       setError("광고 이미지를 등록해 주세요.");
       return;
@@ -118,10 +107,8 @@ export function EventCreateForm({
       setError(`광고 기간은 최대 ${EVENT_REGISTRATION_MAX_DAYS}일까지 가능합니다.`);
       return;
     }
-    if (cannotAffordDuration) {
-      setError(
-        `보유 MOCO(${purchasedMoco.toLocaleString()})로는 ${durationDays}일(${mocoCost} MOCO)을 결제할 수 없습니다.`
-      );
+    if (insufficientMoco) {
+      setError("MOCO를 충전해주세요.");
       return;
     }
 
@@ -173,20 +160,6 @@ export function EventCreateForm({
           <Button className="w-full rounded-xl bg-[#A855F7] hover:bg-[#C084FC]">
             이벤트 목록으로
           </Button>
-        </Link>
-      </div>
-    );
-  }
-
-  if (!hasMoco) {
-    return (
-      <div className="rounded-2xl border border-border bg-card p-6 space-y-3 text-center">
-        <p className="font-semibold text-foreground">MOCO가 필요합니다</p>
-        <p className="text-sm text-muted-foreground">
-          광고 등록은 24시간(1일)당 1 MOCO입니다. 보유 MOCO가 없으면 등록할 수 없습니다.
-        </p>
-        <Link href="/wallet">
-          <Button className="rounded-xl bg-[#A855F7] hover:bg-[#C084FC]">지갑에서 MOCO 충전</Button>
         </Link>
       </div>
     );
@@ -258,7 +231,6 @@ export function EventCreateForm({
         <SponsoredAdSchedulePicker
           startTime={startTime}
           days={durationDays}
-          maxDays={maxSelectableDays}
           isOperator={isOperator}
           onChange={(nextStart, nextDays) => {
             setStartTime(nextStart);
@@ -272,10 +244,10 @@ export function EventCreateForm({
           </p>
         ) : startInPast ? (
           <p className="text-xs text-destructive">시작 일시는 현재 시각 이후여야 합니다.</p>
-        ) : cannotAffordDuration ? (
-          <p className="text-xs text-destructive">
-            보유 {purchasedMoco.toLocaleString()} MOCO로는 {durationDays}일({mocoCost} MOCO) 결제
-            불가 · 최대 {maxSelectableDays}일
+        ) : insufficientMoco ? (
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            {durationDays}일({mocoCost} MOCO) 등록에 보유 {purchasedMoco.toLocaleString()} MOCO — 등록
+            시 충전이 필요합니다
           </p>
         ) : isOperator ? (
           <p className="text-xs text-muted-foreground">
@@ -283,16 +255,10 @@ export function EventCreateForm({
           </p>
         ) : (
           <p className="text-xs text-muted-foreground">
-            {durationDays}일(24시간 × {durationDays}) · {mocoCost} MOCO 선차감
+            {durationDays}일(24시간 × {durationDays}) · {mocoCost} MOCO 선차감 · 보유{" "}
+            {purchasedMoco.toLocaleString()} MOCO
           </p>
         )}
-
-        {!isOperator ? (
-          <p className="text-xs text-muted-foreground">
-            보유 purchasedMoco: {purchasedMoco.toLocaleString()} · 결제 가능 최대{" "}
-            {maxSelectableDays}일
-          </p>
-        ) : null}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -321,12 +287,7 @@ export function EventCreateForm({
           type="submit"
           className="w-full rounded-xl bg-[#A855F7] hover:bg-[#C084FC]"
           disabled={
-            submitting ||
-            durationTooLong ||
-            startInPast ||
-            cannotAffordDuration ||
-            !mainImageUrl.trim() ||
-            !linkUrl.trim()
+            submitting || durationTooLong || startInPast || !mainImageUrl.trim() || !linkUrl.trim()
           }
         >
           {submitting ? (

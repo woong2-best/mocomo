@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FALLBACK_SIDEBAR_ADS } from "@/lib/default-ads";
 import { useLocale } from "@/components/providers/locale-provider";
 import { localizeSidebarAdTitle } from "@/lib/sidebar-ad-i18n";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
@@ -49,9 +48,7 @@ export function SponsorEventSpot({ fallbackAds }: { fallbackAds: FallbackAd[] })
     };
   }, [pathname]);
 
-  if (!loaded) {
-    return <div className="aspect-[4/5] w-full bg-muted/60 animate-pulse" />;
-  }
+  if (!loaded) return null;
 
   if (event) {
     return (
@@ -74,21 +71,11 @@ export function SponsorEventSpot({ fallbackAds }: { fallbackAds: FallbackAd[] })
     );
   }
 
-  const ads =
-    fallbackAds.length > 0
-      ? fallbackAds.map((a) => ({
-          ...a,
-          linkUrl: a.linkUrl === "/events/map" ? "/events" : a.linkUrl,
-        }))
-      : FALLBACK_SIDEBAR_ADS.map((a) => ({
-          ...a,
-          title: t("sidebar.fallbackEventAd"),
-          ctaLabel: a.ctaLabel ?? null,
-        }));
+  if (fallbackAds.length === 0) return null;
 
   return (
     <>
-      {ads.map((ad) => {
+      {fallbackAds.map((ad) => {
         const href = sanitizeAdLink(ad.linkUrl);
         const external = isExternalUrl(href);
         const title = localizeSidebarAdTitle(ad, t);

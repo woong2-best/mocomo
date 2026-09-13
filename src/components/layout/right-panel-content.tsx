@@ -1,13 +1,8 @@
 ﻿"use client";
 
 import type { SupportTierLevel } from "@prisma/client";
-import { FALLBACK_SIDEBAR_ADS } from "@/lib/default-ads";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
-import { Megaphone, Plus } from "lucide-react";
-import { SponsorEventSpot } from "@/components/events/sponsor-event-spot";
+import { SponsoredSidebarCard } from "@/components/events/sponsored-sidebar-card";
 import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
-import { useLocale } from "@/components/providers/locale-provider";
 import type { MapEventPin } from "@/lib/subculture-events";
 
 export type SidebarPanelData = {
@@ -34,38 +29,9 @@ export function RightPanelSkeleton() {
 }
 
 export function RightPanelContent({ sidebarAds, eventPins }: SidebarPanelData) {
-  const { t } = useLocale();
-  const ads =
-    sidebarAds.length > 0
-      ? sidebarAds
-      : FALLBACK_SIDEBAR_ADS.map((a) => ({
-          ...a,
-          title: t("sidebar.fallbackEventAd"),
-          ctaLabel: a.ctaLabel ?? null,
-        }));
-
   return (
     <aside className="hidden lg:flex w-56 xl:w-60 shrink-0 h-full flex-col min-h-0 shell-col-pad folk-panel-aside gap-3 overflow-hidden overscroll-none">
-      <Card className="overflow-hidden border-folk-gold/40 bg-folk-gold/5">
-        <CardHeader className="px-3 py-2.5 pb-2">
-          <div className="flex items-center justify-between gap-2">
-            <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-terracotta">
-              <Megaphone className="h-4 w-4" />
-              {t("sidebar.sponsored")}
-            </CardTitle>
-            <Link
-              href="/events"
-              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-folk-terracotta/30 text-folk-terracotta transition-colors hover:bg-folk-terracotta/10"
-              aria-label={t("nav.events")}
-            >
-              <Plus className="h-4 w-4" />
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <SponsorEventSpot fallbackAds={ads} />
-        </CardContent>
-      </Card>
+      <SponsoredSidebarCard sidebarAds={sidebarAds} />
 
       {eventPins.length > 0 && (
         <SidebarEventMapCard pins={eventPins} className="flex-1 min-h-0" />

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-const ITEM_H = 36;
+const ITEM_H = 40;
 const VISIBLE = 5;
 const PADDING = Math.floor(VISIBLE / 2) * ITEM_H;
 
@@ -25,42 +25,70 @@ export function AppleWheelPicker<T extends string | number>({
   disabled,
 }: AppleWheelPickerProps<T>) {
   const ref = useRef<HTMLDivElement>(null);
-  const index = Math.max(0, items.indexOf(value));
-  const scrolling = useRef(false);
+  const valueRef = useRef(value);
+  const scrollEndTimer = useRef<number | null>(null);
+  const userScrolling = useRef(false);
 
-  const scrollToIndex = useCallback(
-    (i: number, smooth = false) => {
-      const el = ref.current;
-      if (!el) return;
-      el.scrollTo({ top: i * ITEM_H, behavior: smooth ? "smooth" : "auto" });
+  const index = Math.max(0, items.indexOf(value));
+
+  const scrollToIndex = useCallback((i: number, smooth = false) => {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollTo({ top: i * ITEM_H, behavior: smooth ? "smooth" : "auto" });
+  }, []);
+
+  const pickIndex = useCallback(
+    (rawIndex: number, snap = false) => {
+      if (items.length === 0) return;
+      const clamped = Math.max(0, Math.min(items.length - 1, rawIndex));
+      if (snap) scrollToIndex(clamped);
+      const next = items[clamped];
+      if (next !== valueRef.current) {
+        valueRef.current = next;
+        onChange(next);
+      }
     },
-    []
+    [items, onChange, scrollToIndex]
   );
 
   useEffect(() => {
-    if (scrolling.current) return;
-    scrollToIndex(index);
-  }, [index, scrollToIndex]);
+    valueRef.current = value;
+    if (!userScrolling.current) scrollToIndex(index);
+  }, [index, value, scrollToIndex]);
 
-  function snapToNearest() {
+  const onScroll = useCallback(() => {
+    userScrolling.current = true;
     const el = ref.current;
-    if (!el || items.length === 0) return;
+    if (!el) return;
     const i = Math.round(el.scrollTop / ITEM_H);
-    const clamped = Math.max(0, Math.min(items.length - 1, i));
-    scrollToIndex(clamped);
-    if (items[clamped] !== value) onChange(items[clamped]);
-  }
+    pickIndex(i, false);
+
+    if (scrollEndTimer.current != null) window.clearTimeout(scrollEndTimer.current);
+    scrollEndTimer.current = window.setTimeout(() => {
+      userScrolling.current = false;
+      const current = ref.current;
+      if (!current) return;
+      const snapped = Math.round(current.scrollTop / ITEM_H);
+      pickIndex(snapped, true);
+    }, 100);
+  }, [pickIndex]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollEndTimer.current != null) window.clearTimeout(scrollEndTimer.current);
+    };
+  }, []);
 
   return (
-    <div className={cn("relative h-[180px] flex-1 min-w-0", className)}>
+    <div className={cn("relative flex-1 min-w-[52px]", className)} style={{ height: ITEM_H * VISIBLE }}>
       <div
-        className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 h-9 rounded-lg bg-white/10 border border-white/10"
+        className="pointer-events-none absolute inset-x-0.5 top-1/2 -translate-y-1/2 h-10 rounded-[10px] bg-folk-terracotta/15 border border-folk-terracotta/35"
         aria-hidden
       />
       <div
         ref={ref}
         className={cn(
-          "h-full overflow-y-auto overscroll-contain scrollbar-none snap-y snap-mandatory",
+          "h-full overflow-y-auto overscroll-contain scrollbar-none snap-y snap-mandatory touch-pan-y",
           disabled && "pointer-events-none opacity-50"
         )}
         style={{
@@ -68,53 +96,36 @@ export function AppleWheelPicker<T extends string | number>({
           paddingBottom: PADDING,
           WebkitOverflowScrolling: "touch",
         }}
-        onScroll={() => {
-          scrolling.current = true;
-        }}
-        onTouchEnd={() => {
-          scrolling.current = false;
-          snapToNearest();
-        }}
-        onMouseUp={() => {
-          scrolling.current = false;
-          snapToNearest();
-        }}
-        onWheel={() => {
-          window.setTimeout(() => {
-            scrolling.current = false;
-            snapToNearest();
-          }, 80);
-        }}
+        onScroll={onScroll}
       >
         {items.map((item, i) => {
           const selected = item === value;
+          const dist = Math.abs(i - index);
           return (
-            <button
+            <div
               key={String(item)}
-              type="button"
-              tabIndex={-1}
+              role="option"
+              aria-selected={selected}
               className={cn(
-                "flex h-9 w-full snap-center items-center justify-center text-sm transition-all",
+                "flex h-10 snap-center items-center justify-center tabular-nums transition-all duration-150 select-none",
                 selected
-                  ? "font-semibold text-foreground scale-105"
-                  : "text-muted-foreground/70 scale-95"
+                  ? "text-base font-semibold text-foreground"
+                  : dist === 1
+                    ? "text-sm text-muted-foreground/80"
+                    : "text-xs text-muted-foreground/45"
               )}
-              onClick={() => {
-                onChange(item);
-                scrollToIndex(i, true);
-              }}
             >
               {format(item)}
-            </button>
+            </div>
           );
         })}
       </div>
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-card to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-card via-card/80 to-transparent"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card via-card/80 to-transparent"
         aria-hidden
       />
     </div>
