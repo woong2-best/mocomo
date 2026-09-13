@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isOperatorIdentity } from "@/lib/operator-config";
 import { EVENT_REGISTRATION_MAX_DAYS } from "@/lib/event-registration";
 import { getPurchasedMoco } from "@/lib/settlement-moco/balance";
 import {
+  activateSponsoredAdComplimentary,
   calcSponsoredAdEndTime,
   calcSponsoredAdMoco,
   purchaseSponsoredAd,
@@ -65,22 +67,30 @@ export async function registerEventSponsoredAd(data: {
 
   const endsAt = calcSponsoredAdEndTime(startsAt, days);
 
-  let mocoCost: number;
-  try {
-    mocoCost = calcSponsoredAdMoco(days);
-  } catch {
-    return { ok: false as const, error: "광고 기간을 확인해 주세요." };
-  }
+  const isOperator = isOperatorIdentity({
+    username: user.username,
+    role: user.role,
+    email: user.email,
+  });
 
-  const purchasedMoco = await getPurchasedMoco(user.id);
-  if (purchasedMoco < 1) {
-    return { ok: false as const, error: "MOCO가 없으면 광고를 등록할 수 없습니다." };
-  }
-  if (purchasedMoco < mocoCost) {
-    return {
-      ok: false as const,
-      error: `MOCO가 부족합니다. ${mocoCost} MOCO 필요 · 보유 ${purchasedMoco.toLocaleString()} MOCO`,
-    };
+  let mocoCost = 0;
+  if (!isOperator) {
+    try {
+      mocoCost = calcSponsoredAdMoco(days);
+    } catch {
+      return { ok: false as const, error: "광고 기간을 확인해 주세요." };
+    }
+
+    const purchasedMoco = await getPurchasedMoco(user.id);
+    if (purchasedMoco < 1) {
+      return { ok: false as const, error: "MOCO가 없으면 광고를 등록할 수 없습니다." };
+    }
+    if (purchasedMoco < mocoCost) {
+      return {
+        ok: false as const,
+        error: `MOCO가 부족합니다. ${mocoCost} MOCO 필요 · 보유 ${purchasedMoco.toLocaleString()} MOCO`,
+      };
+    }
   }
 
   const event = await db.event.create({
@@ -100,12 +110,22 @@ export async function registerEventSponsoredAd(data: {
     },
   });
 
-  const result = await purchaseSponsoredAd({
-    userId: user.id,
-    targetType: SPONSORED_AD_TARGET_EVENT,
-    targetId: event.id,
-    days,
-  });
+  const result = isOperator
+    ? await activateSponsoredAdComplimentary({
+        userId: user.id,
+        targetType: SPONSORED_AD_TARGET_EVENT,
+        targetId: event.id,
+        days,
+        startsAt,
+        expiresAt: endsAt,
+      })
+    : await purchaseSponsoredAd({
+        userId: user.id,
+        targetType: SPONSORED_AD_TARGET_EVENT,
+        targetId: event.id,
+        days,
+        startsAt,
+      });
 
   if (!result.ok) {
     await db.event.delete({ where: { id: event.id } }).catch(() => undefined);

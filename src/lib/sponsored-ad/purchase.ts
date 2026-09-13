@@ -60,6 +60,16 @@ export type PurchaseSponsoredAdInput = {
   targetType: SponsoredAdTargetType;
   targetId: string;
   days: number;
+  startsAt?: Date;
+};
+
+export type ActivateSponsoredAdComplimentaryInput = {
+  userId: string;
+  targetType: SponsoredAdTargetType;
+  targetId: string;
+  days: number;
+  startsAt: Date;
+  expiresAt: Date;
 };
 
 export type PurchaseSponsoredAdResult =
@@ -104,7 +114,7 @@ export async function purchaseSponsoredAd(
       const validated = await validateTarget(tx, input.userId, input.targetType, input.targetId);
       if (!validated.ok) return validated;
 
-      const startsAt = new Date();
+      const startsAt = input.startsAt ?? new Date();
       const expiresAt = calcSponsoredAdExpiresAt(input.days, startsAt);
 
       const campaign = await tx.sponsoredAdCampaign.create({
@@ -152,6 +162,65 @@ export async function purchaseSponsoredAd(
     if (e instanceof Error && e.message === "INSUFFICIENT_MOCO") {
       return { ok: false, error: INSUFFICIENT_MOCO };
     }
+    throw e;
+  }
+}
+
+/** 사이트 운영자 — MOCO 차감 없이 광고 활성화 */
+export async function activateSponsoredAdComplimentary(
+  input: ActivateSponsoredAdComplimentaryInput
+): Promise<PurchaseSponsoredAdResult> {
+  if (input.days < 1 || input.days > SPONSORED_AD_MAX_DAYS) {
+    return { ok: false, error: `광고 기간은 1~${SPONSORED_AD_MAX_DAYS}일까지 선택할 수 있습니다.` };
+  }
+
+  const activeCampaign = await db.sponsoredAdCampaign.findFirst({
+    where: {
+      targetType: input.targetType,
+      targetId: input.targetId,
+      status: SPONSORED_AD_STATUS_ACTIVE,
+      expiresAt: { gt: new Date() },
+    },
+    select: { id: true },
+  });
+  if (activeCampaign) {
+    return { ok: false, error: "이미 활성화된 스폰서드 광고가 있습니다." };
+  }
+
+  try {
+    const result = await db.$transaction(async (tx) => {
+      const validated = await validateTarget(tx, input.userId, input.targetType, input.targetId);
+      if (!validated.ok) return validated;
+
+      const campaign = await tx.sponsoredAdCampaign.create({
+        data: {
+          userId: input.userId,
+          targetType: input.targetType,
+          targetId: input.targetId,
+          days: input.days,
+          mocoPaid: 0,
+          startsAt: input.startsAt,
+          expiresAt: input.expiresAt,
+          status: SPONSORED_AD_STATUS_ACTIVE,
+        },
+      });
+
+      await activateTarget(tx, input.targetType, input.targetId);
+
+      return {
+        ok: true as const,
+        campaignId: campaign.id,
+        mocoPaid: 0,
+        expiresAt: input.expiresAt,
+      };
+    });
+
+    if (!result.ok) return result;
+
+    revalidatePath("/events");
+    revalidatePath("/");
+    return result;
+  } catch (e) {
     throw e;
   }
 }

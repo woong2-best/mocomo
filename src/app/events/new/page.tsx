@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getPurchasedMoco } from "@/lib/settlement-moco/balance";
+import { isOperatorIdentity } from "@/lib/operator-config";
 import { SPONSORED_AD_MOCO_PER_DAY } from "@/lib/sponsored-ad/constants";
 
 export default async function NewEventPage({
@@ -21,6 +22,11 @@ export default async function NewEventPage({
 
   const { eventId, paid, edit } = await searchParams;
   const purchasedMoco = await getPurchasedMoco(session.user.id);
+  const isOperator = isOperatorIdentity({
+    username: session.user.username ?? "",
+    role: session.user.role ?? "USER",
+    email: session.user.email,
+  });
 
   let paidEventId: string | null = null;
   let paidLinkUrl: string | null = null;
@@ -69,6 +75,7 @@ export default async function NewEventPage({
 
       <EventCreateForm
         purchasedMoco={purchasedMoco}
+        isOperator={isOperator}
         paidEventId={paidEventId}
         paidLinkUrl={paidLinkUrl}
         paidImageUrl={paidImageUrl}

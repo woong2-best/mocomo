@@ -33,11 +33,13 @@ const fieldClass =
 
 export function EventCreateForm({
   purchasedMoco = 0,
+  isOperator = false,
   paidEventId,
   paidLinkUrl,
   paidImageUrl,
 }: {
   purchasedMoco?: number;
+  isOperator?: boolean;
   paidEventId?: string | null;
   paidLinkUrl?: string | null;
   paidImageUrl?: string | null;
@@ -61,16 +63,14 @@ export function EventCreateForm({
   const mocoCost = schedule.moco;
 
   const maxAffordableDays = Math.floor(purchasedMoco / SPONSORED_AD_MOCO_PER_DAY);
-  const maxSelectableDays = Math.min(
-    EVENT_REGISTRATION_MAX_DAYS,
-    SPONSORED_AD_MAX_DAYS,
-    maxAffordableDays
-  );
+  const maxSelectableDays = isOperator
+    ? Math.min(EVENT_REGISTRATION_MAX_DAYS, SPONSORED_AD_MAX_DAYS)
+    : Math.min(EVENT_REGISTRATION_MAX_DAYS, SPONSORED_AD_MAX_DAYS, maxAffordableDays);
   const durationTooLong = durationDays > EVENT_REGISTRATION_MAX_DAYS;
   const startInPast = validateSponsoredAdSchedule(startTime, durationDays) != null;
   const cannotAffordDuration =
-    purchasedMoco < mocoCost || durationDays > maxAffordableDays;
-  const hasMoco = purchasedMoco >= SPONSORED_AD_MOCO_PER_DAY;
+    !isOperator && (purchasedMoco < mocoCost || durationDays > maxAffordableDays);
+  const hasMoco = isOperator || purchasedMoco >= SPONSORED_AD_MOCO_PER_DAY;
 
   async function onMainImagePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -97,7 +97,7 @@ export function EventCreateForm({
     e.preventDefault();
     setError("");
 
-    if (!hasMoco) {
+    if (!hasMoco && !isOperator) {
       setError("MOCO가 없으면 광고를 등록할 수 없습니다.");
       return;
     }
@@ -199,9 +199,18 @@ export function EventCreateForm({
         className="space-y-5 rounded-2xl border border-border bg-card p-5 sm:p-6"
       >
         <p className="text-sm text-muted-foreground">
-          이미지·링크·노출 기간만 등록합니다. 24시간(1일)당{" "}
-          <strong className="text-foreground">{SPONSORED_AD_MOCO_PER_DAY} MOCO</strong> · 등록 시
-          한 번에 차감
+          {isOperator ? (
+            <>
+              <strong className="text-foreground">운영자 계정</strong> — MOCO 차감 없이 광고를
+              등록할 수 있습니다.
+            </>
+          ) : (
+            <>
+              이미지·링크·노출 기간만 등록합니다. 24시간(1일)당{" "}
+              <strong className="text-foreground">{SPONSORED_AD_MOCO_PER_DAY} MOCO</strong> · 등록
+              시 한 번에 차감
+            </>
+          )}
         </p>
 
         <div className="space-y-2">
@@ -250,6 +259,7 @@ export function EventCreateForm({
           startTime={startTime}
           days={durationDays}
           maxDays={maxSelectableDays}
+          isOperator={isOperator}
           onChange={(nextStart, nextDays) => {
             setStartTime(nextStart);
             setDurationDays(nextDays);
@@ -267,16 +277,22 @@ export function EventCreateForm({
             보유 {purchasedMoco.toLocaleString()} MOCO로는 {durationDays}일({mocoCost} MOCO) 결제
             불가 · 최대 {maxSelectableDays}일
           </p>
+        ) : isOperator ? (
+          <p className="text-xs text-muted-foreground">
+            운영자 등록 · {durationDays}일(24시간 × {durationDays}) · MOCO 차감 없음
+          </p>
         ) : (
           <p className="text-xs text-muted-foreground">
-            {durationDays}일(24시간 × {durationDays}) · {mocoCost} MOCO 선차감 · 종료{" "}
-            {schedule.endLabel}
+            {durationDays}일(24시간 × {durationDays}) · {mocoCost} MOCO 선차감
           </p>
         )}
 
-        <p className="text-xs text-muted-foreground">
-          보유 purchasedMoco: {purchasedMoco.toLocaleString()} · 결제 가능 최대 {maxSelectableDays}일
-        </p>
+        {!isOperator ? (
+          <p className="text-xs text-muted-foreground">
+            보유 purchasedMoco: {purchasedMoco.toLocaleString()} · 결제 가능 최대{" "}
+            {maxSelectableDays}일
+          </p>
+        ) : null}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -319,7 +335,7 @@ export function EventCreateForm({
               등록 중…
             </>
           ) : (
-            `${mocoCost} MOCO로 광고 등록`
+            isOperator ? "광고 등록 (운영자)" : `${mocoCost} MOCO로 광고 등록`
           )}
         </Button>
         <PaymentLegalNotice compact className="mt-2" />

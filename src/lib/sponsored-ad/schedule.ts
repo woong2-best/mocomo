@@ -1,3 +1,4 @@
+import { differenceInCalendarDays, startOfDay } from "date-fns";
 import {
   MS_PER_DAY,
   SPONSORED_AD_MAX_DAYS,
@@ -84,4 +85,23 @@ export function toLocalDateTimeInputValue(d: Date): string {
 export function parseLocalDateTimeInputValue(value: string): Date | null {
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** 달력 시작일~종료일 → 24시간 단위 일수 (최소 1일) */
+export function daysFromCalendarRange(startDay: Date, endDay: Date): number {
+  const diff = differenceInCalendarDays(startOfDay(endDay), startOfDay(startDay));
+  return Math.max(1, diff);
+}
+
+/** 종료 달력일 (시작일 + days) — Sep 13 + 1일 → Sep 14 */
+export function endDayFromStartAndDays(startDay: Date, days: number): Date {
+  const end = startOfDay(startDay);
+  end.setDate(end.getDate() + days);
+  return end;
+}
+
+export function combineDateAndTime(day: Date, hour: number, minute: number): Date {
+  const d = startOfDay(day);
+  d.setHours(hour, minute, 0, 0);
+  return d;
 }
