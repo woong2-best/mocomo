@@ -4,16 +4,15 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import {
-  EVENT_REGISTRATION_MAX_DAYS,
-  eventDurationDays,
-} from "@/lib/event-registration";
+import { EVENT_REGISTRATION_MAX_DAYS } from "@/lib/event-registration";
 import { getPurchasedMoco } from "@/lib/settlement-moco/balance";
 import {
+  calcSponsoredAdEndTime,
   calcSponsoredAdMoco,
   purchaseSponsoredAd,
   SPONSORED_AD_TARGET_EVENT,
   SPONSORED_AD_MAX_DAYS,
+  validateSponsoredAdSchedule,
 } from "@/lib/sponsored-ad";
 
 export async function purchaseEventSponsoredAd(eventId: string, days: number) {
@@ -35,12 +34,12 @@ function adTitleFromLink(linkUrl: string): string {
   }
 }
 
-/** 이미지·링크·기간만으로 MOCO 광고 등록 — 1일 1 MOCO 선차감 */
+/** 이미지·링크·기간만으로 MOCO 광고 등록 — 24시간(1일)당 1 MOCO 선차감 */
 export async function registerEventSponsoredAd(data: {
   imageUrl: string;
   linkUrl: string;
   startsAt: string;
-  endsAt: string;
+  days: number;
 }) {
   const user = await requireAuth();
   const imageUrl = data.imageUrl?.trim();
@@ -49,21 +48,22 @@ export async function registerEventSponsoredAd(data: {
   if (!linkUrl) return { ok: false as const, error: "클릭 시 이동할 링크를 입력해 주세요." };
 
   const startsAt = new Date(data.startsAt);
-  const endsAt = new Date(data.endsAt);
-  if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
-    return { ok: false as const, error: "날짜가 올바르지 않습니다." };
-  }
-  if (endsAt <= startsAt) {
-    return { ok: false as const, error: "종료일은 시작일 이후여야 합니다." };
+  const days = data.days;
+  const now = new Date();
+
+  const scheduleError = validateSponsoredAdSchedule(startsAt, days, now);
+  if (scheduleError) {
+    return { ok: false as const, error: scheduleError };
   }
 
-  const days = eventDurationDays(startsAt, endsAt);
-  if (days > EVENT_REGISTRATION_MAX_DAYS || days > SPONSORED_AD_MAX_DAYS) {
+  if (days > EVENT_REGISTRATION_MAX_DAYS) {
     return {
       ok: false as const,
       error: `광고 기간은 최대 ${Math.min(EVENT_REGISTRATION_MAX_DAYS, SPONSORED_AD_MAX_DAYS)}일까지 가능합니다.`,
     };
   }
+
+  const endsAt = calcSponsoredAdEndTime(startsAt, days);
 
   let mocoCost: number;
   try {

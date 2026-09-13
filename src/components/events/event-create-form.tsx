@@ -4,37 +4,29 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2, Trash2 } from "lucide-react";
 import { registerEventSponsoredAd } from "@/actions/sponsored-ad";
+import { EVENT_REGISTRATION_MAX_DAYS } from "@/lib/event-registration";
+import { isGalleryImageFile } from "@/lib/gallery-image-upload";
 import {
-  EVENT_REGISTRATION_MAX_DAYS,
-  eventDurationDays,
-} from "@/lib/event-registration";
-import { uploadImageBlob } from "@/lib/client-upload";
-import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
-import {
-  calcSponsoredAdMoco,
   SPONSORED_AD_ASPECT,
   SPONSORED_AD_IMAGE_MAX_HEIGHT,
   SPONSORED_AD_IMAGE_MAX_WIDTH,
   SPONSORED_AD_MAX_DAYS,
   SPONSORED_AD_MOCO_PER_DAY,
 } from "@/lib/sponsored-ad/constants";
+import {
+  defaultSponsoredAdStartTime,
+  sponsoredAdScheduleSummary,
+  toLocalDateTimeInputValue,
+  validateSponsoredAdSchedule,
+} from "@/lib/sponsored-ad/schedule";
 import { EventAdEditPanel } from "@/components/events/event-ad-edit-panel";
 import { SponsorAdPreviewFrame } from "@/components/events/sponsor-ad-preview-frame";
+import { SponsoredAdSchedulePicker } from "@/components/events/sponsored-ad-schedule-picker";
 import { PaymentLegalNotice } from "@/components/legal/legal-entity-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageCropDialog } from "@/components/media/image-crop-dialog";
 import { cn } from "@/lib/utils";
-
-function defaultEndDate() {
-  const d = new Date();
-  d.setDate(d.getDate() + 14);
-  return d.toISOString().slice(0, 16);
-}
-
-function defaultStartDate() {
-  return new Date().toISOString().slice(0, 16);
-}
 
 const fieldClass =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#A855F7]/40";
@@ -50,8 +42,8 @@ export function EventCreateForm({
   paidLinkUrl?: string | null;
   paidImageUrl?: string | null;
 }) {
-  const [startsAt, setStartsAt] = useState(defaultStartDate);
-  const [endsAt, setEndsAt] = useState(defaultEndDate);
+  const [startTime, setStartTime] = useState(() => defaultSponsoredAdStartTime());
+  const [durationDays, setDurationDays] = useState(1);
   const [linkUrl, setLinkUrl] = useState("");
   const [mainImageUrl, setMainImageUrl] = useState("");
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -62,18 +54,11 @@ export function EventCreateForm({
   const [successImageUrl, setSuccessImageUrl] = useState(paidImageUrl ?? "");
   const [error, setError] = useState("");
 
-  const durationDays = useMemo(
-    () => eventDurationDays(startsAt, endsAt),
-    [startsAt, endsAt]
+  const schedule = useMemo(
+    () => sponsoredAdScheduleSummary(startTime, durationDays),
+    [startTime, durationDays]
   );
-
-  const mocoCost = useMemo(() => {
-    try {
-      return calcSponsoredAdMoco(durationDays);
-    } catch {
-      return null;
-    }
-  }, [durationDays]);
+  const mocoCost = schedule.moco;
 
   const maxAffordableDays = Math.floor(purchasedMoco / SPONSORED_AD_MOCO_PER_DAY);
   const maxSelectableDays = Math.min(
@@ -82,8 +67,9 @@ export function EventCreateForm({
     maxAffordableDays
   );
   const durationTooLong = durationDays > EVENT_REGISTRATION_MAX_DAYS;
+  const startInPast = validateSponsoredAdSchedule(startTime, durationDays) != null;
   const cannotAffordDuration =
-    mocoCost != null && (purchasedMoco < mocoCost || durationDays > maxAffordableDays);
+    purchasedMoco < mocoCost || durationDays > maxAffordableDays;
   const hasMoco = purchasedMoco >= SPONSORED_AD_MOCO_PER_DAY;
 
   async function onMainImagePick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -123,13 +109,18 @@ export function EventCreateForm({
       setError("클릭 시 이동할 링크를 입력해 주세요.");
       return;
     }
+    const scheduleError = validateSponsoredAdSchedule(startTime, durationDays);
+    if (scheduleError) {
+      setError(scheduleError);
+      return;
+    }
     if (durationTooLong) {
       setError(`광고 기간은 최대 ${EVENT_REGISTRATION_MAX_DAYS}일까지 가능합니다.`);
       return;
     }
-    if (cannotAffordDuration || mocoCost == null) {
+    if (cannotAffordDuration) {
       setError(
-        `보유 MOCO(${purchasedMoco.toLocaleString()})로는 ${durationDays}일(${mocoCost ?? "—"} MOCO)을 결제할 수 없습니다.`
+        `보유 MOCO(${purchasedMoco.toLocaleString()})로는 ${durationDays}일(${mocoCost} MOCO)을 결제할 수 없습니다.`
       );
       return;
     }
@@ -139,8 +130,8 @@ export function EventCreateForm({
       const res = await registerEventSponsoredAd({
         imageUrl: mainImageUrl,
         linkUrl,
-        startsAt,
-        endsAt,
+        startsAt: toLocalDateTimeInputValue(startTime),
+        days: durationDays,
       });
       if (!res.ok) {
         setError(res.error);
@@ -255,46 +246,36 @@ export function EventCreateForm({
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">시작일</label>
-            <Input
-              type="datetime-local"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-              className={fieldClass}
-              required
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">종료일</label>
-            <Input
-              type="datetime-local"
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
-              className={fieldClass}
-              required
-            />
-            {durationTooLong ? (
-              <p className="text-xs text-destructive">
-                기간은 최대 {EVENT_REGISTRATION_MAX_DAYS}일까지입니다.
-              </p>
-            ) : cannotAffordDuration ? (
-              <p className="text-xs text-destructive">
-                보유 {purchasedMoco.toLocaleString()} MOCO로는 {durationDays}일(
-                {mocoCost} MOCO) 결제 불가 · 최대 {maxSelectableDays}일
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                {durationDays}일 · {mocoCost} MOCO 선차감
-              </p>
-            )}
-          </div>
-        </div>
+        <SponsoredAdSchedulePicker
+          startTime={startTime}
+          days={durationDays}
+          maxDays={maxSelectableDays}
+          onChange={(nextStart, nextDays) => {
+            setStartTime(nextStart);
+            setDurationDays(nextDays);
+          }}
+        />
+
+        {durationTooLong ? (
+          <p className="text-xs text-destructive">
+            기간은 최대 {EVENT_REGISTRATION_MAX_DAYS}일까지입니다.
+          </p>
+        ) : startInPast ? (
+          <p className="text-xs text-destructive">시작 일시는 현재 시각 이후여야 합니다.</p>
+        ) : cannotAffordDuration ? (
+          <p className="text-xs text-destructive">
+            보유 {purchasedMoco.toLocaleString()} MOCO로는 {durationDays}일({mocoCost} MOCO) 결제
+            불가 · 최대 {maxSelectableDays}일
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            {durationDays}일(24시간 × {durationDays}) · {mocoCost} MOCO 선차감 · 종료{" "}
+            {schedule.endLabel}
+          </p>
+        )}
 
         <p className="text-xs text-muted-foreground">
-          보유 purchasedMoco: {purchasedMoco.toLocaleString()} · 결제 가능 최대{" "}
-          {maxSelectableDays}일
+          보유 purchasedMoco: {purchasedMoco.toLocaleString()} · 결제 가능 최대 {maxSelectableDays}일
         </p>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -326,6 +307,7 @@ export function EventCreateForm({
           disabled={
             submitting ||
             durationTooLong ||
+            startInPast ||
             cannotAffordDuration ||
             !mainImageUrl.trim() ||
             !linkUrl.trim()
@@ -337,7 +319,7 @@ export function EventCreateForm({
               등록 중…
             </>
           ) : (
-            `${mocoCost ?? 0} MOCO로 광고 등록`
+            `${mocoCost} MOCO로 광고 등록`
           )}
         </Button>
         <PaymentLegalNotice compact className="mt-2" />
