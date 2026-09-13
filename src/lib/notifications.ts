@@ -508,6 +508,14 @@ export async function notifyChatMessage(params: {
   roomType: string;
   mentionUserIds?: string[];
 }) {
+  if (params.roomType === "FANDOM" || params.roomType === "PUBLIC") return;
+
+  const communityChannel = await db.communityChannel.findFirst({
+    where: { chatRoomId: params.roomId },
+    select: { id: true },
+  });
+  if (communityChannel) return;
+
   const members = await db.chatMember.findMany({
     where: { roomId: params.roomId, userId: { not: params.senderId } },
     select: { userId: true },

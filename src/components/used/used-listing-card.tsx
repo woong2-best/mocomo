@@ -14,6 +14,7 @@ import { isUsedRestrictedKind, usedRestrictedLabel } from "@/lib/used-youth-prot
 import { UsedListingThumb } from "@/components/used/used-listing-thumb";
 import { MapPin, Gavel } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UsedListingQuickChat } from "@/components/used/used-listing-quick-chat";
 
 type Listing = {
   id: string;
@@ -84,6 +85,8 @@ export function UsedListingCard({
   const showPrice = auction ? displayAuctionPrice(listing as Parameters<typeof displayAuctionPrice>[0]) : listing.price;
   const restricted = isUsedRestrictedKind(listing.restrictedKind);
   const isOwner = !!viewerUserId && viewerUserId === listing.sellerId;
+  const showQuickChat =
+    !!viewerUserId && !isOwner && listing.status === "SELLING" && !live;
 
   return (
     <Link
@@ -149,6 +152,13 @@ export function UsedListingCard({
               나눔
             </span>
           )}
+          {showQuickChat ? (
+            <UsedListingQuickChat
+              listingId={listing.id}
+              restrictedKind={listing.restrictedKind}
+              className={cn("absolute z-10", dense ? "bottom-1 right-1 h-8 w-8" : "bottom-2 right-2 h-9 w-9")}
+            />
+          ) : null}
         </div>
         <div className={cn(dense ? "p-1.5 space-y-0.5" : "p-2.5 space-y-1")}>
           {(listing.workTitle || listing.productType) && (

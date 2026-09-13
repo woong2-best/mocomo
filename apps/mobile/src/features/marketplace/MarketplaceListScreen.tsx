@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   fetchMarketplaceList,
   fetchUsedPhoneStatus,
+  startMarketplaceTradeChat,
   type MarketplaceListItem,
 } from "@/api/marketplace";
 import {
@@ -105,6 +106,18 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
     }
   }, [navigation]);
 
+  const openTradeChat = useCallback(
+    async (listingId: string) => {
+      try {
+        const res = await startMarketplaceTradeChat(listingId);
+        navigation.navigate("MessageRoom", { roomId: res.roomId, title: "거래 문의" });
+      } catch {
+        navigation.navigate("MarketplaceDetail", { id: listingId });
+      }
+    },
+    [navigation]
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: MarketplaceListItem }) => {
       if (!item?.id) return null;
@@ -115,6 +128,8 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
           : item.price
         : item.price;
       const nsfwGate = !!item.isNsfw && item.sellerId !== user?.id;
+      const isOwner = !!user?.id && item.sellerId === user.id;
+      const showQuickChat = !!user?.id && !isOwner && item.status === "SELLING" && !auction;
       return (
         <Pressable
           style={styles.card}
@@ -144,6 +159,16 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{usedStatusLabel(item.status)}</Text>
             </View>
+            {showQuickChat ? (
+              <Pressable
+                style={styles.quickChatBtn}
+                hitSlop={6}
+                accessibilityLabel="판매자에게 메시지"
+                onPress={() => void openTradeChat(item.id)}
+              >
+                <Ionicons name="chatbubble-ellipses" size={18} color={colors.cobalt} />
+              </Pressable>
+            ) : null}
           </View>
           <Text style={styles.cardTitle} numberOfLines={2}>
             {item.title || "상품"}
@@ -160,7 +185,7 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
         </Pressable>
       );
     },
-    [colors.terracotta, colors.textMuted, navigation, styles, user?.id]
+    [colors.cobalt, colors.terracotta, colors.textMuted, navigation, openTradeChat, styles, user?.id]
   );
 
   const listHeader = (
@@ -574,6 +599,20 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 4,
     },
     badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+    quickChatBtn: {
+      position: "absolute",
+      bottom: 8,
+      right: 8,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      ...shadows.sm,
+    },
     cardTitle: {
       paddingHorizontal: 8,
       paddingTop: 8,

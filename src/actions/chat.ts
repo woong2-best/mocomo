@@ -17,6 +17,10 @@ import {
 } from "@/lib/message-paid-media";
 import { isPaidMedia } from "@/lib/post-paid-media";
 import { assertAdultVerified } from "@/lib/adult-verification/is-verified";
+import {
+  buildMessagesInboxWhere,
+  getCommunityLinkedChatRoomIds,
+} from "@/lib/chat-inbox-eligibility";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -88,13 +92,11 @@ export async function getChatRooms(forUserId?: string) {
     const user = await requireAuth();
     userId = user.id;
   }
+  const communityLinkedRoomIds = await getCommunityLinkedChatRoomIds();
   const rooms = await db.chatRoom.findMany({
-    where: {
-      members: { some: { userId } },
-      // 커뮤니티 서버 채널 — /messages 인박스와 분리 (/c/... 에서만 이용)
-      communityId: null,
-      communityChannel: { is: null },
-    },
+    where: buildMessagesInboxWhere(userId, {
+      excludeCommunityRoomIds: communityLinkedRoomIds,
+    }),
     take: 25,
     include: {
       members: {

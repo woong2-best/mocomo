@@ -9,6 +9,10 @@ import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
 import { getConversationMeta } from "@/lib/chat-display";
 import { filterDmMessageContent } from "@/lib/chat-content-filter";
 import {
+  buildMessagesInboxWhere,
+  getCommunityLinkedChatRoomIds,
+} from "@/lib/chat-inbox-eligibility";
+import {
   collectPaidAttachmentIds,
   getPurchasedMessageAttachmentIds,
 } from "@/lib/message-paid-media";
@@ -59,12 +63,12 @@ async function assertMobileChatAccess(roomId: string, userId: string) {
 }
 
 export async function listMobileDmInbox(userId: string) {
+  const communityLinkedRoomIds = await getCommunityLinkedChatRoomIds();
   const rooms = await db.chatRoom.findMany({
-    where: {
-      type: "DM",
-      communityId: null,
-      members: { some: { userId } },
-    },
+    where: buildMessagesInboxWhere(userId, {
+      mobile: true,
+      excludeCommunityRoomIds: communityLinkedRoomIds,
+    }),
     take: 40,
     include: {
       members: {
