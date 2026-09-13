@@ -14,6 +14,7 @@ import {
   purchaseSponsoredAd,
   SPONSORED_AD_TARGET_EVENT,
   SPONSORED_AD_MAX_DAYS,
+  SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS,
   validateSponsoredAdSchedule,
 } from "@/lib/sponsored-ad";
 
@@ -42,6 +43,7 @@ export async function registerEventSponsoredAd(data: {
   linkUrl: string;
   startsAt: string;
   days: number;
+  operatorUnlimited?: boolean;
 }) {
   const user = await requireAuth();
   const imageUrl = data.imageUrl?.trim();
@@ -49,29 +51,30 @@ export async function registerEventSponsoredAd(data: {
   if (!imageUrl) return { ok: false as const, error: "광고 이미지를 등록해 주세요." };
   if (!linkUrl) return { ok: false as const, error: "클릭 시 이동할 링크를 입력해 주세요." };
 
-  const startsAt = new Date(data.startsAt);
-  const days = data.days;
-  const now = new Date();
-
-  const scheduleError = validateSponsoredAdSchedule(startsAt, days, now);
-  if (scheduleError) {
-    return { ok: false as const, error: scheduleError };
-  }
-
-  if (days > EVENT_REGISTRATION_MAX_DAYS) {
-    return {
-      ok: false as const,
-      error: `광고 기간은 최대 ${Math.min(EVENT_REGISTRATION_MAX_DAYS, SPONSORED_AD_MAX_DAYS)}일까지 가능합니다.`,
-    };
-  }
-
-  const endsAt = calcSponsoredAdEndTime(startsAt, days);
-
   const isOperator = isOperatorIdentity({
     username: user.username,
     role: user.role,
     email: user.email,
   });
+
+  const operatorUnlimited = Boolean(data.operatorUnlimited && isOperator);
+  const maxDays = operatorUnlimited
+    ? SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS
+    : Math.min(EVENT_REGISTRATION_MAX_DAYS, SPONSORED_AD_MAX_DAYS);
+
+  const startsAt = new Date(data.startsAt);
+  const days = data.days;
+  const now = new Date();
+
+  const scheduleError = validateSponsoredAdSchedule(startsAt, days, now, {
+    skipPastCheck: operatorUnlimited,
+    maxDays,
+  });
+  if (scheduleError) {
+    return { ok: false as const, error: scheduleError };
+  }
+
+  const endsAt = calcSponsoredAdEndTime(startsAt, days);
 
   let mocoCost = 0;
   if (!isOperator) {

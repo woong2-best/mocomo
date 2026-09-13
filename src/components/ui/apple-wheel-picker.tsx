@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-const ITEM_H = 40;
+const ITEM_H = 44;
 const VISIBLE = 5;
 const PADDING = Math.floor(VISIBLE / 2) * ITEM_H;
 
@@ -14,6 +14,7 @@ type AppleWheelPickerProps<T extends string | number> = {
   format?: (value: T) => string;
   className?: string;
   disabled?: boolean;
+  label?: string;
 };
 
 export function AppleWheelPicker<T extends string | number>({
@@ -23,6 +24,7 @@ export function AppleWheelPicker<T extends string | number>({
   format = (v) => String(v),
   className,
   disabled,
+  label,
 }: AppleWheelPickerProps<T>) {
   const ref = useRef<HTMLDivElement>(null);
   const valueRef = useRef(value);
@@ -41,7 +43,7 @@ export function AppleWheelPicker<T extends string | number>({
     (rawIndex: number, snap = false) => {
       if (items.length === 0) return;
       const clamped = Math.max(0, Math.min(items.length - 1, rawIndex));
-      if (snap) scrollToIndex(clamped);
+      if (snap) scrollToIndex(clamped, true);
       const next = items[clamped];
       if (next !== valueRef.current) {
         valueRef.current = next;
@@ -68,9 +70,8 @@ export function AppleWheelPicker<T extends string | number>({
       userScrolling.current = false;
       const current = ref.current;
       if (!current) return;
-      const snapped = Math.round(current.scrollTop / ITEM_H);
-      pickIndex(snapped, true);
-    }, 100);
+      pickIndex(Math.round(current.scrollTop / ITEM_H), true);
+    }, 90);
   }, [pickIndex]);
 
   useEffect(() => {
@@ -80,23 +81,35 @@ export function AppleWheelPicker<T extends string | number>({
   }, []);
 
   return (
-    <div className={cn("relative flex-1 min-w-[52px]", className)} style={{ height: ITEM_H * VISIBLE }}>
+    <div
+      className={cn("relative shrink-0 w-[88px]", className)}
+      style={{ height: ITEM_H * VISIBLE }}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+    >
+      {label ? (
+        <p className="absolute -top-5 inset-x-0 text-center text-[10px] font-medium text-muted-foreground">
+          {label}
+        </p>
+      ) : null}
       <div
-        className="pointer-events-none absolute inset-x-0.5 top-1/2 -translate-y-1/2 h-10 rounded-[10px] bg-folk-terracotta/15 border border-folk-terracotta/35"
+        className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 h-11 rounded-xl bg-folk-terracotta/12 border border-folk-terracotta/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
         aria-hidden
       />
       <div
         ref={ref}
         className={cn(
-          "h-full overflow-y-auto overscroll-contain scrollbar-none snap-y snap-mandatory touch-pan-y",
+          "h-full w-full overflow-y-auto overflow-x-hidden overscroll-y-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden snap-y snap-mandatory",
           disabled && "pointer-events-none opacity-50"
         )}
         style={{
           paddingTop: PADDING,
           paddingBottom: PADDING,
           WebkitOverflowScrolling: "touch",
+          touchAction: "pan-y",
         }}
         onScroll={onScroll}
+        onWheel={(e) => e.stopPropagation()}
       >
         {items.map((item, i) => {
           const selected = item === value;
@@ -107,12 +120,12 @@ export function AppleWheelPicker<T extends string | number>({
               role="option"
               aria-selected={selected}
               className={cn(
-                "flex h-10 snap-center items-center justify-center tabular-nums transition-all duration-150 select-none",
+                "flex h-11 snap-center items-center justify-center tabular-nums select-none transition-all duration-100",
                 selected
-                  ? "text-base font-semibold text-foreground"
+                  ? "text-xl font-semibold text-foreground"
                   : dist === 1
-                    ? "text-sm text-muted-foreground/80"
-                    : "text-xs text-muted-foreground/45"
+                    ? "text-base text-muted-foreground/75"
+                    : "text-sm text-muted-foreground/40"
               )}
             >
               {format(item)}
@@ -121,11 +134,11 @@ export function AppleWheelPicker<T extends string | number>({
         })}
       </div>
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-card via-card/80 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-card via-card/90 to-transparent"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card via-card/80 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card via-card/90 to-transparent"
         aria-hidden
       />
     </div>

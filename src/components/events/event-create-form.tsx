@@ -10,7 +10,9 @@ import {
   SPONSORED_AD_ASPECT,
   SPONSORED_AD_IMAGE_MAX_HEIGHT,
   SPONSORED_AD_IMAGE_MAX_WIDTH,
+  SPONSORED_AD_MAX_DAYS,
   SPONSORED_AD_MOCO_PER_DAY,
+  SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS,
 } from "@/lib/sponsored-ad/constants";
 import {
   defaultSponsoredAdStartTime,
@@ -54,6 +56,7 @@ export function EventCreateForm({
   const [successLinkUrl, setSuccessLinkUrl] = useState(paidLinkUrl ?? "");
   const [successImageUrl, setSuccessImageUrl] = useState(paidImageUrl ?? "");
   const [error, setError] = useState("");
+  const [operatorUnlimited, setOperatorUnlimited] = useState(false);
 
   const schedule = useMemo(
     () => sponsoredAdScheduleSummary(startTime, durationDays),
@@ -61,8 +64,15 @@ export function EventCreateForm({
   );
   const mocoCost = schedule.moco;
 
-  const durationTooLong = durationDays > EVENT_REGISTRATION_MAX_DAYS;
-  const startInPast = validateSponsoredAdSchedule(startTime, durationDays) != null;
+  const maxScheduleDays = operatorUnlimited
+    ? SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS
+    : Math.min(EVENT_REGISTRATION_MAX_DAYS, SPONSORED_AD_MAX_DAYS);
+  const durationTooLong = durationDays > maxScheduleDays;
+  const startInPast =
+    validateSponsoredAdSchedule(startTime, durationDays, new Date(), {
+      skipPastCheck: isOperator && operatorUnlimited,
+      maxDays: maxScheduleDays,
+    }) != null;
   const insufficientMoco = !isOperator && purchasedMoco < mocoCost;
 
   async function onMainImagePick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -98,13 +108,16 @@ export function EventCreateForm({
       setError("클릭 시 이동할 링크를 입력해 주세요.");
       return;
     }
-    const scheduleError = validateSponsoredAdSchedule(startTime, durationDays);
+    const scheduleError = validateSponsoredAdSchedule(startTime, durationDays, new Date(), {
+      skipPastCheck: isOperator && operatorUnlimited,
+      maxDays: maxScheduleDays,
+    });
     if (scheduleError) {
       setError(scheduleError);
       return;
     }
     if (durationTooLong) {
-      setError(`광고 기간은 최대 ${EVENT_REGISTRATION_MAX_DAYS}일까지 가능합니다.`);
+      setError(`광고 기간은 최대 ${maxScheduleDays}일까지 가능합니다.`);
       return;
     }
     if (insufficientMoco) {
@@ -119,6 +132,7 @@ export function EventCreateForm({
         linkUrl,
         startsAt: toLocalDateTimeInputValue(startTime),
         days: durationDays,
+        operatorUnlimited: isOperator && operatorUnlimited,
       });
       if (!res.ok) {
         setError(res.error);
@@ -228,10 +242,25 @@ export function EventCreateForm({
           />
         </div>
 
+        {isOperator ? (
+          <Button
+            type="button"
+            variant={operatorUnlimited ? "default" : "outline"}
+            className={cn(
+              "w-full rounded-xl h-10 text-sm",
+              operatorUnlimited && "bg-folk-terracotta hover:bg-folk-terracotta/90 text-white"
+            )}
+            onClick={() => setOperatorUnlimited((v) => !v)}
+          >
+            {operatorUnlimited ? "날짜 제한 없음 (켜짐)" : "날짜 제한 없이 등록"}
+          </Button>
+        ) : null}
+
         <SponsoredAdSchedulePicker
           startTime={startTime}
           days={durationDays}
           isOperator={isOperator}
+          unlimitedSchedule={operatorUnlimited}
           onChange={(nextStart, nextDays) => {
             setStartTime(nextStart);
             setDurationDays(nextDays);
@@ -252,6 +281,7 @@ export function EventCreateForm({
         ) : isOperator ? (
           <p className="text-xs text-muted-foreground">
             운영자 등록 · {durationDays}일(24시간 × {durationDays}) · MOCO 차감 없음
+            {operatorUnlimited ? " · 과거·장기 일정 허용" : ""}
           </p>
         ) : (
           <p className="text-xs text-muted-foreground">

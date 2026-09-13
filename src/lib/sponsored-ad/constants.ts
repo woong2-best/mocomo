@@ -12,6 +12,9 @@ export const SPONSORED_AD_IMAGE_MAX_HEIGHT = 1200;
 
 export const SPONSORED_AD_MAX_DAYS = 100;
 
+/** 운영자 '날짜 제한 없음' 모드 상한 (약 10년) */
+export const SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS = 3650;
+
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const SPONSORED_AD_TARGET_EVENT = "EVENT" as const;

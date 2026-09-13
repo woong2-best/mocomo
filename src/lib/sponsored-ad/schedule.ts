@@ -21,22 +21,35 @@ export function validateSponsoredAdStartTime(startTime: Date, now = new Date()):
   return null;
 }
 
-export function validateSponsoredAdDays(days: number): string | null {
+export function validateSponsoredAdDays(
+  days: number,
+  maxDays = SPONSORED_AD_MAX_DAYS
+): string | null {
   if (!Number.isInteger(days) || days < 1) {
     return "게재 기간은 1일 이상 선택해 주세요.";
   }
-  if (days > SPONSORED_AD_MAX_DAYS) {
-    return `광고 기간은 최대 ${SPONSORED_AD_MAX_DAYS}일까지 가능합니다.`;
+  if (days > maxDays) {
+    return `광고 기간은 최대 ${maxDays}일까지 가능합니다.`;
   }
   return null;
 }
 
+export type SponsoredAdScheduleValidationOptions = {
+  skipPastCheck?: boolean;
+  maxDays?: number;
+};
+
 export function validateSponsoredAdSchedule(
   startTime: Date,
   days: number,
-  now = new Date()
+  now = new Date(),
+  options?: SponsoredAdScheduleValidationOptions
 ): string | null {
-  return validateSponsoredAdStartTime(startTime, now) ?? validateSponsoredAdDays(days);
+  if (!options?.skipPastCheck) {
+    const pastErr = validateSponsoredAdStartTime(startTime, now);
+    if (pastErr) return pastErr;
+  }
+  return validateSponsoredAdDays(days, options?.maxDays ?? SPONSORED_AD_MAX_DAYS);
 }
 
 /** 5분 단위 올림 — 기본 시작 시각 */
