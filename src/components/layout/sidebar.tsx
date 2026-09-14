@@ -43,11 +43,11 @@ export function Sidebar() {
     >
       <aside
         className={cn(
-          "flex h-full w-[14.5rem] min-h-0 flex-col shrink-0 shell-col-pad shell-col-divider-r folk-sidebar-panel overflow-hidden overscroll-none",
+          "h-full w-[14.5rem] min-h-0 shrink-0 shell-col-pad shell-col-divider-r folk-sidebar-panel overflow-hidden overscroll-none",
           !open && "pointer-events-none invisible"
         )}
       >
-        <div className="folk-sidebar-nav-stack">
+        <div className="folk-sidebar-nav-stack min-h-0">
           <nav className="folk-sidebar-nav" aria-label="주요 메뉴">
             {navItems.map(({ href, icon: Icon, labelKey }) => (
               <Link
@@ -70,14 +70,16 @@ export function Sidebar() {
           </nav>
         </div>
 
-        <div className="folk-sidebar-compose shrink-0">
+        <div className="folk-sidebar-compose">
           <ComposeOpenButton className="folk-sidebar-compose-btn">
             <PenSquare className="h-4 w-4 shrink-0" />
             {t("nav.compose")}
           </ComposeOpenButton>
         </div>
 
-        <div className="folk-sidebar-legal shrink-0">
+        <div className="folk-sidebar-foot-spacer" aria-hidden />
+
+        <div className="folk-sidebar-legal">
           <LegalComplianceSidebarButton />
         </div>
       </aside>

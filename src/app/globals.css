@@ -646,6 +646,14 @@ html[data-client="app"] .native-live-pad {
     @apply px-3 py-4 lg:px-3 lg:py-5;
   }
 
+  .folk-sidebar-panel:not(.mobile-drawer-panel) {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto auto minmax(3.5rem, 1fr) auto;
+    align-content: stretch;
+  }
+
   .folk-sidebar-panel {
     @apply relative overflow-hidden overscroll-none;
     background-image: url("/home/sidebar-bg.png");
@@ -683,15 +691,21 @@ html[data-client="app"] .native-live-pad {
   }
 
   .folk-sidebar-nav-stack {
-    @apply flex min-h-0 flex-1 flex-col justify-center;
-    gap: clamp(0.375rem, 1.2vh, 0.625rem);
-    padding-block: clamp(0.375rem, 1.5vh, 1rem);
+    @apply flex min-h-0 flex-col justify-start;
+    gap: 0.375rem;
+    padding-block: 0.25rem 0.5rem;
   }
 
   .folk-sidebar-panel:not(.mobile-drawer-panel) .folk-sidebar-nav-stack {
     @apply overflow-hidden overscroll-none;
     scrollbar-width: none;
     -ms-overflow-style: none;
+  }
+
+  .folk-sidebar-panel.mobile-drawer-panel .folk-sidebar-nav-stack {
+    @apply min-h-0 flex-1 justify-center;
+    gap: clamp(0.375rem, 1.2vh, 0.625rem);
+    padding-block: clamp(0.375rem, 1.5vh, 1rem);
   }
 
   .folk-sidebar-panel:not(.mobile-drawer-panel) .folk-sidebar-nav-stack::-webkit-scrollbar {
@@ -709,10 +723,19 @@ html[data-client="app"] .native-live-pad {
     gap: clamp(0.375rem, 1.35vh, 0.625rem);
   }
 
+  .folk-sidebar-panel:not(.mobile-drawer-panel) .folk-sidebar-nav {
+    gap: 0.3125rem;
+  }
+
   .folk-sidebar-panel .sidebar-block {
     @apply border-white/25 bg-white/10 text-white backdrop-blur-sm shadow-none hover:border-folk-terracotta/80 hover:bg-white/15;
     padding-top: clamp(0.625rem, 1.5vh, 0.875rem);
     padding-bottom: clamp(0.625rem, 1.5vh, 0.875rem);
+  }
+
+  .folk-sidebar-panel:not(.mobile-drawer-panel) .sidebar-block {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
   }
 
   .folk-sidebar-panel .sidebar-block:hover {
@@ -721,6 +744,11 @@ html[data-client="app"] .native-live-pad {
 
   .folk-sidebar-panel .sidebar-block-active {
     @apply border-folk-terracotta/70 bg-white/20 text-white ring-2 ring-folk-terracotta/70 ring-offset-0;
+  }
+
+  .folk-sidebar-panel:not(.mobile-drawer-panel) .sidebar-block-icon {
+    height: 2rem;
+    width: 2rem;
   }
 
   .folk-sidebar-panel .sidebar-block-icon {
@@ -739,10 +767,20 @@ html[data-client="app"] .native-live-pad {
     -webkit-backdrop-filter: none;
   }
 
+  .folk-sidebar-foot-spacer {
+    min-height: 0;
+    pointer-events: none;
+  }
+
   .folk-sidebar-compose {
     @apply rounded-2xl border-t border-white/20 bg-transparent backdrop-blur-sm;
     margin-top: clamp(0.125rem, 0.5vh, 0.375rem);
     padding: clamp(0.375rem, 1vh, 0.5rem) clamp(0.5rem, 1vh, 0.5rem) 0;
+  }
+
+  .folk-sidebar-panel:not(.mobile-drawer-panel) .folk-sidebar-compose {
+    margin-top: 0;
+    padding-top: 0.375rem;
   }
 
   .folk-sidebar-compose-btn {
@@ -756,6 +794,15 @@ html[data-client="app"] .native-live-pad {
     margin-top: auto;
     padding: clamp(1rem, 3vh, 2rem) clamp(0.5rem, 1vh, 0.5rem)
       clamp(0.75rem, 2vh, 1.25rem);
+  }
+
+  .folk-sidebar-panel:not(.mobile-drawer-panel) .folk-sidebar-legal {
+    margin-top: 0;
+    align-self: end;
+    width: 100%;
+    max-width: 11.75rem;
+    margin-inline: auto;
+    padding: 0 clamp(0.5rem, 1vh, 0.5rem) 0;
   }
 
   .folk-sidebar-legal-btn {
