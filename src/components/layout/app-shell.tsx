@@ -151,7 +151,12 @@ function AppShellInner({
               ? `overflow-hidden ${mainPb}`
               : isProfileRoute
                 ? `overflow-y-auto ${mainPb}`
-                : `overflow-y-auto overflow-x-hidden ${mainPb}`
+                : cn(
+                    "overflow-y-auto overflow-x-hidden",
+                    showRightPanel &&
+                      "lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden",
+                    mainPb
+                  )
           )}
         >
           {isMessagesRoute || isCommunityServerRoute ? (
@@ -167,8 +172,9 @@ function AppShellInner({
       {!hideMobileNav && <MobileNav />}
       {!isMessagesRoute && !isCommunityServerRoute && !isEventsMapImmersive && (
         <footer
+          id="mocomo-legal-footer"
           className={cn(
-            "border-t border-border py-3 px-4 lg:px-6 bg-muted/20 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:pb-3",
+            "border-t border-border py-3 px-4 lg:px-6 bg-muted/20 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:pb-3 scroll-mt-4",
             isHubChrome && "hidden lg:block"
           )}
         >

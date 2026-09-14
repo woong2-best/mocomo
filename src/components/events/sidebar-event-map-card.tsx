@@ -85,13 +85,11 @@ export function SidebarEventMapCard({
       )}
     >
       <CardHeader className="pb-2 pt-3 px-3 shrink-0 space-y-0">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-sm flex items-center gap-1.5 font-semibold text-violet-600 dark:text-violet-400">
-            <MapPin className="h-4 w-4 shrink-0" />
-            <span className="truncate">{t("sidebar.eventsMapTitle")}</span>
-          </CardTitle>
-          <MapAttributionButton />
-        </div>
+        <CardTitle className="text-xs font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-1 min-w-0 leading-snug">
+          <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span className="min-w-0">{t("sidebar.eventsMapTitle")}</span>
+          <MapAttributionButton className="ml-0.5" />
+        </CardTitle>
       </CardHeader>
 
       <CardContent className="p-0">

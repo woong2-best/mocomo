@@ -1014,6 +1014,14 @@ html[data-visible-animations="off"] .maplibregl-map .maplibregl-canvas {
   border-radius: 4px;
 }
 
+html.mocomo-hide-root-scrollbar {
+  scrollbar-width: none;
+}
+html.mocomo-hide-root-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 ::selection {
   background: hsl(var(--folk-gold) / 0.45);
   color: hsl(var(--foreground));

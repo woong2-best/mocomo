@@ -1,8 +1,10 @@
 ﻿"use client";
 
+import { useEffect } from "react";
 import type { SupportTierLevel } from "@prisma/client";
 import { SponsoredSidebarCard } from "@/components/events/sponsored-sidebar-card";
 import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
+import { LegalComplianceSidebarButton } from "@/components/layout/legal-compliance-sidebar-button";
 import type { MapEventPin } from "@/lib/subculture-events";
 import type { SponsorSpotEvent } from "@/lib/sponsor-spot-server";
 
@@ -24,7 +26,7 @@ export type SidebarPanelData = {
 
 export function RightPanelSkeleton() {
   return (
-    <aside className="hidden lg:flex w-56 xl:w-60 shrink-0 h-full flex-col justify-start gap-3 shell-col-pad folk-panel-aside overflow-y-auto overscroll-none">
+    <aside className="hidden lg:flex w-56 xl:w-60 shrink-0 h-full flex-col justify-start gap-3 shell-col-pad folk-panel-aside overflow-hidden overscroll-none">
       <div className="shrink-0 w-full rounded-2xl border-2 border-folk-gold/20 bg-muted/40 animate-pulse aspect-[4/5] max-h-[min(20rem,42vh)]" />
       <div className="shrink-0 w-full rounded-2xl border border-violet-500/20 bg-muted/30 animate-pulse aspect-[4/5]" />
     </aside>
@@ -32,13 +34,21 @@ export function RightPanelSkeleton() {
 }
 
 export function RightPanelContent({ sidebarAds, eventPins, sponsorEvent }: SidebarPanelData) {
+  useEffect(() => {
+    document.documentElement.classList.add("mocomo-hide-root-scrollbar");
+    return () => document.documentElement.classList.remove("mocomo-hide-root-scrollbar");
+  }, []);
+
   return (
-    <aside className="hidden lg:flex w-56 xl:w-60 shrink-0 h-full flex-col justify-start gap-3 shell-col-pad folk-panel-aside overflow-y-auto overscroll-none">
+    <aside className="hidden lg:flex w-56 xl:w-60 shrink-0 h-full flex-col justify-start gap-3 shell-col-pad folk-panel-aside overflow-hidden overscroll-none">
       <div className="shrink-0 w-full">
         <SponsoredSidebarCard sidebarAds={sidebarAds} initialSponsorEvent={sponsorEvent ?? null} />
       </div>
       <div className="shrink-0 w-full">
         <SidebarEventMapCard pins={eventPins} />
+      </div>
+      <div className="mt-auto shrink-0 w-full pt-1">
+        <LegalComplianceSidebarButton />
       </div>
     </aside>
   );
