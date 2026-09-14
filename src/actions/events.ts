@@ -93,6 +93,7 @@ export async function fulfillEventRegistration(eventId: string, userId: string) 
   });
 
   revalidatePath("/events");
+  revalidatePath("/events/new");
   return { success: true as const };
 }
 
@@ -135,6 +136,7 @@ export async function updateEventAdCreative(
   });
 
   revalidatePath("/events");
+  revalidatePath("/events/new");
   revalidatePath("/");
   return { success: true as const };
 }

@@ -79,7 +79,7 @@ export function EventsListScreen() {
   }, [items]);
 
   const onRegisterEvent = useCallback(() => {
-    void Linking.openURL("https://mocomo.net/events");
+    void Linking.openURL("https://mocomo.net/events/new");
   }, []);
 
   const renderItem = useCallback(

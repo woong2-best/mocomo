@@ -14,8 +14,8 @@ export function checkoutRedirectPath(intent: PaymentIntent, type: string) {
   }
 
   if (type === "EVENT_REGISTRATION") {
-    if (meta.eventId) redirectPath = `/events?eventId=${meta.eventId}&paid=1`;
-    else redirectPath = "/events";
+    if (meta.eventId) redirectPath = `/events/new?eventId=${meta.eventId}&paid=1`;
+    else redirectPath = "/events/new";
   }
 
   if (type === "CREATOR_EPISODE") {

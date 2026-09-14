@@ -62,7 +62,7 @@ export function SponsoredSidebarCard({
             {t("sidebar.sponsored")}
           </CardTitle>
           <Link
-            href="/events"
+            href="/events/new"
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-folk-terracotta/30 text-folk-terracotta transition-colors hover:bg-folk-terracotta/10"
             aria-label={t("nav.events")}
           >
@@ -113,7 +113,7 @@ export function SponsoredSidebarCard({
           })
         ) : (
           <Link
-            href="/events"
+            href="/events/new"
             className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-2 bg-muted/25 px-4 text-center text-xs text-muted-foreground transition-colors hover:bg-muted/40"
           >
             <Megaphone className="h-8 w-8 opacity-40" strokeWidth={1.5} />
