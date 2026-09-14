@@ -15,8 +15,8 @@ export type TierDefinition = {
 export const SUPPORT_TIERS: TierDefinition[] = [
   { level: "SEED", label: "Seed", labelKo: "씨앗", minAmount: 0, color: "#84cc16", gradient: ["#d9f99d", "#65a30d"], iconSrc: "/support/tiers/seed.png" },
   { level: "STONE", label: "Stone", labelKo: "스톤", minAmount: 10, color: "#78716c", gradient: ["#a8a29e", "#57534e"], iconSrc: "/support/tiers/stone.png" },
-  { level: "BRONZE", label: "Bronze", labelKo: "브론즈", minAmount: 50, color: "#b45309", gradient: ["#d97706", "#92400e"], iconSrc: "/support/tiers/bronze.png" },
-  { level: "BRASS", label: "Brass", labelKo: "브라스", minAmount: 100, color: "#b5a642", gradient: ["#d4c068", "#8b7a2e"], iconSrc: "/support/tiers/brass.png" },
+  { level: "BRASS", label: "Brass", labelKo: "브라스", minAmount: 50, color: "#b5a642", gradient: ["#d4c068", "#8b7a2e"], iconSrc: "/support/tiers/brass.png" },
+  { level: "BRONZE", label: "Bronze", labelKo: "브론즈", minAmount: 100, color: "#b45309", gradient: ["#d97706", "#92400e"], iconSrc: "/support/tiers/bronze.png" },
   { level: "SILVER", label: "Silver", labelKo: "실버", minAmount: 500, color: "#94a3b8", gradient: ["#e2e8f0", "#64748b"], iconSrc: "/support/tiers/silver.png" },
   { level: "GOLD", label: "Gold", labelKo: "골드", minAmount: 1_000, color: "#eab308", gradient: ["#fde047", "#ca8a04"], iconSrc: "/support/tiers/gold.png" },
   { level: "CRYSTAL", label: "Crystal", labelKo: "크리스탈", minAmount: 1_500, color: "#ec4899", gradient: ["#fbcfe8", "#db2777"], iconSrc: "/support/tiers/crystal.png" },

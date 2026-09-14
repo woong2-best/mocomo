@@ -27,8 +27,8 @@ export const TIER_CONFIG = [
   { tier: "CRYSTAL", requiredMoco: 1500, rewardUsd: 6750 },
   { tier: "GOLD", requiredMoco: 1000, rewardUsd: 4500 },
   { tier: "SILVER", requiredMoco: 500, rewardUsd: 2250 },
-  { tier: "BRASS", requiredMoco: 100, rewardUsd: 450 },
-  { tier: "BRONZE", requiredMoco: 50, rewardUsd: 225 },
+  { tier: "BRONZE", requiredMoco: 100, rewardUsd: 450 },
+  { tier: "BRASS", requiredMoco: 50, rewardUsd: 225 },
   { tier: "STONE", requiredMoco: 10, rewardUsd: 45 },
   { tier: "SEED", requiredMoco: 0, rewardUsd: 0 },
 ] as const satisfies readonly SettlementTierConfig[];
