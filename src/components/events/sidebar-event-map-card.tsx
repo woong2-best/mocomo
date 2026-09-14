@@ -98,7 +98,7 @@ export function SidebarEventMapCard({
         <div className="px-3 pb-2">
           <SubcultureEventsMapLazy
             pins={mapPins}
-            heightClassName="aspect-square w-full"
+            heightClassName="aspect-[4/5] w-full"
             interactive
             showNavigationControls={false}
             showAttribution={false}

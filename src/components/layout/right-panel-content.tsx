@@ -26,7 +26,7 @@ export function RightPanelSkeleton() {
   return (
     <aside className="hidden lg:flex w-56 xl:w-60 shrink-0 h-full flex-col justify-start gap-3 shell-col-pad folk-panel-aside overflow-y-auto overscroll-none">
       <div className="shrink-0 w-full rounded-2xl border-2 border-folk-gold/20 bg-muted/40 animate-pulse aspect-[4/5] max-h-[min(20rem,42vh)]" />
-      <div className="shrink-0 w-full rounded-2xl border border-violet-500/20 bg-muted/30 animate-pulse aspect-square" />
+      <div className="shrink-0 w-full rounded-2xl border border-violet-500/20 bg-muted/30 animate-pulse aspect-[4/5]" />
     </aside>
   );
 }
