@@ -1,8 +1,8 @@
 /**
  * Tier badge PNGs — flood-fill remove white/black/checkerboard, trim to badge.
  *
- *   node scripts/trim-tier-icons.mjs
  *   node scripts/trim-tier-icons.mjs --import <input.png> <outputName.png>
+ *   node scripts/trim-tier-icons.mjs --all   (reprocess every PNG in tier-art — avoid unless intentional)
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -111,6 +111,11 @@ async function main() {
     const result = await processBufferToFile(fs.readFileSync(inputPath), outPath);
     console.log(JSON.stringify(result, null, 2));
     return;
+  }
+
+  if (!process.argv.includes("--all")) {
+    console.error("Pass --import <src> <name.png> for one icon, or --all to reprocess every tier-art PNG.");
+    process.exit(1);
   }
 
   const files = fs.readdirSync(DIR).filter((f) => f.endsWith(".png"));
