@@ -628,16 +628,6 @@ export const PostMediaComposer = forwardRef<
           >
             <ImagePlus className="h-[18px] w-[18px]" />
           </button>
-          <button
-            type="button"
-            className={iconBtnClass}
-            disabled={disabled || uploading}
-            onClick={() => setCameraOpen(true)}
-            aria-label="사진 촬영"
-            title="카메라"
-          >
-            <Camera className="h-[18px] w-[18px]" />
-          </button>
         </>
       )}
       {canAddVideo && (
