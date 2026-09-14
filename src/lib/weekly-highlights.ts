@@ -1,5 +1,5 @@
 import type { SupportTierLevel } from "@prisma/client";
-import { subDays } from "date-fns";
+import { getHighlightPeriodStart } from "@/lib/highlight-period";
 import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { platformPostWhere } from "@/lib/post-scope";
@@ -56,7 +56,7 @@ async function fetchHighlightPosts(ids: string[]) {
 }
 
 export async function getWeeklyHighlights(limit = 3) {
-  const since = subDays(new Date(), 7);
+  const since = getHighlightPeriodStart();
 
   const [likeGroups, topViewedIds] = await Promise.all([
     db.like.groupBy({

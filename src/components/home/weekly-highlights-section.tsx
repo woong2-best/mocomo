@@ -5,6 +5,7 @@ import { ImageIcon } from "lucide-react";
 import { userDisplayName } from "@/lib/user-public-select";
 import { formatNumber } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
+import { formatHighlightPeriodRange } from "@/lib/highlight-period";
 import type { WeeklyHighlightPost } from "@/lib/weekly-highlights";
 
 const HIGHLIGHT_GRID =
@@ -129,7 +130,8 @@ export function WeeklyHighlightsSection({
   topLiked: WeeklyHighlightPost[];
   topViewed: WeeklyHighlightPost[];
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const periodRange = formatHighlightPeriodRange(locale);
 
   if (topLiked.length === 0 && topViewed.length === 0) return null;
 
@@ -140,7 +142,9 @@ export function WeeklyHighlightsSection({
     <section className="mb-8">
       <div className="mb-2 flex items-end justify-between gap-2 border-b border-border/80 pb-1.5">
         <h2 className="text-[15px] font-bold tracking-tight">{t("home.highlightsTitle")}</h2>
-        <span className="pb-0.5 text-[11px] text-muted-foreground">{t("home.highlightsMeta")}</span>
+        <span className="pb-0.5 text-[11px] text-muted-foreground">
+          {t("home.highlightsMeta", { period: periodRange })}
+        </span>
       </div>
       <div className="w-full overflow-hidden rounded-2xl border border-border bg-card">
         <div className="grid grid-cols-1 lg:grid-cols-2">

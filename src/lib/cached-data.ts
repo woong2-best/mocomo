@@ -7,6 +7,7 @@ import { userPublicSelect } from "@/lib/user-public-select";
 import { getTipRanking } from "@/actions/monetization";
 import { getRankings } from "@/actions/events";
 import { getAnimeCountByGenre } from "@/actions/anime";
+import { getHighlightPeriodKey } from "@/lib/highlight-period";
 import { getWeeklyHighlights } from "@/lib/weekly-highlights";
 import { getSubcultureMapPins } from "@/lib/subculture-events";
 import { feedPostListSelect, mapFeedPost } from "@/lib/feed-query";
@@ -14,7 +15,7 @@ import { platformPostWhere } from "@/lib/post-scope";
 
 export const getCachedWeeklyHighlights = unstable_cache(
   async () => getWeeklyHighlights(3),
-  ["home-weekly-highlights"],
+  ["home-monthly-highlights", getHighlightPeriodKey()],
   { revalidate: 300 }
 );
 
