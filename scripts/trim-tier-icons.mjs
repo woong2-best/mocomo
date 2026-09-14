@@ -1,13 +1,16 @@
 /**
  * Tier badge PNGs — flood-fill remove white/black/checkerboard, trim to badge.
- * npx tsx scripts/trim-tier-icons.mjs
+ *
+ *   node scripts/trim-tier-icons.mjs
+ *   node scripts/trim-tier-icons.mjs --import <input.png> <outputName.png>
  */
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 
-const DIR = path.join(process.cwd(), "public/support/tiers");
+const DIR = path.join(process.cwd(), "public/support/tier-art");
 const TOL = 42;
+const OUT_SIZE = 512;
 
 function dist(a, b) {
   return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
@@ -17,7 +20,6 @@ function matchesBg(r, g, b, bgColors) {
   for (const c of bgColors) {
     if (dist([r, g, b], c) <= TOL) return true;
   }
-  // generic near-white / near-black fallback
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   if (min >= 230) return true;
@@ -67,8 +69,8 @@ function floodClear(data, w, h) {
   }
 }
 
-async function processFile(filePath) {
-  const { data, info } = await sharp(filePath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+async function processBufferToFile(inputBuffer, filePath) {
+  const { data, info } = await sharp(inputBuffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const out = Buffer.from(data);
   floodClear(out, info.width, info.height);
 
@@ -76,7 +78,8 @@ async function processFile(filePath) {
     raw: { width: info.width, height: info.height, channels: 4 },
   })
     .trim({ threshold: 1 })
-    .png({ compressionLevel: 9 })
+    .resize(OUT_SIZE, OUT_SIZE, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png({ compressionLevel: 9, adaptiveFiltering: true })
     .toBuffer();
 
   await sharp(trimmed).toFile(filePath);
@@ -89,9 +92,36 @@ async function processFile(filePath) {
   };
 }
 
-const files = fs.readdirSync(DIR).filter((f) => f.endsWith(".png"));
-const results = [];
-for (const file of files) {
-  results.push(await processFile(path.join(DIR, file)));
+async function processFile(filePath) {
+  return processBufferToFile(fs.readFileSync(filePath), filePath);
 }
-console.log(JSON.stringify(results, null, 2));
+
+async function main() {
+  fs.mkdirSync(DIR, { recursive: true });
+
+  const importIdx = process.argv.indexOf("--import");
+  if (importIdx >= 0) {
+    const inputPath = process.argv[importIdx + 1];
+    const outName = process.argv[importIdx + 2];
+    if (!inputPath || !outName?.endsWith(".png")) {
+      console.error("Usage: node scripts/trim-tier-icons.mjs --import <input.png> <name.png>");
+      process.exit(1);
+    }
+    const outPath = path.join(DIR, outName);
+    const result = await processBufferToFile(fs.readFileSync(inputPath), outPath);
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  const files = fs.readdirSync(DIR).filter((f) => f.endsWith(".png"));
+  const results = [];
+  for (const file of files) {
+    results.push(await processFile(path.join(DIR, file)));
+  }
+  console.log(JSON.stringify(results, null, 2));
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

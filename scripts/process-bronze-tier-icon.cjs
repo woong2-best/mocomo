@@ -8,7 +8,7 @@ const path = require("path");
 const input =
   process.argv[2] ||
   "C:/Users/백권웅/.cursor/projects/c-dev-mocomo/assets/c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_e9dfW-037ac09c-d764-467d-8104-37e89f181374.png";
-const output = path.join(__dirname, "../public/support/tiers/bronze.png");
+const output = path.join(__dirname, "../public/support/tier-art/bronze.png");
 const SIZE = 512;
 
 async function main() {
