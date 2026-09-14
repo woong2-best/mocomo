@@ -10,10 +10,15 @@ import {
 export async function GET() {
   try {
     const rows = await listEligibleSponsorEventsForMobile();
-
     const pool: SponsorEventCandidate[] = rows
       .filter((e): e is typeof e & { imageUrl: string } => !!e.imageUrl?.trim())
-      .map((e) => ({ id: e.id, title: e.title, imageUrl: e.imageUrl }));
+      .filter((e) => !!e.linkUrl?.trim())
+      .map((e) => ({
+        id: e.id,
+        title: e.title,
+        imageUrl: e.imageUrl,
+        linkUrl: e.linkUrl.trim(),
+      }));
 
     const cookieStore = await cookies();
     const raw = cookieStore.get(SPONSOR_ROTATION_COOKIE)?.value;

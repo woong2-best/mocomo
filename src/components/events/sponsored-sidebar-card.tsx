@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale } from "@/components/providers/locale-provider";
 import { localizeSidebarAdTitle } from "@/lib/sidebar-ad-i18n";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
+import { SponsorAdClickLink } from "@/components/events/sponsor-ad-click-link";
 import type { SponsorSpotEvent } from "@/lib/sponsor-spot-server";
 
 type SidebarAd = {
@@ -61,7 +62,7 @@ export function SponsoredSidebarCard({
             {t("sidebar.sponsored")}
           </CardTitle>
           <Link
-            href="/events/new"
+            href="/events"
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-folk-terracotta/30 text-folk-terracotta transition-colors hover:bg-folk-terracotta/10"
             aria-label={t("nav.events")}
           >
@@ -71,8 +72,8 @@ export function SponsoredSidebarCard({
       </CardHeader>
       <CardContent className="p-0">
         {hasSponsorEvent ? (
-          <Link
-            href="/events"
+          <SponsorAdClickLink
+            linkUrl={event.linkUrl}
             className="group relative block w-full overflow-hidden hover:opacity-95 transition-opacity"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -86,7 +87,7 @@ export function SponsoredSidebarCard({
                 {event.title}
               </p>
             </div>
-          </Link>
+          </SponsorAdClickLink>
         ) : hasFallbackAds ? (
           sidebarAds.map((ad) => {
             const href = sanitizeAdLink(ad.linkUrl);
@@ -112,7 +113,7 @@ export function SponsoredSidebarCard({
           })
         ) : (
           <Link
-            href="/events/new"
+            href="/events"
             className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-2 bg-muted/25 px-4 text-center text-xs text-muted-foreground transition-colors hover:bg-muted/40"
           >
             <Megaphone className="h-8 w-8 opacity-40" strokeWidth={1.5} />

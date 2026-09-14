@@ -170,9 +170,9 @@ export function EventCreateForm({
           initialImageUrl={successImageUrl || mainImageUrl}
           initialLinkUrl={successLinkUrl || linkUrl}
         />
-        <Link href="/events">
+        <Link href="/feed">
           <Button className="w-full rounded-xl bg-[#A855F7] hover:bg-[#C084FC]">
-            이벤트 목록으로
+            홈으로
           </Button>
         </Link>
       </div>

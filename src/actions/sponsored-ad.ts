@@ -133,7 +133,6 @@ export async function registerEventSponsoredAd(data: {
   }
 
   revalidatePath("/events");
-  revalidatePath("/events/new");
   revalidatePath("/");
   return {
     ok: true as const,

@@ -6,6 +6,7 @@ export type SponsorEventCandidate = {
   id: string;
   title: string;
   imageUrl: string;
+  linkUrl: string;
 };
 
 export type SponsorRotationState = {

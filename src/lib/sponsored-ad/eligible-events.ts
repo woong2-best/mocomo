@@ -72,5 +72,6 @@ export async function listEligibleSponsorEventsForMobile() {
     id: e.id,
     title: e.title,
     imageUrl: e.imageUrl,
+    linkUrl: e.linkUrl ?? "",
   }));
 }

@@ -79,8 +79,7 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   if (pathname === "/premium") return "프리미엄";
   if (pathname === "/search") return "검색";
   if (pathname === "/rankings") return "랭킹";
-  if (pathname === "/events") return "이벤트";
-  if (pathname === "/events/new") return "이벤트 만들기";
+  if (pathname === "/events" || pathname === "/events/new") return "광고 등록";
   if (pathname === "/communities") return "커뮤니티";
   if (pathname === "/communities/new") return "커뮤니티 만들기";
   if (pathname === "/sketch-quiz") return "스케치퀴즈";

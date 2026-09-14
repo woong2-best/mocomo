@@ -6,8 +6,9 @@ import { usePathname } from "next/navigation";
 import { useLocale } from "@/components/providers/locale-provider";
 import { localizeSidebarAdTitle } from "@/lib/sidebar-ad-i18n";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
+import { SponsorAdClickLink } from "@/components/events/sponsor-ad-click-link";
 
-type SponsorEvent = { id: string; title: string; imageUrl: string };
+type SponsorEvent = { id: string; title: string; imageUrl: string; linkUrl: string };
 
 type FallbackAd = {
   id: string;
@@ -52,8 +53,8 @@ export function SponsorEventSpot({ fallbackAds }: { fallbackAds: FallbackAd[] })
 
   if (event) {
     return (
-      <Link
-        href="/events"
+      <SponsorAdClickLink
+        linkUrl={event.linkUrl}
         className="group relative block w-full overflow-hidden hover:opacity-95 transition-opacity"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -67,7 +68,7 @@ export function SponsorEventSpot({ fallbackAds }: { fallbackAds: FallbackAd[] })
             {event.title}
           </p>
         </div>
-      </Link>
+      </SponsorAdClickLink>
     );
   }
 
