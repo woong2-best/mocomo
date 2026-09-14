@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
-  formatTierMoco,
   formatTierThreshold,
+  getNextTierInfo,
   getTierDetailProgress,
   getTierInfo,
-  parseSupportTierSlug,
-  supportTierPath,
+  tierFromAmount,
   SUPPORT_TIERS,
 } from "@/lib/tiers";
 import { OreIcon } from "@/components/support/ore-icon";
@@ -17,16 +15,7 @@ import { SupportPageChrome, SupportPageTitle } from "@/components/support/suppor
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
-export default async function SupportTierDetailPage({
-  params,
-}: {
-  params: Promise<{ tier: string }>;
-}) {
-  const { tier: tierSlug } = await params;
-  const level = parseSupportTierSlug(tierSlug);
-  if (!level) notFound();
-
-  const info = getTierInfo(level);
+export default async function SupportTiersPage() {
   const session = await auth();
   let total = 0;
   if (session?.user?.id) {
@@ -36,7 +25,11 @@ export default async function SupportTierDetailPage({
     });
     total = user?.totalSupportSent ?? 0;
   }
+
+  const level = tierFromAmount(total);
+  const info = getTierInfo(level);
   const progress = session?.user?.id ? getTierDetailProgress(level, total) : null;
+  const nextTier = session?.user?.id ? getNextTierInfo(total) : null;
 
   return (
     <SupportPageChrome>
@@ -74,9 +67,17 @@ export default async function SupportTierDetailPage({
 
       {session?.user?.id && progress ? (
         <section className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between text-sm items-center gap-3">
             <span className="text-muted-foreground">내 누적 후원</span>
-            <span className="font-semibold tabular-nums">{formatTierMoco(total)}</span>
+            {nextTier ? (
+              <span className="shrink-0" title={nextTier.labelKo}>
+                <OreIcon tier={nextTier.level} size={32} />
+              </span>
+            ) : (
+              <span className="shrink-0 opacity-80" title="최고 등급">
+                <OreIcon tier={level} size={32} />
+              </span>
+            )}
           </div>
           <div className="h-2.5 rounded-full bg-muted overflow-hidden">
             <div
@@ -93,9 +94,7 @@ export default async function SupportTierDetailPage({
         <section className="rounded-2xl border border-border/60 bg-muted/20 p-4 text-center text-sm text-muted-foreground">
           <p>로그인하면 다음 광석까지 남은 금액을 확인할 수 있습니다.</p>
           <Button variant="secondary" size="sm" className="mt-3" asChild>
-            <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(supportTierPath(level))}`}>
-              로그인
-            </Link>
+            <Link href="/auth/signin?callbackUrl=%2Fsupport%2Ftiers">로그인</Link>
           </Button>
         </section>
       )}
@@ -108,7 +107,6 @@ export default async function SupportTierDetailPage({
               key={t.level}
               tier={t.level}
               showAmount
-              linkToDetail
               active={t.level === level}
               className="w-full"
             />
@@ -117,8 +115,4 @@ export default async function SupportTierDetailPage({
       </section>
     </SupportPageChrome>
   );
-}
-
-export function generateStaticParams() {
-  return SUPPORT_TIERS.map((t) => ({ tier: t.level.toLowerCase() }));
 }

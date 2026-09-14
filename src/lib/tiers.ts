@@ -71,8 +71,10 @@ export function parseSupportTierSlug(raw: string): SupportTierLevel | null {
   return SUPPORT_TIERS.some((t) => t.level === level) ? (level as SupportTierLevel) : null;
 }
 
-export function supportTierPath(level: SupportTierLevel): string {
-  return `/support/tiers/${level.toLowerCase()}`;
+export const SUPPORT_TIERS_PAGE_PATH = "/support/tiers";
+
+export function supportTierPath(_level?: SupportTierLevel): string {
+  return SUPPORT_TIERS_PAGE_PATH;
 }
 
 /** 등급 상세 — 이 등급 기준 다음 목표·진행률 */

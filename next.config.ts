@@ -87,6 +87,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/market/storage", destination: "/support?tab=storage", permanent: true },
       { source: "/market/received", destination: "/support?tab=gifts", permanent: true },
+      { source: "/support/tiers/:tier", destination: "/support/tiers", permanent: true },
     ];
   },
   async headers() {

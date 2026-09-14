@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
 import { NotificationBellLink } from "@/components/notifications/notification-bell-link";
 import { OreIcon } from "@/components/support/ore-icon";
-import { SupportTierInfoPopover } from "@/components/support/support-tier-info-popover";
 import { resolveProfileDisplayTier } from "@/lib/settlement-moco/balance";
-import { getTierInfo } from "@/lib/tiers";
+import { getTierInfo, SUPPORT_TIERS_PAGE_PATH } from "@/lib/tiers";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export function HeaderAuth({ compact = false }: { compact?: boolean }) {
@@ -27,17 +26,17 @@ export function HeaderAuth({ compact = false }: { compact?: boolean }) {
       <>
         <NotificationBellLink />
         {!compact && (
-          <SupportTierInfoPopover align="end" side="bottom">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="rounded-xl hidden sm:inline-flex"
-              aria-label={`${tierInfo.labelKo} (${tierInfo.label}) · 등급 안내`}
-            >
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="rounded-xl hidden sm:inline-flex"
+            aria-label={`${tierInfo.labelKo} (${tierInfo.label}) · 광석 등급`}
+          >
+            <Link href={SUPPORT_TIERS_PAGE_PATH}>
               <OreIcon tier={displayTier} size={20} />
-            </Button>
-          </SupportTierInfoPopover>
+            </Link>
+          </Button>
         )}
         <ProfileMenu displayTier={displayTier} />
       </>
