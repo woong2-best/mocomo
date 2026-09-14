@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { PenSquare } from "lucide-react";
 import { ComposeOpenButton } from "@/components/compose/compose-open-button";
+import { LegalComplianceSidebarButton } from "@/components/layout/legal-compliance-sidebar-button";
 import { cn } from "@/lib/utils";
 import { mainNavItems } from "@/lib/nav-items";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -73,6 +74,7 @@ export function Sidebar() {
               <PenSquare className="h-4 w-4 shrink-0" />
               {t("nav.compose")}
             </ComposeOpenButton>
+            <LegalComplianceSidebarButton className="mt-1.5" />
           </div>
         </div>
       </aside>

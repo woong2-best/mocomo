@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import type { SupportTierLevel } from "@prisma/client";
 import { SponsoredSidebarCard } from "@/components/events/sponsored-sidebar-card";
 import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
-import { LegalComplianceSidebarButton } from "@/components/layout/legal-compliance-sidebar-button";
 import type { MapEventPin } from "@/lib/subculture-events";
 import type { SponsorSpotEvent } from "@/lib/sponsor-spot-server";
 
@@ -46,9 +45,6 @@ export function RightPanelContent({ sidebarAds, eventPins, sponsorEvent }: Sideb
       </div>
       <div className="shrink-0 w-full">
         <SidebarEventMapCard pins={eventPins} />
-      </div>
-      <div className="mt-auto shrink-0 w-full pt-1">
-        <LegalComplianceSidebarButton />
       </div>
     </aside>
   );

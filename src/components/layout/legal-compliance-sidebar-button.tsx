@@ -1,8 +1,9 @@
 "use client";
 
 import { useLocale } from "@/components/providers/locale-provider";
+import { cn } from "@/lib/utils";
 
-export function LegalComplianceSidebarButton() {
+export function LegalComplianceSidebarButton({ className }: { className?: string }) {
   const { t } = useLocale();
 
   const scrollToLegalFooter = () => {
@@ -14,7 +15,7 @@ export function LegalComplianceSidebarButton() {
     <button
       type="button"
       onClick={scrollToLegalFooter}
-      className="w-full rounded-lg border border-border/60 bg-background/80 px-2 py-1.5 text-[10px] font-medium leading-tight text-muted-foreground transition-colors hover:border-border hover:bg-muted/50 hover:text-foreground"
+      className={cn("folk-sidebar-legal-btn", className)}
     >
       {t("sidebar.legalCompliance")}
     </button>
