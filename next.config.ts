@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 import { APT_SCENE_VIEWER_HEADERS, SECURITY_HEADERS } from "./src/lib/security-headers";
 
+/** Legacy per-tier HTML slugs only (PNG art lives under /support/tier-art/). */
+const SUPPORT_TIER_SLUG_PATTERN =
+  "seed|stone|brass|bronze|silver|gold|crystal|emerald|sapphire|ruby|diamond|mythril|orichalcum|luna|terra|jupiter|astral|cosmic";
+
 const STUDIO_REWRITE_HOSTS = [
   process.env.NEXT_PUBLIC_STUDIO_HOST?.trim(),
   "studio.mocomo.net",
@@ -87,7 +91,11 @@ const nextConfig: NextConfig = {
     return [
       { source: "/market/storage", destination: "/support?tab=storage", permanent: true },
       { source: "/market/received", destination: "/support?tab=gifts", permanent: true },
-      { source: "/support/tiers/:tier", destination: "/support/tiers", permanent: true },
+      {
+        source: `/support/tiers/:tier(${SUPPORT_TIER_SLUG_PATTERN})`,
+        destination: "/support/tiers",
+        permanent: true,
+      },
     ];
   },
   async headers() {
