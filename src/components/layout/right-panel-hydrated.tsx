@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   isProfilePath,
@@ -28,35 +28,49 @@ export function RightPanelHydrated({
   const showDefault = shouldShowDefaultRightPanel(pathname);
   const { countryCode } = useLocale();
   const [data, setData] = useState<SidebarPanelData | null>(initialData);
-  const [loading, setLoading] = useState(false);
+  const skippedInitialSidebarFetch = useRef(false);
+  const initialSponsorRef = useRef(initialData?.sponsorEvent ?? null);
+  initialSponsorRef.current = initialData?.sponsorEvent ?? null;
 
   useEffect(() => {
     if (!showDefault) {
       setData(null);
+      skippedInitialSidebarFetch.current = false;
       return;
     }
 
+    const country = countryCode || initialCountryCode;
+    if (
+      !skippedInitialSidebarFetch.current &&
+      initialData &&
+      country === initialCountryCode
+    ) {
+      skippedInitialSidebarFetch.current = true;
+      return;
+    }
+    skippedInitialSidebarFetch.current = true;
+
     let cancelled = false;
     const ac = new AbortController();
-    setLoading(true);
 
     void (async () => {
       try {
-        const params = new URLSearchParams({ country: countryCode || initialCountryCode });
+        const params = new URLSearchParams({ country });
         const res = await fetch(`/api/sidebar?${params.toString()}`, { signal: ac.signal });
         const body = await res.json();
         if (cancelled || !body.ok) return;
-        setData({
+        setData((prev) => ({
           tips: body.tips ?? [],
           sidebarAds: body.sidebarAds ?? [],
           eventPins: body.eventPins ?? [],
-        });
+          sponsorEvent: prev?.sponsorEvent ?? initialSponsorRef.current,
+        }));
       } catch {
         if (!cancelled) {
-          setData({ tips: [], sidebarAds: [], eventPins: [] });
+          setData((prev) =>
+            prev ?? { tips: [], sidebarAds: [], eventPins: [], sponsorEvent: null }
+          );
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     })();
 
@@ -68,6 +82,6 @@ export function RightPanelHydrated({
 
   if (!show) return null;
   if (isProfilePath(pathname)) return <ProfileRightPanel />;
-  if (!data) return loading ? <RightPanelSkeleton /> : null;
+  if (!data) return <RightPanelSkeleton />;
   return <RightPanelContent {...data} />;
 }

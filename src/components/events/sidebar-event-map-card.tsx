@@ -80,7 +80,7 @@ export function SidebarEventMapCard({
   return (
     <Card
       className={cn(
-        "rounded-2xl border-violet-500/20 bg-card/95 shadow-sm overflow-hidden flex flex-col min-h-0",
+        "shrink-0 rounded-2xl border-violet-500/20 bg-card/95 shadow-sm overflow-hidden",
         className
       )}
     >
@@ -94,20 +94,20 @@ export function SidebarEventMapCard({
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-col flex-1 min-h-0 p-0 gap-0">
-        <div className="flex flex-1 min-h-0 flex-col px-3 pb-2">
+      <CardContent className="p-0">
+        <div className="px-3 pb-2">
           <SubcultureEventsMapLazy
             pins={mapPins}
-            heightClassName="h-full min-h-40"
+            heightClassName="h-44"
             interactive
             showNavigationControls={false}
             showAttribution={false}
             defaultView={defaultView}
-            className="subculture-events-map--sidebar flex-1 min-h-0 h-full"
+            className="subculture-events-map--sidebar w-full"
           />
         </div>
 
-        <div className="mt-auto shrink-0 border-t border-border/50 px-3 py-2.5">
+        <div className="border-t border-border/50 px-3 py-2.5">
           <Link
             href="/events/map"
             className="flex w-full items-center justify-center rounded-xl border border-violet-500/25 bg-violet-500/8 px-3 py-2 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-500/15 dark:text-violet-300 dark:hover:bg-violet-500/20"

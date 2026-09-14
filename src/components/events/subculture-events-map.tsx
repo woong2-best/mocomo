@@ -425,12 +425,18 @@ export function SubcultureEventsMap({
         immersive
           ? "absolute inset-0 overflow-hidden subculture-events-map subculture-events-map--immersive"
           : "relative rounded-xl overflow-hidden border border-border/60 subculture-events-map",
+        !immersive && heightClassName,
         className
       )}
       data-functional-canvas
       data-pin-drop={pinDropMode ? "true" : undefined}
     >
-      <div ref={containerRef} className={cn("w-full h-full z-0", heightClassName)} />
+      <div
+        ref={containerRef}
+        className={cn(
+          immersive ? cn("w-full h-full z-0", heightClassName) : "absolute inset-0 z-0 h-full w-full"
+        )}
+      />
       {pinDropMode && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none rounded-full bg-emerald-600/90 px-3 py-1.5 text-xs font-medium text-white shadow-lg">
           지도를 클릭해 장소를 추가하세요
@@ -442,8 +448,7 @@ export function SubcultureEventsMap({
             "absolute inset-0 flex items-center justify-center text-xs z-10",
             immersive
               ? "text-white/70 bg-black"
-              : "text-muted-foreground bg-muted/40",
-            heightClassName
+              : "text-muted-foreground bg-muted/40"
           )}
         >
           지도 불러오는 중…

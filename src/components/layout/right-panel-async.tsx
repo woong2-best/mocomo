@@ -10,6 +10,7 @@ import {
   shouldShowRightPanel,
 } from "@/lib/sidebar-panel-paths";
 import { RightPanelHydrated } from "@/components/layout/right-panel-hydrated";
+import { getSponsorSpotPreview } from "@/lib/sponsor-spot-server";
 
 export async function RightPanelAsync() {
   const pathname = (await headers()).get("x-pathname") ?? "/";
@@ -18,9 +19,10 @@ export async function RightPanelAsync() {
     return <RightPanelHydrated initialData={null} countryCode="KR" />;
   }
 
-  const [countryCode, raw] = await Promise.all([
+  const [countryCode, raw, sponsorEvent] = await Promise.all([
     getRequestCountryCode(),
     getCachedSidebarPanelData(pathname),
+    getSponsorSpotPreview(),
   ]);
   const eventPins = selectSidebarEventPins(
     resolveSubculturePinsForUser(raw.eventPins, countryCode)
@@ -28,7 +30,7 @@ export async function RightPanelAsync() {
 
   return (
     <RightPanelHydrated
-      initialData={{ ...raw, eventPins }}
+      initialData={{ ...raw, eventPins, sponsorEvent }}
       countryCode={countryCode}
     />
   );

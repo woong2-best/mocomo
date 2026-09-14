@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Megaphone, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale } from "@/components/providers/locale-provider";
 import { localizeSidebarAdTitle } from "@/lib/sidebar-ad-i18n";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
+import type { SponsorSpotEvent } from "@/lib/sponsor-spot-server";
 
 type SidebarAd = {
   id: string;
@@ -17,42 +17,43 @@ type SidebarAd = {
   ctaLabel: string | null;
 };
 
-type SponsorEvent = { id: string; title: string; imageUrl: string };
-
-export function SponsoredSidebarCard({ sidebarAds }: { sidebarAds: SidebarAd[] }) {
-  const pathname = usePathname();
+export function SponsoredSidebarCard({
+  sidebarAds,
+  initialSponsorEvent = null,
+}: {
+  sidebarAds: SidebarAd[];
+  initialSponsorEvent?: SponsorSpotEvent | null;
+}) {
   const { t } = useLocale();
-  const [event, setEvent] = useState<SponsorEvent | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [event, setEvent] = useState<SponsorSpotEvent | null>(initialSponsorEvent);
+
+  useEffect(() => {
+    setEvent(initialSponsorEvent);
+  }, [initialSponsorEvent]);
 
   useEffect(() => {
     let cancelled = false;
-    setLoaded(false);
     (async () => {
       try {
         const res = await fetch("/api/events/sponsor-spot", { credentials: "same-origin" });
         const body = await res.json();
-        if (!cancelled) {
-          setEvent(body.event ?? null);
-          setLoaded(true);
+        if (!cancelled && body.event) {
+          setEvent(body.event);
         }
       } catch {
-        if (!cancelled) {
-          setEvent(null);
-          setLoaded(true);
-        }
+        /* keep SSR / fallback ads */
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [pathname]);
+  }, []);
 
-  if (!loaded) return null;
-  if (!event && sidebarAds.length === 0) return null;
+  const hasSponsorEvent = event != null;
+  const hasFallbackAds = sidebarAds.length > 0;
 
   return (
-    <Card className="overflow-hidden border-folk-gold/40 bg-folk-gold/5">
+    <Card className="shrink-0 overflow-hidden border-folk-gold/40 bg-folk-gold/5">
       <CardHeader className="px-3 py-2.5 pb-2">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-terracotta">
@@ -69,7 +70,7 @@ export function SponsoredSidebarCard({ sidebarAds }: { sidebarAds: SidebarAd[] }
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {event ? (
+        {hasSponsorEvent ? (
           <Link
             href="/events"
             className="group relative block w-full overflow-hidden hover:opacity-95 transition-opacity"
@@ -86,7 +87,7 @@ export function SponsoredSidebarCard({ sidebarAds }: { sidebarAds: SidebarAd[] }
               </p>
             </div>
           </Link>
-        ) : (
+        ) : hasFallbackAds ? (
           sidebarAds.map((ad) => {
             const href = sanitizeAdLink(ad.linkUrl);
             const external = isExternalUrl(href);
@@ -109,6 +110,14 @@ export function SponsoredSidebarCard({ sidebarAds }: { sidebarAds: SidebarAd[] }
               </Link>
             );
           })
+        ) : (
+          <Link
+            href="/events/new"
+            className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-2 bg-muted/25 px-4 text-center text-xs text-muted-foreground transition-colors hover:bg-muted/40"
+          >
+            <Megaphone className="h-8 w-8 opacity-40" strokeWidth={1.5} />
+            <span>{t("sidebar.sponsored")}</span>
+          </Link>
         )}
       </CardContent>
     </Card>
