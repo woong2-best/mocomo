@@ -18,7 +18,11 @@ export function useLiveSocket(userId: string | undefined, channelId: string | un
     (async () => {
       const token = await fetchSocketAuthToken();
       if (cancelled || !token) return;
-      s = io(url, { auth: { token }, transports: ["websocket", "polling"] });
+      s = io(url, {
+        auth: { token },
+        transports: ["websocket"],
+        upgrade: false,
+      });
       s.on("connect", () => setConnected(true));
       s.on("disconnect", () => setConnected(false));
       setSocket(s);
@@ -68,6 +72,7 @@ export function subscribeLiveChat(
       at: payload.at,
       image: payload.image,
       supportTierSent: payload.supportTierSent,
+      broadcastRole: payload.broadcastRole,
     });
   };
   const onViewersEvt = (count: number) => onViewers?.(count);

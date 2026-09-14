@@ -34,7 +34,7 @@ export async function relayLiveChatToSocket(
         "x-relay-secret": secret,
       },
       body: JSON.stringify({ channelId, message }),
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(2000),
     });
   } catch {
     /* socket server optional */

@@ -30,6 +30,7 @@ import { SupportTierBadge } from "@/ui/SupportTierBadge";
 import { Image } from "expo-image";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useMobileLiveChatSocket } from "@/lib/live-chat-socket";
 
 type Props = {
   channelId: string;
@@ -74,6 +75,23 @@ export function LiveChatPanel({
   );
   const seenSupportRef = useRef(new Set<string>());
   const listRef = useRef<FlatList<LiveChatMessage>>(null);
+  const pendingIdRef = useRef(0);
+
+  const mergeChatLine = useCallback((line: LiveChatMessage) => {
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === line.id)) return prev;
+      const next = [...prev, line].sort((a, b) => a.at - b.at);
+      const last = next[next.length - 1];
+      if (last) sinceRef.current = Math.max(sinceRef.current, last.at);
+      return next.slice(-120);
+    });
+    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: false }));
+  }, []);
+
+  const { connected: socketConnected, relayMessage } = useMobileLiveChatSocket(
+    channelId,
+    mergeChatLine
+  );
 
   const mergeSupportLine = useCallback((line: LiveChatMessage) => {
     if (seenSupportRef.current.has(line.id)) return;
@@ -121,11 +139,12 @@ export function LiveChatPanel({
 
     void tick(true);
     const loop = () => {
+      const delayMs = socketConnected ? 12_000 : 1_500;
       timer = setTimeout(() => {
         void tick(false).finally(() => {
           if (!cancelled) loop();
         });
-      }, 2500);
+      }, delayMs);
     };
     loop();
 
@@ -134,7 +153,7 @@ export function LiveChatPanel({
       ac.abort();
       if (timer) clearTimeout(timer);
     };
-  }, [channelId, onViewerCount]);
+  }, [channelId, onViewerCount, socketConnected]);
 
   useEffect(() => {
     let cancelled = false;
@@ -167,18 +186,34 @@ export function LiveChatPanel({
   const onSend = useCallback(async () => {
     const content = draft.trim();
     if (!content || sending) return;
+
+    const tempId = `pending-${++pendingIdRef.current}`;
+    const optimistic: LiveChatMessage = {
+      id: tempId,
+      userId: currentUserId ?? "",
+      username: "me",
+      content,
+      at: Date.now(),
+      image: null,
+    };
+
     setSending(true);
     setDraft("");
+    mergeChatLine(optimistic);
+
     try {
       const res = await sendLiveChat(channelId, content);
       setMessages((prev) => {
-        if (prev.some((m) => m.id === res.message.id)) return prev;
-        const next = [...prev, res.message];
+        const without = prev.filter((m) => m.id !== tempId);
+        if (without.some((m) => m.id === res.message.id)) return without;
+        const next = [...without, res.message].sort((a, b) => a.at - b.at);
         sinceRef.current = Math.max(sinceRef.current, res.message.at);
         return next.slice(-120);
       });
-      requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+      relayMessage(res.message);
+      requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: false }));
     } catch (e) {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setDraft(content);
       const msg =
         e instanceof ApiError &&
@@ -191,7 +226,7 @@ export function LiveChatPanel({
     } finally {
       setSending(false);
     }
-  }, [channelId, draft, sending]);
+  }, [channelId, currentUserId, draft, mergeChatLine, relayMessage, sending]);
 
   const onSupportRefresh = useCallback(() => {
     void fetchLiveAlerts(channelId, alertSinceRef.current)

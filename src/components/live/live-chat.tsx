@@ -151,7 +151,7 @@ function LiveChatInner({
 
   useEffect(() => {
     if (!stickToBottomRef.current) return;
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "auto" });
   }, [displayMessages]);
 
   function onScroll() {
@@ -196,8 +196,8 @@ function LiveChatInner({
         return;
       }
       const saved = body.message as LiveChatMessage;
-      replaceOptimistic(tempId, saved);
       relayLiveChatMessage(socket, channelId, saved);
+      replaceOptimistic(tempId, saved);
     } catch {
       removeFromFeed(tempId);
       setError("네트워크 오류로 전송하지 못했습니다.");

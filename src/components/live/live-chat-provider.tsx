@@ -161,7 +161,7 @@ export function LiveChatProvider({
 
   useEffect(() => {
     void poll();
-    const ms = connected ? 3000 : 2000;
+    const ms = connected ? 12_000 : 1_500;
     const id = setInterval(poll, ms);
     return () => clearInterval(id);
   }, [poll, connected]);

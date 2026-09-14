@@ -567,7 +567,7 @@ io.on("connection", (socket: AuthedSocket) => {
 
   socket.on(
     "live_chat_relay",
-    async (data: {
+    (data: {
       channelId: string;
       message: {
         id: string;
@@ -577,26 +577,17 @@ io.on("connection", (socket: AuthedSocket) => {
         at: number;
         image?: string | null;
         supportTierSent?: string;
+        broadcastRole?: string;
       };
     }) => {
-      if (!data.channelId || !data.message?.id) return;
-      if (data.message.userId !== userId) return;
-      const channel = await prisma.voiceChannel.findUnique({
-        where: { id: data.channelId },
-        select: { isLive: true },
-      });
-      if (!channel?.isLive) return;
-      const member = await prisma.voiceMember.findUnique({
-        where: { channelId_userId: { channelId: data.channelId, userId } },
-      });
-      if (!member) {
-        await prisma.voiceMember.upsert({
-          where: { channelId_userId: { channelId: data.channelId, userId } },
-          create: { channelId: data.channelId, userId, role: "VIEWER", lastSeenAt: new Date() },
-          update: { lastSeenAt: new Date() },
-        });
-      }
-      io.to(`live:${data.channelId}`).emit("live_chat_message", data.message);
+      const channelId = data.channelId?.trim();
+      const message = data.message;
+      if (!channelId || channelId.length > 64 || !message?.id || !message.username) return;
+      if (message.userId !== userId) return;
+      if (!message.content || message.content.length > 200) return;
+      const room = `live:${channelId}`;
+      if (!socket.rooms.has(room)) return;
+      io.to(room).emit("live_chat_message", message);
     }
   );
 

@@ -7,7 +7,10 @@ import { moderateLiveChatFast } from "@/lib/ai-moderation";
 import { relayLiveChatToSocket } from "@/lib/live-chat-socket-relay";
 import { ensureStringArray } from "@/lib/ensure-array";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
-import { mapLiveChatMessagesWithRoles, mapSingleLiveChatMessage } from "@/lib/live-broadcast/map-chat";
+import {
+  mapLiveChatMessagesWithRoles,
+  type LiveChatMessageDto,
+} from "@/lib/live-broadcast/map-chat";
 import { assertCanSendLiveChat } from "@/lib/live-broadcast/chat-access";
 import { getEffectiveBroadcastRole, hasBroadcastPermission } from "@/lib/live-broadcast/permissions";
 
@@ -95,8 +98,6 @@ export async function POST(
     return NextResponse.json({ error: "방송에 참여한 뒤 채팅할 수 있습니다." }, { status: 403 });
   }
 
-  await ensureLiveMember(channelId, session.user.id, access.isHost);
-
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
     select: {
@@ -109,26 +110,28 @@ export async function POST(
     return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
   }
 
-  const chatAccess = await assertCanSendLiveChat({
-    channelId,
-    userId: session.user.id,
-    hostUserId: channel.createdBy,
-  });
-  if (!chatAccess.ok) {
-    return NextResponse.json({ error: chatAccess.error }, { status: 403 });
-  }
-
   const filtered = filterLiveChatContent(content, ensureStringArray(channel.chatBannedWords));
   if (!filtered.ok) {
     return NextResponse.json({ error: filtered.error }, { status: 400 });
   }
 
-  const mod = await moderateLiveChatFast(filtered.text);
+  const [_, chatAccess, mod, modRole] = await Promise.all([
+    ensureLiveMember(channelId, session.user.id, access.isHost),
+    assertCanSendLiveChat({
+      channelId,
+      userId: session.user.id,
+      hostUserId: channel.createdBy,
+    }),
+    moderateLiveChatFast(filtered.text),
+    getEffectiveBroadcastRole(channelId, session.user.id),
+  ]);
+  if (!chatAccess.ok) {
+    return NextResponse.json({ error: chatAccess.error }, { status: 403 });
+  }
   if (!mod.ok) {
     return NextResponse.json({ error: mod.error }, { status: 400 });
   }
 
-  const modRole = await getEffectiveBroadcastRole(channelId, session.user.id);
   const modExempt = hasBroadcastPermission(modRole, "chat.delete");
 
   if (!modExempt) {
@@ -168,7 +171,16 @@ export async function POST(
       data: { channelId, userId: session.user.id, content: filtered.text },
       include: { user: { select: userPublicSelectMinimal } },
     });
-    const mapped = await mapSingleLiveChatMessage(channelId, msg);
+    const mapped: LiveChatMessageDto = {
+      id: msg.id,
+      userId: msg.user.id,
+      username: msg.user.username,
+      content: msg.content,
+      at: msg.createdAt.getTime(),
+      image: msg.user.image,
+      supportTierSent: msg.user.supportTierSent,
+      broadcastRole: modRole !== "VIEWER" ? modRole : undefined,
+    };
     void relayLiveChatToSocket(channelId, mapped);
     return NextResponse.json({ ok: true, message: mapped });
   } catch (e) {

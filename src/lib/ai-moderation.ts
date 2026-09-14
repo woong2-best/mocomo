@@ -65,7 +65,7 @@ export async function moderateChatWithAi(text: string): Promise<ModerationResult
   return callModerationApi(text, 8000);
 }
 
-/** 라이브 채팅 — 1.2초 이내 응답 (느리면 통과) */
+/** 라이브 채팅 — 400ms 이내 (느리면 통과, 채팅 지연 최소화) */
 export async function moderateLiveChatFast(text: string): Promise<ModerationResult> {
-  return callModerationApi(text, 1200);
+  return callModerationApi(text, 400);
 }
