@@ -74,8 +74,11 @@ export function Sidebar() {
               <PenSquare className="h-4 w-4 shrink-0" />
               {t("nav.compose")}
             </ComposeOpenButton>
-            <LegalComplianceSidebarButton className="mt-1.5" />
           </div>
+        </div>
+
+        <div className="folk-sidebar-legal shrink-0">
+          <LegalComplianceSidebarButton />
         </div>
       </aside>
     </div>

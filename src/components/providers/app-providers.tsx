@@ -12,6 +12,7 @@ import { ComposeProvider } from "@/components/compose/compose-provider";
 import { FeedPhotoLightboxProvider } from "@/components/media/feed-photo-lightbox-provider";
 import { PublishedToastProvider } from "@/components/providers/published-toast-provider";
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
+import { LegalComplianceProvider } from "@/components/providers/legal-compliance-provider";
 import { TopProgressProvider } from "@/components/providers/top-progress-provider";
 import { StaleDeploymentRecovery } from "@/components/providers/stale-deployment-recovery";
 import type { Locale } from "@/lib/i18n/config";
@@ -71,6 +72,7 @@ export function AppProviders({
                   <FeedPhotoLightboxProvider>
                     <ComposeProvider>
                       <SidebarToggleProvider>
+                        <LegalComplianceProvider>
                         <StaleDeploymentRecovery />
                         <ClientTranslationWarmup />
                         <PortOneIdentityScript />
@@ -82,6 +84,7 @@ export function AppProviders({
                           <AddAccountFlowHandler />
                           {children}
                         </CallProviderGate>
+                        </LegalComplianceProvider>
                       </SidebarToggleProvider>
                     </ComposeProvider>
                   </FeedPhotoLightboxProvider>

@@ -439,7 +439,8 @@ html[data-client="app"] .native-live-pad {
   }
 
   .folk-sidebar-nav-stack .folk-sidebar-nav,
-  .folk-sidebar-nav-stack .folk-sidebar-compose {
+  .folk-sidebar-nav-stack .folk-sidebar-compose,
+  .folk-sidebar-legal {
     width: 100%;
     max-width: 11.75rem;
     margin-inline: auto;
@@ -732,6 +733,13 @@ html[data-client="app"] .native-live-pad {
     @apply flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-white/40 bg-white/10 text-sm font-semibold text-white backdrop-blur-sm shadow-none transition-all hover:border-folk-terracotta/80 hover:bg-white/15 active:scale-[0.98];
     padding-top: clamp(0.625rem, 1.5vh, 0.875rem);
     padding-bottom: clamp(0.625rem, 1.5vh, 0.875rem);
+  }
+
+  .folk-sidebar-legal {
+    @apply shrink-0 border-t border-white/15 bg-transparent backdrop-blur-sm;
+    margin-top: auto;
+    padding: clamp(0.5rem, 1.25vh, 0.75rem) clamp(0.5rem, 1vh, 0.5rem)
+      clamp(0.625rem, 1.5vh, 0.875rem);
   }
 
   .folk-sidebar-legal-btn {

@@ -23,6 +23,7 @@ import { REELS_PATH } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
 import { pageVariants } from "@/lib/motion-presets";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { useLegalCompliance } from "@/components/providers/legal-compliance-provider";
 
 function AppShellInner({
   children,
@@ -46,6 +47,7 @@ function AppShellInner({
   const mainPb = mainScrollPaddingClass(pathname);
   const showRightPanel = shouldShowRightPanel(pathname);
   const reduced = usePrefersReducedMotion();
+  const { isOpen: legalComplianceOpen } = useLegalCompliance();
   const prevPathRef = useRef(pathname);
   const isProfileRoute = pathname.startsWith("/u/");
   const skipHubMotion =
@@ -175,7 +177,8 @@ function AppShellInner({
           id="mocomo-legal-footer"
           className={cn(
             "border-t border-border py-3 px-4 lg:px-6 bg-muted/20 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:pb-3 scroll-mt-4",
-            isHubChrome && "hidden lg:block"
+            isHubChrome && "hidden lg:block",
+            !legalComplianceOpen && "hidden lg:hidden"
           )}
         >
           <LegalFooterLinks />
