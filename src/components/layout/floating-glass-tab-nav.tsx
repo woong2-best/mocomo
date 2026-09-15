@@ -83,9 +83,7 @@ export function FloatingGlassTabNav({ layoutId = "floating-tab-glow", className 
     >
       <motion.div
         className="floating-tab-nav-pill"
-        initial={reduced ? false : { y: 24, opacity: 0 }}
-        animate={reduced ? undefined : { y: 0, opacity: 1 }}
-        transition={springSnappy}
+        initial={false}
       >
         <div className="floating-tab-nav-row">
           {tabs.map(({ href, icon: Icon, labelKey, match }) => {

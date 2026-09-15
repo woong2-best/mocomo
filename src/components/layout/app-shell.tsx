@@ -19,7 +19,7 @@ import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { isAptImmersivePath } from "@/lib/apt-route";
 import { isFastHubPath } from "@/lib/hub-fast-path";
 import { isCommunityServerPath } from "@/lib/community-server/path";
-import { REELS_PATH } from "@/lib/site-routes";
+import { REELS_PATH, isCommunityFeedPath } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
 import { pageVariants } from "@/lib/motion-presets";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
@@ -50,6 +50,7 @@ function AppShellInner({
   const { isOpen: legalComplianceOpen } = useLegalCompliance();
   const prevPathRef = useRef(pathname);
   const isProfileRoute = pathname.startsWith("/u/");
+  const isHomeFeed = isCommunityFeedPath(pathname);
   const skipHubMotion =
     prevPathRef.current !== pathname &&
     isFastHubPath(prevPathRef.current) &&
@@ -80,7 +81,12 @@ function AppShellInner({
       : "min-h-full";
 
   const pageMotion =
-    reduced || isProfileRoute || sameCommunityNav || sameMessagesNav || skipHubMotion ? (
+    reduced ||
+    isHomeFeed ||
+    isProfileRoute ||
+    sameCommunityNav ||
+    sameMessagesNav ||
+    skipHubMotion ? (
       <div key={motionKey} className={motionClass}>
         {children}
       </div>

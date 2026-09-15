@@ -293,7 +293,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
         >
           업로드하기
         </Link>
-        <Link href="/feed" className="text-sm text-white/70 underline">
+        <Link href="/" className="text-sm text-white/70 underline">
           피드로 돌아가기
         </Link>
       </div>
@@ -312,7 +312,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
       >
       <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.5rem,env(safe-area-inset-top))]">
         <Link
-          href="/feed"
+          href="/"
           className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           aria-label="Back"
         >

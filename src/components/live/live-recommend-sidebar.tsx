@@ -60,7 +60,7 @@ export function LiveRecommendSidebar({
           {t("live.sideBrowse")}
         </Link>
         <Link
-          href="/feed"
+          href="/"
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           <Heart className="h-3.5 w-3.5" />

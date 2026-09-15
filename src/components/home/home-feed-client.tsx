@@ -1,24 +1,12 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { FolkBrushDivider } from "@/components/brand/folk-decor";
 import { PageSection } from "@/components/layout/page-section";
 import { useLocale } from "@/components/providers/locale-provider";
 import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import { FeedScrollTopOnMount } from "@/components/post/post-flash-highlight";
 import type { FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
-
-const FeedInfinite = dynamic(
-  () => import("@/components/feed/feed-infinite").then((m) => m.FeedInfinite),
-  {
-    loading: () => (
-      <div className="space-y-3 animate-pulse">
-        <div className="h-28 rounded-2xl bg-muted" />
-        <div className="h-28 rounded-2xl bg-muted" />
-      </div>
-    ),
-  }
-);
+import { FeedInfinite } from "@/components/feed/feed-infinite";
 
 export function HomeFeedClient({
   feedItems,

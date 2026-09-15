@@ -15,7 +15,7 @@ function AptGameMoreSheetInner() {
   if (!moreOpen) return null;
 
   const links = [
-    { href: "/feed", label: "커뮤니티" },
+    { href: "/", label: "커뮤니티" },
     { href: "/messages", label: "메시지" },
     { href: buildAptMailboxUrl(), label: "우편함" },
     { href: "/live", label: "라이브" },

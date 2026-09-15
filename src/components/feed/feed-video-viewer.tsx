@@ -76,7 +76,7 @@ export function FeedVideoViewer({
   >({});
   const [, startTransition] = useTransition();
   const router = useRouter();
-  const pathname = usePathname() ?? "/feed";
+  const pathname = usePathname() ?? "/";
   const { t } = useLocale();
   const closedRef = useRef(false);
   const closingViaUiRef = useRef(false);

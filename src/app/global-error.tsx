@@ -68,7 +68,7 @@ export default function GlobalError({
                 {stale ? "새로고침" : "다시 시도"}
               </button>
               <a
-                href="/feed"
+                href="/"
                 style={{
                   padding: "10px 16px",
                   borderRadius: 12,

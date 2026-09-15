@@ -86,7 +86,7 @@ export function FeedVideoPostSlide({
   function requireLogin() {
     if (status === "loading") return false;
     if (session?.user) return true;
-    const callback = authCallbackPath ?? `/feed`;
+    const callback = authCallbackPath ?? `/`;
     router.push(`/auth/signin?callbackUrl=${encodeURIComponent(callback)}`);
     return false;
   }

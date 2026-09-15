@@ -50,7 +50,7 @@ export function searchRankingHref(scope: SidebarSearchRankingScope, label: strin
     case "wiki":
       return `/anime?q=${q}`;
     case "feed":
-      return `/feed?q=${q}`;
+      return `/?q=${q}`;
     default:
       return `/search?q=${q}`;
   }

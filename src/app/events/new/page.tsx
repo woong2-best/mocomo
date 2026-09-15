@@ -55,7 +55,7 @@ export default async function NewEventPage({
     <AppPageChrome maxWidth="5xl" spacing="sm">
       <NativePageTitle>
         <div>
-          <Link href="/feed">
+          <Link href="/">
             <Button
               variant="ghost"
               size="sm"
