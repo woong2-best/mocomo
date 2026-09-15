@@ -162,7 +162,7 @@ export async function DELETE(
   }
 
   revalidatePath(`/post/${comment.postId}`);
-  revalidatePath("/feed");
+  revalidatePath("/");
   revalidatePath("/reels");
   return NextResponse.json({ ok: true });
 }

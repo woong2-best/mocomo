@@ -1,9 +1,9 @@
-import { DEFAULT_LANDING_PATH, EXPLORE_PATH } from "@/lib/site-routes";
+import { EXPLORE_PATH, isCommunityFeedPath } from "@/lib/site-routes";
 
 /** 자주 오가는 허브 — 탭/사이드바 간 전환 시 라우트 애니 생략 */
 export function isFastHubPath(pathname: string): boolean {
   if (!pathname) return false;
-  if (pathname === "/" || pathname === DEFAULT_LANDING_PATH || pathname === "/feed") return true;
+  if (isCommunityFeedPath(pathname)) return true;
   if (pathname === EXPLORE_PATH || pathname === "/discover") return true;
   if (pathname === "/games" || pathname === "/market") return true;
   if (pathname === "/market" || pathname === "/messages") return true;

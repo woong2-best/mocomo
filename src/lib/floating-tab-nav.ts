@@ -1,5 +1,7 @@
 /** Floating glass pill tab bar — parity with apps/mobile tab-layout.ts */
 
+import { isCommunityFeedPath } from "@/lib/site-routes";
+
 export const FLOATING_TAB = {
   heightPx: 68,
   horizontalInsetPx: 22,
@@ -17,11 +19,11 @@ export function floatingTabClearanceCss(): string {
 }
 
 /** Primary app tabs — 홈 · MCM(마켓) · 메세지 (RN parity) */
-export const MOBILE_PRIMARY_TAB_HREFS = ["/feed", "/market", "/messages"] as const;
+export const MOBILE_PRIMARY_TAB_HREFS = ["/", "/market", "/messages"] as const;
 
 export function isMobilePrimaryTabPath(pathname: string): boolean {
   if (!pathname) return false;
-  if (pathname === "/feed" || pathname.startsWith("/feed/")) return true;
+  if (isCommunityFeedPath(pathname)) return true;
   if (pathname === "/market" || pathname.startsWith("/market/")) return true;
   if (pathname === "/messages") return true;
   return false;

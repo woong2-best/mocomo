@@ -1,3 +1,5 @@
+import { isCommunityFeedPath } from "@/lib/site-routes";
+
 export type HeaderSearchScope =
   | "global"
   | "social"
@@ -63,11 +65,11 @@ export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
       inPage: true,
     };
   }
-  if (matchPath(path, "/feed")) {
+  if (isCommunityFeedPath(path)) {
     return {
       scope: "social",
       placeholder: "Search",
-      basePath: "/feed",
+      basePath: "/",
       inPage: true,
     };
   }

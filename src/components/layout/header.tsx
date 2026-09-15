@@ -10,7 +10,7 @@ import { HeaderAuth } from "@/components/layout/header-auth";
 import { MobileDrawerNav, MobileMenuButton } from "@/components/layout/mobile-drawer-nav";
 import { MobileHubHeader } from "@/components/layout/mobile-hub-header";
 import { SidebarToggleButton } from "@/components/layout/sidebar-toggle-button";
-import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { DEFAULT_LANDING_PATH, isCommunityFeedPath } from "@/lib/site-routes";
 import { isMobileHubChromePath } from "@/lib/floating-tab-nav";
 import { scrollMainToTop } from "@/lib/scroll-main";
 import { cn } from "@/lib/utils";
@@ -34,8 +34,7 @@ export function Header() {
   const pathname = usePathname() ?? "";
   const router = useRouter();
   const isSearchPage = pathname === "/search";
-  const isHome =
-    pathname === DEFAULT_LANDING_PATH || pathname.startsWith(`${DEFAULT_LANDING_PATH}/`);
+  const isHome = isCommunityFeedPath(pathname);
   const isHubChrome = isMobileHubChromePath(pathname);
 
   function onBrandClick(e: MouseEvent<HTMLAnchorElement>) {

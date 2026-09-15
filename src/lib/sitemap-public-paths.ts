@@ -1,7 +1,6 @@
 /** Static public routes indexed for search engines (no auth-required areas). */
 export const PUBLIC_SITEMAP_PATHS = [
   "/",
-  "/feed",
   "/explore",
   "/reels",
   "/live",
@@ -18,7 +17,6 @@ export const PUBLIC_SITEMAP_PATHS = [
   "/cosplay",
   "/cosplay/profiles",
   "/works",
-  "/events",
   "/flowers",
   "/money",
   "/legal",

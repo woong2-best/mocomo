@@ -8,7 +8,7 @@ import { Home, Send, Store, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
-import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { DEFAULT_LANDING_PATH, isCommunityFeedPath } from "@/lib/site-routes";
 import { isUsedDetailPath } from "@/lib/mobile-shell";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { navIconTap, springSnappy } from "@/lib/motion-presets";
@@ -25,7 +25,7 @@ const signedInTabs: TabDef[] = [
     href: DEFAULT_LANDING_PATH,
     icon: Home,
     labelKey: "nav.home",
-    match: (p) => p === DEFAULT_LANDING_PATH || p.startsWith(`${DEFAULT_LANDING_PATH}/`),
+    match: (p) => isCommunityFeedPath(p),
   },
   {
     href: "/market",
@@ -48,7 +48,7 @@ const guestTabs: TabDef[] = [
     href: DEFAULT_LANDING_PATH,
     icon: Home,
     labelKey: "nav.home",
-    match: (p) => p === DEFAULT_LANDING_PATH || p.startsWith(`${DEFAULT_LANDING_PATH}/`),
+    match: (p) => isCommunityFeedPath(p),
   },
   {
     href: "/market",

@@ -58,7 +58,7 @@ export async function updatePostsLocked(data: { locked: boolean }) {
 
   revalidatePath("/settings");
   revalidatePath("/", "layout");
-  revalidatePath("/feed");
+  revalidatePath("/");
   if (prev.username) {
     revalidatePath(`/u/${prev.username}`);
     revalidateTag(profileUserCacheTag(prev.username));

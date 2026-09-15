@@ -26,7 +26,7 @@ import { deleteOwnPost } from "@/actions/post-delete";
 import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
 import { notifyPostDeleted } from "@/lib/post-deleted-sync";
 import { postUrl } from "@/lib/post-share";
-import { COMMUNITY_FEED_PATH, DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { DEFAULT_LANDING_PATH, isCommunityFeedPath } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
 import {
   FLASH_POST_STORAGE_KEY,
@@ -123,11 +123,7 @@ export function PublishedToastPill({
     }
 
     // 상세 href가 명시된 메뉴용 — 본문 클릭은 피드 맨 위
-    const onFeed =
-      pathname === "/" ||
-      pathname === DEFAULT_LANDING_PATH ||
-      pathname === COMMUNITY_FEED_PATH ||
-      pathname?.startsWith("/feed");
+    const onFeed = pathname ? isCommunityFeedPath(pathname) : false;
 
     if (onFeed) {
       scrollMainToTop();

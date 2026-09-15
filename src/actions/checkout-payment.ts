@@ -24,7 +24,7 @@ function revalidateAfterPayment(type: string) {
   revalidatePath("/support");
   revalidatePath("/wallet");
   revalidatePath("/");
-  revalidatePath("/feed");
+  revalidatePath("/");
   if (type === "POST_MEDIA") {
     revalidatePath("/post/[id]", "page");
     revalidatePath("/u/[username]", "page");

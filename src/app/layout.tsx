@@ -10,6 +10,7 @@ import { isStudioHostname, resolveRequestHostname } from "@/studio/lib/host";
 import { RightPanelAsync } from "@/components/layout/right-panel-async";
 import { RightPanelSkeleton } from "@/components/layout/right-panel-content";
 import { BRAND } from "@/lib/brand";
+import { getPublicSiteOrigin } from "@/lib/site-url";
 import { cookies, headers } from "next/headers";
 import "./globals.css";
 
@@ -31,6 +32,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getPublicSiteOrigin()),
   title: `${BRAND.name} - ${BRAND.tagline}`,
   description: BRAND.description,
   manifest: "/manifest.json",

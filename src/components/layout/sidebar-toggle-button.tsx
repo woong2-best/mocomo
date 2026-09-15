@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Menu } from "lucide-react";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
-import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { DEFAULT_LANDING_PATH, isCommunityFeedPath } from "@/lib/site-routes";
 import { scrollMainToTop } from "@/lib/scroll-main";
 import { useSidebarToggle } from "@/components/providers/sidebar-toggle-provider";
 import { isCommunityServerPath } from "@/lib/community-server/path";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 export function SidebarToggleButton() {
   const pathname = usePathname() ?? "";
   const router = useRouter();
-  const isHome = pathname === DEFAULT_LANDING_PATH || pathname.startsWith(`${DEFAULT_LANDING_PATH}/`);
+  const isHome = isCommunityFeedPath(pathname);
   const isCommunityServer = isCommunityServerPath(pathname);
   const { open: sidebarOpen, toggle: toggleSidebar } = useSidebarToggle();
 

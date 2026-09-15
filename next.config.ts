@@ -89,6 +89,8 @@ const nextConfig: NextConfig = {
     // Legacy emoticon-shop URLs only. Do NOT redirect /market itself —
     // MARKET is the Stripe Connect marketplace (was wrongly sent to /support).
     return [
+      { source: "/feed", destination: "/", permanent: true },
+      { source: "/events", destination: "/events/new", permanent: false },
       { source: "/market/storage", destination: "/support?tab=storage", permanent: true },
       { source: "/market/received", destination: "/support?tab=gifts", permanent: true },
       {

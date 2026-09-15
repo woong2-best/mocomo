@@ -6,7 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, Search } from "lucide-react";
 import { BRAND } from "@/lib/brand";
-import { DEFAULT_LANDING_PATH, EXPLORE_PATH } from "@/lib/site-routes";
+import {
+  DEFAULT_LANDING_PATH,
+  EXPLORE_PATH,
+  isCommunityFeedPath,
+} from "@/lib/site-routes";
 import { HeaderAuth } from "@/components/layout/header-auth";
 import { HeaderSearch } from "@/components/search/header-search";
 import { cn } from "@/lib/utils";
@@ -44,7 +48,7 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   }
   if (pathname.startsWith("/auth/")) return "계정";
   if (pathname === EXPLORE_PATH) return t("nav.explore");
-  if (pathname === DEFAULT_LANDING_PATH || pathname === "/feed") return t("nav.home");
+  if (isCommunityFeedPath(pathname)) return t("nav.home");
   if (pathname === "/games") return t("nav.games");
   if (pathname.startsWith("/games/")) {
     if (pathname === "/games/ranking") return "게임 랭킹";

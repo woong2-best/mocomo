@@ -164,7 +164,7 @@ export async function POST(
     });
 
     revalidatePath(`/post/${postId}`);
-    revalidatePath("/feed");
+    revalidatePath("/");
     revalidatePath("/reels");
 
     return NextResponse.json({
