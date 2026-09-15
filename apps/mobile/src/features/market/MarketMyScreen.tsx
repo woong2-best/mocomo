@@ -231,9 +231,6 @@ export function MarketMyScreen() {
             />
             <View style={styles.adOverlay}>
               <Text style={styles.adBadge}>이벤트 · 광고</Text>
-              <Text style={styles.adTitle} numberOfLines={2}>
-                {sponsor.title}
-              </Text>
             </View>
           </Pressable>
         ) : null}

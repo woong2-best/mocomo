@@ -75,6 +75,7 @@ export function SponsoredSidebarCard({
           <SponsorAdClickLink
             linkUrl={event.linkUrl}
             className="group relative block w-full overflow-hidden hover:opacity-95 transition-opacity"
+            aria-label={event.title || t("sidebar.sponsored")}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -82,11 +83,6 @@ export function SponsoredSidebarCard({
               alt=""
               className="block w-full aspect-[4/5] object-cover"
             />
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pb-3 pt-10">
-              <p className="text-sm font-bold text-white line-clamp-2 group-hover:text-folk-gold transition-colors">
-                {event.title}
-              </p>
-            </div>
           </SponsorAdClickLink>
         ) : hasFallbackAds ? (
           sidebarAds.map((ad) => {

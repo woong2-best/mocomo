@@ -21,21 +21,10 @@ function sponsorHandle(name: string | null | undefined): string {
   return `@${base.toLowerCase()}`;
 }
 
-function sourceLabel(url: string): string | null {
-  try {
-    if (!url.startsWith("http")) return null;
-    const host = new URL(url).hostname.replace(/^www\./, "");
-    return host || null;
-  } catch {
-    return null;
-  }
-}
-
 function FeedAdCardInner({ ad }: { ad: FeedAd }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const sponsor = ad.sponsorName?.trim() || "MoCoMo";
-  const source = sourceLabel(ad.linkUrl);
 
   const onPress = () => {
     const url = ad.linkUrl.startsWith("http")
@@ -72,8 +61,6 @@ function FeedAdCardInner({ ad }: { ad: FeedAd }) {
         cachePolicy={IMAGE_CACHE_POLICY}
         transition={0}
       />
-
-      {source ? <Text style={styles.source}>출처: {source}</Text> : null}
 
       <View style={styles.actions}>
         <View style={styles.actionGroup}>
@@ -137,11 +124,6 @@ function createStyles(colors: ThemeColors) {
       aspectRatio: 16 / 9,
       borderRadius: 14,
       backgroundColor: colors.border,
-      marginBottom: spacing.xs,
-    },
-    source: {
-      fontSize: 12,
-      color: colors.textMuted,
       marginBottom: spacing.xs,
     },
     actions: {

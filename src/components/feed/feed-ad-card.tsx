@@ -18,22 +18,10 @@ function sponsorHandle(name: string | null | undefined): string {
   return `@${base.toLowerCase()}`;
 }
 
-function sourceLabel(url: string): string | null {
-  try {
-    const href = sanitizeAdLink(url);
-    if (!isExternalUrl(href)) return null;
-    const host = new URL(href).hostname.replace(/^www\./, "");
-    return host || null;
-  } catch {
-    return null;
-  }
-}
-
 export function FeedAdCard({ ad }: { ad: FeedAd }) {
   const href = sanitizeAdLink(ad.linkUrl);
   const external = isExternalUrl(href);
   const sponsor = ad.sponsorName?.trim() || "MoCoMo";
-  const source = sourceLabel(ad.linkUrl);
 
   return (
     <article className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -77,18 +65,6 @@ export function FeedAdCard({ ad }: { ad: FeedAd }) {
               className="w-full aspect-[16/9] object-cover"
             />
           </Link>
-          {source && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              출처:{" "}
-              <Link
-                href={href}
-                {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                className="hover:underline"
-              >
-                {source}
-              </Link>
-            </p>
-          )}
         </div>
       </div>
       <div className="flex items-center justify-between px-4 py-2 border-t border-border/60 text-muted-foreground">
