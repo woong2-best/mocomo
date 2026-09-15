@@ -193,7 +193,7 @@ export function PublishedToastPill({
     notifyPostDeleted(postId);
     onShowInfo({ message: t("toast.deleted") });
     if (pathname?.startsWith("/post/")) {
-      router.push(COMMUNITY_FEED_PATH);
+      router.push(DEFAULT_LANDING_PATH);
     }
 
     try {
