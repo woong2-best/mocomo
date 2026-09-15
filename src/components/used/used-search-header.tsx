@@ -38,12 +38,12 @@ export function UsedSearchHeader({
   return (
     <div
       className={cn(
-        "space-y-3 pb-2 -mx-4 px-4 pt-1 border-b border-border transition-opacity",
+        "space-y-2 pb-2 -mx-4 px-4 pt-0 border-b border-border/60 transition-opacity",
         isPending && "opacity-60"
       )}
     >
       {activeQ ? (
-        <div className="flex items-center justify-between gap-2 pt-1">
+        <div className="flex items-center justify-between gap-2 pt-0.5">
           <p className="text-[10px] text-muted-foreground">
             검색: <span className="text-foreground font-medium">&quot;{activeQ}&quot;</span>
           </p>
@@ -57,11 +57,7 @@ export function UsedSearchHeader({
         </div>
       ) : null}
 
-      <UsedWorkProductFilters onNavigate={apply} isPending={isPending} />
-
-      <UsedSubcultureFilters onNavigate={apply} isPending={isPending} />
-
-      <section className="space-y-2">
+      <section className="space-y-1.5">
         <h3 className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
           <LayoutGrid className="h-3 w-3" />
           카테고리 · 경매
@@ -123,6 +119,11 @@ export function UsedSearchHeader({
         onNavigate={apply}
         isPending={isPending}
       />
+
+      <div className="space-y-2 pt-0.5 border-t border-border/60">
+        <UsedWorkProductFilters onNavigate={apply} isPending={isPending} />
+        <UsedSubcultureFilters onNavigate={apply} isPending={isPending} />
+      </div>
     </div>
   );
 }

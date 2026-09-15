@@ -88,7 +88,7 @@ async function UsedFeed({
   }
 
   return (
-    <PageSection title="상품 목록" description={`${listings.length}개`}>
+    <PageSection title="상품 목록" description={`${listings.length}개`} variant="plain" className="pt-1">
       <UsedListingGrid
         listings={listings}
         viewerUserId={session?.user?.id ?? null}
@@ -119,7 +119,7 @@ export default async function UsedHomePage({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <UsedSearchHeader
         viewerCountryCode={scope.countryCode}
         viewerServiceRegion={scope.serviceRegion}
