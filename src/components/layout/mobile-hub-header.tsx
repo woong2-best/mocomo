@@ -25,10 +25,11 @@ function SearchPill() {
 /** RN FeedScreen header strip — menu · search · bell · avatar */
 export function MobileHubHeader({ className }: { className?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const username = session?.user?.username;
   const displayName = session?.user?.name || username || "?";
+  const sessionPending = status === "loading";
 
   return (
     <>
@@ -50,7 +51,13 @@ export function MobileHubHeader({ className }: { className?: string }) {
           <Bell className="h-[22px] w-[22px]" strokeWidth={2} />
         </Link>
 
-        {username ? (
+        {sessionPending ? (
+          <div
+            className="h-10 w-10 shrink-0 rounded-full bg-muted/60 animate-pulse"
+            aria-busy="true"
+            aria-label="Loading session"
+          />
+        ) : username ? (
           <Link
             href={`/u/${username}`}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full"

@@ -80,7 +80,7 @@ export function SidebarEventMapCard({
   return (
     <Card
       className={cn(
-        "shrink-0 rounded-2xl border-violet-500/20 bg-card/95 shadow-sm overflow-hidden",
+        "shrink-0 min-w-0 rounded-2xl border-violet-500/20 bg-card/95 shadow-sm overflow-hidden",
         className
       )}
     >
@@ -92,8 +92,8 @@ export function SidebarEventMapCard({
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="p-0">
-        <div className="px-3 pb-2">
+      <CardContent className="min-w-0 p-0">
+        <div className="min-w-0 overflow-hidden px-3 pb-2">
           <SubcultureEventsMapLazy
             pins={mapPins}
             heightClassName="aspect-[4/5] w-full"

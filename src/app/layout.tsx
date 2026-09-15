@@ -11,6 +11,7 @@ import { RightPanelAsync } from "@/components/layout/right-panel-async";
 import { RightPanelSkeleton } from "@/components/layout/right-panel-content";
 import { BRAND } from "@/lib/brand";
 import { getPublicSiteOrigin } from "@/lib/site-url";
+import { getCachedSession } from "@/lib/auth";
 import { cookies, headers } from "next/headers";
 import "./globals.css";
 
@@ -56,7 +57,10 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { locale, countryCode, timeZone } = await getRequestI18n();
+  const [{ locale, countryCode, timeZone }, initialSession] = await Promise.all([
+    getRequestI18n(),
+    getCachedSession(),
+  ]);
   const cookieStore = await cookies();
   const headerStore = await headers();
   const initialPlatform = resolveClientPlatform({
@@ -91,6 +95,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               initialLocale={locale}
               initialCountryCode={countryCode}
               initialTimeZone={timeZone}
+              initialSession={initialSession}
             >
               <ShellRouter
                 initialPlatform={initialPlatform}

@@ -11,9 +11,35 @@ import { resolveProfileDisplayTier } from "@/lib/settlement-moco/balance";
 import { getTierInfo, SUPPORT_TIERS_PAGE_PATH } from "@/lib/tiers";
 import { useLocale } from "@/components/providers/locale-provider";
 
+function HeaderAuthPending({ compact }: { compact: boolean }) {
+  if (compact) {
+    return (
+      <div
+        className="h-8 w-16 shrink-0 rounded-full bg-muted/60 animate-pulse"
+        aria-hidden
+      />
+    );
+  }
+
+  return (
+    <div
+      className="flex items-center gap-1.5 shrink-0"
+      aria-busy="true"
+      aria-label="Loading session"
+    >
+      <div className="h-8 w-[72px] rounded-xl bg-muted/60 animate-pulse" aria-hidden />
+      <div className="h-8 w-[56px] rounded-xl bg-muted/60 animate-pulse" aria-hidden />
+    </div>
+  );
+}
+
 export function HeaderAuth({ compact = false }: { compact?: boolean }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { t } = useLocale();
+
+  if (status === "loading") {
+    return <HeaderAuthPending compact={compact} />;
+  }
 
   if (session?.user) {
     const displayTier = resolveProfileDisplayTier(

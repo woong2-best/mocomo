@@ -445,13 +445,15 @@ export function SubcultureEventsMap({
       {!ready && (
         <div
           className={cn(
-            "absolute inset-0 flex items-center justify-center text-xs z-10",
+            "absolute inset-0 z-10 flex min-w-0 items-center justify-center overflow-hidden px-2 text-center",
             immersive
               ? "text-white/70 bg-black"
               : "text-muted-foreground bg-muted/40"
           )}
         >
-          지도 불러오는 중…
+          <span className="max-w-full truncate text-[11px] leading-snug sm:text-xs">
+            지도 불러오는 중…
+          </span>
         </div>
       )}
     </div>

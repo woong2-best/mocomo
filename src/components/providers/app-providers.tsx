@@ -16,6 +16,7 @@ import { LegalComplianceProvider } from "@/components/providers/legal-compliance
 import { TopProgressProvider } from "@/components/providers/top-progress-provider";
 import { StaleDeploymentRecovery } from "@/components/providers/stale-deployment-recovery";
 import type { Locale } from "@/lib/i18n/config";
+import type { Session } from "next-auth";
 import { PortOneIdentityScript } from "@/components/adult-verification/portone-identity-sdk";
 
 const PlatformBootstrapClient = dynamic(
@@ -51,14 +52,16 @@ export function AppProviders({
   initialLocale,
   initialCountryCode,
   initialTimeZone,
+  initialSession,
 }: {
   children: React.ReactNode;
   initialLocale: Locale;
   initialCountryCode: string;
   initialTimeZone?: string;
+  initialSession?: Session | null;
 }) {
   return (
-    <SessionProvider>
+    <SessionProvider session={initialSession}>
       <LocaleProvider
         initialLocale={initialLocale}
         initialCountryCode={initialCountryCode}
