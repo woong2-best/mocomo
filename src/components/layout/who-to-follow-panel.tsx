@@ -29,7 +29,9 @@ function sharedLine(
 export function WhoToFollowPanel() {
   const { t } = useLocale();
   const session = useSession();
-  const signedIn = Boolean(session?.data?.user?.id);
+  const sessionPending = session.status === "loading";
+  const signedIn =
+    session.status === "authenticated" && Boolean(session.data?.user?.id);
   const [items, setItems] = useState<RecItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -71,7 +73,7 @@ export function WhoToFollowPanel() {
     }).catch(() => {});
   };
 
-  if (!signedIn) return null;
+  if (sessionPending || !signedIn) return null;
 
   return (
     <section className="w-full bg-card border-b border-border flex flex-col min-h-0 h-full overflow-hidden">

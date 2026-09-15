@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { PenSquare } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useAuthReady } from "@/hooks/use-auth-ready";
 import { usePathname } from "next/navigation";
 import { useCompose } from "@/components/compose/compose-provider";
 import { shouldHideNativeComposeFab } from "@/lib/native-app-shell";
@@ -10,12 +10,13 @@ import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { scaleIn, springSnappy } from "@/lib/motion-presets";
 
 export function NativeAppComposeFab() {
-  const { data: session } = useSession();
+  const { session, pending, authenticated } = useAuthReady();
   const pathname = usePathname();
   const { openCompose } = useCompose();
   const reduced = usePrefersReducedMotion();
 
-  if (!session?.user) return null;
+  if (pending && !session?.user) return null;
+  if (!authenticated) return null;
   if (shouldHideNativeComposeFab(pathname)) return null;
 
   return (

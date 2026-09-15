@@ -4,12 +4,44 @@ import dynamic from "next/dynamic";
 import type { MapEventPin } from "@/lib/subculture-events";
 import { cn } from "@/lib/utils";
 
+function MapChunkPlaceholder({
+  heightClassName,
+  className,
+}: {
+  heightClassName: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-xl border border-border/60 bg-muted/40",
+        heightClassName,
+        className
+      )}
+    >
+      <div className="absolute inset-0 flex min-w-0 items-center justify-center overflow-hidden px-2 text-center">
+        <span className="max-w-full truncate text-[11px] leading-snug text-muted-foreground sm:text-xs">
+          지도 불러오는 중…
+        </span>
+      </div>
+    </div>
+  );
+}
+
 const SubcultureEventsMapInner = dynamic(
   () =>
     import("@/components/events/subculture-events-map").then(
       (m) => m.SubcultureEventsMap
     ),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => (
+      <MapChunkPlaceholder
+        heightClassName="aspect-[4/5] w-full min-h-[8rem]"
+        className="w-full"
+      />
+    ),
+  }
 );
 
 export function SubcultureEventsMapLazy({

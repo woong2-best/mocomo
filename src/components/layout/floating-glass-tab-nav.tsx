@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Home, Send, Store, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,6 +11,8 @@ import { DEFAULT_LANDING_PATH, isCommunityFeedPath } from "@/lib/site-routes";
 import { isUsedDetailPath } from "@/lib/mobile-shell";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { navIconTap, springSnappy } from "@/lib/motion-presets";
+import { FloatingTabNavPlaceholder } from "@/components/auth/auth-chrome-placeholder";
+import { useAuthReady } from "@/hooks/use-auth-ready";
 
 type TabDef = {
   href: string;
@@ -71,10 +72,15 @@ type Props = {
 
 export function FloatingGlassTabNav({ layoutId = "floating-tab-glow", className }: Props) {
   const pathname = usePathname() ?? "";
-  const { data: session } = useSession();
+  const { session, pending, authenticated } = useAuthReady();
   const { t } = useLocale();
   const reduced = usePrefersReducedMotion();
-  const tabs = session?.user ? signedInTabs : guestTabs;
+
+  if (pending && !session?.user) {
+    return <FloatingTabNavPlaceholder className={className} />;
+  }
+
+  const tabs = authenticated ? signedInTabs : guestTabs;
 
   return (
     <nav
@@ -88,7 +94,7 @@ export function FloatingGlassTabNav({ layoutId = "floating-tab-glow", className 
         <div className="floating-tab-nav-row">
           {tabs.map(({ href, icon: Icon, labelKey, match }) => {
             const active = match(pathname);
-            const guestMessages = !session?.user && href === "/auth/signin";
+            const guestMessages = !authenticated && href === "/auth/signin";
             const linkHref =
               guestMessages ? `/auth/signin?callbackUrl=${encodeURIComponent("/messages")}` : href;
 

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import type { SupportTierLevel } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
@@ -10,6 +9,7 @@ import { OreIcon } from "@/components/support/ore-icon";
 import { resolveProfileDisplayTier } from "@/lib/settlement-moco/balance";
 import { getTierInfo, SUPPORT_TIERS_PAGE_PATH } from "@/lib/tiers";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useAuthReady } from "@/hooks/use-auth-ready";
 
 function HeaderAuthPending({ compact }: { compact: boolean }) {
   if (compact) {
@@ -34,14 +34,14 @@ function HeaderAuthPending({ compact }: { compact: boolean }) {
 }
 
 export function HeaderAuth({ compact = false }: { compact?: boolean }) {
-  const { data: session, status } = useSession();
+  const { session, pending, authenticated } = useAuthReady();
   const { t } = useLocale();
 
-  if (status === "loading") {
+  if (pending && !session?.user) {
     return <HeaderAuthPending compact={compact} />;
   }
 
-  if (session?.user) {
+  if (authenticated && session?.user) {
     const displayTier = resolveProfileDisplayTier(
       (session.user.supportTierSent ?? "SEED") as SupportTierLevel,
       (session.user.earnedMocoTier ?? "SEED") as SupportTierLevel

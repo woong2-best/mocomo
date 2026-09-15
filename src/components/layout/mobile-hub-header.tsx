@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useAuthReady } from "@/hooks/use-auth-ready";
 import { MobileDrawerNav, MobileMenuButton } from "@/components/layout/mobile-drawer-nav";
 import { HeaderSearch } from "@/components/search/header-search";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,11 +25,10 @@ function SearchPill() {
 /** RN FeedScreen header strip — menu · search · bell · avatar */
 export function MobileHubHeader({ className }: { className?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { data: session, status } = useSession();
+  const { session, pending, authenticated } = useAuthReady();
   const router = useRouter();
   const username = session?.user?.username;
   const displayName = session?.user?.name || username || "?";
-  const sessionPending = status === "loading";
 
   return (
     <>
@@ -43,21 +42,25 @@ export function MobileHubHeader({ className }: { className?: string }) {
 
         <SearchPill />
 
-        <Link
-          href="/notifications"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-muted/60"
-          aria-label="알림"
-        >
-          <Bell className="h-[22px] w-[22px]" strokeWidth={2} />
-        </Link>
+        {authenticated ? (
+          <Link
+            href="/notifications"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-muted/60"
+            aria-label="알림"
+          >
+            <Bell className="h-[22px] w-[22px]" strokeWidth={2} />
+          </Link>
+        ) : pending && !session?.user ? (
+          <div className="h-10 w-10 shrink-0 rounded-full bg-muted/60 animate-pulse" aria-hidden />
+        ) : null}
 
-        {sessionPending ? (
+        {pending && !session?.user ? (
           <div
             className="h-10 w-10 shrink-0 rounded-full bg-muted/60 animate-pulse"
             aria-busy="true"
             aria-label="Loading session"
           />
-        ) : username ? (
+        ) : authenticated && username ? (
           <Link
             href={`/u/${username}`}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
