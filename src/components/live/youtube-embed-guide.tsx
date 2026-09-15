@@ -3,7 +3,7 @@ import { AlertTriangle, ExternalLink } from "lucide-react";
 
 const GUIDE_IMAGES = {
   error: "/live/guides/youtube-embed/error-embed-blocked.png",
-  studio: "/live/guides/youtube-embed/studio-webcam.png",
+  studioEdit: "/live/guides/youtube-embed/studio-edit.png",
   unchecked: "/live/guides/youtube-embed/settings-unchecked.png",
   checked: "/live/guides/youtube-embed/settings-checked.png",
 } as const;
@@ -105,16 +105,10 @@ function GuideSteps({
 }) {
   const steps = [
     {
-      title: "YouTube Studio에서 라이브를 시작합니다",
-      body: "studio.youtube.com → 웹캠 또는 스트림으로 라이브 방송을 켭니다.",
-      image: GUIDE_IMAGES.studio,
-      alt: "YouTube Studio 웹캠 라이브 화면",
-    },
-    {
-      title: "하단 「수정」 버튼을 누릅니다",
-      body: "미리보기 아래 컨트롤 바 오른쪽에 있는 「수정」을 클릭합니다.",
-      image: GUIDE_IMAGES.studio,
-      alt: "수정 버튼 위치",
+      title: "OBS로 유튜브 라이브 시작 후 제목 옆 「수정」을 클릭합니다",
+      body: "OBS로 YouTube 라이브를 켠 뒤, 스트림 설정에서 제목 옆에 있는 「수정」 버튼을 누릅니다.",
+      image: GUIDE_IMAGES.studioEdit,
+      alt: "YouTube Studio 제목 옆 수정 버튼",
     },
     {
       title: "세부정보 → 퍼가기 허용 체크",
