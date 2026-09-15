@@ -75,6 +75,9 @@ export type MarketplaceListQuery = {
   region?: string;
   work?: string;
   product?: string;
+  condition?: string;
+  limited?: string;
+  trade?: string;
   mode?: "auction" | "all";
   mine?: boolean;
   take?: number;
@@ -91,14 +94,29 @@ export async function fetchMarketplaceList(query: MarketplaceListQuery | string 
     if (query.region) params.set("region", query.region);
     if (query.work) params.set("work", query.work);
     if (query.product) params.set("product", query.product);
+    if (query.condition) params.set("condition", query.condition);
+    if (query.limited) params.set("limited", query.limited);
+    if (query.trade) params.set("trade", query.trade);
     if (query.mode === "auction") params.set("mode", "auction");
     if (query.mine) params.set("mine", "1");
     if (query.take) params.set("take", String(query.take));
   }
   const suffix = params.toString() ? `?${params}` : "";
-  return apiRequest<{ items: MarketplaceListItem[] }>(`${MobileApi.marketplace}${suffix}`, {
-    auth: true,
-  });
+  const path = `${MobileApi.marketplace}${suffix}`;
+
+  // Browse is public — send token when present, but never hard-fail auth for listing.
+  try {
+    const res = await apiRequest<{ items: MarketplaceListItem[] }>(path, { auth: true });
+    return { items: Array.isArray(res?.items) ? res.items.filter((i) => i?.id) : [] };
+  } catch (err) {
+    if (query && typeof query !== "string" && query.mine) throw err;
+    try {
+      const res = await apiRequest<{ items: MarketplaceListItem[] }>(path, { auth: false });
+      return { items: Array.isArray(res?.items) ? res.items.filter((i) => i?.id) : [] };
+    } catch {
+      throw err;
+    }
+  }
 }
 
 export async function createMarketplaceListing(body: {
@@ -230,6 +248,7 @@ export async function payMarketplaceBidHold(
 export type UsedBankStatus = {
   countryCode: string;
   bankVerified: boolean;
+  phoneVerified?: boolean;
   emailVerified?: boolean;
   displayAccount: string | null;
   eligible: boolean;

@@ -29,8 +29,11 @@ import {
   KOREA_SIDO,
   KOREA_SIGUNGU_BY_SIDO,
   USED_CATEGORIES,
+  USED_CONDITION_GRADES,
+  USED_LIMITED_KINDS,
   USED_PRODUCT_TYPES,
   USED_SHIPPING_REGION,
+  USED_TRADE_MODES,
   usedStatusLabel,
 } from "@/features/marketplace/used-catalog";
 import { floatingTabClearance } from "@/navigation/tab-layout";
@@ -64,6 +67,12 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
   const [product, setProduct] = useState<string | null>(null);
   const [sidoPickerOpen, setSidoPickerOpen] = useState(false);
   const [sigunguPickerOpen, setSigunguPickerOpen] = useState(false);
+  const [condition, setCondition] = useState<string | null>(null);
+  const [limited, setLimited] = useState<string | null>(null);
+  const [trade, setTrade] = useState<string | null>(null);
+  const [conditionPickerOpen, setConditionPickerOpen] = useState(false);
+  const [limitedPickerOpen, setLimitedPickerOpen] = useState(false);
+  const [tradePickerOpen, setTradePickerOpen] = useState(false);
 
   const listQuery = useMemo(() => {
     const region =
@@ -78,9 +87,12 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
       region,
       work: work || undefined,
       product: product || undefined,
+      condition: condition || undefined,
+      limited: limited || undefined,
+      trade: trade || undefined,
       take: 48,
     };
-  }, [q, category, sidoId, sigungu, work, product]);
+  }, [q, category, sidoId, sigungu, work, product, condition, limited, trade]);
 
   const query = useQuery({
     queryKey: ["mobile-marketplace", listQuery],
@@ -88,9 +100,11 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
     staleTime: 90_000,
     placeholderData: (previous) => previous,
   });
-  const loading = query.isLoading && !query.data;
-
   const bottomPad = isTab ? floatingTabClearance(insets.bottom) + 56 : insets.bottom + 80;
+  const conditionLabel =
+    USED_CONDITION_GRADES.find((o) => o.id === condition)?.label ?? "상태 (전체)";
+  const limitedLabel = USED_LIMITED_KINDS.find((o) => o.id === limited)?.label ?? "한정 (전체)";
+  const tradeLabel = USED_TRADE_MODES.find((o) => o.id === trade)?.label ?? "거래 (전체)";
   const items = query.data?.items ?? [];
 
   const openWrite = useCallback(async () => {
@@ -324,37 +338,62 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
         </Pressable>
       </View>
 
+      <View style={styles.metaFilterRow}>
+        <Pressable style={styles.metaFilterBtn} onPress={() => setConditionPickerOpen(true)}>
+          <Text style={styles.metaFilterText} numberOfLines={1}>
+            {condition ? conditionLabel : "상태 (전체)"}
+          </Text>
+          <Ionicons name="chevron-down" size={12} color={colors.brand} />
+        </Pressable>
+        <Pressable style={styles.metaFilterBtn} onPress={() => setLimitedPickerOpen(true)}>
+          <Text style={styles.metaFilterText} numberOfLines={1}>
+            {limited ? limitedLabel : "한정 (전체)"}
+          </Text>
+          <Ionicons name="chevron-down" size={12} color={colors.brand} />
+        </Pressable>
+        <Pressable style={styles.metaFilterBtn} onPress={() => setTradePickerOpen(true)}>
+          <Text style={styles.metaFilterText} numberOfLines={1}>
+            {trade ? tradeLabel : "거래 (전체)"}
+          </Text>
+          <Ionicons name="chevron-down" size={12} color={colors.brand} />
+        </Pressable>
+      </View>
+
       <Text style={styles.listLabel}>
         상품 목록{"\n"}
-        <Text style={styles.listCount}>{items.length}개</Text>
+        <Text style={styles.listCount}>
+          {query.isError ? "—" : `${items.length}개`}
+        </Text>
       </Text>
     </View>
   );
 
+  const listEmpty = query.isLoading && !query.data ? (
+    <ActivityIndicator style={{ marginTop: 24 }} color={colors.terracotta} />
+  ) : query.isError ? (
+    <View style={styles.listEmptyBox}>
+      <Text style={styles.error}>상품 목록을 불러오지 못했습니다.</Text>
+      <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
+    </View>
+  ) : (
+    <Text style={styles.muted}>조건에 맞는 상품이 없습니다.</Text>
+  );
+
   return (
     <Screen>
-      {query.isLoading && !query.data ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
-      ) : query.isError ? (
-        <View style={styles.center}>
-          <Text style={styles.error}>상품 목록을 불러오지 못했습니다.</Text>
-          <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
-        </View>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          numColumns={2}
-          columnWrapperStyle={items.length > 0 ? styles.gridRow : undefined}
-          ListHeaderComponent={listHeader}
-          contentContainerStyle={{ paddingBottom: bottomPad }}
-          removeClippedSubviews={false}
-          ListEmptyComponent={
-            <Text style={styles.muted}>조건에 맞는 상품이 없습니다.</Text>
-          }
-        />
-      )}
+      <FlatList
+        data={query.isError ? [] : items}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        numColumns={2}
+        columnWrapperStyle={items.length > 0 ? styles.gridRow : undefined}
+        ListHeaderComponent={listHeader}
+        contentContainerStyle={{ paddingBottom: bottomPad, flexGrow: 1 }}
+        removeClippedSubviews={false}
+        ListEmptyComponent={listEmpty}
+        refreshing={query.isFetching && !!query.data}
+        onRefresh={() => void query.refetch()}
+      />
 
       <Pressable style={[styles.fab, { bottom: isTab ? floatingTabClearance(insets.bottom) + 8 : 24 }]} onPress={() => void openWrite()}>
         <Ionicons name="add" size={28} color={colors.brand} />
@@ -388,6 +427,48 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
         onSelect={(id) => {
           setSigungu(id || null);
           setSigunguPickerOpen(false);
+        }}
+      />
+      <PickerModal
+        visible={conditionPickerOpen}
+        title="상태"
+        onClose={() => setConditionPickerOpen(false)}
+        colors={colors}
+        options={[
+          { id: "", label: "상태 (전체)" },
+          ...USED_CONDITION_GRADES.map((o) => ({ id: o.id, label: o.label })),
+        ]}
+        onSelect={(id) => {
+          setCondition(id || null);
+          setConditionPickerOpen(false);
+        }}
+      />
+      <PickerModal
+        visible={limitedPickerOpen}
+        title="한정"
+        onClose={() => setLimitedPickerOpen(false)}
+        colors={colors}
+        options={[
+          { id: "", label: "한정 (전체)" },
+          ...USED_LIMITED_KINDS.map((o) => ({ id: o.id, label: o.label })),
+        ]}
+        onSelect={(id) => {
+          setLimited(id || null);
+          setLimitedPickerOpen(false);
+        }}
+      />
+      <PickerModal
+        visible={tradePickerOpen}
+        title="거래"
+        onClose={() => setTradePickerOpen(false)}
+        colors={colors}
+        options={[
+          { id: "", label: "거래 (전체)" },
+          ...USED_TRADE_MODES.map((o) => ({ id: o.id, label: o.label })),
+        ]}
+        onSelect={(id) => {
+          setTrade(id || null);
+          setTradePickerOpen(false);
         }}
       />
     </Screen>
@@ -573,6 +654,22 @@ function createStyles(colors: ThemeColors) {
     },
     regionDisabled: { opacity: 0.45 },
     regionBtnText: { flex: 1, fontWeight: "600", color: colors.text, fontSize: 13 },
+    metaFilterRow: { flexDirection: "row", gap: 6, marginBottom: 12 },
+    metaFilterBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      borderWidth: 1.5,
+      borderColor: "rgba(27, 74, 140, 0.22)",
+      borderRadius: radii.md,
+      paddingHorizontal: 8,
+      paddingVertical: 9,
+      backgroundColor: colors.surfaceRaised,
+      gap: 2,
+      minWidth: 0,
+    },
+    metaFilterText: { flex: 1, fontWeight: "600", color: colors.text, fontSize: 11 },
     listLabel: { fontWeight: "800", color: colors.brand, marginBottom: 8, fontSize: 14 },
     listCount: { fontWeight: "600", color: colors.textMuted, fontSize: 12 },
     gridRow: { paddingHorizontal: spacing.md, gap: 10, marginBottom: 10 },
@@ -611,7 +708,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surface,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
-      ...shadows.sm,
+      ...shadows.folkSm,
     },
     cardTitle: {
       paddingHorizontal: 8,
@@ -642,8 +739,8 @@ function createStyles(colors: ThemeColors) {
       fontSize: 11,
     },
     muted: { color: colors.textMuted, padding: spacing.lg, fontWeight: "600" },
-    error: { color: colors.danger, fontWeight: "600", marginBottom: 12 },
-    center: { padding: spacing.lg, alignItems: "center" },
+    listEmptyBox: { padding: spacing.lg, alignItems: "center" },
+    error: { color: colors.danger, fontWeight: "600", marginBottom: 12, textAlign: "center" },
     fab: {
       position: "absolute",
       right: 18,

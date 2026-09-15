@@ -139,15 +139,23 @@ export async function resolveUsedMarketBrowse(params: {
     );
   }
 
-  const { ids, hasRank } = await rankedListingIds(params.userId ?? null, {
-    category: params.category,
-    saleType: params.saleType,
-    liveAuctionOnly: params.liveAuctionOnly,
-    preferredRegion: params.region ?? params.sido ?? null,
-    viewerCountryCode: scopedCountry,
-    take,
-    cursor: params.cursor,
-  });
+  let ids: string[] = [];
+  let hasRank = false;
+  try {
+    const ranked = await rankedListingIds(params.userId ?? null, {
+      category: params.category,
+      saleType: params.saleType,
+      liveAuctionOnly: params.liveAuctionOnly,
+      preferredRegion: params.region ?? params.sido ?? null,
+      viewerCountryCode: scopedCountry,
+      take,
+      cursor: params.cursor,
+    });
+    ids = ranked.ids;
+    hasRank = ranked.hasRank;
+  } catch {
+    hasRank = false;
+  }
 
   if (!hasRank) {
     return getUsedListings(

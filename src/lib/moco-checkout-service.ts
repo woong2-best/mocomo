@@ -3,7 +3,9 @@ import { db } from "@/lib/db";
 import { checkoutRedirectPath } from "@/lib/checkout-redirect";
 import { krwToMoco } from "@/lib/moco/economy";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
-import { debitPlatformWallet, creditPlatformWallet, getOrCreatePlatformWallet } from "@/lib/platform/wallet/service";
+import { getOrCreatePlatformWallet } from "@/lib/platform/wallet/service";
+import { burnPurchasedMocoWithHistory } from "@/lib/moco/transaction-history";
+import { getMocoBalanceSnapshot } from "@/lib/auction-deposit/service";
 import { assertOfacPaymentAllowedForUser } from "@/lib/compliance/ofac-payment-guard-server";
 import {
   assertAndRecordPurchaseTermsConsent,
@@ -13,12 +15,12 @@ import type { PurchaseTermsPlatform } from "@/lib/purchase-chargeback-terms";
 const MOCO_PAY_BLOCKED: PaymentIntentType[] = ["MOCO_TOPUP", "GEM_TOPUP"];
 
 export async function getMocoCheckoutQuote(userId: string, amountKrw: number) {
-  const wallet = await getOrCreatePlatformWallet(userId);
+  const snap = await getMocoBalanceSnapshot(userId);
   const mocoRequired = krwToMoco(amountKrw);
   return {
-    mocoBalance: wallet.mocoPoints,
+    mocoBalance: snap.availableMocoBalance,
     mocoRequired,
-    canPayWithMoco: mocoRequired > 0 && wallet.mocoPoints >= mocoRequired,
+    canPayWithMoco: mocoRequired > 0 && snap.availableMocoBalance >= mocoRequired,
   };
 }
 
@@ -27,6 +29,10 @@ export async function payCheckoutWithMoco(
   orderId: string,
   opts?: { purchaseTermsAccepted?: boolean; platform?: PurchaseTermsPlatform }
 ) {
+  if (opts?.platform === "mobile") {
+    return { error: "모바일 앱에서는 MOCO 바로 결제를 사용할 수 없습니다." };
+  }
+
   const consentBlock = await assertAndRecordPurchaseTermsConsent({
     userId,
     paymentIntentId: orderId,
@@ -59,7 +65,6 @@ export async function payCheckoutWithMoco(
     return { error: "모코로 결제할 수 없는 금액입니다." };
   }
 
-  // Re-check status inside a short critical path to reduce double-spend races
   const fresh = await db.paymentIntent.findUnique({
     where: { id: orderId },
     select: { status: true, userId: true, type: true, amount: true },
@@ -74,28 +79,31 @@ export async function payCheckoutWithMoco(
     };
   }
 
-  const debit = await debitPlatformWallet({
-    userId,
-    bucket: "MOCO_POINTS",
-    amount: mocoRequired,
-    reason: `CHECKOUT_${intent.type}`,
-    referenceType: "payment_intent",
-    referenceId: intent.id,
-    metadata: { krw: intent.amount, moco: mocoRequired },
-  });
-  if (!debit.ok) return { error: debit.error };
+  const snap = await getMocoBalanceSnapshot(userId);
+  if (snap.availableMocoBalance < mocoRequired) {
+    return { error: "MOCO 잔액이 부족합니다." };
+  }
+
+  // Unified purchased MOCO burn (mocoPoints → gemBalance FIFO). Client-sent balances are never trusted.
+  try {
+    await db.$transaction(async (tx) => {
+      await burnPurchasedMocoWithHistory(tx, {
+        userId,
+        amountMoco: mocoRequired,
+        type: "CHECKOUT_BURN",
+        reason: `CHECKOUT_${intent.type}`,
+        referenceId: `checkout-moco:${intent.id}`,
+        metadata: { krw: intent.amount, moco: mocoRequired, paymentIntentId: intent.id },
+      });
+    });
+  } catch {
+    return { error: "MOCO 잔액이 부족합니다." };
+  }
 
   const paymentRef = `moco:${intent.id}`;
   const result = await fulfillPaymentIntent(orderId, paymentRef, intent.amount);
   if (!result.ok) {
-    await creditPlatformWallet({
-      userId,
-      bucket: "MOCO_POINTS",
-      amount: mocoRequired,
-      reason: "CHECKOUT_REFUND",
-      referenceType: "payment_intent_refund",
-      referenceId: intent.id,
-    }).catch(() => null);
+    await getOrCreatePlatformWallet(userId);
     return { error: result.error };
   }
 

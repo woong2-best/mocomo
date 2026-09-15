@@ -19,6 +19,7 @@ import { PaidContentUsageNotice } from "@/components/payments/paid-content-usage
 import { requiresPaidContentUsageNotice } from "@/lib/paid-content-usage-notice";
 import { MocoPayOption } from "@/components/payments/moco-pay-option";
 import { GemPayOption } from "@/components/payments/gem-pay-option";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -65,6 +66,7 @@ export function PaymentCheckoutSheet({
 }: Props) {
   const pathname = usePathname();
   const resumePath = returnPath ?? pathname ?? "/";
+  const { isNativeApp } = useClientPlatform();
   const [methods, setMethods] = useState<SavedPaymentMethod[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -79,7 +81,9 @@ export function PaymentCheckoutSheet({
   const [purchaseTermsAccepted, setPurchaseTermsAccepted] = useState(false);
   const [recurringDonationTermsAccepted, setRecurringDonationTermsAccepted] = useState(false);
 
-  const gemEligible = type === "TIP" || type === "POST_MEDIA";
+  const gemEligible = !isNativeApp && (type === "TIP" || type === "POST_MEDIA");
+  const mocoPayEligible =
+    !isNativeApp && !gemEligible && type !== "MOCO_TOPUP" && type !== "GEM_TOPUP";
   const isGemTopup = type === "GEM_TOPUP";
   const isRecurringSubscription = type === "CREATOR_SUBSCRIPTION";
 
@@ -328,7 +332,7 @@ export function PaymentCheckoutSheet({
                 />
               ) : null}
 
-              {!gemEligible && type !== "MOCO_TOPUP" && type !== "GEM_TOPUP" ? (
+              {mocoPayEligible ? (
                 <MocoPayOption
                   orderId={orderId}
                   mocoBalance={mocoBalance}

@@ -20,8 +20,12 @@ export async function GET(req: NextRequest) {
   if (mine) {
     const auth = await requireMobileApiUser(req);
     if ("error" in auth) return auth.error;
-    const items = await listMobileMyUsedListings(auth.user.id);
-    return NextResponse.json({ items });
+    try {
+      const items = await listMobileMyUsedListings(auth.user.id);
+      return NextResponse.json({ items });
+    } catch {
+      return NextResponse.json({ error: "내 거래 목록을 불러오지 못했습니다." }, { status: 500 });
+    }
   }
 
   const q = req.nextUrl.searchParams.get("q")?.trim() || undefined;
@@ -42,70 +46,137 @@ export async function GET(req: NextRequest) {
   const take = Math.min(Number(req.nextUrl.searchParams.get("take") ?? "24") || 24, 48);
   const cursor = req.nextUrl.searchParams.get("cursor")?.trim() || undefined;
 
-  const viewerId = await getMobileUserId(req);
-  const canViewNsfw = await resolveCanViewNsfw(viewerId);
-  const viewerCountryCode = await resolveUsedViewerCountry({ userId: viewerId });
+  try {
+    const viewerId = await getMobileUserId(req);
+    const canViewNsfw = await resolveCanViewNsfw(viewerId);
+    const viewerCountryCode = await resolveUsedViewerCountry({ userId: viewerId });
 
-  const listings = filterNsfwItems(
-    await resolveUsedMarketBrowse({
-      userId: viewerId,
-      viewerCountryCode,
-      mode: browseMode,
-      status: "SELLING",
-      take,
-      cursor,
-      q,
-      category: category && category !== "ALL" ? category : undefined,
-      sido: sido || undefined,
-      region: region || undefined,
-      country: country || undefined,
-      work: work || undefined,
-      anime: anime || undefined,
-      product: product || undefined,
-      condition: condition || undefined,
-      limited: limitedKind || undefined,
-      trade: trade || undefined,
-      saleType: mode === "auction" ? "AUCTION" : undefined,
-      liveAuctionOnly: mode === "auction",
-    }),
-    canViewNsfw
-  );
-  const items = listings.map((l) => {
-    const images = listingImages(l.images);
-    return {
-      id: l.id,
-      title: l.title,
-      price: l.price,
-      currency: l.currency,
-      thumbnailUrl: images[0] ?? null,
-      region: l.region,
-      status: l.status,
-      saleType: l.saleType,
-      createdAt: l.createdAt.toISOString(),
-      favoriteCount: l._count?.favorites ?? 0,
-      auctionEndsAt: l.auctionEndsAt?.toISOString() ?? null,
-      currentBidAmount: l.currentBidAmount ?? null,
-      bidCount: l.bidCount ?? null,
-      workTitle: l.workTitle ?? null,
-      productType: l.productType ?? null,
-      characterName: l.characterName ?? null,
-      conditionGrade: l.conditionGrade ?? null,
-      limitedKind: l.limitedKind ?? null,
-      tradeMode: l.tradeMode ?? null,
-      subcultureMeta: l.subcultureMeta ?? null,
-      isNsfw: l.isNsfw,
-      sellerId: l.sellerId,
-      seller: l.seller
-        ? { id: l.seller.id, username: l.seller.username, image: l.seller.image }
-        : null,
-    };
-  });
+    const listings = filterNsfwItems(
+      await resolveUsedMarketBrowse({
+        userId: viewerId,
+        viewerCountryCode,
+        mode: browseMode,
+        status: "SELLING",
+        take,
+        cursor,
+        q,
+        category: category && category !== "ALL" ? category : undefined,
+        sido: sido || undefined,
+        region: region || undefined,
+        country: country || undefined,
+        work: work || undefined,
+        anime: anime || undefined,
+        product: product || undefined,
+        condition: condition || undefined,
+        limited: limitedKind || undefined,
+        trade: trade || undefined,
+        saleType: mode === "auction" ? "AUCTION" : undefined,
+        liveAuctionOnly: mode === "auction",
+      }),
+      canViewNsfw
+    );
+    const items = listings.map((l) => {
+      const images = listingImages(l.images);
+      return {
+        id: l.id,
+        title: l.title,
+        price: l.price,
+        currency: l.currency,
+        thumbnailUrl: images[0] ?? null,
+        region: l.region,
+        status: l.status,
+        saleType: l.saleType,
+        createdAt: l.createdAt.toISOString(),
+        favoriteCount: l._count?.favorites ?? 0,
+        auctionEndsAt: l.auctionEndsAt?.toISOString() ?? null,
+        currentBidAmount: l.currentBidAmount ?? null,
+        bidCount: l.bidCount ?? null,
+        workTitle: l.workTitle ?? null,
+        productType: l.productType ?? null,
+        characterName: l.characterName ?? null,
+        conditionGrade: l.conditionGrade ?? null,
+        limitedKind: l.limitedKind ?? null,
+        tradeMode: l.tradeMode ?? null,
+        subcultureMeta: l.subcultureMeta ?? null,
+        isNsfw: l.isNsfw,
+        sellerId: l.sellerId,
+        seller: l.seller
+          ? { id: l.seller.id, username: l.seller.username, image: l.seller.image }
+          : null,
+      };
+    });
 
-  return NextResponse.json({ items, mode: browseMode }, {
-    headers: {
-      "Cache-Control": "public, s-maxage=15, stale-while-revalidate=45",
-    },
-  });
+    return NextResponse.json({ items, mode: browseMode }, {
+      headers: {
+        "Cache-Control": "public, s-maxage=15, stale-while-revalidate=45",
+      },
+    });
+  } catch {
+    try {
+      const viewerId = await getMobileUserId(req);
+      const canViewNsfw = await resolveCanViewNsfw(viewerId);
+      const viewerCountryCode = await resolveUsedViewerCountry({ userId: viewerId });
+      const { getUsedListings } = await import("@/actions/used-market");
+      const listings = filterNsfwItems(
+        await getUsedListings(
+          {
+            status: "SELLING",
+            take,
+            q,
+            category: category && category !== "ALL" ? category : undefined,
+            sido: sido || undefined,
+            region: region || undefined,
+            work: work || undefined,
+            product: product || undefined,
+            condition: condition || undefined,
+            limited: limitedKind || undefined,
+            trade: trade || undefined,
+            anime: anime || undefined,
+            saleType: mode === "auction" ? "AUCTION" : undefined,
+            liveAuctionOnly: mode === "auction",
+          },
+          { viewerId, sessionCountry: viewerCountryCode }
+        ),
+        canViewNsfw
+      );
+      const items = listings.map((l) => {
+        const images = listingImages(l.images);
+        return {
+          id: l.id,
+          title: l.title,
+          price: l.price,
+          currency: l.currency,
+          thumbnailUrl: images[0] ?? null,
+          region: l.region,
+          status: l.status,
+          saleType: l.saleType,
+          createdAt: l.createdAt.toISOString(),
+          favoriteCount: l._count?.favorites ?? 0,
+          auctionEndsAt: l.auctionEndsAt?.toISOString() ?? null,
+          currentBidAmount: l.currentBidAmount ?? null,
+          bidCount: l.bidCount ?? null,
+          workTitle: l.workTitle ?? null,
+          productType: l.productType ?? null,
+          characterName: l.characterName ?? null,
+          conditionGrade: l.conditionGrade ?? null,
+          limitedKind: l.limitedKind ?? null,
+          tradeMode: l.tradeMode ?? null,
+          subcultureMeta: l.subcultureMeta ?? null,
+          isNsfw: l.isNsfw,
+          sellerId: l.sellerId,
+          seller: l.seller
+            ? { id: l.seller.id, username: l.seller.username, image: l.seller.image }
+            : null,
+        };
+      });
+      return NextResponse.json({ items, mode: browseMode, degraded: true });
+    } catch {
+      return NextResponse.json(
+        { error: "상품 목록을 불러오지 못했습니다.", items: [] },
+        { status: 500 }
+      );
+    }
+  }
 }
 
 const createSchema = z.object({

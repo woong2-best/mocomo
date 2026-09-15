@@ -10,10 +10,10 @@ import {
   quoteGemTopup,
 } from "@/lib/gems/constants";
 import { getUserGemBalance } from "@/lib/gems/balance";
-import { payCheckoutWithGemsFromOrder } from "@/lib/gems/checkout-pay";
+import { getMocoBalanceSnapshot } from "@/lib/auction-deposit/service";
 import { processRefundRequest } from "@/lib/gems/refund";
 
-/** GET — gem balance + packages */
+/** GET — gem balance + packages (balance = web/mobile 동일 availableMoco) */
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-gems", 60);
   if (limited) return limited;
@@ -21,7 +21,8 @@ export async function GET(req: NextRequest) {
   const auth = await requireMobileApiUser(req);
   if ("error" in auth) return auth.error;
 
-  const [balance, purchases] = await Promise.all([
+  const [snap, gemOnly, purchases] = await Promise.all([
+    getMocoBalanceSnapshot(auth.user.id),
     getUserGemBalance(auth.user.id),
     db.gemPurchase.findMany({
       where: { fanId: auth.user.id },
@@ -40,7 +41,11 @@ export async function GET(req: NextRequest) {
   ]);
 
   return NextResponse.json({
-    balance,
+    /** Canonical MOCO total — same as web getMocoBalanceSnapshot.availableMocoBalance */
+    balance: snap.availableMocoBalance,
+    gemBalance: gemOnly,
+    mocoPointsBalance: snap.mocoPointsBalance,
+    availableMocoBalance: snap.availableMocoBalance,
     minTopupMoco: MIN_MOCO_TOPUP_COUNT,
     termsCopy: GEM_PURCHASE_TERMS_COPY,
     purchases: purchases.map((p) => ({
@@ -117,29 +122,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (data.action === "pay") {
-    const result = await payCheckoutWithGemsFromOrder(auth.user.id, data.orderId, {
-      purchaseTermsAccepted: true,
-      platform: "mobile",
-    });
-    if ("error" in result && result.error) {
-      const messages: Record<string, string> = {
-        INSUFFICIENT_GEMS_BALANCE: "MOCO 잔액이 부족합니다.",
-        INSUFFICIENT_MOCO_BALANCE: "MOCO 잔액이 부족합니다.",
-      };
-      return NextResponse.json(
-        { error: messages[result.error] ?? result.error },
-        { status: 422 }
-      );
-    }
-    if ("success" in result && result.success) {
-      return NextResponse.json({
-        success: true,
-        type: result.type,
-        redirectPath: result.redirectPath,
-        balance: "balance" in result ? result.balance : undefined,
-      });
-    }
-    return NextResponse.json({ error: "결제에 실패했습니다." }, { status: 500 });
+    return NextResponse.json(
+      { error: "모바일 앱에서는 MOCO 바로 결제를 사용할 수 없습니다. 카드로 결제해 주세요." },
+      { status: 403 }
+    );
   }
 
   const refund = await processRefundRequest(data.gemPurchaseId, auth.user.id);

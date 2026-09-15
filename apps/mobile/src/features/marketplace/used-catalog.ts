@@ -90,6 +90,33 @@ export const KOREA_SIGUNGU_BY_SIDO: Record<string, readonly string[]> = {
   jeju: ["제주시", "서귀포시"],
 };
 
+/** Browse filters — mirrors web `used-subculture-filters.tsx`. */
+export const USED_CONDITION_GRADES = [
+  { id: "NEW", label: "미개봉·신품급" },
+  { id: "LIKE_NEW", label: "거의 새 것" },
+  { id: "NM", label: "NM (Near Mint)" },
+  { id: "LP", label: "LP (Light Played)" },
+  { id: "MP", label: "MP (Moderate Played)" },
+  { id: "HP", label: "HP (Heavy Played)" },
+  { id: "POOR", label: "손상·하자 있음" },
+  { id: "UNKNOWN", label: "상태 미표기" },
+] as const;
+
+export const USED_LIMITED_KINDS = [
+  { id: "EVENT_EXCLUSIVE", label: "행사 한정" },
+  { id: "VENUE_ONLY", label: "会場限定·현장 only" },
+  { id: "PREORDER", label: "예약·선주문" },
+  { id: "COLLAB", label: "콜라보·한정" },
+  { id: "LIMITED_RUN", label: "한정 수량" },
+  { id: "LOTTERY", label: "추첨·kuji" },
+  { id: "PROMO", label: "프로모·特典" },
+] as const;
+
+export const USED_TRADE_MODES = [
+  { id: "TRADE", label: "교환만 (WTT)" },
+  { id: "SELL_OR_TRADE", label: "판매·교환" },
+] as const;
+
 export const USED_SHIPPING_REGION = "전국 택배";
 
 export function formatUsedRegion(sidoShort: string, sigungu: string) {

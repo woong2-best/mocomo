@@ -2875,6 +2875,7 @@ model AuctionDeposit {
 enum MocoTransactionType {
   AD_PURCHASE
   AUCTION_PENALTY
+  CHECKOUT_BURN
 }
 
 /** MOCO 소멸(Burn) 감사 원장 — 유저 지갑 내역 (플랫폼 이체 없음) */

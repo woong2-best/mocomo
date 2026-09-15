@@ -29,9 +29,8 @@ import {
   PAID_CONTENT_USAGE_NOTICE_TITLE,
   requiresPaidContentUsageNotice,
 } from "@/lib/paid-content-usage-notice";
-import { GemPayOption } from "@/payments/GemPayOption";
-import { openGemTopupCheckout } from "@/payments/gem-topup";
 import { openSubscriptionCheckout } from "@/api/subscriptions";
+import { openGemTopupCheckout } from "@/payments/gem-topup";
 import {
   RECURRING_DONATION_CHECKBOX_LABEL_KO,
   RECURRING_DONATION_CHECKOUT_NOTICE_KO,
@@ -67,10 +66,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
   const [methods, setMethods] = useState<PaymentMethodItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [purchaseTermsAccepted, setPurchaseTermsAccepted] = useState(false);
-  const [gemBalance, setGemBalance] = useState(0);
-  const [gemsRequired, setGemsRequired] = useState(0);
   const [recurringDonationTermsAccepted, setRecurringDonationTermsAccepted] = useState(false);
-  const gemEligible = body.type === "TIP" || body.type === "POST_MEDIA";
   const isGemTopup = body.type === "GEM_TOPUP";
   const isRecurringSubscription = body.type === "CREATOR_SUBSCRIPTION";
 
@@ -99,8 +95,6 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
       .then((res) => {
         setOrderId(res.orderId);
         setMethods(res.methods ?? []);
-        setGemBalance(res.gemBalance ?? 0);
-        setGemsRequired(res.gemsRequired ?? body.amount);
         const def = res.methods.find((m) => m.isDefault) ?? res.methods[0];
         setSelectedId(def?.id ?? null);
       })
@@ -334,20 +328,6 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
             <ActivityIndicator style={{ marginVertical: spacing.lg }} color={colors.terracotta} />
           ) : (
             <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-              {gemEligible ? (
-                <GemPayOption
-                  orderId={orderId}
-                  gemBalance={gemBalance}
-                  gemsRequired={gemsRequired}
-                  amountLabel={formatAmount(body.type, body.amount)}
-                  disabled={paying || !purchaseTermsAccepted}
-                  onSuccess={() => {
-                    onSuccess({ type: body.type });
-                    onClose();
-                  }}
-                  onError={setError}
-                />
-              ) : null}
               {methods.map((pm) => (
                 <Pressable
                   key={pm.id}

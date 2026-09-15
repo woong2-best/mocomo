@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/money";
 import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
 import { MocoPayOption } from "@/components/payments/moco-pay-option";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { CreditCard, Loader2, Plus } from "lucide-react";
 import { StripeOverseasPaymentNotice } from "@/components/payments/stripe-overseas-payment-notice";
 import { PurchaseChargebackTermsNotice } from "@/components/payments/purchase-chargeback-terms-notice";
@@ -53,6 +54,7 @@ export function MarketplaceCheckoutSheet({
   prepared = null,
   onSuccess,
 }: Props) {
+  const { isNativeApp } = useClientPlatform();
   const [methods, setMethods] = useState<SavedPaymentMethod[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -228,6 +230,7 @@ export function MarketplaceCheckoutSheet({
             </div>
           ) : (
             <div className="space-y-3">
+              {!isNativeApp ? (
               <MocoPayOption
                 orderId={orderId}
                 mocoBalance={mocoBalance}
@@ -244,6 +247,7 @@ export function MarketplaceCheckoutSheet({
                   });
                 }}
               />
+              ) : null}
             <div className="space-y-2 max-h-56 overflow-y-auto">
               {methods.map((pm) => (
                 <button
