@@ -1,3 +1,4 @@
+import type { Prisma, UsedListingCategory } from "@prisma/client";
 import { getAllUsedRegions, KOREA_SIDO, USED_SHIPPING_REGION } from "@/lib/korea-regions";
 import {
   defaultUsedRegionForCountry,
@@ -49,15 +50,48 @@ export function maxUsedListingPriceLabel(currency?: string | null): string {
 /** @deprecated use maxUsedListingPriceLabel(currency) */
 export const MAX_USED_LISTING_PRICE_LABEL = formatUsd(MAX_USED_LISTING_PRICE_USD_CENTS);
 
+/** DB 저장·글쓰기용 카테고리 */
 export const USED_CATEGORIES = [
-  { id: "DIGITAL", label: "디지털/가전" },
-  { id: "FIGURE", label: "피규어/프라모" },
-  { id: "GOODS", label: "굿즈/콜렉" },
-  { id: "COSPLAY", label: "코스프레/의상" },
-  { id: "BOOK", label: "도서/음반" },
-  { id: "FASHION", label: "패션/잡화" },
+  { id: "FIGURE", label: "피규어 / 인형" },
+  { id: "GOODS", label: "캐릭터 굿즈" },
+  { id: "BOOK", label: "도서 / 미디어" },
+  { id: "COSPLAY", label: "코스프레" },
+  { id: "FASHION", label: "패션" },
+  { id: "DIGITAL", label: "디지털 / 가전" },
   { id: "OTHER", label: "기타" },
 ] as const;
+
+/** /market 목록 필터 pill (6종) */
+export const USED_MARKET_BROWSE_CATEGORIES = [
+  { id: "FIGURE", label: "피규어 / 인형" },
+  { id: "TCG", label: "TCG / 카드" },
+  { id: "GOODS", label: "캐릭터 굿즈" },
+  { id: "BOOK", label: "도서 / 미디어" },
+  { id: "COSPLAY_FASHION", label: "코스프레 / 패션" },
+  { id: "DIGITAL", label: "디지털 / 가전" },
+] as const;
+
+const TCG_BROWSE_PRODUCT_TYPES = [
+  "TCG_CARD",
+  "TCG_POKEMON",
+  "TCG_YGO",
+  "TCG_MTG",
+  "TCG_ONEPIECE",
+  "TCG_OTHER",
+  "PHOTOCARD",
+] as const;
+
+export function usedBrowseCategoryWhere(category: string): Prisma.UsedListingWhereInput | null {
+  if (category === "TCG") {
+    return { productType: { in: [...TCG_BROWSE_PRODUCT_TYPES] } };
+  }
+  if (category === "COSPLAY_FASHION") {
+    return { category: { in: ["COSPLAY", "FASHION"] } };
+  }
+  const known = USED_CATEGORIES.some((c) => c.id === category);
+  if (known) return { category: category as UsedListingCategory };
+  return null;
+}
 
 /** 전국 시·군·구 + 전국 택배 */
 export const USED_REGIONS = getAllUsedRegions();
@@ -71,8 +105,18 @@ export {
   USED_GLOBAL_SHIPPING_REGION,
 } from "@/lib/used-regions-global";
 
+const USED_CATEGORY_LABELS: Record<string, string> = {
+  DIGITAL: "디지털 / 가전",
+  FIGURE: "피규어 / 인형",
+  GOODS: "캐릭터 굿즈",
+  COSPLAY: "코스프레 / 패션",
+  FASHION: "코스프레 / 패션",
+  BOOK: "도서 / 미디어",
+  OTHER: "기타",
+};
+
 export function usedCategoryLabel(id: string) {
-  return USED_CATEGORIES.find((c) => c.id === id)?.label ?? "기타";
+  return USED_CATEGORY_LABELS[id] ?? USED_CATEGORIES.find((c) => c.id === id)?.label ?? "기타";
 }
 
 export function formatUsedPrice(price: number, currency?: string | null) {

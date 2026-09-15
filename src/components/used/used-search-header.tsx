@@ -4,9 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { USED_CATEGORIES } from "@/lib/used-market";
+import { USED_MARKET_BROWSE_CATEGORIES } from "@/lib/used-market";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
-import { UsedWorkProductFilters } from "@/components/used/used-work-product-filters";
 import { UsedSubcultureFilters } from "@/components/used/used-subculture-filters";
 
 type UsedSearchHeaderProps = {
@@ -87,19 +86,11 @@ export function UsedSearchHeader({
           >
             🔨 경매
           </button>
-          {USED_CATEGORIES.map((c) => (
+          {USED_MARKET_BROWSE_CATEGORIES.map((c) => (
             <button
               key={c.id}
               type="button"
-              onClick={() => {
-                if (c.id === "COSPLAY") {
-                  startTransition(() => {
-                    router.push("/cosplay");
-                  });
-                  return;
-                }
-                apply({ category: c.id });
-              }}
+              onClick={() => apply({ category: c.id })}
               className={cn(
                 "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
                 searchParams.get("category") === c.id
@@ -120,10 +111,7 @@ export function UsedSearchHeader({
         isPending={isPending}
       />
 
-      <div className="space-y-2 pt-0.5 border-t border-border/60">
-        <UsedWorkProductFilters onNavigate={apply} isPending={isPending} />
-        <UsedSubcultureFilters onNavigate={apply} isPending={isPending} />
-      </div>
+      <UsedSubcultureFilters onNavigate={apply} isPending={isPending} />
     </div>
   );
 }

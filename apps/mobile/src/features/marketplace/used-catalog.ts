@@ -3,13 +3,12 @@
 import { formatPrice } from "@/lib/money";
 
 export const USED_CATEGORIES = [
-  { id: "DIGITAL", label: "디지털/가전" },
-  { id: "FIGURE", label: "피규어/프라모" },
-  { id: "GOODS", label: "굿즈/콜렉" },
-  { id: "COSPLAY", label: "코스프레/의상" },
-  { id: "BOOK", label: "도서/음반" },
-  { id: "FASHION", label: "패션/잡화" },
-  { id: "OTHER", label: "기타" },
+  { id: "FIGURE", label: "피규어 / 인형" },
+  { id: "TCG", label: "TCG / 카드" },
+  { id: "GOODS", label: "캐릭터 굿즈" },
+  { id: "BOOK", label: "도서 / 미디어" },
+  { id: "COSPLAY_FASHION", label: "코스프레 / 패션" },
+  { id: "DIGITAL", label: "디지털 / 가전" },
 ] as const;
 
 export const USED_PRODUCT_TYPES = [

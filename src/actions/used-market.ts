@@ -30,6 +30,7 @@ import {
   maxUsedListingPriceLabel,
   normalizeUsedCurrency,
   formatUsedPrice,
+  usedBrowseCategoryWhere,
 } from "@/lib/used-market";
 import {
   compactWorkKey,
@@ -142,7 +143,11 @@ export async function getUsedListings(
     });
   }
 
-  if (params?.category) andFilters.push({ category: params.category as UsedListingCategory });
+  if (params?.category) {
+    const browseWhere = usedBrowseCategoryWhere(params.category);
+    if (browseWhere) andFilters.push(browseWhere);
+    else andFilters.push({ category: params.category as UsedListingCategory });
+  }
 
   const workCompact = compactWorkKey(params?.work);
   if (params?.anime?.trim()) {

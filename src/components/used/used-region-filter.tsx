@@ -51,16 +51,6 @@ export function UsedRegionFilter({
   if (!isKoreaUsedMarketCountry(viewerCountry)) {
     return (
       <div className="space-y-2">
-        <p className="text-[10px] text-muted-foreground">
-          {locale === "en"
-            ? `Local listings in ${countryLabel(viewerCountry, locale)} only`
-            : `${countryLabel(viewerCountry, locale)} 지역 중고만 표시됩니다`}
-          {viewerServiceRegion
-            ? locale === "en"
-              ? ` · Service area: ${viewerServiceRegion}`
-              : ` · 내 동네: ${viewerServiceRegion}`
-            : null}
-        </p>
         <Input
           className="h-9 rounded-lg text-xs"
           placeholder={locale === "en" ? "City or area (optional)" : "도시·지역 (선택)"}
@@ -108,14 +98,6 @@ export function UsedRegionFilter({
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] text-muted-foreground">
-        {locale === "en" ? "Korea local listings only" : "한국 지역 중고만 표시됩니다"}
-        {viewerServiceRegion
-          ? locale === "en"
-            ? ` · Service area: ${viewerServiceRegion}`
-            : ` · 내 동네: ${viewerServiceRegion}`
-          : null}
-      </p>
       <div className="grid grid-cols-2 gap-2">
         <select
           className="h-9 rounded-lg border border-border bg-background text-xs px-2"
