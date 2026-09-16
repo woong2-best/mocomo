@@ -76,10 +76,13 @@ export function LivePopularCategories({
       >
         {cats.map((cat) => {
           const label = localizedLiveCategoryLabel(cat, locale);
+          // Pink folder slot: show "Following" and open following view
+          const href =
+            cat === "VIRTUAL" ? "/live?view=following" : `/live?category=${cat}`;
           return (
             <Link
               key={cat}
-              href={`/live?category=${cat}`}
+              href={href}
               className="group block min-w-0 transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
               aria-label={label}
             >
@@ -108,10 +111,12 @@ export function LivePopularCategories({
         {cats.map((cat) => {
           const viewers = viewerByCategory[cat] ?? 0;
           const label = localizedLiveCategoryLabel(cat, locale);
+          const href =
+            cat === "VIRTUAL" ? "/live?view=following" : `/live?category=${cat}`;
           return (
             <Link
               key={cat}
-              href={`/live?category=${cat}`}
+              href={href}
               className="group shrink-0 w-[132px] sm:w-[148px]"
               aria-label={label}
             >

@@ -9,7 +9,7 @@ export const LIVE_CATEGORIES: {
   { value: "GAME", label: "GAMING" },
   { value: "MUSIC", label: "MUSIC" },
   { value: "IRL", label: "IRL" },
-  { value: "VIRTUAL", label: "VIRTUAL" },
+  { value: "VIRTUAL", label: "Following" },
   { value: "LIVE", label: "LIVE" },
 ];
 

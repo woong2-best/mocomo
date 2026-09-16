@@ -5,7 +5,7 @@ export const MOBILE_LIVE_CATEGORIES = [
   { id: "GAME", label: "GAMING" },
   { id: "MUSIC", label: "MUSIC" },
   { id: "IRL", label: "IRL" },
-  { id: "VIRTUAL", label: "VIRTUAL" },
+  { id: "VIRTUAL", label: "Following" },
   { id: "LIVE", label: "LIVE" },
 ] as const;
 

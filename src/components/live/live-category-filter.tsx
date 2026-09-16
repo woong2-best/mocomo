@@ -15,11 +15,18 @@ export function LiveCategoryFilter() {
   const current = searchParams.get("category") ?? "ALL";
 
   function goCategory(value: string) {
+    // Pink folder / Following slot — open following view instead of VIRTUAL filter
+    if (value === "VIRTUAL") {
+      startTransition(() => {
+        router.push("/live?view=following", { scroll: false });
+      });
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (value === "ALL") params.delete("category");
     else params.set("category", value);
-    // Mode tabs removed — keep listing on default (all).
     params.delete("mode");
+    params.delete("view");
     const qs = params.toString();
     startTransition(() => {
       router.push(qs ? `/live?${qs}` : "/live", { scroll: false });
@@ -34,7 +41,11 @@ export function LiveCategoryFilter() {
       )}
     >
       {categories.map(({ value, label }) => {
-        const active = current === value || (value === "ALL" && !searchParams.get("category"));
+        const active =
+          value === "VIRTUAL"
+            ? searchParams.get("view") === "following"
+            : (current === value || (value === "ALL" && !searchParams.get("category"))) &&
+              searchParams.get("view") !== "following";
         return (
           <button
             key={value}
