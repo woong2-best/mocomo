@@ -5,8 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAuthForAction } from "@/lib/auth";
 import { applyProfileUpdateForUser } from "@/lib/profile-update-service";
-
-export const NEEDS_AVATAR_COOKIE = "mocomo_needs_avatar";
+import { NEEDS_AVATAR_COOKIE } from "@/lib/avatar-onboarding-cookie";
 
 export async function markSignupNeedsAvatar() {
   const jar = await cookies();
