@@ -467,6 +467,17 @@ html[data-client="app"] .native-live-pad {
     @apply bg-[hsl(224,45%,10%)];
   }
 
+  /* /live hub — fit viewport, no page scroll */
+  .live-page-shell.live-hub-no-scroll {
+    min-height: calc(100dvh - var(--header-h, 3.5rem));
+    max-height: calc(100dvh - var(--header-h, 3.5rem));
+    overflow: hidden;
+  }
+  .live-page-shell.live-hub-no-scroll > div {
+    max-height: 100%;
+    overflow: hidden;
+  }
+
   .live-hero {
     @apply folk-card p-6;
     background-color: hsl(var(--folk-gold) / 0.12);

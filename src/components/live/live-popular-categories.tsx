@@ -70,8 +70,8 @@ export function LivePopularCategories({
     return (
       <div
         className={cn(
-          "grid grid-cols-2 gap-3 sm:gap-3.5 content-start",
-          "w-full sm:w-[280px] lg:w-[300px] shrink-0"
+          "grid grid-cols-2 gap-2 sm:gap-2.5 content-start",
+          "w-full sm:w-[260px] lg:w-[280px] shrink-0"
         )}
       >
         {cats.map((cat) => {

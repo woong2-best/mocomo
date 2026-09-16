@@ -7,11 +7,16 @@ export function LivePageChrome({ children }: { children: React.ReactNode }) {
   const { isNativeApp } = useClientPlatform();
 
   return (
-    <div className={cn("live-page-shell", isNativeApp && "native-live-pad")}>
+    <div
+      className={cn(
+        "live-page-shell live-hub-no-scroll",
+        isNativeApp && "native-live-pad"
+      )}
+    >
       <div
         className={cn(
-          "max-w-[1400px] mx-auto space-y-6 sm:space-y-8 p-4 lg:p-6 min-w-0",
-          isNativeApp ? "pb-safe" : "pb-10"
+          "max-w-[1400px] mx-auto space-y-3 sm:space-y-4 p-4 lg:p-5 min-w-0",
+          isNativeApp ? "pb-safe" : "pb-4"
         )}
       >
         {children}

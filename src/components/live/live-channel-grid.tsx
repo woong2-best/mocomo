@@ -136,16 +136,13 @@ export function LiveChannelGrid({
 
   if (filteredCategory) {
     return (
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
-            {localizedLiveCategoryLabel(filteredCategory, locale)} · {channels.length}
-          </h2>
-          <LiveHubNav activeView={view} />
-        </div>
+      <section className="space-y-2">
+        <h2 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
+          {localizedLiveCategoryLabel(filteredCategory, locale)} · {channels.length}
+        </h2>
 
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 items-stretch">
+        <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-start">
           <div className="min-w-0 flex-1">
             {channels.length === 0 ? (
               <LiveHeroSpotlight channels={[]} hostMap={hostMap} />
@@ -153,27 +150,34 @@ export function LiveChannelGrid({
               <LiveHeroSpotlight channels={heroChannels} hostMap={hostMap} />
             )}
           </div>
-          <LivePopularCategories viewerByCategory={viewerByCategory} variant="sidebar" />
+          <div className="w-full sm:w-auto shrink-0 -mt-1 lg:-mt-8 space-y-2.5">
+            <LiveHubNav activeView={view === "following" ? "following" : "explore"} />
+            <LivePopularCategories viewerByCategory={viewerByCategory} variant="sidebar" />
+          </div>
         </div>
       </section>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
-          {t("live.liveBroadcasts")} · {channels.length}
-        </h2>
-        <LiveHubNav activeView={view} />
-      </div>
+    <div className="space-y-2">
+      <h2 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2 lg:sr-only">
+        <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
+        {t("live.liveBroadcasts")} · {channels.length}
+      </h2>
 
-      <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 items-stretch">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-start">
+        <div className="min-w-0 flex-1 space-y-2">
+          <h2 className="hidden lg:flex text-base sm:text-lg font-bold tracking-tight items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
+            {t("live.liveBroadcasts")} · {channels.length}
+          </h2>
           <LiveHeroSpotlight channels={heroChannels} hostMap={hostMap} />
         </div>
-        <LivePopularCategories viewerByCategory={viewerByCategory} variant="sidebar" />
+        <div className="w-full sm:w-auto shrink-0 -mt-1 lg:-mt-1 space-y-2.5">
+          <LiveHubNav activeView={view === "following" ? "following" : "explore"} />
+          <LivePopularCategories viewerByCategory={viewerByCategory} variant="sidebar" />
+        </div>
       </div>
     </div>
   );
