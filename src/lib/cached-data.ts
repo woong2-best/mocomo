@@ -62,7 +62,7 @@ export const getCachedSidebarAds = unstable_cache(
       take: 2,
       select: { id: true, title: true, imageUrl: true, linkUrl: true, ctaLabel: true },
     }),
-  ["sidebar-ads"],
+  ["sidebar-ads-v2-no-fallback"],
   { revalidate: 300 }
 );
 

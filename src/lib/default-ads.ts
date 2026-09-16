@@ -17,13 +17,5 @@ export type FeedAdData = {
   adCategory?: string | null;
 };
 
-/** 오른쪽 패널 Sponsored — DB 없을 때 표시 */
-export const FALLBACK_SIDEBAR_ADS = [
-  {
-    id: "fallback-events",
-    title: "진행 중인 이벤트",
-    imageUrl: "/ads/events.svg",
-    linkUrl: "/events",
-    ctaLabel: "참가하기",
-  },
-] as const;
+/** 오른쪽 패널 Sponsored — 폴백 데모 광고 없음 (유료 스폰서만 본문 표시) */
+export const FALLBACK_SIDEBAR_ADS = [] as const;

@@ -5,8 +5,6 @@ import Link from "next/link";
 import { Megaphone, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale } from "@/components/providers/locale-provider";
-import { localizeSidebarAdTitle } from "@/lib/sidebar-ad-i18n";
-import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
 import { SponsorAdClickLink } from "@/components/events/sponsor-ad-click-link";
 import type { SponsorSpotEvent } from "@/lib/sponsor-spot-server";
 
@@ -19,7 +17,7 @@ type SidebarAd = {
 };
 
 export function SponsoredSidebarCard({
-  sidebarAds,
+  sidebarAds: _sidebarAds,
   initialSponsorEvent = null,
 }: {
   sidebarAds: SidebarAd[];
@@ -42,7 +40,7 @@ export function SponsoredSidebarCard({
           setEvent(body.event);
         }
       } catch {
-        /* keep SSR / fallback ads */
+        /* keep SSR / empty slot */
       }
     })();
     return () => {
@@ -51,7 +49,6 @@ export function SponsoredSidebarCard({
   }, []);
 
   const hasSponsorEvent = event != null;
-  const hasFallbackAds = sidebarAds.length > 0;
 
   return (
     <Card className="shrink-0 overflow-hidden border-folk-gold/40 bg-folk-gold/5">
@@ -84,29 +81,6 @@ export function SponsoredSidebarCard({
               className="block w-full aspect-[4/5] object-cover"
             />
           </SponsorAdClickLink>
-        ) : hasFallbackAds ? (
-          sidebarAds.map((ad) => {
-            const href = sanitizeAdLink(ad.linkUrl);
-            const external = isExternalUrl(href);
-            const title = localizeSidebarAdTitle(ad, t);
-            return (
-              <Link
-                key={ad.id}
-                href={href}
-                {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                className="group relative block w-full overflow-hidden hover:opacity-95 transition-opacity"
-                aria-label={title}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={ad.imageUrl} alt="" className="block w-full aspect-[4/5] object-cover" />
-                {ad.ctaLabel ? (
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-3 pb-3 pt-8">
-                    <p className="text-[11px] font-semibold text-folk-gold">{ad.ctaLabel} →</p>
-                  </div>
-                ) : null}
-              </Link>
-            );
-          })
         ) : (
           <Link
             href="/events/new"

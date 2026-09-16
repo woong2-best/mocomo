@@ -15,29 +15,22 @@ export async function deactivateDemoAdSlots(prisma: PrismaClient) {
   });
 }
 
-/** 오른쪽 패널 기본 광고 — 없으면 1건 시드 */
+/**
+ * 오른쪽 패널 — 데모 "진행 중인 이벤트" 폴백 제거.
+ * Sponsored 헤더는 유지하고, 유료 스폰서 이미지가 있을 때만 본문을 표시한다.
+ */
 export async function ensureSidebarAdSlot(prisma: PrismaClient) {
   await prisma.adSlot.updateMany({
-    where: { position: "right", linkUrl: "/events/map" },
-    data: { linkUrl: "/events" },
-  });
-
-  const count = await prisma.adSlot.count({
-    where: { active: true, position: "right" },
-  });
-  if (count > 0) return;
-
-  await prisma.adSlot.create({
-    data: {
-      position: "right",
-      title: "진행 중인 이벤트",
-      imageUrl: "/ads/events.svg",
-      linkUrl: "/events",
-      sponsorName: "MoCoMo Events",
-      ctaLabel: "참가하기",
-      adCategory: "이벤트",
-      isFeedAd: false,
+    where: {
       active: true,
+      position: "right",
+      OR: [
+        { linkUrl: "/events" },
+        { linkUrl: "/events/map" },
+        { title: "진행 중인 이벤트" },
+        { imageUrl: "/ads/events.svg" },
+      ],
     },
+    data: { active: false },
   });
 }
