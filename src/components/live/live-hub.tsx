@@ -97,30 +97,8 @@ export function LiveHub({
 
       <LiveCategoryFilter />
 
-      <div className="space-y-8 min-w-0">
-        {scheduledStreams.length > 0 && !showFollowing ? (
-          <section>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              {t("live.scheduled")}
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {scheduledStreams.map((s) => (
-                <LiveScheduledCard
-                  key={s.id}
-                  id={s.id}
-                  name={s.name}
-                  scheduledAt={s.scheduledAt}
-                  category={s.category}
-                  broadcastMode={s.broadcastMode}
-                  isOwner={currentUserId === s.createdBy}
-                />
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {(showFollowing || followedLive.length > 0) && (
+      <div className="min-w-0 space-y-5">
+        {showFollowing ? (
           <section>
             <h2 className="text-base font-bold tracking-tight mb-4 flex items-center gap-2">
               <Heart className="h-4 w-4 text-folk-terracotta" />
@@ -136,16 +114,39 @@ export function LiveHub({
               </div>
             )}
           </section>
+        ) : (
+          channelFeed
         )}
 
-        {!showFollowing ? channelFeed : null}
+        {scheduledStreams.length > 0 && !showFollowing ? (
+          <section className="pt-1">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              {t("live.scheduled")}
+            </h2>
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+              {scheduledStreams.map((s) => (
+                <div key={s.id} className="w-[280px] shrink-0">
+                  <LiveScheduledCard
+                    id={s.id}
+                    name={s.name}
+                    scheduledAt={s.scheduledAt}
+                    category={s.category}
+                    broadcastMode={s.broadcastMode}
+                    isOwner={currentUserId === s.createdBy}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
-        {recommendedStreamers.length > 0 ? (
+        {recommendedStreamers.length > 0 && !showFollowing ? (
           <section>
-            <h2 className="text-base font-bold tracking-tight mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground mb-2">
               {t("live.recommendedStreamers")}
             </h2>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
               {recommendedStreamers.map((h) => (
                 <StreamerChip key={h.id} host={h} />
               ))}

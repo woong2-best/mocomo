@@ -1,10 +1,11 @@
 /** Mobile live category pills — mirrors web LIVE_CATEGORIES. */
 export const MOBILE_LIVE_CATEGORIES = [
   { id: "ALL", label: "전체" },
-  { id: "JUST_CHATTING", label: "Just Chatting" },
+  { id: "JUST_CHATTING", label: "Chatting" },
   { id: "GAME", label: "게임" },
   { id: "MUSIC", label: "음악" },
   { id: "IRL", label: "IRL" },
+  { id: "VIRTUAL", label: "Virtual" },
   { id: "LIVE", label: "LIVE" },
 ] as const;
 
@@ -34,6 +35,10 @@ export const CATEGORY_POSTER: Record<
   MUSIC: {
     colors: ["#5A3A6E", "#6E4A7A", "#D4A05A"],
     accent: "#6E4A7A",
+  },
+  VIRTUAL: {
+    colors: ["#C47A8A", "#E0A0B0", "#F0C0C8"],
+    accent: "#D48A9A",
   },
   LIVE: {
     colors: ["#7A2A3A", "#C5522A", "#B87A4A"],

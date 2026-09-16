@@ -3,39 +3,39 @@
 import Link from "next/link";
 import { useLocale } from "@/components/providers/locale-provider";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
+import {
+  LIVE_CATEGORY_ICON,
+  LIVE_CATEGORY_ORDER,
+} from "@/lib/live-categories";
 import type { LiveStreamCategory } from "@prisma/client";
 import { cn } from "@/lib/utils";
-
-const CATEGORY_ORDER: LiveStreamCategory[] = [
-  "IRL",
-  "JUST_CHATTING",
-  "GAME",
-  "MUSIC",
-  "LIVE",
-];
 
 const CATEGORY_STYLE: Record<
   LiveStreamCategory,
   { overlay: string; accent: string }
 > = {
   IRL: {
-    overlay: "from-[hsl(145,35%,28%)] via-[hsl(145,28%,38%)] to-[hsl(40,40%,55%)]",
+    overlay: "from-[hsl(145,35%,18%)] via-[hsl(145,28%,22%)] to-[hsl(40,30%,20%)]",
     accent: "bg-[hsl(145,40%,40%)]",
   },
   JUST_CHATTING: {
-    overlay: "from-[hsl(220,45%,32%)] via-[hsl(220,40%,42%)] to-[hsl(28,55%,55%)]",
+    overlay: "from-[hsl(220,45%,16%)] via-[hsl(220,40%,22%)] to-[hsl(28,35%,20%)]",
     accent: "bg-[hsl(220,45%,40%)]",
   },
   GAME: {
-    overlay: "from-[hsl(12,55%,38%)] via-[hsl(18,50%,42%)] to-[hsl(35,45%,50%)]",
+    overlay: "from-[hsl(12,45%,18%)] via-[hsl(18,40%,22%)] to-[hsl(35,35%,20%)]",
     accent: "bg-folk-terracotta",
   },
   MUSIC: {
-    overlay: "from-[hsl(280,30%,32%)] via-[hsl(300,25%,38%)] to-[hsl(35,50%,55%)]",
+    overlay: "from-[hsl(280,30%,16%)] via-[hsl(300,25%,20%)] to-[hsl(35,30%,20%)]",
     accent: "bg-[hsl(280,35%,42%)]",
   },
+  VIRTUAL: {
+    overlay: "from-[hsl(330,40%,22%)] via-[hsl(340,35%,28%)] to-[hsl(20,40%,30%)]",
+    accent: "bg-[hsl(340,45%,55%)]",
+  },
   LIVE: {
-    overlay: "from-[hsl(350,45%,32%)] via-[hsl(12,50%,40%)] to-[hsl(30,45%,48%)]",
+    overlay: "from-[hsl(350,40%,16%)] via-[hsl(12,40%,20%)] to-[hsl(30,35%,20%)]",
     accent: "bg-folk-terracotta",
   },
 };
@@ -55,6 +55,40 @@ function formatViewerCount(n: number, locale: string) {
   return locale.startsWith("ko") ? `${n}명 시청 중` : `${n} watching`;
 }
 
+function CategoryFolderArt({
+  category,
+  label,
+}: {
+  category: LiveStreamCategory;
+  label: string;
+}) {
+  const style = CATEGORY_STYLE[category];
+  const icon = LIVE_CATEGORY_ICON[category];
+
+  return (
+    <div
+      className={cn(
+        "relative aspect-[3/4] rounded-xl overflow-hidden shadow-sm border border-border/40",
+        "bg-gradient-to-br",
+        style.overlay
+      )}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={icon}
+        alt=""
+        className="absolute inset-0 h-full w-full object-contain p-2 sm:p-2.5 drop-shadow-md"
+        draggable={false}
+      />
+      <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/80 via-black/35 to-transparent">
+        <p className="text-white font-black text-[11px] sm:text-xs leading-tight uppercase tracking-wide drop-shadow line-clamp-2">
+          {label}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function LivePopularCategories({
   viewerByCategory,
   variant = "row",
@@ -63,36 +97,18 @@ export function LivePopularCategories({
   variant?: "row" | "sidebar";
 }) {
   const { locale, t } = useLocale();
-  const ranked = [...CATEGORY_ORDER].sort(
+  const ranked = [...LIVE_CATEGORY_ORDER].sort(
     (a, b) => (viewerByCategory[b] ?? 0) - (viewerByCategory[a] ?? 0)
   );
 
   if (variant === "sidebar") {
     return (
-      <div className="grid grid-cols-2 gap-2 sm:gap-2.5 w-full sm:w-[280px] lg:w-[300px] shrink-0">
+      <div className="grid grid-cols-2 gap-2 sm:gap-2.5 w-full sm:w-[280px] lg:w-[300px] shrink-0 content-start">
         {ranked.map((cat) => {
-          const style = CATEGORY_STYLE[cat];
           const label = localizedLiveCategoryLabel(cat, locale);
           return (
-            <Link
-              key={cat}
-              href={`/live?category=${cat}`}
-              className="group block min-w-0"
-            >
-              <div
-                className={cn(
-                  "relative aspect-[3/4] rounded-xl overflow-hidden shadow-sm border border-border/50",
-                  "bg-gradient-to-br",
-                  style.overlay
-                )}
-              >
-                <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_20%,white,transparent_55%)]" />
-                <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/75 via-black/30 to-transparent">
-                  <p className="text-white font-black text-[11px] sm:text-xs leading-tight uppercase tracking-wide drop-shadow line-clamp-2">
-                    {label}
-                  </p>
-                </div>
-              </div>
+            <Link key={cat} href={`/live?category=${cat}`} className="group block min-w-0">
+              <CategoryFolderArt category={cat} label={label} />
             </Link>
           );
         })}
@@ -119,25 +135,8 @@ export function LivePopularCategories({
           const style = CATEGORY_STYLE[cat];
           const label = localizedLiveCategoryLabel(cat, locale);
           return (
-            <Link
-              key={cat}
-              href={`/live?category=${cat}`}
-              className="group shrink-0 w-[132px] sm:w-[148px]"
-            >
-              <div
-                className={cn(
-                  "relative aspect-[3/4] rounded-xl overflow-hidden shadow-sm border border-border/50",
-                  "bg-gradient-to-br",
-                  style.overlay
-                )}
-              >
-                <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_20%,white,transparent_55%)]" />
-                <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 via-black/35 to-transparent">
-                  <p className="text-white font-black text-sm sm:text-[15px] leading-tight uppercase tracking-wide drop-shadow">
-                    {label}
-                  </p>
-                </div>
-              </div>
+            <Link key={cat} href={`/live?category=${cat}`} className="group shrink-0 w-[132px] sm:w-[148px]">
+              <CategoryFolderArt category={cat} label={label} />
               <div className="mt-2 space-y-1 min-w-0">
                 <p className="text-sm font-semibold truncate">{label}</p>
                 <p className="text-[11px] text-muted-foreground tabular-nums">
@@ -146,7 +145,7 @@ export function LivePopularCategories({
                 <div className="flex flex-wrap gap-1">
                   <span
                     className={cn(
-                      "text-[10px] px-1.5 py-0.5 rounded-md text-white/95 font-medium",
+                      "text-[10px] px-1.5 py-0.5 rounded-md text-white/95 font-medium uppercase",
                       style.accent
                     )}
                   >

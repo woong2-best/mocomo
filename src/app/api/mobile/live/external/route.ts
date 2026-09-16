@@ -25,6 +25,7 @@ const ALLOWED_CATS = new Set([
   "GAME",
   "MUSIC",
   "IRL",
+  "VIRTUAL",
 ]);
 
 /**

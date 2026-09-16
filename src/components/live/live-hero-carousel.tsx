@@ -76,11 +76,33 @@ function LiveHeroCarouselInner({
   if (heroItems.length === 0) return null;
 
   return (
-    <section className="space-y-3">
+    <section className="relative">
+      {heroItems.length > 1 ? (
+        <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1.5 backdrop-blur-sm">
+          {heroItems.map((item, i) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-label={`Live ${i + 1}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setActive(i);
+                scrollToIndex(i);
+              }}
+              className={cn(
+                "h-1.5 rounded-full transition-all duration-300",
+                i === active ? "w-5 bg-folk-terracotta" : "w-1.5 bg-white/45 hover:bg-white/70"
+              )}
+            />
+          ))}
+        </div>
+      ) : null}
+
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="flex snap-x snap-mandatory overflow-x-auto scrollbar-none -mx-1 px-1"
+        className="flex snap-x snap-mandatory overflow-x-auto scrollbar-none overscroll-x-contain"
       >
         {heroItems.map((ch, slideIndex) => {
           const host = hostMap[ch.createdBy];
@@ -156,26 +178,6 @@ function LiveHeroCarouselInner({
           );
         })}
       </div>
-
-      {heroItems.length > 1 ? (
-        <div className="flex items-center justify-center gap-2">
-          {heroItems.map((item, i) => (
-            <button
-              key={item.id}
-              type="button"
-              aria-label={`Slide ${i + 1}`}
-              onClick={() => {
-                setActive(i);
-                scrollToIndex(i);
-              }}
-              className={cn(
-                "h-1.5 rounded-full transition-all duration-300",
-                i === active ? "w-5 bg-folk-terracotta" : "w-1.5 bg-border hover:bg-muted-foreground/40"
-              )}
-            />
-          ))}
-        </div>
-      ) : null}
     </section>
   );
 }

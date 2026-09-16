@@ -19,6 +19,7 @@ const ROW_ORDER: LiveStreamCategory[] = [
   "GAME",
   "IRL",
   "MUSIC",
+  "VIRTUAL",
   "LIVE",
 ];
 

@@ -18,6 +18,7 @@ const CATEGORY_ORDER: LiveStreamCategory[] = [
   "JUST_CHATTING",
   "GAME",
   "MUSIC",
+  "VIRTUAL",
   "LIVE",
 ];
 
