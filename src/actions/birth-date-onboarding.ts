@@ -31,8 +31,9 @@ export async function completeBirthDateOnboarding(input: {
   revalidatePath("/");
 
   const dest = input.dest?.trim();
-  if (dest && dest.startsWith("/") && !dest.startsWith("//")) {
-    redirect(dest);
-  }
-  redirect("/");
+  const safeDest =
+    dest && dest.startsWith("/") && !dest.startsWith("//") ? dest : "/";
+
+  // Always collect / confirm profile icon after birth onboarding (banner not required).
+  redirect(`/auth/complete-avatar?dest=${encodeURIComponent(safeDest)}`);
 }

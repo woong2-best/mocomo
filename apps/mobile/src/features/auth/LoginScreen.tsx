@@ -24,19 +24,21 @@ import { hasSeenNotificationPrompt } from "@/lib/onboarding-store";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { NotificationPermissionSheet } from "@/features/auth/NotificationPermissionSheet";
 import { TermsConsentSheet } from "@/features/auth/TermsConsentSheet";
+import { SignupOnboardingSheet } from "@/features/auth/SignupOnboardingSheet";
+import { SignupCompleteCelebration } from "@/features/auth/SignupCompleteCelebration";
 import { WelcomeSocialAuthRow } from "@/features/auth/WelcomeSocialAuthRow";
 import { NativeCredentialsForm } from "@/features/auth/NativeCredentialsForm";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
-/** Matches the night-sky fill of welcome-bg.jpg so letterbox edges never show. */
-const BACKDROP = "#0a1648";
-/** Intrinsic shape of welcome-bg.jpg (576×1024) and where the hero art ends. */
-const BACKDROP_ASPECT = 576 / 1024;
-const BACKDROP_ART_END = 0.48;
+/** Matches the cream sky fill of welcome-bg.jpg so letterbox edges never show. */
+const BACKDROP = "#E8DFD0";
+/** Intrinsic shape of welcome-bg.jpg (559×1024) and where the hero art clears for UI. */
+const BACKDROP_ASPECT = 559 / 1024;
+const BACKDROP_ART_END = 0.52;
 /** Breathing room between the artwork and the first row of buttons. */
-const ART_GAP = 26;
+const ART_GAP = 20;
 
 type PendingGoogleSignup = {
   idToken: string;
@@ -80,6 +82,9 @@ export function LoginScreen({ navigation }: Props) {
   const [pendingSignup, setPendingSignup] = useState<PendingGoogleSignup | null>(null);
   const [signupBusy, setSignupBusy] = useState(false);
   const [signupError, setSignupError] = useState("");
+  /** After terms: collect birth + local avatar, then create account. */
+  const [showSignupOnboarding, setShowSignupOnboarding] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const authLocked = credentialsBusy || busyProvider !== null;
   const keyboardOpen = keyboardHeight > 0;
@@ -160,22 +165,52 @@ export function LoginScreen({ navigation }: Props) {
     [openWebAuth, runGoogleNative]
   );
 
-  const confirmGoogleSignup = useCallback(async () => {
-    if (!pendingSignup) return;
-    setSignupBusy(true);
-    setSignupError("");
-    try {
-      await signInWithGoogleNative({
-        flow: "signup",
-        idToken: pendingSignup.idToken,
-      });
-      setPendingSignup(null);
-    } catch (e) {
-      setSignupError(credentialsErrorMessage(e, "계정을 만들지 못했습니다."));
-    } finally {
-      setSignupBusy(false);
-    }
-  }, [pendingSignup, signInWithGoogleNative]);
+  const confirmGoogleSignup = useCallback(() => {
+    // Terms agreed → collect birth + gallery avatar before creating the account.
+    setShowSignupOnboarding(true);
+  }, []);
+
+  const finishGoogleSignupOnboarding = useCallback(
+    async (payload: {
+      birth: { birthYear: number; birthMonth: number; birthDay: number };
+      localAvatarUri: string | null;
+    }) => {
+      if (!pendingSignup || !payload.localAvatarUri) return;
+      setSignupBusy(true);
+      setSignupError("");
+      setShowSignupOnboarding(false);
+      try {
+        await signInWithGoogleNative({
+          flow: "signup",
+          idToken: pendingSignup.idToken,
+        });
+        const { prepareProfileAvatar } = await import("@/lib/prepare-profile-media");
+        const { uploadLocalFile } = await import("@/api/upload-file");
+        const { patchProfile } = await import("@/api/profile");
+        const prepared = await prepareProfileAvatar(payload.localAvatarUri);
+        const url = await uploadLocalFile({
+          uri: prepared,
+          filename: `profile-avatar-${Date.now()}.jpg`,
+          contentType: "image/jpeg",
+          category: "image",
+        });
+        await patchProfile({
+          image: url,
+          birthYear: payload.birth.birthYear,
+          birthMonth: payload.birth.birthMonth,
+          birthDay: payload.birth.birthDay,
+        });
+        setPendingSignup(null);
+        setShowCelebration(true);
+      } catch (e) {
+        setSignupError(credentialsErrorMessage(e, "계정을 만들지 못했습니다."));
+        setPendingSignup(pendingSignup);
+      } finally {
+        setSignupBusy(false);
+      }
+    },
+    [pendingSignup, signInWithGoogleNative]
+  );
 
   async function handleCredentials(loginId: string, password: string) {
     Keyboard.dismiss();
@@ -197,6 +232,9 @@ export function LoginScreen({ navigation }: Props) {
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         contentPosition="top center"
+        allowDownscaling={false}
+        priority="high"
+        cachePolicy="memory-disk"
       />
 
       <View style={[styles.flex, styles.overlay]} pointerEvents="box-none">
@@ -240,12 +278,29 @@ export function LoginScreen({ navigation }: Props) {
       </View>
 
       <TermsConsentSheet
-        visible={pendingSignup !== null}
+        visible={pendingSignup !== null && !showSignupOnboarding && !showCelebration}
         account={pendingSignup?.profile ?? null}
         busy={signupBusy}
         error={signupError}
         onClose={() => setPendingSignup(null)}
         onAgree={() => void confirmGoogleSignup()}
+      />
+
+      <SignupOnboardingSheet
+        visible={showSignupOnboarding}
+        mode="collectOnly"
+        onClose={() => setShowSignupOnboarding(false)}
+        onFinished={(payload) => {
+          void finishGoogleSignupOnboarding({
+            birth: payload.birth,
+            localAvatarUri: payload.localAvatarUri,
+          });
+        }}
+      />
+
+      <SignupCompleteCelebration
+        visible={showCelebration}
+        onDone={() => setShowCelebration(false)}
       />
 
       <NotificationPermissionSheet

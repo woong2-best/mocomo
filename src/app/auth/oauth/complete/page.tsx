@@ -41,7 +41,7 @@ export default async function OAuthCompletePage({
   if (session?.user?.id) {
     const dbUser = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { isBanned: true, deletedAt: true, birthDate: true },
+      select: { isBanned: true, deletedAt: true, birthDate: true, image: true },
     });
 
     if (dbUser && !dbUser.isBanned && !dbUser.deletedAt) {
@@ -55,6 +55,10 @@ export default async function OAuthCompletePage({
         redirect(
           `/auth/complete-birth-date?dest=${encodeURIComponent(dest)}`
         );
+      }
+      // New OAuth signups must confirm a profile icon (existing accounts without one are ignored).
+      if (sp.flow === "signup") {
+        redirect(`/auth/complete-avatar?dest=${encodeURIComponent(dest)}`);
       }
       redirect(dest);
     }

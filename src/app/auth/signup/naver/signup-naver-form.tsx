@@ -263,6 +263,13 @@ export function SignupNaverForm() {
               className="rounded-xl"
             />
             <SignupBirthDateFields locale={locale} />
+            <p className="text-xs text-muted-foreground rounded-xl bg-muted/50 px-3 py-2 leading-relaxed">
+              {locale === "ko"
+                ? "이메일 인증 후 프로필 아이콘 사진을 반드시 설정합니다. 배너는 나중에 해도 됩니다."
+                : locale === "ja"
+                  ? "メール認証のあと、プロフィール写真の設定が必須です。"
+                  : "After email verification you’ll set a required profile icon. Banner is optional."}
+            </p>
             <div className="grid grid-cols-2 gap-2">
               <label className="space-y-1">
                 <span className="text-xs text-muted-foreground">{t("auth.country")}</span>

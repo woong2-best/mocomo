@@ -199,7 +199,10 @@ export function EmailVerifyFormInner() {
           router.replace(`/auth/mobile/oauth/complete?platform=${platform}`);
           return;
         }
-        router.replace(DEFAULT_LANDING_PATH);
+        // New email signup → force profile icon before home (banner optional / skipped).
+        router.replace(
+          `/auth/complete-avatar?dest=${encodeURIComponent(DEFAULT_LANDING_PATH)}`
+        );
         return;
       }
       setSignupPassword(stored);

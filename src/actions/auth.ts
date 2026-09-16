@@ -661,6 +661,14 @@ export async function registerUser(
 
     await recordEmailSendRateLimit(email, ip);
 
+    // New email signups must set a profile icon after verify (existing accounts without image are ignored).
+    try {
+      const { markSignupNeedsAvatar } = await import("@/actions/avatar-onboarding");
+      await markSignupNeedsAvatar();
+    } catch {
+      /* cookie optional during non-request contexts */
+    }
+
     return {
       success: true,
       userId,
