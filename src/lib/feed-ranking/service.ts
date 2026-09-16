@@ -41,12 +41,13 @@ export async function padPostIdsToPageSize(
   // Pass 1: unseen (not in exclude) latest posts
   let scanCursor: string | null = null;
   for (let guard = 0; guard < 8 && out.length < limit; guard++) {
-    const rows = await db.post.findMany({
+    const notIn = [...exclude].slice(0, 500);
+    const rows: { id: string }[] = await db.post.findMany({
       where: {
         ...platformPostWhere,
         ...nsfwPostWhere(canViewNsfw),
         visibility: "PUBLIC",
-        ...(exclude.size ? { id: { notIn: [...exclude].slice(0, 500) } } : {}),
+        ...(notIn.length ? { id: { notIn } } : {}),
       },
       select: { id: true },
       orderBy: { createdAt: "desc" },
