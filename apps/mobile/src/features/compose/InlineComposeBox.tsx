@@ -313,7 +313,7 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
             ref={inputRef}
             style={styles.input}
             multiline
-            placeholder="What's happening?"
+            placeholder="Dreaming of what?"
             placeholderTextColor={colors.textMuted}
             value={content}
             onChangeText={setContent}
