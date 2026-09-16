@@ -34,7 +34,7 @@ export async function completeAvatarOnboarding(input: {
   }
 
   const result = await applyProfileUpdateForUser(user.id, { image });
-  if (result.error) return { error: result.error };
+  if ("error" in result) return { error: result.error };
 
   await clearSignupNeedsAvatar();
   revalidatePath("/settings/profile");
