@@ -5,22 +5,22 @@ export const LIVE_CATEGORIES: {
   label: string;
 }[] = [
   { value: "ALL", label: "전체" },
-  { value: "JUST_CHATTING", label: "Chatting" },
-  { value: "GAME", label: "게임" },
-  { value: "MUSIC", label: "음악" },
+  { value: "JUST_CHATTING", label: "CHATTING" },
+  { value: "GAME", label: "GAMING" },
+  { value: "MUSIC", label: "MUSIC" },
   { value: "IRL", label: "IRL" },
-  { value: "VIRTUAL", label: "Virtual" },
+  { value: "VIRTUAL", label: "VIRTUAL" },
   { value: "LIVE", label: "LIVE" },
 ];
 
-/** Folder icon assets (black bg removed) under /public/images/live/categories */
+/** Full category card art (folder + label) under /public/images/live/categories */
 export const LIVE_CATEGORY_ICON: Record<LiveStreamCategory, string> = {
-  IRL: "/images/live/categories/irl.png",
-  JUST_CHATTING: "/images/live/categories/just_chatting.png",
-  GAME: "/images/live/categories/game.png",
-  MUSIC: "/images/live/categories/music.png",
-  VIRTUAL: "/images/live/categories/virtual.png",
-  LIVE: "/images/live/categories/live.png",
+  IRL: "/images/live/categories/irl-card.png",
+  JUST_CHATTING: "/images/live/categories/chatting-card.png",
+  GAME: "/images/live/categories/gaming-card.png",
+  MUSIC: "/images/live/categories/music-card.png",
+  VIRTUAL: "/images/live/categories/virtual-card.png",
+  LIVE: "/images/live/categories/live-card.png",
 };
 
 export const LIVE_CATEGORY_ORDER: LiveStreamCategory[] = [

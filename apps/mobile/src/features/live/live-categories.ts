@@ -1,11 +1,11 @@
 /** Mobile live category pills — mirrors web LIVE_CATEGORIES. */
 export const MOBILE_LIVE_CATEGORIES = [
   { id: "ALL", label: "전체" },
-  { id: "JUST_CHATTING", label: "Chatting" },
-  { id: "GAME", label: "게임" },
-  { id: "MUSIC", label: "음악" },
+  { id: "JUST_CHATTING", label: "CHATTING" },
+  { id: "GAME", label: "GAMING" },
+  { id: "MUSIC", label: "MUSIC" },
   { id: "IRL", label: "IRL" },
-  { id: "VIRTUAL", label: "Virtual" },
+  { id: "VIRTUAL", label: "VIRTUAL" },
   { id: "LIVE", label: "LIVE" },
 ] as const;
 
