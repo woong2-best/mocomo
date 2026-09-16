@@ -16,10 +16,7 @@ import { ko } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AppleWheelPicker } from "@/components/ui/apple-wheel-picker";
 import { Button } from "@/components/ui/button";
-import {
-  SPONSORED_AD_MAX_DAYS,
-  SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS,
-} from "@/lib/sponsored-ad/constants";
+import { SPONSORED_AD_MAX_DAYS } from "@/lib/sponsored-ad/constants";
 import {
   combineDateAndTime,
   daysFromCalendarRange,
@@ -36,6 +33,7 @@ type SponsoredAdSchedulePickerProps = {
   startTime: Date;
   days: number;
   isOperator?: boolean;
+  /** @deprecated 운영자는 항상 무제한 */
   unlimitedSchedule?: boolean;
   onChange: (startTime: Date, days: number) => void;
   disabled?: boolean;
@@ -77,19 +75,19 @@ export function SponsoredAdSchedulePicker({
   startTime,
   days,
   isOperator = false,
-  unlimitedSchedule = false,
+  unlimitedSchedule,
   onChange,
   disabled,
 }: SponsoredAdSchedulePickerProps) {
-  const allowPast = isOperator && unlimitedSchedule;
-  const maxDays = unlimitedSchedule
-    ? SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS
-    : SPONSORED_AD_MAX_DAYS;
+  // 운영자: 종료일·일수 제한 없음 (삭제할 때까지)
+  const unlimited = isOperator || Boolean(unlimitedSchedule);
+  const allowPast = unlimited;
+  const maxDays = SPONSORED_AD_MAX_DAYS;
 
   const [minTime, setMinTime] = useState(() => defaultSponsoredAdStartTime());
   const [rangeStart, setRangeStart] = useState(() => startOfDay(startTime));
   const [rangeEnd, setRangeEnd] = useState(() =>
-    endDayFromStartAndDays(startOfDay(startTime), days)
+    endDayFromStartAndDays(startOfDay(startTime), Math.max(1, days))
   );
   const [hour, setHour] = useState(() => startTime.getHours());
   const [minute, setMinute] = useState(() => startTime.getMinutes());
@@ -98,8 +96,8 @@ export function SponsoredAdSchedulePicker({
   const lastEmitted = useRef<string>("");
 
   const summary = useMemo(
-    () => sponsoredAdScheduleSummary(startTime, days),
-    [startTime, days]
+    () => sponsoredAdScheduleSummary(startTime, days, { unlimited }),
+    [startTime, days, unlimited]
   );
 
   useEffect(() => {
@@ -123,10 +121,13 @@ export function SponsoredAdSchedulePicker({
   }, [viewMonth]);
 
   const rangeInterval = useMemo(() => {
+    if (unlimited) {
+      return { start: rangeStart, end: rangeStart };
+    }
     const a = rangeStart.getTime() <= rangeEnd.getTime() ? rangeStart : rangeEnd;
     const b = rangeStart.getTime() <= rangeEnd.getTime() ? rangeEnd : rangeStart;
     return { start: a, end: b };
-  }, [rangeStart, rangeEnd]);
+  }, [rangeStart, rangeEnd, unlimited]);
 
   const availableHours = useMemo(
     () => HOURS.filter((h) => !isHourDisabled(rangeInterval.start, h, minTime, allowPast)),
@@ -145,11 +146,15 @@ export function SponsoredAdSchedulePicker({
       start = new Date(minTime);
     }
 
-    let nextDays = daysFromCalendarRange(nextStartDay, nextEndDay);
-    nextDays = Math.min(nextDays, maxDays);
+    // 운영자: 일수 고정(서버가 무제한으로 덮어씀) — UI는 시작 시각만 전달
+    const nextDays = unlimited
+      ? 1
+      : Math.min(daysFromCalendarRange(nextStartDay, nextEndDay), maxDays);
 
-    const visualEnd = endDayFromStartAndDays(nextStartDay, nextDays);
-    const key = `${start.toISOString()}|${nextDays}`;
+    const visualEnd = unlimited
+      ? startOfDay(nextStartDay)
+      : endDayFromStartAndDays(nextStartDay, nextDays);
+    const key = `${start.toISOString()}|${nextDays}|${unlimited ? "u" : "l"}`;
     if (key === lastEmitted.current) return;
     lastEmitted.current = key;
 
@@ -161,12 +166,10 @@ export function SponsoredAdSchedulePicker({
     if (isDayDisabled(day, minTime, allowPast)) return;
     const d = startOfDay(day);
 
-    if (dateTarget === "start") {
-      const end =
-        rangeEnd.getTime() >= d.getTime() ? rangeEnd : endDayFromStartAndDays(d, 1);
+    if (unlimited || dateTarget === "start") {
       setRangeStart(d);
-      setRangeEnd(end);
-      emit(d, end, hour, minute);
+      setRangeEnd(d);
+      emit(d, d, hour, minute);
       return;
     }
 
@@ -200,34 +203,38 @@ export function SponsoredAdSchedulePicker({
       <div className="space-y-1">
         <label className="text-xs font-medium text-muted-foreground">게재 기간</label>
         <p className="text-[11px] text-muted-foreground">
-          시작일·종료일을 각각 선택 · 같은 시각 기준 24시간 단위
+          {unlimited
+            ? "시작 일시만 선택 · 종료 제한 없음 (직접 삭제할 때까지 노출)"
+            : "시작일·종료일을 각각 선택 · 같은 시각 기준 24시간 단위"}
         </p>
-        <div className="flex gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => setDateTarget("start")}
-            className={cn(
-              "flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors",
-              dateTarget === "start"
-                ? "bg-folk-terracotta text-white"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            )}
-          >
-            시작일 선택
-          </button>
-          <button
-            type="button"
-            onClick={() => setDateTarget("end")}
-            className={cn(
-              "flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors",
-              dateTarget === "end"
-                ? "bg-folk-terracotta text-white"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            )}
-          >
-            종료일 선택
-          </button>
-        </div>
+        {!unlimited ? (
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setDateTarget("start")}
+              className={cn(
+                "flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors",
+                dateTarget === "start"
+                  ? "bg-folk-terracotta text-white"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              )}
+            >
+              시작일 선택
+            </button>
+            <button
+              type="button"
+              onClick={() => setDateTarget("end")}
+              className={cn(
+                "flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors",
+                dateTarget === "end"
+                  ? "bg-folk-terracotta text-white"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              )}
+            >
+              종료일 선택
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/50 shadow-sm">
@@ -331,8 +338,9 @@ export function SponsoredAdSchedulePicker({
             </div>
 
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              {format(rangeInterval.start, "M월 d일")} ~ {format(rangeInterval.end, "M월 d일")} ·{" "}
-              {days}일
+              {unlimited
+                ? `${format(rangeInterval.start, "M월 d일")}부터 · 제한 없음`
+                : `${format(rangeInterval.start, "M월 d일")} ~ ${format(rangeInterval.end, "M월 d일")} · ${days}일`}
             </p>
           </div>
 
@@ -371,11 +379,12 @@ export function SponsoredAdSchedulePicker({
           </div>
           <div className="flex justify-between gap-3 pt-1.5 border-t border-border/40">
             <span className="text-muted-foreground">
-              {days}일 · {isOperator ? "운영자 면제" : "차감 MOCO"}
-              {unlimitedSchedule ? " · 제한 없음" : ""}
+              {unlimited
+                ? "운영자 면제 · 제한 없음"
+                : `${days}일 · 차감 MOCO`}
             </span>
             <span className="font-bold text-folk-terracotta tabular-nums">
-              {isOperator ? "0 MOCO" : `${summary.moco} MOCO`}
+              {isOperator || unlimited ? "0 MOCO" : `${summary.moco} MOCO`}
             </span>
           </div>
         </div>

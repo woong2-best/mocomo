@@ -79,7 +79,19 @@ export function formatSponsoredAdDateTime(d: Date): string {
   return SCHEDULE_FMT.format(d);
 }
 
-export function sponsoredAdScheduleSummary(startTime: Date, days: number) {
+export function sponsoredAdScheduleSummary(
+  startTime: Date,
+  days: number,
+  options?: { unlimited?: boolean }
+) {
+  if (options?.unlimited) {
+    return {
+      startLabel: formatSponsoredAdDateTime(startTime),
+      endLabel: "제한 없음 (삭제할 때까지)",
+      moco: 0,
+      endTime: null as Date | null,
+    };
+  }
   const endTime = calcSponsoredAdEndTime(startTime, days);
   return {
     startLabel: formatSponsoredAdDateTime(startTime),

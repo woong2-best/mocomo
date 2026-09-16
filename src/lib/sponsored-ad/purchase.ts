@@ -14,6 +14,7 @@ import {
   calcSponsoredAdExpiresAt,
   calcSponsoredAdMoco,
   SPONSORED_AD_MAX_DAYS,
+  SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS,
   SPONSORED_AD_STATUS_ACTIVE,
   SPONSORED_AD_TARGET_EVENT,
   type SponsoredAdTargetType,
@@ -166,20 +167,28 @@ export async function purchaseSponsoredAd(
   }
 }
 
-/** 사이트 운영자 — MOCO 차감 없이 광고 활성화 */
+/** 사이트 운영자 — MOCO 차감 없이 광고 활성화 (기간 상한 = 운영자 무제한) */
 export async function activateSponsoredAdComplimentary(
   input: ActivateSponsoredAdComplimentaryInput
 ): Promise<PurchaseSponsoredAdResult> {
-  if (input.days < 1 || input.days > SPONSORED_AD_MAX_DAYS) {
-    return { ok: false, error: `광고 기간은 1~${SPONSORED_AD_MAX_DAYS}일까지 선택할 수 있습니다.` };
+  if (
+    !Number.isInteger(input.days) ||
+    input.days < 1 ||
+    input.days > SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS
+  ) {
+    return {
+      ok: false,
+      error: `광고 기간은 1~${SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS}일까지 선택할 수 있습니다.`,
+    };
   }
 
+  const now = new Date();
   const activeCampaign = await db.sponsoredAdCampaign.findFirst({
     where: {
       targetType: input.targetType,
       targetId: input.targetId,
       status: SPONSORED_AD_STATUS_ACTIVE,
-      expiresAt: { gt: new Date() },
+      OR: [{ expiresAt: { gt: now } }, { mocoPaid: 0 }],
     },
     select: { id: true },
   });
@@ -246,8 +255,10 @@ export async function getSponsoredAdStatus(
   if (!campaign) return { active: false as const, campaign: null };
 
   const now = new Date();
+  // 운영자 면제(mocoPaid=0): 만료일 무시 — 삭제 전까지 활성
   const active =
-    campaign.status === SPONSORED_AD_STATUS_ACTIVE && campaign.expiresAt > now;
+    campaign.status === SPONSORED_AD_STATUS_ACTIVE &&
+    (campaign.mocoPaid === 0 || campaign.expiresAt > now);
 
   return { active, campaign };
 }

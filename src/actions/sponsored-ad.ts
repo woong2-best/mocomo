@@ -9,6 +9,7 @@ import { EVENT_REGISTRATION_MAX_DAYS } from "@/lib/event-registration";
 import { getPurchasedMoco } from "@/lib/settlement-moco/balance";
 import {
   activateSponsoredAdComplimentary,
+  calcOperatorUnlimitedExpiresAt,
   calcSponsoredAdEndTime,
   calcSponsoredAdMoco,
   purchaseSponsoredAd,
@@ -43,6 +44,7 @@ export async function registerEventSponsoredAd(data: {
   linkUrl: string;
   startsAt: string;
   days: number;
+  /** @deprecated 운영자는 항상 무제한 — 하위 호환용 */
   operatorUnlimited?: boolean;
 }) {
   const user = await requireAuth();
@@ -57,24 +59,28 @@ export async function registerEventSponsoredAd(data: {
     email: user.email,
   });
 
-  const operatorUnlimited = Boolean(data.operatorUnlimited && isOperator);
-  const maxDays = operatorUnlimited
+  const startsAt = new Date(data.startsAt);
+  const now = new Date();
+
+  // 운영자: 기간 선택 무시 — 삭제 전까지 게재
+  const days = isOperator
+    ? SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS
+    : data.days;
+  const maxDays = isOperator
     ? SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS
     : Math.min(EVENT_REGISTRATION_MAX_DAYS, SPONSORED_AD_MAX_DAYS);
 
-  const startsAt = new Date(data.startsAt);
-  const days = data.days;
-  const now = new Date();
-
   const scheduleError = validateSponsoredAdSchedule(startsAt, days, now, {
-    skipPastCheck: operatorUnlimited,
+    skipPastCheck: isOperator,
     maxDays,
   });
   if (scheduleError) {
     return { ok: false as const, error: scheduleError };
   }
 
-  const endsAt = calcSponsoredAdEndTime(startsAt, days);
+  const endsAt = isOperator
+    ? calcOperatorUnlimitedExpiresAt(startsAt)
+    : calcSponsoredAdEndTime(startsAt, days);
 
   let mocoCost = 0;
   if (!isOperator) {

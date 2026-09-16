@@ -12,10 +12,18 @@ export const SPONSORED_AD_IMAGE_MAX_HEIGHT = 1200;
 
 export const SPONSORED_AD_MAX_DAYS = 100;
 
-/** 운영자 '날짜 제한 없음' 모드 상한 (약 10년) */
-export const SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS = 3650;
+/**
+ * 운영자 광고 — 삭제 전까지 노출.
+ * expiresAt 컬럼이 필수라 DB에는 먼 미래로 저장한다 (약 100년).
+ */
+export const SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS = 36500;
 
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** 운영자 무제한 광고의 expiresAt */
+export function calcOperatorUnlimitedExpiresAt(from = new Date()): Date {
+  return new Date(from.getTime() + SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS * MS_PER_DAY);
+}
 
 export const SPONSORED_AD_TARGET_EVENT = "EVENT" as const;
 
