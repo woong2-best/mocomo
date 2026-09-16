@@ -17,6 +17,7 @@ export const MobileApi = {
     passwordResetComplete: "/api/mobile/auth/password-reset/complete",
   },
   feed: "/api/mobile/feed",
+  ads: "/api/mobile/ads",
   reels: "/api/mobile/reels",
   search: "/api/mobile/search",
   post: (id: string) => `/api/mobile/posts/${id}`,

@@ -8,8 +8,6 @@ import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { getSubscriptionsForViewer } from "@/lib/content-access";
 import { isSubscriptionActive } from "@/lib/creator-subscription";
 import { isPaymentsConfigured } from "@/lib/payments";
-import { fetchFeedAdPool } from "@/lib/feed-ads";
-import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { db } from "@/lib/db";
 import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
@@ -20,10 +18,6 @@ export async function GET(req: NextRequest) {
 
     const cursor = req.nextUrl.searchParams.get("cursor");
     const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "10", 10), 24);
-    const postOffset = Math.max(
-      0,
-      parseInt(req.nextUrl.searchParams.get("postOffset") || "0", 10) || 0
-    );
     const modeParam = req.nextUrl.searchParams.get("mode");
     const mode: FeedMode =
       modeParam === "latest" || modeParam === "following" || modeParam === "for_you"
@@ -61,22 +55,15 @@ export async function GET(req: NextRequest) {
     const postIds = visible.map((p) => p.id);
     const authorIds = [...new Set(visible.map((p) => p.author.id))];
 
-    const [gated, subscriptions, engagement, feedAds, premiumUser] = await Promise.all([
+    // Mobile: no in-feed ads — Instagram-style placement is Reels-only.
+    const [gated, subscriptions, engagement] = await Promise.all([
       attachWebPaidMediaPlayback(visible, viewerId),
       getSubscriptionsForViewer(viewerId, authorIds),
       viewerId && postIds.length > 0
         ? getPostEngagementForUser(viewerId, postIds)
         : Promise.resolve({ likedIds: [], starredIds: [], repostedIds: [] }),
-      fetchFeedAdPool(),
-      viewerId
-        ? db.user.findUnique({
-            where: { id: viewerId },
-            select: { premiumTier: true },
-          })
-        : Promise.resolve(null),
     ]);
     const paymentsEnabled = isPaymentsConfigured();
-    const ads = premiumUser?.premiumTier === "PREMIUM" ? [] : feedAds;
 
     const serialized = gated.map((data) => {
       const sub = subscriptions.get(data.author.id);
@@ -89,15 +76,10 @@ export async function GET(req: NextRequest) {
             : String(data.createdAt),
       };
     });
-    const mixed = mixFeedWithAds(serialized, ads, { postOffset });
 
     return NextResponse.json(
       {
-        items: mixed.map((item) =>
-          item.type === "ad"
-            ? item
-            : { type: "post" as const, data: item.data }
-        ),
+        items: serialized.map((data) => ({ type: "post" as const, data })),
         nextCursor: posts.length === limit ? posts[posts.length - 1]?.id ?? null : null,
         mode: effectiveMode,
         likedIds: engagement.likedIds,

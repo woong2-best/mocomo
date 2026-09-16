@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { HomeFeedClient } from "@/components/home/home-feed-client";
-import { getCachedFeedAds, getCachedFeedPosts } from "@/lib/cached-data";
-import { mixFeedWithAds } from "@/lib/feed-mixer";
+import { getCachedFeedPosts } from "@/lib/cached-data";
 import { getCachedSession } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
@@ -18,10 +17,10 @@ function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): 
 
 export async function HomeFeedAsync() {
   try {
-    const [rawPosts, session, feedAds] = await Promise.all([
+    // Web: in-feed ads off — Sponsored only in the right-panel photo slot.
+    const [rawPosts, session] = await Promise.all([
       getCachedFeedPosts(),
       getCachedSession(),
-      getCachedFeedAds(),
     ]);
     const viewerId = session?.user?.id ?? null;
     const visible = await filterPostsByAudienceLock(
@@ -47,12 +46,9 @@ export async function HomeFeedAsync() {
     const serialized = serializeCreatedAt(posts);
     const isLoggedIn = !!session?.user;
     const isPremium = session?.user?.premiumTier === "PREMIUM";
-    const ads = isPremium ? [] : feedAds;
-    const mixed = mixFeedWithAds(serialized, ads);
     const nextCursor = rawPosts.length === 12 ? rawPosts[rawPosts.length - 1]?.id ?? null : null;
-    const hasDbPosts = mixed.some((item) => item.type === "post");
+    const hasDbPosts = serialized.length > 0;
     const paymentsEnabled = isPaymentsConfigured();
-    const visibleMixed = mixed;
 
     return (
       <HomeFeedClient
@@ -62,20 +58,16 @@ export async function HomeFeedAsync() {
         starredIds={engagement.starredIds}
         repostedIds={engagement.repostedIds}
         paymentsEnabled={paymentsEnabled}
-        feedItems={visibleMixed.map((item) =>
-          item.type === "ad"
-            ? item
-            : {
-                type: "post" as const,
-                data: {
-                  ...item.data,
-                  createdAt:
-                    item.data.createdAt instanceof Date
-                      ? item.data.createdAt.toISOString()
-                      : String(item.data.createdAt),
-                },
-              }
-        )}
+        feedItems={serialized.map((data) => ({
+          type: "post" as const,
+          data: {
+            ...data,
+            createdAt:
+              data.createdAt instanceof Date
+                ? data.createdAt.toISOString()
+                : String(data.createdAt),
+          },
+        }))}
         nextCursor={nextCursor}
         hasDbPosts={hasDbPosts}
       />

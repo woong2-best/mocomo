@@ -17,6 +17,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchFeedPage, type FeedPost } from "@/api/feed";
+import { fetchReelsAds } from "@/api/ads";
 import { createPostComment } from "@/api/social";
 import {
   parsePostComments,
@@ -28,9 +29,14 @@ import {
 import {
   buildFeedVideoGroups,
   findGroupOpenPosition,
-  type FeedVideoGroup,
 } from "@/features/feed/feed-video-groups";
 import { FeedVideoPostSlide } from "@/features/feed/FeedVideoPostSlide";
+import { ReelSponsoredSlide } from "@/features/reels/ReelSponsoredSlide";
+import {
+  buildReelsSlots,
+  findReelSlotIndex,
+  type ReelsSlot,
+} from "@/features/reels/reels-slots";
 import { TranslatableText } from "@/ui/TranslatableText";
 import type { RootStackParamList } from "@/navigation/types";
 
@@ -40,13 +46,13 @@ export function ReelsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "Reels">>();
   const queryClient = useQueryClient();
-  const listRef = useRef<FlatList<FeedVideoGroup>>(null);
+  const listRef = useRef<FlatList<ReelsSlot>>(null);
 
   const targetPostId = route.params?.postId;
   const targetMediaId = route.params?.mediaId;
   const targetMediaIndex = route.params?.mediaIndex;
 
-  const [activeGroup, setActiveGroup] = useState(0);
+  const [activeSlot, setActiveSlot] = useState(0);
   const [seedVideoByGroup, setSeedVideoByGroup] = useState<Record<string, number>>({});
   const [didSeed, setDidSeed] = useState(false);
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
@@ -90,6 +96,12 @@ export function ReelsScreen() {
     refetchOnMount: false,
   });
 
+  const adsQuery = useQuery({
+    queryKey: ["mobile-reels-ads"],
+    queryFn: fetchReelsAds,
+    staleTime: 120_000,
+  });
+
   const posts = useMemo(() => {
     const list: FeedPost[] = [];
     for (const page of feedQuery.data?.pages ?? []) {
@@ -117,46 +129,53 @@ export function ReelsScreen() {
     [posts, paymentsEnabled]
   );
 
+  const slots = useMemo(
+    () => buildReelsSlots(groups, adsQuery.data ?? []),
+    [adsQuery.data, groups]
+  );
+
   useEffect(() => {
-    if (didSeed || groups.length === 0) return;
+    if (didSeed || slots.length === 0) return;
     if (targetPostId) {
-      const pos = findGroupOpenPosition(groups, {
+      const groupPos = findGroupOpenPosition(groups, {
         postId: targetPostId,
         mediaId: targetMediaId,
         mediaIndex: targetMediaIndex,
       });
-      if (pos) {
-        setActiveGroup(pos.groupIndex);
-        setSeedVideoByGroup({ [groups[pos.groupIndex]!.postId]: pos.videoIndex });
+      if (groupPos) {
+        const slotIndex = findReelSlotIndex(slots, groups[groupPos.groupIndex]!.postId);
+        const index = slotIndex >= 0 ? slotIndex : 0;
+        setActiveSlot(index);
+        setSeedVideoByGroup({ [groups[groupPos.groupIndex]!.postId]: groupPos.videoIndex });
         requestAnimationFrame(() => {
-          listRef.current?.scrollToIndex({ index: pos.groupIndex, animated: false });
+          listRef.current?.scrollToIndex({ index, animated: false });
         });
         setDidSeed(true);
         return;
       }
     }
     setDidSeed(true);
-  }, [didSeed, groups, targetMediaId, targetMediaIndex, targetPostId]);
+  }, [didSeed, groups, slots, targetMediaId, targetMediaIndex, targetPostId]);
 
   /** Prefetch comments for visible reels so the sheet opens instantly (IG/X). */
   useEffect(() => {
-    if (groups.length === 0) return;
+    if (slots.length === 0) return;
     const warm = (idx: number) => {
-      const g = groups[idx];
-      if (!g) return;
-      const count = g.videos[0]?.commentCount ?? 0;
-      if (count > 0) prefetchPostComments(queryClient, g.postId);
+      const s = slots[idx];
+      if (!s || s.kind !== "reel") return;
+      const count = s.group.videos[0]?.commentCount ?? 0;
+      if (count > 0) prefetchPostComments(queryClient, s.group.postId);
     };
-    warm(activeGroup);
-    warm(activeGroup - 1);
-    warm(activeGroup + 1);
+    warm(activeSlot);
+    warm(activeSlot - 1);
+    warm(activeSlot + 1);
     if (targetPostId) prefetchPostComments(queryClient, targetPostId);
-  }, [activeGroup, groups, queryClient, targetPostId]);
+  }, [activeSlot, slots, queryClient, targetPostId]);
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       const first = viewableItems.find((v) => v.isViewable && typeof v.index === "number");
-      if (first?.index != null) setActiveGroup(first.index);
+      if (first?.index != null) setActiveSlot(first.index);
     }
   ).current;
 
@@ -208,14 +227,14 @@ export function ReelsScreen() {
     }
   }, [commentBusy, commentDraft, commentsPostId, queryClient]);
 
-  const goGroup = useCallback(
+  const goSlot = useCallback(
     (delta: number) => {
-      const next = Math.min(Math.max(activeGroup + delta, 0), groups.length - 1);
-      if (next === activeGroup) return;
-      setActiveGroup(next);
+      const next = Math.min(Math.max(activeSlot + delta, 0), slots.length - 1);
+      if (next === activeSlot) return;
+      setActiveSlot(next);
       listRef.current?.scrollToIndex({ index: next, animated: true });
     },
-    [activeGroup, groups.length]
+    [activeSlot, slots.length]
   );
 
   const onFastForwardChange = useCallback((hidden: boolean) => {
@@ -223,20 +242,25 @@ export function ReelsScreen() {
   }, []);
 
   const renderItem = useCallback(
-    ({ item, index }: { item: FeedVideoGroup; index: number }) => (
-      <FeedVideoPostSlide
-        group={item}
-        width={width}
-        height={height}
-        active={index === activeGroup}
-        initialVideoIndex={seedVideoByGroup[item.postId] ?? 0}
-        onOpenComments={openComments}
-        onPrefetchComments={prefetchComments}
-        onFastForwardChange={index === activeGroup ? onFastForwardChange : undefined}
-      />
-    ),
+    ({ item, index }: { item: ReelsSlot; index: number }) => {
+      if (item.kind === "ad") {
+        return <ReelSponsoredSlide ad={item.ad} width={width} height={height} />;
+      }
+      return (
+        <FeedVideoPostSlide
+          group={item.group}
+          width={width}
+          height={height}
+          active={index === activeSlot}
+          initialVideoIndex={seedVideoByGroup[item.group.postId] ?? 0}
+          onOpenComments={openComments}
+          onPrefetchComments={prefetchComments}
+          onFastForwardChange={index === activeSlot ? onFastForwardChange : undefined}
+        />
+      );
+    },
     [
-      activeGroup,
+      activeSlot,
       height,
       onFastForwardChange,
       openComments,
@@ -248,7 +272,7 @@ export function ReelsScreen() {
 
   useEffect(() => {
     setChromeHidden(false);
-  }, [activeGroup]);
+  }, [activeSlot]);
 
   if (feedQuery.isLoading && groups.length === 0) {
     return (
@@ -273,13 +297,13 @@ export function ReelsScreen() {
       {/* Up / down affordances like web */}
       {!chromeHidden ? (
         <View style={[styles.navArrows, { top: insets.top + 56 }]} pointerEvents="box-none">
-          <Pressable style={styles.arrowBtn} onPress={() => goGroup(-1)} disabled={activeGroup <= 0}>
+          <Pressable style={styles.arrowBtn} onPress={() => goSlot(-1)} disabled={activeSlot <= 0}>
             <Ionicons name="chevron-up" size={22} color="#fff" />
           </Pressable>
           <Pressable
             style={styles.arrowBtn}
-            onPress={() => goGroup(1)}
-            disabled={activeGroup >= groups.length - 1}
+            onPress={() => goSlot(1)}
+            disabled={activeSlot >= slots.length - 1}
           >
             <Ionicons name="chevron-down" size={22} color="#fff" />
           </Pressable>
@@ -288,8 +312,8 @@ export function ReelsScreen() {
 
       <FlatList
         ref={listRef}
-        data={groups}
-        keyExtractor={(g) => g.postId}
+        data={slots}
+        keyExtractor={(s) => s.key}
         renderItem={renderItem}
         pagingEnabled
         decelerationRate="fast"
