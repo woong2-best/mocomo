@@ -17,7 +17,9 @@ async function fetchCultureWikiPopular(limit: number): Promise<CultureWikiHubIte
   const animeTake = Math.min(limit, 30);
   const sideTake = Math.min(Math.ceil(limit / 2), 20);
 
-  const [anime, cosplayers, cosplayPosts] = await Promise.all([
+  // Culture Wiki lists are anime (+ cosplayer profiles) only — never cosplay board
+  // marketplace posts ([대여]/[판매]/[급처], etc.).
+  const [anime, cosplayers] = await Promise.all([
     db.anime.findMany({
       take: animeTake,
       orderBy: [{ viewCount: "desc" }, { updatedAt: "desc" }],
@@ -33,12 +35,6 @@ async function fetchCultureWikiPopular(limit: number): Promise<CultureWikiHubIte
         user: { select: { username: true, name: true } },
       },
     }),
-    db.cosplayBoardPost.findMany({
-      take: sideTake,
-      where: { status: "OPEN" },
-      orderBy: [{ viewCount: "desc" }, { updatedAt: "desc" }],
-      select: { id: true, title: true, viewCount: true },
-    }),
   ]);
 
   const merged: (CultureWikiHubItem & { score: number })[] = [
@@ -49,14 +45,6 @@ async function fetchCultureWikiPopular(limit: number): Promise<CultureWikiHubIte
       title: cp.stageName?.trim() || userDisplayName(cp.user),
       kind: "cosplayer" as const,
       score: cp.followerCount * 10 + 1,
-    })),
-    ...cosplayPosts.map((p) => ({
-      key: `cosplay-${p.id}`,
-      href: `/cosplay/board/${p.id}`,
-      title: p.title,
-      kind: "cosplay" as const,
-      score: p.viewCount,
-      viewCount: p.viewCount,
     })),
   ];
 
@@ -70,7 +58,7 @@ async function fetchCultureWikiRecent(limit: number): Promise<CultureWikiHubItem
   const animeTake = Math.min(limit, 30);
   const sideTake = Math.min(Math.ceil(limit / 2), 20);
 
-  const [anime, cosplayers, cosplayPosts] = await Promise.all([
+  const [anime, cosplayers] = await Promise.all([
     db.anime.findMany({
       take: animeTake,
       orderBy: { updatedAt: "desc" },
@@ -86,12 +74,6 @@ async function fetchCultureWikiRecent(limit: number): Promise<CultureWikiHubItem
         user: { select: { username: true, name: true } },
       },
     }),
-    db.cosplayBoardPost.findMany({
-      take: sideTake,
-      where: { status: "OPEN" },
-      orderBy: { updatedAt: "desc" },
-      select: { id: true, title: true, updatedAt: true },
-    }),
   ]);
 
   const merged: (CultureWikiHubItem & { score: number })[] = [
@@ -103,14 +85,6 @@ async function fetchCultureWikiRecent(limit: number): Promise<CultureWikiHubItem
       kind: "cosplayer" as const,
       score: cp.updatedAt.getTime(),
       updatedAt: cp.updatedAt,
-    })),
-    ...cosplayPosts.map((p) => ({
-      key: `cosplay-${p.id}`,
-      href: `/cosplay/board/${p.id}`,
-      title: p.title,
-      kind: "cosplay" as const,
-      score: p.updatedAt.getTime(),
-      updatedAt: p.updatedAt,
     })),
   ];
 
@@ -152,25 +126,25 @@ function mapAnimeRecent(
 
 export const getCachedCultureWikiPopular = unstable_cache(
   () => fetchCultureWikiPopular(10),
-  ["culture-wiki-popular-v1"],
+  ["culture-wiki-popular-v2"],
   { revalidate: 120 }
 );
 
 export const getCachedCultureWikiPopularAll = unstable_cache(
   () => fetchCultureWikiPopular(50),
-  ["culture-wiki-popular-all-v1"],
+  ["culture-wiki-popular-all-v2"],
   { revalidate: 120 }
 );
 
 export const getCachedCultureWikiRecent = unstable_cache(
   () => fetchCultureWikiRecent(10),
-  ["culture-wiki-recent-v1"],
+  ["culture-wiki-recent-v2"],
   { revalidate: 60 }
 );
 
 export const getCachedCultureWikiRecentAll = unstable_cache(
   () => fetchCultureWikiRecent(50),
-  ["culture-wiki-recent-all-v1"],
+  ["culture-wiki-recent-all-v2"],
   { revalidate: 60 }
 );
 

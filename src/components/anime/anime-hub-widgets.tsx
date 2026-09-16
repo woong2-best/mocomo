@@ -34,9 +34,6 @@ export function AnimeHubWidgets({
           ) : (
             <CultureWikiHubList items={popular} numbered className="space-y-1.5" />
           )}
-          <Link href="/anime/popular" className="text-xs text-primary hover:underline inline-block pt-1">
-            {t("anime.seeMore")}
-          </Link>
         </CardContent>
       </Card>
 
@@ -53,9 +50,6 @@ export function AnimeHubWidgets({
           ) : (
             <CultureWikiHubList items={recent} className="space-y-1.5" />
           )}
-          <Link href="/anime/recent" className="text-xs text-primary hover:underline inline-block pt-1">
-            {t("anime.seeMore")}
-          </Link>
         </CardContent>
       </Card>
 
