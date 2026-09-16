@@ -5,9 +5,7 @@ import { memo } from "react";
 import { motion } from "framer-motion";
 import { Eye, Radio, User } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import { LivePopularCategories } from "@/components/live/live-popular-categories";
 import { LiveHeroSpotlight } from "@/components/live/live-hero-spotlight";
-import { LiveHubNav } from "@/components/live/live-hub-nav";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
@@ -109,11 +107,11 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
 const LiveStreamCardMemo = memo(LiveStreamCard);
 export { LiveStreamCardMemo };
 
+/** Hero-only feed — Browse/folders live in LiveHub right rail (top-aligned). */
 export function LiveChannelGrid({
   channels,
   hosts,
   filteredCategory,
-  view = "explore",
 }: {
   channels: LiveHubChannel[];
   hosts: LiveHubHost[];
@@ -122,63 +120,17 @@ export function LiveChannelGrid({
 }) {
   const { locale, t } = useLocale();
   const hostMap = Object.fromEntries(hosts.map((h) => [h.id, h]));
-
-  const viewerByCategory = channels.reduce(
-    (acc, ch) => {
-      acc[ch.category] = (acc[ch.category] ?? 0) + ch.viewerCount;
-      return acc;
-    },
-    {} as Partial<Record<LiveStreamCategory, number>>
-  );
-
-  /** Viewer-ranked carousel — swipe 1 → 2 → next live */
   const heroChannels = [...channels].sort((a, b) => b.viewerCount - a.viewerCount);
-
-  if (filteredCategory) {
-    return (
-      <section className="space-y-2">
-        <h2 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
-          {localizedLiveCategoryLabel(filteredCategory, locale)} · {channels.length}
-        </h2>
-
-        <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-start">
-          <div className="min-w-0 flex-1">
-            {channels.length === 0 ? (
-              <LiveHeroSpotlight channels={[]} hostMap={hostMap} />
-            ) : (
-              <LiveHeroSpotlight channels={heroChannels} hostMap={hostMap} />
-            )}
-          </div>
-          <div className="w-full sm:w-auto shrink-0 -mt-1 lg:-mt-8 space-y-2.5">
-            <LiveHubNav activeView={view === "following" ? "following" : "explore"} />
-            <LivePopularCategories viewerByCategory={viewerByCategory} variant="sidebar" />
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <div className="space-y-2">
-      <h2 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2 lg:sr-only">
+      <h2 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
         <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
-        {t("live.liveBroadcasts")} · {channels.length}
+        {filteredCategory
+          ? `${localizedLiveCategoryLabel(filteredCategory, locale)} · ${channels.length}`
+          : `${t("live.liveBroadcasts")} · ${channels.length}`}
       </h2>
-
-      <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-start">
-        <div className="min-w-0 flex-1 space-y-2">
-          <h2 className="hidden lg:flex text-base sm:text-lg font-bold tracking-tight items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
-            {t("live.liveBroadcasts")} · {channels.length}
-          </h2>
-          <LiveHeroSpotlight channels={heroChannels} hostMap={hostMap} />
-        </div>
-        <div className="w-full sm:w-auto shrink-0 -mt-1 lg:-mt-1 space-y-2.5">
-          <LiveHubNav activeView={view === "following" ? "following" : "explore"} />
-          <LivePopularCategories viewerByCategory={viewerByCategory} variant="sidebar" />
-        </div>
-      </div>
+      <LiveHeroSpotlight channels={heroChannels} hostMap={hostMap} />
     </div>
   );
 }

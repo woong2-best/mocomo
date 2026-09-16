@@ -22,7 +22,7 @@ export function LiveHubNav({ activeView }: { activeView: LiveHubView }) {
   ];
 
   return (
-    <nav className="flex items-center gap-1.5 shrink-0">
+    <nav className="flex flex-wrap items-center gap-1.5 shrink-0 w-full">
       {items.map(({ key, href, icon: Icon, label }) => {
         const isActive = activeView === key;
         return (

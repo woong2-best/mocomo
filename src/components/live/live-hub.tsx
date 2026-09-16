@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 import { LiveStreamCardMemo } from "@/components/live/live-channel-grid";
+import { LivePopularCategories } from "@/components/live/live-popular-categories";
+import { LiveHubNav } from "@/components/live/live-hub-nav";
 import { Radio, Heart } from "lucide-react";
 import { LivePageActions } from "@/components/live/live-page-actions";
 import { LiveCategoryFilter } from "@/components/live/live-category-filter";
@@ -38,42 +40,59 @@ export function LiveHub({
 
   return (
     <LivePageChrome>
-      <header className="live-hero live-hub-header flex flex-wrap items-center justify-between gap-4 !py-3 !px-5">
-        <LivePageTitle>
-          <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2.5 tracking-tight text-white drop-shadow-md">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
-              <Radio className="h-5 w-5" />
-            </span>
-            {t("nav.live")}
-          </h1>
-        </LivePageTitle>
-        <div className="[&_button]:rounded-xl shrink-0 ml-auto">
-          <LivePageActions variant="header" />
-        </div>
-      </header>
+      <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-start">
+        {/* Left: header → filters → hero */}
+        <div className="min-w-0 flex-1 space-y-3">
+          <header className="live-hero live-hub-header flex flex-wrap items-center justify-between gap-4 !py-3 !px-5">
+            <LivePageTitle>
+              <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2.5 tracking-tight text-white drop-shadow-md">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
+                  <Radio className="h-5 w-5" />
+                </span>
+                {t("nav.live")}
+              </h1>
+            </LivePageTitle>
+            <div className="[&_button]:rounded-xl shrink-0 ml-auto">
+              <LivePageActions variant="header" />
+            </div>
+          </header>
 
-      <LiveCategoryFilter />
+          <LiveCategoryFilter />
 
-      <div className="min-w-0 mt-1">
-        {showFollowing ? (
-          <section>
-            <h2 className="text-base font-bold tracking-tight mb-4 flex items-center gap-2">
-              <Heart className="h-4 w-4 text-folk-terracotta" />
-              {t("live.followedLive")} · {followedLive.length}
-            </h2>
-            {followedLive.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6">{t("live.followingEmpty")}</p>
+          <div className="min-w-0">
+            {showFollowing ? (
+              <section>
+                <h2 className="text-base font-bold tracking-tight mb-4 flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-folk-terracotta" />
+                  {t("live.followedLive")} · {followedLive.length}
+                </h2>
+                {followedLive.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6">{t("live.followingEmpty")}</p>
+                ) : (
+                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {followedLive.map((ch) => (
+                      <LiveStreamCardMemo
+                        key={ch.id}
+                        ch={ch}
+                        host={followedHostMap[ch.createdBy]}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {followedLive.map((ch) => (
-                  <LiveStreamCardMemo key={ch.id} ch={ch} host={followedHostMap[ch.createdBy]} />
-                ))}
-              </div>
+              channelFeed
             )}
-          </section>
-        ) : (
-          channelFeed
-        )}
+          </div>
+        </div>
+
+        {/* Right: Browse / Following / Schedule + folders — top-aligned with Live header */}
+        <aside className="w-full sm:w-[260px] lg:w-[280px] shrink-0 space-y-2 order-first lg:order-none">
+          <LiveHubNav activeView={showFollowing ? "following" : "explore"} />
+          {!showFollowing ? (
+            <LivePopularCategories viewerByCategory={{}} variant="sidebar" />
+          ) : null}
+        </aside>
       </div>
     </LivePageChrome>
   );
