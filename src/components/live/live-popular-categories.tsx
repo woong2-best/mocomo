@@ -8,6 +8,7 @@ import {
   LIVE_CATEGORY_ORDER,
 } from "@/lib/live-categories";
 import type { LiveStreamCategory } from "@prisma/client";
+import { cn } from "@/lib/utils";
 
 function formatViewerCount(n: number, locale: string) {
   if (n >= 10000) {
@@ -24,8 +25,8 @@ function formatViewerCount(n: number, locale: string) {
   return locale.startsWith("ko") ? `${n}명 시청 중` : `${n} watching`;
 }
 
-/** Full card art from design (folder + label baked in) — no CSS gradient recreation. */
-function CategoryCardArt({
+/** Single folder icon + CSS label — no dark plate / no baked composite card. */
+function CategoryFolderTile({
   category,
   label,
 }: {
@@ -33,13 +34,19 @@ function CategoryCardArt({
   label: string;
 }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={LIVE_CATEGORY_ICON[category]}
-      alt={label}
-      className="block w-full h-auto rounded-xl select-none"
-      draggable={false}
-    />
+    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-transparent">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={LIVE_CATEGORY_ICON[category]}
+        alt=""
+        aria-hidden
+        className="absolute inset-[6%] h-[72%] w-[88%] object-contain select-none pointer-events-none"
+        draggable={false}
+      />
+      <p className="absolute bottom-2.5 left-2.5 right-2 text-white font-black text-[11px] sm:text-xs leading-tight uppercase tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] line-clamp-2">
+        {label}
+      </p>
+    </div>
   );
 }
 
@@ -51,22 +58,26 @@ export function LivePopularCategories({
   variant?: "row" | "sidebar";
 }) {
   const { locale, t } = useLocale();
-  // Fixed design order (IRL / CHATTING / GAMING / MUSIC / VIRTUAL / LIVE)
   const cats = LIVE_CATEGORY_ORDER;
 
   if (variant === "sidebar") {
     return (
-      <div className="grid grid-cols-2 gap-2 sm:gap-2.5 w-full sm:w-[280px] lg:w-[300px] shrink-0 content-start">
+      <div
+        className={cn(
+          "grid grid-cols-2 gap-3 sm:gap-3.5 content-start",
+          "w-full sm:w-[280px] lg:w-[300px] shrink-0"
+        )}
+      >
         {cats.map((cat) => {
           const label = localizedLiveCategoryLabel(cat, locale);
           return (
             <Link
               key={cat}
               href={`/live?category=${cat}`}
-              className="group block min-w-0 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              className="group block min-w-0 rounded-2xl transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
               aria-label={label}
             >
-              <CategoryCardArt category={cat} label={label} />
+              <CategoryFolderTile category={cat} label={label} />
             </Link>
           );
         })}
@@ -98,12 +109,10 @@ export function LivePopularCategories({
               className="group shrink-0 w-[132px] sm:w-[148px]"
               aria-label={label}
             >
-              <CategoryCardArt category={cat} label={label} />
-              <div className="mt-2 space-y-0.5 min-w-0">
-                <p className="text-[11px] text-muted-foreground tabular-nums">
-                  {formatViewerCount(viewers, locale)}
-                </p>
-              </div>
+              <CategoryFolderTile category={cat} label={label} />
+              <p className="mt-1.5 text-[11px] text-muted-foreground tabular-nums">
+                {formatViewerCount(viewers, locale)}
+              </p>
             </Link>
           );
         })}
