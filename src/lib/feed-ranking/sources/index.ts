@@ -175,4 +175,69 @@ export const discoverySource: Source<FeedQuery, PostCandidate> = {
   },
 };
 
+/**
+ * FallbackCandidateSource — 1차 소스 합이 FallbackMinCandidates 미만일 때
+ * 전체 공개 포스트에서 최신순 + 랜덤 오프셋으로 보충 (피드 고갈 방지).
+ */
+export const fallbackCandidateSource: Source<FeedQuery, PostCandidate> = {
+  id: "fallback",
+  enable: (q) => getBoolParam(q.params, "EnableFallbackSource"),
+  async source(query) {
+    const limit = getNumericParam(query.params, "FallbackSourceLimit");
+    const excludeAuthors = [...query.blockedIds, ...query.mutedIds].slice(0, 200);
+
+    const total = await db.post.count({
+      where: {
+        ...platformPostWhere,
+        visibility: "PUBLIC",
+        ...(excludeAuthors.length ? { authorId: { notIn: excludeAuthors } } : {}),
+      },
+    });
+    if (total === 0) return [];
+
+    const skip = total > limit ? Math.floor(Math.random() * Math.max(1, total - limit)) : 0;
+
+    const [latest, randomSlice] = await Promise.all([
+      db.post.findMany({
+        where: {
+          ...platformPostWhere,
+          visibility: "PUBLIC",
+          ...(excludeAuthors.length ? { authorId: { notIn: excludeAuthors } } : {}),
+        },
+        select: postSelect,
+        orderBy: { createdAt: "desc" },
+        take: Math.ceil(limit / 2),
+      }),
+      db.post.findMany({
+        where: {
+          ...platformPostWhere,
+          visibility: "PUBLIC",
+          ...(excludeAuthors.length ? { authorId: { notIn: excludeAuthors } } : {}),
+        },
+        select: postSelect,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: Math.ceil(limit / 2),
+      }),
+    ]);
+
+    const seen = new Set<string>();
+    const out: PostCandidate[] = [];
+    for (const r of [...latest, ...randomSlice]) {
+      if (seen.has(r.id)) continue;
+      seen.add(r.id);
+      out.push(
+        toCandidate(
+          r,
+          "fallback",
+          "MIXED",
+          query.followingIds.has(r.authorId)
+        )
+      );
+    }
+    return out;
+  },
+};
+
 export const FEED_SOURCES = [followingSource, trendingSource, interestSource, discoverySource];
+export const FEED_FALLBACK_SOURCES = [fallbackCandidateSource];

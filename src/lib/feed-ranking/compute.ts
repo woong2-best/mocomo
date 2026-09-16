@@ -65,7 +65,7 @@ export async function getOrComputeFeedRanking(userId: string, limit = FEED_LIST_
     },
   });
 
-  if (cached.length >= Math.min(10, limit)) {
+  if (cached.length >= Math.min(4, limit)) {
     return cached.map((r) => ({
       postId: r.postId,
       score: r.score,

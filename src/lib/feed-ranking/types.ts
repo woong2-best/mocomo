@@ -49,6 +49,8 @@ export type FeedQuery = PipelineQuery & {
   blockedIds: Set<string>;
   mutedIds: Set<string>;
   seenPostIds: Set<string>;
+  /** postId → lastViewedAt ms — Soft SeenFilter용 */
+  seenPostAt: Map<string, number>;
   favoriteTags: string[];
   communityIds: Set<string>;
   animeIds: Set<string>;

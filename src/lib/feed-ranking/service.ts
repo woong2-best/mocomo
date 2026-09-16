@@ -18,6 +18,77 @@ export type FeedMode = "for_you" | "latest" | "following";
 
 type MobileFeedPost = Awaited<ReturnType<typeof fetchMobileFeedPostsPage>>[number];
 
+/**
+ * API Wrapper — 랭킹/쿼리 결과가 page size 미만이면 전체 DB에서
+ * 최신순으로 보충하고, 그래도 모자라면 앞에서부터 순환(loop)해 채움.
+ * 피드가 절대 빈 페이지로 끊기지 않도록 보장.
+ */
+export async function padPostIdsToPageSize(
+  ids: string[],
+  limit: number,
+  opts?: { excludeIds?: Set<string>; canViewNsfw?: boolean }
+): Promise<string[]> {
+  if (limit <= 0) return [];
+  if (ids.length >= limit) return ids.slice(0, limit);
+
+  const canViewNsfw = opts?.canViewNsfw ?? false;
+  const exclude = new Set(opts?.excludeIds ?? []);
+  for (const id of ids) exclude.add(id);
+
+  const out = [...ids];
+  const batchSize = Math.min(Math.max(limit * 3, 24), 120);
+
+  // Pass 1: unseen (not in exclude) latest posts
+  let scanCursor: string | null = null;
+  for (let guard = 0; guard < 8 && out.length < limit; guard++) {
+    const rows = await db.post.findMany({
+      where: {
+        ...platformPostWhere,
+        ...nsfwPostWhere(canViewNsfw),
+        visibility: "PUBLIC",
+        ...(exclude.size ? { id: { notIn: [...exclude].slice(0, 500) } } : {}),
+      },
+      select: { id: true },
+      orderBy: { createdAt: "desc" },
+      take: batchSize,
+      ...(scanCursor ? { skip: 1, cursor: { id: scanCursor } } : {}),
+    });
+    if (!rows.length) break;
+    for (const row of rows) {
+      scanCursor = row.id;
+      if (exclude.has(row.id)) continue;
+      exclude.add(row.id);
+      out.push(row.id);
+      if (out.length >= limit) break;
+    }
+    if (rows.length < batchSize) break;
+  }
+
+  // Pass 2: loop — allow duplicates of already-ranked/seen pool so scroll never ends
+  if (out.length < limit) {
+    const pool = await db.post.findMany({
+      where: {
+        ...platformPostWhere,
+        ...nsfwPostWhere(canViewNsfw),
+        visibility: "PUBLIC",
+      },
+      select: { id: true },
+      orderBy: { createdAt: "desc" },
+      take: Math.max(limit * 2, 40),
+    });
+    if (pool.length) {
+      let i = 0;
+      while (out.length < limit) {
+        out.push(pool[i % pool.length]!.id);
+        i += 1;
+        if (i > pool.length * limit) break;
+      }
+    }
+  }
+
+  return out.slice(0, limit);
+}
+
 async function rankedPostIds(userId: string, cursor: string | null, limit: number) {
   const ranked = await getOrComputeFeedRanking(userId, 120);
   if (!ranked.length) return null;
@@ -29,9 +100,14 @@ async function rankedPostIds(userId: string, cursor: string | null, limit: numbe
     else {
       const offset = parseInt(cursor, 10);
       if (!Number.isNaN(offset)) startRank = offset;
+      else {
+        // 랭킹 캐시 밖 커서(패드/순환분) → 소진으로 간주하고 DB 패딩만 사용
+        startRank = ranked.length;
+      }
     }
   }
 
+  // 캐시 소진 시 빈 배열 → padPostIdsToPageSize가 DB 순환으로 채움
   return ranked.slice(startRank, startRank + limit).map((r) => r.postId);
 }
 
@@ -42,9 +118,10 @@ export async function fetchRankedWebFeedPage(
   canViewNsfw = false
 ): Promise<FeedPostRow[]> {
   try {
-    const ids = await rankedPostIds(userId, cursor, limit);
-    if (ids === null) return fetchFeedPostsPage(cursor, limit, canViewNsfw);
-    if (!ids.length) return [];
+    const rankedIds = await rankedPostIds(userId, cursor, limit);
+    const baseIds = rankedIds ?? [];
+    const ids = await padPostIdsToPageSize(baseIds, limit, { canViewNsfw });
+    if (!ids.length) return fetchFeedPostsPage(cursor, limit, canViewNsfw);
     return fetchWebFeedPostsByIds(ids, canViewNsfw);
   } catch (e) {
     console.error("[feed-ranking] web ranked feed failed, falling back to latest", e);
@@ -59,9 +136,10 @@ export async function fetchRankedMobileFeedPage(
   canViewNsfw = false
 ): Promise<MobileFeedPost[]> {
   try {
-    const ids = await rankedPostIds(userId, cursor, limit);
-    if (ids === null) return fetchMobileFeedPostsPage(cursor, limit, canViewNsfw);
-    if (!ids.length) return [];
+    const rankedIds = await rankedPostIds(userId, cursor, limit);
+    const baseIds = rankedIds ?? [];
+    const ids = await padPostIdsToPageSize(baseIds, limit, { canViewNsfw });
+    if (!ids.length) return fetchMobileFeedPostsPage(cursor, limit, canViewNsfw);
     return fetchMobileFeedPostsByIds(ids, canViewNsfw);
   } catch (e) {
     console.error("[feed-ranking] mobile ranked feed failed, falling back to latest", e);
@@ -81,7 +159,11 @@ export async function fetchFollowingWebFeedPage(
     take: 500,
   });
   const authorIds = following.map((f) => f.followingId);
-  if (!authorIds.length) return [];
+  if (!authorIds.length) {
+    // 팔로우 없으면 최신 피드로 순환 패딩
+    const ids = await padPostIdsToPageSize([], limit, { canViewNsfw });
+    return ids.length ? fetchWebFeedPostsByIds(ids, canViewNsfw) : [];
+  }
 
   const posts = await db.post.findMany({
     where: {
@@ -95,7 +177,16 @@ export async function fetchFollowingWebFeedPage(
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
   });
-  return posts.map(mapFeedPost);
+  const mapped = posts.map(mapFeedPost);
+  if (mapped.length >= limit) return mapped;
+
+  const paddedIds = await padPostIdsToPageSize(
+    mapped.map((p) => p.id),
+    limit,
+    { canViewNsfw }
+  );
+  if (paddedIds.length <= mapped.length) return mapped;
+  return fetchWebFeedPostsByIds(paddedIds, canViewNsfw);
 }
 
 export async function fetchFollowingMobileFeedPage(
@@ -110,7 +201,10 @@ export async function fetchFollowingMobileFeedPage(
     take: 500,
   });
   const authorIds = following.map((f) => f.followingId);
-  if (!authorIds.length) return [];
+  if (!authorIds.length) {
+    const ids = await padPostIdsToPageSize([], limit, { canViewNsfw });
+    return ids.length ? fetchMobileFeedPostsByIds(ids, canViewNsfw) : [];
+  }
 
   const posts = await db.post.findMany({
     where: {
@@ -124,7 +218,16 @@ export async function fetchFollowingMobileFeedPage(
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
   });
-  return posts.map((p) => trimFeedPostContent(p));
+  const mapped = posts.map((p) => trimFeedPostContent(p));
+  if (mapped.length >= limit) return mapped;
+
+  const paddedIds = await padPostIdsToPageSize(
+    mapped.map((p) => p.id),
+    limit,
+    { canViewNsfw }
+  );
+  if (paddedIds.length <= mapped.length) return mapped;
+  return fetchMobileFeedPostsByIds(paddedIds, canViewNsfw);
 }
 
 export async function resolveFeedPage(opts: {

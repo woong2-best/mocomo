@@ -110,63 +110,90 @@ function mapReelRow(post: {
 }
 
 /**
- * Cursor is the last scanned post id. Over-fetch batches until we fill `limit`
- * free VIDEO items or the table is exhausted.
+ * Cursor is the last scanned post id. Over-fetch until we fill `limit` VIDEO items.
+ * Sparse corpus: when the table is exhausted, wrap from the newest posts so
+ * infinite scroll never ends (looping).
  */
 export async function fetchReelsPage(cursor: string | null, limit = REELS_PAGE_SIZE) {
   const batchSize = Math.min(Math.max(limit * 4, 24), 80);
   const items: ReelItem[] = [];
+  const pagePostIds = new Set<string>();
   let scanCursor = cursor;
-  let exhausted = false;
 
-  for (let guard = 0; guard < 6 && items.length < limit; guard++) {
-    const posts = await db.post.findMany({
-      take: batchSize,
-      ...(scanCursor ? { skip: 1, cursor: { id: scanCursor } } : {}),
-      orderBy: { createdAt: "desc" },
-      where: {
-        ...platformPostWhere,
-        isNsfw: false,
-        media: { some: { type: "VIDEO", priceKrw: 0 } },
-      },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        createdAt: true,
-        isNsfw: true,
-        viewCount: true,
-        author: { select: userPublicSelect },
-        media: {
-          orderBy: { order: "asc" },
-          select: reelsMediaSelect,
+  async function pull(fromCursor: string | null, maxGuards: number) {
+    let localCursor = fromCursor;
+    for (let guard = 0; guard < maxGuards && items.length < limit; guard++) {
+      const posts = await db.post.findMany({
+        take: batchSize,
+        ...(localCursor ? { skip: 1, cursor: { id: localCursor } } : {}),
+        orderBy: { createdAt: "desc" },
+        where: {
+          ...platformPostWhere,
+          isNsfw: false,
+          media: { some: { type: "VIDEO", priceKrw: 0 } },
         },
-        _count: { select: { likes: true, comments: true } },
-      },
-    });
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          createdAt: true,
+          isNsfw: true,
+          viewCount: true,
+          author: { select: userPublicSelect },
+          media: {
+            orderBy: { order: "asc" },
+            select: reelsMediaSelect,
+          },
+          _count: { select: { likes: true, comments: true } },
+        },
+      });
 
-    if (posts.length === 0) {
-      exhausted = true;
-      break;
+      if (posts.length === 0) return { localCursor, hitEnd: true as const };
+
+      for (const post of posts) {
+        localCursor = post.id;
+        scanCursor = post.id;
+        if (pagePostIds.has(post.id)) continue;
+        const reel = mapReelRow(post);
+        if (!reel) continue;
+        pagePostIds.add(post.id);
+        items.push(reel);
+        if (items.length >= limit) break;
+      }
+
+      if (posts.length < batchSize) return { localCursor, hitEnd: true as const };
     }
+    return { localCursor, hitEnd: false as const };
+  }
 
-    for (const post of posts) {
-      scanCursor = post.id;
-      const reel = mapReelRow(post);
-      if (!reel) continue;
-      items.push(reel);
-      if (items.length >= limit) break;
-    }
+  const first = await pull(scanCursor, 6);
 
-    if (posts.length < batchSize) {
-      exhausted = true;
-      break;
+  // Wrap from head when corpus short / cursor past end
+  if (items.length < limit) {
+    await pull(null, 6);
+  }
+
+  // Hard loop in-page seed so page size is always met when any reel exists
+  if (items.length > 0 && items.length < limit) {
+    const seed = [...items];
+    let i = 0;
+    while (items.length < limit) {
+      const base = seed[i % seed.length]!;
+      items.push({ ...base, id: `${base.postId}:loop${items.length}` });
+      i += 1;
+      if (i > seed.length * limit) break;
     }
   }
 
+  // Prefer advancing past the first-pass cursor; fall back to last item
+  const nextCursor =
+    items.length > 0
+      ? scanCursor ?? first.localCursor ?? items[items.length - 1]!.postId
+      : null;
+
   return {
     items: items.slice(0, limit),
-    nextCursor: !exhausted && items.length >= limit ? scanCursor : null,
+    nextCursor,
   };
 }
 
@@ -174,7 +201,7 @@ export function getCachedReelsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchReelsPage(cursor, limit),
-    ["reels-page-v3-platform-only", cacheKey, String(limit)],
+    ["reels-page-v4-infinite-loop", cacheKey, String(limit)],
     { revalidate: 20, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

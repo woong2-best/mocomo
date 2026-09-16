@@ -69,6 +69,11 @@ export type CandidatePipelineConfig<Q extends PipelineQuery, C extends PipelineC
   id: string;
   queryHydrators: QueryHydrator<Q>[];
   sources: Source<Q, C>[];
+  /**
+   * 1차 Candidate Source 합이 부족할 때만 가동 (X cold-start / sparse corpus).
+   * `EnableFallbackSource` + `FallbackMinCandidates`로 제어.
+   */
+  fallbackSources?: Source<Q, C>[];
   hydrators: Hydrator<Q, C>[];
   preScoringFilters: Filter<Q, C>[];
   scorers: Scorer<Q, C>[];

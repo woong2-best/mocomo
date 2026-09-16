@@ -29,5 +29,6 @@ export {
   fetchRankedMobileFeedPage,
   fetchFollowingWebFeedPage,
   fetchFollowingMobileFeedPage,
+  padPostIdsToPageSize,
   type FeedMode,
 } from "@/lib/feed-ranking/service";

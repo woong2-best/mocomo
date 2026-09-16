@@ -13,11 +13,20 @@ function isEnabled<Q extends PipelineQuery>(
   return enable ? enable(query) : true;
 }
 
+function paramNumber(query: PipelineQuery, key: string, fallback: number): number {
+  const v = query.params[key];
+  return typeof v === "number" ? v : fallback;
+}
+
+function paramBool(query: PipelineQuery, key: string, fallback: boolean): boolean {
+  const v = query.params[key];
+  return typeof v === "boolean" ? v : fallback;
+}
+
 /**
  * X home-mixer candidate_pipeline.rs 실행 순서:
- * query hydrate → sources (parallel) → hydrate (parallel) →
- * pre-scoring filter (sequential) → score (sequential) → select →
- * post-selection filter → side effects (fire-and-forget)
+ * query hydrate → sources (parallel) → [fallback if sparse] → hydrate →
+ * pre-scoring filter → score → select → post-selection filter → side effects
  */
 export async function executeCandidatePipeline<
   Q extends PipelineQuery,
@@ -57,6 +66,31 @@ export async function executeCandidatePipeline<
   );
   let candidates: C[] = sourceResults.flat();
 
+  // 2b. FallbackCandidateSource — 후보 부족 시 전체 DB 보충
+  const minCandidates = paramNumber(query, "FallbackMinCandidates", 24);
+  const fallbackEnabled = paramBool(query, "EnableFallbackSource", true);
+  if (
+    fallbackEnabled &&
+    candidates.length < minCandidates &&
+    config.fallbackSources?.length
+  ) {
+    const activeFallback = config.fallbackSources.filter((s) => isEnabled(s.enable, query));
+    const fallbackResults = await Promise.all(
+      activeFallback.map(async (s) => {
+        try {
+          const items = await s.source(query);
+          sourceCounts[s.id] = (sourceCounts[s.id] ?? 0) + items.length;
+          return items;
+        } catch (e) {
+          console.error(`[feed-pipeline] fallback source ${s.id}`, e);
+          sourceCounts[s.id] = sourceCounts[s.id] ?? 0;
+          return [] as C[];
+        }
+      })
+    );
+    candidates = [...candidates, ...fallbackResults.flat()];
+  }
+
   // 3. Candidate hydration (parallel)
   const activeHydrators = config.hydrators.filter((h) => isEnabled(h.enable, query));
   const hydratedBatches = await Promise.all(
@@ -76,7 +110,7 @@ export async function executeCandidatePipeline<
     preFilterRemoved[filter.id] = result.removed.length;
   }
 
-  // 5. Scoring (sequential — each scorer updates candidates)
+  // 5. Scoring (sequential — each scorer updates candidates; never drops)
   for (const scorer of config.scorers) {
     if (!isEnabled(scorer.enable, query)) continue;
     try {

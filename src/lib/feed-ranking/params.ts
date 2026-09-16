@@ -9,6 +9,8 @@ export const FEED_PARAMS = {
   EnableTrendingSource: true,
   EnableInterestSource: true,
   EnableDiscoverySource: true,
+  /** 후보 부족 시 전체 DB에서 최신/랜덤 보충 (X cold-start fallback) */
+  EnableFallbackSource: true,
 
   // Pool limits
   SourcePoolLimit: 80,
@@ -16,13 +18,28 @@ export const FEED_PARAMS = {
   TrendingSourceLimit: 40,
   InterestSourceLimit: 40,
   DiscoverySourceLimit: 50,
+  FallbackSourceLimit: 120,
+  /** 소스 합산 후보가 이 수 미만이면 FallbackCandidateSource 가동 */
+  FallbackMinCandidates: 24,
   FinalSelectLimit: 120,
 
   // Filters
   MaxPostAgeHours: 168, // 7 days
+  /** 후보 부족 시 age로 제거된 항목을 다시 살림 */
+  SoftAgeFilter: true,
   FilterSeenPosts: true,
+  /**
+   * Soft seen: 24h 이내만 hard-exclude, 이후 재노출 허용.
+   * 그래도 후보가 부족하면 최근 본 콘텐츠도 순환(loop) 허용.
+   */
+  SeenSoftFilter: true,
+  SeenReexposeAfterHours: 24,
   FilterBlockedAuthors: true,
   FilterSelfPosts: false,
+
+  // Scoring — Heavy Ranking은 점수로 정렬만 하고 Drop 하지 않음
+  DropBelowScoreThreshold: false,
+  MinScoreThreshold: 0,
 
   // Scoring weights (X RankingScorer 패턴: Σ weight × signal)
   LikeWeight: 0.8,

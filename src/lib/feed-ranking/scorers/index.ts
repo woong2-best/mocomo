@@ -1,4 +1,4 @@
-import { getNumericParam } from "@/lib/feed-ranking/params";
+import { getBoolParam, getNumericParam } from "@/lib/feed-ranking/params";
 import type { FeedQuery, PostCandidate, ScoreReason } from "@/lib/feed-ranking/types";
 import type { Scorer } from "@/lib/feed-ranking/pipeline/types";
 
@@ -96,18 +96,28 @@ export const interestScorer: Scorer<FeedQuery, PostCandidate> = {
   },
 };
 
-/** X RankingScorer — Σ (weight × signal) + author diversity decay */
+/** X RankingScorer — Σ (weight × signal) + author diversity decay; never drops */
 export const rankingScorer: Scorer<FeedQuery, PostCandidate> = {
   id: "ranking",
   async score(query, candidates) {
     const newAuthorBoost = getNumericParam(query.params, "NewAuthorBoost");
+    const dropBelow = getBoolParam(query.params, "DropBelowScoreThreshold");
+    const minScore = getNumericParam(query.params, "MinScoreThreshold");
 
     return candidates.map((c) => {
       let total = Object.values(c.signalScores).reduce((s, v) => s + v, 0);
       if (c.bucket === "DISCOVERY" && query.isNewUser) {
         total += newAuthorBoost;
       }
-      return { ...c, score: total };
+      // Soft-seen 재노출: 시청 이력이 있으면 소폭 감쇠만 (제거하지 않음)
+      if (query.seenPostIds.has(c.postId)) {
+        total *= 0.55;
+      }
+      // DropBelowScoreThreshold=false(기본) → 0점이라도 유지
+      if (dropBelow && total < minScore) {
+        total = minScore;
+      }
+      return { ...c, score: Math.max(0, total) };
     });
   },
 };

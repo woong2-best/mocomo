@@ -56,13 +56,17 @@ export const viewerContextHydrator: QueryHydrator<FeedQuery> = {
       }),
       db.postViewEvent.findMany({
         where: { userId },
-        select: { postId: true },
+        select: { postId: true, lastViewedAt: true },
         orderBy: { lastViewedAt: "desc" },
         take: 500,
       }),
     ]);
 
     const ageMs = Date.now() - user.createdAt.getTime();
+    const seenPostAt = new Map<string, number>();
+    for (const s of seenPosts) {
+      seenPostAt.set(s.postId, s.lastViewedAt.getTime());
+    }
 
     return {
       ...query,
@@ -75,6 +79,7 @@ export const viewerContextHydrator: QueryHydrator<FeedQuery> = {
       communityIds: new Set(communities.map((c) => c.communityId)),
       animeIds: new Set(animes.map((a) => a.animeId)),
       seenPostIds: new Set(seenPosts.map((s) => s.postId)),
+      seenPostAt,
       favoriteTags: user.profile?.favoriteTags ?? [],
       isNewUser: ageMs < NEW_USER_DAYS * 24 * 60 * 60 * 1000,
     };

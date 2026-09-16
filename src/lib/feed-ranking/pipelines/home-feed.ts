@@ -2,7 +2,7 @@ import { executeCandidatePipeline } from "@/lib/feed-ranking/pipeline/executor";
 import type { CandidatePipelineConfig } from "@/lib/feed-ranking/pipeline/types";
 import { buildFeedParams } from "@/lib/feed-ranking/params";
 import { viewerContextHydrator } from "@/lib/feed-ranking/query-hydrators/viewer-context";
-import { FEED_SOURCES } from "@/lib/feed-ranking/sources";
+import { FEED_FALLBACK_SOURCES, FEED_SOURCES } from "@/lib/feed-ranking/sources";
 import { postMetadataHydrator } from "@/lib/feed-ranking/hydrators/post-metadata";
 import { PRE_SCORING_FILTERS } from "@/lib/feed-ranking/filters";
 import { FEED_SCORERS } from "@/lib/feed-ranking/scorers";
@@ -14,6 +14,7 @@ export const homeFeedPipeline: CandidatePipelineConfig<FeedQuery, PostCandidate>
   id: "home_for_you",
   queryHydrators: [viewerContextHydrator],
   sources: FEED_SOURCES,
+  fallbackSources: FEED_FALLBACK_SOURCES,
   hydrators: [postMetadataHydrator],
   preScoringFilters: PRE_SCORING_FILTERS,
   scorers: FEED_SCORERS,
@@ -32,6 +33,7 @@ export async function runHomeFeedPipeline(userId: string) {
     blockedIds: new Set(),
     mutedIds: new Set(),
     seenPostIds: new Set(),
+    seenPostAt: new Map(),
     favoriteTags: [],
     communityIds: new Set(),
     animeIds: new Set(),

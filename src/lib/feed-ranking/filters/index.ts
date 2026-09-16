@@ -21,7 +21,7 @@ export const dedupFilter: Filter<FeedQuery, PostCandidate> = {
   },
 };
 
-/** X age filter — 오래된 포스트 제거 */
+/** X age filter — SoftAgeFilter 시 후보 부족하면 오래된 포스트도 재투입 */
 export const ageFilter: Filter<FeedQuery, PostCandidate> = {
   id: "age",
   filter(query, candidates) {
@@ -33,22 +33,87 @@ export const ageFilter: Filter<FeedQuery, PostCandidate> = {
       if (c.createdAt.getTime() < cutoff) removed.push(c);
       else kept.push(c);
     }
+
+    if (
+      getBoolParam(query.params, "SoftAgeFilter") &&
+      kept.length < getNumericParam(query.params, "FallbackMinCandidates")
+    ) {
+      const need = getNumericParam(query.params, "FallbackMinCandidates") - kept.length;
+      const revive = [...removed].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+      );
+      for (const c of revive.slice(0, need)) {
+        kept.push(c);
+      }
+      const revived = new Set(kept.map((c) => c.postId));
+      return {
+        kept,
+        removed: removed.filter((c) => !revived.has(c.postId)),
+      };
+    }
+
     return { kept, removed };
   },
 };
 
-/** 이미 본 포스트 제거 */
+/**
+ * SeenFilter (soft) —
+ * - SeenSoftFilter: 최근 SeenReexposeAfterHours(기본 24h) 이내만 hard-exclude
+ * - 그 이전 시청분은 재노출 허용
+ * - 그래도 FallbackMinCandidates 미달이면 최근 본 영상까지 순환(loop) 투입
+ */
 export const seenFilter: Filter<FeedQuery, PostCandidate> = {
   id: "seen",
   enable: (q) => getBoolParam(q.params, "FilterSeenPosts"),
   filter(query, candidates) {
+    const soft = getBoolParam(query.params, "SeenSoftFilter");
+    const reexposeHours = getNumericParam(query.params, "SeenReexposeAfterHours");
+    const reexposeMs = Math.max(0, reexposeHours) * 60 * 60 * 1000;
+    const now = Date.now();
+    const minKeep = getNumericParam(query.params, "FallbackMinCandidates");
+
     const kept: PostCandidate[] = [];
-    const removed: PostCandidate[] = [];
+    const softRemoved: PostCandidate[] = [];
+    const hardRemoved: PostCandidate[] = [];
+
     for (const c of candidates) {
-      if (query.seenPostIds.has(c.postId)) removed.push(c);
-      else kept.push(c);
+      if (!query.seenPostIds.has(c.postId)) {
+        kept.push(c);
+        continue;
+      }
+
+      if (!soft) {
+        hardRemoved.push(c);
+        continue;
+      }
+
+      const lastAt = query.seenPostAt.get(c.postId) ?? 0;
+      const age = now - lastAt;
+      if (age >= reexposeMs) {
+        // 24h+ 경과 → 재노출 허용 (점수는 scorer에서 낮게 유지)
+        kept.push(c);
+      } else {
+        softRemoved.push(c);
+      }
     }
-    return { kept, removed };
+
+    if (soft && kept.length < minKeep && softRemoved.length) {
+      const need = minKeep - kept.length;
+      const oldestFirst = [...softRemoved].sort((a, b) => {
+        const aAt = query.seenPostAt.get(a.postId) ?? 0;
+        const bAt = query.seenPostAt.get(b.postId) ?? 0;
+        return aAt - bAt;
+      });
+      const revived = oldestFirst.slice(0, need);
+      const revivedIds = new Set(revived.map((c) => c.postId));
+      kept.push(...revived);
+      return {
+        kept,
+        removed: softRemoved.filter((c) => !revivedIds.has(c.postId)),
+      };
+    }
+
+    return { kept, removed: [...softRemoved, ...hardRemoved] };
   },
 };
 
