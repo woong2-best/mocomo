@@ -25,7 +25,7 @@ function formatViewerCount(n: number, locale: string) {
   return locale.startsWith("ko") ? `${n}명 시청 중` : `${n} watching`;
 }
 
-/** Single folder icon + CSS label — no dark plate / no baked composite card. */
+/** Full folder asset + label drawn ON the folder (bottom-left). */
 function CategoryFolderTile({
   category,
   label,
@@ -34,16 +34,22 @@ function CategoryFolderTile({
   label: string;
 }) {
   return (
-    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-transparent">
+    <div className="relative w-full aspect-[5/6]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={LIVE_CATEGORY_ICON[category]}
         alt=""
         aria-hidden
-        className="absolute inset-[6%] h-[72%] w-[88%] object-contain select-none pointer-events-none"
+        className="absolute inset-0 h-full w-full object-contain select-none pointer-events-none"
         draggable={false}
       />
-      <p className="absolute bottom-2.5 left-2.5 right-2 text-white font-black text-[11px] sm:text-xs leading-tight uppercase tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] line-clamp-2">
+      <p
+        className={cn(
+          "absolute bottom-[12%] left-[14%] right-[10%]",
+          "text-white font-black text-[11px] sm:text-xs leading-tight uppercase tracking-wide",
+          "drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] line-clamp-2"
+        )}
+      >
         {label}
       </p>
     </div>
@@ -74,7 +80,7 @@ export function LivePopularCategories({
             <Link
               key={cat}
               href={`/live?category=${cat}`}
-              className="group block min-w-0 rounded-2xl transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
+              className="group block min-w-0 transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
               aria-label={label}
             >
               <CategoryFolderTile category={cat} label={label} />

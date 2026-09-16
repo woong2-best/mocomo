@@ -13,14 +13,14 @@ export const LIVE_CATEGORIES: {
   { value: "LIVE", label: "LIVE" },
 ];
 
-/** Transparent folder icons (black bg removed) — labels rendered in CSS */
+/** Transparent full-folder icons (black bg removed only). Labels drawn on folder in UI. */
 export const LIVE_CATEGORY_ICON: Record<LiveStreamCategory, string> = {
-  IRL: "/images/live/categories/irl-folder.png",
-  JUST_CHATTING: "/images/live/categories/chatting-folder.png",
-  GAME: "/images/live/categories/gaming-folder.png",
-  MUSIC: "/images/live/categories/music-folder.png",
-  VIRTUAL: "/images/live/categories/virtual-folder.png",
-  LIVE: "/images/live/categories/live-folder.png",
+  IRL: "/images/live/categories/irl-folder.png?v=3",
+  JUST_CHATTING: "/images/live/categories/chatting-folder.png?v=3",
+  GAME: "/images/live/categories/gaming-folder.png?v=3",
+  MUSIC: "/images/live/categories/music-folder.png?v=3",
+  VIRTUAL: "/images/live/categories/virtual-folder.png?v=3",
+  LIVE: "/images/live/categories/live-folder.png?v=3",
 };
 
 export const LIVE_CATEGORY_ORDER: LiveStreamCategory[] = [
