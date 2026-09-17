@@ -1,12 +1,13 @@
 "use client";
 
-import { memo } from "react";
+import { memo, Suspense } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, Radio, User } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import { LiveFolderWall } from "@/components/live/live-folder-wall";
+import { LiveFolderChips } from "@/components/live/live-folder-chips";
 import { LiveBeadFeed } from "@/components/live/live-bead-feed";
+import { LiveHeroSpotlight } from "@/components/live/live-hero-spotlight";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
@@ -108,7 +109,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
 const LiveStreamCardMemo = memo(LiveStreamCard);
 export { LiveStreamCardMemo };
 
-/** Folder wall + vertical infinite bead feed (mobile live hub parity). */
+/** Folder chips (separate) + TV screen + 5-bead vertical feed. */
 export function LiveChannelGrid({
   channels,
   hosts,
@@ -118,10 +119,20 @@ export function LiveChannelGrid({
   filteredCategory?: LiveStreamCategory;
   view?: "explore" | "following";
 }) {
+  const hostMap = Object.fromEntries(hosts.map((h) => [h.id, h]));
+  const heroChannels = [...channels].sort((a, b) => b.viewerCount - a.viewerCount);
+
   return (
-    <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch min-h-0 flex-1 w-full">
-      <LiveFolderWall showEmptyNotice={channels.length === 0} />
-      <LiveBeadFeed channels={channels} hosts={hosts} />
+    <div className="flex flex-col gap-2.5 min-h-0 flex-1 w-full">
+      <Suspense fallback={<div className="h-[70px] rounded-xl bg-black/20 animate-pulse" />}>
+        <LiveFolderChips />
+      </Suspense>
+      <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch min-h-0 flex-1 w-full">
+        <div className="min-w-0 flex-1 flex flex-col justify-center">
+          <LiveHeroSpotlight channels={heroChannels} hostMap={hostMap} />
+        </div>
+        <LiveBeadFeed channels={channels} hosts={hosts} />
+      </div>
     </div>
   );
 }

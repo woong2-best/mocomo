@@ -3,12 +3,19 @@
 import { useLocale } from "@/components/providers/locale-provider";
 import { LiveHeroCarousel } from "@/components/live/live-hero-carousel";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
+import { cn } from "@/lib/utils";
 
-function SmpteEmptyState() {
+/** Empty TV screen — SMPTE bars only (no category labels). */
+function SmpteEmptyState({ className }: { className?: string }) {
   const { t } = useLocale();
 
   return (
-    <div className="relative aspect-video overflow-hidden rounded-2xl border border-border/50 bg-black shadow-lg">
+    <div
+      className={cn(
+        "relative aspect-video overflow-hidden rounded-2xl border border-border/50 bg-black shadow-lg",
+        className
+      )}
+    >
       <div
         className="absolute inset-0"
         style={{
@@ -26,7 +33,7 @@ function SmpteEmptyState() {
       />
       <div className="absolute inset-0 bg-black/20" />
       <div className="absolute inset-0 flex items-center justify-center">
-        <p className="rounded-xl bg-black/70 px-5 py-3 text-sm sm:text-base font-semibold text-white backdrop-blur-sm">
+        <p className="rounded-full bg-black/70 px-5 py-2.5 text-sm sm:text-base font-semibold text-white backdrop-blur-sm border border-white/15">
           {t("live.noBroadcastHero")}
         </p>
       </div>
@@ -34,16 +41,23 @@ function SmpteEmptyState() {
   );
 }
 
+/** TV screen: live carousel when streaming, SMPTE empty state otherwise. */
 export function LiveHeroSpotlight({
   channels,
   hostMap,
+  className,
 }: {
   channels: LiveHubChannel[];
   hostMap: Record<string, LiveHubHost>;
+  className?: string;
 }) {
   if (channels.length === 0) {
-    return <SmpteEmptyState />;
+    return <SmpteEmptyState className={className} />;
   }
 
-  return <LiveHeroCarousel channels={channels} hostMap={hostMap} />;
+  return (
+    <div className={cn("min-w-0", className)}>
+      <LiveHeroCarousel channels={channels} hostMap={hostMap} />
+    </div>
+  );
 }
