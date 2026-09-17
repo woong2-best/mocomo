@@ -109,7 +109,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
 const LiveStreamCardMemo = memo(LiveStreamCard);
 export { LiveStreamCardMemo };
 
-/** Folder chips (separate) + TV screen + 5-bead vertical feed. */
+/** Folder chips + height-capped TV + compact adaptive bead feed. */
 export function LiveChannelGrid({
   channels,
   hosts,
@@ -123,12 +123,12 @@ export function LiveChannelGrid({
   const heroChannels = [...channels].sort((a, b) => b.viewerCount - a.viewerCount);
 
   return (
-    <div className="flex flex-col gap-2.5 min-h-0 flex-1 w-full">
-      <Suspense fallback={<div className="h-[70px] rounded-xl bg-black/20 animate-pulse" />}>
+    <div className="flex flex-col gap-2 min-h-0 flex-1 w-full overflow-hidden">
+      <Suspense fallback={<div className="h-[70px] rounded-xl bg-black/20 animate-pulse shrink-0" />}>
         <LiveFolderChips />
       </Suspense>
-      <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch min-h-0 flex-1 w-full">
-        <div className="min-w-0 flex-1 flex flex-col justify-center">
+      <div className="flex flex-row gap-2.5 sm:gap-3 items-stretch min-h-0 flex-1 w-full overflow-hidden">
+        <div className="min-w-0 flex-1 min-h-0 flex items-center justify-center overflow-hidden">
           <LiveHeroSpotlight channels={heroChannels} hostMap={hostMap} />
         </div>
         <LiveBeadFeed channels={channels} hosts={hosts} />

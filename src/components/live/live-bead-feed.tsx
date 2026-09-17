@@ -24,8 +24,13 @@ import { cn } from "@/lib/utils";
 
 const SPRING_STIFFNESS = 180;
 const SPRING_DAMPING = 22;
-/** Keep ±2 neighbors mounted → 5 beads visible. */
-const VISIBLE_RADIUS = 2.15;
+
+/** Short / medium / tall stages → 3 / 4 / 5 visible beads. */
+function visibleCountForHeight(h: number): 3 | 4 | 5 {
+  if (h < 380) return 3;
+  if (h < 560) return 4;
+  return 5;
+}
 
 type Props = {
   channels: LiveHubChannel[];
@@ -34,7 +39,7 @@ type Props = {
 };
 
 /**
- * Vertical infinite bead carousel — 5 cards visible, mobile LiveBeadFeed parity.
+ * Compact vertical bead feed — width shrunk; visible count adapts to stage height (3/4/5).
  */
 export function LiveBeadFeed({ channels, hosts, className }: Props) {
   const hostMap = useMemo(
@@ -56,15 +61,18 @@ export function LiveBeadFeed({ channels, hosts, className }: Props) {
   const rafRef = useRef<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
-  const [spacing, setSpacing] = useState(120);
+  const [spacing, setSpacing] = useState(100);
+  const [visibleRadius, setVisibleRadius] = useState(1.15);
 
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
     const measure = () => {
-      const h = el.clientHeight;
-      // Pack so ~5 beads fit: center + 2 above + 2 below.
-      setSpacing(Math.max(96, h / 4.35));
+      const h = Math.max(el.clientHeight, 1);
+      const count = visibleCountForHeight(h);
+      // Pack count beads into stage height.
+      setSpacing(Math.max(72, h / (count + 0.25)));
+      setVisibleRadius((count - 1) / 2 + 0.2);
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -152,8 +160,9 @@ export function LiveBeadFeed({ channels, hosts, className }: Props) {
     <div
       ref={stageRef}
       className={cn(
-        "relative w-full sm:w-[280px] lg:w-[320px] shrink-0",
-        "h-full min-h-[480px] lg:min-h-0",
+        "relative shrink-0 self-stretch",
+        "w-[168px] sm:w-[190px] md:w-[210px] xl:w-[230px]",
+        "h-full min-h-0",
         "overflow-hidden touch-none select-none",
         className
       )}
@@ -172,6 +181,7 @@ export function LiveBeadFeed({ channels, hosts, className }: Props) {
           length={length}
           index={index}
           spacing={spacing}
+          visibleRadius={visibleRadius}
           active={baseIndex === activeIdx}
           host={slot.kind === "live" ? hostMap[slot.channel.createdBy] : undefined}
         />
@@ -186,6 +196,7 @@ function BeadLayer({
   length,
   index,
   spacing,
+  visibleRadius,
   active,
   host,
 }: {
@@ -194,6 +205,7 @@ function BeadLayer({
   length: number;
   index: number;
   spacing: number;
+  visibleRadius: number;
   active: boolean;
   host?: LiveHubHost;
 }) {
@@ -204,22 +216,22 @@ function BeadLayer({
     while (delta < -half) delta += length;
   }
   const abs = Math.abs(delta);
-  if (abs > VISIBLE_RADIUS) return null;
+  if (abs > visibleRadius) return null;
 
   const scale =
-    abs < 1 ? 1 - abs * 0.08 : abs < 2 ? 0.92 - (abs - 1) * 0.08 : 0.84 - (abs - 2) * 0.06;
+    abs < 1 ? 1 - abs * 0.1 : abs < 2 ? 0.9 - (abs - 1) * 0.08 : 0.82 - (abs - 2) * 0.06;
   const opacity =
     abs < 1
-      ? 1 - abs * 0.12
+      ? 1 - abs * 0.14
       : abs < 2
-        ? 0.88 - (abs - 1) * 0.2
-        : Math.max(0.28, 0.68 - (abs - 2) * 0.35);
+        ? 0.86 - (abs - 1) * 0.22
+        : Math.max(0.25, 0.64 - (abs - 2) * 0.35);
   const translateY = delta * spacing;
 
   return (
     <div
       role="listitem"
-      className="absolute left-1/2 top-1/2 w-[90%] max-w-[300px] will-change-transform"
+      className="absolute left-1/2 top-1/2 w-[94%] will-change-transform"
       style={{
         opacity,
         zIndex: Math.round(100 - abs * 10),
@@ -251,29 +263,28 @@ function EmptyBead({ tone, focused }: { tone: number; focused: boolean }) {
   const tint = 10 + (tone % 8) * 2;
   return (
     <div
-      className="w-full rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center px-4"
+      className="w-full rounded-xl border border-white/10 overflow-hidden flex items-center justify-center px-2.5"
       style={{
         backgroundColor: `rgb(${tint},${tint + 2},${tint + 8})`,
         aspectRatio: "16 / 10",
-        minHeight: 108,
       }}
     >
-      <div className="relative flex flex-col items-center gap-1 text-center py-3">
+      <div className="relative flex flex-col items-center gap-0.5 text-center py-2">
         <div
-          className="absolute w-24 h-24 rounded-full bg-white/[0.06]"
+          className="absolute w-16 h-16 rounded-full bg-white/[0.06]"
           style={{ opacity: 0.18 + (tone % 5) * 0.04 }}
         />
         {focused ? (
           <>
-            <p className="relative text-[13px] sm:text-[14px] font-bold text-white/90">
+            <p className="relative text-[11px] font-bold text-white/90 leading-snug">
               현재 라이브 방송이 없습니다
             </p>
-            <p className="relative text-[11px] font-medium text-white/45 leading-snug">
+            <p className="relative text-[9px] font-medium text-white/45 leading-snug">
               새로운 방송이 시작되면 이곳에 표시됩니다
             </p>
           </>
         ) : (
-          <p className="relative text-xs font-semibold text-white/30 tracking-wide">
+          <p className="relative text-[10px] font-semibold text-white/30 tracking-wide">
             {emptySlotHint(tone)}
           </p>
         )}
@@ -290,7 +301,7 @@ function LiveBead({ channel, host }: { channel: LiveHubChannel; host?: LiveHubHo
     <Link
       href={`/voice/${channel.id}`}
       prefetch={false}
-      className="block w-full rounded-2xl overflow-hidden border border-white/10 bg-[#0A0C10] shadow-lg"
+      className="block w-full rounded-xl overflow-hidden border border-white/10 bg-[#0A0C10] shadow-md"
     >
       <div className="relative aspect-video bg-black overflow-hidden">
         {thumb ? (
@@ -298,33 +309,33 @@ function LiveBead({ channel, host }: { channel: LiveHubChannel; host?: LiveHubHo
           <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-[hsl(var(--folk-cobalt)/0.16)]">
-            <Radio className="h-8 w-8 text-folk-terracotta/40" />
+            <Radio className="h-6 w-6 text-folk-terracotta/40" />
           </div>
         )}
         {isLiveAdultChannel(channel) ? <LiveAdultWatermark /> : null}
-        <div className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white tabular-nums">
-          <Eye className="h-3 w-3" />
+        <div className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 rounded bg-black/65 px-1.5 py-0.5 text-[9px] font-semibold text-white tabular-nums">
+          <Eye className="h-2.5 w-2.5" />
           {channel.viewerCount}
         </div>
       </div>
-      <div className="flex items-center gap-2 px-2.5 py-2 bg-[#0F1420]">
-        <div className="h-6 w-6 shrink-0 rounded-full overflow-hidden bg-muted">
+      <div className="flex items-center gap-1.5 px-1.5 py-1.5 bg-[#0F1420]">
+        <div className="h-5 w-5 shrink-0 rounded-full overflow-hidden bg-muted">
           {host?.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={host.image} alt="" className="h-full w-full object-cover" />
           ) : (
             <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-              <User className="h-3 w-3" />
+              <User className="h-2.5 w-2.5" />
             </div>
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-extrabold text-folk-terracotta truncate">
+          <p className="text-[9px] font-extrabold text-folk-terracotta truncate">
             @{host?.username ?? "host"}
           </p>
-          <p className="text-xs font-bold text-white/90 truncate">{channel.name}</p>
+          <p className="text-[10px] font-bold text-white/90 truncate">{channel.name}</p>
         </div>
-        <span className="text-[10px] font-semibold text-white/40 shrink-0">
+        <span className="text-[8px] font-semibold text-white/40 shrink-0 hidden sm:inline">
           {localizedLiveCategoryLabel(channel.category, locale)}
         </span>
       </div>

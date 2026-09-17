@@ -57,12 +57,12 @@ export function LiveHub({
 
       <div className="min-w-0 mt-1 flex-1 min-h-0 flex flex-col">
         {showFollowing ? (
-          <div className="flex flex-col gap-2.5 min-h-0 flex-1 w-full">
-            <Suspense fallback={<div className="h-[70px] rounded-xl bg-black/20 animate-pulse" />}>
+          <div className="flex flex-col gap-2 min-h-0 flex-1 w-full overflow-hidden">
+            <Suspense fallback={<div className="h-[70px] rounded-xl bg-black/20 animate-pulse shrink-0" />}>
               <LiveFolderChips />
             </Suspense>
-            <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch min-h-0 flex-1 w-full">
-              <div className="min-w-0 flex-1 flex flex-col justify-center">
+            <div className="flex flex-row gap-2.5 sm:gap-3 items-stretch min-h-0 flex-1 w-full overflow-hidden">
+              <div className="min-w-0 flex-1 min-h-0 flex items-center justify-center overflow-hidden">
                 <LiveHeroSpotlight channels={followedLive} hostMap={followedHostMap} />
               </div>
               <LiveBeadFeed channels={followedLive} hosts={followedHosts} />
