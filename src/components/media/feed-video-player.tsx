@@ -251,6 +251,9 @@ export function FeedVideoPlayer({
   const [retryToken, setRetryToken] = useState(0);
   const [attachToken, setAttachToken] = useState(0);
   const wasDetachedRef = useRef(false);
+  /** Keep poster painted until the video has rendered a real frame (no black flash). */
+  const [showPosterOverlay, setShowPosterOverlay] = useState(() => Boolean(poster));
+  const posterHiddenForSrcRef = useRef<string | null>(null);
 
   const playbackSrc = withVideoCacheBust(src, retryToken + attachToken);
 
@@ -483,7 +486,9 @@ export function FeedVideoPlayer({
     setRetryToken(0);
     setAttachToken(0);
     wasDetachedRef.current = false;
-  }, [src, mediaId, forensicRenderConfig?.sessionId, previewMaxSeconds]);
+    posterHiddenForSrcRef.current = null;
+    setShowPosterOverlay(Boolean(poster));
+  }, [src, mediaId, forensicRenderConfig?.sessionId, previewMaxSeconds, poster]);
 
   useEffect(() => {
     if (!protect) {
@@ -578,6 +583,31 @@ export function FeedVideoPlayer({
       clearBufferingSoon();
       syncDuration();
     };
+    const hidePosterAfterFirstFrame = () => {
+      if (!poster) return;
+      if (posterHiddenForSrcRef.current === playbackSrc) return;
+      const video = v as HTMLVideoElement & {
+        requestVideoFrameCallback?: (cb: () => void) => number;
+      };
+      const commit = () => {
+        posterHiddenForSrcRef.current = playbackSrc;
+        setShowPosterOverlay(false);
+      };
+      if (typeof video.requestVideoFrameCallback === "function") {
+        video.requestVideoFrameCallback(() => commit());
+      } else {
+        // Fallback: loadeddata / playing means a frame is typically painted.
+        commit();
+      }
+    };
+    const onLoadedData = () => {
+      onMeta();
+      if (v.readyState >= 2) hidePosterAfterFirstFrame();
+    };
+    const onPlayingFrame = () => {
+      clearBufferingSoon();
+      hidePosterAfterFirstFrame();
+    };
     const onError = () => {
       if (retryCountRef.current >= MAX_RETRIES) return;
       const delay = RETRY_DELAYS_MS[Math.min(retryCountRef.current, RETRY_DELAYS_MS.length - 1)];
@@ -594,13 +624,13 @@ export function FeedVideoPlayer({
     v.addEventListener("pause", onPause);
     v.addEventListener("timeupdate", onTime);
     v.addEventListener("loadedmetadata", onMeta);
-    v.addEventListener("loadeddata", onMeta);
+    v.addEventListener("loadeddata", onLoadedData);
     v.addEventListener("canplay", onCanPlay);
     v.addEventListener("durationchange", syncDuration);
     v.addEventListener("ended", onEnded);
     v.addEventListener("volumechange", onVolume);
     v.addEventListener("waiting", onWaiting);
-    v.addEventListener("playing", onPlaying);
+    v.addEventListener("playing", onPlayingFrame);
     v.addEventListener("error", onError);
     syncDuration();
 
@@ -615,17 +645,17 @@ export function FeedVideoPlayer({
       v.removeEventListener("pause", onPause);
       v.removeEventListener("timeupdate", onTime);
       v.removeEventListener("loadedmetadata", onMeta);
-      v.removeEventListener("loadeddata", onMeta);
+      v.removeEventListener("loadeddata", onLoadedData);
       v.removeEventListener("canplay", onCanPlay);
       v.removeEventListener("durationchange", syncDuration);
       v.removeEventListener("ended", onEnded);
       v.removeEventListener("volumechange", onVolume);
       v.removeEventListener("waiting", onWaiting);
-      v.removeEventListener("playing", onPlaying);
+      v.removeEventListener("playing", onPlayingFrame);
       v.removeEventListener("error", onError);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once per src attach
-  }, [src, mediaAttached, retryToken, syncDuration, restoreProgress, pKey, loop, protect, previewMode, previewMaxSeconds, resetCopyrightWarning, onPreviewEnded]);
+  }, [src, mediaAttached, retryToken, syncDuration, restoreProgress, pKey, loop, protect, previewMode, previewMaxSeconds, resetCopyrightWarning, onPreviewEnded, poster, playbackSrc]);
 
   // IntersectionObserver: autoplay / pause / unload / preload
   useEffect(() => {
@@ -686,6 +716,8 @@ export function FeedVideoPlayer({
               autoPlayingRef.current = false;
               setMediaAttached(false);
               setPlaying(false);
+              posterHiddenForSrcRef.current = null;
+              if (poster) setShowPosterOverlay(true);
               resetCopyrightWarning();
             }, UNLOAD_AFTER_MS);
           }
@@ -738,6 +770,7 @@ export function FeedVideoPlayer({
     isPlayerFullscreen,
     resetCopyrightWarning,
     keepMediaLoaded,
+    poster,
   ]);
 
   useEffect(() => {
@@ -1257,6 +1290,23 @@ export function FeedVideoPlayer({
         onPointerUp={onVideoPointerUp}
         onPointerCancel={onVideoPointerCancel}
       />
+
+      {poster && showPosterOverlay ? (
+        // eslint-disable-next-line @next/next/no-img-element -- feed poster bridge; matches video box exactly
+        <img
+          src={poster}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className={cn(
+            fillMode
+              ? cn("absolute inset-0 h-full w-full", fillFitClass)
+              : "absolute inset-0 h-full w-full object-cover",
+            "pointer-events-none z-[1] origin-center"
+          )}
+          style={videoStyle}
+        />
+      ) : null}
 
       <ForensicVideoCanvas
         videoRef={videoRef}
