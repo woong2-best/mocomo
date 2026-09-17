@@ -22,7 +22,7 @@ export const LIVE_CATEGORIES: {
   { value: "GAME", label: "GAMING" },
   { value: "MUSIC", label: "MUSIC" },
   { value: "IRL", label: "FESTIVAL" },
-  { value: "VIRTUAL", label: "Following" },
+  { value: "VIRTUAL", label: "FOLLOWING" },
   { value: "LIVE", label: "R-18" },
 ];
 
@@ -36,12 +36,13 @@ export const LIVE_CATEGORY_ICON: Record<LiveStreamCategory, string> = {
   LIVE: "/images/live/categories/live-folder.png?v=3",
 };
 
+/** Mockup L→R: pink FOLLOWING · brown GAMING · blue CHATTING · green FESTIVAL · purple MUSIC · red R-18 */
 export const LIVE_CATEGORY_ORDER: LiveStreamCategory[] = [
-  "IRL",
-  "JUST_CHATTING",
-  "GAME",
-  "MUSIC",
   "VIRTUAL",
+  "GAME",
+  "JUST_CHATTING",
+  "IRL",
+  "MUSIC",
   "LIVE",
 ];
 

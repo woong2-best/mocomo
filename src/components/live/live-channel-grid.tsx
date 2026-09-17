@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { memo } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, Radio, User } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import { LiveHeroSpotlight } from "@/components/live/live-hero-spotlight";
+import { LiveFolderWall } from "@/components/live/live-folder-wall";
+import { LiveBeadFeed } from "@/components/live/live-bead-feed";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
@@ -107,30 +108,20 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
 const LiveStreamCardMemo = memo(LiveStreamCard);
 export { LiveStreamCardMemo };
 
-/** Hero-only feed — Browse/folders live in LiveHub right rail (top-aligned). */
+/** Folder wall + vertical infinite bead feed (mobile live hub parity). */
 export function LiveChannelGrid({
   channels,
   hosts,
-  filteredCategory,
 }: {
   channels: LiveHubChannel[];
   hosts: LiveHubHost[];
   filteredCategory?: LiveStreamCategory;
   view?: "explore" | "following";
 }) {
-  const { locale, t } = useLocale();
-  const hostMap = Object.fromEntries(hosts.map((h) => [h.id, h]));
-  const heroChannels = [...channels].sort((a, b) => b.viewerCount - a.viewerCount);
-
   return (
-    <div className="space-y-2">
-      <h2 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
-        {filteredCategory
-          ? `${localizedLiveCategoryLabel(filteredCategory, locale)} · ${channels.length}`
-          : `${t("live.liveBroadcasts")} · ${channels.length}`}
-      </h2>
-      <LiveHeroSpotlight channels={heroChannels} hostMap={hostMap} />
+    <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch min-h-0 flex-1 w-full">
+      <LiveFolderWall showEmptyNotice={channels.length === 0} />
+      <LiveBeadFeed channels={channels} hosts={hosts} />
     </div>
   );
 }

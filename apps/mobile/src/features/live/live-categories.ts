@@ -1,11 +1,11 @@
-/** Mobile live category pills — mirrors web LIVE_CATEGORIES. */
+/** Mobile live category pills — mirrors web LIVE_CATEGORIES / LIVE_CATEGORY_ORDER. */
 export const MOBILE_LIVE_CATEGORIES = [
   { id: "ALL", label: "전체" },
+  { id: "IRL", label: "FESTIVAL" },
   { id: "JUST_CHATTING", label: "CHATTING" },
   { id: "GAME", label: "GAMING" },
   { id: "MUSIC", label: "MUSIC" },
-  { id: "IRL", label: "FESTIVAL" },
-  { id: "VIRTUAL", label: "Following" },
+  { id: "VIRTUAL", label: "FOLLOWING" },
   { id: "LIVE", label: "R-18" },
 ] as const;
 
@@ -26,6 +26,19 @@ export function liveCategoryLabel(id: string | null | undefined): string {
   const found = MOBILE_LIVE_CATEGORIES.find((c) => c.id === id);
   return found?.label ?? "라이브";
 }
+
+/** Folder PNGs for chrome category rail (labels drawn white on top). */
+export const CATEGORY_FOLDER_IMAGE: Record<
+  Exclude<MobileLiveCategoryId, "ALL">,
+  number
+> = {
+  IRL: require("../../../assets/live/categories/irl-folder.png"),
+  JUST_CHATTING: require("../../../assets/live/categories/chatting-folder.png"),
+  GAME: require("../../../assets/live/categories/gaming-folder.png"),
+  MUSIC: require("../../../assets/live/categories/music-folder.png"),
+  VIRTUAL: require("../../../assets/live/categories/virtual-folder.png"),
+  LIVE: require("../../../assets/live/categories/live-folder.png"),
+};
 
 export const CATEGORY_POSTER: Record<
   string,

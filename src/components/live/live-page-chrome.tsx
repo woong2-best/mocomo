@@ -16,6 +16,7 @@ export function LivePageChrome({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "max-w-[1400px] mx-auto space-y-3 sm:space-y-4 p-4 lg:p-5 min-w-0",
+          "flex flex-col h-full max-h-full",
           isNativeApp ? "pb-safe" : "pb-4"
         )}
       >

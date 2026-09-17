@@ -1,11 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { LiveStreamCardMemo } from "@/components/live/live-channel-grid";
-import { LivePopularCategories } from "@/components/live/live-popular-categories";
-import { Radio, Heart } from "lucide-react";
+import { Suspense, type ReactNode } from "react";
+import { LiveBeadFeed } from "@/components/live/live-bead-feed";
+import { LiveFolderWall } from "@/components/live/live-folder-wall";
+import { Radio } from "lucide-react";
 import { LivePageActions } from "@/components/live/live-page-actions";
-import { LiveCategoryFilter } from "@/components/live/live-category-filter";
 import { LiveR18DeepLinkGuard } from "@/components/live/live-r18-deep-link-guard";
 import type { LiveStreamCategory } from "@prisma/client";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
@@ -35,14 +34,12 @@ export function LiveHub({
   view?: "explore" | "following";
 }) {
   const { t } = useLocale();
-  const followedHostMap = Object.fromEntries(followedHosts.map((h) => [h.id, h]));
   const showFollowing = view === "following";
 
   return (
     <LivePageChrome>
       <LiveR18DeepLinkGuard />
-      {/* Full-width banner + go-live actions (original) */}
-      <header className="live-hero live-hub-header flex flex-wrap items-center justify-between gap-4 !py-4 !px-5">
+      <header className="live-hero live-hub-header flex flex-wrap items-center justify-between gap-4 !py-4 !px-5 shrink-0">
         <LivePageTitle>
           <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2.5 tracking-tight text-white drop-shadow-md">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
@@ -56,37 +53,17 @@ export function LiveHub({
         </div>
       </header>
 
-      <LiveCategoryFilter />
-
-      <div className="min-w-0 mt-1 flex flex-col lg:flex-row gap-3 lg:gap-4 items-start">
-        <div className="min-w-0 flex-1">
-          {showFollowing ? (
-            <section>
-              <h2 className="text-base font-bold tracking-tight mb-4 flex items-center gap-2">
-                <Heart className="h-4 w-4 text-folk-terracotta" />
-                {t("live.followedLive")} · {followedLive.length}
-              </h2>
-              {followedLive.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-6">{t("live.followingEmpty")}</p>
-              ) : (
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                  {followedLive.map((ch) => (
-                    <LiveStreamCardMemo
-                      key={ch.id}
-                      ch={ch}
-                      host={followedHostMap[ch.createdBy]}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
-          ) : (
-            channelFeed
-          )}
-        </div>
-
-        {/* Folder grid — position kept; no Browse/Following/Schedule buttons */}
-        <LivePopularCategories viewerByCategory={{}} variant="sidebar" />
+      <div className="min-w-0 mt-1 flex-1 min-h-0 flex flex-col">
+        {showFollowing ? (
+          <Suspense fallback={<div className="flex-1 rounded-2xl bg-black/40 animate-pulse" />}>
+            <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch min-h-0 flex-1 w-full">
+              <LiveFolderWall showEmptyNotice={followedLive.length === 0} />
+              <LiveBeadFeed channels={followedLive} hosts={followedHosts} />
+            </div>
+          </Suspense>
+        ) : (
+          channelFeed
+        )}
       </div>
     </LivePageChrome>
   );
