@@ -469,11 +469,12 @@ html[data-client="app"] .native-live-pad {
 
   /* /live hub — fit viewport, no page scroll */
   .live-page-shell.live-hub-no-scroll {
-    min-height: calc(100dvh - var(--header-h, 3.5rem));
+    height: calc(100dvh - var(--header-h, 3.5rem));
     max-height: calc(100dvh - var(--header-h, 3.5rem));
     overflow: hidden;
   }
   .live-page-shell.live-hub-no-scroll > div {
+    height: 100%;
     max-height: 100%;
     overflow: hidden;
   }

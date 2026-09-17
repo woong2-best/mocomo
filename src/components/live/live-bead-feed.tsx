@@ -160,9 +160,8 @@ export function LiveBeadFeed({ channels, hosts, className }: Props) {
     <div
       ref={stageRef}
       className={cn(
-        "relative shrink-0 self-stretch",
+        "relative shrink-0 self-stretch h-full min-h-0",
         "w-[168px] sm:w-[190px] md:w-[210px] xl:w-[230px]",
-        "h-full min-h-0",
         "overflow-hidden touch-none select-none",
         className
       )}

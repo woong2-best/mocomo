@@ -5,15 +5,14 @@ import { LiveHeroCarousel } from "@/components/live/live-hero-carousel";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import { cn } from "@/lib/utils";
 
-/** Empty TV — SMPTE bars only. Height-capped so wide monitors don't push beads off-screen. */
+/** Empty TV — fills parent box (parent owns size). */
 function SmpteEmptyState({ className }: { className?: string }) {
   const { t } = useLocale();
 
   return (
     <div
       className={cn(
-        "relative h-full max-h-full w-auto max-w-full aspect-video",
-        "overflow-hidden rounded-2xl border border-border/50 bg-black shadow-lg",
+        "relative h-full w-full overflow-hidden rounded-2xl border border-border/50 bg-black shadow-lg",
         className
       )}
     >
@@ -42,7 +41,7 @@ function SmpteEmptyState({ className }: { className?: string }) {
   );
 }
 
-/** TV screen: live carousel or SMPTE empty — always fits parent height. */
+/** TV screen fills the stage slot — never collapses to 0 height. */
 export function LiveHeroSpotlight({
   channels,
   hostMap,
@@ -57,12 +56,7 @@ export function LiveHeroSpotlight({
   }
 
   return (
-    <div
-      className={cn(
-        "relative h-full max-h-full w-auto max-w-full aspect-video min-w-0",
-        className
-      )}
-    >
+    <div className={cn("relative h-full w-full min-h-0 overflow-hidden", className)}>
       <LiveHeroCarousel channels={channels} hostMap={hostMap} />
     </div>
   );

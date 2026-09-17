@@ -76,7 +76,7 @@ function LiveHeroCarouselInner({
   if (heroItems.length === 0) return null;
 
   return (
-    <section className="relative">
+    <section className="relative h-full w-full min-h-0">
       {heroItems.length > 1 ? (
         <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1.5 backdrop-blur-sm">
           {heroItems.map((item, i) => (
@@ -102,7 +102,7 @@ function LiveHeroCarouselInner({
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="flex snap-x snap-mandatory overflow-x-auto scrollbar-none overscroll-x-contain"
+        className="flex h-full snap-x snap-mandatory overflow-x-auto scrollbar-none overscroll-x-contain"
       >
         {heroItems.map((ch, slideIndex) => {
           const host = hostMap[ch.createdBy];
@@ -114,9 +114,9 @@ function LiveHeroCarouselInner({
               key={ch.id}
               href={`/voice/${ch.id}`}
               prefetch={false}
-              className="group block w-full shrink-0 snap-start"
+              className="group block h-full w-full shrink-0 snap-start"
             >
-              <div className="relative aspect-video overflow-hidden rounded-2xl border border-border/50 bg-black/30 shadow-lg">
+              <div className="relative h-full w-full overflow-hidden rounded-2xl border border-border/50 bg-black/30 shadow-lg">
                 <LiveHeroPreviewVideo
                   channelId={ch.id}
                   broadcastMode={ch.broadcastMode}

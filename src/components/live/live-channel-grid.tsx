@@ -109,7 +109,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
 const LiveStreamCardMemo = memo(LiveStreamCard);
 export { LiveStreamCardMemo };
 
-/** Folder chips + height-capped TV + compact adaptive bead feed. */
+/** Folder chips + TV + bead — stage uses explicit height so content never collapses. */
 export function LiveChannelGrid({
   channels,
   hosts,
@@ -127,8 +127,12 @@ export function LiveChannelGrid({
       <Suspense fallback={<div className="h-[70px] rounded-xl bg-black/20 animate-pulse shrink-0" />}>
         <LiveFolderChips />
       </Suspense>
-      <div className="flex flex-row gap-2.5 sm:gap-3 items-stretch min-h-0 flex-1 w-full overflow-hidden">
-        <div className="min-w-0 flex-1 min-h-0 flex items-center justify-center overflow-hidden">
+      {/* Explicit clamp height — avoids flex/h-full collapse to 0 on wide monitors */}
+      <div
+        className="flex flex-row gap-2.5 sm:gap-3 items-stretch w-full min-h-0 flex-1 overflow-hidden"
+        style={{ minHeight: "clamp(220px, calc(100dvh - 270px), 680px)" }}
+      >
+        <div className="relative min-w-0 flex-1 h-full min-h-[220px]">
           <LiveHeroSpotlight channels={heroChannels} hostMap={hostMap} />
         </div>
         <LiveBeadFeed channels={channels} hosts={hosts} />
