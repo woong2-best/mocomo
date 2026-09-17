@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  isMobileOAuthProvider,
   MOBILE_OAUTH_COOKIE,
+  MOBILE_OAUTH_PLATFORM_COOKIE,
+  MOBILE_OAUTH_PROVIDER_COOKIE,
   MOBILE_OAUTH_REDIRECT_COOKIE,
   sanitizeMobileRedirectUri,
-  type MobileOAuthProvider,
 } from "@/lib/mobile-oauth-shared";
 import { OAUTH_FLOW_COOKIE, persistOAuthFlowIntent } from "@/lib/oauth-flow-cookie";
 import { BrandLogo } from "@/components/brand/brand-logo";
@@ -15,20 +15,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
  * Mobile app opens this page inside AuthSession.
- * Discord / LINE / X → NextAuth OAuth (same as web SocialAuthButtons).
- * Gmail / Naver signup → dedicated email forms (same as web).
+ * Public auth is Google-only (gmail → NextAuth google / signup/gmail).
  */
-export function MobileOAuthStartClient({
-  googleOAuth,
-  discordOAuth,
-  twitterOAuth,
-  lineOAuth,
-}: {
-  googleOAuth: boolean;
-  discordOAuth: boolean;
-  twitterOAuth: boolean;
-  lineOAuth: boolean;
-}) {
+export function MobileOAuthStartClient({ googleOAuth }: { googleOAuth: boolean }) {
   const params = useSearchParams();
   const [error, setError] = useState("");
 
@@ -43,92 +32,45 @@ export function MobileOAuthStartClient({
   }, [platform]);
 
   useEffect(() => {
-    if (!isMobileOAuthProvider(provider)) {
-      setError("지원하지 않는 로그인 방식입니다.");
+    if (provider !== "gmail" && provider !== "google") {
+      setError("Google 로그인만 지원합니다.");
       return;
     }
 
-    document.cookie = `${MOBILE_OAUTH_COOKIE}=1; Path=/; Max-Age=1800; SameSite=Lax`;
-    document.cookie = `${OAUTH_FLOW_COOKIE}=${mode}; Path=/; Max-Age=1800; SameSite=Lax`;
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${MOBILE_OAUTH_COOKIE}=1; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
+    document.cookie = `${OAUTH_FLOW_COOKIE}=${mode}; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
+    document.cookie = `${MOBILE_OAUTH_PLATFORM_COOKIE}=${platform}; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
+    document.cookie = `${MOBILE_OAUTH_PROVIDER_COOKIE}=google; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
     void persistOAuthFlowIntent(mode).catch(() => undefined);
     if (redirectUri) {
-      document.cookie = `${MOBILE_OAUTH_REDIRECT_COOKIE}=${encodeURIComponent(redirectUri)}; Path=/; Max-Age=1800; SameSite=Lax`;
+      document.cookie = `${MOBILE_OAUTH_REDIRECT_COOKIE}=${encodeURIComponent(redirectUri)}; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
     }
 
-    const p = provider as MobileOAuthProvider;
-
-    if (p === "gmail") {
-      if (mode === "signin") {
-        if (!googleOAuth) {
-          setError("Google 로그인이 서버에 설정되지 않았습니다.");
-          return;
-        }
-        const params = new URLSearchParams({
-          provider: "google",
-          platform,
-          flow: mode,
-          callbackUrl: completeUrl,
-        });
-        if (redirectUri) params.set("redirect_uri", redirectUri);
-        window.location.replace(`/api/auth/mobile/provider-signin?${params}`);
+    if (mode === "signin") {
+      if (!googleOAuth) {
+        setError("Google 로그인이 서버에 설정되지 않았습니다.");
         return;
       }
-      window.location.replace(
-        `/auth/signup/gmail?from=mobile&platform=${platform}&callbackUrl=${encodeURIComponent(completeUrl)}`
-      );
+      const qs = new URLSearchParams({
+        provider: "google",
+        platform,
+        flow: mode,
+        callbackUrl: completeUrl,
+      });
+      if (redirectUri) qs.set("redirect_uri", redirectUri);
+      window.location.replace(`/api/auth/mobile/provider-signin?${qs}`);
       return;
     }
 
-    if (p === "naver") {
-      if (mode === "signin") {
-        const params = new URLSearchParams({
-          provider: "naver",
-          platform,
-          flow: mode,
-          callbackUrl: completeUrl,
-        });
-        if (redirectUri) params.set("redirect_uri", redirectUri);
-        window.location.replace(`/api/auth/mobile/provider-signin?${params}`);
-        return;
-      }
-      window.location.replace(
-        `/auth/signup/naver?from=mobile&platform=${platform}&callbackUrl=${encodeURIComponent(completeUrl)}`
-      );
-      return;
-    }
-
-    if (p === "discord" && !discordOAuth) {
-      setError("Discord 로그인이 서버에 설정되지 않았습니다.");
-      return;
-    }
-    if (p === "twitter" && !twitterOAuth) {
-      setError("X 로그인이 서버에 설정되지 않았습니다.");
-      return;
-    }
-    if (p === "line" && !lineOAuth) {
-      setError("LINE 로그인이 서버에 설정되지 않았습니다.");
-      return;
-    }
-
-    const params = new URLSearchParams({
-      provider: p,
+    const gmailQs = new URLSearchParams({
+      from: "mobile",
       platform,
-      flow: mode,
       callbackUrl: completeUrl,
     });
-    if (redirectUri) params.set("redirect_uri", redirectUri);
-    window.location.replace(`/api/auth/mobile/provider-signin?${params}`);
-  }, [
-    provider,
-    mode,
-    platform,
-    completeUrl,
-    redirectUri,
-    googleOAuth,
-    discordOAuth,
-    twitterOAuth,
-    lineOAuth,
-  ]);
+    if (redirectUri) gmailQs.set("redirect_uri", redirectUri);
+    window.location.replace(`/auth/signup/gmail?${gmailQs}`);
+  }, [provider, mode, platform, completeUrl, redirectUri, googleOAuth]);
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">

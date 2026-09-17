@@ -5,6 +5,8 @@ import { clearSessionTokenCookies } from "@/lib/account-switch/session-cookies";
 import { OAUTH_FLOW_COOKIE } from "@/lib/oauth-flow-cookie";
 import {
   MOBILE_OAUTH_COOKIE,
+  MOBILE_OAUTH_PLATFORM_COOKIE,
+  MOBILE_OAUTH_PROVIDER_COOKIE,
   MOBILE_OAUTH_REDIRECT_COOKIE,
 } from "@/lib/mobile-oauth-shared";
 import {
@@ -15,29 +17,45 @@ import {
 /** Server-side OAuth kickoff — sets intent cookies then signIn(redirectTo). */
 export async function startOAuthProviderSignin(opts: StartOAuthProviderSigninOptions): Promise<void> {
   const { redirectTo, redirectUri } = resolveOAuthProviderSignin(opts);
+  const secure = process.env.NODE_ENV === "production";
 
   const jar = await cookies();
   jar.set(OAUTH_FLOW_COOKIE, opts.flow, {
     path: "/",
     maxAge: 1800,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     httpOnly: true,
+  });
+  // Readable from the apply page so mobile can auto-continue signup after not_registered.
+  jar.set(MOBILE_OAUTH_PROVIDER_COOKIE, opts.provider, {
+    path: "/",
+    maxAge: 1800,
+    sameSite: "lax",
+    secure,
+    httpOnly: false,
   });
 
   if (opts.mobile) {
+    const platform = opts.platform === "ios" ? "ios" : "android";
     jar.set(MOBILE_OAUTH_COOKIE, "1", {
       path: "/",
       maxAge: 1800,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure,
+    });
+    jar.set(MOBILE_OAUTH_PLATFORM_COOKIE, platform, {
+      path: "/",
+      maxAge: 1800,
+      sameSite: "lax",
+      secure,
     });
     if (redirectUri) {
       jar.set(MOBILE_OAUTH_REDIRECT_COOKIE, encodeURIComponent(redirectUri), {
         path: "/",
         maxAge: 1800,
         sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        secure,
       });
     }
   }

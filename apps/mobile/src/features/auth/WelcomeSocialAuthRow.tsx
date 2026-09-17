@@ -1,115 +1,77 @@
-import type { ComponentType } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
-import { Image, type ImageSource } from "expo-image";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import type { MobileAuthProvider } from "@/auth/oauth";
-import {
-  DiscordIcon,
-  GoogleIcon,
-  NaverIcon,
-  XIcon,
-} from "@/features/auth/SocialBrandIcons";
-import { radii } from "@/theme/tokens";
-
-type ProviderTile = {
-  id: MobileAuthProvider;
-  label: string;
-  bg?: string;
-  Icon?: ComponentType<{ size?: number; color?: string }>;
-  iconColor?: string;
-  /** Brand artwork that already includes its own tile, e.g. the LINE mark. */
-  art?: ImageSource;
-  spinnerColor: string;
-};
-
-const TILES: ProviderTile[] = [
-  { id: "gmail", bg: "#FFFFFF", Icon: GoogleIcon, label: "Google", spinnerColor: "#4285F4" },
-  { id: "naver", bg: "#03C75A", Icon: NaverIcon, label: "Naver", spinnerColor: "#fff" },
-  { id: "twitter", bg: "#0F1419", Icon: XIcon, label: "X", spinnerColor: "#fff" },
-  { id: "discord", bg: "#5865F2", Icon: DiscordIcon, label: "Discord", spinnerColor: "#fff" },
-  {
-    id: "line",
-    label: "LINE",
-    art: require("../../../assets/brand-line.png"),
-    spinnerColor: "#06C755",
-  },
-];
+import { GoogleIcon } from "@/features/auth/SocialBrandIcons";
 
 type Props = {
   busyProvider: MobileAuthProvider | null;
   disabled?: boolean;
   onPress: (provider: MobileAuthProvider) => void;
+  /** Default: Google로 계속 */
+  label?: string;
 };
 
-/** Brand tiles with even spacing — all rounded squares. */
-export function WelcomeSocialAuthRow({ busyProvider, disabled, onPress }: Props) {
+/**
+ * Single Google CTA — replaces the old multi-provider icon row.
+ * White pill + Google mark + dark label (readable contrast).
+ */
+export function WelcomeSocialAuthRow({
+  busyProvider,
+  disabled,
+  onPress,
+  label = "Google로 계속",
+}: Props) {
+  const busy = busyProvider === "gmail";
+
   return (
-    <View style={styles.row}>
-      {TILES.map((tile) => {
-        const busy = busyProvider === tile.id;
-        return (
-          <Pressable
-            key={tile.id}
-            style={styles.tileWrap}
-            disabled={disabled || busyProvider !== null}
-            accessibilityLabel={tile.label}
-            onPress={() => onPress(tile.id)}
-          >
-            <View
-              style={[
-                styles.tile,
-                tile.art
-                  ? styles.artTile
-                  : { backgroundColor: tile.bg ?? "#FFFFFF" },
-              ]}
-            >
-              {busy ? (
-                <ActivityIndicator color={tile.spinnerColor} />
-              ) : tile.art ? (
-                <Image source={tile.art} style={styles.art} contentFit="contain" />
-              ) : tile.Icon ? (
-                <tile.Icon size={24} color={tile.iconColor ?? "#fff"} />
-              ) : null}
-            </View>
-          </Pressable>
-        );
-      })}
-    </View>
+    <Pressable
+      style={[styles.btn, (disabled || busyProvider !== null) && styles.btnDisabled]}
+      disabled={disabled || busyProvider !== null}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={() => onPress("gmail")}
+    >
+      {busy ? (
+        <ActivityIndicator color="#4285F4" />
+      ) : (
+        <View style={styles.inner}>
+          <GoogleIcon size={20} />
+          <Text style={styles.label}>{label}</Text>
+        </View>
+      )}
+    </Pressable>
   );
 }
 
-const TILE = 52;
-
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 2,
-  },
-  tileWrap: {
-    width: TILE,
-    height: TILE,
-  },
-  tile: {
-    width: TILE,
-    height: TILE,
-    borderRadius: radii.md,
+  btn: {
+    width: "100%",
+    minHeight: 52,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(15, 23, 42, 0.18)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(27, 74, 140, 0.12)",
-    shadowColor: "#1B4A8C",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    paddingHorizontal: 20,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  artTile: {
-    backgroundColor: "transparent",
-    borderColor: "transparent",
+  btnDisabled: {
+    opacity: 0.65,
   },
-  art: {
-    width: TILE,
-    height: TILE,
+  inner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F1F1F",
+    letterSpacing: -0.2,
   },
 });

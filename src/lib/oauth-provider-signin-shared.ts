@@ -2,7 +2,8 @@ import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import type { OAuthFlow } from "@/lib/oauth-flow-cookie";
 import { mobileAuthCompletePath, sanitizeMobileRedirectUri } from "@/lib/mobile-oauth-shared";
 
-export const OAUTH_PROVIDER_IDS = ["google", "discord", "twitter", "line", "naver"] as const;
+/** Public MoCoMo login/signup — Google only (live streaming OAuth is separate). */
+export const OAUTH_PROVIDER_IDS = ["google"] as const;
 export type OAuthProviderId = (typeof OAUTH_PROVIDER_IDS)[number];
 
 export function isOAuthProviderId(value: string): value is OAuthProviderId {

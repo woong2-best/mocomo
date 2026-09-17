@@ -18,7 +18,7 @@ export default async function SignupApplyPage({
   const sp = await searchParams;
   const fromMobile = sp.from === "mobile";
   const platform = sp.platform === "ios" ? "ios" : "android";
-  const { googleOAuth, discordOAuth, twitterOAuth, lineOAuth, naverOAuth } = getAuthConfigStatus();
+  const { googleOAuth } = getAuthConfigStatus();
 
   return (
     <>
@@ -28,10 +28,6 @@ export default async function SignupApplyPage({
       <Suspense fallback={null}>
         <SignupApplyForm
           googleOAuth={googleOAuth}
-          discordOAuth={discordOAuth}
-          twitterOAuth={twitterOAuth}
-          lineOAuth={lineOAuth}
-          naverOAuth={naverOAuth}
           fromMobile={fromMobile}
           platform={platform}
         />

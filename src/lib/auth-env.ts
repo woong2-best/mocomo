@@ -30,20 +30,11 @@ export function getAuthConfigStatus() {
     googleSecretPresent: !!googleSecret,
     googleIdLength: googleId?.length ?? 0,
     googleSecretLength: googleSecret?.length ?? 0,
-    discordOAuth: !!(process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET),
-    twitterOAuth: !!(process.env.AUTH_TWITTER_ID && process.env.AUTH_TWITTER_SECRET),
-    lineOAuth: !!(
-      (process.env.AUTH_LINE_ID?.trim() || process.env.LINE_CLIENT_ID?.trim()) &&
-      (process.env.AUTH_LINE_SECRET?.trim() || process.env.LINE_CLIENT_SECRET?.trim())
-    ),
-    naverOAuth: !!(
-      (process.env.AUTH_NAVER_ID?.trim() ||
-        process.env.NAVER_CLIENT_ID?.trim() ||
-        process.env.NAVER_ID?.trim()) &&
-      (process.env.AUTH_NAVER_SECRET?.trim() ||
-        process.env.NAVER_CLIENT_SECRET?.trim() ||
-        process.env.NAVER_SECRET?.trim())
-    ),
+    // Public auth is Google-only — keep flags for health/UI callers, always off.
+    discordOAuth: false,
+    twitterOAuth: false,
+    lineOAuth: false,
+    naverOAuth: false,
     databaseUrlConfigured: !!process.env.DATABASE_URL,
     vercelEnv: process.env.VERCEL_ENV ?? null,
   };

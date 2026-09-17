@@ -20,27 +20,15 @@ export async function GET(req: NextRequest) {
     secretLengthOk: status.secretLengthOk,
     databaseUrlConfigured: status.databaseUrlConfigured,
     trustHost: status.trustHost,
-    discordOAuth: status.discordOAuth,
-    twitterOAuth: status.twitterOAuth,
-    lineOAuth: status.lineOAuth,
-    naverOAuth: status.naverOAuth,
+    discordOAuth: false,
+    twitterOAuth: false,
+    lineOAuth: false,
+    naverOAuth: false,
     googleOAuth: status.googleOAuth,
     googleIdPresent: status.googleIdPresent,
     googleSecretPresent: status.googleSecretPresent,
-    discordCallback: status.authUrl
-      ? `${status.authUrl}/api/auth/callback/discord`
-      : null,
     googleCallback: status.authUrl
       ? `${status.authUrl}/api/auth/callback/google`
-      : null,
-    twitterCallback: status.authUrl
-      ? `${status.authUrl}/api/auth/callback/twitter`
-      : null,
-    lineCallback: status.authUrl
-      ? `${status.authUrl}/api/auth/callback/line`
-      : null,
-    naverCallback: status.authUrl
-      ? `${status.authUrl}/api/auth/callback/naver`
       : null,
     vercelEnv: status.vercelEnv,
   });

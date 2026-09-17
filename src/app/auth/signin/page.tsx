@@ -26,7 +26,7 @@ export default async function SignInPage({
   const sp = await searchParams;
   const fromMobile = sp.from === "mobile";
   const platform = sp.platform === "ios" ? "ios" : "android";
-  const { googleOAuth, discordOAuth, twitterOAuth, lineOAuth, naverOAuth } = getAuthConfigStatus();
+  const { googleOAuth } = getAuthConfigStatus();
 
   const callbackUrl =
     sp.callbackUrl?.trim() ||
@@ -39,12 +39,7 @@ export default async function SignInPage({
       </Suspense>
       <SignInForm
         googleOAuth={googleOAuth}
-        discordOAuth={discordOAuth}
-        twitterOAuth={twitterOAuth}
-        lineOAuth={lineOAuth}
-        naverOAuth={naverOAuth}
         callbackUrl={callbackUrl}
-        initialEmail={sp.email?.trim() || ""}
         errorParam={sp.error ?? null}
         fromMobile={fromMobile}
         platform={platform}
