@@ -369,7 +369,7 @@
   "auth.oauthNotConfigured": "Η σύνδεση Google, X, Discord και LINE χρειάζονται κλειδιά OAuth στο Vercel.",
   "auth.signupPageTitle": "Εγγραφείτε για {brand}",
   "auth.signupPageDesc": "Εισαγάγετε τα στοιχεία σας και, στη συνέχεια, επαληθεύστε το email σας για να ολοκληρώσετε.",
-  "auth.signupOAuthDesc": "Ξεκινήστε με το Discord, το Gmail, το Naver, το LINE ή το X.",
+  "auth.signupOAuthDesc": "Εγγραφείτε με το Google.",
   "auth.signupGmailTitle": "Εγγραφείτε με το Gmail",
   "auth.signupGmailDesc": "Εισαγάγετε τη διεύθυνση Gmail και τα στοιχεία του λογαριασμού σας.",
   "auth.signupNaverTitle": "Εγγραφείτε με το Naver",

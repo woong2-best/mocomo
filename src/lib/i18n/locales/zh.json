@@ -360,7 +360,7 @@
   "auth.oauthNotConfigured": "Google、X、Discord、LINE 登录需要配置 OAuth。",
   "auth.signupPageTitle": "注册 {brand}",
   "auth.signupPageDesc": "填写信息后通过邮箱验证完成注册。",
-  "auth.signupOAuthDesc": "使用 Discord、Gmail、Naver、LINE 或 X 开始。",
+  "auth.signupOAuthDesc": "使用 Google 注册。",
   "auth.signupGmailTitle": "用 Gmail 注册 {brand}",
   "auth.signupGmailDesc": "请输入 Gmail 地址和注册信息。",
   "auth.signupNaverTitle": "用 Naver 注册 {brand}",

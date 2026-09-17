@@ -369,7 +369,7 @@
   "auth.oauthNotConfigured": "Google, X, Discord, and LINE sign-in need OAuth keys on Vercel.",
   "auth.signupPageTitle": "Sign up for {brand}",
   "auth.signupPageDesc": "Enter your details, then verify your email to finish.",
-  "auth.signupOAuthDesc": "Get started with Discord, Gmail, Naver, LINE, or X.",
+  "auth.signupOAuthDesc": "Sign up with Google.",
   "auth.signupGmailTitle": "Sign up with Gmail",
   "auth.signupGmailDesc": "Enter your Gmail address and account details.",
   "auth.signupNaverTitle": "Sign up with Naver",

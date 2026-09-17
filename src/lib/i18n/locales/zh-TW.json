@@ -369,7 +369,7 @@
   "auth.oauthNotConfigured": "Google、X、Discord 和 LINE 登入需要 Vercel 上的 OAuth 金鑰。",
   "auth.signupPageTitle": "註冊 {brand}",
   "auth.signupPageDesc": "輸入您的詳細信息，然後驗證您的電子郵件以完成。",
-  "auth.signupOAuthDesc": "開始使用 Discord、Gmail、Naver、LINE 或 X。",
+  "auth.signupOAuthDesc": "使用 Google 註冊。",
   "auth.signupGmailTitle": "使用 Gmail 註冊",
   "auth.signupGmailDesc": "輸入您的 Gmail 地址和帳戶詳細資料。",
   "auth.signupNaverTitle": "註冊 Naver",

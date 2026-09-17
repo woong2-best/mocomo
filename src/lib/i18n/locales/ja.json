@@ -360,7 +360,7 @@
   "auth.oauthNotConfigured": "Google・X・Discord・LINEログインはOAuth設定が必要です。",
   "auth.signupPageTitle": "{brand} 会員登録",
   "auth.signupPageDesc": "情報を入力し、メール認証で登録を完了します。",
-  "auth.signupOAuthDesc": "Discord、Gmail、Naver、LINE、X のいずれかで始めましょう。",
+  "auth.signupOAuthDesc": "Googleで登録してください。",
   "auth.signupGmailTitle": "Gmailで{brand}に登録",
   "auth.signupGmailDesc": "Gmailアドレスと登録情報を入力してください。",
   "auth.signupNaverTitle": "Naverで{brand}に登録",
