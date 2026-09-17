@@ -24,6 +24,7 @@ import {
   providerLabel,
   type MobileLiveCategoryId,
 } from "@/features/live/live-categories";
+import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { Screen } from "@/ui/Screen";
@@ -143,7 +144,13 @@ export function LiveGoLiveScreen() {
                 return (
                   <Pressable
                     key={c.id}
-                    onPress={() => setCategory(c.id)}
+                    onPress={() => {
+                      void (async () => {
+                        const ok = await ensureR18LiveAccess(c.id);
+                        if (!ok) return;
+                        setCategory(c.id);
+                      })();
+                    }}
                     style={[
                       styles.catPill,
                       active

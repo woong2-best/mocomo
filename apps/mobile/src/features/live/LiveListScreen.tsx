@@ -20,6 +20,7 @@ import {
   MOBILE_LIVE_CATEGORIES,
   type MobileLiveCategoryId,
 } from "@/features/live/live-categories";
+import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
 import {
   LiveCardOverflowMenu,
   type LiveCardMenuTarget,
@@ -147,7 +148,13 @@ export function LiveListScreen() {
             return (
               <Pressable
                 key={c.id}
-                onPress={() => setCategory(c.id)}
+                onPress={() => {
+                  void (async () => {
+                    const ok = await ensureR18LiveAccess(c.id);
+                    if (!ok) return;
+                    setCategory(c.id);
+                  })();
+                }}
                 style={[
                   styles.pill,
                   active

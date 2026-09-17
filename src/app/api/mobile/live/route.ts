@@ -10,7 +10,7 @@ import {
   type LiveHubChannel,
   type LiveHubHost,
 } from "@/lib/live-hub-data";
-import { parseLiveCategoryParam } from "@/lib/live-categories";
+import { isR18LiveCategory, parseLiveCategoryParam } from "@/lib/live-categories";
 import { filterNsfwChannels, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 const CATEGORY_ORDER: LiveStreamCategory[] = [
@@ -68,6 +68,23 @@ export async function GET(req: NextRequest) {
   const offset = Number.isFinite(offsetRaw) && offsetRaw >= 0 ? Math.floor(offsetRaw) : 0;
   const limit =
     Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(Math.floor(limitRaw), 50) : LIVE_HUB_PAGE_SIZE;
+
+  if (isR18LiveCategory(category) && !canViewNsfw) {
+    return NextResponse.json({
+      items: [],
+      heroItems: [],
+      popularCategories: [],
+      followed: [],
+      recommended: [],
+      scheduled: [],
+      category: category ?? null,
+      total: 0,
+      hasMore: false,
+      nextOffset: offset,
+      categoryRows: [],
+      r18Blocked: true,
+    });
+  }
 
   const [page, allFeed, staticData] = await Promise.all([
     getLiveHubChannelFeedPage(category, "all", offset, limit),

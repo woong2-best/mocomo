@@ -6,6 +6,7 @@ import { LivePopularCategories } from "@/components/live/live-popular-categories
 import { Radio, Heart } from "lucide-react";
 import { LivePageActions } from "@/components/live/live-page-actions";
 import { LiveCategoryFilter } from "@/components/live/live-category-filter";
+import { LiveR18DeepLinkGuard } from "@/components/live/live-r18-deep-link-guard";
 import type { LiveStreamCategory } from "@prisma/client";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import { LivePageChrome, LivePageTitle } from "@/components/live/live-page-chrome";
@@ -39,6 +40,7 @@ export function LiveHub({
 
   return (
     <LivePageChrome>
+      <LiveR18DeepLinkGuard />
       {/* Full-width banner + go-live actions (original) */}
       <header className="live-hero live-hub-header flex flex-wrap items-center justify-between gap-4 !py-4 !px-5">
         <LivePageTitle>

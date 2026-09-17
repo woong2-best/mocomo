@@ -4,10 +4,21 @@ export const MOBILE_LIVE_CATEGORIES = [
   { id: "JUST_CHATTING", label: "CHATTING" },
   { id: "GAME", label: "GAMING" },
   { id: "MUSIC", label: "MUSIC" },
-  { id: "IRL", label: "IRL" },
+  { id: "IRL", label: "FESTIVAL" },
   { id: "VIRTUAL", label: "Following" },
-  { id: "LIVE", label: "LIVE" },
+  { id: "LIVE", label: "R-18" },
 ] as const;
+
+/** DB enum stays `LIVE`; display label is R-18 (age-gated). */
+export const R18_LIVE_CATEGORY = "LIVE" as const;
+
+export const R18_LIVE_CATEGORY_BLOCKED_TITLE = "성인 전용";
+export const R18_LIVE_CATEGORY_BLOCKED_MSG =
+  "프로필에 등록된 생년월일 기준 만 19세 이상만 R-18 카테고리를 이용할 수 있습니다.";
+
+export function isR18LiveCategory(id: string | null | undefined): boolean {
+  return id === R18_LIVE_CATEGORY;
+}
 
 export type MobileLiveCategoryId = (typeof MOBILE_LIVE_CATEGORIES)[number]["id"];
 

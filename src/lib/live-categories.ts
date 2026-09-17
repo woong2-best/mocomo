@@ -1,5 +1,18 @@
 import type { LiveStreamCategory } from "@prisma/client";
 
+/** DB enum stays `LIVE`; display label is R-18 (age-gated). */
+export const R18_LIVE_CATEGORY: LiveStreamCategory = "LIVE";
+
+export const R18_LIVE_CATEGORY_BLOCKED_TITLE = "성인 전용";
+export const R18_LIVE_CATEGORY_BLOCKED_MSG =
+  "프로필에 등록된 생년월일 기준 만 19세 이상만 R-18 카테고리를 이용할 수 있습니다.";
+
+export function isR18LiveCategory(
+  cat: LiveStreamCategory | string | null | undefined
+): boolean {
+  return cat === R18_LIVE_CATEGORY;
+}
+
 export const LIVE_CATEGORIES: {
   value: LiveStreamCategory | "ALL";
   label: string;
@@ -8,9 +21,9 @@ export const LIVE_CATEGORIES: {
   { value: "JUST_CHATTING", label: "CHATTING" },
   { value: "GAME", label: "GAMING" },
   { value: "MUSIC", label: "MUSIC" },
-  { value: "IRL", label: "IRL" },
+  { value: "IRL", label: "FESTIVAL" },
   { value: "VIRTUAL", label: "Following" },
-  { value: "LIVE", label: "LIVE" },
+  { value: "LIVE", label: "R-18" },
 ];
 
 /** Transparent full-folder icons (black bg removed only). Labels drawn on folder in UI. */

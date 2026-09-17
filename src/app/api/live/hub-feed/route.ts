@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { parseLiveCategoryParam } from "@/lib/live-categories";
+import { isR18LiveCategory, parseLiveCategoryParam } from "@/lib/live-categories";
 import {
   getLiveHubChannelFeedPage,
   LIVE_HUB_PAGE_SIZE,
@@ -30,6 +30,18 @@ export async function GET(req: NextRequest) {
   try {
     const viewerId = await getAuthUserId();
     const canViewNsfw = await resolveCanViewNsfw(viewerId);
+    if (isR18LiveCategory(category) && !canViewNsfw) {
+      return NextResponse.json({
+        channels: [],
+        hosts: [],
+        total: 0,
+        hasMore: false,
+        nextOffset: offset,
+        categoryRows: [],
+        heroChannels: [],
+        r18Blocked: true,
+      });
+    }
     const page = await getLiveHubChannelFeedPage(category, "all", offset, limit);
     return NextResponse.json({
       ...page,

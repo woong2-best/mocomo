@@ -1,4 +1,4 @@
-import { parseLiveCategoryParam } from "@/lib/live-categories";
+import { isR18LiveCategory, parseLiveCategoryParam } from "@/lib/live-categories";
 import { parseLiveHubModeParam } from "@/lib/live-hub-mode";
 import { getLiveHubChannelFeed } from "@/lib/live-hub-data";
 import { LiveChannelGrid } from "@/components/live/live-channel-grid";
@@ -23,6 +23,17 @@ export async function LiveChannelFeed({
 
   let channels: Awaited<ReturnType<typeof getLiveHubChannelFeed>>["channels"] = [];
   let hosts: Awaited<ReturnType<typeof getLiveHubChannelFeed>>["hosts"] = [];
+
+  if (isR18LiveCategory(category) && !canViewNsfw) {
+    return (
+      <LiveChannelGrid
+        channels={[]}
+        hosts={[]}
+        filteredCategory={category}
+        view={view}
+      />
+    );
+  }
 
   try {
     ({ channels, hosts } = await getLiveHubChannelFeed(category, mode));
