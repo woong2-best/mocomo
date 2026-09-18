@@ -23,8 +23,8 @@ function categoryHref(cat: LiveStreamCategory) {
 }
 
 /**
- * Empty TV with half-cut folder tabs sitting flush on matching color columns.
- * Folders = buttons; color bars = display only (not clickable).
+ * Empty TV: each color column owns its folder tab (no black gaps on resize).
+ * Folders = buttons; color body = display only.
  */
 function LiveTvWithFolderTabs({ className }: { className?: string }) {
   const { locale, t } = useLocale();
@@ -34,8 +34,6 @@ function LiveTvWithFolderTabs({ className }: { className?: string }) {
   const currentCat = searchParams.get("category");
   const following = searchParams.get("view") === "following";
   const cats = LIVE_CATEGORY_ORDER;
-  // 6 category columns + trailing teal filler (SMPTE 7th bar)
-  const colCount = cats.length + 1;
 
   async function onCategoryActivate(e: MouseEvent, cat: LiveStreamCategory) {
     if (!isR18LiveCategory(cat)) return;
@@ -49,74 +47,76 @@ function LiveTvWithFolderTabs({ className }: { className?: string }) {
     <>
       <div
         className={cn(
-          "relative h-full w-full min-h-0 flex flex-col",
-          "rounded-2xl border border-border/50 bg-black shadow-lg overflow-hidden",
+          "relative h-full w-full min-h-0 overflow-hidden rounded-2xl border border-white/10 shadow-lg",
           checking && "opacity-80",
           className
         )}
       >
-        {/* Folder tabs — one per category column, flush on the color bars below */}
+        {/* One continuous grid — folder + color share the same column (no split gaps). */}
         <div
-          className="relative z-20 grid shrink-0 w-full"
-          style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))` }}
+          className="absolute inset-0 grid"
+          style={{ gridTemplateColumns: `repeat(${LIVE_SMPTE_COLORS.length}, minmax(0, 1fr))` }}
         >
           {cats.map((cat, i) => {
+            const color = LIVE_SMPTE_COLORS[i]!;
             const label = localizedLiveCategoryLabel(cat, locale);
             const href = categoryHref(cat);
             const active =
               cat === "VIRTUAL" ? following : !following && currentCat === cat;
+
             return (
-              <Link
+              <div
                 key={cat}
-                href={href}
-                onClick={(e) => void onCategoryActivate(e, cat)}
-                aria-label={label}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "relative flex items-end justify-center",
-                  "h-[clamp(36px,7.5vw,72px)] -mb-px",
-                  "transition-transform duration-150 hover:brightness-110 active:scale-[0.98]",
-                  active && "z-10 brightness-110"
-                )}
-                style={{ zIndex: active ? 30 : i + 1 }}
+                className="relative flex min-h-0 min-w-0 flex-col"
+                style={{ backgroundColor: color }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={LIVE_CATEGORY_TAB[cat]}
-                  alt=""
-                  aria-hidden
-                  draggable={false}
-                  className="absolute inset-x-0 bottom-0 h-full w-full object-contain object-bottom select-none pointer-events-none"
-                />
-                <span
+                {/* Folder button sits on its own color — transparent PNG, no black plate */}
+                <Link
+                  href={href}
+                  onClick={(e) => void onCategoryActivate(e, cat)}
+                  aria-label={label}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "relative z-10 mb-[18%] px-0.5 text-center",
-                    "text-white font-black uppercase tracking-wide",
-                    "text-[clamp(7px,1.35vw,12px)] leading-tight",
-                    "drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] line-clamp-2"
+                    "relative z-20 w-full shrink-0",
+                    "aspect-[5/3] max-h-[28%]",
+                    "transition-[filter] duration-150 hover:brightness-110",
+                    active && "brightness-110"
                   )}
                 >
-                  {label}
-                </span>
-              </Link>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={LIVE_CATEGORY_TAB[cat]}
+                    alt=""
+                    aria-hidden
+                    draggable={false}
+                    className="absolute inset-0 h-full w-full object-cover object-top select-none pointer-events-none"
+                  />
+                  <span
+                    className={cn(
+                      "absolute inset-x-[6%] bottom-[14%] z-10 text-center",
+                      "text-white font-black uppercase tracking-wide",
+                      "text-[clamp(7px,1.2vw,12px)] leading-tight",
+                      "drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] line-clamp-2"
+                    )}
+                  >
+                    {label}
+                  </span>
+                </Link>
+                {/* Rest of column = solid TV color (not a button) */}
+                <div className="min-h-0 flex-1" aria-hidden />
+              </div>
             );
           })}
-          {/* teal filler column — no folder button */}
-          <div aria-hidden className="h-[clamp(36px,7.5vw,72px)]" />
+
+          {/* Teal filler — display only */}
+          <div
+            className="min-h-0 min-w-0"
+            style={{ backgroundColor: LIVE_SMPTE_COLORS[cats.length] }}
+            aria-hidden
+          />
         </div>
 
-        {/* TV color bars — display only, not buttons */}
-        <div
-          className="relative z-10 flex-1 min-h-0 grid w-full"
-          style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))` }}
-          aria-hidden
-        >
-          {LIVE_SMPTE_COLORS.map((color) => (
-            <div key={color} className="h-full min-h-0" style={{ backgroundColor: color }} />
-          ))}
-        </div>
-
-        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none pt-[clamp(36px,7.5vw,72px)]">
+        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
           <p className="rounded-full bg-black/70 px-5 py-2.5 text-sm sm:text-base font-semibold text-white backdrop-blur-sm border border-white/15">
             {t("live.noBroadcastHero")}
           </p>

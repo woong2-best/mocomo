@@ -38,12 +38,12 @@ export const LIVE_CATEGORY_ICON: Record<LiveStreamCategory, string> = {
 
 /** Half-cut folder tabs (black bg removed) — sit flush on matching SMPTE columns. */
 export const LIVE_CATEGORY_TAB: Record<LiveStreamCategory, string> = {
-  VIRTUAL: "/images/live/categories/virtual-tab.png?v=1",
-  GAME: "/images/live/categories/gaming-tab.png?v=1",
-  JUST_CHATTING: "/images/live/categories/chatting-tab.png?v=1",
-  IRL: "/images/live/categories/irl-tab.png?v=1",
-  MUSIC: "/images/live/categories/music-tab.png?v=1",
-  LIVE: "/images/live/categories/live-tab.png?v=1",
+  VIRTUAL: "/images/live/categories/virtual-tab.png?v=2",
+  GAME: "/images/live/categories/gaming-tab.png?v=2",
+  JUST_CHATTING: "/images/live/categories/chatting-tab.png?v=2",
+  IRL: "/images/live/categories/irl-tab.png?v=2",
+  MUSIC: "/images/live/categories/music-tab.png?v=2",
+  LIVE: "/images/live/categories/live-tab.png?v=2",
 };
 
 /** SMPTE empty-TV bars L→R (6 categories + teal filler). */
