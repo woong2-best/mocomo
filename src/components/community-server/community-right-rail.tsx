@@ -13,7 +13,7 @@ type RailData = {
 function CommunityRightRailSkeleton() {
   return (
     <aside className="hidden lg:flex w-56 xl:w-60 min-w-0 shrink-0 h-full flex-col justify-start gap-3 p-2 border-l border-border/60 bg-muted/10 overflow-hidden">
-      <div className="aspect-[5/3] w-full shrink-0 rounded-2xl border border-folk-gold/20 bg-muted/40 animate-pulse" />
+      <div className="h-[7.5rem] w-full shrink-0 rounded-2xl border border-folk-gold/20 bg-muted/40 animate-pulse" />
       <div className="min-h-0 flex-1 w-full rounded-2xl border border-violet-500/20 bg-muted/30 animate-pulse" />
     </aside>
   );
