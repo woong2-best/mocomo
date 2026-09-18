@@ -36,6 +36,27 @@ export const LIVE_CATEGORY_ICON: Record<LiveStreamCategory, string> = {
   LIVE: "/images/live/categories/live-folder.png?v=3",
 };
 
+/** Half-cut folder tabs (black bg removed) — sit flush on matching SMPTE columns. */
+export const LIVE_CATEGORY_TAB: Record<LiveStreamCategory, string> = {
+  VIRTUAL: "/images/live/categories/virtual-tab.png?v=1",
+  GAME: "/images/live/categories/gaming-tab.png?v=1",
+  JUST_CHATTING: "/images/live/categories/chatting-tab.png?v=1",
+  IRL: "/images/live/categories/irl-tab.png?v=1",
+  MUSIC: "/images/live/categories/music-tab.png?v=1",
+  LIVE: "/images/live/categories/live-tab.png?v=1",
+};
+
+/** SMPTE empty-TV bars L→R (6 categories + teal filler). */
+export const LIVE_SMPTE_COLORS = [
+  "#e090b0", // FOLLOWING
+  "#e08020", // GAMING
+  "#0000c0", // CHATTING
+  "#00c000", // FESTIVAL
+  "#c000c0", // MUSIC
+  "#c00000", // R-18
+  "#00c0c0", // filler
+] as const;
+
 /** Mockup L→R: pink FOLLOWING · brown GAMING · blue CHATTING · green FESTIVAL · purple MUSIC · red R-18 */
 export const LIVE_CATEGORY_ORDER: LiveStreamCategory[] = [
   "VIRTUAL",

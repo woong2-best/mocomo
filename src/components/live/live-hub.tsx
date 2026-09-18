@@ -2,7 +2,6 @@
 
 import { Suspense, type ReactNode } from "react";
 import { LiveBeadFeed } from "@/components/live/live-bead-feed";
-import { LiveFolderChips } from "@/components/live/live-folder-chips";
 import { LiveHeroSpotlight } from "@/components/live/live-hero-spotlight";
 import { Radio } from "lucide-react";
 import { LivePageActions } from "@/components/live/live-page-actions";
@@ -57,19 +56,16 @@ export function LiveHub({
 
       <div className="min-w-0 mt-1 flex-1 min-h-0 flex flex-col overflow-hidden">
         {showFollowing ? (
-          <div className="flex flex-col gap-2 min-h-0 flex-1 w-full overflow-hidden">
-            <Suspense fallback={<div className="h-[70px] rounded-xl bg-black/20 animate-pulse shrink-0" />}>
-              <LiveFolderChips />
-            </Suspense>
-            <div
-              className="flex flex-row gap-2.5 sm:gap-3 items-stretch w-full min-h-0 flex-1 overflow-hidden"
-              style={{ minHeight: "clamp(220px, calc(100dvh - 270px), 680px)" }}
-            >
-              <div className="relative min-w-0 flex-1 h-full min-h-[220px]">
+          <div
+            className="flex flex-row gap-2.5 sm:gap-3 items-stretch w-full min-h-0 flex-1 overflow-hidden"
+            style={{ minHeight: "clamp(220px, calc(100dvh - 220px), 680px)" }}
+          >
+            <div className="relative min-w-0 flex-1 h-full min-h-[220px]">
+              <Suspense fallback={<div className="h-full w-full rounded-2xl bg-black/40 animate-pulse" />}>
                 <LiveHeroSpotlight channels={followedLive} hostMap={followedHostMap} />
-              </div>
-              <LiveBeadFeed channels={followedLive} hosts={followedHosts} />
+              </Suspense>
             </div>
+            <LiveBeadFeed channels={followedLive} hosts={followedHosts} />
           </div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">{channelFeed}</div>
