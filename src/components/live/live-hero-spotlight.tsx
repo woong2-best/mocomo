@@ -23,8 +23,9 @@ function categoryHref(cat: LiveStreamCategory) {
 }
 
 /**
- * Empty TV: each color column owns its folder tab (no black gaps on resize).
- * Folders = buttons; color body = display only.
+ * Empty TV: half-cut folder TABS sit on the top edge of the color-bar TV
+ * (like photo 2 — above the bars, not filling tall color columns).
+ * Folders = buttons; color bars = display only.
  */
 function LiveTvWithFolderTabs({ className }: { className?: string }) {
   const { locale, t } = useLocale();
@@ -34,6 +35,7 @@ function LiveTvWithFolderTabs({ className }: { className?: string }) {
   const currentCat = searchParams.get("category");
   const following = searchParams.get("view") === "following";
   const cats = LIVE_CATEGORY_ORDER;
+  const colCount = LIVE_SMPTE_COLORS.length;
 
   async function onCategoryActivate(e: MouseEvent, cat: LiveStreamCategory) {
     if (!isR18LiveCategory(cat)) return;
@@ -47,77 +49,87 @@ function LiveTvWithFolderTabs({ className }: { className?: string }) {
     <>
       <div
         className={cn(
-          "relative h-full w-full min-h-0 overflow-hidden rounded-2xl border border-white/10 shadow-lg",
+          "relative flex h-full w-full min-h-0 flex-col",
           checking && "opacity-80",
           className
         )}
       >
-        {/* One continuous grid — folder + color share the same column (no split gaps). */}
+        {/* Folder tabs — sit ON TOP of the TV bars (not inside tall columns) */}
         <div
-          className="absolute inset-0 grid"
-          style={{ gridTemplateColumns: `repeat(${LIVE_SMPTE_COLORS.length}, minmax(0, 1fr))` }}
+          className="relative z-20 grid w-full shrink-0"
+          style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))` }}
         >
           {cats.map((cat, i) => {
-            const color = LIVE_SMPTE_COLORS[i]!;
             const label = localizedLiveCategoryLabel(cat, locale);
             const href = categoryHref(cat);
             const active =
               cat === "VIRTUAL" ? following : !following && currentCat === cat;
-
             return (
-              <div
+              <Link
                 key={cat}
-                className="relative flex min-h-0 min-w-0 flex-col"
-                style={{ backgroundColor: color }}
+                href={href}
+                onClick={(e) => void onCategoryActivate(e, cat)}
+                aria-label={label}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative min-w-0 w-full",
+                  // Width-driven height only — stays a compact tab, not a tall slab
+                  "aspect-[5/3.1]",
+                  "mb-[-2px]", // slight overlap so tab sits flush on the bar
+                  "transition-[filter] duration-150 hover:brightness-110",
+                  active && "z-10 brightness-110"
+                )}
+                style={{ zIndex: active ? 20 : i + 1 }}
               >
-                {/* Folder button sits on its own color — transparent PNG, no black plate */}
-                <Link
-                  href={href}
-                  onClick={(e) => void onCategoryActivate(e, cat)}
-                  aria-label={label}
-                  aria-current={active ? "page" : undefined}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={LIVE_CATEGORY_TAB[cat]}
+                  alt=""
+                  aria-hidden
+                  draggable={false}
+                  className="absolute inset-0 h-full w-full object-contain object-bottom select-none pointer-events-none"
+                />
+                <span
                   className={cn(
-                    "relative z-20 w-full shrink-0",
-                    "aspect-[5/3] max-h-[28%]",
-                    "transition-[filter] duration-150 hover:brightness-110",
-                    active && "brightness-110"
+                    "absolute inset-x-[8%] bottom-[16%] z-10 text-center",
+                    "text-white font-black uppercase tracking-wide",
+                    "text-[clamp(7px,1.15vw,11px)] leading-tight",
+                    "drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] line-clamp-2"
                   )}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={LIVE_CATEGORY_TAB[cat]}
-                    alt=""
-                    aria-hidden
-                    draggable={false}
-                    className="absolute inset-0 h-full w-full object-cover object-top select-none pointer-events-none"
-                  />
-                  <span
-                    className={cn(
-                      "absolute inset-x-[6%] bottom-[14%] z-10 text-center",
-                      "text-white font-black uppercase tracking-wide",
-                      "text-[clamp(7px,1.2vw,12px)] leading-tight",
-                      "drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] line-clamp-2"
-                    )}
-                  >
-                    {label}
-                  </span>
-                </Link>
-                {/* Rest of column = solid TV color (not a button) */}
-                <div className="min-h-0 flex-1" aria-hidden />
-              </div>
+                  {label}
+                </span>
+              </Link>
             );
           })}
-
-          {/* Teal filler — display only */}
-          <div
-            className="min-h-0 min-w-0"
-            style={{ backgroundColor: LIVE_SMPTE_COLORS[cats.length] }}
-            aria-hidden
-          />
+          {/* Teal column has no folder tab */}
+          <div aria-hidden className="min-w-0" />
         </div>
 
-        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-          <p className="rounded-full bg-black/70 px-5 py-2.5 text-sm sm:text-base font-semibold text-white backdrop-blur-sm border border-white/15">
+        {/* TV color bars — display only, flush under tabs */}
+        <div
+          className="relative z-10 min-h-0 flex-1 overflow-hidden rounded-b-2xl border border-t-0 border-white/10 shadow-lg"
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
+          }}
+          aria-hidden
+        >
+          {LIVE_SMPTE_COLORS.map((color, i) => (
+            <div
+              key={color}
+              className={cn(
+                "min-h-0 min-w-0 h-full",
+                i === 0 && "rounded-bl-2xl",
+                i === LIVE_SMPTE_COLORS.length - 1 && "rounded-br-2xl"
+              )}
+              style={{ backgroundColor: color }}
+            />
+          ))}
+        </div>
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-[18%] z-30 flex items-center justify-center">
+          <p className="rounded-full border border-white/15 bg-black/70 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm sm:text-base">
             {t("live.noBroadcastHero")}
           </p>
         </div>
@@ -127,7 +139,7 @@ function LiveTvWithFolderTabs({ className }: { className?: string }) {
   );
 }
 
-/** TV stage: folder-tabbed SMPTE when empty, live carousel when streaming. */
+/** TV stage: folder tabs above color bars when empty; live carousel when streaming. */
 export function LiveHeroSpotlight({
   channels,
   hostMap,
