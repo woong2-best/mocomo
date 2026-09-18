@@ -52,7 +52,7 @@ export function SponsoredSidebarCard({
 
   return (
     <Card className="shrink-0 overflow-hidden border-folk-gold/40 bg-folk-gold/5">
-      <CardHeader className="px-3 py-2.5 pb-2">
+      <CardHeader className="shrink-0 px-3 py-2.5 pb-2">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-terracotta">
             <Megaphone className="h-4 w-4" />
@@ -78,13 +78,13 @@ export function SponsoredSidebarCard({
             <img
               src={event.imageUrl}
               alt=""
-              className="block h-[13.5rem] w-full object-cover"
+              className="block aspect-[5/3] w-full object-cover"
             />
           </SponsorAdClickLink>
         ) : (
           <Link
             href="/events/new"
-            className="flex h-[13.5rem] w-full flex-col items-center justify-center gap-2 bg-muted/25 px-4 text-center text-xs text-muted-foreground transition-colors hover:bg-muted/40"
+            className="flex aspect-[5/3] w-full flex-col items-center justify-center gap-2 bg-muted/25 px-4 text-center text-xs text-muted-foreground transition-colors hover:bg-muted/40"
           >
             <Megaphone className="h-8 w-8 opacity-40" strokeWidth={1.5} />
             <span>{t("sidebar.sponsored")}</span>

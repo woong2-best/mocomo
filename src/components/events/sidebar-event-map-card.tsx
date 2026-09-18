@@ -102,12 +102,12 @@ export function SidebarEventMapCard({
         <div
           className={cn(
             "min-w-0 overflow-hidden px-3 pb-2",
-            fillHeight ? "min-h-[8rem] flex-1" : undefined
+            fillHeight ? "min-h-0 flex-1" : undefined
           )}
         >
           <SubcultureEventsMapLazy
             pins={mapPins}
-            heightClassName={fillHeight ? "h-full w-full min-h-[8rem]" : "aspect-[4/5] w-full"}
+            heightClassName={fillHeight ? "h-full w-full" : "aspect-[4/5] w-full"}
             interactive
             showNavigationControls={false}
             showAttribution={false}
