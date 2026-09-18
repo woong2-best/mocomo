@@ -65,9 +65,12 @@ function MapAttributionButton({ className }: { className?: string }) {
 export function SidebarEventMapCard({
   pins,
   className,
+  fillHeight = false,
 }: {
   pins: MapEventPin[];
   className?: string;
+  /** 부모 높이에 맞춰 지도만 세로로 늘림 (광고는 고정) */
+  fillHeight?: boolean;
 }) {
   const { countryCode, t } = useLocale();
   const mapPins = useMemo(
@@ -80,7 +83,8 @@ export function SidebarEventMapCard({
   return (
     <Card
       className={cn(
-        "shrink-0 min-w-0 rounded-2xl border-violet-500/20 bg-card/95 shadow-sm overflow-hidden",
+        "min-w-0 rounded-2xl border-violet-500/20 bg-card/95 shadow-sm overflow-hidden",
+        fillHeight ? "flex h-full min-h-0 flex-col" : "shrink-0",
         className
       )}
     >
@@ -92,11 +96,18 @@ export function SidebarEventMapCard({
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="min-w-0 p-0">
-        <div className="min-w-0 overflow-hidden px-3 pb-2">
+      <CardContent
+        className={cn("min-w-0 p-0", fillHeight && "flex min-h-0 flex-1 flex-col")}
+      >
+        <div
+          className={cn(
+            "min-w-0 overflow-hidden px-3 pb-2",
+            fillHeight ? "min-h-[8rem] flex-1" : undefined
+          )}
+        >
           <SubcultureEventsMapLazy
             pins={mapPins}
-            heightClassName="aspect-[4/5] w-full"
+            heightClassName={fillHeight ? "h-full w-full min-h-[8rem]" : "aspect-[4/5] w-full"}
             interactive
             showNavigationControls={false}
             showAttribution={false}
@@ -105,7 +116,7 @@ export function SidebarEventMapCard({
           />
         </div>
 
-        <div className="border-t border-border/50 px-3 py-2.5">
+        <div className="shrink-0 border-t border-border/50 px-3 py-2.5">
           <Link
             href="/events/map"
             className="flex w-full items-center justify-center rounded-xl border border-violet-500/25 bg-violet-500/8 px-3 py-2 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-500/15 dark:text-violet-300 dark:hover:bg-violet-500/20"

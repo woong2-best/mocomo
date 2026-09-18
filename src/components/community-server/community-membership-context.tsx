@@ -28,8 +28,9 @@ type MembershipState = {
 type MembershipContextValue = MembershipState & {
   communityId: string;
   joinMode: CommunityServerContext["joinMode"];
+  hasJoinPassword: boolean;
   isLoggedIn: boolean;
-  join: (inviteCode?: string) => Promise<void>;
+  join: (inviteCode?: string, joinPassword?: string) => Promise<void>;
   dismissWelcome: () => Promise<void>;
   openWelcome: () => void;
   welcomeOpen: boolean;
@@ -60,10 +61,10 @@ export function CommunityMembershipProvider({
   const [welcomeOpen, setWelcomeOpen] = useState(false);
 
   const join = useCallback(
-    async (inviteCode?: string) => {
+    async (inviteCode?: string, joinPassword?: string) => {
       setState((s) => ({ ...s, joinLoading: true, joinError: null, joinMessage: null }));
       try {
-        const result = await joinCommunityServer(initial.communityId, inviteCode);
+        const result = await joinCommunityServer(initial.communityId, inviteCode, joinPassword);
         if ("error" in result && result.error) {
           setState((s) => ({ ...s, joinError: result.error }));
           return;
@@ -118,6 +119,7 @@ export function CommunityMembershipProvider({
       ...state,
       communityId: initial.communityId,
       joinMode: initial.joinMode,
+      hasJoinPassword: initial.hasJoinPassword,
       isLoggedIn: initial.isLoggedIn,
       join,
       dismissWelcome,
@@ -125,7 +127,17 @@ export function CommunityMembershipProvider({
       welcomeOpen,
       setWelcomeOpen,
     }),
-    [state, initial.communityId, initial.joinMode, initial.isLoggedIn, join, dismissWelcome, openWelcome, welcomeOpen]
+    [
+      state,
+      initial.communityId,
+      initial.joinMode,
+      initial.hasJoinPassword,
+      initial.isLoggedIn,
+      join,
+      dismissWelcome,
+      openWelcome,
+      welcomeOpen,
+    ]
   );
 
   return <MembershipContext.Provider value={value}>{children}</MembershipContext.Provider>;
@@ -145,6 +157,7 @@ export function useCommunityMembership() {
       joinMessage: null,
       communityId: "",
       joinMode: "OPEN" as const,
+      hasJoinPassword: false,
       isLoggedIn: false,
       join: async () => undefined,
       dismissWelcome: async () => undefined,

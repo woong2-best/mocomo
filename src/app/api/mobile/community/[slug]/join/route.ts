@@ -6,6 +6,10 @@ import { normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { db } from "@/lib/db";
 import { notifyCommunityJoin, notifyJoinRequestPending } from "@/lib/notifications";
 import { prismaErrorMessage } from "@/lib/prisma-user-error";
+import {
+  isValidCommunityJoinPassword,
+  verifyCommunityJoinPassword,
+} from "@/lib/community-join-password";
 
 async function addMember(communityId: string, userId: string) {
   await db.$transaction(async (tx) => {
@@ -45,17 +49,27 @@ export async function POST(
   }
 
   let inviteCode: string | undefined;
+  let joinPassword: string | undefined;
   try {
-    const body = (await req.json()) as { inviteCode?: string };
+    const body = (await req.json()) as { inviteCode?: string; joinPassword?: string };
     inviteCode = body.inviteCode?.trim() || undefined;
+    joinPassword = body.joinPassword?.trim() || undefined;
   } catch {
     inviteCode = undefined;
+    joinPassword = undefined;
   }
 
   try {
     const community = await db.community.findUnique({
       where: { slug },
-      select: { id: true, slug: true, creatorId: true, joinMode: true, memberCount: true },
+      select: {
+        id: true,
+        slug: true,
+        creatorId: true,
+        joinMode: true,
+        memberCount: true,
+        joinPasswordHash: true,
+      },
     });
     if (!community) {
       return NextResponse.json({ error: "커뮤니티를 찾을 수 없습니다." }, { status: 404 });
@@ -84,6 +98,20 @@ export async function POST(
         memberCount: community.memberCount,
         permissions,
       });
+    }
+
+    if (community.joinPasswordHash) {
+      const pin = joinPassword ?? "";
+      if (!isValidCommunityJoinPassword(pin)) {
+        return NextResponse.json(
+          { error: "4자리 숫자 비밀번호를 입력해 주세요." },
+          { status: 400 }
+        );
+      }
+      const ok = await verifyCommunityJoinPassword(pin, community.joinPasswordHash);
+      if (!ok) {
+        return NextResponse.json({ error: "비밀번호가 올바르지 않습니다." }, { status: 403 });
+      }
     }
 
     if (community.joinMode === "INVITE_ONLY") {

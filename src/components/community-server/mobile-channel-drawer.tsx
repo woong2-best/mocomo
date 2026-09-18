@@ -51,7 +51,8 @@ function groupChannels(channels: CommunityChannelView[]): ChannelGroup[] {
       c.type !== "SETTINGS" &&
       c.type !== "VOICE" &&
       c.type !== "VIDEO" &&
-      c.type !== "LIVE"
+      c.type !== "LIVE" &&
+      c.type !== "ACTIVITY"
   );
   const groups = new Map<string, ChannelGroup>();
   for (const ch of visible) {

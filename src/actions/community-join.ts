@@ -17,6 +17,11 @@ import {
   notifyJoinRejected,
   notifyJoinRequestPending,
 } from "@/lib/notifications";
+import {
+  hashCommunityJoinPassword,
+  isValidCommunityJoinPassword,
+  verifyCommunityJoinPassword,
+} from "@/lib/community-join-password";
 
 function revalidateCommunityPaths(communitySlug: string) {
   // 응답 직후 재검증 — 페이지 재렌더 실패가 가입 성공 응답을 가로채지 않도록 함
@@ -61,13 +66,21 @@ async function addMemberToCommunity(
 
 export async function joinCommunityServer(
   communityId: string,
-  inviteCode?: string
+  inviteCode?: string,
+  joinPassword?: string
 ): Promise<JoinCommunityResult> {
   try {
     const user = await requireAuthForAction();
     const community = await db.community.findUnique({
       where: { id: communityId },
-      select: { id: true, slug: true, creatorId: true, joinMode: true, memberCount: true },
+      select: {
+        id: true,
+        slug: true,
+        creatorId: true,
+        joinMode: true,
+        memberCount: true,
+        joinPasswordHash: true,
+      },
     });
     if (!community) return { error: "커뮤니티를 찾을 수 없습니다." };
 
@@ -95,6 +108,15 @@ export async function joinCommunityServer(
         memberCount: community.memberCount,
         permissions,
       };
+    }
+
+    if (community.joinPasswordHash) {
+      const pin = joinPassword?.trim() ?? "";
+      if (!isValidCommunityJoinPassword(pin)) {
+        return { error: "4자리 숫자 비밀번호를 입력해 주세요." };
+      }
+      const ok = await verifyCommunityJoinPassword(pin, community.joinPasswordHash);
+      if (!ok) return { error: "비밀번호가 올바르지 않습니다." };
     }
 
     if (community.joinMode === "INVITE_ONLY") {
@@ -188,6 +210,49 @@ export async function updateCommunityJoinMode(communityId: string, joinMode: Com
     await db.community.update({
       where: { id: communityId },
       data: { joinMode },
+    });
+    revalidateCommunityPaths(community.slug);
+    return { success: true as const };
+  } catch (e) {
+    return { error: prismaErrorMessage(e) };
+  }
+}
+
+/** 방장(또는 setJoinMode 권한)이 4자리 가입 비밀번호를 설정/해제 */
+export async function updateCommunityJoinPassword(
+  communityId: string,
+  password: string | null
+): Promise<{ success: true } | { error: string }> {
+  try {
+    const user = await requireAuthForAction();
+    const community = await db.community.findUnique({
+      where: { id: communityId },
+      select: { creatorId: true, slug: true },
+    });
+    if (!community) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (community.creatorId !== user.id) {
+      const can = await loadMemberPermissions(communityId, user.id, false);
+      if (!can.setJoinMode) return { error: "가입 비밀번호 변경 권한이 없습니다." };
+    }
+
+    if (password === null || password === "") {
+      await db.community.update({
+        where: { id: communityId },
+        data: { joinPasswordHash: null },
+      });
+      revalidateCommunityPaths(community.slug);
+      return { success: true as const };
+    }
+
+    const pin = password.trim();
+    if (!isValidCommunityJoinPassword(pin)) {
+      return { error: "비밀번호는 숫자 4자리여야 합니다." };
+    }
+
+    const joinPasswordHash = await hashCommunityJoinPassword(pin);
+    await db.community.update({
+      where: { id: communityId },
+      data: { joinPasswordHash },
     });
     revalidateCommunityPaths(community.slug);
     return { success: true as const };

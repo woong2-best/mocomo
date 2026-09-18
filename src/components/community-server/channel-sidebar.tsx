@@ -40,7 +40,7 @@ const CHANNEL_ICONS: Record<CommunityChannelType, typeof Hash> = {
   SETTINGS: Settings,
 };
 
-const HIDDEN_CHANNEL_TYPES = new Set<CommunityChannelType>(["VOICE", "VIDEO", "LIVE"]);
+const HIDDEN_CHANNEL_TYPES = new Set<CommunityChannelType>(["VOICE", "VIDEO", "LIVE", "ACTIVITY"]);
 
 type ChannelGroup = {
   categoryId: string | null;

@@ -61,51 +61,6 @@ function CommunityThumb({
   );
 }
 
-function FeaturedCommunityCards({ communities }: { communities: CommunityHubItem[] }) {
-  if (communities.length === 0) return null;
-
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/60">
-      {communities.map((c) => {
-        const meta = resolveCommunityCategoryDisplay(c.category, c.customCategoryLabel);
-        return (
-          <Link
-            key={c.id}
-            href={`/c/${c.slug}`}
-            className="group relative aspect-[4/3] overflow-hidden bg-[#2b3038]"
-          >
-            {c.coverUrl || c.iconUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={c.coverUrl || c.iconUrl || ""}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-              />
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-[#3a4558] to-[#2a3140] px-2">
-                <span className="text-2xl">{meta?.emoji ?? "🏠"}</span>
-                <span className="text-[11px] text-white/80 line-clamp-2 text-center font-medium">
-                  {c.name}
-                </span>
-              </div>
-            )}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent px-2 pb-1.5 pt-8">
-              <p className="text-[11px] sm:text-xs font-medium text-white line-clamp-2 leading-snug">
-                {c.name}
-              </p>
-              <p className="text-[10px] text-white/70 mt-0.5">
-                {`${meta.emoji} ${meta.shortLabel}`}
-                {" · "}
-                {c.memberCount}명
-              </p>
-            </div>
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
 function CommunityRow({ community }: { community: CommunityHubItem }) {
   const meta = resolveCommunityCategoryDisplay(community.category, community.customCategoryLabel);
 
@@ -167,9 +122,6 @@ export function CommunitiesHubClient({
     }
     return rows;
   }, [communities, tab, query]);
-
-  const featured = useMemo(() => filtered.slice(0, 4), [filtered]);
-  const list = filtered;
 
   const counts = useMemo(() => {
     const map = new Map<TabId, number>();
@@ -261,12 +213,9 @@ export function CommunitiesHubClient({
         </div>
       ) : (
         <div>
-          <FeaturedCommunityCards communities={featured} />
-          <div className="border-t border-[#d5d5d5] dark:border-border">
-            {list.map((c) => (
-              <CommunityRow key={c.id} community={c} />
-            ))}
-          </div>
+          {filtered.map((c) => (
+            <CommunityRow key={c.id} community={c} />
+          ))}
         </div>
       )}
     </section>

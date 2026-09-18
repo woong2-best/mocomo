@@ -4,7 +4,6 @@ import { getCachedAuthUserMinimal } from "@/lib/auth";
 import { normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { ensureCommunityServerProvisioned } from "@/lib/community-server/provision";
 import { ensureCommunityRoleDefaults } from "@/lib/community-server/ensure-role-defaults";
-import { ensureCommunityActivitiesChannel } from "@/lib/community-server/ensure-activities-channel";
 import { guestPermissions, parsePermissions, defaultPermissionsForRole } from "@/lib/community-server/permissions";
 import { permissionsFromMember } from "@/lib/community-server/member-permissions";
 import { getPrimaryRoleType } from "@/lib/community-server/member-role-utils";
@@ -35,6 +34,7 @@ export const getCommunityServerContext = cache(
           memberCount: true,
           creatorId: true,
           joinMode: true,
+          joinPasswordHash: true,
           isPublic: true,
         },
       }),
@@ -43,7 +43,6 @@ export const getCommunityServerContext = cache(
 
     await ensureCommunityServerProvisioned(community.id);
     await ensureCommunityRoleDefaults(community.id);
-    await ensureCommunityActivitiesChannel(community.id).catch(() => null);
 
     let isMember = false;
     let isOwner = false;
@@ -131,6 +130,7 @@ export const getCommunityServerContext = cache(
       bannerVideoUrl: community.bannerVideoUrl,
       memberCount: community.memberCount,
       joinMode: community.joinMode,
+      hasJoinPassword: !!community.joinPasswordHash,
       isPublic: community.isPublic,
       isMember,
       isOwner,

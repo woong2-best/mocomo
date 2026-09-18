@@ -78,13 +78,13 @@ export function SponsoredSidebarCard({
             <img
               src={event.imageUrl}
               alt=""
-              className="block w-full aspect-[4/5] object-cover"
+              className="block h-[13.5rem] w-full object-cover"
             />
           </SponsorAdClickLink>
         ) : (
           <Link
             href="/events/new"
-            className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-2 bg-muted/25 px-4 text-center text-xs text-muted-foreground transition-colors hover:bg-muted/40"
+            className="flex h-[13.5rem] w-full flex-col items-center justify-center gap-2 bg-muted/25 px-4 text-center text-xs text-muted-foreground transition-colors hover:bg-muted/40"
           >
             <Megaphone className="h-8 w-8 opacity-40" strokeWidth={1.5} />
             <span>{t("sidebar.sponsored")}</span>

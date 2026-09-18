@@ -243,9 +243,13 @@ export async function getCommunityBySlug(slug: string) {
   }
 }
 
-export async function joinCommunity(communityId: string, inviteCode?: string) {
+export async function joinCommunity(
+  communityId: string,
+  inviteCode?: string,
+  joinPassword?: string
+) {
   const { joinCommunityServer } = await import("@/actions/community-join");
-  const result = await joinCommunityServer(communityId, inviteCode);
+  const result = await joinCommunityServer(communityId, inviteCode, joinPassword);
   if ("error" in result && result.error) return { error: result.error };
   if ("pending" in result && result.pending) return { error: result.message };
   return { success: true as const };

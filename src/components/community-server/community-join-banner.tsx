@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Loader2, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useCommunityMembership } from "@/components/community-server/community-membership-context";
 import { cn } from "@/lib/utils";
 
@@ -16,10 +18,12 @@ export function CommunityJoinBanner({ className }: { className?: string }) {
     joinMessage,
     join,
     joinMode,
+    hasJoinPassword,
   } = useCommunityMembership();
   const { status: sessionStatus } = useSession();
   const searchParams = useSearchParams();
   const inviteCode = searchParams.get("invite") ?? undefined;
+  const [joinPassword, setJoinPassword] = useState("");
 
   if (isMember || isOwner) return null;
 
@@ -30,8 +34,10 @@ export function CommunityJoinBanner({ className }: { className?: string }) {
       return;
     }
     if (sessionStatus === "loading") return;
-    void join(inviteCode);
+    void join(inviteCode, hasJoinPassword ? joinPassword : undefined);
   }
+
+  const passwordReady = !hasJoinPassword || /^\d{4}$/.test(joinPassword);
 
   return (
     <div
@@ -52,7 +58,22 @@ export function CommunityJoinBanner({ className }: { className?: string }) {
               : joinMode === "INVITE_ONLY"
                 ? "초대 링크가 있는 멤버만 참여할 수 있습니다."
                 : "게시글과 채팅은 읽기 전용입니다. 참여하면 글 작성·댓글·음성 채널을 이용할 수 있어요."}
+            {hasJoinPassword ? " 가입 시 4자리 비밀번호가 필요합니다." : ""}
           </p>
+          {hasJoinPassword && (
+            <Input
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={4}
+              pattern="\d{4}"
+              placeholder="비밀번호 4자리"
+              value={joinPassword}
+              onChange={(e) => setJoinPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              className="mt-2 h-8 w-36 font-mono tracking-[0.2em] text-sm"
+              aria-label="가입 비밀번호"
+            />
+          )}
           {joinError && <p className="text-xs text-destructive mt-1">{joinError}</p>}
           {joinMessage && <p className="text-xs text-emerald-600 mt-1">{joinMessage}</p>}
         </div>
@@ -64,7 +85,8 @@ export function CommunityJoinBanner({ className }: { className?: string }) {
         disabled={
           joinLoading ||
           sessionStatus === "loading" ||
-          (joinMode === "INVITE_ONLY" && !inviteCode)
+          (joinMode === "INVITE_ONLY" && !inviteCode) ||
+          !passwordReady
         }
         onClick={handleJoinClick}
       >

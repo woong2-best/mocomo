@@ -49,6 +49,7 @@ export async function SettingsChannelView({
       bannerVideoUrl: true,
       isPublic: true,
       joinMode: true,
+      joinPasswordHash: true,
     },
   });
   if (!community) notFound();
@@ -108,6 +109,7 @@ export async function SettingsChannelView({
             <CommunityJoinModeSettings
               communityId={communityId}
               initialJoinMode={community.joinMode}
+              initialHasJoinPassword={!!community.joinPasswordHash}
             />
           </SettingsLazySection>
         )}

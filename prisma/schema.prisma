@@ -727,6 +727,8 @@ model Community {
   creatorId   String
   memberCount Int      @default(0)
   joinMode    CommunityJoinMode @default(OPEN)
+  /** 4자리 숫자 가입 비밀번호 — bcrypt 해시. null이면 비밀번호 없음 */
+  joinPasswordHash String?
   isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

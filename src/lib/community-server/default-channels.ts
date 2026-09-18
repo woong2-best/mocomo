@@ -17,7 +17,6 @@ export const DEFAULT_SERVER_CHANNELS: DefaultChannelSpec[] = [
   { type: "QA", name: "Q&A", slug: "qa", category: "일반", position: 3 },
   { type: "GALLERY", name: "갤러리", slug: "gallery", category: "일반", position: 4 },
   { type: "FILE", name: "파일", slug: "files", category: "일반", position: 5 },
-  { type: "ACTIVITY", name: "Activities", slug: "activities", category: "함께하기", position: 0 },
   { type: "EVENT", name: "이벤트", slug: "events", category: "이벤트", position: 0 },
   { type: "MEMBERS", name: "멤버", slug: "members", category: "정보", position: 0 },
   { type: "SETTINGS", name: "설정", slug: "settings", category: "정보", position: 1 },

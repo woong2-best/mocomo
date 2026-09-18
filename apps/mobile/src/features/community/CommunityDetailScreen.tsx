@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Image } from "expo-image";
@@ -28,6 +29,7 @@ import { resolveCommunityCategoryDisplay } from "@/features/community/community-
 import { trackRecentCommunity } from "@/features/community/recent-communities";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { AppHeader } from "@/ui/AppHeader";
+import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { useShowLikeCounts } from "@/hooks/use-display-preferences";
@@ -67,6 +69,7 @@ export function CommunityDetailScreen() {
   const queryClient = useQueryClient();
   const showLikeCounts = useShowLikeCounts();
   const [joinMsg, setJoinMsg] = useState<string | null>(null);
+  const [joinPassword, setJoinPassword] = useState("");
   const [openingSlug, setOpeningSlug] = useState<string | null>(null);
   const [uploadingKind, setUploadingKind] = useState<"icon" | "banner" | null>(null);
 
@@ -92,10 +95,16 @@ export function CommunityDetailScreen() {
   });
 
   const join = useMutation({
-    mutationFn: () => joinCommunity(route.params.slug),
+    mutationFn: () =>
+      joinCommunity(
+        route.params.slug,
+        undefined,
+        item?.hasJoinPassword ? joinPassword : undefined
+      ),
     onSuccess: async (res) => {
       if (res.pending) setJoinMsg(res.message ?? "가입 요청이 접수되었습니다.");
       else setJoinMsg("가입되었습니다.");
+      setJoinPassword("");
       await queryClient.invalidateQueries({
         queryKey: ["mobile-community", route.params.slug],
       });
@@ -142,9 +151,12 @@ export function CommunityDetailScreen() {
         queryKey: ["mobile-community", route.params.slug],
       });
       await queryClient.invalidateQueries({ queryKey: ["mobile-community"] });
-      Alert.alert("저장됨", kind === "icon" ? "대표 이미지를 변경했습니다." : "배너를 변경했습니다.");
+      showIslandToast(
+        "Saved",
+        kind === "icon" ? "대표 이미지를 변경했습니다." : "배너를 변경했습니다."
+      );
     } catch (err) {
-      Alert.alert("업로드 실패", err instanceof Error ? err.message : "이미지 변경에 실패했습니다.");
+      showIslandError("업로드 실패", err instanceof Error ? err.message : "이미지 변경에 실패했습니다.");
     } finally {
       setUploadingKind(null);
     }
@@ -219,7 +231,7 @@ export function CommunityDetailScreen() {
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.title}>{item.name}</Text>
                 <Text style={styles.sub}>
-                  {`${meta.emoji} ${meta.label}`}
+                  {`${meta?.emoji ?? ""} ${meta?.label ?? ""}`.trim()}
                   {" · "}
                   {item.memberCount.toLocaleString("ko-KR")}명
                   {item.isNsfw ? " · NSFW" : ""}
@@ -260,9 +272,29 @@ export function CommunityDetailScreen() {
 
             {!item.isMember ? (
               <>
+                {item.hasJoinPassword ? (
+                  <TextInput
+                    style={styles.passwordInput}
+                    value={joinPassword}
+                    onChangeText={(t) => setJoinPassword(t.replace(/\D/g, "").slice(0, 4))}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    secureTextEntry
+                    placeholder="가입 비밀번호 4자리"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                ) : null}
                 <Pressable
-                  style={[styles.btn, join.isPending && styles.btnDisabled]}
-                  disabled={join.isPending}
+                  style={[
+                    styles.btn,
+                    (join.isPending ||
+                      (item.hasJoinPassword && joinPassword.length !== 4)) &&
+                      styles.btnDisabled,
+                  ]}
+                  disabled={
+                    join.isPending ||
+                    (item.hasJoinPassword === true && joinPassword.length !== 4)
+                  }
                   onPress={() => join.mutate()}
                 >
                   <Text style={styles.btnText}>
@@ -418,6 +450,19 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
       backgroundColor: "#c80000",
     },
     brandingBtnText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+    passwordInput: {
+      marginTop: spacing.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 16,
+      letterSpacing: 6,
+      textAlign: "center",
+      color: colors.text,
+      backgroundColor: colors.surface,
+    },
     btn: {
       marginTop: spacing.md,
       backgroundColor: "#c80000",

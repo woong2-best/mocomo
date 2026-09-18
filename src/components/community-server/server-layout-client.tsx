@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { ChannelSidebar } from "@/components/community-server/channel-sidebar";
-import { MemberSidebar } from "@/components/community-server/member-sidebar";
+import { CommunityRightRail } from "@/components/community-server/community-right-rail";
 import { CommunityPresenceSync } from "@/components/community-server/presence-sync";
 import { CommunityMembershipProvider } from "@/components/community-server/community-membership-context";
 import { CommunityJoinBanner } from "@/components/community-server/community-join-banner";
@@ -10,18 +10,16 @@ import { MemberWelcomeDialog } from "@/components/community-server/member-welcom
 import { MobileMemberTabBar } from "@/components/community-server/mobile-member-tab";
 import { MobileChannelDrawer } from "@/components/community-server/mobile-channel-drawer";
 import { trackRecentCommunity } from "@/components/communities/recent-communities-bar";
-import type { CommunityServerContext, CommunityMemberView } from "@/lib/community-server/types";
+import type { CommunityServerContext } from "@/lib/community-server/types";
 import { hasPermission, canCreateCommunityChannel } from "@/lib/community-server/permissions";
 
 export function CommunityServerLayoutClient({
   slug,
   initialContext,
-  initialMembers = [],
   children,
 }: {
   slug: string;
   initialContext: CommunityServerContext;
-  initialMembers?: CommunityMemberView[];
   children: React.ReactNode;
 }) {
   const [memberOpen, setMemberOpen] = useState(false);
@@ -75,7 +73,7 @@ export function CommunityServerLayoutClient({
             />
           </div>
         </div>
-        <MemberSidebar communityId={initialContext.communityId} initialMembers={initialMembers} />
+        <CommunityRightRail />
       </div>
     </CommunityMembershipProvider>
   );

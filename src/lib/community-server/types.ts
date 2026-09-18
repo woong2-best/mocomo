@@ -107,6 +107,8 @@ export type CommunityServerContext = {
   bannerVideoUrl: string | null;
   memberCount: number;
   joinMode: CommunityJoinMode;
+  /** 가입 시 4자리 비밀번호 필요 여부 (해시 존재 여부만 노출) */
+  hasJoinPassword: boolean;
   isPublic: boolean;
   isMember: boolean;
   isOwner: boolean;

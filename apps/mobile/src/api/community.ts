@@ -35,6 +35,7 @@ export type CommunityDetail = CommunityListItem & {
   isOwner: boolean;
   canEditIcon: boolean;
   canEditBanner: boolean;
+  hasJoinPassword?: boolean;
   posts: CommunityPostPreview[];
 };
 
@@ -97,7 +98,7 @@ export async function updateCommunityBranding(
   });
 }
 
-export async function joinCommunity(slug: string, inviteCode?: string) {
+export async function joinCommunity(slug: string, inviteCode?: string, joinPassword?: string) {
   return apiRequest<{
     success: boolean;
     isMember?: boolean;
@@ -106,7 +107,10 @@ export async function joinCommunity(slug: string, inviteCode?: string) {
     memberCount?: number;
   }>(`${MobileApi.community}/${encodeURIComponent(slug)}/join`, {
     method: "POST",
-    body: inviteCode ? { inviteCode } : {},
+    body: {
+      ...(inviteCode ? { inviteCode } : {}),
+      ...(joinPassword ? { joinPassword } : {}),
+    },
   });
 }
 
