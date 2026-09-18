@@ -16,6 +16,8 @@ type SearchParams = {
   addAccount?: string;
   pickAccount?: string;
   loggedOut?: string;
+  reason?: string;
+  intent?: string;
 };
 
 export default async function SignInPage({
@@ -41,6 +43,8 @@ export default async function SignInPage({
         googleOAuth={googleOAuth}
         callbackUrl={callbackUrl}
         errorParam={sp.error ?? null}
+        reasonParam={sp.reason?.trim() || null}
+        intentSignup={sp.intent === "signup"}
         fromMobile={fromMobile}
         platform={platform}
         addAccount={sp.addAccount === "1"}

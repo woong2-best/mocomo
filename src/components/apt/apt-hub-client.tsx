@@ -184,7 +184,7 @@ export function AptHubClient({
       return;
     }
     setStartPhase("contract");
-    window.location.href = "/auth/signup/apply";
+    window.location.href = "/auth/signin?intent=signup";
   }, [moveInCompleted, isNativeApp, enterHome]);
 
   // 로그인 버튼: 로그인 창 → 로그인되면 내 집 게임으로.
@@ -331,7 +331,7 @@ export function AptHubClient({
           onEnter={startExperience}
           onSignup={() => {
             setStartPhase("contract");
-            window.location.href = "/auth/signup/apply";
+            window.location.href = "/auth/signin?intent=signup";
           }}
           onLogin={goToLogin}
         />

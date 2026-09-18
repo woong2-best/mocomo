@@ -373,7 +373,7 @@ export function SignupGmailForm() {
           </form>
 
           <p className="text-center text-sm text-muted-foreground pt-1 border-t border-border">
-            <Link href={withAddAccountQuery("/auth/signup/apply", addAccount)} className="text-primary hover:underline">
+            <Link href={withAddAccountQuery("/auth/signin?intent=signup", addAccount)} className="text-primary hover:underline">
               {t("auth.backToSignupMethods")}
             </Link>
           </p>

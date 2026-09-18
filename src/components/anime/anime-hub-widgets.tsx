@@ -99,11 +99,6 @@ export function AnimeHubWidgets({
                   {t("nav.signin")}
                 </Button>
               </Link>
-              <Link href="/auth/signup?callbackUrl=/anime">
-                <Button size="sm" variant="outline" className="rounded-xl h-8 text-xs">
-                  {t("nav.signup")}
-                </Button>
-              </Link>
             </div>
           )}
         </CardContent>

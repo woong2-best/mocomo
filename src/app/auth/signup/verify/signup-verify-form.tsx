@@ -53,7 +53,7 @@ export function SignupVerifyForm() {
   useEffect(() => {
     const draft = loadSignupDraft();
     if (!draft) {
-      router.replace("/auth/signup/apply");
+      router.replace("/auth/signin?intent=signup");
       return;
     }
     setEmail(draft.email);
@@ -69,7 +69,7 @@ export function SignupVerifyForm() {
   async function handleContinue() {
     const draft = loadSignupDraft();
     if (!draft) {
-      router.replace("/auth/signup/apply");
+      router.replace("/auth/signin?intent=signup");
       return;
     }
     if (!challenge) {
@@ -145,7 +145,7 @@ export function SignupVerifyForm() {
               {t("auth.reload")}
             </Button>
             <Button asChild variant="outline" className="w-full rounded-xl">
-              <Link href="/auth/signup/apply">{t("auth.backToSignup")}</Link>
+              <Link href="/auth/signin?intent=signup">{t("auth.backToSignup")}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -196,7 +196,7 @@ export function SignupVerifyForm() {
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
-            <Link href="/auth/signup/apply" className="text-folk-cobalt hover:underline">
+            <Link href="/auth/signin?intent=signup" className="text-folk-cobalt hover:underline">
               {t("auth.editSignupInfo")}
             </Link>
           </p>

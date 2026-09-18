@@ -8,7 +8,8 @@ import { setOAuthFlowCookieClient } from "@/lib/oauth-flow-cookie";
 import { cn } from "@/lib/utils";
 
 type SocialAuthButtonsProps = {
-  mode: "signup" | "signin";
+  /** Unified entry: Google OAuth for both new and existing accounts. */
+  mode?: "signup" | "signin";
   callbackUrl?: string;
   googleOAuth: boolean;
   /** MoCoMo app AuthSession — use server OAuth redirect (Custom Tabs CSRF-safe). */
@@ -16,7 +17,6 @@ type SocialAuthButtonsProps = {
   platform?: "android" | "ios";
   addAccount?: boolean;
   mobileRedirectUri?: string | null;
-  onGmailSignup?: () => void;
   className?: string;
 };
 
@@ -32,31 +32,26 @@ function GoogleIcon({ className }: { className?: string }) {
 }
 
 export function SocialAuthButtons({
-  mode,
+  mode = "signin",
   callbackUrl = DEFAULT_LANDING_PATH,
   googleOAuth,
   fromMobile = false,
   platform = "android",
   addAccount = false,
   mobileRedirectUri = null,
-  onGmailSignup,
   className,
 }: SocialAuthButtonsProps) {
   const { t } = useLocale();
-  const isSignup = mode === "signup";
-  const label = t(isSignup ? "auth.signUpGmail" : "auth.signInGmail");
-  const disabled = isSignup ? false : !googleOAuth;
+  const flow = mode === "signup" ? "signup" : "signin";
+  const label = t(mode === "signup" ? "auth.signUpGoogle" : "auth.continueWithGoogle");
+  const disabled = !googleOAuth;
 
   function handleClick() {
-    if (isSignup) {
-      onGmailSignup?.();
-      return;
-    }
     if (!googleOAuth) return;
-    setOAuthFlowCookieClient("signin");
+    setOAuthFlowCookieClient(flow);
     window.location.assign(
       buildProviderSigninHref("google", {
-        flow: "signin",
+        flow,
         callbackUrl,
         addAccount,
         mobile: fromMobile,
@@ -73,13 +68,14 @@ export function SocialAuthButtons({
         disabled={disabled}
         className={cn(
           "w-full h-11 rounded-xl font-medium gap-3",
-          "bg-white hover:bg-neutral-50 text-foreground border border-border shadow-sm",
+          // White Google CTA — force black label (dark theme text-foreground is invisible).
+          "bg-white hover:bg-neutral-50 !text-neutral-900 border border-neutral-200 shadow-sm",
           disabled && "opacity-50 cursor-not-allowed"
         )}
         onClick={handleClick}
       >
-        <GoogleIcon className="h-5 w-5" />
-        <span>{label}</span>
+        <GoogleIcon className="h-5 w-5 shrink-0" />
+        <span className="text-neutral-900">{label}</span>
       </Button>
     </div>
   );

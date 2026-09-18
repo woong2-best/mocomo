@@ -31,14 +31,6 @@ export function HomeGuestHero() {
       </p>
       <div className="flex flex-wrap gap-3 mt-6">
         <Button asChild size="lg" className="rounded-xl shadow-folk">
-          <Link href="/auth/signup">{t("home.signUpFree")}</Link>
-        </Button>
-        <Button
-          asChild
-          size="lg"
-          variant="outline"
-          className="rounded-xl border-2 border-white/50 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
-        >
           <Link href="/auth/signin">{t("nav.signin")}</Link>
         </Button>
       </div>

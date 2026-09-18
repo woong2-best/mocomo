@@ -96,7 +96,7 @@ export async function beginCreateAccountFlow(sourceUserId?: string | null) {
 
   setAddAccountFlowCookie(sourceUserId);
   await signOutForAddAccount(sourceUserId);
-  window.location.href = withAddAccountQuery("/auth/signup/apply", true);
+  window.location.href = withAddAccountQuery("/auth/signin?intent=signup", true);
 }
 
 /**

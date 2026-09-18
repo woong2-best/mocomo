@@ -18,21 +18,15 @@ function AuthLayoutHeaderInner() {
   const signinHref = fromMobile
     ? `/auth/signin${mobileQs}&callbackUrl=${encodeURIComponent(complete)}`
     : "/auth/signin";
-  const signupHref = fromMobile ? `/auth/signup/apply${mobileQs}` : "/auth/signup";
 
   return (
     <header className="auth-layout-marketing-header flex items-center justify-between px-4 py-3 border-b border-border bg-background/95">
       <Link href={DEFAULT_LANDING_PATH} className="font-black text-lg">
         {BRAND.name}
       </Link>
-      <div className="flex items-center gap-3 text-sm">
-        <Link href={signinHref} className="text-muted-foreground hover:text-foreground">
-          {t("nav.signin")}
-        </Link>
-        <Link href={signupHref} className="font-semibold text-primary hover:underline">
-          {t("nav.signup")}
-        </Link>
-      </div>
+      <Link href={signinHref} className="text-sm font-semibold text-primary hover:underline">
+        {t("nav.signin")}
+      </Link>
     </header>
   );
 }

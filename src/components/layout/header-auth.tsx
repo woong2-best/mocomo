@@ -28,7 +28,6 @@ function HeaderAuthPending({ compact }: { compact: boolean }) {
       aria-label="Loading session"
     >
       <div className="h-8 w-[72px] rounded-xl bg-muted/60 animate-pulse" aria-hidden />
-      <div className="h-8 w-[56px] rounded-xl bg-muted/60 animate-pulse" aria-hidden />
     </div>
   );
 }
@@ -78,13 +77,8 @@ export function HeaderAuth({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <>
-      <Button asChild variant="outline" size="sm" className="rounded-xl font-semibold min-w-[72px] shrink-0">
-        <Link href="/auth/signin">{t("nav.signin")}</Link>
-      </Button>
-      <Button asChild size="sm" className="rounded-xl font-semibold min-w-[56px] shrink-0">
-        <Link href="/auth/signup">{t("nav.signup")}</Link>
-      </Button>
-    </>
+    <Button asChild size="sm" className="rounded-xl font-semibold min-w-[72px] shrink-0">
+      <Link href="/auth/signin">{t("nav.signin")}</Link>
+    </Button>
   );
 }

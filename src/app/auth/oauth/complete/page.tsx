@@ -20,9 +20,17 @@ function safeDest(raw: string | undefined): string {
   return DEFAULT_LANDING_PATH;
 }
 
-function signupFallback(addAccount: boolean): string {
+function isMobileHandoffDest(dest: string): boolean {
+  return dest.startsWith("/auth/mobile/oauth/complete");
+}
+
+function signupFallback(addAccount: boolean, dest: string): string {
+  if (isMobileHandoffDest(dest)) {
+    const platform = dest.includes("platform=ios") ? "ios" : "android";
+    return signupRedirectForUnregistered(addAccount, "oauth_failed", { platform });
+  }
   if (addAccount) return signupRedirectForUnregistered(true);
-  return "/auth/signup/apply?reason=oauth_failed";
+  return "/auth/signin?intent=signup&reason=oauth_failed";
 }
 
 /** OAuth landing — verified session → dest; otherwise signup apply. */
@@ -35,7 +43,8 @@ export default async function OAuthCompletePage({
   const dest = safeDest(sp.dest);
   const addAccount = sp.addAccount === "1";
   const isSignupAddAccount = addAccount && sp.flow === "signup";
-  const signupUrl = signupFallback(addAccount);
+  const isSignup = sp.flow === "signup";
+  const signupUrl = signupFallback(addAccount, dest);
 
   const session = await auth();
   if (session?.user?.id) {
@@ -51,14 +60,13 @@ export default async function OAuthCompletePage({
           redirect(signupRedirectForStaleSession(true));
         }
       }
-      if (!dbUser.birthDate && sp.flow === "signup") {
-        redirect(
-          `/auth/complete-birth-date?dest=${encodeURIComponent(dest)}`
-        );
+      // Web OAuth signup collects birth/avatar on the site. Mobile AuthSession
+      // handoff returns to the app immediately — native onboarding covers gaps.
+      if (!dbUser.birthDate && isSignup && !isMobileHandoffDest(dest)) {
+        redirect(`/auth/complete-birth-date?dest=${encodeURIComponent(dest)}`);
       }
-      // New OAuth signups must confirm a profile icon (existing accounts without one are ignored).
-      if (sp.flow === "signup") {
-        redirect(`/auth/complete-avatar?dest=${encodeURIComponent(dest)}`);
+      if (isSignup && !isMobileHandoffDest(dest)) {
+        redirect(`/auth/complete-role?dest=${encodeURIComponent(dest)}`);
       }
       redirect(dest);
     }
@@ -70,7 +78,7 @@ export default async function OAuthCompletePage({
       dest={dest}
       signupUrl={signupUrl}
       addAccount={addAccount}
-      flow={sp.flow === "signup" ? "signup" : "signin"}
+      flow={isSignup ? "signup" : "signin"}
     />
   );
 }

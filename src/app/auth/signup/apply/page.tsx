@@ -1,37 +1,28 @@
-import { Suspense } from "react";
-import { getAuthConfigStatus } from "@/lib/auth-env";
-import { MobileAuthSessionBootstrap } from "@/components/auth/mobile-auth-session-bootstrap";
-import { SignupApplyForm } from "./signup-apply-form";
+import { redirect } from "next/navigation";
 
 type Sp = {
   from?: string;
   platform?: string;
   redirect_uri?: string;
   addAccount?: string;
+  reason?: string;
+  callbackUrl?: string;
 };
 
+/** Legacy apply URL → unified auth (preserve OAuth recovery reasons). */
 export default async function SignupApplyPage({
   searchParams,
 }: {
   searchParams: Promise<Sp>;
 }) {
   const sp = await searchParams;
-  const fromMobile = sp.from === "mobile";
-  const platform = sp.platform === "ios" ? "ios" : "android";
-  const { googleOAuth } = getAuthConfigStatus();
-
-  return (
-    <>
-      <Suspense fallback={null}>
-        <MobileAuthSessionBootstrap />
-      </Suspense>
-      <Suspense fallback={null}>
-        <SignupApplyForm
-          googleOAuth={googleOAuth}
-          fromMobile={fromMobile}
-          platform={platform}
-        />
-      </Suspense>
-    </>
-  );
+  const qs = new URLSearchParams();
+  qs.set("intent", "signup");
+  if (sp.from === "mobile") qs.set("from", "mobile");
+  if (sp.platform === "ios" || sp.platform === "android") qs.set("platform", sp.platform);
+  if (sp.redirect_uri) qs.set("redirect_uri", sp.redirect_uri);
+  if (sp.addAccount === "1") qs.set("addAccount", "1");
+  if (sp.callbackUrl) qs.set("callbackUrl", sp.callbackUrl);
+  if (sp.reason) qs.set("reason", sp.reason);
+  redirect(`/auth/signin?${qs.toString()}`);
 }
