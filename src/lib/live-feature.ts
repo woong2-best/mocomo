@@ -22,20 +22,18 @@ export function isLiveFeatureEnabled(): boolean {
 
 export const LIVE_FEATURE_HREFS = ["/live", "/voice", "/avatar"] as const;
 
-/** 자체 방송 생성·스튜디오 진입점 */
-export const FIRST_PARTY_LIVE_PATH_PREFIXES = [
-  "/voice/new",
-  "/avatar",
-] as const;
+/**
+ * 자체 송출(ingest) 생성 진입점만.
+ * `/avatar/studio`·아바타 편집·OBS 브라우저 소스는 외부 방송에도 쓰이므로 제외.
+ */
+export const FIRST_PARTY_LIVE_PATH_PREFIXES = ["/voice/new"] as const;
 
 export function isLiveNavHref(href: string): boolean {
   return href === "/live" || href.startsWith("/voice") || href.startsWith("/avatar");
 }
 
 export function isFirstPartyLivePath(pathname: string): boolean {
-  if (pathname.startsWith("/avatar")) return true;
-  if (pathname === "/voice/new" || pathname.startsWith("/voice/new/")) return true;
-  return false;
+  return pathname === "/voice/new" || pathname.startsWith("/voice/new/");
 }
 
 /** API/액션에서 자체 송출 차단 */

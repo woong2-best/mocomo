@@ -16,46 +16,57 @@ import { StreamerSettingsForm } from "@/components/live/streamer-settings-form";
 import { LiveObsStandardGuide } from "@/components/live/live-obs-standard-guide";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { isFirstPartyLiveEnabled } from "@/lib/live-feature";
 
-const QUICK_LINKS: {
+type QuickLink = {
   href: string;
   icon: typeof Video;
   title: string;
   description: string;
   external?: boolean;
-}[] = [
-  {
-    href: "/voice/new",
-    icon: Video,
-    title: "방송 만들기",
-    description: "제목·카테고리 설정 후 브라우저에서 바로 송출",
-  },
-  {
-    href: "/avatar/broadcast",
-    icon: Monitor,
-    title: "OBS 브라우저 소스",
-    description: "투명/크로마키 VTuber 아바타 URL",
-    external: true,
-  },
-  {
-    href: "/live",
-    icon: Radio,
-    title: "라이브 홈",
-    description: "시청 중인 방송·팔로우 스트리머",
-  },
-  {
-    href: "/settings/streamer",
-    icon: Settings2,
-    title: "스트리머 설정",
-    description: "파트너·추가 프로필 (레거시 경로)",
-  },
-];
+};
+
+function buildQuickLinks(firstPartyOn: boolean): QuickLink[] {
+  return [
+    {
+      href: firstPartyOn ? "/voice/new" : "/live/external/new",
+      icon: Video,
+      title: "방송 만들기",
+      description: firstPartyOn
+        ? "제목·카테고리 설정 후 브라우저에서 바로 송출"
+        : "유튜브·트위치·치지직 방송을 MoCoMo에 연결",
+    },
+    {
+      href: "/avatar/broadcast",
+      icon: Monitor,
+      title: "OBS 브라우저 소스",
+      description: "투명/크로마키 VTuber 아바타 URL",
+      external: true,
+    },
+    {
+      href: "/live",
+      icon: Radio,
+      title: "라이브 홈",
+      description: "시청 중인 방송·팔로우 스트리머",
+    },
+    {
+      href: "/settings/streamer",
+      icon: Settings2,
+      title: "스트리머 설정",
+      description: "파트너·추가 프로필 (레거시 경로)",
+    },
+  ];
+}
 
 export function BroadcastStudioPanel({
   initial,
 }: {
   initial: { bio: string; announcement: string; scheduleNote: string };
 }) {
+  const firstPartyOn = isFirstPartyLiveEnabled();
+  const goLiveHref = firstPartyOn ? "/voice/new" : "/live/external/new";
+  const quickLinks = buildQuickLinks(firstPartyOn);
+
   return (
     <div className="live-page-shell w-full max-w-none space-y-4 sm:space-y-5 pb-nav lg:pb-6 min-h-[calc(100dvh-var(--header-h))]">
       <div className="max-w-5xl mx-auto space-y-4 sm:space-y-5">
@@ -71,11 +82,11 @@ export function BroadcastStudioPanel({
               방송 스튜디오
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              유튜브·트witch처럼 방송 정보·송출·OBS를 한곳에서 준비합니다
+              유튜브·트위치처럼 방송 정보·송출·OBS를 한곳에서 준비합니다
             </p>
           </div>
           <Button asChild className="rounded-xl gap-2 shrink-0">
-            <Link href="/voice/new">
+            <Link href={goLiveHref}>
               <Video className="h-4 w-4" />
               방송 시작
             </Link>
@@ -85,7 +96,7 @@ export function BroadcastStudioPanel({
         <FolkBrushDivider className="opacity-50" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {QUICK_LINKS.map((item) => {
+          {quickLinks.map((item) => {
             const Icon = item.icon;
             return (
               <Link
@@ -122,24 +133,44 @@ export function BroadcastStudioPanel({
           </Card>
 
           <div className="space-y-4">
-            <Card className="folk-card border-violet-500/25 bg-violet-500/5">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-display flex items-center gap-2">
-                  <Monitor className="h-4 w-4 text-violet-600" />
-                  OBS · RTMP 송출
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <LiveObsStandardGuide />
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  방송을 만든 뒤 해당 방의 스튜디오 화면에서 서버·방송 키를 확인하세요. OBS 「방송
-                  시작」만 누르면 MoCoMo 시청 화면에 WebRTC로 표시됩니다.
-                </p>
-                <Button asChild variant="outline" size="sm" className="rounded-xl w-full">
-                  <Link href="/voice/new">방송 만들고 OBS 키 받기</Link>
-                </Button>
-              </CardContent>
-            </Card>
+            {firstPartyOn ? (
+              <Card className="folk-card border-violet-500/25 bg-violet-500/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-display flex items-center gap-2">
+                    <Monitor className="h-4 w-4 text-violet-600" />
+                    OBS · RTMP 송출
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <LiveObsStandardGuide />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    방송을 만든 뒤 해당 방의 스튜디오 화면에서 서버·방송 키를 확인하세요. OBS 「방송
+                    시작」만 누르면 MoCoMo 시청 화면에 WebRTC로 표시됩니다.
+                  </p>
+                  <Button asChild variant="outline" size="sm" className="rounded-xl w-full">
+                    <Link href="/voice/new">방송 만들고 OBS 키 받기</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="folk-card border-violet-500/25 bg-violet-500/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-display flex items-center gap-2">
+                    <Monitor className="h-4 w-4 text-violet-600" />
+                    외부 플랫폼 방송
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    유튜브·트위치·치지직에서 송출한 뒤 MoCoMo에 방송 URL을 연결하면 시청·채팅·후원이
+                    여기서 이어집니다.
+                  </p>
+                  <Button asChild variant="outline" size="sm" className="rounded-xl w-full">
+                    <Link href="/live/external/new">외부 방송 연결하기</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="folk-card">
               <CardHeader className="pb-2">

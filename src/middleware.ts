@@ -31,6 +31,7 @@ import {
   isPaymentGuardPath,
 } from "@/lib/compliance/ofac-payment-guard";
 import { getRequestCountryFromHeaders } from "@/lib/compliance/request-country";
+import { isFirstPartyLivePath } from "@/lib/live-feature";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -197,17 +198,11 @@ export default edgeAuth(async (req) => {
     }
   }
 
-  // 자체 송출만 차단
-  if (process.env.NEXT_PUBLIC_LIVE_ENABLED === "false") {
-    const firstPartyOnly =
-      pathname.startsWith("/avatar") ||
-      pathname === "/voice/new" ||
-      pathname.startsWith("/voice/new/");
-    if (firstPartyOnly) {
-      const res = NextResponse.redirect(new URL("/live?notice=first-party-ended", req.url));
-      stampAppClientIfNeeded(req, res);
-      return res;
-    }
+  // 자체 송출(ingest) 생성만 차단 — /avatar/studio·아바타 편집은 외부 방송용으로 유지
+  if (process.env.NEXT_PUBLIC_LIVE_ENABLED === "false" && isFirstPartyLivePath(pathname)) {
+    const res = NextResponse.redirect(new URL("/live?notice=first-party-ended", req.url));
+    stampAppClientIfNeeded(req, res);
+    return res;
   }
 
   const isLoggedIn = !!req.auth?.user?.id;
