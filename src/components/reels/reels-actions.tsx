@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
 import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
+import { ContentReportRailButton } from "@/components/report/content-report-flow";
 import { cn, formatNumber } from "@/lib/utils";
 import { prefetchPostComments } from "@/lib/comments-prefetch-cache";
 import { MotionPop } from "@/components/motion/motion-primitives";
@@ -166,6 +167,14 @@ export function ReelsActions({
           <Volume2 className="h-7 w-7 drop-shadow-md" />
         )}
       </button>
+
+      <ContentReportRailButton
+        targetType="POST"
+        targetId={reel.postId}
+        postId={reel.postId}
+        reportedUserId={reel.author.id}
+        className="mt-0.5"
+      />
 
       {onToggleExpand && (
         <button

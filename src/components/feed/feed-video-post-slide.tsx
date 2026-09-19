@@ -342,6 +342,8 @@ export function FeedVideoPostSlide({
                   <>
                     <VideoOverlayCaption
                       username={activeReel.author.username}
+                      authorImage={activeReel.author.image}
+                      authorName={activeReel.author.name}
                       title={activeReel.title}
                       content={activeReel.content}
                       footer={

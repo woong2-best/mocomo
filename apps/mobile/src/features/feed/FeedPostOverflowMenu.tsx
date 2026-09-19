@@ -4,33 +4,16 @@ import {
   Alert,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  blockAndReportUser,
-  toggleMuteUser,
-  togglePostProfileFeature,
-  type ReportReasonId,
-} from "@/api/social";
+import { toggleMuteUser, togglePostProfileFeature } from "@/api/social";
+import { PostReportSheet } from "@/features/feed/PostReportSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
-
-const REPORT_REASONS: { id: ReportReasonId; label: string }[] = [
-  { id: "SPAM", label: "스팸·광고" },
-  { id: "ABUSE", label: "욕설·괴롭힘" },
-  { id: "HARASSMENT", label: "괴롭힘" },
-  { id: "HATE", label: "혐오 표현" },
-  { id: "FRAUD", label: "사기·불법 거래" },
-  { id: "SEXUAL", label: "음란물" },
-  { id: "IMPERSONATION", label: "사칭" },
-  { id: "OTHER", label: "기타" },
-];
 
 type Props = {
   visible: boolean;
@@ -61,14 +44,12 @@ export function FeedPostOverflowMenu({
   const [featured, setFeatured] = useState(featuredOnProfile);
   const [muted, setMuted] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reportReason, setReportReason] = useState<ReportReasonId>("SPAM");
-  const [reportDetails, setReportDetails] = useState("");
-  const [reportError, setReportError] = useState("");
+  const [reportOnlyOpen, setReportOnlyOpen] = useState(false);
+  const [blockReportOpen, setBlockReportOpen] = useState(false);
 
   const closeAll = useCallback(() => {
-    setReportOpen(false);
-    setReportError("");
+    setReportOnlyOpen(false);
+    setBlockReportOpen(false);
     onClose();
   }, [onClose]);
 
@@ -106,41 +87,14 @@ export function FeedPostOverflowMenu({
     }
   }, [authorId, authorUsername, busy, closeAll, onMuted]);
 
-  const onSubmitBlockReport = useCallback(async () => {
-    if (busy) return;
-    setBusy("report");
-    setReportError("");
-    try {
-      await blockAndReportUser({
-        userId: authorId,
-        username: authorUsername,
-        postId,
-        reason: reportReason,
-        details: reportDetails.trim() || undefined,
-      });
-      setReportOpen(false);
-      closeAll();
-      onBlocked?.();
-      Alert.alert("완료", "신고가 접수되었고 사용자를 차단했습니다.");
-    } catch (e) {
-      setReportError(e instanceof Error ? e.message : "신고 처리에 실패했습니다.");
-    } finally {
-      setBusy(null);
-    }
-  }, [
-    authorId,
-    authorUsername,
-    busy,
-    closeAll,
-    onBlocked,
-    postId,
-    reportDetails,
-    reportReason,
-  ]);
-
   return (
     <>
-      <Modal visible={visible && !reportOpen} transparent animationType="fade" onRequestClose={closeAll}>
+      <Modal
+        visible={visible && !reportOnlyOpen && !blockReportOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeAll}
+      >
         <Pressable style={styles.scrim} onPress={closeAll}>
           <View
             style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}
@@ -166,9 +120,15 @@ export function FeedPostOverflowMenu({
             <View style={styles.sep} />
             <Pressable
               style={styles.row}
-              onPress={() => {
-                setReportOpen(true);
-              }}
+              onPress={() => setReportOnlyOpen(true)}
+              disabled={!!busy}
+            >
+              <Ionicons name="flag-outline" size={20} color={colors.text} />
+              <Text style={styles.rowText}>신고하기</Text>
+            </Pressable>
+            <Pressable
+              style={styles.row}
+              onPress={() => setBlockReportOpen(true)}
               disabled={!!busy}
             >
               <Ionicons name="ban-outline" size={20} color={colors.terracotta} />
@@ -181,58 +141,24 @@ export function FeedPostOverflowMenu({
         </Pressable>
       </Modal>
 
-      <Modal visible={reportOpen} transparent animationType="slide" onRequestClose={() => setReportOpen(false)}>
-        <View style={[styles.reportRoot, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }]}>
-          <Text style={styles.reportTitle}>차단 및 신고하기</Text>
-          <Text style={styles.reportDesc}>신고 후 해당 사용자를 차단합니다.</Text>
-          <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
-            <Text style={styles.fieldLabel}>신고 사유</Text>
-            {REPORT_REASONS.map((item) => (
-              <Pressable
-                key={item.id}
-                style={[styles.reasonRow, reportReason === item.id && styles.reasonRowActive]}
-                onPress={() => setReportReason(item.id)}
-              >
-                <Text
-                  style={[
-                    styles.reasonText,
-                    reportReason === item.id && styles.reasonTextActive,
-                  ]}
-                >
-                  {item.label}
-                </Text>
-              </Pressable>
-            ))}
-            <Text style={styles.fieldLabel}>상세 내용 (선택)</Text>
-            <TextInput
-              style={styles.detailsInput}
-              value={reportDetails}
-              onChangeText={setReportDetails}
-              placeholder="추가 설명을 입력해 주세요"
-              placeholderTextColor={colors.textMuted}
-              multiline
-              maxLength={2000}
-            />
-            {reportError ? <Text style={styles.errorText}>{reportError}</Text> : null}
-          </ScrollView>
-          <View style={styles.reportActions}>
-            <Pressable style={styles.secondaryBtn} onPress={() => setReportOpen(false)}>
-              <Text style={styles.secondaryBtnText}>취소</Text>
-            </Pressable>
-            <Pressable
-              style={styles.primaryBtn}
-              onPress={() => void onSubmitBlockReport()}
-              disabled={!!busy}
-            >
-              {busy === "report" ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryBtnText}>차단 및 신고</Text>
-              )}
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+      <PostReportSheet
+        visible={reportOnlyOpen}
+        onClose={closeAll}
+        postId={postId}
+        authorId={authorId}
+        authorUsername={authorUsername}
+        mode="report"
+      />
+
+      <PostReportSheet
+        visible={blockReportOpen}
+        onClose={closeAll}
+        postId={postId}
+        authorId={authorId}
+        authorUsername={authorUsername}
+        mode="block-report"
+        onSubmitted={() => onBlocked?.()}
+      />
     </>
   );
 }
@@ -257,71 +183,15 @@ function createStyles(colors: ThemeColors) {
       gap: 12,
       paddingVertical: 16,
     },
-    rowText: { flex: 1, fontSize: 16, fontWeight: "600", color: colors.text },
+    rowText: { flex: 1, color: colors.text, fontSize: 16, fontWeight: "600" },
     dangerText: { color: colors.terracotta },
-    sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.hairline },
+    sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
     cancelBtn: {
-      marginTop: 8,
+      marginTop: 4,
+      marginBottom: 4,
       paddingVertical: 14,
       alignItems: "center",
     },
-    cancelText: { fontSize: 16, fontWeight: "700", color: colors.textMuted },
-    reportRoot: {
-      flex: 1,
-      backgroundColor: colors.background,
-      paddingHorizontal: spacing.md,
-    },
-    reportTitle: { fontSize: 20, fontWeight: "800", color: colors.text, marginBottom: 6 },
-    reportDesc: { fontSize: 14, color: colors.textMuted, marginBottom: 16 },
-    fieldLabel: {
-      fontSize: 13,
-      fontWeight: "700",
-      color: colors.textMuted,
-      marginBottom: 8,
-      marginTop: 12,
-    },
-    reasonRow: {
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      borderRadius: radii.md,
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-      marginBottom: 8,
-    },
-    reasonRowActive: {
-      borderColor: colors.cobalt,
-      backgroundColor: colors.muted,
-    },
-    reasonText: { fontSize: 15, color: colors.text, fontWeight: "600" },
-    reasonTextActive: { color: colors.cobalt },
-    detailsInput: {
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      borderRadius: radii.md,
-      minHeight: 88,
-      padding: 12,
-      fontSize: 15,
-      color: colors.text,
-      textAlignVertical: "top",
-    },
-    errorText: { color: colors.terracotta, marginTop: 8, fontSize: 13 },
-    reportActions: { flexDirection: "row", gap: 10, marginTop: 12 },
-    secondaryBtn: {
-      flex: 1,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      borderRadius: radii.pill,
-      paddingVertical: 14,
-      alignItems: "center",
-    },
-    secondaryBtnText: { fontWeight: "700", color: colors.text },
-    primaryBtn: {
-      flex: 1,
-      backgroundColor: colors.terracotta,
-      borderRadius: radii.pill,
-      paddingVertical: 14,
-      alignItems: "center",
-    },
-    primaryBtnText: { fontWeight: "800", color: "#fff" },
+    cancelText: { color: colors.textMuted, fontSize: 15, fontWeight: "700" },
   });
 }

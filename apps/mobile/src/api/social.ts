@@ -103,6 +103,11 @@ export type ReportReasonId =
   | "COPYRIGHT"
   | "SEXUAL"
   | "IMPERSONATION"
+  | "SELF_HARM"
+  | "FALSE_INFO"
+  | "UNDERAGE"
+  | "POLITICAL"
+  | "REGULATED"
   | "OTHER";
 
 export async function blockAndReportUser(params: {
@@ -111,6 +116,7 @@ export async function blockAndReportUser(params: {
   postId?: string;
   reason: ReportReasonId;
   details?: string;
+  reasonPath?: string;
 }) {
   return apiRequest<{ ok: boolean; blocked: boolean; message: string }>(
     MobileApi.userBlockReport,
@@ -119,6 +125,27 @@ export async function blockAndReportUser(params: {
       body: params,
     }
   );
+}
+
+export async function submitPostReport(params: {
+  postId: string;
+  reportedUserId: string;
+  reason: ReportReasonId;
+  reasonPath?: string;
+  details?: string;
+}) {
+  return apiRequest<{ ok: boolean; message: string }>(MobileApi.reports, {
+    method: "POST",
+    body: {
+      targetType: "POST",
+      targetId: params.postId,
+      postId: params.postId,
+      reportedUserId: params.reportedUserId,
+      reason: params.reason,
+      reasonPath: params.reasonPath,
+      details: params.details,
+    },
+  });
 }
 
 export type ProfileUser = {

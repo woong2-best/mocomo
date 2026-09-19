@@ -18,9 +18,16 @@ function riskReasonForReport(reason: ReportReasonId): string {
     case "IMPERSONATION":
       return "IMPERSONATION";
     case "FRAUD":
+    case "REGULATED":
       return "ILLEGAL_TRADE";
     case "SEXUAL":
       return "SEXUAL_CONTENT";
+    case "UNDERAGE":
+      return "CHILD_SAFETY";
+    case "VIOLENCE":
+      return "THREAT";
+    case "SELF_HARM":
+      return "SELF_HARM_ENCOURAGEMENT";
     default:
       return "REPORT_RECEIVED";
   }
@@ -30,13 +37,18 @@ export async function submitContentReport(data: {
   targetType: ReportTargetType;
   targetId: string;
   reason: ReportReasonId;
+  /** Hierarchical path label for admin review (e.g. "스캠·사기 › 스팸") */
+  reasonPath?: string;
   details?: string;
   reportedUserId?: string;
   postId?: string;
   commentId?: string;
 }) {
   const user = await requireAuth({ writeKind: "report" });
-  const reasonLabel = REPORT_REASONS.find((r) => r.id === data.reason)?.label ?? data.reason;
+  const reasonLabel =
+    data.reasonPath?.trim() ||
+    REPORT_REASONS.find((r) => r.id === data.reason)?.label ||
+    data.reason;
   const details = data.details?.trim();
 
   if (!data.targetId.trim()) return { error: "신고 대상을 찾을 수 없습니다." };

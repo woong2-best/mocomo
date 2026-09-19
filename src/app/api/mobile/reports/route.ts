@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ReportTargetType } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -13,12 +12,14 @@ import {
 } from "@/lib/report-reasons";
 
 const bodySchema = z.object({
-  userId: z.string().min(1).max(64),
-  username: z.string().max(64).optional(),
-  postId: z.string().max(64).optional(),
+  targetType: z.enum(["POST", "USER", "COMMENT", "MESSAGE"]),
+  targetId: z.string().min(1).max(64),
   reason: z.enum(REPORT_REASON_IDS),
   reasonPath: z.string().max(500).optional(),
   details: z.string().max(2000).optional(),
+  reportedUserId: z.string().max(64).optional(),
+  postId: z.string().max(64).optional(),
+  commentId: z.string().max(64).optional(),
 });
 
 function riskReasonForReport(reason: ReportReasonId): string {
@@ -48,8 +49,9 @@ function riskReasonForReport(reason: ReportReasonId): string {
   }
 }
 
+/** Report-only (no block) — used by reels / post report icon. */
 export async function POST(req: NextRequest) {
-  const limited = await rateLimitPublicApi(req, "mobile-user-block-report", 20);
+  const limited = await rateLimitPublicApi(req, "mobile-content-report", 30);
   if (limited) return limited;
 
   const auth = await requireMobileApiUser(req, { writeKind: "report" });
@@ -67,22 +69,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
   }
 
-  const { userId: targetUserId, postId, reason, reasonPath, details } = parsed.data;
-  if (auth.user.id === targetUserId) {
-    return NextResponse.json({ error: "자기 자신은 차단할 수 없습니다." }, { status: 400 });
-  }
-
-  const targetType: ReportTargetType = postId ? "POST" : "USER";
-  const targetId = postId ?? targetUserId;
+  const data = parsed.data;
+  const targetType = data.targetType as ReportTargetType;
   const reasonLabel =
-    reasonPath?.trim() || REPORT_REASONS.find((r) => r.id === reason)?.label || reason;
-  const trimmedDetails = details?.trim();
+    data.reasonPath?.trim() ||
+    REPORT_REASONS.find((r) => r.id === data.reason)?.label ||
+    data.reason;
+  const trimmedDetails = data.details?.trim();
 
   const recent = await db.report.findFirst({
     where: {
       reporterId: auth.user.id,
       targetType,
-      targetId,
+      targetId: data.targetId,
       createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     },
   });
@@ -90,55 +89,44 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "이미 최근에 신고한 콘텐츠입니다." }, { status: 400 });
   }
 
-  const { scoreAfter } = await addRiskScore({
-    userId: targetUserId,
-    reason: riskReasonForReport(reason),
-    source: "REPORT",
-    metadata: { targetType, targetId, reporterId: auth.user.id },
-  });
-  const moderationCase = await upsertModerationCaseForReport(targetUserId, scoreAfter);
-  const moderationCaseId = moderationCase.id;
+  let moderationCaseId: string | undefined;
+  let reportedUserId = data.reportedUserId;
+
+  if (!reportedUserId && targetType === "USER") {
+    reportedUserId = data.targetId;
+  }
+
+  if (reportedUserId && reportedUserId !== auth.user.id) {
+    const { scoreAfter } = await addRiskScore({
+      userId: reportedUserId,
+      reason: riskReasonForReport(data.reason),
+      source: "REPORT",
+      metadata: {
+        targetType,
+        targetId: data.targetId,
+        reporterId: auth.user.id,
+      },
+    });
+    const moderationCase = await upsertModerationCaseForReport(reportedUserId, scoreAfter);
+    moderationCaseId = moderationCase.id;
+  }
 
   await db.report.create({
     data: {
       reporterId: auth.user.id,
       targetType,
-      targetId,
+      targetId: data.targetId,
       reason: reasonLabel,
       details: trimmedDetails || null,
-      reportedUserId: targetUserId,
-      postId: postId ?? null,
+      reportedUserId: reportedUserId ?? null,
+      postId: data.postId ?? null,
+      commentId: data.commentId ?? null,
       moderationCaseId,
     },
   });
 
-  await db.$transaction([
-    db.userBlock.upsert({
-      where: {
-        blockerId_blockedId: { blockerId: auth.user.id, blockedId: targetUserId },
-      },
-      create: { blockerId: auth.user.id, blockedId: targetUserId },
-      update: {},
-    }),
-    db.follow.deleteMany({
-      where: {
-        OR: [
-          { followerId: auth.user.id, followingId: targetUserId },
-          { followerId: targetUserId, followingId: auth.user.id },
-        ],
-      },
-    }),
-  ]);
-
-  // Resolved server-side so a caller cannot invalidate arbitrary /u/... paths.
-  const target = await db.user.findUnique({
-    where: { id: targetUserId },
-    select: { username: true },
-  });
-  if (target?.username) revalidatePath(`/u/${target.username}`);
   return NextResponse.json({
     ok: true,
-    blocked: true,
-    message: "신고가 접수되었고 사용자를 차단했습니다.",
+    message: "신고가 접수되었습니다. 검토 후 조치하겠습니다.",
   });
 }

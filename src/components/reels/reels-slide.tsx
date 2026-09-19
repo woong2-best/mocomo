@@ -187,6 +187,8 @@ export function ReelsSlide({
   const captionBlock = !cinema ? (
     <VideoOverlayCaption
       username={reel.author.username}
+      authorImage={reel.author.image}
+      authorName={reel.author.name}
       title={reel.title}
       content={reel.content}
     />

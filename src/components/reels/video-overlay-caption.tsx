@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function buildVideoCaptionText(
   title: string | null | undefined,
@@ -20,6 +21,9 @@ export function buildVideoCaptionText(
 
 type Props = {
   username: string;
+  /** Author avatar — shown before @handle at bottom meta */
+  authorImage?: string | null;
+  authorName?: string | null;
   title?: string | null;
   content: string;
   /** Extra content below caption (e.g. multi-video index). */
@@ -29,6 +33,8 @@ type Props = {
 
 export function VideoOverlayCaption({
   username,
+  authorImage,
+  authorName,
   title,
   content,
   footer,
@@ -97,10 +103,16 @@ export function VideoOverlayCaption({
           <div className="relative z-10 min-w-0 max-w-[78%] space-y-1 text-white">
             <Link
               href={`/u/${username}`}
-              className="inline-block rounded font-display text-sm font-bold drop-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="inline-flex items-center gap-2 rounded font-display text-sm font-bold drop-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               onClick={(e) => e.stopPropagation()}
             >
-              @{username}
+              <Avatar className="h-9 w-9 ring-2 ring-white/90 ring-offset-0">
+                <AvatarImage src={authorImage} alt={authorName || username} />
+                <AvatarFallback className="text-xs">
+                  {(authorName || username).slice(0, 1).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span>@{username}</span>
             </Link>
 
             {hasCaption ? (

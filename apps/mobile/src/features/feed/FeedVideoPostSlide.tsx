@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -33,6 +34,7 @@ import {
   collapsibleCaptionStyles,
 } from "@/ui/CollapsibleVideoCaption";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
+import { PostReportSheet } from "@/features/feed/PostReportSheet";
 import { useAuth } from "@/auth/AuthContext";
 import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 
@@ -272,6 +274,7 @@ function FeedVideoPostSlideInner({
   const [pausedByUser, setPausedByUser] = useState(false);
   const [fastForward, setFastForward] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const current = group.videos[videoIndex] ?? group.videos[0];
   const captionText = useMemo(
@@ -390,6 +393,18 @@ function FeedVideoPostSlideInner({
     navigation.navigate("UserProfile", { username: current.author.username });
   }, [current, navigation]);
 
+  const onReportPress = useCallback(() => {
+    if (!user) {
+      Alert.alert("로그인 필요", "신고하려면 로그인해 주세요.");
+      return;
+    }
+    if (user.id === current?.author.id) {
+      Alert.alert("알림", "자신의 게시물은 신고할 수 없습니다.");
+      return;
+    }
+    setReportOpen(true);
+  }, [current?.author.id, user]);
+
   if (!current) {
     return <View style={{ width, height, backgroundColor: "#000" }} />;
   }
@@ -473,21 +488,6 @@ function FeedVideoPostSlideInner({
       {/* Right rail */}
       {!chromeHidden ? (
         <View style={styles.rail} pointerEvents="box-none">
-        <Pressable
-          onPress={onAuthorPress}
-          style={styles.railBtn}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={`${current.author.username} 프로필`}
-        >
-          <FolkAvatar
-            uri={current.author.image}
-            name={current.author.name ?? current.author.username}
-            size={44}
-            framed={false}
-            style={styles.railAvatar}
-          />
-        </Pressable>
         <Pressable onPress={onLike} style={styles.railBtn} hitSlop={10}>
           <Ionicons
             name={liked ? "heart" : "heart-outline"}
@@ -528,6 +528,15 @@ function FeedVideoPostSlideInner({
         <Pressable onPress={() => setMuted((m) => !m)} style={styles.railBtn} hitSlop={10}>
           <Ionicons name={muted ? "volume-mute" : "volume-high"} size={26} color="#fff" />
         </Pressable>
+        <Pressable
+          onPress={onReportPress}
+          style={styles.railBtn}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="신고"
+        >
+          <Ionicons name="flag-outline" size={24} color="#fff" />
+        </Pressable>
         </View>
       ) : null}
 
@@ -546,7 +555,21 @@ function FeedVideoPostSlideInner({
           style={[styles.meta, captionExpanded && collapsibleCaptionStyles.expandedMeta]}
           pointerEvents="box-none"
         >
-        <Text style={styles.user}>@{current.author.username}</Text>
+        <Pressable
+          onPress={onAuthorPress}
+          style={styles.authorRow}
+          accessibilityRole="button"
+          accessibilityLabel={`${current.author.username} 프로필`}
+        >
+          <FolkAvatar
+            uri={current.author.image}
+            name={current.author.name ?? current.author.username}
+            size={36}
+            framed={false}
+            style={styles.metaAvatar}
+          />
+          <Text style={styles.user}>@{current.author.username}</Text>
+        </Pressable>
         {captionText ? (
           <CollapsibleVideoCaption
             text={captionText}
@@ -562,6 +585,13 @@ function FeedVideoPostSlideInner({
         ) : null}
         </View>
       ) : null}
+
+      <PostReportSheet
+        visible={reportOpen}
+        onClose={() => setReportOpen(false)}
+        postId={current.postId}
+        authorId={current.author.id}
+      />
 
       {fastForward ? (
         <Pressable
@@ -640,11 +670,6 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   railBtn: { alignItems: "center" },
-  railAvatar: {
-    borderWidth: 2,
-    borderColor: "#fff",
-    marginBottom: 2,
-  },
   railCount: { color: "#fff", fontSize: 12, fontWeight: "700", marginTop: 2 },
   meta: {
     position: "absolute",
@@ -653,7 +678,18 @@ const styles = StyleSheet.create({
     bottom: 28,
     zIndex: 5,
   },
-  user: { color: "#fff", fontWeight: "800", fontSize: 16, marginBottom: 4 },
+  authorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+    alignSelf: "flex-start",
+  },
+  metaAvatar: {
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  user: { color: "#fff", fontWeight: "800", fontSize: 16 },
   caption: { color: "rgba(255,255,255,0.92)", fontSize: 14, lineHeight: 20 },
   index: { color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: "700", marginTop: 6 },
 });

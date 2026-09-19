@@ -10,6 +10,7 @@ import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
+import { ReportButton } from "@/components/report/report-button";
 import { PostViewCount } from "@/components/post/post-view-count";
 import { PostViewTracker } from "@/components/post/post-view-tracker";
 import { formatNumber, cn } from "@/lib/utils";
@@ -188,6 +189,17 @@ export function FeedTimelinePostCard({
             hasVideo={post.media?.some((m) => m.type === "VIDEO")}
             onActionError={setActionError}
           />
+          {!isOwner && status === "authenticated" ? (
+            <ReportButton
+              targetType="POST"
+              targetId={post.id}
+              postId={post.id}
+              reportedUserId={post.author.id}
+              label=""
+              size="sm"
+              variant="ghost"
+            />
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <PostViewTracker postId={post.id} initialCount={post.viewCount ?? 0} whenVisible>

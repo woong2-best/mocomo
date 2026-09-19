@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -21,13 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { deleteOwnPost } from "@/actions/post-delete";
 import {
   featurePostOnMyProfile,
@@ -36,9 +29,7 @@ import {
   unpinPostFromProfile,
 } from "@/actions/post-pin";
 import { blockUserAction, toggleMuteUserAction } from "@/actions/user-relationship";
-import { submitContentReport } from "@/actions/report";
-import { REPORT_REASONS, type ReportReasonId } from "@/lib/report-reasons";
-import { ensureArray } from "@/lib/ensure-array";
+import { ContentReportFlow } from "@/components/report/content-report-flow";
 import { useLocale } from "@/components/providers/locale-provider";
 import { usePublishedToastOptional } from "@/components/providers/published-toast-provider";
 import { notifyPostDeleted } from "@/lib/post-deleted-sync";
@@ -77,12 +68,8 @@ export function PostOwnerMenu({
   const [muted, setMuted] = useState(false);
   const [busy, setBusy] = useState<"pin" | "delete" | "feature" | "mute" | null>(null);
   const [error, setError] = useState("");
+  const [reportOnlyOpen, setReportOnlyOpen] = useState(false);
   const [blockReportOpen, setBlockReportOpen] = useState(false);
-  const [reportReason, setReportReason] = useState<ReportReasonId>("SPAM");
-  const [reportDetails, setReportDetails] = useState("");
-  const [reportMessage, setReportMessage] = useState("");
-  const [reportError, setReportError] = useState("");
-  const [reportPending, startReportTransition] = useTransition();
 
   const loggedIn = !!session?.data?.user;
   const canShowOtherMenu = !isOwner && loggedIn && !!authorId && !!authorUsername;
@@ -154,45 +141,19 @@ export function PostOwnerMenu({
     }
   }
 
+  function openReportOnly() {
+    setOpen(false);
+    setReportOnlyOpen(true);
+  }
+
   function openBlockAndReport() {
     setOpen(false);
-    setReportError("");
-    setReportMessage("");
     setBlockReportOpen(true);
   }
 
-  function submitBlockAndReport() {
+  async function afterBlockReportSubmitted() {
     if (!authorId || !authorUsername) return;
-    setReportError("");
-    setReportMessage("");
-    startReportTransition(async () => {
-      const reportRes = await submitContentReport({
-        targetType: "POST",
-        targetId: postId,
-        reason: reportReason,
-        details: reportDetails,
-        reportedUserId: authorId,
-        postId,
-      });
-      if (reportRes.error) {
-        setReportError(reportRes.error);
-        return;
-      }
-
-      const blockRes = await blockUserAction(authorId, authorUsername);
-      if ("error" in blockRes && blockRes.error) {
-        setReportError(blockRes.error);
-        return;
-      }
-
-      setReportMessage(t("post.menu.blockReportDone"));
-      setReportDetails("");
-      window.setTimeout(() => {
-        setBlockReportOpen(false);
-        setReportMessage("");
-        router.refresh();
-      }, 1200);
-    });
+    await blockUserAction(authorId, authorUsername);
   }
 
   async function handleDelete() {
@@ -324,7 +285,17 @@ export function PostOwnerMenu({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                disabled={busy !== null || reportPending}
+                disabled={busy !== null}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  openReportOnly();
+                }}
+              >
+                <Flag className="h-4 w-4" />
+                신고
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={busy !== null}
                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 onSelect={(e) => {
                   e.preventDefault();
@@ -344,52 +315,27 @@ export function PostOwnerMenu({
         </p>
       )}
 
-      <Dialog open={blockReportOpen} onOpenChange={setBlockReportOpen}>
-        <DialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>
-            <DialogTitle>{t("post.menu.blockAndReport")}</DialogTitle>
-            <DialogDescription>{t("post.menu.blockAndReportDesc")}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <p className="text-sm font-medium">{t("post.menu.reportReason")}</p>
-              <select
-                className="w-full h-10 rounded-xl border border-border bg-background px-3 text-sm"
-                value={reportReason}
-                onChange={(e) => setReportReason(e.target.value as ReportReasonId)}
-              >
-                {ensureArray<{ id: ReportReasonId; label: string }>(REPORT_REASONS).map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-sm font-medium">{t("post.menu.reportDetails")}</p>
-              <textarea
-                className="w-full min-h-[80px] rounded-xl border border-border p-3 text-sm"
-                placeholder={t("post.menu.reportDetailsPlaceholder")}
-                value={reportDetails}
-                onChange={(e) => setReportDetails(e.target.value)}
-                maxLength={500}
-              />
-            </div>
-            {reportError && <p className="text-sm text-destructive">{reportError}</p>}
-            {reportMessage && <p className="text-sm text-primary">{reportMessage}</p>}
-            <Button
-              type="button"
-              variant="destructive"
-              className="w-full rounded-xl gap-1.5"
-              disabled={reportPending}
-              onClick={submitBlockAndReport}
-            >
-              <Flag className="h-4 w-4" />
-              {reportPending ? t("post.menu.blockReportSubmitting") : t("post.menu.blockAndReport")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {authorId ? (
+        <>
+          <ContentReportFlow
+            open={reportOnlyOpen}
+            onOpenChange={setReportOnlyOpen}
+            targetType="POST"
+            targetId={postId}
+            postId={postId}
+            reportedUserId={authorId}
+          />
+          <ContentReportFlow
+            open={blockReportOpen}
+            onOpenChange={setBlockReportOpen}
+            targetType="POST"
+            targetId={postId}
+            postId={postId}
+            reportedUserId={authorId}
+            onSubmitted={afterBlockReportSubmitted}
+          />
+        </>
+      ) : null}
     </div>
   );
 }
