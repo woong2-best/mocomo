@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearLocalHomeData } from "@/lib/apt/local-home-store";
-import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 
 export function SignOutButton({ className }: { className?: string }) {
@@ -19,7 +18,8 @@ export function SignOutButton({ className }: { className?: string }) {
       onClick={() => {
         const userId = session.user.id;
         void clearLocalHomeData(userId).finally(() => {
-          void performWebSignOut({ callbackUrl: DEFAULT_LANDING_PATH, userId });
+          // Land on account picker (or /auth/signin) — do not keep a stale home session UI.
+          void performWebSignOut({ userId });
         });
       }}
     >

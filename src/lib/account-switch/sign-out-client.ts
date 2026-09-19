@@ -22,6 +22,19 @@ async function purgeServerSession() {
   if (!res.ok) throw new Error("LOGOUT_FAILED");
 }
 
+function clearClientOAuthCookies() {
+  if (typeof document === "undefined") return;
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  const expire = `Path=/; Max-Age=0; SameSite=Lax${secure}`;
+  document.cookie = `mocomo_oauth_flow=; ${expire}`;
+  try {
+    sessionStorage.removeItem("mocomo_oauth_signup_continued");
+    sessionStorage.removeItem("mocomo_mobile_oauth_signup_continued");
+  } catch {
+    // ignore
+  }
+}
+
 async function confirmLoggedOut(): Promise<boolean> {
   try {
     const res = await fetch("/api/auth/session", { credentials: "include" });
@@ -44,6 +57,7 @@ export async function performWebSignOut(options?: {
   const callbackUrl = options?.callbackUrl ?? signOutLandingPath(options?.userId);
 
   clearAddAccountFlowCookie();
+  clearClientOAuthCookies();
 
   // Save switch token before session is destroyed so the account stays switchable.
   try {

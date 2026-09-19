@@ -37,6 +37,8 @@ export type StartOAuthProviderSigninOptions = {
   mobile?: boolean;
   platform?: "android" | "ios";
   redirectUri?: string | null;
+  /** Google account chooser. Default true; set false when continuing signup after not_registered. */
+  selectAccount?: boolean;
 };
 
 export function buildProviderSigninHref(
@@ -48,6 +50,7 @@ export function buildProviderSigninHref(
     mobile?: boolean;
     platform?: "android" | "ios";
     redirectUri?: string | null;
+    selectAccount?: boolean;
   }
 ): string {
   const params = new URLSearchParams({
@@ -56,6 +59,7 @@ export function buildProviderSigninHref(
     callbackUrl: opts.callbackUrl,
   });
   if (opts.addAccount) params.set("addAccount", "1");
+  if (opts.selectAccount === false) params.set("selectAccount", "0");
   if (opts.mobile) {
     params.set("platform", opts.platform === "ios" ? "ios" : "android");
     if (opts.redirectUri) params.set("redirect_uri", opts.redirectUri);

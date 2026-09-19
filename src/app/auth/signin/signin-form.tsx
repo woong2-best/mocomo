@@ -1,17 +1,25 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { BRAND } from "@/lib/brand";
+import { loginErrorMessage } from "@/lib/auth-login-errors";
 import { useLocale } from "@/components/providers/locale-provider";
 import { persistOAuthFlowIntent, setOAuthFlowCookieClient } from "@/lib/oauth-flow-cookie";
 import { setAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
 import { SignInAccountPicker } from "@/components/auth/signin-account-picker";
 import { listSavedAccounts } from "@/lib/account-switch/client";
+import { waitForClientSession } from "@/lib/auth-session-retry";
+import { finishAddAccountFlow } from "@/lib/account-switch/add-account-flow";
 import {
   MOBILE_OAUTH_COOKIE,
   MOBILE_OAUTH_PLATFORM_COOKIE,
@@ -33,6 +41,12 @@ function readCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+function normalizeLoginId(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("@")) return trimmed.slice(1).trim();
+  return trimmed;
 }
 
 export function SignInForm({
@@ -60,6 +74,7 @@ export function SignInForm({
   pickAccount?: boolean;
   loggedOutUserId?: string | null;
 }) {
+  const router = useRouter();
   const { t, locale } = useLocale();
   const { data: session } = useSession();
   const callbackUrl = safeCallbackUrl(callbackUrlProp);
@@ -84,9 +99,22 @@ export function SignInForm({
   const oauthMode: "signup" | "signin" =
     intentSignup || needsSignupNotice || addAccount ? "signup" : "signin";
 
+  const loginInputRef = useRef<HTMLInputElement>(null);
+  const [loginId, setLoginId] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [showLoginForm, setShowLoginForm] = useState(
     () => !pickAccount || listSavedAccounts().length === 0
   );
+
+  const emailVerifyHref = isMobile
+    ? `/auth/email-verify?from=mobile&platform=${resolvedPlatform}`
+    : "/auth/email-verify";
+  const forgotHref = isMobile
+    ? `/auth/email-verify?from=mobile&platform=${resolvedPlatform}&mode=reset`
+    : "/auth/email-verify?mode=reset";
 
   useEffect(() => {
     const hasMobileCookie = readCookie(MOBILE_OAUTH_COOKIE) === "1";
@@ -117,38 +145,85 @@ export function SignInForm({
     })();
   }, [addAccount, sameAccountNotice, accountExistsNotice, session?.user?.id]);
 
-  // App AuthSession: after Google sign-in hits not_registered, continue with signup OAuth.
+  // Unregistered Google account → continue as signup (web + mobile).
   useEffect(() => {
-    if (!isMobile || !needsSignupNotice || autoContinueRef.current || !googleOAuth) return;
+    if (!needsSignupNotice || autoContinueRef.current || !googleOAuth) return;
     if (typeof window !== "undefined") {
-      const onceKey = "mocomo_mobile_oauth_signup_continued";
+      const onceKey = "mocomo_oauth_signup_continued";
       if (sessionStorage.getItem(onceKey) === "1") return;
       sessionStorage.setItem(onceKey, "1");
     }
-    const provider = readCookie(MOBILE_OAUTH_PROVIDER_COOKIE);
-    if (provider !== "google" && provider !== "gmail") return;
+
+    if (isMobile) {
+      const provider = readCookie(MOBILE_OAUTH_PROVIDER_COOKIE);
+      if (provider !== "google" && provider !== "gmail") return;
+    }
 
     autoContinueRef.current = true;
     setOAuthFlowCookieClient("signup");
     window.location.replace(
       buildProviderSigninHref("google", {
         flow: "signup",
-        callbackUrl: completeUrl,
+        callbackUrl: oauthCallbackUrl,
         addAccount,
-        mobile: true,
+        mobile: isMobile,
         platform: resolvedPlatform,
         redirectUri: mobileRedirectUri,
+        // Reuse the Google account just selected — skip second picker.
+        selectAccount: false,
       })
     );
   }, [
-    isMobile,
     needsSignupNotice,
     googleOAuth,
-    completeUrl,
+    isMobile,
+    oauthCallbackUrl,
     addAccount,
     resolvedPlatform,
     mobileRedirectUri,
   ]);
+
+  async function handleCredentials(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const normalized = normalizeLoginId(loginId);
+    if (!normalized) {
+      setLoading(false);
+      return;
+    }
+    router.prefetch(callbackUrl);
+
+    const result = await signIn("credentials", {
+      email: normalized,
+      password,
+      redirect: false,
+    });
+
+    setLoading(false);
+
+    if (result?.error || result?.ok === false) {
+      const code =
+        typeof result === "object" && result && "code" in result
+          ? String((result as { code?: string }).code ?? "")
+          : undefined;
+      setError(loginErrorMessage(code || result?.error, result?.error ?? undefined));
+      return;
+    }
+
+    const nextSession = await waitForClientSession();
+    if (!nextSession?.user?.id) {
+      setError(
+        locale === "ko"
+          ? "로그인 세션이 생성되지 않았습니다. 다시 시도해 주세요."
+          : "Could not create a login session. Please try again."
+      );
+      return;
+    }
+    await finishAddAccountFlow();
+    window.location.assign(isMobile ? completeUrl : callbackUrl);
+  }
 
   const bannedNotice =
     errorParam === "banned"
@@ -189,18 +264,16 @@ export function SignInForm({
             </div>
           </CardHeader>
           <CardContent className="space-y-4 pt-2">
-            {(bannedNotice || callbackErrorMessage) && (
+            {(error || bannedNotice || callbackErrorMessage) && (
               <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">
-                {bannedNotice || callbackErrorMessage}
+                {error || bannedNotice || callbackErrorMessage}
               </p>
             )}
             {needsSignupNotice ? (
               <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200/80 rounded-xl px-3 py-2 dark:text-amber-100 dark:bg-amber-950/40 dark:border-amber-800/60">
-                {isMobile
-                  ? locale === "ko"
-                    ? "아직 MoCoMo 계정이 없습니다. 가입을 이어서 진행합니다…"
-                    : "No MoCoMo account yet — continuing signup…"
-                  : t("auth.oauthSignupRequired")}
+                {locale === "ko"
+                  ? "아직 MoCoMo 계정이 없습니다. 회원가입을 이어서 진행합니다…"
+                  : "No MoCoMo account yet — continuing signup…"}
               </p>
             ) : null}
             {accountExistsNotice ? (
@@ -230,6 +303,66 @@ export function SignInForm({
               addAccount={addAccount}
               mobileRedirectUri={mobileRedirectUri}
             />
+
+            <div className="relative py-1">
+              <div className="absolute inset-0 flex items-center" aria-hidden>
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                  {locale === "ko" ? "또는" : "or"}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleCredentials} className="space-y-3">
+              <Input
+                ref={loginInputRef}
+                type="text"
+                inputMode="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder={t("auth.loginIdPlaceholder")}
+                value={loginId}
+                onChange={(e) => setLoginId(e.target.value)}
+                required
+                autoComplete="username"
+                className="rounded-xl h-11"
+              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder={t("auth.passwordSimple")}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="rounded-xl h-11 pr-11"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <Button type="submit" className="w-full rounded-xl h-11" disabled={loading}>
+                {loading ? t("auth.signingIn") : t("auth.signIn")}
+              </Button>
+            </form>
+
+            <p className="text-center text-sm text-muted-foreground">
+              <Link href={emailVerifyHref} className="text-primary hover:underline">
+                {t("auth.emailVerifyLink")}
+              </Link>
+              {" · "}
+              <Link href={forgotHref} className="text-primary hover:underline">
+                {t("auth.passwordResetTab")}
+              </Link>
+            </p>
 
             <p className="text-[11px] text-center text-muted-foreground leading-relaxed px-1">
               {locale === "ko" ? (

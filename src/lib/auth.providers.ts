@@ -22,9 +22,8 @@ const credentialsProvider = Credentials({
 });
 
 /**
- * Public signup/login is Google-only.
- * Credentials stay registered for legacy email accounts / internal tooling —
- * the sign-in UI no longer exposes them.
+ * Public signup/login: Google OAuth + credentials (username/email + password).
+ * Credentials remain for legacy accounts and the sign-in form.
  * Live streaming OAuth (YouTube / Twitch / CHZZK) is separate — do not add here.
  */
 export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {

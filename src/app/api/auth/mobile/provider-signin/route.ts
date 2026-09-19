@@ -11,12 +11,15 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const provider = sp.get("provider") ?? "";
   if (!isOAuthProviderId(provider)) {
-    return NextResponse.redirect(new URL("/auth/error?error=Configuration", req.url));
+    return NextResponse.redirect(
+      new URL(`/auth/error?error=Configuration&provider=${encodeURIComponent(provider)}`, req.url)
+    );
   }
 
   const platform = sp.get("platform") === "ios" ? "ios" : "android";
   const flow = sp.get("flow") === "signup" ? "signup" : "signin";
   const addAccount = sp.get("addAccount") === "1";
+  const selectAccount = sp.get("selectAccount") !== "0";
 
   try {
     await startOAuthProviderSignin({
@@ -27,12 +30,18 @@ export async function GET(req: NextRequest) {
       mobile: true,
       platform,
       redirectUri: sp.get("redirect_uri"),
+      selectAccount,
     });
   } catch (e) {
     if (isNextNavigationError(e)) throw e;
-    console.error("[api/auth/mobile/provider-signin]", e);
-    return NextResponse.redirect(new URL("/auth/error?error=Configuration", req.url));
+    console.error("[api/auth/mobile/provider-signin]", provider, e);
+    return NextResponse.redirect(
+      new URL(`/auth/error?error=Configuration&provider=${encodeURIComponent(provider)}`, req.url)
+    );
   }
 
-  return NextResponse.redirect(new URL("/auth/signin?error=Configuration", req.url));
+  console.error("[api/auth/mobile/provider-signin] signIn returned without redirect", provider);
+  return NextResponse.redirect(
+    new URL(`/auth/error?error=Configuration&provider=${encodeURIComponent(provider)}`, req.url)
+  );
 }

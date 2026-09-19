@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
 
   const flow = sp.get("flow") === "signup" ? "signup" : "signin";
   const addAccount = sp.get("addAccount") === "1";
+  const selectAccount = sp.get("selectAccount") !== "0";
 
   try {
     await startOAuthProviderSignin({
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
       callbackUrl: sp.get("callbackUrl"),
       addAccount,
       mobile: false,
+      selectAccount,
     });
   } catch (e) {
     if (isNextNavigationError(e)) throw e;

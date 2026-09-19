@@ -354,7 +354,7 @@
   "home.highlightsEmpty": "{title} — no data this month yet",
   "auth.signInTitle": "Sign in to {brand}",
   "auth.welcomeTitle": "Welcome to {brand}",
-  "auth.welcomeDesc": "Sign in or create an account with Google.",
+  "auth.welcomeDesc": "Continue with Google, or sign in with your ID and password.",
   "auth.continueWithGoogle": "Continue with Google",
   "auth.signIn": "Sign in",
   "auth.signingIn": "Signing in...",
