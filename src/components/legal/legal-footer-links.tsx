@@ -9,6 +9,7 @@ const links: { href: string; labelKey: MessageKey }[] = [
   { href: "/legal/terms", labelKey: "legal.terms" },
   { href: "/legal/aup", labelKey: "legal.aup" },
   { href: "/legal/creator-terms", labelKey: "legal.creatorTerms" },
+  { href: "/legal/qna", labelKey: "legal.qna" },
   { href: "/legal/sponsored-content", labelKey: "legal.sponsoredContent" },
   { href: "/legal/payment", labelKey: "legal.payment" },
   { href: "/legal/copyright", labelKey: "legal.copyright" },

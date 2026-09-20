@@ -20,6 +20,7 @@ export type LegalBlock =
   | { type: "h2"; text: string }
   | { type: "h3"; text: string }
   | { type: "ul"; items: string[] }
+  | { type: "table"; headers: string[]; rows: string[][] }
   | { type: "hr" };
 
 export type LegalDocument = {
@@ -1150,7 +1151,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
 export const CREATOR_TERMS: LegalDocument = {
   slug: "creator-terms",
   title: "MoCoMo 크리에이터 약관",
-  updatedAt: "2026년 9월 11일",
+  updatedAt: "2026년 9월 20일",
   intro:
     '본 약관은 MoCoMo LLC(이하 "회사")가 제공하는 크리에이터·구독·후원·디지털 판매 기능의 이용 조건을 규정합니다. 일반 이용약관과 함께 적용되며, 충돌 시 본 약관이 크리에이터 기능에 우선합니다.',
   blocks: [
@@ -1185,20 +1186,23 @@ export const CREATOR_TERMS: LegalDocument = {
       type: "p",
       text: "③ 구매 MOCO(이용자가 현금으로 구매한 소비성 포인트)는 환불·인출·Reward 전환이 불가능하며, 소멸하지 않고 이월됩니다.",
     },
-    { type: "p", text: "④ 회사는 Reward 지급 전 플랫폼 수수료를 공제할 수 있습니다. 한국 거주 크리에이터에게는 적용 법령에 따라 3.3% 원천징수세를 차감할 수 있습니다." },
     {
       type: "p",
-      text: "⑤ Reward 지급은 Stripe 등 금융 인프라 파트너를 통해 크리에이터가 MoCoMo 앱 내에 등록한 은행 계좌로 이루어집니다. 크리에이터는 Stripe 웹사이트 가입 없이 MoCoMo에서 본인·계좌 정보를 제공합니다.",
+      text: "④ 정산 등급별 Reward에는 플랫폼 수수료(10%)가 사전 반영되어 있습니다. 회사는 Reward 지급 시 소득세 등 세금을 원천징수하지 않으며, 세무 신고·납부 의무는 크리에이터 본인에게 있습니다. (미국 등 요건 충족 시 1099-NEC 등 세무 서류가 발급될 수 있습니다.)",
+    },
+    {
+      type: "p",
+      text: "⑤ Reward 지급은 Stripe Connect Express를 통해 크리에이터가 Stripe 온보딩에서 등록한 본인 명의 은행 계좌로 이루어집니다. 본인 확인·계좌·세무 정보는 Stripe Hosted Onboarding에서 수집·보관됩니다.",
     },
     { type: "h3", text: "(수취인 대리인 — Agent of Payee)" },
     {
       type: "p",
-      text: "크리에이터는 MoCoMo에 정산 계좌를 등록함으로써, MoCoMo가 크리에이터를 대리하여 Reward 대금을 수취하는 '수취인 대리인(Agent of Payee)'임에 동의합니다. 크리에이터가 MoCoMo에 정산 정보를 제공하고 Reward 수령 의사를 표시한 시점에 대금 수령이 완료된 것으로 간주됩니다.",
+      text: "크리에이터는 Stripe Express 온보딩을 완료하고 Reward 수령 의사를 표시함으로써, MoCoMo가 크리에이터를 대리하여 Reward 대금을 수취하는 '수취인 대리인(Agent of Payee)'임에 동의합니다. Stripe 온보딩 완료 시점에 대금 수령 준비가 완료된 것으로 간주됩니다.",
     },
-    { type: "h3", text: "(세무 및 W-8BEN / W-9)" },
+    { type: "h3", text: "(세무 및 W-8BEN / W-9 · 1099)" },
     {
       type: "p",
-      text: "비미국 거주 크리에이터는 미국 세법상 미국 거주자(US Person)가 아님을 확인하는 W-8BEN 전자 동의를 제공합니다. 미국 거주 크리에이터는 W-9 및 SSN/ITIN을 제공합니다. 회사는 동의 시점·IP·타임스탬프를 보관하고 금융 파트너에 전달합니다.",
+      text: "미국 세법상 필요한 W-9 / W-8BEN 등 세무 정보는 Stripe Connect Express 온보딩을 통해 수집되며, 해당 세무 보고(예: 1099-NEC)는 Stripe Connect Tax Reporting에 위임합니다. 세무·온보딩 정보가 미비한 경우 Reward 지급이 보류될 수 있습니다.",
     },
     { type: "hr" },
     { type: "h2", text: "제5조 (금지 행위)" },
@@ -2043,12 +2047,142 @@ export const MODERATION_POLICY: LegalDocument = {
   ],
 };
 
+/** MOCO 충전·정산·세무 관련 자주 묻는 질문 */
+export const CREATOR_SETTLEMENT_QNA: LegalDocument = {
+  slug: "qna",
+  title: "MOCO 정산 QnA",
+  updatedAt: "2026년 9월 20일",
+  intro:
+    "구매 MOCO 충전·사용, 크리에이터 Reward 정산, 세무 및 제재 국가에 관한 자주 묻는 질문입니다. 자세한 법적 조건은 이용약관·크리에이터 약관·결제 및 환불 정책을 함께 확인해 주세요.",
+  blocks: [
+    { type: "h2", text: "Q. MOCO 충전 및 사용 내역은 어디서 확인하나요?" },
+    {
+      type: "p",
+      text: "로그인 후 지갑(/wallet)에서 확인할 수 있습니다. 충전·결제 내역, 후원·사용 내역, 잔여 purchased MOCO를 한곳에서 볼 수 있으며, 앱에서는 지갑 메뉴로 동일하게 진입하면 됩니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "Q. MOCO 결제 후 환불이나 후원 취소가 가능한가요?" },
+    {
+      type: "p",
+      text: "원칙적으로 불가합니다. 구매 MOCO는 결제 완료 즉시 제공되는 디지털 소비성 포인트이며, 이미 후원·콘텐츠 구매 등으로 사용된 MOCO는 환불·후원 취소가 되지 않습니다. 미사용분이라도 관련 법령·결제 수단(웹 / App Store / Google Play) 정책상 환불이 제한될 수 있습니다. 회사 시스템 오류로 서비스를 전혀 이용하지 못한 경우 등 정당한 사유가 확인되면 고객지원을 통해 개별 검토합니다. 앱스토어 결제 건은 해당 스토어 환불 절차가 우선 적용될 수 있습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "Q. 해외 카드나 다른 국가 통화(USD, JPY 등)로도 MOCO를 결제할 수 있나요?" },
+    {
+      type: "p",
+      text: "가능합니다. Stripe 등 결제사를 통해 해외 발급 카드로 결제할 수 있으며, 결제 통화·표시 금액은 결제 수단·거주 국가·스토어 정책에 따라 달라질 수 있습니다. 환율·해외 결제 수수료는 카드사·결제사 정책이 적용될 수 있으며, 최종 청구 금액은 결제 화면에서 확인해 주세요.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "Q. 팬이 보낸 MOCO는 크리에이터에게 얼마나 정산되나요?" },
+    {
+      type: "p",
+      text: "팬분들에게 받은 MOCO는 크리에이터님의 earned MOCO로 1:1 적립됩니다.",
+    },
+    {
+      type: "p",
+      text: "월말 정산 시 건별로 계산하는 방식이 아닌, 한 달 동안 모은 총 MOCO로 달성한 '정산 등급'에 따라 확정 정산금(Reward)이 지급됩니다. 플랫폼 수수료(10%)가 이미 차감 적용된 금액이므로 별도 수수료 계산이 필요하지 않습니다.",
+    },
+    {
+      type: "p",
+      text: "이월 안내: 등급 기준을 초과하고 남은 MOCO는 사라지지 않고 다음 달 정산으로 자동 이월됩니다. (예: 이번 달 2,203 MOCO 수령 시 → Dimension 등급(2,200 MOCO) 정산금 $9,900 지급 + 남은 3 MOCO는 다음 달로 이월)",
+    },
+    { type: "hr" },
+    { type: "h2", text: "Q. 이번 달 정산 예상 금액은 어디서 확인할 수 있나요?" },
+    {
+      type: "p",
+      text: "지갑(/wallet) → 수익·정산 메뉴에서 확인할 수 있습니다. 해당 화면에서 현재 earned MOCO, 달성한 정산 등급, 받을 정산금 내역을 한눈에 파악할 수 있습니다. 별도로 수수료를 계산할 필요 없이 화면에 표시된 금액 그대로 정산받게 됩니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "Q. 정산금을 받을 은행 계좌는 어디서 등록하나요?" },
+    {
+      type: "p",
+      text: "지갑(/wallet) → Reward 정산 등록에서 Stripe Connect 본인 확인 및 은행 계좌 등록을 진행합니다. 등록이 완료되면 동일 화면에서 계좌 끝자리 등 등록 상태를 확인할 수 있고, 필요 시 Stripe 대시보드에서 계좌 정보를 수정할 수 있습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "Q. 정산금은 신청 없이 지정된 날짜에 자동으로 입금되나요?" },
+    {
+      type: "p",
+      text: "네. 정산 계좌 등록(Stripe Connect)이 완료되고 최소 지급 기준·정산 등급 조건을 충족하면, 별도 출금 신청 없이 매월 지정 일정(매월 1일 정산 배치)에 따라 Reward가 자동 지급됩니다. 계좌 미등록, 본인 확인 미완료, 최소 금액 미달, 분쟁·약관 위반 등으로 정산이 보류된 경우에는 해당 회차 지급이 스킵되거나 지연될 수 있으며, 조건 충족 시 이후 회차에 반영됩니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "Q. 정산받기 위한 최소 금액(최소 MOCO) 기준이 있나요?" },
+    {
+      type: "p",
+      text: "있습니다. 해당 월 earned MOCO가 최소 정산 등급(Pulse, 10 MOCO) 이상이어야 Reward 대상이 되며, Novice(0)는 지급 대상이 아닙니다. 또한 순지급액이 최소 지급 기준(현재 정책: 약 ₩10,000 또는 $10) 이상이어야 입금됩니다. 미달 분은 정책에 따라 이월되거나 다음 정산 회차에 합산될 수 있습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "Q. 해외 계좌나 본국 통화로도 정산금을 받을 수 있나요?" },
+    {
+      type: "p",
+      text: "가능합니다. Stripe Connect가 지원하는 국가·통화 범위 내에서 본국(또는 거주국) 은행 계좌·현지 통화로 Reward를 받을 수 있습니다. 지원 국가·통화·세금 서류(W-8BEN / W-9 등)는 정산 등록 과정에서 안내되며, 미지원·제재 국가는 계좌 등록이 제한될 수 있습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "Q. 정산 등급과 등급별 정산금(Reward) 기준이 궁금해요." },
+    {
+      type: "p",
+      text: "정산 등급은 후원(보낸) 등급과 별개입니다. 매월 모은 earned MOCO 기준으로 등급이 산정되며, 등급별 지급 금액은 아래와 같습니다. (1 MOCO = $5 기준, 플랫폼 수수료 10% 사전 차감 반영)",
+    },
+    {
+      type: "table",
+      headers: ["정산 등급", "필요 MOCO", "정산금 (Reward)"],
+      rows: [
+        ["Novice", "0 MOCO", "$0"],
+        ["Pulse", "10 MOCO", "$45"],
+        ["Nexus", "15 MOCO", "$67.5"],
+        ["Matrix", "30 MOCO", "$135"],
+        ["Flux", "50 MOCO", "$225"],
+        ["Vortex", "60 MOCO", "$270"],
+        ["Horizon", "70 MOCO", "$315"],
+        ["Genesis", "90 MOCO", "$405"],
+        ["Continuum", "120 MOCO", "$540"],
+        ["Singularity", "160 MOCO", "$720"],
+        ["Zenith", "200 MOCO", "$900"],
+        ["Eclipse", "260 MOCO", "$1,170"],
+        ["Aether", "350 MOCO", "$1,575"],
+        ["Eternity", "500 MOCO", "$2,250"],
+        ["Transcend", "700 MOCO", "$3,150"],
+        ["Infinity", "1,000 MOCO", "$4,500"],
+        ["Cosmos", "1,500 MOCO", "$6,750"],
+        ["Dimension", "2,200 MOCO", "$9,900"],
+        ["Chronos", "3,200 MOCO", "$14,400"],
+        ["Omniverse", "4,500 MOCO", "$20,250"],
+        ["Absolute", "6,500 MOCO", "$29,250"],
+        ["Primeval", "9,000 MOCO", "$40,500"],
+        ["Firmament", "13,000 MOCO", "$58,500"],
+        ["Aethelgard", "18,000 MOCO", "$81,000"],
+        ["Supernova", "25,000 MOCO", "$112,500"],
+        ["Empyrean", "35,000 MOCO", "$157,500"],
+        ["Aethelos", "48,000 MOCO", "$216,000"],
+        ["Sovereign", "65,000 MOCO", "$292,500"],
+        ["Origin", "82,000 MOCO", "$369,000"],
+        ["Supreme", "100,000 MOCO", "$450,000"],
+      ],
+    },
+    { type: "hr" },
+    { type: "h2", text: "Q. 정산 서비스 이용 불가 국가 및 세무 관련 주의사항이 있나요?" },
+    {
+      type: "p",
+      text: "아래 사항을 사전에 꼭 확인해 주세요.",
+    },
+    {
+      type: "ul",
+      items: [
+        "미국 해외자산통제국(OFAC) 금융 제재 국가 정산 제한: 본 서비스는 Stripe 결제 인프라를 사용하므로, 미국 금융 제재 대상 국가의 거주자나 해당 국가 은행 계좌로는 정산금이 지급되지 않습니다.",
+        "주요 제한 대상 지역: 북한(North Korea), 이란(Iran), 시리아(Syria), 쿠바(Cuba), 러시아 및 우크라이나 제재 지역(크림반도, 도네츠크, 루한스크 등)",
+        "지급 수수료: 정산금 송금 시 거주 국가/은행에 따라 수수료(Stripe 처리 수수료, 해외 송금 및 환전 수수료 등)가 일부 발생할 수 있습니다.",
+        "소득 신고 및 세금: 플랫폼에서 자진해서 떼는 원천징수 세금은 없습니다. 본 정산금에는 소득세 등 각종 세금이 공제되어 있지 않으므로, 크리에이터 본인의 거주 국가 법률에 따른 소득 신고 및 세금 납부 의무는 크리에이터 본인에게 있습니다. (단, 미국 거주 크리에이터 등 요건 충족 시 연말 세무 신고용 서류(1099-NEC)가 발급될 수 있습니다.)",
+      ],
+    },
+  ],
+};
+
 export const LEGAL_PAGES = [
   { href: "/legal/aup", label: "Acceptable Use Policy (AUP)", doc: ACCEPTABLE_USE_POLICY },
   { href: "/legal/policy", label: "운영원칙 및 이용정책", doc: COMMUNITY_POLICY },
   { href: "/legal/culture-wiki", label: "컬쳐 위키 이용 약관", doc: CULTURE_WIKI_TERMS },
   { href: "/legal/terms", label: "이용약관", doc: TERMS_OF_SERVICE },
   { href: "/legal/creator-terms", label: "크리에이터 약관", doc: CREATOR_TERMS },
+  { href: "/legal/qna", label: "MOCO 정산 QnA", doc: CREATOR_SETTLEMENT_QNA },
   { href: "/legal/seller-terms", label: "판매자 이용약관", doc: SELLER_TERMS },
   { href: "/legal/sponsored-content", label: "광고·이벤트 게시 약관", doc: SPONSORED_CONTENT_POLICY },
   { href: "/legal/payment", label: "결제 및 환불 정책", doc: PAYMENT_REFUND_POLICY },

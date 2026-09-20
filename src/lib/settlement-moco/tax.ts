@@ -1,6 +1,4 @@
-import { isKrSellerCountry } from "@/lib/marketplace/seller-region-policy";
 import {
-  KR_WITHHOLDING_RATE,
   SETTLEMENT_FX_KRW_PER_USD,
   type TaxFormType,
 } from "@/lib/settlement-moco/constants";
@@ -37,15 +35,12 @@ export function calcTierRewardAmount(input: {
   const usdCents = input.rewardUsd * 100;
 
   if (currency === "krw") {
-    const grossKrw = Math.round((input.rewardUsd) * SETTLEMENT_FX_KRW_PER_USD);
-    const withholding = isKrSellerCountry(input.countryCode)
-      ? Math.floor(grossKrw * KR_WITHHOLDING_RATE)
-      : 0;
+    const grossKrw = Math.round(input.rewardUsd * SETTLEMENT_FX_KRW_PER_USD);
     return {
       currency: "krw",
       grossMinor: grossKrw,
-      withholdingMinor: withholding,
-      netMinor: grossKrw - withholding,
+      withholdingMinor: 0,
+      netMinor: grossKrw,
     };
   }
 

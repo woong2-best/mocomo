@@ -52,6 +52,36 @@ function renderBlock(block: LegalDocument["blocks"][number], key: number) {
           ))}
         </ul>
       );
+    case "table":
+      return (
+        <div key={key} className="overflow-x-auto mb-6 rounded-xl border border-border/60">
+          <table className="w-full min-w-[20rem] text-sm">
+            <thead>
+              <tr className="border-b border-border/60 bg-muted/40 text-left">
+                {block.headers.map((header) => (
+                  <th key={header} className="px-3 py-2.5 font-semibold whitespace-nowrap">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {block.rows.map((row) => (
+                <tr key={row.join("|")} className="border-b border-border/40 last:border-0">
+                  {row.map((cell, cellIndex) => (
+                    <td
+                      key={`${row[0]}-${cellIndex}`}
+                      className="px-3 py-2 text-muted-foreground whitespace-nowrap"
+                    >
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
     case "hr":
       return <hr key={key} className="border-border/60 my-6" />;
     default:
