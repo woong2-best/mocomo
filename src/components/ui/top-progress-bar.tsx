@@ -31,8 +31,8 @@ export function TopProgressBar() {
           transform: `scaleX(${Math.max(0.02, progress)})`,
           opacity: fading || !active ? 0 : 1,
           transition: fading
-            ? "opacity 200ms ease-out"
-            : "transform 450ms cubic-bezier(0.22, 1, 0.36, 1), opacity 150ms ease-out",
+            ? "opacity 140ms ease-out"
+            : "transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 100ms ease-out",
           willChange: "transform, opacity",
         }}
       />

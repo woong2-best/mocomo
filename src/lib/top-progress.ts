@@ -5,6 +5,7 @@
  * - Ref-counted start/done
  * - Safety deadline is set ONCE when the bar appears (never refreshed by later starts)
  * - Smooth CSS width animation (no JS trickle stutter)
+ * - Finish when route/mutation work ends — never wait on images/fonts (those load after paint)
  */
 
 export type TopProgressSnapshot = {
@@ -25,61 +26,17 @@ export const TOP_PROGRESS_IDLE: TopProgressSnapshot = {
 
 /**
  * When work outlives this, the bar stops advancing and parks at the hold width
- * rather than disappearing. Measured cold navigations run to ~9s, and a bar that
- * vanishes while the app is still frozen reads as "nothing is happening".
+ * rather than disappearing. A bar that vanishes while the app is still waiting
+ * reads as "nothing is happening".
  */
 const STALL_AFTER_MS = 4_000;
 /** Width the bar parks at while still waiting. */
 const STALL_PROGRESS = 0.92;
 /** Hard ceiling — past this something is genuinely wrong, so clear the bar. */
 const ABANDON_AFTER_MS = 30_000;
-/** Max wait while syncing with browser load (tab spinner / window.load). */
-const SETTLE_CAP_MS = 10_000;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function nextFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()));
-}
-
-/** Wait until paint + document/resources settle — aligns with the browser tab spinner. */
-async function waitForPageSettle(): Promise<void> {
-  await nextFrame();
-  await nextFrame();
-
-  if (document.readyState !== "complete") {
-    await Promise.race([
-      new Promise<void>((resolve) => {
-        window.addEventListener("load", () => resolve(), { once: true });
-      }),
-      delay(SETTLE_CAP_MS),
-    ]);
-  }
-
-  try {
-    await Promise.race([document.fonts.ready, delay(2_000)]);
-  } catch {
-    // document.fonts unsupported
-  }
-
-  const pending = Array.from(document.images).filter((img) => !img.complete);
-  if (pending.length > 0) {
-    await Promise.race([
-      Promise.all(
-        pending.map(
-          (img) =>
-            new Promise<void>((resolve) => {
-              const finish = () => resolve();
-              img.addEventListener("load", finish, { once: true });
-              img.addEventListener("error", finish, { once: true });
-            }),
-        ),
-      ),
-      delay(4_000),
-    ]);
-  }
 }
 
 class TopProgressController {
@@ -91,7 +48,7 @@ class TopProgressController {
   private safetyTimer: ReturnType<typeof setTimeout> | null = null;
   private abandonTimer: ReturnType<typeof setTimeout> | null = null;
   private crawlTimer: ReturnType<typeof setTimeout> | null = null;
-  private settlePromise: Promise<void> | null = null;
+  private finishPromise: Promise<void> | null = null;
   private listeners = new Set<Listener>();
   private cached: TopProgressSnapshot = TOP_PROGRESS_IDLE;
 
@@ -127,7 +84,7 @@ class TopProgressController {
     if (this.count <= 0) return;
     this.count -= 1;
     if (this.count > 0) return;
-    void this.settleThenFinish();
+    void this.paintThenFinish();
   }
 
   fail(): void {
@@ -138,12 +95,12 @@ class TopProgressController {
     this.reset();
   }
 
-  /** Force-finish — drains all holds, then waits for page settle. */
+  /** Force-finish — drains all holds, then finishes on next paint. */
   complete(): void {
     if (typeof window === "undefined") return;
     if (!this.active && this.count === 0) return;
     this.count = 0;
-    void this.settleThenFinish();
+    void this.paintThenFinish();
   }
 
   forceReset(): void {
@@ -197,9 +154,9 @@ class TopProgressController {
       this.progress = steps[i]!;
       i += 1;
       this.emit();
-      this.crawlTimer = setTimeout(tick, 700);
+      this.crawlTimer = setTimeout(tick, 420);
     };
-    this.crawlTimer = setTimeout(tick, 450);
+    this.crawlTimer = setTimeout(tick, 280);
   }
 
   private clearCrawl(): void {
@@ -209,13 +166,14 @@ class TopProgressController {
     }
   }
 
-  private async settleThenFinish(): Promise<void> {
-    if (!this.settlePromise) {
-      this.settlePromise = waitForPageSettle().finally(() => {
-        this.settlePromise = null;
+  /** One frame so the 100% state can paint, then fade — never wait on assets. */
+  private async paintThenFinish(): Promise<void> {
+    if (!this.finishPromise) {
+      this.finishPromise = nextFrame().finally(() => {
+        this.finishPromise = null;
       });
     }
-    await this.settlePromise;
+    await this.finishPromise;
     if (this.count > 0 || !this.active) return;
     this.finish();
   }
@@ -237,8 +195,8 @@ class TopProgressController {
         this.progress = 0;
         this.hideTimer = null;
         this.emit();
-      }, 200);
-    }, 200);
+      }, 160);
+    }, 120);
   }
 
   private reset(): void {
@@ -347,18 +305,18 @@ export function installTopProgressFetch(): () => void {
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const trackMutation = shouldTrackFetch(input, init);
     const trackNavigation = isNextNavigationFetch(input, init);
+    const track = trackMutation || trackNavigation;
 
-    if (trackNavigation && !topProgress.isBusy()) {
-      topProgress.start();
-    }
-    if (trackMutation) topProgress.start();
+    // Always ref-count navigation fetches — even if click already started the bar.
+    // Otherwise URL change calls done() while RSC is still in flight and the bar dies early.
+    if (track) topProgress.start();
 
     try {
       const res = await original(input, init);
-      if (trackMutation) topProgress.done();
+      if (track) topProgress.done();
       return res;
     } catch (err) {
-      if (trackMutation) topProgress.fail();
+      if (track) topProgress.fail();
       throw err;
     }
   };

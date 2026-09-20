@@ -69,7 +69,8 @@ function TopProgressEffects() {
   useEffect(() => {
     if (prevRouteKey.current === routeKey) return;
     prevRouteKey.current = routeKey;
-    // Ref-counted release — Suspense fallbacks / mutations may still hold the bar open.
+    // Releases the click/popstate hold. In-flight RSC fetches keep their own ref-count
+    // until the payload arrives — that is what keeps the bar honest like X/Twitter.
     topProgress.done();
   }, [routeKey]);
 
