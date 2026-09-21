@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { confirmPaymentMethodSetup } from "@/actions/payment-methods";
-import { PaymentMethodsPanel } from "@/components/wallet/payment-methods-panel";
+import { WalletPaymentStation } from "@/components/wallet/wallet-payment-station";
+import { WalletPayProvider } from "@/components/wallet/wallet-pay-context";
 import { PaymentHistoryPanel } from "@/components/wallet/payment-history-panel";
 import { ReceivedTipsPanel } from "@/components/wallet/received-tips-panel";
 import { RevenueSettlementPanel } from "@/components/wallet/revenue-settlement-panel";
@@ -12,7 +13,6 @@ import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import type { PaymentHistoryItem } from "@/lib/payment-history";
 import type { TipHistory } from "@/actions/support";
-import { GemBalancePanel } from "@/components/wallet/gem-balance-panel";
 import { cn } from "@/lib/utils";
 
 type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWallet>>;
@@ -145,18 +145,19 @@ export function WalletHub({
 
       {tab === "wallet" ? (
         <>
-          <GemBalancePanel
-            balance={gemBalance}
-            minTopupMoco={minTopupMoco}
-            paymentMethods={paymentMethods}
-            purchases={gemPurchases}
-            lowBalanceNotice={lowBalanceNotice}
-            userImageUrl={userImageUrl}
-          />
-          <PaymentMethodsPanel methods={paymentMethods} />
+          <WalletPayProvider>
+            <WalletPaymentStation
+              balance={gemBalance}
+              minTopupMoco={minTopupMoco}
+              paymentMethods={paymentMethods}
+              purchases={gemPurchases}
+              lowBalanceNotice={lowBalanceNotice}
+              userImageUrl={userImageUrl}
+            />
+          </WalletPayProvider>
           <PaymentHistoryPanel items={paymentHistory} />
           <p className="text-center text-xs text-muted-foreground px-4">
-            결제할 때 등록된 카드 목록에서 선택합니다.
+            ZERO 카드를 선택한 뒤 리더기 방향으로 밀어 결제합니다.
           </p>
         </>
       ) : (

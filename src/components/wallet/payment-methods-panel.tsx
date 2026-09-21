@@ -38,7 +38,7 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
     }));
     const addEntry = { kind: "add" as const, color: "from-[#1a1f2e] to-[#0f1219]" };
     if (savedEntries.length === 0) return [addEntry];
-    return [addEntry, ...savedEntries.slice().reverse()];
+    return [...savedEntries.slice().reverse(), addEntry];
   }, [methods]);
 
   async function addCard() {

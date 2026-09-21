@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, Loader2, ShieldCheck, X } from "lucide-react";
+import { useWalletPay } from "@/components/wallet/wallet-pay-context";
+import type { AtmScreenOverlay } from "@/components/wallet/wallet-payment-types";
 import { payGemTopupWithSavedCard } from "@/actions/gems";
 import { confirmCheckoutPayment } from "@/actions/checkout-payment";
 import {
@@ -36,6 +39,10 @@ type Props = {
   purchases: GemPurchaseRow[];
   lowBalanceNotice?: boolean;
   userImageUrl?: string | null;
+  selectedCardId?: string | null;
+  atmOverlay?: AtmScreenOverlay;
+  onPaymentResult?: (result: "success" | "failure") => void;
+  onPaymentProcessing?: () => void;
 };
 
 function formatUsdCents(cents: number) {
@@ -120,19 +127,27 @@ export function GemBalancePanel({
   purchases,
   lowBalanceNotice,
   userImageUrl,
+  selectedCardId = null,
+  atmOverlay = null,
+  onPaymentResult,
+  onPaymentProcessing,
 }: Props) {
   const router = useRouter();
+  const { registerInsertHandler } = useWalletPay();
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
   const [statusLine, setStatusLine] = useState("충전할 MOCO 수량을 입력해 주세요.");
+  const [awaitingInsert, setAwaitingInsert] = useState(false);
   const [pending, startTransition] = useTransition();
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
 
-  const defaultCard = useMemo(
-    () => paymentMethods.find((m) => m.isDefault) ?? paymentMethods[0] ?? null,
-    [paymentMethods],
-  );
+  const payCard = useMemo(() => {
+    if (selectedCardId) {
+      return paymentMethods.find((m) => m.id === selectedCardId) ?? null;
+    }
+    return paymentMethods.find((m) => m.isDefault) ?? paymentMethods[0] ?? null;
+  }, [paymentMethods, selectedCardId]);
 
   useEffect(() => {
     const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -169,27 +184,102 @@ export function GemBalancePanel({
       if (confirmError) {
         setError(confirmError.message ?? "카드 인증에 실패했습니다.");
         setStatusLine(confirmError.message ?? "카드 인증에 실패했습니다.");
+        onPaymentResult?.("failure");
         return;
       }
       if (paymentIntent?.status !== "succeeded") {
         setError("결제가 완료되지 않았습니다.");
         setStatusLine("결제가 완료되지 않았습니다.");
+        onPaymentResult?.("failure");
         return;
       }
       const done = await confirmCheckoutPayment(orderId);
       if ("error" in done && done.error) {
         setError(done.error);
         setStatusLine(done.error);
+        onPaymentResult?.("failure");
         return;
       }
       if ("success" in done && done.success) {
         setAmount("");
+        setAwaitingInsert(false);
         setStatusLine("충전이 완료되었습니다.");
+        onPaymentResult?.("success");
         router.refresh();
       }
     },
-    [router, stripePromise],
+    [onPaymentResult, router, stripePromise],
   );
+
+  const runTopup = useCallback(() => {
+    if (!termsAccepted) {
+      setError("충전 전 약관에 동의해 주세요.");
+      setStatusLine("약관에 동의한 뒤 다시 시도해 주세요.");
+      onPaymentResult?.("failure");
+      return;
+    }
+    const moco = parseMocoTopupCount(amount);
+    if (moco == null || moco < minTopupMoco) {
+      setError(`최소 ${minTopupMoco} MOCO부터 충전할 수 있습니다.`);
+      setStatusLine("1 MOCO 이상 입력해 주세요.");
+      onPaymentResult?.("failure");
+      return;
+    }
+    if (!payCard) {
+      setError("등록된 카드가 없습니다. ZERO 카드 등록 후 다시 시도해 주세요.");
+      setStatusLine("등록된 카드가 없습니다.");
+      onPaymentResult?.("failure");
+      return;
+    }
+    setError("");
+    setStatusLine("등록된 카드로 결제 중…");
+    onPaymentProcessing?.();
+    startTransition(async () => {
+      const res = await payGemTopupWithSavedCard(moco, payCard.id, true);
+      if ("error" in res && res.error) {
+        setError(res.error);
+        setStatusLine(res.error);
+        onPaymentResult?.("failure");
+        return;
+      }
+      if ("requiresAction" in res && res.requiresAction && res.clientSecret && res.orderId) {
+        await handle3ds(res.clientSecret, res.orderId);
+        return;
+      }
+      if ("success" in res && res.success) {
+        setAmount("");
+        setAwaitingInsert(false);
+        setStatusLine("충전이 완료되었습니다.");
+        onPaymentResult?.("success");
+        router.refresh();
+        return;
+      }
+      setError("결제에 실패했습니다. 다시 시도해 주세요.");
+      setStatusLine("결제에 실패했습니다.");
+      onPaymentResult?.("failure");
+    });
+  }, [
+    amount,
+    handle3ds,
+    minTopupMoco,
+    onPaymentProcessing,
+    onPaymentResult,
+    payCard,
+    router,
+    termsAccepted,
+  ]);
+
+  useEffect(() => {
+    registerInsertHandler(() => {
+      if (!awaitingInsert) {
+        setStatusLine("먼저 [준비]로 수량을 확인해 주세요.");
+        onPaymentResult?.("failure");
+        return;
+      }
+      runTopup();
+    });
+    return () => registerInsertHandler(null);
+  }, [awaitingInsert, onPaymentResult, registerInsertHandler, runTopup]);
 
   function appendDigit(digit: string) {
     if (pending) return;
@@ -208,7 +298,7 @@ export function GemBalancePanel({
     setStatusLine("충전할 MOCO 수량을 입력해 주세요.");
   }
 
-  function submitTopup() {
+  function prepareInsert() {
     if (!termsAccepted) {
       setError("충전 전 약관에 동의해 주세요.");
       setStatusLine("약관에 동의한 뒤 다시 시도해 주세요.");
@@ -220,33 +310,14 @@ export function GemBalancePanel({
       setStatusLine("1 MOCO 이상 입력해 주세요.");
       return;
     }
-    if (!defaultCard) {
-      setError("등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.");
+    if (!payCard) {
+      setError("등록된 카드가 없습니다. ZERO 카드 등록 후 다시 시도해 주세요.");
       setStatusLine("등록된 카드가 없습니다.");
       return;
     }
     setError("");
-    setStatusLine("등록된 카드로 결제 중…");
-    startTransition(async () => {
-      const res = await payGemTopupWithSavedCard(moco, defaultCard.id, true);
-      if ("error" in res && res.error) {
-        setError(res.error);
-        setStatusLine(res.error);
-        return;
-      }
-      if ("requiresAction" in res && res.requiresAction && res.clientSecret && res.orderId) {
-        await handle3ds(res.clientSecret, res.orderId);
-        return;
-      }
-      if ("success" in res && res.success) {
-        setAmount("");
-        setStatusLine("충전이 완료되었습니다.");
-        router.refresh();
-        return;
-      }
-      setError("결제에 실패했습니다. 다시 시도해 주세요.");
-      setStatusLine("결제에 실패했습니다.");
-    });
+    setAwaitingInsert(true);
+    setStatusLine("선택한 ZERO 카드를 리더기 슬롯 방향으로 밀어 넣어 주세요.");
   }
 
   return (
@@ -268,7 +339,43 @@ export function GemBalancePanel({
           </div>
         </div>
 
-        <div className="mx-4 mt-4">
+        <div className="relative mx-4 mt-4">
+          <AnimatePresence>
+            {atmOverlay ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className={cn(
+                  "absolute inset-0 z-20 flex flex-col items-center justify-center rounded-lg backdrop-blur-sm",
+                  atmOverlay === "success" ? "bg-emerald-500/15" : "bg-red-500/15",
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex h-16 w-16 items-center justify-center rounded-full border-4",
+                    atmOverlay === "success"
+                      ? "border-emerald-400 bg-emerald-500/20 text-emerald-300"
+                      : "border-red-400 bg-red-500/20 text-red-300",
+                  )}
+                >
+                  {atmOverlay === "success" ? (
+                    <Check className="h-9 w-9" strokeWidth={3} />
+                  ) : (
+                    <X className="h-9 w-9" strokeWidth={3} />
+                  )}
+                </div>
+                <p
+                  className={cn(
+                    "mt-3 text-lg font-black tracking-tight",
+                    atmOverlay === "success" ? "text-emerald-200" : "text-red-200",
+                  )}
+                >
+                  {atmOverlay === "success" ? "결제 완료" : "결제 실패"}
+                </p>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
           <MocoEarthTransferHero userImageUrl={userImageUrl} transferActive={pending}>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">현재 잔액</p>
             <p className="mt-0.5 font-mono text-xl font-bold tabular-nums text-neutral-900">
@@ -311,13 +418,14 @@ export function GemBalancePanel({
                 10개 묶음 구매 시 PG 고정 수수료 절약 약 {formatUsdCents(bulkSaveCents)}
               </p>
             ) : null}
-            {defaultCard ? (
+            {payCard ? (
               <p className="mt-2 text-[11px] text-neutral-500">
-                결제 카드 · {defaultCard.brand.toUpperCase()} ···{defaultCard.last4}
-                {defaultCard.isDefault ? " (기본)" : ""}
+                결제 카드 · {payCard.brand.toUpperCase()} ···{payCard.last4}
+                {payCard.isDefault ? " (기본)" : ""}
+                {awaitingInsert ? " · 삽입 대기" : ""}
               </p>
             ) : (
-              <p className="mt-2 text-[11px] text-amber-700">등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.</p>
+              <p className="mt-2 text-[11px] text-amber-700">등록된 카드가 없습니다. 옆에서 ZERO 카드를 등록해 주세요.</p>
             )}
           </MocoEarthTransferHero>
         </div>
@@ -366,17 +474,17 @@ export function GemBalancePanel({
             <AtmNumKey label="8" disabled={pending} onPress={() => appendDigit("8")} className="col-start-2 row-start-3" />
             <AtmNumKey label="9" disabled={pending} onPress={() => appendDigit("9")} className="col-start-3 row-start-3" />
             <AtmActionKey
-              label="확인"
-              subLabel="OK"
+              label="준비"
+              subLabel="READY"
               tone="confirm"
               disabled={
                 pending ||
-                !defaultCard ||
+                !payCard ||
                 !amount ||
                 parsedPreview == null ||
                 parsedPreview < minTopupMoco
               }
-              onPress={submitTopup}
+              onPress={prepareInsert}
               className="col-start-4 row-start-3 row-span-2 h-full min-h-[6.9rem]"
             />
 
