@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { ImageIcon } from "lucide-react";
 import { userDisplayName } from "@/lib/user-public-select";
 import { formatNumber } from "@/lib/utils";
@@ -28,7 +28,7 @@ function HighlightRow({
   const comments = post._count.comments;
 
   return (
-    <Link
+    <PrefetchLink
       href={`/post/${post.id}`}
       className={`${HIGHLIGHT_GRID} border-b border-border/60 px-4 py-2 text-sm leading-snug last:border-b-0 hover:bg-muted/40`}
     >
@@ -67,7 +67,7 @@ function HighlightRow({
         <span className="sr-only">{statLabel} </span>
         {formatNumber(stat)}
       </span>
-    </Link>
+    </PrefetchLink>
   );
 }
 

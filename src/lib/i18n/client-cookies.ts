@@ -1,6 +1,18 @@
 import { COUNTRY_COOKIE, LOCALE_COOKIE, type Locale } from "@/lib/i18n/config";
 import { TIMEZONE_COOKIE, normalizeTimeZone } from "@/lib/i18n/timezone";
 
+export function readClientCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const prefix = `${name}=`;
+  const hit = document.cookie.split("; ").find((row) => row.startsWith(prefix));
+  if (!hit) return null;
+  try {
+    return decodeURIComponent(hit.slice(prefix.length));
+  } catch {
+    return hit.slice(prefix.length);
+  }
+}
+
 export function setClientLocaleCookies(
   locale: Locale,
   countryCode: string,

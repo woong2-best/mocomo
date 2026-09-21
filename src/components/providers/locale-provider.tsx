@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+  COUNTRY_COOKIE,
   DEFAULT_GUEST_COUNTRY,
   DEFAULT_GUEST_LOCALE,
   normalizeLocale,
@@ -18,47 +19,63 @@ import {
 } from "@/lib/i18n/config";
 import { createTranslator, prefetchLocaleTable, type MessageKey } from "@/lib/i18n/messages";
 import { updateUserLocale } from "@/actions/locale";
-import { setClientLocaleCookies } from "@/lib/i18n/client-cookies";
-import { DEFAULT_TIMEZONE, normalizeTimeZone } from "@/lib/i18n/timezone";
+import { readClientCookie, setClientLocaleCookies } from "@/lib/i18n/client-cookies";
+import { DEFAULT_TIMEZONE, normalizeTimeZone, TIMEZONE_COOKIE } from "@/lib/i18n/timezone";
 
 type LocaleContextValue = {
   locale: Locale;
   countryCode: string;
   timeZone: string;
   setLocale: (locale: Locale, countryCode?: string, timeZone?: string) => Promise<void>;
+  hydrateFromSession: (locale: Locale, countryCode: string, timeZone: string) => void;
   t: (key: MessageKey, vars?: Record<string, string>) => string;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
+function applyDocumentLang(locale: Locale) {
+  if (typeof document === "undefined") return;
+  document.documentElement.lang = locale;
+}
+
 export function LocaleProvider({
   children,
-  initialLocale,
-  initialCountryCode,
+  initialLocale = DEFAULT_GUEST_LOCALE,
+  initialCountryCode = DEFAULT_GUEST_COUNTRY,
   initialTimeZone,
 }: {
   children: React.ReactNode;
-  initialLocale: Locale;
-  initialCountryCode: string;
+  initialLocale?: Locale;
+  initialCountryCode?: string;
   initialTimeZone?: string;
 }) {
   const router = useRouter();
-  const [locale, setLocaleState] = useState<Locale>(normalizeLocale(initialLocale));
+  const [locale, setLocaleState] = useState<Locale>(normalizeLocale(initialLocale, DEFAULT_GUEST_LOCALE));
   const [countryCode, setCountryCode] = useState(initialCountryCode.toUpperCase());
   const [timeZone, setTimeZone] = useState(normalizeTimeZone(initialTimeZone));
   const [, startTransition] = useTransition();
 
-  // 서버(세션 DB) 기준으로 클라이언트 state·쿠키 동기화 — 게스트 en 쿠키가 로그인 locale을 덮지 않음
   useEffect(() => {
-    const nextLocale = normalizeLocale(initialLocale);
-    const nextCountry = initialCountryCode.toUpperCase();
-    const nextTz = normalizeTimeZone(initialTimeZone);
-    setLocaleState(nextLocale);
-    setCountryCode(nextCountry);
-    setTimeZone(nextTz);
-    setClientLocaleCookies(nextLocale, nextCountry, nextTz);
-    prefetchLocaleTable(nextLocale);
-  }, [initialLocale, initialCountryCode, initialTimeZone]);
+    const cookieCountry = readClientCookie(COUNTRY_COOKIE)?.toUpperCase();
+    const cookieTz = readClientCookie(TIMEZONE_COOKIE);
+    if (cookieCountry) setCountryCode(cookieCountry);
+    if (cookieTz) setTimeZone(normalizeTimeZone(cookieTz));
+    applyDocumentLang(locale);
+  }, [locale]);
+
+  const hydrateFromSession = useCallback(
+    (next: Locale, nextCountry: string, nextTimeZone: string) => {
+      const country = nextCountry.toUpperCase();
+      const tz = normalizeTimeZone(nextTimeZone);
+      setLocaleState(next);
+      setCountryCode(country);
+      setTimeZone(tz);
+      setClientLocaleCookies(next, country, tz);
+      prefetchLocaleTable(next);
+      applyDocumentLang(next);
+    },
+    []
+  );
 
   const setLocale = useCallback(
     async (next: Locale, nextCountry?: string, nextTimeZone?: string) => {
@@ -69,6 +86,7 @@ export function LocaleProvider({
       setTimeZone(tz);
       setClientLocaleCookies(next, country, tz);
       prefetchLocaleTable(next);
+      applyDocumentLang(next);
       await updateUserLocale({ locale: next, countryCode: country, timeZone: tz });
       startTransition(() => router.refresh());
     },
@@ -81,9 +99,10 @@ export function LocaleProvider({
       countryCode,
       timeZone,
       setLocale,
+      hydrateFromSession,
       t: createTranslator(locale),
     }),
-    [locale, countryCode, timeZone, setLocale]
+    [locale, countryCode, timeZone, setLocale, hydrateFromSession]
   );
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
@@ -98,6 +117,7 @@ export function useLocale() {
       countryCode: DEFAULT_GUEST_COUNTRY,
       timeZone: DEFAULT_TIMEZONE,
       setLocale: async () => {},
+      hydrateFromSession: () => {},
       t: createTranslator(locale),
     };
   }

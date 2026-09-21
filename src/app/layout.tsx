@@ -1,18 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
 import { Fredoka, Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { AppProviders } from "@/components/providers/app-providers";
 import { ShellRouter } from "@/components/layout/shell-router";
-import { getRequestI18n } from "@/lib/i18n/server";
-import { resolveClientPlatform, CLIENT_PLATFORM_COOKIE, isNativeAppPlatform } from "@/lib/client-platform";
-import { isStudioHostname, resolveRequestHostname } from "@/studio/lib/host";
-import { RightPanelAsync } from "@/components/layout/right-panel-async";
-import { RightPanelSkeleton } from "@/components/layout/right-panel-content";
+import { RightPanelHydrated } from "@/components/layout/right-panel-hydrated";
 import { BRAND } from "@/lib/brand";
 import { getPublicSiteOrigin } from "@/lib/site-url";
-import { getCachedSession } from "@/lib/auth";
-import { cookies, headers } from "next/headers";
+import { DEFAULT_GUEST_COUNTRY, DEFAULT_GUEST_LOCALE } from "@/lib/i18n/config";
 import "./globals.css";
 
 const folkDisplay = Fredoka({
@@ -56,31 +50,17 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [{ locale, countryCode, timeZone }, initialSession] = await Promise.all([
-    getRequestI18n(),
-    getCachedSession(),
-  ]);
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-  const initialPlatform = resolveClientPlatform({
-    cookie: cookieStore.get(CLIENT_PLATFORM_COOKIE)?.value,
-    host: headerStore.get("host") ?? undefined,
-  });
-  const isStudioHost = isStudioHostname(
-    resolveRequestHostname(headerStore.get("x-forwarded-host") ?? headerStore.get("host"))
-  );
-  const showRightPanel = !isStudioHost && !isNativeAppPlatform(initialPlatform);
-  const buildId =
-    process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ??
-    process.env.NEXT_PUBLIC_APT_BUILD_ID ??
-    "local";
+const buildId =
+  process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ??
+  process.env.NEXT_PUBLIC_APT_BUILD_ID ??
+  "local";
 
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
-      lang={locale}
+      lang={DEFAULT_GUEST_LOCALE}
       className="dark"
-      data-client={initialPlatform}
+      data-client="web"
       data-visible-animations="off"
       data-build={buildId}
       suppressHydrationWarning
@@ -91,21 +71,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${folkDisplay.variable} ${geistSans.variable} ${geistMono.variable} font-sans folk-canvas`}>
         <div className="folk-app-shell">
           <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
-            <AppProviders
-              initialLocale={locale}
-              initialCountryCode={countryCode}
-              initialTimeZone={timeZone}
-              initialSession={initialSession}
-            >
+            <AppProviders>
               <ShellRouter
-                initialPlatform={initialPlatform}
-                isStudioHost={isStudioHost}
                 rightPanel={
-                  showRightPanel ? (
-                    <Suspense fallback={<RightPanelSkeleton />}>
-                      <RightPanelAsync />
-                    </Suspense>
-                  ) : undefined
+                  <RightPanelHydrated initialData={null} countryCode={DEFAULT_GUEST_COUNTRY} />
                 }
               >
                 {children}

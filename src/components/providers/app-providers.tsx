@@ -3,8 +3,8 @@
 import dynamic from "next/dynamic";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { LocaleProvider } from "@/components/providers/locale-provider";
+import { LocaleSessionSync } from "@/components/providers/locale-session-sync";
 import { ClientTranslationProvider } from "@/components/providers/client-translation-provider";
-import { ClientTranslationWarmup } from "@/components/client-translation/client-translation-warmup";
 import { AppSocketProvider } from "@/components/providers/app-socket-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { CallProviderGate } from "@/components/call/call-provider-gate";
@@ -15,9 +15,6 @@ import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-pro
 import { LegalComplianceProvider } from "@/components/providers/legal-compliance-provider";
 import { TopProgressProvider } from "@/components/providers/top-progress-provider";
 import { StaleDeploymentRecovery } from "@/components/providers/stale-deployment-recovery";
-import type { Locale } from "@/lib/i18n/config";
-import type { Session } from "next-auth";
-import { PortOneIdentityScript } from "@/components/adult-verification/portone-identity-sdk";
 
 const PlatformBootstrapClient = dynamic(
   () =>
@@ -52,26 +49,11 @@ const NativePushRegistration = dynamic(
   { ssr: false }
 );
 
-export function AppProviders({
-  children,
-  initialLocale,
-  initialCountryCode,
-  initialTimeZone,
-  initialSession,
-}: {
-  children: React.ReactNode;
-  initialLocale: Locale;
-  initialCountryCode: string;
-  initialTimeZone?: string;
-  initialSession?: Session | null;
-}) {
+export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider session={initialSession}>
-      <LocaleProvider
-        initialLocale={initialLocale}
-        initialCountryCode={initialCountryCode}
-        initialTimeZone={initialTimeZone}
-      >
+    <SessionProvider>
+      <LocaleProvider>
+        <LocaleSessionSync />
         <TopProgressProvider>
           <ClientTranslationProvider>
             <AppSocketProvider>
@@ -81,18 +63,16 @@ export function AppProviders({
                     <ComposeProvider>
                       <SidebarToggleProvider>
                         <LegalComplianceProvider>
-                        <StaleDeploymentRecovery />
-                        <ClientTranslationWarmup />
-                        <PortOneIdentityScript />
-                        <PushRegistration />
-                        <NativePushRegistration />
-                        <CheckoutResumeHandler />
-                        <CallProviderGate>
-                          <PlatformBootstrapClient />
-                          <AddAccountFlowHandler />
-                          <OperatorSiteMfaGate />
-                          {children}
-                        </CallProviderGate>
+                          <StaleDeploymentRecovery />
+                          <PushRegistration />
+                          <NativePushRegistration />
+                          <CheckoutResumeHandler />
+                          <CallProviderGate>
+                            <PlatformBootstrapClient />
+                            <AddAccountFlowHandler />
+                            <OperatorSiteMfaGate />
+                            {children}
+                          </CallProviderGate>
                         </LegalComplianceProvider>
                       </SidebarToggleProvider>
                     </ComposeProvider>

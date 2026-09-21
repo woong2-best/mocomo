@@ -1,10 +1,7 @@
 import { Suspense } from "react";
-import { HomeShell } from "@/components/home/home-shell";
+import { HomeClientFrame } from "@/components/home/home-client-frame";
 import { HomeHighlightsAsync } from "@/components/home/home-highlights-async";
-import { HomeFeedAsync } from "@/components/home/home-feed-async";
-import { SearchResultsAsync } from "@/components/search/search-results-async";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
-import { CardRowsSkeleton } from "@/components/ui/content-skeletons";
 import { publicSiteUrl } from "@/lib/site-url";
 
 export const metadata = {
@@ -37,33 +34,13 @@ function HomeStreamFallback() {
   );
 }
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
-  const { q } = await searchParams;
-  const query = q?.trim() ?? "";
-
-  if (query) {
-    return (
-      <AppPageChrome maxWidth="6xl" spacing="sm" className="!px-4 lg:!px-6">
-        <p className="text-sm text-muted-foreground mb-4">
-          「<span className="font-medium text-foreground">{query}</span>」 결과
-        </p>
-        <Suspense fallback={<CardRowsSkeleton rows={8} />}>
-          <SearchResultsAsync query={query} scope="social" />
-        </Suspense>
-      </AppPageChrome>
-    );
-  }
-
+export default function HomePage() {
   return (
     <AppPageChrome maxWidth="6xl" spacing="sm" className="!px-4 lg:!px-6">
       <Suspense fallback={<HomeStreamFallback />}>
-        <HomeShell />
-        <HomeHighlightsAsync />
-        <HomeFeedAsync />
+        <HomeClientFrame>
+          <HomeHighlightsAsync />
+        </HomeClientFrame>
       </Suspense>
     </AppPageChrome>
   );

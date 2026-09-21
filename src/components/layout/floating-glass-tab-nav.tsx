@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Home, Send, Store, LogIn } from "lucide-react";
@@ -99,10 +99,9 @@ export function FloatingGlassTabNav({ layoutId = "floating-tab-glow", className 
               guestMessages ? `/auth/signin?callbackUrl=${encodeURIComponent("/messages")}` : href;
 
             return (
-              <Link
+              <PrefetchLink
                 key={href}
                 href={linkHref}
-                prefetch={href === "/messages" ? false : undefined}
                 className={cn(
                   "floating-tab-nav-item",
                   active && "floating-tab-nav-item-active"
@@ -133,7 +132,7 @@ export function FloatingGlassTabNav({ layoutId = "floating-tab-glow", className 
                   />
                   <span className="floating-tab-nav-label">{t(labelKey)}</span>
                 </motion.span>
-              </Link>
+              </PrefetchLink>
             );
           })}
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { createPortal } from "react-dom";
@@ -101,10 +101,9 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
                     const active = isNavItemActive(pathname, href, navHrefs, ownProfilePath);
 
                     return (
-                      <Link
+                      <PrefetchLink
                         key={href}
                         href={href}
-                        prefetch={href === "/live" || href === "/messages" ? false : undefined}
                         onClick={() => onOpenChange(false)}
                         className={cn("sidebar-block drop-shadow-sm", active && "sidebar-block-active")}
                       >
@@ -117,7 +116,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
                           <Icon className="h-4 w-4" />
                         </span>
                         <span className="truncate">{t(labelKey)}</span>
-                      </Link>
+                      </PrefetchLink>
                     );
                   })}
                 </nav>

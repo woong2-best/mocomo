@@ -1,23 +1,26 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { NativeAppShell } from "@/components/layout/native-app-shell";
 import { ClientPlatformProvider, useClientPlatform } from "@/components/providers/client-platform-provider";
-import type { ClientPlatform } from "@/lib/client-platform";
 import { isStudioHostname } from "@/studio/lib/host";
 import { usePathname } from "next/navigation";
 
 function ShellSwitch({
   children,
   rightPanel,
-  isStudioHost,
 }: {
   children: React.ReactNode;
   rightPanel?: React.ReactNode;
-  isStudioHost: boolean;
 }) {
   const pathname = usePathname();
   const { isNativeApp } = useClientPlatform();
+  const [isStudioHost, setIsStudioHost] = useState(false);
+
+  useEffect(() => {
+    setIsStudioHost(isStudioHostname(window.location.hostname));
+  }, []);
 
   if (
     pathname?.startsWith("/studio") ||
@@ -38,19 +41,13 @@ function ShellSwitch({
 export function ShellRouter({
   children,
   rightPanel,
-  initialPlatform,
-  isStudioHost,
 }: {
   children: React.ReactNode;
   rightPanel?: React.ReactNode;
-  initialPlatform: ClientPlatform;
-  isStudioHost: boolean;
 }) {
   return (
-    <ClientPlatformProvider initialPlatform={initialPlatform}>
-      <ShellSwitch rightPanel={rightPanel} isStudioHost={isStudioHost}>
-        {children}
-      </ShellSwitch>
+    <ClientPlatformProvider initialPlatform="web">
+      <ShellSwitch rightPanel={rightPanel}>{children}</ShellSwitch>
     </ClientPlatformProvider>
   );
 }

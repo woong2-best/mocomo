@@ -48,6 +48,7 @@ async function prepareSocketServer(socketUrl: string, immediate: boolean): Promi
 export function AppSocketProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const pathname = usePathname() ?? "";
+  const immediateRealtime = needsImmediateRealtime(pathname);
   const userId = session?.user?.id;
   const [socket, setSocket] = useState<Socket | null>(null);
   const [socketReady, setSocketReady] = useState(false);
@@ -71,12 +72,13 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
     let activeSocket: Socket | null = null;
     let tokenRefreshTimer: number | undefined;
     let connectTimeout: number | undefined;
+    let startTimer: number | undefined;
 
-    import("socket.io-client").then(async ({ io }) => {
+    const start = () => {
+      void import("socket.io-client").then(async ({ io }) => {
       if (disposed) return;
 
-      const immediate = needsImmediateRealtime(pathname);
-      await prepareSocketServer(socketUrl, immediate);
+      await prepareSocketServer(socketUrl, immediateRealtime);
       if (disposed) return;
 
       const { fetchSocketAuthToken } = await import("@/lib/socket-client");
@@ -135,23 +137,31 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
         });
       });
 
-      activeSocket.io.on("reconnect", () => {
-        if (disposed) return;
-        setConnectionFailed(false);
-        setSocketReady(true);
-        setRealtimeOff(false);
+        activeSocket.io.on("reconnect", () => {
+          if (disposed) return;
+          setConnectionFailed(false);
+          setSocketReady(true);
+          setRealtimeOff(false);
+        });
       });
-    });
+    };
+
+    if (immediateRealtime) {
+      start();
+    } else {
+      startTimer = window.setTimeout(start, 2500);
+    }
 
     return () => {
       disposed = true;
+      if (startTimer) window.clearTimeout(startTimer);
       if (tokenRefreshTimer) window.clearInterval(tokenRefreshTimer);
       if (connectTimeout) window.clearTimeout(connectTimeout);
       setSocketReady(false);
       setSocket(null);
       activeSocket?.disconnect();
     };
-  }, [userId, status, pathname]);
+  }, [userId, status, immediateRealtime]);
 
   const value = useMemo(
     () => ({ socket, socketReady, realtimeOff, connectionFailed }),

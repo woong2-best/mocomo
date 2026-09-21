@@ -1,11 +1,21 @@
 ﻿"use client";
 
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import type { SupportTierLevel } from "@prisma/client";
 import { SponsoredSidebarCard } from "@/components/events/sponsored-sidebar-card";
-import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
 import type { MapEventPin } from "@/lib/subculture-events";
 import type { SponsorSpotEvent } from "@/lib/sponsor-spot-server";
+
+const SidebarEventMapCard = dynamic(
+  () => import("@/components/events/sidebar-event-map-card").then((m) => m.SidebarEventMapCard),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full min-h-[8rem] w-full rounded-2xl border border-violet-500/20 bg-muted/30" />
+    ),
+  }
+);
 
 export type SidebarPanelData = {
   tips: {

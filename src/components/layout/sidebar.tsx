@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { PenSquare } from "lucide-react";
@@ -50,10 +50,9 @@ export function Sidebar() {
         <div className="folk-sidebar-nav-stack">
           <nav className="folk-sidebar-nav" aria-label="주요 메뉴">
             {navItems.map(({ href, icon: Icon, labelKey }) => (
-              <Link
+              <PrefetchLink
                 key={href}
                 href={href}
-                prefetch={href === "/live" || href === "/messages" ? false : undefined}
                 className={cn("sidebar-block drop-shadow-sm", isActive(href) && "sidebar-block-active")}
               >
                 <span
@@ -65,7 +64,7 @@ export function Sidebar() {
                   <Icon className="h-4 w-4" />
                 </span>
                 <span className="truncate">{t(labelKey)}</span>
-              </Link>
+              </PrefetchLink>
             ))}
           </nav>
 

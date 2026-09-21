@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { PrefetchLink, useSpeculativePrefetch } from "@/components/ui/prefetch-link";
 import { formatDistanceToNow } from "date-fns";
 import { Heart, Star } from "lucide-react";
 import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
@@ -47,6 +47,8 @@ export function FeedTimelinePostCard({
   const status = sessionState?.status ?? "unauthenticated";
   const router = useRouter();
   const { locale } = useLocale();
+  const postHref = `/post/${post.id}`;
+  const prefetchPost = useSpeculativePrefetch(postHref);
 
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
   const isOwner = session?.user?.id === post.author.id;
@@ -79,7 +81,12 @@ export function FeedTimelinePostCard({
   }
 
   return (
-    <article className="w-full rounded-2xl border border-border bg-card overflow-hidden">
+    <article
+      className="w-full rounded-2xl border border-border bg-card overflow-hidden"
+      onMouseEnter={prefetchPost.onMouseEnter}
+      onMouseLeave={prefetchPost.onMouseLeave}
+      onTouchStart={prefetchPost.onTouchStart}
+    >
       <div className="flex gap-3 p-4 pb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
@@ -88,17 +95,17 @@ export function FeedTimelinePostCard({
                 author={post.author}
                 collaborators={post.collaborators}
                 trailing={
-                  <Link href={`/post/${post.id}`} className="hover:underline">
+                  <PrefetchLink href={postHref} className="hover:underline">
                     <time dateTime={createdAt.toISOString()}>
                       {formatDistanceToNow(createdAt, { addSuffix: true, locale: dateFnsLocale(locale) })}
                     </time>
-                  </Link>
+                  </PrefetchLink>
                 }
               />
               {post.title && (
-                <Link href={`/post/${post.id}`} className="block">
+                <PrefetchLink href={postHref} className="block">
                   <p className="font-semibold text-[15px] mb-1">{post.title}</p>
-                </Link>
+                </PrefetchLink>
               )}
               {post.content && (
                 <div
@@ -164,13 +171,13 @@ export function FeedTimelinePostCard({
             </MotionPop>
             <span>{formatNumber(likeCount)}</span>
           </button>
-          <Link
-            href={`/post/${post.id}#comments`}
+          <PrefetchLink
+            href={`${postHref}#comments`}
             className="flex items-center gap-1 hover:text-folk-cobalt min-h-8 px-2 rounded-lg hover:bg-muted/50"
           >
             <ReplyBubbleIcon className="h-4 w-4" />
             <span>{formatNumber(post._count?.comments ?? 0)}</span>
-          </Link>
+          </PrefetchLink>
           <PostRepostMenu
             postId={post.id}
             authorUsername={post.author.username}
