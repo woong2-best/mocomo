@@ -55,6 +55,8 @@ Web cookie JWT **unchanged**.
 | GET | `/api/mobile/live` | Optional Bearer — live hub list |
 | GET | `/api/mobile/live/:id` | Optional Bearer — detail |
 | GET | `/api/mobile/live/:id/token` | Bearer — LiveKit token (`hostUserId`, `audioOnly`) |
+| POST | `/api/mobile/live/:id/donate` | Bearer — MOCO live donate `{ type: SFX \| VIDEO, ... }` |
+| POST | `/api/mobile/live/:id/donate/video/preview` | Bearer — YouTube segment quote before VIDEO donate |
 | GET | `/api/mobile/marketplace` | Optional Bearer — used listings (`?q=&take=`) |
 | POST | `/api/mobile/marketplace` | Bearer — create used listing (`meetLat`/`meetLng`/`meetCountry`/`meetPlace`) |
 | GET | `/api/mobile/marketplace/:id` | Optional Bearer — detail + `map` (`country`, `engine`, `externalMapUrl`, lat/lng) |

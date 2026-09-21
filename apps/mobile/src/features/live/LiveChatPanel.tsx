@@ -24,7 +24,9 @@ import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { LiveSupportPanels } from "@/features/live/LiveSupportPanels";
 import { LiveSupportSheet } from "@/features/live/LiveSupportSheet";
 import { CommentDonationCard, CommentDonationTicker } from "@/features/live/CommentDonationCard";
-import { CommentDonationSheet } from "@/features/live/CommentDonationSheet";
+import { LiveMocoDonationMenuSheet } from "@/features/live/LiveMocoDonationMenuSheet";
+import { LiveMocoSfxDonationSheet } from "@/features/live/LiveMocoSfxDonationSheet";
+import { LiveMocoVideoDonationSheet } from "@/features/live/LiveMocoVideoDonationSheet";
 import { MocoTipButton } from "@/features/live/MocoTipButton";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { SupportTierBadge } from "@/ui/SupportTierBadge";
@@ -56,7 +58,7 @@ export function LiveChatPanel({
   viewerCount,
   onViewerCount,
   isHost,
-  paymentsEnabled,
+  paymentsEnabled: _paymentsEnabled,
   hostDisplayName,
   hostUserId,
   hostUsername,
@@ -79,7 +81,9 @@ export function LiveChatPanel({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [commentOpen, setCommentOpen] = useState(false);
+  const [mocoMenuOpen, setMocoMenuOpen] = useState(false);
+  const [mocoVideoOpen, setMocoVideoOpen] = useState(false);
+  const [mocoSfxOpen, setMocoSfxOpen] = useState(false);
   const [cheerOpen, setCheerOpen] = useState(false);
   const [missionOpen, setMissionOpen] = useState(false);
   const sinceRef = useRef(0);
@@ -310,8 +314,10 @@ export function LiveChatPanel({
   }, [messages]);
 
   const openMoco = useCallback(() => {
-    setCheerOpen(true);
+    setMocoMenuOpen(true);
   }, []);
+
+  const mocoSheetOpen = mocoMenuOpen || mocoVideoOpen || mocoSfxOpen;
 
   // Android uses window resize; avoid double-offset. iOS needs KAV padding.
   const composerPadBottom = immersive
@@ -421,12 +427,14 @@ export function LiveChatPanel({
 
       {!immersive && showDonationActions ? (
         <View style={styles.actionRow}>
-          {paymentsEnabled ? (
-            <Pressable style={styles.actionBtn} onPress={() => setCommentOpen(true)}>
-              <Ionicons name="logo-usd" size={14} color="#059669" />
-              <Text style={styles.actionText}>댓글후원</Text>
-            </Pressable>
-          ) : null}
+          <Pressable style={styles.actionBtn} onPress={() => setMocoVideoOpen(true)}>
+            <Ionicons name="logo-youtube" size={14} color="#0d4d2c" />
+            <Text style={styles.actionText}>영상 후원</Text>
+          </Pressable>
+          <Pressable style={styles.actionBtn} onPress={() => setMocoSfxOpen(true)}>
+            <Ionicons name="musical-notes" size={14} color="#E85D04" />
+            <Text style={styles.actionText}>효과음</Text>
+          </Pressable>
           <Pressable style={styles.actionBtn} onPress={() => setCheerOpen(true)}>
             <Ionicons name="heart" size={14} color="#eab308" />
             <Text style={styles.actionText}>응원 CP</Text>
@@ -442,7 +450,7 @@ export function LiveChatPanel({
         style={[
           styles.composer,
           immersive ? { paddingBottom: composerPadBottom } : null,
-          (cheerOpen || missionOpen || commentOpen) && styles.composerHidden,
+          (cheerOpen || missionOpen || mocoSheetOpen) && styles.composerHidden,
         ]}
       >
         {immersive ? (
@@ -462,15 +470,7 @@ export function LiveChatPanel({
           returnKeyType="send"
           blurOnSubmit={false}
         />
-        {canMoco ? (
-          immersive ? (
-            <MocoTipButton onPress={openMoco} />
-          ) : paymentsEnabled && hostUserId && hostUsername ? (
-            <Pressable style={styles.dollarBtn} onPress={() => setCommentOpen(true)}>
-              <Ionicons name="logo-usd" size={18} color="#059669" />
-            </Pressable>
-          ) : null
-        ) : null}
+        {canMoco ? <MocoTipButton onPress={openMoco} /> : null}
         {!immersive ? (
           <Pressable
             style={[styles.send, (!draft.trim() || sending) && styles.sendDisabled]}
@@ -500,12 +500,22 @@ export function LiveChatPanel({
 
       {hostDisplayName && hostUserId && hostUsername ? (
         <>
-          <CommentDonationSheet
-            visible={commentOpen}
-            onClose={() => setCommentOpen(false)}
-            creatorId={hostUserId}
-            username={hostUsername}
-            displayName={hostDisplayName}
+          <LiveMocoDonationMenuSheet
+            visible={mocoMenuOpen}
+            onClose={() => setMocoMenuOpen(false)}
+            hostDisplayName={hostDisplayName}
+            onPickVideo={() => setMocoVideoOpen(true)}
+            onPickSfx={() => setMocoSfxOpen(true)}
+          />
+          <LiveMocoVideoDonationSheet
+            visible={mocoVideoOpen}
+            onClose={() => setMocoVideoOpen(false)}
+            channelId={channelId}
+            onSuccess={onSupportRefresh}
+          />
+          <LiveMocoSfxDonationSheet
+            visible={mocoSfxOpen}
+            onClose={() => setMocoSfxOpen(false)}
             channelId={channelId}
             onSuccess={onSupportRefresh}
           />

@@ -117,6 +117,8 @@ export const MobileApi = {
   starMarketDirectCheckout: (id: string) => `/api/mobile/market/${id}/direct-checkout`,
   starMarketCheckoutMode: "/api/market/checkout-mode",
   liveAlerts: (id: string) => `/api/mobile/live/${id}/alerts`,
+  liveDonate: (id: string) => `/api/mobile/live/${id}/donate`,
+  liveDonateVideoPreview: (id: string) => `/api/mobile/live/${id}/donate/video/preview`,
   games: "/api/mobile/games",
   highlights: "/api/mobile/highlights",
 } as const;
