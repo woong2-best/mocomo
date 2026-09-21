@@ -30,8 +30,11 @@ export function WalletPayProvider({ children }: { children: ReactNode }) {
   return <WalletPayContext.Provider value={value}>{children}</WalletPayContext.Provider>;
 }
 
+const noopWalletPay: WalletPayContextValue = {
+  registerInsertHandler: () => {},
+  notifyCardInserted: () => {},
+};
+
 export function useWalletPay() {
-  const ctx = useContext(WalletPayContext);
-  if (!ctx) throw new Error("useWalletPay must be used within WalletPayProvider");
-  return ctx;
+  return useContext(WalletPayContext) ?? noopWalletPay;
 }

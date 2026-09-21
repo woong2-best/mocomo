@@ -169,8 +169,10 @@ export function WalletZeroPaymentCards({
       return;
     }
     if ("checkoutUrl" in res && res.checkoutUrl) {
-      window.location.href = res.checkoutUrl;
+      window.location.assign(res.checkoutUrl);
+      return;
     }
+    setMsg("카드 등록 페이지로 이동하지 못했습니다.");
   }
 
   function handleInsertComplete() {

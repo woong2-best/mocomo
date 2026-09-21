@@ -5,6 +5,7 @@ import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import { GemBalancePanel } from "@/components/wallet/gem-balance-panel";
 import { MocomoCardReader } from "@/components/wallet/mocomo-card-reader";
 import { WalletZeroPaymentCards } from "@/components/wallet/wallet-zero-payment-cards";
+import { WalletPayProvider } from "@/components/wallet/wallet-pay-context";
 import type { AtmScreenOverlay, ReaderLightState } from "@/components/wallet/wallet-payment-types";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +28,7 @@ type Props = {
   userImageUrl?: string | null;
 };
 
-export function WalletPaymentStation({
+function WalletPaymentStationInner({
   balance,
   minTopupMoco,
   paymentMethods: initialMethods,
@@ -110,5 +111,13 @@ export function WalletPaymentStation({
         insertDisabled={atmOverlay != null}
       />
     </div>
+  );
+}
+
+export function WalletPaymentStation(props: Props) {
+  return (
+    <WalletPayProvider>
+      <WalletPaymentStationInner {...props} />
+    </WalletPayProvider>
   );
 }

@@ -107,21 +107,26 @@ export async function createSetupCheckoutSession(input: {
     return { error: "결제가 설정되지 않았습니다." };
   }
 
-  const customerId = await getOrCreateStripeCustomer(input.userId, input.email);
-  const urls = stripeSetupReturnUrls(input.platform ?? "web", input.returnPath);
-  const stripe = getStripe();
+  try {
+    const customerId = await getOrCreateStripeCustomer(input.userId, input.email);
+    const urls = stripeSetupReturnUrls(input.platform ?? "web", input.returnPath);
+    const stripe = getStripe();
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "setup",
-    customer: customerId,
-    payment_method_types: ["card"],
-    success_url: urls.successUrl,
-    cancel_url: urls.cancelUrl,
-    metadata: { userId: input.userId, purpose: "save_payment_method" },
-  });
+    const session = await stripe.checkout.sessions.create({
+      mode: "setup",
+      customer: customerId,
+      payment_method_types: ["card"],
+      success_url: urls.successUrl,
+      cancel_url: urls.cancelUrl,
+      metadata: { userId: input.userId, purpose: "save_payment_method" },
+    });
 
-  if (!session.url) return { error: "카드 등록 세션을 만들지 못했습니다." };
-  return { checkoutUrl: session.url, sessionId: session.id };
+    if (!session.url) return { error: "카드 등록 세션을 만들지 못했습니다." };
+    return { checkoutUrl: session.url, sessionId: session.id };
+  } catch (e) {
+    console.error("[createSetupCheckoutSession]", e);
+    return { error: "카드 등록 세션을 만들지 못했습니다. 잠시 후 다시 시도해 주세요." };
+  }
 }
 
 export async function confirmSetupCheckoutSession(userId: string, sessionId: string) {

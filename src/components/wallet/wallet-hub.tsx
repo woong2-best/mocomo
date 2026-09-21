@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { confirmPaymentMethodSetup } from "@/actions/payment-methods";
 import { WalletPaymentStation } from "@/components/wallet/wallet-payment-station";
-import { WalletPayProvider } from "@/components/wallet/wallet-pay-context";
 import { PaymentHistoryPanel } from "@/components/wallet/payment-history-panel";
 import { ReceivedTipsPanel } from "@/components/wallet/received-tips-panel";
 import { RevenueSettlementPanel } from "@/components/wallet/revenue-settlement-panel";
@@ -96,16 +95,33 @@ export function WalletHub({
     const sessionId = params.get("session_id");
     if (setup !== "success" || !sessionId) return;
 
+    let cancelled = false;
     void (async () => {
-      const res = await confirmPaymentMethodSetup(sessionId);
-      if ("error" in res && res.error) setSetupMsg(res.error);
-      else {
-        setSetupMsg("결제 수단이 등록되었습니다.");
-        selectTab("wallet");
-        router.refresh();
+      try {
+        const res = await confirmPaymentMethodSetup(sessionId);
+        if (cancelled) return;
+        if ("error" in res && res.error) {
+          setSetupMsg(res.error);
+        } else {
+          setSetupMsg("결제 수단이 등록되었습니다.");
+          router.refresh();
+        }
+      } catch (e) {
+        if (!cancelled) {
+          console.error("[wallet] confirmPaymentMethodSetup", e);
+          setSetupMsg("카드 등록 확인에 실패했습니다. 다시 시도해 주세요.");
+        }
+      } finally {
+        if (!cancelled) {
+          router.replace("/wallet", { scroll: false });
+        }
       }
     })();
-  }, [params, router, selectTab]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [params, router]);
 
   return (
     <div className="mx-auto max-w-lg space-y-5 overflow-x-visible pb-8 px-0.5">
@@ -145,16 +161,14 @@ export function WalletHub({
 
       {tab === "wallet" ? (
         <>
-          <WalletPayProvider>
-            <WalletPaymentStation
-              balance={gemBalance}
-              minTopupMoco={minTopupMoco}
-              paymentMethods={paymentMethods}
-              purchases={gemPurchases}
-              lowBalanceNotice={lowBalanceNotice}
-              userImageUrl={userImageUrl}
-            />
-          </WalletPayProvider>
+          <WalletPaymentStation
+            balance={gemBalance}
+            minTopupMoco={minTopupMoco}
+            paymentMethods={paymentMethods}
+            purchases={gemPurchases}
+            lowBalanceNotice={lowBalanceNotice}
+            userImageUrl={userImageUrl}
+          />
           <PaymentHistoryPanel items={paymentHistory} />
           <p className="text-center text-xs text-muted-foreground px-4">
             ATM [확인] 후 ZERO 카드를 리더기 방향으로 밀어 결제합니다.
