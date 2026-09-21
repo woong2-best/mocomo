@@ -17,7 +17,7 @@ export function MocomoCardReader({ light, active = false, className }: Props) {
   return (
     <div
       className={cn(
-        "relative flex w-[5.5rem] shrink-0 flex-col rounded-[1.35rem] border border-[#3d4349]",
+        "relative flex w-[5.25rem] shrink-0 flex-col rounded-[1.35rem] border border-[#3d4349]",
         "bg-gradient-to-b from-[#52585f] via-[#3a4047] to-[#2a2f35]",
         "p-1.5 shadow-[0_14px_32px_-8px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]",
         className,

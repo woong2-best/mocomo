@@ -142,7 +142,7 @@ export function GemBalancePanel({
   const [pending, startTransition] = useTransition();
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
 
-  const payCard = useMemo(() => {
+  const defaultCard = useMemo(() => {
     if (selectedCardId) {
       return paymentMethods.find((m) => m.id === selectedCardId) ?? null;
     }
@@ -225,8 +225,8 @@ export function GemBalancePanel({
       onPaymentResult?.("failure");
       return;
     }
-    if (!payCard) {
-      setError("등록된 카드가 없습니다. ZERO 카드 등록 후 다시 시도해 주세요.");
+    if (!defaultCard) {
+      setError("등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.");
       setStatusLine("등록된 카드가 없습니다.");
       onPaymentResult?.("failure");
       return;
@@ -235,7 +235,7 @@ export function GemBalancePanel({
     setStatusLine("등록된 카드로 결제 중…");
     onPaymentProcessing?.();
     startTransition(async () => {
-      const res = await payGemTopupWithSavedCard(moco, payCard.id, true);
+      const res = await payGemTopupWithSavedCard(moco, defaultCard.id, true);
       if ("error" in res && res.error) {
         setError(res.error);
         setStatusLine(res.error);
@@ -264,7 +264,7 @@ export function GemBalancePanel({
     minTopupMoco,
     onPaymentProcessing,
     onPaymentResult,
-    payCard,
+    defaultCard,
     router,
     termsAccepted,
   ]);
@@ -272,14 +272,13 @@ export function GemBalancePanel({
   useEffect(() => {
     registerInsertHandler(() => {
       if (!awaitingInsert) {
-        setStatusLine("먼저 [준비]로 수량을 확인해 주세요.");
-        onPaymentResult?.("failure");
+        setStatusLine("먼저 ATM [확인]을 누른 뒤 카드를 리더기에 넣어 주세요.");
         return;
       }
       runTopup();
     });
     return () => registerInsertHandler(null);
-  }, [awaitingInsert, onPaymentResult, registerInsertHandler, runTopup]);
+  }, [awaitingInsert, registerInsertHandler, runTopup]);
 
   function appendDigit(digit: string) {
     if (pending) return;
@@ -287,6 +286,7 @@ export function GemBalancePanel({
     if (next.length > MOCO_TOPUP_INPUT_MAX_DIGITS) return;
     const normalized = next.replace(/^0+(?=\d)/, "");
     setAmount(normalized);
+    setAwaitingInsert(false);
     if (error) setError("");
     setStatusLine("수량을 확인한 뒤 [확인]을 눌러 주세요.");
   }
@@ -294,11 +294,12 @@ export function GemBalancePanel({
   function backspace() {
     if (pending || !amount) return;
     setAmount(amount.slice(0, -1));
+    setAwaitingInsert(false);
     if (error) setError("");
     setStatusLine("충전할 MOCO 수량을 입력해 주세요.");
   }
 
-  function prepareInsert() {
+  function confirmAmountForCardInsert() {
     if (!termsAccepted) {
       setError("충전 전 약관에 동의해 주세요.");
       setStatusLine("약관에 동의한 뒤 다시 시도해 주세요.");
@@ -310,14 +311,14 @@ export function GemBalancePanel({
       setStatusLine("1 MOCO 이상 입력해 주세요.");
       return;
     }
-    if (!payCard) {
-      setError("등록된 카드가 없습니다. ZERO 카드 등록 후 다시 시도해 주세요.");
+    if (!defaultCard) {
+      setError("등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.");
       setStatusLine("등록된 카드가 없습니다.");
       return;
     }
     setError("");
     setAwaitingInsert(true);
-    setStatusLine("선택한 ZERO 카드를 리더기 슬롯 방향으로 밀어 넣어 주세요.");
+    setStatusLine("카드를 선택한 뒤 리더기 슬롯 방향으로 밀어 넣어 주세요.");
   }
 
   return (
@@ -418,14 +419,13 @@ export function GemBalancePanel({
                 10개 묶음 구매 시 PG 고정 수수료 절약 약 {formatUsdCents(bulkSaveCents)}
               </p>
             ) : null}
-            {payCard ? (
+            {defaultCard ? (
               <p className="mt-2 text-[11px] text-neutral-500">
-                결제 카드 · {payCard.brand.toUpperCase()} ···{payCard.last4}
-                {payCard.isDefault ? " (기본)" : ""}
-                {awaitingInsert ? " · 삽입 대기" : ""}
+                결제 카드 · {defaultCard.brand.toUpperCase()} ···{defaultCard.last4}
+                {defaultCard.isDefault ? " (기본)" : ""}
               </p>
             ) : (
-              <p className="mt-2 text-[11px] text-amber-700">등록된 카드가 없습니다. 옆에서 ZERO 카드를 등록해 주세요.</p>
+              <p className="mt-2 text-[11px] text-amber-700">등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.</p>
             )}
           </MocoEarthTransferHero>
         </div>
@@ -474,17 +474,17 @@ export function GemBalancePanel({
             <AtmNumKey label="8" disabled={pending} onPress={() => appendDigit("8")} className="col-start-2 row-start-3" />
             <AtmNumKey label="9" disabled={pending} onPress={() => appendDigit("9")} className="col-start-3 row-start-3" />
             <AtmActionKey
-              label="준비"
-              subLabel="READY"
+              label="확인"
+              subLabel="OK"
               tone="confirm"
               disabled={
                 pending ||
-                !payCard ||
+                !defaultCard ||
                 !amount ||
                 parsedPreview == null ||
                 parsedPreview < minTopupMoco
               }
-              onPress={prepareInsert}
+              onPress={confirmAmountForCardInsert}
               className="col-start-4 row-start-3 row-span-2 h-full min-h-[6.9rem]"
             />
 

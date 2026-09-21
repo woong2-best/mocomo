@@ -108,7 +108,7 @@ export function WalletHub({
   }, [params, router, selectTab]);
 
   return (
-    <div className="max-w-lg mx-auto space-y-5 pb-8">
+    <div className="mx-auto max-w-lg space-y-5 overflow-x-visible pb-8 px-0.5">
       {safeCallbackUrl && !settlement.payoutsEnabled ? (
         <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm space-y-1">
           <p className="font-bold text-foreground">Reward 정산 등록</p>
@@ -157,7 +157,7 @@ export function WalletHub({
           </WalletPayProvider>
           <PaymentHistoryPanel items={paymentHistory} />
           <p className="text-center text-xs text-muted-foreground px-4">
-            ZERO 카드를 선택한 뒤 리더기 방향으로 밀어 결제합니다.
+            ATM [확인] 후 ZERO 카드를 리더기 방향으로 밀어 결제합니다.
           </p>
         </>
       ) : (
