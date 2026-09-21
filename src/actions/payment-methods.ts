@@ -21,6 +21,10 @@ function actionAuthError(e: unknown): string {
       return "삭제된 계정입니다.";
     case "USER_NOT_FOUND":
       return "사용자 정보를 찾을 수 없습니다.";
+    case "ACCOUNT_SUSPENDED":
+      return "계정이 정지되어 카드를 등록할 수 없습니다.";
+    case "ACCOUNT_LIMITED":
+      return "계정 제한으로 카드를 등록할 수 없습니다.";
     default:
       return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
   }
@@ -39,10 +43,10 @@ export async function getMyPaymentMethods() {
 
 export async function startAddPaymentMethod(returnPath?: string) {
   try {
-    const user = await requireAuthForAction();
+    const user = await requireAuth();
     const res = await createSetupCheckoutSession({
       userId: user.id,
-      email: null,
+      email: user.email,
       platform: "web",
       returnPath,
     });

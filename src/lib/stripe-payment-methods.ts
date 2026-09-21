@@ -1,3 +1,4 @@
+import Stripe from "stripe";
 import { db } from "@/lib/db";
 import { safeReturnPath } from "@/lib/donation-metadata";
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
@@ -26,6 +27,21 @@ function cardBrandLabel(brand: string | null | undefined) {
   return labels[b] ?? brand ?? "Card";
 }
 
+function isMissingStripeCustomerError(e: unknown): boolean {
+  return (
+    e instanceof Stripe.errors.StripeInvalidRequestError &&
+    e.code === "resource_missing" &&
+    (e.param === "customer" || e.message.toLowerCase().includes("customer"))
+  );
+}
+
+async function clearStripeCustomerId(userId: string) {
+  await db.user.update({
+    where: { id: userId },
+    data: { stripeCustomerId: null },
+  });
+}
+
 export async function getOrCreateStripeCustomer(userId: string, email?: string | null) {
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -33,14 +49,24 @@ export async function getOrCreateStripeCustomer(userId: string, email?: string |
   });
   if (!user) throw new Error("USER_NOT_FOUND");
 
+  const stripe = getStripe();
+
   if (user.stripeCustomerId) {
-    return user.stripeCustomerId;
+    try {
+      const existing = await stripe.customers.retrieve(user.stripeCustomerId);
+      if (typeof existing !== "string" && !existing.deleted) {
+        return user.stripeCustomerId;
+      }
+    } catch (e) {
+      if (!isMissingStripeCustomerError(e)) throw e;
+      console.warn("[getOrCreateStripeCustomer] stale stripeCustomerId cleared", { userId });
+    }
+    await clearStripeCustomerId(userId);
   }
 
-  const stripe = getStripe();
   const customer = await stripe.customers.create({
     email: email ?? user.email ?? undefined,
-    metadata: { userId, username: user.username },
+    metadata: { userId, username: user.username ?? "" },
   });
 
   await db.user.update({
@@ -61,10 +87,20 @@ export async function listSavedPaymentMethods(userId: string): Promise<SavedPaym
   if (!user?.stripeCustomerId) return [];
 
   const stripe = getStripe();
-  const [methods, customer] = await Promise.all([
-    stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: "card" }),
-    stripe.customers.retrieve(user.stripeCustomerId),
-  ]);
+  let methods: Stripe.ApiList<Stripe.PaymentMethod>;
+  let customer: Stripe.Customer | Stripe.DeletedCustomer;
+  try {
+    [methods, customer] = await Promise.all([
+      stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: "card" }),
+      stripe.customers.retrieve(user.stripeCustomerId),
+    ]);
+  } catch (e) {
+    if (isMissingStripeCustomerError(e)) {
+      await clearStripeCustomerId(userId);
+      return [];
+    }
+    throw e;
+  }
 
   const defaultId =
     typeof customer !== "string" && !customer.deleted
@@ -107,12 +143,11 @@ export async function createSetupCheckoutSession(input: {
     return { error: "결제가 설정되지 않았습니다." };
   }
 
-  try {
-    const customerId = await getOrCreateStripeCustomer(input.userId, input.email);
-    const urls = stripeSetupReturnUrls(input.platform ?? "web", input.returnPath);
-    const stripe = getStripe();
+  const urls = stripeSetupReturnUrls(input.platform ?? "web", input.returnPath);
+  const stripe = getStripe();
 
-    const session = await stripe.checkout.sessions.create({
+  const createSession = async (customerId: string) =>
+    stripe.checkout.sessions.create({
       mode: "setup",
       customer: customerId,
       payment_method_types: ["card"],
@@ -121,10 +156,25 @@ export async function createSetupCheckoutSession(input: {
       metadata: { userId: input.userId, purpose: "save_payment_method" },
     });
 
+  try {
+    let customerId = await getOrCreateStripeCustomer(input.userId, input.email);
+    let session: Stripe.Checkout.Session;
+    try {
+      session = await createSession(customerId);
+    } catch (e) {
+      if (!isMissingStripeCustomerError(e)) throw e;
+      await clearStripeCustomerId(input.userId);
+      customerId = await getOrCreateStripeCustomer(input.userId, input.email);
+      session = await createSession(customerId);
+    }
+
     if (!session.url) return { error: "카드 등록 세션을 만들지 못했습니다." };
     return { checkoutUrl: session.url, sessionId: session.id };
   } catch (e) {
     console.error("[createSetupCheckoutSession]", e);
+    if (e instanceof Stripe.errors.StripeError) {
+      console.error("[createSetupCheckoutSession] stripe", e.type, e.code, e.message);
+    }
     return { error: "카드 등록 세션을 만들지 못했습니다. 잠시 후 다시 시도해 주세요." };
   }
 }
