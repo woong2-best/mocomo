@@ -21,6 +21,10 @@ import { listSavedAccounts } from "@/lib/account-switch/client";
 import { waitForClientSession } from "@/lib/auth-session-retry";
 import { finishAddAccountFlow } from "@/lib/account-switch/add-account-flow";
 import {
+  adminLogoutMfaAction,
+  adminMfaAfterPasswordAction,
+} from "@/actions/admin-security";
+import {
   MOBILE_OAUTH_COOKIE,
   MOBILE_OAUTH_PLATFORM_COOKIE,
   MOBILE_OAUTH_PROVIDER_COOKIE,
@@ -222,6 +226,14 @@ export function SignInForm({
       return;
     }
     await finishAddAccountFlow();
+    if (nextSession.user.isOperator) {
+      await adminLogoutMfaAction();
+      const mfa = await adminMfaAfterPasswordAction();
+      if ("next" in mfa && mfa.next === "enroll") {
+        window.location.assign("/admin/enroll");
+        return;
+      }
+    }
     window.location.assign(isMobile ? completeUrl : callbackUrl);
   }
 

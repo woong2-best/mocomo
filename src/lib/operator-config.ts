@@ -1,17 +1,29 @@
 /**
  * 운영자·스태프 식별 (Edge middleware·서버 공통 — DB import 없음).
  *
- * SITE_OPERATOR_USERNAME (기본: mocomocompany) 계정 = 사이트 OWNER.
- * username 일치면 OWNER (이메일 불일치로 막지 않음 — Vercel SITE_OPERATOR_EMAIL 오설정 방지).
+ * SITE_OPERATOR_USERNAMES (쉼표 구분, 기본: mocomocompany,admin) = 사이트 OWNER.
+ * username 일치면 OWNER (/admin·운영 MFA 대상).
  */
 
 import { resolveEffectiveStaffRole, staffRoleRank } from "@/lib/staff-roles";
 
-const DEFAULT_OPERATOR_USERNAME = "mocomocompany";
+const DEFAULT_OPERATOR_USERNAMES = ["mocomocompany", "admin"] as const;
 
+export function getOperatorUsernames(): string[] {
+  const raw = process.env.SITE_OPERATOR_USERNAMES?.trim();
+  if (raw) {
+    const parsed = raw
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    if (parsed.length > 0) return parsed;
+  }
+  return [...DEFAULT_OPERATOR_USERNAMES];
+}
+
+/** @deprecated — 첫 번째 운영자 username (레거시 호환) */
 export function getOperatorUsername(): string {
-  const raw = process.env.SITE_OPERATOR_USERNAME?.trim().toLowerCase();
-  return raw || DEFAULT_OPERATOR_USERNAME;
+  return getOperatorUsernames()[0] ?? DEFAULT_OPERATOR_USERNAMES[0];
 }
 
 /** 선택: 운영자 이메일 힌트 (강제 검증에 사용하지 않음) */
@@ -25,12 +37,13 @@ export function isSiteOperatorAccount(user: {
   username: string;
   email?: string | null;
 }): boolean {
-  return user.username.trim().toLowerCase() === getOperatorUsername();
+  const un = user.username.trim().toLowerCase();
+  return getOperatorUsernames().includes(un);
 }
 
 /**
  * 사이트 오너(OPERATOR) 여부.
- * DB role과 무관하게 운영자 username이면 true → /admin 진입 가능.
+ * DB role과 무관하게 운영자 username이면 true → /admin·사이트 MFA.
  */
 export function isOperatorIdentity(user: {
   username: string;

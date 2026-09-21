@@ -18,7 +18,7 @@ import {
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { isAptPublicBlockedPath } from "@/lib/apt-public-gate";
 import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
-import { getOperatorUsername } from "@/lib/operator-config";
+import { getOperatorUsernames } from "@/lib/operator-config";
 import {
   ADMIN_MFA_COOKIE,
   createAdminMfaCookieValue,
@@ -271,7 +271,7 @@ export default edgeAuth(async (req) => {
   const authUsername = String(req.auth?.user?.username ?? "")
     .trim()
     .toLowerCase();
-  const isSiteOwnerByUsername = authUsername === getOperatorUsername();
+  const isSiteOwnerByUsername = getOperatorUsernames().includes(authUsername);
   const isAdminStaff =
     isLoggedIn && (isStaff || isOperator || isSiteOwnerByUsername);
 

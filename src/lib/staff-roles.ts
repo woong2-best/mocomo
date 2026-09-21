@@ -1,5 +1,5 @@
 import type { UserRole } from "@prisma/client";
-import { getOperatorUsername } from "@/lib/operator-config";
+import { isSiteOperatorAccount } from "@/lib/operator-config";
 import {
   ADMIN_ROLE_LABELS,
   ALL_ADMIN_PERMISSIONS,
@@ -70,7 +70,7 @@ export function resolveEffectiveStaffRole(user: {
   role: string;
   email?: string | null;
 }): UserRole {
-  if (user.username.trim().toLowerCase() === getOperatorUsername()) {
+  if (isSiteOperatorAccount(user)) {
     return "OWNER";
   }
   return user.role as UserRole;

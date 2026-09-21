@@ -3,18 +3,8 @@ export const USERNAME_CHANGE_WINDOW_DAYS = 14;
 export const USERNAME_CHANGE_WINDOW_MS =
   USERNAME_CHANGE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
-export const RESERVED_USERNAMES = new Set([
-  "mocomo",
-  "mocomo_official",
-  "admin",
-  "administrator",
-  "support",
-  "official",
-  "system",
-  "root",
-  "help",
-  "mocomocompany",
-]);
+/** 예약 닉네임 없음 — 가입·변경 시 동일 규칙(3–20자 영숫자_)만 적용 */
+export const RESERVED_USERNAMES = new Set<string>();
 
 export function normalizeUsername(username: string): string {
   return username.trim().toLowerCase();

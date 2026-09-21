@@ -41,6 +41,11 @@ const CheckoutResumeHandler = dynamic(
   { ssr: false }
 );
 
+const OperatorSiteMfaGate = dynamic(
+  () => import("@/components/auth/operator-site-mfa-gate").then((m) => m.OperatorSiteMfaGate),
+  { ssr: false }
+);
+
 const NativePushRegistration = dynamic(
   () =>
     import("@/components/push/native-push-registration").then((m) => m.NativePushRegistration),
@@ -85,6 +90,7 @@ export function AppProviders({
                         <CallProviderGate>
                           <PlatformBootstrapClient />
                           <AddAccountFlowHandler />
+                          <OperatorSiteMfaGate />
                           {children}
                         </CallProviderGate>
                         </LegalComplianceProvider>

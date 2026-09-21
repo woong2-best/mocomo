@@ -1,8 +1,17 @@
 import type { PrismaClient } from "@prisma/client";
-import { getOperatorEmail, getOperatorUsername } from "@/lib/operator-config";
+import {
+  getOperatorEmail,
+  getOperatorUsername,
+  getOperatorUsernames,
+} from "@/lib/operator-config";
 import { safeLogInfo } from "@/lib/safe-log";
 
-export { getOperatorUsername, getOperatorEmail, isOperatorIdentity } from "@/lib/operator-config";
+export {
+  getOperatorUsername,
+  getOperatorUsernames,
+  getOperatorEmail,
+  isOperatorIdentity,
+} from "@/lib/operator-config";
 
 export type OperatorBootstrapResult = {
   ok: boolean;
@@ -16,66 +25,84 @@ function auditLog(event: string, payload: Record<string, unknown>) {
   safeLogInfo("operator", { event, ...payload });
 }
 
-/** 잘못 부여된 ADMIN/MODERATOR 회수 (승격 없음) — 배포·보안 점검용 */
+function operatorUsernameFilter() {
+  const allowed = getOperatorUsernames();
+  return {
+    NOT: {
+      OR: allowed.map((name) => ({
+        username: { equals: name, mode: "insensitive" as const },
+      })),
+    },
+  };
+}
+
+/** 지정 운영자 외 ADMIN/MODERATOR/OWNER 회수 */
 export async function revokeUnauthorizedAdminRoles(prisma: PrismaClient): Promise<number> {
-  const username = getOperatorUsername();
+  const allowed = getOperatorUsernames();
   const result = await prisma.user.updateMany({
     where: {
-      username: { not: username, mode: "insensitive" },
-      role: { in: ["ADMIN", "MODERATOR"] },
+      ...operatorUsernameFilter(),
+      role: { in: ["ADMIN", "MODERATOR", "OWNER"] },
     },
     data: { role: "USER" },
   });
   if (result.count > 0) {
-    auditLog("revoke_unauthorized_roles", { username, demoted: result.count });
+    auditLog("revoke_unauthorized_roles", { allowed, demoted: result.count });
   }
   return result.count;
 }
 
 /**
- * 운영자 ADMIN 부여 + 타 계정 권한 회수.
- * SQL/대시보드 대신 CLI·최초 1회 배포 시에만 호출 (요청마다 실행하지 않음).
+ * 운영자 OWNER 부여 + 타 계정 권한 회수.
  */
 export async function bootstrapOperatorRole(prisma: PrismaClient): Promise<OperatorBootstrapResult> {
-  const username = getOperatorUsername();
+  const usernames = getOperatorUsernames();
+  const primary = getOperatorUsername();
   const requiredEmail = getOperatorEmail();
   const demoted = await revokeUnauthorizedAdminRoles(prisma);
 
-  const operator = await prisma.user.findFirst({
-    where: { username: { equals: username, mode: "insensitive" } },
-    select: { id: true, username: true, role: true, email: true },
-  });
+  let anyMissing = false;
+  let promotedAny = false;
 
-  if (!operator) {
-    auditLog("bootstrap_skipped", { username, reason: "operator_account_missing", demoted });
-    return { ok: false, username, demoted, promoted: false, reason: "operator_account_missing" };
-  }
-
-  if (requiredEmail && operator.email?.trim().toLowerCase() !== requiredEmail) {
-    auditLog("bootstrap_skipped", {
-      username,
-      reason: "operator_email_mismatch",
-      demoted,
+  for (const name of usernames) {
+    const operator = await prisma.user.findFirst({
+      where: { username: { equals: name, mode: "insensitive" } },
+      select: { id: true, username: true, role: true, email: true },
     });
-    return { ok: false, username, demoted, promoted: false, reason: "operator_email_mismatch" };
+    if (!operator) {
+      anyMissing = true;
+      auditLog("bootstrap_missing_operator", { username: name, demoted });
+      continue;
+    }
+    if (requiredEmail && name === primary && operator.email?.trim().toLowerCase() !== requiredEmail) {
+      auditLog("bootstrap_skipped", {
+        username: name,
+        reason: "operator_email_mismatch",
+        demoted,
+      });
+      return { ok: false, username: name, demoted, promoted: false, reason: "operator_email_mismatch" };
+    }
+    const promoted = operator.role !== "OWNER";
+    if (promoted) {
+      await prisma.user.update({
+        where: { id: operator.id },
+        data: { role: "OWNER", adminDisabledAt: null },
+      });
+      promotedAny = true;
+    } else if (operator.role === "OWNER") {
+      await prisma.user.update({
+        where: { id: operator.id },
+        data: { adminDisabledAt: null },
+      });
+    }
   }
 
-  const promoted = operator.role !== "OWNER";
-  if (promoted || operator.role !== "OWNER") {
-    await prisma.user.update({
-      where: { id: operator.id },
-      data: { role: "OWNER", adminDisabledAt: null },
-    });
+  if (anyMissing) {
+    return { ok: false, username: primary, demoted, promoted: promotedAny, reason: "operator_account_missing" };
   }
 
-  auditLog("bootstrap_ok", {
-    username: operator.username,
-    demoted,
-    promoted,
-    operatorId: operator.id,
-  });
-
-  return { ok: true, username: operator.username, demoted, promoted };
+  auditLog("bootstrap_ok", { usernames, demoted, promoted: promotedAny });
+  return { ok: true, username: primary, demoted, promoted: promotedAny };
 }
 
 /** @deprecated — bootstrapOperatorRole 또는 revokeUnauthorizedAdminRoles 사용 */
