@@ -88,14 +88,13 @@ export function AdminStripeVerifyPanel({ data }: { data: StripeVerifyDashboard }
                 : "미설정 — /payments/success 에서도 확인 가능"
             }
           />
-          <StatusRow ok={d.apiOk} label="Stripe API" detail={d.apiError ?? d.accountId} />
+          <StatusRow
+            ok={d.apiOk}
+            label="Stripe API"
+            detail={d.apiError ?? (d.apiOk ? "Balance API 응답 OK" : undefined)}
+          />
           {d.apiOk ? (
             <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-1 text-muted-foreground">
-              <p>
-                계정: {d.accountCountry ?? "—"} · charges{" "}
-                {d.chargesEnabled ? "ON" : "OFF"} · payouts{" "}
-                {d.payoutsEnabled ? "ON" : "OFF"}
-              </p>
               <p>
                 USD 잔고(테스트): 사용 가능{" "}
                 {formatUsd(d.balanceAvailableUsdCents ?? 0)} · 정산 대기{" "}
