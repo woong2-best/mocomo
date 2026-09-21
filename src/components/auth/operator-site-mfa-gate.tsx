@@ -107,7 +107,7 @@ export function OperatorSiteMfaGate() {
         setError("Passkey 옵션을 불러오지 못했습니다.");
         return;
       }
-      const assertion = await startAuthentication({ optionsJSON: opts.options });
+      const assertion = await startAuthentication(opts.options);
       const verified = await adminPasskeyAuthVerifyAction(assertion);
       if ("error" in verified && verified.error) {
         setError(verified.error);
@@ -185,4 +185,12 @@ export function OperatorSiteMfaGate() {
               />
               Recovery code 사용
             </label>
-            <Button type="submit" className="w
+            <Button type="submit" className="w-full" disabled={loading || !code.trim()}>
+              {loading ? "확인 중…" : "OTP 확인"}
+            </Button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}

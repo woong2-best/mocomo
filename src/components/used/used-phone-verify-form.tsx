@@ -70,7 +70,7 @@ export function UsedPhoneVerifyForm({
       return;
     }
     setSent(true);
-    setMessage(res.message ?? "인증번호를 보냈습니다.");
+    setMessage("message" in res && res.message ? res.message : "인증번호를 보냈습니다.");
   }
 
   async function submitCode(e: React.FormEvent) {
