@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { markPayoutPaid, rejectPayout } from "@/actions/admin-finance";
 import { Button } from "@/components/ui/button";
@@ -78,7 +79,10 @@ export function AdminFinancePanel({ data }: { data: Dashboard }) {
 
       <p className="text-xs text-muted-foreground rounded-lg border border-border p-3 bg-muted/30">
         실제 입금은 Stripe 정산 계좌로 들어옵니다. 아래 「플랫폼 수익」은 앱 장부 기준이며, 판매자
-        출금은 Stripe 입금 후 계좌이체로 처리하세요.
+        출금은 Stripe 입금 후 계좌이체로 처리하세요.{" "}
+        <Link href="/admin/finance/stripe-verify" className="text-primary hover:underline">
+          Stripe 테스트 결제 · 후원 검증 →
+        </Link>
       </p>
 
       <Card>
