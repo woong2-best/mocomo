@@ -2,7 +2,9 @@
  * 운영자 2계정(mocomocompany, admin) 프로비저닝 + MOCO 테스트 크레딧
  *
  *   OPERATOR_ADMIN_PASSWORD='...' npx tsx scripts/provision-site-operators.ts
- *   OPERATOR_MOCO_GRANT=100  (기본 100, @mocomocompany 에 지급)
+ *   OPERATOR_MOCO_GRANT=100  (기본 100)
+ *   OPERATOR_MOCO_GRANT_TO=mocomocompany  (쉼표 구분 또는 all → SITE_OPERATOR_USERNAMES 전원)
+ *   OPERATOR_GRANT_ONLY=1  — MOCO만 지급 (비밀번호·bootstrap 생략)
  */
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
@@ -14,7 +16,15 @@ import { syncUserGemBalance } from "../src/lib/gems/balance";
 const SIGNUP_BCRYPT_ROUNDS = 12;
 const ADMIN_USERNAME = "admin";
 const MOCO_GRANT = Math.max(0, parseInt(process.env.OPERATOR_MOCO_GRANT ?? "100", 10) || 100);
-const MOCO_GRANT_TO = (process.env.OPERATOR_MOCO_GRANT_TO ?? "mocomocompany").trim().toLowerCase();
+const MOCO_GRANT_TO_RAW = (process.env.OPERATOR_MOCO_GRANT_TO ?? "mocomocompany").trim().toLowerCase();
+const GRANT_ONLY = process.env.OPERATOR_GRANT_ONLY === "1";
+
+function resolveMocoGrantTargets(): string[] {
+  if (MOCO_GRANT_TO_RAW === "all") return getOperatorUsernames();
+  return MOCO_GRANT_TO_RAW.split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
 
 async function grantMoco(userId: string, amount: number) {
   if (amount <= 0) return;
@@ -64,14 +74,36 @@ async function ensureAdminUser(password: string) {
   return created.id;
 }
 
+async function grantMocoToUsernames(usernames: string[]) {
+  for (const un of usernames) {
+    const grantUser = await db.user.findFirst({
+      where: { username: { equals: un, mode: "insensitive" } },
+      select: { id: true, username: true },
+    });
+    if (!grantUser) {
+      console.error(`MOCO 지급 대상 @${un} 없음`);
+      continue;
+    }
+    console.log(`@${grantUser.username} …`);
+    await grantMoco(grantUser.id, MOCO_GRANT);
+  }
+}
+
 async function main() {
+  const targets = resolveMocoGrantTargets();
+  console.log("운영자 username 목록:", getOperatorUsernames().join(", "));
+  console.log("MOCO 지급 대상:", targets.join(", "));
+
+  if (GRANT_ONLY) {
+    await grantMocoToUsernames(targets);
+    return;
+  }
+
   const password = process.env.OPERATOR_ADMIN_PASSWORD?.trim();
   if (!password || password.length < 10) {
     console.error("OPERATOR_ADMIN_PASSWORD 환경 변수(10자 이상)가 필요합니다.");
     process.exit(1);
   }
-
-  console.log("운영자 username 목록:", getOperatorUsernames().join(", "));
 
   await ensureAdminUser(password);
   const boot = await bootstrapOperatorRole(db);
@@ -81,15 +113,7 @@ async function main() {
     console.log(`bootstrap OK (demoted=${boot.demoted}, promoted=${boot.promoted})`);
   }
 
-  const grantUser = await db.user.findFirst({
-    where: { username: { equals: MOCO_GRANT_TO, mode: "insensitive" } },
-    select: { id: true, username: true },
-  });
-  if (!grantUser) {
-    console.error(`MOCO 지급 대상 @${MOCO_GRANT_TO} 없음`);
-  } else {
-    await grantMoco(grantUser.id, MOCO_GRANT);
-  }
+  await grantMocoToUsernames(targets);
 }
 
 main()
