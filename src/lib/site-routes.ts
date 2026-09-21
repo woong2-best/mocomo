@@ -1,6 +1,17 @@
 /** 사이트 기본 랜딩 — 홈 피드 (루트 도메인) */
 export const DEFAULT_LANDING_PATH = "/";
 
+/** 일반 사이트 로그인 후 이동 경로 — /admin 등 관리자 URL은 홈으로 대체 */
+export function sanitizeMainSiteCallbackPath(
+  raw: string | undefined | null,
+  fallback: string = DEFAULT_LANDING_PATH,
+): string {
+  const path = (raw ?? "").trim();
+  if (!path.startsWith("/") || path.startsWith("//")) return fallback;
+  if (path === "/admin" || path.startsWith("/admin/")) return fallback;
+  return path;
+}
+
 /** 탐색 · 발견 */
 export const EXPLORE_PATH = "/explore";
 

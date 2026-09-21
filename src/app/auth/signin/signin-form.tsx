@@ -34,11 +34,10 @@ import {
   sanitizeMobileRedirectUri,
 } from "@/lib/mobile-oauth-shared";
 import { buildProviderSigninHref } from "@/lib/oauth-provider-signin-shared";
+import { sanitizeMainSiteCallbackPath } from "@/lib/site-routes";
 
 function safeCallbackUrl(raw: string): string {
-  const path = raw.trim();
-  if (!path.startsWith("/") || path.startsWith("//")) return "/";
-  return path;
+  return sanitizeMainSiteCallbackPath(raw, "/");
 }
 
 function readCookie(name: string): string | null {
@@ -228,11 +227,7 @@ export function SignInForm({
     await finishAddAccountFlow();
     if (nextSession.user.isOperator) {
       await adminLogoutMfaAction();
-      const mfa = await adminMfaAfterPasswordAction();
-      if ("next" in mfa && mfa.next === "enroll") {
-        window.location.assign("/admin/enroll");
-        return;
-      }
+      await adminMfaAfterPasswordAction();
     }
     window.location.assign(isMobile ? completeUrl : callbackUrl);
   }

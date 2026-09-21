@@ -87,7 +87,8 @@ export function OperatorSiteMfaGate() {
         return;
       }
       if ("next" in res && res.next === "enroll") {
-        router.replace("/admin/enroll");
+        setError("관리자 보안 등록(Passkey·OTP)이 필요합니다. 아래 링크에서 등록한 뒤 다시 로그인해 주세요.");
+        setOpen(true);
         return;
       }
       await refreshStage();

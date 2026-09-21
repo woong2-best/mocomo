@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { startAuthentication } from "@simplewebauthn/browser";
@@ -56,10 +57,13 @@ function Stepper({ step }: { step: Step }) {
 
 export function AdminLoginForm({
   callbackUrl,
+  autoRedirectWhenMfaOk = false,
   errorParam,
   siteUsername,
 }: {
   callbackUrl: string;
+  /** URL에 callbackUrl이 있을 때만 MFA 완료 시 자동 이동 (일반 사이트 이용 중 /admin/login 방문 시 홈 강제 이동 방지) */
+  autoRedirectWhenMfaOk?: boolean;
   errorParam: string | null;
   /** 메인 사이트 세션 표시용 — 관리자 인증을 대체하지 않음 */
   siteUsername: string | null;
@@ -78,6 +82,7 @@ export function AdminLoginForm({
       ? "관리자 권한이 없는 계정입니다. 관리자 계정으로 로그인해 주세요."
       : null
   );
+  const [mfaAlreadyComplete, setMfaAlreadyComplete] = useState(false);
 
   // 중단된 관리자 MFA 단계(쿠키 stage)만 복원. 메인 사이트 로그인만으로는 절대 건너뛰지 않음.
   useEffect(() => {
@@ -85,8 +90,13 @@ export function AdminLoginForm({
     void (async () => {
       const { stage } = await adminMfaStageAction();
       if (cancelled) return;
-      if (stage === "ok") {
+      if (stage === "ok" && autoRedirectWhenMfaOk) {
         router.replace(callbackUrl.startsWith("/") ? callbackUrl : "/admin");
+        return;
+      }
+      if (stage === "ok") {
+        setMfaAlreadyComplete(true);
+        setReady(true);
         return;
       }
       if (stage === "pk") setStep("totp");
@@ -97,7 +107,7 @@ export function AdminLoginForm({
     return () => {
       cancelled = true;
     };
-  }, [callbackUrl, router]);
+  }, [autoRedirectWhenMfaOk, callbackUrl, router]);
 
   async function onPasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -243,7 +253,24 @@ export function AdminLoginForm({
           ) : null}
         </div>
 
-        {step === "password" ? (
+        {mfaAlreadyComplete ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              관리자 추가 인증(MFA)이 이미 완료된 상태입니다. 일반 사이트를 이용하거나 관리자
+              대시보드로 이동할 수 있습니다.
+            </p>
+            <Button type="button" className="w-full" asChild>
+              <Link href="/">MoCoMo 홈으로</Link>
+            </Button>
+            <Button type="button" className="w-full" variant="secondary" asChild>
+              <Link href={callbackUrl.startsWith("/admin") ? callbackUrl : "/admin"}>
+                관리자 대시보드
+              </Link>
+            </Button>
+          </div>
+        ) : null}
+
+        {!mfaAlreadyComplete && step === "password" ? (
           <form onSubmit={onPasswordSubmit} className="space-y-3">
             <p className="text-xs font-medium text-muted-foreground">1단계 · 관리자 계정</p>
             <div>
@@ -278,7 +305,7 @@ export function AdminLoginForm({
           </form>
         ) : null}
 
-        {step === "passkey" ? (
+        {!mfaAlreadyComplete && step === "passkey" ? (
           <div className="space-y-3">
             <p className="text-xs font-medium text-muted-foreground">2단계 · Passkey</p>
             <p className="text-sm text-muted-foreground">
@@ -294,7 +321,7 @@ export function AdminLoginForm({
           </div>
         ) : null}
 
-        {step === "totp" ? (
+        {!mfaAlreadyComplete && step === "totp" ? (
           <form onSubmit={onTotpSubmit} className="space-y-3">
             <p className="text-xs font-medium text-muted-foreground">3단계 · Authenticator</p>
             <p className="text-sm text-muted-foreground">

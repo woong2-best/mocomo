@@ -21,10 +21,16 @@ export default async function AdminLoginPage({
     sp.callbackUrl.startsWith("/admin")
       ? sp.callbackUrl
       : "/admin";
+  const hasExplicitCallback = Boolean(
+    sp.callbackUrl?.startsWith("/") &&
+      !sp.callbackUrl.startsWith("//") &&
+      sp.callbackUrl.startsWith("/admin"),
+  );
 
   return (
     <AdminLoginForm
       callbackUrl={callback}
+      autoRedirectWhenMfaOk={hasExplicitCallback}
       errorParam={sp.error ?? null}
       siteUsername={session?.user?.username ?? null}
     />

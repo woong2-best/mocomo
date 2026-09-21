@@ -290,7 +290,16 @@ export default edgeAuth(async (req) => {
         ));
       // 관리자 MFA(비밀번호+Passkey+TOTP) 완료된 경우만 대시보드로
       if (mfaOk) {
-        const res = NextResponse.redirect(new URL("/admin", req.url));
+        const cb = req.nextUrl.searchParams.get("callbackUrl");
+        const adminDest =
+          cb?.startsWith("/") && !cb.startsWith("//") && cb.startsWith("/admin") ? cb : null;
+        if (adminDest) {
+          const res = NextResponse.redirect(new URL(adminDest, req.url));
+          stampAppClientIfNeeded(req, res);
+          return res;
+        }
+        const res = NextResponse.next();
+        res.headers.set("x-pathname", pathname);
         stampAppClientIfNeeded(req, res);
         return res;
       }

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getAuthConfigStatus } from "@/lib/auth-env";
-import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { DEFAULT_LANDING_PATH, sanitizeMainSiteCallbackPath } from "@/lib/site-routes";
 import { mobileAuthCompletePath, sanitizeMobileRedirectUri } from "@/lib/mobile-oauth-shared";
 import { MobileAuthSessionBootstrap } from "@/components/auth/mobile-auth-session-bootstrap";
 import { SignInForm } from "./signin-form";
@@ -30,9 +30,9 @@ export default async function SignInPage({
   const platform = sp.platform === "ios" ? "ios" : "android";
   const { googleOAuth } = getAuthConfigStatus();
 
-  const callbackUrl =
-    sp.callbackUrl?.trim() ||
-    (fromMobile ? mobileAuthCompletePath(platform) : DEFAULT_LANDING_PATH);
+  const callbackUrl = fromMobile
+    ? mobileAuthCompletePath(platform)
+    : sanitizeMainSiteCallbackPath(sp.callbackUrl, DEFAULT_LANDING_PATH);
 
   return (
     <>
