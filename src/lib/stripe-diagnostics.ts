@@ -76,19 +76,11 @@ export async function runStripeDiagnostics(): Promise<StripeDiagnostics> {
 
   try {
     const stripe = getStripe();
-    const [account, balance] = await Promise.all([
-      stripe.accounts.retrieve(),
-      stripe.balance.retrieve(),
-    ]);
+    const balance = await stripe.balance.retrieve();
 
     return {
       ...base,
       apiOk: true,
-      accountId: account.id,
-      accountCountry: account.country ?? undefined,
-      defaultCurrency: account.default_currency ?? undefined,
-      chargesEnabled: account.charges_enabled,
-      payoutsEnabled: account.payouts_enabled,
       balanceAvailableUsdCents: sumBalanceUsdCents(balance.available),
       balancePendingUsdCents: sumBalanceUsdCents(balance.pending),
     };
