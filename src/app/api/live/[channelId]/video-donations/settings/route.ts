@@ -28,6 +28,8 @@ export async function GET(
       videoDonationRateKrw: true,
       videoDonationMinKrw: true,
       videoDonationMaxSec: true,
+      videoDonationRateMocoPerSec: true,
+      videoDonationMinMoco: true,
     },
   });
 
@@ -37,5 +39,13 @@ export async function GET(
     maxSec: channel?.videoDonationMaxSec ?? DEFAULT_VIDEO_DONATION_SETTINGS.maxSec,
   };
 
-  return NextResponse.json({ ok: true, settings });
+  return NextResponse.json({
+    ok: true,
+    settings,
+    moco: {
+      rateMocoPerSec: channel?.videoDonationRateMocoPerSec ?? 1,
+      minMoco: channel?.videoDonationMinMoco ?? 2,
+      maxPlaySec: settings.maxSec,
+    },
+  });
 }

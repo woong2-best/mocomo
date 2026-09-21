@@ -15,6 +15,12 @@ export async function markSignupNeedsAvatar() {
     sameSite: "lax",
     httpOnly: true,
   });
+  try {
+    const { markSignupNeedsRole } = await import("@/lib/signup-role-onboarding");
+    await markSignupNeedsRole();
+  } catch {
+    /* optional during non-request contexts */
+  }
 }
 
 export async function clearSignupNeedsAvatar() {

@@ -36,6 +36,7 @@ export const MobileApi = {
   reports: "/api/mobile/reports",
   commentLike: (id: string) => `/api/mobile/comments/${id}/like`,
   follow: "/api/mobile/follow",
+  following: "/api/mobile/follow/following",
   onboardingCosplayers: "/api/mobile/onboarding/cosplayers",
   cosplayApply: "/api/mobile/cosplay/apply",
   me: "/api/mobile/me",
@@ -95,6 +96,7 @@ export const MobileApi = {
   stripeConnect: "/api/mobile/stripe/connect",
   stripeConnectDashboard: "/api/mobile/stripe/connect/dashboard",
   settlementStatus: "/api/mobile/settlement/status",
+  /** @deprecated Custom Connect 410 — use settlements connect-account */
   settlementRegister: "/api/mobile/settlement/register",
   sponsoredAdPurchase: "/api/mobile/sponsored-ad/purchase",
   sponsoredAdStatus: "/api/mobile/sponsored-ad/status",

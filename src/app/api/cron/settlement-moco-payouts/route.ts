@@ -12,5 +12,12 @@ export async function GET(req: NextRequest) {
   }
 
   const result = await processMonthlySettlementCron();
-  return NextResponse.json({ ok: true, ...result });
+  return NextResponse.json({
+    ok: true,
+    processed: result.processed,
+    skipped: result.skipped,
+    failed: result.failed,
+    tierSkipped: result.tierSkipped,
+    retried: result.retried,
+  });
 }

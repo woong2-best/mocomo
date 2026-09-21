@@ -1,3 +1,5 @@
+import { quoteMocoTopupLedger } from "@/lib/moco/stripe-pass-through";
+
 /** 구매 MOCO 1개 = $5 USD (경매·결제와 동일) */
 export const MOCO_USD_VALUE = 5;
 
@@ -33,16 +35,21 @@ export const MIN_GEM_TOPUP_USD = MOCO_USD_VALUE;
 /** @deprecated */
 export const MIN_GEM_TOPUP_GEMS = MIN_MOCO_TOPUP_COUNT;
 
-/** Platform margin on creator payouts (10%) */
-export const PLATFORM_MARGIN_RATE = 0.1;
+/** Platform margin on creator payouts (hybrid pass-through 5%) */
+export const PLATFORM_MARGIN_RATE = 0.05;
 
 /** Hybrid payout thresholds (USD) */
 export const PAYOUT_SKIP_BELOW_USD = 5;
 export const PAYOUT_INSTANT_FROM_USD = 33;
 
-export const GEMS_RATE_VERSION = "v2.0_moco5usd";
+export const GEMS_RATE_VERSION = "v3.0_moco5usd_pass5";
 
-export type GiftEventSource = "profile_tip" | "live_tip" | "post_media_purchase";
+export type GiftEventSource =
+  | "profile_tip"
+  | "live_tip"
+  | "live_moco_donation"
+  | "post_media_purchase"
+  | "letter_donation";
 
 /** USD 결제 금액(센트) → 필요 MOCO 개수 (올림) */
 export function usdCentsToMocoRequired(cents: number): number {
@@ -80,7 +87,16 @@ export function usdToStripeCents(usd: number): number {
 }
 
 export type GemTopupQuote =
-  | { ok: true; moco: number; usdCents: number; orderName: string }
+  | {
+      ok: true;
+      moco: number;
+      usdCents: number;
+      orderName: string;
+      basePriceCents: number;
+      pgFeeCents: number;
+      platformRevenueCents: number;
+      creatorAllocationCents: number;
+    }
   | { ok: false; error: string };
 
 /** UI 입력 — 숫자만, 정수 단위 */
@@ -109,15 +125,19 @@ export function quoteGemTopup(mocoInput: number): GemTopupQuote {
   if (moco < MIN_MOCO_TOPUP_COUNT) {
     return { ok: false, error: `최소 ${MIN_MOCO_TOPUP_COUNT} MOCO부터 충전할 수 있습니다.` };
   }
-  const usdCents = mocoToUsdCents(moco);
-  if (usdCents > MOCO_TOPUP_STRIPE_MAX_USD_CENTS) {
+  const ledger = quoteMocoTopupLedger(moco);
+  if (ledger.grossAmountCents > MOCO_TOPUP_STRIPE_MAX_USD_CENTS) {
     return { ok: false, error: "결제 가능한 최대 금액을 초과했습니다." };
   }
   return {
     ok: true,
     moco,
-    usdCents,
+    usdCents: ledger.grossAmountCents,
     orderName: `${moco.toLocaleString()} MOCO 충전`,
+    basePriceCents: ledger.basePriceCents,
+    pgFeeCents: ledger.pgFeeCents,
+    platformRevenueCents: ledger.platformRevenueCents,
+    creatorAllocationCents: ledger.creatorAllocationCents,
   };
 }
 
@@ -136,7 +156,7 @@ export const GEM_TOPUP_PACKAGES = [] as const;
 
 /** Legal copy — payment UI footer (구매 MOCO) */
 export const MOCO_PURCHASE_TERMS_COPY =
-  "결제 시 이용약관에 동의합니다. 구매 MOCO는 환불·인출·환전이 불가합니다. 광석 등급은 구매가 아닌 다른 사용자에게 후원을 완료한 누적 MOCO 기준입니다.";
+  "결제 시 이용약관에 동의합니다. MOCO 충전 시 액면가($5/MOCO)에 더해 Stripe 결제 대행(PG) 실비가 청구될 수 있습니다. 구매 MOCO는 환불·인출·환전이 불가합니다. 후원 광석 등급은 구매가 아닌 타 사용자에게 후원한 누적 MOCO 기준이며, Reward 정산 등급(Novice/Pulse 등)과는 별개입니다.";
 
 /** @deprecated MOCO_PURCHASE_TERMS_COPY */
 export const GEM_PURCHASE_TERMS_COPY = MOCO_PURCHASE_TERMS_COPY;

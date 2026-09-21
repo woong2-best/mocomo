@@ -1,4 +1,5 @@
 import { OverlayDonationClient } from "@/components/live/overlay/overlay-donation-client";
+import { MocoDonationAlertWidget } from "@/components/live/overlay/moco-donation-alert-widget";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export default async function OverlayDonationPage({
 
   return (
     <div style={{ background: "transparent", minHeight: "100vh", margin: 0 }}>
+      <MocoDonationAlertWidget channelId={streamerId} token={token} />
       <OverlayDonationClient channelId={streamerId} token={token} />
     </div>
   );

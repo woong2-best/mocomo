@@ -35,6 +35,7 @@ type Props = {
     refundedUsd: number | null;
     createdAt: Date;
   }[];
+  userImageUrl?: string | null;
   settlement: Awaited<
     ReturnType<typeof import("@/actions/settlement-register").getCreatorSettlementStatus>
   >;
@@ -56,6 +57,7 @@ export function WalletHub({
   minTopupMoco,
   lowBalanceNotice,
   gemPurchases,
+  userImageUrl,
   settlement,
 }: Props) {
   const router = useRouter();
@@ -149,6 +151,7 @@ export function WalletHub({
             paymentMethods={paymentMethods}
             purchases={gemPurchases}
             lowBalanceNotice={lowBalanceNotice}
+            userImageUrl={userImageUrl}
           />
           <PaymentMethodsPanel methods={paymentMethods} />
           <PaymentHistoryPanel items={paymentHistory} />

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import {
   fetchMyCreatorCallSettings,
   updateMyCreatorCallSettings,
 } from "@/api/call-bookings";
 import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
+import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { formatUsd, MIN_CALL_BOOKING_USD_CENTS } from "@/lib/money";
@@ -33,7 +34,7 @@ export function CreatorCallSettingsCard() {
   async function save() {
     const rate = parseInt(rateText.replace(/\D/g, ""), 10) || 0;
     if (enabled && rate < MIN_CALL_BOOKING_USD_CENTS) {
-      Alert.alert("오류", `시간당 요금은 최소 ${formatUsd(MIN_CALL_BOOKING_USD_CENTS)} 이상이어야 합니다.`);
+      showIslandError("오류", `시간당 요금은 최소 ${formatUsd(MIN_CALL_BOOKING_USD_CENTS)} 이상이어야 합니다.`);
       return;
     }
     setBusy(true);
@@ -44,9 +45,9 @@ export function CreatorCallSettingsCard() {
       });
       setEnabled(res.enabled);
       if (res.rateKrwPerHour) setRateText(String(res.rateKrwPerHour));
-      Alert.alert("저장됨", "통화 예약 설정이 업데이트되었습니다.");
+      showIslandToast("Saved", "통화 예약 설정이 업데이트되었습니다.");
     } catch (e) {
-      Alert.alert("오류", e instanceof Error ? e.message : "저장하지 못했습니다.");
+      showIslandError("오류", e instanceof Error ? e.message : "저장하지 못했습니다.");
     } finally {
       setBusy(false);
     }

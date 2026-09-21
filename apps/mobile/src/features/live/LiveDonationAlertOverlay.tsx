@@ -22,7 +22,7 @@ function AlertCard({ item, colors }: { item: LiveAlertItem; colors: ThemeColors 
   if (item.eventType === "ROULETTE" && item.rouletteLabel) {
     title = `${name} · 룰렛 ${item.rouletteLabel}`;
   } else if (isCheer) {
-    title = `${name} · ${item.amount.toLocaleString()} CP`;
+    title = `${name} · ${item.amount.toLocaleString()} MOCO`;
   } else {
     title = `${name} · ${formatUsd(item.amount)}`;
     if (item.viaLivePage === false) {

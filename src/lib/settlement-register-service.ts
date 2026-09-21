@@ -1,19 +1,7 @@
-import { headers } from "next/headers";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { normalizeSellerCountry } from "@/lib/marketplace/seller-region-policy";
-import {
-  createCustomConnectAccount,
-  pullAndSyncStripeConnectAccount,
-  updateCustomConnectAccount,
-} from "@/lib/stripe-connect";
-import {
-  isUsPersonCountry,
-  maskSsnLast4,
-  resolveTaxFormType,
-  validateW9Ssn,
-} from "@/lib/settlement-moco/tax";
 
+/** @deprecated Custom Connect 제거 — Express 온보딩 사용 */
 export const registerSchema = z.object({
   countryCode: z.string().min(2).max(2),
   legalName: z.string().min(2).max(80),
@@ -36,179 +24,22 @@ export const registerSchema = z.object({
 
 export type RegisterSettlementInput = z.infer<typeof registerSchema>;
 
-async function clientMeta(override?: { ip?: string; userAgent?: string }) {
-  if (override?.ip) {
-    return { ip: override.ip, userAgent: override.userAgent };
-  }
-  const h = await headers();
-  const forwarded = h.get("x-forwarded-for");
-  const ip = forwarded?.split(",")[0]?.trim() || h.get("x-real-ip")?.trim() || "unknown";
-  const userAgent = h.get("user-agent") ?? undefined;
-  return { ip, userAgent };
-}
-
+/**
+ * @deprecated Custom Connect 화이트라벨 등록은 제거됨.
+ * POST /api/settlements/connect-account (Express) 사용.
+ */
 export async function registerCreatorSettlementForUser(
-  userId: string,
-  raw: RegisterSettlementInput,
-  meta?: { ip?: string; userAgent?: string }
+  _userId: string,
+  _raw: RegisterSettlementInput,
+  _meta?: { ip?: string; userAgent?: string }
 ) {
-  const parsed = registerSchema.safeParse(raw);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요." };
-  }
-
-  const data = parsed.data;
-  const countryCode = normalizeSellerCountry(data.countryCode).toUpperCase();
-  const taxFormType = resolveTaxFormType(countryCode);
-  const isUs = isUsPersonCountry(countryCode);
-
-  if (isUs) {
-    if (!data.ssn?.trim()) return { error: "미국 거주자는 SSN/ITIN을 입력해 주세요." };
-    const ssnErr = validateW9Ssn(data.ssn);
-    if (ssnErr) return { error: ssnErr };
-  }
-
-  if (countryCode === "KR" && !data.bankCode?.trim()) {
-    return { error: "은행 코드를 선택해 주세요." };
-  }
-  if (countryCode === "US" && !data.routingNumber?.trim()) {
-    return { error: "Routing Number를 입력해 주세요." };
-  }
-
-  const dbUser = await db.user.findUnique({
-    where: { id: userId },
-    select: { stripeConnectAccountId: true, email: true },
-  });
-  if (!dbUser) return { error: "사용자를 찾을 수 없습니다." };
-
-  const { ip, userAgent } = await clientMeta(meta);
-  const tosDate = Math.floor(Date.now() / 1000);
-  const accountLast4 = data.accountNumber.replace(/\D/g, "").slice(-4);
-
-  const connectInput = {
-    userId,
-    email: dbUser.email,
-    countryCode,
-    legalName: data.legalName.trim(),
-    dateOfBirth: {
-      year: data.birthYear,
-      month: data.birthMonth,
-      day: data.birthDay,
-    },
-    address: {
-      line1: data.addressLine1.trim(),
-      line2: data.addressLine2?.trim(),
-      city: data.city.trim(),
-      state: data.state?.trim(),
-      postalCode: data.postalCode.trim(),
-    },
-    bank: {
-      accountNumber: data.accountNumber,
-      accountHolderName: data.accountHolderName.trim(),
-      bankCode: data.bankCode,
-      routingNumber: data.routingNumber,
-    },
-    taxFormType,
-    ssn: data.ssn,
-    tosAcceptance: { ip, date: tosDate },
-    requestCardPayments: data.requestCardPayments ?? false,
-  };
-
-  const existing = await db.creatorSettlementProfile.findUnique({
-    where: { userId },
-  });
-
-  let accountId = existing?.stripeConnectAccountId ?? dbUser.stripeConnectAccountId ?? null;
-
-  if (accountId) {
-    const updated = await updateCustomConnectAccount(accountId, connectInput);
-    if ("error" in updated) return { error: updated.error };
-  } else {
-    const created = await createCustomConnectAccount(connectInput);
-    if ("error" in created) return { error: created.error };
-    accountId = created.accountId;
-  }
-
-  await db.$transaction(async (tx) => {
-    await tx.creatorTaxAttestation.create({
-      data: {
-        userId,
-        formType: taxFormType,
-        accepted: true,
-        ipAddress: ip,
-        userAgent,
-        stripeTosDate: tosDate,
-      },
-    });
-
-    await tx.creatorSettlementProfile.upsert({
-      where: { userId },
-      create: {
-        userId,
-        countryCode,
-        legalName: data.legalName.trim(),
-        dateOfBirth: new Date(data.birthYear, data.birthMonth - 1, data.birthDay),
-        addressLine1: data.addressLine1.trim(),
-        addressLine2: data.addressLine2?.trim(),
-        city: data.city.trim(),
-        state: data.state?.trim(),
-        postalCode: data.postalCode.trim(),
-        bankCode: data.bankCode?.trim(),
-        routingNumber: data.routingNumber?.trim(),
-        accountNumberLast4: accountLast4,
-        accountHolderName: data.accountHolderName.trim(),
-        stripeConnectAccountId: accountId,
-        taxFormType,
-        ssnLast4: data.ssn ? maskSsnLast4(data.ssn) : null,
-        registeredAt: new Date(),
-      },
-      update: {
-        countryCode,
-        legalName: data.legalName.trim(),
-        dateOfBirth: new Date(data.birthYear, data.birthMonth - 1, data.birthDay),
-        addressLine1: data.addressLine1.trim(),
-        addressLine2: data.addressLine2?.trim(),
-        city: data.city.trim(),
-        state: data.state?.trim(),
-        postalCode: data.postalCode.trim(),
-        bankCode: data.bankCode?.trim(),
-        routingNumber: data.routingNumber?.trim(),
-        accountNumberLast4: accountLast4,
-        accountHolderName: data.accountHolderName.trim(),
-        stripeConnectAccountId: accountId,
-        taxFormType,
-        ssnLast4: data.ssn ? maskSsnLast4(data.ssn) : null,
-        registeredAt: new Date(),
-      },
-    });
-
-    await tx.user.update({
-      where: { id: userId },
-      data: { stripeConnectAccountId: accountId },
-    });
-  });
-
-  const snap = await pullAndSyncStripeConnectAccount(accountId);
-  const payoutsEnabled = snap?.readyForPayouts ?? false;
-
-  if (payoutsEnabled) {
-    await db.user.update({
-      where: { id: userId },
-      data: {
-        stripeOnboardingCompleted: true,
-        stripeConnectOnboardedAt: new Date(),
-      },
-    });
-    await db.creatorSettlementProfile.update({
-      where: { userId },
-      data: { payoutsEnabled: true },
-    });
-  }
-
+  void _userId;
+  void _raw;
+  void _meta;
   return {
-    success: true as const,
-    payoutsEnabled,
-    accountId,
+    error:
+      "앱 내 계좌 직접 등록(Custom Connect)은 더 이상 지원하지 않습니다. Stripe Express 온보딩을 이용해 주세요.",
+    code: "CUSTOM_CONNECT_DEPRECATED" as const,
   };
 }
 
@@ -217,6 +48,10 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
     registered: false,
     payoutsEnabled: false,
     hasConnectAccount: false,
+    needsExpressMigration: false,
+    taxReportingReady: false,
+    taxRequirementsDue: false,
+    connectAccountType: null as string | null,
     profile: null,
     settlementMocoPoints: 0,
     earnedMocoPoints: 0,
@@ -262,6 +97,10 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
       registered: !!profile?.registeredAt || !!userRow?.stripeConnectAccountId,
       payoutsEnabled: profile?.payoutsEnabled ?? userRow?.stripeOnboardingCompleted ?? false,
       hasConnectAccount: !!userRow?.stripeConnectAccountId,
+      needsExpressMigration: profile?.needsExpressMigration ?? false,
+      taxReportingReady: profile?.taxReportingReady ?? false,
+      taxRequirementsDue: profile?.taxRequirementsDue ?? false,
+      connectAccountType: profile?.connectAccountType ?? null,
       profile: profile
         ? {
             countryCode: profile.countryCode,
@@ -271,6 +110,9 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
             bankCode: profile.bankCode,
             taxFormType: profile.taxFormType,
             registeredAt: profile.registeredAt,
+            connectAccountType: profile.connectAccountType,
+            taxReportingReady: profile.taxReportingReady,
+            needsExpressMigration: profile.needsExpressMigration,
           }
         : null,
       /** earnedMoco — 후원 수령·정산 대상 (월간 차감 후 이월) */

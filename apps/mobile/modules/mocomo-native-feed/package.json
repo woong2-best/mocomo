@@ -1,0 +1,15 @@
+{
+  "name": "mocomo-native-feed",
+  "version": "1.0.0",
+  "description": "Android X-class native feed (Paging3 + RecyclerView + Coil + ExoPlayer pool)",
+  "main": "src/index.tsx",
+  "types": "src/index.tsx",
+  "scripts": {},
+  "keywords": ["react-native", "expo", "mocomo", "feed"],
+  "license": "UNLICENSED",
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

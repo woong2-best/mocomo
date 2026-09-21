@@ -78,7 +78,7 @@ export function getCachedMobileAnimeList(opts: {
         },
       });
     },
-    ["mobile-anime-list-v1", String(opts.take), keyQ || "__all__", keyG || "__all__"],
+    ["mobile-anime-list-v2", String(opts.take), keyQ || "__all__", keyG || "__all__"],
     { revalidate: 60 }
   )();
 }

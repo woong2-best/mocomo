@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { PRICE_PER_MOCO_USD, quoteGemTopup } from "@/lib/gems/constants";
 import { syncUserGemBalance } from "@/lib/gems/balance";
+import { recordMocoTopupTransaction } from "@/lib/moco/topup-ledger";
 
 export async function fulfillGemTopup(input: {
   fanId: string;
@@ -32,15 +33,24 @@ export async function fulfillGemTopup(input: {
 
   const krwAmount = Math.round((input.amountUsdCents / 100) * 1300);
 
-  await db.gemPurchase.create({
-    data: {
-      fanId: input.fanId,
-      krwAmount,
-      gems: quote.moco,
-      remainingGems: quote.moco,
-      pricePerGemUsd: PRICE_PER_MOCO_USD,
-      stripePaymentIntentId: input.stripePaymentIntentId,
-    },
+  await db.$transaction(async (tx) => {
+    await tx.gemPurchase.create({
+      data: {
+        fanId: input.fanId,
+        krwAmount,
+        gems: quote.moco,
+        remainingGems: quote.moco,
+        pricePerGemUsd: PRICE_PER_MOCO_USD,
+        stripePaymentIntentId: input.stripePaymentIntentId,
+      },
+    });
+    await recordMocoTopupTransaction(tx, {
+      userId: input.fanId,
+      mocoQuantity: quote.moco,
+      paymentIntentId: input.paymentIntentDbId,
+      stripePaymentRef: input.stripePaymentIntentId,
+      grossAmountCents: input.amountUsdCents,
+    });
   });
 
   const balance = await syncUserGemBalance(input.fanId);

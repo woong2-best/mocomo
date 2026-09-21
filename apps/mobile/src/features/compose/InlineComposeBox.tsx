@@ -49,6 +49,7 @@ import { prepareImageForUpload } from "@/lib/prepare-image-upload";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { NsfwToggleButton } from "@/ui/NsfwToggleButton";
+import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -282,7 +283,7 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
       await queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
       onPosted?.(res.postId);
       if (res.warning) {
-        Alert.alert("게시됨", res.warning);
+        showIslandToast("Posted", res.warning);
       }
     } catch (e) {
       const msg =
@@ -291,7 +292,7 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
           : e instanceof Error
             ? e.message
             : "게시 실패";
-      Alert.alert("오류", msg);
+      showIslandError("오류", msg);
     } finally {
       setBusy(false);
     }

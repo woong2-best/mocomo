@@ -24,6 +24,7 @@ import { MarketServiceStrip } from "@/features/market/MarketServiceStrip";
 import { promptMarketSellerWebFlow } from "@/lib/open-market-seller-web";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { FolkButton } from "@/ui/FolkButton";
+import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
@@ -80,6 +81,7 @@ export function MarketScreen() {
         type: filter === "ALL" ? undefined : filter,
         q: submittedQ || undefined,
         take: 48,
+        mode: "discover",
       }),
     staleTime: 90_000,
     placeholderData: (previous) => previous,
@@ -218,6 +220,9 @@ export function MarketScreen() {
 
   return (
     <Screen>
+      {!isTab ? (
+        <AppHeader title={MARKET_BRAND_NAME} leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      ) : null}
       {loading ? (
         <View style={{ flex: 1 }}>
           {listHeader}

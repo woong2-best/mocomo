@@ -73,9 +73,9 @@ export function LetterDonationEnvelope({
             {message}
           </p>
           <p className="mt-3 text-right text-base font-black text-[#1B4A8C] tabular-nums">
-            {amount.toLocaleString("ko-KR")}원
+            {Math.max(0, Math.floor(amount / 500)).toLocaleString()} MOCO
           </p>
-          <p className="text-[10px] text-[#8b7355] text-right mt-1">크리에이터 정산 · 수수료 10%</p>
+          <p className="text-[10px] text-[#8b7355] text-right mt-1">봉투를 열면 MOCO가 전달됩니다</p>
         </div>
       </button>
 

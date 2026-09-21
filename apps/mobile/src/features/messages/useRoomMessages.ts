@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "react-native";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchRoomMessages,
   sendRoomMessage,
@@ -7,23 +8,114 @@ import {
   type ChatMessage,
   type DmRoomPayload,
 } from "@/api/messages";
+import {
+  dmRoomQueryKey,
+  getDmRoomMemory,
+  loadDmRoomBootstrap,
+  saveDmRoomBootstrap,
+} from "@/api/dm-bootstrap-cache";
 import { parseChatPostShare } from "@/lib/chat-post-share";
 import { prefetchPostShareCards } from "@/features/messages/share-card-cache";
 
+function applySharePrefetch(messages: ChatMessage[]) {
+  const shareIds = messages
+    .map((m) => parseChatPostShare(m.content)?.postId)
+    .filter((id): id is string => !!id);
+  prefetchPostShareCards(shareIds);
+}
+
 export function useRoomMessages(roomId: string) {
-  const [room, setRoom] = useState<DmRoomPayload["room"] | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [nextBefore, setNextBefore] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const mem = getDmRoomMemory(roomId);
+  const [diskSeed, setDiskSeed] = useState<DmRoomPayload | null>(mem);
+  const [liveMessages, setLiveMessages] = useState<ChatMessage[] | null>(null);
   const [sending, setSending] = useState(false);
-  const afterRef = useRef<string | null>(null);
+  const afterRef = useRef<string | null>(
+    mem?.messages.length ? mem.messages[mem.messages.length - 1]!.createdAt : null
+  );
   const abortRef = useRef<AbortController | null>(null);
+
+  // Async disk hydrate if memory miss (cold start into a deep-linked room).
+  useEffect(() => {
+    setLiveMessages(null);
+    const warm = getDmRoomMemory(roomId);
+    if (warm) {
+      setDiskSeed(warm);
+      afterRef.current =
+        warm.messages.length > 0
+          ? warm.messages[warm.messages.length - 1]!.createdAt
+          : null;
+      return;
+    }
+    setDiskSeed(null);
+    let cancelled = false;
+    void loadDmRoomBootstrap(roomId).then((cached) => {
+      if (cancelled || !cached) return;
+      setDiskSeed(cached);
+      afterRef.current =
+        cached.messages.length > 0
+          ? cached.messages[cached.messages.length - 1]!.createdAt
+          : null;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [roomId]);
+
+  const query = useQuery({
+    queryKey: dmRoomQueryKey(roomId),
+    queryFn: async () => {
+      const page = await fetchRoomMessages(roomId);
+      await saveDmRoomBootstrap(roomId, page);
+      return page;
+    },
+    staleTime: 30_000,
+    gcTime: 30 * 60_000,
+    initialData: () => {
+      const warm = getDmRoomMemory(roomId);
+      if (warm) return warm;
+      return queryClient.getQueryData<DmRoomPayload>(dmRoomQueryKey(roomId));
+    },
+    initialDataUpdatedAt: () => {
+      const warm = getDmRoomMemory(roomId);
+      if (warm) return Date.now() - 1;
+      const existing = queryClient.getQueryState(dmRoomQueryKey(roomId));
+      return existing?.dataUpdatedAt;
+    },
+    placeholderData: diskSeed ?? undefined,
+  });
+
+  useEffect(() => {
+    if (!query.data) return;
+    const last = query.data.messages[query.data.messages.length - 1];
+    if (last) {
+      const t = new Date(last.createdAt).getTime();
+      const cur = afterRef.current ? new Date(afterRef.current).getTime() : 0;
+      if (t >= cur) afterRef.current = last.createdAt;
+    }
+    applySharePrefetch(query.data.messages);
+  }, [query.data]);
+
+  const room = query.data?.room ?? diskSeed?.room ?? null;
+  const baseMessages = query.data?.messages ?? diskSeed?.messages ?? [];
+  const messages = useMemo(() => {
+    if (!liveMessages || liveMessages.length === 0) return baseMessages;
+    const map = new Map(baseMessages.map((m) => [m.id, m]));
+    for (const m of liveMessages) map.set(m.id, m);
+    return [...map.values()].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [baseMessages, liveMessages]);
+  const nextBefore = query.data?.nextBefore ?? diskSeed?.nextBefore ?? null;
+  const loading = !query.data && !diskSeed && query.isLoading;
+  const error =
+    query.isError && !query.data && !diskSeed ? "대화를 불러오지 못했습니다." : null;
 
   const mergeMessages = useCallback((incoming: ChatMessage[]) => {
     if (incoming.length === 0) return;
-    setMessages((prev) => {
-      const map = new Map(prev.map((m) => [m.id, m]));
+    setLiveMessages((prev) => {
+      const base = prev ?? queryClient.getQueryData<DmRoomPayload>(dmRoomQueryKey(roomId))?.messages ?? [];
+      const map = new Map(base.map((m) => [m.id, m]));
       for (const m of incoming) map.set(m.id, m);
       return [...map.values()].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -31,42 +123,27 @@ export function useRoomMessages(roomId: string) {
     });
     const last = incoming[incoming.length - 1];
     if (last) afterRef.current = last.createdAt;
+    applySharePrefetch(incoming);
+  }, [queryClient, roomId]);
 
-    const shareIds = incoming
-      .map((m) => parseChatPostShare(m.content)?.postId)
-      .filter((id): id is string => !!id);
-    prefetchPostShareCards(shareIds);
-  }, []);
+  // Persist on leave (incl. long-poll arrivals).
+  const roomRef = useRef(room);
+  const messagesRef = useRef(messages);
+  const nextBeforeRef = useRef(nextBefore);
+  roomRef.current = room;
+  messagesRef.current = messages;
+  nextBeforeRef.current = nextBefore;
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setMessages([]);
-    setRoom(null);
-    void (async () => {
-      try {
-        const page = await fetchRoomMessages(roomId);
-        if (cancelled) return;
-        setRoom(page.room);
-        setMessages(page.messages);
-        setNextBefore(page.nextBefore);
-        afterRef.current =
-          page.messages.length > 0
-            ? page.messages[page.messages.length - 1]!.createdAt
-            : null;
-        const shareIds = page.messages
-          .map((m) => parseChatPostShare(m.content)?.postId)
-          .filter((id): id is string => !!id);
-        prefetchPostShareCards(shareIds);
-      } catch {
-        if (!cancelled) setError("대화를 불러오지 못했습니다.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
     return () => {
-      cancelled = true;
+      const r = roomRef.current;
+      const msgs = messagesRef.current;
+      if (!r || msgs.length === 0) return;
+      void saveDmRoomBootstrap(roomId, {
+        room: r,
+        messages: msgs,
+        nextBefore: nextBeforeRef.current,
+      });
     };
   }, [roomId]);
 
@@ -74,7 +151,6 @@ export function useRoomMessages(roomId: string) {
     if (loading || error) return;
 
     let cancelled = false;
-    // Delay long-poll so share-card / image fetches aren't starved on mobile HTTP/1.1
     const startTimer = setTimeout(() => {
       async function loop() {
         while (!cancelled) {
@@ -104,19 +180,25 @@ export function useRoomMessages(roomId: string) {
   const loadOlder = useCallback(async () => {
     if (!nextBefore) return;
     const page = await fetchRoomMessages(roomId, nextBefore);
-    setNextBefore(page.nextBefore);
-    setMessages((prev) => {
+    setLiveMessages((prev) => {
+      const base = prev ?? queryClient.getQueryData<DmRoomPayload>(dmRoomQueryKey(roomId))?.messages ?? [];
       const map = new Map(page.messages.map((m) => [m.id, m]));
-      for (const m of prev) map.set(m.id, m);
+      for (const m of base) map.set(m.id, m);
       return [...map.values()].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
     });
-    const shareIds = page.messages
-      .map((m) => parseChatPostShare(m.content)?.postId)
-      .filter((id): id is string => !!id);
-    prefetchPostShareCards(shareIds);
-  }, [nextBefore, roomId]);
+    queryClient.setQueryData<DmRoomPayload>(dmRoomQueryKey(roomId), (old) =>
+      old
+        ? { ...old, nextBefore: page.nextBefore }
+        : {
+            room: page.room,
+            messages: page.messages,
+            nextBefore: page.nextBefore,
+          }
+    );
+    applySharePrefetch(page.messages);
+  }, [nextBefore, queryClient, roomId]);
 
   const send = useCallback(
     async (
@@ -154,14 +236,15 @@ export function useRoomMessages(roomId: string) {
   );
 
   const refresh = useCallback(async () => {
-    const page = await fetchRoomMessages(roomId);
-    setRoom(page.room);
-    setMessages(page.messages);
-    setNextBefore(page.nextBefore);
-    if (page.messages.length > 0) {
-      afterRef.current = page.messages[page.messages.length - 1]!.createdAt;
+    const page = await query.refetch();
+    if (page.data) {
+      setLiveMessages(null);
+      afterRef.current =
+        page.data.messages.length > 0
+          ? page.data.messages[page.data.messages.length - 1]!.createdAt
+          : null;
     }
-  }, [roomId]);
+  }, [query]);
 
   return {
     room,

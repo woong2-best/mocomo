@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { setAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
 import {
   MOBILE_OAUTH_COOKIE,
+  MOBILE_OAUTH_PLATFORM_COOKIE,
   MOBILE_OAUTH_REDIRECT_COOKIE,
   sanitizeMobileRedirectUri,
 } from "@/lib/mobile-oauth-shared";
@@ -22,7 +23,7 @@ export function MobileAuthSessionBootstrap() {
       document.cookie = `${MOBILE_OAUTH_REDIRECT_COOKIE}=${encodeURIComponent(redirectUri)}; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
     }
     const platform = params.get("platform") === "ios" ? "ios" : "android";
-    document.cookie = `mocomo_mobile_platform=${platform}; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
+    document.cookie = `${MOBILE_OAUTH_PLATFORM_COOKIE}=${platform}; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
 
     if (params.get("addAccount") === "1") {
       setAddAccountFlowCookie();

@@ -12,6 +12,7 @@ import {
   MIN_MOCO_TOPUP_COUNT,
   quoteGemTopup,
 } from "@/lib/gems/constants";
+import { gemTopupStripeMetadata } from "@/lib/gems/topup-metadata";
 import { getUserGemBalance } from "@/lib/gems/balance";
 import {
   processRefundRequest,
@@ -63,7 +64,7 @@ export async function createGemTopupCheckout(moco: number, purchaseTermsAccepted
     type: "GEM_TOPUP",
     amount: quote.usdCents,
     orderName: quote.orderName,
-    metadata: { gemAmount: quote.moco },
+    metadata: gemTopupStripeMetadata(quote),
     purchaseTermsAccepted: true,
     platform: "web",
   });
@@ -94,7 +95,7 @@ export async function payGemTopupWithSavedCard(
     type: "GEM_TOPUP",
     amount: quote.usdCents,
     orderName: quote.orderName,
-    metadata: { gemAmount: quote.moco },
+    metadata: gemTopupStripeMetadata(quote),
   });
   if ("error" in prepared && prepared.error) {
     return { error: prepared.error };

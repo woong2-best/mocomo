@@ -429,7 +429,7 @@ export function AvatarRightPanel({
                 size="sm"
                 className="rounded-xl gap-1.5 border-2"
                 onClick={() => {
-                  const url = `${window.location.origin}/avatar/studio`;
+                  const url = `${window.location.origin}/live/studio`;
                   void navigator.clipboard.writeText(url);
                   flash("스튜디오 링크 복사됨");
                 }}

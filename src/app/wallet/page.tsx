@@ -94,6 +94,10 @@ export default async function WalletPage({
           registered: false,
           payoutsEnabled: false,
           hasConnectAccount: false,
+          needsExpressMigration: false,
+          taxReportingReady: false,
+          taxRequirementsDue: false,
+          connectAccountType: null as string | null,
           profile: null,
           settlementMocoPoints: 0,
           earnedMocoPoints: 0,
@@ -121,6 +125,7 @@ export default async function WalletPage({
           gemPurchases={gemPurchases.purchases}
           settlement={settlement}
           lowBalanceNotice={lowBalanceNotice}
+          userImageUrl={session.user.image}
         />
       </Suspense>
     </AppPageChrome>

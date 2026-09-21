@@ -7,7 +7,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "@/auth/AuthContext";
 import { LoginScreen } from "@/features/auth/LoginScreen";
 import { FeedScreen } from "@/features/feed/FeedScreen";
-import { FloatingGlassTabBar } from "@/navigation/FloatingGlassTabBar";
 import { navigationRef } from "@/navigation/navigationRef";
 import { subscribeMobileDeepLinks } from "@/navigation/mobile-deeplink-handler";
 import { PushNotificationHandler } from "@/push/PushNotificationHandler";
@@ -34,7 +33,7 @@ function MainTabs() {
   const { t } = useI18n();
   return (
     <Tab.Navigator
-      tabBar={(props) => <FloatingGlassTabBar {...props} />}
+      tabBar={() => null}
       screenOptions={{ headerShown: false, lazy: true, freezeOnBlur: true }}
     >
       <Tab.Screen name="Home" component={FeedScreen} options={{ title: t("nav.home") }} />
@@ -127,6 +126,12 @@ export function RootNavigator() {
               }
             />
             <Stack.Screen
+              name="ChatSettings"
+              getComponent={() =>
+                require("@/features/messages/ChatSettingsScreen").ChatSettingsScreen
+              }
+            />
+            <Stack.Screen
               name="DmCall"
               getComponent={() => require("@/features/messages/DmCallScreen").DmCallScreen}
               options={{ presentation: "fullScreenModal", animation: "fade" }}
@@ -167,10 +172,18 @@ export function RootNavigator() {
               }
             />
             <Stack.Screen
+              name="Market"
+              getComponent={() => require("@/features/market/MarketScreen").MarketScreen}
+            />
+            <Stack.Screen
               name="StarMarketDetail"
               getComponent={() =>
                 require("@/features/market/StarMarketDetailScreen").StarMarketDetailScreen
               }
+            />
+            <Stack.Screen
+              name="Support"
+              getComponent={() => require("@/features/support/SupportScreen").SupportScreen}
             />
             <Stack.Screen
               name="SellerListings"
@@ -220,6 +233,12 @@ export function RootNavigator() {
               name="MarketOrders"
               getComponent={() =>
                 require("@/features/market/MarketOrdersScreen").MarketOrdersScreen
+              }
+            />
+            <Stack.Screen
+              name="MarketOrderDetail"
+              getComponent={() =>
+                require("@/features/market/MarketOrderDetailScreen").MarketOrderDetailScreen
               }
             />
             <Stack.Screen

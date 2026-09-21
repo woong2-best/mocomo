@@ -233,7 +233,7 @@ export async function startManualConnect(
   if ("error" in parsed) return { ok: false, error: parsed.error };
 
   let channel = parsed;
-  if (platform === "CHZZK") {
+  if ((platform as string) === "CHZZK") {
     const { enrichChzzkChannel } = await import("./providers/chzzk");
     const enriched = await enrichChzzkChannel(parsed);
     if ("error" in enriched) return { ok: false, error: enriched.error };
@@ -312,7 +312,7 @@ export async function verifyManualAccount(
 
   const platform = account.platform as ConnectableStreamingPlatform;
 
-  if (platform === "CHZZK") {
+  if ((account.platform as string) === "CHZZK") {
     const { diagnoseChzzkVerification } = await import("./providers/chzzk");
     const diagnosed = await diagnoseChzzkVerification(
       account.channelId,

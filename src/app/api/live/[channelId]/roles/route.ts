@@ -13,7 +13,7 @@ import {
   listPermissionsForRole,
 } from "@/lib/live-broadcast/permissions";
 
-const ASSIGNABLE: BroadcastRole[] = ["MANAGER", "MODERATOR", "VIP"];
+const ASSIGNABLE: BroadcastRole[] = ["MANAGER"];
 
 export async function GET(
   _req: NextRequest,

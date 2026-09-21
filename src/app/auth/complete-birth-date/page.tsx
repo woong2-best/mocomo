@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { signupRoleEntryPath } from "@/lib/signup-role-onboarding";
 import { CompleteBirthDateForm } from "./complete-birth-date-form";
 
 export const dynamic = "force-dynamic";
@@ -25,12 +26,12 @@ export default async function CompleteBirthDatePage({
     where: { id: session.user.id },
     select: { birthDate: true },
   });
+  const sp = await searchParams;
+  const dest = safeDest(sp.dest);
   if (user?.birthDate) {
-    const sp = await searchParams;
-    const dest = safeDest(sp.dest);
-    redirect(dest ?? "/");
+    // Birth already set (e.g. OAuth retry) → continue signup role → avatar.
+    redirect(signupRoleEntryPath(dest));
   }
 
-  const sp = await searchParams;
-  return <CompleteBirthDateForm dest={safeDest(sp.dest)} />;
+  return <CompleteBirthDateForm dest={dest} />;
 }

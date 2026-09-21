@@ -34,13 +34,7 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
       setError(res.error);
       return;
     }
-    if ("room" in res && res.room && res.joinCode) {
-      setCreated({
-        roomId: res.room.id,
-        joinCode: res.joinCode,
-        kind: "cosplayer",
-      });
-    }
+    // 단체방 기능 종료 — 성공 분기 없음
   }
 
   async function createSocial(e: React.FormEvent<HTMLFormElement>) {
@@ -57,15 +51,7 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
       setError(res.error);
       return;
     }
-    if ("room" in res && res.room) {
-      setCreated({
-        roomId: res.room.id,
-        joinCode: res.joinCode,
-        password: res.password,
-        openLink: res.openLink,
-        kind: "social",
-      });
-    }
+    // 단체방 기능 종료 — 성공 분기 없음
   }
 
   function copyText(text: string) {

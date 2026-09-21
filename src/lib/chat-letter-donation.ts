@@ -26,4 +26,6 @@ export function buildLetterDonationMessageBody(tipId: string): string {
 }
 
 export { LETTER_DONATION_MIN_USD_CENTS as LETTER_DONATION_MIN_KRW } from "@/lib/money";
+/** DM letter donations are paid in purchased MOCO (1 MOCO min). */
+export const LETTER_DONATION_MIN_MOCO = 1;
 export const LETTER_DONATION_MESSAGE_MAX = 500;

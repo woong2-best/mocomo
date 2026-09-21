@@ -37,7 +37,12 @@ export function OAuthCompleteClient({
     ) {
       return signupRedirectForStaleSession(true);
     }
-    return sessionUserId ? dest : signupUrl;
+    if (!sessionUserId) return signupUrl;
+    // Web signup collects birth on-site. Mobile handoff dest returns to the app.
+    if (flow === "signup" && !dest.startsWith("/auth/mobile/oauth/complete")) {
+      return `/auth/complete-birth-date?dest=${encodeURIComponent(dest)}`;
+    }
+    return dest;
   }
 
   useEffect(() => {

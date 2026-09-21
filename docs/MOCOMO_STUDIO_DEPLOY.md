@@ -55,7 +55,7 @@ MoCoMo 앱 내 구매 정산:
 
 ```bash
 npm run build
-# 또는 Vercel: main 브랜치 push → vercel-build (prisma db push 포함)
+# 또는 Vercel: main push → prisma/ 변경 시 migrate deploy 자동, 이후 Next 빌드
 ```
 
 체크리스트:

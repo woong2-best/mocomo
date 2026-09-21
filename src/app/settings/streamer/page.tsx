@@ -26,10 +26,10 @@ export default async function StreamerSettingsPage() {
         스트리밍 계정 연결 →
       </Link>
       <Link
-        href="/avatar/studio/broadcast"
+        href="/live/studio"
         className="inline-flex text-sm font-medium text-primary hover:underline"
       >
-        버츄얼 아바타 스튜디오 →
+        라이브 스튜디오 →
       </Link>
       <StreamerSettingsForm
         initial={{

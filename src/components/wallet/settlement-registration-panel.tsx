@@ -11,6 +11,9 @@ type Props = {
   registered: boolean;
   payoutsEnabled: boolean;
   hasConnectAccount: boolean;
+  needsExpressMigration?: boolean;
+  taxReportingReady?: boolean;
+  taxRequirementsDue?: boolean;
   profile: {
     countryCode: string;
     legalName: string;
@@ -43,6 +46,9 @@ export function SettlementRegistrationPanel({
   registered,
   payoutsEnabled,
   hasConnectAccount,
+  needsExpressMigration = false,
+  taxReportingReady = false,
+  taxRequirementsDue = false,
   profile,
   requestCardPayments = false,
   className,
@@ -76,9 +82,9 @@ export function SettlementRegistrationPanel({
     });
   }
 
-  const linked = hasConnectAccount || registered;
+  const linked = (hasConnectAccount || registered) && !needsExpressMigration;
 
-  if (linked && payoutsEnabled && profile) {
+  if (linked && payoutsEnabled && profile && !taxRequirementsDue) {
     return (
       <div className={cn("rounded-2xl border border-border/60 bg-card p-4 space-y-3", className)}>
         <div className="flex items-center gap-2">
@@ -94,6 +100,7 @@ export function SettlementRegistrationPanel({
           ) : null}
           <p className="text-xs text-muted-foreground mt-2">
             월말에 정산 MOCO가 {REWARD_TERMS_LABEL}로 자동 지급됩니다.
+            {taxReportingReady ? " · 세무 보고 준비 완료" : ""}
           </p>
         </div>
         <Button type="button" variant="outline" className="w-full" disabled={pending} onClick={openDashboard}>
@@ -122,11 +129,25 @@ export function SettlementRegistrationPanel({
       </div>
 
       <p className="text-sm text-muted-foreground leading-relaxed">
-        Stripe의 안전한 글로벌 정산망을 통해 본인 명의의 현지 은행 계좌를 연동합니다. 월말에{" "}
+        Stripe Express 온보딩에서 본인 확인·은행 계좌·세무 정보(W-9/W-8BEN)를 등록합니다. 월말에{" "}
         {REWARD_TERMS_LABEL}가 등록 계좌로 자동 입금됩니다.
       </p>
 
-      {linked && !payoutsEnabled ? (
+      {needsExpressMigration ? (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+          이전 정산 계정 형식은 더 이상 지원되지 않습니다. 아래 버튼으로 Stripe Express 온보딩을
+          다시 완료해 주세요.
+        </div>
+      ) : null}
+
+      {taxRequirementsDue ? (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+          세무 정보가 미비하여 Reward 지급이 보류될 수 있습니다. Stripe에서 W-9/W-8BEN 정보를
+          완료해 주세요.
+        </div>
+      ) : null}
+
+      {linked && !payoutsEnabled && !needsExpressMigration ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
           Stripe 온보딩이 아직 완료되지 않았습니다. 아래 버튼으로 이어서 진행해 주세요.
         </div>
@@ -136,28 +157,30 @@ export function SettlementRegistrationPanel({
         type="button"
         className="w-full"
         disabled={pending}
-        onClick={linked ? openDashboard : openOnboarding}
+        onClick={linked && !needsExpressMigration && !taxRequirementsDue ? openDashboard : openOnboarding}
       >
         {pending ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
             Stripe 연결 중…
           </>
-        ) : linked ? (
+        ) : needsExpressMigration ? (
+          "Express로 다시 연동하기"
+        ) : linked && !taxRequirementsDue ? (
           <>
             <ExternalLink className="h-4 w-4 mr-2" />
             연동 완료 · 계좌 정보 수정하기
           </>
         ) : (
-          "Stripe 정산 계좌 연동하기"
+          "Stripe Express 정산 계좌 연동하기"
         )}
       </Button>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       <p className="text-[11px] text-muted-foreground leading-relaxed">
-        Stripe Express 온보딩 페이지에서 본인 확인 및 계좌 정보를 입력합니다. 완료 후 이 페이지로
-        돌아옵니다.
+        Stripe Express 온보딩 페이지에서 본인 확인, 계좌, 세무 정보를 입력합니다. 완료 후 이
+        페이지로 돌아옵니다. 연말 1099 등 세무 보고는 Stripe Connect Tax Reporting에 위임됩니다.
       </p>
     </div>
   );

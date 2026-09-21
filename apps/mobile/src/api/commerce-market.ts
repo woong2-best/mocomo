@@ -59,11 +59,15 @@ export async function fetchCommerceMarketList(opts?: {
   type?: StarMarketType;
   q?: string;
   take?: number;
+  cursor?: string | null;
+  mode?: "discover" | "latest";
 }) {
   const params = new URLSearchParams();
   if (opts?.type && opts.type !== "ALL") params.set("type", opts.type);
   if (opts?.q) params.set("q", opts.q);
   if (opts?.take) params.set("take", String(opts.take));
+  if (opts?.cursor) params.set("cursor", opts.cursor);
+  if (opts?.mode) params.set("mode", opts.mode);
   const suffix = params.toString() ? `?${params}` : "";
   return apiRequest<{ items: StarMarketListItem[]; nextCursor: string | null }>(
     `${MobileApi.starMarket}${suffix}`
@@ -72,6 +76,91 @@ export async function fetchCommerceMarketList(opts?: {
 
 export async function fetchMarketSellAccess() {
   return apiRequest<SellAccessGate>(MobileApi.marketSellAccess, { auth: true });
+}
+
+export type MarketOrderDetail = {
+  id: string;
+  status: string;
+  checkoutMode: string;
+  subtotalAmount: number;
+  shippingAmount: number;
+  platformFeeAmount: number;
+  currency: string;
+  createdAt: string;
+  shipName: string | null;
+  shipCountry: string | null;
+  shipPostal: string | null;
+  shipAddress1: string | null;
+  shipAddress2: string | null;
+  shipPhone: string | null;
+  buyerNote: string | null;
+  isBuyer: boolean;
+  isSeller: boolean;
+  buyer: { id: string; username: string; email?: string | null } | null;
+  seller: { id: string; username: string } | null;
+  items: {
+    id: string;
+    listingId: string;
+    titleSnapshot: string;
+    unitPrice: number;
+    quantity: number;
+    listingType: string;
+  }[];
+  shipment: {
+    status: string;
+    carrier: string | null;
+    trackingNumber: string | null;
+    updatedAt: string;
+  } | null;
+  downloads: { id: string; fileUrl: string; downloadToken: string }[];
+};
+
+export type CartCheckoutGroup = {
+  sellerId: string;
+  sellerDisplayName: string;
+  itemCount: number;
+  subtotal: number;
+  shippingAmount: number;
+  total: number;
+  lines: { listingId: string; title: string; quantity: number; unitPrice: number }[];
+};
+
+export async function fetchMarketCartSummary(items: { listingId: string; quantity: number }[]) {
+  return apiRequest<{
+    checkoutMode: string;
+    disclaimer: string;
+    blocked?: boolean;
+    groups: CartCheckoutGroup[];
+  }>(MobileApi.marketCartSummary, {
+    method: "POST",
+    body: { items },
+    auth: true,
+  });
+}
+
+export async function prepareCartCheckout(
+  sellerId: string,
+  body: {
+    items: { listingId: string; quantity: number }[];
+    shipName?: string;
+    shipCountry?: string;
+    shipPostal?: string;
+    shipAddress1?: string;
+    shipAddress2?: string;
+    shipPhone?: string;
+    buyerNote?: string;
+  }
+) {
+  return apiRequest<import("@/api/star-market").PrepareMarketplaceResult>(
+    MobileApi.marketCartCheckout,
+    { method: "POST", body: { sellerId, ...body }, auth: true }
+  );
+}
+
+export async function fetchMarketOrderDetail(orderId: string) {
+  return apiRequest<{ order: MarketOrderDetail }>(MobileApi.marketOrderDetail(orderId), {
+    auth: true,
+  });
 }
 
 export async function fetchMarketOrders(role: "buyer" | "seller" = "buyer") {

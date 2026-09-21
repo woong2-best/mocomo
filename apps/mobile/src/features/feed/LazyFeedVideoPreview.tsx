@@ -36,11 +36,14 @@ function loadPreview(): Promise<PreviewComponent> {
 function posterUri(media: FeedMedia): string | null {
   const direct = media.posterUrl?.trim();
   if (direct) return direct;
+  const streamUid = media.streamUid?.trim();
+  if (streamUid && /^[a-zA-Z0-9_-]{16,}$/.test(streamUid)) {
+    return `https://videodelivery.net/${streamUid}/thumbnails/thumbnail.jpg?time=0s&height=720`;
+  }
   const probe = media.hlsUrl?.trim() || media.url?.trim() || "";
   const uid =
     probe.match(/videodelivery\.net\/([^/?#]+)/i)?.[1] ||
-    probe.match(/cloudflarestream\.com\/([^/?#]+)/i)?.[1] ||
-    probe.match(/\/([a-f0-9]{32})\//i)?.[1];
+    probe.match(/cloudflarestream\.com\/([^/?#]+)/i)?.[1];
   if (uid && /^[a-zA-Z0-9_-]{16,}$/.test(uid)) {
     return `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg?time=0s&height=720`;
   }

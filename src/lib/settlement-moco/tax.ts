@@ -32,7 +32,7 @@ export function calcTierRewardAmount(input: {
   countryCode: string;
 }): RewardAmountBreakdown {
   const currency = rewardCurrencyForCountry(input.countryCode);
-  const usdCents = input.rewardUsd * 100;
+  const usdCents = Math.round(input.rewardUsd * 100);
 
   if (currency === "krw") {
     const grossKrw = Math.round(input.rewardUsd * SETTLEMENT_FX_KRW_PER_USD);

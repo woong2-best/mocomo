@@ -4,15 +4,9 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { db } from "@/lib/db";
 import { parseDateKey } from "@/lib/calendar/kr-calendar";
+import { getCalendarMemosForMonth } from "@/lib/calendar/memos-with-schedule";
 
 const BODY_MAX = 2000;
-
-function monthRange(year: number, month: number): { from: string; to: string } {
-  const from = `${year}-${String(month).padStart(2, "0")}-01`;
-  const last = new Date(year, month, 0).getDate();
-  const to = `${year}-${String(month).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
-  return { from, to };
-}
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-calendar-memos-get", 60);
@@ -34,20 +28,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid year/month" }, { status: 400 });
   }
 
-  const { from, to } = monthRange(year, month);
-  const rows = await db.calendarMemo.findMany({
-    where: {
-      userId: auth.user.id,
-      dateKey: { gte: from, lte: to },
-    },
-    select: { dateKey: true, body: true },
-    orderBy: { dateKey: "asc" },
+  const { memos, scheduleKeys, scheduleWeekdays, scheduleTime, scheduleNote } =
+    await getCalendarMemosForMonth(auth.user.id, year, month);
+
+  return NextResponse.json({
+    ok: true,
+    memos,
+    scheduleKeys,
+    scheduleWeekdays,
+    scheduleTime,
+    scheduleNote,
   });
-
-  const memos: Record<string, string> = {};
-  for (const row of rows) memos[row.dateKey] = row.body;
-
-  return NextResponse.json({ ok: true, memos });
 }
 
 const putSchema = z.object({

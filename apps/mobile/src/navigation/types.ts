@@ -22,7 +22,7 @@ export type DrawerRoute =
   | "Reels"
   | "LegalPolicies";
 
-/** Floating glass tabs: 홈 · MCM(마켓) · 메세지 */
+/** Floating glass tabs — Home · Used(마켓) · Messages. Chrome tab bar is hidden; navigate via drawer. */
 export type RootTabParamList = {
   Home: undefined;
   Used: undefined;
@@ -37,6 +37,7 @@ export type RootStackParamList = {
   ComposeModal: undefined;
   MessageRoom: { roomId: string; title?: string };
   MessagesNew: undefined;
+  ChatSettings: undefined;
   DmCall: {
     roomId: string;
     calleeId: string;
@@ -61,6 +62,7 @@ export type RootStackParamList = {
   SellerRegister: undefined;
   MarketCart: undefined;
   MarketOrders: undefined;
+  MarketOrderDetail: { orderId: string };
   MarketMy: undefined;
   MarketWishlist: undefined;
   MarketRecent: undefined;

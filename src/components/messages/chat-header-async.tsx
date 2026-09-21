@@ -18,13 +18,10 @@ export async function ChatHeaderAsync({ roomId }: { roomId: string }) {
   });
 
   if (!room) notFound();
-  const isMember = room.members.some((m) => m.userId === session.user.id);
-  if (
-    !isMember &&
-    (room.type === "COSPLAYER_GROUP" || room.type === "SOCIAL_GROUP")
-  ) {
-    redirect(`/messages/join?room=${roomId}`);
+  if (room.type === "COSPLAYER_GROUP" || room.type === "SOCIAL_GROUP") {
+    redirect("/messages");
   }
+  const isMember = room.members.some((m) => m.userId === session.user.id);
   if (!isMember) notFound();
 
   const meta = getConversationMeta(room, session.user.id);

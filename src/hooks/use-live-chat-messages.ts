@@ -91,7 +91,7 @@ export function useLiveChatMessages(
   useEffect(() => {
     if (!standalone) return;
     void poll();
-    const ms = connected ? 3000 : 2000;
+    const ms = connected ? 2500 : 900;
     const id = setInterval(poll, ms);
     return () => clearInterval(id);
   }, [poll, connected, standalone]);

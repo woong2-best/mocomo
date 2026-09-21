@@ -3,23 +3,15 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { parseDateKey } from "@/lib/calendar/kr-calendar";
+import { getCalendarMemosForMonth } from "@/lib/calendar/memos-with-schedule";
 
 const BODY_MAX = 2000;
 
-function monthRange(year: number, month: number): { from: string; to: string } {
-  const from = `${year}-${String(month).padStart(2, "0")}-01`;
-  const last = new Date(year, month, 0).getDate();
-  const to = `${year}-${String(month).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
-  return { from, to };
-}
-
-/** GET ?year=2026&month=10 — memos for that month */
+/**
+ * GET ?year=&month= — own calendar (auth required)
+ * GET ?year=&month=&username= — public profile calendar (anyone)
+ */
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const limited = await rateLimitPublicApi(req, "calendar-memos-get", 60);
   if (limited) return limited;
 
@@ -29,26 +21,47 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid year/month" }, { status: 400 });
   }
 
-  const { from, to } = monthRange(year, month);
-  const rows = await db.calendarMemo.findMany({
-    where: {
-      userId: session.user.id,
-      dateKey: { gte: from, lte: to },
-    },
-    select: { dateKey: true, body: true, updatedAt: true },
-    orderBy: { dateKey: "asc" },
-  });
+  const usernameRaw = req.nextUrl.searchParams.get("username")?.trim() ?? "";
+  const session = await auth();
 
-  const memos: Record<string, string> = {};
-  for (const row of rows) memos[row.dateKey] = row.body;
+  let userId: string | null = null;
+  let canEdit = false;
+
+  if (usernameRaw) {
+    const profileUser = await db.user.findFirst({
+      where: { username: { equals: usernameRaw, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (!profileUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    userId = profileUser.id;
+    canEdit = session?.user?.id === profileUser.id;
+  } else {
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    userId = session.user.id;
+    canEdit = true;
+  }
+
+  const { memos, scheduleWeekdays, scheduleTime, scheduleNote } =
+    await getCalendarMemosForMonth(userId, year, month);
 
   return NextResponse.json(
-    { ok: true, memos },
+    {
+      ok: true,
+      memos,
+      scheduleWeekdays,
+      scheduleTime,
+      scheduleNote,
+      canEdit,
+    },
     { headers: { "Cache-Control": "private, no-store" } }
   );
 }
 
-/** PUT { dateKey, body } — upsert; empty body deletes */
+/** PUT { dateKey, body } — upsert; empty body deletes (owner only) */
 export async function PUT(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -76,7 +89,8 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Invalid dateKey" }, { status: 400 });
   }
 
-  const body = bodyRaw.trim().slice(0, BODY_MAX);
+  // Preserve newlines for sticky memo; trim only outer whitespace
+  const body = bodyRaw.replace(/^\s+|\s+$/g, "").slice(0, BODY_MAX);
 
   if (!body) {
     await db.calendarMemo.deleteMany({

@@ -32,7 +32,9 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
-const PLATFORM_CATS = MOBILE_LIVE_CATEGORIES.filter((c) => c.id !== "ALL");
+const PLATFORM_CATS = MOBILE_LIVE_CATEGORIES.filter(
+  (c) => c.id !== "ALL" && c.id !== "VIRTUAL"
+);
 
 export function LiveGoLiveScreen() {
   const { colors } = useTheme();

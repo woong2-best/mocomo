@@ -22,7 +22,7 @@ export function KeyboardSheet({
   visible,
   onClose,
   children,
-  maxHeight = "78%",
+  maxHeight = "88%",
   sheetStyle,
   stopPropagation = true,
 }: Props) {
@@ -36,7 +36,10 @@ export function KeyboardSheet({
         {
           maxHeight,
           marginBottom: keyboardHeight,
-          paddingBottom: keyboardHeight > 0 ? spacing.md : spacing.md + insets.bottom,
+          paddingBottom:
+            keyboardHeight > 0
+              ? spacing.md
+              : Math.max(insets.bottom + spacing.md, 28),
         },
         sheetStyle,
       ]}

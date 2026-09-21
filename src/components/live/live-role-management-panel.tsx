@@ -46,7 +46,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
   const [searchHits, setSearchHits] = useState<SearchHit[]>([]);
   const [selectedRole, setSelectedRole] = useState<BroadcastRole>("MANAGER");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [assignableRoles, setAssignableRoles] = useState<BroadcastRole[]>(["MANAGER", "MODERATOR", "VIP"]);
+  const [assignableRoles, setAssignableRoles] = useState<BroadcastRole[]>(["MANAGER"]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -62,11 +62,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
       setMembers(data.members ?? []);
       setLogs(data.logs ?? []);
       const perms: string[] = data.permissions ?? [];
-      setAssignableRoles(
-        perms.includes("roles.manage")
-          ? ["MANAGER", "MODERATOR", "VIP"]
-          : ["MODERATOR", "VIP"]
-      );
+      setAssignableRoles(perms.includes("roles.manage") ? ["MANAGER"] : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "불러오기 실패");
     } finally {

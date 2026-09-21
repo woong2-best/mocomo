@@ -9,6 +9,7 @@ import {
   MIN_MOCO_TOPUP_COUNT,
   quoteGemTopup,
 } from "@/lib/gems/constants";
+import { gemTopupStripeMetadata } from "@/lib/gems/topup-metadata";
 import { getUserGemBalance } from "@/lib/gems/balance";
 import { getMocoBalanceSnapshot } from "@/lib/auction-deposit/service";
 import { processRefundRequest } from "@/lib/gems/refund";
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
       type: "GEM_TOPUP",
       amount: quote.usdCents,
       orderName: quote.orderName,
-      metadata: { gemAmount: quote.moco },
+      metadata: gemTopupStripeMetadata(quote),
       platform: "mobile",
       purchaseTermsAccepted: true,
     });

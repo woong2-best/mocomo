@@ -5,9 +5,17 @@
 .pnp.js
 .yarn/install-state.gz
 
+# Gradle (local daemon/cache — RN/Android builds; not source)
+.gradle-agent/
+**/.gradle/
+
 # Expo / RN
-apps/mobile/.expo/
+**/.expo/
 apps/mobile/dist/
+**/web-build/
+apps/mobile/modules/**/android/build/
+.metro-health-check*
+**/.kotlin/
 *-firebase-adminsdk-*.json
 *.jks
 *.keystore
@@ -15,13 +23,24 @@ apps/mobile/dist/
 
 # testing
 /coverage
+test-results/
+playwright-report/
+.playwright/
 
 # next.js
 /.next/
 /out/
 
+# monorepo / tooling caches
+.turbo/
+.cache/
+.parcel-cache/
+.eslintcache
+.swc/
+
 # production
 /build
+**/dist/
 
 # misc
 .DS_Store
@@ -78,4 +97,13 @@ next-env.d.ts
 # large demo recordings (keep edit-mode-demo.webm only)
 /public/diorama/page@*.webm
 
-.vercel
+# iOS / Xcode local (Capacitor + RN generated trees)
+**/Pods/
+**/DerivedData/
+**/xcuserdata/
+
+# Python / local venv scratch (scripts, games tooling)
+__pycache__/
+*.py[cod]
+.venv/
+venv/

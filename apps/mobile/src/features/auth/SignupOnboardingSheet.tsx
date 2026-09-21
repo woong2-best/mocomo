@@ -4,6 +4,7 @@ import {
   Alert,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,7 +16,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { uploadLocalFile } from "@/api/upload-file";
 import { patchProfile } from "@/api/profile";
+import { patchMe } from "@/api/discovery";
 import { prepareProfileAvatar } from "@/lib/prepare-profile-media";
+import type { SignupRole } from "@/features/auth/SignupRoleFollowUpSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing } from "@/theme/tokens";
 import { SignupCompleteCelebration } from "@/features/auth/SignupCompleteCelebration";
@@ -36,14 +39,31 @@ type Props = {
     birth: SignupOnboardingBirth;
     imageUrl: string | null;
     localAvatarUri: string | null;
+    role: SignupRole;
   }) => void;
 };
 
-type Step = "birth" | "avatar" | "done";
+type Step = "locale" | "birth" | "role" | "avatar" | "done";
+
+const COUNTRIES = [
+  { id: "KR", label: "대한민국" },
+  { id: "US", label: "United States" },
+  { id: "JP", label: "日本" },
+  { id: "CN", label: "中国" },
+  { id: "TW", label: "台灣" },
+] as const;
+
+const TIMEZONES = [
+  "Asia/Seoul",
+  "Asia/Tokyo",
+  "America/Los_Angeles",
+  "America/New_York",
+  "Europe/London",
+  "UTC",
+] as const;
 
 /**
- * Mobile signup tail: terms → (this) birth → gallery avatar → fireworks.
- * Banner is intentionally omitted.
+ * Mobile signup tail: country/TZ → birth → role → gallery avatar → fireworks.
  */
 export function SignupOnboardingSheet({
   visible,
@@ -53,23 +73,29 @@ export function SignupOnboardingSheet({
 }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState<Step>("birth");
+  const [step, setStep] = useState<Step>("locale");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [countryCode, setCountryCode] = useState("KR");
+  const [timeZone, setTimeZone] = useState("Asia/Seoul");
   const [birthYear, setBirthYear] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [birthDay, setBirthDay] = useState("");
+  const [role, setRole] = useState<SignupRole | null>(null);
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!visible) {
-      setStep("birth");
+      setStep("locale");
       setBusy(false);
       setError("");
+      setCountryCode("KR");
+      setTimeZone("Asia/Seoul");
       setBirthYear("");
       setBirthMonth("");
       setBirthDay("");
+      setRole(null);
       setLocalUri(null);
       setImageUrl(null);
     }
@@ -99,6 +125,21 @@ export function SignupOnboardingSheet({
     setError("");
   }, []);
 
+  async function saveLocaleAndContinue() {
+    setBusy(true);
+    setError("");
+    try {
+      if (mode === "postAuth") {
+        await patchMe({ countryCode, timeZone });
+      }
+      setStep("birth");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "국가·시간대 저장에 실패했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submitAvatar() {
     if (!localUri) {
       setError("프로필 사진을 선택해 주세요.");
@@ -109,6 +150,11 @@ export function SignupOnboardingSheet({
       setStep("birth");
       return;
     }
+    if (!role) {
+      setError("역할을 선택해 주세요.");
+      setStep("role");
+      return;
+    }
 
     const birth: SignupOnboardingBirth = {
       birthYear: Number(birthYear),
@@ -117,7 +163,7 @@ export function SignupOnboardingSheet({
     };
 
     if (mode === "collectOnly") {
-      onFinished({ birth, imageUrl: null, localAvatarUri: localUri });
+      onFinished({ birth, imageUrl: null, localAvatarUri: localUri, role });
       return;
     }
 
@@ -137,6 +183,7 @@ export function SignupOnboardingSheet({
         birthMonth: birth.birthMonth,
         birthDay: birth.birthDay,
       });
+      await patchMe({ countryCode, timeZone });
       setImageUrl(url);
       setStep("done");
     } catch (e) {
@@ -175,7 +222,77 @@ export function SignupOnboardingSheet({
           >
             <View style={[styles.grabber, { backgroundColor: colors.border }]} />
 
-            {step === "birth" ? (
+            {step === "locale" ? (
+              <>
+                <Text style={[styles.title, { color: colors.text }]}>국가 · 시간대</Text>
+                <Text style={[styles.sub, { color: colors.textMuted }]}>
+                  달력·방송 일정이 이 시간대 기준으로 표시됩니다. 나중에 설정에서 바꿀 수 있어요.
+                </Text>
+                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>국가</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ marginBottom: 12 }}
+                >
+                  {COUNTRIES.map((c) => (
+                    <Pressable
+                      key={c.id}
+                      onPress={() => {
+                        setCountryCode(c.id);
+                        if (c.id === "KR") setTimeZone("Asia/Seoul");
+                        if (c.id === "JP") setTimeZone("Asia/Tokyo");
+                        if (c.id === "US") setTimeZone("America/Los_Angeles");
+                      }}
+                      style={[
+                        styles.chip,
+                        {
+                          borderColor: countryCode === c.id ? colors.brand : colors.border,
+                          backgroundColor:
+                            countryCode === c.id ? `${colors.brand}22` : colors.surfaceRaised,
+                        },
+                      ]}
+                    >
+                      <Text style={{ color: colors.text, fontWeight: "700", fontSize: 13 }}>
+                        {c.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>시간대</Text>
+                <View style={styles.tzWrap}>
+                  {TIMEZONES.map((tz) => (
+                    <Pressable
+                      key={tz}
+                      onPress={() => setTimeZone(tz)}
+                      style={[
+                        styles.chip,
+                        {
+                          borderColor: timeZone === tz ? colors.brand : colors.border,
+                          backgroundColor:
+                            timeZone === tz ? `${colors.brand}22` : colors.surfaceRaised,
+                        },
+                      ]}
+                    >
+                      <Text style={{ color: colors.text, fontWeight: "700", fontSize: 12 }}>
+                        {tz}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+                <Pressable
+                  style={[styles.primary, { backgroundColor: busy ? colors.muted : colors.brand }]}
+                  disabled={busy}
+                  onPress={() => void saveLocaleAndContinue()}
+                >
+                  {busy ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.primaryText}>다음</Text>
+                  )}
+                </Pressable>
+              </>
+            ) : step === "birth" ? (
               <>
                 <Text style={[styles.title, { color: colors.text }]}>생년월일</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
@@ -211,6 +328,75 @@ export function SignupOnboardingSheet({
                 <Pressable
                   style={[styles.primary, { backgroundColor: birthOk ? colors.brand : colors.muted }]}
                   disabled={!birthOk || busy}
+                  onPress={() => {
+                    setError("");
+                    setStep("role");
+                  }}
+                >
+                  <Text style={styles.primaryText}>다음</Text>
+                </Pressable>
+              </>
+            ) : step === "role" ? (
+              <>
+                <Text style={[styles.title, { color: colors.text }]}>어떤 방식으로 즐기시나요?</Text>
+                <Text style={[styles.sub, { color: colors.textMuted }]}>
+                  팬으로 응원할지, 코스어로 활동할지 골라 주세요.
+                </Text>
+
+                <Pressable
+                  style={[
+                    styles.roleCard,
+                    {
+                      borderColor: role === "coser" ? colors.brand : colors.border,
+                      backgroundColor: colors.surfaceRaised,
+                    },
+                  ]}
+                  onPress={() => setRole("coser")}
+                >
+                  <Ionicons
+                    name="sparkles"
+                    size={22}
+                    color={role === "coser" ? colors.brand : colors.textMuted}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.roleTitle, { color: colors.text }]}>
+                      코스어 / 크리에이터
+                    </Text>
+                    <Text style={[styles.roleSub, { color: colors.textMuted }]}>
+                      컬쳐위키에 코스어 프로필을 등록하고 활동을 시작해요
+                    </Text>
+                  </View>
+                </Pressable>
+
+                <Pressable
+                  style={[
+                    styles.roleCard,
+                    {
+                      borderColor: role === "fan" ? colors.brand : colors.border,
+                      backgroundColor: colors.surfaceRaised,
+                      marginTop: 10,
+                    },
+                  ]}
+                  onPress={() => setRole("fan")}
+                >
+                  <Ionicons
+                    name="heart"
+                    size={22}
+                    color={role === "fan" ? colors.brand : colors.textMuted}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.roleTitle, { color: colors.text }]}>팬</Text>
+                    <Text style={[styles.roleSub, { color: colors.textMuted }]}>
+                      좋아하는 코스어를 팔로우하며 즐겨요
+                    </Text>
+                  </View>
+                </Pressable>
+
+                {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+
+                <Pressable
+                  style={[styles.primary, { backgroundColor: role ? colors.brand : colors.muted }]}
+                  disabled={!role || busy}
                   onPress={() => {
                     setError("");
                     setStep("avatar");
@@ -272,6 +458,7 @@ export function SignupOnboardingSheet({
             },
             imageUrl,
             localAvatarUri: localUri,
+            role: role ?? "fan",
           })
         }
       />
@@ -338,6 +525,15 @@ const styles = StyleSheet.create({
   sub: { fontSize: 14, marginTop: 6, marginBottom: 18, lineHeight: 20 },
   birthRow: { flexDirection: "row", gap: 10, marginBottom: 8 },
   fieldLabel: { fontSize: 12, fontWeight: "700", marginBottom: 6 },
+  chip: {
+    borderWidth: 1.5,
+    borderRadius: radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tzWrap: { flexDirection: "row", flexWrap: "wrap", marginBottom: 8 },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.md,
@@ -346,6 +542,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+  roleCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1.5,
+    borderRadius: radii.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  roleTitle: { fontSize: 15, fontWeight: "800" },
+  roleSub: { fontSize: 12, marginTop: 4, lineHeight: 17 },
   avatarPick: { alignItems: "center", marginBottom: 16 },
   avatarImg: { width: 132, height: 132, borderRadius: 28 },
   avatarEmpty: {

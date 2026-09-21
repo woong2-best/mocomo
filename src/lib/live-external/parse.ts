@@ -178,7 +178,7 @@ export function parseExternalLiveSource(
   return (
     tryYoutube() ||
     tryTwitch() ||
-    tryChzzk() || { error: "유튜브·트위치·치지직 URL만 지원합니다." }
+    tryChzzk() || { error: "유튜브·트위치 URL만 지원합니다." }
   );
 }
 

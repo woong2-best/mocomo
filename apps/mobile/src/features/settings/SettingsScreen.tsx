@@ -19,15 +19,14 @@ import { patchMe } from "@/api/discovery";
 import { fetchCheckoutMeta } from "@/api/checkout";
 import { ApiError } from "@/api/client";
 import { PayButton } from "@/payments/PayButton";
-import { CreatorCallSettingsCard } from "@/features/settings/CreatorCallSettingsCard";
 import { FeedDisplaySettingsCard } from "@/features/settings/FeedDisplaySettingsCard";
-import { MessageComposerSettingsCard } from "@/features/settings/MessageComposerSettingsCard";
 import { AccountDeletionCard } from "@/features/settings/AccountDeletionCard";
 import { UsedServiceRegionCard } from "@/features/settings/UsedServiceRegionCard";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
 import { Screen } from "@/ui/Screen";
+import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -58,6 +57,7 @@ const TIMEZONES = [
 const LEGAL_LINKS = [
   { label: "이용약관", path: "/legal/terms" },
   { label: "크리에이터 약관", path: "/legal/creator-terms" },
+  { label: "MOCO 정산 QnA", path: "/legal/qna" },
   { label: "결제 정책", path: "/legal/payment" },
   { label: "저작권", path: "/legal/copyright" },
   { label: "개인정보 처리방침", path: "/legal/privacy" },
@@ -94,9 +94,9 @@ export function SettingsScreen() {
       await patchMe({ locale, countryCode, timeZone });
       await applyUiLocale(normalizeMobileLocale(locale) as Locale);
       await refreshMe();
-      Alert.alert("저장됨", "지역·언어 설정이 업데이트되었습니다.");
+      showIslandToast("Saved", "지역·언어 설정이 업데이트되었습니다.");
     } catch (e) {
-      Alert.alert("오류", errorMessage(e));
+      showIslandError("오류", errorMessage(e));
     } finally {
       setLocaleBusy(false);
     }
@@ -183,11 +183,7 @@ export function SettingsScreen() {
             </FolkCard>
           ) : null}
 
-          <CreatorCallSettingsCard />
-
           <FeedDisplaySettingsCard />
-
-          <MessageComposerSettingsCard />
 
           <FolkCard>
             <Text style={styles.cardTitle}>게시글 잠금</Text>

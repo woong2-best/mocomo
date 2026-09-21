@@ -1,11 +1,11 @@
-/** Mobile live category pills — mirrors web LIVE_CATEGORIES / LIVE_CATEGORY_ORDER. */
+/** Mobile live category pills — mirrors web LIVE_CATEGORY_ORDER (FOLLOWING first, R-18 last). */
 export const MOBILE_LIVE_CATEGORIES = [
   { id: "ALL", label: "전체" },
-  { id: "IRL", label: "FESTIVAL" },
-  { id: "JUST_CHATTING", label: "CHATTING" },
+  { id: "VIRTUAL", label: "Follow" },
   { id: "GAME", label: "GAMING" },
+  { id: "JUST_CHATTING", label: "Chat" },
+  { id: "IRL", label: "FESTIVAL" },
   { id: "MUSIC", label: "MUSIC" },
-  { id: "VIRTUAL", label: "FOLLOWING" },
   { id: "LIVE", label: "R-18" },
 ] as const;
 
@@ -32,11 +32,11 @@ export const CATEGORY_FOLDER_IMAGE: Record<
   Exclude<MobileLiveCategoryId, "ALL">,
   number
 > = {
-  IRL: require("../../../assets/live/categories/irl-folder.png"),
-  JUST_CHATTING: require("../../../assets/live/categories/chatting-folder.png"),
-  GAME: require("../../../assets/live/categories/gaming-folder.png"),
-  MUSIC: require("../../../assets/live/categories/music-folder.png"),
   VIRTUAL: require("../../../assets/live/categories/virtual-folder.png"),
+  GAME: require("../../../assets/live/categories/gaming-folder.png"),
+  JUST_CHATTING: require("../../../assets/live/categories/chatting-folder.png"),
+  IRL: require("../../../assets/live/categories/irl-folder.png"),
+  MUSIC: require("../../../assets/live/categories/music-folder.png"),
   LIVE: require("../../../assets/live/categories/live-folder.png"),
 };
 
@@ -44,25 +44,25 @@ export const CATEGORY_POSTER: Record<
   string,
   { colors: [string, string, string]; accent: string }
 > = {
-  IRL: {
-    colors: ["#2E6B4A", "#3D8A5C", "#C4A35A"],
-    accent: "#3D8A5C",
-  },
-  JUST_CHATTING: {
-    colors: ["#2A4A7A", "#3A5F96", "#D4A05A"],
-    accent: "#3A5F96",
+  VIRTUAL: {
+    colors: ["#C47A8A", "#E0A0B0", "#F0C0C8"],
+    accent: "#D48A9A",
   },
   GAME: {
     colors: ["#A8432E", "#C5522A", "#C49A4A"],
     accent: "#C5522A",
   },
+  JUST_CHATTING: {
+    colors: ["#2A4A7A", "#3A5F96", "#D4A05A"],
+    accent: "#3A5F96",
+  },
+  IRL: {
+    colors: ["#2E6B4A", "#3D8A5C", "#C4A35A"],
+    accent: "#3D8A5C",
+  },
   MUSIC: {
     colors: ["#5A3A6E", "#6E4A7A", "#D4A05A"],
     accent: "#6E4A7A",
-  },
-  VIRTUAL: {
-    colors: ["#C47A8A", "#E0A0B0", "#F0C0C8"],
-    accent: "#D48A9A",
   },
   LIVE: {
     colors: ["#7A2A3A", "#C5522A", "#B87A4A"],

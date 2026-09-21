@@ -32,8 +32,8 @@ export default async function StreamingAccountsSettingsPage({
       </div>
       <h1 className="text-xl font-bold">연결된 스트리밍 계정</h1>
       <p className="mb-4 text-sm text-muted-foreground">
-        YouTube · Twitch · 치지직 · Kick 계정을 연결하고 소유권을 인증하세요. 인증된 계정으로만
-        외부 라이브 후원을 받을 수 있습니다.
+        YouTube · Twitch 계정을 연결하고 소유권을 인증하세요. 인증된 계정으로만 외부 라이브
+        후원을 받을 수 있습니다.
       </p>
       <StreamingAccountsManager
         initialAccounts={accounts}

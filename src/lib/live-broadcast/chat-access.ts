@@ -14,7 +14,21 @@ export async function isLiveChatBanned(channelId: string, userId: string): Promi
     where: { channelId_userId: { channelId, userId } },
     select: { id: true },
   });
-  return !!ban;
+  if (ban) return true;
+
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true },
+  });
+  if (!channel) return false;
+
+  const streamerBan = await db.streamerChatBan.findUnique({
+    where: {
+      hostUserId_userId: { hostUserId: channel.createdBy, userId },
+    },
+    select: { id: true },
+  });
+  return !!streamerBan;
 }
 
 export async function getActiveLiveChatTimeout(
@@ -183,6 +197,26 @@ export async function banLiveChatUser(input: {
     },
   });
 
+  // Persist across future broadcasts for this host
+  await db.streamerChatBan.upsert({
+    where: {
+      hostUserId_userId: {
+        hostUserId: channel.createdBy,
+        userId: input.targetUserId,
+      },
+    },
+    create: {
+      hostUserId: channel.createdBy,
+      userId: input.targetUserId,
+      bannedBy: input.actorId,
+      reason: input.reason?.slice(0, 200) ?? null,
+    },
+    update: {
+      bannedBy: input.actorId,
+      reason: input.reason?.slice(0, 200) ?? null,
+    },
+  });
+
   return { success: true as const };
 }
 
@@ -198,27 +232,81 @@ export async function unbanLiveChatUser(input: {
     where: { channelId: input.channelId, userId: input.targetUserId },
   });
 
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: input.channelId },
+    select: { createdBy: true },
+  });
+  if (channel) {
+    await db.streamerChatBan.deleteMany({
+      where: { hostUserId: channel.createdBy, userId: input.targetUserId },
+    });
+  }
+
   return { success: true as const };
 }
 
 export async function listLiveChatBans(channelId: string) {
-  const rows = await db.liveChatBan.findMany({
-    where: { channelId },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    include: {
-      user: { select: { id: true, username: true, image: true } },
-      issuer: { select: { username: true } },
-    },
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true },
   });
-  return rows.map((r) => ({
-    userId: r.user.id,
-    username: r.user.username,
-    image: r.user.image,
-    bannedBy: r.issuer.username,
-    reason: r.reason,
-    at: r.createdAt.toISOString(),
-  }));
+  if (!channel) return [];
+
+  const [channelRows, streamerRows] = await Promise.all([
+    db.liveChatBan.findMany({
+      where: { channelId },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: {
+        user: { select: { id: true, username: true, image: true } },
+        issuer: { select: { username: true } },
+      },
+    }),
+    db.streamerChatBan.findMany({
+      where: { hostUserId: channel.createdBy },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: {
+        user: { select: { id: true, username: true, image: true } },
+        issuer: { select: { username: true } },
+      },
+    }),
+  ]);
+
+  const byUser = new Map<
+    string,
+    {
+      userId: string;
+      username: string;
+      image: string | null;
+      bannedBy: string;
+      reason: string | null;
+      at: string;
+    }
+  >();
+
+  for (const r of streamerRows) {
+    byUser.set(r.user.id, {
+      userId: r.user.id,
+      username: r.user.username,
+      image: r.user.image,
+      bannedBy: r.issuer.username,
+      reason: r.reason,
+      at: r.createdAt.toISOString(),
+    });
+  }
+  for (const r of channelRows) {
+    byUser.set(r.user.id, {
+      userId: r.user.id,
+      username: r.user.username,
+      image: r.user.image,
+      bannedBy: r.issuer.username,
+      reason: r.reason,
+      at: r.createdAt.toISOString(),
+    });
+  }
+
+  return [...byUser.values()].sort((a, b) => (a.at < b.at ? 1 : -1));
 }
 
 export function meetsChatTierExempt(

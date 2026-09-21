@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -9,7 +8,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchCalendarMemos, saveCalendarMemo } from "@/api/calendar";
-import { useAuth } from "@/auth/AuthContext";
 import {
   buildMonthGrid,
   dateKey,
@@ -39,7 +37,7 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
   const [year, setYear] = useState(today.y);
   const [month, setMonth] = useState(today.m);
   const [memos, setMemos] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
+  const [scheduleKeys, setScheduleKeys] = useState<Set<string>>(new Set());
   const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState<CalendarCell | null>(null);
   const [memoDraft, setMemoDraft] = useState("");
@@ -51,16 +49,17 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
   );
   const weekdays = useMemo(() => weekdayLabels(), []);
 
+  /** Memos load in background — never block the local month grid. */
   const loadMemos = useCallback(async () => {
-    setLoading(true);
     setLoadError(false);
+    setMemos({});
+    setScheduleKeys(new Set());
     try {
       const res = await fetchCalendarMemos(year, month);
       setMemos(res.memos ?? {});
+      setScheduleKeys(new Set(res.scheduleKeys ?? []));
     } catch {
       setLoadError(true);
-    } finally {
-      setLoading(false);
     }
   }, [year, month]);
 
@@ -158,49 +157,46 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
         ))}
       </View>
 
-      {loading ? (
-        <ActivityIndicator color={colors.terracotta} style={{ marginVertical: 8 }} />
-      ) : (
-        <View style={styles.grid}>
-          {cells.map((cell, idx) => {
-            const key = dateKey(cell.y, cell.m, cell.d);
-            const isToday =
-              cell.y === today.y && cell.m === today.m && cell.d === today.d && cell.inMonth;
-            const hasMemo = Boolean(memos[key]);
-            return (
-              <Pressable
-                key={`${key}-${idx}`}
-                style={styles.cell}
-                onPress={() => openDay(cell)}
+      <View style={styles.grid}>
+        {cells.map((cell, idx) => {
+          const key = dateKey(cell.y, cell.m, cell.d);
+          const isToday =
+            cell.y === today.y && cell.m === today.m && cell.d === today.d && cell.inMonth;
+          const hasMemo = Boolean(memos[key]);
+          const isSchedule = scheduleKeys.has(key) && cell.inMonth;
+          return (
+            <Pressable
+              key={`${key}-${idx}`}
+              style={styles.cell}
+              onPress={() => openDay(cell)}
+            >
+              <View
+                style={[
+                  styles.dayBubble,
+                  isToday && styles.dayToday,
+                  isSchedule && styles.daySchedule,
+                  !cell.inMonth && styles.dayMuted,
+                ]}
               >
-                <View
+                <Text
                   style={[
-                    styles.dayBubble,
-                    isToday && styles.dayToday,
-                    !cell.inMonth && styles.dayMuted,
+                    styles.dayText,
+                    !cell.inMonth && styles.dayTextMuted,
+                    cell.isRed && cell.inMonth && styles.redText,
+                    cell.isBlue && cell.inMonth && styles.blueText,
+                    isToday && styles.dayTextToday,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.dayText,
-                      !cell.inMonth && styles.dayTextMuted,
-                      cell.isRed && cell.inMonth && styles.redText,
-                      cell.isBlue && cell.inMonth && styles.blueText,
-                      isToday && styles.dayTextToday,
-                    ]}
-                  >
-                    {cell.d}
-                  </Text>
-                  {hasMemo && cell.inMonth ? <View style={styles.memoDot} /> : null}
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
+                  {cell.d}
+                </Text>
+                {hasMemo && cell.inMonth ? <View style={styles.memoDot} /> : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
 
       {loadError ? <Text style={styles.errorText}>메모를 불러오지 못했습니다.</Text> : null}
-      <Text style={styles.hint}>날짜를 탭해 메모 · 일정을 기록하세요</Text>
 
       <KeyboardSheet
         visible={!!selected}
@@ -311,6 +307,9 @@ function createStyles(colors: ThemeColors) {
     dayToday: {
       backgroundColor: colors.terracotta,
     },
+    daySchedule: {
+      backgroundColor: "rgba(16, 185, 129, 0.35)",
+    },
     dayMuted: { opacity: 0.35 },
     dayText: {
       fontSize: 12,
@@ -335,13 +334,6 @@ function createStyles(colors: ThemeColors) {
       fontWeight: "600",
       textAlign: "center",
       marginTop: 4,
-    },
-    hint: {
-      textAlign: "center",
-      fontSize: 11,
-      color: colors.textMuted,
-      fontWeight: "600",
-      marginTop: 8,
     },
     sheetTitle: { fontSize: 17, fontWeight: "800", color: colors.text },
     sheetHoliday: { color: colors.terracotta, fontWeight: "700", marginTop: 4 },

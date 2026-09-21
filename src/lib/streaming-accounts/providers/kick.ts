@@ -74,7 +74,7 @@ export const kickStreamingProvider: StreamingPlatformProvider = {
   async resolveLiveSource() {
     return {
       error:
-        "Kick 외부 임베드 라이브는 아직 지원하지 않습니다. Twitch·YouTube·치지직 계정을 연결해 주세요.",
+        "Kick 외부 임베드 라이브는 아직 지원하지 않습니다. Twitch·YouTube 계정을 연결해 주세요.",
     };
   },
 };

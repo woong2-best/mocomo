@@ -138,11 +138,28 @@ export async function activateAccount(userId: string): Promise<SavedMobileAccoun
   const hit = accounts.find((a) => a.userId === userId);
   if (!hit) return null;
   await writeActiveUserIdRaw(userId);
-  const bumped = accounts.map((a) =>
-    a.userId === userId ? { ...a, savedAt: Date.now() } : a
-  );
-  await writeAccountsRaw(bumped);
+  // Keep cartridge grid order stable — only flip the active pointer.
+  await writeAccountsRaw(accounts);
   return hit;
+}
+
+/** Persist visual grid order (left→right, top→bottom). Higher savedAt = earlier. */
+export async function reorderSavedAccounts(orderedUserIds: string[]): Promise<void> {
+  const accounts = await readAccountsRaw();
+  if (accounts.length === 0 || orderedUserIds.length === 0) return;
+
+  const byId = new Map(accounts.map((a) => [a.userId, a]));
+  const now = Date.now();
+  const next: SavedMobileAccount[] = [];
+
+  orderedUserIds.forEach((id, index) => {
+    const hit = byId.get(id);
+    if (!hit) return;
+    next.push({ ...hit, savedAt: now - index });
+    byId.delete(id);
+  });
+  for (const leftover of byId.values()) next.push(leftover);
+  await writeAccountsRaw(next);
 }
 
 export async function removeAccount(userId: string): Promise<SavedMobileAccount | null> {

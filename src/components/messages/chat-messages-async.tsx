@@ -2,8 +2,6 @@ import { getCachedAuthUserMinimal, getCachedSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
 import { ChatRoomClient } from "@/components/chat/chat-room";
-import { GroupRoomPanel } from "@/components/chat/group-room-panel";
-import { getGroupRoomMeta } from "@/actions/group-chat";
 import { chatMessageInclude, serializeChatMessages } from "@/lib/chat-message-serialize";
 import {
   collectPaidAttachmentIds,
@@ -19,6 +17,9 @@ export async function ChatMessagesAsync({ roomId }: { roomId: string }) {
     select: { type: true },
   });
   if (!room) notFound();
+  if (room.type === "COSPLAYER_GROUP" || room.type === "SOCIAL_GROUP") {
+    redirect("/messages");
+  }
 
   const [member, me, messages] = await Promise.all([
     db.chatMember.findUnique({
@@ -34,28 +35,12 @@ export async function ChatMessagesAsync({ roomId }: { roomId: string }) {
   ]);
   if (!member) notFound();
 
-  const isGroupRoom = room.type === "COSPLAYER_GROUP" || room.type === "SOCIAL_GROUP";
-  const groupMeta = isGroupRoom ? await getGroupRoomMeta(roomId) : null;
-
   const paidIds = collectPaidAttachmentIds(messages);
   const purchasedIds = await getPurchasedMessageAttachmentIds(session.user.id, paidIds);
   const initialMessages = serializeChatMessages(messages, session.user.id, purchasedIds);
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {groupMeta && "room" in groupMeta && groupMeta.room ? (
-        <GroupRoomPanel
-          roomId={roomId}
-          roomType={groupMeta.room.type}
-          isOwner={groupMeta.isOwner ?? false}
-          announcementTitle={groupMeta.room.announcementTitle}
-          announcementBody={groupMeta.room.announcementBody}
-          voiceLive={groupMeta.room.voiceLive}
-          voiceChannelId={groupMeta.room.voiceChannelId}
-          polls={groupMeta.polls ?? []}
-          joinCode={groupMeta.room.joinCode}
-        />
-      ) : null}
       <ChatRoomClient
         roomId={roomId}
         userId={session.user.id}

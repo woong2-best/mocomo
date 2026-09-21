@@ -60,6 +60,15 @@ export async function listBroadcastRoleMembers(channelId: string): Promise<Broad
     },
   });
 
+  const streamerStaff = await db.streamerStaffAssignment.findMany({
+    where: { hostUserId: channel.createdBy },
+    orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+    include: {
+      user: { select: userPublicSelect },
+      assigner: { select: { username: true } },
+    },
+  });
+
   const owner: BroadcastRoleMember = {
     userId: ownerUser.id,
     username: ownerUser.username,
@@ -68,17 +77,31 @@ export async function listBroadcastRoleMembers(channelId: string): Promise<Broad
     role: "OWNER",
   };
 
-  const others: BroadcastRoleMember[] = assignments.map((a) => ({
-    userId: a.user.id,
-    username: a.user.username,
-    name: a.user.name,
-    image: a.user.image,
-    role: a.role,
-    assignedAt: a.createdAt.toISOString(),
-    assignedByUsername: a.assigner.username,
-  }));
+  const byUser = new Map<string, BroadcastRoleMember>();
+  for (const a of streamerStaff) {
+    byUser.set(a.user.id, {
+      userId: a.user.id,
+      username: a.user.username,
+      name: a.user.name,
+      image: a.user.image,
+      role: a.role,
+      assignedAt: a.createdAt.toISOString(),
+      assignedByUsername: a.assigner.username,
+    });
+  }
+  for (const a of assignments) {
+    byUser.set(a.user.id, {
+      userId: a.user.id,
+      username: a.user.username,
+      name: a.user.name,
+      image: a.user.image,
+      role: a.role,
+      assignedAt: a.createdAt.toISOString(),
+      assignedByUsername: a.assigner.username,
+    });
+  }
 
-  return [owner, ...others];
+  return [owner, ...byUser.values()];
 }
 
 export async function searchUsersForBroadcastRole(
@@ -99,7 +122,14 @@ export async function searchUsersForBroadcastRole(
     where: { channelId, userId: { in: hits.map((h) => h.id) } },
     select: { userId: true, role: true },
   });
-  const roleByUser = new Map(roleMap.map((r) => [r.userId, r.role]));
+  const staffMap = await db.streamerStaffAssignment.findMany({
+    where: { hostUserId: channel.createdBy, userId: { in: hits.map((h) => h.id) } },
+    select: { userId: true, role: true },
+  });
+  const roleByUser = new Map(staffMap.map((r) => [r.userId, r.role]));
+  for (const r of roleMap) {
+    roleByUser.set(r.userId, r.role);
+  }
 
   return hits.map((u) => ({
     ...u,
@@ -117,6 +147,10 @@ export async function assignBroadcastRole(input: {
   role: BroadcastRole;
 }) {
   const { channelId, actorId, targetUserId, role } = input;
+
+  if (role !== "MANAGER") {
+    return { error: "관리자 역할만 지정할 수 있습니다." };
+  }
 
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
@@ -153,6 +187,22 @@ export async function assignBroadcastRole(input: {
     where: { channelId_userId: { channelId, userId: targetUserId } },
     create: {
       channelId,
+      userId: targetUserId,
+      role,
+      createdBy: actorId,
+    },
+    update: {
+      role,
+      createdBy: actorId,
+    },
+  });
+
+  await db.streamerStaffAssignment.upsert({
+    where: {
+      hostUserId_userId: { hostUserId: channel.createdBy, userId: targetUserId },
+    },
+    create: {
+      hostUserId: channel.createdBy,
       userId: targetUserId,
       role,
       createdBy: actorId,
@@ -202,10 +252,22 @@ export async function removeBroadcastRole(input: {
     where: { channelId_userId: { channelId, userId: targetUserId } },
     select: { role: true },
   });
-  if (!existing) return { success: true as const };
+  const streamerExisting = await db.streamerStaffAssignment.findUnique({
+    where: {
+      hostUserId_userId: { hostUserId: channel.createdBy, userId: targetUserId },
+    },
+    select: { role: true },
+  });
+  if (!existing && !streamerExisting) return { success: true as const };
 
-  await db.broadcastRoleAssignment.delete({
-    where: { channelId_userId: { channelId, userId: targetUserId } },
+  if (existing) {
+    await db.broadcastRoleAssignment.delete({
+      where: { channelId_userId: { channelId, userId: targetUserId } },
+    });
+  }
+
+  await db.streamerStaffAssignment.deleteMany({
+    where: { hostUserId: channel.createdBy, userId: targetUserId },
   });
 
   await writeRoleLog({
@@ -213,7 +275,7 @@ export async function removeBroadcastRole(input: {
     actorUserId: actorId,
     targetUserId,
     action: "REMOVE",
-    oldRole: existing.role,
+    oldRole: existing?.role ?? streamerExisting?.role ?? null,
     newRole: null,
   });
 

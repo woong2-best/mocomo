@@ -24,6 +24,7 @@ import type { StarMarketListItem } from "@/api/star-market";
 import { API_BASE_URL } from "@/config/env";
 import { collectRecentTags, recentListingIds } from "@/lib/market-recently-viewed";
 import { Screen } from "@/ui/Screen";
+import { AppHeader } from "@/ui/AppHeader";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { floatingTabClearance } from "@/navigation/tab-layout";
@@ -143,6 +144,7 @@ export function MarketMyScreen() {
 
   return (
     <Screen>
+      <AppHeader title="마이" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ paddingBottom: bottomPad + 24 }}>
         <View style={styles.profileRow}>
           <FolkAvatar uri={meQuery.data?.user?.image} name={nickname} size={52} />

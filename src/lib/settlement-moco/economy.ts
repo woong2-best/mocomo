@@ -1,6 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { syncEarnedMocoDisplayTier } from "@/lib/settlement-moco/balance";
+import {
+  creditCreatorAllocationCents,
+  creatorAllocationCentsFromMoco,
+} from "@/lib/moco/topup-ledger";
 
 export type SettlementMocoBucket = "SETTLEMENT_MOCO";
 
@@ -75,6 +79,11 @@ export async function creditSettlementMoco(input: {
     });
 
     await syncEarnedMocoDisplayTier(input.userId, row.settlementMocoPoints, tx);
+    await creditCreatorAllocationCents(
+      tx,
+      input.userId,
+      creatorAllocationCentsFromMoco(input.amount)
+    );
     return row;
   });
 

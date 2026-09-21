@@ -102,14 +102,14 @@ export async function groupMarketplaceCartLines(items: MarketplaceCartLine[]) {
 async function initMultiItemStripeCartOrder(
   buyer: { id: string; email?: string | null; countryCode?: string | null },
   input: MarketplaceCartCheckoutInput,
-  sellerId: string
+  sellerId: string,
+  hdrs: Headers
 ) {
   const grouped = await groupMarketplaceCartLines(input.items);
   if ("error" in grouped) return grouped;
   const group = grouped.groups.find((g) => g.sellerId === sellerId);
   if (!group) return { error: "판매자 그룹을 찾을 수 없습니다." };
 
-  const hdrs = await headers();
   const routing = resolveCheckoutRouting({
     userCountryCode: buyer.countryCode,
     shipCountry: input.shipCountry,
@@ -303,7 +303,73 @@ export async function checkoutMarketplaceCartForSeller(
   return initMultiItemStripeCartOrder(
     { id: user.id, email: user.email, countryCode: dbUser?.countryCode },
     input,
-    sellerId
+    sellerId,
+    hdrs
+  );
+}
+
+/** Mobile Bearer — cart summary */
+export async function getMarketplaceCartCheckoutSummaryForUser(
+  items: MarketplaceCartLine[],
+  opts: { userId: string | null; headers: Headers }
+) {
+  const grouped = await groupMarketplaceCartLines(items);
+  if ("error" in grouped) return { error: grouped.error };
+
+  const dbUser = opts.userId
+    ? await db.user.findUnique({ where: { id: opts.userId }, select: { countryCode: true } })
+    : null;
+
+  const routing = resolveCheckoutRouting({
+    userCountryCode: dbUser?.countryCode,
+    geoCountry: getRequestCountryFromHeaders(opts.headers),
+  });
+
+  return {
+    checkoutMode: routing.mode,
+    disclaimer: routing.disclaimer,
+    blocked: routing.mode === "BLOCKED",
+    groups: grouped.groups.map((g) => ({
+      sellerId: g.sellerId,
+      sellerDisplayName: g.sellerDisplayName,
+      itemCount: g.lines.length,
+      subtotal: g.subtotal,
+      shippingAmount: g.shippingAmount,
+      total: g.subtotal + g.shippingAmount,
+      lines: g.lines.map(({ listing, quantity }) => ({
+        listingId: listing.id,
+        title: listing.title,
+        quantity,
+        unitPrice: listing.priceAmount,
+      })),
+    })),
+  };
+}
+
+/** Mobile Bearer — per-seller cart checkout */
+export async function checkoutMarketplaceCartForSellerMobile(
+  sellerId: string,
+  input: MarketplaceCartCheckoutInput,
+  opts: { userId: string; email?: string | null; countryCode?: string | null; headers: Headers }
+) {
+  const routing = resolveCheckoutRouting({
+    userCountryCode: opts.countryCode,
+    shipCountry: input.shipCountry,
+    geoCountry: getRequestCountryFromHeaders(opts.headers),
+  });
+
+  if (routing.mode === "BLOCKED") {
+    return {
+      error: routing.blockedReason ?? "마켓플레이스는 Stripe 지원 국가에서만 이용할 수 있습니다.",
+      checkoutMode: "BLOCKED" as const,
+    };
+  }
+
+  return initMultiItemStripeCartOrder(
+    { id: opts.userId, email: opts.email, countryCode: opts.countryCode },
+    input,
+    sellerId,
+    opts.headers
   );
 }
 

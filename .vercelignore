@@ -36,3 +36,23 @@ vercel-fail-logs.txt
 public/apt/_diag/
 .cursor/
 agent-transcripts/
+handoff-account-overlay/
+.gradle-agent/
+.gradle/
+**/.gradle/
+
+# Heavy static worktrees — already on CDN from prior git deploys; CLI upload exceeds 10mb
+public/diorama/
+public/piano-rush/
+public/apt/
+public/mediapipe/
+
+# Local scratch / compare / native module build junk
+.tmp-card-compare/
+.tmp/
+tmp/
+**/android/build/
+**/build/.transforms/
+apps/mobile/modules/**/android/build/
+*.dex
+*.jar

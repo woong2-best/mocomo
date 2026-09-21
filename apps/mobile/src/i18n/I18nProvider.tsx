@@ -31,7 +31,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [locale, setLocaleState] = useState<Locale>("en");
   const [t, setT] = useState<(key: string, vars?: Record<string, string>) => string>(
-    () => (key) => key
+    () => (key: string) => key
   );
   const [ready, setReady] = useState(false);
 

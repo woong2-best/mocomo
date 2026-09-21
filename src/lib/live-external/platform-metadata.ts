@@ -45,24 +45,68 @@ async function fetchTwitchStreamMetadata(
   const token = await twitchAppToken(creds);
   if (!token) return { title: null, description: null };
 
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Client-Id": creds.clientId,
+  };
+  const login = channelLogin.toLowerCase();
+
   try {
-    const url = new URL("https://api.twitch.tv/helix/streams");
-    url.searchParams.set("user_login", channelLogin.toLowerCase());
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Client-Id": creds.clientId,
-      },
-      cache: "no-store",
-    });
-    if (!res.ok) return { title: null, description: null };
-    const json = (await res.json()) as {
-      data?: Array<{ title?: string }>;
-    };
-    return {
-      title: json.data?.[0]?.title?.trim() || null,
-      description: null,
-    };
+    const [streamRes, userRes] = await Promise.all([
+      fetch(`https://api.twitch.tv/helix/streams?user_login=${encodeURIComponent(login)}`, {
+        headers,
+        cache: "no-store",
+      }),
+      fetch(`https://api.twitch.tv/helix/users?login=${encodeURIComponent(login)}`, {
+        headers,
+        cache: "no-store",
+      }),
+    ]);
+
+    let title: string | null = null;
+    let description: string | null = null;
+
+    if (streamRes.ok) {
+      const json = (await streamRes.json()) as {
+        data?: Array<{ title?: string; game_name?: string }>;
+      };
+      const stream = json.data?.[0];
+      title = stream?.title?.trim() || null;
+      if (stream?.game_name?.trim()) description = stream.game_name.trim();
+    }
+
+    let userId: string | null = null;
+    if (userRes.ok) {
+      const json = (await userRes.json()) as {
+        data?: Array<{ id?: string; description?: string }>;
+      };
+      const user = json.data?.[0];
+      userId = user?.id ?? null;
+      if (!description && user?.description?.trim()) {
+        description = user.description.trim();
+      }
+    }
+
+    if (!title && userId) {
+      try {
+        const chRes = await fetch(
+          `https://api.twitch.tv/helix/channels?broadcaster_id=${encodeURIComponent(userId)}`,
+          { headers, cache: "no-store" }
+        );
+        if (chRes.ok) {
+          const json = (await chRes.json()) as {
+            data?: Array<{ title?: string; game_name?: string }>;
+          };
+          const ch = json.data?.[0];
+          title = ch?.title?.trim() || null;
+          if (!description && ch?.game_name?.trim()) description = ch.game_name.trim();
+        }
+      } catch {
+        /* optional */
+      }
+    }
+
+    return { title, description };
   } catch {
     return { title: null, description: null };
   }

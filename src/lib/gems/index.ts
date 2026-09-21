@@ -20,3 +20,8 @@ export {
   spendGemsOnLiveTip,
   spendGemsOnPostMedia,
 } from "@/lib/gems/spend-bridge";
+export {
+  spendMocoOnLetterDonation,
+  claimLetterDonationMoco,
+  LETTER_DONATION_GIFT_SOURCE,
+} from "@/lib/gems/letter-donation";

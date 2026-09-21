@@ -67,6 +67,18 @@ export const LIVE_CATEGORY_ORDER: LiveStreamCategory[] = [
   "LIVE",
 ];
 
+/** Go-live / studio pickers — FOLLOWING(VIRTUAL) is a hub filter, not a stream category. */
+export const BROADCAST_PICK_CATEGORIES = LIVE_CATEGORIES.filter(
+  (c): c is { value: LiveStreamCategory; label: string } =>
+    c.value !== "ALL" && c.value !== "VIRTUAL"
+);
+
+export function isBroadcastPickCategory(
+  cat: LiveStreamCategory | string | null | undefined
+): cat is LiveStreamCategory {
+  return BROADCAST_PICK_CATEGORIES.some((c) => c.value === cat);
+}
+
 export function liveCategoryLabel(cat: LiveStreamCategory | string | null | undefined) {
   const found = LIVE_CATEGORIES.find((c) => c.value === cat);
   return found?.label ?? "라이브";

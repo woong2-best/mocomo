@@ -40,12 +40,13 @@ Web cookie JWT **unchanged**.
 | POST/DELETE | `/api/mobile/push/register` | Bearer |
 | GET | `/api/mobile/notifications` | Bearer |
 
-| GET | `/api/mobile/messages` | Bearer — DM inbox |
+| GET | `/api/mobile/messages` | Bearer — DM inbox (rooms with ≥1 message) |
 | POST | `/api/mobile/messages/dm` | Bearer — `{ userId }` open/create |
 | GET | `/api/mobile/messages/:roomId` | Bearer — room + messages (`?before=`) |
 | POST | `/api/mobile/messages/:roomId` | Bearer — send text/attachments |
 | GET | `/api/mobile/messages/:roomId/sync` | Bearer — fetch after cursor |
 | GET | `/api/mobile/messages/:roomId/wait` | Bearer — long-poll (~9s) |
+| GET | `/api/mobile/follow/following` | Bearer — following list for DM compose (`?q=`) |
 
 ## Live · Marketplace · Community · Event
 

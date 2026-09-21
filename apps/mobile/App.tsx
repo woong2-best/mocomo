@@ -11,6 +11,7 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import { ClientTranslationProvider } from "@/providers/ClientTranslationProvider";
 import { RootNavigator } from "@/navigation/RootNavigator";
 import { ThemeProvider, useTheme } from "@/theme/ThemeContext";
+import { IslandToastHost } from "@/ui/IslandToast";
 import { perfMark } from "@/perf/mark";
 
 perfMark("app_start");
@@ -38,6 +39,7 @@ export default function App() {
               <I18nProvider>
                 <ClientTranslationProvider>
                   <RootNavigator />
+                  <IslandToastHost />
                 </ClientTranslationProvider>
               </I18nProvider>
               <ThemedStatusBar />

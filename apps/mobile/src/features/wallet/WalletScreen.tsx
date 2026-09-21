@@ -172,6 +172,11 @@ export function WalletScreen() {
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>정기 후원</Text>
                 <MySubscriptionsPanel />
+                <FolkButton
+                  label="후원 티어 · 오어 등급"
+                  variant="secondary"
+                  onPress={() => navigation.navigate("Support")}
+                />
               </View>
               <WalletCardStack
                 cards={paymentCards}

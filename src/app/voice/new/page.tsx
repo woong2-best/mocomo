@@ -6,8 +6,9 @@ import Link from "next/link";
 import type { LiveBroadcastMode, LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
 import { SUPPORT_TIERS } from "@/lib/tiers";
 import { tierLabelKo } from "@/lib/live-viewer-access";
+import { BROADCAST_PICK_CATEGORIES } from "@/lib/live-categories";
 import { createLiveStream, releaseStaleHostLiveSessions } from "@/actions/live-stream";
-import { LIVE_CATEGORIES } from "@/lib/live-categories";
+import { getLiveStudioSettings } from "@/actions/live-studio";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,7 +62,7 @@ function clearCreatedUi(channelId?: string) {
   window.history.replaceState(null, "", "/voice/new");
 }
 
-const BROADCAST_CATEGORIES = LIVE_CATEGORIES.filter((c) => c.value !== "ALL");
+const BROADCAST_CATEGORIES = BROADCAST_PICK_CATEGORIES;
 
 export default function NewVoicePage() {
   const router = useRouter();
@@ -87,6 +88,14 @@ export default function NewVoicePage() {
 
   useEffect(() => {
     void runSessionPrepare();
+    void getLiveStudioSettings()
+      .then((s) => {
+        if (s.defaultTitle?.trim()) setName(s.defaultTitle.trim());
+        if (s.defaultCategory && s.defaultCategory !== "VIRTUAL") {
+          setCategory(s.defaultCategory);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

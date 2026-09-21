@@ -1,27 +1,41 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { fetchDmInbox, type DmInboxRoom } from "@/api/messages";
+import {
+  fetchDmInbox,
+  fetchFollowingForDm,
+  fetchRoomMessages,
+  openDm,
+  searchMessageUsers,
+  type DmInboxRoom,
+  type MessageUserHit,
+} from "@/api/messages";
+import {
+  getDmInboxMemory,
+  saveDmInboxBootstrap,
+  saveDmRoomBootstrap,
+  dmRoomQueryKey,
+} from "@/api/dm-bootstrap-cache";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
-import { spacing, type ThemeColors } from "@/theme/tokens";
+import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
-import { CreatorMarketingSheet } from "@/features/messages/CreatorMarketingSheet";
 
 function relativeTime(iso: string | null) {
   if (!iso) return "";
@@ -43,27 +57,128 @@ function previewText(raw: string) {
   return chatPostShareListPreview(raw) || raw || "대화를 시작해 보세요";
 }
 
+function matchScore(user: MessageUserHit, q: string) {
+  const username = user.username.toLowerCase();
+  const name = (user.name ?? "").toLowerCase();
+  if (username === q || name === q) return 3;
+  if (username.startsWith(q) || name.startsWith(q)) return 2;
+  if (username.includes(q) || name.includes(q)) return 1;
+  return 0;
+}
+
+function buildPickerUsers(
+  following: MessageUserHit[],
+  searchHits: MessageUserHit[],
+  rawQ: string
+): MessageUserHit[] {
+  const q = rawQ.trim().toLowerCase();
+  if (!q) return following;
+
+  const scored = following
+    .map((u) => ({ u, score: matchScore(u, q) }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score || a.u.username.localeCompare(b.u.username));
+
+  const seen = new Set(scored.map((x) => x.u.id));
+  const extras = searchHits.filter((u) => !seen.has(u.id));
+  return [...scored.map((x) => x.u), ...extras];
+}
+
 export function MessagesInboxScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const route = useRoute();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const queryClient = useQueryClient();
   const isTab = route.name === "Messages";
   const bottomPad = isTab ? floatingTabClearance(insets.bottom) : insets.bottom + 24;
+
+  const [sendQ, setSendQ] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [openingId, setOpeningId] = useState<string | null>(null);
+
   const query = useQuery({
     queryKey: ["mobile-dm-inbox"],
     queryFn: fetchDmInbox,
     staleTime: 90_000,
-    placeholderData: (previous) => previous,
+    gcTime: 30 * 60_000,
+    placeholderData: (previous) => previous ?? getDmInboxMemory() ?? undefined,
   });
   const loading = query.isLoading && !query.data;
-  const [marketingOpen, setMarketingOpen] = useState(false);
+
+  const followingQuery = useQuery({
+    queryKey: ["mobile-following-for-dm"],
+    queryFn: () => fetchFollowingForDm(),
+    enabled: pickerOpen,
+    staleTime: 60_000,
+  });
+
+  const userSearchQuery = useQuery({
+    queryKey: ["mobile-message-user-search", sendQ],
+    queryFn: () => searchMessageUsers(sendQ.trim()),
+    enabled: pickerOpen && sendQ.trim().length >= 1,
+  });
+
+  const rooms = useMemo(
+    () => (query.data?.rooms ?? []).filter((r) => r.lastMessageAt != null),
+    [query.data?.rooms]
+  );
+
+  const pickerUsers = useMemo(
+    () =>
+      buildPickerUsers(
+        followingQuery.data?.users ?? [],
+        userSearchQuery.data?.users ?? [],
+        sendQ
+      ),
+    [followingQuery.data?.users, userSearchQuery.data?.users, sendQ]
+  );
+
+  useEffect(() => {
+    if (!query.data?.rooms) return;
+    const withMessages = query.data.rooms.filter((r) => r.lastMessageAt != null);
+    void saveDmInboxBootstrap(withMessages);
+  }, [query.data]);
+
+  const prefetchRoom = useCallback(
+    (roomId: string) => {
+      void queryClient.prefetchQuery({
+        queryKey: dmRoomQueryKey(roomId),
+        queryFn: async () => {
+          const page = await fetchRoomMessages(roomId);
+          await saveDmRoomBootstrap(roomId, page);
+          return page;
+        },
+        staleTime: 30_000,
+      });
+    },
+    [queryClient]
+  );
+
+  const startDm = useCallback(
+    async (user: MessageUserHit) => {
+      const title = user.name?.trim() || user.username;
+      setOpeningId(user.id);
+      try {
+        const res = await openDm(user.id);
+        setPickerOpen(false);
+        setSendQ("");
+        navigation.navigate("MessageRoom", { roomId: res.roomId, title });
+      } catch {
+        // keep picker open
+      } finally {
+        setOpeningId(null);
+      }
+    },
+    [navigation]
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: DmInboxRoom }) => (
       <Pressable
         style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        onPressIn={() => prefetchRoom(item.id)}
         onPress={() =>
           navigation.navigate("MessageRoom", {
             roomId: item.id,
@@ -85,7 +200,33 @@ export function MessagesInboxScreen() {
         </View>
       </Pressable>
     ),
-    [navigation, styles]
+    [navigation, prefetchRoom, styles]
+  );
+
+  const renderPickerItem = useCallback(
+    ({ item }: { item: MessageUserHit }) => {
+      const label = item.name?.trim() || item.username;
+      const busy = openingId === item.id;
+      return (
+        <Pressable
+          style={({ pressed }) => [styles.pickerRow, pressed && styles.rowPressed]}
+          disabled={busy}
+          onPress={() => void startDm(item)}
+        >
+          <FolkAvatar uri={item.image} name={label} size={44} />
+          <View style={styles.meta}>
+            <Text style={styles.pickerName} numberOfLines={1}>
+              {label}
+            </Text>
+            <Text style={styles.pickerUsername} numberOfLines={1}>
+              @{item.username}
+            </Text>
+          </View>
+          {busy ? <ActivityIndicator color={colors.terracotta} /> : null}
+        </Pressable>
+      );
+    },
+    [colors.terracotta, openingId, startDm, styles]
   );
 
   return (
@@ -96,40 +237,92 @@ export function MessagesInboxScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.cobalt} />
           </Pressable>
         ) : null}
-        <Text style={styles.headerTitle}>메세지</Text>
-        {isTab ? (
+
+        <View style={styles.searchBar}>
+          <TextInput
+            style={styles.searchInput}
+            value={sendQ}
+            onChangeText={(text) => {
+              setSendQ(text);
+              if (!pickerOpen) setPickerOpen(true);
+            }}
+            onFocus={() => setPickerOpen(true)}
+            placeholder="Send message"
+            placeholderTextColor={colors.textMuted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
           <Pressable
-            onPress={() => setMarketingOpen(true)}
-            hitSlop={10}
-            style={styles.headerBtn}
-            accessibilityLabel="크리에이터 마케팅"
+            style={styles.searchBtn}
+            onPress={() => setPickerOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
           >
-            <Ionicons
-              name="people"
-              size={24}
-              color={colors.terracotta}
-              style={styles.marketingIconGlow}
-            />
+            <Ionicons name="search" size={18} color="#fff" />
           </Pressable>
-        ) : (
-          <View style={styles.headerBtn} />
-        )}
+        </View>
+
+        <Pressable
+          onPress={() => navigation.navigate("ChatSettings")}
+          hitSlop={8}
+          style={styles.settingsBtn}
+          accessibilityRole="button"
+          accessibilityLabel="채팅 설정"
+        >
+          <Ionicons name="settings-outline" size={22} color={colors.brand} />
+        </Pressable>
       </View>
+
+      {pickerOpen ? (
+        <View style={styles.pickerPanel}>
+          {followingQuery.isLoading && !followingQuery.data ? (
+            <ActivityIndicator style={{ marginVertical: 16 }} color={colors.terracotta} />
+          ) : (
+            <FlatList
+              data={pickerUsers}
+              keyExtractor={(item) => item.id}
+              keyboardShouldPersistTaps="handled"
+              style={styles.pickerList}
+              ListEmptyComponent={
+                <Text style={styles.pickerEmpty}>
+                  {sendQ.trim()
+                    ? "검색 결과가 없습니다."
+                    : followingQuery.isError
+                      ? "팔로우 목록을 불러오지 못했습니다."
+                      : "팔로우한 사용자가 없습니다."}
+                </Text>
+              }
+              renderItem={renderPickerItem}
+            />
+          )}
+          <Pressable
+            style={styles.pickerDismiss}
+            onPress={() => {
+              setPickerOpen(false);
+              setSendQ("");
+            }}
+          >
+            <Text style={styles.pickerDismissText}>닫기</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.terracotta} />
         </View>
-      ) : query.isError ? (
+      ) : query.isError && !query.data ? (
         <View style={styles.center}>
           <Text style={styles.muted}>메시지를 불러오지 못했습니다.</Text>
           <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
         </View>
       ) : (
         <FlatList
-          data={query.data?.rooms ?? []}
+          data={rooms}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: bottomPad, flexGrow: 1 }}
           ListEmptyComponent={
             <View style={styles.empty}>
@@ -137,13 +330,11 @@ export function MessagesInboxScreen() {
                 <Ionicons name="chatbubbles-outline" size={28} color={colors.textMuted} />
               </View>
               <Text style={styles.emptyTitle}>아직 대화가 없어요.</Text>
-              <Text style={styles.muted}>친구에게 첫 메시지를 보내 보세요.</Text>
-              <FolkButton label="새 메시지" onPress={() => navigation.navigate("MessagesNew")} />
+              <Text style={styles.muted}>위에서 친구를 찾아 첫 메시지를 보내 보세요.</Text>
             </View>
           }
         />
       )}
-      <CreatorMarketingSheet visible={marketingOpen} onClose={() => setMarketingOpen(false)} />
     </Screen>
   );
 }
@@ -153,7 +344,7 @@ function createThemedStyles(colors: ThemeColors) {
     header: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
+      gap: 8,
       paddingHorizontal: spacing.md,
       paddingBottom: 10,
       borderBottomWidth: StyleSheet.hairlineWidth,
@@ -161,18 +352,67 @@ function createThemedStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     headerBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
-    marketingIconGlow: {
-      textShadowColor: "rgba(232, 93, 58, 0.65)",
-      textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: 8,
-    },
-    headerTitle: {
+    searchBar: {
       flex: 1,
-      fontSize: 22,
-      fontWeight: "800",
-      color: colors.text,
-      letterSpacing: -0.3,
+      flexDirection: "row",
+      alignItems: "stretch",
+      minHeight: 44,
+      borderRadius: radii.md,
+      borderWidth: 1.5,
+      borderColor: "rgba(120, 150, 220, 0.28)",
+      backgroundColor: colors.searchFill,
+      overflow: "hidden",
     },
+    searchInput: {
+      flex: 1,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      color: colors.text,
+      fontWeight: "600",
+      fontSize: 14,
+    },
+    searchBtn: {
+      width: 48,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.terracotta,
+    },
+    settingsBtn: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    pickerPanel: {
+      maxHeight: 280,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    pickerList: { maxHeight: 232 },
+    pickerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 10,
+    },
+    pickerName: { fontWeight: "700", fontSize: 15, color: colors.text },
+    pickerUsername: { marginTop: 2, fontSize: 13, color: colors.textMuted },
+    pickerEmpty: {
+      textAlign: "center",
+      color: colors.textMuted,
+      fontWeight: "600",
+      paddingVertical: 24,
+      paddingHorizontal: spacing.md,
+    },
+    pickerDismiss: {
+      alignItems: "center",
+      paddingVertical: 10,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.hairline,
+    },
+    pickerDismissText: { fontWeight: "700", color: colors.brand, fontSize: 13 },
     row: {
       flexDirection: "row",
       alignItems: "center",

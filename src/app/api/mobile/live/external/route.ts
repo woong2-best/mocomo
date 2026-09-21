@@ -154,7 +154,18 @@ export async function POST(req: NextRequest) {
         : parseLiveCategoryParam(catRaw) ?? "JUST_CHATTING"
     ) as LiveStreamCategory;
 
-    const title = body.name?.trim() || `${account.channelName} 라이브`;
+    const { fetchExternalPlatformMetadata } = await import(
+      "@/lib/live-external/platform-metadata"
+    );
+    const platformMeta = await fetchExternalPlatformMetadata(
+      parsed.provider,
+      parsed.externalId
+    );
+    const title =
+      platformMeta.title?.trim() ||
+      body.name?.trim() ||
+      `${account.channelName} 라이브`;
+    const description = platformMeta.description?.trim().slice(0, 500) || null;
 
     const channel = await db.voiceChannel.create({
       data: {
@@ -166,6 +177,7 @@ export async function POST(req: NextRequest) {
         isLive: goLive,
         liveStatus: goLive ? "LIVE" : "SCHEDULED",
         category,
+        description,
         broadcastMode: "EXTERNAL",
         mediaSourceType: "EXTERNAL",
         externalProvider: parsed.provider,

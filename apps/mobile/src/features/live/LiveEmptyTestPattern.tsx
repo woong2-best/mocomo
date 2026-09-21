@@ -14,13 +14,13 @@ const BOT_H = 243;
 
 /** SMPTE bars, sampled off a CRT so they read muted rather than fully saturated. */
 const TOP_BARS = [
-  "#B8B8B8",
-  "#C6C637",
-  "#5FC4C4",
+  "#E090B0",
+  "#E08020",
+  "#2A20C2",
   "#57C24C",
   "#9C2A96",
   "#8B1616",
-  "#2A20C2",
+  "#5FC4C4",
 ] as const;
 
 /** Reverse-blue strip. */
@@ -57,13 +57,15 @@ const SCAN_ROWS = Array.from(
 );
 
 type Props = {
-  /** Full width of the hero slot. */
+  /** Width of the card/slot (not necessarily full screen). */
   width: number;
   message: string;
+  /** Feed cards use rounded corners + side gutters; hero can stay edge flush. */
+  rounded?: boolean;
 };
 
 /** Empty live hub: broadcast test pattern with the "no stream" notice on top. */
-function LiveEmptyTestPatternInner({ width, message }: Props) {
+function LiveEmptyTestPatternInner({ width, message, rounded = false }: Props) {
   const topW = VB_W / TOP_BARS.length;
   const midW = VB_W / MID_BARS.length;
 
@@ -75,7 +77,7 @@ function LiveEmptyTestPatternInner({ width, message }: Props) {
   });
 
   return (
-    <View style={[styles.wrap, { width }]}>
+    <View style={[styles.wrap, { width }, rounded && styles.rounded]}>
       <Svg
         width="100%"
         height="100%"
@@ -143,6 +145,12 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 9,
     overflow: "hidden",
     backgroundColor: "#050505",
+  },
+  rounded: {
+    borderRadius: 16,
+    alignSelf: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.1)",
   },
   overlay: {
     position: "absolute",

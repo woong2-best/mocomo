@@ -18,7 +18,7 @@ import * as Haptics from "expo-haptics";
 import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import { isPaidPlaybackPath } from "@/api/watermark";
 import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { ReelItem } from "@/api/reels";
 import { togglePostLike } from "@/api/feed";
@@ -62,13 +62,17 @@ function NativeVideoCell({
   item,
   src,
   active,
+  playing,
   muted,
   pausedByUser,
   fastForward,
 }: {
   item: ReelItem;
   src: string;
+  /** Current cell in the active vertical slot (poster + seek-on-scroll-away). */
   active: boolean;
+  /** Audible playback — false when Reels is covered (e.g. UserProfile). */
+  playing: boolean;
   muted: boolean;
   pausedByUser: boolean;
   fastForward: boolean;
@@ -78,6 +82,7 @@ function NativeVideoCell({
     p.muted = muted;
     p.playbackRate = 1;
   });
+  const wasActiveRef = useRef(active);
 
   useEffect(() => {
     player.muted = muted;
@@ -89,11 +94,15 @@ function NativeVideoCell({
 
   useEffect(() => {
     if (!src) return;
-    if (active && (!pausedByUser || fastForward)) {
+    const becameInactive = wasActiveRef.current && !active;
+    wasActiveRef.current = active;
+
+    if (playing && (!pausedByUser || fastForward)) {
       player.play();
     } else {
       player.pause();
-      if (!active) {
+      // Seek only when scrolling away — not on screen blur, so return can resume.
+      if (becameInactive) {
         try {
           player.currentTime = 0;
         } catch {
@@ -101,7 +110,7 @@ function NativeVideoCell({
         }
       }
     }
-  }, [active, pausedByUser, fastForward, player, src]);
+  }, [active, playing, pausedByUser, fastForward, player, src]);
 
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -126,12 +135,14 @@ function NativeVideoCell({
 function VideoCell({
   item,
   active,
+  playing,
   muted,
   pausedByUser,
   fastForward,
 }: {
   item: ReelItem;
   active: boolean;
+  playing: boolean;
   muted: boolean;
   pausedByUser: boolean;
   fastForward: boolean;
@@ -191,7 +202,7 @@ function VideoCell({
             lockReason: item.media.lockReason,
             instantPurchasePriceKrw: item.media.instantPurchasePriceKrw,
           }}
-          active={active && (!pausedByUser || fastForward)}
+          active={playing && (!pausedByUser || fastForward)}
           muted={muted}
           contentFit="contain"
           monetization={item.monetization}
@@ -205,6 +216,7 @@ function VideoCell({
       item={item}
       src={src}
       active={active}
+      playing={playing}
       muted={muted}
       pausedByUser={pausedByUser}
       fastForward={fastForward}
@@ -261,6 +273,7 @@ function FeedVideoPostSlideInner({
   onFastForwardChange,
 }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const isFocused = useIsFocused();
   const { user } = useAuth();
   const showLikeCounts = useShowLikeCounts();
   const listRef = useRef<FlatList<ReelItem>>(null);
@@ -291,15 +304,15 @@ function FeedVideoPostSlideInner({
   }, [onFastForwardChange]);
 
   const startFastForward = useCallback(() => {
-    if (!active || pausedByUser) return;
+    if (!active || !isFocused || pausedByUser) return;
     setFastForward(true);
     onFastForwardChange?.(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, [active, onFastForwardChange, pausedByUser]);
+  }, [active, isFocused, onFastForwardChange, pausedByUser]);
 
   useEffect(() => {
-    if (!active) stopFastForward();
-  }, [active, stopFastForward]);
+    if (!active || !isFocused) stopFastForward();
+  }, [active, isFocused, stopFastForward]);
 
   useEffect(() => {
     stopFastForward();
@@ -420,6 +433,7 @@ function FeedVideoPostSlideInner({
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
         onMomentumScrollEnd={onHScroll}
+        extraData={`${videoIndex}:${active ? 1 : 0}:${isFocused ? 1 : 0}:${pausedByUser ? 1 : 0}:${muted ? 1 : 0}:${fastForward ? 1 : 0}`}
         getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
         initialScrollIndex={Math.min(initialVideoIndex, group.videos.length - 1)}
         onScrollToIndexFailed={() => {
@@ -427,6 +441,7 @@ function FeedVideoPostSlideInner({
         }}
         renderItem={({ item, index }) => {
           const isCurrent = active && index === videoIndex;
+          const isPlaying = isCurrent && isFocused;
           return (
             <View style={{ width, height }}>
               <SensitiveContentGate
@@ -436,9 +451,10 @@ function FeedVideoPostSlideInner({
                 <VideoCell
                   item={item}
                   active={isCurrent}
+                  playing={isPlaying}
                   muted={muted}
                   pausedByUser={pausedByUser}
-                  fastForward={isCurrent && fastForward}
+                  fastForward={isPlaying && fastForward}
                 />
               </SensitiveContentGate>
               {isCurrent && !chromeHidden ? (

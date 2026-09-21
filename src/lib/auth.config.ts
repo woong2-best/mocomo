@@ -17,11 +17,33 @@ export const authConfig = {
   providers: [],
   callbacks: {
     redirect({ url, baseUrl }) {
-      if (url.startsWith("/auth/signup") || url.startsWith("/auth/oauth/complete")) {
-        return `${baseUrl}${url}`;
+      // App deep links from mobile OAuth pending-signup / complete.
+      if (
+        url.startsWith("mocomo:") ||
+        url.startsWith("exp:") ||
+        url.startsWith("exps:")
+      ) {
+        return url;
       }
-      if (url.startsWith(baseUrl)) return url;
+      // Relative auth paths (signup / oauth complete / mobile handoff).
       if (url.startsWith("/")) return `${baseUrl}${url}`;
+      try {
+        const target = new URL(url);
+        const base = new URL(baseUrl);
+        // Same host — keep full URL (query strings matter for mobile handoff).
+        if (target.origin === base.origin) return url;
+        // AUTH_URL / VERCEL_URL mismatch used to fall through to site home and
+        // dump AuthSession users out of the app OAuth bridge.
+        if (
+          target.pathname.startsWith("/auth/signup") ||
+          target.pathname.startsWith("/auth/oauth/complete") ||
+          target.pathname.startsWith("/auth/mobile/")
+        ) {
+          return `${base.origin}${target.pathname}${target.search}${target.hash}`;
+        }
+      } catch {
+        /* ignore */
+      }
       return baseUrl;
     },
     session({ session, token }) {

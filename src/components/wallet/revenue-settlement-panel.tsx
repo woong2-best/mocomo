@@ -8,6 +8,12 @@ import { formatKrw } from "@/lib/money";
 import { mocoToKrw } from "@/lib/moco/economy";
 import { LEDGER_LABELS } from "@/lib/wallet-labels";
 import { REWARD_TERMS_LABEL } from "@/lib/settlement-moco/constants";
+import {
+  achievedCreatorRewardTier,
+  formatRewardUsd,
+} from "@/lib/settlement-moco/reward-tier-table";
+import { CreatorRewardTierTable } from "@/components/wallet/creator-reward-tier-table";
+import { mocoCreatorNetUsd } from "@/lib/moco/stripe-pass-through";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +36,8 @@ export function RevenueSettlementPanel({ data, earnings: initialEarnings, settle
   const [pending, startTransition] = useTransition();
 
   const settlementKrw = mocoToKrw(settlement.settlementMocoPoints);
+  const rewardTier = achievedCreatorRewardTier(settlement.settlementMocoPoints);
+  const netUsdPreview = mocoCreatorNetUsd(settlement.settlementMocoPoints);
 
   function changeYear(nextYear: number) {
     setYear(nextYear);
@@ -48,7 +56,12 @@ export function RevenueSettlementPanel({ data, earnings: initialEarnings, settle
           {settlement.settlementMocoPoints.toLocaleString()} MOCO
         </p>
         <p className="text-sm text-muted-foreground">
-          등급 {settlement.earnedMocoTier ?? "SEED"} · 매월 1일 등급 차감 후 {REWARD_TERMS_LABEL} 지급 · 잔여 이월
+          Reward 정산 등급 {rewardTier.label} (지급액 {formatRewardUsd(rewardTier.rewardUsd)}) · 누적 가치 약{' '}
+          {formatRewardUsd(netUsdPreview)} · 후원 광석 뱃지 {settlement.earnedMocoTier ?? "SEED"} (별도 체계)
+        </p>
+        <p className="text-xs text-muted-foreground">
+          매월 1일 등급 차감 후 {REWARD_TERMS_LABEL} 지급 · 잔여 이월. 출금 시 Stripe Express 월 유지비($2.00) 및
+          해외 송금 수수료는 금융사 정책에 따라 실비 차감됩니다.
         </p>
         <p className="text-xs text-muted-foreground">
           purchased MOCO {settlement.purchasedMocoPoints.toLocaleString()} (충전만으로는 정산 등급·출금 불가)
@@ -73,10 +86,15 @@ export function RevenueSettlementPanel({ data, earnings: initialEarnings, settle
         ) : null}
       </div>
 
+      <CreatorRewardTierTable />
+
       <SettlementRegistrationPanel
         registered={settlement.registered}
         payoutsEnabled={settlement.payoutsEnabled}
         hasConnectAccount={settlement.hasConnectAccount}
+        needsExpressMigration={settlement.needsExpressMigration}
+        taxReportingReady={settlement.taxReportingReady}
+        taxRequirementsDue={settlement.taxRequirementsDue}
         profile={settlement.profile}
       />
 

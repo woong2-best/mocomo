@@ -7,6 +7,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, shadows, spacing } from "@/theme/tokens";
 
@@ -25,6 +26,7 @@ export function FolkButton({
   loading,
   disabled,
   style,
+  onPressIn,
   ...rest
 }: Props) {
   const { colors, isDark } = useTheme();
@@ -36,6 +38,12 @@ export function FolkButton({
     <Pressable
       accessibilityRole="button"
       disabled={disabled || loading}
+      onPressIn={(e) => {
+        if (!disabled && !loading) {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
+        onPressIn?.(e);
+      }}
       style={({ pressed }) => [
         styles.base,
         isPrimary && {

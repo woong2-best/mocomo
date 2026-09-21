@@ -3,6 +3,7 @@ import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
 import { normalizeSellerCountry } from "@/lib/marketplace/seller-region-policy";
 import { pullAndSyncStripeConnectAccount } from "@/lib/stripe-connect";
 import { resolveTaxFormType } from "@/lib/settlement-moco/tax";
+import { createNotification } from "@/lib/notifications";
 import type Stripe from "stripe";
 
 const PAYOUT_PATH = {
@@ -30,7 +31,57 @@ async function loadUserConnectRow(userId: string) {
   });
 }
 
-/** Stripe Express Connect 계정 확보 (없으면 생성) */
+/** 레거시 Custom 계정을 분리하고 Express 재온보딩 가능하게 만듦 */
+async function detachLegacyCustomConnectAccount(userId: string, customAccountId: string) {
+  await db.user.update({
+    where: { id: userId },
+    data: {
+      stripeConnectAccountId: null,
+      stripeOnboardingCompleted: false,
+      stripeConnectOnboardedAt: null,
+    },
+  });
+
+  await db.creatorSettlementProfile.upsert({
+    where: { userId },
+    create: {
+      userId,
+      countryCode: "US",
+      legalName: "Express 마이그레이션 필요",
+      dateOfBirth: new Date("1990-01-01"),
+      addressLine1: "—",
+      city: "—",
+      postalCode: "—",
+      accountNumberLast4: "0000",
+      accountHolderName: "—",
+      taxFormType: "W9",
+      connectAccountType: "custom",
+      needsExpressMigration: true,
+      payoutsEnabled: false,
+      taxReportingReady: false,
+    },
+    update: {
+      stripeConnectAccountId: null,
+      connectAccountType: "custom",
+      needsExpressMigration: true,
+      payoutsEnabled: false,
+      taxReportingReady: false,
+      taxRequirementsDue: false,
+    },
+  });
+
+  await createNotification({
+    userId,
+    type: "system",
+    title: "정산 계정 재연동이 필요합니다",
+    body: "보안·세무 정책 업데이트로 Stripe Express 온보딩이 필요합니다. 지갑에서 다시 연동해 주세요.",
+    link: "/wallet",
+  }).catch(() => null);
+
+  void customAccountId;
+}
+
+/** Stripe Express Connect 계정 확보 (없으면 생성). Custom 계정은 Express로 마이그레이션 안내. */
 export async function ensureExpressConnectAccount(
   userId: string,
   opts?: { requestCardPayments?: boolean }
@@ -49,15 +100,24 @@ export async function ensureExpressConnectAccount(
     try {
       const existing = await stripe.accounts.retrieve(user.stripeConnectAccountId);
       if (existing.type === "express") {
+        await db.creatorSettlementProfile.updateMany({
+          where: { userId },
+          data: {
+            connectAccountType: "express",
+            needsExpressMigration: false,
+            stripeConnectAccountId: existing.id,
+          },
+        });
         return { accountId: existing.id };
       }
-      // Legacy Custom 계정 — Express Hosted 온보딩 URL은 Express 전용
-      return {
-        error:
-          "기존 정산 계정 형식과 호환되지 않습니다. 고객센터로 문의해 주세요.",
-      };
+      // Legacy Custom/Standard — detach and create Express
+      await detachLegacyCustomConnectAccount(userId, existing.id);
     } catch {
       // stale id — fall through to create
+      await db.user.update({
+        where: { id: userId },
+        data: { stripeConnectAccountId: null, stripeOnboardingCompleted: false },
+      });
     }
   }
 
@@ -93,10 +153,15 @@ export async function ensureExpressConnectAccount(
         accountHolderName: "—",
         stripeConnectAccountId: account.id,
         taxFormType,
+        connectAccountType: "express",
+        needsExpressMigration: false,
+        taxReportingReady: false,
       },
       update: {
         stripeConnectAccountId: account.id,
         countryCode: country,
+        connectAccountType: "express",
+        needsExpressMigration: false,
       },
     });
 
@@ -192,6 +257,17 @@ export async function syncSettlementProfileFromStripeAccount(
     }
   }
 
+  const currentlyDue = account.requirements?.currently_due ?? [];
+  const pastDue = account.requirements?.past_due ?? [];
+  const taxHints = ["tax", "ssn", "id_number", "itin", "tin", "w9", "w8"];
+  const taxRequirementsDue = [...currentlyDue, ...pastDue].some((k) =>
+    taxHints.some((h) => k.toLowerCase().includes(h))
+  );
+  const snapReady =
+    !!account.payouts_enabled &&
+    currentlyDue.length === 0 &&
+    !account.requirements?.disabled_reason;
+
   await db.creatorSettlementProfile.upsert({
     where: { userId },
     create: {
@@ -212,6 +288,11 @@ export async function syncSettlementProfileFromStripeAccount(
       taxFormType: resolveTaxFormType(country),
       registeredAt: account.details_submitted ? new Date() : undefined,
       payoutsEnabled: !!account.payouts_enabled,
+      connectAccountType: account.type === "express" ? "express" : account.type ?? null,
+      needsExpressMigration: account.type === "custom",
+      taxReportingReady: snapReady && !taxRequirementsDue && account.type === "express",
+      taxRequirementsDue,
+      lastTaxGateCheckedAt: new Date(),
     },
     update: {
       countryCode: country,
@@ -229,6 +310,11 @@ export async function syncSettlementProfileFromStripeAccount(
       stripeConnectAccountId: account.id,
       ...(account.details_submitted ? { registeredAt: new Date() } : {}),
       payoutsEnabled: !!account.payouts_enabled,
+      connectAccountType: account.type === "express" ? "express" : account.type ?? null,
+      needsExpressMigration: account.type === "custom",
+      taxReportingReady: snapReady && !taxRequirementsDue && account.type === "express",
+      taxRequirementsDue,
+      lastTaxGateCheckedAt: new Date(),
     },
   });
 }

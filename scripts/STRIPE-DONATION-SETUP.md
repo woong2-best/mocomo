@@ -8,18 +8,24 @@
 2. **Publishable key** → Vercel `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`  
 3. **Secret key** → Vercel `STRIPE_SECRET_KEY`
 
-## 2. Webhook (결제 완료 + Star Market escrow + Used auction holds)
+## 2. Webhook (결제 완료 + Star Market escrow + Used auction holds + Connect)
 
-1. https://dashboard.stripe.com/test/webhooks → **Add endpoint** (staging은 prod와 **별도** endpoint + `whsec_…`)
-2. URL: `https://<staging-host>/api/webhooks/stripe`
-3. 이벤트 (필수):
+동일 URL에 **두 개의** Stripe Webhook 엔드포인트를 둘 수 있습니다. Signing secret은 엔드포인트마다 다릅니다.
+
+1. https://dashboard.stripe.com/webhooks → **Add endpoint**
+2. URL: `https://<host>/api/webhooks/stripe`
+3. **Your account** 엔드포인트 이벤트 예:
    - `checkout.session.completed`
-   - `payment_intent.amount_capturable_updated`
-   - `payment_intent.succeeded`
-   - `charge.dispute.created`
-   - `charge.dispute.closed`
-   - `charge.dispute.funds_withdrawn`
-4. Signing secret → staging Vercel `STRIPE_WEBHOOK_SECRET` (prod whsec와 혼용 금지)
+   - `transfer.reversed`
+   - (필요 시) `payment_intent.*`, `charge.dispute.*`
+4. **Connected accounts** 엔드포인트 이벤트 예:
+   - `account.updated`
+   - `payout.failed`
+5. Signing secrets → Vercel:
+   - Your account → `STRIPE_WEBHOOK_SECRET`
+   - Connected accounts → `STRIPE_CONNECT_WEBHOOK_SECRET`
+
+`src/app/api/webhooks/stripe/route.ts`는 두 secret을 순서대로 검증합니다.
 
 검증: `node --env-file=.env scripts/smoke-used-auction-pipeline.mjs preflight`
 
@@ -31,7 +37,8 @@
 |------|------|
 | `STRIPE_SECRET_KEY` | ✅ |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | ✅ |
-| `STRIPE_WEBHOOK_SECRET` | ✅ (웹훅) |
+| `STRIPE_WEBHOOK_SECRET` | ✅ (Your account 웹훅) |
+| `STRIPE_CONNECT_WEBHOOK_SECRET` | ✅ (Connected accounts 웹훅) |
 | `NEXT_PUBLIC_APP_URL` | ✅ `https://mocomo.net` |
 
 저장 후 **Redeploy**.

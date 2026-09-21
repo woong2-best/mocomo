@@ -81,9 +81,6 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
               }}
               style={styles.item}
             >
-              {focused ? (
-                <View style={[styles.activeGlow, { backgroundColor: colors.tabActiveGlow }]} />
-              ) : null}
               <Ionicons
                   name={focused ? icons.active : icons.inactive}
                 size={23}
@@ -169,12 +166,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 2,
-  },
-  activeGlow: {
-    position: "absolute",
-    width: 52,
-    height: 52,
-    borderRadius: 26,
   },
   label: {
     fontSize: 11,

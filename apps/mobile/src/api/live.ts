@@ -183,6 +183,8 @@ export async function sendLiveChat(id: string, content: string) {
     method: "POST",
     auth: true,
     body: { content },
+    // Live chat must feel instant; server is optimized, but keep headroom for cold starts.
+    timeoutMs: 20_000,
   });
 }
 

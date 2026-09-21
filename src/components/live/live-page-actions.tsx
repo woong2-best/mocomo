@@ -23,12 +23,15 @@ export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
 
   const wrap =
     variant === "header"
-      ? "flex flex-wrap gap-2 justify-end"
+      ? "flex flex-wrap gap-2 justify-start mr-auto"
       : "flex flex-wrap gap-2 justify-center";
 
   const studioButton = (
-    <Link href={session?.user ? "/avatar/studio" : "/auth/signin?callbackUrl=/avatar/studio"}>
-      <Button variant="outline" className="gap-2 rounded-xl">
+    <Link href={session?.user ? "/live/studio" : "/auth/signin?callbackUrl=/live/studio"}>
+      <Button
+        variant="outline"
+        className="gap-2 rounded-xl border-white/25 bg-black/35 text-white hover:bg-black/50 hover:text-white"
+      >
         <MonitorPlay className="h-4 w-4" />
         {t("live.liveStudio")}
       </Button>

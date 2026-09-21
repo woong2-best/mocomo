@@ -1,14 +1,10 @@
 import type { ConnectableStreamingPlatform, StreamingPlatformProvider } from "./types";
 import { youtubeStreamingProvider } from "./providers/youtube";
 import { twitchStreamingProvider } from "./providers/twitch";
-import { chzzkStreamingProvider } from "./providers/chzzk";
-import { kickStreamingProvider } from "./providers/kick";
 
 const PROVIDERS: Record<ConnectableStreamingPlatform, StreamingPlatformProvider> = {
   YOUTUBE: youtubeStreamingProvider,
   TWITCH: twitchStreamingProvider,
-  CHZZK: chzzkStreamingProvider,
-  KICK: kickStreamingProvider,
 };
 
 export function getStreamingProvider(

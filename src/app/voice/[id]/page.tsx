@@ -16,6 +16,7 @@ import { LiveRoomPageShell } from "@/components/live/live-room-page-shell";
 import { LiveRoomErrorState } from "@/components/live/live-room-error-state";
 import { resolveExternalEmbed } from "@/lib/live-external/parse";
 import { fetchExternalPlatformMetadata } from "@/lib/live-external/platform-metadata";
+import { syncExternalChannelPlatformMeta } from "@/lib/live-external/sync-platform-meta";
 import { isFirstPartyLiveEnabled } from "@/lib/live-feature";
 import { LiveFeatureDisabledNotice } from "@/components/live/live-feature-disabled";
 
@@ -141,13 +142,20 @@ export default async function VoiceRoomPage({
       resolved.provider,
       resolved.externalId
     );
+    void syncExternalChannelPlatformMeta({
+      channelId: id,
+      provider: resolved.provider,
+      externalId: resolved.externalId,
+      currentName: channel.name,
+      currentDescription: null,
+    });
 
     return (
       <LiveRoomPageShell isHost={isHost}>
         {!isHost && <LiveVoiceViewerBackLink />}
         <ExternalLiveRoomClient
           channelId={id}
-          title={channel.name}
+          title={platformMeta.title?.trim() || channel.name}
           platformTitle={platformMeta.title}
           platformDescription={platformMeta.description}
           provider={resolved.provider}

@@ -96,7 +96,8 @@ export function useOverlayUnifiedChat(channelId: string, token: string) {
     }
 
     void tick();
-    const id = setInterval(() => void tick(), 2000);
+    // OBS browser source — snappy MoCoMo chat (mobile / web sends land in DB then here).
+    const id = setInterval(() => void tick(), 900);
     return () => {
       cancelled = true;
       clearInterval(id);

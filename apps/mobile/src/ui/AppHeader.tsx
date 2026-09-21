@@ -44,9 +44,15 @@ export function AppHeader({
         <View style={styles.side}>
           {leftSlot
             ? leftSlot
-            : leftLabel && onLeftPress
+            : onLeftPress
               ? (
-                  <Pressable onPress={onLeftPress} hitSlop={12} style={styles.backHit}>
+                  <Pressable
+                    onPress={onLeftPress}
+                    hitSlop={12}
+                    style={styles.backHit}
+                    accessibilityRole="button"
+                    accessibilityLabel={leftLabel ?? "뒤로"}
+                  >
                     <Ionicons name="chevron-back" size={26} color={colors.brand} />
                   </Pressable>
                 )

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { SupportTierLevel } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { db } from "@/lib/db";
@@ -11,7 +10,7 @@ import { ensureStringArray } from "@/lib/ensure-array";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
 import { mapLiveChatMessagesWithRoles, mapSingleLiveChatMessage } from "@/lib/live-broadcast/map-chat";
 import { assertCanSendLiveChat } from "@/lib/live-broadcast/chat-access";
-import { getEffectiveBroadcastRole, hasBroadcastPermission } from "@/lib/live-broadcast/permissions";
+import { hasBroadcastPermission } from "@/lib/live-broadcast/permissions";
 
 async function ensureLiveMember(channelId: string, userId: string, isHost: boolean) {
   await db.voiceMember.upsert({
@@ -79,7 +78,7 @@ export async function GET(
   });
 }
 
-/** POST — send live chat (Bearer) */
+/** POST — send live chat (Bearer) — keep this path fast; mobile clients time out at ~15s. */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -112,8 +111,6 @@ export async function POST(
     return NextResponse.json({ error: "방송에 참여한 뒤 채팅할 수 있습니다." }, { status: 403 });
   }
 
-  await ensureLiveMember(channelId, authResult.user.id, access.isHost);
-
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
     select: {
@@ -126,49 +123,43 @@ export async function POST(
     return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
   }
 
-  const chatAccess = await assertCanSendLiveChat({
-    channelId,
-    userId: authResult.user.id,
-    hostUserId: channel.createdBy,
-  });
-  if (!chatAccess.ok) {
-    return NextResponse.json({ error: chatAccess.error }, { status: 403 });
-  }
-
   const filtered = filterLiveChatContent(content, ensureStringArray(channel.chatBannedWords));
   if (!filtered.ok) {
     return NextResponse.json({ error: filtered.error }, { status: 400 });
   }
 
-  const mod = await moderateLiveChatFast(filtered.text);
+  const [chatAccess, mod] = await Promise.all([
+    assertCanSendLiveChat({
+      channelId,
+      userId: authResult.user.id,
+      hostUserId: channel.createdBy,
+    }),
+    moderateLiveChatFast(filtered.text),
+    ensureLiveMember(channelId, authResult.user.id, access.isHost),
+  ]);
+  if (!chatAccess.ok) {
+    return NextResponse.json({ error: chatAccess.error }, { status: 403 });
+  }
   if (!mod.ok) {
     return NextResponse.json({ error: mod.error }, { status: 400 });
   }
 
-  const modRole = await getEffectiveBroadcastRole(channelId, authResult.user.id);
-  const modExempt = hasBroadcastPermission(modRole, "chat.delete");
+  const modExempt = hasBroadcastPermission(chatAccess.role, "chat.delete");
 
   if (!modExempt) {
     const recentBurst = await db.liveChatMessage.findMany({
       where: { channelId, userId: authResult.user.id },
       orderBy: { createdAt: "desc" },
-      take: 12,
+      take: 3,
       select: { createdAt: true, content: true },
     });
 
     if (recentBurst[0] && looksLikeSpamDuplicate(recentBurst[0].content, filtered.text)) {
       return NextResponse.json({ error: "같은 메시지를 연속으로 보낼 수 없습니다." }, { status: 429 });
     }
-  }
 
-  if (channel.slowModeSeconds > 0 && !modExempt) {
-    const last = await db.liveChatMessage.findFirst({
-      where: { channelId, userId: authResult.user.id },
-      orderBy: { createdAt: "desc" },
-      select: { createdAt: true },
-    });
-    if (last) {
-      const elapsed = (Date.now() - last.createdAt.getTime()) / 1000;
+    if (channel.slowModeSeconds > 0 && recentBurst[0]) {
+      const elapsed = (Date.now() - recentBurst[0].createdAt.getTime()) / 1000;
       if (elapsed < channel.slowModeSeconds) {
         return NextResponse.json(
           {

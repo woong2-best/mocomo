@@ -1,6 +1,11 @@
 /**
- * Vercel build DB sync — bounded runtime so deploys cannot hang for 45+ minutes.
+ * Production DB sync — migrate deploy + seed.
+ *
+ * Vercel: vercel-db-sync-if-needed.cjs runs this when prisma/schema or migrations changed.
+ * Manual: npm run db:deploy
+ *
  * Clears known failed migration state, applies pending migrations, then optional seed.
+ * Bounded runtime so migrate/seed cannot hang indefinitely.
  */
 const { spawn } = require("child_process");
 

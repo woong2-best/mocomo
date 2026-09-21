@@ -1,5 +1,4 @@
 import { Platform } from "react-native";
-import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
@@ -11,30 +10,38 @@ WebBrowser.maybeCompleteAuthSession();
 
 const WEB = API_BASE_URL.replace(/\/$/, "");
 
+/** Must match server `MOBILE_OAUTH_REDIRECT`. */
+const OAUTH_REDIRECT_URI = "mocomo://oauth";
+
 export type WebAuthMode = "signup" | "signin";
 
 export type MobileAuthProvider = "gmail" | "naver" | "discord" | "twitter" | "line";
 
 export type OpenWebAuthOptions = {
-  /** Add another account without reusing the browser session cookie. */
   addAccount?: boolean;
-  /** Jump straight to a provider (via /auth/mobile/oauth). */
   provider?: MobileAuthProvider;
 };
 
+export type WebAuthResult =
+  | { status: "signedIn"; user: MobileAuthUser }
+  | {
+      status: "needsSignup";
+      provider: MobileAuthProvider | string;
+      profile: { email: string | null; name: string | null; image: string | null };
+      handoff: string;
+    };
+
 /**
- * Open the website auth UI in an AuthSession browser.
- * On success the web redirects to mocomo://oauth?handoff=… with sealed tokens.
+ * Open website OAuth in AuthSession.
+ * Existing users → tokens. New users → needsSignup handoff for in-app terms.
  */
 export async function openWebAuthSession(
   mode: WebAuthMode,
   options: OpenWebAuthOptions = {}
-): Promise<MobileAuthUser> {
+): Promise<WebAuthResult> {
   const platform = Platform.OS === "ios" ? "ios" : "android";
-  const redirectUri = Linking.createURL("oauth");
-  const completePath =
-    `/auth/mobile/oauth/complete?platform=${platform}&from=mobile`;
-
+  const redirectUri = OAUTH_REDIRECT_URI;
+  const completePath = `/auth/mobile/oauth/complete?platform=${platform}&from=mobile`;
   const addQs = options.addAccount ? "&addAccount=1" : "";
 
   const startPath = options.provider
@@ -42,15 +49,15 @@ export async function openWebAuthSession(
       `&mode=${mode}&platform=${platform}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}${addQs}`
     : mode === "signup"
-      ? `/auth/signup/apply?from=mobile&platform=${platform}` +
+      ? `/auth/signin?intent=signup&from=mobile&platform=${platform}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}${addQs}`
       : `/auth/signin?from=mobile&platform=${platform}` +
         `&callbackUrl=${encodeURIComponent(completePath)}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}${addQs}`;
 
   const result = await WebBrowser.openAuthSessionAsync(`${WEB}${startPath}`, redirectUri, {
-    preferEphemeralSession: options.addAccount === true || !!options.provider,
-    showInRecents: !options.addAccount && !options.provider,
+    preferEphemeralSession: options.addAccount === true,
+    showInRecents: !options.addAccount,
   });
 
   if (result.type !== "success" || !result.url) {
@@ -67,15 +74,47 @@ export async function openWebAuthSession(
   }
 
   const data = await apiRequest<{
-    accessToken: string;
-    refreshToken: string;
-    user: MobileAuthUser;
+    status?: "signedIn" | "needsSignup";
+    accessToken?: string;
+    refreshToken?: string;
+    user?: MobileAuthUser;
+    provider?: string;
+    profile?: { email: string | null; name: string | null; image: string | null };
+    handoff?: string;
   }>(MobileApi.auth.oauthPkce, {
     method: "POST",
     auth: false,
     body: { handoff },
   });
 
+  if (data.status === "needsSignup" && data.profile && data.handoff) {
+    return {
+      status: "needsSignup",
+      provider: data.provider ?? options.provider ?? "discord",
+      profile: data.profile,
+      handoff: data.handoff,
+    };
+  }
+
+  if (!data.accessToken || !data.refreshToken || !data.user) {
+    throw new Error("앱 연동 코드를 받지 못했습니다. 다시 시도해 주세요.");
+  }
+
+  await setTokens(data.accessToken, data.refreshToken, data.user);
+  return { status: "signedIn", user: data.user };
+}
+
+export async function completeWebOAuthSignup(handoff: string): Promise<MobileAuthUser> {
+  const platform = Platform.OS === "ios" ? "ios" : "android";
+  const data = await apiRequest<{
+    accessToken: string;
+    refreshToken: string;
+    user: MobileAuthUser;
+  }>(MobileApi.auth.oauthCompleteSignup, {
+    method: "POST",
+    auth: false,
+    body: { handoff, platform },
+  });
   await setTokens(data.accessToken, data.refreshToken, data.user);
   return data.user;
 }

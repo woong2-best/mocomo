@@ -121,6 +121,21 @@ enum LiveSupportEventType {
   VOTE
 }
 
+enum MocoDonationType {
+  VIDEO
+  /** @deprecated TTS 제거 — SFX 사용 */
+  TTS
+  SFX
+  CHAT
+}
+
+enum MocoDonationStatus {
+  PENDING
+  PLAYING
+  COMPLETED
+  SKIPPED
+}
+
 enum LiveSupportMissionStatus {
   PENDING
   ACCEPTED
@@ -268,7 +283,7 @@ model User {
   stripeConnectAccountId String?
   /** payouts_enabled && requirements clear 시각 (웹훅·return URL 동기화) */
   stripeConnectOnboardedAt DateTime?
-  /** Stripe Custom 정산 등록 완료 — payouts_enabled (웹훅·등록 API 동기화) */
+  /** Stripe Connect Express 온보딩 완료 — payouts_enabled (웹훅·AccountLink 동기화) */
   stripeOnboardingCompleted Boolean @default(false)
   /** Stripe Customer — 저장된 결제 카드 (지갑 탭) */
   stripeCustomerId String? @unique
@@ -350,6 +365,12 @@ model User {
   liveChatBansIssued   LiveChatBan[] @relation("LiveChatBanIssuer")
   liveChatTimeoutsReceived LiveChatTimeout[] @relation("LiveChatTimeoutUser")
   liveChatTimeoutsIssued   LiveChatTimeout[] @relation("LiveChatTimeoutIssuer")
+  streamerChatBansAsHost   StreamerChatBan[] @relation("StreamerChatBanHost")
+  streamerChatBansReceived StreamerChatBan[] @relation("StreamerChatBanUser")
+  streamerChatBansIssued   StreamerChatBan[] @relation("StreamerChatBanIssuer")
+  streamerStaffAsHost      StreamerStaffAssignment[] @relation("StreamerStaffHost")
+  streamerStaffAssigned    StreamerStaffAssignment[] @relation("StreamerStaffUser")
+  streamerStaffGranted     StreamerStaffAssignment[] @relation("StreamerStaffAssigner")
   streamClips       StreamClip[]
   streamClipLikes   StreamClipLike[]
   streamClipComments StreamClipComment[]
@@ -509,6 +530,8 @@ model User {
   payoutsProcessed PayoutRequest[] @relation("PayoutProcessor")
 
   gemPurchases                 GemPurchase[]              @relation("GemPurchaseFan")
+  mocoTopupTransactions        MocoTopupTransaction[]
+  creatorBalance               CreatorBalance?
   giftEventsSent               GiftEvent[]                @relation("GiftEventFan")
   giftEventsReceived           GiftEvent[]                @relation("GiftEventCreator")
   creatorPayoutBatches         CreatorPayoutBatch[]
@@ -522,6 +545,8 @@ model User {
   liveSupportPollVotes         LiveSupportPollVote[]
   liveVideoDonationsSent       LiveVideoDonation[]    @relation("LiveVideoDonationSender")
   liveVideoDonationsReceived   LiveVideoDonation[]    @relation("LiveVideoDonationReceiver")
+  mocoDonationsSent            MocoDonation[]         @relation("MocoDonationSender")
+  mocoDonationsReceived        MocoDonation[]         @relation("MocoDonationStreamer")
 
   discoveryProfile        DiscoveryProfile?
   discoverySwipesSent     DiscoverySwipe[] @relation("DiscoverySwipeFrom")
@@ -1573,16 +1598,61 @@ model PinnedMessage {
 // ============ VOICE ============
 
 model StreamerProfile {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  isPartner    Boolean  @default(false)
-  bio          String?  @db.VarChar(500)
-  announcement String?  @db.VarChar(500)
-  scheduleNote String?  @db.VarChar(300)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String              @id @default(cuid())
+  userId          String              @unique
+  isPartner       Boolean             @default(false)
+  bio             String?             @db.VarChar(500)
+  announcement    String?             @db.VarChar(500)
+  scheduleNote    String?             @db.VarChar(300)
+  /** 매주 방송 요일 — JS getDay() 기준 0=일 … 6=토 */
+  scheduleWeekdays Int[]              @default([])
+  /** 방송 시각 HH:mm (유저 timeZone 기준) */
+  scheduleTime    String?             @db.VarChar(5)
+  /** 방송 시작 시 기본으로 쓸 고정 제목 */
+  defaultTitle    String?             @db.VarChar(120)
+  /** 방송 시작 시 기본 카테고리 (FOLLOWING/VIRTUAL 제외) */
+  defaultCategory LiveStreamCategory?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/** 스트리머 단위 채팅 차단 — 방송이 바뀌어도 유지 (MoCoMo 유저만) */
+model StreamerChatBan {
+  id         String   @id @default(cuid())
+  hostUserId String
+  userId     String
+  bannedBy   String
+  reason     String?  @db.VarChar(200)
+  createdAt  DateTime @default(now())
+
+  host   User @relation("StreamerChatBanHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+  user   User @relation("StreamerChatBanUser", fields: [userId], references: [id], onDelete: Cascade)
+  issuer User @relation("StreamerChatBanIssuer", fields: [bannedBy], references: [id], onDelete: Cascade)
+
+  @@unique([hostUserId, userId])
+  @@index([hostUserId])
+  @@index([userId])
+}
+
+/** 스트리머 단위 스태프(관리자·모더·VIP) — 모든 방송에 적용 */
+model StreamerStaffAssignment {
+  id         String        @id @default(cuid())
+  hostUserId String
+  userId     String
+  role       BroadcastRole
+  createdBy  String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  host     User @relation("StreamerStaffHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+  user     User @relation("StreamerStaffUser", fields: [userId], references: [id], onDelete: Cascade)
+  assigner User @relation("StreamerStaffAssigner", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@unique([hostUserId, userId])
+  @@index([hostUserId, role])
+  @@index([userId])
 }
 
 model ConnectedStreamingAccount {
@@ -1664,6 +1734,11 @@ model VoiceChannel {
   videoDonationRateKrw Int @default(100)
   videoDonationMinKrw  Int @default(5000)
   videoDonationMaxSec  Int @default(120)
+  /** MOCO 영상 도네 — 초당 MOCO, 최소 MOCO (maxPlaySec는 videoDonationMaxSec) */
+  videoDonationRateMocoPerSec Int @default(1)
+  videoDonationMinMoco        Int @default(2)
+  /** { videoIds, channelIds, keywords } */
+  videoDonationBlocklistJson  Json?
   vodUrl           String?
   egressId         String?
   broadcastMode    LiveBroadcastMode @default(BROWSER)
@@ -1708,6 +1783,7 @@ model VoiceChannel {
   liveSupportMissions LiveSupportMission[]
   liveSupportPolls    LiveSupportPoll[]
   liveVideoDonations  LiveVideoDonation[]
+  mocoDonations       MocoDonation[]
   broadcastRoles      BroadcastRoleAssignment[]
   broadcastRoleLogs   BroadcastRoleLog[]
   liveChatBans        LiveChatBan[]
@@ -2083,6 +2159,42 @@ model GemPurchase {
   @@index([fanId, remainingGems])
 }
 
+enum MocoTopupTransactionStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+/** MOCO 충전 — PG 패스스루 + 5% 플랫폼 마진 (센트 정수 장부) */
+model MocoTopupTransaction {
+  id                     String                     @id @default(uuid()) @db.Uuid
+  userId                 String
+  mocoQuantity           Int
+  basePriceCents         Int
+  pgFeeCents             Int
+  grossAmountCents       Int
+  platformRevenueCents   Int
+  creatorAllocationCents Int
+  status                 MocoTopupTransactionStatus @default(PENDING)
+  paymentIntentId        String?                    @unique
+  stripePaymentRef       String?
+  createdAt              DateTime                   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+/** 크리에이터 정산 배정금 (후원 수령 누적, USD cents) */
+model CreatorBalance {
+  creatorId                  String   @id
+  accumulatedAllocationCents Int      @default(0)
+  withdrawnCents             Int      @default(0)
+  updatedAt                  DateTime @updatedAt
+
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+}
+
 /** 후원·유료 미디어 소비 (젬 차감, Stripe Transfer 없음) */
 model GiftEvent {
   id            String    @id @default(cuid())
@@ -2098,6 +2210,7 @@ model GiftEvent {
   creator     User                  @relation("GiftEventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   payoutBatch CreatorPayoutBatch?   @relation(fields: [payoutBatchId], references: [id], onDelete: SetNull)
   allocations GiftEventAllocation[]
+  mocoDonations MocoDonation[]
 
   @@index([creatorId, payoutBatchId])
   @@index([fanId, timestamp(sort: Desc)])
@@ -2251,6 +2364,42 @@ model LiveVideoDonation {
 
   @@index([channelId, status])
   @@index([senderId, createdAt(sort: Desc)])
+}
+
+/** MOCO(구매 젬) 영상·SFX·채팅 하이라이트 도네이션 — OBS 위젯 큐 재생 */
+model MocoDonation {
+  id          String             @id @default(cuid())
+  channelId   String
+  streamerId  String
+  userId      String
+  mocoAmount  Int
+  type        MocoDonationType
+  mediaUrl    String?
+  message     String?            @db.Text
+  /** @deprecated TTS */
+  ttsVoice    String?
+  /** SFX catalog id */
+  sfxKey      String?
+  videoTitle  String?
+  startSec    Int                @default(0)
+  endSec      Int?
+  playToEnd   Boolean            @default(false)
+  segmentPlaySec Int?
+  maxPlaySec  Int                @default(60)
+  status      MocoDonationStatus @default(PENDING)
+  giftEventId String?
+  createdAt   DateTime           @default(now())
+  playedAt    DateTime?
+  completedAt DateTime?
+
+  channel  VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  streamer User         @relation("MocoDonationStreamer", fields: [streamerId], references: [id])
+  user     User         @relation("MocoDonationSender", fields: [userId], references: [id])
+  giftEvent GiftEvent?  @relation(fields: [giftEventId], references: [id], onDelete: SetNull)
+
+  @@index([channelId, status, createdAt])
+  @@index([streamerId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model Subscription {
@@ -4340,7 +4489,7 @@ model PlatformWallet {
   ledgers PlatformWalletLedger[]
 }
 
-/** Stripe Connect Custom 화이트라벨 정산 등록 (앱 내 KYC·계좌) */
+/** Stripe Connect Express 정산 프로필 (Hosted Onboarding 스냅샷) */
 model CreatorSettlementProfile {
   id                     String    @id @default(cuid())
   userId                 String    @unique
@@ -4359,18 +4508,28 @@ model CreatorSettlementProfile {
   stripeConnectAccountId String?
   payoutsEnabled         Boolean   @default(false)
   registeredAt           DateTime?
-  /** W8BEN | W9 */
+  /** W8BEN | W9 — Stripe Tax Reporting 위임 전제 표기 */
   taxFormType            String
   ssnLast4               String?
+  /** express | custom — Express 표준, custom은 마이그레이션 대상 */
+  connectAccountType     String?
+  /** Stripe Connect Tax Reporting 준비 완료 (세무·온보딩 requirements clear) */
+  taxReportingReady      Boolean   @default(false)
+  /** 세무 관련 requirements currently_due 존재 */
+  taxRequirementsDue     Boolean   @default(false)
+  lastTaxGateCheckedAt   DateTime?
+  /** Custom → Express 재온보딩 필요 */
+  needsExpressMigration  Boolean   @default(false)
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([stripeConnectAccountId])
+  @@index([taxReportingReady, payoutsEnabled])
 }
 
-/** IRS W-8BEN / W-9 전자 동의 기록 */
+/** IRS W-8BEN / W-9 전자 동의 기록 (레거시 Custom 경로 — Express는 Stripe Hosted 수집) */
 model CreatorTaxAttestation {
   id            String   @id @default(cuid())
   userId        String
@@ -4395,17 +4554,28 @@ model CreatorRewardPayoutBatch {
   periodYear           Int
   periodMonth          Int
   settlementMocoBefore Int
+  /** @deprecated Reward 등급 — achievedRewardTier 사용 */
   achievedTier         SupportTierLevel @default(SEED)
+  /** Reward 정산 등급 (Novice/Pulse/…) — 후원 광석 등급과 별개 */
+  achievedRewardTier   String?
   deductedMoco         Int              @default(0)
   rolloverMoco         Int              @default(0)
-  rewardUsd            Int              @default(0)
+  rewardUsd            Float            @default(0)
   grossAmountMinor     Int
   withholdingMinor     Int
   netAmountMinor       Int
   currency             String
   stripeTransferId     String?
+  stripePayoutId       String?
+  /**
+   * PENDING | COMPLETED | FAILED | PAYOUT_FAILED | RETRY_PENDING
+   * SKIPPED_UNONBOARDED | SKIPPED_TAX_INCOMPLETE | SKIPPED_BELOW_MINIMUM | SKIPPED
+   */
   status               String    @default("PENDING")
+  skipReason           String?
   errorMessage         String?   @db.Text
+  retryCount           Int       @default(0)
+  lastRetryAt          DateTime?
   createdAt            DateTime  @default(now())
   completedAt          DateTime?
 
@@ -4413,6 +4583,7 @@ model CreatorRewardPayoutBatch {
 
   @@unique([userId, periodYear, periodMonth])
   @@index([status, createdAt])
+  @@index([stripeTransferId])
 }
 
 model PlatformWalletLedger {

@@ -1,19 +1,23 @@
 "use client";
 
-import { memo, Suspense } from "react";
+import { memo, Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, Radio, User } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import { LiveBeadFeed } from "@/components/live/live-bead-feed";
-import { LiveHeroSpotlight } from "@/components/live/live-hero-spotlight";
+import {
+  LiveFolderRail,
+  type LiveFolderFilter,
+} from "@/components/live/live-folder-rail";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
+import { LIVE_SMPTE_COLORS } from "@/lib/live-categories";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cardHover, pressTap } from "@/lib/motion-presets";
 import { useLocale } from "@/components/providers/locale-provider";
+import { cn } from "@/lib/utils";
 
 export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHubHost }) {
   const reduced = usePrefersReducedMotion();
@@ -23,7 +27,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
 
   const card = (
     <Link href={`/voice/${ch.id}`} prefetch={false} className="group block min-w-0">
-      <div className="relative aspect-video overflow-hidden rounded-xl border border-border/60 bg-[hsl(var(--folk-cobalt)/0.12)] shadow-sm">
+      <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-sm backdrop-blur-[2px]">
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -32,8 +36,8 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[hsl(var(--folk-cobalt)/0.2)] to-[hsl(var(--folk-gold)/0.25)]">
-            <Radio className="h-10 w-10 text-folk-terracotta/45" />
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[hsl(var(--folk-cobalt)/0.35)] to-[hsl(var(--folk-gold)/0.25)]">
+            <Radio className="h-10 w-10 text-folk-terracotta/55" />
           </div>
         )}
         {isLiveAdultChannel(ch) ? <LiveAdultWatermark /> : null}
@@ -49,19 +53,19 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
       </div>
 
       <div className="mt-2.5 flex gap-2.5 min-w-0">
-        <div className="h-9 w-9 shrink-0 rounded-full overflow-hidden bg-muted ring-2 ring-[hsl(var(--folk-cobalt)/0.22)]">
+        <div className="h-9 w-9 shrink-0 rounded-full overflow-hidden bg-black/40 ring-2 ring-white/15">
           {host?.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={host.image} alt="" className="h-full w-full object-cover" />
           ) : (
-            <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+            <div className="h-full w-full flex items-center justify-center text-white/50">
               <User className="h-4 w-4" />
             </div>
           )}
         </div>
         <div className="min-w-0 flex-1 space-y-0.5">
           {host ? (
-            <p className="text-sm font-semibold truncate">
+            <p className="text-sm font-semibold truncate text-white">
               <DisplayNameWithSupportTier
                 name={host.username}
                 tier={(host.supportTierSent ?? "SEED") as SupportTierLevel}
@@ -70,15 +74,15 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
               />
             </p>
           ) : null}
-          <p className="text-[13px] text-muted-foreground line-clamp-1">{ch.name}</p>
+          <p className="text-[13px] text-white/65 line-clamp-1">{ch.name}</p>
           <div className="flex flex-wrap gap-1 pt-0.5">
-            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-medium">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 text-white/70 font-medium">
               {localizedLiveCategoryLabel(ch.category, locale)}
             </span>
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-medium"
+                className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 text-white/70 font-medium"
               >
                 {tag}
               </span>
@@ -90,7 +94,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
   );
 
   if (reduced) {
-    return <div className="min-w-[240px] sm:min-w-0">{card}</div>;
+    return <div className="min-w-0">{card}</div>;
   }
 
   return (
@@ -98,7 +102,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
       whileHover={cardHover}
       whileTap={pressTap}
       transition={{ type: "spring", stiffness: 400, damping: 26 }}
-      className="min-w-[240px] sm:min-w-0"
+      className="min-w-0"
     >
       {card}
     </motion.div>
@@ -108,30 +112,101 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
 const LiveStreamCardMemo = memo(LiveStreamCard);
 export { LiveStreamCardMemo };
 
-/** TV (with folder tabs when empty) + bead feed. */
+/** Empty grid lead card — SMPTE color-bar TV (matches empty-broadcast mock). */
+function LiveEmptyGridPlaceholder() {
+  const { t } = useLocale();
+  const colCount = LIVE_SMPTE_COLORS.length;
+
+  return (
+    <div className="group block min-w-0">
+      <div className="relative aspect-video overflow-hidden rounded-xl border border-white/15 shadow-sm">
+        <div
+          className="absolute inset-0"
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
+          }}
+          aria-hidden
+        >
+          {LIVE_SMPTE_COLORS.map((color) => (
+            <div key={color} className="min-h-0 min-w-0 h-full" style={{ backgroundColor: color }} />
+          ))}
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center p-3">
+          <p className="rounded-full border border-white/15 bg-black/75 px-4 py-2 text-center text-xs font-semibold text-white backdrop-blur-sm sm:text-sm">
+            {t("live.noBroadcastHero")}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function filterChannels(
+  channels: LiveHubChannel[],
+  filter: LiveFolderFilter,
+  followedHostIds: Set<string>
+): LiveHubChannel[] {
+  if (filter === "ALL") return channels;
+  if (filter === "FOLLOWING") {
+    if (followedHostIds.size === 0) return [];
+    return channels.filter((ch) => followedHostIds.has(ch.createdBy));
+  }
+  return channels.filter((ch) => ch.category === filter);
+}
+
+/** YouTube-style 4-column grid + folder rail on the right. */
 export function LiveChannelGrid({
   channels,
   hosts,
+  followedHostIds = [],
 }: {
   channels: LiveHubChannel[];
   hosts: LiveHubHost[];
+  followedHostIds?: string[];
   filteredCategory?: LiveStreamCategory;
   view?: "explore" | "following";
 }) {
+  const [activeFilter, setActiveFilter] = useState<LiveFolderFilter>("ALL");
   const hostMap = Object.fromEntries(hosts.map((h) => [h.id, h]));
-  const heroChannels = [...channels].sort((a, b) => b.viewerCount - a.viewerCount);
+  const followedSet = useMemo(() => new Set(followedHostIds), [followedHostIds]);
+
+  const visible = useMemo(
+    () => filterChannels(channels, activeFilter, followedSet),
+    [channels, activeFilter, followedSet]
+  );
+  const isEmpty = visible.length === 0;
 
   return (
-    <div
-      className="flex flex-row gap-2.5 sm:gap-3 items-stretch w-full min-h-0 flex-1 overflow-hidden"
-      style={{ minHeight: "clamp(220px, calc(100dvh - 220px), 680px)" }}
-    >
-      <div className="relative min-w-0 flex-1 h-full min-h-[220px]">
-        <Suspense fallback={<div className="h-full w-full rounded-2xl bg-black/40 animate-pulse" />}>
-          <LiveHeroSpotlight channels={heroChannels} hostMap={hostMap} />
+    <div className="flex h-full min-h-0 w-full flex-1 flex-row gap-2.5 overflow-hidden sm:gap-4">
+      {/* Only the live grid scrolls */}
+      <div className="relative min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin pr-0.5">
+        <div
+          className={cn(
+            "grid gap-4 sm:gap-5 pb-4 pt-1",
+            "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          )}
+        >
+          {isEmpty ? <LiveEmptyGridPlaceholder /> : null}
+          {visible.map((ch) => (
+            <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
+          ))}
+        </div>
+      </div>
+
+      {/* Folder rail: fixed in the viewport column, never scrolls with the grid */}
+      <div className="live-folder-rail-column sticky top-0 shrink-0 self-start overflow-visible pr-1">
+        <Suspense
+          fallback={
+            <div
+              className="w-[132px] rounded-b-[1.75rem] bg-white/90 animate-pulse"
+              style={{ height: "min(640px, calc(100dvh - var(--header-h) - 2rem))" }}
+            />
+          }
+        >
+          <LiveFolderRail activeFilter={activeFilter} onFilterChange={setActiveFilter} />
         </Suspense>
       </div>
-      <LiveBeadFeed channels={channels} hosts={hosts} />
     </div>
   );
 }

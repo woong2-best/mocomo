@@ -34,6 +34,10 @@ export async function completeBirthDateOnboarding(input: {
   const safeDest =
     dest && dest.startsWith("/") && !dest.startsWith("//") ? dest : "/";
 
-  // Always collect / confirm profile icon after birth onboarding (banner not required).
-  redirect(`/auth/complete-avatar?dest=${encodeURIComponent(safeDest)}`);
+  // Birth → role (fan follow / coser register) → avatar.
+  const { markSignupNeedsRole, signupRoleEntryPath } = await import(
+    "@/lib/signup-role-onboarding"
+  );
+  await markSignupNeedsRole();
+  redirect(signupRoleEntryPath(safeDest));
 }

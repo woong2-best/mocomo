@@ -24,3 +24,9 @@ export type MobileAnimeGenreId = (typeof MOBILE_ANIME_GENRES)[number]["id"];
 export function genreToApiParam(id: MobileAnimeGenreId): string {
   return id.toLowerCase().replace(/_/g, "-");
 }
+
+export function genreLabel(genre: string | null | undefined): string {
+  if (!genre) return "";
+  const hit = MOBILE_ANIME_GENRES.find((g) => g.id === genre);
+  return hit?.label ?? genre;
+}

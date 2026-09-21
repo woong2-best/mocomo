@@ -33,10 +33,14 @@ import {
 
 const RETURN_PREFIX = Linking.createURL("payment/success");
 
+type PrepareResult = Awaited<ReturnType<typeof prepareMarketplacePayment>>;
+
 type Props = {
   visible: boolean;
   listingId: string;
   body: MarketplaceCheckoutBody;
+  /** Cart checkout — overrides single-listing prepare */
+  prepareCheckout?: () => Promise<PrepareResult>;
   onClose: () => void;
   onSuccess: (result: { type: string; alreadyPaid?: boolean }) => void;
 };
@@ -45,6 +49,7 @@ export function MarketplacePaymentSheet({
   visible,
   listingId,
   body,
+  prepareCheckout,
   onClose,
   onSuccess,
 }: Props) {
@@ -65,7 +70,8 @@ export function MarketplacePaymentSheet({
     setPurchaseTermsAccepted(false);
     setError("");
     setLoading(true);
-    void prepareMarketplacePayment(listingId, body)
+    const run = prepareCheckout ?? (() => prepareMarketplacePayment(listingId, body));
+    void run()
       .then((res) => {
         setOrderId(res.orderId);
         setAmount(res.amount);
@@ -78,7 +84,7 @@ export function MarketplacePaymentSheet({
         setError(e instanceof Error ? e.message : "결제 준비에 실패했습니다.");
       })
       .finally(() => setLoading(false));
-  }, [visible, listingId, body]);
+  }, [visible, listingId, body, prepareCheckout]);
 
   async function openAuthenticate(authenticateUrl: string, oid: string) {
     const result = await WebBrowser.openAuthSessionAsync(authenticateUrl, RETURN_PREFIX, {

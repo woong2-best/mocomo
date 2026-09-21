@@ -1,0 +1,15 @@
+{
+  "name": "mocomo-live-pip",
+  "version": "1.0.0",
+  "description": "Android Picture-in-Picture bridge for MoCoMo live playback",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {},
+  "keywords": ["react-native", "expo", "mocomo", "pip", "live"],
+  "license": "UNLICENSED",
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

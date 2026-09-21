@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { EventSponsorAdSheet } from "@/features/events/EventSponsorAdSheet";
 import {
   ActivityIndicator,
   Pressable,
@@ -28,6 +29,7 @@ export function EventDetailScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "EventDetail">>();
   const queryClient = useQueryClient();
   const [msg, setMsg] = useState<string | null>(null);
+  const [sponsorOpen, setSponsorOpen] = useState(false);
 
   const query = useQuery({
     queryKey: ["mobile-events", route.params.id],
@@ -99,9 +101,18 @@ export function EventDetailScreen() {
               <Text style={styles.joined}>참여 중</Text>
             )}
             {msg ? <Text style={styles.note}>{msg}</Text> : null}
+            <Pressable style={styles.sponsorBtn} onPress={() => setSponsorOpen(true)}>
+              <Text style={styles.sponsorBtnText}>스폰서 광고 구매 (MOCO)</Text>
+            </Pressable>
           </View>
         </ScrollView>
       )}
+      <EventSponsorAdSheet
+        visible={sponsorOpen}
+        eventId={route.params.id}
+        onClose={() => setSponsorOpen(false)}
+        onSuccess={() => setMsg("스폰서 광고가 등록되었습니다.")}
+      />
     </View>
   );
 }
@@ -140,6 +151,16 @@ function createThemedStyles(colors: ThemeColors) {
   joined: { marginTop: spacing.md, fontWeight: "700", color: colors.text },
   note: { marginTop: spacing.sm, color: colors.textMuted },
   error: { color: colors.danger, padding: spacing.lg },
+  sponsorBtn: {
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: colors.surfaceRaised,
+  },
+  sponsorBtnText: { fontWeight: "800", color: colors.cobalt },
 });
 }
 

@@ -1,100 +1,220 @@
 import { useMemo, useState } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import type { LiveExternalInfo } from "@/api/live";
-import { providerLabel } from "@/features/live/live-categories";
+import { API_BASE_URL, APP_PACKAGE_ID } from "@/config/env";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
 type Props = {
   external: LiveExternalInfo;
   title: string;
+  /** When false, keep the WebView mounted but paused-looking (unload source). */
+  active?: boolean;
+  /**
+   * MoCoMo chrome under the player (provider · title). Off by default —
+   * title lives as an overlay on the video elsewhere.
+   */
+  showChrome?: boolean;
+  /** Capture taps (e.g. open LiveDetail) instead of interacting with the embed. */
+  onPress?: () => void;
 };
+
+/** YouTube Error 153 needs a real HTTPS Referer / baseUrl — use site origin first. */
+function embedRefererOrigin(): string {
+  try {
+    const u = new URL(API_BASE_URL);
+    if (u.protocol === "https:" || u.protocol === "http:") {
+      return u.origin;
+    }
+  } catch {
+    /* fall through */
+  }
+  return `https://${APP_PACKAGE_ID}`;
+}
+
+function isYoutubeEmbed(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return host === "youtube.com" || host === "youtube-nocookie.com";
+  } catch {
+    return /youtube(-nocookie)?\.com\/embed\//i.test(url);
+  }
+}
+
+function withYoutubeEmbedParams(embedUrl: string, origin: string): string {
+  try {
+    const u = new URL(embedUrl);
+    if (!u.searchParams.has("playsinline")) u.searchParams.set("playsinline", "1");
+    if (!u.searchParams.has("autoplay")) u.searchParams.set("autoplay", "1");
+    if (!u.searchParams.has("rel")) u.searchParams.set("rel", "0");
+    // Hide YouTube player chrome as much as the embed API allows.
+    u.searchParams.set("modestbranding", "1");
+    u.searchParams.set("controls", "0");
+    u.searchParams.set("iv_load_policy", "3");
+    u.searchParams.set("fs", "0");
+    u.searchParams.set("disablekb", "1");
+    u.searchParams.set("cc_load_policy", "0");
+    if (!u.searchParams.has("enablejsapi")) u.searchParams.set("enablejsapi", "1");
+    u.searchParams.set("origin", origin);
+    return u.toString();
+  } catch {
+    return embedUrl;
+  }
+}
+
+function youtubeEmbedHtml(embedUrl: string, title: string): string {
+  const safeTitle = title.replace(/[<>&"']/g, "");
+  const src = embedUrl.replace(/"/g, "&quot;");
+  return `<!DOCTYPE html><html><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
+  iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  /* Cover residual YouTube watermark only — no solid black panels */
+  .veil-br{position:absolute;right:0;bottom:0;width:96px;height:36px;background:linear-gradient(270deg,rgba(0,0,0,.55),transparent);pointer-events:none;z-index:2}
+</style></head><body>
+<iframe
+  title="${safeTitle}"
+  src="${src}"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+  allowfullscreen
+  referrerpolicy="strict-origin-when-cross-origin"
+></iframe>
+<div class="veil-br"></div>
+</body></html>`;
+}
 
 /**
  * External platform player only — no chat/donation overlays on the video.
  * Mirrors web ExternalLivePlayer (iframe sibling panel pattern).
  */
-export function ExternalLivePlayer({ external, title }: Props) {
+export function ExternalLivePlayer({
+  external,
+  title,
+  active = true,
+  showChrome = false,
+  onPress,
+}: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [failed, setFailed] = useState(false);
-  const showEmbed = external.embedSupported && !!external.embedUrl && !failed;
+  const origin = useMemo(() => embedRefererOrigin(), []);
+  const rawEmbed = external.embedUrl;
+  const youtube = !!rawEmbed && isYoutubeEmbed(rawEmbed);
+  const embedUrl = rawEmbed
+    ? youtube
+      ? withYoutubeEmbedParams(rawEmbed, origin)
+      : rawEmbed
+    : null;
+  const showEmbed = active && external.embedSupported && !!embedUrl && !failed;
+
+  const source = useMemo(() => {
+    if (!embedUrl) return undefined;
+    if (youtube) {
+      return {
+        html: youtubeEmbedHtml(embedUrl, title),
+        baseUrl: origin.endsWith("/") ? origin : `${origin}/`,
+      };
+    }
+    return {
+      uri: embedUrl,
+      headers: {
+        Referer: origin,
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+      },
+    };
+  }, [embedUrl, origin, title, youtube]);
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.player}>
-        {showEmbed ? (
-          <WebView
-            source={{ uri: external.embedUrl! }}
-            style={styles.webview}
-            allowsFullscreenVideo
-            allowsInlineMediaPlayback
-            mediaPlaybackRequiresUserAction={false}
-            javaScriptEnabled
-            domStorageEnabled
-            setSupportMultipleWindows={false}
-            onHttpError={() => setFailed(true)}
-            onError={() => setFailed(true)}
-            userAgent="Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-          />
+    <View style={[styles.wrap, !showChrome && styles.wrapFill]}>
+      <View style={!showChrome ? styles.playerFill : styles.player}>
+        {showEmbed && source ? (
+          <View style={styles.webview} pointerEvents={onPress ? "none" : "auto"}>
+            <WebView
+              key={`${external.provider}-${embedUrl}`}
+              source={source}
+              style={styles.webview}
+              allowsFullscreenVideo
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
+              javaScriptEnabled
+              domStorageEnabled
+              setSupportMultipleWindows={false}
+              originWhitelist={["*"]}
+              mixedContentMode="always"
+              onHttpError={() => setFailed(true)}
+              onError={() => setFailed(true)}
+              userAgent={
+                Platform.OS === "ios"
+                  ? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                  : "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+              }
+            />
+          </View>
         ) : (
           <View style={styles.fallback}>
             <Text style={styles.fallbackText}>
-              {external.provider.toUpperCase() === "CHZZK"
-                ? "치지직 임베드가 이 환경에서 지원되지 않습니다."
-                : "원본 페이지에서 시청해 주세요."}
+              {!active ? "스크롤하면 재생됩니다" : "원본 페이지에서 시청해 주세요."}
             </Text>
-            <Pressable
-              style={styles.openBtn}
-              onPress={() => void Linking.openURL(external.watchUrl).catch(() => undefined)}
-            >
-              <Ionicons name="open-outline" size={16} color="#111" />
-              <Text style={styles.openBtnText}>새 창에서 시청하기</Text>
-            </Pressable>
+            {active ? (
+              <Pressable
+                style={styles.openBtn}
+                onPress={() => void Linking.openURL(external.watchUrl).catch(() => undefined)}
+              >
+                <Ionicons name="open-outline" size={16} color="#111" />
+                <Text style={styles.openBtnText}>새 창에서 시청하기</Text>
+              </Pressable>
+            ) : null}
           </View>
         )}
-      </View>
-      {showEmbed ? (
-        <View style={styles.bar}>
-          <Text style={styles.barText} numberOfLines={1}>
-            {providerLabel(external.provider)} · {title}
-          </Text>
+
+        {onPress ? (
           <Pressable
-            onPress={() => void Linking.openURL(external.watchUrl).catch(() => undefined)}
-            hitSlop={8}
-            style={styles.barLink}
-          >
-            <Text style={styles.barLinkText}>원본</Text>
-            <Ionicons name="open-outline" size={12} color="rgba(255,255,255,0.75)" />
-          </Pressable>
-        </View>
-      ) : null}
+            style={StyleSheet.absoluteFill}
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={`${title} 라이브 열기`}
+          />
+        ) : null}
+      </View>
     </View>
   );
 }
 
-function createStyles(colors: ThemeColors) {
+function createStyles(_colors: ThemeColors) {
   return StyleSheet.create({
     wrap: {
-      borderRadius: 12,
       overflow: "hidden",
       backgroundColor: "#000",
+      width: "100%",
+      borderRadius: 12,
+    },
+    wrapFill: {
+      ...StyleSheet.absoluteFill,
+      borderRadius: 0,
     },
     player: {
       width: "100%",
       aspectRatio: 16 / 9,
-      minHeight: 200,
       backgroundColor: "#000",
     },
-    webview: { flex: 1, backgroundColor: "#000" },
+    playerFill: {
+      flex: 1,
+      width: "100%",
+      height: "100%",
+      backgroundColor: "#000",
+    },
+    webview: { flex: 1, backgroundColor: "#000", opacity: 0.99 },
     fallback: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
       padding: spacing.lg,
       gap: 14,
+      backgroundColor: "#000",
     },
     fallbackText: {
       color: "rgba(255,255,255,0.8)",
@@ -113,19 +233,5 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: 10,
     },
     openBtnText: { color: "#111", fontWeight: "800", fontSize: 13 },
-    bar: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: "rgba(255,255,255,0.12)",
-      backgroundColor: "#0a0a0a",
-    },
-    barText: { flex: 1, color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: "600" },
-    barLink: { flexDirection: "row", alignItems: "center", gap: 3 },
-    barLinkText: { color: "rgba(255,255,255,0.75)", fontSize: 11, fontWeight: "700" },
   });
 }

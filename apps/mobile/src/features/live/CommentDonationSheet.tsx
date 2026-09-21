@@ -62,7 +62,7 @@ export function CommentDonationSheet({
   const trimmed = message.trim();
   const tier = commentDonationTier(effectiveAmount);
   const viewerName = user?.username ?? user?.name?.replace(/^@/, "") ?? "me";
-  const creatorGets = Math.round(effectiveAmount * 0.9);
+  const creatorGets = Math.round(effectiveAmount * 0.95);
 
   async function submit() {
     if (effectiveAmount < MIN_TIP_USD_CENTS) {

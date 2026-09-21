@@ -28,7 +28,6 @@ import {
   CommentDonationChatCard,
   CommentDonationTicker,
 } from "@/components/live/comment-donation-chat-card";
-import { CommentDonationIconButton } from "@/components/live/comment-donation-dialog";
 import { commentDonationPinMs } from "@/lib/comment-donation";
 import { LiveSupportSidebar } from "@/components/live/live-support-sidebar";
 import { LivePinnedMessageBar } from "@/components/live/live-pinned-message-bar";
@@ -381,20 +380,10 @@ function LiveChatInner({
             <ExternalLiveDonationBar
               channelId={channelId}
               hostDisplayName={hostDisplayName ?? hostUsername ?? "스트리머"}
-              hostUserId={hostUserId}
-              hostUsername={hostUsername}
-              paymentsEnabled={paymentsEnabled}
               isHost={isHost}
             />
           ) : (
-            <LiveDonationToolbar
-              channelId={channelId}
-              hostDisplayName={hostDisplayName ?? hostUsername ?? "스트리머"}
-              hostUserId={hostUserId}
-              hostUsername={hostUsername}
-              paymentsEnabled={paymentsEnabled}
-              isHost={isHost}
-            />
+            <LiveDonationToolbar channelId={channelId} isHost={isHost} />
           )}
           <div className="flex gap-2">
             <Input
@@ -406,16 +395,6 @@ function LiveChatInner({
               maxLength={200}
               disabled={sending}
             />
-            {!isHost && hostUserId && hostUsername && (
-              <CommentDonationIconButton
-                creatorId={hostUserId}
-                username={hostUsername}
-                displayName={hostDisplayName ?? hostUsername}
-                paymentsEnabled={paymentsEnabled}
-                channelId={channelId}
-                returnPath={`/voice/${channelId}`}
-              />
-            )}
             <Button
               size="sm"
               className="h-9 shrink-0 rounded-lg bg-folk-terracotta px-3 hover:bg-folk-terracotta/90"

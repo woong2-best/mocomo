@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/api/client";
+import { clearDmBootstrap, loadDmInboxBootstrap } from "@/api/dm-bootstrap-cache";
 import { clearFeedBootstrap, loadFeedBootstrap } from "@/api/feed-bootstrap-cache";
 import { fetchFeedPage, type FeedPage } from "@/api/feed";
 import { MobileApi } from "@/api/paths";
@@ -37,7 +38,15 @@ type AuthState = {
   openWebAuth: (
     mode: WebAuthMode,
     opts?: import("@/auth/oauth").OpenWebAuthOptions
-  ) => Promise<void>;
+  ) => Promise<
+    | { status: "signedIn" }
+    | {
+        status: "needsSignup";
+        handoff: string;
+        provider: string;
+        profile: { email: string | null; name: string | null; image: string | null };
+      }
+  >;
   signInWithCredentials: (loginId: string, password: string) => Promise<void>;
   signInWithGoogleNative: (opts?: {
     flow?: "signin" | "signup";
@@ -50,6 +59,29 @@ type AuthState = {
         profile: import("@/auth/google-native").GoogleNativeProfile;
       }
   >;
+  signInWithNaverNative: (opts?: {
+    flow?: "signin" | "signup";
+    accessToken?: string;
+  }) => Promise<
+    | { status: "signedIn" }
+    | {
+        status: "needsSignup";
+        accessToken: string;
+        profile: import("@/auth/naver-line-native").NativeOAuthProfile;
+      }
+  >;
+  signInWithLineNative: (opts?: {
+    flow?: "signin" | "signup";
+    accessToken?: string;
+  }) => Promise<
+    | { status: "signedIn" }
+    | {
+        status: "needsSignup";
+        accessToken: string;
+        profile: import("@/auth/naver-line-native").NativeOAuthProfile;
+      }
+  >;
+  completeOAuthSignupHandoff: (handoff: string) => Promise<void>;
   addAccount: (mode: WebAuthMode) => Promise<void>;
   switchAccount: (userId: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -144,10 +176,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const cached = await loadFeedBootstrap();
+      const [cachedFeed, cachedInbox] = await Promise.all([
+        loadFeedBootstrap(),
+        loadDmInboxBootstrap(),
+      ]);
       if (cancelled) return;
-      if (cached) {
-        queryClient.setQueryData(["mobile-feed"], cached);
+      if (cachedFeed) {
+        queryClient.setQueryData(["mobile-feed"], cachedFeed);
+      }
+      if (cachedInbox) {
+        queryClient.setQueryData(["mobile-dm-inbox"], cachedInbox);
       }
 
       const cachedUser = await getCachedActiveUser();
@@ -191,15 +229,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (mode: WebAuthMode, addAccount: boolean, opts?: import("@/auth/oauth").OpenWebAuthOptions) => {
       const { openWebAuthSession } = await import("@/auth/oauth");
       const next = await openWebAuthSession(mode, { ...opts, addAccount });
-      await applySignedInUser(next);
+      if (next.status === "needsSignup") {
+        return {
+          status: "needsSignup" as const,
+          handoff: next.handoff,
+          provider: next.provider,
+          profile: next.profile,
+        };
+      }
+      await applySignedInUser(next.user);
       void refreshMe();
+      return { status: "signedIn" as const };
     },
     [applySignedInUser, refreshMe]
   );
 
   const openWebAuth = useCallback(
     async (mode: WebAuthMode, opts?: import("@/auth/oauth").OpenWebAuthOptions) => {
-      await finishWebAuth(mode, false, opts);
+      return finishWebAuth(mode, false, opts);
     },
     [finishWebAuth]
   );
@@ -239,13 +286,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applySignedInUser, refreshMe]
   );
 
+  const signInWithNaverNative = useCallback(
+    async (opts?: { flow?: "signin" | "signup"; accessToken?: string }) => {
+      const { authenticateWithNaverNative } = await import("@/auth/naver-line-native");
+      const result = await authenticateWithNaverNative({
+        flow: opts?.flow ?? "signin",
+        accessToken: opts?.accessToken,
+      });
+      if (result.status === "needsSignup") {
+        return {
+          status: "needsSignup" as const,
+          accessToken: result.accessToken,
+          profile: result.profile,
+        };
+      }
+      await setTokens(result.accessToken, result.refreshToken, result.user);
+      await applySignedInUser(result.user);
+      void refreshMe();
+      return { status: "signedIn" as const };
+    },
+    [applySignedInUser, refreshMe]
+  );
+
+  const signInWithLineNative = useCallback(
+    async (opts?: { flow?: "signin" | "signup"; accessToken?: string }) => {
+      const { authenticateWithLineNative } = await import("@/auth/naver-line-native");
+      const result = await authenticateWithLineNative({
+        flow: opts?.flow ?? "signin",
+        accessToken: opts?.accessToken,
+      });
+      if (result.status === "needsSignup") {
+        return {
+          status: "needsSignup" as const,
+          accessToken: result.accessToken,
+          profile: result.profile,
+        };
+      }
+      await setTokens(result.accessToken, result.refreshToken, result.user);
+      await applySignedInUser(result.user);
+      void refreshMe();
+      return { status: "signedIn" as const };
+    },
+    [applySignedInUser, refreshMe]
+  );
+
+  const completeOAuthSignupHandoff = useCallback(
+    async (handoff: string) => {
+      const { completeWebOAuthSignup } = await import("@/auth/oauth");
+      const user = await completeWebOAuthSignup(handoff);
+      await applySignedInUser(user);
+      void refreshMe();
+    },
+    [applySignedInUser, refreshMe]
+  );
+
   const addAccount = useCallback(
     async (mode: WebAuthMode) => {
       const active = await getActiveAccount();
       if (active && user) {
         await saveAccountSession(user, active.accessToken, active.refreshToken);
       }
-      await finishWebAuth(mode, true);
+      const result = await finishWebAuth(mode, true);
+      if (result.status === "needsSignup") {
+        throw new Error("추가 계정은 가입 완료 후 다시 시도해 주세요.");
+      }
     },
     [finishWebAuth, user]
   );
@@ -257,7 +361,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const hit = await activateAccount(userId);
       if (!hit) return;
       queryClient.clear();
-      await clearFeedBootstrap();
+      await Promise.all([clearFeedBootstrap(), clearDmBootstrap()]);
       resetTabWarmup();
       setUser(savedAccountToCachedUser(hit));
       if (hit.image) prefetchImageUrls([hit.image], 1);
@@ -284,7 +388,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .then((m) => m.clearGoogleNativeSession())
         .catch(() => undefined);
       const fallback = await logoutCurrentAccount();
-      await clearFeedBootstrap();
+      await Promise.all([clearFeedBootstrap(), clearDmBootstrap()]);
       queryClient.clear();
       if (fallback) {
         setStatus("signedIn");
@@ -307,6 +411,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       openWebAuth,
       signInWithCredentials,
       signInWithGoogleNative,
+      signInWithNaverNative,
+      signInWithLineNative,
+      completeOAuthSignupHandoff,
       addAccount,
       switchAccount,
       signOut,
@@ -320,6 +427,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       openWebAuth,
       signInWithCredentials,
       signInWithGoogleNative,
+      signInWithNaverNative,
+      signInWithLineNative,
+      completeOAuthSignupHandoff,
       addAccount,
       switchAccount,
       signOut,

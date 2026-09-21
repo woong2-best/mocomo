@@ -32,7 +32,7 @@ import { ChevronRight } from "lucide-react";
 type OnboardingState = Awaited<ReturnType<typeof getSellerOnboardingState>>;
 
 const SETTLEMENT_REGISTER_COPY =
-  "Stripe Express 온보딩을 통해 본인 명의 현지 은행 계좌를 안전하게 연동합니다.";
+  "Stripe Express 온보딩에서 본인 확인·은행 계좌·세무 정보(W-9/W-8BEN)를 등록합니다. 연말 세무 보고는 Stripe Tax Reporting에 위임됩니다.";
 
 export function SellerOnboardingWizard({
   initialState,

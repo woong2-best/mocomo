@@ -101,8 +101,9 @@ export function canAssignBroadcastRole(
   if (newRole === "MANAGER") {
     return actorRole === "OWNER";
   }
+  // MODERATOR / VIP 신규 지정 중단 — 관리자만
   if (newRole === "MODERATOR" || newRole === "VIP") {
-    return actorRole === "OWNER" || actorRole === "MANAGER";
+    return false;
   }
   // removal
   if (targetCurrentRole === "MANAGER") {
@@ -129,7 +130,16 @@ export async function getEffectiveBroadcastRole(
     where: { channelId_userId: { channelId, userId } },
     select: { role: true },
   });
-  return assignment?.role ?? "VIEWER";
+  if (assignment?.role) return assignment.role;
+
+  // Streamer-scoped staff (persists across broadcasts)
+  const staff = await db.streamerStaffAssignment.findUnique({
+    where: {
+      hostUserId_userId: { hostUserId: channel.createdBy, userId },
+    },
+    select: { role: true },
+  });
+  return staff?.role ?? "VIEWER";
 }
 
 export async function getBroadcastRolesForUsers(
@@ -155,10 +165,19 @@ export async function getBroadcastRolesForUsers(
   const rest = uniqueIds.filter((id) => id !== channel.createdBy);
   if (rest.length === 0) return map;
 
-  const rows = await db.broadcastRoleAssignment.findMany({
-    where: { channelId, userId: { in: rest } },
-    select: { userId: true, role: true },
-  });
+  const [rows, staffRows] = await Promise.all([
+    db.broadcastRoleAssignment.findMany({
+      where: { channelId, userId: { in: rest } },
+      select: { userId: true, role: true },
+    }),
+    db.streamerStaffAssignment.findMany({
+      where: { hostUserId: channel.createdBy, userId: { in: rest } },
+      select: { userId: true, role: true },
+    }),
+  ]);
+  for (const row of staffRows) {
+    map.set(row.userId, row.role);
+  }
   for (const row of rows) {
     map.set(row.userId, row.role);
   }

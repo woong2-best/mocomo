@@ -118,11 +118,28 @@ export async function fetchPostShareCard(postId: string) {
   );
 }
 
+export type MessageUserHit = {
+  id: string;
+  username: string;
+  name: string | null;
+  image: string | null;
+};
+
 export async function searchMessageUsers(q: string) {
   const query = new URLSearchParams({ q });
-  return apiRequest<{
-    users: { id: string; username: string; name: string | null; image: string | null }[];
-  }>(`${MobileApi.search}?${query}`, { auth: true });
+  return apiRequest<{ users: MessageUserHit[] }>(`${MobileApi.search}?${query}`, {
+    auth: true,
+  });
+}
+
+/** People the current user follows — for inbox “Send message” picker. */
+export async function fetchFollowingForDm(q?: string) {
+  const query = new URLSearchParams();
+  if (q?.trim()) query.set("q", q.trim());
+  const suffix = query.toString() ? `?${query}` : "";
+  return apiRequest<{ users: MessageUserHit[] }>(`${MobileApi.following}${suffix}`, {
+    auth: true,
+  });
 }
 
 export async function syncRoomMessages(roomId: string, after?: string | null) {

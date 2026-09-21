@@ -1,6 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -12,14 +11,18 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { FolkButton } from "@/ui/FolkButton";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
-import { PaymentCheckoutSheet } from "@/payments/PaymentCheckoutSheet";
+import { fetchGemsWallet } from "@/api/gems";
+import { sendLetterDonation } from "@/api/letter-donations";
 import {
   LETTER_DONATION_MESSAGE_MAX,
-  LETTER_DONATION_MIN_KRW,
+  LETTER_DONATION_MIN_MOCO,
 } from "@/lib/chat-letter-donation";
-import { formatUsd } from "@/lib/money";
 
-const PRESETS = [5_000, 10_000, 30_000, 50_000, 100_000];
+const PRESETS = [1, 2, 5, 10, 20];
+
+function formatMoco(moco: number) {
+  return `${Math.max(0, Math.floor(moco)).toLocaleString()} MOCO`;
+}
 
 type Props = {
   visible: boolean;
@@ -36,63 +39,68 @@ export function LetterDonationSheet({
   visible,
   onClose,
   creatorId,
-  username,
   displayName,
-  channelId,
   roomId,
   onSuccess,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [amount, setAmount] = useState(10_000);
+  const [amount, setAmount] = useState(2);
   const [custom, setCustom] = useState("");
   const [message, setMessage] = useState("");
+  const [balance, setBalance] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [payOpen, setPayOpen] = useState(false);
-  const [payBody, setPayBody] = useState<{
-    type: "TIP";
-    amount: number;
-    orderName: string;
-    metadata: Record<string, unknown>;
-  } | null>(null);
 
   const effectiveAmount = custom ? parseInt(custom.replace(/\D/g, ""), 10) || 0 : amount;
   const trimmed = message.trim();
-  const creatorGets = Math.round(effectiveAmount * 0.9);
+
+  useEffect(() => {
+    if (!visible) return;
+    setError("");
+    void fetchGemsWallet()
+      .then((w) => setBalance(w.balance))
+      .catch(() => setBalance(null));
+  }, [visible]);
 
   async function submit() {
-    if (effectiveAmount < LETTER_DONATION_MIN_KRW) {
-      setError(`최소 ${formatUsd(LETTER_DONATION_MIN_KRW)}부터 보낼 수 있습니다.`);
+    if (!roomId) {
+      setError("대화방에서만 편지를 보낼 수 있습니다.");
+      return;
+    }
+    if (effectiveAmount < LETTER_DONATION_MIN_MOCO) {
+      setError(`최소 ${formatMoco(LETTER_DONATION_MIN_MOCO)}부터 보낼 수 있습니다.`);
       return;
     }
     if (!trimmed) {
       setError("편지 내용을 입력해 주세요.");
       return;
     }
+    if (balance != null && balance < effectiveAmount) {
+      setError("MOCO 잔액이 부족합니다. 지갑에서 충전해 주세요.");
+      return;
+    }
+
     setBusy(true);
     setError("");
-    const meta: Record<string, unknown> = {
-      receiverId: creatorId,
-      username,
-      message: trimmed,
-      tipKind: "letter",
-    };
-    if (channelId) meta.channelId = channelId;
-    if (roomId) meta.roomId = roomId;
-
-    setPayBody({
-      type: "TIP",
-      amount: effectiveAmount,
-      orderName: `@${username} 편지 후원`,
-      metadata: meta,
-    });
-    setPayOpen(true);
-    setBusy(false);
+    try {
+      const res = await sendLetterDonation({
+        receiverId: creatorId,
+        roomId,
+        moco: effectiveAmount,
+        message: trimmed,
+      });
+      setBalance(res.balance);
+      onSuccess?.();
+      onClose();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "편지를 보내지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <>
     <KeyboardSheet
       visible={visible}
       onClose={onClose}
@@ -104,71 +112,60 @@ export function LetterDonationSheet({
         gap: spacing.sm,
       }}
     >
-          <Image source={require("../../assets/wax-envelope.png")} style={styles.hero} resizeMode="cover" />
-          <Text style={styles.title}>{displayName}에게 편지</Text>
-          <Text style={styles.sub}>
-            최소 {formatUsd(LETTER_DONATION_MIN_KRW)} · 수수료 10% (정산 {formatUsd(creatorGets)})
-          </Text>
+      <Image source={require("../../assets/wax-envelope.png")} style={styles.hero} resizeMode="cover" />
+      <Text style={styles.title}>{displayName}에게 편지</Text>
+      <Text style={styles.sub}>
+        최소 {formatMoco(LETTER_DONATION_MIN_MOCO)} · 상대가 봉투를 열면 MOCO가 전달됩니다
+        {balance != null ? ` · 보유 ${formatMoco(balance)}` : ""}
+      </Text>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presets}>
-            {PRESETS.map((p) => (
-              <Pressable
-                key={p}
-                style={[styles.preset, !custom && amount === p && styles.presetActive]}
-                onPress={() => {
-                  setCustom("");
-                  setAmount(p);
-                }}
-              >
-                <Text style={[styles.presetText, !custom && amount === p && styles.presetTextActive]}>
-                  {formatUsd(p)}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          <TextInput
-            style={styles.input}
-            placeholder="금액 직접 입력 (USD)"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="number-pad"
-            value={custom}
-            onChangeText={setCustom}
-          />
-          <TextInput
-            style={[styles.input, styles.messageInput]}
-            placeholder="편지 내용"
-            placeholderTextColor={colors.textMuted}
-            value={message}
-            onChangeText={(t) => setMessage(t.slice(0, LETTER_DONATION_MESSAGE_MAX))}
-            maxLength={LETTER_DONATION_MESSAGE_MAX}
-            multiline
-          />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <FolkButton
-            label={busy ? "결제 준비 중…" : `${formatUsd(effectiveAmount)} · 편지 보내기`}
-            onPress={() => void submit()}
-            loading={busy}
-            disabled={busy || effectiveAmount < LETTER_DONATION_MIN_KRW || !trimmed}
-          />
-          <Pressable onPress={onClose} style={styles.cancel}>
-            <Text style={styles.cancelText}>닫기</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presets}>
+        {PRESETS.map((p) => (
+          <Pressable
+            key={p}
+            style={[styles.preset, !custom && amount === p && styles.presetActive]}
+            onPress={() => {
+              setCustom("");
+              setAmount(p);
+            }}
+          >
+            <Text style={[styles.presetText, !custom && amount === p && styles.presetTextActive]}>
+              {formatMoco(p)}
+            </Text>
           </Pressable>
-    </KeyboardSheet>
-    {payBody ? (
-      <PaymentCheckoutSheet
-        visible={payOpen}
-        body={payBody}
-        onClose={() => setPayOpen(false)}
-        onSuccess={() => {
-          onSuccess?.();
-          onClose();
-        }}
+        ))}
+      </ScrollView>
+
+      <TextInput
+        style={styles.input}
+        placeholder="금액 직접 입력 (MOCO)"
+        placeholderTextColor={colors.textMuted}
+        keyboardType="number-pad"
+        value={custom}
+        onChangeText={setCustom}
       />
-    ) : null}
-  </>
+      <TextInput
+        style={[styles.input, styles.messageInput]}
+        placeholder="편지 내용"
+        placeholderTextColor={colors.textMuted}
+        value={message}
+        onChangeText={(t) => setMessage(t.slice(0, LETTER_DONATION_MESSAGE_MAX))}
+        maxLength={LETTER_DONATION_MESSAGE_MAX}
+        multiline
+      />
+
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <FolkButton
+        label={busy ? "보내는 중…" : `${formatMoco(effectiveAmount)} · 편지 보내기`}
+        onPress={() => void submit()}
+        loading={busy}
+        disabled={busy || effectiveAmount < LETTER_DONATION_MIN_MOCO || !trimmed || !roomId}
+      />
+      <Pressable onPress={onClose} style={styles.cancel}>
+        <Text style={styles.cancelText}>닫기</Text>
+      </Pressable>
+    </KeyboardSheet>
   );
 }
 

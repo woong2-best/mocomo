@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   enterLiveAsHost,
@@ -47,6 +47,8 @@ type Props = {
 };
 
 const POLL_MS = 5_000;
+/** Refresh YT/Twitch title+description every ~30s (every 6th status poll). */
+const META_EVERY_N = 6;
 
 function shouldLeaveAfterStatus(data: {
   mocomoLive?: boolean;
@@ -63,17 +65,25 @@ function shouldLeaveAfterStatus(data: {
  * Client shell for external live rooms — presence, platform sync, auto-leave on end.
  */
 export function ExternalLiveRoomClient(props: Props) {
-  const { channelId, isHost } = props;
+  const { channelId, isHost, title, platformTitle, platformDescription } = props;
   const router = useRouter();
   const joinedRef = useRef(false);
   const endingRef = useRef(false);
   const endedRef = useRef(false);
+  const pollCountRef = useRef(0);
+  const [liveTitle, setLiveTitle] = useState(platformTitle?.trim() || title);
+  const [liveDescription, setLiveDescription] = useState(platformDescription?.trim() || null);
 
   const leaveRoom = useCallback(() => {
     if (endedRef.current) return;
     endedRef.current = true;
     router.replace("/live");
   }, [router]);
+
+  useEffect(() => {
+    setLiveTitle(platformTitle?.trim() || title);
+    setLiveDescription(platformDescription?.trim() || null);
+  }, [platformTitle, platformDescription, title]);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,17 +111,30 @@ export function ExternalLiveRoomClient(props: Props) {
 
     async function poll() {
       if (endedRef.current || endingRef.current) return;
+      pollCountRef.current += 1;
+      const wantMeta = pollCountRef.current % META_EVERY_N === 1;
       try {
-        const res = await fetch(`/api/live/${channelId}/external-status`, {
-          credentials: "include",
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `/api/live/${channelId}/external-status${wantMeta ? "?meta=1" : ""}`,
+          {
+            credentials: "include",
+            cache: "no-store",
+          }
+        );
         if (!res.ok || cancelled) return;
         const data = (await res.json()) as {
           mocomoLive?: boolean;
           ended?: boolean;
           platformOnAir?: boolean | null;
+          title?: string | null;
+          description?: string | null;
         };
+        if (wantMeta) {
+          if (data.title?.trim()) setLiveTitle(data.title.trim());
+          if (data.description !== undefined) {
+            setLiveDescription(data.description?.trim() || null);
+          }
+        }
         if (shouldLeaveAfterStatus(data)) {
           leaveRoom();
         }
@@ -152,6 +175,7 @@ export function ExternalLiveRoomClient(props: Props) {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2">
           <p className="text-xs text-muted-foreground">
             OBS 채팅 → 호스트 대시보드에서 URL 복사 → OBS 브라우저 소스에 붙여넣기.
+            제목·설명은 YouTube/Twitch에서 바꾸면 자동 반영됩니다.
           </p>
           <Button
             type="button"
@@ -165,7 +189,13 @@ export function ExternalLiveRoomClient(props: Props) {
           </Button>
         </div>
       ) : null}
-      <ExternalLiveRoom {...props} onPlatformEnded={leaveRoom} />
+      <ExternalLiveRoom
+        {...props}
+        title={liveTitle}
+        platformTitle={liveTitle}
+        platformDescription={liveDescription}
+        onPlatformEnded={leaveRoom}
+      />
     </>
   );
 }

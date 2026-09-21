@@ -242,39 +242,6 @@ function NewMessagePageInner() {
           </form>
         </section>
 
-        {!showResults && (
-          <>
-            <div className="relative py-2">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border/60" />
-              </div>
-              <span className="relative flex justify-center text-xs text-muted-foreground bg-background px-2">
-                또는
-              </span>
-            </div>
-
-            <section className="rounded-2xl border border-border/60 p-4 space-y-3 bg-muted/20">
-              <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">단체대화방</p>
-                  <p className="text-xs text-muted-foreground">
-                    코스어 방(공지·투표) · 친목 방(단체 통화)
-                  </p>
-                </div>
-              </div>
-              <Button asChild className="w-full rounded-2xl">
-                <Link href="/messages/groups/new">단체방 만들기</Link>
-              </Button>
-              <Button asChild variant="outline" className="w-full rounded-2xl">
-                <Link href="/messages/join">입장 코드로 들어가기</Link>
-              </Button>
-            </section>
-          </>
-        )}
-
         <p className="text-center text-xs text-muted-foreground px-2">
           모욕, 비난, 성희롱 및 불법 행위는 법적 처벌 대상이 될 수 있습니다.
         </p>

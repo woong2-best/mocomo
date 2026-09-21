@@ -1,43 +1,37 @@
-import { isR18LiveCategory, parseLiveCategoryParam } from "@/lib/live-categories";
-import { parseLiveHubModeParam } from "@/lib/live-hub-mode";
-import { getLiveHubChannelFeed } from "@/lib/live-hub-data";
-import { LiveChannelGrid } from "@/components/live/live-channel-grid";
 import { getAuthUserId } from "@/lib/auth";
+import { parseLiveHubModeParam } from "@/lib/live-hub-mode";
+import { getLiveHubChannelFeed, getLiveHubStaticData } from "@/lib/live-hub-data";
+import { LiveChannelGrid } from "@/components/live/live-channel-grid";
 import { filterNsfwChannels, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
-function parseLiveHubViewParam(raw?: string | null): "explore" | "following" {
-  return raw === "following" ? "following" : "explore";
-}
-
+/**
+ * Always loads the full live feed; folder rail filters client-side
+ * so category clicks never navigate away from /live.
+ */
 export async function LiveChannelFeed({
   searchParams,
 }: {
   searchParams: Promise<{ category?: string; mode?: string; view?: string; q?: string }>;
 }) {
-  const { category: categoryRaw, mode: modeRaw, view: viewRaw, q: qRaw } = await searchParams;
-  const category = parseLiveCategoryParam(categoryRaw);
+  const { mode: modeRaw, q: qRaw } = await searchParams;
   const mode = parseLiveHubModeParam(modeRaw);
-  const view = parseLiveHubViewParam(viewRaw);
   const q = qRaw?.trim().toLowerCase() ?? "";
-  const canViewNsfw = await resolveCanViewNsfw(await getAuthUserId());
+  const userId = await getAuthUserId();
+  const canViewNsfw = await resolveCanViewNsfw(userId);
 
   let channels: Awaited<ReturnType<typeof getLiveHubChannelFeed>>["channels"] = [];
   let hosts: Awaited<ReturnType<typeof getLiveHubChannelFeed>>["hosts"] = [];
-
-  if (isR18LiveCategory(category) && !canViewNsfw) {
-    return (
-      <LiveChannelGrid
-        channels={[]}
-        hosts={[]}
-        filteredCategory={category}
-        view={view}
-      />
-    );
-  }
+  let followedHostIds: string[] = [];
 
   try {
-    ({ channels, hosts } = await getLiveHubChannelFeed(category, mode));
+    ({ channels, hosts } = await getLiveHubChannelFeed(undefined, mode));
     channels = filterNsfwChannels(channels, canViewNsfw);
+
+    const staticData = await getLiveHubStaticData(userId);
+    followedHostIds = [
+      ...new Set(staticData.followedLive.map((ch) => ch.createdBy)),
+    ];
+
     if (q) {
       const hostById = Object.fromEntries(hosts.map((h) => [h.id, h]));
       channels = channels.filter((ch) => {
@@ -56,8 +50,7 @@ export async function LiveChannelFeed({
     <LiveChannelGrid
       channels={channels}
       hosts={hosts}
-      filteredCategory={category}
-      view={view}
+      followedHostIds={followedHostIds}
     />
   );
 }

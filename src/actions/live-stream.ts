@@ -110,7 +110,22 @@ export async function createLiveStream(data: {
     const hostCheck = await assertLiveHostEligible(user.id);
     if (!hostCheck.ok) return { error: hostCheck.error };
 
-    const title = data.name?.trim() || "라이브 방송";
+    const profileDefaults = await db.streamerProfile.findUnique({
+      where: { userId: user.id },
+      select: { defaultTitle: true, defaultCategory: true },
+    });
+
+    const resolvedCategory =
+      data.category && data.category !== "VIRTUAL"
+        ? data.category
+        : profileDefaults?.defaultCategory && profileDefaults.defaultCategory !== "VIRTUAL"
+          ? profileDefaults.defaultCategory
+          : "JUST_CHATTING";
+
+    const title =
+      data.name?.trim() ||
+      profileDefaults?.defaultTitle?.trim() ||
+      "라이브 방송";
     const joinPassword = generateLiveJoinPassword();
     const joinPasswordHash = await hashLiveJoinPassword(joinPassword);
 
@@ -183,7 +198,7 @@ export async function createLiveStream(data: {
       joinPasswordHash,
       isLive: false,
       liveStatus: "SCHEDULED" as const,
-      category: data.category ?? "JUST_CHATTING",
+      category: resolvedCategory,
       tags,
       thumbnailUrl: data.thumbnailUrl?.trim() || null,
       description: data.description?.trim().slice(0, 500) || null,

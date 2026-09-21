@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useIdleCallback } from "@/hooks/use-idle-callback";
@@ -11,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import { StickyMemoDialog } from "@/components/layout/sticky-memo-dialog";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
   buildMonthGrid,
@@ -21,6 +22,7 @@ import {
   weekdayLabels,
   type CalendarCell,
 } from "@/lib/calendar/kr-calendar";
+import { formatScheduleMemo } from "@/lib/live-broadcast/weekly-schedule";
 import {
   detectBrowserTimeZone,
   normalizeTimeZone,
@@ -30,7 +32,26 @@ import { cn } from "@/lib/utils";
 
 type MemosMap = Record<string, string>;
 
+const WEEKDAY_KO = ["일", "월", "화", "수", "목", "금", "토"] as const;
+
+function profileUsernameFromPath(pathname: string | null): string | null {
+  if (!pathname) return null;
+  const m = pathname.match(/^\/u\/([^/]+)/);
+  if (!m?.[1]) return null;
+  try {
+    return decodeURIComponent(m[1]);
+  } catch {
+    return m[1];
+  }
+}
+
+type MemoTarget =
+  | { kind: "day"; cell: CalendarCell }
+  | { kind: "weekday"; weekday: number };
+
 export function ProfileCalendar() {
+  const pathname = usePathname();
+  const profileUsername = profileUsernameFromPath(pathname);
   const { t, timeZone: localeTimeZone, countryCode } = useLocale();
   const session = useSession();
   const signedIn = Boolean(session?.data?.user?.id);
@@ -47,9 +68,13 @@ export function ProfileCalendar() {
   const [year, setYear] = useState(today.y);
   const [month, setMonth] = useState(today.m);
   const [memos, setMemos] = useState<MemosMap>({});
+  const [scheduleWeekdays, setScheduleWeekdays] = useState<Set<number>>(new Set());
+  const [scheduleTime, setScheduleTime] = useState<string | null>(null);
+  const [scheduleNote, setScheduleNote] = useState<string | null>(null);
+  const [canEditDays, setCanEditDays] = useState(false);
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(today.y);
-  const [selected, setSelected] = useState<CalendarCell | null>(null);
+  const [target, setTarget] = useState<MemoTarget | null>(null);
   const [memoDraft, setMemoDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -67,25 +92,45 @@ export function ProfileCalendar() {
   const weekdays = useMemo(() => weekdayLabels(), []);
 
   const loadMemos = useCallback(async () => {
-    if (!signedIn) {
+    if (!profileUsername && !signedIn) {
       setMemos({});
+      setScheduleWeekdays(new Set());
+      setScheduleTime(null);
+      setScheduleNote(null);
+      setCanEditDays(false);
       return;
     }
     setLoadError(false);
     try {
-      const res = await fetch(`/api/calendar/memos?year=${year}&month=${month}`, {
+      const params = new URLSearchParams({
+        year: String(year),
+        month: String(month),
+      });
+      if (profileUsername) params.set("username", profileUsername);
+
+      const res = await fetch(`/api/calendar/memos?${params}`, {
         credentials: "same-origin",
       });
       if (!res.ok) {
         setLoadError(true);
         return;
       }
-      const data = (await res.json()) as { memos?: MemosMap };
+      const data = (await res.json()) as {
+        memos?: MemosMap;
+        scheduleWeekdays?: number[];
+        scheduleTime?: string | null;
+        scheduleNote?: string | null;
+        canEdit?: boolean;
+      };
       setMemos(data.memos ?? {});
+      setScheduleWeekdays(new Set(data.scheduleWeekdays ?? []));
+      setScheduleTime(data.scheduleTime ?? null);
+      setScheduleNote(data.scheduleNote ?? null);
+      setCanEditDays(Boolean(data.canEdit));
     } catch {
       setLoadError(true);
     }
-  }, [signedIn, year, month]);
+  }, [signedIn, year, month, profileUsername]);
 
   useIdleCallback(() => {
     void loadMemos();
@@ -96,14 +141,25 @@ export function ProfileCalendar() {
       setYear(cell.y);
       setMonth(cell.m);
     }
-    setSelected(cell);
+    setTarget({ kind: "day", cell });
     setMemoDraft(memos[dateKey(cell.y, cell.m, cell.d)] ?? "");
   };
 
+  const openWeekday = (weekday: number) => {
+    setTarget({ kind: "weekday", weekday });
+    setMemoDraft(
+      formatScheduleMemo({
+        weekdays: [...scheduleWeekdays].sort((a, b) => a - b),
+        time: scheduleTime,
+        note: scheduleNote,
+      })
+    );
+  };
+
   const saveMemo = async () => {
-    if (!selected || !signedIn) return;
+    if (!target || target.kind !== "day" || !canEditDays) return;
     setSaving(true);
-    const key = dateKey(selected.y, selected.m, selected.d);
+    const key = dateKey(target.cell.y, target.cell.m, target.cell.d);
     try {
       const res = await fetch("/api/calendar/memos", {
         method: "PUT",
@@ -112,14 +168,14 @@ export function ProfileCalendar() {
         body: JSON.stringify({ dateKey: key, body: memoDraft }),
       });
       if (!res.ok) return;
-      const trimmed = memoDraft.trim();
+      const trimmed = memoDraft.replace(/^\s+|\s+$/g, "");
       setMemos((prev) => {
         const next = { ...prev };
         if (trimmed) next[key] = trimmed;
         else delete next[key];
         return next;
       });
-      setSelected(null);
+      setTarget(null);
     } finally {
       setSaving(false);
     }
@@ -136,11 +192,24 @@ export function ProfileCalendar() {
     setMonth(today.m);
   };
 
-  const selectedKey = selected ? dateKey(selected.y, selected.m, selected.d) : null;
+  const memoTitle =
+    target?.kind === "day"
+      ? `${target.cell.y}.${String(target.cell.m).padStart(2, "0")}.${String(target.cell.d).padStart(2, "0")}`
+      : target?.kind === "weekday"
+        ? `매주 ${WEEKDAY_KO[target.weekday]}`
+        : "";
+
+  const memoSubtitle =
+    target?.kind === "day"
+      ? (target.cell.holiday ?? null)
+      : target?.kind === "weekday"
+        ? "방송 일정 · 라이브 스튜디오에서 수정"
+        : null;
+
+  const editingDay = target?.kind === "day" && canEditDays;
 
   return (
     <div className="shrink-0 w-full bg-card border-b border-border overflow-hidden">
-      {/* Header — red month number opens picker */}
       <div className="px-1.5 pt-3 pb-1 text-center">
         <button
           type="button"
@@ -197,32 +266,42 @@ export function ProfileCalendar() {
         </div>
       </div>
 
-      {/* Weekday headers */}
+      {/* Weekday headers only — light green for broadcast days; clickable */}
       <div className="grid grid-cols-7 border-t border-border">
-        {weekdays.map((w, i) => (
-          <div
-            key={w.en}
-            className={cn(
-              "flex flex-col items-center py-1.5 border-r border-border last:border-r-0",
-              i === 0 && "text-[#c41e3a] dark:text-red-400",
-              i === 6 && "text-[#1d4ed8] dark:text-sky-400",
-              i > 0 && i < 6 && "text-foreground"
-            )}
-          >
-            <span className="text-sm font-serif font-bold leading-none">{w.han}</span>
-            <span className="mt-0.5 text-[8px] font-semibold tracking-wide opacity-70">{w.en}</span>
-          </div>
-        ))}
+        {weekdays.map((w, i) => {
+          const isScheduleHeader = scheduleWeekdays.has(i);
+          return (
+            <button
+              key={w.en}
+              type="button"
+              onClick={() => openWeekday(i)}
+              className={cn(
+                "flex flex-col items-center py-1.5 border-r border-border last:border-r-0 transition-colors hover:bg-muted/40",
+                isScheduleHeader && "bg-lime-500/35 dark:bg-lime-400/25",
+                i === 0 && "text-[#c41e3a] dark:text-red-400",
+                i === 6 && !isScheduleHeader && "text-[#1d4ed8] dark:text-sky-400",
+                i === 6 && isScheduleHeader && "text-sky-100",
+                i > 0 && i < 6 && "text-foreground"
+              )}
+              aria-label={`${w.han} ${w.en} 메모`}
+            >
+              <span className="text-sm font-serif font-bold leading-none">{w.han}</span>
+              <span className="mt-0.5 text-[8px] font-semibold tracking-wide opacity-70">{w.en}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Date grid */}
+      {/* Date grid — no green columns, no memo dots */}
       <div className="grid grid-cols-7 border-t border-border">
         {cells.map((cell) => {
           const key = dateKey(cell.y, cell.m, cell.d);
-          const hasMemo = Boolean(memos[key]);
           const isToday =
             cell.inMonth && cell.y === today.y && cell.m === today.m && cell.d === today.d;
-          const isSelected = selectedKey === key && selected?.inMonth === cell.inMonth;
+          const isSelected =
+            target?.kind === "day" &&
+            dateKey(target.cell.y, target.cell.m, target.cell.d) === key &&
+            target.cell.inMonth === cell.inMonth;
 
           return (
             <button
@@ -260,12 +339,6 @@ export function ProfileCalendar() {
                   {cell.holiday}
                 </span>
               ) : null}
-              {hasMemo && cell.inMonth ? (
-                <span
-                  className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-folk-terracotta"
-                  aria-hidden
-                />
-              ) : null}
             </button>
           );
         })}
@@ -275,7 +348,6 @@ export function ProfileCalendar() {
         <p className="px-2 py-1 text-[10px] text-muted-foreground">{t("calendar.loadError")}</p>
       ) : null}
 
-      {/* Month picker */}
       <Dialog open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
@@ -291,7 +363,9 @@ export function ProfileCalendar() {
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-base font-display font-bold text-folk-cobalt dark:text-folk-gold">{pickerYear}</span>
+            <span className="text-base font-display font-bold text-folk-cobalt dark:text-folk-gold">
+              {pickerYear}
+            </span>
             <button
               type="button"
               className="rounded-md p-1.5 hover:bg-muted"
@@ -324,62 +398,32 @@ export function ProfileCalendar() {
         </DialogContent>
       </Dialog>
 
-      {/* Day memo sheet */}
-      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="max-w-sm">
-          {selected ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="font-serif">
-                  <span
-                    className={cn(
-                      selected.isRed && "text-[#c41e3a] dark:text-red-400",
-                      selected.isBlue && "text-[#1d4ed8] dark:text-sky-400",
-                      !selected.isRed && !selected.isBlue && "text-foreground"
-                    )}
-                  >
-                    {selected.y}.{String(selected.m).padStart(2, "0")}.{String(selected.d).padStart(2, "0")}
-                  </span>
-                </DialogTitle>
-                <DialogDescription>
-                  {selected.holiday ?? t("calendar.memoHint")}
-                </DialogDescription>
-              </DialogHeader>
-              {signedIn ? (
-                <>
-                  <Textarea
-                    value={memoDraft}
-                    onChange={(e) => setMemoDraft(e.target.value)}
-                    placeholder={t("calendar.memoPlaceholder")}
-                    rows={5}
-                    maxLength={2000}
-                    className="min-h-[7.5rem] resize-none"
-                  />
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelected(null)}
-                      className="rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted"
-                    >
-                      {t("calendar.cancel")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={() => void saveMemo()}
-                      className="rounded-xl bg-folk-terracotta px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-folk-terracotta-dark disabled:opacity-60"
-                    >
-                      {saving ? t("calendar.saving") : t("calendar.save")}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">{t("calendar.loginRequired")}</p>
-              )}
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <StickyMemoDialog
+        open={Boolean(target)}
+        onOpenChange={(open) => !open && setTarget(null)}
+        title={memoTitle}
+        subtitle={memoSubtitle}
+        value={memoDraft}
+        onChange={setMemoDraft}
+        canEdit={editingDay}
+        onSave={() => void saveMemo()}
+        saving={saving}
+        cancelLabel={t("calendar.cancel")}
+        saveLabel={t("calendar.save")}
+        savingLabel={t("calendar.saving")}
+        placeholder={t("calendar.memoPlaceholder")}
+        readOnlyHint={
+          target?.kind === "weekday"
+            ? scheduleWeekdays.size > 0
+              ? undefined
+              : "라이브 스튜디오에서 방송 요일·메모를 설정하세요."
+            : canEditDays
+              ? undefined
+              : signedIn
+                ? t("calendar.memoHint")
+                : t("calendar.loginRequired")
+        }
+      />
     </div>
   );
 }

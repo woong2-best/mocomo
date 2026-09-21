@@ -19,9 +19,19 @@ import {
   signupRedirectForUnregistered,
   signupRedirectForExistingAccount,
   signupRedirectForStaleSession,
+  type SignupRedirectMobileOpts,
 } from "@/lib/oauth-flow-cookie";
 import { ADD_ACCOUNT_COOKIE, ADD_ACCOUNT_SOURCE_USER_COOKIE } from "@/lib/account-switch/constants";
-import { getAuthUrl } from "@/lib/auth-env";
+import {
+  MOBILE_OAUTH_COOKIE,
+  MOBILE_OAUTH_PLATFORM_COOKIE,
+  MOBILE_OAUTH_REDIRECT_COOKIE,
+  MOBILE_SIGNUP_HANDOFF_COOKIE,
+  mobileOptsFromAuthCallbackUrl,
+  readMobilePlatformCookie,
+  sanitizeMobileRedirectUri,
+} from "@/lib/mobile-oauth-shared";
+import { sealMobileOAuthNeedsSignup } from "@/lib/mobile-oauth-handoff";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import { recordUserAccessLog } from "@/lib/user-access-log";
 import {
@@ -33,10 +43,13 @@ import {
 
 const useSecureCookies = process.env.NODE_ENV === "production";
 
-function absoluteAuthRedirect(path: string): string {
-  const base = getAuthUrl()?.replace(/\/$/, "");
-  if (!base) return path;
-  return path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;
+/**
+ * Prefer relative redirects from the signIn callback.
+ * Absolutizing with AUTH_URL/VERCEL_URL used to mismatch Auth.js `baseUrl`
+ * (custom domain vs *.vercel.app) and the redirect callback dumped users to `/`.
+ */
+function authCallbackRedirect(path: string): string {
+  return path.startsWith("/") ? path : `/${path}`;
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -145,6 +158,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return Boolean(sourceUserId && sourceUserId === userId);
       }
 
+      async function readMobileSignupRedirectOpts(): Promise<SignupRedirectMobileOpts | null> {
+        const { cookies } = await import("next/headers");
+        const jar = await cookies();
+        if (jar.get(MOBILE_OAUTH_COOKIE)?.value === "1") {
+          const rawRedirect = jar.get(MOBILE_OAUTH_REDIRECT_COOKIE)?.value;
+          let redirectUri: string | null = null;
+          if (rawRedirect) {
+            try {
+              redirectUri = sanitizeMobileRedirectUri(decodeURIComponent(rawRedirect));
+            } catch {
+              redirectUri = sanitizeMobileRedirectUri(rawRedirect);
+            }
+          }
+          return {
+            platform: readMobilePlatformCookie(jar.get(MOBILE_OAUTH_PLATFORM_COOKIE)?.value),
+            redirectUri,
+          };
+        }
+
+        // Cookie jar lost (Discord/LINE in-app browser) — recover from Auth.js callback-url.
+        const callbackUrl =
+          jar.get("__Secure-authjs.callback-url")?.value ??
+          jar.get("authjs.callback-url")?.value ??
+          jar.get("__Secure-next-auth.callback-url")?.value ??
+          jar.get("next-auth.callback-url")?.value ??
+          null;
+        return mobileOptsFromAuthCallbackUrl(callbackUrl);
+      }
+
       if (isOAuth && (oauthFlow === "signin" || oauthFlow === null)) {
         let existing: SignInUserRow | null = null;
 
@@ -159,7 +201,49 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (!existing) {
-          return absoluteAuthRedirect(signupRedirectForUnregistered(addingAccount));
+          const mobile = await readMobileSignupRedirectOpts();
+          if (mobile && account?.provider && account.providerAccountId) {
+            const provider = account.provider as
+              | "discord"
+              | "twitter"
+              | "line"
+              | "naver"
+              | "google";
+            if (
+              provider === "discord" ||
+              provider === "twitter" ||
+              provider === "line" ||
+              provider === "naver" ||
+              provider === "google"
+            ) {
+              const handoff = sealMobileOAuthNeedsSignup({
+                provider,
+                sub: account.providerAccountId,
+                profile: {
+                  email: user.email?.trim().toLowerCase() || null,
+                  name: user.name ?? null,
+                  image: user.image ?? null,
+                },
+              });
+              const { cookies: cookieStore } = await import("next/headers");
+              const jar = await cookieStore();
+              const secure = process.env.NODE_ENV === "production";
+              jar.set(MOBILE_SIGNUP_HANDOFF_COOKIE, handoff, {
+                path: "/",
+                maxAge: 300,
+                sameSite: "lax",
+                secure,
+                httpOnly: true,
+              });
+              const platform = mobile.platform === "ios" ? "ios" : "android";
+              return authCallbackRedirect(
+                `/auth/mobile/oauth/pending-signup?platform=${platform}&from=mobile`
+              );
+            }
+          }
+          return authCallbackRedirect(
+            signupRedirectForUnregistered(addingAccount, "not_registered", mobile)
+          );
         }
         if (!oauthProviderEmailVerified()) {
           return false;
@@ -182,7 +266,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return oauthProviderEmailVerified();
         }
         if (existing.emailVerified && addingAccount) {
-          return absoluteAuthRedirect(signupRedirectForExistingAccount(true));
+          const mobile = await readMobileSignupRedirectOpts();
+          return authCallbackRedirect(signupRedirectForExistingAccount(true, mobile));
         }
         if (existing.emailVerified) {
           user.id = existing.id;
@@ -207,7 +292,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (isOAuth && oauthFlow === "signup" && addingAccount) {
         if (await isStaleAddAccountSignup(resolvedUserId)) {
-          return absoluteAuthRedirect(signupRedirectForStaleSession(true));
+          const mobile = await readMobileSignupRedirectOpts();
+          return authCallbackRedirect(signupRedirectForStaleSession(true, mobile));
         }
       }
 

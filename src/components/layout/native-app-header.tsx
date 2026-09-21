@@ -91,8 +91,6 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   if (pathname === "/voice") return "음성 · 라이브";
   if (pathname.match(/^\/voice\/[^/]+$/) && pathname !== "/voice/new") return "방송 스튜디오";
   if (pathname === "/star") return "STAR";
-  if (pathname === "/messages/groups/new") return "단체방 만들기";
-  if (pathname === "/messages/join") return "단체방 입장";
   if (pathname.match(/^\/c\/[^/]+\/members$/)) return "멤버";
   if (pathname.match(/^\/c\/[^/]+\/settings$/)) return "커뮤니티 설정";
   if (pathname.startsWith("/c/")) return "커뮤니티";

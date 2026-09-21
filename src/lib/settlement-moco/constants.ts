@@ -6,8 +6,8 @@ export const SETTLEMENT_MOCO_KRW_PER_UNIT = MOCO_KRW_PER_UNIT;
 /** USD → KRW 환산 (정산 MOCO 적립용) */
 export const SETTLEMENT_FX_KRW_PER_USD = Number(process.env.SETTLEMENT_FX_KRW_PER_USD ?? 1350);
 
-/** 플랫폼 수수료율 — src/lib/settlement.ts PLATFORM_FEE_RATE 와 동기화 */
-export const PLATFORM_FEE_RATE = 0.1;
+/** MOCO 크리에이터 Reward — hybrid pass-through 5% (마켓플레이스 10%와 별도) */
+export const PLATFORM_FEE_RATE = 0.05;
 
 /** 크리에이터 Reward 지급률 — 플랫폼 수수료 차감 후 */
 export const SETTLEMENT_REWARD_RATE = 1 - PLATFORM_FEE_RATE;

@@ -50,6 +50,7 @@ export function warmTabBundles(): void {
   void import("@/features/messages/MessagesInboxScreen");
   void import("@/features/marketplace/MarketplaceListScreen");
   void import("@/features/messages/MessagesNewScreen");
+  void import("@/features/messages/ChatSettingsScreen");
 }
 
 /** Parse drawer stack screens in the background — same delay as first sidebar tap without this. */
@@ -111,8 +112,8 @@ export function prefetchDrawerQueries(queryClient: QueryClient): void {
     staleTime: STALE_MS,
   });
   void queryClient.prefetchQuery({
-    queryKey: ["mobile-events-map", false],
-    queryFn: () => fetchEventsMap({ global: false }),
+    queryKey: ["mobile-events-map", true],
+    queryFn: () => fetchEventsMap({ global: true }),
     staleTime: STALE_MS,
   });
   void queryClient.prefetchQuery({
@@ -179,9 +180,15 @@ export function prefetchDrawerRoute(queryClient: QueryClient, route: DrawerRoute
 
   switch (route) {
     case "Home":
-    case "Messages":
     case "LiveList":
       prefetchLiveHubInfinite(queryClient, "ALL");
+      return;
+    case "Messages":
+      void queryClient.prefetchQuery({
+        queryKey: ["mobile-dm-inbox"],
+        queryFn: fetchDmInbox,
+        staleTime: STALE_MS,
+      });
       return;
     case "StarList":
       void queryClient.prefetchQuery({
@@ -213,8 +220,8 @@ export function prefetchDrawerRoute(queryClient: QueryClient, route: DrawerRoute
       return;
     case "EventsMap":
       void queryClient.prefetchQuery({
-        queryKey: ["mobile-events-map", false],
-        queryFn: () => fetchEventsMap({ global: false }),
+        queryKey: ["mobile-events-map", true],
+        queryFn: () => fetchEventsMap({ global: true }),
         staleTime: STALE_MS,
       });
       return;

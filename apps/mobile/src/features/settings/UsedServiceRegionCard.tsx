@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { patchMe } from "@/api/discovery";
 import { useAuth } from "@/auth/AuthContext";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/features/marketplace/used-catalog";
 import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
+import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -51,16 +52,16 @@ export function UsedServiceRegionCard() {
 
   async function save() {
     if (!regionValue) {
-      Alert.alert("입력 필요", "서비스 지역을 선택해 주세요.");
+      showIslandError("입력 필요", "서비스 지역을 선택해 주세요.");
       return;
     }
     setBusy(true);
     try {
       await patchMe({ usedServiceRegion: regionValue });
       await refreshMe();
-      Alert.alert("저장됨", "중고거래 서비스 지역이 업데이트되었습니다.");
+      showIslandToast("Saved", "중고거래 서비스 지역이 업데이트되었습니다.");
     } catch (e) {
-      Alert.alert("오류", e instanceof Error ? e.message : "저장에 실패했습니다.");
+      showIslandError("오류", e instanceof Error ? e.message : "저장에 실패했습니다.");
     } finally {
       setBusy(false);
     }
@@ -120,7 +121,7 @@ export function UsedServiceRegionCard() {
           value={globalRegion}
           onChangeText={setGlobalRegion}
           placeholder="예: New Jersey, Tokyo Shibuku"
-          placeholderTextColor={colors.mutedForeground}
+          placeholderTextColor={colors.textMuted}
           style={styles.input}
         />
       )}
@@ -132,28 +133,28 @@ export function UsedServiceRegionCard() {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     card: { gap: spacing.md },
-    title: { fontSize: 16, fontWeight: "700", color: colors.foreground },
-    desc: { fontSize: 13, lineHeight: 18, color: colors.mutedForeground },
+    title: { fontSize: 16, fontWeight: "700", color: colors.text },
+    desc: { fontSize: 13, lineHeight: 18, color: colors.textMuted },
     row: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
     pickerCol: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
     chip: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: radii.full,
+      borderRadius: radii.pill,
       paddingHorizontal: spacing.sm,
       paddingVertical: 6,
-      backgroundColor: colors.card,
+      backgroundColor: colors.surfaceRaised,
     },
-    chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-    chipText: { fontSize: 12, color: colors.foreground },
-    chipTextActive: { color: colors.primaryForeground },
+    chipActive: { backgroundColor: colors.cobalt, borderColor: colors.cobalt },
+    chipText: { fontSize: 12, color: colors.text },
+    chipTextActive: { color: colors.textOnAccent },
     input: {
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: radii.lg,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
-      color: colors.foreground,
+      color: colors.text,
       backgroundColor: colors.background,
     },
   });

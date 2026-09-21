@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -23,14 +22,11 @@ import {
   type ProfileTabId,
 } from "@/features/profile/ProfileHeaderChrome";
 import { ProfileCalendarSheet } from "@/features/profile/ProfileCalendarSheet";
+import { ProfileOptionsSheet } from "@/features/profile/ProfileOptionsSheet";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
-import { TipCreatorSheet } from "@/payments/TipCreatorSheet";
-import { PayButton } from "@/payments/PayButton";
-import { FolkButton } from "@/ui/FolkButton";
-import { formatUsd } from "@/lib/money";
 
 type Props = {
   username: string;
@@ -73,8 +69,8 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
   const [tab, setTab] = useState<ProfileTabId>("posts");
   const [sort, setSort] = useState<ProfileSortId>("new");
   const [followingLocal, setFollowingLocal] = useState<boolean | null>(null);
-  const [tipOpen, setTipOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
   const query = useQuery({
     queryKey: ["mobile-user", username],
@@ -165,7 +161,6 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
         stickyHeaderIndices={undefined}
         ListHeaderComponent={
           <View>
-            {/* Compact top bar like web sticky header */}
             <View style={[styles.compactBar, { paddingTop: insets.top + 4 }]}>
               {showBack ? (
                 <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.iconBtn}>
@@ -191,7 +186,15 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
                   <Ionicons name="calendar-outline" size={22} color={colors.brand} />
                 </Pressable>
               ) : (
-                <View style={styles.iconBtn} />
+                <Pressable
+                  onPress={() => setOptionsOpen(true)}
+                  hitSlop={10}
+                  style={styles.moreBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="프로필 옵션"
+                >
+                  <Ionicons name="ellipsis-horizontal" size={18} color={colors.text} />
+                </Pressable>
               )}
             </View>
 
@@ -205,44 +208,15 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
               onFollow={() => followMut.mutate()}
               followLoading={followMut.isPending}
               following={following}
-            />
-
-            {!user.isSelf && user.paymentsEnabled ? (
-              <View style={styles.monetizationRow}>
-                {user.subscribed ? (
-                  <FolkButton label="구독 중" variant="secondary" disabled />
-                ) : user.creatorSubscriptionPriceKrw && user.creatorSubscriptionPriceKrw > 0 ? (
-                  <PayButton
-                    type="CREATOR_SUBSCRIPTION"
-                    amount={user.creatorSubscriptionPriceKrw}
-                    orderName={`@${user.username} 구독`}
-                    metadata={{
-                      creatorId: user.id,
-                      username: user.username,
-                    }}
-                    label={`${formatUsd(user.creatorSubscriptionPriceKrw)}/월 정기 후원`}
-                    variant="secondary"
-                    onSuccess={() => void query.refetch()}
-                  />
-                ) : null}
-                <FolkButton
-                  label="후원"
-                  onPress={() => setTipOpen(true)}
-                  style={styles.tipBtn}
-                />
-              </View>
-            ) : null}
-
-            <TipCreatorSheet
-              visible={tipOpen}
-              onClose={() => setTipOpen(false)}
-              creatorId={user.id}
-              username={user.username}
-              displayName={user.name || user.username}
-              onSuccess={() => {
-                Alert.alert("후원 완료", "후원이 완료되었습니다.");
-                void query.refetch();
-              }}
+              onOpenChat={
+                user.isSelf
+                  ? undefined
+                  : (roomId) =>
+                      navigation.navigate("MessageRoom", {
+                        roomId,
+                        title: user.name || user.username,
+                      })
+              }
             />
 
             {user.isSelf ? (
@@ -252,12 +226,21 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
                 countryCode={user.countryCode ?? authUser?.countryCode}
                 timeZone={authUser?.timeZone}
               />
-            ) : null}
+            ) : (
+              <ProfileOptionsSheet
+                visible={optionsOpen}
+                onClose={() => setOptionsOpen(false)}
+                userId={user.id}
+                username={user.username}
+                onBlocked={() => {
+                  setOptionsOpen(false);
+                  navigation.goBack();
+                }}
+              />
+            )}
           </View>
         }
-        ListEmptyComponent={
-          <Text style={styles.muted}>{emptyMessage}</Text>
-        }
+        ListEmptyComponent={<Text style={styles.muted}>{emptyMessage}</Text>}
         contentContainerStyle={{ paddingBottom: spacing.xl + 24 }}
       />
     </Screen>
@@ -298,6 +281,16 @@ function createStyles(colors: ThemeColors) {
       alignItems: "center",
       justifyContent: "center",
     },
+    moreBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.hairline,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 4,
+    },
     backFloat: {
       position: "absolute",
       left: 8,
@@ -307,13 +300,5 @@ function createStyles(colors: ThemeColors) {
       alignItems: "center",
       justifyContent: "center",
     },
-    monetizationRow: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.sm,
-    },
-    tipBtn: { minWidth: 96 },
   });
 }

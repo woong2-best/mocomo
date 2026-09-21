@@ -10,8 +10,10 @@ import {
   MOCO_PURCHASE_TERMS_COPY,
   MOCO_TOPUP_INPUT_MAX_DIGITS,
   parseMocoTopupCount,
+  quoteGemTopup,
   sanitizeMocoTopupInput,
 } from "@/lib/gems/constants";
+import { MocoEarthTransferHero } from "@/components/moco/moco-earth-transfer-hero";
 import { formatMocoDisplay } from "@/lib/gems/display";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
@@ -33,7 +35,12 @@ type Props = {
   paymentMethods: SavedPaymentMethod[];
   purchases: GemPurchaseRow[];
   lowBalanceNotice?: boolean;
+  userImageUrl?: string | null;
 };
+
+function formatUsdCents(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`;
+}
 
 function AtmNumKey({
   label,
@@ -112,6 +119,7 @@ export function GemBalancePanel({
   paymentMethods,
   purchases,
   lowBalanceNotice,
+  userImageUrl,
 }: Props) {
   const router = useRouter();
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -133,6 +141,15 @@ export function GemBalancePanel({
 
   const parsedPreview = parseMocoTopupCount(amount);
   const displayAmount = amount ? Number(amount).toLocaleString() : "0";
+  const topupQuote =
+    parsedPreview != null && parsedPreview >= minTopupMoco ? quoteGemTopup(parsedPreview) : null;
+  const feeBreakdown = topupQuote && topupQuote.ok ? topupQuote : null;
+  const singleUnitQuote = quoteGemTopup(1);
+  const tenUnitQuote = quoteGemTopup(10);
+  const bulkSaveCents =
+    singleUnitQuote.ok && tenUnitQuote.ok
+      ? singleUnitQuote.pgFeeCents * 10 - tenUnitQuote.pgFeeCents
+      : 0;
 
   const handle3ds = useCallback(
     async (secret: string, orderId: string) => {
@@ -251,42 +268,58 @@ export function GemBalancePanel({
           </div>
         </div>
 
-        {/* Screen bezel */}
-        <div className="mx-4 mt-4 rounded-xl border-2 border-[#374151] bg-[#030712] p-1 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)]">
-          <div className="rounded-lg border border-[#1f2937] bg-gradient-to-b from-[#0a1628] to-[#060d18] px-4 py-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-400/80">현재 잔액</p>
-            <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-emerald-300 drop-shadow-[0_0_12px_rgba(110,231,183,0.35)]">
+        <div className="mx-4 mt-4">
+          <MocoEarthTransferHero userImageUrl={userImageUrl} transferActive={pending}>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">현재 잔액</p>
+            <p className="mt-0.5 font-mono text-xl font-bold tabular-nums text-neutral-900">
               {formatMocoDisplay(balance)}
             </p>
-
-            <div className="my-3 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
-
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-400/80">충전 수량</p>
-            <div
-              className={cn(
-                "mt-1.5 flex items-baseline justify-between gap-3 rounded-md border bg-[#020617] px-3 py-2.5",
-                error ? "border-red-500/50" : "border-slate-700",
-              )}
-            >
+            <div className="mt-3 flex items-baseline justify-between gap-3 rounded-md border-2 border-[#1B3A6B] bg-white px-3 py-2">
               <p
                 id="moco-topup-amount"
-                className="min-w-0 flex-1 truncate font-mono text-4xl font-bold tabular-nums tracking-tight text-white"
+                className="min-w-0 flex-1 truncate font-mono text-3xl font-bold tabular-nums text-neutral-900"
                 aria-live="polite"
               >
                 {displayAmount}
               </p>
-              <span className="shrink-0 text-sm font-bold text-slate-400">MOCO</span>
+              <span className="shrink-0 text-sm font-black text-[#E85D04]">MOCO</span>
             </div>
-            <p className="mt-1.5 text-[11px] text-slate-500">1 단위 정수 · 최소 {minTopupMoco} MOCO</p>
+            {feeBreakdown ? (
+              <dl className="mt-3 space-y-1 text-[11px] text-neutral-600">
+                <div className="flex justify-between gap-2">
+                  <dt>MOCO 상품 가격</dt>
+                  <dd className="font-mono font-semibold tabular-nums">{formatUsdCents(feeBreakdown.basePriceCents)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>결제 대행 수수료 (PG 실비)</dt>
+                  <dd className="font-mono font-semibold tabular-nums text-neutral-800">
+                    +{formatUsdCents(feeBreakdown.pgFeeCents)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-2 border-t border-neutral-200 pt-1 text-neutral-900">
+                  <dt className="font-bold">최종 결제 금액</dt>
+                  <dd className="font-mono text-sm font-black tabular-nums">
+                    {formatUsdCents(feeBreakdown.usdCents)}
+                  </dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="mt-2 text-[11px] text-neutral-500">1 단위 정수 · 최소 {minTopupMoco} MOCO</p>
+            )}
+            {bulkSaveCents > 0 ? (
+              <p className="mt-2 rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800">
+                10개 묶음 구매 시 PG 고정 수수료 절약 약 {formatUsdCents(bulkSaveCents)}
+              </p>
+            ) : null}
             {defaultCard ? (
-              <p className="mt-2 text-[11px] text-slate-400">
+              <p className="mt-2 text-[11px] text-neutral-500">
                 결제 카드 · {defaultCard.brand.toUpperCase()} ···{defaultCard.last4}
                 {defaultCard.isDefault ? " (기본)" : ""}
               </p>
             ) : (
-              <p className="mt-2 text-[11px] text-amber-400/90">등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.</p>
+              <p className="mt-2 text-[11px] text-amber-700">등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.</p>
             )}
-          </div>
+          </MocoEarthTransferHero>
         </div>
 
         {/* Status ticker — ATM footer style */}

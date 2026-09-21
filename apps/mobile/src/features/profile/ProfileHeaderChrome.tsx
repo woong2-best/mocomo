@@ -1,5 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { ProfileUser } from "@/api/social";
+import { openDm } from "@/api/messages";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
 import { useTheme } from "@/theme/ThemeContext";
@@ -46,6 +49,7 @@ type Props = {
   onFollow?: () => void;
   followLoading?: boolean;
   following?: boolean;
+  onOpenChat?: (roomId: string) => void;
 };
 
 export function ProfileHeaderChrome({
@@ -58,16 +62,30 @@ export function ProfileHeaderChrome({
   onFollow,
   followLoading,
   following,
+  onOpenChat,
 }: Props) {
-  const { colors, isDark } = useTheme();
-  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const display = user.name || user.username;
   const joined = formatJoined(user.createdAt);
   const visibleTabs = TABS.filter((t) => !t.selfOnly || user.isSelf);
+  const [chatBusy, setChatBusy] = useState(false);
+
+  async function startChat() {
+    if (chatBusy || !onOpenChat) return;
+    setChatBusy(true);
+    try {
+      const res = await openDm(user.id);
+      onOpenChat(res.roomId);
+    } catch (e) {
+      Alert.alert("채팅", e instanceof Error ? e.message : "채팅을 열지 못했습니다.");
+    } finally {
+      setChatBusy(false);
+    }
+  }
 
   return (
     <View style={styles.root}>
-      {/* Banner */}
       <View style={styles.banner}>
         <ProfileBannerMedia
           bannerUrl={user.bannerUrl}
@@ -76,7 +94,6 @@ export function ProfileHeaderChrome({
         />
       </View>
 
-      {/* Avatar + follow (others) */}
       <View style={styles.avatarRow}>
         <FolkAvatar uri={user.image} name={display} size={88} />
         {!user.isSelf ? (
@@ -95,11 +112,25 @@ export function ProfileHeaderChrome({
                 {following ? "팔로잉" : "팔로우"}
               </Text>
             </Pressable>
+            {onOpenChat ? (
+              <Pressable
+                style={styles.chatBtn}
+                onPress={() => void startChat()}
+                disabled={chatBusy}
+                accessibilityRole="button"
+                accessibilityLabel="채팅"
+              >
+                {chatBusy ? (
+                  <ActivityIndicator size="small" color={colors.brand} />
+                ) : (
+                  <Ionicons name="chatbubble-outline" size={18} color={colors.brand} />
+                )}
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
       </View>
 
-      {/* Identity */}
       <View style={styles.identity}>
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>
@@ -119,7 +150,6 @@ export function ProfileHeaderChrome({
         ) : null}
       </View>
 
-      {/* Counts + sort + create */}
       <View style={styles.countsRow}>
         <View style={styles.counts}>
           <Text style={styles.count}>
@@ -150,23 +180,25 @@ export function ProfileHeaderChrome({
         </View>
       </View>
 
-      {/* Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabsScroll}
-        contentContainerStyle={styles.tabs}
-      >
+      <View style={styles.tabs}>
         {visibleTabs.map((t) => {
           const active = tab === t.id;
           return (
-            <Pressable key={t.id} onPress={() => onTabChange(t.id)} style={styles.tabItem}>
-              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{t.label}</Text>
-              {active ? <View style={styles.tabUnderline} /> : null}
+            <Pressable
+              key={t.id}
+              onPress={() => onTabChange(t.id)}
+              style={styles.tabItem}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+            >
+              <View style={styles.tabLabelWrap}>
+                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{t.label}</Text>
+                <View style={[styles.tabUnderline, active ? styles.tabUnderlineOn : null]} />
+              </View>
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -178,7 +210,7 @@ function countryFlagEmoji(code: string): string {
   return String.fromCodePoint(A + (cc.charCodeAt(0) - 65), A + (cc.charCodeAt(1) - 65));
 }
 
-function createStyles(colors: ThemeColors, isDark: boolean) {
+function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: {
       backgroundColor: colors.background,
@@ -221,6 +253,16 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       borderColor: colors.terracotta,
     },
     followPrimaryText: { color: "#fff" },
+    chatBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      borderWidth: 1.5,
+      borderColor: colors.brand,
+      backgroundColor: colors.surfaceRaised,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     identity: {
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
@@ -263,17 +305,20 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       paddingVertical: 7,
     },
     createBtnText: { color: "#fff", fontWeight: "800", fontSize: 13 },
-    tabsScroll: { marginTop: 4 },
     tabs: {
-      paddingHorizontal: spacing.md,
-      gap: 18,
+      flexDirection: "row",
+      width: "100%",
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.hairline,
     },
     tabItem: {
-      paddingVertical: 12,
+      flex: 1,
       alignItems: "center",
-      minWidth: 48,
+      paddingTop: 12,
+      paddingBottom: 0,
+    },
+    tabLabelWrap: {
+      alignItems: "center",
     },
     tabLabel: {
       color: colors.textMuted,
@@ -284,8 +329,12 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
     tabUnderline: {
       marginTop: 10,
       height: 3,
-      width: "100%",
-      borderRadius: 2,
+      alignSelf: "stretch",
+      borderRadius: 999,
+      backgroundColor: "transparent",
+      minWidth: 28,
+    },
+    tabUnderlineOn: {
       backgroundColor: colors.terracotta,
     },
   });

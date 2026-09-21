@@ -1,7 +1,6 @@
 import { getCachedAuthUserMinimal, getCachedSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
-import { getGroupRoomMeta } from "@/actions/group-chat";
 import { getConversationMeta } from "@/lib/chat-display";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
 import { chatMessageInclude, serializeChatMessages } from "@/lib/chat-message-serialize";
@@ -24,16 +23,14 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   });
   if (!room) notFound();
 
-  const isMember = room.members.some((m) => m.userId === session.user.id);
-  if (
-    !isMember &&
-    (room.type === "COSPLAYER_GROUP" || room.type === "SOCIAL_GROUP")
-  ) {
-    redirect(`/messages/join?room=${roomId}`);
+  if (room.type === "COSPLAYER_GROUP" || room.type === "SOCIAL_GROUP") {
+    redirect("/messages");
   }
+
+  const isMember = room.members.some((m) => m.userId === session.user.id);
   if (!isMember) notFound();
 
-  const [me, messages, groupMeta] = await Promise.all([
+  const [me, messages] = await Promise.all([
     getCachedAuthUserMinimal(),
     db.message.findMany({
       where: { roomId },
@@ -41,9 +38,6 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
       orderBy: { createdAt: "asc" },
       include: chatMessageInclude,
     }),
-    room.type === "COSPLAYER_GROUP" || room.type === "SOCIAL_GROUP"
-      ? getGroupRoomMeta(roomId)
-      : Promise.resolve(null),
   ]);
 
   const meta = getConversationMeta(room, session.user.id);
@@ -70,20 +64,7 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
         roomType: room.type,
         otherUserId: otherMember?.id,
       }}
-      groupMeta={
-        groupMeta && "room" in groupMeta && groupMeta.room
-          ? {
-              roomType: groupMeta.room.type,
-              isOwner: groupMeta.isOwner ?? false,
-              announcementTitle: groupMeta.room.announcementTitle,
-              announcementBody: groupMeta.room.announcementBody,
-              voiceLive: groupMeta.room.voiceLive,
-              voiceChannelId: groupMeta.room.voiceChannelId,
-              polls: groupMeta.polls ?? [],
-              joinCode: groupMeta.room.joinCode,
-            }
-          : null
-      }
+      groupMeta={null}
     />
   );
 }

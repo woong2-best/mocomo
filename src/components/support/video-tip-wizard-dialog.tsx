@@ -116,7 +116,7 @@ export function VideoTipWizardDialog({
   );
 
   const effectiveAmount = amountOverride ?? baseAmount;
-  const fee = calcPlatformFee(effectiveAmount, 0.1);
+  const fee = calcPlatformFee(effectiveAmount, 0.05);
 
   const resetWizard = useCallback(() => {
     setStep(1);
@@ -465,7 +465,7 @@ export function VideoTipWizardDialog({
               <p className="font-semibold text-sm flex items-center gap-1">
                 후원 금액 <Info className="h-3.5 w-3.5 text-white/40" />
               </p>
-              <span className="text-[10px] text-white/50">수수료 10% · 정산 {formatUsd(effectiveAmount - fee)}</span>
+              <span className="text-[10px] text-white/50">플랫폼 5% · 정산 {formatUsd(effectiveAmount - fee)}</span>
             </div>
 
             <div className="rounded-xl bg-black/40 border border-white/10 p-4 flex items-center gap-3">

@@ -173,3 +173,28 @@ export async function startMarketplaceCheckoutRedirect(listingId: string, orderI
     }
   );
 }
+
+export type MarketplaceCheckoutEligibility = {
+  mode: "STRIPE" | "BLOCKED";
+  listingId: string;
+  paymentsConfigured: boolean;
+  sellerReady: boolean;
+  sellerReadyMessage?: string;
+  primaryButtonLabel: string;
+  disclaimer: string;
+  blocked?: boolean;
+};
+
+export async function fetchMarketplaceCheckoutMode(
+  listingId: string,
+  shipCountry?: string,
+  locale?: string
+) {
+  const params = new URLSearchParams({ listingId });
+  if (shipCountry) params.set("shipCountry", shipCountry);
+  if (locale) params.set("locale", locale);
+  return apiRequest<MarketplaceCheckoutEligibility>(
+    `${MobileApi.starMarketCheckoutMode}?${params}`,
+    { auth: true }
+  );
+}

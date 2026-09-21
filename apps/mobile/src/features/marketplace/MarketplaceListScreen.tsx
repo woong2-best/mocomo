@@ -31,7 +31,6 @@ import {
   USED_CATEGORIES,
   USED_CONDITION_GRADES,
   USED_LIMITED_KINDS,
-  USED_PRODUCT_TYPES,
   USED_SHIPPING_REGION,
   USED_TRADE_MODES,
   usedStatusLabel,
@@ -62,9 +61,6 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
   const [category, setCategory] = useState<string | "ALL" | "AUCTION">("ALL");
   const [sidoId, setSidoId] = useState<string | null>(null);
   const [sigungu, setSigungu] = useState<string | null>(null);
-  const [workDraft, setWorkDraft] = useState("");
-  const [work, setWork] = useState("");
-  const [product, setProduct] = useState<string | null>(null);
   const [sidoPickerOpen, setSidoPickerOpen] = useState(false);
   const [sigunguPickerOpen, setSigunguPickerOpen] = useState(false);
   const [condition, setCondition] = useState<string | null>(null);
@@ -85,14 +81,12 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
       mode: category === "AUCTION" ? ("auction" as const) : undefined,
       sido: !region && sidoId ? sidoId : undefined,
       region,
-      work: work || undefined,
-      product: product || undefined,
       condition: condition || undefined,
       limited: limited || undefined,
       trade: trade || undefined,
       take: 48,
     };
-  }, [q, category, sidoId, sigungu, work, product, condition, limited, trade]);
+  }, [q, category, sidoId, sigungu, condition, limited, trade]);
 
   const query = useQuery({
     queryKey: ["mobile-marketplace", listQuery],
@@ -100,7 +94,7 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
     staleTime: 90_000,
     placeholderData: (previous) => previous,
   });
-  const bottomPad = isTab ? floatingTabClearance(insets.bottom) + 56 : insets.bottom + 80;
+  const bottomPad = isTab ? floatingTabClearance(insets.bottom) + 12 : insets.bottom + 32;
   const conditionLabel =
     USED_CONDITION_GRADES.find((o) => o.id === condition)?.label ?? "상태 (전체)";
   const limitedLabel = USED_LIMITED_KINDS.find((o) => o.id === limited)?.label ?? "한정 (전체)";
@@ -187,7 +181,7 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
           <Text style={styles.cardTitle} numberOfLines={2}>
             {item.title || "상품"}
           </Text>
-          <Text style={[styles.cardPrice, auction && { color: colors.terracotta }]}>
+          <Text style={styles.cardPrice}>
             {auction ? `현재 ${formatUsedPrice(price, item.currency)}` : formatUsedPrice(price, item.currency)}
           </Text>
           {auction && item.bidCount != null ? (
@@ -199,42 +193,24 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
         </Pressable>
       );
     },
-    [colors.cobalt, colors.terracotta, colors.textMuted, navigation, openTradeChat, styles, user?.id]
+    [colors.cobalt, colors.textMuted, navigation, openTradeChat, styles, user?.id]
   );
 
   const listHeader = (
     <View style={styles.headerBlock}>
-      {!isTab ? (
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.backRow}>
-          <Ionicons name="chevron-back" size={18} color={colors.cobalt} />
-          <Text style={styles.backText}>뒤로</Text>
-        </Pressable>
-      ) : null}
-
-      <View style={styles.titleRow}>
-        <Ionicons name="pricetag" size={22} color={colors.brand} />
-        <Text style={styles.pageTitle}>More Commerce Moment</Text>
-      </View>
-
-      <View style={styles.actionRow}>
-        <Pressable
-          style={[styles.outlineBtn, category === "AUCTION" && styles.outlineBtnOn]}
-          onPress={() => setCategory((c) => (c === "AUCTION" ? "ALL" : "AUCTION"))}
-        >
-          <Text style={styles.outlineBtnText}>경매</Text>
-        </Pressable>
-        <Pressable
-          style={styles.outlineBtn}
-          onPress={() => navigation.navigate("UsedMy")}
-        >
-          <Text style={styles.outlineBtnText}>내 거래</Text>
-        </Pressable>
-        <Pressable style={styles.writeBtn} onPress={() => void openWrite()}>
-          <Text style={styles.writeBtnText}>글쓰기</Text>
-        </Pressable>
-      </View>
-
+      {/* 1번 UI: 상단 = 뒤로(스택) + 검색 + 검색 버튼 (브랜드 타이틀/경매·내거래·글쓰기 상단행 제거) */}
       <View style={styles.searchRow}>
+        {!isTab ? (
+          <Pressable
+            onPress={() => navigation.goBack()}
+            hitSlop={10}
+            style={styles.backHit}
+            accessibilityRole="button"
+            accessibilityLabel="뒤로"
+          >
+            <Ionicons name="chevron-back" size={26} color={colors.brand} />
+          </Pressable>
+        ) : null}
         <TextInput
           style={styles.searchInput}
           value={qDraft}
@@ -245,45 +221,7 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
           onSubmitEditing={() => setQ(qDraft.trim())}
         />
         <Pressable style={styles.searchBtn} onPress={() => setQ(qDraft.trim())}>
-          <Text style={styles.searchBtnText}>검색</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.detailBox}>
-        <Text style={styles.detailHint}>작품(IP)·상품 종류(피규어 등)로 좁혀 보기</Text>
-        <View style={styles.detailRow}>
-          <TextInput
-            style={[styles.detailInput, { flex: 1 }]}
-            value={workDraft}
-            onChangeText={setWorkDraft}
-            placeholder="작품명"
-            placeholderTextColor={colors.textMuted}
-          />
-          <Pressable
-            style={[styles.detailInput, styles.productPick]}
-            onPress={() => {
-              const idx = product
-                ? USED_PRODUCT_TYPES.findIndex((p) => p.id === product)
-                : -1;
-              const next = USED_PRODUCT_TYPES[(idx + 1) % USED_PRODUCT_TYPES.length];
-              setProduct(next.id);
-            }}
-          >
-            <Text
-              style={{ color: product ? colors.text : colors.textMuted, fontWeight: "600" }}
-              numberOfLines={1}
-            >
-              {product
-                ? USED_PRODUCT_TYPES.find((p) => p.id === product)?.label
-                : "상품 종류"}
-            </Text>
-          </Pressable>
-        </View>
-        <Pressable
-          style={styles.detailSearchBtn}
-          onPress={() => setWork(workDraft.trim())}
-        >
-          <Text style={styles.detailSearchText}>상세 검색</Text>
+          <Ionicons name="search" size={20} color="#fff" />
         </Pressable>
       </View>
 
@@ -359,12 +297,21 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
         </Pressable>
       </View>
 
-      <Text style={styles.listLabel}>
-        상품 목록{"\n"}
-        <Text style={styles.listCount}>
-          {query.isError ? "—" : `${items.length}개`}
-        </Text>
-      </Text>
+      {/* 1번 UI: 상품 목록 헤더 오른쪽에 내 거래 · 글쓰기 */}
+      <View style={styles.listHeaderRow}>
+        <View style={styles.listHeaderText}>
+          <Text style={styles.listLabel}>상품 목록</Text>
+          <Text style={styles.listCount}>{query.isError ? "—" : `${items.length}개`}</Text>
+        </View>
+        <View style={styles.listActions}>
+          <Pressable style={styles.outlineBtn} onPress={() => navigation.navigate("UsedMy")}>
+            <Text style={styles.outlineBtnText}>내 거래</Text>
+          </Pressable>
+          <Pressable style={styles.writeBtn} onPress={() => void openWrite()}>
+            <Text style={styles.writeBtnText}>글쓰기</Text>
+          </Pressable>
+        </View>
+      </View>
     </View>
   );
 
@@ -394,10 +341,6 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
         refreshing={query.isFetching && !!query.data}
         onRefresh={() => void query.refetch()}
       />
-
-      <Pressable style={[styles.fab, { bottom: isTab ? floatingTabClearance(insets.bottom) + 8 : 24 }]} onPress={() => void openWrite()}>
-        <Ionicons name="add" size={28} color={colors.brand} />
-      </Pressable>
 
       <PickerModal
         visible={sidoPickerOpen}
@@ -564,81 +507,58 @@ const pickerStyles = StyleSheet.create({
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     headerBlock: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
-    backRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
-    backText: { color: colors.cobalt, fontWeight: "700" },
-    titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-    pageTitle: { fontSize: 22, fontWeight: "800", color: colors.brand },
-    actionRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
+    backHit: {
+      marginLeft: -4,
+      paddingVertical: 4,
+      paddingRight: 2,
+      justifyContent: "center",
+    },
     outlineBtn: {
       borderWidth: 1.5,
       borderColor: "rgba(27, 74, 140, 0.28)",
       borderRadius: radii.md,
-      paddingHorizontal: 14,
+      paddingHorizontal: 12,
       paddingVertical: 8,
       backgroundColor: colors.surfaceRaised,
     },
-    outlineBtnOn: { borderColor: colors.terracotta, backgroundColor: "rgba(196,92,62,0.08)" },
     outlineBtnText: { fontWeight: "700", color: colors.brand, fontSize: 13 },
     writeBtn: {
       borderRadius: radii.md,
-      paddingHorizontal: 14,
+      paddingHorizontal: 12,
       paddingVertical: 8,
       backgroundColor: colors.muted,
       borderWidth: 1.5,
       borderColor: "rgba(27, 74, 140, 0.18)",
     },
     writeBtnText: { fontWeight: "800", color: colors.brand, fontSize: 13 },
-    searchRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
+    searchRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 12,
+    },
     searchInput: {
       flex: 1,
       borderWidth: 1.5,
-      borderColor: "rgba(27, 74, 140, 0.22)",
+      borderColor: "rgba(120, 150, 220, 0.28)",
       borderRadius: radii.md,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
       backgroundColor: colors.surfaceRaised,
       color: colors.text,
       fontWeight: "600",
+      fontSize: 14,
     },
     searchBtn: {
+      width: 48,
+      height: 48,
       borderRadius: radii.md,
-      paddingHorizontal: 14,
-      justifyContent: "center",
-      backgroundColor: colors.muted,
-      borderWidth: 1.5,
-      borderColor: "rgba(27, 74, 140, 0.18)",
-    },
-    searchBtnText: { fontWeight: "800", color: colors.brand },
-    detailBox: {
-      backgroundColor: colors.muted,
-      borderRadius: radii.lg,
-      padding: 12,
-      marginBottom: 12,
-      gap: 8,
-    },
-    detailHint: { fontSize: 12, color: colors.textMuted, fontWeight: "600" },
-    detailRow: { flexDirection: "row", gap: 8 },
-    detailInput: {
-      borderWidth: 1.5,
-      borderColor: "rgba(27, 74, 140, 0.18)",
-      borderRadius: radii.md,
-      paddingHorizontal: 10,
-      paddingVertical: 10,
-      backgroundColor: colors.surfaceRaised,
-      color: colors.text,
-    },
-    productPick: { flex: 1, justifyContent: "center" },
-    detailSearchBtn: {
-      borderRadius: radii.md,
-      paddingVertical: 12,
       alignItems: "center",
-      backgroundColor: colors.muted,
-      borderWidth: 1.5,
-      borderColor: "rgba(27, 74, 140, 0.22)",
+      justifyContent: "center",
+      backgroundColor: colors.terracotta,
     },
-    detailSearchText: { fontWeight: "800", color: colors.brand },
     catRow: { paddingVertical: 4, paddingRight: 12, marginBottom: 10 },
-    regionRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
+    regionRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
     regionBtn: {
       flex: 1,
       flexDirection: "row",
@@ -670,8 +590,17 @@ function createStyles(colors: ThemeColors) {
       minWidth: 0,
     },
     metaFilterText: { flex: 1, fontWeight: "600", color: colors.text, fontSize: 11 },
-    listLabel: { fontWeight: "800", color: colors.brand, marginBottom: 8, fontSize: 14 },
+    listHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+      marginBottom: 10,
+    },
+    listHeaderText: { flexShrink: 1, gap: 2 },
+    listLabel: { fontWeight: "800", color: colors.brand, fontSize: 15 },
     listCount: { fontWeight: "600", color: colors.textMuted, fontSize: 12 },
+    listActions: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 },
     gridRow: { paddingHorizontal: spacing.md, gap: 10, marginBottom: 10 },
     card: {
       flex: 1,
@@ -722,7 +651,7 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 8,
       marginTop: 2,
       fontWeight: "800",
-      color: colors.brand,
+      color: colors.terracotta,
       fontSize: 15,
     },
     auctionMeta: {
@@ -741,18 +670,5 @@ function createStyles(colors: ThemeColors) {
     muted: { color: colors.textMuted, padding: spacing.lg, fontWeight: "600" },
     listEmptyBox: { padding: spacing.lg, alignItems: "center" },
     error: { color: colors.danger, fontWeight: "600", marginBottom: 12, textAlign: "center" },
-    fab: {
-      position: "absolute",
-      right: 18,
-      width: 52,
-      height: 52,
-      borderRadius: 26,
-      backgroundColor: colors.muted,
-      borderWidth: 2,
-      borderColor: "rgba(27, 74, 140, 0.25)",
-      alignItems: "center",
-      justifyContent: "center",
-      ...shadows.folkSm,
-    },
   });
 }

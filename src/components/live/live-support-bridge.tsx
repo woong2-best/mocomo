@@ -10,7 +10,6 @@ import type {
 } from "@/lib/live-support/types";
 import { isSoundPresetId, subscribeLiveSupport } from "@/hooks/use-live-support-socket";
 import { playCheerSound } from "@/lib/live-support/sounds";
-import { speakCheerMessage } from "@/lib/live-support/tts-client";
 
 function eventToAlert(evt: LiveSupportEventPayload): LiveTipAlert {
   const rouletteLabel =
@@ -27,7 +26,7 @@ function eventToAlert(evt: LiveSupportEventPayload): LiveTipAlert {
   };
 }
 
-/** 실시간 응원 이벤트 → 알림·TTS·사운드 */
+/** 실시간 응원 이벤트 → 알림·사운드 (TTS 미사용) */
 export function LiveSupportBridge({
   socket,
   isHost,
@@ -59,14 +58,9 @@ export function LiveSupportBridge({
     return subscribeLiveSupport(socket, {
       onEvent: (evt) => {
         onAlertRef.current(eventToAlert(evt));
-        if (isHost) {
-          if (evt.type === "TTS" && evt.message) {
-            speakCheerMessage(evt.message);
-          }
-          if (evt.type === "SOUND") {
-            const sid = evt.metadata?.soundId;
-            if (isSoundPresetId(sid)) playCheerSound(sid);
-          }
+        if (isHost && evt.type === "SOUND") {
+          const sid = evt.metadata?.soundId;
+          if (isSoundPresetId(sid)) playCheerSound(sid);
         }
       },
       onMission: handleMission,

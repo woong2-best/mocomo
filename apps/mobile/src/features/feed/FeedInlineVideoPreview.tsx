@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +9,10 @@ import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
 import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
+import {
+  isPooledVideoSupported,
+  MocomoPooledVideoView,
+} from "@/native/MocomoNativeFeed";
 
 /** Feed-wide mute preference (Twitter-style). */
 let feedPreviewMuted = true;
@@ -35,11 +39,17 @@ export function resolveVideoPoster(media: FeedMedia): string | null {
   const direct = media.posterUrl?.trim();
   if (direct) return direct;
 
+  const streamUid = media.streamUid?.trim();
+  if (streamUid && /^[a-zA-Z0-9_-]{16,}$/.test(streamUid)) {
+    return `https://videodelivery.net/${streamUid}/thumbnails/thumbnail.jpg?time=0s&height=720`;
+  }
+
+  // Only derive from known Cloudflare Stream hosts — never guess from arbitrary hex paths
+  // (R2/CDN keys often contain 32-hex segments and would 404 on videodelivery.net).
   const probe = media.hlsUrl?.trim() || media.url?.trim() || "";
   const uid =
     probe.match(/videodelivery\.net\/([^/?#]+)/i)?.[1] ||
-    probe.match(/cloudflarestream\.com\/([^/?#]+)/i)?.[1] ||
-    probe.match(/\/([a-f0-9]{32})\//i)?.[1];
+    probe.match(/cloudflarestream\.com\/([^/?#]+)/i)?.[1];
   if (uid && /^[a-zA-Z0-9_-]{16,}$/.test(uid)) {
     return `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg?time=0s&height=720`;
   }
@@ -89,6 +99,8 @@ function FeedInlineVideoPreviewInner({
     isPaidPlaybackPath(src) || isPaidPlaybackPath(media.url) || (media.priceKrw ?? 0) > 0;
   const durationLabel = formatDuration(media.duration);
   const [muted, setMuted] = useFeedPreviewMuted();
+  /** Keep poster covering the decoder surface until a real frame paints. */
+  const [hasFirstFrame, setHasFirstFrame] = useState(false);
 
   if (media.locked && monetization) {
     const aspect =
@@ -107,13 +119,25 @@ function FeedInlineVideoPreviewInner({
     );
   }
 
-  const shouldLoadNativePlayer = Boolean(src) && active && !isPaid;
+  // Android pooled surface mounts whenever we have a src so idle cells still show a still
+  // (poster / first-frame extract). Playback only when `active`.
+  const usePooledAndroid =
+    Platform.OS === "android" && isPooledVideoSupported() && Boolean(src) && !isPaid;
+  const shouldLoadNativePlayer = Boolean(src) && active && !isPaid && !usePooledAndroid;
   const shouldLoadPaidPlayer = Boolean(media.url) && active && isPaid && !media.locked;
 
   const player = useVideoPlayer(shouldLoadNativePlayer ? src : null, (p) => {
     p.loop = true;
     p.muted = muted;
   });
+
+  useEffect(() => {
+    setHasFirstFrame(false);
+  }, [src]);
+
+  useEffect(() => {
+    if (active) setHasFirstFrame(false);
+  }, [active]);
 
   useEffect(() => {
     if (!shouldLoadNativePlayer) return;
@@ -131,6 +155,21 @@ function FeedInlineVideoPreviewInner({
     return () => {
       try {
         player.pause();
+      } catch {
+        // ignore
+      }
+    };
+  }, [player, shouldLoadNativePlayer]);
+
+  // iOS / non-pooled: hide poster once playback has advanced past the first paint.
+  useEffect(() => {
+    if (!shouldLoadNativePlayer || !player) return;
+    const sub = player.addListener("timeUpdate", ({ currentTime }: { currentTime: number }) => {
+      if (currentTime > 0.02) setHasFirstFrame(true);
+    });
+    return () => {
+      try {
+        sub.remove();
       } catch {
         // ignore
       }
@@ -180,12 +219,35 @@ function FeedInlineVideoPreviewInner({
           contentFit="cover"
           monetization={monetization}
         />
+      ) : usePooledAndroid ? (
+        <MocomoPooledVideoView
+          style={StyleSheet.absoluteFill}
+          url={src}
+          posterUrl={poster}
+          streamUid={media.streamUid}
+          playing={active}
+          muted={muted}
+          onFirstFrame={() => setHasFirstFrame(true)}
+        />
       ) : shouldLoadNativePlayer ? (
         <VideoView
           style={StyleSheet.absoluteFill}
           player={player}
           contentFit="cover"
           nativeControls={false}
+          pointerEvents="none"
+        />
+      ) : null}
+
+      {/* Cover decoder black until first frame — same footprint as poster underneath. */}
+      {poster && !hasFirstFrame && active ? (
+        <Image
+          source={{ uri: poster }}
+          style={[StyleSheet.absoluteFill, styles.posterCover]}
+          contentFit="cover"
+          cachePolicy={IMAGE_CACHE_POLICY}
+          recyclingKey={`${poster}-cover`}
+          transition={0}
           pointerEvents="none"
         />
       ) : null}
@@ -248,6 +310,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   fallbackBg: { backgroundColor: "#1a1a1a" },
+  posterCover: { zIndex: 1 },
   openHit: {
     ...StyleSheet.absoluteFill,
     zIndex: 2,

@@ -54,7 +54,10 @@ export function MarketOrdersScreen() {
             </Text>
           }
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <Pressable
+              style={styles.card}
+              onPress={() => navigation.navigate("MarketOrderDetail", { orderId: item.id })}
+            >
               <View style={styles.cardHead}>
                 <Text style={styles.status}>{item.status}</Text>
                 <Text style={styles.date}>
@@ -75,7 +78,7 @@ export function MarketOrdersScreen() {
               {role === "seller" && item.buyer ? (
                 <Text style={styles.party}>구매자 @{item.buyer.username}</Text>
               ) : null}
-            </View>
+            </Pressable>
           )}
         />
       )}

@@ -1,0 +1,29 @@
+{
+  "files.watcherExclude": {
+    "**/.gradle-agent/**": true,
+    "**/.gradle/**": true,
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/.expo/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/.git/objects/**": true,
+    "**/.turbo/**": true,
+    "**/.cache/**": true,
+    "**/Pods/**": true,
+    "**/DerivedData/**": true
+  },
+  "search.exclude": {
+    "**/.gradle-agent": true,
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/.expo": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.turbo": true,
+    "**/.cache": true,
+    "**/Pods": true
+  },
+  "git.autorefresh": false,
+  "git.untrackedChanges": "hidden"
+}

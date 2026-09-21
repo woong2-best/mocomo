@@ -54,6 +54,7 @@ const postDetailSelect = {
       duration: true,
       hlsUrl: true,
       posterUrl: true,
+      streamUid: true,
     },
     orderBy: { order: "asc" as const },
   },
@@ -149,6 +150,7 @@ async function enrichPostDetail<
       duration?: number | null;
       hlsUrl?: string | null;
       posterUrl?: string | null;
+      streamUid?: string | null;
     }[];
     poll: Parameters<typeof mapPostPollRow>[0] | null;
   }
@@ -181,6 +183,7 @@ async function enrichPostDetail<
       locked,
       hlsUrl: m.hlsUrl,
       posterUrl: m.posterUrl,
+      streamUid: m.streamUid,
     });
     return {
       id: m.id,

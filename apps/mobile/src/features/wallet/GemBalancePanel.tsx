@@ -46,13 +46,13 @@ function NumKey({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
-        styles.numKey,
+        keypadStyles.numKey,
         style,
-        pressed && styles.keyPressed,
-        disabled && styles.keyDisabled,
+        pressed && keypadStyles.keyPressed,
+        disabled && keypadStyles.keyDisabled,
       ]}
     >
-      <Text style={styles.numKeyText}>{label}</Text>
+      <Text style={keypadStyles.numKeyText}>{label}</Text>
     </Pressable>
   );
 }
@@ -78,22 +78,22 @@ function ActionKey({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
-        styles.actionKey,
-        isConfirm ? styles.confirmKey : styles.clearKey,
+        keypadStyles.actionKey,
+        isConfirm ? keypadStyles.confirmKey : keypadStyles.clearKey,
         style,
-        pressed && styles.keyPressed,
-        disabled && styles.keyDisabled,
+        pressed && keypadStyles.keyPressed,
+        disabled && keypadStyles.keyDisabled,
       ]}
     >
-      <Text style={[styles.actionKeyLabel, isConfirm ? styles.confirmText : styles.clearText]}>{label}</Text>
-      {sub ? <Text style={[styles.actionKeySub, isConfirm ? styles.confirmText : styles.clearText]}>{sub}</Text> : null}
+      <Text style={[keypadStyles.actionKeyLabel, isConfirm ? keypadStyles.confirmText : keypadStyles.clearText]}>{label}</Text>
+      {sub ? <Text style={[keypadStyles.actionKeySub, isConfirm ? keypadStyles.confirmText : keypadStyles.clearText]}>{sub}</Text> : null}
     </Pressable>
   );
 }
 
 export function GemBalancePanel() {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => ({ ...createStyles(colors), ...keypadStyles }), [colors]);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [amount, setAmount] = useState("");
@@ -242,7 +242,7 @@ export function GemBalancePanel() {
   );
 }
 
-const styles = StyleSheet.create({
+const keypadStyles = StyleSheet.create({
   numKey: {
     height: 52,
     borderRadius: 8,

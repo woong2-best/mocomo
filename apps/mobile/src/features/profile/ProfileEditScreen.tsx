@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -33,6 +32,7 @@ import { FolkAvatar } from "@/ui/FolkAvatar";
 import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
 import { Screen } from "@/ui/Screen";
+import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -160,30 +160,36 @@ export function ProfileEditScreen() {
       if (authUser?.username) {
         await queryClient.invalidateQueries({ queryKey: ["mobile-user", authUser.username] });
       }
-      Alert.alert("저장됨", "프로필이 업데이트되었습니다.");
-      if (navigation.canGoBack()) navigation.goBack();
+      showIslandToast("Saved", "프로필이 업데이트되었습니다.");
+      // Let the island pill paint before popping the screen.
+      setTimeout(() => {
+        if (navigation.canGoBack()) navigation.goBack();
+      }, 320);
     },
     onError: (e) => {
-      Alert.alert("오류", apiErrorMessage(e, e instanceof Error ? e.message : "저장에 실패했습니다."));
+      showIslandError("오류", apiErrorMessage(e, e instanceof Error ? e.message : "저장에 실패했습니다."));
     },
   });
 
   const pickAvatar = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
+      showIslandError("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      quality: 1,
-      allowsEditing: true,
-      aspect: [1, 1],
+      quality: 0.7,
+      allowsEditing: false,
+      exif: false,
     });
     if (picked.canceled || !picked.assets[0]) return;
+    const localUri = picked.assets[0].uri;
+    // Optimistic preview — feel instant while upload runs in background.
+    setImage(localUri);
     setUploading("avatar");
     try {
-      const prepared = await prepareProfileAvatar(picked.assets[0].uri);
+      const prepared = await prepareProfileAvatar(localUri);
       const url = await uploadLocalFile({
         uri: prepared,
         filename: `profile-avatar-${Date.now()}.jpg`,
@@ -191,27 +197,33 @@ export function ProfileEditScreen() {
         category: "image",
       });
       setImage(url);
+      showIslandToast("Saved", "프로필 사진을 올렸습니다.");
     } catch (e) {
-      Alert.alert("오류", apiErrorMessage(e, "프로필 사진 업로드에 실패했습니다."));
+      setImage(image);
+      showIslandError("오류", apiErrorMessage(e, "프로필 사진 업로드에 실패했습니다."));
     } finally {
       setUploading(null);
     }
-  }, []);
+  }, [image]);
 
   const pickBannerImage = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
+      showIslandError("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      quality: 1,
+      quality: 0.75,
+      exif: false,
     });
     if (picked.canceled || !picked.assets[0]) return;
+    const localUri = picked.assets[0].uri;
+    setBannerUrl(localUri);
+    setBannerVideoUrl(null);
     setUploading("banner");
     try {
-      const prepared = await prepareProfileBannerImage(picked.assets[0].uri);
+      const prepared = await prepareProfileBannerImage(localUri);
       const url = await uploadLocalFile({
         uri: prepared,
         filename: `profile-banner-${Date.now()}.jpg`,
@@ -220,8 +232,9 @@ export function ProfileEditScreen() {
       });
       setBannerUrl(url);
       setBannerVideoUrl(null);
+      showIslandToast("Saved", "배너를 올렸습니다.");
     } catch (e) {
-      Alert.alert("오류", apiErrorMessage(e, "배너 업로드에 실패했습니다."));
+      showIslandError("오류", apiErrorMessage(e, "배너 업로드에 실패했습니다."));
     } finally {
       setUploading(null);
     }
@@ -230,7 +243,7 @@ export function ProfileEditScreen() {
   const pickBannerVideo = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
+      showIslandError("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({
@@ -243,7 +256,7 @@ export function ProfileEditScreen() {
       const asset = picked.assets[0];
       const probe = await probeVideo(asset.uri);
       if (probe.durationSec > 10.5) {
-        Alert.alert("동영상 길이", "배너 동영상은 10초 이하여야 합니다.");
+        showIslandError("동영상 길이", "배너 동영상은 10초 이하여야 합니다.");
         return;
       }
       const converted = await transcodeBannerVideoToH264(asset.uri);
@@ -255,8 +268,9 @@ export function ProfileEditScreen() {
       });
       setBannerVideoUrl(url);
       setBannerUrl(null);
+      showIslandToast("Saved", "배너 동영상을 올렸습니다.");
     } catch (e) {
-      Alert.alert("오류", apiErrorMessage(e, "배너 동영상 업로드에 실패했습니다."));
+      showIslandError("오류", apiErrorMessage(e, "배너 동영상 업로드에 실패했습니다."));
     } finally {
       setUploading(null);
     }

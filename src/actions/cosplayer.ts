@@ -1,16 +1,19 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
-import { profileUserCacheTag } from "@/lib/cache-tags";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import {
   characterMatchesAnime,
   resolveAnimeCharacterName,
 } from "@/lib/anime-characters";
+import {
+  applyAsCosplayerForUser,
+  COSPLAYER_BIO_MAX,
+} from "@/lib/cosplayer-apply";
 import { z } from "zod";
 
-const BIO_MAX = 300;
+const BIO_MAX = COSPLAYER_BIO_MAX;
 
 function isPersistablePhotoUrl(url: string) {
   const u = url.trim();
@@ -42,28 +45,8 @@ export async function applyAsCosplayer(data: z.infer<typeof applySchema>) {
   const parsed = applySchema.safeParse(data);
   if (!parsed.success) return { error: "입력값을 확인해주세요." };
 
-  const { bio, photoUrl } = parsed.data;
-
-  const existing = await db.cosplayerProfile.findUnique({ where: { userId: user.id } });
-  if (existing) return { error: "이미 코스어로 등록되어 있습니다." };
-
-  await db.cosplayerProfile.create({
-    data: {
-      userId: user.id,
-      bio: bio.trim(),
-      photos: {
-        create: {
-          url: photoUrl,
-        },
-      },
-    },
-  });
-
-  revalidatePath("/cosplay");
-  revalidatePath(`/cosplay/${user.username}`);
-  revalidatePath(`/u/${user.username}`);
-  revalidateTag(profileUserCacheTag(user.username));
-
+  const result = await applyAsCosplayerForUser(user.id, parsed.data);
+  if ("error" in result) return { error: result.error };
   return { success: true as const };
 }
 

@@ -34,7 +34,7 @@ export default async function ExternalLiveNewPage() {
           <CardHeader>
             <CardTitle className="text-lg">스트리밍 계정 인증 필요</CardTitle>
             <p className="text-sm text-muted-foreground">
-              보안상 URL을 직접 붙여넣을 수 없습니다. 먼저 본인 소유의 YouTube·Twitch·치지직
+              보안상 URL을 직접 붙여넣을 수 없습니다. 먼저 본인 소유의 YouTube·Twitch
               계정을 연결하고 소유권을 인증해 주세요.
             </p>
           </CardHeader>

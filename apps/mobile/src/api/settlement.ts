@@ -4,6 +4,11 @@ import { MobileApi } from "@/api/paths";
 export type SettlementStatus = {
   registered: boolean;
   payoutsEnabled: boolean;
+  hasConnectAccount?: boolean;
+  needsExpressMigration?: boolean;
+  taxReportingReady?: boolean;
+  taxRequirementsDue?: boolean;
+  connectAccountType?: string | null;
   settlementMocoPoints: number;
   earnedMocoPoints: number;
   earnedMocoTier: string;
@@ -19,6 +24,7 @@ export type SettlementStatus = {
   } | null;
 };
 
+/** @deprecated Custom Connect 제거 — startExpressConnectOnboarding 사용 */
 export type RegisterSettlementPayload = {
   countryCode: string;
   legalName: string;
@@ -42,6 +48,9 @@ export async function fetchSettlementStatus() {
   return apiRequest<SettlementStatus>(MobileApi.settlementStatus, { auth: true });
 }
 
+/**
+ * @deprecated Custom Connect 410 — use POST /api/mobile/settlements/connect-account
+ */
 export async function registerSettlement(payload: RegisterSettlementPayload) {
   return apiRequest<{ success: true; payoutsEnabled: boolean } | { error: string }>(
     MobileApi.settlementRegister,

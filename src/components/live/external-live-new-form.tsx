@@ -1,20 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import type { LiveStreamCategory } from "@prisma/client";
 import { createExternalLiveStream } from "@/actions/live-external";
+import { getLiveStudioSettings } from "@/actions/live-studio";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink } from "lucide-react";
 import { YoutubeEmbedGuide } from "@/components/live/youtube-embed-guide";
+import { BROADCAST_PICK_CATEGORIES } from "@/lib/live-categories";
+import { cn } from "@/lib/utils";
 
 const PLATFORM_LABELS: Record<string, string> = {
   YOUTUBE: "YouTube",
   TWITCH: "Twitch",
-  CHZZK: "치지직",
 };
 
 type Account = {
@@ -32,12 +34,22 @@ type Props = {
 
 export function ExternalLiveNewForm({ accounts }: Props) {
   const router = useRouter();
-  const [name, setName] = useState("");
+  const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id ?? "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   const selected = accounts.find((a) => a.id === selectedAccountId);
+
+  useEffect(() => {
+    void getLiveStudioSettings()
+      .then((s) => {
+        if (s.defaultCategory && s.defaultCategory !== "VIRTUAL") {
+          setCategory(s.defaultCategory);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,8 +57,8 @@ export function ExternalLiveNewForm({ accounts }: Props) {
     setBusy(true);
     try {
       const result = await createExternalLiveStream({
-        name,
         connectedAccountId: selectedAccountId,
+        category,
         goLive: true,
       });
       if ("error" in result && result.error) {
@@ -71,21 +83,30 @@ export function ExternalLiveNewForm({ accounts }: Props) {
         <CardTitle className="text-lg">인증된 계정으로 방송 시작</CardTitle>
         <p className="text-sm text-muted-foreground">
           영상은 해당 플랫폼 플레이어로만 보여 줍니다. 채팅·후원은 MoCoMo에서 제공됩니다.
-          방 시작 후 호스트 대시보드에서 OBS 채팅 URL(댓글만)을 복사해 OBS 브라우저 소스에
-          넣으면 됩니다 (YouTube·Twitch·치지직 공통). 후원은 인증된 본인 계정의 방송에서만
-          받을 수 있습니다.
+          제목·설명은 YouTube/Twitch에서 설정한 내용이 자동으로 반영됩니다.
         </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">방송 제목</label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={selected ? `${selected.channelName} 라이브` : "오늘의 라이브"}
-              maxLength={120}
-            />
+            <label className="text-sm font-medium">카테고리</label>
+            <div className="flex flex-wrap gap-2">
+              {BROADCAST_PICK_CATEGORIES.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setCategory(c.value)}
+                  className={cn(
+                    "rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors",
+                    category === c.value
+                      ? "border-folk-terracotta bg-folk-terracotta/15 text-folk-terracotta"
+                      : "border-border/70 text-muted-foreground hover:border-folk-cobalt/40"
+                  )}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-2">

@@ -1,17 +1,16 @@
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { db } from "@/lib/db";
-import { normalizeSellerCountry, isKrSellerCountry } from "@/lib/marketplace/seller-region-policy";
 import {
   snapshotStripeConnectAccount,
   syncStripeConnectAccountToDb,
 } from "@/lib/marketplace/stripe-connect-sync";
 import type { TaxFormType } from "@/lib/settlement-moco/constants";
-import type Stripe from "stripe";
 
 export function isStripeConnectConfigured(): boolean {
   return isStripeConfigured();
 }
 
+/** @deprecated Custom Connect 타입 — Express 표준화 후 신규 사용 금지 */
 export type CustomConnectInput = {
   userId: string;
   email?: string | null;
@@ -34,138 +33,36 @@ export type CustomConnectInput = {
   taxFormType: TaxFormType;
   ssn?: string;
   tosAcceptance: { ip: string; date: number };
-  /** 마켓플레이스 판매자 — destination charge용 */
   requestCardPayments?: boolean;
 };
 
-function splitLegalName(name: string): { first: string; last: string } {
-  const trimmed = name.trim();
-  const parts = trimmed.split(/\s+/);
-  if (parts.length === 1) return { first: parts[0]!, last: parts[0]! };
-  const last = parts.pop()!;
-  return { first: parts.join(" "), last };
-}
-
-function bankExternalAccount(input: CustomConnectInput): Stripe.AccountCreateParams.ExternalAccount {
-  const country = normalizeSellerCountry(input.countryCode).toUpperCase();
-  const currency = country === "KR" ? "krw" : country === "JP" ? "jpy" : "usd";
-
-  return {
-    object: "bank_account",
-    country,
-    currency,
-    account_holder_name: input.bank.accountHolderName,
-    account_holder_type: "individual",
-    account_number: input.bank.accountNumber.replace(/\D/g, ""),
-    routing_number: (input.bank.bankCode ?? input.bank.routingNumber ?? "").replace(/\D/g, ""),
-  };
-}
-
-/** Stripe Connect Custom 계정 생성 + 계좌 바인딩 (화이트라벨) */
+/**
+ * @deprecated Custom Connect 화이트라벨은 제거됨. Express 온보딩 사용.
+ * 호출 시 즉시 에러를 반환합니다.
+ */
 export async function createCustomConnectAccount(
-  input: CustomConnectInput
+  _input: CustomConnectInput
 ): Promise<{ accountId: string } | { error: string }> {
-  if (!isStripeConfigured()) {
-    return { error: "Stripe가 설정되지 않았습니다." };
-  }
-
-  const country = normalizeSellerCountry(input.countryCode).toUpperCase();
-  const isKr = isKrSellerCountry(country);
-  const stripe = getStripe();
-  const { first, last } = splitLegalName(input.legalName);
-
-  const params: Stripe.AccountCreateParams = {
-    type: "custom",
-    country,
-    email: input.email?.trim() || undefined,
-    business_type: "individual",
-    individual: {
-      first_name: first,
-      last_name: last,
-      email: input.email?.trim() || undefined,
-      dob: input.dateOfBirth,
-      address: {
-        line1: input.address.line1,
-        line2: input.address.line2,
-        city: input.address.city,
-        state: input.address.state,
-        postal_code: input.address.postalCode,
-        country,
-      },
-      ...(input.taxFormType === "W9" && input.ssn
-        ? { id_number: input.ssn.replace(/\D/g, "") }
-        : {}),
-    },
-    capabilities: {
-      transfers: { requested: true },
-      ...(input.requestCardPayments ? { card_payments: { requested: true } } : {}),
-    },
-    tos_acceptance: {
-      date: input.tosAcceptance.date,
-      ip: input.tosAcceptance.ip,
-      ...(isKr ? { service_agreement: "recipient" } : {}),
-    },
-    external_account: bankExternalAccount(input),
-    metadata: { mocomoUserId: input.userId },
+  void _input;
+  return {
+    error:
+      "Custom Connect 계정 생성은 더 이상 지원하지 않습니다. Stripe Express 온보딩을 이용해 주세요.",
   };
-
-  try {
-    const account = await stripe.accounts.create(params);
-    return { accountId: account.id };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Stripe Custom 계정 생성 실패";
-    console.error("[stripe-connect] createCustomConnectAccount:", msg);
-    return { error: msg };
-  }
 }
 
-/** 기존 Custom 계정에 계좌·KYC 갱신 */
+/**
+ * @deprecated Custom Connect 화이트라벨은 제거됨. Express 온보딩 사용.
+ */
 export async function updateCustomConnectAccount(
-  accountId: string,
-  input: Omit<CustomConnectInput, "userId" | "requestCardPayments">
+  _accountId: string,
+  _input: Omit<CustomConnectInput, "userId" | "requestCardPayments">
 ): Promise<{ ok: true } | { error: string }> {
-  if (!isStripeConfigured()) return { error: "Stripe가 설정되지 않았습니다." };
-
-  const country = normalizeSellerCountry(input.countryCode).toUpperCase();
-  const isKr = isKrSellerCountry(country);
-  const stripe = getStripe();
-  const { first, last } = splitLegalName(input.legalName);
-
-  try {
-    await stripe.accounts.update(accountId, {
-      individual: {
-        first_name: first,
-        last_name: last,
-        dob: input.dateOfBirth,
-        address: {
-          line1: input.address.line1,
-          line2: input.address.line2,
-          city: input.address.city,
-          state: input.address.state,
-          postal_code: input.address.postalCode,
-          country,
-        },
-        ...(input.taxFormType === "W9" && input.ssn
-          ? { id_number: input.ssn.replace(/\D/g, "") }
-          : {}),
-      },
-      tos_acceptance: {
-        date: input.tosAcceptance.date,
-        ip: input.tosAcceptance.ip,
-        ...(isKr ? { service_agreement: "recipient" } : {}),
-      },
-    });
-
-    await stripe.accounts.createExternalAccount(accountId, {
-      external_account: bankExternalAccount(input as CustomConnectInput) as Stripe.AccountCreateExternalAccountParams["external_account"],
-    });
-
-    return { ok: true };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Stripe 계정 갱신 실패";
-    console.error("[stripe-connect] updateCustomConnectAccount:", msg);
-    return { error: msg };
-  }
+  void _accountId;
+  void _input;
+  return {
+    error:
+      "Custom Connect 계정 갱신은 더 이상 지원하지 않습니다. Stripe Express 온보딩을 이용해 주세요.",
+  };
 }
 
 /** @deprecated settlement-express-connect.ensureExpressConnectAccount */
@@ -288,32 +185,18 @@ export async function syncStripeConnectOnboardedAt(userId: string, accountId: st
   return { ready: true as const, snapshot: snap };
 }
 
-/** KR 계좌 바인딩 — createCustomConnectAccount에 통합됨 */
-export async function attachKrBankToConnectAccount(input: {
+/** @deprecated Custom Connect 제거 — Express Hosted Onboarding 사용 */
+export async function attachKrBankToConnectAccount(_input: {
   accountId: string;
   bankCode: string;
   accountNum: string;
   holderName: string;
 }): Promise<{ ok: true } | { error: string }> {
-  if (!isStripeConfigured()) return { error: "Stripe가 설정되지 않았습니다." };
-  const stripe = getStripe();
-  try {
-    await stripe.accounts.createExternalAccount(input.accountId, {
-      external_account: {
-        object: "bank_account",
-        country: "KR",
-        currency: "krw",
-        account_holder_name: input.holderName,
-        account_holder_type: "individual",
-        routing_number: input.bankCode.replace(/\D/g, ""),
-        account_number: input.accountNum.replace(/\D/g, ""),
-      },
-    });
-    return { ok: true };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "계좌 바인딩 실패";
-    return { error: msg };
-  }
+  void _input;
+  return {
+    error:
+      "앱 내 계좌 바인딩은 더 이상 지원하지 않습니다. Stripe Express 온보딩에서 계좌를 등록해 주세요.",
+  };
 }
 
 /** @deprecated startSellerConnectOnboarding 사용 */

@@ -24,7 +24,7 @@ export const LIVE_FEATURE_HREFS = ["/live", "/voice", "/avatar"] as const;
 
 /**
  * 자체 송출(ingest) 생성 진입점만.
- * `/avatar/studio`·아바타 편집·OBS 브라우저 소스는 외부 방송에도 쓰이므로 제외.
+ * `/live/studio`·아바타 편집·OBS 브라우저 소스는 외부 방송에도 쓰이므로 제외.
  */
 export const FIRST_PARTY_LIVE_PATH_PREFIXES = ["/voice/new"] as const;
 

@@ -325,14 +325,14 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
     tags: ["SF", "Production IG", "범죄", "디스토피아"],
   },
   {
-    title: "보치 더 록!",
+    title: "봇치 더 록!",
     titleEn: "Bocchi the Rock",
     genre: "SLICE_OF_LIFE",
     studio: "CloverWorks",
     coverUrl: "https://cdn.myanimelist.net/images/anime/1447/127086.jpg",
     synopsis: `# 개요
 
-[[보치 더 록!]]은 2022년 방영된 음악·일상 코미디. **극도의 소 introvert** **後藤ひとり**가 밴드 **結束バンド**에서 성장하는 이야기.
+[[봇치 더 록!]]은 2022년 방영된 음악·일상 코미디. **극도의 소 introvert** **後藤ひとり**가 밴드 **結束バンド**에서 성장하는 이야기.
 
 # 줄거리
 
@@ -454,6 +454,14 @@ function seedSlug(seed: AnimeWikiSeed): string {
   return animeSlugFromTitle(seed.title, seed.titleEn);
 }
 
+/** Prefer known anime CDNs; replace stock/random photos that leaked into coverUrl. */
+function isTrustedAnimeCover(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return /cdn\.myanimelist\.net|media\.kitsu\.io|anilist\.co|s4\.anilist\.co|mocomo\.|cloudinary\.com|imagedelivery\.net/i.test(
+    url
+  );
+}
+
 async function uniqueSlug(prisma: PrismaClient, base: string, excludeId?: string): Promise<string> {
   let slug = base;
   let n = 0;
@@ -489,7 +497,8 @@ export async function ensureAnimeWikiSeeds(prisma: PrismaClient, creatorId: stri
 
     const existing =
       (await prisma.anime.findUnique({ where: { slug } })) ??
-      (await prisma.anime.findFirst({ where: { title: seed.title } }));
+      (await prisma.anime.findFirst({ where: { title: seed.title } })) ??
+      (await prisma.anime.findFirst({ where: { titleEn: seed.titleEn } }));
 
     if (existing) {
       const needsSlugFix = !isValidAnimeSlug(existing.slug);
@@ -498,22 +507,30 @@ export async function ensureAnimeWikiSeeds(prisma: PrismaClient, creatorId: stri
         existing.synopsis.length < 80 ||
         (seed.isProtected && !existing.isProtected);
       const needsInfobox = !!seed.infobox && !existing.infobox?.trim();
+      const needsCover =
+        !!seed.coverUrl &&
+        (!existing.coverUrl?.trim() || !isTrustedAnimeCover(existing.coverUrl));
+      const needsTitle = existing.title !== seed.title || existing.titleEn !== seed.titleEn;
 
-      if (!needsSlugFix && !needsContent && !needsInfobox) continue;
+      if (!needsSlugFix && !needsContent && !needsInfobox && !needsCover && !needsTitle) continue;
 
       await prisma.anime.update({
         where: { id: existing.id },
         data: {
           ...(needsSlugFix ? { slug: await uniqueSlug(prisma, slug, existing.id) } : {}),
           ...(needsInfobox ? { infobox: seed.infobox } : {}),
+          ...(needsCover ? { coverUrl: seed.coverUrl } : {}),
+          ...(needsTitle ? { title: seed.title, titleEn: seed.titleEn } : {}),
           ...(needsContent
             ? {
-                titleEn: existing.titleEn ?? seed.titleEn,
+                titleEn: seed.titleEn,
                 genre: existing.genre === "OTHER" ? seed.genre : existing.genre,
                 studio: existing.studio ?? seed.studio,
                 synopsis: existing.synopsis?.trim() ? existing.synopsis : seed.synopsis,
                 worldInfo: existing.worldInfo?.trim() ? existing.worldInfo : seed.worldInfo ?? null,
-                coverUrl: existing.coverUrl ?? seed.coverUrl ?? null,
+                coverUrl: needsCover
+                  ? seed.coverUrl
+                  : (existing.coverUrl ?? seed.coverUrl ?? null),
                 bannerUrl: existing.bannerUrl ?? seed.bannerUrl ?? null,
                 characters: existing.characters ? undefined : characters,
                 tags: existing.tags.length ? existing.tags : seed.tags,

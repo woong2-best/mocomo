@@ -15,7 +15,6 @@ import { validateSaleMediaPricing } from "@/lib/money";
 import { canViewNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 
 const BULK_BATCH_SIZE = 25;
-const BULK_MAX_FOLLOWERS = 50_000;
 
 export type CreatorMarketingSettingsDto = {
   welcomeEnabled: boolean;
@@ -290,8 +289,8 @@ export async function flushPendingWelcomeDmsForFollower(followerId: string) {
 }
 
 export async function enqueueCreatorBulkDm(
-  creatorId: string,
-  input: {
+  _creatorId: string,
+  _input: {
     text?: string;
     mediaUrl?: string | null;
     mediaType?: string | null;
@@ -302,54 +301,7 @@ export async function enqueueCreatorBulkDm(
   | { ok: true; jobId: string; totalFollowers: number; settings: CreatorMarketingSettingsDto }
   | { ok: false; error: string }
 > {
-  const active = await db.creatorBulkDmJob.findFirst({
-    where: {
-      creatorId,
-      status: { in: [CreatorBulkDmJobStatus.PENDING, CreatorBulkDmJobStatus.RUNNING] },
-    },
-    select: { id: true },
-  });
-  if (active) {
-    return { ok: false, error: "이미 진행 중인 단체 발송 작업이 있습니다. 완료 후 다시 시도해 주세요." };
-  }
-
-  const textValidation = validateCreatorMarketingText(input.text);
-  if (!textValidation.ok) return textValidation;
-
-  const mediaResult = parsePaidMarketingMedia({
-    url: input.mediaUrl,
-    type: input.mediaType,
-    name: input.mediaName,
-    priceKrw: input.mediaPriceKrw,
-  });
-  if (!mediaResult.ok) return mediaResult;
-
-  const payload = buildMessagePayload(textValidation.text, mediaResult.media);
-  if (!payload.ok) return payload;
-
-  const totalFollowers = await db.follow.count({ where: { followingId: creatorId } });
-  if (totalFollowers === 0) {
-    return { ok: false, error: "팔로워가 없어 발송할 수 없습니다." };
-  }
-  if (totalFollowers > BULK_MAX_FOLLOWERS) {
-    return { ok: false, error: `한 번에 ${BULK_MAX_FOLLOWERS.toLocaleString()}명 이하만 발송할 수 있습니다.` };
-  }
-
-  const job = await db.creatorBulkDmJob.create({
-    data: {
-      creatorId,
-      content: textValidation.text || null,
-      mediaUrl: mediaResult.media?.url ?? null,
-      mediaType: mediaResult.media?.type ?? null,
-      mediaName: mediaResult.media?.name ?? null,
-      mediaPriceKrw: mediaResult.media?.priceKrw ?? 0,
-      totalFollowers,
-      status: CreatorBulkDmJobStatus.PENDING,
-    },
-  });
-
-  const settings = await getCreatorMarketingSettings(creatorId);
-  return { ok: true, jobId: job.id, totalFollowers, settings };
+  return { ok: false, error: "단체 발송 기능이 종료되었습니다." };
 }
 
 export async function processCreatorBulkDmJob(jobId: string) {

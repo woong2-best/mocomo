@@ -115,6 +115,7 @@ export function attachPostContentAccess<
       const mediaRow = m as PostMediaAccessRow & {
         hlsUrl?: string | null;
         posterUrl?: string | null;
+        streamUid?: string | null;
       };
       const gated = rewritePaidVideoSrc({
         id: m.id,
@@ -124,6 +125,7 @@ export function attachPostContentAccess<
         locked,
         hlsUrl: mediaRow.hlsUrl ?? null,
         posterUrl: mediaRow.posterUrl ?? null,
+        streamUid: mediaRow.streamUid ?? null,
       });
       return {
         ...m,

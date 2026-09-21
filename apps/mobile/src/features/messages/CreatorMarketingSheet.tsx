@@ -23,6 +23,7 @@ import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { FolkButton } from "@/ui/FolkButton";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
+import { showIslandToast } from "@/ui/IslandToast";
 import {
   SALE_MEDIA_MIN_PRICE_KRW,
   SALE_MEDIA_MAX_PRICE_USD_CENTS,
@@ -216,7 +217,10 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
         mediaPriceKrw: media?.priceKrw ?? null,
       });
       await queryClient.invalidateQueries({ queryKey: ["creator-dm-marketing"] });
-      Alert.alert("저장됨", welcomeEnabled ? "웰컴 메시지 자동 발송이 활성화되었습니다." : "설정이 저장되었습니다.");
+      showIslandToast(
+        "Saved",
+        welcomeEnabled ? "웰컴 메시지 자동 발송이 활성화되었습니다." : "설정이 저장되었습니다."
+      );
     } catch (e) {
       setWelcomeError(e instanceof Error ? e.message : "저장하지 못했습니다.");
     } finally {

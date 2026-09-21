@@ -65,10 +65,16 @@ async function assertMobileChatAccess(roomId: string, userId: string) {
 export async function listMobileDmInbox(userId: string) {
   const communityLinkedRoomIds = await getCommunityLinkedChatRoomIds();
   const rooms = await db.chatRoom.findMany({
-    where: buildMessagesInboxWhere(userId, {
-      mobile: true,
-      excludeCommunityRoomIds: communityLinkedRoomIds,
-    }),
+    where: {
+      AND: [
+        buildMessagesInboxWhere(userId, {
+          mobile: true,
+          excludeCommunityRoomIds: communityLinkedRoomIds,
+        }),
+        // Empty DMs (opened / follow-only, no messages) stay out of the inbox.
+        { messages: { some: {} } },
+      ],
+    },
     take: 40,
     include: {
       members: {

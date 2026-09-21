@@ -7,12 +7,12 @@ import type { LiveExternalProvider, ParsedExternalLiveSource } from "@/lib/live-
 
 export type { StreamingPlatform, StreamingVerificationMethod };
 
-/** OAuth 가능 플랫폼 */
-export const OAUTH_STREAMING_PLATFORMS = ["YOUTUBE", "TWITCH", "CHZZK"] as const;
+/** OAuth 가능 플랫폼 (치지직·Kick 제외) */
+export const OAUTH_STREAMING_PLATFORMS = ["YOUTUBE", "TWITCH"] as const;
 export type OAuthStreamingPlatform = (typeof OAUTH_STREAMING_PLATFORMS)[number];
 
-/** 수동 검증 플랫폼 */
-export const MANUAL_STREAMING_PLATFORMS = ["KICK"] as const;
+/** 수동 검증 플랫폼 — 현재 없음 */
+export const MANUAL_STREAMING_PLATFORMS = [] as const;
 export type ManualStreamingPlatform = (typeof MANUAL_STREAMING_PLATFORMS)[number];
 
 export const CONNECTABLE_STREAMING_PLATFORMS = [
@@ -28,7 +28,7 @@ export function isConnectablePlatform(p: string): p is ConnectableStreamingPlatf
 export function platformToLiveExternal(
   platform: StreamingPlatform
 ): LiveExternalProvider | null {
-  if (platform === "YOUTUBE" || platform === "TWITCH" || platform === "CHZZK") {
+  if (platform === "YOUTUBE" || platform === "TWITCH") {
     return platform;
   }
   return null;
@@ -79,7 +79,7 @@ export type StreamingVerifyResult =
 
 /** 플랫폼별 OAuth·검증·라이브 해석 */
 export interface StreamingPlatformProvider {
-  readonly platform: ConnectableStreamingPlatform;
+  readonly platform: StreamingPlatform;
   readonly supportsOAuth: boolean;
 
   /** OAuth authorize URL (supportsOAuth=false → null) */

@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
-  connectStreamingAccountManual,
   connectStreamingAccountOAuth,
   disconnectStreamingAccountAction,
   verifyStreamingAccount,
@@ -13,7 +12,6 @@ import { CONNECTABLE_STREAMING_PLATFORMS } from "@/lib/streaming-accounts/types"
 import type { ConnectableStreamingPlatform } from "@/lib/streaming-accounts/types";
 import { isOAuthStreamingPlatform } from "@/lib/streaming-accounts/registry";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
@@ -21,8 +19,6 @@ import { ExternalLink, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
 const PLATFORM_LABELS: Record<string, string> = {
   YOUTUBE: "YouTube",
   TWITCH: "Twitch",
-  CHZZK: "치지직",
-  KICK: "Kick",
 };
 
 type Props = {
@@ -36,10 +32,11 @@ export function StreamingAccountsManager({
   bannerError,
   bannerConnected,
 }: Props) {
-  const [accounts, setAccounts] = useState(initialAccounts);
+  const connectableInitial = initialAccounts.filter(
+    (acc) => acc.platform === "YOUTUBE" || acc.platform === "TWITCH"
+  );
+  const [accounts] = useState(connectableInitial);
   const [selectedPlatform, setSelectedPlatform] = useState<string>("YOUTUBE");
-  const [channelInput, setChannelInput] = useState("");
-  const [pendingCode, setPendingCode] = useState<string | null>(null);
   const [error, setError] = useState(bannerError ?? "");
   const [success, setSuccess] = useState(
     bannerConnected ? `${PLATFORM_LABELS[bannerConnected] ?? bannerConnected} 연결 완료` : ""
@@ -57,24 +54,6 @@ export function StreamingAccountsManager({
       }
       if ("url" in res && res.url) {
         window.location.href = res.url;
-      }
-    });
-  }
-
-  async function onManualConnect(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    startTransition(async () => {
-      const res = await connectStreamingAccountManual(selectedPlatform, channelInput);
-      if ("error" in res && res.error) {
-        setError(res.error);
-        return;
-      }
-      if ("verificationCode" in res && res.verificationCode) {
-        setPendingCode(res.verificationCode);
-        setSuccess("채널 설명에 아래 코드를 추가한 뒤 '소유권 확인'을 눌러 주세요.");
-        window.location.reload();
       }
     });
   }
@@ -161,41 +140,23 @@ export function StreamingAccountsManager({
                     채널 보기
                     <ExternalLink className="h-3 w-3" />
                   </a>
-                  {acc.pendingVerification &&
-                  acc.platform !== "YOUTUBE" &&
-                  acc.platform !== "CHZZK" &&
-                  acc.verificationCode ? (
-                    <p className="text-xs text-muted-foreground">
-                      채널 설명에 추가:{" "}
-                      <code className="rounded bg-muted px-1 py-0.5 font-mono">
-                        {acc.verificationCode}
-                      </code>
-                    </p>
-                  ) : null}
                   {acc.platform === "YOUTUBE" && !acc.verified ? (
                     <p className="text-xs text-muted-foreground">
                       Google 로그인으로 다시 연결하면 바로 인증됩니다.
                     </p>
                   ) : null}
-                  {acc.platform === "CHZZK" && !acc.verified ? (
-                    <p className="text-xs text-muted-foreground">
-                      치지직 OAuth로 다시 연결하면 바로 인증됩니다.
-                    </p>
-                  ) : null}
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  {(acc.platform === "YOUTUBE" || acc.platform === "CHZZK") && !acc.verified ? (
+                  {acc.platform === "YOUTUBE" && !acc.verified ? (
                     <Button
                       size="sm"
                       disabled={pending}
                       onClick={() => onOAuthConnect(acc.platform)}
                     >
-                      {acc.platform === "YOUTUBE" ? "Google로 연결" : "치지직으로 연결"}
+                      Google로 연결
                     </Button>
                   ) : null}
-                  {acc.pendingVerification &&
-                  acc.platform !== "YOUTUBE" &&
-                  acc.platform !== "CHZZK" ? (
+                  {acc.pendingVerification && acc.platform !== "YOUTUBE" ? (
                     <Button size="sm" disabled={pending} onClick={() => onVerify(acc.id)}>
                       소유권 확인
                     </Button>
@@ -239,14 +200,10 @@ export function StreamingAccountsManager({
               <p className="text-sm text-muted-foreground">
                 {selectedPlatform === "YOUTUBE"
                   ? "Google 계정으로 로그인하면 채널이 바로 인증됩니다."
-                  : selectedPlatform === "CHZZK"
-                    ? "네이버(치지직) 계정으로 로그인하면 본인 채널이 바로 인증됩니다. URL·검증 코드는 필요 없습니다."
-                    : `${PLATFORM_LABELS[selectedPlatform]} 계정으로 로그인하여 채널 소유권을 확인합니다.`}
+                  : `${PLATFORM_LABELS[selectedPlatform]} 계정으로 로그인하여 채널 소유권을 확인합니다.`}
               </p>
               <Button disabled={pending} onClick={() => onOAuthConnect(selectedPlatform)}>
-                {selectedPlatform === "CHZZK"
-                  ? "치지직 연결"
-                  : `${PLATFORM_LABELS[selectedPlatform]} 연결`}
+                {`${PLATFORM_LABELS[selectedPlatform]} 연결`}
               </Button>
               {selectedPlatform === "YOUTUBE" ? (
                 <p className="text-xs text-muted-foreground">
@@ -255,29 +212,6 @@ export function StreamingAccountsManager({
                 </p>
               ) : null}
             </div>
-          ) : null}
-
-          {selectedPlatform === "KICK" ? (
-            <form onSubmit={onManualConnect} className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                채널 URL을 입력하면 검증 코드가 발급됩니다. 채널 설명(프로필)에 코드를 넣고
-                소유권 확인을 진행하세요.
-              </p>
-              <Input
-                value={channelInput}
-                onChange={(e) => setChannelInput(e.target.value)}
-                placeholder="https://kick.com/사용자명"
-                required
-              />
-              {pendingCode ? (
-                <p className="text-xs">
-                  검증 코드: <code className="font-mono">{pendingCode}</code>
-                </p>
-              ) : null}
-              <Button type="submit" disabled={pending || !channelInput.trim()}>
-                채널 등록
-              </Button>
-            </form>
           ) : null}
         </CardContent>
       </Card>

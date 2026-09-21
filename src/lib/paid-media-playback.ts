@@ -4,6 +4,7 @@ import {
   getSubscriptionsForViewer,
   isMediaContentLocked,
 } from "@/lib/content-access";
+import { resolveVideoPosterUrl } from "@/lib/video-poster";
 
 export const PAID_MEDIA_PLAYBACK_PREFIX = "/api/media/paid";
 
@@ -90,6 +91,7 @@ export function resolveClientPaidMediaSrc(input: {
  * Locked sale media (image or video) get an empty src so CSS-blur is not
  * enough — the img/video tag never fetches the file. Unlocked paid video
  * plays through a same-origin gate. HLS is omitted for paid video.
+ * Unlocked paid still keeps a poster so feed cards are not black rectangles.
  */
 export function rewritePaidVideoSrc(input: {
   id: string;
@@ -99,7 +101,15 @@ export function rewritePaidVideoSrc(input: {
   locked?: boolean;
   hlsUrl?: string | null;
   posterUrl?: string | null;
+  streamUid?: string | null;
 }): { url: string; hlsUrl: string | null; posterUrl: string | null } {
+  const resolvedPoster = resolveVideoPosterUrl({
+    posterUrl: input.posterUrl,
+    hlsUrl: input.hlsUrl,
+    url: input.url,
+    streamUid: input.streamUid,
+  });
+
   if (input.locked) {
     if (!input.id) return { url: "", hlsUrl: null, posterUrl: null };
     return {
@@ -110,13 +120,17 @@ export function rewritePaidVideoSrc(input: {
   }
   if ((input.priceKrw ?? 0) > 0) {
     if (input.type === "VIDEO" || input.type === "IMAGE") {
-      return { url: paidMediaPlaybackPath(input.id), hlsUrl: null, posterUrl: null };
+      return {
+        url: paidMediaPlaybackPath(input.id),
+        hlsUrl: null,
+        posterUrl: resolvedPoster,
+      };
     }
   }
   return {
     url: input.url,
     hlsUrl: input.hlsUrl ?? null,
-    posterUrl: input.posterUrl ?? null,
+    posterUrl: resolvedPoster ?? input.posterUrl ?? null,
   };
 }
 
@@ -139,6 +153,7 @@ type WebMediaRow = {
   priceKrw?: number | null;
   hlsUrl?: string | null;
   posterUrl?: string | null;
+  streamUid?: string | null;
   locked?: boolean;
 };
 
@@ -199,6 +214,7 @@ export async function attachWebPaidMediaPlayback<
           locked,
           hlsUrl: m.hlsUrl,
           posterUrl: m.posterUrl,
+          streamUid: m.streamUid,
         });
         return {
           ...m,

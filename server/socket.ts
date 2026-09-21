@@ -2,6 +2,7 @@ import { createServer } from "http";
 import { Server, type Socket } from "socket.io";
 import { PrismaClient } from "@prisma/client";
 import { verifySocketAuthToken } from "../src/lib/socket-auth-token";
+import { verifyOverlayToken } from "../src/lib/live-external/overlay-token";
 import { sanitizeChatAttachments } from "../src/lib/chat-attachments";
 import { filterDmMessageContent } from "../src/lib/chat-content-filter";
 import { chatMessageInclude, serializeChatMessageForRelay } from "../src/lib/chat-message-serialize";
@@ -297,6 +298,34 @@ const httpServer = createServer((req, res) => {
     });
     return;
   }
+  if (req.method === "POST" && req.url === "/relay/moco-donation") {
+    if (!RELAY_SECRET || req.headers["x-relay-secret"] !== RELAY_SECRET) {
+      res.writeHead(401);
+      res.end();
+      return;
+    }
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      try {
+        const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as {
+          channelId?: string;
+          event?: string;
+          donation?: { id?: string };
+        };
+        if (body.channelId && body.event && body.donation?.id) {
+          io.to(`widget:${body.channelId}`).emit(body.event, body.donation);
+          io.to(`live:${body.channelId}`).emit(body.event, body.donation);
+        }
+        res.writeHead(204);
+        res.end();
+      } catch {
+        res.writeHead(400);
+        res.end();
+      }
+    });
+    return;
+  }
   res.writeHead(404);
   res.end();
 });
@@ -342,6 +371,36 @@ const liveChatOverlayByChannel = new Map<string, boolean>();
 const liveOverlayByChannel = new Map<string, { version: number; widgets: unknown[] }>();
 
 io.on("connection", (socket: AuthedSocket) => {
+  const overlayToken = socket.handshake.auth.overlayToken as string | undefined;
+  const widgetChannelId = socket.handshake.auth.channelId as string | undefined;
+  const isWidgetHandshake = socket.handshake.auth.widget === true;
+
+  if (isWidgetHandshake && overlayToken && widgetChannelId) {
+    const verified = verifyOverlayToken(String(overlayToken), {
+      channelId: String(widgetChannelId),
+      kind: "donation",
+    });
+    if (verified.ok) {
+      socket.join(`widget:${widgetChannelId}`);
+      socket.on(
+        "join_streamer_widget",
+        (data: { streamer_id?: string; overlay_token?: string }) => {
+          const channelId = data.streamer_id?.trim() || widgetChannelId;
+          if (channelId.length > 64) return;
+          if (data.overlay_token) {
+            const v = verifyOverlayToken(data.overlay_token, {
+              channelId,
+              kind: "donation",
+            });
+            if (!v.ok) return;
+          }
+          socket.join(`widget:${channelId}`);
+        }
+      );
+      return;
+    }
+  }
+
   const userId = resolveUserId(socket);
   if (!userId) {
     socket.disconnect(true);
@@ -483,9 +542,23 @@ io.on("connection", (socket: AuthedSocket) => {
     });
   }
 
+  socket.on(
+    "join_streamer_widget",
+    (data: { streamer_id?: string; overlay_token?: string }) => {
+      const channelId = data.streamer_id?.trim();
+      if (!channelId || channelId.length > 64) return;
+      if (data.overlay_token) {
+        const v = verifyOverlayToken(data.overlay_token, { channelId, kind: "donation" });
+        if (!v.ok) return;
+      }
+      socket.join(`widget:${channelId}`);
+    }
+  );
+
   socket.on("join_live", async (channelId: string) => {
     if (!channelId || channelId.length > 64) return;
     socket.join(`live:${channelId}`);
+    socket.join(`widget:${channelId}`);
     try {
       const channel = await prisma.voiceChannel.findUnique({
         where: { id: channelId },

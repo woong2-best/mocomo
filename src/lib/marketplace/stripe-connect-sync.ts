@@ -56,6 +56,15 @@ export async function syncStripeConnectAccountToDb(account: Stripe.Account): Pro
   const onboardingComplete = !!account.details_submitted && !!account.payouts_enabled;
   const now = new Date();
 
+  const currentlyDue = account.requirements?.currently_due ?? [];
+  const pastDue = account.requirements?.past_due ?? [];
+  const taxHints = ["tax", "ssn", "id_number", "itin", "tin", "w9", "w8"];
+  const taxRequirementsDue = [...currentlyDue, ...pastDue].some((k) =>
+    taxHints.some((h) => k.toLowerCase().includes(h))
+  );
+  const taxReportingReady =
+    snap.readyForPayouts && !taxRequirementsDue && account.type === "express";
+
   await db.user.update({
     where: { id: userId },
     data: {
@@ -65,12 +74,20 @@ export async function syncStripeConnectAccountToDb(account: Stripe.Account): Pro
     },
   });
 
-  if (snap.readyForPayouts) {
-    await db.creatorSettlementProfile.updateMany({
-      where: { userId },
-      data: { payoutsEnabled: true, registeredAt: now },
-    });
-  }
+  await db.creatorSettlementProfile.updateMany({
+    where: { userId },
+    data: {
+      stripeConnectAccountId: account.id,
+      connectAccountType: account.type === "express" ? "express" : account.type ?? null,
+      needsExpressMigration: account.type === "custom",
+      taxReportingReady,
+      taxRequirementsDue,
+      lastTaxGateCheckedAt: now,
+      ...(snap.readyForPayouts
+        ? { payoutsEnabled: true, registeredAt: now }
+        : { payoutsEnabled: !!account.payouts_enabled }),
+    },
+  });
 
   const profile = await db.marketplaceSellerProfile.findUnique({
     where: { userId },

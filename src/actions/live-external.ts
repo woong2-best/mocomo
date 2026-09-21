@@ -22,7 +22,8 @@ import {
 } from "@/lib/streaming-accounts/service";
 
 export async function createExternalLiveStream(data: {
-  name: string;
+  /** Optional — ignored when platform title is available. */
+  name?: string;
   /** 인증된 ConnectedStreamingAccount ID — URL 직접 입력 금지 */
   connectedAccountId: string;
   category?: LiveStreamCategory;
@@ -112,9 +113,34 @@ export async function createExternalLiveStream(data: {
     const visibility = data.liveVisibility ?? "PUBLIC";
     const minTier =
       visibility === "PRIVATE" ? (data.minViewerTier ?? "BRONZE") : null;
+
+    const profileDefaults = await db.streamerProfile.findUnique({
+      where: { userId: user.id },
+      select: { defaultCategory: true },
+    });
+    const resolvedCategory =
+      data.category && data.category !== "VIRTUAL"
+        ? data.category
+        : profileDefaults?.defaultCategory && profileDefaults.defaultCategory !== "VIRTUAL"
+          ? profileDefaults.defaultCategory
+          : "JUST_CHATTING";
+
+    // Title/description come from YouTube/Twitch/Chzzk — no manual MoCoMo fields.
+    const { fetchExternalPlatformMetadata } = await import(
+      "@/lib/live-external/platform-metadata"
+    );
+    const platformMeta = await fetchExternalPlatformMetadata(
+      parsed.provider,
+      parsed.externalId
+    );
     const title =
+      platformMeta.title?.trim() ||
       data.name?.trim() ||
       `${account.channelName} 라이브`;
+    const description =
+      platformMeta.description?.trim().slice(0, 500) ||
+      data.description?.trim().slice(0, 500) ||
+      null;
 
     const channel = await db.voiceChannel.create({
       data: {
@@ -125,8 +151,8 @@ export async function createExternalLiveStream(data: {
         allowCamera: false,
         isLive: goLive,
         liveStatus: goLive ? "LIVE" : "SCHEDULED",
-        category: data.category ?? "JUST_CHATTING",
-        description: data.description?.trim().slice(0, 500) || null,
+        category: resolvedCategory,
+        description,
         thumbnailUrl: data.thumbnailUrl?.trim() || null,
         broadcastMode: "EXTERNAL",
         mediaSourceType: "EXTERNAL",
@@ -181,6 +207,9 @@ export async function createExternalLiveStream(data: {
         donationUrl: donationToken
           ? `/overlay/donation/${channel.id}?token=${encodeURIComponent(donationToken)}`
           : null,
+        mocoWidgetUrl: donationToken
+          ? `/widget/alert?streamer_id=${encodeURIComponent(channel.id)}&token=${encodeURIComponent(donationToken)}`
+          : null,
         youtubeNative:
           parsed.provider === "YOUTUBE"
             ? buildYoutubeNativeObsChatSetup(parsed.externalId, "")
@@ -226,8 +255,29 @@ export async function mintLiveOverlayUrls(channelId: string) {
   return {
     chatUrl: `/obs/chat/${channelId}?token=${encodeURIComponent(chatToken)}`,
     donationUrl: `/overlay/donation/${channelId}?token=${encodeURIComponent(donationToken)}`,
+    mocoWidgetUrl: `/widget/alert?streamer_id=${encodeURIComponent(channelId)}&token=${encodeURIComponent(donationToken)}`,
     youtubeNative,
   };
+}
+
+/** Live Studio — mint OBS chat URL for the host's current live/scheduled broadcast. */
+export async function mintStudioObsChatUrl() {
+  const user = await requireAuthMinimal();
+  const { activeHostBroadcastWhere } = await import(
+    "@/lib/live-broadcast/session-queries"
+  );
+  const channel = await db.voiceChannel.findFirst({
+    where: activeHostBroadcastWhere(user.id),
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+  if (!channel) {
+    return {
+      error:
+        "진행 중인 방송이 없습니다. 방송을 시작한 뒤 여기서 OBS 채팅 URL을 복사하세요.",
+    };
+  }
+  return mintLiveOverlayUrls(channel.id);
 }
 
 export async function getVerifiedStreamingAccountsForLive() {
@@ -237,7 +287,7 @@ export async function getVerifiedStreamingAccountsForLive() {
       userId: user.id,
       verified: true,
       revokedAt: null,
-      platform: { in: ["YOUTUBE", "TWITCH", "CHZZK"] },
+      platform: { in: ["YOUTUBE", "TWITCH"] },
     },
     orderBy: { channelName: "asc" },
     select: {

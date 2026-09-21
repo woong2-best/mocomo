@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  AppState,
+  type AppStateStatus,
   Easing,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from "react-native";
+import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
@@ -38,13 +41,13 @@ type ExploreItem = {
 };
 
 const EXPLORE: ExploreItem[] = [
-  { route: "Home", label: "홈", icon: "home-outline", accent: true },
   { route: "LiveList", label: "라이브", icon: "radio-outline", accent: true },
+  { route: "Used", label: "마켓", icon: "storefront-outline", accent: true },
+  { route: "Messages", label: "메세지", icon: "paper-plane-outline", accent: true },
   { route: "StarList", label: "STAR", icon: "star-outline" },
   { route: "CommunityList", label: "커뮤니티", icon: "people-outline" },
-  { route: "AnimeList", label: "애니·위키", icon: "book-outline" },
-  { route: "EventsList", label: "이벤트", icon: "calendar-outline" },
-  { route: "EventsMap", label: "행사 지도", icon: "map-outline" },
+  { route: "AnimeList", label: "컬쳐 위키", icon: "book-outline" },
+  { route: "EventsMap", label: "서브컬처 맵", icon: "map-outline" },
   { route: "Wallet", label: "지갑", icon: "wallet-outline" },
 ];
 
@@ -73,8 +76,11 @@ function DrawerRow({
 }) {
   return (
     <Pressable
-      style={stylesStatic.row}
-      onPressIn={onPressIn}
+      style={({ pressed }) => [stylesStatic.row, pressed && stylesStatic.rowPressed]}
+      onPressIn={() => {
+        void Haptics.selectionAsync();
+        onPressIn?.();
+      }}
       onPress={onPress}
       accessibilityRole="button"
     >
@@ -106,61 +112,79 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
 
   const [presented, setPresented] = useState(false);
   const slideX = useRef(new Animated.Value(-360)).current;
-  const scrimOpacity = useRef(new Animated.Value(0)).current;
+
+  /**
+   * Scrim/blur opacity is derived from the same slideX progress — one native
+   * animation drives both panel motion and backdrop fade (no parallel desync).
+   */
+  const backdropOpacity = slideX.interpolate({
+    inputRange: [-panelWidth, 0],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const closeAccountSheet = () => setAccountSheetOpen(false);
 
   useEffect(() => {
     if (visible) {
       warmDrawerBundles();
+    } else {
+      // Drawer closing → always tear down account overlay (prevents sticky cards)
+      setAccountSheetOpen(false);
     }
   }, [visible]);
+
+  // Only hard-background — `inactive` on Android fires during Modals/alerts and was
+  // immediately killing the account sheet (looked like "doesn't open").
+  useEffect(() => {
+    const onAppState = (next: AppStateStatus) => {
+      if (next === "background") {
+        setAccountSheetOpen(false);
+      }
+    };
+    const sub = AppState.addEventListener("change", onAppState);
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (visible) {
       setPresented(true);
       slideX.setValue(-panelWidth);
-      scrimOpacity.setValue(0);
-      Animated.parallel([
-        Animated.timing(slideX, {
-          toValue: 0,
-          duration: OPEN_MS,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(scrimOpacity, {
-          toValue: 1,
-          duration: OPEN_MS,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      Animated.timing(slideX, {
+        toValue: 0,
+        duration: OPEN_MS,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
       return;
     }
 
     if (!presented) return;
 
-    Animated.parallel([
-      Animated.timing(slideX, {
-        toValue: -panelWidth,
-        duration: CLOSE_MS,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(scrimOpacity, {
-        toValue: 0,
-        duration: CLOSE_MS,
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
+    setAccountSheetOpen(false);
+    Animated.timing(slideX, {
+      toValue: -panelWidth,
+      duration: CLOSE_MS,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
       if (finished) setPresented(false);
     });
-  }, [panelWidth, presented, scrimOpacity, slideX, visible]);
+  }, [panelWidth, presented, slideX, visible]);
 
   const prefetch = (route: DrawerRoute) => {
     prefetchDrawerRoute(queryClient, route);
   };
 
   const go = (route: DrawerRoute) => {
+    setAccountSheetOpen(false);
     onClose();
     onNavigate(route);
+  };
+
+  const handleDrawerClose = () => {
+    setAccountSheetOpen(false);
+    onClose();
   };
 
   const rowLabel = colors.text;
@@ -168,10 +192,42 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
   const rowChevron = colors.textMuted;
 
   return (
-    <Modal visible={presented} animationType="none" transparent onRequestClose={onClose}>
-      <View style={styles.root}>
-        <Animated.View style={[styles.scrimWrap, { opacity: scrimOpacity }]}>
-          <Pressable style={styles.scrim} onPress={onClose} accessibilityRole="button" />
+    <>
+    <Modal
+      visible={presented}
+      animationType="none"
+      transparent
+      onRequestClose={handleDrawerClose}
+      // Avoid weird OS recents thumbnails from nested overlay compositing
+      statusBarTranslucent
+    >
+      <View style={styles.root} collapsable={false}>
+        {/*
+          Fixed-intensity BlurView + dim; opacity driven by slideX on the
+          native driver so blur never recomputes intensity mid-frame.
+        */}
+        <Animated.View
+          style={[styles.scrimWrap, { opacity: backdropOpacity }]}
+          pointerEvents="none"
+        >
+          <BlurView
+            intensity={isDark ? 55 : 65}
+            tint={isDark ? "dark" : "light"}
+            experimentalBlurMethod="dimezisBlurView"
+            style={StyleSheet.absoluteFillObject}
+            pointerEvents="none"
+          />
+          <View
+            style={[
+              StyleSheet.absoluteFillObject,
+              {
+                backgroundColor: isDark
+                  ? "rgba(8, 10, 14, 0.45)"
+                  : "rgba(0, 0, 0, 0.38)",
+              },
+            ]}
+            pointerEvents="none"
+          />
         </Animated.View>
         <Animated.View
           style={[
@@ -184,18 +240,21 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
             },
           ]}
         >
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+          <View style={styles.panelBody}>
             <View style={styles.profileCard}>
               <ProfileBannerMedia
                 bannerUrl={user?.bannerUrl}
                 bannerVideoUrl={user?.bannerVideoUrl}
-                active={visible}
+                active={visible && !accountSheetOpen}
               />
               <View style={styles.profileBannerOverlay} pointerEvents="none" />
               <View style={styles.profileRow}>
                 <Pressable
                   style={styles.profileTapArea}
-                  onPress={() => setAccountSheetOpen(true)}
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setAccountSheetOpen(true);
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel="계정 전환"
                 >
@@ -222,7 +281,10 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
                 </Pressable>
                 <Pressable
                   style={styles.editBtn}
-                  onPressIn={() => prefetch("ProfileEdit")}
+                  onPressIn={() => {
+                    void Haptics.selectionAsync();
+                    prefetch("ProfileEdit");
+                  }}
                   onPress={() => go("ProfileEdit")}
                   hitSlop={8}
                   accessibilityRole="button"
@@ -233,58 +295,51 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
               </View>
             </View>
 
-            <Text style={styles.sectionTitle}>Explore</Text>
-            {EXPLORE.map((item) => (
+            <View style={styles.menuBlock}>
+              <Text style={styles.sectionTitle}>Explore</Text>
+              {EXPLORE.map((item) => (
+                <DrawerRow
+                  key={item.route}
+                  label={item.label}
+                  icon={item.icon}
+                  iconColor={item.accent ? ACCENT_ICON : rowIcon}
+                  labelColor={rowLabel}
+                  chevronColor={rowChevron}
+                  onPressIn={() => prefetch(item.route)}
+                  onPress={() => go(item.route)}
+                />
+              ))}
+
+              <View style={styles.sectionDivider} />
+              <Text style={styles.sectionTitle}>More</Text>
+
               <DrawerRow
-                key={item.route}
-                label={item.label}
-                icon={item.icon}
-                iconColor={item.accent ? ACCENT_ICON : rowIcon}
+                label="설정"
+                icon="settings-outline"
+                iconColor={rowIcon}
                 labelColor={rowLabel}
                 chevronColor={rowChevron}
-                onPressIn={() => prefetch(item.route)}
-                onPress={() => go(item.route)}
+                showChevron={false}
+                onPressIn={() => prefetch("Settings")}
+                onPress={() => go("Settings")}
               />
-            ))}
-
-            <View style={styles.sectionDivider} />
-            <Text style={styles.sectionTitle}>More</Text>
-
-            <DrawerRow
-              label="설정"
-              icon="settings-outline"
-              iconColor={rowIcon}
-              labelColor={rowLabel}
-              chevronColor={rowChevron}
-              showChevron={false}
-              onPressIn={() => prefetch("Settings")}
-              onPress={() => go("Settings")}
-            />
-            <DrawerRow
-              label="로그아웃"
-              icon="log-out-outline"
-              iconColor={colors.danger}
-              labelColor={colors.danger}
-              chevronColor={rowChevron}
-              showChevron={false}
-              onPress={() => {
-                onClose();
-                void signOut();
-              }}
-            />
-            <DrawerRow
-              label="약관 및 정책"
-              icon="document-text-outline"
-              iconColor={rowIcon}
-              labelColor={rowLabel}
-              chevronColor={rowChevron}
-              onPressIn={() => prefetch("LegalPolicies")}
-              onPress={() => go("LegalPolicies")}
-            />
+              <DrawerRow
+                label="약관 및 정책"
+                icon="document-text-outline"
+                iconColor={rowIcon}
+                labelColor={rowLabel}
+                chevronColor={rowChevron}
+                onPressIn={() => prefetch("LegalPolicies")}
+                onPress={() => go("LegalPolicies")}
+              />
+            </View>
 
             <Pressable
               style={styles.promoBanner}
-              onPressIn={() => prefetch("EventsList")}
+              onPressIn={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                prefetch("EventsList");
+              }}
               onPress={() => go("EventsList")}
               accessibilityRole="button"
               accessibilityLabel="이벤트 등록"
@@ -294,29 +349,39 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
               <Text style={styles.promoLine1}>누구나 자유롭게</Text>
               <Text style={styles.promoLine2}>내 이벤트를 등록!</Text>
             </Pressable>
-          </ScrollView>
+          </View>
         </Animated.View>
+        {/* Above panel z-index; BlurView on Android can swallow scrim taps */}
+        <Pressable
+          style={[styles.marginDismiss, { left: panelWidth }]}
+          onPress={handleDrawerClose}
+          accessibilityRole="button"
+          accessibilityLabel="메뉴 닫기"
+        />
       </View>
-
-      <AccountsBottomSheet
-        visible={accountSheetOpen}
-        onClose={() => setAccountSheetOpen(false)}
-        onCreateNew={() => {
-          setAccountSheetOpen(false);
-          onClose();
-          void addAccount("signup");
-        }}
-        onAddExisting={() => {
-          setAccountSheetOpen(false);
-          onClose();
-          void addAccount("signin");
-        }}
-        onLogout={() => {
-          onClose();
-          void signOut();
-        }}
-      />
     </Modal>
+
+    {/* Own top-level Modal — must not inherit drawer panel layout/scroll coords */}
+    <AccountsBottomSheet
+      visible={accountSheetOpen}
+      onClose={closeAccountSheet}
+      onCreateNew={() => {
+        setAccountSheetOpen(false);
+        onClose();
+        void addAccount("signup");
+      }}
+      onAddExisting={() => {
+        setAccountSheetOpen(false);
+        onClose();
+        void addAccount("signin");
+      }}
+      onLogout={() => {
+        setAccountSheetOpen(false);
+        onClose();
+        void signOut();
+      }}
+    />
+    </>
   );
 }
 
@@ -326,6 +391,9 @@ const stylesStatic = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 11,
     paddingHorizontal: 2,
+  },
+  rowPressed: {
+    opacity: 0.72,
   },
   rowIcon: { width: 28 },
   rowLabel: {
@@ -349,11 +417,14 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
   return StyleSheet.create({
     root: { flex: 1 },
     scrimWrap: {
-      ...StyleSheet.absoluteFill,
+      ...StyleSheet.absoluteFillObject,
     },
-    scrim: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.58)",
+    marginDismiss: {
+      position: "absolute",
+      top: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 3,
     },
     panel: {
       position: "absolute",
@@ -365,14 +436,19 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       zIndex: 2,
       elevation: 8,
     },
-    scroll: { paddingBottom: spacing.md },
+    panelBody: {
+      flex: 1,
+    },
+    menuBlock: {
+      flex: 1,
+    },
     profileCard: {
       borderRadius: radii.lg,
       overflow: "hidden",
-      backgroundColor: isDark ? "#18243A" : colors.surfaceRaised,
+      backgroundColor: isDark ? "#141820" : colors.surfaceRaised,
       marginBottom: spacing.lg,
       borderWidth: 1,
-      borderColor: isDark ? "rgba(255,255,255,0.08)" : colors.hairline,
+      borderColor: isDark ? "rgba(180, 210, 255, 0.28)" : colors.hairline,
       minHeight: 108,
     },
     profileBannerOverlay: {

@@ -61,6 +61,7 @@ export function FeedScreen() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const [searchSubmitted, setSearchSubmitted] = useState("");
+  const [isFeedScrolling, setIsFeedScrolling] = useState(false);
   const searchRef = useRef<TextInput>(null);
   const firstPaintMarked = useRef(false);
   const activePreviewIdRef = useRef<string | null>(null);
@@ -87,7 +88,7 @@ export function FeedScreen() {
     queryKey: ["mobile-feed"],
     queryFn: ({ pageParam }) => {
       const offset = postOffsetRef.current;
-      return fetchFeedPage(pageParam ?? null, 10, offset).then((page) => {
+      return fetchFeedPage(pageParam ?? null, 20, offset).then((page) => {
         const addedPosts = page.items.filter((i) => i.type === "post").length;
         postOffsetRef.current += addedPosts;
         return page;
@@ -138,7 +139,14 @@ export function FeedScreen() {
     for (const post of posts.slice(0, PerformanceBudgets.feedPrefetchCount + 4)) {
       for (const m of post.media ?? []) {
         if (m.type === "IMAGE" && m.url) urls.push(m.url);
-        if (m.type === "VIDEO" && m.posterUrl) urls.push(m.posterUrl);
+        if (m.type === "VIDEO") {
+          const poster =
+            m.posterUrl?.trim() ||
+            (m.streamUid?.trim() && /^[a-zA-Z0-9_-]{16,}$/.test(m.streamUid.trim())
+              ? `https://videodelivery.net/${m.streamUid.trim()}/thumbnails/thumbnail.jpg?time=0s&height=720`
+              : null);
+          if (poster) urls.push(poster);
+        }
       }
       if (post.author.image) urls.push(post.author.image);
     }
@@ -204,8 +212,8 @@ export function FeedScreen() {
   ).current;
 
   const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 35,
-    minimumViewTime: 120,
+    itemVisiblePercentThreshold: 50,
+    minimumViewTime: 80,
   }).current;
 
   const onPressPost = useCallback(
@@ -242,7 +250,10 @@ export function FeedScreen() {
         <FeedPostCard
           post={post}
           previewActive={
-            isFocused && previewArmed && activePreviewIdRef.current === post.id
+            isFocused &&
+            previewArmed &&
+            !isFeedScrolling &&
+            activePreviewIdRef.current === post.id
           }
           viewTrackActive={isFocused && visiblePostIds.includes(post.id)}
           paymentsEnabled={paymentsEnabled}
@@ -255,6 +266,7 @@ export function FeedScreen() {
     },
     [
       isFocused,
+      isFeedScrolling,
       onPressAuthor,
       onPressPost,
       onPressVideo,
@@ -409,16 +421,20 @@ export function FeedScreen() {
           renderItem={renderItem}
           keyExtractor={(item) => (item.type === "ad" ? `ad-${item.data.id}` : item.data.id)}
           getItemType={getItemType}
-          extraData={`${activePreviewId}:${isFocused ? 1 : 0}:${previewArmed ? 1 : 0}:${visiblePostIds.join(",")}`}
+          extraData={`${activePreviewId}:${isFocused ? 1 : 0}:${previewArmed ? 1 : 0}:${isFeedScrolling ? 1 : 0}:${visiblePostIds.join(",")}`}
           drawDistance={PerformanceBudgets.feedDrawDistance}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
+          onScrollBeginDrag={() => setIsFeedScrolling(true)}
+          onMomentumScrollBegin={() => setIsFeedScrolling(true)}
+          onScrollEndDrag={() => setIsFeedScrolling(false)}
+          onMomentumScrollEnd={() => setIsFeedScrolling(false)}
           onEndReached={() => {
             if (query.hasNextPage && !query.isFetchingNextPage) {
               void query.fetchNextPage();
             }
           }}
-          onEndReachedThreshold={0.55}
+          onEndReachedThreshold={0.75}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

@@ -1,14 +1,12 @@
 import { useMemo, type ComponentType } from "react";
 import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { OSM_STYLE_URL } from "@/maps/map-styles";
 import type { MapProviderProps } from "@/maps/types";
 
-/** OSM-based vector style (OpenFreeMap liberty). */
-const OSM_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-
 /**
- * MapLibre Native + OSM-compatible style (non-KR).
- * Uses MapLibre v11 Map/Marker/Camera API.
+ * Used-trade MeetMap (non-KR): MapLibre Native + OpenFreeMap liberty.
+ * Subculture Map uses Esri satellite in EventsNativeMap instead.
  */
 export function MapLibreMapProvider({
   mode,

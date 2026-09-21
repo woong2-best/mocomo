@@ -34,7 +34,7 @@ function buildQuickLinks(firstPartyOn: boolean): QuickLink[] {
       title: "방송 만들기",
       description: firstPartyOn
         ? "제목·카테고리 설정 후 브라우저에서 바로 송출"
-        : "유튜브·트위치·치지직 방송을 MoCoMo에 연결",
+        : "유튜브·트위치 방송을 MoCoMo에 연결",
     },
     {
       href: "/avatar/broadcast",
@@ -162,7 +162,7 @@ export function BroadcastStudioPanel({
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    유튜브·트위치·치지직에서 송출한 뒤 MoCoMo에 방송 URL을 연결하면 시청·채팅·후원이
+                    유튜브·트위치에서 송출한 뒤 MoCoMo에 방송 URL을 연결하면 시청·채팅·후원이
                     여기서 이어집니다.
                   </p>
                   <Button asChild variant="outline" size="sm" className="rounded-xl w-full">

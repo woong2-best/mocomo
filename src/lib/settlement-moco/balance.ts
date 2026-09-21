@@ -1,7 +1,6 @@
 import type { Prisma, SupportTierLevel } from "@prisma/client";
 import { db } from "@/lib/db";
-import { achievedSettlementTier } from "@/lib/settlement-moco/tier-config";
-import { tierRank } from "@/lib/tiers";
+import { tierFromAmount, tierRank } from "@/lib/tiers";
 
 type DbLike = Pick<typeof db, "platformWallet" | "user"> | Prisma.TransactionClient;
 
@@ -33,7 +32,7 @@ export function resolveProfileDisplayTier(
     : earnedMocoTier;
 }
 
-/** earnedMoco 잔액 기준 정산 등급 → User.earnedMocoTier 동기화 */
+/** earned MOCO 누적 → 후원 광석 뱃지 등급(User.earnedMocoTier). Reward 정산 등급과 별개. */
 export async function syncEarnedMocoDisplayTier(
   userId: string,
   earnedMoco?: number,
@@ -50,7 +49,7 @@ export async function syncEarnedMocoDisplayTier(
     )?.settlementMocoPoints ??
     0;
 
-  const tier = achievedSettlementTier(balance).tier;
+  const tier = tierFromAmount(balance);
   await client.user.update({
     where: { id: userId },
     data: { earnedMocoTier: tier },

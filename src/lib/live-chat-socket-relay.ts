@@ -8,6 +8,11 @@ export type LiveChatRelayPayload = {
   at: number;
   image?: string | null;
   supportTierSent?: string;
+  broadcastRole?: string;
+  messageKind?: string;
+  eventType?: string;
+  supportAmount?: number;
+  tipMessage?: string;
 };
 
 function relayBaseUrl(): string | null {

@@ -199,9 +199,9 @@ export function EmailVerifyFormInner() {
           router.replace(`/auth/mobile/oauth/complete?platform=${platform}`);
           return;
         }
-        // New email signup → force profile icon before home (banner optional / skipped).
+        // New email signup → role (fan/coser) then profile icon before home.
         router.replace(
-          `/auth/complete-avatar?dest=${encodeURIComponent(DEFAULT_LANDING_PATH)}`
+          `/auth/complete-role?dest=${encodeURIComponent(DEFAULT_LANDING_PATH)}`
         );
         return;
       }

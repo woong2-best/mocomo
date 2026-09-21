@@ -14,6 +14,7 @@ export type FeedMedia = {
   duration?: number | null;
   hlsUrl?: string | null;
   posterUrl?: string | null;
+  streamUid?: string | null;
 };
 
 export type FeedPost = {
@@ -33,6 +34,8 @@ export type FeedPost = {
     name?: string | null;
     image: string | null;
     creatorSubscriptionPriceKrw?: number | null;
+    supportTierSent?: string | null;
+    earnedMocoTier?: string | null;
   };
   media: FeedMedia[];
   _count: {

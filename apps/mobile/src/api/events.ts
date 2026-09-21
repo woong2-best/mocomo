@@ -50,6 +50,8 @@ export type MapEventPin = {
   sourceUrl: string | null;
   source: string;
   phase?: "ongoing" | "upcoming" | "past" | "permanent";
+  imageUrl?: string | null;
+  roadViewImageUrl?: string | null;
 };
 
 export async function fetchEventsList() {

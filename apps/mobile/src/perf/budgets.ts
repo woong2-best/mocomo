@@ -11,10 +11,10 @@ export const PerformanceBudgets = {
   frameBudgetMs: 16,
   /** Reels: mount native players within this distance of active index */
   reelsPrebufferNeighbors: 1,
-  /** Feed FlashList draw distance (px) */
-  feedDrawDistance: 280,
+  /** Feed FlashList draw distance (px) — prefetch neighbors without UI change */
+  feedDrawDistance: 420,
   /** Max feed images to prefetch ahead */
-  feedPrefetchCount: 6,
+  feedPrefetchCount: 10,
   /** Cap decoded feed media edge (layout px before DPR) */
   feedMediaLayoutMax: 420,
 } as const;

@@ -1,22 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
-import {
-  getCreatorSettlementStatusForUser,
-  registerCreatorSettlementForUser,
-  type RegisterSettlementInput,
-} from "@/lib/settlement-register-service";
+import { getCreatorSettlementStatusForUser } from "@/lib/settlement-register-service";
 
-export async function registerCreatorSettlement(raw: RegisterSettlementInput) {
-  const user = await requireAuth();
-  const result = await registerCreatorSettlementForUser(user.id, raw);
-  if ("error" in result && result.error) return result;
-
-  revalidatePath("/wallet");
-  revalidatePath("/settings/creator");
-  revalidatePath("/market/seller/register");
-  return result;
+/** @deprecated Custom Connect 제거 — POST /api/settlements/connect-account 사용 */
+export async function registerCreatorSettlement(_raw: unknown) {
+  void _raw;
+  return {
+    error:
+      "앱 내 계좌 직접 등록(Custom Connect)은 더 이상 지원하지 않습니다. Stripe Express 온보딩을 이용해 주세요.",
+    code: "CUSTOM_CONNECT_DEPRECATED" as const,
+  };
 }
 
 export async function getCreatorSettlementStatus() {

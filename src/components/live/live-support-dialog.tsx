@@ -149,8 +149,8 @@ export function LiveSupportDialog({
         <DialogHeader>
           <DialogTitle>라이브 응원 (가상 CP)</DialogTitle>
           <DialogDescription>
-            {hostDisplayName}님께 결제 없이 응원 포인트(CP)를 보냅니다. 유료 댓글 후원은 채팅 하단
-            &quot;댓글 후원&quot; 버튼을 이용해 주세요.
+            {hostDisplayName}님께 결제 없이 응원 포인트(CP)를 보냅니다. MOCO 후원(영상·효과음)은 채팅
+            하단 버튼을 이용해 주세요.
           </DialogDescription>
         </DialogHeader>
 

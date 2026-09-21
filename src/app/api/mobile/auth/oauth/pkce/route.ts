@@ -10,8 +10,8 @@ const bodySchema = z.object({
 });
 
 /**
- * Exchange one-time sealed handoff from AuthSession deep link → mobile tokens.
- * Replaces the Phase 1.1 PKCE stub for Discord/LINE/X (+ Gmail/Naver after web session).
+ * Exchange one-time sealed handoff from AuthSession deep link.
+ * Returns tokens for existing users, or needsSignup for in-app terms/join.
  */
 export async function POST(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-auth-oauth-exchange", 30);
@@ -32,9 +32,21 @@ export async function POST(req: NextRequest) {
   const payload = openMobileOAuthHandoff(parsed.data.handoff);
   if (!payload) {
     return NextResponse.json(
-      { error: "인증이 만료되었거나 올바르지 않습니다. 앱에서 다시 시도해 주세요.", code: "handoff_invalid" },
+      {
+        error: "인증이 만료되었거나 올바르지 않습니다. 앱에서 다시 시도해 주세요.",
+        code: "handoff_invalid",
+      },
       { status: 401 }
     );
+  }
+
+  if (payload.kind === "needsSignup") {
+    return NextResponse.json({
+      status: "needsSignup",
+      provider: payload.provider,
+      profile: payload.profile,
+      handoff: parsed.data.handoff,
+    });
   }
 
   const ip = await getRequestIp();
@@ -48,6 +60,7 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({
+    status: "signedIn",
     accessToken: payload.accessToken,
     refreshToken: payload.refreshToken,
     expiresAt: payload.expiresAt,

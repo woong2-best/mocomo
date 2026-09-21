@@ -1,104 +1,128 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from "react-native";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { togglePostLike } from "@/api/feed";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/auth/AuthContext";
 import {
   createPostComment,
   fetchPostDetail,
-  togglePostStar,
+  type CommentItem,
 } from "@/api/social";
-import { parsePostComments, postCommentsQueryOptions } from "@/api/post-comments-query";
-import { useAuth } from "@/auth/AuthContext";
-import { useShowLikeCounts } from "@/hooks/use-display-preferences";
-import { FeedPostMediaCarousel } from "@/features/feed/FeedPostMediaCarousel";
+import {
+  parsePostComments,
+  postCommentsQueryKey,
+  postCommentsQueryOptions,
+  type PostCommentsResponse,
+} from "@/api/post-comments-query";
+import { FeedPostCard } from "@/features/feed/FeedPostCard";
+import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { TranslatableText } from "@/ui/TranslatableText";
-import { formatViewCount, recordPostViewOnce } from "@/lib/post-view";
 import { Screen } from "@/ui/Screen";
-import { PerformanceBudgets } from "@/perf/budgets";
-import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
-import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
+import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
 export function PostDetailScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
-  const { width: windowWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardBottomInset();
   const { user } = useAuth();
-  const showLikeCounts = useShowLikeCounts();
-
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "PostDetail">>();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
-  const [viewCount, setViewCount] = useState(0);
+  const postId = route.params.id;
 
   const postQuery = useQuery({
-    queryKey: ["mobile-post", route.params.id],
-    queryFn: () => fetchPostDetail(route.params.id),
+    queryKey: ["mobile-post", postId],
+    queryFn: () => fetchPostDetail(postId),
   });
 
   const commentsQuery = useQuery({
-    ...postCommentsQueryOptions(route.params.id),
+    ...postCommentsQueryOptions(postId),
   });
 
   const comments = useMemo(() => parsePostComments(commentsQuery.data), [commentsQuery.data]);
 
-  const likeMut = useMutation({
-    mutationFn: () => togglePostLike(route.params.id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["mobile-post", route.params.id] });
-      void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
-    },
-  });
-
-  const starMut = useMutation({
-    mutationFn: () => togglePostStar(route.params.id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["mobile-post", route.params.id] });
-    },
-  });
-
   const commentMut = useMutation({
-    mutationFn: () => createPostComment(route.params.id, draft.trim()),
-    onSuccess: () => {
+    mutationFn: (content: string) => createPostComment(postId, content),
+    onMutate: async (content) => {
+      await queryClient.cancelQueries({ queryKey: postCommentsQueryKey(postId) });
+      const previous = queryClient.getQueryData<PostCommentsResponse>(
+        postCommentsQueryKey(postId)
+      );
+      const optimistic: CommentItem = {
+        id: `temp-${Date.now()}`,
+        content,
+        createdAt: new Date().toISOString(),
+        author: {
+          id: user?.id ?? "me",
+          username: user?.username ?? "me",
+          name: user?.name ?? user?.username ?? "나",
+          image: user?.image ?? null,
+        },
+      };
+      const prevList = parsePostComments(previous);
+      queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), {
+        ...(previous ?? {}),
+        comments: [optimistic, ...prevList],
+        items: [optimistic, ...prevList],
+      });
       setDraft("");
-      void commentsQuery.refetch();
-      void postQuery.refetch();
+      return { previous, tempId: optimistic.id };
+    },
+    onError: (err, _content, ctx) => {
+      if (ctx?.previous) {
+        queryClient.setQueryData(postCommentsQueryKey(postId), ctx.previous);
+      }
+      Alert.alert("오류", err instanceof Error ? err.message : "댓글 등록에 실패했습니다.");
+    },
+    onSuccess: (res, _content, ctx) => {
+      queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) => {
+        const list = parsePostComments(old).filter(
+          (c) => c.id !== ctx?.tempId && c.id !== res.comment.id
+        );
+        const next = [res.comment, ...list];
+        return {
+          ...(old ?? {}),
+          comments: next,
+          items: next,
+        };
+      });
+      void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+      void queryClient.invalidateQueries({ queryKey: ["mobile-post", postId] });
     },
   });
 
   const post = postQuery.data?.post;
-  const mediaLayout = Math.min(
-    windowWidth - spacing.md * 2,
-    PerformanceBudgets.feedMediaLayoutMax
-  );
-  const isOwner = user?.id === post?.author.id;
+  const composerBottomPad =
+    keyboardInset > 0 ? spacing.sm : Math.max(spacing.md, insets.bottom);
+  const androidKeyboardLift = Platform.OS === "android" ? keyboardInset : 0;
 
-  useEffect(() => {
-    if (!post?.id) return;
-    setViewCount(post.viewCount ?? 0);
-    void recordPostViewOnce(post.id).then((next) => {
-      if (next != null) setViewCount(next);
-    });
-  }, [post?.id, post?.viewCount]);
+  function submitComment() {
+    const content = draft.trim();
+    if (!content) return;
+    if (!user) {
+      Alert.alert("로그인 필요", "댓글을 작성하려면 로그인해 주세요.");
+      return;
+    }
+    commentMut.mutate(content);
+  }
 
   return (
     <Screen>
@@ -111,87 +135,63 @@ export function PostDetailScreen() {
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={0}
         >
           <FlatList
             data={comments}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={{ padding: spacing.md, paddingBottom: 24, gap: 8 }}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 24 }}
             ListHeaderComponent={
-              <View style={styles.postCard}>
-                <Pressable
-                  style={styles.authorRow}
-                  onPress={() =>
-                    navigation.navigate("UserProfile", { username: post.author.username })
+              <View>
+                <FeedPostCard
+                  post={post}
+                  previewActive
+                  viewTrackActive
+                  paymentsEnabled={post.paymentsEnabled}
+                  onPurchaseSuccess={() => {
+                    void queryClient.invalidateQueries({
+                      queryKey: ["mobile-post", postId],
+                    });
+                    void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+                    void postQuery.refetch();
+                  }}
+                  onPressAuthor={(username) =>
+                    navigation.navigate("UserProfile", { username })
                   }
-                >
-                  {post.author.image ? (
-                    <Image
-                      source={{ uri: post.author.image }}
-                      style={styles.avatar}
-                      cachePolicy={IMAGE_CACHE_POLICY}
-                    />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarFallback]} />
-                  )}
-                  <View>
-                    <Text style={styles.name}>{post.author.name || post.author.username}</Text>
-                    <Text style={styles.handle}>@{post.author.username}</Text>
-                  </View>
-                </Pressable>
-                {post.title ? <Text style={styles.title}>{post.title}</Text> : null}
-                {post.content ? (
-                  <TranslatableText text={post.content} style={styles.content} />
-                ) : null}
-                {post.media && post.media.length > 0 ? (
-                  <FeedPostMediaCarousel
-                    post={post}
-                    layoutWidth={mediaLayout}
-                    previewActive
-                    isOwner={isOwner}
-                    paymentsEnabled={post.paymentsEnabled}
-                    onPurchaseSuccess={() => {
-                      void queryClient.invalidateQueries({ queryKey: ["mobile-post", route.params.id] });
-                      void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
-                      void postQuery.refetch();
-                    }}
-                  />
-                ) : null}
-                <View style={styles.actions}>
-                  <Pressable onPress={() => likeMut.mutate()} hitSlop={8}>
-                    <Text style={[styles.action, post.liked && styles.liked]}>
-                      {post.liked ? "♥" : "♡"}
-                      {showLikeCounts ? ` ${post._count?.likes ?? 0}` : ""}
-                    </Text>
-                  </Pressable>
-                  <Text style={styles.action}>💬 {post._count?.comments ?? 0}</Text>
-                  <Pressable onPress={() => starMut.mutate()} hitSlop={8}>
-                    <Text style={[styles.action, post.starred && styles.starred]}>
-                      {post.starred ? "★ STAR" : "☆ STAR"}
-                    </Text>
-                  </Pressable>
-                  <View style={styles.viewCountRow} accessibilityLabel={`조회수 ${viewCount}회`}>
-                    <Ionicons name="eye-outline" size={16} color={colors.cobalt} />
-                    <Text style={styles.viewCountText}>{formatViewCount(viewCount)}</Text>
-                  </View>
-                </View>
+                />
                 <Text style={styles.section}>댓글</Text>
               </View>
             }
             ListEmptyComponent={
               commentsQuery.isLoading ? (
-                <ActivityIndicator color={colors.terracotta} />
+                <ActivityIndicator
+                  color={colors.terracotta}
+                  style={{ marginVertical: spacing.md }}
+                />
               ) : (
                 <Text style={styles.muted}>아직 댓글이 없습니다.</Text>
               )
             }
             renderItem={({ item }) => (
               <View style={styles.comment}>
-                <Text style={styles.commentAuthor}>@{item.author.username}</Text>
+                <Text style={styles.commentAuthor}>
+                  {item.author.name || item.author.username}
+                  <Text style={styles.commentHandle}> @{item.author.username}</Text>
+                </Text>
                 <TranslatableText text={item.content} style={styles.commentBody} />
               </View>
             )}
           />
-          <View style={styles.composer}>
+          <View
+            style={[
+              styles.composer,
+              {
+                paddingBottom: composerBottomPad,
+                marginBottom: androidKeyboardLift,
+              },
+            ]}
+          >
             <TextInput
               style={styles.input}
               value={draft}
@@ -202,9 +202,8 @@ export function PostDetailScreen() {
             />
             <FolkButton
               label="등록"
-              loading={commentMut.isPending}
               disabled={!draft.trim()}
-              onPress={() => commentMut.mutate()}
+              onPress={submitComment}
               style={{ minWidth: 88 }}
             />
           </View>
@@ -216,80 +215,51 @@ export function PostDetailScreen() {
 
 function createThemedStyles(colors: ThemeColors) {
   return StyleSheet.create({
-  error: { color: colors.danger, padding: spacing.lg, fontWeight: "600" },
-  postCard: {
-    backgroundColor: colors.surfaceRaised,
-    borderRadius: radii.lg,
-    borderWidth: 2,
-    borderColor: "rgba(27, 74, 140, 0.2)",
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    ...shadows.folkSm,
-  },
-  authorRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: 10 },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: "rgba(27, 74, 140, 0.2)",
-    backgroundColor: colors.muted,
-  },
-  avatarFallback: { backgroundColor: colors.gold },
-  name: { fontWeight: "800", color: colors.cobalt },
-  handle: { color: colors.textMuted, fontSize: 13 },
-  title: { fontSize: 18, fontWeight: "800", color: colors.text, marginBottom: 6 },
-  content: { fontSize: 15, lineHeight: 22, color: colors.text },
-  media: {
-    marginTop: spacing.sm,
-    width: "100%",
-    aspectRatio: 1,
-    borderRadius: 14,
-    backgroundColor: colors.muted,
-  },
-  actions: { flexDirection: "row", gap: spacing.lg, marginTop: spacing.md, alignItems: "center", flexWrap: "wrap" },
-  action: { fontWeight: "700", color: colors.textMuted },
-  viewCountRow: { flexDirection: "row", alignItems: "center", gap: 4, marginLeft: "auto" },
-  viewCountText: { fontWeight: "700", color: colors.cobalt, fontVariant: ["tabular-nums"] },
-  liked: { color: colors.terracotta },
-  starred: { color: colors.gold },
-  section: {
-    marginTop: spacing.lg,
-    fontWeight: "800",
-    color: colors.cobalt,
-    fontSize: 16,
-  },
-  comment: {
-    backgroundColor: colors.surfaceRaised,
-    borderRadius: radii.md,
-    borderWidth: 2,
-    borderColor: "rgba(27, 74, 140, 0.16)",
-    padding: spacing.md,
-  },
-  commentAuthor: { fontWeight: "800", color: colors.cobalt, marginBottom: 4 },
-  commentBody: { color: colors.text, lineHeight: 20 },
-  muted: { color: colors.textMuted, fontWeight: "600", paddingVertical: spacing.md },
-  composer: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderTopWidth: 2,
-    borderTopColor: "rgba(27, 74, 140, 0.18)",
-    backgroundColor: colors.surfaceRaised,
-    alignItems: "flex-end",
-  },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    borderWidth: 2,
-    borderColor: "rgba(27, 74, 140, 0.22)",
-    borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: colors.muted,
-    color: colors.text,
-  },
-});
+    error: { color: colors.danger, padding: spacing.lg, fontWeight: "600" },
+    section: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
+      fontWeight: "800",
+      color: colors.text,
+      fontSize: 16,
+    },
+    comment: {
+      marginHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.hairline,
+    },
+    commentAuthor: { fontWeight: "800", color: colors.text, marginBottom: 4, fontSize: 14 },
+    commentHandle: { fontWeight: "500", color: colors.textMuted },
+    commentBody: { color: colors.text, lineHeight: 20, fontSize: 15 },
+    muted: {
+      color: colors.textMuted,
+      fontWeight: "600",
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+    },
+    composer: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.hairline,
+      backgroundColor: colors.background,
+      alignItems: "flex-end",
+    },
+    input: {
+      flex: 1,
+      minHeight: 44,
+      maxHeight: 120,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.hairline,
+      borderRadius: radii.md,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      backgroundColor: colors.surfaceRaised,
+      color: colors.text,
+    },
+  });
 }
-

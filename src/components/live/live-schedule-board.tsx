@@ -48,7 +48,7 @@ export function LiveScheduleBoard({
         <div className="rounded-2xl border border-folk-terracotta/30 bg-folk-terracotta/5 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">{t("live.scheduleStudioHint")}</p>
           <Button asChild size="sm" className="rounded-xl shrink-0">
-            <Link href="/avatar/studio/broadcast">{t("live.liveStudio")}</Link>
+            <Link href="/live/studio">{t("live.liveStudio")}</Link>
           </Button>
         </div>
       ) : null}

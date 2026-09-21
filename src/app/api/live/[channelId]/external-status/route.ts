@@ -3,13 +3,14 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { syncExternalPlatformLiveEnd } from "@/lib/live-external/sync-platform-end";
+import { syncExternalChannelPlatformMeta } from "@/lib/live-external/sync-platform-meta";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
 
 export const dynamic = "force-dynamic";
 
-/** Poll external platform (YouTube/Twitch/Chzzk) live status; auto-end MoCoMo when platform stops. */
+/** Poll external platform live status; optionally refresh title/description from YT/Twitch. */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ channelId: string }> }
 ) {
   const session = await auth();
@@ -23,6 +24,8 @@ export async function GET(
     return NextResponse.json({ error: "NOT_MEMBER" }, { status: 403 });
   }
 
+  const wantMeta = req.nextUrl.searchParams.get("meta") === "1";
+
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
     select: {
@@ -35,6 +38,8 @@ export async function GET(
       externalId: true,
       externalChannelId: true,
       connectedStreamingAccountId: true,
+      name: true,
+      description: true,
     },
   });
 
@@ -56,6 +61,8 @@ export async function GET(
       platformOnAir: false,
       ended: true,
       provider: channel.externalProvider,
+      title: channel.name,
+      description: channel.description,
     });
   }
 
@@ -72,11 +79,33 @@ export async function GET(
 
   const stillLive = channel.isLive && channel.liveStatus !== "ENDED" && !sync.ended;
 
+  let title = channel.name;
+  let description = channel.description;
+
+  if (
+    wantMeta &&
+    stillLive &&
+    channel.externalProvider &&
+    channel.externalId
+  ) {
+    const meta = await syncExternalChannelPlatformMeta({
+      channelId,
+      provider: channel.externalProvider as LiveExternalProvider,
+      externalId: channel.externalId,
+      currentName: channel.name,
+      currentDescription: channel.description,
+    });
+    if (meta.title?.trim()) title = meta.title.trim().slice(0, 120);
+    if (meta.description?.trim()) description = meta.description.trim().slice(0, 500);
+  }
+
   return NextResponse.json({
     ok: true,
     mocomoLive: stillLive,
     platformOnAir: sync.platformOnAir,
     ended: sync.ended || !stillLive,
     provider: channel.externalProvider as LiveExternalProvider | null,
+    title,
+    description,
   });
 }

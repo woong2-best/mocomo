@@ -32,8 +32,10 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
   const [busy, setBusy] = useState(false);
 
   const data = statusQuery.data;
-  const linked = !!data?.registered || !!data?.payoutsEnabled;
-  const connected = !!data?.payoutsEnabled;
+  const linked =
+    (!!data?.registered || !!data?.payoutsEnabled || !!data?.hasConnectAccount) &&
+    !data?.needsExpressMigration;
+  const connected = !!data?.payoutsEnabled && !data?.needsExpressMigration && !data?.taxRequirementsDue;
 
   async function openOnboarding() {
     setBusy(true);
@@ -70,17 +72,29 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
     <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
       <Text style={[styles.heading, { color: colors.text }]}>Reward 정산 등록</Text>
       <Text style={[styles.body, { color: colors.textMuted }]}>
-        Stripe의 안전한 글로벌 정산망을 통해 본인 명의의 현지 은행 계좌를 연동합니다.
+        Stripe Express 온보딩에서 본인 확인·계좌·세무 정보(W-9/W-8BEN)를 등록합니다.
       </Text>
 
-      {connected && data?.profile ? (
+      {data?.needsExpressMigration ? (
+        <Text style={[styles.body, { color: colors.danger }]}>
+          이전 정산 계정은 더 이상 지원되지 않습니다. Express로 다시 연동해 주세요.
+        </Text>
+      ) : null}
+
+      {data?.taxRequirementsDue ? (
+        <Text style={[styles.body, { color: colors.cobalt }]}>
+          세무 정보가 미비합니다. Stripe에서 W-9/W-8BEN을 완료해 주세요.
+        </Text>
+      ) : null}
+
+      {connected && data?.profile && !data.needsExpressMigration && !data.taxRequirementsDue ? (
         <View style={[styles.okBox, { borderColor: colors.success }]}>
           <Text style={[styles.okText, { color: colors.success }]}>✓ Reward 정산 등록 완료</Text>
           <Text style={[styles.body, { color: colors.textMuted }]}>
             {data.profile.legalName} · ****{data.profile.accountNumberLast4}
           </Text>
         </View>
-      ) : linked ? (
+      ) : linked && !data?.needsExpressMigration ? (
         <Text style={[styles.body, { color: colors.cobalt }]}>
           Stripe 온보딩을 이어서 완료해 주세요.
         </Text>
@@ -90,11 +104,19 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
         label={
           busy
             ? "Stripe 열기…"
-            : linked
-              ? "연동 완료 · 계좌 정보 수정하기"
-              : "Stripe 정산 계좌 연동하기"
+            : data?.needsExpressMigration
+              ? "Express로 다시 연동하기"
+              : linked && !data?.taxRequirementsDue
+                ? "연동 완료 · 계좌 정보 수정하기"
+                : "Stripe Express 정산 계좌 연동하기"
         }
-        onPress={() => void (linked ? openDashboard() : openOnboarding())}
+        onPress={() =>
+          void (
+            linked && !data?.needsExpressMigration && !data?.taxRequirementsDue
+              ? openDashboard()
+              : openOnboarding()
+          )
+        }
         loading={busy}
       />
 

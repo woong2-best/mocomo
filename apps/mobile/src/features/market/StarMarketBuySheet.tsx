@@ -13,16 +13,16 @@ import { fetchMarketplaceCheckoutMode } from "@/api/star-market";
 import { MarketplacePaymentSheet } from "@/payments/MarketplacePaymentSheet";
 import { FolkButton } from "@/ui/FolkButton";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { formatUsd } from "@/lib/money";
-
-const SHIP_COUNTRIES = [
-  { code: "US", label: "미국" },
-  { code: "JP", label: "일본" },
-  { code: "SG", label: "싱가포르" },
-  { code: "GB", label: "영국" },
-] as const;
+import {
+  listingShipsToCountry,
+  MARKETPLACE_SHIP_COUNTRIES,
+  shipCountryLabel,
+  UNSUPPORTED_SHIP_COUNTRY_MESSAGE,
+} from "@/lib/marketplace-shipping";
 
 type Props = {
   visible: boolean;
@@ -33,10 +33,12 @@ type Props = {
 
 export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props) {
   const { colors } = useTheme();
+  const { locale, t } = useI18n();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const needsShip = item.type !== "DIGITAL";
+  const shipLocale = locale.startsWith("en") ? "en" : "ko";
   const defaultCountry =
-    item.shipToCountries?.[0]?.toUpperCase() ?? (item.shipsWorldwide ? "US" : "US");
+    item.shipToCountries?.[0]?.toUpperCase() ?? MARKETPLACE_SHIP_COUNTRIES[0]?.code ?? "US";
 
   const [quantity, setQuantity] = useState("1");
   const [shipName, setShipName] = useState("");
@@ -59,9 +61,20 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
   const qty = Math.max(1, parseInt(quantity, 10) || 1);
   const total = item.priceAmount * qty + shippingExtra;
 
+  const shipsHere = useMemo(
+    () =>
+      !needsShip ||
+      listingShipsToCountry(item.shipToCountries, item.shipsWorldwide, shipCountry),
+    [needsShip, item.shipToCountries, item.shipsWorldwide, shipCountry]
+  );
+
   useEffect(() => {
     if (!visible) return;
-    void fetchMarketplaceCheckoutMode(item.id, needsShip ? shipCountry : undefined)
+    void fetchMarketplaceCheckoutMode(
+      item.id,
+      needsShip ? shipCountry : undefined,
+      locale.split("-")[0]
+    )
       .then((eligibility) => {
         setBuyLabel(eligibility.primaryButtonLabel);
         setDisclaimer(eligibility.disclaimer);
@@ -76,12 +89,16 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
         setBlocked(false);
         setBuyLabel("바로 구매 / Checkout");
       });
-  }, [visible, item.id, shipCountry, needsShip]);
+  }, [visible, item.id, shipCountry, needsShip, locale]);
 
   function buy() {
     setError("");
     if (blocked) {
-      setError(disclaimer || "해당 지역에서 마켓플레이스를 이용할 수 없습니다.");
+      setError(disclaimer || t("market.unavailable"));
+      return;
+    }
+    if (needsShip && !shipsHere) {
+      setError(UNSUPPORTED_SHIP_COUNTRY_MESSAGE);
       return;
     }
     const body: MarketplaceCheckoutBody = {
@@ -146,7 +163,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
                 onChangeText={setShipName}
               />
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
-                {SHIP_COUNTRIES.map((c) => (
+                {MARKETPLACE_SHIP_COUNTRIES.map((c) => (
                   <Pressable
                     key={c.code}
                     style={[styles.chip, shipCountry === c.code && styles.chipActive]}
@@ -158,11 +175,14 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
                         shipCountry === c.code && styles.chipTextActive,
                       ]}
                     >
-                      {c.label}
+                      {shipCountryLabel(c.code, shipLocale)}
                     </Text>
                   </Pressable>
                 ))}
               </ScrollView>
+              {needsShip && !shipsHere ? (
+                <Text style={styles.error}>{UNSUPPORTED_SHIP_COUNTRY_MESSAGE}</Text>
+              ) : null}
               <TextInput
                 style={styles.input}
                 placeholder="우편번호"

@@ -659,6 +659,10 @@ export async function listMyMarketplaceOrdersForUser(
 
 export async function getMarketplaceOrderDetail(orderId: string) {
   const user = await requireAuth({ writeKind: "notification" });
+  return getMarketplaceOrderDetailForUser(orderId, user.id);
+}
+
+export async function getMarketplaceOrderDetailForUser(orderId: string, userId: string) {
   const order = await db.marketplaceOrder.findUnique({
     where: { id: orderId },
     include: {
@@ -672,14 +676,14 @@ export async function getMarketplaceOrderDetail(orderId: string) {
     },
   });
   if (!order) return null;
-  if (order.buyerId !== user.id && order.sellerId !== user.id) return null;
+  if (order.buyerId !== userId && order.sellerId !== userId) return null;
 
   const downloads =
-    order.buyerId === user.id
+    order.buyerId === userId
       ? await db.marketplaceDigitalDownload.findMany({ where: { orderId } })
       : [];
 
-  return { ...order, downloads, isBuyer: order.buyerId === user.id, isSeller: order.sellerId === user.id };
+  return { ...order, downloads, isBuyer: order.buyerId === userId, isSeller: order.sellerId === userId };
 }
 
 export async function sellerUpdateShipment(input: {

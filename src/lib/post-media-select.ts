@@ -22,6 +22,7 @@ export const postMediaPreview = {
     duration: true,
     hlsUrl: true,
     posterUrl: true,
+    streamUid: true,
   },
 };
 
@@ -41,6 +42,7 @@ export const postMediaGallery = {
     duration: true,
     hlsUrl: true,
     posterUrl: true,
+    streamUid: true,
   },
 };
 
@@ -59,5 +61,6 @@ export const postMediaProfileTimeline = {
     duration: true,
     hlsUrl: true,
     posterUrl: true,
+    streamUid: true,
   },
 };

@@ -9,14 +9,22 @@ import {
   View,
 } from "react-native";
 import { apiRequest } from "@/api/client";
+import { MobileApi } from "@/api/paths";
 import { spacing } from "@/theme/tokens";
 
 type TipPayload = {
   id: string;
   amount: number;
+  moco: number;
   message: string;
   senderName: string;
+  claimable?: boolean;
+  claimed?: boolean;
 };
+
+function formatMoco(moco: number) {
+  return `${Math.max(0, Math.floor(moco)).toLocaleString()} MOCO`;
+}
 
 export function LetterDonationCard({
   tipId,
@@ -28,11 +36,13 @@ export function LetterDonationCard({
   const [tip, setTip] = useState<TipPayload | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
+  const [opening, setOpening] = useState(false);
+  const [creditNote, setCreditNote] = useState("");
   const slide = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     let cancelled = false;
-    void apiRequest<{ tip: TipPayload }>(`/api/tips/${tipId}`, { auth: true })
+    void apiRequest<{ tip: TipPayload }>(MobileApi.tip(tipId), { auth: true })
       .then((data) => {
         if (!cancelled) setTip(data.tip);
       })
@@ -53,7 +63,36 @@ export function LetterDonationCard({
     }).start();
   }, [open, slide]);
 
-  if (error) {
+  async function handleOpen() {
+    if (open || opening) return;
+    if (!interactive) {
+      setOpen(true);
+      return;
+    }
+    setOpening(true);
+    setError("");
+    try {
+      const res = await apiRequest<{
+        tip: TipPayload;
+        credited?: boolean;
+        alreadyCredited?: boolean;
+        mocoCredited?: number;
+      }>(MobileApi.tipOpen(tipId), { method: "POST", auth: true });
+      setTip(res.tip);
+      setOpen(true);
+      if (res.credited && res.mocoCredited) {
+        setCreditNote(`${formatMoco(res.mocoCredited)}를 받았습니다`);
+      } else if (res.alreadyCredited && res.mocoCredited) {
+        setCreditNote(`${formatMoco(res.mocoCredited)} 수령 완료`);
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "편지를 열지 못했습니다.");
+    } finally {
+      setOpening(false);
+    }
+  }
+
+  if (error && !tip) {
     return <Text style={styles.error}>{error}</Text>;
   }
   if (!tip) {
@@ -62,22 +101,29 @@ export function LetterDonationCard({
 
   const letterY = slide.interpolate({ inputRange: [0, 1], outputRange: [24, -36] });
   const letterOpacity = slide.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const moco = tip.moco > 0 ? tip.moco : Math.max(0, Math.floor(tip.amount / 500));
 
   return (
     <View style={styles.wrap}>
       <Pressable
-        disabled={!interactive || open}
-        onPress={() => setOpen(true)}
+        disabled={open || opening}
+        onPress={() => void handleOpen()}
         style={styles.envelopeHit}
       >
         <Image source={require("../../../assets/wax-envelope.png")} style={styles.envelope} resizeMode="cover" />
         <Animated.View style={[styles.letter, { opacity: letterOpacity, transform: [{ translateY: letterY }] }]}>
           {tip.senderName ? <Text style={styles.from}>From {tip.senderName}</Text> : null}
           <Text style={styles.body}>{tip.message}</Text>
-          <Text style={styles.amount}>{tip.amount.toLocaleString("ko-KR")}원</Text>
+          <Text style={styles.amount}>{formatMoco(moco)}</Text>
         </Animated.View>
       </Pressable>
-      {!open && interactive ? <Text style={styles.hint}>봉투를 눌러 편지를 열어보세요</Text> : null}
+      {!open && interactive ? (
+        <Text style={styles.hint}>
+          {opening ? "여는 중…" : "봉투를 눌러 편지를 열고 MOCO를 받으세요"}
+        </Text>
+      ) : null}
+      {creditNote ? <Text style={styles.credit}>{creditNote}</Text> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
 }
@@ -108,5 +154,6 @@ const styles = StyleSheet.create({
     color: "#1B4A8C",
   },
   hint: { marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: "600" },
+  credit: { marginTop: 4, fontSize: 12, color: "#7CF5C0", fontWeight: "800" },
   error: { color: "#B33A1F", fontSize: 13, paddingVertical: spacing.sm },
 });

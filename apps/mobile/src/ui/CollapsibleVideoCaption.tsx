@@ -93,7 +93,7 @@ export function CollapsibleVideoCaption({
 
 export const collapsibleCaptionStyles = StyleSheet.create({
   expandedBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.35)",
     zIndex: 4,
   },

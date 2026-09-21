@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,10 +9,6 @@ import type { SupportTierLevel } from "@prisma/client";
 import { getConversationMeta, formatChatListTime } from "@/lib/chat-display";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
-import {
-  CreatorMarketingDialog,
-  CreatorMarketingHeaderButton,
-} from "@/components/messages/creator-marketing-dialog";
 import { cn } from "@/lib/utils";
 
 type Room = {
@@ -50,7 +45,6 @@ export function ConversationList({
 }) {
   const pathname = usePathname() ?? "";
   const { isNativeApp } = useClientPlatform();
-  const [marketingOpen, setMarketingOpen] = useState(false);
   const activeFromPath = pathname.match(/^\/messages\/([^/]+)$/)?.[1];
   const resolvedActiveRoomId =
     activeRoomId ??
@@ -67,9 +61,7 @@ export function ConversationList({
     >
       <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between gap-2 shrink-0">
         <h1 className="font-bold text-lg tracking-tight flex-1 min-w-0">메세지</h1>
-        <CreatorMarketingHeaderButton onClick={() => setMarketingOpen(true)} />
       </div>
-      <CreatorMarketingDialog open={marketingOpen} onOpenChange={setMarketingOpen} />
 
       <div className={cn("flex-1 overflow-y-auto min-h-0", isNativeApp && "pb-native-fab")}>
         {rooms.length === 0 ? (

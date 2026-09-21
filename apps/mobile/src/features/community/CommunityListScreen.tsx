@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,7 +27,6 @@ import {
   type RecentCommunity,
 } from "@/features/community/recent-communities";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
-import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -65,60 +63,10 @@ function CommunityThumb({
   );
 }
 
-function FeaturedCard({
-  community,
-  width,
-  onOpenServer,
-  onOpenDetail,
-}: {
-  community: CommunityListItem;
-  width: number;
-  onOpenServer: () => void;
-  onOpenDetail: () => void;
-}) {
-  const meta = resolveCommunityCategoryDisplay(
-    community.category,
-    community.customCategoryLabel
-  );
-  const cover = community.coverUrl || community.iconUrl;
-  return (
-    <View style={[stylesShared.featuredCard, { width }]}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={onOpenServer}>
-        {cover ? (
-          <Image
-            source={{ uri: cover }}
-            style={StyleSheet.absoluteFill}
-            cachePolicy={IMAGE_CACHE_POLICY}
-            transition={0}
-          />
-        ) : (
-          <View style={stylesShared.featuredFallback}>
-            <Text style={stylesShared.featuredEmoji}>{meta.emoji || "🏠"}</Text>
-            <Text style={stylesShared.featuredFallbackName} numberOfLines={2}>
-              {community.name}
-            </Text>
-          </View>
-        )}
-      </Pressable>
-      <Pressable style={stylesShared.featuredScrim} onPress={onOpenDetail}>
-        <Text style={stylesShared.featuredName} numberOfLines={2}>
-          {community.name}
-        </Text>
-        <Text style={stylesShared.featuredMeta}>
-          {`${meta.emoji} ${meta.shortLabel}`}
-          {" · "}
-          {community.memberCount}명
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
-
 export function CommunityListScreen() {
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
-  const { width: winW } = useWindowDimensions();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [tab, setTab] = useState<TabId>("ALL");
   const [recent, setRecent] = useState<RecentCommunity[]>([]);
@@ -149,9 +97,6 @@ export function CommunityListScreen() {
     return items.filter((c) => c.category === tab);
   }, [items, tab]);
 
-  const featured = useMemo(() => filtered.slice(0, 4), [filtered]);
-  const cardW = Math.floor((winW - 24) / 2);
-
   const counts = useMemo(() => {
     const map = new Map<string, number>();
     map.set("ALL", items.length);
@@ -181,38 +126,46 @@ export function CommunityListScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: CommunityListItem }) => (
-      <View style={styles.row}>
-        <Pressable onPress={() => openCommunityServer(item.slug)} hitSlop={4}>
-          <View style={styles.thumbWrap}>
-            <CommunityThumb community={item} size={52} />
-          </View>
-        </Pressable>
-        <View style={styles.meta}>
-          <Pressable onPress={() => openCommunityServer(item.slug)}>
-            <View style={styles.titleRow}>
-              <Text style={styles.title} numberOfLines={1}>
-                {item.name}
-              </Text>
-              {item.isNsfw ? <Text style={styles.nsfw}>NSFW</Text> : null}
+    ({ item }: { item: CommunityListItem }) => {
+      const cat = resolveCommunityCategoryDisplay(item.category, item.customCategoryLabel);
+      return (
+        <View style={styles.row}>
+          <Pressable onPress={() => openCommunityServer(item.slug)} hitSlop={4}>
+            <View style={styles.thumbWrap}>
+              <CommunityThumb community={item} size={52} />
             </View>
           </Pressable>
-          <Pressable onPress={() => openCommunityInfo(item.slug)}>
-            <Text style={styles.sub} numberOfLines={1}>
-              {item.description?.trim() || "소개가 아직 없습니다."}
+          <View style={styles.meta}>
+            <Pressable onPress={() => openCommunityServer(item.slug)}>
+              <View style={styles.titleRow}>
+                <Text style={styles.title} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                {item.isNsfw ? <Text style={styles.nsfw}>NSFW</Text> : null}
+              </View>
+            </Pressable>
+            <Pressable onPress={() => openCommunityInfo(item.slug)}>
+              <Text style={styles.sub} numberOfLines={2}>
+                {item.description?.trim() || "소개가 아직 없습니다."}
+              </Text>
+            </Pressable>
+          </View>
+          <Pressable
+            style={styles.members}
+            onPress={() => openCommunityInfo(item.slug)}
+            hitSlop={8}
+          >
+            <Text style={styles.memberCat} numberOfLines={1}>
+              {cat.shortLabel}
             </Text>
+            <View style={styles.memberCountRow}>
+              <Ionicons name="people-outline" size={12} color={colors.textMuted} />
+              <Text style={styles.memberCount}>{item.memberCount}</Text>
+            </View>
           </Pressable>
         </View>
-        <Pressable
-          style={styles.members}
-          onPress={() => openCommunityInfo(item.slug)}
-          hitSlop={8}
-        >
-          <Ionicons name="people-outline" size={12} color={colors.textMuted} />
-          <Text style={styles.memberCount}>{item.memberCount}</Text>
-        </Pressable>
-      </View>
-    ),
+      );
+    },
     [colors.textMuted, openCommunityInfo, openCommunityServer, styles]
   );
 
@@ -245,30 +198,41 @@ export function CommunityListScreen() {
       ) : null}
 
       <View style={styles.hubCard}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabs}
-          style={styles.tabsWrap}
-        >
-          {COMMUNITY_CATEGORY_OPTIONS.map((opt) => {
-            const active = tab === opt.id;
-            const count = counts.get(opt.id) ?? 0;
-            return (
-              <Pressable
-                key={opt.id}
-                onPress={() => setTab(opt.id)}
-                style={[styles.tab, active && styles.tabActive]}
-              >
-                <Text style={[styles.tabText, active && styles.tabTextActive]}>
-                  {opt.emoji ? `${opt.emoji} ` : ""}
-                  {opt.shortLabel}
-                  <Text style={styles.tabCount}> {count}</Text>
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <View style={styles.tabsRow}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            hitSlop={10}
+            style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="뒤로"
+          >
+            <Ionicons name="chevron-back" size={22} color={colors.brand} />
+          </Pressable>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabs}
+            style={styles.tabsWrap}
+          >
+            {COMMUNITY_CATEGORY_OPTIONS.map((opt) => {
+              const active = tab === opt.id;
+              const count = counts.get(opt.id) ?? 0;
+              return (
+                <Pressable
+                  key={opt.id}
+                  onPress={() => setTab(opt.id)}
+                  style={[styles.tab, active && styles.tabActive]}
+                >
+                  <Text style={[styles.tabText, active && styles.tabTextActive]}>
+                    {opt.emoji ? `${opt.emoji} ` : ""}
+                    {opt.shortLabel}
+                    <Text style={styles.tabCount}> {count}</Text>
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
 
         <View style={styles.sectionHead}>
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -289,27 +253,12 @@ export function CommunityListScreen() {
             <Text style={styles.createText}>만들기</Text>
           </Pressable>
         </View>
-
-        {featured.length > 0 ? (
-          <View style={styles.featuredGrid}>
-            {featured.map((c) => (
-              <FeaturedCard
-                key={c.id}
-                community={c}
-                width={cardW}
-                onOpenServer={() => openCommunityServer(c.slug)}
-                onOpenDetail={() => openCommunityInfo(c.slug)}
-              />
-            ))}
-          </View>
-        ) : null}
       </View>
     </View>
   );
 
   return (
     <Screen>
-      <AppHeader title="커뮤니티" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
       {query.isLoading && !query.data ? (
         <ActivityIndicator style={{ marginTop: 40 }} color="#c80000" />
       ) : query.isError && !query.data ? (
@@ -346,42 +295,6 @@ const stylesShared = StyleSheet.create({
     justifyContent: "center",
   },
   thumbEmoji: { fontSize: 20 },
-  featuredCard: {
-    aspectRatio: 4 / 3,
-    backgroundColor: "#2b3038",
-    overflow: "hidden",
-  },
-  featuredFallback: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    backgroundColor: "#2a3140",
-    paddingHorizontal: 8,
-  },
-  featuredEmoji: { fontSize: 28 },
-  featuredFallbackName: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 11,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  featuredScrim: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 8,
-    paddingBottom: 6,
-    paddingTop: 28,
-    backgroundColor: "rgba(0,0,0,0.55)",
-  },
-  featuredName: { color: "#fff", fontSize: 12, fontWeight: "700" },
-  featuredMeta: { color: "rgba(255,255,255,0.7)", fontSize: 10, marginTop: 2 },
 });
 
 function createThemedStyles(colors: ThemeColors, isDark: boolean) {
@@ -424,13 +337,26 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
       backgroundColor: colors.surfaceRaised,
       overflow: "hidden",
     },
-    tabsWrap: {
+    tabsRow: {
+      flexDirection: "row",
+      alignItems: "center",
       backgroundColor: isDark ? colors.muted : "#f3f3f3",
       borderBottomWidth: 1,
       borderBottomColor: isDark ? colors.border : "#d5d5d5",
     },
+    backBtn: {
+      paddingLeft: 6,
+      paddingRight: 2,
+      paddingVertical: 8,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    tabsWrap: {
+      flexGrow: 1,
+      flexShrink: 1,
+    },
     tabs: {
-      paddingHorizontal: 6,
+      paddingHorizontal: 4,
       paddingVertical: 8,
       gap: 2,
       alignItems: "center",
@@ -465,10 +391,6 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
     sectionDesc: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
     createBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
     createText: { fontWeight: "800", fontSize: 13, color: "#c80000" },
-    featuredGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-    },
     row: {
       flexDirection: "row",
       alignItems: "center",
@@ -486,7 +408,9 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
     title: { flexShrink: 1, fontWeight: "700", color: colors.text, fontSize: 14 },
     nsfw: { color: "#c80000", fontSize: 10, fontWeight: "800" },
     sub: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-    members: { flexDirection: "row", alignItems: "center", gap: 3, minWidth: 36 },
+    members: { alignItems: "flex-end", gap: 2, minWidth: 40 },
+    memberCat: { color: colors.textMuted, fontSize: 11, fontWeight: "600" },
+    memberCountRow: { flexDirection: "row", alignItems: "center", gap: 3 },
     memberCount: { color: colors.textMuted, fontSize: 12, fontWeight: "600" },
     muted: { color: colors.textMuted, textAlign: "center" },
     error: { color: colors.danger, padding: spacing.lg },

@@ -1,18 +1,18 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import type { MobileAuthProvider } from "@/auth/oauth";
 import { GoogleIcon } from "@/features/auth/SocialBrandIcons";
+import { radii, spacing } from "@/theme/tokens";
 
 type Props = {
   busyProvider: MobileAuthProvider | null;
   disabled?: boolean;
   onPress: (provider: MobileAuthProvider) => void;
-  /** Default: Google로 계속 */
   label?: string;
 };
 
 /**
- * Single Google CTA — replaces the old multi-provider icon row.
- * White pill + Google mark + dark label (readable contrast).
+ * Google CTA — same rounded-rect language as ID/password fields (not a pill).
  */
 export function WelcomeSocialAuthRow({
   busyProvider,
@@ -24,10 +24,17 @@ export function WelcomeSocialAuthRow({
 
   return (
     <Pressable
-      style={[styles.btn, (disabled || busyProvider !== null) && styles.btnDisabled]}
+      style={({ pressed }) => [
+        styles.btn,
+        (disabled || busyProvider !== null) && styles.btnDisabled,
+        pressed && !disabled && !busy && styles.btnPressed,
+      ]}
       disabled={disabled || busyProvider !== null}
       accessibilityRole="button"
       accessibilityLabel={label}
+      onPressIn={() => {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }}
       onPress={() => onPress("gmail")}
     >
       {busy ? (
@@ -46,21 +53,20 @@ const styles = StyleSheet.create({
   btn: {
     width: "100%",
     minHeight: 52,
-    borderRadius: 999,
+    borderRadius: radii.md,
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "rgba(15, 23, 42, 0.18)",
+    borderWidth: 1.5,
+    borderColor: "rgba(27, 74, 140, 0.18)",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    paddingHorizontal: spacing.md,
   },
   btnDisabled: {
     opacity: 0.65,
+  },
+  btnPressed: {
+    transform: [{ scale: 0.985 }],
+    opacity: 0.92,
   },
   inner: {
     flexDirection: "row",

@@ -1,12 +1,13 @@
-import { useMemo, useState, type ComponentType } from "react";
-import { LayoutChangeEvent, StyleSheet, View } from "react-native";
+import { useMemo, type ComponentType } from "react";
+import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { Feature } from "geojson";
 import type { MapEventPin } from "@/api/events";
 import { eventPinColor } from "@/features/events/event-map-colors";
-
-const OSM_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-const GLOBAL_VIEW = { lat: 28, lng: 135, zoom: 3 };
+import {
+  ESRI_SATELLITE_STYLE,
+  SUBCULTURE_MAP_GLOBAL_VIEW,
+} from "@/maps/map-styles";
 
 type ViewConfig = { lat: number; lng: number; zoom: number };
 
@@ -15,7 +16,7 @@ function validPins(pins: MapEventPin[]) {
 }
 
 export function viewForEventPins(pins: MapEventPin[], global: boolean): ViewConfig {
-  if (global) return GLOBAL_VIEW;
+  if (global) return SUBCULTURE_MAP_GLOBAL_VIEW;
   const usable = validPins(pins);
   if (usable.length === 0) {
     return { lat: 37.5665, lng: 126.978, zoom: 11 };
@@ -32,109 +33,54 @@ export function viewForEventPins(pins: MapEventPin[], global: boolean): ViewConf
   return { lat, lng, zoom };
 }
 
-function nearestPin(lat: number, lng: number, pins: MapEventPin[], maxDeg = 0.025) {
-  let best: MapEventPin | null = null;
-  let bestD = maxDeg * maxDeg;
-  for (const pin of pins) {
-    const d = (pin.lat - lat) ** 2 + (pin.lng - lng) ** 2;
-    if (d < bestD) {
-      bestD = d;
-      best = pin;
-    }
-  }
-  return best;
-}
+/** Satellite street-level focus — matches web `PIN_FOCUS_ZOOM` */
+const PIN_FOCUS_ZOOM = 16;
 
 type Props = {
   pins: MapEventPin[];
-  global: boolean;
+  global?: boolean;
   selectedId: string | null;
   onSelectPin: (pin: MapEventPin) => void;
+  /** Focus camera on this pin when set */
+  focusPinId?: string | null;
   style?: object;
 };
 
 function MapFallback({ style }: { style?: object }) {
   return (
     <View style={[styles.fallback, style]}>
-      <Ionicons name="map-outline" size={36} color="#1B4A8C" />
+      <Ionicons name="map-outline" size={36} color="#A78BFA" />
     </View>
   );
 }
 
-function EventsKakaoMap({
+/**
+ * Subculture Map — Esri World Imagery via MapLibre (same tiles as web).
+ * Used-trade keep OSM/Kakao in `MeetMap` / `MapLibreMapProvider`.
+ */
+export function EventsNativeMap({
   pins,
-  view,
-  onSelectPin,
-  style,
-}: {
-  pins: MapEventPin[];
-  view: ViewConfig;
-  onSelectPin: (pin: MapEventPin) => void;
-  style?: object;
-}) {
-  const [size, setSize] = useState({ width: 0, height: 0 });
-
-  const KakaoMapView = useMemo(() => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      return require("@jiggag/react-native-kakao-maps").KakaoMapView as ComponentType<{
-        width: number;
-        height: number;
-        centerPoint?: { lat: number; lng: number };
-        markerList: { lat: number; lng: number; markerName: string }[];
-        onChange: (event: { nativeEvent: { lat: number; lng: number; zoomLevel: number } }) => void;
-      }>;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const markers = useMemo(
-    () => pins.map((p) => ({ lat: p.lat, lng: p.lng, markerName: p.title.slice(0, 24) })),
-    [pins]
-  );
-
-  function onLayout(e: LayoutChangeEvent) {
-    const { width, height } = e.nativeEvent.layout;
-    if (width > 0 && height > 0) setSize({ width, height });
-  }
-
-  if (!KakaoMapView) {
-    return <MapFallback style={style} />;
-  }
-
-  return (
-    <View style={[styles.wrap, style]} onLayout={onLayout}>
-      {size.width > 0 && size.height > 0 ? (
-        <KakaoMapView
-          width={Math.round(size.width)}
-          height={Math.round(size.height)}
-          centerPoint={{ lat: view.lat, lng: view.lng }}
-          markerList={markers}
-          onChange={(event) => {
-            const { lat, lng } = event.nativeEvent;
-            const hit = nearestPin(lat, lng, pins);
-            if (hit) onSelectPin(hit);
-          }}
-        />
-      ) : null}
-    </View>
-  );
-}
-
-function EventsMapLibreMap({
-  pins,
-  view,
+  global = true,
   selectedId,
   onSelectPin,
+  focusPinId,
   style,
-}: {
-  pins: MapEventPin[];
-  view: ViewConfig;
-  selectedId: string | null;
-  onSelectPin: (pin: MapEventPin) => void;
-  style?: object;
-}) {
+}: Props) {
+  const usablePins = useMemo(() => validPins(pins), [pins]);
+  const baseView = useMemo(
+    () => viewForEventPins(usablePins, global),
+    [usablePins, global]
+  );
+
+  const focused = useMemo(() => {
+    if (!focusPinId) return null;
+    return usablePins.find((p) => p.id === focusPinId) ?? null;
+  }, [focusPinId, usablePins]);
+
+  const view: ViewConfig = focused
+    ? { lat: focused.lat, lng: focused.lng, zoom: PIN_FOCUS_ZOOM }
+    : baseView;
+
   const MLRN = useMemo(() => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -152,7 +98,7 @@ function EventsMapLibreMap({
   const geojson = useMemo(
     () => ({
       type: "FeatureCollection" as const,
-      features: pins.map((pin) => ({
+      features: usablePins.map((pin) => ({
         type: "Feature" as const,
         id: pin.id,
         geometry: { type: "Point" as const, coordinates: [pin.lng, pin.lat] },
@@ -163,10 +109,10 @@ function EventsMapLibreMap({
         },
       })),
     }),
-    [pins, selectedId]
+    [usablePins, selectedId]
   );
 
-  if (!MLRN?.Map) {
+  if (usablePins.length === 0 || !MLRN?.Map) {
     return <MapFallback style={style} />;
   }
 
@@ -176,14 +122,15 @@ function EventsMapLibreMap({
     <View style={[styles.wrap, style]}>
       <Map
         style={StyleSheet.absoluteFill}
-        mapStyle={OSM_STYLE_URL}
-        compass
-        attribution
+        mapStyle={ESRI_SATELLITE_STYLE}
+        compass={false}
+        attribution={false}
+        logo={false}
       >
         <Camera
           center={[view.lng, view.lat]}
           zoom={view.zoom}
-          duration={350}
+          duration={focused ? 700 : 350}
           easing="fly"
         />
         <GeoJSONSource
@@ -193,15 +140,24 @@ function EventsMapLibreMap({
             const feature = event.nativeEvent?.features?.[0];
             const id = feature?.properties?.id;
             if (typeof id !== "string") return;
-            const pin = pins.find((p) => p.id === id);
+            const pin = usablePins.find((p) => p.id === id);
             if (pin) onSelectPin(pin);
           }}
         >
           <Layer
+            id="event-pins-halo"
+            type="circle"
+            paint={{
+              "circle-radius": ["case", ["==", ["get", "selected"], 1], 16, 12],
+              "circle-color": ["get", "color"],
+              "circle-opacity": 0.28,
+            }}
+          />
+          <Layer
             id="event-pins-circle"
             type="circle"
             paint={{
-              "circle-radius": ["case", ["==", ["get", "selected"], 1], 10, 8],
+              "circle-radius": ["case", ["==", ["get", "selected"], 1], 9, 7],
               "circle-color": ["get", "color"],
               "circle-stroke-width": 2,
               "circle-stroke-color": "#ffffff",
@@ -213,41 +169,12 @@ function EventsMapLibreMap({
   );
 }
 
-/**
- * KR/local → Kakao Native · global → MapLibre v11 (GeoJSON circles).
- * Avoids removed MapView/PointAnnotation APIs that crash on Android.
- */
-export function EventsNativeMap({ pins, global, selectedId, onSelectPin, style }: Props) {
-  const usablePins = useMemo(() => validPins(pins), [pins]);
-  const view = useMemo(() => viewForEventPins(usablePins, global), [usablePins, global]);
-
-  if (usablePins.length === 0) {
-    return <MapFallback style={style} />;
-  }
-
-  if (!global) {
-    return (
-      <EventsKakaoMap pins={usablePins} view={view} onSelectPin={onSelectPin} style={style} />
-    );
-  }
-
-  return (
-    <EventsMapLibreMap
-      pins={usablePins}
-      view={view}
-      selectedId={selectedId}
-      onSelectPin={onSelectPin}
-      style={style}
-    />
-  );
-}
-
 const styles = StyleSheet.create({
-  wrap: { flex: 1, overflow: "hidden" },
+  wrap: { flex: 1, overflow: "hidden", backgroundColor: "#0B1020" },
   fallback: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(27,74,140,0.08)",
+    backgroundColor: "#0B1020",
   },
 });

@@ -1,8 +1,8 @@
 import type { ChatRoomType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 
-/** Private messaging inbox — DM (+ group rooms on web). Not community/live channels. */
-export const WEB_MESSAGES_INBOX_TYPES: ChatRoomType[] = ["DM", "COSPLAYER_GROUP", "SOCIAL_GROUP"];
+/** Private messaging inbox — DM only (group rooms disabled). */
+export const WEB_MESSAGES_INBOX_TYPES: ChatRoomType[] = ["DM"];
 export const MOBILE_MESSAGES_INBOX_TYPES: ChatRoomType[] = ["DM"];
 
 let communityLinkedRoomIdsCache: { ids: string[]; expiresAt: number } | null = null;

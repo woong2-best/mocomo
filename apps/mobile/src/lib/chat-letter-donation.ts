@@ -18,4 +18,6 @@ export function stripLetterDonationMarker(content: string | null | undefined): s
 }
 
 export const LETTER_DONATION_MIN_KRW = 500;
+/** DM letter donations are paid in purchased MOCO (1 MOCO min). */
+export const LETTER_DONATION_MIN_MOCO = 1;
 export const LETTER_DONATION_MESSAGE_MAX = 500;

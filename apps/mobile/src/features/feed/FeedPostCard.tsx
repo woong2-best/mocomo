@@ -12,10 +12,13 @@ import { FolkAvatar } from "@/ui/FolkAvatar";
 import { TranslatableText } from "@/ui/TranslatableText";
 import { ShareGlobeIcon } from "@/ui/ShareGlobeIcon";
 import { PerformanceBudgets } from "@/perf/budgets";
+import { formatRelativeTimeAgo } from "@/lib/format-relative-time";
 import { formatViewCount, recordPostViewOnce } from "@/lib/post-view";
 import { useTheme } from "@/theme/ThemeContext";
 import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import { SupportTierBadge } from "@/ui/SupportTierBadge";
+import { profileDisplayTier } from "@/lib/support-tier-display";
 
 type Props = {
   post: FeedPost;
@@ -185,11 +188,25 @@ function FeedPostCardInner({
             size={40}
           />
           <View style={styles.headerText}>
-            <Text style={styles.name} numberOfLines={1}>
-              {post.author.name || post.author.username}
-            </Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>
+                {post.author.name || post.author.username}
+              </Text>
+              <SupportTierBadge
+                tier={profileDisplayTier(
+                  post.author.supportTierSent,
+                  post.author.earnedMocoTier
+                )}
+              />
+            </View>
             <Text style={styles.handle} numberOfLines={1}>
               @{post.author.username}
+              {post.createdAt ? (
+                <Text style={styles.handleMeta}>
+                  {"  "}
+                  {formatRelativeTimeAgo(post.createdAt)}
+                </Text>
+              ) : null}
             </Text>
           </View>
         </Pressable>
@@ -262,7 +279,7 @@ function FeedPostCardInner({
         </View>
         <View style={styles.actionsRight}>
           <View style={styles.viewBtn} accessibilityLabel={`조회수 ${viewCount}회`}>
-            <Ionicons name="eye-outline" size={17} color={colors.cobalt} />
+            <Ionicons name="eye-outline" size={17} color={colors.textMuted} />
             <Text style={styles.viewText}>{formatCount(viewCount)}</Text>
           </View>
           <Pressable onPress={onStar} hitSlop={10} style={styles.starBtn}>
@@ -327,8 +344,10 @@ function createStyles(colors: ThemeColors) {
     headerMain: { flexDirection: "row", alignItems: "center", flex: 1 },
     headerText: { marginLeft: 10, flex: 1 },
     menuBtn: { padding: 4, marginLeft: 4 },
-    name: { fontSize: 15, fontWeight: "800", color: colors.text },
+    nameRow: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
+    name: { fontSize: 15, fontWeight: "800", color: colors.text, flexShrink: 1 },
     handle: { fontSize: 13, color: colors.textMuted, marginTop: 1 },
+    handleMeta: { fontSize: 13, color: colors.textMuted, fontWeight: "400" },
     content: { fontSize: 15, lineHeight: 21, color: colors.text, marginBottom: 10 },
     actions: {
       flexDirection: "row",
@@ -340,7 +359,7 @@ function createStyles(colors: ThemeColors) {
     actionsRight: { flexDirection: "row", alignItems: "center", gap: 10 },
     actionBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
     viewBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
-    viewText: { fontSize: 13, color: colors.cobalt, fontWeight: "700", fontVariant: ["tabular-nums"] },
+    viewText: { fontSize: 13, color: colors.textMuted, fontWeight: "600", fontVariant: ["tabular-nums"] },
     starBtn: { paddingLeft: 2 },
     actionText: { fontSize: 13, color: colors.textMuted, fontWeight: "600" },
     liked: { color: colors.terracotta },

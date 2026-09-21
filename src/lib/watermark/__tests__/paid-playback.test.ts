@@ -16,9 +16,28 @@ test("paid unlocked video is rewritten to the same-origin gate", () => {
     priceKrw: 3000,
     locked: false,
     hlsUrl: "https://cdn.example/video.m3u8",
+    posterUrl: "https://cdn.example/poster.jpg",
   });
   assert.equal(out.url, paidMediaPlaybackPath("media_1"));
   assert.equal(out.hlsUrl, null);
+  assert.equal(out.posterUrl, "https://cdn.example/poster.jpg");
+});
+
+test("paid unlocked video derives CF poster before stripping hls", () => {
+  const out = rewritePaidVideoSrc({
+    id: "media_cf",
+    url: "https://cdn.example/raw.mp4",
+    type: "VIDEO",
+    priceKrw: 1000,
+    locked: false,
+    hlsUrl: "https://customer.cloudflarestream.com/abcdef0123456789abcdef01/manifest/video.m3u8",
+  });
+  assert.equal(out.url, paidMediaPlaybackPath("media_cf"));
+  assert.equal(out.hlsUrl, null);
+  assert.equal(
+    out.posterUrl,
+    "https://videodelivery.net/abcdef0123456789abcdef01/thumbnails/thumbnail.jpg?time=0s&height=720"
+  );
 });
 
 test("locked paid video does not leak the origin url", () => {

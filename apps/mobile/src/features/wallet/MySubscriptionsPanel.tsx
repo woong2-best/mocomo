@@ -86,7 +86,7 @@ export function MySubscriptionsPanel() {
             {s.active && !s.cancelAtPeriodEnd ? (
               <FolkButton
                 label="다음 달 결제 취소"
-                variant="outline"
+                variant="secondary"
                 onPress={() => void handleCancel(s.creatorId, s.creatorUsername)}
                 loading={cancellingId === s.creatorId}
                 disabled={cancellingId !== null}

@@ -1,0 +1,9 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": [
+      "net.mocomo.nativefeed.MocomoNativeFeedModule",
+      "net.mocomo.nativefeed.MocomoPooledVideoModule"
+    ]
+  }
+}
