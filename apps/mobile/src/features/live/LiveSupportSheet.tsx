@@ -226,7 +226,7 @@ export function LiveSupportSheet({
           <TransferDots active={loading} />
 
           <View style={[styles.iconBox, styles.iconLogoBox]}>
-            <Image source={require("../../../../assets/icon.png")} style={styles.logoImg} resizeMode="contain" />
+            <Image source={require("../../../assets/icon.png")} style={styles.logoImg} resizeMode="contain" />
           </View>
         </View>
 
