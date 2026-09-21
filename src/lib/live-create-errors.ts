@@ -8,7 +8,7 @@ export function formatLiveCreateError(e: unknown): string {
       /column [`'"]?(?:\w+\.)?(\w+)[`'"]? does not exist/i
     );
     if (missingCol?.[1]) {
-      return `라이브 DB 컬럼이 없습니다 (${missingCol[1]}). 배포 후 자동 마이그레이션을 확인하거나 Supabase에서 supabase-fix-all.sql AC 섹션을 실행해 주세요.`;
+      return `라이브 DB 컬럼이 없습니다 (${missingCol[1]}). 배포 후 자동 마이그레이션을 확인하거나 Supabase SQL Editor에서 scripts/apply-ac1-moco-donation.sql (또는 supabase-fix-all.sql AC1)을 실행해 주세요.`;
     }
     if (
       /LiveStreamCategory|LiveStreamStatus|LiveBroadcastMode|LiveVisibility|joinPassword|StreamerProfile|VoiceMember|enum/i.test(

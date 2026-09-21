@@ -15,6 +15,7 @@ const RESOLVE_TIMEOUT_MS = 60 * 1000;
 
 const FAILED_WATERMARK_MIGRATION = "20260816150000_watermark_forensics";
 const FAILED_COMMUNITY_CATEGORY_MIGRATION = "20260904120000_community_category_v3";
+const FAILED_MOCO_MEDIA_DONATION_MIGRATION = "20260921120000_moco_media_donation";
 
 function runCommand(label, command, args, timeoutMs) {
   return new Promise((resolve, reject) => {
@@ -66,6 +67,10 @@ async function main() {
     FAILED_COMMUNITY_CATEGORY_MIGRATION,
     "clear failed community category migration"
   );
+  await tryResolveFailedMigration(
+    FAILED_MOCO_MEDIA_DONATION_MIGRATION,
+    "clear failed moco media donation migration"
+  );
 
   try {
     await runCommand(
@@ -75,8 +80,8 @@ async function main() {
       MIGRATE_TIMEOUT_MS
     );
   } catch (err) {
-    console.warn("[vercel-db-sync] migrate deploy skipped:", err.message);
-    return;
+    console.error("[vercel-db-sync] migrate deploy failed:", err.message);
+    process.exit(1);
   }
 
   try {
@@ -87,5 +92,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.warn("[vercel-db-sync] unexpected:", err.message);
+  console.error("[vercel-db-sync] unexpected:", err.message);
+  process.exit(1);
 });
