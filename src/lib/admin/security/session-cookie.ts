@@ -4,6 +4,7 @@
  */
 
 import { getAuthSecret } from "@/lib/auth-env";
+import { ADMIN_WEB_SESSION_TTL_SEC } from "@/lib/admin/web-session-ttl";
 
 export const ADMIN_MFA_COOKIE =
   process.env.NODE_ENV === "production"
@@ -23,8 +24,11 @@ export const ADMIN_STEPUP_COOKIE =
 /** 단계별 챌린지 유효 (비밀번호/Passkey 중간) */
 export const ADMIN_MFA_CHALLENGE_TTL_SEC = 10 * 60;
 
-/** 완전 인증 후 유휴 만료 */
+/** 완전 인증 후 유휴 만료 (요청마다 연장) */
 export const ADMIN_MFA_IDLE_TTL_SEC = 30 * 60;
+
+/** 완전 인증 후 절대 만료. 활동으로 연장되지 않으며 웹 세션과 같이 1시간. */
+export const ADMIN_MFA_HARD_TTL_SEC = ADMIN_WEB_SESSION_TTL_SEC;
 
 /** Step-up 재인증 유효 */
 export const ADMIN_STEPUP_TTL_SEC = 5 * 60;
@@ -80,14 +84,24 @@ export function adminSecurityCookieOptions(maxAge: number) {
 export async function createAdminMfaCookieValue(
   userId: string,
   stage: AdminMfaStage,
-  ttlSec = stage === "ok" ? ADMIN_MFA_IDLE_TTL_SEC : ADMIN_MFA_CHALLENGE_TTL_SEC
+  ttlSec = stage === "ok" ? ADMIN_MFA_IDLE_TTL_SEC : ADMIN_MFA_CHALLENGE_TTL_SEC,
+  /** stage=ok 갱신 시 기존 절대 만료를 유지. 없으면 지금부터 1시간. */
+  preserveHardExp?: number
 ): Promise<string> {
   const secret = getAuthSecret();
   if (!secret) throw new Error("AUTH_SECRET missing");
   const now = Math.floor(Date.now() / 1000);
-  const exp = now + Math.max(ttlSec, ADMIN_MFA_IDLE_TTL_SEC);
-  const activityExp = stage === "ok" ? now + ADMIN_MFA_IDLE_TTL_SEC : now + ttlSec;
-  const hardExp = stage === "ok" ? now + 12 * 60 * 60 : activityExp;
+  const idleExp = stage === "ok" ? now + ADMIN_MFA_IDLE_TTL_SEC : now + ttlSec;
+  const cap = now + ADMIN_MFA_HARD_TTL_SEC;
+  const preserved =
+    preserveHardExp != null &&
+    Number.isFinite(preserveHardExp) &&
+    preserveHardExp > now &&
+    preserveHardExp <= cap + 5
+      ? preserveHardExp
+      : cap;
+  const hardExp = stage === "ok" ? preserved : idleExp;
+  const activityExp = Math.min(idleExp, hardExp);
   const payload = `${userId}.${stage}.${hardExp}.${activityExp}`;
   const sig = await hmacSha256(secret, payload);
   return `v2.${payload}.${sig}`;

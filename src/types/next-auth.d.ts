@@ -32,6 +32,8 @@ declare module "next-auth" {
       isDeleted?: boolean;
       isOperator?: boolean;
       isStaff?: boolean;
+      /** 관리자 웹 세션 시작(unix sec). 이 시각 + 1시간에 로그아웃. */
+      adminSessionStartedAt?: number;
       supportTierSent?: SupportTierLevel;
       earnedMocoTier?: SupportTierLevel;
     };
@@ -53,6 +55,8 @@ declare module "next-auth/jwt" {
     isDeleted?: boolean;
     isOperator?: boolean;
     isStaff?: boolean;
+    /** 관리자 웹 세션 시작(unix sec). 활동으로 연장하지 않음. */
+    adminSessionStartedAt?: number;
     supportTierSent?: SupportTierLevel;
     earnedMocoTier?: SupportTierLevel;
   }

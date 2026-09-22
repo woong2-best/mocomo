@@ -33,6 +33,7 @@ import {
 } from "@/lib/mobile-oauth-shared";
 import { sealMobileOAuthNeedsSignup } from "@/lib/mobile-oauth-handoff";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
+import { applyAdminWebSessionLifetime } from "@/lib/admin/web-session-ttl";
 import { recordUserAccessLog } from "@/lib/user-access-log";
 import {
   assertAccountCanWrite,
@@ -355,7 +356,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             })
             .catch(() => undefined);
         }
-        return token;
+        return applyAdminWebSessionLifetime(token, { isNewLogin: true });
       }
 
       if (user?.id) {
@@ -438,7 +439,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.role = "OWNER";
         }
       }
-      return token;
+      return applyAdminWebSessionLifetime(token, { isNewLogin: Boolean(user?.id) });
     },
   },
 });

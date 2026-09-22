@@ -43,6 +43,12 @@ const OperatorSiteMfaGate = dynamic(
   { ssr: false }
 );
 
+const AdminSessionAutoLogout = dynamic(
+  () =>
+    import("@/components/auth/admin-session-auto-logout").then((m) => m.AdminSessionAutoLogout),
+  { ssr: false }
+);
+
 const NativePushRegistration = dynamic(
   () =>
     import("@/components/push/native-push-registration").then((m) => m.NativePushRegistration),
@@ -70,6 +76,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                           <CallProviderGate>
                             <PlatformBootstrapClient />
                             <AddAccountFlowHandler />
+                            <AdminSessionAutoLogout />
                             <OperatorSiteMfaGate />
                             {children}
                           </CallProviderGate>

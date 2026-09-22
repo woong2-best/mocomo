@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import { getAuthSecret } from "@/lib/auth-env";
+import { applyAdminWebSessionLifetime } from "@/lib/admin/web-session-ttl";
 
 /** Edge/middleware 전용 — DB·bcrypt·providers 없음 */
 export const authConfig = {
@@ -16,6 +17,15 @@ export const authConfig = {
   },
   providers: [],
   callbacks: {
+    /**
+     * Edge middleware는 이 설정만 쓴다. 매 요청 JWT를 다시 서명하므로
+     * 관리자 1시간 만료는 여기서 폐기해야 쿠키가 30일로 되살아나지 않는다.
+     */
+    async jwt({ token, user, trigger }) {
+      return applyAdminWebSessionLifetime(token, {
+        isNewLogin: Boolean(user) || trigger === "signIn",
+      });
+    },
     redirect({ url, baseUrl }) {
       // App deep links from mobile OAuth pending-signup / complete.
       if (
@@ -61,6 +71,14 @@ export const authConfig = {
         session.user.isDeleted = Boolean(token.isDeleted);
         session.user.isOperator = Boolean(token.isOperator);
         session.user.isStaff = Boolean(token.isStaff);
+        const adminStarted = Number(token.adminSessionStartedAt);
+        if (
+          (token.isStaff || token.isOperator) &&
+          Number.isFinite(adminStarted) &&
+          adminStarted > 0
+        ) {
+          session.user.adminSessionStartedAt = adminStarted;
+        }
         session.user.supportTierSent = token.supportTierSent;
         session.user.earnedMocoTier = token.earnedMocoTier;
       }

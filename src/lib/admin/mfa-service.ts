@@ -5,6 +5,7 @@ import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import { resolveEffectiveStaffRole } from "@/lib/staff-roles";
 import {
   ADMIN_MFA_COOKIE,
+  ADMIN_MFA_HARD_TTL_SEC,
   ADMIN_MFA_IDLE_TTL_SEC,
   ADMIN_STEPUP_COOKIE,
   ADMIN_STEPUP_TTL_SEC,
@@ -86,7 +87,7 @@ export async function assertUserCanAdminMfa(userId: string): Promise<
 async function setMfaStage(userId: string, stage: AdminMfaStage) {
   const value = await createAdminMfaCookieValue(userId, stage);
   const jar = await cookies();
-  const maxAge = stage === "ok" ? 12 * 60 * 60 : 10 * 60;
+  const maxAge = stage === "ok" ? ADMIN_MFA_HARD_TTL_SEC : 10 * 60;
   jar.set(ADMIN_MFA_COOKIE, value, adminSecurityCookieOptions(maxAge));
 }
 
@@ -292,8 +293,14 @@ export async function touchAdminMfaActivity(userId: string): Promise<boolean> {
   const jar = await cookies();
   const parsed = await parseAdminMfaCookieValue(jar.get(ADMIN_MFA_COOKIE)?.value);
   if (!parsed || parsed.userId !== userId || parsed.stage !== "ok") return false;
-  const value = await createAdminMfaCookieValue(userId, "ok", ADMIN_MFA_IDLE_TTL_SEC);
-  jar.set(ADMIN_MFA_COOKIE, value, adminSecurityCookieOptions(12 * 60 * 60));
+  const value = await createAdminMfaCookieValue(
+    userId,
+    "ok",
+    ADMIN_MFA_IDLE_TTL_SEC,
+    parsed.exp
+  );
+  const maxAge = Math.max(1, parsed.exp - Math.floor(Date.now() / 1000));
+  jar.set(ADMIN_MFA_COOKIE, value, adminSecurityCookieOptions(maxAge));
   return true;
 }
 

@@ -80,7 +80,9 @@ export function AdminLoginForm({
   const [error, setError] = useState<string | null>(
     errorParam === "forbidden"
       ? "관리자 권한이 없는 계정입니다. 관리자 계정으로 로그인해 주세요."
-      : null
+      : errorParam === "expired" || errorParam === "SessionExpired"
+        ? "관리자 로그인 1시간이 지나 자동으로 로그아웃되었습니다. 다시 로그인해 주세요."
+        : null
   );
   const [mfaAlreadyComplete, setMfaAlreadyComplete] = useState(false);
 

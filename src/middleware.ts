@@ -22,7 +22,7 @@ import { getOperatorUsernames } from "@/lib/operator-config";
 import {
   ADMIN_MFA_COOKIE,
   createAdminMfaCookieValue,
-  verifyAdminMfaCookieValue,
+  parseAdminMfaCookieValue,
   adminSecurityCookieOptions,
   ADMIN_MFA_IDLE_TTL_SEC,
 } from "@/lib/admin/security/session-cookie";
@@ -280,14 +280,8 @@ export default edgeAuth(async (req) => {
   if (isAdmin && (isAdminLoginPage || isAdminEnrollPage || isAdminForbiddenPage)) {
     if (isAdminLoginPage) {
       const userId = String(req.auth?.user?.id ?? "");
-      const mfaOk =
-        isAdminStaff &&
-        userId &&
-        (await verifyAdminMfaCookieValue(
-          req.cookies.get(ADMIN_MFA_COOKIE)?.value,
-          userId,
-          "ok"
-        ));
+      const loginMfa = await parseAdminMfaCookieValue(req.cookies.get(ADMIN_MFA_COOKIE)?.value);
+      const mfaOk = isAdminStaff && userId && loginMfa?.userId === userId && loginMfa.stage === "ok";
       // 관리자 MFA(비밀번호+Passkey+TOTP) 완료된 경우만 대시보드로
       if (mfaOk) {
         const cb = req.nextUrl.searchParams.get("callbackUrl");
@@ -337,8 +331,9 @@ export default edgeAuth(async (req) => {
 
     const userId = String(req.auth?.user?.id ?? "");
     const mfaCookie = req.cookies.get(ADMIN_MFA_COOKIE)?.value;
-    const mfaOk = await verifyAdminMfaCookieValue(mfaCookie, userId, "ok");
-    if (!mfaOk) {
+    const parsedMfa = await parseAdminMfaCookieValue(mfaCookie);
+    const mfaOk = parsedMfa?.userId === userId && parsedMfa.stage === "ok";
+    if (!mfaOk || !parsedMfa) {
       // 메인 사이트 로그인만으로는 불가 — 관리자 로그인부터 다시
       const signIn = new URL("/admin/login", req.url);
       if (pathname !== "/admin") {
@@ -349,11 +344,18 @@ export default edgeAuth(async (req) => {
       return res;
     }
 
-    const refreshed = await createAdminMfaCookieValue(userId, "ok", ADMIN_MFA_IDLE_TTL_SEC);
+    // 유휴 시간만 연장. 절대 만료(로그인 후 1시간)는 유지.
+    const refreshed = await createAdminMfaCookieValue(
+      userId,
+      "ok",
+      ADMIN_MFA_IDLE_TTL_SEC,
+      parsedMfa.exp
+    );
+    const hardRemaining = Math.max(1, parsedMfa.exp - Math.floor(Date.now() / 1000));
     const res = NextResponse.next();
     res.headers.set("x-pathname", pathname);
     res.cookies.set(ADMIN_MFA_COOKIE, refreshed, {
-      ...adminSecurityCookieOptions(12 * 60 * 60),
+      ...adminSecurityCookieOptions(hardRemaining),
     });
     stampAppClientIfNeeded(req, res);
     return res;
