@@ -11,6 +11,7 @@ import {
   adminPasskeyAuthVerifyAction,
   adminTotpAuthVerifyAction,
 } from "@/actions/admin-security";
+import { performAdminWebSignOut } from "@/lib/admin/admin-web-sign-out";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -40,8 +41,10 @@ export function OperatorSiteMfaGate() {
   const [code, setCode] = useState("");
   const [useRecovery, setUseRecovery] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const armedRef = useRef(false);
+  const logoutLock = useRef(false);
 
   const refreshStage = useCallback(async () => {
     if (!isOperator || isExemptPath(pathname)) {
@@ -136,6 +139,20 @@ export function OperatorSiteMfaGate() {
     router.refresh();
   }
 
+  async function onLogout() {
+    if (logoutLock.current) return;
+    logoutLock.current = true;
+    setLoggingOut(true);
+    setError(null);
+    try {
+      await performAdminWebSignOut("manual");
+    } catch {
+      logoutLock.current = false;
+      setLoggingOut(false);
+      setError("로그아웃에 실패했습니다. 다시 시도해 주세요.");
+    }
+  }
+
   if (!open) return null;
 
   return (
@@ -146,9 +163,21 @@ export function OperatorSiteMfaGate() {
       aria-labelledby="operator-mfa-title"
     >
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
-        <h2 id="operator-mfa-title" className="text-lg font-black tracking-tight">
-          관리자 추가 인증
-        </h2>
+        <div className="flex items-start justify-between gap-3">
+          <h2 id="operator-mfa-title" className="text-lg font-black tracking-tight">
+            관리자 추가 인증
+          </h2>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            disabled={loggingOut}
+            onClick={() => void onLogout()}
+          >
+            {loggingOut ? "로그아웃 중…" : "로그아웃"}
+          </Button>
+        </div>
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
           운영자 계정은 사이트 이용 전 Passkey와 OTP(TOTP) 인증이 필요합니다.
         </p>
@@ -161,7 +190,7 @@ export function OperatorSiteMfaGate() {
 
         {step === "passkey" ? (
           <div className="mt-5 space-y-3">
-            <Button type="button" className="w-full" disabled={loading} onClick={() => void runPasskey()}>
+            <Button type="button" className="w-full" disabled={loading || loggingOut} onClick={() => void runPasskey()}>
               {loading ? "인증 중…" : "Passkey로 계속"}
             </Button>
             <Button type="button" variant="outline" className="w-full" asChild>
@@ -176,7 +205,7 @@ export function OperatorSiteMfaGate() {
               placeholder={useRecovery ? "Recovery code" : "6자리 OTP"}
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              disabled={loading}
+              disabled={loading || loggingOut}
             />
             <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <input
@@ -186,7 +215,7 @@ export function OperatorSiteMfaGate() {
               />
               Recovery code 사용
             </label>
-            <Button type="submit" className="w-full" disabled={loading || !code.trim()}>
+            <Button type="submit" className="w-full" disabled={loading || loggingOut || !code.trim()}>
               {loading ? "확인 중…" : "OTP 확인"}
             </Button>
           </form>

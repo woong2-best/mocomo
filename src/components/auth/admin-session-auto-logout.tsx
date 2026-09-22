@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { signOut, useSession } from "next-auth/react";
-import { adminLogoutMfaAction } from "@/actions/admin-security";
+import { useSession } from "next-auth/react";
+import { performAdminWebSignOut } from "@/lib/admin/admin-web-sign-out";
 import {
   ADMIN_WEB_SESSION_TTL_SEC,
   isAdminWebSessionExpired,
@@ -23,14 +23,9 @@ export function AdminSessionAutoLogout() {
     const logout = () => {
       if (loggingOut.current || !isAdminWebSessionExpired(started)) return;
       loggingOut.current = true;
-      void (async () => {
-        try {
-          await adminLogoutMfaAction();
-        } catch {
-          /* 세션 쿠키가 이미 없을 수 있다 */
-        }
-        await signOut({ callbackUrl: "/auth/signin?error=SessionExpired" });
-      })();
+      void performAdminWebSignOut("expired").catch(() => {
+        loggingOut.current = false;
+      });
     };
 
     const arm = () => {

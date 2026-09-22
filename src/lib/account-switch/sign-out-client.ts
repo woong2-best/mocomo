@@ -27,6 +27,10 @@ function clearClientOAuthCookies() {
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
   const expire = `Path=/; Max-Age=0; SameSite=Lax${secure}`;
   document.cookie = `mocomo_oauth_flow=; ${expire}`;
+  document.cookie = `authjs.callback-url=; ${expire}`;
+  document.cookie = `__Secure-authjs.callback-url=; ${expire}`;
+  document.cookie = `next-auth.callback-url=; ${expire}`;
+  document.cookie = `__Secure-next-auth.callback-url=; ${expire}`;
   try {
     sessionStorage.removeItem("mocomo_oauth_signup_continued");
     sessionStorage.removeItem("mocomo_mobile_oauth_signup_continued");
