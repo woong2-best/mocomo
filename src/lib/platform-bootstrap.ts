@@ -7,8 +7,21 @@ import { ensureCosplayBoardSeed } from "@/lib/cosplay-board-seed";
 import { deactivateDemoAdSlots, ensureSidebarAdSlot } from "@/lib/deactivate-demo-ads";
 const PLATFORM_EMAIL = "platform@mocomo.app";
 const PLATFORM_USERNAME = "mocomo_official";
+const LEGACY_WELCOME_COMMUNITY_SLUG = "welcome";
 
 const globalBootstrap = globalThis as unknown as { mocomoBootstrapped?: boolean };
+
+/** 옛 bootstrap QnA 환영글(MoCoMo 공식) — 더 이상 노출하지 않음 */
+async function removeLegacyWelcomeQnaSeed(prisma: PrismaClient) {
+  const welcome = await prisma.community.findUnique({
+    where: { slug: LEGACY_WELCOME_COMMUNITY_SLUG },
+    select: { id: true },
+  });
+  if (!welcome) return;
+
+  await prisma.post.deleteMany({ where: { communityId: welcome.id } });
+  await prisma.community.delete({ where: { id: welcome.id } });
+}
 
 export async function ensurePlatformBootstrap(prisma: PrismaClient) {
   if (globalBootstrap.mocomoBootstrapped) return;
@@ -27,50 +40,22 @@ export async function ensurePlatformBootstrap(prisma: PrismaClient) {
     });
   }
 
-  let platform = await prisma.user.findUnique({ where: { email: PLATFORM_EMAIL } });
+  const platform = await prisma.user.findUnique({ where: { email: PLATFORM_EMAIL } });
   if (!platform) {
     const hash = await bcrypt.hash(randomUUID(), 12);
-    platform = await prisma.user.create({
+    await prisma.user.create({
       data: {
         email: PLATFORM_EMAIL,
         username: PLATFORM_USERNAME,
         name: "MoCoMo",
         passwordHash: hash,
         role: "USER",
-        profile: { create: { bio: "MoCoMo 공식 계정" } },
+        profile: { create: { bio: "MoCoMo platform" } },
       },
     });
   }
 
-  const postCount = await prisma.post.count();
-  if (postCount === 0) {
-    let community = await prisma.community.findFirst({ where: { slug: "welcome" } });
-    if (!community) {
-      community = await prisma.community.create({
-        data: {
-          slug: "welcome",
-          name: "MoCoMo 공식",
-          description: "환영합니다!",
-          category: "SUBCULTURE",
-          creatorId: platform.id,
-          memberCount: 1,
-          members: { create: { userId: platform.id, role: "owner" } },
-        },
-      });
-    }
-
-    await prisma.post.create({
-      data: {
-        title: "MoCoMo에 오신 것을 환영합니다 🎉",
-        content:
-          "회원가입 후 글·사진·코스프레·후원·라이브를 시작해 보세요!\n\n• /auth/signup — 가입\n• /live — 라이브\n• /cosplay — 코스프레\n• /support — 후원",
-        authorId: platform.id,
-        communityId: community.id,
-        postType: "NEWS",
-        hotScore: 100,
-      },
-    });
-  }
+  await removeLegacyWelcomeQnaSeed(prisma);
 
   try {
     await ensureEmoticonCatalog(prisma);

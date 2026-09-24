@@ -11,7 +11,7 @@ async function main() {
     const demoted = await revokeUnauthorizedAdminRoles(prisma);
     if (demoted > 0) console.log(`🔒 운영자 외 ADMIN ${demoted}명 권한 회수`);
   }
-  console.log("✅ 완료 — 광고, 이벤트, 환영 게시글");
+  console.log("✅ 완료 — 광고, 이벤트, 카탈로그 시드");
 }
 
 main()
