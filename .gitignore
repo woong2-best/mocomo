@@ -7,6 +7,7 @@
 
 # Gradle (local daemon/cache — RN/Android builds; not source)
 .gradle-agent/
+.gradle-local/
 **/.gradle/
 
 # Expo / RN
@@ -107,3 +108,7 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+
+# local DB migration artifacts (PII) and portable postgres binaries
+/.migration-dump/
+/.tools/

@@ -53,6 +53,7 @@ export function FeedTimelinePostCard({
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
   const isOwner = session?.user?.id === post.author.id;
   const hasMedia = postHasVisualMedia(post);
+  const qna = Boolean(post.community?.slug);
   const { liked, likeCount } = like;
   const { starred } = star;
   const displayError = actionError || like.error || star.error;
@@ -101,7 +102,17 @@ export function FeedTimelinePostCard({
                     </time>
                   </PrefetchLink>
                 }
+                showIdHandle={Boolean(post.community)}
+                anonymous={!!post.isAnonymous}
               />
+              {post.community?.slug ? (
+                <PrefetchLink
+                  href={`/c/${post.community.slug}`}
+                  className="inline-flex max-w-full items-center text-[12px] font-semibold text-primary hover:underline"
+                >
+                  <span className="truncate">{post.community.name}</span>
+                </PrefetchLink>
+              ) : null}
               {post.title && (
                 <PrefetchLink href={postHref} className="block">
                   <p className="font-semibold text-[15px] mb-1">{post.title}</p>
@@ -147,8 +158,9 @@ export function FeedTimelinePostCard({
               postId={post.id}
               isPinned={post.isPinned}
               isOwner={isOwner}
-              authorId={post.author.id}
-              authorUsername={post.author.username}
+              authorId={post.isAnonymous ? undefined : post.author.id}
+              authorUsername={post.isAnonymous ? undefined : post.author.username}
+              anonymous={!!post.isAnonymous}
             />
           </div>
         </div>
@@ -158,6 +170,7 @@ export function FeedTimelinePostCard({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-1 text-xs">
+          {qna ? null : (
           <button
             type="button"
             onClick={handleLike}
@@ -171,6 +184,7 @@ export function FeedTimelinePostCard({
             </MotionPop>
             <span>{formatNumber(likeCount)}</span>
           </button>
+          )}
           <PrefetchLink
             href={`${postHref}#comments`}
             className="flex items-center gap-1 hover:text-folk-cobalt min-h-8 px-2 rounded-lg hover:bg-muted/50"
@@ -178,6 +192,7 @@ export function FeedTimelinePostCard({
             <ReplyBubbleIcon className="h-4 w-4" />
             <span>{formatNumber(post._count?.comments ?? 0)}</span>
           </PrefetchLink>
+          {qna ? null : (
           <PostRepostMenu
             postId={post.id}
             authorUsername={post.author.username}
@@ -188,6 +203,7 @@ export function FeedTimelinePostCard({
             requireLogin={requireLogin}
             onActionError={setActionError}
           />
+          )}
           <PostShareMenu
             postId={post.id}
             authorUsername={post.author.username}
@@ -201,7 +217,7 @@ export function FeedTimelinePostCard({
               targetType="POST"
               targetId={post.id}
               postId={post.id}
-              reportedUserId={post.author.id}
+              reportedUserId={post.isAnonymous ? undefined : post.author.id}
               label=""
               size="sm"
               variant="ghost"

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { updateProfile } from "@/actions/profile";
 import {
   containsForbiddenAdminSequence,
@@ -56,8 +58,20 @@ export function ProfileSettingsForm({
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState(initial.image);
+  const router = useRouter();
+  const sessionState = useSession();
   const [bannerUrl, setBannerUrl] = useState(initial.bannerUrl);
   const [bannerVideoUrl, setBannerVideoUrl] = useState(initial.bannerVideoUrl);
+
+  async function publishMedia(patch: { image?: string | null; bannerUrl?: string | null; bannerVideoUrl?: string | null }) {
+    const result = await updateProfile(patch);
+    if (result && "error" in result && result.error) {
+      setMsg(result.error);
+      return;
+    }
+    await sessionState?.update?.();
+    router.refresh();
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -98,10 +112,10 @@ export function ProfileSettingsForm({
     const result = await updateProfile({
       username: usernameChanged ? username : undefined,
       name: displayName || undefined,
-      image: image || undefined,
+      image: image || null,
       bio: (form.get("bio") as string) || undefined,
-      bannerUrl: bannerVideoUrl ? undefined : bannerUrl || undefined,
-      bannerVideoUrl: bannerVideoUrl || undefined,
+      bannerUrl: bannerVideoUrl ? null : bannerUrl || null,
+      bannerVideoUrl: bannerVideoUrl || null,
       mainCharacter: (form.get("mainCharacter") as string) || undefined,
       favoriteTags: tags,
       showNsfw: form.get("showNsfw") === "on",
@@ -123,6 +137,8 @@ export function ProfileSettingsForm({
     if (result && "error" in result && result.error) {
       setMsg(result.error);
     } else {
+      await sessionState?.update?.();
+      router.refresh();
       setMsg("저장되었습니다.");
     }
     setLoading(false);
@@ -170,10 +186,30 @@ export function ProfileSettingsForm({
             <ProfileBannerField
               bannerUrl={bannerUrl}
               bannerVideoUrl={bannerVideoUrl}
-              onBannerUrlChange={setBannerUrl}
-              onBannerVideoUrlChange={setBannerVideoUrl}
+              onBannerUrlChange={(url) => {
+                setBannerUrl(url);
+                if (url.includes("/storage/v1/object/")) {
+                  setBannerVideoUrl("");
+                  void publishMedia({ bannerUrl: url, bannerVideoUrl: null });
+                }
+              }}
+              onBannerVideoUrlChange={(url) => {
+                setBannerVideoUrl(url);
+                if (url.includes("/storage/v1/object/")) {
+                  setBannerUrl("");
+                  void publishMedia({ bannerUrl: null, bannerVideoUrl: url });
+                }
+              }}
             />
-            <ProfileImageField kind="avatar" name="image" value={image} onChange={setImage} />
+            <ProfileImageField
+              kind="avatar"
+              name="image"
+              value={image}
+              onChange={(url) => {
+                setImage(url);
+                if (url.includes("/storage/v1/object/")) void publishMedia({ image: url });
+              }}
+            />
 
             <div>
               <label className="text-sm font-medium">표시 이름</label>

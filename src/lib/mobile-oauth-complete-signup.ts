@@ -6,22 +6,15 @@ import {
 import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
 import { recoverDeletedAccount } from "@/lib/account-deletion-server";
 import { findRestrictedIdentityUser } from "@/lib/ban-evasion";
-import { isOAuthEncryptionConfigured } from "@/lib/encryption";
-import {
-  FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
-  validateUsernameAndName,
-} from "@/lib/forbidden-admin-sequence";
-import { generateUniqueUsername } from "@/lib/oauth-username";
-import {
-  findOAuthAccountBySub,
-  hydrateUserOAuthProfile,
-  persistEncryptedOAuthAccount,
-} from "@/lib/oauth-vault";
-import {
-  openMobileOAuthHandoff,
-  type MobileOAuthSignupHandoff,
-} from "@/lib/mobile-oauth-handoff";
+import { findOAuthAccountBySub, hydrateUserOAuthProfile } from "@/lib/oauth-vault";
+import { openMobileOAuthHandoff } from "@/lib/mobile-oauth-handoff";
 import { issueMobileTokenPair } from "@/lib/mobile-auth-tokens";
+import {
+  applyBirthDateIfMissing,
+  createOAuthUserWithConsent,
+  linkOAuthSignupAccount,
+  parseOAuthSignupCompletion,
+} from "@/lib/oauth-signup-completion";
 
 export class MobileOAuthSignupError extends Error {
   readonly code: string;
@@ -47,6 +40,7 @@ const USER_SELECT = {
   deletedAt: true,
   scheduledPurgeAt: true,
   passwordHash: true,
+  birthDate: true,
 } as const;
 
 type UserRow = {
@@ -60,6 +54,7 @@ type UserRow = {
   accountStatus: import("@prisma/client").AccountStatus;
   deletedAt: Date | null;
   scheduledPurgeAt: Date | null;
+  birthDate: Date | null;
 };
 
 async function assertUsable(user: UserRow): Promise<void> {
@@ -81,54 +76,20 @@ async function assertUsable(user: UserRow): Promise<void> {
   );
 }
 
-async function linkProviderAccount(
-  ticket: MobileOAuthSignupHandoff,
-  userId: string
-): Promise<void> {
-  if (ticket.provider === "naver") {
-    const existing = await db.account.findFirst({
-      where: { provider: "naver", providerAccountId: ticket.sub },
-      select: { id: true },
-    });
-    if (!existing) {
-      await db.account.create({
-        data: {
-          userId,
-          type: "oauth",
-          provider: "naver",
-          providerAccountId: ticket.sub,
-        },
-      });
-    }
-    return;
-  }
-
-  if (!isOAuthEncryptionConfigured()) {
-    throw new MobileOAuthSignupError(
-      "oauth_unavailable",
-      "OAuth 설정이 되어 있지 않습니다.",
-      503
-    );
-  }
-
-  await persistEncryptedOAuthAccount({
-    provider: ticket.provider as "google" | "discord" | "twitter" | "line",
-    userId,
-    sub: ticket.sub,
-    email: ticket.profile.email,
-    name: ticket.profile.name,
-    image: ticket.profile.image,
-  });
-}
-
 /**
  * Complete in-app signup after Discord/X (and fallback web) AuthSession
- * returned a sealed needsSignup handoff.
+ * returned a sealed needsSignup handoff. Birth date + terms are required
+ * before a User row is created.
  */
 export async function completeMobileOAuthSignup(input: {
   handoff: string;
   platform?: "android" | "ios" | null;
   deviceId?: string | null;
+  birthYear?: number;
+  birthMonth?: number;
+  birthDay?: number;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
 }) {
   const opened = openMobileOAuthHandoff(input.handoff);
   if (!opened || opened.kind !== "needsSignup") {
@@ -137,6 +98,17 @@ export async function completeMobileOAuthSignup(input: {
       "가입 인증이 만료되었습니다. 앱에서 다시 시도해 주세요.",
       401
     );
+  }
+
+  const consent = parseOAuthSignupCompletion({
+    birthYear: input.birthYear,
+    birthMonth: input.birthMonth,
+    birthDay: input.birthDay,
+    termsAccepted: input.termsAccepted,
+    privacyAccepted: input.privacyAccepted,
+  });
+  if (!consent.ok) {
+    throw new MobileOAuthSignupError("signup_incomplete", consent.error, 400);
   }
 
   const ticket = opened;
@@ -159,6 +131,9 @@ export async function completeMobileOAuthSignup(input: {
     });
     if (existing) {
       await assertUsable(existing as UserRow);
+      if (!existing.birthDate) {
+        await applyBirthDateIfMissing(existing.id, consent.birthDate);
+      }
       const hydrated = await hydrateUserOAuthProfile(existing);
       const tokens = await issueMobileTokenPair({
         userId: existing.id,
@@ -192,32 +167,17 @@ export async function completeMobileOAuthSignup(input: {
     }
   }
 
-  const username = await generateUniqueUsername(
-    ticket.profile.email ?? ticket.profile.name ?? "user"
-  );
-  const displayName = ticket.profile.name?.trim() || username;
-  if (!validateUsernameAndName(username, displayName).ok) {
-    throw new MobileOAuthSignupError(
-      "invalid_username",
-      FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
-      400
-    );
-  }
+  const user = await createOAuthUserWithConsent({
+    profile: ticket.profile,
+    birthDate: consent.birthDate,
+  });
 
-  const user = (await db.user.create({
-    data: {
-      email: ticket.profile.email,
-      emailVerified: ticket.profile.email ? new Date() : null,
-      name: displayName,
-      image: ticket.profile.image,
-      username,
-      profile: { create: {} },
-      otakuProfile: { create: {} },
-    },
-    select: USER_SELECT,
-  })) as UserRow;
-
-  await linkProviderAccount(ticket, user.id);
+  await linkOAuthSignupAccount({
+    provider: ticket.provider,
+    sub: ticket.sub,
+    userId: user.id,
+    profile: ticket.profile,
+  });
 
   const tokens = await issueMobileTokenPair({
     userId: user.id,

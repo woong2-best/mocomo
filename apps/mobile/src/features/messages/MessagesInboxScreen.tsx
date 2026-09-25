@@ -15,19 +15,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   fetchDmInbox,
-  fetchFollowingForDm,
   fetchRoomMessages,
   openDm,
-  searchMessageUsers,
   type DmInboxRoom,
   type MessageUserHit,
 } from "@/api/messages";
+import {
+  followingDmQueryOptions,
+  getFollowingDmMemory,
+} from "@/api/following-dm-cache";
 import {
   getDmInboxMemory,
   saveDmInboxBootstrap,
   saveDmRoomBootstrap,
   dmRoomQueryKey,
 } from "@/api/dm-bootstrap-cache";
+import { dmRoomIsUnread } from "@/features/messages/useHasUnreadDms";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { FolkAvatar } from "@/ui/FolkAvatar";
@@ -66,32 +69,32 @@ function matchScore(user: MessageUserHit, q: string) {
   return 0;
 }
 
-function buildPickerUsers(
-  following: MessageUserHit[],
-  searchHits: MessageUserHit[],
-  rawQ: string
-): MessageUserHit[] {
+function filterFollowingUsers(following: MessageUserHit[], rawQ: string): MessageUserHit[] {
   const q = rawQ.trim().toLowerCase();
   if (!q) return following;
 
-  const scored = following
+  return following
     .map((u) => ({ u, score: matchScore(u, q) }))
     .filter((x) => x.score > 0)
-    .sort((a, b) => b.score - a.score || a.u.username.localeCompare(b.u.username));
-
-  const seen = new Set(scored.map((x) => x.u.id));
-  const extras = searchHits.filter((u) => !seen.has(u.id));
-  return [...scored.map((x) => x.u), ...extras];
+    .sort((a, b) => b.score - a.score || a.u.username.localeCompare(b.u.username))
+    .map((x) => x.u);
 }
 
-export function MessagesInboxScreen() {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createThemedStyles(colors), [colors]);
+type Props = {
+  presentation?: "tab" | "stack" | "drawer";
+  onRequestClose?: () => void;
+};
+
+export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}) {
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
   const route = useRoute();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
-  const isTab = route.name === "Messages";
+  const mode = presentation ?? (route.name === "Messages" ? "tab" : "stack");
+  const isDrawer = mode === "drawer";
+  const isTab = mode === "tab";
   const bottomPad = isTab ? floatingTabClearance(insets.bottom) : insets.bottom + 24;
 
   const [sendQ, setSendQ] = useState("");
@@ -108,16 +111,8 @@ export function MessagesInboxScreen() {
   const loading = query.isLoading && !query.data;
 
   const followingQuery = useQuery({
-    queryKey: ["mobile-following-for-dm"],
-    queryFn: () => fetchFollowingForDm(),
-    enabled: pickerOpen,
-    staleTime: 60_000,
-  });
-
-  const userSearchQuery = useQuery({
-    queryKey: ["mobile-message-user-search", sendQ],
-    queryFn: () => searchMessageUsers(sendQ.trim()),
-    enabled: pickerOpen && sendQ.trim().length >= 1,
+    ...followingDmQueryOptions(),
+    placeholderData: () => getFollowingDmMemory() ?? undefined,
   });
 
   const rooms = useMemo(
@@ -125,15 +120,12 @@ export function MessagesInboxScreen() {
     [query.data?.rooms]
   );
 
+  const followingUsers = followingQuery.data?.users ?? getFollowingDmMemory()?.users;
   const pickerUsers = useMemo(
-    () =>
-      buildPickerUsers(
-        followingQuery.data?.users ?? [],
-        userSearchQuery.data?.users ?? [],
-        sendQ
-      ),
-    [followingQuery.data?.users, userSearchQuery.data?.users, sendQ]
+    () => filterFollowingUsers(followingUsers ?? [], sendQ),
+    [followingUsers, sendQ]
   );
+  const followingPending = followingUsers == null && followingQuery.isPending;
 
   useEffect(() => {
     if (!query.data?.rooms) return;
@@ -164,6 +156,7 @@ export function MessagesInboxScreen() {
         const res = await openDm(user.id);
         setPickerOpen(false);
         setSendQ("");
+        onRequestClose?.();
         navigation.navigate("MessageRoom", { roomId: res.roomId, title });
       } catch {
         // keep picker open
@@ -171,36 +164,44 @@ export function MessagesInboxScreen() {
         setOpeningId(null);
       }
     },
-    [navigation]
+    [navigation, onRequestClose]
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: DmInboxRoom }) => (
-      <Pressable
-        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-        onPressIn={() => prefetchRoom(item.id)}
-        onPress={() =>
-          navigation.navigate("MessageRoom", {
-            roomId: item.id,
-            title: item.displayName,
-          })
-        }
-      >
-        <FolkAvatar uri={item.displayImage} name={item.displayName} size={56} />
-        <View style={styles.meta}>
-          <View style={styles.nameLine}>
-            <Text style={styles.name} numberOfLines={1}>
-              {item.displayName}
+    ({ item }: { item: DmInboxRoom }) => {
+      const unread = dmRoomIsUnread(item);
+      return (
+        <Pressable
+          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+          onPressIn={() => prefetchRoom(item.id)}
+          accessibilityLabel={unread ? `${item.displayName}, 읽지 않음` : item.displayName}
+          onPress={() => {
+            onRequestClose?.();
+            navigation.navigate("MessageRoom", {
+              roomId: item.id,
+              title: item.displayName,
+            });
+          }}
+        >
+          <FolkAvatar uri={item.displayImage} name={item.displayName} size={56} />
+          <View style={styles.meta}>
+            <View style={styles.nameLine}>
+              <View style={styles.nameCluster}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {item.displayName}
+                </Text>
+                {unread ? <View style={styles.unreadDot} /> : null}
+              </View>
+              <Text style={styles.time}>{relativeTime(item.lastMessageAt)}</Text>
+            </View>
+            <Text style={styles.preview} numberOfLines={1}>
+              {previewText(item.lastMessage)}
             </Text>
-            <Text style={styles.time}>{relativeTime(item.lastMessageAt)}</Text>
           </View>
-          <Text style={styles.preview} numberOfLines={1}>
-            {previewText(item.lastMessage)}
-          </Text>
-        </View>
-      </Pressable>
-    ),
-    [navigation, prefetchRoom, styles]
+        </Pressable>
+      );
+    },
+    [navigation, onRequestClose, prefetchRoom, styles]
   );
 
   const renderPickerItem = useCallback(
@@ -229,10 +230,10 @@ export function MessagesInboxScreen() {
     [colors.terracotta, openingId, startDm, styles]
   );
 
-  return (
-    <Screen safeTop={false}>
-      <View style={[styles.header, { paddingTop: isTab ? insets.top + 8 : insets.top + 4 }]}>
-        {!isTab ? (
+  const body = (
+    <>
+      <View style={[styles.header, { paddingTop: isDrawer ? 4 : isTab ? insets.top + 8 : insets.top + 4 }]}>
+        {isDrawer ? null : !isTab ? (
           <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.headerBtn}>
             <Ionicons name="chevron-back" size={24} color={colors.cobalt} />
           </Pressable>
@@ -264,7 +265,10 @@ export function MessagesInboxScreen() {
         </View>
 
         <Pressable
-          onPress={() => navigation.navigate("ChatSettings")}
+          onPress={() => {
+            onRequestClose?.();
+            navigation.navigate("ChatSettings");
+          }}
           hitSlop={8}
           style={styles.settingsBtn}
           accessibilityRole="button"
@@ -276,7 +280,7 @@ export function MessagesInboxScreen() {
 
       {pickerOpen ? (
         <View style={styles.pickerPanel}>
-          {followingQuery.isLoading && !followingQuery.data ? (
+          {followingPending ? (
             <ActivityIndicator style={{ marginVertical: 16 }} color={colors.terracotta} />
           ) : (
             <FlatList
@@ -335,12 +339,21 @@ export function MessagesInboxScreen() {
           }
         />
       )}
-    </Screen>
+    </>
   );
+
+  if (isDrawer) {
+    return <View style={styles.drawerRoot}>{body}</View>;
+  }
+
+  return <Screen safeTop={false}>{body}</Screen>;
 }
 
-function createThemedStyles(colors: ThemeColors) {
+function createThemedStyles(colors: ThemeColors, isDark: boolean) {
+  const drawerBg = isDark ? "#0F1524" : colors.background;
+
   return StyleSheet.create({
+    drawerRoot: { flex: 1, backgroundColor: drawerBg },
     header: {
       flexDirection: "row",
       alignItems: "center",
@@ -349,7 +362,7 @@ function createThemedStyles(colors: ThemeColors) {
       paddingBottom: 10,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
-      backgroundColor: colors.background,
+      backgroundColor: drawerBg,
     },
     headerBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
     searchBar: {
@@ -424,8 +437,21 @@ function createThemedStyles(colors: ThemeColors) {
     },
     rowPressed: { backgroundColor: colors.muted },
     meta: { flex: 1, minWidth: 0 },
-    nameLine: { flexDirection: "row", alignItems: "baseline", gap: 8 },
-    name: { flex: 1, fontWeight: "700", fontSize: 15, color: colors.text },
+    nameLine: { flexDirection: "row", alignItems: "center", gap: 8 },
+    nameCluster: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    name: { flexShrink: 1, fontWeight: "700", fontSize: 15, color: colors.text },
+    unreadDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: "#3B82F6",
+    },
     time: { color: colors.textMuted, fontSize: 12, fontWeight: "500" },
     preview: { marginTop: 3, color: colors.textMuted, fontSize: 14, fontWeight: "400" },
     muted: {

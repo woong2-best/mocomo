@@ -53,6 +53,7 @@ export function FeedTextPostCard({
   const displayName = userDisplayName(post.author);
   const isOwner = session?.user?.id === post.author.id;
   const { liked, likeCount } = like;
+  const qna = Boolean(post.community?.slug);
   const { starred } = star;
   const displayError = actionError || like.error || star.error;
 
@@ -165,6 +166,7 @@ export function FeedTextPostCard({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-2 text-xs">
+            {qna ? null : (
             <button
               type="button"
               onClick={handleLike}
@@ -178,6 +180,7 @@ export function FeedTextPostCard({
               </MotionPop>
               <span className="pointer-events-none">{formatNumber(likeCount)}</span>
             </button>
+            )}
             <Link
               href={`/post/${post.id}#comments`}
               className="flex items-center gap-0.5 hover:text-folk-cobalt min-h-8 px-1"
@@ -186,6 +189,7 @@ export function FeedTextPostCard({
               <ReplyBubbleIcon className="h-3.5 w-3.5" />
               <span>{formatNumber(post._count?.comments ?? 0)}</span>
             </Link>
+            {qna ? null : (
             <PostRepostMenu
               postId={post.id}
               authorUsername={post.author.username}
@@ -196,6 +200,7 @@ export function FeedTextPostCard({
               requireLogin={requireLogin}
               onActionError={setActionError}
             />
+            )}
             <PostShareMenu
               postId={post.id}
               authorUsername={post.author.username}

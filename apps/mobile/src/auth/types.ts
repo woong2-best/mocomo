@@ -7,6 +7,7 @@ export type MobileAuthUser = {
   countryCode?: string | null;
   usedServiceRegion?: string | null;
   timeZone?: string | null;
+  postsLocked?: boolean;
   bio?: string | null;
   bannerUrl?: string | null;
   bannerVideoUrl?: string | null;

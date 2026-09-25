@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MeetMap } from "@/maps/MeetMap";
-import { normalizeMeetCountry, selectMapEngine } from "@/maps/select-engine";
+import { normalizeMeetCountry } from "@/maps/select-engine";
 import type { MeetMapPayload } from "@/maps/types";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -12,11 +12,8 @@ export type UsedMeetMapInfo = Omit<MeetMapPayload, "country" | "externalMapUrl">
   externalMapUrl?: string;
 };
 
-/**
- * Buyer meet-location card — same MapProvider path as seller picker.
- * KR → Kakao Native · else → MapLibre Native. No WebView.
- */
-export function UsedMeetMapCard({ map }: { map: UsedMeetMapInfo }) {
+/** Buyer meet-location card — 2D Esri satellite, seller-entered address. */
+export function UsedMeetMapCard({ map, title }: { map: UsedMeetMapInfo; title?: string }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -25,14 +22,6 @@ export function UsedMeetMapCard({ map }: { map: UsedMeetMapInfo }) {
   }
 
   const country = normalizeMeetCountry(map.country);
-  const engine = selectMapEngine(country);
-  const externalUrl =
-    map.externalMapUrl ||
-    map.kakaoMapUrl ||
-    (engine === "kakao"
-      ? `https://map.kakao.com/link/map/${map.lat},${map.lng}`
-      : `https://www.openstreetmap.org/?mlat=${map.lat}&mlon=${map.lng}#map=16/${map.lat}/${map.lng}`);
-  const linkLabel = engine === "kakao" ? "카카오맵" : "OpenStreetMap";
 
   return (
     <View style={styles.wrap}>
@@ -43,16 +32,6 @@ export function UsedMeetMapCard({ map }: { map: UsedMeetMapInfo }) {
             거래 희망 장소 · {map.label}
           </Text>
         </View>
-        {externalUrl ? (
-          <Pressable
-            onPress={() => void Linking.openURL(externalUrl).catch(() => undefined)}
-            hitSlop={8}
-            style={styles.linkBtn}
-          >
-            <Text style={styles.link}>{linkLabel}</Text>
-            <Ionicons name="open-outline" size={13} color={colors.textMuted} />
-          </Pressable>
-        ) : null}
       </View>
 
       <MeetMap
@@ -60,8 +39,9 @@ export function UsedMeetMapCard({ map }: { map: UsedMeetMapInfo }) {
         country={country}
         region={map.label}
         meetPlace={map.label}
-        coords={map.hasPin ? { lat: map.lat, lng: map.lng } : { lat: map.lat, lng: map.lng }}
+        coords={{ lat: map.lat, lng: map.lng }}
         height={220}
+        pinTitle={title || "거래 장소"}
       />
 
       <Text style={styles.caption}>{map.caption}</Text>
@@ -81,8 +61,6 @@ function createStyles(colors: ThemeColors) {
     },
     titleRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4, minWidth: 0 },
     title: { flex: 1, fontSize: 13, fontWeight: "700", color: colors.text },
-    linkBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
-    link: { fontSize: 12, fontWeight: "600", color: colors.textMuted },
     caption: {
       marginTop: 8,
       fontSize: 11,

@@ -1,24 +1,20 @@
 import { db } from "@/lib/db";
-import {
-  ACCOUNT_SUSPENDED_SIGNUP_MESSAGE,
-  isServiceBanned,
-} from "@/lib/account-status";
+import { isServiceBanned } from "@/lib/account-status";
 import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
 import { recoverDeletedAccount } from "@/lib/account-deletion-server";
-import { findRestrictedIdentityUser } from "@/lib/ban-evasion";
 import { isOAuthEncryptionConfigured } from "@/lib/encryption";
-import {
-  FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
-  validateUsernameAndName,
-} from "@/lib/forbidden-admin-sequence";
-import { verifyGoogleIdToken, type GoogleIdTokenClaims } from "@/lib/google-id-token";
-import { generateUniqueUsername } from "@/lib/oauth-username";
+import { verifyGoogleIdToken } from "@/lib/google-id-token";
 import {
   findOAuthAccountBySub,
   findUserIdByOAuthEmail,
   hydrateUserOAuthProfile,
   persistEncryptedOAuthAccount,
 } from "@/lib/oauth-vault";
+import {
+  applyBirthDateIfMissing,
+  createOAuthUserWithConsent,
+  parseOAuthSignupCompletion,
+} from "@/lib/oauth-signup-completion";
 
 export type MobileGoogleFlow = "signin" | "signup";
 
@@ -62,6 +58,7 @@ const USER_SELECT = {
   deletedAt: true,
   scheduledPurgeAt: true,
   emailVerified: true,
+  birthDate: true,
 } as const;
 
 type UserRow = {
@@ -77,6 +74,7 @@ type UserRow = {
   deletedAt: Date | null;
   scheduledPurgeAt: Date | null;
   emailVerified: Date | null;
+  birthDate: Date | null;
 };
 
 /** Same gate as the web `signIn` callback, including in-window recovery. */
@@ -118,51 +116,20 @@ async function loadUser(userId: string): Promise<UserRow | null> {
   }) as Promise<UserRow | null>;
 }
 
-async function createGoogleUser(claims: GoogleIdTokenClaims): Promise<UserRow> {
-  const restricted = await findRestrictedIdentityUser({ email: claims.email });
-  if (restricted) {
-    throw new MobileGoogleAuthError(
-      "signup_restricted",
-      ACCOUNT_SUSPENDED_SIGNUP_MESSAGE,
-      403
-    );
-  }
-
-  const username = await generateUniqueUsername(claims.email ?? claims.name ?? "user");
-  const displayName = claims.name?.trim() || username;
-
-  if (!validateUsernameAndName(username, displayName).ok) {
-    throw new MobileGoogleAuthError(
-      "invalid_username",
-      FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
-      400
-    );
-  }
-
-  return db.user.create({
-    data: {
-      email: claims.email,
-      emailVerified: new Date(),
-      name: displayName,
-      image: claims.picture,
-      username,
-      profile: { create: {} },
-      otakuProfile: { create: {} },
-    },
-    select: USER_SELECT,
-  }) as Promise<UserRow>;
-}
-
 /**
  * Native Google Sign-In (Android/iOS SDK ID token) → MoCoMo account.
  *
- * Mirrors the web NextAuth `signIn` gate: an unknown Google account is never
- * auto-created on `signin`; the app must re-submit with `flow: "signup"` after
- * the user accepts the terms sheet.
+ * An unknown Google account is never auto-created on `signin`. `flow: "signup"`
+ * requires birth date + terms/privacy consent in the same request.
  */
 export async function resolveMobileGoogleAuth(input: {
   idToken: string;
   flow: MobileGoogleFlow;
+  birthYear?: number;
+  birthMonth?: number;
+  birthDay?: number;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
 }): Promise<MobileGoogleResult> {
   if (!isOAuthEncryptionConfigured()) {
     throw new MobileGoogleAuthError(
@@ -213,9 +180,50 @@ export async function resolveMobileGoogleAuth(input: {
         },
       };
     }
-    user = await createGoogleUser(claims);
+    const consent = parseOAuthSignupCompletion({
+      birthYear: input.birthYear,
+      birthMonth: input.birthMonth,
+      birthDay: input.birthDay,
+      termsAccepted: input.termsAccepted,
+      privacyAccepted: input.privacyAccepted,
+    });
+    if (!consent.ok) {
+      throw new MobileGoogleAuthError("signup_incomplete", consent.error, 400);
+    }
+    try {
+      const createdUser = await createOAuthUserWithConsent({
+        profile: {
+          email: claims.email,
+          name: claims.name,
+          image: claims.picture,
+        },
+        birthDate: consent.birthDate,
+      });
+      user = await loadUser(createdUser.id);
+      if (!user) {
+        throw new MobileGoogleAuthError("signup_failed", "계정을 만들지 못했습니다.", 500);
+      }
+    } catch (e) {
+      if (e instanceof MobileGoogleAuthError) throw e;
+      throw new MobileGoogleAuthError(
+        "signup_failed",
+        e instanceof Error ? e.message : "계정을 만들지 못했습니다.",
+        400
+      );
+    }
     created = true;
     needsLink = true;
+  } else if (input.flow === "signup" && !user.birthDate) {
+    const consent = parseOAuthSignupCompletion({
+      birthYear: input.birthYear,
+      birthMonth: input.birthMonth,
+      birthDay: input.birthDay,
+      termsAccepted: input.termsAccepted,
+      privacyAccepted: input.privacyAccepted,
+    });
+    if (consent.ok) {
+      await applyBirthDateIfMissing(user.id, consent.birthDate);
+    }
   }
 
   await assertUsable(user);

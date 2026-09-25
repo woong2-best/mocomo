@@ -13,8 +13,6 @@ import { SettingsPageChrome } from "@/components/settings/settings-page-chrome";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { CountryFlag } from "@/components/user/country-flag";
 import { getIncomingFollowRequests } from "@/actions/social";
-import { UsedServiceRegionForm } from "@/components/settings/used-service-region-form";
-import { defaultUsedRegionForCountry } from "@/lib/used-regions-global";
 
 export default async function SettingsPage() {
   const session = await auth();
@@ -30,7 +28,6 @@ export default async function SettingsPage() {
         premiumTier: true,
         locale: true,
         countryCode: true,
-        usedServiceRegion: true,
         timeZone: true,
         postsLocked: true,
         twoFactorEnabled: true,
@@ -48,33 +45,11 @@ export default async function SettingsPage() {
     <SettingsPageChrome>
       <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.localeTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LocaleSettingsForm
-            initialLocale={user?.locale ?? "ko"}
-            initialCountryCode={user?.countryCode ?? "KR"}
-            initialTimeZone={user?.timeZone ?? "UTC"}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>중고거래 서비스 지역</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <UsedServiceRegionForm
-            countryCode={user?.countryCode ?? "KR"}
-            initialRegion={
-              user?.usedServiceRegion?.trim() ||
-              defaultUsedRegionForCountry(user?.countryCode ?? "KR")
-            }
-          />
-        </CardContent>
-      </Card>
+      <LocaleSettingsForm
+        initialLocale={user?.locale ?? "ko"}
+        initialCountryCode={user?.countryCode ?? "KR"}
+        initialTimeZone={user?.timeZone ?? "UTC"}
+      />
 
       <Card>
         <CardHeader>

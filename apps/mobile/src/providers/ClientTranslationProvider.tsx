@@ -6,10 +6,11 @@ import {
   type ReactNode,
 } from "react";
 import type { Locale } from "@/i18n";
-import {
-  translateTextOnDevice,
-  type ClientTranslateResult,
-} from "@/lib/translate/engine";
+
+type ClientTranslateResult = {
+  translated: string;
+  sourceLang: Locale | null;
+};
 
 type ClientTranslationContextValue = {
   translate: (text: string, targetLocale: Locale) => Promise<ClientTranslateResult | null>;
@@ -18,10 +19,14 @@ type ClientTranslationContextValue = {
 const ClientTranslationContext = createContext<ClientTranslationContextValue | null>(null);
 
 export function ClientTranslationProvider({ children }: { children: ReactNode }) {
-  const translate = useCallback(
-    (text: string, targetLocale: Locale) => translateTextOnDevice(text, targetLocale),
-    []
-  );
+  const translate = useCallback(async (text: string, targetLocale: Locale) => {
+    try {
+      const { translateTextOnDevice } = await import("@/lib/translate/engine");
+      return await translateTextOnDevice(text, targetLocale);
+    } catch {
+      return null;
+    }
+  }, []);
 
   const value = useMemo(() => ({ translate }), [translate]);
 

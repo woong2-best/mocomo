@@ -4,6 +4,7 @@ import {
   AppState,
   type AppStateStatus,
   Easing,
+  Linking,
   Modal,
   Pressable,
   StyleSheet,
@@ -17,13 +18,20 @@ import * as Haptics from "expo-haptics";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
+import type { FollowListTab } from "@/api/social";
 import { AccountsBottomSheet } from "@/features/account/AccountMenuSheet";
+import { ProfileFollowListSheet } from "@/features/profile/ProfileFollowListSheet";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
+import { API_BASE_URL } from "@/config/env";
+import { DrawerSubcultureMapCard } from "@/navigation/DrawerSubcultureMapCard";
 import { prefetchDrawerRoute, warmDrawerBundles } from "@/navigation/tab-warmup";
 import type { DrawerRoute } from "@/navigation/types";
 import { useTheme } from "@/theme/ThemeContext";
-import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { FOLK_EXPLORE_ACCENT, radii, spacing, type ThemeColors } from "@/theme/tokens";
+
+/** Web `/events/new` — 광고 등록 (EventCreateForm, MOCO 일당 과금). */
+const AD_REGISTER_URL = `${API_BASE_URL.replace(/\/$/, "")}/events/new`;
 
 export type { DrawerRoute } from "@/navigation/types";
 
@@ -31,27 +39,33 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onNavigate: (route: DrawerRoute) => void;
+  onAddAccountLogin?: (intent: "signin" | "signup") => void;
 };
 
-type ExploreItem = {
-  route: DrawerRoute;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  accent?: boolean;
-};
+type ExploreItem =
+  | {
+      route: DrawerRoute;
+      label: string;
+      icon: keyof typeof Ionicons.glyphMap;
+      accent?: boolean;
+    }
+  | {
+      externalUrl: string;
+      label: string;
+      icon: keyof typeof Ionicons.glyphMap;
+      accent?: boolean;
+    };
 
 const EXPLORE: ExploreItem[] = [
   { route: "LiveList", label: "라이브", icon: "radio-outline", accent: true },
-  { route: "Used", label: "마켓", icon: "storefront-outline", accent: true },
-  { route: "Messages", label: "메세지", icon: "paper-plane-outline", accent: true },
+  { route: "Used", label: "마켓", icon: "cart-outline", accent: true },
   { route: "StarList", label: "STAR", icon: "star-outline" },
-  { route: "CommunityList", label: "커뮤니티", icon: "people-outline" },
+  { route: "CommunityList", label: "QnA", icon: "people-outline" },
   { route: "AnimeList", label: "컬쳐 위키", icon: "book-outline" },
-  { route: "EventsMap", label: "서브컬처 맵", icon: "map-outline" },
+  { externalUrl: AD_REGISTER_URL, label: "Ad", icon: "megaphone-outline", accent: true },
   { route: "Wallet", label: "지갑", icon: "wallet-outline" },
 ];
 
-const ACCENT_ICON = "#A78BFA";
 const OPEN_MS = 280;
 const CLOSE_MS = 220;
 
@@ -62,6 +76,7 @@ function DrawerRow({
   labelColor,
   chevronColor,
   showChevron = true,
+  rowHeight,
   onPressIn,
   onPress,
 }: {
@@ -71,12 +86,17 @@ function DrawerRow({
   labelColor: string;
   chevronColor: string;
   showChevron?: boolean;
+  rowHeight: number;
   onPressIn?: () => void;
   onPress: () => void;
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [stylesStatic.row, pressed && stylesStatic.rowPressed]}
+      style={({ pressed }) => [
+        stylesStatic.row,
+        { height: rowHeight },
+        pressed && stylesStatic.rowPressed,
+      ]}
       onPressIn={() => {
         void Haptics.selectionAsync();
         onPressIn?.();
@@ -95,22 +115,44 @@ function DrawerRow({
   );
 }
 
-export function SideDrawer({ visible, onClose, onNavigate }: Props) {
+export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: Props) {
   const insets = useSafeAreaInsets();
-  const { width: screenW } = useWindowDimensions();
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const panelWidth = Math.min(Math.round(screenW * 0.86), 360);
+  const innerH = Math.max(320, screenH - insets.top - insets.bottom - 22);
+  const layout = useMemo(() => {
+    /** Wide banner 3:1 — never stretch to phone portrait. */
+    const profileH = Math.round(panelWidth / 3);
+    const MIN_MAP = 140;
+    const titleH = 22;
+    let rowH = 42;
+    let exploreH = titleH + EXPLORE.length * rowH;
+    let leftover = innerH - exploreH - profileH - 10;
+    if (leftover < MIN_MAP) {
+      rowH = Math.max(34, Math.floor((innerH - profileH - MIN_MAP - titleH - 10) / EXPLORE.length));
+      exploreH = titleH + EXPLORE.length * rowH;
+      leftover = innerH - exploreH - profileH - 10;
+    }
+    const mapH = Math.max(MIN_MAP, leftover) + insets.bottom + 12;
+    return { rowH, mapH };
+  }, [innerH, panelWidth, insets.bottom]);
   const queryClient = useQueryClient();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
-  const { user, signOut, addAccount } = useAuth();
+  const { user, signOut } = useAuth();
   const display = useMemo(
     () => user?.name || user?.username || "MoCoMo",
     [user?.name, user?.username]
   );
 
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
+  const [followListTab, setFollowListTab] = useState<FollowListTab | null>(null);
 
   const [presented, setPresented] = useState(false);
+  /** Slide finished and the panel transform has been removed. */
+  const [panelResting, setPanelResting] = useState(false);
+  /** Globe mounts after the slide, so it is not created on the home screen. */
+  const [drawerSettled, setDrawerSettled] = useState(false);
   const slideX = useRef(new Animated.Value(-360)).current;
 
   /**
@@ -149,28 +191,46 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
   useEffect(() => {
     if (visible) {
       setPresented(true);
+      setPanelResting(false);
+      setDrawerSettled(false);
       slideX.setValue(-panelWidth);
-      Animated.timing(slideX, {
+      const open = Animated.timing(slideX, {
         toValue: 0,
         duration: OPEN_MS,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-      }).start();
-      return;
+      });
+      open.start(({ finished }) => {
+        if (finished) setPanelResting(true);
+      });
+      return () => open.stop();
     }
 
     if (!presented) return;
-
     setAccountSheetOpen(false);
-    Animated.timing(slideX, {
-      toValue: -panelWidth,
-      duration: CLOSE_MS,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) setPresented(false);
-    });
+    slideX.setValue(0);
+    const timer = setTimeout(() => {
+      Animated.timing(slideX, {
+        toValue: -panelWidth,
+        duration: CLOSE_MS,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) {
+          setPresented(false);
+          setPanelResting(false);
+          setDrawerSettled(false);
+        }
+      });
+    }, 32);
+    return () => clearTimeout(timer);
   }, [panelWidth, presented, slideX, visible]);
+
+  useEffect(() => {
+    if (!panelResting) return;
+    const timer = setTimeout(() => setDrawerSettled(true), 48);
+    return () => clearTimeout(timer);
+  }, [panelResting]);
 
   const prefetch = (route: DrawerRoute) => {
     prefetchDrawerRoute(queryClient, route);
@@ -198,7 +258,6 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
       animationType="none"
       transparent
       onRequestClose={handleDrawerClose}
-      // Avoid weird OS recents thumbnails from nested overlay compositing
       statusBarTranslucent
     >
       <View style={styles.root} collapsable={false}>
@@ -235,9 +294,10 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
             {
               width: panelWidth,
               paddingTop: insets.top + 10,
-              paddingBottom: insets.bottom + 12,
-              transform: [{ translateX: slideX }],
+              paddingBottom: 0,
+              elevation: panelResting ? 0 : 8,
             },
+            panelResting ? null : { transform: [{ translateX: slideX }] },
           ]}
         >
           <View style={styles.panelBody}>
@@ -248,37 +308,7 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
                 active={visible && !accountSheetOpen}
               />
               <View style={styles.profileBannerOverlay} pointerEvents="none" />
-              <View style={styles.profileRow}>
-                <Pressable
-                  style={styles.profileTapArea}
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setAccountSheetOpen(true);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="계정 전환"
-                >
-                  <FolkAvatar
-                    uri={user?.image}
-                    name={user?.name || user?.username}
-                    size={52}
-                    framed={false}
-                  />
-                  <View style={styles.profileMeta}>
-                    <Text style={styles.profileName} numberOfLines={1}>
-                      {display}
-                    </Text>
-                    <Text style={styles.profileHandle}>@{user?.username ?? "—"}</Text>
-                    <View style={styles.stats}>
-                      <Text style={styles.stat}>
-                        <Text style={styles.statNum}>{user?.counts?.following ?? 0}</Text> 팔로잉
-                      </Text>
-                      <Text style={styles.stat}>
-                        <Text style={styles.statNum}>{user?.counts?.followers ?? 0}</Text> 팔로워
-                      </Text>
-                    </View>
-                  </View>
-                </Pressable>
+              <View style={styles.profileActions} pointerEvents="box-none">
                 <Pressable
                   style={styles.editBtn}
                   onPressIn={() => {
@@ -292,63 +322,117 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
                 >
                   <Ionicons name="pencil" size={16} color="#fff" />
                 </Pressable>
+                <Pressable
+                  style={styles.editBtn}
+                  onPressIn={() => {
+                    void Haptics.selectionAsync();
+                    prefetch("Settings");
+                  }}
+                  onPress={() => go("Settings")}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="설정"
+                >
+                  <Ionicons name="settings-outline" size={16} color="#fff" />
+                </Pressable>
+              </View>
+              <View style={styles.profileUpper}>
+                <View style={styles.profileRow}>
+                  <Pressable
+                    style={styles.profileTapArea}
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setAccountSheetOpen(true);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="계정 전환"
+                  >
+                    <FolkAvatar
+                      uri={user?.image}
+                      name={user?.name || user?.username}
+                      size={52}
+                      framed={false}
+                    />
+                    <View style={styles.profileMeta}>
+                      <Text style={styles.profileName} numberOfLines={1}>
+                        {display}
+                      </Text>
+                      <Text style={styles.profileHandle}>@{user?.username ?? "—"}</Text>
+                    </View>
+                  </Pressable>
+                </View>
+              </View>
+              <View style={styles.stats}>
+                <Pressable
+                  onPress={() => {
+                    void Haptics.selectionAsync();
+                    if (user?.username) setFollowListTab("following");
+                  }}
+                  hitSlop={4}
+                  accessibilityRole="button"
+                  accessibilityLabel={`팔로잉 ${user?.counts?.following ?? 0}명`}
+                >
+                  <Text style={styles.stat}>
+                    <Text style={styles.statNum}>{user?.counts?.following ?? 0}</Text> 팔로잉
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    void Haptics.selectionAsync();
+                    if (user?.username) setFollowListTab("followers");
+                  }}
+                  hitSlop={4}
+                  accessibilityRole="button"
+                  accessibilityLabel={`팔로워 ${user?.counts?.followers ?? 0}명`}
+                >
+                  <Text style={styles.stat}>
+                    <Text style={styles.statNum}>{user?.counts?.followers ?? 0}</Text> 팔로워
+                  </Text>
+                </Pressable>
               </View>
             </View>
 
             <View style={styles.menuBlock}>
               <Text style={styles.sectionTitle}>Explore</Text>
-              {EXPLORE.map((item) => (
-                <DrawerRow
-                  key={item.route}
-                  label={item.label}
-                  icon={item.icon}
-                  iconColor={item.accent ? ACCENT_ICON : rowIcon}
-                  labelColor={rowLabel}
-                  chevronColor={rowChevron}
-                  onPressIn={() => prefetch(item.route)}
-                  onPress={() => go(item.route)}
-                />
-              ))}
-
-              <View style={styles.sectionDivider} />
-              <Text style={styles.sectionTitle}>More</Text>
-
-              <DrawerRow
-                label="설정"
-                icon="settings-outline"
-                iconColor={rowIcon}
-                labelColor={rowLabel}
-                chevronColor={rowChevron}
-                showChevron={false}
-                onPressIn={() => prefetch("Settings")}
-                onPress={() => go("Settings")}
-              />
-              <DrawerRow
-                label="약관 및 정책"
-                icon="document-text-outline"
-                iconColor={rowIcon}
-                labelColor={rowLabel}
-                chevronColor={rowChevron}
-                onPressIn={() => prefetch("LegalPolicies")}
-                onPress={() => go("LegalPolicies")}
-              />
+              {EXPLORE.map((item) =>
+                "externalUrl" in item ? (
+                  <DrawerRow
+                    key={item.label}
+                    label={item.label}
+                    icon={item.icon}
+                    iconColor={item.accent ? FOLK_EXPLORE_ACCENT : rowIcon}
+                    labelColor={item.accent ? FOLK_EXPLORE_ACCENT : rowLabel}
+                    chevronColor={rowChevron}
+                    rowHeight={layout.rowH}
+                    onPress={() => {
+                      setAccountSheetOpen(false);
+                      onClose();
+                      void Linking.openURL(item.externalUrl).catch(() => undefined);
+                    }}
+                  />
+                ) : (
+                  <DrawerRow
+                    key={item.route}
+                    label={item.label}
+                    icon={item.icon}
+                    iconColor={item.accent ? FOLK_EXPLORE_ACCENT : rowIcon}
+                    labelColor={item.accent ? FOLK_EXPLORE_ACCENT : rowLabel}
+                    chevronColor={rowChevron}
+                    rowHeight={layout.rowH}
+                    onPressIn={() => prefetch(item.route)}
+                    onPress={() => go(item.route)}
+                  />
+                )
+              )}
             </View>
 
-            <Pressable
-              style={styles.promoBanner}
-              onPressIn={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                prefetch("EventsList");
-              }}
-              onPress={() => go("EventsList")}
-              accessibilityRole="button"
-              accessibilityLabel="이벤트 등록"
-            >
-              <View style={styles.promoStars} pointerEvents="none" />
-              <View style={styles.promoPlanet} pointerEvents="none" />
-              <Text style={styles.promoLine1}>누구나 자유롭게</Text>
-              <Text style={styles.promoLine2}>내 이벤트를 등록!</Text>
-            </Pressable>
+            <DrawerSubcultureMapCard
+              active={visible && !accountSheetOpen}
+              showGlobe={drawerSettled && !accountSheetOpen}
+              height={layout.mapH}
+              onExpandPressIn={() => prefetch("EventsMap")}
+              onExpand={() => go("EventsMap")}
+            />
           </View>
         </Animated.View>
         {/* Above panel z-index; BlurView on Android can swallow scrim taps */}
@@ -362,18 +446,27 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
     </Modal>
 
     {/* Own top-level Modal — must not inherit drawer panel layout/scroll coords */}
+    {user?.username ? (
+      <ProfileFollowListSheet
+        visible={followListTab !== null}
+        tab={followListTab ?? "followers"}
+        username={user.username}
+        onClose={() => setFollowListTab(null)}
+      />
+    ) : null}
+
     <AccountsBottomSheet
       visible={accountSheetOpen}
       onClose={closeAccountSheet}
       onCreateNew={() => {
         setAccountSheetOpen(false);
         onClose();
-        void addAccount("signup");
+        onAddAccountLogin?.("signup");
       }}
       onAddExisting={() => {
         setAccountSheetOpen(false);
         onClose();
-        void addAccount("signin");
+        onAddAccountLogin?.("signin");
       }}
       onLogout={() => {
         setAccountSheetOpen(false);
@@ -389,7 +482,6 @@ const stylesStatic = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 11,
     paddingHorizontal: 2,
   },
   rowPressed: {
@@ -434,33 +526,41 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       backgroundColor: panelBg,
       paddingHorizontal: spacing.md,
       zIndex: 2,
-      elevation: 8,
     },
     panelBody: {
       flex: 1,
+      minHeight: 0,
+      justifyContent: "space-between",
     },
     menuBlock: {
-      flex: 1,
+      flexShrink: 0,
     },
     profileCard: {
+      width: "100%",
+      aspectRatio: 3,
       borderRadius: radii.lg,
       overflow: "hidden",
       backgroundColor: isDark ? "#141820" : colors.surfaceRaised,
-      marginBottom: spacing.lg,
+      marginBottom: 10,
       borderWidth: 1,
       borderColor: isDark ? "rgba(180, 210, 255, 0.28)" : colors.hairline,
-      minHeight: 108,
+      flexShrink: 0,
     },
     profileBannerOverlay: {
-      ...StyleSheet.absoluteFill,
+      ...StyleSheet.absoluteFillObject,
       backgroundColor: "rgba(0,0,0,0.38)",
+    },
+    profileUpper: {
+      flex: 1,
+      position: "relative",
+      justifyContent: "center",
+      zIndex: 1,
     },
     profileRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: 12,
-      padding: spacing.md,
-      zIndex: 1,
+      paddingHorizontal: spacing.md,
     },
     profileTapArea: {
       flex: 1,
@@ -470,6 +570,16 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       minWidth: 0,
     },
     profileMeta: { flex: 1, minWidth: 0 },
+    profileActions: {
+      position: "absolute",
+      top: 12,
+      right: 12,
+      zIndex: 2,
+      width: 34,
+      flexDirection: "column",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
     profileName: {
       color: profileOnBanner,
       fontSize: 18,
@@ -481,7 +591,13 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       fontSize: 13,
       fontWeight: "600",
     },
-    stats: { flexDirection: "row", gap: spacing.md, marginTop: 8 },
+    stats: {
+      flexDirection: "row",
+      gap: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.md,
+      zIndex: 1,
+    },
     stat: { color: profileStatOnBanner, fontSize: 13, fontWeight: "600" },
     statNum: { fontWeight: "800", color: profileOnBanner },
     editBtn: {
@@ -500,52 +616,6 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       fontWeight: "700",
       marginBottom: 4,
       letterSpacing: 0.2,
-    },
-    sectionDivider: {
-      height: 1,
-      backgroundColor: colors.hairline,
-      marginVertical: spacing.md,
-    },
-    promoBanner: {
-      marginTop: spacing.lg,
-      borderRadius: radii.lg,
-      overflow: "hidden",
-      minHeight: 96,
-      paddingHorizontal: spacing.md,
-      paddingVertical: 18,
-      backgroundColor: "#0A0E18",
-      borderWidth: 1,
-      borderColor: "rgba(255,255,255,0.08)",
-      justifyContent: "center",
-    },
-    promoStars: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: "#0A0E18",
-      opacity: 0.95,
-    },
-    promoPlanet: {
-      position: "absolute",
-      left: -36,
-      bottom: -48,
-      width: 160,
-      height: 160,
-      borderRadius: 80,
-      backgroundColor: "rgba(207, 102, 64, 0.55)",
-      borderWidth: 2,
-      borderColor: "rgba(255, 180, 120, 0.35)",
-    },
-    promoLine1: {
-      color: "rgba(255,255,255,0.92)",
-      fontSize: 14,
-      fontWeight: "600",
-      zIndex: 1,
-    },
-    promoLine2: {
-      marginTop: 4,
-      color: "#FFB86A",
-      fontSize: 18,
-      fontWeight: "900",
-      zIndex: 1,
     },
   });
 }

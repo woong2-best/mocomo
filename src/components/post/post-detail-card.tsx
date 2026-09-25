@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { Pin } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Locale } from "@/lib/i18n/config";
 import { dateFnsLocale } from "@/lib/i18n/date-locale";
@@ -46,6 +47,14 @@ export function PostDetailCard({
   return (
     <Card>
       <CardContent className="p-6 space-y-4">
+        {post.community ? (
+          <Link
+            href={`/c/${post.community.slug}`}
+            className="inline-flex text-[12px] font-bold text-[#3b4890] dark:text-primary hover:underline"
+          >
+            {post.community.name} 갤러리
+          </Link>
+        ) : null}
         {post.isPinned && (
           <p className="text-sm text-muted-foreground flex items-center gap-1.5 font-medium">
             <Pin className="h-4 w-4" />
@@ -54,28 +63,31 @@ export function PostDetailCard({
         )}
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
-        <PostCollaboratorsHeader
-          author={post.author}
-          collaborators={collaborators}
-          size="md"
-          trailing={
-            <span>
-              {formatDistanceToNow(post.createdAt, {
-                addSuffix: true,
-                locale: dateLocale,
-              })}
-            </span>
-          }
-        />
+            <PostCollaboratorsHeader
+              author={post.author}
+              collaborators={collaborators}
+              size="md"
+              showIdHandle={!!post.communityId && !post.isAnonymous}
+              anonymous={!!post.isAnonymous}
+              trailing={
+                <span>
+                  {formatDistanceToNow(post.createdAt, {
+                    addSuffix: true,
+                    locale: dateLocale,
+                  })}
+                </span>
+              }
+            />
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {isOwner && <PostCollabManageDialog postId={post.id} />}
+            {isOwner && !post.isAnonymous && <PostCollabManageDialog postId={post.id} />}
             <PostOwnerMenu
               postId={post.id}
               isPinned={post.isPinned}
               isOwner={isOwner}
-              authorId={post.author.id}
-              authorUsername={post.author.username}
+              authorId={post.isAnonymous ? undefined : post.author.id}
+              authorUsername={post.isAnonymous ? undefined : post.author.username}
+              anonymous={!!post.isAnonymous}
               size="md"
             />
           </div>

@@ -26,6 +26,7 @@ export function PostDetailActions({
   initialLiked = false,
   initialStarred = false,
   initialReposted = false,
+  qna = false,
 }: {
   postId: string;
   authorUsername: string;
@@ -39,6 +40,7 @@ export function PostDetailActions({
   initialLiked?: boolean;
   initialStarred?: boolean;
   initialReposted?: boolean;
+  qna?: boolean;
 }) {
   const like = useOptimisticLike(postId, initialLiked, initialLikeCount);
   const star = useOptimisticStar(postId, initialStarred);
@@ -72,6 +74,7 @@ export function PostDetailActions({
     <div className="rounded-xl border border-border/60 bg-card px-4 py-3">
       <div className="flex items-center justify-between text-muted-foreground">
         <div className="flex items-center gap-3 text-sm">
+          {qna ? null : (
           <button
             type="button"
             onClick={handleLike}
@@ -83,6 +86,7 @@ export function PostDetailActions({
             <Heart className={cn("h-4 w-4", liked && "fill-current")} />
             <span>{formatNumber(likeCount)}</span>
           </button>
+          )}
           <Link
             href={`/post/${postId}#comments`}
             className="flex items-center gap-1 hover:text-folk-cobalt min-h-9 px-1"
@@ -90,6 +94,7 @@ export function PostDetailActions({
             <ReplyBubbleIcon className="h-4 w-4" />
             <span>{formatNumber(commentCount)}</span>
           </Link>
+          {qna ? null : (
           <PostRepostMenu
             postId={postId}
             authorUsername={authorUsername}
@@ -101,6 +106,7 @@ export function PostDetailActions({
             requireLogin={requireLogin}
             onActionError={setActionError}
           />
+          )}
           <PostShareMenu
             postId={postId}
             authorUsername={authorUsername}

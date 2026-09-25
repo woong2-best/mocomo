@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  confirmAuctionTrade,
   fetchMarketplaceDetail,
   placeMarketplaceBid,
   startMarketplaceTradeChat,
@@ -33,6 +34,7 @@ import {
 } from "@/features/marketplace/UsedSubcultureDetailCards";
 import { UsedWtbAlertCard } from "@/features/marketplace/UsedWtbAlertCard";
 import { formatUsedPrice } from "@/features/marketplace/used-catalog";
+import { rememberViewedListing } from "@/features/marketplace/market-memory";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
@@ -52,13 +54,24 @@ function apiErrMessage(err: unknown, fallback: string) {
   return fallback;
 }
 
+function mineTradeConfirmed(item: {
+  isOwner?: boolean;
+  isWinningBidder?: boolean;
+  sellerTradeConfirmed?: boolean;
+  buyerTradeConfirmed?: boolean;
+}) {
+  if (item.isOwner) return !!item.sellerTradeConfirmed;
+  if (item.isWinningBidder) return !!item.buyerTradeConfirmed;
+  return false;
+}
+
 export function MarketplaceDetailScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<RootStackParamList, "MarketplaceDetail">>();
+  const route = useRoute<RouteProp<RootStackParamList, "MarketplaceDetail" | "AuctionDetail">>();
   const queryClient = useQueryClient();
   const [bidText, setBidText] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
@@ -69,6 +82,10 @@ export function MarketplaceDetailScreen() {
     queryFn: () => fetchMarketplaceDetail(route.params.id),
   });
   const item = query.data?.item;
+
+  useEffect(() => {
+    if (route.params.id) void rememberViewedListing(route.params.id);
+  }, [route.params.id]);
 
   const depositQuery = useQuery({
     queryKey: ["mobile-auction-deposit", route.params.id],
@@ -95,6 +112,19 @@ export function MarketplaceDetailScreen() {
       navigation.navigate("MessageRoom", { roomId: res.roomId, title: "거래 문의" });
     },
     onError: (err) => setMsg(apiErrMessage(err, "채팅을 열 수 없습니다.")),
+  });
+
+  const tradeComplete = useMutation({
+    mutationFn: () => confirmAuctionTrade(route.params.id),
+    onSuccess: async (res) => {
+      setMsg(
+        res.completed
+          ? "거래가 완료되어 보증금 2 MOCO가 돌아왔습니다."
+          : "거래 완료를 남겼습니다. 상대방도 누르면 보증금이 돌아옵니다."
+      );
+      await invalidate();
+    },
+    onError: (err) => setMsg(apiErrMessage(err, "거래 완료 처리에 실패했습니다.")),
   });
 
   const bid = useMutation({
@@ -158,7 +188,7 @@ export function MarketplaceDetailScreen() {
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
           <Text style={styles.back}>뒤로</Text>
         </Pressable>
-        <Text style={styles.heading}>상품</Text>
+        <Text style={styles.heading}>{item?.saleType === "AUCTION" ? "경매" : "상품"}</Text>
       </View>
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.accent} />
@@ -217,11 +247,8 @@ export function MarketplaceDetailScreen() {
               />
             ) : null}
 
-            {item.map &&
-            Number.isFinite(item.map.lat) &&
-            Number.isFinite(item.map.lng) &&
-            item.map.kakaoMapUrl ? (
-              <UsedMeetMapCard map={item.map} />
+            {item.map && Number.isFinite(item.map.lat) && Number.isFinite(item.map.lng) ? (
+              <UsedMeetMapCard map={item.map} title={item.title} />
             ) : null}
 
             <View style={styles.actions}>
@@ -253,6 +280,27 @@ export function MarketplaceDetailScreen() {
                 </Pressable>
               ) : null}
             </View>
+
+            {item.saleType === "AUCTION" &&
+            !item.auctionLive &&
+            item.winningBidderId &&
+            item.status !== "SOLD" &&
+            (item.isOwner || item.isWinningBidder) ? (
+              <View style={styles.bidBox}>
+                <Text style={styles.bidLabel}>
+                  거래가 끝나면 판매자와 낙찰자가 각각 거래 완료를 눌러 주세요. 둘 다 누르면 보증금 2 MOCO가 각각 돌아옵니다.
+                </Text>
+                <Pressable
+                  style={[styles.btn, (tradeComplete.isPending || mineTradeConfirmed(item)) && styles.btnDisabled]}
+                  disabled={tradeComplete.isPending || mineTradeConfirmed(item)}
+                  onPress={() => tradeComplete.mutate()}
+                >
+                  <Text style={styles.btnText}>
+                    {mineTradeConfirmed(item) ? "상대방 확인 대기" : "거래 완료"}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
 
             {item.auctionLive && !item.isOwner ? (
               <View style={styles.bidBox}>

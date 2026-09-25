@@ -14,7 +14,13 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
 import type { FeedPost } from "@/api/feed";
-import { fetchUserProfile, toggleFollowUser } from "@/api/social";
+import { fetchUserProfile, toggleFollowUser, type ProfileUser } from "@/api/social";
+import {
+  FOLLOWING_DM_QUERY_KEY,
+  removeFollowingDmUser,
+  restoreFollowingDmUsers,
+  upsertFollowingDmUser,
+} from "@/api/following-dm-cache";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
 import {
   ProfileHeaderChrome,
@@ -23,6 +29,14 @@ import {
 } from "@/features/profile/ProfileHeaderChrome";
 import { ProfileCalendarSheet } from "@/features/profile/ProfileCalendarSheet";
 import { ProfileOptionsSheet } from "@/features/profile/ProfileOptionsSheet";
+import { ProfileFollowListSheet } from "@/features/profile/ProfileFollowListSheet";
+import type { FollowListTab } from "@/api/social";
+import {
+  USER_PROFILE_STALE_MS,
+  useUserProfileNav,
+  userProfileQueryKey,
+  type UserProfileSeed,
+} from "@/features/profile/user-profile-nav";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -32,7 +46,25 @@ type Props = {
   username: string;
   /** Show sticky back affordance (stack profiles). */
   showBack?: boolean;
+  /** Avatar, nickname, and handle already known at the tap site. */
+  preview?: UserProfileSeed;
+  /** Own-profile route. Other users are detected from the signed-in username. */
+  self?: boolean;
 };
+
+function seedProfileUser(username: string, preview: UserProfileSeed | undefined, isSelf: boolean): ProfileUser {
+  return {
+    id: "",
+    username,
+    name: preview?.name ?? null,
+    image: preview?.image ?? null,
+    bio: null,
+    createdAt: "",
+    counts: { posts: 0, followers: 0, following: 0 },
+    following: false,
+    isSelf,
+  };
+}
 
 function sortPosts(posts: FeedPost[], sort: ProfileSortId): FeedPost[] {
   const list = [...posts];
@@ -58,11 +90,13 @@ function filterByTab(posts: FeedPost[], tab: ProfileTabId): FeedPost[] {
   return [];
 }
 
-export function SharedProfileScreen({ username, showBack = true }: Props) {
+export function SharedProfileScreen({ username, showBack = true, preview, self = false }: Props) {
+  const handle = username.trim();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { open } = useUserProfileNav();
   const queryClient = useQueryClient();
   const { user: authUser } = useAuth();
 
@@ -71,26 +105,62 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
   const [followingLocal, setFollowingLocal] = useState<boolean | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [followListTab, setFollowListTab] = useState<FollowListTab | null>(null);
 
   const query = useQuery({
-    queryKey: ["mobile-user", username],
-    queryFn: () => fetchUserProfile(username),
+    queryKey: userProfileQueryKey(handle),
+    queryFn: () => fetchUserProfile(handle),
+    staleTime: USER_PROFILE_STALE_MS,
+    enabled: handle.length > 0,
   });
 
   const followMut = useMutation({
     mutationFn: () => toggleFollowUser(query.data!.user.id),
-    onMutate: () => {
-      const current = followingLocal ?? query.data?.user.following ?? false;
-      setFollowingLocal(!current);
+    onMutate: async () => {
+      const profile = query.data?.user;
+      const current = followingLocal ?? profile?.following ?? false;
+      const next = !current;
+      setFollowingLocal(next);
+      const snapshot = profile
+        ? next
+          ? await upsertFollowingDmUser(queryClient, {
+              id: profile.id,
+              username: profile.username,
+              name: profile.name,
+              image: profile.image,
+            })
+          : await removeFollowingDmUser(queryClient, profile.id)
+        : null;
+      return { snapshot };
     },
     onSuccess: (res) => {
       if (typeof res.following === "boolean") setFollowingLocal(res.following);
-      void queryClient.invalidateQueries({ queryKey: ["mobile-user", username] });
+      const profile = query.data?.user;
+      if (profile && res.following === false) {
+        void removeFollowingDmUser(queryClient, profile.id);
+      } else if (profile && res.following === true) {
+        void upsertFollowingDmUser(queryClient, {
+          id: profile.id,
+          username: profile.username,
+          name: profile.name,
+          image: profile.image,
+        });
+      } else if (profile && res.pending && !res.following) {
+        void removeFollowingDmUser(queryClient, profile.id);
+      }
+      void queryClient.invalidateQueries({ queryKey: userProfileQueryKey(handle) });
+      void queryClient.invalidateQueries({ queryKey: FOLLOWING_DM_QUERY_KEY });
     },
-    onError: () => setFollowingLocal(null),
+    onError: (_err, _vars, ctx) => {
+      setFollowingLocal(null);
+      if (ctx?.snapshot) restoreFollowingDmUsers(queryClient, ctx.snapshot);
+    },
   });
 
   const user = query.data?.user;
+  const pending = !user && query.isPending;
+  const knownSelf = self || (!!authUser?.username && authUser.username === handle);
+  const headerUser = user ?? seedProfileUser(handle, preview, knownSelf);
   const following = followingLocal ?? user?.following ?? false;
 
   const feed = useMemo(() => {
@@ -117,116 +187,107 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
         paymentsEnabled={user?.paymentsEnabled}
         onPurchaseSuccess={() => void query.refetch()}
         onPressPost={(id) => navigation.navigate("PostDetail", { id })}
-        onPressAuthor={(u) => navigation.navigate("UserProfile", { username: u })}
+        onPressAuthor={(author) => open(author)}
         onPressVideo={(postId, mediaId, mediaIndex) =>
           navigation.navigate("Reels", { postId, mediaId, mediaIndex })
         }
       />
     ),
-    [navigation, query, user?.paymentsEnabled, user?.subscribed]
+    [navigation, open, query, user?.paymentsEnabled, user?.subscribed]
   );
 
-  if (query.isLoading) {
-    return (
-      <Screen safeTop={false}>
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.terracotta} />
-        </View>
-      </Screen>
-    );
-  }
-
-  if (query.isError || !user) {
-    return (
-      <Screen safeTop={false}>
-        {showBack ? (
-          <Pressable
-            style={[styles.backFloat, { top: insets.top + 8 }]}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={24} color={colors.brand} />
-          </Pressable>
-        ) : null}
-        <Text style={styles.error}>프로필을 불러오지 못했습니다.</Text>
-      </Screen>
-    );
-  }
+  const isSelf = user?.isSelf ?? knownSelf;
 
   return (
     <Screen safeTop={false}>
       <FlatList
-        data={feed}
+        data={user ? feed : []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         stickyHeaderIndices={undefined}
         ListHeaderComponent={
           <View>
-            <View style={[styles.compactBar, { paddingTop: insets.top + 4 }]}>
-              {showBack ? (
-                <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.iconBtn}>
-                  <Ionicons name="chevron-back" size={26} color={colors.brand} />
-                </Pressable>
-              ) : (
-                <View style={styles.iconBtn} />
-              )}
-              <View style={styles.compactCenter}>
-                <Text style={styles.compactName} numberOfLines={1}>
-                  {user.name || user.username}
-                </Text>
-                <Text style={styles.compactPosts}>{user.counts.posts}개 게시물</Text>
+            <View style={styles.headerWrap}>
+              <ProfileHeaderChrome
+                user={headerUser}
+                pending={!user}
+                tab={tab}
+                sort={sort}
+                bannerTopInset={insets.top}
+                onTabChange={setTab}
+                onSortChange={setSort}
+                onCreate={isSelf ? () => navigation.navigate("ComposeModal") : undefined}
+                onFollow={user && !user.isSelf ? () => followMut.mutate() : undefined}
+                followLoading={followMut.isPending}
+                following={following}
+                onOpenChat={
+                  user && !user.isSelf
+                    ? (roomId) =>
+                        navigation.navigate("MessageRoom", {
+                          roomId,
+                          title: user.name || user.username,
+                        })
+                    : undefined
+                }
+                onOpenFollowList={
+                  user ? (tab) => setFollowListTab(tab) : undefined
+                }
+              />
+              <View
+                style={[styles.compactBar, { paddingTop: insets.top + 4 }]}
+                pointerEvents="box-none"
+              >
+                {showBack ? (
+                  <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.iconBtn}>
+                    <Ionicons name="chevron-back" size={26} color={colors.brand} />
+                  </Pressable>
+                ) : (
+                  <View style={styles.iconBtn} />
+                )}
+                <View style={styles.compactSpacer} />
+                {isSelf ? (
+                  <Pressable
+                    onPress={() => setCalendarOpen(true)}
+                    hitSlop={10}
+                    style={styles.iconBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel="일정 · 메모 달력"
+                  >
+                    <Ionicons name="calendar-outline" size={22} color={colors.brand} />
+                  </Pressable>
+                ) : user ? (
+                  <Pressable
+                    onPress={() => setOptionsOpen(true)}
+                    hitSlop={10}
+                    style={styles.moreBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel="프로필 옵션"
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={18} color={colors.text} />
+                  </Pressable>
+                ) : (
+                  <View style={styles.iconBtn} />
+                )}
               </View>
-              {user.isSelf ? (
-                <Pressable
-                  onPress={() => setCalendarOpen(true)}
-                  hitSlop={10}
-                  style={styles.iconBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel="일정 · 메모 달력"
-                >
-                  <Ionicons name="calendar-outline" size={22} color={colors.brand} />
-                </Pressable>
-              ) : (
-                <Pressable
-                  onPress={() => setOptionsOpen(true)}
-                  hitSlop={10}
-                  style={styles.moreBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel="프로필 옵션"
-                >
-                  <Ionicons name="ellipsis-horizontal" size={18} color={colors.text} />
-                </Pressable>
-              )}
             </View>
 
-            <ProfileHeaderChrome
-              user={user}
-              tab={tab}
-              sort={sort}
-              onTabChange={setTab}
-              onSortChange={setSort}
-              onCreate={() => navigation.navigate("ComposeModal")}
-              onFollow={() => followMut.mutate()}
-              followLoading={followMut.isPending}
-              following={following}
-              onOpenChat={
-                user.isSelf
-                  ? undefined
-                  : (roomId) =>
-                      navigation.navigate("MessageRoom", {
-                        roomId,
-                        title: user.name || user.username,
-                      })
-              }
-            />
+            {user ? (
+              <ProfileFollowListSheet
+                visible={followListTab !== null}
+                tab={followListTab ?? "followers"}
+                username={user.username}
+                onClose={() => setFollowListTab(null)}
+              />
+            ) : null}
 
-            {user.isSelf ? (
+            {isSelf ? (
               <ProfileCalendarSheet
                 visible={calendarOpen}
                 onClose={() => setCalendarOpen(false)}
-                countryCode={user.countryCode ?? authUser?.countryCode}
+                countryCode={user?.countryCode ?? authUser?.countryCode}
                 timeZone={authUser?.timeZone}
               />
-            ) : (
+            ) : user ? (
               <ProfileOptionsSheet
                 visible={optionsOpen}
                 onClose={() => setOptionsOpen(false)}
@@ -237,10 +298,34 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
                   navigation.goBack();
                 }}
               />
-            )}
+            ) : null}
           </View>
         }
-        ListEmptyComponent={<Text style={styles.muted}>{emptyMessage}</Text>}
+        ListEmptyComponent={
+          pending ? (
+            <View>
+              {[0, 1, 2].map((i) => (
+                <View key={i} style={styles.postSkel}>
+                  <View style={styles.postSkelAvatar} />
+                  <View style={styles.postSkelLines}>
+                    <View style={styles.postSkelLine} />
+                    <View style={styles.postSkelLineShort} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : !user ? (
+            <Pressable onPress={() => void query.refetch()} style={styles.errorWrap}>
+              {query.isFetching ? (
+                <ActivityIndicator color={colors.terracotta} />
+              ) : (
+                <Text style={styles.error}>프로필을 불러오지 못했습니다. 탭하여 다시 시도</Text>
+              )}
+            </Pressable>
+          ) : (
+            <Text style={styles.muted}>{emptyMessage}</Text>
+          )
+        }
         contentContainerStyle={{ paddingBottom: spacing.xl + 24 }}
       />
     </Screen>
@@ -249,13 +334,40 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    center: { flex: 1, alignItems: "center", justifyContent: "center" },
+    errorWrap: { paddingTop: spacing.lg },
     error: {
       color: colors.danger,
       padding: spacing.lg,
       fontWeight: "600",
       textAlign: "center",
-      marginTop: 80,
+    },
+    headerWrap: {
+      position: "relative",
+    },
+    postSkel: {
+      flexDirection: "row",
+      gap: 12,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 14,
+    },
+    postSkelAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.muted,
+    },
+    postSkelLines: { flex: 1, gap: 8, justifyContent: "center" },
+    postSkelLine: {
+      height: 12,
+      width: "78%",
+      borderRadius: 6,
+      backgroundColor: colors.muted,
+    },
+    postSkelLineShort: {
+      height: 12,
+      width: "46%",
+      borderRadius: 6,
+      backgroundColor: colors.muted,
     },
     muted: {
       color: colors.textMuted,
@@ -264,17 +376,17 @@ function createStyles(colors: ThemeColors) {
       textAlign: "center",
     },
     compactBar: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: 8,
       paddingBottom: 8,
-      backgroundColor: colors.background,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.hairline,
+      backgroundColor: "transparent",
     },
-    compactCenter: { flex: 1, alignItems: "flex-start", minWidth: 0 },
-    compactName: { fontSize: 16, fontWeight: "800", color: colors.text },
-    compactPosts: { fontSize: 12, color: colors.textMuted, fontWeight: "600", marginTop: 1 },
+    compactSpacer: { flex: 1 },
     iconBtn: {
       width: 40,
       height: 40,
@@ -290,15 +402,6 @@ function createStyles(colors: ThemeColors) {
       alignItems: "center",
       justifyContent: "center",
       marginRight: 4,
-    },
-    backFloat: {
-      position: "absolute",
-      left: 8,
-      zIndex: 2,
-      width: 40,
-      height: 40,
-      alignItems: "center",
-      justifyContent: "center",
     },
   });
 }

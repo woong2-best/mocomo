@@ -182,7 +182,7 @@ export function ChannelSidebar({
 
         <div className="shrink-0 p-2 border-t border-border/50 hidden sm:block">
           <Button variant="ghost" size="sm" className="w-full justify-start text-xs" asChild>
-            <Link href="/communities">← 커뮤니티 목록</Link>
+            <Link href="/communities">← QnA</Link>
           </Button>
         </div>
       </aside>

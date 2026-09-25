@@ -140,12 +140,25 @@ async function ensureConfigured(): Promise<GoogleSigninModule> {
   return mod;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isInProgressError(e: unknown): boolean {
+  const code =
+    e && typeof e === "object" && "code" in e && typeof (e as { code: unknown }).code === "string"
+      ? (e as { code: string }).code
+      : "";
+  if (code === "IN_PROGRESS" || code === "ASYNC_OP_IN_PROGRESS") return true;
+  const msg = e instanceof Error ? e.message : String(e ?? "");
+  return msg.includes("IN_PROGRESS") || msg.includes("previous promise did not settle");
+}
+
 /**
  * Open the system Google account chooser and return a fresh ID token.
- * Signs out of the SDK first so the picker always appears instead of silently
- * reusing the last account.
+ * `forcePicker` signs the SDK out first so add-account can pick a different Google user.
  */
-async function requestGoogleIdToken(): Promise<string> {
+async function requestGoogleIdToken(forcePicker: boolean): Promise<string> {
   const mod = await ensureConfigured();
   const { GoogleSignin, isErrorWithCode, statusCodes } = mod;
 
@@ -165,14 +178,16 @@ async function requestGoogleIdToken(): Promise<string> {
     }
   }
 
-  // Drop the cached session so the account chooser always appears.
-  try {
-    await GoogleSignin.signOut();
-  } catch {
-    /* nothing cached */
+  if (forcePicker) {
+    try {
+      await GoogleSignin.signOut();
+    } catch {
+      /* nothing cached */
+    }
+    await sleep(180);
   }
 
-  try {
+  const attemptSignIn = async (): Promise<string> => {
     const result = await GoogleSignin.signIn();
     if (result.type !== "success") throw new GoogleNativeCancelledError();
 
@@ -184,16 +199,37 @@ async function requestGoogleIdToken(): Promise<string> {
       );
     }
     return idToken;
-  } catch (e) {
+  };
+
+  const mapNativeError = (e: unknown): never => {
     if (e instanceof GoogleNativeCancelledError) throw e;
     if (e instanceof GoogleNativeUnavailableError) throw e;
     if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED) {
       throw new GoogleNativeCancelledError();
     }
-    // Anything else here is a device/console configuration problem
-    // (DEVELOPER_ERROR from a SHA-1 mismatch, missing Play services, ...).
-    // Report it as unavailable so the caller can use the web flow.
-    throw new GoogleNativeUnavailableError(googleNativeFailureMessage(e));
+    if (isErrorWithCode(e) && e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      throw new GoogleNativeUnavailableError(
+        "Google Play 서비스를 사용할 수 없습니다."
+      );
+    }
+    if (isGoogleDeveloperError(e)) {
+      throw new GoogleNativeUnavailableError(googleNativeFailureMessage(e));
+    }
+    throw e instanceof Error ? e : new Error(googleNativeFailureMessage(e));
+  };
+
+  try {
+    return await attemptSignIn();
+  } catch (e) {
+    if (isInProgressError(e)) {
+      await sleep(450);
+      try {
+        return await attemptSignIn();
+      } catch (retryErr) {
+        return mapNativeError(retryErr);
+      }
+    }
+    return mapNativeError(e);
   }
 }
 
@@ -201,15 +237,30 @@ async function requestGoogleIdToken(): Promise<string> {
 export async function authenticateWithGoogleNative(opts: {
   flow: "signin" | "signup";
   idToken?: string;
+  forcePicker?: boolean;
+  birthYear?: number;
+  birthMonth?: number;
+  birthDay?: number;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
 }): Promise<GoogleNativeAuthResult & { idToken: string }> {
-  const idToken = opts.idToken ?? (await requestGoogleIdToken());
+  const idToken = opts.idToken ?? (await requestGoogleIdToken(opts.forcePicker === true));
   const platform = Platform.OS === "ios" ? "ios" : "android";
 
   try {
     const data = await apiRequest<GoogleNativeAuthResult>(MobileApi.auth.google, {
       method: "POST",
       auth: false,
-      body: { idToken, flow: opts.flow, platform },
+      body: {
+        idToken,
+        flow: opts.flow,
+        platform,
+        birthYear: opts.birthYear,
+        birthMonth: opts.birthMonth,
+        birthDay: opts.birthDay,
+        termsAccepted: opts.termsAccepted,
+        privacyAccepted: opts.privacyAccepted,
+      },
     });
     return { ...data, idToken };
   } catch (e) {

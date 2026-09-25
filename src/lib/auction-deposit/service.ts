@@ -203,6 +203,7 @@ export async function lockBidDepositInTransaction(
       userId: input.userId,
       listingId: input.listingId,
       bidId: input.bidId,
+      role: "BIDDER",
       amountMoco,
       status: "LOCKED",
     },
@@ -230,6 +231,81 @@ export async function lockBidDepositInTransaction(
     referenceType: "auction_deposit_lock",
     referenceId: lockRef,
     metadata: { listingId: input.listingId, bidId: input.bidId, fromPoints, fromGems },
+  });
+}
+
+/** 경매 등록 — 판매자 2 MOCO 보증금 동결. 입찰 행은 만들지 않는다. */
+export async function lockSellerDepositInTransaction(
+  tx: Tx,
+  input: { userId: string; listingId: string; amountMoco?: number }
+): Promise<void> {
+  const amountMoco = input.amountMoco ?? AUCTION_BID_DEPOSIT_MOCO;
+  const prior = await tx.auctionDeposit.findFirst({
+    where: { listingId: input.listingId, userId: input.userId, role: "SELLER", status: "LOCKED" },
+    select: { id: true },
+  });
+  if (prior) return;
+
+  const wallet =
+    (await tx.platformWallet.findUnique({ where: { userId: input.userId } })) ??
+    (await tx.platformWallet.create({ data: { userId: input.userId } }));
+
+  const fromPoints = Math.min(wallet.mocoPoints, amountMoco);
+  const fromGems = amountMoco - fromPoints;
+
+  if (fromPoints > 0) {
+    const moved = await tx.platformWallet.updateMany({
+      where: { id: wallet.id, mocoPoints: { gte: fromPoints } },
+      data: {
+        mocoPoints: { decrement: fromPoints },
+        lockedMocoBalance: { increment: fromPoints },
+      },
+    });
+    if (moved.count === 0) throw new Error("INSUFFICIENT_DEPOSIT");
+  }
+
+  if (fromGems > 0) {
+    await consumePurchasedGemsForDeposit(tx, input.userId, fromGems, input.listingId);
+    const gemLocked = await tx.platformWallet.updateMany({
+      where: { id: wallet.id },
+      data: { lockedMocoBalance: { increment: fromGems } },
+    });
+    if (gemLocked.count === 0) throw new Error("INSUFFICIENT_DEPOSIT");
+  }
+
+  const updated = await tx.platformWallet.findUniqueOrThrow({ where: { id: wallet.id } });
+  const deposit = await tx.auctionDeposit.create({
+    data: {
+      userId: input.userId,
+      listingId: input.listingId,
+      role: "SELLER",
+      amountMoco,
+      status: "LOCKED",
+    },
+  });
+
+  const lockRef = `auction_seller_deposit_lock:${deposit.id}`;
+  if (fromPoints > 0) {
+    await appendDepositLedger(tx, {
+      walletId: wallet.id,
+      bucket: "MOCO_POINTS",
+      delta: -fromPoints,
+      balanceAfter: updated.mocoPoints,
+      reason: "경매 등록 보증금 동결",
+      referenceType: "auction_deposit_lock",
+      referenceId: lockRef,
+      metadata: { listingId: input.listingId, role: "SELLER", fromPoints, fromGems },
+    });
+  }
+  await appendDepositLedger(tx, {
+    walletId: wallet.id,
+    bucket: "MOCO_LOCKED",
+    delta: amountMoco,
+    balanceAfter: updated.lockedMocoBalance,
+    reason: "경매 등록 보증금 동결",
+    referenceType: "auction_deposit_lock",
+    referenceId: lockRef,
+    metadata: { listingId: input.listingId, role: "SELLER", fromPoints, fromGems },
   });
 }
 
@@ -312,17 +388,33 @@ export async function refundActiveDepositForBidder(
   await refundAuctionDeposit(deposit.id, note);
 }
 
-/** 경매 종료 — 낙찰자 제외 전원 환원 */
-/** 경매 종료 시 — 낙찰자 제외 비낙찰자 보증금 환원 (Stripe hold void 와 동일 타이밍) */
+/**
+ * 경매 종료 시 보증금.
+ * - 유찰: 판매자 포함 전원 환원
+ * - 낙찰: 낙찰자와 판매자는 거래 완료까지 유지, 그 외 입찰자는 즉시 환원
+ */
 export async function onAuctionEndedReleaseDeposits(
   listingId: string,
   winnerId: string | null
 ): Promise<number> {
-  return releaseAllListingDepositsExcept(
-    listingId,
-    winnerId,
-    winnerId ? "auction_ended_non_winner" : "auction_unsold"
-  );
+  if (!winnerId) {
+    return releaseAllListingDepositsExcept(listingId, null, "auction_unsold");
+  }
+  const listing = await db.usedListing.findUnique({
+    where: { id: listingId },
+    select: { sellerId: true },
+  });
+  const keep = [winnerId, listing?.sellerId].filter((id): id is string => !!id);
+  const deposits = await db.auctionDeposit.findMany({
+    where: { listingId, status: "LOCKED", userId: { notIn: keep } },
+    select: { id: true },
+  });
+  let count = 0;
+  for (const d of deposits) {
+    const result = await refundAuctionDeposit(d.id, "auction_ended_non_winner");
+    if (result.refunded) count += 1;
+  }
+  return count;
 }
 
 export async function releaseAllListingDepositsExcept(

@@ -3,6 +3,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
 import { requireApiUser } from "@/lib/api-post-auth";
 import { notifyPostLike } from "@/lib/notifications";
+import { qnaEngagementError } from "@/lib/post-scope";
 
 export async function POST(
   req: NextRequest,
@@ -21,6 +22,17 @@ export async function POST(
   const { user } = authResult;
 
   try {
+    const post = await db.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true, communityId: true },
+    });
+    if (!post) {
+      return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+    }
+    const blocked = qnaEngagementError(post.communityId);
+    if (blocked) {
+      return NextResponse.json({ error: blocked }, { status: 403 });
+    }
     const existing = await db.like.findUnique({
       where: { userId_postId: { userId: user.id, postId } },
     });
@@ -30,11 +42,7 @@ export async function POST(
       return NextResponse.json({ liked: false, likeCount: count });
     }
     await db.like.create({ data: { userId: user.id, postId } });
-    const post = await db.post.findUnique({
-      where: { id: postId },
-      select: { authorId: true },
-    });
-    if (post && post.authorId !== user.id) {
+    if (post.authorId !== user.id) {
       void notifyPostLike(postId, post.authorId, user.id);
     }
     const count = await db.like.count({ where: { postId } });

@@ -37,6 +37,7 @@ import {
 import { userDisplayName } from "@/lib/user-public-select";
 import { NsfwToggleButton } from "@/components/forms/nsfw-toggle-button";
 import { ComposeRichTextarea } from "@/components/compose/compose-rich-textarea";
+import { QnaIdentityToggle } from "@/components/compose/qna-identity-toggle";
 import type { ContentRating } from "@prisma/client";
 
 function friendlyPostError(err: unknown, apiError?: string): string {
@@ -88,6 +89,7 @@ export function ComposeForm({
   const [payoutAccountRegistered, setPayoutAccountRegistered] = useState(true);
   const [paidMediaWarned, setPaidMediaWarned] = useState(false);
   const [contentRating, setContentRating] = useState<ContentRating>("GENERAL");
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const mediaComposerRef = useRef<PostMediaComposerHandle>(null);
   const mediaReady =
     media.length === 0 ||
@@ -255,7 +257,8 @@ export function ComposeForm({
         duration: m.duration ?? null,
       })),
       poll: poll ?? undefined,
-      collaboratorUserIds: collaborators.map((c) => c.id),
+      collaboratorUserIds: isAnonymous ? [] : collaborators.map((c) => c.id),
+      isAnonymous: Boolean(communityId) && isAnonymous,
     };
 
     setLoading(true);
@@ -278,9 +281,14 @@ export function ComposeForm({
       ...collabAvatars,
     ].slice(0, 3);
     const toastUser = {
-      userImage: authorAvatar?.image,
-      userName: authorAvatar?.name,
-      avatars: avatars.length > 0 ? avatars : undefined,
+      userImage: communityId && isAnonymous ? null : authorAvatar?.image,
+      userName: communityId && isAnonymous ? "익명" : authorAvatar?.name,
+      avatars:
+        communityId && isAnonymous
+          ? undefined
+          : avatars.length > 0
+            ? avatars
+            : undefined,
     };
 
     // context + module store 둘 다 — remount 되어도 toast 유지
@@ -393,18 +401,27 @@ export function ComposeForm({
                       compact
                     />
                   )}
-                  <ComposeCollaboratorPicker
-                    compact
-                    selected={collaborators}
-                    onChange={setCollaborators}
-                    disabled={submitBusy}
-                    labels={{
-                      add: t("compose.collabAdd"),
-                      search: t("compose.collabSearch"),
-                      following: t("compose.collabFollowing"),
-                      maxReached: t("compose.collabMax"),
-                    }}
-                  />
+                  {!isAnonymous && (
+                    <ComposeCollaboratorPicker
+                      compact
+                      selected={collaborators}
+                      onChange={setCollaborators}
+                      disabled={submitBusy}
+                      labels={{
+                        add: t("compose.collabAdd"),
+                        search: t("compose.collabSearch"),
+                        following: t("compose.collabFollowing"),
+                        maxReached: t("compose.collabMax"),
+                      }}
+                    />
+                  )}
+                  {communityId ? (
+                    <QnaIdentityToggle
+                      anonymous={isAnonymous}
+                      onChange={setIsAnonymous}
+                      disabled={submitBusy}
+                    />
+                  ) : null}
                   {nsfwToggle}
                 </>
               }
@@ -428,11 +445,13 @@ export function ComposeForm({
               <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
             )}
 
-            <ComposeCollaboratorPicker
-              chipsOnly
-              selected={collaborators}
-              onChange={setCollaborators}
-            />
+            {!isAnonymous && (
+              <ComposeCollaboratorPicker
+                chipsOnly
+                selected={collaborators}
+                onChange={setCollaborators}
+              />
+            )}
           </div>
         </div>
         <input type="hidden" name="contentRating" value={contentRating} />
@@ -508,17 +527,26 @@ export function ComposeForm({
         </p>
       ) : null}
       <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
-      <ComposeCollaboratorPicker
-        selected={collaborators}
-        onChange={setCollaborators}
-        disabled={submitBusy}
-        labels={{
-          add: t("compose.collabAdd"),
-          search: t("compose.collabSearch"),
-          following: t("compose.collabFollowing"),
-          maxReached: t("compose.collabMax"),
-        }}
-      />
+      {!isAnonymous && (
+        <ComposeCollaboratorPicker
+          selected={collaborators}
+          onChange={setCollaborators}
+          disabled={submitBusy}
+          labels={{
+            add: t("compose.collabAdd"),
+            search: t("compose.collabSearch"),
+            following: t("compose.collabFollowing"),
+            maxReached: t("compose.collabMax"),
+          }}
+        />
+      )}
+      {communityId ? (
+        <QnaIdentityToggle
+          anonymous={isAnonymous}
+          onChange={setIsAnonymous}
+          disabled={submitBusy}
+        />
+      ) : null}
       <input type="hidden" name="contentRating" value={contentRating} />
       <Button type="submit" className="w-full rounded-xl" disabled={submitBusy}>
         {!mediaReady || mediaUploading

@@ -62,6 +62,18 @@ export async function loadDmInboxBootstrap(): Promise<{ rooms: DmInboxRoom[] } |
   }
 }
 
+/** Drop the unread flag locally so the mailbox closes as soon as the room is opened. */
+export function markDmInboxRoomRead(roomId: string) {
+  const current = memoryInbox.data;
+  if (!current) return;
+  const target = current.rooms.find((room) => room.id === roomId);
+  if (!target?.unread) return;
+  const rooms = current.rooms.map((room) =>
+    room.id === roomId ? { ...room, unread: false } : room
+  );
+  void saveDmInboxBootstrap(rooms);
+}
+
 export async function saveDmInboxBootstrap(rooms: DmInboxRoom[]): Promise<void> {
   memoryInbox.data = { rooms };
   try {

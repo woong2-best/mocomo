@@ -27,6 +27,10 @@ export const COMMUNITY_CATEGORY_OPTIONS: {
   { id: "SUBCULTURE", label: "서브컬쳐", shortLabel: "서브컬쳐", emoji: "✨" },
   { id: "IT", label: "IT / 장비", shortLabel: "IT·장비", emoji: "💻" },
   { id: "FOOD", label: "음식 / 맛집", shortLabel: "음식·맛집", emoji: "🍜" },
+  { id: "LAW", label: "법률", shortLabel: "Law", emoji: "⚖️" },
+  { id: "TRAVEL", label: "여행", shortLabel: "여행", emoji: "✈️" },
+  { id: "POLITICS", label: "정치", shortLabel: "정치", emoji: "🏛️" },
+  { id: "MEDICAL", label: "의료", shortLabel: "의료", emoji: "🏥" },
   { id: "INFO", label: "정보 / 질문", shortLabel: "정보·질문", emoji: "❓" },
 ];
 

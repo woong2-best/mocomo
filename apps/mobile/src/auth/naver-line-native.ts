@@ -59,17 +59,26 @@ function lineChannelId(): string | null {
   );
 }
 
+export type NativeOAuthSignupConsent = {
+  birthYear: number;
+  birthMonth: number;
+  birthDay: number;
+  termsAccepted: boolean;
+  privacyAccepted: boolean;
+};
+
 async function exchangeAccessToken(
   path: string,
   accessToken: string,
-  flow: "signin" | "signup"
+  flow: "signin" | "signup",
+  consent?: NativeOAuthSignupConsent
 ): Promise<NativeOAuthResult & { accessToken: string }> {
   const platform = Platform.OS === "ios" ? "ios" : "android";
   try {
     const data = await apiRequest<NativeOAuthResult>(path, {
       method: "POST",
       auth: false,
-      body: { accessToken, flow, platform },
+      body: { accessToken, flow, platform, ...consent },
     });
     return { ...data, accessToken };
   } catch (e) {
@@ -84,6 +93,11 @@ async function exchangeAccessToken(
 export async function authenticateWithNaverNative(opts: {
   flow: "signin" | "signup";
   accessToken?: string;
+  birthYear?: number;
+  birthMonth?: number;
+  birthDay?: number;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
 }): Promise<NativeOAuthResult & { accessToken: string }> {
   let accessToken = opts.accessToken;
   if (!accessToken) {
@@ -111,13 +125,31 @@ export async function authenticateWithNaverNative(opts: {
       );
     }
   }
-  return exchangeAccessToken(MobileApi.auth.naver, accessToken, opts.flow);
+  return exchangeAccessToken(
+    MobileApi.auth.naver,
+    accessToken,
+    opts.flow,
+    opts.flow === "signup" && opts.birthYear
+      ? {
+          birthYear: opts.birthYear,
+          birthMonth: opts.birthMonth ?? 0,
+          birthDay: opts.birthDay ?? 0,
+          termsAccepted: opts.termsAccepted === true,
+          privacyAccepted: opts.privacyAccepted === true,
+        }
+      : undefined
+  );
 }
 
 /** Native LINE Login SDK → server token exchange. */
 export async function authenticateWithLineNative(opts: {
   flow: "signin" | "signup";
   accessToken?: string;
+  birthYear?: number;
+  birthMonth?: number;
+  birthDay?: number;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
 }): Promise<NativeOAuthResult & { accessToken: string }> {
   let accessToken = opts.accessToken;
   if (!accessToken) {
@@ -145,5 +177,18 @@ export async function authenticateWithLineNative(opts: {
       );
     }
   }
-  return exchangeAccessToken(MobileApi.auth.line, accessToken, opts.flow);
+  return exchangeAccessToken(
+    MobileApi.auth.line,
+    accessToken,
+    opts.flow,
+    opts.flow === "signup" && opts.birthYear
+      ? {
+          birthYear: opts.birthYear,
+          birthMonth: opts.birthMonth ?? 0,
+          birthDay: opts.birthDay ?? 0,
+          termsAccepted: opts.termsAccepted === true,
+          privacyAccepted: opts.privacyAccepted === true,
+        }
+      : undefined
+  );
 }

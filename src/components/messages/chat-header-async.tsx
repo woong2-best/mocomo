@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
 import { ChatHeader } from "@/components/messages/chat-header";
 import { getConversationMeta } from "@/lib/chat-display";
-import { userPublicSelectMinimal } from "@/lib/user-public-select";
+import { chatMemberUserSelect } from "@/lib/user-public-select";
 
 export async function ChatHeaderAsync({ roomId }: { roomId: string }) {
   const session = await getCachedSession();
@@ -12,7 +12,7 @@ export async function ChatHeaderAsync({ roomId }: { roomId: string }) {
   const room = await db.chatRoom.findUnique({
     where: { id: roomId },
     include: {
-      members: { include: { user: { select: { ...userPublicSelectMinimal, name: true } } } },
+      members: { include: { user: { select: chatMemberUserSelect } } },
       messages: { take: 1, orderBy: { createdAt: "desc" }, select: { content: true, createdAt: true } },
     },
   });
@@ -37,6 +37,16 @@ export async function ChatHeaderAsync({ roomId }: { roomId: string }) {
       roomId={roomId}
       roomType={room.type}
       otherUserId={otherMember?.id}
+      otherTimeZone={otherMember?.timeZone}
+      viewerUserId={session.user.id}
+      memberCount={room.members.length}
+      members={room.members.map((m) => ({
+        id: m.user.id,
+        username: m.user.username,
+        name: m.user.name,
+        image: m.user.image,
+        timeZone: m.user.timeZone,
+      }))}
     />
   );
 }

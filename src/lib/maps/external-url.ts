@@ -33,14 +33,8 @@ export function meetMapCaption(opts: {
   region?: string | null;
   hasPin: boolean;
 }): string {
-  const engine = selectMapEngine(opts.country);
   const region = opts.region?.trim() || "";
-  if (engine === "kakao") {
-    return opts.hasPin
-      ? `${region} 인근 직거래 · 카카오맵으로 표시된 만남 위치입니다`
-      : `${region} 인근 · 정확한 만남 핀이 없어 지역 중심으로 표시합니다`;
-  }
   return opts.hasPin
-    ? `${region} meetup · shown on OpenStreetMap (MapLibre)`
-    : `${region} · approximate area (no exact pin)`;
+    ? `${region} · 판매자가 입력한 거래 장소입니다`
+    : `${region} · 정확한 핀이 없어 지역 중심으로 표시합니다`;
 }

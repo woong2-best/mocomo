@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { canAccessDm } from "@/lib/tiers";
 import { SupportTierLevel } from "@prisma/client";
-import { userPublicSelectMinimal } from "@/lib/user-public-select";
+import { chatMemberUserSelect } from "@/lib/user-public-select";
 import { chatMessageInclude, serializeChatMessage, serializeChatMessages, serializeChatMessageForRelay } from "@/lib/chat-message-serialize";
 import { sanitizeChatAttachments } from "@/lib/chat-attachments";
 import { notifyChatMessage } from "@/lib/notifications";
@@ -26,7 +26,7 @@ async function assertRoomMember(roomId: string, userId: string) {
   return !!member;
 }
 
-/** DM always; FANDOM when community member (upserts chatMember). */
+/** DM and add-by-username GROUP when a member; FANDOM when community member (upserts chatMember). */
 async function assertMobileChatAccess(roomId: string, userId: string) {
   const room = await db.chatRoom.findUnique({
     where: { id: roomId },
@@ -34,7 +34,7 @@ async function assertMobileChatAccess(roomId: string, userId: string) {
   });
   if (!room) return { error: "NOT_FOUND" as const };
 
-  if (room.type === "DM") {
+  if (room.type === "DM" || room.type === "GROUP") {
     if (!(await assertRoomMember(roomId, userId))) {
       return { error: "FORBIDDEN" as const };
     }
@@ -78,8 +78,8 @@ export async function listMobileDmInbox(userId: string) {
     take: 40,
     include: {
       members: {
-        take: 4,
-        include: { user: { select: { ...userPublicSelectMinimal, name: true } } },
+        take: 12,
+        include: { user: { select: chatMemberUserSelect } },
       },
       messages: {
         take: 1,
@@ -87,6 +87,7 @@ export async function listMobileDmInbox(userId: string) {
         select: {
           content: true,
           createdAt: true,
+          senderId: true,
           attachments: { select: { type: true } },
         },
       },
@@ -96,6 +97,13 @@ export async function listMobileDmInbox(userId: string) {
 
   return rooms.map((room) => {
     const meta = getConversationMeta(room, userId);
+    const me = room.members.find((m) => m.userId === userId);
+    const last = room.messages[0];
+    const unread = Boolean(
+      last &&
+        last.senderId !== userId &&
+        (!me?.lastReadAt || last.createdAt.getTime() > me.lastReadAt.getTime())
+    );
     return {
       id: room.id,
       type: room.type,
@@ -105,6 +113,7 @@ export async function listMobileDmInbox(userId: string) {
       profileUsername: meta.profileUsername ?? null,
       lastMessage: meta.lastMessage,
       lastMessageAt: meta.lastMessageAt ? meta.lastMessageAt.toISOString() : null,
+      unread,
     };
   });
 }
@@ -192,7 +201,7 @@ export async function getMobileRoomMessages(
     where: { id: roomId },
     include: {
       members: {
-        include: { user: { select: { ...userPublicSelectMinimal, name: true } } },
+        include: { user: { select: chatMemberUserSelect } },
       },
     },
   });
@@ -229,6 +238,23 @@ export async function getMobileRoomMessages(
   const nextBefore =
     !after && rows.length === limit ? rows[rows.length - 1]?.createdAt.toISOString() ?? null : null;
 
+  if (!before) {
+    await db.chatMember.updateMany({
+      where: { roomId, userId },
+      data: { lastReadAt: new Date() },
+    });
+  }
+
+  let usedTrade: Awaited<
+    ReturnType<typeof import("@/lib/used-market-mobile").getMobileUsedTradeRoomContext>
+  > = null;
+  try {
+    const { getMobileUsedTradeRoomContext } = await import("@/lib/used-market-mobile");
+    usedTrade = await getMobileUsedTradeRoomContext(userId, roomId);
+  } catch {
+    usedTrade = null;
+  }
+
   return {
     room: {
       id: room.id,
@@ -237,6 +263,16 @@ export async function getMobileRoomMessages(
       displayImage: meta.displayImage,
       otherUserId: meta.otherUserId ?? null,
       profileUsername: meta.profileUsername ?? null,
+      memberCount: room.members.length,
+      members: room.members.map((m) => ({
+        id: m.user.id,
+        username: m.user.username,
+        name: m.user.name ?? null,
+        image: m.user.image,
+        timeZone: m.user.timeZone ?? null,
+      })),
+      otherTimeZone: meta.otherTimeZone ?? null,
+      usedTrade,
     },
     messages,
     nextBefore,

@@ -13,6 +13,7 @@ import type { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
 import type { PostPollView } from "@/lib/post-poll";
+import { ANONYMOUS_AUTHOR_USERNAME, ANONYMOUS_DISPLAY_NAME } from "@/lib/anonymous-post";
 
 export type GridPost = {
   id: string;
@@ -59,6 +60,13 @@ export type GridPost = {
   }[];
   poll?: PostPollView | null;
   viewCount?: number;
+  isAnonymous?: boolean;
+  community?: {
+    slug: string;
+    name: string;
+    category?: string;
+    customCategoryLabel?: string | null;
+  } | null;
   _count?: { likes: number; comments: number; votes: number; reposts?: number; media?: number };
 };
 
@@ -79,29 +87,42 @@ export function FeedPostCard({
   post: GridPost;
   paymentsEnabled?: boolean;
 }) {
-  const displayName = userDisplayName(post.author);
+  const anonymous =
+    !!post.isAnonymous || post.author.username === ANONYMOUS_AUTHOR_USERNAME;
+  const displayName = anonymous ? ANONYMOUS_DISPLAY_NAME : userDisplayName(post.author);
   const cover = post.media?.[0];
+  const authorBlock = anonymous ? (
+    <span className="block min-w-0 font-semibold text-sm">{displayName}</span>
+  ) : (
+    <Link href={`/u/${post.author.username}`} className="hover:text-primary block min-w-0">
+      <DisplayNameWithSupportTier
+        name={displayName}
+        tier={post.author.supportTierSent ?? "SEED"}
+        earnedMocoTier={post.author.earnedMocoTier ?? undefined}
+        nameClassName="font-semibold text-sm"
+        compact
+      />
+    </Link>
+  );
 
   return (
     <Card className="overflow-hidden hover:border-primary/40 transition-all duration-300 group h-full flex flex-col">
       <CardContent className="p-0 flex flex-col flex-1">
         <div className="flex items-center gap-2 p-3 pb-2">
-          <Link href={`/u/${post.author.username}`}>
+          {anonymous ? (
             <Avatar className="h-8 w-8 ring-2 ring-primary/20 group-hover:ring-primary/50 transition-all">
-              <AvatarImage src={post.author.image} />
-              <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
+              <AvatarFallback>?</AvatarFallback>
             </Avatar>
-          </Link>
-          <div className="flex-1 min-w-0">
-            <Link href={`/u/${post.author.username}`} className="hover:text-primary block min-w-0">
-              <DisplayNameWithSupportTier
-                name={displayName}
-                tier={post.author.supportTierSent ?? "SEED"}
-                earnedMocoTier={post.author.earnedMocoTier ?? undefined}
-                nameClassName="font-semibold text-sm"
-                compact
-              />
+          ) : (
+            <Link href={`/u/${post.author.username}`}>
+              <Avatar className="h-8 w-8 ring-2 ring-primary/20 group-hover:ring-primary/50 transition-all">
+                <AvatarImage src={post.author.image} />
+                <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
+              </Avatar>
             </Link>
+          )}
+          <div className="flex-1 min-w-0">
+            {authorBlock}
             <div className="flex items-center gap-1.5 flex-wrap">
               {post.postType && post.postType !== "GENERAL" && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
@@ -163,7 +184,7 @@ export function FeedPostCard({
             </span>
             <PostShareMenu
               postId={post.id}
-              authorUsername={post.author.username}
+              authorUsername={anonymous ? ANONYMOUS_AUTHOR_USERNAME : post.author.username}
               title={post.title}
               content={post.content}
               hasVideo={post.media?.some((m) => m.type === "VIDEO")}

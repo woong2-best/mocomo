@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { fetchMarketplaceList, type MarketplaceListItem } from "@/api/marketplace";
 import { fetchMyWtbAlerts } from "@/api/subculture";
@@ -31,10 +31,17 @@ export function UsedMyScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute();
+  const isAuction = route.name === "AuctionMy";
 
   const query = useQuery({
-    queryKey: ["mobile-marketplace-mine"],
-    queryFn: () => fetchMarketplaceList({ mine: true, take: 48 }),
+    queryKey: ["mobile-marketplace-mine", isAuction ? "auction" : "sales"],
+    queryFn: () =>
+      fetchMarketplaceList({
+        mine: true,
+        take: 48,
+        mode: isAuction ? "auction" : undefined,
+      }),
   });
 
   const wtbQuery = useQuery({
@@ -42,11 +49,17 @@ export function UsedMyScreen() {
     queryFn: fetchMyWtbAlerts,
   });
 
+  const items = (query.data?.items ?? []).filter((item) =>
+    isAuction ? item.saleType === "AUCTION" : true
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: MarketplaceListItem }) => (
       <Pressable
         style={styles.row}
-        onPress={() => navigation.navigate("MarketplaceDetail", { id: item.id })}
+        onPress={() =>
+          navigation.navigate(isAuction ? "AuctionDetail" : "MarketplaceDetail", { id: item.id })
+        }
       >
         {item.thumbnailUrl ? (
           <Image
@@ -70,12 +83,21 @@ export function UsedMyScreen() {
         </View>
       </Pressable>
     ),
-    [navigation, styles]
+    [isAuction, navigation, styles]
   );
 
   return (
     <Screen>
-      <AppHeader title="내 거래" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader
+        title={isAuction ? "내 경매" : "판매내역"}
+        leftLabel="뒤로"
+        onLeftPress={() => navigation.goBack()}
+        rightSlot={
+          <Pressable onPress={() => navigation.navigate(isAuction ? "AuctionCreate" : "UsedCreate")}>
+            <Text style={{ fontWeight: "800", color: colors.brand }}>글쓰기</Text>
+          </Pressable>
+        }
+      />
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : query.isError ? (
@@ -85,27 +107,33 @@ export function UsedMyScreen() {
         </View>
       ) : (
         <FlatList
-          data={query.data?.items ?? []}
+          data={items}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={{ padding: spacing.md, paddingBottom: 40 }}
           ListHeaderComponent={
             <View style={{ marginBottom: spacing.md }}>
-              <Text style={styles.sectionTitle}>
-                WTB 알림 ({wtbQuery.data?.items.length ?? 0})
-              </Text>
-              {wtbQuery.isLoading ? (
-                <ActivityIndicator color={colors.terracotta} style={{ marginVertical: 12 }} />
-              ) : (
-                <UsedWtbAlertList items={wtbQuery.data?.items ?? []} />
+              {isAuction ? null : (
+                <>
+                  <Text style={styles.sectionTitle}>
+                    WTB 알림 ({wtbQuery.data?.items.length ?? 0})
+                  </Text>
+                  {wtbQuery.isLoading ? (
+                    <ActivityIndicator color={colors.terracotta} style={{ marginVertical: 12 }} />
+                  ) : (
+                    <UsedWtbAlertList items={wtbQuery.data?.items ?? []} />
+                  )}
+                </>
               )}
-              <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
-                내 글 ({query.data?.items.length ?? 0})
+              <Text style={[styles.sectionTitle, { marginTop: isAuction ? 0 : spacing.lg }]}>
+                {isAuction ? "내 경매" : "내 글"} ({items.length})
               </Text>
             </View>
           }
           ListEmptyComponent={
-            <Text style={styles.muted}>등록한 중고거래 글이 없습니다.</Text>
+            <Text style={styles.muted}>
+              {isAuction ? "등록한 경매가 없습니다." : "등록한 중고거래 글이 없습니다."}
+            </Text>
           }
         />
       )}

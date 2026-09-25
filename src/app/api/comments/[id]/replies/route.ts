@@ -27,7 +27,7 @@ export async function GET(
     select: {
       id: true,
       postId: true,
-      post: { select: { authorId: true } },
+      post: { select: { authorId: true, communityId: true } },
     },
   });
   if (!parent) {

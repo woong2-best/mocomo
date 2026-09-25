@@ -19,7 +19,7 @@ export default async function NewCommunityPage() {
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
       {!dbReady && (
-        <DbSetupBanner title="커뮤니티 DB가 준비되지 않았습니다. Supabase SQL 섹션 N을 실행해 주세요." />
+        <DbSetupBanner title="QnA DB가 준비되지 않았습니다. Supabase SQL 섹션 N을 실행해 주세요." />
       )}
       <CommunityCreateForm embedded />
     </AppPageChrome>

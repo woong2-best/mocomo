@@ -21,14 +21,28 @@ export type { MeetCoords } from "@/lib/maps/types";
 export const USED_CURRENCIES = [
   { id: "krw", label: "원 (KRW)" },
   { id: "usd", label: "달러 (USD)" },
+  { id: "jpy", label: "엔 (JPY)" },
+  { id: "eur", label: "유로 (EUR)" },
+  { id: "gbp", label: "파운드 (GBP)" },
+  { id: "twd", label: "대만 달러 (TWD)" },
+  { id: "cny", label: "위안 (CNY)" },
+  { id: "hkd", label: "홍콩 달러 (HKD)" },
+  { id: "sgd", label: "싱가포르 달러 (SGD)" },
+  { id: "aud", label: "호주 달러 (AUD)" },
+  { id: "cad", label: "캐나다 달러 (CAD)" },
+  { id: "thb", label: "바트 (THB)" },
 ] as const;
 
 export type UsedCurrency = (typeof USED_CURRENCIES)[number]["id"];
 
+const USED_CURRENCY_IDS = new Set<string>(USED_CURRENCIES.map((c) => c.id));
+
 export const DEFAULT_USED_CURRENCY: UsedCurrency = "krw";
 
 export function normalizeUsedCurrency(raw?: string | null): UsedCurrency {
-  return (raw ?? DEFAULT_USED_CURRENCY).toLowerCase() === "usd" ? "usd" : "krw";
+  const c = (raw ?? DEFAULT_USED_CURRENCY).toLowerCase();
+  if (USED_CURRENCY_IDS.has(c)) return c as UsedCurrency;
+  return DEFAULT_USED_CURRENCY;
 }
 
 /** @deprecated use maxUsedListingPrice(currency) */

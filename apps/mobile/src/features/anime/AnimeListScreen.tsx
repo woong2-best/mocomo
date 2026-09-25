@@ -22,7 +22,7 @@ import {
   genreToApiParam,
   type MobileAnimeGenreId,
 } from "@/features/anime/anime-genres";
-import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
+import { WikiCoverImage } from "@/features/anime/WikiCoverImage";
 import { Screen } from "@/ui/Screen";
 import type { RootStackParamList } from "@/navigation/types";
 
@@ -73,7 +73,6 @@ export function AnimeListScreen() {
   const posters = query.data?.items ?? [];
   const contentW = winW - SIDE_W * 2;
   const cardW = (contentW - H_PAD * 2 - GRID_GAP) / 2;
-  const decode = feedMediaDecodeWidth(cardW);
   const scrollMinH = Math.max(winH * 0.72, 520);
   const woodTileH = Math.round(winH * 0.7);
   const estimatedRows = Math.max(1, Math.ceil(Math.max(posters.length, 1) / 2));
@@ -185,7 +184,6 @@ export function AnimeListScreen() {
                         key={item.slug}
                         item={item}
                         width={cardW}
-                        decode={decode}
                         onPress={() => navigation.navigate("AnimeDetail", { slug: item.slug })}
                       />
                     ))}
@@ -240,12 +238,10 @@ function CategoryPlaque({
 export function CultureWikiPosterCard({
   item,
   width,
-  decode,
   onPress,
 }: {
   item: AnimeListItem;
   width: number;
-  decode: number;
   onPress?: () => void;
 }) {
   const [failed, setFailed] = useState(false);
@@ -259,18 +255,12 @@ export function CultureWikiPosterCard({
         <View style={styles.frameBevel}>
           <View style={styles.frameRecess}>
             {showImage ? (
-              <Image
-                source={{
-                  uri: item.coverUrl!,
-                  width: decode,
-                  height: Math.round(decode * (4 / 3)),
-                }}
+              <WikiCoverImage
+                url={item.coverUrl!}
                 style={styles.posterImage}
                 contentFit="cover"
-                cachePolicy={IMAGE_CACHE_POLICY}
-                recyclingKey={item.coverUrl!}
-                transition={0}
-                onError={() => setFailed(true)}
+                variant="poster"
+                onFailed={() => setFailed(true)}
               />
             ) : (
               <View style={styles.posterFallback}>

@@ -14,6 +14,11 @@ const bodySchema = z.object({
   flow: z.enum(["signin", "signup"]).default("signin"),
   deviceId: z.string().max(128).optional(),
   platform: z.enum(["android", "ios"]).optional(),
+  birthYear: z.coerce.number().int().min(1900).max(new Date().getFullYear()).optional(),
+  birthMonth: z.coerce.number().int().min(1).max(12).optional(),
+  birthDay: z.coerce.number().int().min(1).max(31).optional(),
+  termsAccepted: z.boolean().optional(),
+  privacyAccepted: z.boolean().optional(),
 });
 
 /** Native LINE Login SDK → mobile bearer tokens. */
@@ -40,6 +45,11 @@ export async function POST(req: NextRequest) {
       provider: "line",
       accessToken: parsed.data.accessToken,
       flow: parsed.data.flow,
+      birthYear: parsed.data.birthYear,
+      birthMonth: parsed.data.birthMonth,
+      birthDay: parsed.data.birthDay,
+      termsAccepted: parsed.data.termsAccepted,
+      privacyAccepted: parsed.data.privacyAccepted,
     });
 
     if (result.status === "needsSignup") {

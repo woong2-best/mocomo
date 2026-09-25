@@ -2,7 +2,6 @@ import { db } from "@/lib/db";
 import { compactWorkKey, normalizeWorkTitle } from "@/lib/used-catalog";
 import { createNotification } from "@/lib/notifications";
 import { formatUsedPrice } from "@/lib/used-market";
-import { isListingInServiceArea } from "@/lib/used-market-locality";
 import type { UsedListing } from "@prisma/client";
 
 const WTB_COOLDOWN_MS = 6 * 60 * 60 * 1000;
@@ -67,7 +66,7 @@ export async function notifyWtbAlertsForListing(listingId: string): Promise<numb
     },
     take: 200,
     include: {
-      user: { select: { countryCode: true, usedServiceRegion: true } },
+      user: { select: { countryCode: true } },
     },
   });
 
@@ -75,13 +74,6 @@ export async function notifyWtbAlertsForListing(listingId: string): Promise<numb
   let sent = 0;
   for (const alert of alerts) {
     if (!listingMatchesAlert(listing, alert)) continue;
-    const serviceRegion = alert.user.usedServiceRegion?.trim();
-    if (
-      serviceRegion &&
-      !isListingInServiceArea(listing.region, serviceRegion, alert.user.countryCode)
-    ) {
-      continue;
-    }
     if (alert.lastNotifiedAt && now - alert.lastNotifiedAt.getTime() < WTB_COOLDOWN_MS) continue;
 
     await createNotification({

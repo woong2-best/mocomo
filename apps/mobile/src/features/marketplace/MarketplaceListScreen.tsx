@@ -1,127 +1,140 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  fetchMarketplaceList,
-  fetchUsedPhoneStatus,
-  startMarketplaceTradeChat,
-  type MarketplaceListItem,
-} from "@/api/marketplace";
-import {
-  formatUsedPrice,
-  formatUsedRegion,
-  formatUsedTimeAgo,
-  KOREA_SIDO,
-  KOREA_SIGUNGU_BY_SIDO,
-  USED_CATEGORIES,
-  USED_CONDITION_GRADES,
-  USED_LIMITED_KINDS,
-  USED_SHIPPING_REGION,
-  USED_TRADE_MODES,
-  usedStatusLabel,
-} from "@/features/marketplace/used-catalog";
+import { fetchMarketplaceList, toggleMarketplaceFavorite, type MarketplaceListItem } from "@/api/marketplace";
+import { formatUsedPrice, formatUsedTimeAgo } from "@/features/marketplace/used-catalog";
 import { floatingTabClearance } from "@/navigation/tab-layout";
-import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
-import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
+import type { ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useAuth } from "@/auth/AuthContext";
+import { MarketHubSlidePanel } from "@/features/marketplace/MarketHubSlidePanel";
+import type { MarketHubLane } from "@/features/marketplace/MarketHomeScreen";
+import { SearchField } from "@/ui/SearchField";
+import {
+  UsedListingOverflowMenu,
+  type MenuAnchor,
+} from "@/features/marketplace/UsedListingOverflowMenu";
+import { loadDismissedUsedListingIds } from "@/lib/used-listing-dismiss";
 
-type Props = { mode?: "tab" | "stack" };
+type HubLane = MarketHubLane;
+type Props = { mode?: "tab" | "stack"; lane?: "used" | "auction" };
 
-export function MarketplaceListScreen({ mode = "stack" }: Props) {
-  const { colors } = useTheme();
+const LIST_CATEGORIES = [
+  { id: "ALL", label: "전체" },
+  { id: "FIGURE", label: "피규어" },
+  { id: "TCG", label: "TCG" },
+  { id: "GOODS", label: "굿즈" },
+  { id: "BOOK", label: "도서" },
+  { id: "COSPLAY", label: "코스프레" },
+  { id: "DIGITAL", label: "디지털" },
+] as const;
+
+export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) {
+  const { colors, isDark } = useTheme();
+  const ink = isDark ? colors.text : colors.brand;
+  const muted = colors.textMuted;
   const styles = useMemo(() => createStyles(colors), [colors]);
+
   const insets = useSafeAreaInsets();
   const route = useRoute();
+  const routeParams = (route.params ?? {}) as { lane?: HubLane; q?: string };
+  const [hubLaneLocal, setHubLaneLocal] = useState<HubLane | undefined>(undefined);
   const isTab = mode === "tab" || route.name === "Used";
+  const hubLane = isTab ? hubLaneLocal : routeParams.lane;
+  const isAuction = lane === "auction" || route.name === "AuctionList" || hubLane === "live-auctions";
+  const isCombined = !isAuction && hubLane !== "purchased" && hubLane !== "favorites" && hubLane !== "disputes";
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const [qDraft, setQDraft] = useState("");
-  const [q, setQ] = useState("");
-  const [category, setCategory] = useState<string | "ALL" | "AUCTION">("ALL");
-  const [sidoId, setSidoId] = useState<string | null>(null);
-  const [sigungu, setSigungu] = useState<string | null>(null);
-  const [sidoPickerOpen, setSidoPickerOpen] = useState(false);
-  const [sigunguPickerOpen, setSigunguPickerOpen] = useState(false);
-  const [condition, setCondition] = useState<string | null>(null);
-  const [limited, setLimited] = useState<string | null>(null);
-  const [trade, setTrade] = useState<string | null>(null);
-  const [conditionPickerOpen, setConditionPickerOpen] = useState(false);
-  const [limitedPickerOpen, setLimitedPickerOpen] = useState(false);
-  const [tradePickerOpen, setTradePickerOpen] = useState(false);
+  const [q, setQ] = useState(routeParams.q ?? "");
+  const [category, setCategory] = useState<string | "ALL">("ALL");
+  const [hubOpen, setHubOpen] = useState(false);
+  const [liked, setLiked] = useState<Record<string, boolean>>({});
+  const [likeBump, setLikeBump] = useState<Record<string, number>>({});
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [menuItem, setMenuItem] = useState<MarketplaceListItem | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
+  useEffect(() => {
+    void loadDismissedUsedListingIds().then(setDismissedIds);
+  }, []);
 
   const listQuery = useMemo(() => {
-    const region =
-      sidoId && sigungu && sidoId !== "__shipping__"
-        ? formatUsedRegion(KOREA_SIDO.find((s) => s.id === sidoId)?.short ?? "", sigungu)
-        : undefined;
     return {
       q: q || undefined,
-      category: category !== "ALL" && category !== "AUCTION" ? category : undefined,
-      mode: category === "AUCTION" ? ("auction" as const) : undefined,
-      sido: !region && sidoId ? sidoId : undefined,
-      region,
-      condition: condition || undefined,
-      limited: limited || undefined,
-      trade: trade || undefined,
+      category: category !== "ALL" ? category : undefined,
+      mode: isAuction ? ("auction" as const) : isCombined ? undefined : ("fixed" as const),
+      lane:
+        hubLane === "recommend" ||
+        hubLane === "purchased" ||
+        hubLane === "favorites" ||
+        hubLane === "live-auctions" ||
+        hubLane === "disputes"
+          ? hubLane
+          : undefined,
       take: 48,
     };
-  }, [q, category, sidoId, sigungu, condition, limited, trade]);
+  }, [q, category, isAuction, isCombined, hubLane]);
 
   const query = useQuery({
-    queryKey: ["mobile-marketplace", listQuery],
+    queryKey: ["mobile-marketplace", hubLane ?? (isAuction ? "auction" : "used"), listQuery],
     queryFn: () => fetchMarketplaceList(listQuery),
     staleTime: 90_000,
     placeholderData: (previous) => previous,
   });
-  const bottomPad = isTab ? floatingTabClearance(insets.bottom) + 12 : insets.bottom + 32;
-  const conditionLabel =
-    USED_CONDITION_GRADES.find((o) => o.id === condition)?.label ?? "상태 (전체)";
-  const limitedLabel = USED_LIMITED_KINDS.find((o) => o.id === limited)?.label ?? "한정 (전체)";
-  const tradeLabel = USED_TRADE_MODES.find((o) => o.id === trade)?.label ?? "거래 (전체)";
-  const items = query.data?.items ?? [];
 
-  const openWrite = useCallback(async () => {
-    try {
-      const status = await fetchUsedPhoneStatus();
-      if (status.eligible) {
-        navigation.navigate("UsedCreate");
+  const favorite = useMutation({
+    mutationFn: (id: string) => toggleMarketplaceFavorite(id),
+    onSuccess: (res, id) => {
+      setLiked((prev) => ({ ...prev, [id]: res.favorited }));
+      setLikeBump((prev) => ({ ...prev, [id]: res.favorited ? 1 : -1 }));
+      void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
+    },
+  });
+
+  const items = (query.data?.items ?? []).filter(
+    (item) =>
+      (isAuction ? item.saleType === "AUCTION" : true) && !dismissedIds.has(item.id)
+  );
+
+  const applyHubLane = useCallback(
+    (lane: HubLane, q?: string) => {
+      const resolved = lane === "all" ? undefined : lane;
+      if (isTab) {
+        setHubLaneLocal(resolved);
       } else {
-        navigation.navigate("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" });
+        navigation.setParams({ lane: resolved, q });
       }
-    } catch {
-      navigation.navigate("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" });
-    }
-  }, [navigation]);
+      if (q !== undefined) {
+        setQ(q);
+      }
+      setHubOpen(false);
+    },
+    [isTab, navigation]
+  );
 
-  const openTradeChat = useCallback(
-    async (listingId: string) => {
-      try {
-        const res = await startMarketplaceTradeChat(listingId);
-        navigation.navigate("MessageRoom", { roomId: res.roomId, title: "거래 문의" });
-      } catch {
-        navigation.navigate("MarketplaceDetail", { id: listingId });
-      }
+  const openItem = useCallback(
+    (item: MarketplaceListItem) => {
+      navigation.navigate(item.saleType === "AUCTION" ? "AuctionDetail" : "MarketplaceDetail", {
+        id: item.id,
+      });
     },
     [navigation]
   );
@@ -136,19 +149,10 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
           : item.price
         : item.price;
       const nsfwGate = !!item.isNsfw && item.sellerId !== user?.id;
-      const isOwner = !!user?.id && item.sellerId === user.id;
-      const showQuickChat = !!user?.id && !isOwner && item.status === "SELLING" && !auction;
+      const hearts = Math.max(0, (item.favoriteCount ?? 0) + (likeBump[item.id] ?? 0));
+      const on = !!liked[item.id];
       return (
-        <Pressable
-          style={styles.card}
-          onPress={() => {
-            try {
-              navigation.navigate("MarketplaceDetail", { id: item.id });
-            } catch {
-              /* ignore */
-            }
-          }}
-        >
+        <Pressable style={styles.row} onPress={() => openItem(item)}>
           <View style={styles.thumbWrap}>
             <SensitiveContentGate enabled={nsfwGate} style={styles.thumb}>
               {item.thumbnailUrl ? (
@@ -159,69 +163,104 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
                   transition={0}
                 />
               ) : (
-                <View style={[StyleSheet.absoluteFill, styles.thumbFallback]}>
-                  <Ionicons name="image-outline" size={28} color={colors.textMuted} />
-                </View>
+                <View style={[StyleSheet.absoluteFill, styles.thumbFallback]} />
               )}
             </SensitiveContentGate>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{usedStatusLabel(item.status)}</Text>
-            </View>
-            {showQuickChat ? (
-              <Pressable
-                style={styles.quickChatBtn}
-                hitSlop={6}
-                accessibilityLabel="판매자에게 메시지"
-                onPress={() => void openTradeChat(item.id)}
-              >
-                <Ionicons name="chatbubble-ellipses" size={18} color={colors.cobalt} />
-              </Pressable>
-            ) : null}
           </View>
-          <Text style={styles.cardTitle} numberOfLines={2}>
-            {item.title || "상품"}
-          </Text>
-          <Text style={styles.cardPrice}>
-            {auction ? `현재 ${formatUsedPrice(price, item.currency)}` : formatUsedPrice(price, item.currency)}
-          </Text>
-          {auction && item.bidCount != null ? (
-            <Text style={styles.auctionMeta}>입찰 {item.bidCount}회</Text>
-          ) : null}
-          <Text style={styles.cardMeta} numberOfLines={1}>
-            📍 {item.region || "지역 미정"} · {formatUsedTimeAgo(item.createdAt)}
-          </Text>
+          <View style={styles.body}>
+            <View style={styles.titleRow}>
+              <Text style={styles.title} numberOfLines={2}>
+                {item.title || "상품"}
+              </Text>
+              <Pressable
+                hitSlop={8}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  const target = e.currentTarget;
+                  target.measureInWindow((x, y, width, height) => {
+                    setMenuAnchor({ x, y, width, height });
+                    setMenuItem(item);
+                  });
+                }}
+              >
+                <Ionicons name="ellipsis-vertical" size={16} color={muted} />
+              </Pressable>
+            </View>
+            <Text style={styles.meta} numberOfLines={1}>
+              {[item.region || "지역 미정", formatUsedTimeAgo(item.createdAt)].join(" · ")}
+            </Text>
+            <Text style={styles.price}>
+              {auction ? `현재 ${formatUsedPrice(price, item.currency)}` : formatUsedPrice(price, item.currency)}
+            </Text>
+            <View style={styles.foot}>
+              <View style={styles.footLeft}>
+                {!auction && item.status === "SELLING" ? (
+                  <View style={styles.buyNow}>
+                    <Ionicons name="flash-outline" size={12} color={colors.terracotta} />
+                    <Text style={styles.buyNowText}>바로구매</Text>
+                  </View>
+                ) : null}
+              </View>
+              <View style={styles.stats}>
+                {auction && item.bidCount != null ? (
+                  <View style={styles.stat}>
+                    <Ionicons name="chatbubble-outline" size={14} color={muted} />
+                    <Text style={styles.statText}>{item.bidCount}</Text>
+                  </View>
+                ) : null}
+                <Pressable style={styles.stat} onPress={() => favorite.mutate(item.id)}>
+                  <Ionicons name={on ? "heart" : "heart-outline"} size={16} color={on ? colors.like : muted} />
+                  {hearts > 0 ? <Text style={styles.statText}>{hearts}</Text> : null}
+                </Pressable>
+              </View>
+            </View>
+          </View>
         </Pressable>
       );
     },
-    [colors.cobalt, colors.textMuted, navigation, openTradeChat, styles, user?.id]
+    [
+      colors.like,
+      colors.terracotta,
+      favorite,
+      likeBump,
+      liked,
+      menuItem?.id,
+      muted,
+      openItem,
+      styles,
+      user?.id,
+    ]
   );
 
   const listHeader = (
-    <View style={styles.headerBlock}>
-      {/* 1번 UI: 상단 = 뒤로(스택) + 검색 + 검색 버튼 (브랜드 타이틀/경매·내거래·글쓰기 상단행 제거) */}
+    <View>
       <View style={styles.searchRow}>
-        {!isTab ? (
-          <Pressable
-            onPress={() => navigation.goBack()}
-            hitSlop={10}
-            style={styles.backHit}
-            accessibilityRole="button"
-            accessibilityLabel="뒤로"
-          >
-            <Ionicons name="chevron-back" size={26} color={colors.brand} />
-          </Pressable>
-        ) : null}
-        <TextInput
-          style={styles.searchInput}
-          value={qDraft}
-          onChangeText={setQDraft}
-          placeholder="어떤 상품을 찾으세요?"
-          placeholderTextColor={colors.textMuted}
-          returnKeyType="search"
-          onSubmitEditing={() => setQ(qDraft.trim())}
+        <Pressable
+          onPress={() => {
+            if (isTab) navigation.navigate("Main", { screen: "Home" });
+            else navigation.goBack();
+          }}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="뒤로"
+        >
+          <Ionicons name="chevron-back" size={26} color={ink} />
+        </Pressable>
+        <SearchField
+          variant="pill"
+          value={q}
+          onChangeText={setQ}
+          onClear={() => setQ("")}
+          placeholder="검색"
+          containerStyle={{ flex: 1 }}
         />
-        <Pressable style={styles.searchBtn} onPress={() => setQ(qDraft.trim())}>
-          <Ionicons name="search" size={20} color="#fff" />
+        <Pressable
+          onPress={() => setHubOpen(true)}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="마켓 메뉴"
+        >
+          <Ionicons name="menu-outline" size={26} color={ink} />
         </Pressable>
       </View>
 
@@ -230,101 +269,38 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.catRow}
       >
-        <Chip
-          label="전체"
-          active={category === "ALL"}
-          onPress={() => setCategory("ALL")}
-          colors={colors}
-        />
-        <Chip
-          label="🔨 경매"
-          active={category === "AUCTION"}
-          onPress={() => setCategory("AUCTION")}
-          colors={colors}
-        />
-        {USED_CATEGORIES.map((c) => (
-          <Chip
-            key={c.id}
-            label={c.label}
-            active={category === c.id}
-            onPress={() => setCategory(c.id)}
-            colors={colors}
-          />
-        ))}
+        {LIST_CATEGORIES.map((c) => {
+          const active = category === c.id;
+          return (
+            <Pressable
+              key={c.id}
+              onPress={() => setCategory(c.id)}
+              style={[
+                styles.cat,
+                {
+                  backgroundColor: active ? colors.brand : colors.surfaceRaised,
+                  borderColor: active ? colors.brand : colors.border,
+                },
+              ]}
+            >
+              <Text style={[styles.catText, { color: active ? colors.textOnAccent : colors.brand }]}>{c.label}</Text>
+            </Pressable>
+          );
+        })}
       </ScrollView>
-
-      <View style={styles.regionRow}>
-        <Pressable style={styles.regionBtn} onPress={() => setSidoPickerOpen(true)}>
-          <Text style={styles.regionBtnText} numberOfLines={1}>
-            {sidoId === "__shipping__"
-              ? USED_SHIPPING_REGION
-              : sidoId
-                ? KOREA_SIDO.find((s) => s.id === sidoId)?.label
-                : "시·도 전체"}
-          </Text>
-          <Ionicons name="chevron-down" size={14} color={colors.brand} />
-        </Pressable>
-        <Pressable
-          style={[styles.regionBtn, !sidoId || sidoId === "__shipping__" ? styles.regionDisabled : null]}
-          disabled={!sidoId || sidoId === "__shipping__"}
-          onPress={() => setSigunguPickerOpen(true)}
-        >
-          <Text style={styles.regionBtnText} numberOfLines={1}>
-            {sigungu || "시·군·구 전체"}
-          </Text>
-          <Ionicons name="chevron-down" size={14} color={colors.brand} />
-        </Pressable>
-      </View>
-
-      <View style={styles.metaFilterRow}>
-        <Pressable style={styles.metaFilterBtn} onPress={() => setConditionPickerOpen(true)}>
-          <Text style={styles.metaFilterText} numberOfLines={1}>
-            {condition ? conditionLabel : "상태 (전체)"}
-          </Text>
-          <Ionicons name="chevron-down" size={12} color={colors.brand} />
-        </Pressable>
-        <Pressable style={styles.metaFilterBtn} onPress={() => setLimitedPickerOpen(true)}>
-          <Text style={styles.metaFilterText} numberOfLines={1}>
-            {limited ? limitedLabel : "한정 (전체)"}
-          </Text>
-          <Ionicons name="chevron-down" size={12} color={colors.brand} />
-        </Pressable>
-        <Pressable style={styles.metaFilterBtn} onPress={() => setTradePickerOpen(true)}>
-          <Text style={styles.metaFilterText} numberOfLines={1}>
-            {trade ? tradeLabel : "거래 (전체)"}
-          </Text>
-          <Ionicons name="chevron-down" size={12} color={colors.brand} />
-        </Pressable>
-      </View>
-
-      {/* 1번 UI: 상품 목록 헤더 오른쪽에 내 거래 · 글쓰기 */}
-      <View style={styles.listHeaderRow}>
-        <View style={styles.listHeaderText}>
-          <Text style={styles.listLabel}>상품 목록</Text>
-          <Text style={styles.listCount}>{query.isError ? "—" : `${items.length}개`}</Text>
-        </View>
-        <View style={styles.listActions}>
-          <Pressable style={styles.outlineBtn} onPress={() => navigation.navigate("UsedMy")}>
-            <Text style={styles.outlineBtnText}>내 거래</Text>
-          </Pressable>
-          <Pressable style={styles.writeBtn} onPress={() => void openWrite()}>
-            <Text style={styles.writeBtnText}>글쓰기</Text>
-          </Pressable>
-        </View>
-      </View>
     </View>
   );
 
-  const listEmpty = query.isLoading && !query.data ? (
-    <ActivityIndicator style={{ marginTop: 24 }} color={colors.terracotta} />
-  ) : query.isError ? (
-    <View style={styles.listEmptyBox}>
-      <Text style={styles.error}>상품 목록을 불러오지 못했습니다.</Text>
-      <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
-    </View>
-  ) : (
-    <Text style={styles.muted}>조건에 맞는 상품이 없습니다.</Text>
-  );
+  const listEmpty =
+    query.isLoading && !query.data ? (
+      <ActivityIndicator style={{ marginTop: 24 }} color={colors.terracotta} />
+    ) : query.isError ? (
+      <Pressable style={{ padding: 24 }} onPress={() => void query.refetch()}>
+        <Text style={styles.empty}>목록을 불러오지 못했습니다. 다시 시도</Text>
+      </Pressable>
+    ) : (
+      <Text style={styles.empty}>조건에 맞는 상품이 없습니다.</Text>
+    );
 
   return (
     <Screen>
@@ -332,343 +308,132 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
         data={query.isError ? [] : items}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        numColumns={2}
-        columnWrapperStyle={items.length > 0 ? styles.gridRow : undefined}
         ListHeaderComponent={listHeader}
-        contentContainerStyle={{ paddingBottom: bottomPad, flexGrow: 1 }}
-        removeClippedSubviews={false}
         ListEmptyComponent={listEmpty}
+        contentContainerStyle={{
+          paddingBottom: (isTab ? floatingTabClearance(insets.bottom) : insets.bottom) + 88,
+          flexGrow: 1,
+        }}
+        ItemSeparatorComponent={() => <View style={styles.sep} />}
         refreshing={query.isFetching && !!query.data}
         onRefresh={() => void query.refetch()}
       />
 
-      <PickerModal
-        visible={sidoPickerOpen}
-        title="시·도 선택"
-        onClose={() => setSidoPickerOpen(false)}
-        colors={colors}
-        options={[
-          { id: "", label: "시·도 전체" },
-          { id: "__shipping__", label: USED_SHIPPING_REGION },
-          ...KOREA_SIDO.map((s) => ({ id: s.id, label: s.label })),
+      <Pressable
+        style={[
+          styles.fab,
+          { bottom: (isTab ? floatingTabClearance(insets.bottom) : insets.bottom) + 12 },
         ]}
-        onSelect={(id) => {
-          setSidoId(id || null);
-          setSigungu(null);
-          setSidoPickerOpen(false);
-        }}
-      />
-      <PickerModal
-        visible={sigunguPickerOpen}
-        title="시·군·구 선택"
-        onClose={() => setSigunguPickerOpen(false)}
-        colors={colors}
-        options={[
-          { id: "", label: "시·군·구 전체" },
-          ...(sidoId ? (KOREA_SIGUNGU_BY_SIDO[sidoId] ?? []).map((g) => ({ id: g, label: g })) : []),
-        ]}
-        onSelect={(id) => {
-          setSigungu(id || null);
-          setSigunguPickerOpen(false);
-        }}
-      />
-      <PickerModal
-        visible={conditionPickerOpen}
-        title="상태"
-        onClose={() => setConditionPickerOpen(false)}
-        colors={colors}
-        options={[
-          { id: "", label: "상태 (전체)" },
-          ...USED_CONDITION_GRADES.map((o) => ({ id: o.id, label: o.label })),
-        ]}
-        onSelect={(id) => {
-          setCondition(id || null);
-          setConditionPickerOpen(false);
-        }}
-      />
-      <PickerModal
-        visible={limitedPickerOpen}
-        title="한정"
-        onClose={() => setLimitedPickerOpen(false)}
-        colors={colors}
-        options={[
-          { id: "", label: "한정 (전체)" },
-          ...USED_LIMITED_KINDS.map((o) => ({ id: o.id, label: o.label })),
-        ]}
-        onSelect={(id) => {
-          setLimited(id || null);
-          setLimitedPickerOpen(false);
-        }}
-      />
-      <PickerModal
-        visible={tradePickerOpen}
-        title="거래"
-        onClose={() => setTradePickerOpen(false)}
-        colors={colors}
-        options={[
-          { id: "", label: "거래 (전체)" },
-          ...USED_TRADE_MODES.map((o) => ({ id: o.id, label: o.label })),
-        ]}
-        onSelect={(id) => {
-          setTrade(id || null);
-          setTradePickerOpen(false);
-        }}
-      />
+        onPress={() => navigation.navigate("UsedCreate")}
+        accessibilityRole="button"
+        accessibilityLabel="Sell"
+      >
+        <Ionicons name="add" size={30} color="#fff" />
+      </Pressable>
+
+      <MarketHubSlidePanel visible={hubOpen} onClose={() => setHubOpen(false)} onOpenLane={applyHubLane} />
+
+      {menuItem ? (
+        <UsedListingOverflowMenu
+          visible={!!menuAnchor}
+          anchor={menuAnchor}
+          item={menuItem}
+          isOwner={
+            !!user?.id &&
+            (menuItem.sellerId ?? menuItem.seller?.id) === user.id
+          }
+          navigation={navigation}
+          onClose={() => {
+            setMenuAnchor(null);
+            setMenuItem(null);
+          }}
+          onDismissed={(id) => setDismissedIds((prev) => new Set(prev).add(id))}
+          onDeleted={(id) => setDismissedIds((prev) => new Set(prev).add(id))}
+        />
+      ) : null}
     </Screen>
   );
 }
 
-function Chip({
-  label,
-  active,
-  onPress,
-  colors,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  colors: ThemeColors;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        chipStyles.chip,
-        {
-          backgroundColor: active ? colors.brand : colors.surfaceRaised,
-          borderColor: active ? colors.brand : "rgba(27, 74, 140, 0.2)",
-        },
-      ]}
-    >
-      <Text style={{ fontWeight: "700", fontSize: 12, color: active ? "#fff" : colors.brand }}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-function PickerModal({
-  visible,
-  title,
-  options,
-  onSelect,
-  onClose,
-  colors,
-}: {
-  visible: boolean;
-  title: string;
-  options: { id: string; label: string }[];
-  onSelect: (id: string) => void;
-  onClose: () => void;
-  colors: ThemeColors;
-}) {
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={pickerStyles.root}>
-        <Pressable style={pickerStyles.scrim} onPress={onClose} />
-        <View style={[pickerStyles.sheet, { backgroundColor: colors.background }]}>
-          <Text style={[pickerStyles.title, { color: colors.brand }]}>{title}</Text>
-          <ScrollView style={{ maxHeight: 360 }}>
-            {options.map((o) => (
-              <Pressable key={o.id || "all"} style={pickerStyles.row} onPress={() => onSelect(o.id)}>
-                <Text style={{ color: colors.text, fontWeight: "600" }}>{o.label}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-const chipStyles = StyleSheet.create({
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1.5,
-    marginRight: 6,
-  },
-});
-
-const pickerStyles = StyleSheet.create({
-  root: { flex: 1, justifyContent: "flex-end" },
-  scrim: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
-  sheet: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: spacing.md,
-    paddingBottom: 28,
-  },
-  title: { fontSize: 17, fontWeight: "800", marginBottom: 8 },
-  row: { paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#ddd" },
-});
-
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    headerBlock: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
-    backHit: {
-      marginLeft: -4,
-      paddingVertical: 4,
-      paddingRight: 2,
-      justifyContent: "center",
-    },
-    outlineBtn: {
-      borderWidth: 1.5,
-      borderColor: "rgba(27, 74, 140, 0.28)",
-      borderRadius: radii.md,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      backgroundColor: colors.surfaceRaised,
-    },
-    outlineBtnText: { fontWeight: "700", color: colors.brand, fontSize: 13 },
-    writeBtn: {
-      borderRadius: radii.md,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      backgroundColor: colors.muted,
-      borderWidth: 1.5,
-      borderColor: "rgba(27, 74, 140, 0.18)",
-    },
-    writeBtnText: { fontWeight: "800", color: colors.brand, fontSize: 13 },
     searchRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
-      marginBottom: 12,
-    },
-    searchInput: {
-      flex: 1,
-      borderWidth: 1.5,
-      borderColor: "rgba(120, 150, 220, 0.28)",
-      borderRadius: radii.md,
       paddingHorizontal: 14,
-      paddingVertical: 12,
-      backgroundColor: colors.surfaceRaised,
+      paddingTop: 8,
+      paddingBottom: 10,
+    },
+    search: {
+      flex: 1,
+      height: 40,
+      borderRadius: 999,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      paddingHorizontal: 16,
       color: colors.text,
       fontWeight: "600",
+      backgroundColor: colors.surfaceRaised,
       fontSize: 14,
     },
-    searchBtn: {
-      width: 48,
-      height: 48,
-      borderRadius: radii.md,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.terracotta,
-    },
-    catRow: { paddingVertical: 4, paddingRight: 12, marginBottom: 10 },
-    regionRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
-    regionBtn: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
+    catRow: { paddingHorizontal: 14, paddingBottom: 8, gap: 8 },
+    cat: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 999,
       borderWidth: 1.5,
-      borderColor: "rgba(27, 74, 140, 0.22)",
-      borderRadius: radii.md,
-      paddingHorizontal: 10,
-      paddingVertical: 10,
-      backgroundColor: colors.surfaceRaised,
-      gap: 4,
     },
-    regionDisabled: { opacity: 0.45 },
-    regionBtnText: { flex: 1, fontWeight: "600", color: colors.text, fontSize: 13 },
-    metaFilterRow: { flexDirection: "row", gap: 6, marginBottom: 12 },
-    metaFilterBtn: {
-      flex: 1,
+    catText: { fontWeight: "800", fontSize: 13 },
+    row: {
       flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      borderWidth: 1.5,
-      borderColor: "rgba(27, 74, 140, 0.22)",
-      borderRadius: radii.md,
-      paddingHorizontal: 8,
-      paddingVertical: 9,
-      backgroundColor: colors.surfaceRaised,
-      gap: 2,
-      minWidth: 0,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      gap: 12,
+      backgroundColor: colors.background,
     },
-    metaFilterText: { flex: 1, fontWeight: "600", color: colors.text, fontSize: 11 },
-    listHeaderRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 10,
-      marginBottom: 10,
-    },
-    listHeaderText: { flexShrink: 1, gap: 2 },
-    listLabel: { fontWeight: "800", color: colors.brand, fontSize: 15 },
-    listCount: { fontWeight: "600", color: colors.textMuted, fontSize: 12 },
-    listActions: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 },
-    gridRow: { paddingHorizontal: spacing.md, gap: 10, marginBottom: 10 },
-    card: {
-      flex: 1,
-      maxWidth: "48.5%",
-      backgroundColor: colors.surfaceRaised,
-      borderRadius: radii.md,
+    thumbWrap: {
+      width: 108,
+      height: 108,
+      borderRadius: 8,
       overflow: "hidden",
-      borderWidth: 1,
-      borderColor: "rgba(27, 74, 140, 0.12)",
-      ...shadows.folkSm,
+      backgroundColor: colors.muted,
     },
-    thumbWrap: { aspectRatio: 1, backgroundColor: colors.muted },
     thumb: { width: "100%", height: "100%" },
-    thumbFallback: { alignItems: "center", justifyContent: "center" },
-    badge: {
-      position: "absolute",
-      top: 6,
-      left: 6,
-      backgroundColor: "rgba(40,40,40,0.75)",
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 4,
+    thumbFallback: { backgroundColor: colors.muted },
+    body: { flex: 1, minHeight: 108 },
+    titleRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
+    title: { flex: 1, fontWeight: "700", color: colors.text, fontSize: 15, lineHeight: 20 },
+    meta: { color: colors.textMuted, fontSize: 12, fontWeight: "600", marginTop: 4 },
+    price: { color: colors.terracotta, fontWeight: "800", fontSize: 16, marginTop: 6 },
+    foot: {
+      marginTop: "auto",
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "space-between",
     },
-    badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
-    quickChatBtn: {
+    footLeft: { flexDirection: "row", alignItems: "center" },
+    buyNow: { flexDirection: "row", alignItems: "center", gap: 3 },
+    buyNowText: { color: colors.terracotta, fontWeight: "700", fontSize: 11 },
+    stats: { flexDirection: "row", alignItems: "center", gap: 10 },
+    stat: { flexDirection: "row", alignItems: "center", gap: 3 },
+    statText: { color: colors.textMuted, fontSize: 12, fontWeight: "600" },
+    sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.hairline, marginLeft: 134 },
+    empty: { color: colors.textMuted, padding: 24, fontWeight: "600", textAlign: "center" },
+    fab: {
       position: "absolute",
-      bottom: 8,
-      right: 8,
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+      right: 18,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.terracotta,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.surface,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
-      ...shadows.folkSm,
+      shadowColor: "#000",
+      shadowOpacity: 0.28,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 8,
     },
-    cardTitle: {
-      paddingHorizontal: 8,
-      paddingTop: 8,
-      fontWeight: "700",
-      color: colors.brand,
-      fontSize: 13,
-      minHeight: 36,
-    },
-    cardPrice: {
-      paddingHorizontal: 8,
-      marginTop: 2,
-      fontWeight: "800",
-      color: colors.terracotta,
-      fontSize: 15,
-    },
-    auctionMeta: {
-      paddingHorizontal: 8,
-      color: colors.terracotta,
-      fontSize: 11,
-      fontWeight: "700",
-    },
-    cardMeta: {
-      paddingHorizontal: 8,
-      paddingBottom: 10,
-      paddingTop: 2,
-      color: colors.textMuted,
-      fontSize: 11,
-    },
-    muted: { color: colors.textMuted, padding: spacing.lg, fontWeight: "600" },
-    listEmptyBox: { padding: spacing.lg, alignItems: "center" },
-    error: { color: colors.danger, fontWeight: "600", marginBottom: 12, textAlign: "center" },
   });
 }

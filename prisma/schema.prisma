@@ -410,6 +410,8 @@ model User {
   usedListings     UsedListing[]
   usedFavorites    UsedFavorite[]
   usedListingChats UsedListingChat[] @relation("UsedListingChatBuyer")
+  usedTradeRequestsAsBuyer  UsedTradeRequest[] @relation("UsedTradeRequestBuyer")
+  usedTradeRequestsAsSeller UsedTradeRequest[] @relation("UsedTradeRequestSeller")
   usedAuctionBids  UsedAuctionBid[]
   auctionDeposits  AuctionDeposit[]
   sponsoredAdCampaigns SponsoredAdCampaign[]
@@ -719,6 +721,10 @@ enum CommunityCategory {
   SUBCULTURE
   IT
   FOOD
+  LAW
+  TRAVEL
+  POLITICS
+  MEDICAL
   INFO
   CUSTOM
   ANIME
@@ -1044,6 +1050,8 @@ model Post {
   shareCount  Int      @default(0)
   hotScore    Float    @default(0)
   isPinned    Boolean  @default(false)
+  /** QnA 익명 질문 — 화면에는 익명, authorId는 DB에 유지 */
+  isAnonymous Boolean  @default(false)
   visibility  ContentVisibility @default(PUBLIC)
   /** 구독 등급 미달 시 즉시 구매로 열람 (원, 0=비활성) */
   instantPurchasePriceKrw Int @default(0)
@@ -2936,12 +2944,17 @@ model UsedListing {
   paymentReminder10mSent    Boolean             @default(false)
   paymentTimeoutProcessed   Boolean             @default(false)
   negotiationTimeoutProcessed Boolean           @default(false)
+  /** 경매 거래 완료 — 판매자·낙찰자 둘 다 확인해야 보증금 환원 */
+  sellerTradeConfirmedAt    DateTime?
+  buyerTradeConfirmedAt     DateTime?
   activeNegotiationRoomId   String?
   /** 향후 입찰 보증금 (현재 비활성) */
   depositEnabled            Boolean             @default(false)
   depositRate               Float?
   /** 경매 낙찰 Stripe 주문 (Star Market fulfillment 파이프라인) */
   marketplaceOrderId       String?             @unique
+  /** 끌어올리기 — 하루 1회 제한용 */
+  lastBumpedAt DateTime?
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   seller      User                @relation(fields: [sellerId], references: [id], onDelete: Cascade)
@@ -2950,6 +2963,7 @@ model UsedListing {
   negotiationBuyer User?          @relation("UsedAuctionNegotiationBuyer", fields: [negotiationBuyerId], references: [id], onDelete: SetNull)
   favorites   UsedFavorite[]
   tradeChats  UsedListingChat[]
+  tradeRequests UsedTradeRequest[]
   auctionBids UsedAuctionBid[]
   auctionDeposits AuctionDeposit[]
   priceOffers UsedPriceOffer[]
@@ -3007,7 +3021,9 @@ model AuctionDeposit {
   id             String               @id @default(cuid())
   userId         String
   listingId      String
-  bidId          String               @unique
+  /** 판매자 보증금은 입찰 행이 없음 */
+  bidId          String?              @unique
+  role           AuctionDepositRole   @default(BIDDER)
   /** 고정 2 MOCO (1 MOCO = $5) */
   amountMoco     Int
   status         AuctionDepositStatus @default(LOCKED)
@@ -3017,11 +3033,17 @@ model AuctionDeposit {
 
   user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   listing UsedListing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  bid     UsedAuctionBid @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  bid     UsedAuctionBid? @relation(fields: [bidId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
   @@index([listingId, status])
   @@index([listingId, userId, status])
+  @@index([listingId, role, status])
+}
+
+enum AuctionDepositRole {
+  BIDDER
+  SELLER
 }
 
 enum MocoTransactionType {
@@ -3187,6 +3209,36 @@ model UsedFavorite {
   listing   UsedListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@unique([userId, listingId])
+}
+
+enum UsedTradeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/** 중고거래 채팅 — 구매자·판매자 거래 요청 (상대 승인 시 글 수정 잠금) */
+model UsedTradeRequest {
+  id            String                 @id @default(cuid())
+  listingId     String
+  buyerId       String
+  sellerId      String
+  /** 요청을 보낸 사용자. 없으면 구매자가 보낸 기존 요청 */
+  requestedById String?
+  roomId        String
+  status        UsedTradeRequestStatus @default(PENDING)
+  /** 만나기로 한 시각 */
+  meetAt        DateTime?
+  createdAt     DateTime               @default(now())
+  respondedAt   DateTime?
+  listing     UsedListing            @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer       User                   @relation("UsedTradeRequestBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller      User                   @relation("UsedTradeRequestSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, status])
+  @@index([roomId, createdAt(sort: Desc)])
+  @@index([buyerId, listingId])
 }
 
 /** 중고거래 글별 1:1 채팅 (구매자–판매자) */

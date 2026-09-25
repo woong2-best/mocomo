@@ -12,6 +12,7 @@ export type DrawerRoute =
   | "GamesHub"
   | "AnimeList"
   | "MarketplaceList"
+  | "AuctionList"
   | "SellerListings"
   | "LiveList"
   | "Discover"
@@ -31,8 +32,8 @@ export type RootTabParamList = {
 
 export type RootStackParamList = {
   Main: NavigatorScreenParams<RootTabParamList> | undefined;
-  Login: undefined;
-  Signup: undefined;
+  Login: { addAccount?: boolean; intent?: "signin" | "signup" } | undefined;
+  Signup: { addAccount?: boolean } | undefined;
   PasswordReset: undefined;
   ComposeModal: undefined;
   MessageRoom: { roomId: string; title?: string };
@@ -51,11 +52,20 @@ export type RootStackParamList = {
   LiveList: undefined;
   LiveDetail: { id: string };
   LiveGoLive: undefined;
-  MarketplaceList: undefined;
+  MarketplaceList:
+    | {
+        lane?: "all" | "recommend" | "purchased" | "favorites" | "live-auctions" | "disputes";
+        q?: string;
+      }
+    | undefined;
+  AuctionList: undefined;
   MarketplaceDetail: { id: string };
-  UsedCreate: undefined;
+  AuctionDetail: { id: string };
+  UsedCreate: { editId?: string } | undefined;
+  AuctionCreate: undefined;
   UsedMy: undefined;
-  UsedPhoneVerify: undefined;
+  AuctionMy: undefined;
+  UsedPhoneVerify: { next?: "UsedCreate" | "AuctionCreate" } | undefined;
   Market: undefined;
   StarMarketDetail: { id: string };
   SellerListings: undefined;
@@ -78,7 +88,12 @@ export type RootStackParamList = {
   EventsMap: undefined;
   Profile: undefined;
   ProfileEdit: undefined;
-  UserProfile: { username: string };
+  UserProfile: {
+    username: string;
+    /** Feed/chat already knows these — paint the header before the profile request. */
+    name?: string | null;
+    image?: string | null;
+  };
   PostDetail: { id: string };
   Search: undefined;
   Reels: { postId?: string; mediaId?: string; mediaIndex?: number } | undefined;
@@ -88,7 +103,7 @@ export type RootStackParamList = {
   AnimeDetail: { slug: string };
   Settings: undefined;
   LegalPolicies: undefined;
-  Wallet: { initialTab?: "wallet" | "earnings"; returnScreen?: "UsedCreate" | "MarketplaceList" | "MarketSellItem" } | undefined;
+  Wallet: { initialTab?: "wallet" | "earnings" | "tier"; returnScreen?: "UsedCreate" | "AuctionCreate" | "MarketplaceList" | "AuctionList" | "MarketSellItem" } | undefined;
   GamesHub: undefined;
   Support: undefined;
 };

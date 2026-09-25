@@ -10,6 +10,7 @@ export type DmInboxRoom = {
   profileUsername: string | null;
   lastMessage: string;
   lastMessageAt: string | null;
+  unread?: boolean;
 };
 
 export type ChatAttachment = {
@@ -45,6 +46,27 @@ export type ChatMessage = {
   replyTo?: ChatReplyTo;
 };
 
+export type ChatRoomMember = {
+  id: string;
+  username: string;
+  name: string | null;
+  image: string | null;
+  timeZone?: string | null;
+};
+
+export type UsedTradeRoomContext = {
+  listingId: string;
+  listingTitle: string;
+  listingStatus: string;
+  sellerId: string;
+  buyerId: string;
+  isBuyer: boolean;
+  isSeller: boolean;
+  canRequestTrade: boolean;
+  editLocked: boolean;
+  pendingRequestId: string | null;
+};
+
 export type DmRoomPayload = {
   room: {
     id: string;
@@ -53,6 +75,10 @@ export type DmRoomPayload = {
     displayImage: string | null;
     otherUserId: string | null;
     profileUsername: string | null;
+    memberCount?: number;
+    members?: ChatRoomMember[];
+    otherTimeZone?: string | null;
+    usedTrade?: UsedTradeRoomContext | null;
   };
   messages: ChatMessage[];
   nextBefore: string | null;
@@ -124,6 +150,17 @@ export type MessageUserHit = {
   name: string | null;
   image: string | null;
 };
+
+export async function addRoomMember(roomId: string, username: string) {
+  return apiRequest<{
+    ok: true;
+    roomType: "GROUP";
+    added: ChatRoomMember;
+  }>(`${MobileApi.messages}/${roomId}/members`, {
+    method: "POST",
+    body: { username },
+  });
+}
 
 export async function searchMessageUsers(q: string) {
   const query = new URLSearchParams({ q });

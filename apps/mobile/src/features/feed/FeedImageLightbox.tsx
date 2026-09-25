@@ -14,7 +14,7 @@ import {
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
+import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 
 export type FeedLightboxImage = {
   id: string;
@@ -65,7 +65,7 @@ export function FeedImageLightbox({
     ({ item }) => (
       <View style={{ width, height, alignItems: "center", justifyContent: "center" }}>
         <Image
-          source={{ uri: item.url, width: decode, height: decode }}
+          source={cachedImageSource(item.url, decode)}
           style={{ width, height: height * 0.78 }}
           contentFit="contain"
           cachePolicy={IMAGE_CACHE_POLICY}

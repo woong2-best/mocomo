@@ -26,12 +26,7 @@ import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { buildNaverEmail, isValidNaverSignupEmail, parseNaverLocalPart } from "@/lib/signup-email-domains";
 import { setAddAccountFlowCookie, withAddAccountQuery } from "@/lib/account-switch/add-account-flow";
 import { SignupBirthDateFields } from "@/components/auth/signup-birth-date-fields";
-import {
-  COMMON_TIMEZONES,
-  detectBrowserRegionPrefs,
-  listTimeZonesForPicker,
-  normalizeTimeZone,
-} from "@/lib/i18n/timezone";
+import { detectBrowserRegionPrefs, detectBrowserTimeZone, normalizeTimeZone } from "@/lib/i18n/timezone";
 
 export function SignupNaverForm() {
   const router = useRouter();
@@ -47,7 +42,6 @@ export function SignupNaverForm() {
   const t = useMemo(() => createTranslator(locale), [locale]);
   const [countryCode, setCountryCode] = useState(initialCountry);
   const [timeZone, setTimeZone] = useState(normalizeTimeZone(initialTimeZone));
-  const [tzOptions, setTzOptions] = useState<string[]>([...COMMON_TIMEZONES]);
   const [localPart, setLocalPart] = useState("");
   const [detectedOnce, setDetectedOnce] = useState(false);
   const [prefilledOnce, setPrefilledOnce] = useState(false);
@@ -90,7 +84,6 @@ export function SignupNaverForm() {
     const prefs = detectBrowserRegionPrefs();
     setTimeZone(prefs.timeZone);
     if (prefs.countryCode) setCountryCode(prefs.countryCode);
-    setTzOptions(listTimeZonesForPicker());
     syncSignupLocaleClient(DEFAULT_GUEST_LOCALE, prefs.countryCode ?? initialCountry, prefs.timeZone);
   }, [detectedOnce, initialCountry]);
 
@@ -125,7 +118,8 @@ export function SignupNaverForm() {
     }
 
     try {
-      const tz = normalizeTimeZone(timeZone);
+      const tz = detectBrowserTimeZone();
+      setTimeZone(tz);
       syncSignupLocaleClient(locale, countryCode, tz);
 
       const check = await prepareSignupVerify({
@@ -270,7 +264,7 @@ export function SignupNaverForm() {
                   ? "メール認証のあと、プロフィール写真の設定が必須です。"
                   : "After email verification you’ll set a required profile icon. Banner is optional."}
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               <label className="space-y-1">
                 <span className="text-xs text-muted-foreground">{t("auth.country")}</span>
                 <CountrySelect
@@ -303,27 +297,9 @@ export function SignupNaverForm() {
                 </select>
               </label>
             </div>
-            <label className="space-y-1 block">
-              <span className="text-xs text-muted-foreground">{t("auth.timeZone")}</span>
-              <select
-                value={timeZone}
-                onChange={(e) => {
-                  const next = normalizeTimeZone(e.target.value);
-                  setTimeZone(next);
-                  syncSignupLocaleClient(locale, countryCode, next);
-                }}
-                className="w-full h-10 rounded-xl border border-input bg-background px-2 text-sm"
-              >
-                {!tzOptions.includes(timeZone) ? (
-                  <option value={timeZone}>{timeZone}</option>
-                ) : null}
-                {tzOptions.map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <p className="text-xs text-muted-foreground">
+              {t("auth.timeZone")}: {timeZone}
+            </p>
             <input
               type="text"
               name="website"

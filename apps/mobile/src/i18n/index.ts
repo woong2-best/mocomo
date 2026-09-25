@@ -83,6 +83,42 @@ export type Locale =
   | "zu"
   | "eo";
 
+export const MOBILE_LOCALES: readonly Locale[] = [
+  "ko", "en", "ja", "zh", "zh-TW", "el", "fr", "de", "es", "pt", "pt-BR", "it",
+  "nl", "pl", "ru", "uk", "ar", "he", "tr", "fa", "hi", "bn", "ta", "te", "mr",
+  "ur", "th", "vi", "id", "ms", "fil", "sw", "sv", "no", "da", "fi", "cs", "sk",
+  "hu", "ro", "bg", "hr", "sr", "sl", "lt", "lv", "et", "sq", "mk", "ca", "eu",
+  "gl", "is", "ga", "cy", "af", "am", "az", "be", "bs", "ka", "kk", "km", "lo",
+  "mn", "my", "ne", "si", "uz", "hy", "mt", "lb", "pa", "ha", "yo", "ig", "zu",
+  "eo",
+];
+
+const languageNames = new Map<string, Intl.DisplayNames>();
+
+export function mobileLocaleLabel(code: Locale, uiLocale: string = "en"): string {
+  const tag = uiLocale.startsWith("zh-TW") ? "zh-Hant" : uiLocale.split("-")[0] ?? uiLocale;
+  let display = languageNames.get(tag);
+  if (!display) {
+    try {
+      display = new Intl.DisplayNames([tag, "en"], { type: "language" });
+      languageNames.set(tag, display);
+    } catch {
+      return code;
+    }
+  }
+  return display.of(code) ?? code;
+}
+
+export function filterMobileLocales(query: string, uiLocale = "en"): Locale[] {
+  const q = query.trim().toLowerCase();
+  return MOBILE_LOCALES.filter((code) => {
+    if (!q) return true;
+    const label = mobileLocaleLabel(code, uiLocale).toLowerCase();
+    const native = mobileLocaleLabel(code, code).toLowerCase();
+    return code.toLowerCase().includes(q) || label.includes(q) || native.includes(q);
+  });
+}
+
 const LOCALE_STORAGE = "mocomo_mobile_locale";
 const MESSAGES_CACHE_PREFIX = "mocomo_mobile_messages:";
 

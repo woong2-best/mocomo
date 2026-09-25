@@ -24,6 +24,13 @@ export const userPublicSelectMinimal = {
   deletedAt: true,
 } satisfies Prisma.UserSelect;
 
+/** Chat member rows — public fields plus stored device timezone. */
+export const chatMemberUserSelect = {
+  ...userPublicSelectMinimal,
+  name: true,
+  timeZone: true,
+} satisfies Prisma.UserSelect;
+
 export type UserPublicFields = {
   id: string;
   username: string;

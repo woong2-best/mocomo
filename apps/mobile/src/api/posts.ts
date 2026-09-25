@@ -12,6 +12,8 @@ export async function createPost(input: {
   poll?: CreatePostPollPayload;
   collaboratorUserIds?: string[];
   isNsfw?: boolean;
+  communityId?: string;
+  isAnonymous?: boolean;
 }) {
   return apiRequest<{ postId: string; warning?: string }>(MobileApi.postsCreate, {
     method: "POST",
@@ -21,6 +23,7 @@ export async function createPost(input: {
       poll: input.poll,
       collaboratorUserIds: input.collaboratorUserIds ?? [],
       isNsfw: input.isNsfw ?? false,
+      ...(input.communityId ? { communityId: input.communityId, isAnonymous: true } : {}),
     },
   });
 }

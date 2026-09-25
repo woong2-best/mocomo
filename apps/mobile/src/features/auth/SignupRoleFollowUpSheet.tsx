@@ -13,7 +13,9 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { removeFollowingDmUser, upsertFollowingDmUser } from "@/api/following-dm-cache";
 import {
   applyAsCosplayerMobile,
   fetchOnboardingCosplayers,
@@ -42,6 +44,7 @@ const BIO_MAX = 300;
 export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [items, setItems] = useState<OnboardingCosplayer[]>([]);
@@ -110,6 +113,17 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
       setItems((prev) =>
         prev.map((c) => (c.userId === userId ? { ...c, following } : c))
       );
+      const person = items.find((c) => c.userId === userId);
+      if (res.following && person) {
+        void upsertFollowingDmUser(queryClient, {
+          id: person.userId,
+          username: person.username,
+          name: person.displayName,
+          image: person.image,
+        });
+      } else if (!res.following) {
+        void removeFollowingDmUser(queryClient, userId);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "팔로우에 실패했습니다.");
     } finally {

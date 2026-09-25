@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -15,15 +14,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchLiveHub } from "@/api/live";
 import {
   coerceViewerCount,
-  MOBILE_LIVE_CATEGORIES,
   type MobileLiveCategoryId,
 } from "@/features/live/live-categories";
 import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
-import { LiveCategoryFolderChip } from "@/features/live/LiveCategoryFolderChip";
+import { LiveCategorySlidePanel } from "@/features/live/LiveCategorySlidePanel";
 import { LiveBeadFeed } from "@/features/live/LiveBeadFeed";
 import { sanitizeLiveListItems } from "@/features/live/live-hub-sanitize";
 import { FolkButton } from "@/ui/FolkButton";
 import { ScreenErrorBoundary } from "@/ui/ScreenErrorBoundary";
+import { SearchField } from "@/ui/SearchField";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -35,6 +34,8 @@ export function LiveListScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [category, setCategory] = useState<MobileLiveCategoryId>("ALL");
+  const [searchQ, setSearchQ] = useState("");
+  const [folderOpen, setFolderOpen] = useState(false);
 
   const query = useInfiniteQuery({
     queryKey: ["mobile-live-hub", category],
@@ -77,6 +78,17 @@ export function LiveListScreen() {
     [items]
   );
 
+  const searchNorm = searchQ.trim().toLowerCase();
+
+  const visibleItems = useMemo(() => {
+    if (!searchNorm) return sortedItems;
+    return sortedItems.filter((item) => {
+      const nick = item.host?.username?.toLowerCase() ?? "";
+      const title = item.title.toLowerCase();
+      return nick.includes(searchNorm) || title.includes(searchNorm);
+    });
+  }, [sortedItems, searchNorm]);
+
   const openLive = useCallback(
     (id: string) => navigation.navigate("LiveDetail", { id }),
     [navigation]
@@ -86,21 +98,28 @@ export function LiveListScreen() {
     void query.refetch();
   }, [query]);
 
-  const selectCategory = useCallback((id: MobileLiveCategoryId) => {
-    void (async () => {
-      const ok = await ensureR18LiveAccess(id);
-      if (!ok) return;
-      setCategory(id);
-    })();
-  }, []);
+  const selectCategory = useCallback(
+    (id: MobileLiveCategoryId) => {
+      void (async () => {
+        const next = id === category ? "ALL" : id;
+        if (next !== "ALL") {
+          const ok = await ensureR18LiveAccess(next);
+          if (!ok) return;
+        }
+        setCategory(next);
+        setFolderOpen(false);
+      })();
+    },
+    [category]
+  );
 
   const hasHubPages = (query.data?.pages?.length ?? 0) > 0;
-  const chromeHeight = insets.top + 68;
+  const chromeHeight = insets.top + 56;
 
   return (
     <ScreenErrorBoundary label="라이브" onRetry={onRefresh}>
       <View style={styles.root}>
-        <View style={[styles.chrome, { paddingTop: insets.top + 4 }]}>
+        <View style={[styles.chrome, { paddingTop: insets.top + 6 }]}>
           <Pressable
             onPress={() => navigation.goBack()}
             hitSlop={12}
@@ -110,48 +129,23 @@ export function LiveListScreen() {
             <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.72)" />
           </Pressable>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.cats}
-            style={styles.catsScroll}
-          >
-            {MOBILE_LIVE_CATEGORIES.map((c) => {
-              const on = category === c.id;
-              if (c.id === "ALL") {
-                return (
-                  <Pressable
-                    key={c.id}
-                    onPress={() => selectCategory(c.id)}
-                    style={styles.allHit}
-                    hitSlop={4}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: on }}
-                  >
-                    <Text style={[styles.allText, on && styles.allTextOn]}>{c.label}</Text>
-                    {on ? <View style={styles.catDot} /> : <View style={styles.catDotSpacer} />}
-                  </Pressable>
-                );
-              }
-              return (
-                <LiveCategoryFolderChip
-                  key={c.id}
-                  id={c.id}
-                  label={c.label}
-                  active={on}
-                  onPress={() => selectCategory(c.id)}
-                />
-              );
-            })}
-          </ScrollView>
+          <SearchField
+            variant="pill"
+            value={searchQ}
+            onChangeText={setSearchQ}
+            onClear={() => setSearchQ("")}
+            placeholder="닉네임 검색"
+            containerStyle={styles.search}
+            style={styles.searchInput}
+          />
 
           <Pressable
-            onPress={onRefresh}
+            onPress={() => setFolderOpen(true)}
             hitSlop={12}
             style={styles.iconHit}
-            accessibilityLabel="새로고침"
+            accessibilityLabel="카테고리 메뉴"
           >
-            <Ionicons name="refresh" size={18} color="rgba(255,255,255,0.45)" />
+            <Ionicons name="menu-outline" size={24} color="rgba(255,255,255,0.72)" />
           </Pressable>
         </View>
 
@@ -164,11 +158,18 @@ export function LiveListScreen() {
           </View>
         ) : (
           <LiveBeadFeed
-            items={sortedItems}
+            items={visibleItems}
             onOpenLive={openLive}
             topInset={chromeHeight}
           />
         )}
+
+        <LiveCategorySlidePanel
+          visible={folderOpen}
+          activeCategory={category}
+          onClose={() => setFolderOpen(false)}
+          onSelectCategory={selectCategory}
+        />
       </View>
     </ScreenErrorBoundary>
   );
@@ -181,9 +182,9 @@ function createStyles(colors: ThemeColors) {
       zIndex: 20,
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 6,
+      paddingHorizontal: 8,
       paddingBottom: 8,
-      gap: 2,
+      gap: 6,
     },
     iconHit: {
       width: 36,
@@ -191,42 +192,15 @@ function createStyles(colors: ThemeColors) {
       alignItems: "center",
       justifyContent: "center",
     },
-    catsScroll: { flex: 1 },
-    cats: {
-      alignItems: "center",
-      gap: 6,
-      paddingHorizontal: 2,
-      minHeight: 56,
-      paddingVertical: 2,
+    search: {
+      flex: 1,
+      minHeight: 40,
+      backgroundColor: "rgba(255,255,255,0.1)",
+      borderColor: "rgba(255,255,255,0.14)",
     },
-    allHit: {
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: 6,
-      paddingVertical: 8,
-      minWidth: 36,
-      marginRight: 2,
-    },
-    allText: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: "rgba(255,255,255,0.42)",
-      letterSpacing: -0.2,
-    },
-    allTextOn: {
+    searchInput: {
       color: "#FFFFFF",
-    },
-    catDot: {
-      marginTop: 5,
-      width: 4,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: colors.terracotta,
-    },
-    catDotSpacer: {
-      marginTop: 5,
-      width: 4,
-      height: 4,
+      fontSize: 14,
     },
     center: { padding: spacing.lg, alignItems: "center" },
     error: { color: colors.danger, fontWeight: "600", marginBottom: 12 },

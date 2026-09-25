@@ -35,7 +35,7 @@ export async function GET(
   try {
     const post = await db.post.findUnique({
       where: { id: postId },
-      select: { id: true, authorId: true },
+      select: { id: true, authorId: true, communityId: true },
     });
     if (!post) {
       return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
@@ -54,7 +54,7 @@ export async function GET(
 
     return NextResponse.json({
       ...page,
-      postAuthorId: post.authorId,
+      postAuthorId: post.communityId ? null : post.authorId,
       viewerId,
     });
   } catch (e) {
@@ -99,7 +99,7 @@ export async function POST(
   try {
     const post = await db.post.findUnique({
       where: { id: postId },
-      select: { id: true, authorId: true },
+      select: { id: true, authorId: true, communityId: true },
     });
     if (!post) {
       return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });

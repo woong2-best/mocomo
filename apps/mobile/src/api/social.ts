@@ -85,6 +85,19 @@ export async function togglePostProfileFeature(postId: string) {
   });
 }
 
+export async function deleteOwnPost(postId: string) {
+  return apiRequest<{ ok: boolean; authorUsername?: string }>(MobileApi.post(postId), {
+    method: "DELETE",
+  });
+}
+
+export async function blockUser(userId: string) {
+  return apiRequest<{ ok: boolean; blocked: boolean }>(MobileApi.userBlock, {
+    method: "POST",
+    body: { userId },
+  });
+}
+
 export async function toggleMuteUser(userId: string, username: string) {
   return apiRequest<{ muted: boolean }>(MobileApi.userMute, {
     method: "POST",
@@ -173,6 +186,30 @@ export async function fetchUserProfile(username: string) {
   }>(MobileApi.user(username), { auth: true });
 }
 
+export type FollowListTab = "followers" | "following";
+
+export type ConnectionListUser = {
+  id: string;
+  username: string;
+  name: string | null;
+  image: string | null;
+  viewerFollows: boolean;
+};
+
+export async function fetchUserConnections(
+  username: string,
+  type: FollowListTab,
+  cursor?: string
+) {
+  const params = new URLSearchParams({ type });
+  if (cursor) params.set("cursor", cursor);
+  return apiRequest<{
+    users: ConnectionListUser[];
+    nextCursor: string | null;
+    profileUsername: string;
+  }>(`${MobileApi.userConnections(username)}?${params}`, { auth: true });
+}
+
 export async function toggleFollowUser(userId: string) {
   return apiRequest<{ following?: boolean; pending?: boolean; error?: string }>(
     MobileApi.follow,
@@ -181,4 +218,30 @@ export async function toggleFollowUser(userId: string) {
       body: { userId },
     }
   );
+}
+
+export type IncomingFollowRequest = {
+  id: string;
+  createdAt: string;
+  user: {
+    id: string;
+    username: string;
+    name: string | null;
+    image: string | null;
+    bio: string | null;
+  };
+};
+
+export async function fetchFollowRequests() {
+  return apiRequest<{ requests: IncomingFollowRequest[] }>(MobileApi.followRequests, {
+    auth: true,
+  });
+}
+
+export async function actOnFollowRequest(requesterId: string, action: "approve" | "reject") {
+  return apiRequest<{ ok: boolean }>(MobileApi.followRequests, {
+    method: "POST",
+    body: { requesterId, action },
+    auth: true,
+  });
 }

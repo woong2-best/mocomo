@@ -12,6 +12,7 @@ import { ClientTranslationProvider } from "@/providers/ClientTranslationProvider
 import { RootNavigator } from "@/navigation/RootNavigator";
 import { ThemeProvider, useTheme } from "@/theme/ThemeContext";
 import { IslandToastHost } from "@/ui/IslandToast";
+import { ScreenErrorBoundary } from "@/ui/ScreenErrorBoundary";
 import { perfMark } from "@/perf/mark";
 
 perfMark("app_start");
@@ -38,7 +39,9 @@ export default function App() {
             <AuthProvider>
               <I18nProvider>
                 <ClientTranslationProvider>
-                  <RootNavigator />
+                  <ScreenErrorBoundary label="앱">
+                    <RootNavigator />
+                  </ScreenErrorBoundary>
                   <IslandToastHost />
                 </ClientTranslationProvider>
               </I18nProvider>

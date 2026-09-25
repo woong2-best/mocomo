@@ -1,23 +1,19 @@
 import { db } from "@/lib/db";
-import {
-  ACCOUNT_SUSPENDED_SIGNUP_MESSAGE,
-  isServiceBanned,
-} from "@/lib/account-status";
+import { isServiceBanned } from "@/lib/account-status";
 import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
 import { recoverDeletedAccount } from "@/lib/account-deletion-server";
-import { findRestrictedIdentityUser } from "@/lib/ban-evasion";
 import { isOAuthEncryptionConfigured } from "@/lib/encryption";
-import {
-  FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
-  validateUsernameAndName,
-} from "@/lib/forbidden-admin-sequence";
-import { generateUniqueUsername } from "@/lib/oauth-username";
 import {
   findOAuthAccountBySub,
   findUserIdByOAuthEmail,
   hydrateUserOAuthProfile,
   persistEncryptedOAuthAccount,
 } from "@/lib/oauth-vault";
+import {
+  applyBirthDateIfMissing,
+  createOAuthUserWithConsent,
+  parseOAuthSignupCompletion,
+} from "@/lib/oauth-signup-completion";
 
 export type MobileNativeOAuthProvider = "naver" | "line";
 export type MobileNativeOAuthFlow = "signin" | "signup";
@@ -74,6 +70,7 @@ const USER_SELECT = {
   deletedAt: true,
   scheduledPurgeAt: true,
   emailVerified: true,
+  birthDate: true,
 } as const;
 
 type UserRow = {
@@ -89,6 +86,7 @@ type UserRow = {
   deletedAt: Date | null;
   scheduledPurgeAt: Date | null;
   emailVerified: Date | null;
+  birthDate: Date | null;
 };
 
 async function assertUsable(user: UserRow): Promise<void> {
@@ -207,50 +205,20 @@ async function linkNaverAccount(userId: string, profile: ProviderProfile, access
   });
 }
 
-async function createOAuthUser(profile: ProviderProfile): Promise<UserRow> {
-  if (profile.email) {
-    const restricted = await findRestrictedIdentityUser({ email: profile.email });
-    if (restricted) {
-      throw new MobileNativeOAuthError(
-        "signup_restricted",
-        ACCOUNT_SUSPENDED_SIGNUP_MESSAGE,
-        403
-      );
-    }
-  }
-
-  const username = await generateUniqueUsername(profile.email ?? profile.name ?? "user");
-  const displayName = profile.name?.trim() || username;
-  if (!validateUsernameAndName(username, displayName).ok) {
-    throw new MobileNativeOAuthError(
-      "invalid_username",
-      FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
-      400
-    );
-  }
-
-  return db.user.create({
-    data: {
-      email: profile.email,
-      emailVerified: profile.email ? new Date() : null,
-      name: displayName,
-      image: profile.image,
-      username,
-      profile: { create: {} },
-      otakuProfile: { create: {} },
-    },
-    select: USER_SELECT,
-  }) as Promise<UserRow>;
-}
-
 /**
  * Native Naver / LINE access token → MoCoMo account.
- * Unknown accounts return needsSignup until the app re-posts with flow=signup.
+ * Unknown accounts return needsSignup until the app re-posts with flow=signup
+ * plus birth date and terms consent.
  */
 export async function resolveMobileNativeOAuthAuth(input: {
   provider: MobileNativeOAuthProvider;
   accessToken: string;
   flow: MobileNativeOAuthFlow;
+  birthYear?: number;
+  birthMonth?: number;
+  birthDay?: number;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
 }): Promise<MobileNativeOAuthResult> {
   if (input.provider === "line" && !isOAuthEncryptionConfigured()) {
     throw new MobileNativeOAuthError(
@@ -294,9 +262,50 @@ export async function resolveMobileNativeOAuthAuth(input: {
         },
       };
     }
-    user = await createOAuthUser(profile);
+    const consent = parseOAuthSignupCompletion({
+      birthYear: input.birthYear,
+      birthMonth: input.birthMonth,
+      birthDay: input.birthDay,
+      termsAccepted: input.termsAccepted,
+      privacyAccepted: input.privacyAccepted,
+    });
+    if (!consent.ok) {
+      throw new MobileNativeOAuthError("signup_incomplete", consent.error, 400);
+    }
+    try {
+      const createdUser = await createOAuthUserWithConsent({
+        profile: {
+          email: profile.email,
+          name: profile.name,
+          image: profile.image,
+        },
+        birthDate: consent.birthDate,
+      });
+      user = await loadUser(createdUser.id);
+      if (!user) {
+        throw new MobileNativeOAuthError("signup_failed", "계정을 만들지 못했습니다.", 500);
+      }
+    } catch (e) {
+      if (e instanceof MobileNativeOAuthError) throw e;
+      throw new MobileNativeOAuthError(
+        "signup_failed",
+        e instanceof Error ? e.message : "계정을 만들지 못했습니다.",
+        400
+      );
+    }
     created = true;
     needsLink = true;
+  } else if (input.flow === "signup" && !user.birthDate) {
+    const consent = parseOAuthSignupCompletion({
+      birthYear: input.birthYear,
+      birthMonth: input.birthMonth,
+      birthDay: input.birthDay,
+      termsAccepted: input.termsAccepted,
+      privacyAccepted: input.privacyAccepted,
+    });
+    if (consent.ok) {
+      await applyBirthDateIfMissing(user.id, consent.birthDate);
+    }
   }
 
   await assertUsable(user);

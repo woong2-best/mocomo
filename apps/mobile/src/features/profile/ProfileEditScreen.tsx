@@ -108,6 +108,19 @@ export function ProfileEditScreen() {
     setHydrated(true);
   }, [query.data, hydrated]);
 
+  const publishMedia = useCallback(
+    async (patch: { image?: string | null; bannerUrl?: string | null; bannerVideoUrl?: string | null }) => {
+      await patchProfile(patch);
+      await refreshMe();
+      await queryClient.invalidateQueries({ queryKey: ["mobile-profile-edit"] });
+      if (authUser?.username) {
+        await queryClient.invalidateQueries({ queryKey: ["mobile-user", authUser.username] });
+      }
+      await queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+    },
+    [authUser?.username, queryClient, refreshMe]
+  );
+
   const saveMut = useMutation({
     mutationFn: async () => {
       const usernameNorm = username.trim().toLowerCase();
@@ -197,6 +210,7 @@ export function ProfileEditScreen() {
         category: "image",
       });
       setImage(url);
+      await publishMedia({ image: url });
       showIslandToast("Saved", "프로필 사진을 올렸습니다.");
     } catch (e) {
       setImage(image);
@@ -204,7 +218,7 @@ export function ProfileEditScreen() {
     } finally {
       setUploading(null);
     }
-  }, [image]);
+  }, [image, publishMedia]);
 
   const pickBannerImage = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -232,13 +246,14 @@ export function ProfileEditScreen() {
       });
       setBannerUrl(url);
       setBannerVideoUrl(null);
+      await publishMedia({ bannerUrl: url, bannerVideoUrl: null });
       showIslandToast("Saved", "배너를 올렸습니다.");
     } catch (e) {
       showIslandError("오류", apiErrorMessage(e, "배너 업로드에 실패했습니다."));
     } finally {
       setUploading(null);
     }
-  }, []);
+  }, [publishMedia]);
 
   const pickBannerVideo = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -268,13 +283,14 @@ export function ProfileEditScreen() {
       });
       setBannerVideoUrl(url);
       setBannerUrl(null);
+      await publishMedia({ bannerUrl: null, bannerVideoUrl: url });
       showIslandToast("Saved", "배너 동영상을 올렸습니다.");
     } catch (e) {
       showIslandError("오류", apiErrorMessage(e, "배너 동영상 업로드에 실패했습니다."));
     } finally {
       setUploading(null);
     }
-  }, []);
+  }, [publishMedia]);
 
   const usernameLocked = usernameChangesRemaining <= 0;
 

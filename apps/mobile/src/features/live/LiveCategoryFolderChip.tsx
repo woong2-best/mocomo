@@ -5,19 +5,22 @@ import {
   type MobileLiveCategoryId,
 } from "@/features/live/live-categories";
 
-/** Compact folder chips — user assets, scaled down from oversized rail. */
-const FOLDER_W = 44;
-const FOLDER_H = 52;
+const FOLDER_SIZE = {
+  chip: { w: 44, h: 52, labelTop: 10, fontSize: 6, lineHeight: 7 },
+  rail: { w: 88, h: 104, labelTop: 18, fontSize: 9, lineHeight: 11 },
+} as const;
 
 type Props = {
   id: Exclude<MobileLiveCategoryId, "ALL">;
   label: string;
   active: boolean;
+  size?: keyof typeof FOLDER_SIZE;
   onPress: () => void;
 };
 
 /** Compact folder chip for live chrome — white label centered on folder face. */
-export function LiveCategoryFolderChip({ id, label, active, onPress }: Props) {
+export function LiveCategoryFolderChip({ id, label, active, size = "chip", onPress }: Props) {
+  const dim = FOLDER_SIZE[size];
   return (
     <Pressable
       onPress={onPress}
@@ -26,14 +29,21 @@ export function LiveCategoryFolderChip({ id, label, active, onPress }: Props) {
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
     >
-      <View style={styles.folder}>
+      <View style={{ width: dim.w, height: dim.h }}>
         <Image
           source={CATEGORY_FOLDER_IMAGE[id]}
-          style={styles.img}
+          style={{ width: dim.w, height: dim.h }}
           contentFit="contain"
         />
-        <View style={styles.labelWrap} pointerEvents="none">
-          <Text style={styles.label} numberOfLines={1} allowFontScaling={false}>
+        <View
+          style={[styles.labelWrap, { paddingTop: dim.labelTop }]}
+          pointerEvents="none"
+        >
+          <Text
+            style={[styles.label, { fontSize: dim.fontSize, lineHeight: dim.lineHeight }]}
+            numberOfLines={1}
+            allowFontScaling={false}
+          >
             {label}
           </Text>
         </View>
@@ -48,28 +58,17 @@ const styles = StyleSheet.create({
   },
   hitOn: {
     opacity: 1,
-    transform: [{ scale: 1.05 }],
-  },
-  folder: {
-    width: FOLDER_W,
-    height: FOLDER_H,
-  },
-  img: {
-    ...StyleSheet.absoluteFillObject,
-    width: FOLDER_W,
-    height: FOLDER_H,
+    transform: [{ scale: 1.04 }],
   },
   /** Center on the folder body (below the tab). */
   labelWrap: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: 10,
     paddingHorizontal: 2,
   },
   label: {
     color: "#FFFFFF",
-    fontSize: 6,
     fontWeight: "800",
     letterSpacing: 0,
     textAlign: "center",
@@ -77,6 +76,5 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.9)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
-    lineHeight: 7,
   },
 });

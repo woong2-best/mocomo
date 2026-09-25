@@ -47,6 +47,7 @@ export const authConfig = {
         if (
           target.pathname.startsWith("/auth/signup") ||
           target.pathname.startsWith("/auth/oauth/complete") ||
+          target.pathname.startsWith("/auth/complete-oauth-signup") ||
           target.pathname.startsWith("/auth/mobile/")
         ) {
           return `${base.origin}${target.pathname}${target.search}${target.hash}`;
@@ -81,6 +82,7 @@ export const authConfig = {
         }
         session.user.supportTierSent = token.supportTierSent;
         session.user.earnedMocoTier = token.earnedMocoTier;
+        session.user.image = typeof token.picture === "string" ? token.picture : null;
       }
       return session;
     },

@@ -22,6 +22,8 @@ import type { SignupRole } from "@/features/auth/SignupRoleFollowUpSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing } from "@/theme/tokens";
 import { SignupCompleteCelebration } from "@/features/auth/SignupCompleteCelebration";
+import { detectDeviceTimeZone } from "@/lib/device-timezone";
+import { filterSettingCountries, settingCountryLabel } from "@/lib/setting-countries";
 
 export type SignupOnboardingBirth = {
   birthYear: number;
@@ -45,23 +47,6 @@ type Props = {
 
 type Step = "locale" | "birth" | "role" | "avatar" | "done";
 
-const COUNTRIES = [
-  { id: "KR", label: "대한민국" },
-  { id: "US", label: "United States" },
-  { id: "JP", label: "日本" },
-  { id: "CN", label: "中国" },
-  { id: "TW", label: "台灣" },
-] as const;
-
-const TIMEZONES = [
-  "Asia/Seoul",
-  "Asia/Tokyo",
-  "America/Los_Angeles",
-  "America/New_York",
-  "Europe/London",
-  "UTC",
-] as const;
-
 /**
  * Mobile signup tail: country/TZ → birth → role → gallery avatar → fireworks.
  */
@@ -77,7 +62,8 @@ export function SignupOnboardingSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [countryCode, setCountryCode] = useState("KR");
-  const [timeZone, setTimeZone] = useState("Asia/Seoul");
+  const [timeZone, setTimeZone] = useState(() => detectDeviceTimeZone());
+  const [countryQuery, setCountryQuery] = useState("");
   const [birthYear, setBirthYear] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [birthDay, setBirthDay] = useState("");
@@ -91,7 +77,8 @@ export function SignupOnboardingSheet({
       setBusy(false);
       setError("");
       setCountryCode("KR");
-      setTimeZone("Asia/Seoul");
+      setTimeZone(detectDeviceTimeZone());
+      setCountryQuery("");
       setBirthYear("");
       setBirthMonth("");
       setBirthDay("");
@@ -130,7 +117,7 @@ export function SignupOnboardingSheet({
     setError("");
     try {
       if (mode === "postAuth") {
-        await patchMe({ countryCode, timeZone });
+        await patchMe({ countryCode, timeZone: detectDeviceTimeZone() });
       }
       setStep("birth");
     } catch (e) {
@@ -183,7 +170,7 @@ export function SignupOnboardingSheet({
         birthMonth: birth.birthMonth,
         birthDay: birth.birthDay,
       });
-      await patchMe({ countryCode, timeZone });
+      await patchMe({ countryCode, timeZone: detectDeviceTimeZone() });
       setImageUrl(url);
       setStep("done");
     } catch (e) {
@@ -224,61 +211,52 @@ export function SignupOnboardingSheet({
 
             {step === "locale" ? (
               <>
-                <Text style={[styles.title, { color: colors.text }]}>국가 · 시간대</Text>
+                <Text style={[styles.title, { color: colors.text }]}>국가</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
-                  달력·방송 일정이 이 시간대 기준으로 표시됩니다. 나중에 설정에서 바꿀 수 있어요.
+                  국가를 검색해 선택하세요. 시간대는 이 스마트폰 시계를 따릅니다.
                 </Text>
-                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>국가</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={{ marginBottom: 12 }}
-                >
-                  {COUNTRIES.map((c) => (
-                    <Pressable
-                      key={c.id}
-                      onPress={() => {
-                        setCountryCode(c.id);
-                        if (c.id === "KR") setTimeZone("Asia/Seoul");
-                        if (c.id === "JP") setTimeZone("Asia/Tokyo");
-                        if (c.id === "US") setTimeZone("America/Los_Angeles");
-                      }}
-                      style={[
-                        styles.chip,
-                        {
-                          borderColor: countryCode === c.id ? colors.brand : colors.border,
-                          backgroundColor:
-                            countryCode === c.id ? `${colors.brand}22` : colors.surfaceRaised,
-                        },
-                      ]}
-                    >
-                      <Text style={{ color: colors.text, fontWeight: "700", fontSize: 13 }}>
-                        {c.label}
-                      </Text>
-                    </Pressable>
-                  ))}
+                <TextInput
+                  value={countryQuery}
+                  onChangeText={setCountryQuery}
+                  placeholder="국가 이름 검색"
+                  placeholderTextColor={colors.textMuted}
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  style={[
+                    styles.search,
+                    {
+                      color: colors.text,
+                      borderColor: colors.border,
+                      backgroundColor: colors.surfaceRaised,
+                    },
+                  ]}
+                />
+                <ScrollView style={{ maxHeight: 220, marginBottom: 12 }} keyboardShouldPersistTaps="handled">
+                  {filterSettingCountries(countryQuery, "ko").map((code) => {
+                    const active = countryCode === code;
+                    return (
+                      <Pressable
+                        key={code}
+                        onPress={() => setCountryCode(code)}
+                        style={[
+                          styles.countryRow,
+                          {
+                            backgroundColor: active ? `${colors.brand}22` : "transparent",
+                          },
+                        ]}
+                      >
+                        <Text style={{ color: colors.text, fontWeight: active ? "800" : "600", fontSize: 14 }}>
+                          {active ? ">> " : ""}
+                          {settingCountryLabel(code, "ko")}
+                        </Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>{code}</Text>
+                      </Pressable>
+                    );
+                  })}
                 </ScrollView>
-                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>시간대</Text>
-                <View style={styles.tzWrap}>
-                  {TIMEZONES.map((tz) => (
-                    <Pressable
-                      key={tz}
-                      onPress={() => setTimeZone(tz)}
-                      style={[
-                        styles.chip,
-                        {
-                          borderColor: timeZone === tz ? colors.brand : colors.border,
-                          backgroundColor:
-                            timeZone === tz ? `${colors.brand}22` : colors.surfaceRaised,
-                        },
-                      ]}
-                    >
-                      <Text style={{ color: colors.text, fontWeight: "700", fontSize: 12 }}>
-                        {tz}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
+                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>
+                  시간대 · {timeZone}
+                </Text>
                 {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
                 <Pressable
                   style={[styles.primary, { backgroundColor: busy ? colors.muted : colors.brand }]}
@@ -525,6 +503,22 @@ const styles = StyleSheet.create({
   sub: { fontSize: 14, marginTop: 6, marginBottom: 18, lineHeight: 20 },
   birthRow: { flexDirection: "row", gap: 10, marginBottom: 8 },
   fieldLabel: { fontSize: 12, fontWeight: "700", marginBottom: 6 },
+  search: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  countryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
   chip: {
     borderWidth: 1.5,
     borderRadius: radii.pill,

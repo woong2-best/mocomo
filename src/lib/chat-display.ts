@@ -11,6 +11,7 @@ type RoomMember = {
     image: string | null;
     name?: string | null;
     supportTierSent?: SupportTierLevel;
+    timeZone?: string | null;
   };
 };
 
@@ -26,9 +27,23 @@ type RoomPreview = {
   }[];
 };
 
+export function groupMemberDisplayNames(
+  members: RoomMember[],
+  currentUserId: string
+): string {
+  const others = members.filter((m) => m.userId !== currentUserId);
+  const names = others
+    .map((m) => m.user.name?.trim() || m.user.username)
+    .filter(Boolean);
+  if (names.length === 0) return "단체 대화";
+  if (names.length <= 3) return names.join(", ");
+  return `${names.slice(0, 3).join(", ")} 외 ${names.length - 3}명`;
+}
+
 export function getConversationMeta(room: RoomPreview, currentUserId: string) {
   const other = room.members.find((m) => m.userId !== currentUserId);
   const isDm = room.type === "DM";
+  const isGroup = room.type === "GROUP";
   const typeLabel =
     room.type === "COSPLAYER_GROUP"
       ? "코스어 단체방"
@@ -39,8 +54,13 @@ export function getConversationMeta(room: RoomPreview, currentUserId: string) {
           : room.type;
   const displayName =
     room.name ||
-    (isDm && other ? other.user.name || other.user.username : typeLabel);
-  const displayImage = isDm && other ? other.user.image : null;
+    (isDm && other
+      ? other.user.name || other.user.username
+      : isGroup
+        ? groupMemberDisplayNames(room.members, currentUserId)
+        : typeLabel);
+  const displayImage =
+    (isDm || isGroup) && other ? other.user.image : null;
   const otherUserId = isDm && other ? other.user.id : undefined;
   const last = room.messages[0];
 
@@ -50,6 +70,14 @@ export function getConversationMeta(room: RoomPreview, currentUserId: string) {
     otherUserId,
     supportTierSent: isDm && other ? other.user.supportTierSent : undefined,
     profileUsername: isDm && other ? other.user.username : undefined,
+    otherTimeZone: isDm && other ? other.user.timeZone ?? null : null,
+    memberClocks: room.members
+      .filter((m) => m.userId !== currentUserId && m.user.timeZone)
+      .map((m) => ({
+        id: m.user.id,
+        name: m.user.name?.trim() || m.user.username,
+        timeZone: m.user.timeZone as string,
+      })),
     lastMessage: lastMessagePreview(last?.content, last?.attachments),
     lastMessageAt: last?.createdAt ?? null,
   };

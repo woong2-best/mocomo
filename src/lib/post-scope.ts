@@ -16,3 +16,9 @@ export function withPlatformPostsOnly<T extends Prisma.PostWhereInput>(
 ): Prisma.PostWhereInput {
   return { AND: [platformPostWhere, where] };
 }
+
+/** QnA(community) 글은 좋아요·재게시 대상이 아니다. null이면 허용. */
+export function qnaEngagementError(communityId: string | null | undefined): string | null {
+  if (communityId) return "QnA에서는 좋아요와 재게시를 사용할 수 없습니다.";
+  return null;
+}

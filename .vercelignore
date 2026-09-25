@@ -39,6 +39,7 @@ agent-transcripts/
 handoff-account-overlay/
 .gradle-agent/
 .gradle/
+.gradle-local/
 **/.gradle/
 
 # Heavy static worktrees — already on CDN from prior git deploys; CLI upload exceeds 10mb
@@ -46,6 +47,10 @@ public/diorama/
 public/piano-rush/
 public/apt/
 public/mediapipe/
+
+# Local DB migration dump and portable Postgres (not part of the site)
+.tools/
+.migration-dump/
 
 # Local scratch / compare / native module build junk
 .tmp-card-compare/

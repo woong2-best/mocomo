@@ -23,7 +23,16 @@ export function formatKrw(won: number): string {
 export function formatPrice(amount: number, currency?: string | null): string {
   const c = (currency ?? "krw").toLowerCase();
   if (c === "usd") return formatUsd(amount);
-  return formatKrw(amount);
+  if (c === "krw") return formatKrw(amount);
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: c.toUpperCase(),
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${amount.toLocaleString()} ${c.toUpperCase()}`;
+  }
 }
 
 export const MIN_PAYOUT_USD_CENTS = 1_000;

@@ -65,6 +65,16 @@ export async function submitContentReport(data: {
 
   let moderationCaseId: string | undefined;
   let reportedUserId = data.reportedUserId;
+  if (!reportedUserId || reportedUserId === "anonymous") {
+    const postId = data.postId || (data.targetType === "POST" ? data.targetId : undefined);
+    if (postId) {
+      const row = await db.post.findUnique({
+        where: { id: postId },
+        select: { authorId: true },
+      });
+      reportedUserId = row?.authorId;
+    }
+  }
 
   if (!reportedUserId && data.targetType === "USER") {
     reportedUserId = data.targetId;

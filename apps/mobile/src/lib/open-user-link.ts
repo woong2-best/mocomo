@@ -1,5 +1,6 @@
 import { Alert, Linking } from "react-native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { openUserProfile } from "@/features/profile/user-profile-nav";
 import { normalizeUserLink } from "@/lib/linkify";
 import type { RootStackParamList } from "@/navigation/types";
 
@@ -26,7 +27,7 @@ export async function openUserLink(
       }
       const username = u.pathname.match(/^\/u\/([^/?#]+)/i)?.[1];
       if (username) {
-        navigation.navigate("UserProfile", { username: decodeURIComponent(username) });
+        openUserProfile(navigation, { username: decodeURIComponent(username) });
         return;
       }
     }

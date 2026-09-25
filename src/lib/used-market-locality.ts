@@ -50,8 +50,7 @@ export async function resolveUsedMarketLocality(
       });
       if (user) {
         const countryCode = normalizeUsedMarketCountry(user.countryCode);
-        const serviceRegion = user.usedServiceRegion?.trim() || null;
-        return { countryCode, serviceRegion };
+        return { countryCode, serviceRegion: null };
       }
     } catch {
       /* column may be missing during rollout */

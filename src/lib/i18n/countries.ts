@@ -2,6 +2,7 @@ import {
   filterOfacAllowedCountries,
   isOfacSanctionedCountry,
 } from "@/lib/compliance/ofac-sanctioned-countries";
+import { isSettingsExcludedCountry } from "@/lib/i18n/settings-excluded-countries";
 import type { Locale } from "@/lib/i18n/config";
 
 export type CountryLocale = Locale;
@@ -320,10 +321,16 @@ export const COUNTRY_REGIONS: CountryRegion[] = [
   },
 ];
 
-/** OFAC 제재 국가 제외 — 회원가입·설정 국가 선택용 */
+function filterSettingsAllowedCountries(items: CountryEntry[]): CountryEntry[] {
+  return filterOfacAllowedCountries(items).filter(
+    (item) => !isSettingsExcludedCountry(item.code)
+  );
+}
+
+/** OFAC + settings-excluded countries — 회원가입·설정 국가 선택용 */
 export const ALLOWED_COUNTRY_REGIONS: CountryRegion[] = COUNTRY_REGIONS.map((region) => ({
   ...region,
-  countries: filterOfacAllowedCountries(region.countries),
+  countries: filterSettingsAllowedCountries(region.countries),
 })).filter((region) => region.countries.length > 0);
 
 export const ALLOWED_COUNTRIES: CountryEntry[] = ALLOWED_COUNTRY_REGIONS.flatMap(
@@ -353,7 +360,11 @@ export function isKnownCountryCode(code: string): boolean {
 }
 
 export function isSelectableCountryCode(code: string): boolean {
-  return isKnownCountryCode(code) && !isOfacSanctionedCountry(code);
+  return (
+    isKnownCountryCode(code) &&
+    !isOfacSanctionedCountry(code) &&
+    !isSettingsExcludedCountry(code)
+  );
 }
 
 export function regionLabel(region: CountryRegion, locale: CountryLocale): string {

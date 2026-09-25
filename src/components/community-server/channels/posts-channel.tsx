@@ -1,9 +1,8 @@
 import { Suspense } from "react";
 import { db } from "@/lib/db";
-import { PostsChannelHeader } from "@/components/community-server/channels/posts-channel-header";
 import { PostsChannelShell } from "@/components/community-server/channels/posts-channel-shell";
 import { CommunityPostsBoard } from "@/components/community-server/channels/community-posts-board";
-import { userPublicSelect, userDisplayName } from "@/lib/user-public-select";
+import { ANONYMOUS_AUTHOR_USERNAME, ANONYMOUS_DISPLAY_NAME } from "@/lib/anonymous-post";
 import type { CommunityPostsBoardItem } from "@/lib/community-posts-board";
 
 export async function PostsChannelView({
@@ -26,7 +25,6 @@ export async function PostsChannelView({
       isPinned: true,
       viewCount: true,
       createdAt: true,
-      author: { select: userPublicSelect },
       _count: { select: { likes: true, comments: true } },
     },
   });
@@ -40,18 +38,16 @@ export async function PostsChannelView({
     likeCount: p._count.likes,
     commentCount: p._count.comments,
     createdAt: p.createdAt.toISOString(),
-    authorUsername: p.author.username,
-    authorName: userDisplayName(p.author),
+    authorUsername: ANONYMOUS_AUTHOR_USERNAME,
+    authorName: ANONYMOUS_DISPLAY_NAME,
+    isAnonymous: true,
   }));
 
   return (
     <PostsChannelShell communityId={communityId}>
-      <PostsChannelHeader />
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
-        <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-muted/40" />}>
-          <CommunityPostsBoard posts={posts} communitySlug={communitySlug} />
-        </Suspense>
-      </div>
+      <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-muted/40" />}>
+        <CommunityPostsBoard posts={posts} communitySlug={communitySlug} />
+      </Suspense>
     </PostsChannelShell>
   );
 }

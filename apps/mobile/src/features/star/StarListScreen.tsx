@@ -15,17 +15,18 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import type { StarHubCreator } from "@/api/discovery";
 import {
-  clearAllStarBookmarks,
-  fetchStarHub,
-  type StarHubCreator,
-} from "@/api/discovery";
+  commitClearStarHub,
+  starCoverUrl,
+  starHubQueryOptions,
+} from "@/api/star-hub-cache";
 import type { FeedPost } from "@/api/feed";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
-import { IMAGE_CACHE_POLICY } from "@/perf/image";
+import { cachedImageSource, IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -42,11 +43,12 @@ function formatDuration(sec: number | null | undefined): string | null {
 
 function pickCover(post: FeedPost) {
   const media = post.media?.[0];
-  if (!media?.url) return null;
+  const url = starCoverUrl(post);
+  if (!url) return null;
   return {
-    url: media.posterUrl?.trim() || media.url,
-    type: media.type,
-    duration: media.duration,
+    url,
+    type: media?.type,
+    duration: media?.duration,
   };
 }
 
@@ -61,10 +63,7 @@ export function StarListScreen() {
   const [creatorId, setCreatorId] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
 
-  const query = useQuery({
-    queryKey: ["mobile-star-hub", creatorId],
-    queryFn: () => fetchStarHub(creatorId),
-  });
+  const query = useQuery(starHubQueryOptions(queryClient, creatorId));
 
   const onClearAll = useCallback(() => {
     const total = query.data?.total ?? 0;
@@ -78,18 +77,17 @@ export function StarListScreen() {
           text: "전체 삭제",
           style: "destructive",
           onPress: () => {
+            const prevCreator = creatorId;
             setClearing(true);
-            void clearAllStarBookmarks()
-              .then(() => {
-                setCreatorId(null);
-                void queryClient.invalidateQueries({ queryKey: ["mobile-star-hub"] });
-              })
+            setCreatorId(null);
+            void commitClearStarHub(queryClient)
+              .catch(() => setCreatorId(prevCreator))
               .finally(() => setClearing(false));
           },
         },
       ]
     );
-  }, [query.data?.total, queryClient]);
+  }, [creatorId, query.data?.total, queryClient]);
 
   const renderCreator = useCallback(
     (creator: StarHubCreator | "all") => {
@@ -135,10 +133,12 @@ export function StarListScreen() {
         >
           {cover?.url ? (
             <Image
-              source={{ uri: cover.url }}
+              source={cachedImageSource(cover.url)}
               style={StyleSheet.absoluteFill}
               contentFit="cover"
               cachePolicy={IMAGE_CACHE_POLICY}
+              recyclingKey={cover.url}
+              transition={0}
             />
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.cellFallback]}>

@@ -10,12 +10,13 @@ import { useActivityOptional } from "@/components/activities/activity-provider";
 import { createCommunityChannelPost } from "@/actions/community-content";
 import { useCommunityMembership } from "@/components/community-server/community-membership-context";
 import { hasPermission } from "@/lib/community-server/permissions";
-import { toAbsoluteUploadUrl, uploadAudioBlob, uploadImageBlob } from "@/lib/client-upload";
+import { toAbsoluteUploadUrl, uploadAudioBlob, uploadImageBlob, uploadVideoBlob } from "@/lib/client-upload";
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import { cn } from "@/lib/utils";
 
 const MAX_VOICE_SEC = 120;
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif";
+const MEDIA_ACCEPT = `${IMAGE_ACCEPT},video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov`;
 
 function pickVoiceMime(): string {
   const types = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"];
@@ -70,6 +71,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
       const result = await createCommunityChannelPost(communityId, {
         content: content ?? undefined,
         media,
+        isAnonymous: true,
       });
       if (result.error) {
         setError(result.error);
@@ -109,20 +111,27 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
   async function onGalleryPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file || !isGalleryImageFile(file, true)) {
-      setError("이미지 파일을 선택해 주세요.");
+    if (!file) return;
+    const video = file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name);
+    if (!video && !isGalleryImageFile(file, true)) {
+      setError("사진 또는 영상 파일을 선택해 주세요.");
       return;
     }
     setUploading(true);
     setError("");
     try {
-      const prepared = await fileToUploadableJpeg(file);
-      const url = toAbsoluteUploadUrl(await uploadImageBlob(prepared, prepared.name));
       const caption = draft.trim() || undefined;
       if (caption) setDraft("");
-      await publishPost(caption ?? null, [{ url, type: "IMAGE" }]);
+      if (video) {
+        const url = toAbsoluteUploadUrl(await uploadVideoBlob(file, file.name));
+        await publishPost(caption ?? null, [{ url, type: "VIDEO" }]);
+      } else {
+        const prepared = await fileToUploadableJpeg(file);
+        const url = toAbsoluteUploadUrl(await uploadImageBlob(prepared, prepared.name));
+        await publishPost(caption ?? null, [{ url, type: "IMAGE" }]);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "사진 게시에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "파일 게시에 실패했습니다.");
     } finally {
       setUploading(false);
     }
@@ -294,7 +303,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
           ) : null}
           <label
             htmlFor={galleryInputId}
-            aria-label="갤러리에서 사진"
+            aria-label="사진 또는 영상"
             className={cn(
               "inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground cursor-pointer hover:bg-muted/60 transition-colors",
               (uploading || recording) && "pointer-events-none opacity-50"
@@ -367,7 +376,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
       <input
         id={galleryInputId}
         type="file"
-        accept={IMAGE_ACCEPT}
+        accept={MEDIA_ACCEPT}
         className="sr-only"
         disabled={uploading || recording}
         onChange={onGalleryPick}

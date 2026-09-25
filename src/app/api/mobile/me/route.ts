@@ -21,8 +21,10 @@ import {
   getProfileSettingsForUser,
 } from "@/lib/profile-update-service";
 import { isValidUsername, normalizeUsername } from "@/lib/username-policy";
-import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
-import { defaultUsedRegionForCountry, isValidUsedRegion } from "@/lib/used-regions-global";
+import { assertSettingsCountrySelectable } from "@/lib/i18n/settings-excluded-countries";
+import { isValidUsedRegion } from "@/lib/used-regions-global";
+import { setPostsLockedForUser } from "@/lib/posts-lock-settings";
+import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
 
 const meSelect = {
   id: true,
@@ -33,6 +35,7 @@ const meSelect = {
   countryCode: true,
   usedServiceRegion: true,
   timeZone: true,
+  postsLocked: true,
   createdAt: true,
   isBanned: true,
   accountStatus: true,
@@ -77,17 +80,25 @@ export async function GET(req: NextRequest) {
   }
 
   const settings = await getProfileSettingsForUser(userId);
+  const displayed = await hydrateUserOAuthProfile({
+    id: user.id,
+    name: user.name,
+    image: user.image,
+    email: null,
+    passwordHash: user.passwordHash,
+  });
 
   return NextResponse.json({
     user: {
       id: user.id,
       username: user.username,
-      name: user.name,
-      image: user.image,
+      name: displayed.name,
+      image: displayed.image,
       locale: user.locale,
       countryCode: user.countryCode,
       usedServiceRegion: user.usedServiceRegion,
       timeZone: user.timeZone,
+      postsLocked: user.postsLocked,
       bio: user.profile?.bio ?? null,
       bannerUrl: user.profile?.bannerUrl ?? null,
       bannerVideoUrl: user.profile?.bannerVideoUrl ?? null,
@@ -148,6 +159,7 @@ const patchSchema = z.object({
   timeZone: z.string().min(1).max(64).optional(),
   feedRecommendationEnabled: z.boolean().optional(),
   showLikeCounts: z.boolean().optional(),
+  postsLocked: z.boolean().optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -241,16 +253,19 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (data.locale || data.countryCode || data.timeZone || data.usedServiceRegion) {
-    if (data.countryCode) {
-      const countryBlock = assertCountrySelectable(data.countryCode);
-      if (countryBlock) {
-        return NextResponse.json({ error: countryBlock.error }, { status: 403 });
-      }
-    }
     const storedCountry = await db.user.findUnique({
       where: { id: auth.user.id },
       select: { countryCode: true },
     });
+    if (data.countryCode) {
+      const countryBlock = assertSettingsCountrySelectable(
+        data.countryCode,
+        storedCountry?.countryCode
+      );
+      if (countryBlock) {
+        return NextResponse.json({ error: countryBlock.error }, { status: 403 });
+      }
+    }
     const nextCountry = data.countryCode
       ? data.countryCode.trim().toUpperCase()
       : storedCountry?.countryCode ?? "KR";
@@ -267,7 +282,6 @@ export async function PATCH(req: NextRequest) {
         ...(data.countryCode
           ? {
               countryCode: data.countryCode.trim().toUpperCase(),
-              usedServiceRegion: defaultUsedRegionForCountry(data.countryCode),
             }
           : {}),
         ...(data.usedServiceRegion
@@ -278,6 +292,13 @@ export async function PATCH(req: NextRequest) {
     });
     if (data.countryCode || data.usedServiceRegion) {
       revalidatePath("/market");
+    }
+  }
+
+  if (data.postsLocked !== undefined) {
+    const lockResult = await setPostsLockedForUser(auth.user.id, data.postsLocked);
+    if ("error" in lockResult) {
+      return NextResponse.json({ error: lockResult.error }, { status: 400 });
     }
   }
 

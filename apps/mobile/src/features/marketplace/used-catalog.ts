@@ -11,6 +11,16 @@ export const USED_CATEGORIES = [
   { id: "DIGITAL", label: "디지털 / 가전" },
 ] as const;
 
+/** 글쓰기 상품 종류 — 목록 카테고리와 동일. */
+export const USED_SELL_KINDS = [
+  { id: "FIGURE", label: "피규어" },
+  { id: "TCG", label: "TCG" },
+  { id: "GOODS", label: "굿즈" },
+  { id: "BOOK", label: "도서" },
+  { id: "COSPLAY", label: "코스프레" },
+  { id: "DIGITAL", label: "디지털" },
+] as const;
+
 export const USED_PRODUCT_TYPES = [
   { id: "FIGURE", label: "피규어" },
   { id: "PLAMODEL", label: "프라모델" },
@@ -160,5 +170,78 @@ export function usedStatusLabel(status: string) {
 
 export function productTypeLabel(id: string | null | undefined): string {
   if (!id) return "";
-  return USED_PRODUCT_TYPES.find((p) => p.id === id)?.label ?? id;
+  return (
+    USED_SELL_KINDS.find((p) => p.id === id)?.label ??
+    USED_PRODUCT_TYPES.find((p) => p.id === id)?.label ??
+    id
+  );
+}
+
+export const USED_CURRENCY_META: Record<string, { id: string; label: string; symbol: string }> = {
+  krw: { id: "krw", label: "원 (KRW)", symbol: "₩" },
+  usd: { id: "usd", label: "달러 (USD)", symbol: "$" },
+  jpy: { id: "jpy", label: "엔 (JPY)", symbol: "¥" },
+  eur: { id: "eur", label: "유로 (EUR)", symbol: "€" },
+  gbp: { id: "gbp", label: "파운드 (GBP)", symbol: "£" },
+  twd: { id: "twd", label: "대만 달러 (TWD)", symbol: "NT$" },
+  cny: { id: "cny", label: "위안 (CNY)", symbol: "¥" },
+  hkd: { id: "hkd", label: "홍콩 달러 (HKD)", symbol: "HK$" },
+  sgd: { id: "sgd", label: "싱가포르 달러 (SGD)", symbol: "S$" },
+  aud: { id: "aud", label: "호주 달러 (AUD)", symbol: "A$" },
+  cad: { id: "cad", label: "캐나다 달러 (CAD)", symbol: "C$" },
+  thb: { id: "thb", label: "바트 (THB)", symbol: "฿" },
+};
+
+const EUROZONE = new Set([
+  "AT", "BE", "CY", "DE", "EE", "ES", "FI", "FR", "GR", "HR", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PT", "SI", "SK",
+]);
+
+const COUNTRY_HOME_CURRENCY: Record<string, string> = {
+  KR: "krw",
+  JP: "jpy",
+  US: "usd",
+  GB: "gbp",
+  TW: "twd",
+  CN: "cny",
+  HK: "hkd",
+  SG: "sgd",
+  AU: "aud",
+  CA: "cad",
+  TH: "thb",
+};
+
+export function homeCurrencyForCountry(countryCode?: string | null): string {
+  const cc = (countryCode ?? "KR").toUpperCase();
+  if (COUNTRY_HOME_CURRENCY[cc]) return COUNTRY_HOME_CURRENCY[cc];
+  if (EUROZONE.has(cc)) return "eur";
+  return "usd";
+}
+
+export function listingCurrencyChoices(countryCode?: string | null) {
+  const homeId = homeCurrencyForCountry(countryCode);
+  const home = USED_CURRENCY_META[homeId] ?? USED_CURRENCY_META.usd;
+  const usd = USED_CURRENCY_META.usd;
+  if (home.id === "usd") return [usd];
+  return [home, usd];
+}
+
+export function parseListingPriceInput(raw: string, currency: string): number {
+  const cleaned = raw.trim().replace(/,/g, "");
+  if (!cleaned) return 0;
+  if (currency === "usd") {
+    const dollars = Number(cleaned);
+    if (!Number.isFinite(dollars) || dollars < 0) return 0;
+    return Math.round(dollars * 100);
+  }
+  return Math.floor(Number(cleaned) || 0);
+}
+
+export function productTypeForSellKind(kind: string): string | undefined {
+  const id = kind.toUpperCase();
+  if (id === "FIGURE") return "FIGURE";
+  if (id === "TCG") return "TCG_CARD";
+  if (id === "BOOK") return "BOOK";
+  if (id === "COSPLAY") return "COSPLAY_COSTUME";
+  if (id === "GOODS" || id === "DIGITAL") return "OTHER";
+  return undefined;
 }

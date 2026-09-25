@@ -8,7 +8,7 @@ import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 async function assertOwnPost(postId: string, userId: string) {
   const post = await db.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, author: { select: { username: true } } },
+    select: { authorId: true, isAnonymous: true, author: { select: { username: true } } },
   });
   if (!post) return null;
   if (post.authorId !== userId) return null;
@@ -28,6 +28,7 @@ export async function pinPostToProfile(postId: string): Promise<{ ok?: true; err
 
   const post = await assertOwnPost(postId, userId);
   if (!post) return { error: "본인 게시물만 고정할 수 있습니다." };
+  if (post.isAnonymous) return { error: "익명 질문은 프로필에 고정할 수 없습니다." };
 
   const me = await db.user.findUnique({
     where: { id: userId },
@@ -95,9 +96,10 @@ export async function featurePostOnMyProfile(
 
   const post = await db.post.findUnique({
     where: { id: postId },
-    select: { id: true, authorId: true },
+    select: { id: true, authorId: true, isAnonymous: true },
   });
   if (!post) return { error: "게시물을 찾을 수 없습니다." };
+  if (post.isAnonymous) return { error: "익명 질문은 프로필에 올릴 수 없습니다." };
 
   const me = await db.user.findUnique({
     where: { id: userId },

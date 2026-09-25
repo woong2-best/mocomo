@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,16 +19,15 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  fetchCommunityChannels,
   fetchCommunityDetail,
   joinCommunity,
-  openCommunityChannel,
   updateCommunityBranding,
 } from "@/api/community";
 import { ApiError } from "@/api/client";
 import { uploadLocalFile } from "@/api/upload-file";
-import { resolveCommunityCategoryDisplay } from "@/features/community/community-labels";
+import { resolveCommunityCategoryDisplay, galleryAuthorLabel } from "@/features/community/community-labels";
 import { trackRecentCommunity } from "@/features/community/recent-communities";
+import { useScrollFieldAboveKeyboard } from "@/lib/use-scroll-field-above-keyboard";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { AppHeader } from "@/ui/AppHeader";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast";
@@ -70,8 +71,10 @@ export function CommunityDetailScreen() {
   const showLikeCounts = useShowLikeCounts();
   const [joinMsg, setJoinMsg] = useState<string | null>(null);
   const [joinPassword, setJoinPassword] = useState("");
-  const [openingSlug, setOpeningSlug] = useState<string | null>(null);
   const [uploadingKind, setUploadingKind] = useState<"icon" | "banner" | null>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const { scrollRef, frameRef, keyboardLift, onScrollOffset, onInputFocus } =
+    useScrollFieldAboveKeyboard();
 
   const query = useQuery({
     queryKey: ["mobile-community", route.params.slug],
@@ -88,12 +91,6 @@ export function CommunityDetailScreen() {
     }
   }, [item?.slug, item?.name]);
 
-  const channelsQuery = useQuery({
-    queryKey: ["mobile-community-channels", route.params.slug],
-    queryFn: () => fetchCommunityChannels(route.params.slug),
-    enabled: !!item?.isMember,
-  });
-
   const join = useMutation({
     mutationFn: () =>
       joinCommunity(
@@ -108,24 +105,9 @@ export function CommunityDetailScreen() {
       await queryClient.invalidateQueries({
         queryKey: ["mobile-community", route.params.slug],
       });
-      await queryClient.invalidateQueries({
-        queryKey: ["mobile-community-channels", route.params.slug],
-      });
     },
     onError: (err) => setJoinMsg(apiErrorMessage(err, "가입에 실패했습니다.")),
   });
-
-  const openChannel = async (channelSlug: string, name: string) => {
-    setOpeningSlug(channelSlug);
-    try {
-      const res = await openCommunityChannel(route.params.slug, channelSlug);
-      navigation.navigate("MessageRoom", { roomId: res.roomId, title: `# ${name}` });
-    } catch (err) {
-      setJoinMsg(apiErrorMessage(err, "채널을 열 수 없습니다."));
-    } finally {
-      setOpeningSlug(null);
-    }
-  };
 
   const pickAndUpload = async (kind: "icon" | "banner") => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -164,13 +146,25 @@ export function CommunityDetailScreen() {
 
   return (
     <Screen>
-      <AppHeader title="커뮤니티" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title="QnA" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color="#c80000" />
       ) : query.isError || !item ? (
-        <Text style={styles.error}>커뮤니티를 불러오지 못했습니다.</Text>
+        <Text style={styles.error}>QnA를 불러오지 못했습니다.</Text>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+        <View ref={frameRef} style={{ flex: 1, marginBottom: keyboardLift }}>
+        <ScrollView
+          ref={scrollRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 32 + keyboardLift }}
+          keyboardShouldPersistTaps="handled"
+          onScroll={(e) => onScrollOffset(e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={16}
+        >
           <Pressable
             disabled={!item.canEditBanner || uploadingKind !== null}
             onPress={() => void pickAndUpload("banner")}
@@ -274,9 +268,11 @@ export function CommunityDetailScreen() {
               <>
                 {item.hasJoinPassword ? (
                   <TextInput
+                    ref={passwordRef}
                     style={styles.passwordInput}
                     value={joinPassword}
                     onChangeText={(t) => setJoinPassword(t.replace(/\D/g, "").slice(0, 4))}
+                    onFocus={() => onInputFocus(passwordRef.current)}
                     keyboardType="number-pad"
                     maxLength={4}
                     secureTextEntry
@@ -308,7 +304,7 @@ export function CommunityDetailScreen() {
                   }
                 >
                   <Ionicons name="arrow-forward-circle-outline" size={18} color="#c80000" />
-                  <Text style={styles.enterBtnOutlineText}>커뮤니티 들어가기</Text>
+                  <Text style={styles.enterBtnOutlineText}>갤러리 들어가기</Text>
                 </Pressable>
               </>
             ) : (
@@ -324,39 +320,11 @@ export function CommunityDetailScreen() {
                   }
                 >
                   <Ionicons name="arrow-forward-circle-outline" size={18} color="#fff" />
-                  <Text style={styles.enterBtnText}>커뮤니티 들어가기</Text>
+                  <Text style={styles.enterBtnText}>갤러리 들어가기</Text>
                 </Pressable>
               </>
             )}
             {joinMsg ? <Text style={styles.note}>{joinMsg}</Text> : null}
-
-            {item.isMember ? (
-              <>
-                <Text style={styles.section}>채널</Text>
-                {channelsQuery.isLoading ? (
-                  <ActivityIndicator color={colors.brand} />
-                ) : (channelsQuery.data?.items ?? []).length === 0 ? (
-                  <Text style={styles.muted}>텍스트 채널이 없습니다.</Text>
-                ) : (
-                  <>
-                    {channelsQuery.data!.items.map((ch) => (
-                      <Pressable
-                        key={ch.id}
-                        style={styles.channel}
-                        disabled={openingSlug === ch.slug}
-                        onPress={() => void openChannel(ch.slug, ch.name)}
-                      >
-                        <Text style={styles.channelName}># {ch.name}</Text>
-                        <Text style={styles.channelMeta}>
-                          {ch.categoryName ?? ch.type}
-                          {openingSlug === ch.slug ? " · 여는 중…" : ""}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </>
-                )}
-              </>
-            ) : null}
 
             <Text style={styles.section}>최근 글</Text>
             {item.posts.length === 0 ? (
@@ -372,7 +340,7 @@ export function CommunityDetailScreen() {
                     {p.title || p.content}
                   </Text>
                   <Text style={styles.postMeta}>
-                    @{p.author.username}
+                    {galleryAuthorLabel(p.author.name, p.author.username, true)}
                     {showLikeCounts ? ` · ♥ ${p.likeCount}` : ""} · 💬 {p.commentCount}
                   </Text>
                 </Pressable>
@@ -380,6 +348,8 @@ export function CommunityDetailScreen() {
             )}
           </View>
         </ScrollView>
+        </View>
+        </KeyboardAvoidingView>
       )}
     </Screen>
   );

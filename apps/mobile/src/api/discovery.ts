@@ -61,6 +61,7 @@ export async function fetchAnimeDetail(slug: string) {
       tags: string[];
       characters: unknown[];
       worldInfo: string | null;
+      infobox: string | null;
     };
   }>(MobileApi.animeSlug(slug), { auth: true });
 }
@@ -74,6 +75,7 @@ export async function patchMe(body: {
   timeZone?: string;
   feedRecommendationEnabled?: boolean;
   showLikeCounts?: boolean;
+  postsLocked?: boolean;
 }) {
   return apiRequest<{ ok: boolean }>(MobileApi.me, {
     method: "PATCH",

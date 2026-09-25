@@ -43,6 +43,8 @@ type Props = {
   onSelectPin: (pin: MapEventPin) => void;
   /** Focus camera on this pin when set */
   focusPinId?: string | null;
+  /** Drawer preview — no pan/zoom/pin taps */
+  preview?: boolean;
   style?: object;
 };
 
@@ -64,6 +66,7 @@ export function EventsNativeMap({
   selectedId,
   onSelectPin,
   focusPinId,
+  preview = false,
   style,
 }: Props) {
   const usablePins = useMemo(() => validPins(pins), [pins]);
@@ -126,6 +129,11 @@ export function EventsNativeMap({
         compass={false}
         attribution={false}
         logo={false}
+        scrollEnabled={!preview}
+        zoomEnabled={!preview}
+        rotateEnabled={!preview}
+        pitchEnabled={!preview}
+        doubleTouchZoomEnabled={!preview}
       >
         <Camera
           center={[view.lng, view.lat]}
@@ -136,13 +144,17 @@ export function EventsNativeMap({
         <GeoJSONSource
           id="event-pins"
           data={geojson}
-          onPress={(event: { nativeEvent?: { features?: Feature[] } }) => {
-            const feature = event.nativeEvent?.features?.[0];
-            const id = feature?.properties?.id;
-            if (typeof id !== "string") return;
-            const pin = usablePins.find((p) => p.id === id);
-            if (pin) onSelectPin(pin);
-          }}
+          onPress={
+            preview
+              ? undefined
+              : (event: { nativeEvent?: { features?: Feature[] } }) => {
+                  const feature = event.nativeEvent?.features?.[0];
+                  const id = feature?.properties?.id;
+                  if (typeof id !== "string") return;
+                  const pin = usablePins.find((p) => p.id === id);
+                  if (pin) onSelectPin(pin);
+                }
+          }
         >
           <Layer
             id="event-pins-halo"

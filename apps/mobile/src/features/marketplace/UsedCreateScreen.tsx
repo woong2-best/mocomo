@@ -7,74 +7,141 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
-import { createMarketplaceListing, fetchUsedPhoneStatus } from "@/api/marketplace";
+import { Ionicons } from "@expo/vector-icons";
+import {
+  createMarketplaceListing,
+  fetchMarketplaceDetail,
+  fetchUsedPhoneStatus,
+  updateMarketplaceListing,
+} from "@/api/marketplace";
 import { uploadLocalFile } from "@/api/upload-file";
 import { ApiError } from "@/api/client";
 import { MeetMap } from "@/maps/MeetMap";
 import type { MeetCoords } from "@/maps/types";
-import { AppHeader } from "@/ui/AppHeader";
-import { FolkButton } from "@/ui/FolkButton";
+import { MarketCheckOption } from "@/features/marketplace/MarketCheckOption";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
-import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import {
   EMPTY_MOBILE_SUBCULTURE,
   UsedSubcultureFormSection,
   type MobileSubcultureFormState,
 } from "@/features/marketplace/UsedSubcultureFormSection";
+import {
+  formatUsedRegion,
+  homeCurrencyForCountry,
+  KOREA_SIDO,
+  KOREA_SIGUNGU_BY_SIDO,
+  listingCurrencyChoices,
+  parseListingPriceInput,
+  productTypeForSellKind,
+  USED_CURRENCY_META,
+  USED_SHIPPING_REGION,
+} from "@/features/marketplace/used-catalog";
 
-const CATEGORIES = [
-  { id: "FIGURE", label: "피규어/프라모" },
-  { id: "GOODS", label: "굿즈/콜렉" },
-  { id: "COSPLAY", label: "코스프레" },
-  { id: "BOOK", label: "도서/음반" },
-  { id: "DIGITAL", label: "디지털" },
-  { id: "FASHION", label: "패션/잡화" },
-  { id: "OTHER", label: "기타" },
-] as const;
+const MAX_LISTING_IMAGES = 10;
 
-const REGIONS_KR = [
-  "전국 택배",
-  "서울 강남구",
-  "서울 마포구",
-  "서울 송파구",
-  "부산 해운대구",
-  "경기 성남시 분당구",
-] as const;
+type LocalListingImage = {
+  id: string;
+  uri: string;
+  mime: string;
+  filename: string;
+};
 
 export function UsedCreateScreen() {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createThemedStyles(colors), [colors]);
+  const { colors, isDark } = useTheme();
+  const ink = isDark ? colors.text : colors.brand;
+  const paper = colors.surfaceRaised;
+  const muted = colors.textMuted;
+  const line = colors.border;
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, "UsedCreate">>();
+  const editId = route.params?.editId;
+  const routeIsAuction = route.name === "AuctionCreate";
+  const [saleKind, setSaleKind] = useState<"FIXED" | "AUCTION">(routeIsAuction ? "AUCTION" : "FIXED");
+  const [giveaway, setGiveaway] = useState(false);
+  const isAuction = saleKind === "AUCTION";
+  const [auctionHours, setAuctionHours] = useState(24);
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState<"krw" | "usd">("krw");
-  const [category, setCategory] = useState<string>("OTHER");
-  const [region, setRegion] = useState<string>("Shipping");
+  const [currency, setCurrency] = useState("krw");
+  const [region, setRegion] = useState<string>(USED_SHIPPING_REGION);
   const [regionText, setRegionText] = useState("");
+  const [sidoId, setSidoId] = useState<string>(KOREA_SIDO[0]?.id ?? "seoul");
+  const [sigungu, setSigungu] = useState<string>(KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? "종로구");
   const [meetPlace, setMeetPlace] = useState("");
   const [meetCoords, setMeetCoords] = useState<MeetCoords | null>(null);
   const [countryCode, setCountryCode] = useState("KR");
-  const [localUri, setLocalUri] = useState<string | null>(null);
-  const [mime, setMime] = useState("image/jpeg");
-  const [filename, setFilename] = useState("photo.jpg");
+  const [localImages, setLocalImages] = useState<LocalListingImage[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
   const [isNsfw, setIsNsfw] = useState(false);
   const [subculture, setSubculture] = useState<MobileSubcultureFormState>(EMPTY_MOBILE_SUBCULTURE);
+  const isTrade =
+    !isAuction && !giveaway && subculture.tradeMode === "TRADE";
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    if (!editId) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const detail = await fetchMarketplaceDetail(editId);
+        if (!alive || !detail.item) return;
+        const item = detail.item;
+        if (!item.isOwner) {
+          Alert.alert("수정 불가", "본인 글만 수정할 수 있습니다.", [
+            { text: "확인", onPress: () => navigation.goBack() },
+          ]);
+          return;
+        }
+        if (item.status !== "SELLING") {
+          Alert.alert("수정 불가", "거래가 진행 중이어서 수정할 수 없습니다.", [
+            { text: "확인", onPress: () => navigation.goBack() },
+          ]);
+          return;
+        }
+        setTitle(item.title);
+        setDescription(item.description ?? "");
+        setPrice(String(item.price ?? ""));
+        setCurrency(item.currency ?? "krw");
+        setRegion(item.region ?? region);
+        setMeetPlace(item.meetPlace ?? "");
+        if (item.meetLat != null && item.meetLng != null) {
+          setMeetCoords({ lat: item.meetLat, lng: item.meetLng });
+        }
+        setIsNsfw(!!item.isNsfw);
+        setExistingImages(item.images ?? []);
+        setSubculture((prev) => ({
+          ...prev,
+          workTitle: item.workTitle ?? "",
+          animeSlug: item.animeSlug ?? null,
+          productType: item.productType ?? prev.productType,
+          characterName: item.characterName ?? "",
+          conditionGrade: item.conditionGrade ?? "",
+          tradeMode: item.tradeMode === "TRADE" ? "TRADE" : "SELL",
+        }));
+      } catch {
+        if (alive) Alert.alert("오류", "글 정보를 불러오지 못했습니다.");
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [editId, navigation, region]);
 
   useEffect(() => {
     let alive = true;
@@ -84,23 +151,24 @@ export function UsedCreateScreen() {
         if (!alive) return;
         if (status.countryCode) {
           setCountryCode(status.countryCode);
-          if (status.countryCode.toUpperCase() !== "KR") {
-            setCurrency("usd");
-          }
+          setCurrency(homeCurrencyForCountry(status.countryCode));
         }
         if (status.countryCode?.toUpperCase() === "KR") {
-          setRegion("전국 택배");
+          const firstSido = KOREA_SIDO[0];
+          const firstCity = KOREA_SIGUNGU_BY_SIDO[firstSido.id]?.[0] ?? "종로구";
+          setSidoId(firstSido.id);
+          setSigungu(firstCity);
+          setRegion(formatUsedRegion(firstSido.short, firstCity));
+        } else {
+          setRegion("Shipping");
         }
-        if (!status.eligible) {
-          if (status.countryCode?.toUpperCase() === "KR") {
-            navigation.replace("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" });
-          } else {
-            navigation.replace("UsedPhoneVerify");
-          }
+        if (!status.eligible && status.countryCode?.toUpperCase() !== "KR") {
+          navigation.replace("UsedPhoneVerify", {
+            next: routeIsAuction ? "AuctionCreate" : "UsedCreate",
+          });
           return;
         }
       } catch {
-        if (alive) navigation.replace("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" });
         return;
       } finally {
         if (alive) setChecking(false);
@@ -109,85 +177,150 @@ export function UsedCreateScreen() {
     return () => {
       alive = false;
     };
-  }, [navigation]);
+  }, [navigation, routeIsAuction]);
+
+  const imageCount = existingImages.length + localImages.length;
 
   async function pickImage() {
+    if (imageCount >= MAX_LISTING_IMAGES) {
+      Alert.alert("사진 제한", `사진은 최대 ${MAX_LISTING_IMAGES}장까지 추가할 수 있습니다.`);
+      return;
+    }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert("권한 필요", "사진 라이브러리 접근을 허용해 주세요.");
       return;
     }
+    const remaining = MAX_LISTING_IMAGES - imageCount;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
+      allowsMultipleSelection: remaining > 1,
+      selectionLimit: remaining,
       quality: 0.85,
     });
-    if (result.canceled || !result.assets[0]) return;
-    const asset = result.assets[0];
-    setLocalUri(asset.uri);
-    setMime(asset.mimeType || "image/jpeg");
-    setFilename(asset.fileName || `used-${Date.now()}.jpg`);
+    if (result.canceled || result.assets.length === 0) return;
+    const batch = result.assets.slice(0, remaining);
+    if (batch.length < result.assets.length) {
+      Alert.alert("사진 제한", `${remaining}장만 추가했습니다. (최대 ${MAX_LISTING_IMAGES}장)`);
+    }
+    setLocalImages((prev) => [
+      ...prev,
+      ...batch.map((asset, i) => ({
+        id: `local-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
+        uri: asset.uri,
+        mime: asset.mimeType || "image/jpeg",
+        filename: asset.fileName || `used-${Date.now()}-${i}.jpg`,
+      })),
+    ]);
+  }
+
+  function removeExistingImage(index: number) {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function removeLocalImage(id: string) {
+    setLocalImages((prev) => prev.filter((img) => img.id !== id));
   }
 
   async function submit() {
+    if (!subculture.productType) {
+      Alert.alert("상품 종류", "상품 종류를 선택해 주세요.");
+      return;
+    }
     if (!title.trim()) {
       Alert.alert("제목 필요", "제목을 입력해 주세요.");
       return;
     }
-    const priceNum = Math.floor(Number(price) || 0);
-    if (priceNum < 0) {
-      Alert.alert("가격", "가격이 올바르지 않습니다.");
+    const priceNum =
+      giveaway || isTrade ? 0 : parseListingPriceInput(price, currency);
+    if (priceNum < 0 || (isAuction && priceNum <= 0)) {
+      Alert.alert("가격", isAuction ? "경매 시작가를 입력해 주세요." : "가격이 올바르지 않습니다.");
+      return;
+    }
+    if (!isAuction && !giveaway && !isTrade && priceNum <= 0) {
+      Alert.alert("가격", "가격을 입력해 주세요.");
       return;
     }
     setBusy(true);
     try {
-      const images: string[] = [];
-      if (localUri) {
+      const uploaded: string[] = [...existingImages];
+      for (const img of localImages) {
         const publicUrl = await uploadLocalFile({
-          uri: localUri,
-          filename,
-          contentType: mime,
+          uri: img.uri,
+          filename: img.filename,
+          contentType: img.mime,
           category: "image",
         });
-        images.push(publicUrl);
+        uploaded.push(publicUrl);
+      }
+      const images = uploaded;
+      if (images.length === 0) {
+        Alert.alert("사진 필요", "상품 사진을 추가해 주세요.");
+        setBusy(false);
+        return;
       }
 
       const submitRegion =
         countryCode.toUpperCase() === "KR"
-          ? region
+          ? sidoId === "__shipping__"
+            ? USED_SHIPPING_REGION
+            : formatUsedRegion(
+                KOREA_SIDO.find((s) => s.id === sidoId)?.short ?? "서울",
+                sigungu
+              )
           : region === "Shipping"
             ? "Shipping"
             : regionText.trim() || region;
 
-      const res = await createMarketplaceListing({
+      const payload = {
         title: title.trim(),
         description: description.trim(),
         price: priceNum,
         currency,
-        category,
+        category: subculture.productType,
+        categories: [subculture.productType],
         region: submitRegion,
         meetPlace: meetPlace.trim() || undefined,
         meetLat: meetCoords?.lat,
         meetLng: meetCoords?.lng,
         meetCountry: countryCode,
         images,
-        saleType: "FIXED",
+        saleType: isAuction ? "AUCTION" : "FIXED",
+        auctionHours: isAuction ? auctionHours : undefined,
         isNsfw,
         workTitle: subculture.workTitle.trim() || undefined,
         animeSlug: subculture.animeSlug ?? undefined,
-        productType: subculture.productType || undefined,
-        characterName: subculture.characterName.trim() || undefined,
+        productType: productTypeForSellKind(subculture.productType),
         conditionGrade: subculture.conditionGrade || undefined,
-        limitedKind: subculture.limitedKind || undefined,
-        listingFormat: subculture.listingFormat || undefined,
-        tradeMode: subculture.tradeMode || undefined,
-      });
+        tradeMode: isAuction
+          ? "SELL"
+          : subculture.tradeMode === "TRADE"
+            ? "TRADE"
+            : "SELL",
+      } as const;
+
+      const listingId = editId
+        ? (await updateMarketplaceListing(editId, payload)).listingId
+        : (await createMarketplaceListing(payload)).listingId;
       await queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
-      Alert.alert("등록됨", "중고거래 글이 올라갔습니다.", [
-        {
-          text: "확인",
-          onPress: () => navigation.replace("MarketplaceDetail", { id: res.listingId }),
-        },
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ["mobile-marketplace-mine"] });
+      Alert.alert(
+        editId ? "수정됨" : "등록됨",
+        editId
+          ? "글이 수정되었습니다."
+          : isAuction
+            ? "경매가 올라갔습니다. 보증금 2 MOCO가 잠겼습니다."
+            : "글이 올라갔습니다.",
+        [
+          {
+            text: "확인",
+            onPress: () =>
+              navigation.replace(isAuction ? "AuctionDetail" : "MarketplaceDetail", {
+                id: listingId,
+              }),
+          },
+        ]
+      );
     } catch (e) {
       const msg =
         e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body
@@ -195,15 +328,23 @@ export function UsedCreateScreen() {
           : e instanceof Error
             ? e.message
             : "등록에 실패했습니다.";
-      if (msg.includes("입금 계좌") || msg.includes("계좌 1원") || msg.includes("휴대폰") || msg.includes("인증")) {
+      if (
+        !isAuction &&
+        (msg.includes("입금 계좌") || msg.includes("계좌 1원") || msg.includes("휴대폰") || msg.includes("인증"))
+      ) {
         Alert.alert("본인 확인 필요", msg, [
           { text: "취소", style: "cancel" },
           {
             text: countryCode.toUpperCase() === "KR" ? "지갑에서 등록" : "휴대폰 인증",
             onPress: () =>
               countryCode.toUpperCase() === "KR"
-                ? navigation.replace("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" })
-                : navigation.replace("UsedPhoneVerify"),
+                ? navigation.replace("Wallet", {
+                    initialTab: "earnings",
+                    returnScreen: isAuction ? "AuctionCreate" : "UsedCreate",
+                  })
+                : navigation.replace("UsedPhoneVerify", {
+                    next: isAuction ? "AuctionCreate" : "UsedCreate",
+                  }),
           },
         ]);
       } else {
@@ -214,219 +355,465 @@ export function UsedCreateScreen() {
     }
   }
 
+  const locationLabel =
+    countryCode.toUpperCase() === "KR"
+      ? sidoId === "__shipping__"
+        ? USED_SHIPPING_REGION
+        : `${KOREA_SIDO.find((s) => s.id === sidoId)?.short ?? ""} ${sigungu}`.trim()
+      : region === "Shipping"
+        ? "택배"
+        : regionText.trim() || "도시 입력";
+
   return (
-    <Screen>
-      <AppHeader title="중고 판매" leftLabel="닫기" onLeftPress={() => navigation.goBack()} />
+    <Screen safeBottom>
+      <View style={styles.topBar}>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={10} accessibilityRole="button">
+          <Ionicons name="chevron-back" size={26} color={ink} />
+        </Pressable>
+      </View>
       {checking ? (
-        <Text style={{ padding: spacing.md, color: colors.textMuted, fontWeight: "600" }}>
-          인증 상태 확인 중…
-        </Text>
+        <Text style={{ padding: spacing.md, color: muted, fontWeight: "600" }}>확인 중…</Text>
       ) : (
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.body}>
-          <Text style={styles.label}>제목</Text>
-          <TextInput style={styles.input} value={title} onChangeText={setTitle} />
-          <Text style={styles.label}>통화</Text>
-          <View style={styles.chips}>
-            {(
-              [
-                { id: "krw", label: "원 (KRW)" },
-                { id: "usd", label: "달러 (USD)" },
-              ] as const
-            ).map((c) => (
-              <Pressable
-                key={c.id}
-                style={[styles.chip, currency === c.id && styles.chipOn]}
-                onPress={() => {
-                  setCurrency(c.id);
-                  setPrice("");
-                }}
-              >
-                <Text style={[styles.chipText, currency === c.id && styles.chipTextOn]}>
-                  {c.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={styles.label}>{currency === "usd" ? "가격 ($)" : "가격 (원)"}</Text>
-          <TextInput
-            style={styles.input}
-            value={price}
-            onChangeText={setPrice}
-            keyboardType="number-pad"
-            placeholder="0 = 나눔"
-            placeholderTextColor={colors.textMuted}
-          />
-          <Text style={styles.label}>설명</Text>
-          <TextInput
-            style={[styles.input, styles.multi]}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-          />
-          <UsedSubcultureFormSection
-            value={subculture}
-            onChange={setSubculture}
-            onTitleHint={(hint) => {
-              if (!title.trim()) setTitle(hint);
-            }}
-            onDescriptionHint={(hint) => {
-              if (!description.trim()) setDescription(hint);
-            }}
-          />
-          <Text style={styles.label}>카테고리</Text>
-          <View style={styles.chips}>
-            {CATEGORIES.map((c) => (
-              <Pressable
-                key={c.id}
-                style={[styles.chip, category === c.id && styles.chipOn]}
-                onPress={() => setCategory(c.id)}
-              >
-                <Text style={[styles.chipText, category === c.id && styles.chipTextOn]}>
-                  {c.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={styles.label}>지역</Text>
-          {countryCode.toUpperCase() === "KR" ? (
-            <View style={styles.chips}>
-              {REGIONS_KR.map((r) => (
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.photoRow}
+              keyboardShouldPersistTaps="handled"
+            >
+              {imageCount < MAX_LISTING_IMAGES ? (
                 <Pressable
-                  key={r}
-                  style={[styles.chip, region === r && styles.chipOn]}
-                  onPress={() => {
-                    setRegion(r);
-                    setMeetCoords(null);
-                  }}
+                  style={styles.photoTile}
+                  onPress={() => void pickImage()}
+                  accessibilityRole="button"
+                  accessibilityLabel="사진 추가"
                 >
-                  <Text style={[styles.chipText, region === r && styles.chipTextOn]}>{r}</Text>
+                  <Ionicons name="camera-outline" size={26} color={ink} />
+                  <Text style={styles.photoCount}>
+                    {imageCount}/{MAX_LISTING_IMAGES}
+                  </Text>
                 </Pressable>
-              ))}
-            </View>
-          ) : (
-            <View style={{ gap: spacing.sm }}>
-              <View style={styles.chips}>
-                {(["Shipping", "City"] as const).map((mode) => (
+              ) : null}
+              {existingImages.map((uri, index) => (
+                <View key={`existing-${uri}-${index}`} style={styles.photoTile}>
+                  <RNImage source={{ uri }} style={styles.photo} />
                   <Pressable
-                    key={mode}
-                    style={[
-                      styles.chip,
-                      (mode === "Shipping" ? region === "Shipping" : region !== "Shipping") &&
-                        styles.chipOn,
-                    ]}
-                    onPress={() => {
-                      setRegion(mode === "Shipping" ? "Shipping" : "");
-                      setMeetCoords(null);
-                    }}
+                    style={styles.photoRemove}
+                    onPress={() => removeExistingImage(index)}
+                    hitSlop={6}
+                    accessibilityRole="button"
+                    accessibilityLabel="사진 삭제"
                   >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        (mode === "Shipping" ? region === "Shipping" : region !== "Shipping") &&
-                          styles.chipTextOn,
-                      ]}
-                    >
-                      {mode === "Shipping" ? "Shipping" : "City / area"}
-                    </Text>
+                    <Ionicons name="close" size={14} color="#fff" />
                   </Pressable>
-                ))}
-              </View>
-              {region !== "Shipping" ? (
-                <TextInput
-                  style={styles.input}
-                  value={regionText}
-                  onChangeText={setRegionText}
-                  placeholder="e.g. Los Angeles, CA"
-                  placeholderTextColor={colors.textMuted}
+                </View>
+              ))}
+              {localImages.map((img) => (
+                <View key={img.id} style={styles.photoTile}>
+                  <RNImage source={{ uri: img.uri }} style={styles.photo} />
+                  <Pressable
+                    style={styles.photoRemove}
+                    onPress={() => removeLocalImage(img.id)}
+                    hitSlop={6}
+                    accessibilityRole="button"
+                    accessibilityLabel="사진 삭제"
+                  >
+                    <Ionicons name="close" size={14} color="#fff" />
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.block}>
+              <Text style={styles.label}>제목</Text>
+              <TextInput
+                style={styles.input}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="제목을 입력해 주세요."
+                placeholderTextColor={muted}
+              />
+            </View>
+
+            <View style={styles.block}>
+              <Text style={styles.label}>자세한 설명</Text>
+              <TextInput
+                style={[styles.input, styles.multi]}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                placeholder="올릴 물건의 내용을 작성해 주세요. 신뢰할 수 있는 거래를 위해 자세히 적어 주세요."
+                placeholderTextColor={muted}
+              />
+            </View>
+
+            <View style={styles.block}>
+              <Text style={styles.label}>거래 방식</Text>
+              <View style={styles.checkWrap}>
+                <MarketCheckOption
+                  label="판매하기"
+                  checked={!isAuction && !giveaway && !isTrade}
+                  onPress={() => {
+                    setSaleKind("FIXED");
+                    setGiveaway(false);
+                    setSubculture((s) => ({ ...s, tradeMode: "SELL" }));
+                  }}
+                  ink={ink}
+                  paper={paper}
+                  line={line}
                 />
+                <MarketCheckOption
+                  label="나눔하기"
+                  checked={!isAuction && giveaway}
+                  onPress={() => {
+                    setSaleKind("FIXED");
+                    setGiveaway(true);
+                    setPrice("0");
+                    setSubculture((s) => ({ ...s, tradeMode: "SELL" }));
+                  }}
+                  ink={ink}
+                  paper={paper}
+                  line={line}
+                />
+                <MarketCheckOption
+                  label="경매"
+                  checked={isAuction}
+                  onPress={() => {
+                    setSaleKind("AUCTION");
+                    setGiveaway(false);
+                    setSubculture((s) => ({ ...s, tradeMode: "SELL" }));
+                  }}
+                  ink={ink}
+                  paper={paper}
+                  line={line}
+                />
+                <MarketCheckOption
+                  label="교환"
+                  checked={isTrade}
+                  onPress={() => {
+                    setSaleKind("FIXED");
+                    setGiveaway(false);
+                    setPrice("0");
+                    setSubculture((s) => ({ ...s, tradeMode: "TRADE" }));
+                  }}
+                  ink={ink}
+                  paper={paper}
+                  line={line}
+                />
+              </View>
+              {!giveaway && !isTrade ? (
+                <>
+                  <Text style={[styles.label, styles.priceSectionLabel]}>가격</Text>
+                  <View style={styles.checkWrap}>
+                    {listingCurrencyChoices(countryCode).map((c) => (
+                      <MarketCheckOption
+                        key={c.id}
+                        label={c.label}
+                        checked={currency === c.id}
+                        onPress={() => {
+                          setCurrency(c.id);
+                          setPrice("");
+                        }}
+                        ink={ink}
+                        paper={paper}
+                        line={line}
+                      />
+                    ))}
+                  </View>
+                  <View style={styles.priceRow}>
+                    <Text style={styles.pricePrefix}>
+                      {(USED_CURRENCY_META[currency] ?? USED_CURRENCY_META.krw).symbol}
+                    </Text>
+                    <TextInput
+                      style={styles.priceInput}
+                      value={price}
+                      onChangeText={setPrice}
+                      keyboardType={currency === "usd" ? "decimal-pad" : "number-pad"}
+                      placeholder={isAuction ? "시작가를 입력해 주세요." : "가격을 입력해 주세요."}
+                      placeholderTextColor={muted}
+                    />
+                  </View>
+                </>
+              ) : null}
+              {isAuction ? (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={styles.hint}>
+                    정산 계좌 없이 올릴 수 있습니다. 노쇼 방지로 2 MOCO가 잠기고, 거래 완료를 누르면 돌려받습니다.
+                  </Text>
+                  <View style={styles.checkWrap}>
+                    {(
+                      [
+                        { hours: 1, label: "1시간" },
+                        { hours: 6, label: "6시간" },
+                        { hours: 12, label: "12시간" },
+                        { hours: 24, label: "1일" },
+                        { hours: 72, label: "3일" },
+                        { hours: 168, label: "7일" },
+                      ] as const
+                    ).map((d) => (
+                      <MarketCheckOption
+                        key={d.hours}
+                        label={d.label}
+                        checked={auctionHours === d.hours}
+                        onPress={() => setAuctionHours(d.hours)}
+                        ink={ink}
+                        paper={paper}
+                        line={line}
+                      />
+                    ))}
+                  </View>
+                </View>
               ) : null}
             </View>
-          )}
-          <Text style={styles.label}>직거래 위치</Text>
-          <MeetMap
-            mode="pick"
-            country={countryCode}
-            region={region}
-            meetPlace={meetPlace}
-            coords={meetCoords}
-            onCoordsChange={setMeetCoords}
-            onMeetPlaceChange={setMeetPlace}
-            height={240}
-          />
-          <TextInput
-            style={styles.input}
-            value={meetPlace}
-            onChangeText={setMeetPlace}
-            placeholder="상세 설명 (예: 신호등 앞)"
-            placeholderTextColor={colors.textMuted}
-          />
-          <FolkButton label="사진 추가" variant="secondary" onPress={() => void pickImage()} />
-          {localUri ? <RNImage source={{ uri: localUri }} style={styles.preview} /> : null}
-          <View style={styles.nsfwRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.nsfwLabel}>NSFW</Text>
-              <Text style={styles.nsfwHint}>민감한 콘텐츠가 포함되면 켜 주세요</Text>
-            </View>
-            <Switch
-              value={isNsfw}
-              onValueChange={setIsNsfw}
-              disabled={busy}
-              trackColor={{ true: "#c80000" }}
+
+            <UsedSubcultureFormSection
+              value={subculture}
+              onChange={setSubculture}
+              ink={ink}
+              paper={paper}
+              muted={muted}
+                    line={line}
             />
+
+            <View style={styles.block}>
+              <Text style={styles.label}>거래 설정</Text>
+              <View style={styles.placeRow}>
+                <Text style={styles.placeTitle}>거래 희망 장소</Text>
+                <Text style={styles.placeValue}>{locationLabel}</Text>
+              </View>
+              {countryCode.toUpperCase() === "KR" ? (
+                <>
+                  <View style={styles.checkWrap}>
+                    {KOREA_SIDO.map((s) => (
+                      <MarketCheckOption
+                        key={s.id}
+                        label={s.short}
+                        checked={sidoId === s.id}
+                        onPress={() => {
+                          setSidoId(s.id);
+                          const first = KOREA_SIGUNGU_BY_SIDO[s.id]?.[0] ?? "";
+                          setSigungu(first);
+                          setRegion(formatUsedRegion(s.short, first));
+                          setMeetCoords(null);
+                        }}
+                        ink={ink}
+                        paper={paper}
+                        line={line}
+                      />
+                    ))}
+                    <MarketCheckOption
+                      label="전국 택배"
+                      checked={sidoId === "__shipping__"}
+                      onPress={() => {
+                        setSidoId("__shipping__");
+                        setRegion(USED_SHIPPING_REGION);
+                        setMeetCoords(null);
+                      }}
+                      ink={ink}
+                      paper={paper}
+                      line={line}
+                    />
+                  </View>
+                  {sidoId !== "__shipping__" ? (
+                    <View style={styles.checkWrap}>
+                      {(KOREA_SIGUNGU_BY_SIDO[sidoId] ?? []).map((unit) => (
+                        <MarketCheckOption
+                          key={unit}
+                          label={unit}
+                          checked={sigungu === unit}
+                          onPress={() => {
+                            setSigungu(unit);
+                            const short = KOREA_SIDO.find((s) => s.id === sidoId)?.short ?? "";
+                            setRegion(formatUsedRegion(short, unit));
+                            setMeetCoords(null);
+                          }}
+                          ink={ink}
+                          paper={paper}
+                          line={line}
+                        />
+                      ))}
+                    </View>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <View style={styles.checkWrap}>
+                    <MarketCheckOption
+                      label="택배"
+                      checked={region === "Shipping"}
+                      onPress={() => {
+                        setRegion("Shipping");
+                        setMeetCoords(null);
+                      }}
+                      ink={ink}
+                      paper={paper}
+                      line={line}
+                    />
+                    <MarketCheckOption
+                      label="직거래 도시"
+                      checked={region !== "Shipping"}
+                      onPress={() => {
+                        setRegion("");
+                        setMeetCoords(null);
+                      }}
+                      ink={ink}
+                      paper={paper}
+                      line={line}
+                    />
+                  </View>
+                  {region !== "Shipping" ? (
+                    <TextInput
+                      style={styles.input}
+                      value={regionText}
+                      onChangeText={setRegionText}
+                      placeholder="예: Tokyo, Los Angeles"
+                      placeholderTextColor={muted}
+                    />
+                  ) : null}
+                </>
+              )}
+              <MeetMap
+                mode="pick"
+                country={countryCode}
+                region={region}
+                meetPlace={meetPlace}
+                coords={meetCoords}
+                onCoordsChange={setMeetCoords}
+                onMeetPlaceChange={setMeetPlace}
+                height={220}
+              />
+              <TextInput
+                style={[styles.input, { marginTop: 10 }]}
+                value={meetPlace}
+                onChangeText={setMeetPlace}
+                placeholder="동·거리 등 (예: 역삼동 스타벅스 앞)"
+                placeholderTextColor={muted}
+              />
+            </View>
+
+            <View style={styles.block}>
+              <MarketCheckOption
+                label="NSFW · 민감한 콘텐츠"
+                checked={isNsfw}
+                onPress={() => setIsNsfw((v) => !v)}
+                ink={ink}
+                paper={paper}
+                    line={line}
+              />
+            </View>
+          </ScrollView>
+          <View style={styles.bottomBar}>
+            <Pressable
+              style={[styles.submit, busy ? { opacity: 0.45 } : null]}
+              disabled={busy}
+              onPress={() => void submit()}
+            >
+              <Text style={styles.submitText}>{busy ? "등록 중…" : "작성 완료"}</Text>
+            </Pressable>
           </View>
-          <FolkButton label="등록하기" loading={busy} onPress={() => void submit()} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
       )}
     </Screen>
   );
 }
 
-function createThemedStyles(colors: ThemeColors) {
+function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-  body: { padding: spacing.md, gap: spacing.sm, paddingBottom: 48 },
-  label: { fontWeight: "800", color: colors.cobalt, marginTop: spacing.xs },
-  input: {
-    borderWidth: 2,
-    borderColor: "rgba(27, 74, 140, 0.22)",
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 12,
-    backgroundColor: colors.surfaceRaised,
-    color: colors.text,
-    fontWeight: "600",
-  },
-  multi: { minHeight: 100, textAlignVertical: "top" },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: radii.md,
-    borderWidth: 2,
-    borderColor: "rgba(27, 74, 140, 0.2)",
-    backgroundColor: colors.muted,
-  },
-  chipOn: { backgroundColor: colors.cobalt, borderColor: colors.cobalt },
-  chipText: { fontWeight: "700", color: colors.cobalt, fontSize: 13 },
-  chipTextOn: { color: "#fff" },
-  preview: {
-    width: "100%",
-    height: 180,
-    borderRadius: radii.md,
-    backgroundColor: colors.muted,
-  },
-  nsfwRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 4,
-  },
-  nsfwLabel: { fontWeight: "800", color: colors.text, fontSize: 14 },
-  nsfwHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-});
+    topBar: { paddingHorizontal: 12, paddingVertical: 8 },
+    body: { paddingHorizontal: 16, paddingBottom: 24, gap: 22 },
+    photoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+    photoTile: {
+      width: 84,
+      height: 84,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
+      backgroundColor: colors.surfaceRaised,
+    },
+    photo: { width: "100%", height: "100%" },
+    photoCount: {
+      position: "absolute",
+      bottom: 6,
+      color: colors.textOnAccent,
+      fontSize: 11,
+      fontWeight: "700",
+      backgroundColor: "rgba(0,0,0,0.45)",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 999,
+      overflow: "hidden",
+    },
+    photoRemove: {
+      position: "absolute",
+      top: 4,
+      right: 4,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.55)",
+    },
+    block: { gap: 8 },
+    label: { fontWeight: "700", color: colors.brand, fontSize: 15 },
+    priceSectionLabel: { marginTop: 6 },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      backgroundColor: colors.surfaceRaised,
+      color: colors.text,
+      fontSize: 15,
+    },
+    multi: { minHeight: 140, textAlignVertical: "top" },
+    checkWrap: { flexDirection: "row", flexWrap: "wrap" },
+    priceRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      minHeight: 50,
+      backgroundColor: colors.surfaceRaised,
+    },
+    pricePrefix: { color: colors.brand, fontWeight: "700", fontSize: 16, marginRight: 8 },
+    priceInput: { flex: 1, color: colors.text, fontSize: 15, paddingVertical: 12 },
+    hint: { color: colors.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 6 },
+    placeRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      backgroundColor: colors.surfaceRaised,
+    },
+    placeTitle: { color: colors.text, fontWeight: "600", fontSize: 14 },
+    placeValue: { color: colors.textMuted, fontWeight: "600", fontSize: 13 },
+    bottomBar: {
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 16,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.hairline,
+      backgroundColor: colors.background,
+    },
+    submit: {
+      height: 50,
+      borderRadius: 999,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.terracotta,
+    },
+    submitText: { color: colors.textOnAccent, fontWeight: "800", fontSize: 16 },
+  });
 }
-

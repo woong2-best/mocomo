@@ -53,6 +53,15 @@ export function ChatRoomShell({
     supportTierSent?: SupportTierLevel;
     roomType: string;
     otherUserId?: string;
+    otherTimeZone?: string | null;
+    members?: {
+      id: string;
+      username: string;
+      name?: string | null;
+      image: string | null;
+      timeZone?: string | null;
+    }[];
+    memberCount?: number;
   };
   groupMeta: GroupMeta | null;
   readOnly?: boolean;
@@ -73,6 +82,10 @@ export function ChatRoomShell({
         roomId={roomId}
         roomType={header.roomType}
         otherUserId={header.otherUserId}
+        otherTimeZone={header.otherTimeZone}
+        viewerUserId={userId}
+        members={header.members}
+        memberCount={header.memberCount}
       />
       {groupMeta ? (
         <GroupRoomPanel

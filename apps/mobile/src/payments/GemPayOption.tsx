@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import * as Linking from "expo-linking";
 import { payCheckoutWithGems } from "@/api/checkout-payment";
+import { API_BASE_URL } from "@/config/env";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -13,7 +15,6 @@ type Props = {
   disabled?: boolean;
   onSuccess: () => void;
   onError: (msg: string) => void;
-  onTopupPress?: () => void;
 };
 
 function formatMoco(moco: number) {
@@ -28,7 +29,6 @@ export function GemPayOption({
   disabled,
   onSuccess,
   onError,
-  onTopupPress,
 }: Props) {
   const { colors } = useTheme();
   const styles = createStyles();
@@ -69,9 +69,9 @@ export function GemPayOption({
         loading={pending}
         disabled={disabled || !canPay}
       />
-      {!canPay && onTopupPress ? (
-        <Pressable onPress={onTopupPress}>
-          <Text style={[styles.topupLink, { color: colors.cobalt }]}>지갑에서 MOCO 충전</Text>
+      {!canPay ? (
+        <Pressable onPress={() => void Linking.openURL(`${API_BASE_URL.replace(/\/$/, "")}/wallet`)}>
+          <Text style={[styles.topupLink, { color: colors.cobalt }]}>웹사이트에서 MOCO 충전</Text>
         </Pressable>
       ) : null}
     </View>

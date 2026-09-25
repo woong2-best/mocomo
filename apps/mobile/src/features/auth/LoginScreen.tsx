@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -67,7 +68,8 @@ function credentialsErrorMessage(e: unknown, fallback: string): string {
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
 /** MoCoMo welcome login — Google + native credentials. */
-export function LoginScreen({ navigation }: Props) {
+export function LoginScreen({ navigation, route }: Props) {
+  const addAccountMode = route.params?.addAccount === true;
   const { colors } = useTheme();
   const {
     openWebAuth,
@@ -75,6 +77,9 @@ export function LoginScreen({ navigation }: Props) {
     signInWithGoogleNative,
     completeOAuthSignupHandoff,
     refreshSavedAccounts,
+    prepareAddAccountSession,
+    status,
+    user,
   } = useAuth();
   const insets = useSafeAreaInsets();
   const keyboardHeight = useKeyboardBottomInset();
@@ -122,16 +127,44 @@ export function LoginScreen({ navigation }: Props) {
     12 +
     Math.max(16, artOffset + ART_GAP - insets.top - 12);
 
+  const sessionUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
+    prefetchGoogleNativeConfig();
+    if (addAccountMode) {
+      // Capture the *current* account once. If this effect re-ran after a
+      // successful add-account login it used to overwrite the ref with the new
+      // id, so the modal never dismissed and login looked broken.
+      sessionUserIdRef.current = user?.id ?? null;
+      void prepareAddAccountSession();
+      return;
+    }
     void refreshSavedAccounts();
     void hasSeenNotificationPrompt().then((seen) => {
       if (!seen) setShowNotification(true);
     });
-    prefetchGoogleNativeConfig();
-  }, [refreshSavedAccounts]);
+    // Mount-only on this Login instance: add-account must keep the original id.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addAccountMode]);
+
+  const finishAddAccountIfNeeded = useCallback(async () => {
+    if (!addAccountMode) return;
+    await refreshSavedAccounts();
+    if (navigation.canGoBack()) navigation.goBack();
+  }, [addAccountMode, navigation, refreshSavedAccounts]);
+
+  useEffect(() => {
+    if (!addAccountMode || status !== "signedIn" || !user?.id) return;
+    if (user.id === sessionUserIdRef.current) return;
+    void finishAddAccountIfNeeded();
+  }, [addAccountMode, finishAddAccountIfNeeded, status, user?.id]);
 
   const runGoogleNative = useCallback(async () => {
-    const result = await signInWithGoogleNative({ flow: "signin" });
+    const flow = route.params?.intent === "signup" ? "signup" : "signin";
+    const result = await signInWithGoogleNative({
+      flow,
+      forcePicker: addAccountMode,
+    });
     if (result.status === "needsSignup") {
       setPendingSignup({
         kind: "google",
@@ -139,8 +172,11 @@ export function LoginScreen({ navigation }: Props) {
         profile: result.profile,
       });
       setSignupError("");
+      return result;
     }
-  }, [signInWithGoogleNative]);
+    await finishAddAccountIfNeeded();
+    return result;
+  }, [addAccountMode, finishAddAccountIfNeeded, route.params?.intent, signInWithGoogleNative]);
 
   const runOAuth = useCallback(
     async (provider: MobileAuthProvider) => {
@@ -154,8 +190,11 @@ export function LoginScreen({ navigation }: Props) {
           return;
         } catch (e) {
           if (e instanceof GoogleNativeCancelledError) return;
-          if (isGoogleDeveloperError(e)) {
-            const web = await openWebAuth("signin", { provider: "gmail" });
+          if (e instanceof GoogleNativeUnavailableError || isGoogleDeveloperError(e)) {
+            const web = await openWebAuth("signin", {
+              provider: "gmail",
+              addAccount: addAccountMode,
+            });
             if (web.status === "needsSignup") {
               setPendingSignup({
                 kind: "handoff",
@@ -164,16 +203,14 @@ export function LoginScreen({ navigation }: Props) {
                 profile: web.profile,
               });
               setSignupError("");
+              return;
             }
+            await finishAddAccountIfNeeded();
             return;
           }
-          const msg =
-            e instanceof GoogleNativeUnavailableError
-              ? e.message
-              : e instanceof ApiError
-                ? e.message
-                : "Google 로그인에 실패했습니다. 앱을 업데이트한 뒤 다시 시도해 주세요.";
-          setCredentialsError(msg);
+          setCredentialsError(
+            credentialsErrorMessage(e, "Google 로그인에 실패했습니다. 다시 시도해 주세요.")
+          );
         }
       } catch (e) {
         setCredentialsError(credentialsErrorMessage(e, "인증을 완료하지 못했습니다."));
@@ -181,7 +218,7 @@ export function LoginScreen({ navigation }: Props) {
         setBusyProvider(null);
       }
     },
-    [openWebAuth, runGoogleNative]
+    [addAccountMode, finishAddAccountIfNeeded, openWebAuth, runGoogleNative]
   );
 
   const confirmSignupTerms = useCallback(() => {
@@ -201,13 +238,21 @@ export function LoginScreen({ navigation }: Props) {
       const snapshot = pendingSignup;
       const chosenRole = payload.role;
       try {
+        const consent = {
+          birthYear: payload.birth.birthYear,
+          birthMonth: payload.birth.birthMonth,
+          birthDay: payload.birth.birthDay,
+          termsAccepted: true as const,
+          privacyAccepted: true as const,
+        };
         if (snapshot.kind === "google") {
           await signInWithGoogleNative({
             flow: "signup",
             idToken: snapshot.idToken,
+            ...consent,
           });
         } else {
-          await completeOAuthSignupHandoff(snapshot.handoff);
+          await completeOAuthSignupHandoff(snapshot.handoff, consent);
         }
 
         const { prepareProfileAvatar } = await import("@/lib/prepare-profile-media");
@@ -245,6 +290,7 @@ export function LoginScreen({ navigation }: Props) {
     setCredentialsBusy(true);
     try {
       await signInWithCredentials(loginId, password);
+      await finishAddAccountIfNeeded();
     } catch (e) {
       setCredentialsError(credentialsErrorMessage(e, "로그인에 실패했습니다."));
     } finally {
@@ -265,6 +311,16 @@ export function LoginScreen({ navigation }: Props) {
       />
 
       <View style={[styles.flex, styles.overlay]} pointerEvents="box-none">
+        {addAccountMode ? (
+          <Pressable
+            style={[styles.addAccountClose, { top: insets.top + 8 }]}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="닫기"
+          >
+            <Text style={styles.addAccountCloseText}>닫기</Text>
+          </Pressable>
+        ) : null}
         <View
           pointerEvents="box-none"
           style={[styles.socialDock, { top: socialTop }]}
@@ -334,11 +390,14 @@ export function LoginScreen({ navigation }: Props) {
 
       <SignupCompleteCelebration
         visible={showCelebration}
-        onDone={() => setShowCelebration(false)}
+        onDone={() => {
+          setShowCelebration(false);
+          void finishAddAccountIfNeeded();
+        }}
       />
 
       <NotificationPermissionSheet
-        visible={showNotification}
+        visible={showNotification && !addAccountMode}
         onComplete={() => setShowNotification(false)}
       />
     </View>
@@ -358,6 +417,21 @@ const styles = StyleSheet.create({
     left: spacing.lg,
     right: spacing.lg,
     gap: 14,
+  },
+  addAccountClose: {
+    position: "absolute",
+    right: spacing.lg,
+    zIndex: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  addAccountCloseText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+    textShadowColor: "rgba(0,0,0,0.35)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   resetLink: {
     fontSize: 13,

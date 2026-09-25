@@ -6,6 +6,9 @@ export async function fetchCalendarMemos(year: number, month: number) {
     ok: boolean;
     memos: Record<string, string>;
     scheduleKeys?: string[];
+    scheduleWeekdays?: number[];
+    scheduleTime?: string | null;
+    scheduleNote?: string | null;
   }>(`${MobileApi.calendarMemos}?year=${year}&month=${month}`, { auth: true });
 }
 

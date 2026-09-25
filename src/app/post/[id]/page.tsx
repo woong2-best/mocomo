@@ -11,8 +11,9 @@ import { auth, isSiteOperator } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { ContentModerationBar } from "@/components/moderation/content-moderation-bar";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
-import { isPaymentsConfigured } from "@/lib/payments";
+import { redactQnaPublicPost } from "@/lib/anonymous-post";
 import { db } from "@/lib/db";
+import { isPaymentsConfigured } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 
@@ -33,14 +34,18 @@ export default async function PostPage({
         <div className="px-4 py-16 max-w-md mx-auto text-center space-y-3">
           <p className="text-lg font-bold">이 게시물은 잠겨 있습니다</p>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            @{detail.author.username} 님이 계정을 잠갔습니다. 승인된 팔로워만 게시물을 볼 수 있습니다.
+            {detail.communityId
+              ? "이 QnA 글은 잠겨 있습니다."
+              : `@${detail.author.username} 님이 계정을 잠갔습니다. 승인된 팔로워만 게시물을 볼 수 있습니다.`}
           </p>
-          <a
-            href={`/u/${detail.author.username}`}
-            className="inline-block text-sm text-primary hover:underline"
-          >
-            프로필 보기
-          </a>
+          {detail.communityId ? null : (
+            <a
+              href={`/u/${detail.author.username}`}
+              className="inline-block text-sm text-primary hover:underline"
+            >
+              프로필 보기
+            </a>
+          )}
         </div>
       </AppPageChrome>
     );
@@ -63,20 +68,22 @@ export default async function PostPage({
   }
 
   const post = detail;
+  const realAuthorId = post.author.id;
+  const displayPost = redactQnaPublicPost(post, session?.user?.id);
 
   const [engagement, creator, viewerSub, viewerCollab, viewerPrefs] = await Promise.all([
     session?.user?.id
       ? getPostEngagementForUser(session.user.id, [post.id])
       : Promise.resolve({ likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] }),
     db.user.findUnique({
-      where: { id: post.author.id },
+      where: { id: realAuthorId },
       select: { creatorSubscriptionPriceKrw: true },
     }),
-    session?.user?.id && session.user.id !== post.author.id
+    session?.user?.id && session.user.id !== realAuthorId
       ? db.subscription.findFirst({
           where: {
             subscriberId: session.user.id,
-            creatorId: post.author.id,
+            creatorId: realAuthorId,
             status: "active",
           },
           select: { id: true },
@@ -122,16 +129,16 @@ export default async function PostPage({
       <ContentModerationBar
         targetType="POST"
         targetId={post.id}
-        reportedUserId={post.author.id}
+        reportedUserId={post.isAnonymous ? undefined : realAuthorId}
         postId={post.id}
         isStaff={isStaff}
         isLoggedIn={!!session?.user}
       />
       <PostFlashHighlight postId={post.id}>
         <PostDetailCard
-          post={post}
+          post={displayPost}
           locale={locale}
-          isOwner={session?.user?.id === post.author.id}
+          isOwner={session?.user?.id === realAuthorId}
           paymentsEnabled={isPaymentsConfigured()}
           subscriptionPriceKrw={creator?.creatorSubscriptionPriceKrw ?? undefined}
           subscribed={!!viewerSub}
@@ -141,7 +148,7 @@ export default async function PostPage({
       </PostFlashHighlight>
       <PostDetailActions
         postId={post.id}
-        authorUsername={post.author.username}
+        authorUsername={displayPost.author.username}
         title={post.title}
         content={post.content}
         hasVideo={post.media?.some((m) => m.type === "VIDEO")}
@@ -152,9 +159,10 @@ export default async function PostPage({
         initialLiked={engagement.likedIds.includes(post.id)}
         initialStarred={engagement.starredIds.includes(post.id)}
         initialReposted={engagement.repostedIds.includes(post.id)}
+        qna={Boolean(post.communityId)}
       />
       <Suspense fallback={<PostCommentsSkeleton />}>
-        <PostCommentsSection postId={post.id} />
+        <PostCommentsSection postId={post.id} showIdHandle={!!post.communityId} />
       </Suspense>
     </AppPageChrome>
   );

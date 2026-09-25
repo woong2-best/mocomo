@@ -77,7 +77,7 @@ export function LetterDonationSheet({
       return;
     }
     if (balance != null && balance < effectiveAmount) {
-      setError("MOCO 잔액이 부족합니다. 지갑에서 충전해 주세요.");
+      setError("MOCO 잔액이 부족합니다. mocomo.net 웹에서 충전해 주세요.");
       return;
     }
 

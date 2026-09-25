@@ -36,6 +36,8 @@ export type ReelItem = {
   commentCount: number;
   liked: boolean;
   starred: boolean;
+  /** QnA clip — stays out of the home reels actions. */
+  qna?: boolean;
 };
 
 export type ReelsPageResponse = {

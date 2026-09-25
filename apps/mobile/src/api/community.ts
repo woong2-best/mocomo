@@ -1,5 +1,6 @@
 import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
+import type { FeedPage } from "@/api/feed";
 
 export type CommunityListItem = {
   id: string;
@@ -23,7 +24,8 @@ export type CommunityPostPreview = {
   createdAt: string;
   isNsfw: boolean;
   isPinned?: boolean;
-  author: { id: string; username: string; image: string | null };
+  viewCount?: number;
+  author: { id: string; username: string; name?: string | null; image: string | null };
   likeCount: number;
   commentCount: number;
 };
@@ -57,6 +59,41 @@ export async function fetchCommunityList(q?: string) {
   return apiRequest<{ items: CommunityListItem[] }>(`${MobileApi.community}${suffix}`, {
     auth: true,
   });
+}
+
+export async function fetchQnaFeedPage(opts?: {
+  cursor?: string | null;
+  limit?: number;
+  q?: string;
+  category?: string;
+}): Promise<FeedPage> {
+  const params = new URLSearchParams();
+  params.set("limit", String(opts?.limit ?? 12));
+  if (opts?.cursor) params.set("cursor", opts.cursor);
+  if (opts?.q?.trim()) params.set("q", opts.q.trim());
+  if (opts?.category && opts.category !== "ALL") params.set("category", opts.category);
+  const page = await apiRequest<FeedPage>(`${MobileApi.communityFeed}?${params.toString()}`, {
+    auth: true,
+  });
+  const liked = new Set(page.likedIds ?? []);
+  const starred = new Set(page.starredIds ?? []);
+  const reposted = new Set(page.repostedIds ?? []);
+  return {
+    ...page,
+    items: (page.items ?? []).map((item) =>
+      item.type === "ad"
+        ? item
+        : {
+            ...item,
+            data: {
+              ...item.data,
+              liked: liked.has(item.data.id),
+              starred: starred.has(item.data.id),
+              reposted: reposted.has(item.data.id),
+            },
+          }
+    ),
+  };
 }
 
 export async function createCommunity(input: {

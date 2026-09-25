@@ -1,14 +1,22 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import type { FeedPost } from "@/api/feed";
 import { togglePostLike } from "@/api/feed";
-import { togglePostRepost, togglePostStar } from "@/api/social";
+import { runOptimisticStarToggle } from "@/api/star-hub-cache";
+import { togglePostRepost } from "@/api/social";
 import { useAuth } from "@/auth/AuthContext";
 import { FeedPostMediaCarousel } from "@/features/feed/FeedPostMediaCarousel";
-import { FeedPostOverflowMenu } from "@/features/feed/FeedPostOverflowMenu";
-import { FolkAvatar } from "@/ui/FolkAvatar";
+import {
+  FeedPostOverflowMenu,
+  type MenuAnchor,
+} from "@/features/feed/FeedPostOverflowMenu";
+import type { RootStackParamList } from "@/navigation/types";
+import { avatarSquircleRadius, FolkAvatar } from "@/ui/FolkAvatar";
 import { TranslatableText } from "@/ui/TranslatableText";
 import { ShareGlobeIcon } from "@/ui/ShareGlobeIcon";
 import { PerformanceBudgets } from "@/perf/budgets";
@@ -19,6 +27,7 @@ import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { SupportTierBadge } from "@/ui/SupportTierBadge";
 import { profileDisplayTier } from "@/lib/support-tier-display";
+import { useUserProfileNav, type UserProfileSeed } from "@/features/profile/user-profile-nav";
 
 type Props = {
   post: FeedPost;
@@ -30,9 +39,11 @@ type Props = {
   onPurchaseSuccess?: () => void;
   onLikeCommit?: (postId: string, liked: boolean, likeCount: number) => void;
   onPressPost?: (postId: string) => void;
-  onPressAuthor?: (username: string) => void;
+  onPressAuthor?: (author: UserProfileSeed) => void;
+  onPressCommunity?: (slug: string) => void;
   onPressVideo?: (postId: string, mediaId?: string, mediaIndex?: number) => void;
   onBlockedAuthor?: (authorId: string) => void;
+  onDeletedPost?: (postId: string) => void;
 };
 
 function formatCount(n: number) {
@@ -48,13 +59,22 @@ function FeedPostCardInner({
   onLikeCommit,
   onPressPost,
   onPressAuthor,
+  onPressCommunity,
   onPressVideo,
   onBlockedAuthor,
+  onDeletedPost,
 }: Props) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute();
+  const queryClient = useQueryClient();
+  const { colors, isDark } = useTheme();
+  const { prefetch: prefetchAuthorProfile } = useUserProfileNav();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const { width: windowWidth } = useWindowDimensions();
   const { status, user } = useAuth();
+  const starLock = useRef(false);
+  const postIdRef = useRef(post.id);
+  postIdRef.current = post.id;
   const showLikeCounts = useShowLikeCounts();
   const mediaLayout = Math.min(windowWidth - spacing.md * 2, PerformanceBudgets.feedMediaLayoutMax);
 
@@ -65,10 +85,14 @@ function FeedPostCardInner({
   const [repostCount, setRepostCount] = useState(post._count?.reposts ?? 0);
   const [pending, setPending] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
+  const menuAnchorRef = useRef<View>(null);
   const [viewCount, setViewCount] = useState(post.viewCount ?? 0);
 
-  const isSelf = user?.id === post.author.id;
-  const canShowMenu = status === "signedIn" && !isSelf;
+  const isQna = Boolean(post.community?.slug);
+  const hideIdentity = isQna || post.isAnonymous || post.author?.username === "anonymous";
+  const isSelf = user?.id === post.author?.id;
+  const canShowMenu = status === "signedIn" && (isSelf || !hideIdentity);
 
   useEffect(() => {
     setViewCount(post.viewCount ?? 0);
@@ -80,6 +104,10 @@ function FeedPostCardInner({
       if (next != null) setViewCount(next);
     });
   }, [viewTrackActive, post.id]);
+
+  useEffect(() => {
+    starLock.current = false;
+  }, [post.id]);
 
   useEffect(() => {
     setLiked(!!post.liked);
@@ -131,14 +159,24 @@ function FeedPostCardInner({
   }, [liked, likeCount, onLikeCommit, pending, post.id, requireLogin]);
 
   const onStar = useCallback(() => {
-    if (!requireLogin()) return;
+    if (starLock.current || !requireLogin()) return;
+    const postId = post.id;
     const prev = starred;
-    setStarred(!prev);
+    const next = !prev;
+    starLock.current = true;
+    setStarred(next);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    void togglePostStar(post.id)
-      .then((res) => setStarred(res.starred))
-      .catch(() => setStarred(prev));
-  }, [post.id, requireLogin, starred]);
+    void runOptimisticStarToggle(queryClient, { ...post, starred: next }, next)
+      .then((res) => {
+        if (postIdRef.current === postId) setStarred(res.starred);
+      })
+      .catch(() => {
+        if (postIdRef.current === postId) setStarred(prev);
+      })
+      .finally(() => {
+        starLock.current = false;
+      });
+  }, [post, queryClient, requireLogin, starred]);
 
   const onRepost = useCallback(() => {
     if (!requireLogin()) return;
@@ -169,57 +207,157 @@ function FeedPostCardInner({
     onPressPost?.(post.id);
   }, [onPressPost, post.id]);
 
+  const authorSeed = useMemo<UserProfileSeed>(
+    () => ({
+      username: post.author?.username ?? "",
+      name: post.author?.name,
+      image: post.author?.image,
+    }),
+    [post.author?.image, post.author?.name, post.author?.username]
+  );
+
+  const prefetchAuthor = useCallback(() => {
+    if (hideIdentity) return;
+    prefetchAuthorProfile(authorSeed);
+  }, [authorSeed, hideIdentity, prefetchAuthorProfile]);
+
   const openAuthor = useCallback(() => {
-    onPressAuthor?.(post.author.username);
-  }, [onPressAuthor, post.author.username]);
+    if (hideIdentity) return;
+    onPressAuthor?.(authorSeed);
+  }, [authorSeed, hideIdentity, onPressAuthor]);
+
+  const openMenu = useCallback(() => {
+    menuAnchorRef.current?.measureInWindow((x, y, width, height) => {
+      setMenuAnchor({ x, y, width, height });
+      setMenuOpen(true);
+    });
+  }, []);
+
+  const handleDeleted = useCallback(() => {
+    onDeletedPost?.(post.id);
+    void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+    void queryClient.invalidateQueries({ queryKey: ["mobile-post", post.id] });
+    if (user?.username) {
+      void queryClient.invalidateQueries({ queryKey: ["mobile-user", user.username] });
+    }
+    if (route.name === "PostDetail" && navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation, onDeletedPost, post.id, queryClient, route.name, user?.username]);
+
+  if (!post?.id || !post.author?.id) return null;
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <Pressable
           style={styles.headerMain}
-          onPress={openAuthor}
-          disabled={!onPressAuthor}
+          onPress={openPost}
+          disabled={!onPressPost}
           accessibilityRole="button"
+          accessibilityLabel="게시물 보기"
         >
-          <FolkAvatar
-            uri={post.author.image}
-            name={post.author.name || post.author.username}
-            size={40}
-          />
-          <View style={styles.headerText}>
-            <View style={styles.nameRow}>
-              <Text style={styles.name} numberOfLines={1}>
-                {post.author.name || post.author.username}
-              </Text>
-              <SupportTierBadge
-                tier={profileDisplayTier(
-                  post.author.supportTierSent,
-                  post.author.earnedMocoTier
-                )}
-              />
-            </View>
-            <Text style={styles.handle} numberOfLines={1}>
-              @{post.author.username}
-              {post.createdAt ? (
-                <Text style={styles.handleMeta}>
-                  {"  "}
-                  {formatRelativeTimeAgo(post.createdAt)}
-                </Text>
+          <View style={styles.headerRow} pointerEvents="box-none">
+            {isQna ? (
+              <View
+                style={styles.qnaMarkWrap}
+                accessibilityLabel="QnA question"
+              >
+                <View style={styles.qnaMark}>
+                  <Text style={styles.qnaMarkText}>Q</Text>
+                </View>
+              </View>
+            ) : (
+              <Pressable
+                onPressIn={prefetchAuthor}
+                onPress={openAuthor}
+                disabled={!onPressAuthor || hideIdentity}
+                hitSlop={4}
+                accessibilityRole="button"
+                accessibilityLabel="프로필 보기"
+              >
+                <FolkAvatar
+                  uri={post.author.image}
+                  name={post.author.name || post.author.username}
+                  size={40}
+                />
+              </Pressable>
+            )}
+            <View style={styles.headerText}>
+              {!isQna ? (
+                <Pressable
+                  onPressIn={prefetchAuthor}
+                  onPress={openAuthor}
+                  disabled={!onPressAuthor || hideIdentity}
+                  accessibilityRole="button"
+                >
+                  <View style={styles.nameRow}>
+                    <Text style={styles.name} numberOfLines={1}>
+                      {hideIdentity
+                        ? "익명"
+                        : post.author.name || post.author.username}
+                    </Text>
+                    {!hideIdentity ? (
+                      <SupportTierBadge
+                        tier={profileDisplayTier(
+                          post.author.supportTierSent,
+                          post.author.earnedMocoTier
+                        )}
+                      />
+                    ) : null}
+                  </View>
+                </Pressable>
               ) : null}
-            </Text>
+              {hideIdentity ? (
+                <Text style={styles.handle} numberOfLines={1}>
+                  {post.createdAt ? (
+                    <Text style={styles.handleMeta}>{formatRelativeTimeAgo(post.createdAt)}</Text>
+                  ) : null}
+                </Text>
+              ) : (
+                <Pressable
+                  onPressIn={prefetchAuthor}
+                  onPress={openAuthor}
+                  disabled={!onPressAuthor}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.handle} numberOfLines={1}>
+                    @{post.author.username}
+                    {post.createdAt ? (
+                      <Text style={styles.handleMeta}>
+                        {"  "}
+                        {formatRelativeTimeAgo(post.createdAt)}
+                      </Text>
+                    ) : null}
+                  </Text>
+                </Pressable>
+              )}
+              {post.community?.slug ? (
+                <Pressable
+                  onPress={() => onPressCommunity?.(post.community!.slug)}
+                  disabled={!onPressCommunity}
+                  hitSlop={6}
+                >
+                  <Text style={styles.communityChip} numberOfLines={1}>
+                    {post.community.name}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
         </Pressable>
         {canShowMenu ? (
-          <Pressable
-            onPress={() => setMenuOpen(true)}
-            hitSlop={10}
-            style={styles.menuBtn}
-            accessibilityRole="button"
-            accessibilityLabel="게시물 메뉴"
-          >
-            <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
-          </Pressable>
+          <View ref={menuAnchorRef} collapsable={false}>
+            <Pressable
+              onPress={openMenu}
+              hitSlop={10}
+              style={styles.menuBtn}
+              accessibilityRole="button"
+              accessibilityLabel="게시물 메뉴"
+            >
+              <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+            </Pressable>
+          </View>
         ) : null}
       </View>
 
@@ -246,11 +384,12 @@ function FeedPostCardInner({
         isOwner={isSelf}
         paymentsEnabled={paymentsEnabled}
         onPurchaseSuccess={onPurchaseSuccess}
-        onPressVideo={onPressVideo}
+        onPressVideo={isQna ? undefined : onPressVideo}
       />
 
       <View style={styles.actions}>
         <View style={styles.actionsLeft}>
+          {isQna ? null : (
           <Pressable onPress={onLike} hitSlop={10} style={styles.actionBtn}>
             <Ionicons
               name={liked ? "heart" : "heart-outline"}
@@ -261,10 +400,12 @@ function FeedPostCardInner({
               <Text style={[styles.actionText, liked && styles.liked]}>{likeCount}</Text>
             ) : null}
           </Pressable>
+          )}
           <Pressable onPress={openPost} hitSlop={10} style={styles.actionBtn} disabled={!onPressPost}>
             <Ionicons name="chatbox-outline" size={19} color={colors.textMuted} />
             <Text style={styles.actionText}>{post._count?.comments ?? 0}</Text>
           </Pressable>
+          {isQna ? null : (
           <Pressable onPress={onRepost} hitSlop={10} style={styles.actionBtn}>
             <Ionicons
               name="repeat-outline"
@@ -273,6 +414,7 @@ function FeedPostCardInner({
             />
             <Text style={[styles.actionText, reposted && styles.reposted]}>{repostCount}</Text>
           </Pressable>
+          )}
           <Pressable onPress={onShare} hitSlop={10} style={styles.actionBtn}>
             <ShareGlobeIcon size={19} color={colors.textMuted} />
           </Pressable>
@@ -295,11 +437,18 @@ function FeedPostCardInner({
       {canShowMenu ? (
         <FeedPostOverflowMenu
           visible={menuOpen}
-          onClose={() => setMenuOpen(false)}
+          anchor={menuAnchor}
+          onClose={() => {
+            setMenuOpen(false);
+            setMenuAnchor(null);
+          }}
           postId={post.id}
           authorId={post.author.id}
           authorUsername={post.author.username}
+          isOwner={isSelf}
+          hideProfilePin={hideIdentity && isSelf}
           onBlocked={() => onBlockedAuthor?.(post.author.id)}
+          onDeleted={handleDeleted}
         />
       ) : null}
     </View>
@@ -322,15 +471,21 @@ function propsEqual(a: Props, b: Props) {
     (a.post.media?.length ?? 0) === (b.post.media?.length ?? 0) &&
     a.post.media?.[0]?.posterUrl === b.post.media?.[0]?.posterUrl &&
     a.post.media?.[0]?.url === b.post.media?.[0]?.url &&
+    a.post.author.username === b.post.author.username &&
+    a.post.author.name === b.post.author.name &&
+    a.post.author.image === b.post.author.image &&
+    a.post.isAnonymous === b.post.isAnonymous &&
     a.paymentsEnabled === b.paymentsEnabled &&
     a.onPressAuthor === b.onPressAuthor &&
+    a.onPressCommunity === b.onPressCommunity &&
     a.onPressVideo === b.onPressVideo
   );
 }
 
 export const FeedPostCard = memo(FeedPostCardInner, propsEqual);
 
-function createStyles(colors: ThemeColors) {
+function createStyles(colors: ThemeColors, isDark: boolean) {
+  const avatarRing = isDark ? "rgba(107, 163, 232, 0.45)" : "rgba(168, 180, 200, 0.95)";
   return StyleSheet.create({
     card: {
       backgroundColor: colors.background,
@@ -341,13 +496,45 @@ function createStyles(colors: ThemeColors) {
       paddingBottom: 12,
     },
     header: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
-    headerMain: { flexDirection: "row", alignItems: "center", flex: 1 },
-    headerText: { marginLeft: 10, flex: 1 },
+    headerMain: { flex: 1, alignSelf: "stretch", justifyContent: "center" },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "stretch",
+      width: "100%",
+    },
+    headerText: { marginLeft: 10, flex: 1, minWidth: 0 },
+    qnaMarkWrap: {
+      padding: 2,
+      borderRadius: avatarSquircleRadius(40) + 2,
+      borderWidth: 2,
+      borderColor: avatarRing,
+      backgroundColor: colors.background,
+    },
+    qnaMark: {
+      width: 40,
+      height: 40,
+      borderRadius: avatarSquircleRadius(40),
+      backgroundColor: colors.cobalt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    qnaMarkText: {
+      color: "#fff",
+      fontWeight: "800",
+      fontSize: 17,
+    },
     menuBtn: { padding: 4, marginLeft: 4 },
     nameRow: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
     name: { fontSize: 15, fontWeight: "800", color: colors.text, flexShrink: 1 },
     handle: { fontSize: 13, color: colors.textMuted, marginTop: 1 },
     handleMeta: { fontSize: 13, color: colors.textMuted, fontWeight: "400" },
+    communityChip: {
+      marginTop: 3,
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.brand,
+    },
     content: { fontSize: 15, lineHeight: 21, color: colors.text, marginBottom: 10 },
     actions: {
       flexDirection: "row",

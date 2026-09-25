@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   fetchUsedPhoneStatus,
@@ -27,6 +27,8 @@ import type { RootStackParamList } from "@/navigation/types";
 
 export function UsedPhoneVerifyScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, "UsedPhoneVerify">>();
+  const next = route.params?.next === "AuctionCreate" ? "AuctionCreate" : "UsedCreate";
   const { colors } = useTheme();
   const [countryCode, setCountryCode] = useState("US");
   const [phone, setPhone] = useState("");
@@ -43,11 +45,11 @@ export function UsedPhoneVerifyScreen() {
         if (!alive) return;
         if (status.countryCode) setCountryCode(status.countryCode);
         if (status.countryCode?.toUpperCase() === "KR") {
-          navigation.replace("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" });
+          navigation.replace("Wallet", { initialTab: "earnings", returnScreen: next });
           return;
         }
         if (status.eligible || status.phoneVerified) {
-          navigation.replace("UsedCreate");
+          navigation.replace(next);
           return;
         }
       } catch {
@@ -59,7 +61,7 @@ export function UsedPhoneVerifyScreen() {
     return () => {
       alive = false;
     };
-  }, [navigation]);
+  }, [navigation, next]);
 
   async function requestOtp() {
     setBusy(true);
@@ -82,7 +84,7 @@ export function UsedPhoneVerifyScreen() {
     setBusy(true);
     try {
       await verifyUsedPhoneOtp(phone.trim(), code.trim());
-      navigation.replace("UsedCreate");
+      navigation.replace(next);
     } catch (e) {
       const msg =
         e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body

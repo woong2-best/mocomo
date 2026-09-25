@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { userDisplayName } from "@/lib/user-public-select";
+import { ANONYMOUS_AUTHOR_USERNAME, ANONYMOUS_DISPLAY_NAME } from "@/lib/anonymous-post";
 
 export type PostShareCardPayload = {
   id: string;
@@ -48,6 +49,7 @@ export async function GET(
       content: true,
       createdAt: true,
       isNsfw: true,
+      isAnonymous: true,
       author: {
         select: {
           username: true,
@@ -81,12 +83,19 @@ export async function GET(
     title: post.title,
     content: post.content.slice(0, 500),
     createdAt: post.createdAt.toISOString(),
-    author: {
-      username: post.author.username,
-      name: post.author.name,
-      image: post.author.image,
-      displayName: userDisplayName(post.author),
-    },
+    author: post.isAnonymous
+      ? {
+          username: ANONYMOUS_AUTHOR_USERNAME,
+          name: ANONYMOUS_DISPLAY_NAME,
+          image: null,
+          displayName: ANONYMOUS_DISPLAY_NAME,
+        }
+      : {
+          username: post.author.username,
+          name: post.author.name,
+          image: post.author.image,
+          displayName: userDisplayName(post.author),
+        },
     media: post.isNsfw ? null : media,
     href: `/post/${post.id}`,
   };

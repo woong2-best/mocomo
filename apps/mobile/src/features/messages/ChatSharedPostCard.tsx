@@ -194,7 +194,7 @@ function createStyles(colors: ThemeColors, mine: boolean) {
       marginTop: 4,
     },
     authorRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-    author: { flex: 1, fontWeight: "700", color: colors.cobalt, fontSize: 13 },
+    author: { flex: 1, fontWeight: "700", color: colors.brand, fontSize: 13 },
     mediaWrap: {
       width: "100%",
       height: 140,

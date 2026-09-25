@@ -12,8 +12,7 @@ import {
   normalizeLocale,
 } from "@/lib/i18n/config";
 import { TIMEZONE_COOKIE, normalizeTimeZone } from "@/lib/i18n/timezone";
-import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
-import { defaultUsedRegionForCountry } from "@/lib/used-regions-global";
+import { assertSettingsCountrySelectable } from "@/lib/i18n/settings-excluded-countries";
 
 const localeSchema = z.object({
   locale: z.string().refine((v) => isLocale(v), "Invalid locale"),
@@ -31,7 +30,11 @@ export async function updateUserLocale(data: {
 
   const locale = normalizeLocale(parsed.data.locale);
   const countryCode = parsed.data.countryCode.toUpperCase();
-  const countryBlock = assertCountrySelectable(countryCode);
+  const session = await auth();
+  const countryBlock = assertSettingsCountrySelectable(
+    countryCode,
+    session?.user?.countryCode
+  );
   if (countryBlock) return countryBlock;
   const timeZone =
     parsed.data.timeZone != null ? normalizeTimeZone(parsed.data.timeZone) : undefined;
@@ -51,14 +54,12 @@ export async function updateUserLocale(data: {
     });
   }
 
-  const session = await auth();
   if (session?.user?.id) {
     await db.user.update({
       where: { id: session.user.id },
       data: {
         locale,
         countryCode,
-        usedServiceRegion: defaultUsedRegionForCountry(countryCode),
         ...(timeZone ? { timeZone } : {}),
       },
     });

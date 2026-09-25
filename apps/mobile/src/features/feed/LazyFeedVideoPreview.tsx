@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-na
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import type { FeedMedia } from "@/api/feed";
-import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
+import { resolveVideoPoster } from "@/lib/video-poster";
+import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { PerformanceBudgets } from "@/perf/budgets";
 import { spacing } from "@/theme/tokens";
 
@@ -34,20 +35,7 @@ function loadPreview(): Promise<PreviewComponent> {
 }
 
 function posterUri(media: FeedMedia): string | null {
-  const direct = media.posterUrl?.trim();
-  if (direct) return direct;
-  const streamUid = media.streamUid?.trim();
-  if (streamUid && /^[a-zA-Z0-9_-]{16,}$/.test(streamUid)) {
-    return `https://videodelivery.net/${streamUid}/thumbnails/thumbnail.jpg?time=0s&height=720`;
-  }
-  const probe = media.hlsUrl?.trim() || media.url?.trim() || "";
-  const uid =
-    probe.match(/videodelivery\.net\/([^/?#]+)/i)?.[1] ||
-    probe.match(/cloudflarestream\.com\/([^/?#]+)/i)?.[1];
-  if (uid && /^[a-zA-Z0-9_-]{16,}$/.test(uid)) {
-    return `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg?time=0s&height=720`;
-  }
-  return null;
+  return resolveVideoPoster(media);
 }
 
 /**
@@ -84,7 +72,7 @@ function LazyFeedVideoPreviewInner(props: Props) {
     <Pressable onPress={props.onPress} style={[styles.wrap, { width: mediaLayout }]}>
       {poster ? (
         <Image
-          source={{ uri: poster, width: decode, height: decode }}
+          source={cachedImageSource(poster, decode)}
           style={StyleSheet.absoluteFill}
           contentFit="cover"
           cachePolicy={IMAGE_CACHE_POLICY}

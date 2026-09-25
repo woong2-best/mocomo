@@ -6,6 +6,7 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import { userDisplayName } from "@/lib/user-public-select";
 import type { SupportTierLevel } from "@prisma/client";
 import { useLocale } from "@/components/providers/locale-provider";
+import { ANONYMOUS_AUTHOR_USERNAME, ANONYMOUS_DISPLAY_NAME } from "@/lib/anonymous-post";
 import { cn } from "@/lib/utils";
 
 export type CollabHeaderUser = {
@@ -30,6 +31,9 @@ type Props = {
   trailing?: React.ReactNode;
   size?: "sm" | "md";
   className?: string;
+  /** 커뮤니티 갤러리 — 닉네임 옆에 (아이디) */
+  showIdHandle?: boolean;
+  anonymous?: boolean;
 };
 
 /**
@@ -42,11 +46,16 @@ export function PostCollaboratorsHeader({
   trailing,
   size = "sm",
   className,
+  showIdHandle = false,
+  anonymous = false,
 }: Props) {
   const { t } = useLocale();
-  const others = (collaborators ?? [])
-    .map((c) => c.user)
-    .filter((u): u is CollabHeaderUser => !!u?.id && u.id !== author.id);
+  const displayAnonymous = anonymous || author.username === ANONYMOUS_AUTHOR_USERNAME;
+  const others = displayAnonymous
+    ? []
+    : (collaborators ?? [])
+        .map((c) => c.user)
+        .filter((u): u is CollabHeaderUser => !!u?.id && u.id !== author.id);
 
   const hasCollab = others.length > 0;
   const stackSize = size === "md" ? "h-10 w-10" : "h-10 w-10";
@@ -61,31 +70,47 @@ export function PostCollaboratorsHeader({
   return (
     <div className={cn("flex items-start gap-2.5 min-w-0", className)}>
       <div className="relative flex shrink-0 group">
-        {stackUsers.map((u, i) => (
-          <Link
-            key={u.id}
-            href={`/u/${u.username}`}
-            className={cn(
-              "relative rounded-full ring-2 ring-background",
-              hasCollab ? stackOverlap : stackSize,
-              i > 0 && "-ml-2.5"
-            )}
-            style={{ zIndex: stackUsers.length - i }}
-            title={userDisplayName(u)}
-          >
+        {stackUsers.map((u, i) => {
+          const avatar = (
             <Avatar
               className={cn(
                 hasCollab ? stackOverlap : stackSize,
                 "border border-border/50"
               )}
             >
-              <AvatarImage src={u.image ?? undefined} alt="" />
+              <AvatarImage src={displayAnonymous ? undefined : u.image ?? undefined} alt="" />
               <AvatarFallback className="text-[11px] font-semibold">
-                {userDisplayName(u)[0]?.toUpperCase()}
+                {displayAnonymous ? "?" : userDisplayName(u)[0]?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
-          </Link>
-        ))}
+          );
+          if (displayAnonymous) {
+            return (
+              <span
+                key={u.id}
+                className={cn("relative rounded-full ring-2 ring-background", hasCollab ? stackOverlap : stackSize)}
+                title={ANONYMOUS_DISPLAY_NAME}
+              >
+                {avatar}
+              </span>
+            );
+          }
+          return (
+            <Link
+              key={u.id}
+              href={`/u/${u.username}`}
+              className={cn(
+                "relative rounded-full ring-2 ring-background",
+                hasCollab ? stackOverlap : stackSize,
+                i > 0 && "-ml-2.5"
+              )}
+              style={{ zIndex: stackUsers.length - i }}
+              title={userDisplayName(u)}
+            >
+              {avatar}
+            </Link>
+          );
+        })}
 
         {hasCollab && (
           <div className="pointer-events-none absolute left-0 top-full z-50 mt-2 hidden min-w-[200px] rounded-xl border border-border bg-card p-2 shadow-xl group-hover:block">
@@ -152,14 +177,19 @@ export function PostCollaboratorsHeader({
           </div>
         ) : (
           <div className="flex items-center gap-1 flex-wrap text-sm min-w-0">
-            <Link href={`/u/${author.username}`} className="hover:underline min-w-0">
-              <DisplayNameWithSupportTier
-                name={userDisplayName(author)}
-                tier={author.supportTierSent ?? "SEED"}
-                nameClassName="font-bold"
-                compact
-              />
-            </Link>
+            {displayAnonymous ? (
+              <span className="font-bold text-foreground">{ANONYMOUS_DISPLAY_NAME}</span>
+            ) : (
+              <Link href={`/u/${author.username}`} className="hover:underline min-w-0">
+                <DisplayNameWithSupportTier
+                  name={userDisplayName(author)}
+                  tier={author.supportTierSent ?? "SEED"}
+                  nameClassName="font-bold"
+                  compact
+                  idHandle={showIdHandle ? author.username : undefined}
+                />
+              </Link>
+            )}
             {trailing}
           </div>
         )}

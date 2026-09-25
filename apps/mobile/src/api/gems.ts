@@ -30,6 +30,23 @@ export async function topupGems(moco: number) {
   });
 }
 
+export async function topupGemsWithSavedCard(moco: number, paymentMethodId: string) {
+  return apiRequest<
+    | { success: true; type: string; alreadyPaid?: boolean }
+    | { requiresAction: true; authenticateUrl: string; orderId: string }
+    | { error: string }
+  >(MobileApi.gems, {
+    method: "POST",
+    body: {
+      action: "topupSavedCard",
+      moco,
+      paymentMethodId,
+      purchaseTermsAccepted: true,
+    },
+    auth: true,
+  });
+}
+
 /** @deprecated payCheckoutWithGems(orderId) from checkout-payment 사용 */
 export async function payWithGemsMobile(input: { orderId: string }) {
   return apiRequest<{ success: true; type: string; redirectPath?: string; balance?: number }>(

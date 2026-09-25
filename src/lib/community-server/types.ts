@@ -102,6 +102,7 @@ export type CommunityServerContext = {
   communityId: string;
   slug: string;
   name: string;
+  description: string | null;
   iconUrl: string | null;
   bannerUrl: string | null;
   bannerVideoUrl: string | null;

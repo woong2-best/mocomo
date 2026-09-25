@@ -6,12 +6,14 @@ import {
   sendRoomMessage,
   waitRoomMessages,
   type ChatMessage,
+  type DmInboxRoom,
   type DmRoomPayload,
 } from "@/api/messages";
 import {
   dmRoomQueryKey,
   getDmRoomMemory,
   loadDmRoomBootstrap,
+  markDmInboxRoomRead,
   saveDmRoomBootstrap,
 } from "@/api/dm-bootstrap-cache";
 import { parseChatPostShare } from "@/lib/chat-post-share";
@@ -94,7 +96,18 @@ export function useRoomMessages(roomId: string) {
       if (t >= cur) afterRef.current = last.createdAt;
     }
     applySharePrefetch(query.data.messages);
-  }, [query.data]);
+    queryClient.setQueryData<{ rooms: DmInboxRoom[] }>(["mobile-dm-inbox"], (prev) => {
+      if (!prev) return prev;
+      const target = prev.rooms.find((room) => room.id === roomId);
+      if (!target?.unread) return prev;
+      return {
+        rooms: prev.rooms.map((room) =>
+          room.id === roomId ? { ...room, unread: false } : room
+        ),
+      };
+    });
+    markDmInboxRoomRead(roomId);
+  }, [query.data, queryClient, roomId]);
 
   const room = query.data?.room ?? diskSeed?.room ?? null;
   const baseMessages = query.data?.messages ?? diskSeed?.messages ?? [];

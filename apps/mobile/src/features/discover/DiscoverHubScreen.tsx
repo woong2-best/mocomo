@@ -25,7 +25,7 @@ const SECTIONS: {
   { title: "STAR", subtitle: "저장한 게시물", target: { kind: "stack", route: "StarList" }, icon: "star-outline" },
   { title: "컬쳐 위키", subtitle: "작품 탐색", target: { kind: "stack", route: "AnimeList" }, icon: "book-outline" },
   { title: "MCM", subtitle: "More Commerce Moment", target: { kind: "stack", route: "Market" }, icon: "storefront-outline" },
-  { title: "커뮤니티", subtitle: "관심사 모임", target: { kind: "stack", route: "CommunityList" }, icon: "people-outline" },
+  { title: "QnA", subtitle: "질문·답변 피드", target: { kind: "stack", route: "CommunityList" }, icon: "people-outline" },
   { title: "이벤트", subtitle: "참여·대회", target: { kind: "stack", route: "EventsList" }, icon: "calendar-outline" },
   { title: "게임", subtitle: "미니게임 허브", target: { kind: "stack", route: "GamesHub" }, icon: "game-controller-outline" },
   { title: "지갑", subtitle: "잔액·정산", target: { kind: "stack", route: "Wallet" }, icon: "wallet-outline" },

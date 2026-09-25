@@ -21,6 +21,8 @@ import { validateSaleMediaPricing } from "@/lib/money";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import { extractHashtagNames } from "@/lib/linkify";
 import { isCommunityScopedPost } from "@/lib/post-scope";
+import { loadMemberPermissions } from "@/lib/community-server/member-permissions";
+import { hasPermission } from "@/lib/community-server/permissions";
 import {
   assertCanPublishNsfwContent,
   nsfwViewerSelect,
@@ -47,6 +49,8 @@ export type CreatePostInput = {
   instantPurchasePriceKrw?: number;
   media?: CreatePostMediaInput[];
   poll?: CreatePostPollInput;
+  /** QnA only — stored on Post.authorId, hidden in public UI */
+  isAnonymous?: boolean;
   /** User IDs to invite as PENDING collaborators on create */
   collaboratorUserIds?: string[];
 };
@@ -77,6 +81,15 @@ export async function createPostForUser(
     if (!content) return { error: "투표 질문을 본문에 적어 주세요." };
   } else if (!content && !hasMediaInput) {
     return { error: "내용을 입력해 주세요." };
+  }
+
+  const requestedCommunityId = data.communityId?.trim() || undefined;
+  if (
+    requestedCommunityId &&
+    (Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0)) > 0 ||
+      (data.media ?? []).some((m) => Math.max(0, Math.floor(m.priceKrw ?? 0)) > 0))
+  ) {
+    return { error: "QnA에는 유료 파일을 올릴 수 없습니다." };
   }
 
   const instantPrice = Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0));
@@ -122,14 +135,22 @@ export async function createPostForUser(
   }
 
   try {
-    let communityId: string | undefined = data.communityId?.trim() || undefined;
+    let communityId: string | undefined = requestedCommunityId;
     if (communityId) {
       const community = await db.community.findUnique({
         where: { id: communityId },
-        select: { id: true },
+        select: { id: true, creatorId: true },
       });
-      if (!community) communityId = undefined;
+      if (!community) {
+        return { error: "QnA를 찾을 수 없습니다." };
+      }
+      const isOwner = community.creatorId === user.id;
+      const perms = await loadMemberPermissions(communityId, user.id, isOwner);
+      if (!isOwner && !hasPermission(perms, "createPosts")) {
+        return { error: "게시글 작성 권한이 없습니다." };
+      }
     }
+    const isAnonymous = Boolean(communityId);
 
     let animeId: string | undefined = data.animeId?.trim() || undefined;
     if (animeId) {
@@ -145,7 +166,7 @@ export async function createPostForUser(
       .map((m) => ({
         url: m.url.trim(),
         type: m.type,
-        priceKrw: Math.max(0, Math.floor(m.priceKrw ?? 0)),
+        priceKrw: communityId ? 0 : Math.max(0, Math.floor(m.priceKrw ?? 0)),
         width: clampMediaInt(m.width),
         height: clampMediaInt(m.height),
         duration: clampMediaInt(m.duration, 86_400),
@@ -167,8 +188,11 @@ export async function createPostForUser(
         animeId,
         contentRating,
         isNsfw: contentRating === "ADULT",
+        isAnonymous,
         visibility: data.visibility ?? "PUBLIC",
-        instantPurchasePriceKrw: Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0)),
+        instantPurchasePriceKrw: communityId
+          ? 0
+          : Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0)),
         hotScore: calcHotScore(0, 0, new Date()),
         media:
           mediaRows.length > 0
@@ -234,9 +258,9 @@ export async function createPostForUser(
       .map((m) => ({ id: m.id, url: m.url }));
     enqueuePostMediaHlsPackaging(videoMedia);
 
-    const collabIds = (data.collaboratorUserIds ?? [])
-      .map((id) => String(id).trim())
-      .filter(Boolean);
+    const collabIds = isAnonymous
+      ? []
+      : (data.collaboratorUserIds ?? []).map((id) => String(id).trim()).filter(Boolean);
     if (collabIds.length > 0) {
       try {
         await inviteCollaborators(post.id, user.id, collabIds);

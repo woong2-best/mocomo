@@ -1,18 +1,23 @@
 import { InteractionManager } from "react-native";
 import type { QueryClient } from "@tanstack/react-query";
 import { fetchCheckoutMeta } from "@/api/checkout";
-import { fetchCommunityList } from "@/api/community";
-import { fetchAnimeList, fetchStarHub, fetchWallet } from "@/api/discovery";
+import { fetchQnaFeedPage } from "@/api/community";
+import { fetchAnimeList, fetchWallet } from "@/api/discovery";
+import { starHubQueryOptions } from "@/api/star-hub-cache";
 import { fetchEventsList, fetchEventsMap } from "@/api/events";
 import { fetchLiveHub, type LiveHubResponse } from "@/api/live";
 import type { MobileLiveCategoryId } from "@/features/live/live-categories";
 import { fetchMarketplaceList } from "@/api/marketplace";
 import { fetchDmInbox } from "@/api/messages";
+import { followingDmQueryOptions } from "@/api/following-dm-cache";
 import { fetchProfileEditState } from "@/api/profile";
+import { fetchGemsWallet } from "@/api/gems";
 import { fetchPaymentMethods } from "@/payments/stripe-setup";
 import type { DrawerRoute, RootTabParamList } from "@/navigation/types";
 
-const DEFAULT_MARKETPLACE_QUERY = { take: 48 } as const;
+const DEFAULT_MARKETPLACE_QUERY = { take: 48 };
+const DEFAULT_AUCTION_QUERY = { take: 48, mode: "auction" as const };
+const DEFAULT_RECOMMEND_QUERY = { take: 8, lane: "recommend" as const };
 const STALE_MS = 90_000;
 const LIVE_HUB_STALE_MS = 25_000;
 
@@ -48,6 +53,7 @@ export function warmTabBundles(): void {
   if (bundlesWarmed) return;
   bundlesWarmed = true;
   void import("@/features/messages/MessagesInboxScreen");
+  void import("@/features/marketplace/MarketHomeScreen");
   void import("@/features/marketplace/MarketplaceListScreen");
   void import("@/features/messages/MessagesNewScreen");
   void import("@/features/messages/ChatSettingsScreen");
@@ -78,9 +84,10 @@ export function prefetchTabQueries(queryClient: QueryClient): void {
     queryFn: fetchDmInbox,
     staleTime: STALE_MS,
   });
+  void queryClient.prefetchQuery(followingDmQueryOptions());
 
   void queryClient.prefetchQuery({
-    queryKey: ["mobile-marketplace", DEFAULT_MARKETPLACE_QUERY],
+    queryKey: ["mobile-marketplace", "used", DEFAULT_MARKETPLACE_QUERY],
     queryFn: () => fetchMarketplaceList(DEFAULT_MARKETPLACE_QUERY),
     staleTime: STALE_MS,
   });
@@ -91,14 +98,13 @@ export function prefetchDrawerQueries(queryClient: QueryClient): void {
   drawerQueriesWarmed = true;
 
   prefetchLiveHubInfinite(queryClient, "ALL");
-  void queryClient.prefetchQuery({
-    queryKey: ["mobile-star-hub", null],
-    queryFn: () => fetchStarHub(null),
-    staleTime: STALE_MS,
-  });
-  void queryClient.prefetchQuery({
-    queryKey: ["mobile-community"],
-    queryFn: () => fetchCommunityList(),
+  void queryClient.prefetchQuery(starHubQueryOptions(queryClient, null));
+  void queryClient.prefetchInfiniteQuery({
+    queryKey: ["mobile-qna-feed", "ALL", ""],
+    queryFn: ({ pageParam }) =>
+      fetchQnaFeedPage({ cursor: pageParam, category: "ALL" }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
     staleTime: STALE_MS,
   });
   void queryClient.prefetchQuery({
@@ -124,6 +130,11 @@ export function prefetchDrawerQueries(queryClient: QueryClient): void {
   void queryClient.prefetchQuery({
     queryKey: ["mobile-payment-methods"],
     queryFn: () => fetchPaymentMethods(),
+    staleTime: STALE_MS,
+  });
+  void queryClient.prefetchQuery({
+    queryKey: ["mobile-gems-wallet"],
+    queryFn: fetchGemsWallet,
     staleTime: STALE_MS,
   });
   void queryClient.prefetchQuery({
@@ -160,11 +171,12 @@ export function prefetchTabForRoute(
         queryFn: fetchDmInbox,
         staleTime: STALE_MS,
       });
+      void queryClient.prefetchQuery(followingDmQueryOptions());
       break;
     case "Used":
       void queryClient.prefetchQuery({
-        queryKey: ["mobile-marketplace", DEFAULT_MARKETPLACE_QUERY],
-        queryFn: () => fetchMarketplaceList(DEFAULT_MARKETPLACE_QUERY),
+        queryKey: ["mobile-marketplace", "recommend"],
+        queryFn: () => fetchMarketplaceList(DEFAULT_RECOMMEND_QUERY),
         staleTime: STALE_MS,
       });
       break;
@@ -189,18 +201,18 @@ export function prefetchDrawerRoute(queryClient: QueryClient, route: DrawerRoute
         queryFn: fetchDmInbox,
         staleTime: STALE_MS,
       });
+      void queryClient.prefetchQuery(followingDmQueryOptions());
       return;
     case "StarList":
-      void queryClient.prefetchQuery({
-        queryKey: ["mobile-star-hub", null],
-        queryFn: () => fetchStarHub(null),
-        staleTime: STALE_MS,
-      });
+      void queryClient.prefetchQuery(starHubQueryOptions(queryClient, null));
       return;
     case "CommunityList":
-      void queryClient.prefetchQuery({
-        queryKey: ["mobile-community"],
-        queryFn: () => fetchCommunityList(),
+      void queryClient.prefetchInfiniteQuery({
+        queryKey: ["mobile-qna-feed", "ALL", ""],
+        queryFn: ({ pageParam }) =>
+          fetchQnaFeedPage({ cursor: pageParam, category: "ALL" }),
+        initialPageParam: null as string | null,
+        getNextPageParam: (last) => last.nextCursor,
         staleTime: STALE_MS,
       });
       return;
@@ -236,6 +248,11 @@ export function prefetchDrawerRoute(queryClient: QueryClient, route: DrawerRoute
         queryFn: () => fetchPaymentMethods(),
         staleTime: STALE_MS,
       });
+      void queryClient.prefetchQuery({
+        queryKey: ["mobile-gems-wallet"],
+        queryFn: fetchGemsWallet,
+        staleTime: STALE_MS,
+      });
       return;
     case "Settings":
       void queryClient.prefetchQuery({
@@ -248,6 +265,13 @@ export function prefetchDrawerRoute(queryClient: QueryClient, route: DrawerRoute
       void queryClient.prefetchQuery({
         queryKey: ["mobile-profile-edit"],
         queryFn: fetchProfileEditState,
+        staleTime: STALE_MS,
+      });
+      return;
+    case "AuctionList":
+      void queryClient.prefetchQuery({
+        queryKey: ["mobile-marketplace", "auction", DEFAULT_AUCTION_QUERY],
+        queryFn: () => fetchMarketplaceList(DEFAULT_AUCTION_QUERY),
         staleTime: STALE_MS,
       });
       return;

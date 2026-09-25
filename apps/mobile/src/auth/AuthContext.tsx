@@ -8,9 +8,19 @@ import {
   type ReactNode,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/api/client";
+import { ApiError, apiRequest } from "@/api/client";
 import { clearDmBootstrap, loadDmInboxBootstrap } from "@/api/dm-bootstrap-cache";
+import {
+  clearFollowingDmBootstrap,
+  FOLLOWING_DM_QUERY_KEY,
+  loadFollowingDmBootstrap,
+} from "@/api/following-dm-cache";
 import { clearFeedBootstrap, loadFeedBootstrap } from "@/api/feed-bootstrap-cache";
+import { clearStarHubBootstrap, hydrateStarHubQuery } from "@/api/star-hub-cache";
+import {
+  clearWalletBootstrap,
+  loadWalletBootstrap,
+} from "@/api/wallet-bootstrap-cache";
 import { fetchFeedPage, type FeedPage } from "@/api/feed";
 import { MobileApi } from "@/api/paths";
 import { scheduleTabWarmup, resetTabWarmup } from "@/navigation/tab-warmup";
@@ -28,6 +38,8 @@ import {
 import { prefetchImageUrls } from "@/perf/image";
 import { clearTokens, getAccessToken, logoutCurrentAccount, setTokens } from "@/auth/token-store";
 import type { MobileAuthUser } from "@/auth/types";
+import { patchMe } from "@/api/discovery";
+import { detectDeviceTimeZone } from "@/lib/device-timezone";
 
 export type WebAuthMode = "signup" | "signin";
 
@@ -51,6 +63,12 @@ type AuthState = {
   signInWithGoogleNative: (opts?: {
     flow?: "signin" | "signup";
     idToken?: string;
+    forcePicker?: boolean;
+    birthYear?: number;
+    birthMonth?: number;
+    birthDay?: number;
+    termsAccepted?: boolean;
+    privacyAccepted?: boolean;
   }) => Promise<
     | { status: "signedIn" }
     | {
@@ -62,6 +80,11 @@ type AuthState = {
   signInWithNaverNative: (opts?: {
     flow?: "signin" | "signup";
     accessToken?: string;
+    birthYear?: number;
+    birthMonth?: number;
+    birthDay?: number;
+    termsAccepted?: boolean;
+    privacyAccepted?: boolean;
   }) => Promise<
     | { status: "signedIn" }
     | {
@@ -73,6 +96,11 @@ type AuthState = {
   signInWithLineNative: (opts?: {
     flow?: "signin" | "signup";
     accessToken?: string;
+    birthYear?: number;
+    birthMonth?: number;
+    birthDay?: number;
+    termsAccepted?: boolean;
+    privacyAccepted?: boolean;
   }) => Promise<
     | { status: "signedIn" }
     | {
@@ -81,8 +109,19 @@ type AuthState = {
         profile: import("@/auth/naver-line-native").NativeOAuthProfile;
       }
   >;
-  completeOAuthSignupHandoff: (handoff: string) => Promise<void>;
+  completeOAuthSignupHandoff: (
+    handoff: string,
+    consent: {
+      birthYear: number;
+      birthMonth: number;
+      birthDay: number;
+      termsAccepted: true;
+      privacyAccepted: true;
+    }
+  ) => Promise<void>;
   addAccount: (mode: WebAuthMode) => Promise<void>;
+  /** Save current session before in-app add-account login (no browser). */
+  prepareAddAccountSession: () => Promise<void>;
   switchAccount: (userId: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshMe: () => Promise<void>;
@@ -125,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const applySignedInUser = useCallback(
     async (nextUser: MobileAuthUser) => {
+      await hydrateStarHubQuery(queryClient, nextUser.id);
       setUser(nextUser);
       setStatus("signedIn");
       await patchActiveAccountProfile(nextUser);
@@ -151,11 +191,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await saveAccountSession(data.user, active.accessToken, active.refreshToken);
       }
       await applySignedInUser(data.user);
-    } catch {
-      await clearTokens();
-      setUser(null);
-      setStatus("signedOut");
-      await refreshSavedAccounts();
+    } catch (e) {
+      const statusCode = e instanceof ApiError ? e.status : 0;
+      // Only a confirmed unauthorized session may wipe tokens. 403/404/408/network
+      // after a successful login used to kick the user straight back to Login.
+      if (statusCode === 401) {
+        await clearTokens();
+        setUser(null);
+        setStatus("signedOut");
+        await refreshSavedAccounts();
+      }
     }
   }, [applySignedInUser, refreshSavedAccounts]);
 
@@ -176,10 +221,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const [cachedFeed, cachedInbox] = await Promise.all([
-        loadFeedBootstrap(),
-        loadDmInboxBootstrap(),
-      ]);
+      const [cachedFeed, cachedInbox, cachedWallet, cachedFollowing, cachedUser] =
+        await Promise.all([
+          loadFeedBootstrap(),
+          loadDmInboxBootstrap(),
+          loadWalletBootstrap(),
+          loadFollowingDmBootstrap(),
+          getCachedActiveUser(),
+        ]);
+      await hydrateStarHubQuery(queryClient, cachedUser?.id ?? null);
       if (cancelled) return;
       if (cachedFeed) {
         queryClient.setQueryData(["mobile-feed"], cachedFeed);
@@ -187,8 +237,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cachedInbox) {
         queryClient.setQueryData(["mobile-dm-inbox"], cachedInbox);
       }
+      if (cachedFollowing) {
+        queryClient.setQueryData(
+          FOLLOWING_DM_QUERY_KEY,
+          { users: cachedFollowing.users },
+          { updatedAt: cachedFollowing.savedAt }
+        );
+      }
+      if (cachedWallet?.wallet) {
+        queryClient.setQueryData(["mobile-wallet"], cachedWallet.wallet);
+      }
+      if (cachedWallet?.paymentMethods) {
+        queryClient.setQueryData(["mobile-payment-methods"], cachedWallet.paymentMethods);
+      }
+      if (cachedWallet?.gems) {
+        queryClient.setQueryData(["mobile-gems-wallet"], cachedWallet.gems);
+      }
 
-      const cachedUser = await getCachedActiveUser();
       if (cancelled) return;
       if (cachedUser) {
         setUser(cachedUser);
@@ -212,12 +277,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(data.user);
         setStatus("signedIn");
         await refreshSavedAccounts();
-      } catch {
+      } catch (e) {
         if (cancelled) return;
-        await clearTokens();
-        setUser(null);
-        setStatus("signedOut");
-        await refreshSavedAccounts();
+        const statusCode = e instanceof ApiError ? e.status : 0;
+        if (statusCode === 401) {
+          await clearTokens();
+          setUser(null);
+          setStatus("signedOut");
+          await refreshSavedAccounts();
+        }
       }
     })();
     return () => {
@@ -246,7 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const openWebAuth = useCallback(
     async (mode: WebAuthMode, opts?: import("@/auth/oauth").OpenWebAuthOptions) => {
-      return finishWebAuth(mode, false, opts);
+      return finishWebAuth(mode, opts?.addAccount === true, opts);
     },
     [finishWebAuth]
   );
@@ -263,11 +331,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signInWithGoogleNative = useCallback(
-    async (opts?: { flow?: "signin" | "signup"; idToken?: string }) => {
+    async (opts?: {
+      flow?: "signin" | "signup";
+      idToken?: string;
+      forcePicker?: boolean;
+      birthYear?: number;
+      birthMonth?: number;
+      birthDay?: number;
+      termsAccepted?: boolean;
+      privacyAccepted?: boolean;
+    }) => {
       const { authenticateWithGoogleNative } = await import("@/auth/google-native");
       const result = await authenticateWithGoogleNative({
         flow: opts?.flow ?? "signin",
         idToken: opts?.idToken,
+        forcePicker: opts?.forcePicker,
+        birthYear: opts?.birthYear,
+        birthMonth: opts?.birthMonth,
+        birthDay: opts?.birthDay,
+        termsAccepted: opts?.termsAccepted,
+        privacyAccepted: opts?.privacyAccepted,
       });
 
       if (result.status === "needsSignup") {
@@ -287,11 +370,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signInWithNaverNative = useCallback(
-    async (opts?: { flow?: "signin" | "signup"; accessToken?: string }) => {
+    async (opts?: {
+      flow?: "signin" | "signup";
+      accessToken?: string;
+      birthYear?: number;
+      birthMonth?: number;
+      birthDay?: number;
+      termsAccepted?: boolean;
+      privacyAccepted?: boolean;
+    }) => {
       const { authenticateWithNaverNative } = await import("@/auth/naver-line-native");
       const result = await authenticateWithNaverNative({
         flow: opts?.flow ?? "signin",
         accessToken: opts?.accessToken,
+        birthYear: opts?.birthYear,
+        birthMonth: opts?.birthMonth,
+        birthDay: opts?.birthDay,
+        termsAccepted: opts?.termsAccepted,
+        privacyAccepted: opts?.privacyAccepted,
       });
       if (result.status === "needsSignup") {
         return {
@@ -309,11 +405,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signInWithLineNative = useCallback(
-    async (opts?: { flow?: "signin" | "signup"; accessToken?: string }) => {
+    async (opts?: {
+      flow?: "signin" | "signup";
+      accessToken?: string;
+      birthYear?: number;
+      birthMonth?: number;
+      birthDay?: number;
+      termsAccepted?: boolean;
+      privacyAccepted?: boolean;
+    }) => {
       const { authenticateWithLineNative } = await import("@/auth/naver-line-native");
       const result = await authenticateWithLineNative({
         flow: opts?.flow ?? "signin",
         accessToken: opts?.accessToken,
+        birthYear: opts?.birthYear,
+        birthMonth: opts?.birthMonth,
+        birthDay: opts?.birthDay,
+        termsAccepted: opts?.termsAccepted,
+        privacyAccepted: opts?.privacyAccepted,
       });
       if (result.status === "needsSignup") {
         return {
@@ -331,27 +440,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const completeOAuthSignupHandoff = useCallback(
-    async (handoff: string) => {
+    async (
+      handoff: string,
+      consent: {
+        birthYear: number;
+        birthMonth: number;
+        birthDay: number;
+        termsAccepted: true;
+        privacyAccepted: true;
+      }
+    ) => {
       const { completeWebOAuthSignup } = await import("@/auth/oauth");
-      const user = await completeWebOAuthSignup(handoff);
+      const user = await completeWebOAuthSignup(handoff, consent);
       await applySignedInUser(user);
       void refreshMe();
     },
     [applySignedInUser, refreshMe]
   );
 
+  const prepareAddAccountSession = useCallback(async () => {
+    const active = await getActiveAccount();
+    if (active && user) {
+      await saveAccountSession(user, active.accessToken, active.refreshToken);
+    }
+  }, [user]);
+
   const addAccount = useCallback(
     async (mode: WebAuthMode) => {
-      const active = await getActiveAccount();
-      if (active && user) {
-        await saveAccountSession(user, active.accessToken, active.refreshToken);
-      }
+      await prepareAddAccountSession();
       const result = await finishWebAuth(mode, true);
       if (result.status === "needsSignup") {
         throw new Error("추가 계정은 가입 완료 후 다시 시도해 주세요.");
       }
     },
-    [finishWebAuth, user]
+    [finishWebAuth, prepareAddAccountSession]
   );
 
   const switchAccount = useCallback(
@@ -361,7 +483,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const hit = await activateAccount(userId);
       if (!hit) return;
       queryClient.clear();
-      await Promise.all([clearFeedBootstrap(), clearDmBootstrap()]);
+      await Promise.all([
+        clearFeedBootstrap(),
+        clearDmBootstrap(),
+        clearWalletBootstrap(),
+        clearFollowingDmBootstrap(),
+      ]);
+      await hydrateStarHubQuery(queryClient, hit.userId);
       resetTabWarmup();
       setUser(savedAccountToCachedUser(hit));
       if (hit.image) prefetchImageUrls([hit.image], 1);
@@ -384,13 +512,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }).catch(() => undefined);
     } finally {
       await unregisterPushSafe();
-      void import("@/auth/google-native")
-        .then((m) => m.clearGoogleNativeSession())
-        .catch(() => undefined);
+      try {
+        const { clearGoogleNativeSession } = await import("@/auth/google-native");
+        await clearGoogleNativeSession();
+      } catch {
+        /* SDK unavailable */
+      }
       const fallback = await logoutCurrentAccount();
-      await Promise.all([clearFeedBootstrap(), clearDmBootstrap()]);
+      await Promise.all([
+        clearFeedBootstrap(),
+        clearDmBootstrap(),
+        clearWalletBootstrap(),
+        clearFollowingDmBootstrap(),
+        clearStarHubBootstrap(),
+      ]);
       queryClient.clear();
       if (fallback) {
+        await hydrateStarHubQuery(queryClient, fallback.userId);
         setStatus("signedIn");
         prefetchHomeFeed(queryClient);
         scheduleTabWarmup(queryClient);
@@ -402,6 +540,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [queryClient, refreshMe, refreshSavedAccounts]);
+
+  useEffect(() => {
+    if (status !== "signedIn" || !user) return;
+    const tz = detectDeviceTimeZone();
+    if (!tz || tz === user.timeZone) return;
+    let cancelled = false;
+    void patchMe({ timeZone: tz })
+      .then(() => {
+        if (!cancelled) void refreshMe();
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [status, user, user?.timeZone, refreshMe]);
 
   const value = useMemo(
     () => ({
@@ -415,6 +568,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithLineNative,
       completeOAuthSignupHandoff,
       addAccount,
+      prepareAddAccountSession,
       switchAccount,
       signOut,
       refreshMe,
@@ -431,6 +585,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithLineNative,
       completeOAuthSignupHandoff,
       addAccount,
+      prepareAddAccountSession,
       switchAccount,
       signOut,
       refreshMe,

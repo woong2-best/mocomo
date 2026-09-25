@@ -18,14 +18,13 @@ import * as Haptics from "expo-haptics";
 import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import { isPaidPlaybackPath } from "@/api/watermark";
 import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
-import { useNavigation, useIsFocused } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useIsFocused } from "@react-navigation/native";
 import type { ReelItem } from "@/api/reels";
-import { togglePostLike } from "@/api/feed";
-import { togglePostStar } from "@/api/social";
+import { useQueryClient } from "@tanstack/react-query";
+import { togglePostLike, type FeedPost } from "@/api/feed";
+import { runOptimisticStarToggle } from "@/api/star-hub-cache";
 import type { FeedVideoGroup } from "@/features/feed/feed-video-groups";
-import type { RootStackParamList } from "@/navigation/types";
-import { IMAGE_CACHE_POLICY } from "@/perf/image";
+import { cachedImageSource, IMAGE_CACHE_POLICY } from "@/perf/image";
 import { spacing } from "@/theme/tokens";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import {
@@ -36,6 +35,7 @@ import {
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { PostReportSheet } from "@/features/feed/PostReportSheet";
 import { useAuth } from "@/auth/AuthContext";
+import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 
 /** Instagram Reels-style edge hold width — narrow so center taps / right rail stay safe. */
@@ -43,6 +43,43 @@ const EDGE_HOLD_WIDTH = 52;
 /** Right inset for center tap zone so it does not compete with the action rail. */
 const RAIL_CLEARANCE = 76;
 const FAST_PLAYBACK_RATE = 2;
+
+function reelAsFeedPost(reel: ReelItem, starred: boolean): FeedPost {
+  return {
+    id: reel.postId,
+    title: reel.title,
+    content: reel.content,
+    postType: "VIDEO",
+    createdAt: reel.createdAt,
+    isNsfw: reel.isNsfw,
+    viewCount: reel.viewCount,
+    author: {
+      id: reel.author.id,
+      username: reel.author.username,
+      name: reel.author.name,
+      image: reel.author.image,
+    },
+    media: [
+      {
+        id: reel.media.id,
+        url: reel.media.url,
+        type: "VIDEO",
+        posterUrl: reel.media.posterUrl,
+        hlsUrl: reel.media.hlsUrl,
+        width: reel.media.width,
+        height: reel.media.height,
+        duration: reel.media.duration,
+        priceKrw: reel.media.priceKrw,
+        locked: reel.media.locked,
+        lockReason: reel.media.lockReason,
+        instantPurchasePriceKrw: reel.media.instantPurchasePriceKrw,
+      },
+    ],
+    _count: { likes: reel.likeCount, comments: reel.commentCount },
+    liked: reel.liked,
+    starred,
+  };
+}
 
 type Props = {
   group: FeedVideoGroup;
@@ -116,7 +153,7 @@ function NativeVideoCell({
     <View style={StyleSheet.absoluteFill}>
       {item.media.posterUrl && !active ? (
         <Image
-          source={{ uri: item.media.posterUrl }}
+          source={cachedImageSource(item.media.posterUrl)}
           style={StyleSheet.absoluteFill}
           contentFit="contain"
           cachePolicy={IMAGE_CACHE_POLICY}
@@ -186,7 +223,7 @@ function VideoCell({
       <View style={StyleSheet.absoluteFill}>
         {item.media.posterUrl && !active ? (
           <Image
-            source={{ uri: item.media.posterUrl }}
+            source={cachedImageSource(item.media.posterUrl)}
             style={StyleSheet.absoluteFill}
             contentFit="contain"
             cachePolicy={IMAGE_CACHE_POLICY}
@@ -272,7 +309,11 @@ function FeedVideoPostSlideInner({
   onChangeVideoIndex,
   onFastForwardChange,
 }: Props) {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
+  const queryClient = useQueryClient();
+  const starLock = useRef(false);
+  const postIdRef = useRef(group.postId);
+  postIdRef.current = group.postId;
   const isFocused = useIsFocused();
   const { user } = useAuth();
   const showLikeCounts = useShowLikeCounts();
@@ -334,6 +375,10 @@ function FeedVideoPostSlideInner({
   }, [group.postId, initialVideoIndex, group.videos.length]);
 
   useEffect(() => {
+    starLock.current = false;
+  }, [group.postId]);
+
+  useEffect(() => {
     if (!current) return;
     setLiked(!!current.liked);
     setLikeCount(current.likeCount);
@@ -385,13 +430,23 @@ function FeedVideoPostSlideInner({
   }, [current, likeCount, liked]);
 
   const onStar = useCallback(() => {
-    if (!current) return;
+    if (!current || starLock.current) return;
+    const postId = current.postId;
     const prev = starred;
-    setStarred(!prev);
-    void togglePostStar(current.postId)
-      .then((res) => setStarred(res.starred))
-      .catch(() => setStarred(prev));
-  }, [current, starred]);
+    const next = !prev;
+    starLock.current = true;
+    setStarred(next);
+    void runOptimisticStarToggle(queryClient, reelAsFeedPost(current, next), next)
+      .then((res) => {
+        if (postIdRef.current === postId) setStarred(res.starred);
+      })
+      .catch(() => {
+        if (postIdRef.current === postId) setStarred(prev);
+      })
+      .finally(() => {
+        starLock.current = false;
+      });
+  }, [current, queryClient, starred]);
 
   const onShare = useCallback(() => {
     if (!current) return;
@@ -401,10 +456,23 @@ function FeedVideoPostSlideInner({
     });
   }, [current]);
 
+  const onAuthorPressIn = useCallback(() => {
+    if (!current) return;
+    prefetchUserProfile({
+      username: current.author.username,
+      name: current.author.name,
+      image: current.author.image,
+    });
+  }, [current, prefetchUserProfile]);
+
   const onAuthorPress = useCallback(() => {
     if (!current) return;
-    navigation.navigate("UserProfile", { username: current.author.username });
-  }, [current, navigation]);
+    openUserProfile({
+      username: current.author.username,
+      name: current.author.name,
+      image: current.author.image,
+    });
+  }, [current, openUserProfile]);
 
   const onReportPress = useCallback(() => {
     if (!user) {
@@ -572,6 +640,7 @@ function FeedVideoPostSlideInner({
           pointerEvents="box-none"
         >
         <Pressable
+          onPressIn={onAuthorPressIn}
           onPress={onAuthorPress}
           style={styles.authorRow}
           accessibilityRole="button"

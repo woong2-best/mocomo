@@ -60,7 +60,7 @@ export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
   if (path === "/communities" || path.startsWith("/communities/")) {
     return {
       scope: "community",
-      placeholder: "커뮤니티 검색",
+      placeholder: "QnA 검색",
       basePath: "/communities",
       inPage: true,
     };

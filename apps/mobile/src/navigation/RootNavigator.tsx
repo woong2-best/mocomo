@@ -22,7 +22,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function UsedTabScreen() {
   const { MarketplaceListScreen } = require("@/features/marketplace/MarketplaceListScreen") as {
-    MarketplaceListScreen: ComponentType<{ mode?: string }>;
+    MarketplaceListScreen: ComponentType<{ mode?: "tab" | "stack" }>;
   };
   return <MarketplaceListScreen mode="tab" />;
 }
@@ -104,7 +104,18 @@ export function RootNavigator() {
               options={{ animation: "slide_from_bottom", presentation: "modal" }}
             />
             <Stack.Screen
+              name="AuctionCreate"
+              getComponent={() =>
+                require("@/features/marketplace/UsedCreateScreen").UsedCreateScreen
+              }
+              options={{ animation: "slide_from_bottom", presentation: "modal" }}
+            />
+            <Stack.Screen
               name="UsedMy"
+              getComponent={() => require("@/features/marketplace/UsedMyScreen").UsedMyScreen}
+            />
+            <Stack.Screen
+              name="AuctionMy"
               getComponent={() => require("@/features/marketplace/UsedMyScreen").UsedMyScreen}
             />
             <Stack.Screen
@@ -166,7 +177,19 @@ export function RootNavigator() {
               }
             />
             <Stack.Screen
+              name="AuctionList"
+              getComponent={() =>
+                require("@/features/marketplace/MarketplaceListScreen").MarketplaceListScreen
+              }
+            />
+            <Stack.Screen
               name="MarketplaceDetail"
+              getComponent={() =>
+                require("@/features/marketplace/MarketplaceDetailScreen").MarketplaceDetailScreen
+              }
+            />
+            <Stack.Screen
+              name="AuctionDetail"
               getComponent={() =>
                 require("@/features/marketplace/MarketplaceDetailScreen").MarketplaceDetailScreen
               }
@@ -342,10 +365,28 @@ export function RootNavigator() {
               name="GamesHub"
               getComponent={() => require("@/features/games/GamesHubScreen").GamesHubScreen}
             />
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{
+                animation: "slide_from_bottom",
+                presentation: "modal",
+                freezeOnBlur: false,
+              }}
+            />
+            <Stack.Screen
+              name="Signup"
+              getComponent={() => require("@/features/auth/SignupScreen").SignupScreen}
+              options={{ animation: "slide_from_bottom", presentation: "modal" }}
+            />
           </>
         ) : (
           <>
-            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ freezeOnBlur: false }}
+            />
             <Stack.Screen
               name="Signup"
               getComponent={() => require("@/features/auth/SignupScreen").SignupScreen}

@@ -1,40 +1,24 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCachedCurrentUser, requireAuthMinimal } from "@/lib/auth";
 import { postMediaPreview } from "@/lib/post-media-select";
-import {
-  notifyFollow,
-  notifyFollowRequestAccepted,
-  notifyPostLike,
-} from "@/lib/notifications";
+import { notifyPostLike } from "@/lib/notifications";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { userPublicSelect } from "@/lib/user-public-select";
-import { platformPostWhere } from "@/lib/post-scope";
+import { platformPostWhere, qnaEngagementError } from "@/lib/post-scope";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import {
   toggleFollowForUser,
   type FollowToggleResult,
 } from "@/lib/follow-service";
+import {
+  approveFollowRequestForUser,
+  listIncomingFollowRequestsForUser,
+  rejectFollowRequestForUser,
+} from "@/lib/follow-request-service";
 
 export type { FollowToggleResult };
-
-async function revalidateFollowPaths(targetUsername?: string, listOwnerUsername?: string) {
-  const paths = new Set<string>();
-  if (targetUsername?.trim()) {
-    const u = targetUsername.trim();
-    paths.add(`/u/${u}`);
-    paths.add(`/u/${u}/connections`);
-  }
-  if (listOwnerUsername?.trim()) {
-    paths.add(`/u/${listOwnerUsername.trim()}/connections`);
-  }
-  paths.add("/settings");
-  for (const path of paths) {
-    revalidatePath(path);
-  }
-}
 
 export async function toggleFollow(
   userId: string,
@@ -50,95 +34,28 @@ export async function toggleFollow(
 
 export async function approveFollowRequest(requesterId: string) {
   const user = await requireAuthMinimal();
-  if (user.id === requesterId) return { error: "Invalid" as const };
-
-  const req = await db.followRequest.findUnique({
-    where: {
-      requesterId_targetId: { requesterId, targetId: user.id },
-    },
-    select: { id: true, requester: { select: { username: true } } },
-  });
-  if (!req) return { error: "요청을 찾을 수 없습니다." as const };
-
-  await db.$transaction(async (tx) => {
-    try {
-      await tx.follow.create({
-        data: { followerId: requesterId, followingId: user.id },
-      });
-    } catch (e) {
-      const code = e && typeof e === "object" && "code" in e ? (e as { code: string }).code : "";
-      if (code !== "P2002") throw e;
-    }
-    await tx.followRequest.delete({ where: { id: req.id } });
-  });
-
-  void notifyFollow(user.id, requesterId);
-  void notifyFollowRequestAccepted(requesterId, user.id);
-  void import("@/lib/creator-dm-marketing").then(({ sendWelcomeDmOnNewFollow }) =>
-    sendWelcomeDmOnNewFollow(user.id, requesterId).catch(() => {})
-  );
-
-  const me = await db.user.findUnique({
-    where: { id: user.id },
-    select: { username: true },
-  });
-  await revalidateFollowPaths(req.requester.username, me?.username);
-  return { success: true as const };
+  return approveFollowRequestForUser(user.id, requesterId);
 }
 
 export async function rejectFollowRequest(requesterId: string) {
   const user = await requireAuthMinimal();
-  const deleted = await db.followRequest.deleteMany({
-    where: { requesterId, targetId: user.id },
-  });
-  if (deleted.count === 0) return { error: "요청을 찾을 수 없습니다." as const };
-
-  const me = await db.user.findUnique({
-    where: { id: user.id },
-    select: { username: true },
-  });
-  await revalidateFollowPaths(undefined, me?.username);
-  revalidatePath("/settings");
-  return { success: true as const };
+  return rejectFollowRequestForUser(user.id, requesterId);
 }
 
 export async function getIncomingFollowRequests() {
   const user = await requireAuthMinimal();
-  const rows = await db.followRequest.findMany({
-    where: { targetId: user.id },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    select: {
-      id: true,
-      createdAt: true,
-      requester: {
-        select: {
-          id: true,
-          username: true,
-          name: true,
-          image: true,
-          supportTierSent: true,
-          profile: { select: { bio: true } },
-        },
-      },
-    },
-  });
-  return rows.map((r) => ({
-    id: r.id,
-    createdAt: r.createdAt,
-    user: {
-      id: r.requester.id,
-      username: r.requester.username,
-      name: r.requester.name,
-      image: r.requester.image,
-      supportTierSent: r.requester.supportTierSent,
-      bio: r.requester.profile?.bio ?? null,
-    },
-  }));
+  return listIncomingFollowRequestsForUser(user.id);
 }
 
 export async function toggleLike(postId: string) {
   const user = await requireAuthMinimal();
+  const post = await db.post.findUnique({
+    where: { id: postId },
+    select: { authorId: true, communityId: true },
+  });
+  if (!post) return { error: "게시물을 찾을 수 없습니다." };
+  const blocked = qnaEngagementError(post.communityId);
+  if (blocked) return { error: blocked };
   const existing = await db.like.findUnique({
     where: { userId_postId: { userId: user.id, postId } },
   });
@@ -147,8 +64,7 @@ export async function toggleLike(postId: string) {
     return { liked: false };
   }
   await db.like.create({ data: { userId: user.id, postId } });
-  const post = await db.post.findUnique({ where: { id: postId }, select: { authorId: true } });
-  if (post && post.authorId !== user.id) {
+  if (post.authorId !== user.id) {
     void notifyPostLike(postId, post.authorId, user.id);
   }
   return { liked: true };
@@ -156,6 +72,13 @@ export async function toggleLike(postId: string) {
 
 export async function repost(postId: string) {
   const user = await requireAuthMinimal();
+  const post = await db.post.findUnique({
+    where: { id: postId },
+    select: { communityId: true },
+  });
+  if (!post) return { error: "게시물을 찾을 수 없습니다." };
+  const blocked = qnaEngagementError(post.communityId);
+  if (blocked) return { error: blocked };
   const existing = await db.repost.findUnique({
     where: { userId_postId: { userId: user.id, postId } },
   });

@@ -5,6 +5,7 @@ import { WikiContent } from "@/components/anime/wiki-content";
 import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
 import { wikiHeadingId } from "@/lib/anime-revision";
 import { cn } from "@/lib/utils";
+import { wikiCoverDisplayUrl } from "@/lib/wiki-cover-url";
 
 type AnimeWikiArticleProps = {
   title: string;
@@ -134,7 +135,11 @@ export function AnimeWikiArticle({
             </div>
             {coverUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverUrl} alt={title} className="w-full aspect-[3/4] object-cover" />
+              <img
+                src={wikiCoverDisplayUrl(coverUrl) ?? coverUrl}
+                alt={title}
+                className="w-full aspect-[3/4] object-cover"
+              />
             ) : (
               <div className="w-full aspect-[3/4] bg-muted/40 flex items-center justify-center text-5xl">
                 {genreInfo.emoji}

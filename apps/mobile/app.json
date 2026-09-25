@@ -2,7 +2,7 @@
   "expo": {
     "name": "MoCoMo",
     "slug": "mocomo",
-    "version": "1.0.142",
+    "version": "1.0.187",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -48,7 +48,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "net.mocomo.app",
-      "buildNumber": "105",
+      "buildNumber": "106",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification",
@@ -64,7 +64,7 @@
     "android": {
       "package": "net.mocomo.app",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 152,
+      "versionCode": 198,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#F5F0E8",

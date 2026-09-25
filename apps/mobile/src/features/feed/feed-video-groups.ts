@@ -80,7 +80,7 @@ export function postVideoToReelItem(
     likeCount: post._count?.likes ?? 0,
     commentCount: post._count?.comments ?? 0,
     liked: !!post.liked,
-    starred: false,
+    starred: !!post.starred,
   };
 }
 

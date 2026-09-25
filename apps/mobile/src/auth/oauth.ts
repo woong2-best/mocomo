@@ -104,7 +104,18 @@ export async function openWebAuthSession(
   return { status: "signedIn", user: data.user };
 }
 
-export async function completeWebOAuthSignup(handoff: string): Promise<MobileAuthUser> {
+export type OAuthSignupConsent = {
+  birthYear: number;
+  birthMonth: number;
+  birthDay: number;
+  termsAccepted: true;
+  privacyAccepted: true;
+};
+
+export async function completeWebOAuthSignup(
+  handoff: string,
+  consent: OAuthSignupConsent
+): Promise<MobileAuthUser> {
   const platform = Platform.OS === "ios" ? "ios" : "android";
   const data = await apiRequest<{
     accessToken: string;
@@ -113,7 +124,7 @@ export async function completeWebOAuthSignup(handoff: string): Promise<MobileAut
   }>(MobileApi.auth.oauthCompleteSignup, {
     method: "POST",
     auth: false,
-    body: { handoff, platform },
+    body: { handoff, platform, ...consent },
   });
   await setTokens(data.accessToken, data.refreshToken, data.user);
   return data.user;

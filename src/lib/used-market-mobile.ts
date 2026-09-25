@@ -1,7 +1,6 @@
-import { Prisma, type UsedListingCategory, type UsedRestrictedKind } from "@prisma/client";
+import { Prisma, type UsedRestrictedKind } from "@prisma/client";
 import { db } from "@/lib/db";
-import { assertUsedMarketAccess } from "@/lib/used-market-access";
-import { assertSellerListingRegion } from "@/lib/used-market-locality";
+import { assertAuctionPostAccess, assertUsedMarketAccess } from "@/lib/used-market-access";
 import { assertUsedMarketTradeAccess } from "@/lib/used-market-locale-scope";
 import {
   assertUsedAdultForRestricted,
@@ -34,6 +33,18 @@ import { finalizeExpiredAuctionIfNeeded } from "@/actions/used-auction";
 import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
 import { executeUsedAuctionBid } from "@/lib/used-auction-bid-core";
 import { getOrCreateDmForUser, sendMobileDmMessage } from "@/lib/chat-dm-service";
+import {
+  AUCTION_SELLER_DEPOSIT_ERROR,
+  canParticipateInAuction,
+  getMocoBalanceSnapshot,
+  lockSellerDepositInTransaction,
+  mapDepositError,
+} from "@/lib/auction-deposit";
+import {
+  listingCategoryTags,
+  mergeExtraCategories,
+  parseUsedSellCategories,
+} from "@/lib/used-listing-categories";
 
 const usedMarketUserSelect = {
   id: true,
@@ -60,7 +71,8 @@ export async function createMobileUsedListing(
     description: string;
     price: number;
     currency?: string;
-    category: string;
+    category?: string;
+    categories?: string[];
     region: string;
     meetPlace?: string;
     meetLat?: number;
@@ -81,7 +93,8 @@ export async function createMobileUsedListing(
   const user = await loadUsedMarketUser(userId);
   if (!user) return { error: "로그인이 필요합니다." as const };
 
-  const accessErr = assertUsedMarketAccess(user);
+  const isAuction = data.saleType === "AUCTION";
+  const accessErr = isAuction ? assertAuctionPostAccess(user) : assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
 
   const restricted =
@@ -101,23 +114,20 @@ export async function createMobileUsedListing(
     return { error: `가격은 ${maxUsedListingPriceLabel(currency)} 이하로 입력해 주세요.` as const };
   }
   if (!data.region.trim()) return { error: "거래 지역을 선택해 주세요." as const };
-  if (!isValidUsedRegion(data.region, user.countryCode)) {
+  const listingCountry = normalizeMeetCountry(data.meetCountry || user.countryCode);
+  if (!isValidUsedRegion(data.region, listingCountry)) {
     return { error: "올바른 거래 지역을 선택해 주세요." as const };
   }
 
-  const sellerServiceRegion = user.usedServiceRegion?.trim() || null;
-  if (sellerServiceRegion) {
-    const listingRegionErr = assertSellerListingRegion(
-      user.countryCode,
-      sellerServiceRegion,
-      data.region
-    );
-    if (listingRegionErr) return { error: listingRegionErr };
-  }
+  const parsedCats = parseUsedSellCategories(data.categories, data.category);
+  if ("error" in parsedCats && parsedCats.error) return { error: parsedCats.error };
 
-  const isAuction = data.saleType === "AUCTION";
   if (isAuction && price <= 0) return { error: "경매 시작가를 입력해 주세요." as const };
   if (isAuction && !data.auctionHours) return { error: "경매 기간을 선택해 주세요." as const };
+  if (isAuction) {
+    const balance = await getMocoBalanceSnapshot(userId);
+    if (!canParticipateInAuction(balance)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
+  }
 
   const bidIncrement = Math.floor(data.bidIncrement ?? DEFAULT_BID_INCREMENT);
   const buyNowPrice =
@@ -144,13 +154,7 @@ export async function createMobileUsedListing(
     let meetLat = data.meetLat;
     let meetLng = data.meetLng;
     const meetPlaceTrim = data.meetPlace?.trim() || null;
-    const meetCountry = normalizeMeetCountry(user.countryCode);
-    if (
-      data.meetCountry &&
-      normalizeMeetCountry(data.meetCountry) !== meetCountry
-    ) {
-      return { error: "본인 국가의 거래 지역만 등록할 수 있습니다." as const };
-    }
+    const meetCountry = listingCountry;
     if (
       (meetLat == null || meetLng == null) &&
       meetPlaceTrim &&
@@ -176,27 +180,23 @@ export async function createMobileUsedListing(
     const animeSlug =
       subculture.animeSlug ?? (await resolveAnimeSlugFromWorkTitle(normalizedWork));
 
-    if (!sellerServiceRegion) {
-      await db.user.update({
-        where: { id: userId },
-        data: { usedServiceRegion: data.region.trim() },
-      });
-    }
-
-    const listing = await db.usedListing.create({
+    const listing = await db.$transaction(async (tx) => {
+      const created = await tx.usedListing.create({
       data: {
         sellerId: userId,
         title: data.title.trim(),
         description: data.description.trim(),
         price,
         currency,
-        category: (data.category as UsedListingCategory) || "OTHER",
+        category: parsedCats.primary,
         workTitle: normalizedWork,
         animeSlug,
         productType:
           data.productType?.trim() && isValidProductType(data.productType.trim())
             ? data.productType.trim()
-            : null,
+            : parsedCats.extra.includes("TCG")
+              ? "TCG_CARD"
+              : null,
         characterName: subculture.characterName,
         conditionGrade: subculture.conditionGrade,
         limitedKind: subculture.limitedKind,
@@ -204,9 +204,10 @@ export async function createMobileUsedListing(
         tradeMode: subculture.tradeMode,
         itemOrigin: subculture.itemOrigin,
         packagingState: subculture.packagingState,
-        subcultureMeta: subculture.subcultureMeta
-          ? (subculture.subcultureMeta as Prisma.InputJsonValue)
-          : undefined,
+        subcultureMeta: mergeExtraCategories(
+          (subculture.subcultureMeta as Prisma.JsonValue | undefined) ?? undefined,
+          parsedCats.extra
+        ),
         restrictedKind: restricted,
         region: data.region.trim(),
         meetPlace: meetPlaceTrim,
@@ -227,10 +228,16 @@ export async function createMobileUsedListing(
             }
           : {}),
       },
+      });
+      if (isAuction) {
+        await lockSellerDepositInTransaction(tx, { userId, listingId: created.id });
+      }
+      return created;
     });
     void notifyWtbAlertsForListing(listing.id).catch(() => undefined);
     return { listingId: listing.id };
   } catch (e) {
+    if (mapDepositError(e)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {
       return { error: "중고거래 DB가 준비되지 않았습니다." as const };
     }
@@ -239,9 +246,12 @@ export async function createMobileUsedListing(
   }
 }
 
-export async function listMobileMyUsedListings(userId: string) {
+export async function listMobileMyUsedListings(
+  userId: string,
+  saleType?: "FIXED" | "AUCTION"
+) {
   const listings = await db.usedListing.findMany({
-    where: { sellerId: userId },
+    where: { sellerId: userId, ...(saleType ? { saleType } : {}) },
     orderBy: { updatedAt: "desc" },
     take: 50,
     select: {
@@ -438,4 +448,683 @@ export async function placeMobileUsedAuctionBid(
     console.error("[placeMobileUsedAuctionBid]", e);
     return { error: "입찰에 실패했습니다. 잠시 후 다시 시도해 주세요." as const };
   }
+}
+
+const hubListingSelect = {
+  id: true,
+  title: true,
+  price: true,
+  currency: true,
+  region: true,
+  status: true,
+  saleType: true,
+  images: true,
+  createdAt: true,
+  category: true,
+  productType: true,
+  workTitle: true,
+  characterName: true,
+  conditionGrade: true,
+  limitedKind: true,
+  tradeMode: true,
+  subcultureMeta: true,
+  isNsfw: true,
+  sellerId: true,
+  auctionEndsAt: true,
+  currentBidAmount: true,
+  bidCount: true,
+  seller: { select: { id: true, username: true, image: true } },
+  _count: { select: { favorites: true } },
+} as const;
+
+function mapHubListing(
+  l: Prisma.UsedListingGetPayload<{ select: typeof hubListingSelect }>
+) {
+  const images = listingImages(l.images);
+  return {
+    id: l.id,
+    title: l.title,
+    price: l.price,
+    currency: l.currency,
+    thumbnailUrl: images[0] ?? null,
+    region: l.region,
+    status: l.status,
+    saleType: l.saleType,
+    createdAt: l.createdAt.toISOString(),
+    favoriteCount: l._count?.favorites ?? 0,
+    auctionEndsAt: l.auctionEndsAt?.toISOString() ?? null,
+    currentBidAmount: l.currentBidAmount ?? null,
+    bidCount: l.bidCount ?? null,
+    workTitle: l.workTitle ?? null,
+    productType: l.productType ?? null,
+    characterName: l.characterName ?? null,
+    conditionGrade: l.conditionGrade ?? null,
+    limitedKind: l.limitedKind ?? null,
+    tradeMode: l.tradeMode ?? null,
+    subcultureMeta: l.subcultureMeta ?? null,
+    isNsfw: l.isNsfw,
+    sellerId: l.sellerId,
+    seller: l.seller
+      ? { id: l.seller.id, username: l.seller.username, image: l.seller.image }
+      : null,
+    categories: listingCategoryTags(l),
+  };
+}
+
+export async function listMobileUsedByIds(ids: string[]) {
+  const unique = [...new Set(ids.filter((id) => id && id.length < 64))].slice(0, 24);
+  if (unique.length === 0) return [];
+  const listings = await db.usedListing.findMany({
+    where: { id: { in: unique } },
+    select: hubListingSelect,
+  });
+  const byId = new Map(listings.map((l) => [l.id, l]));
+  return unique.map((id) => byId.get(id)).filter(Boolean).map((l) => mapHubListing(l!));
+}
+
+export async function listMobileUsedFavorites(userId: string, take = 48) {
+  const rows = await db.usedFavorite.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: Math.min(take, 48),
+    select: { listing: { select: hubListingSelect } },
+  });
+  return rows.map((row) => mapHubListing(row.listing));
+}
+
+export async function listMobileUsedPurchases(userId: string, take = 48) {
+  const listings = await db.usedListing.findMany({
+    where: {
+      OR: [
+        { winningBidderId: userId, status: { in: ["SOLD", "RESERVED"] } },
+        { marketplaceOrder: { buyerId: userId } },
+        { tradeChats: { some: { buyerId: userId } }, status: "SOLD" },
+      ],
+    },
+    orderBy: { updatedAt: "desc" },
+    take: Math.min(take, 48),
+    select: hubListingSelect,
+  });
+  return listings.map(mapHubListing);
+}
+
+export async function listMobileLiveAuctions(userId: string, take = 48) {
+  const mine = await db.usedListing.findMany({
+    where: {
+      saleType: "AUCTION",
+      status: "SELLING",
+      OR: [
+        { auctionBids: { some: { bidderId: userId } } },
+        { sellerId: userId, auctionState: "LIVE" },
+        { currentBidderId: userId },
+        { winningBidderId: userId, status: "SELLING" },
+      ],
+    },
+    orderBy: { auctionEndsAt: "asc" },
+    take: Math.min(take, 48),
+    select: hubListingSelect,
+  });
+  if (mine.length > 0) return mine.map(mapHubListing);
+  const open = await db.usedListing.findMany({
+    where: { saleType: "AUCTION", status: "SELLING" },
+    orderBy: { createdAt: "desc" },
+    take: Math.min(take, 48),
+    select: hubListingSelect,
+  });
+  return open.map(mapHubListing);
+}
+
+export async function listMobileUsedDisputes(userId: string, take = 48) {
+  const [appeals, disputes] = await Promise.all([
+    db.usedMarketAppeal.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: Math.min(take, 24),
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,
+        listing: { select: hubListingSelect },
+      },
+    }),
+    db.marketplaceDispute.findMany({
+      where: {
+        OR: [{ openerId: userId }, { order: { buyerId: userId } }, { order: { sellerId: userId } }],
+        order: { usedListingId: { not: null } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: Math.min(take, 24),
+      select: {
+        id: true,
+        createdAt: true,
+        order: { select: { usedListing: { select: hubListingSelect } } },
+      },
+    }),
+  ]);
+  const items = [
+    ...appeals.map((row) =>
+      row.listing
+        ? mapHubListing(row.listing)
+        : {
+            id: row.id,
+            title: row.title,
+            price: 0,
+            currency: "krw",
+            thumbnailUrl: null,
+            region: null,
+            status: "DISPUTE",
+            saleType: "FIXED",
+            createdAt: row.createdAt.toISOString(),
+            favoriteCount: 0,
+            auctionEndsAt: null,
+            currentBidAmount: null,
+            bidCount: null,
+            workTitle: null,
+            productType: null,
+            characterName: null,
+            conditionGrade: null,
+            limitedKind: null,
+            tradeMode: null,
+            subcultureMeta: null,
+            isNsfw: false,
+            sellerId: undefined,
+            seller: null,
+            categories: [],
+          }
+    ),
+    ...disputes
+      .map((row) => row.order.usedListing)
+      .filter(Boolean)
+      .map((listing) => mapHubListing(listing!)),
+  ];
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}
+
+export async function listMobileRecommendedUsed(userId: string | null, take = 24) {
+  const limit = Math.min(take, 48);
+  const purchased = userId
+    ? await db.usedListing.findMany({
+        where: {
+          OR: [
+            { winningBidderId: userId, status: { in: ["SOLD", "RESERVED"] } },
+            { marketplaceOrder: { buyerId: userId } },
+            { tradeChats: { some: { buyerId: userId } }, status: "SOLD" },
+          ],
+        },
+        take: 40,
+        select: {
+          id: true,
+          category: true,
+          productType: true,
+          subcultureMeta: true,
+        },
+      })
+    : [];
+  const preferred = new Set<string>();
+  for (const row of purchased) {
+    for (const tag of listingCategoryTags(row)) preferred.add(tag);
+  }
+  const exclude = purchased.map((row) => row.id);
+  const pool = await db.usedListing.findMany({
+    where: {
+      status: "SELLING",
+      ...(exclude.length ? { id: { notIn: exclude } } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take: 80,
+    select: hubListingSelect,
+  });
+  const scored = pool
+    .map((listing) => {
+      const tags = listingCategoryTags(listing);
+      const overlap = tags.filter((tag) => preferred.has(tag)).length;
+      return { listing, overlap };
+    })
+    .sort((a, b) => b.overlap - a.overlap || +b.listing.createdAt - +a.listing.createdAt);
+  return scored.slice(0, limit).map((row) => mapHubListing(row.listing));
+}
+
+function startOfUtcDay(d = new Date()) {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+export function isUsedListingEditable(status: string) {
+  return status === "SELLING";
+}
+
+export async function deleteMobileUsedListing(userId: string, listingId: string) {
+  const listing = await db.usedListing.findUnique({ where: { id: listingId } });
+  if (!listing || listing.sellerId !== userId) return { error: "권한이 없습니다." as const };
+  const user = await loadUsedMarketUser(userId);
+  if (!user) return { error: "로그인이 필요합니다." as const };
+  const accessErr =
+    listing.saleType === "AUCTION" ? assertAuctionPostAccess(user) : assertUsedMarketAccess(user);
+  if (accessErr) return { error: accessErr };
+
+  if (listing.saleType === "AUCTION") {
+    const { releaseAllListingDepositsExcept } = await import("@/lib/auction-deposit");
+    await releaseAllListingDepositsExcept(listingId, null, "listing_deleted");
+  }
+  await db.usedListing.delete({ where: { id: listingId } });
+  return { success: true as const };
+}
+
+export async function bumpMobileUsedListing(userId: string, listingId: string) {
+  const listing = await db.usedListing.findUnique({ where: { id: listingId } });
+  if (!listing || listing.sellerId !== userId) return { error: "권한이 없습니다." as const };
+  if (listing.saleType !== "FIXED") return { error: "경매 글은 끌어올릴 수 없습니다." as const };
+  if (!isUsedListingEditable(listing.status)) {
+    return { error: "거래 진행 중이거나 완료된 글은 끌어올릴 수 없습니다." as const };
+  }
+  const user = await loadUsedMarketUser(userId);
+  if (!user) return { error: "로그인이 필요합니다." as const };
+  const accessErr = assertUsedMarketAccess(user);
+  if (accessErr) return { error: accessErr };
+
+  const dayStart = startOfUtcDay();
+  if (listing.lastBumpedAt && listing.lastBumpedAt >= dayStart) {
+    return { error: "끌어올리기는 하루에 한 번만 할 수 있습니다." as const };
+  }
+  const now = new Date();
+  await db.usedListing.update({
+    where: { id: listingId },
+    data: { lastBumpedAt: now, createdAt: now },
+  });
+  return { success: true as const, bumpedAt: now.toISOString() };
+}
+
+export async function updateMobileUsedListing(
+  userId: string,
+  listingId: string,
+  data: {
+    title?: string;
+    description?: string;
+    price?: number;
+    currency?: string;
+    region?: string;
+    meetPlace?: string;
+    meetLat?: number;
+    meetLng?: number;
+    meetCountry?: string;
+    images?: string[];
+    isNsfw?: boolean;
+  } & SubcultureListingInput
+) {
+  const listing = await db.usedListing.findUnique({ where: { id: listingId } });
+  if (!listing || listing.sellerId !== userId) return { error: "권한이 없습니다." as const };
+  if (!isUsedListingEditable(listing.status)) {
+    return { error: "거래가 진행 중이어서 수정할 수 없습니다." as const };
+  }
+  const user = await loadUsedMarketUser(userId);
+  if (!user) return { error: "로그인이 필요합니다." as const };
+  const accessErr = assertUsedMarketAccess(user);
+  if (accessErr) return { error: accessErr };
+
+  const title = (data.title ?? listing.title).trim();
+  if (!title) return { error: "제목을 입력해 주세요." as const };
+  const currency = normalizeUsedCurrency(data.currency ?? listing.currency);
+  const price =
+    data.price !== undefined ? Math.floor(Number(data.price) || 0) : listing.price;
+  if (price < 0) return { error: "가격이 올바르지 않습니다." as const };
+  const maxPrice = maxUsedListingPrice(currency);
+  if (price > maxPrice) {
+    return { error: `가격은 ${maxUsedListingPriceLabel(currency)} 이하로 입력해 주세요.` as const };
+  }
+  const region = (data.region ?? listing.region).trim();
+  if (!region) return { error: "거래 지역을 선택해 주세요." as const };
+
+  const subculture = normalizeSubcultureListingInput({
+    characterName: data.characterName,
+    conditionGrade: data.conditionGrade,
+    limitedKind: data.limitedKind,
+    listingFormat: data.listingFormat,
+    tradeMode: data.tradeMode,
+    itemOrigin: data.itemOrigin,
+    packagingState: data.packagingState,
+    subcultureMeta: data.subcultureMeta,
+    workTitle: data.workTitle,
+    animeSlug: data.animeSlug,
+    productType: data.productType,
+  });
+  const normalizedWork =
+    data.workTitle !== undefined ? normalizeWorkTitle(data.workTitle) : listing.workTitle;
+  const animeSlug =
+    subculture.animeSlug ??
+    (data.workTitle !== undefined
+      ? await resolveAnimeSlugFromWorkTitle(normalizedWork)
+      : listing.animeSlug);
+  const productType =
+    data.productType?.trim() && isValidProductType(data.productType.trim())
+      ? data.productType.trim()
+      : listing.productType;
+
+  const { animeSlug: _inputAnimeSlug, subcultureMeta, ...subcultureRow } = subculture;
+
+  await db.usedListing.update({
+    where: { id: listingId },
+    data: {
+      title,
+      description: data.description !== undefined ? data.description : listing.description,
+      price,
+      currency,
+      region,
+      meetPlace: data.meetPlace !== undefined ? data.meetPlace : listing.meetPlace,
+      meetLat: data.meetLat !== undefined ? data.meetLat : listing.meetLat,
+      meetLng: data.meetLng !== undefined ? data.meetLng : listing.meetLng,
+      meetCountry:
+        data.meetCountry !== undefined
+          ? normalizeMeetCountry(data.meetCountry)
+          : listing.meetCountry,
+      ...(data.images !== undefined ? { images: data.images as Prisma.InputJsonValue } : {}),
+      isNsfw: data.isNsfw !== undefined ? data.isNsfw : listing.isNsfw,
+      workTitle: normalizedWork,
+      productType,
+      ...subcultureRow,
+      subcultureMeta:
+        subcultureMeta === null
+          ? Prisma.DbNull
+          : (subcultureMeta as Prisma.InputJsonValue),
+      animeSlug,
+    },
+  });
+  return { success: true as const, listingId };
+}
+
+export async function getMobileUsedTradeRoomContext(userId: string, roomId: string) {
+  const link = await db.usedListingChat.findFirst({
+    where: { roomId },
+    include: {
+      listing: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          sellerId: true,
+          saleType: true,
+        },
+      },
+    },
+  });
+  if (!link?.listing) return null;
+  const listing = link.listing;
+  const isBuyer = link.buyerId === userId;
+  const isSeller = listing.sellerId === userId;
+  if (!isBuyer && !isSeller) return null;
+
+  let pendingRequestId: string | null = null;
+  try {
+    const pending = await db.usedTradeRequest.findFirst({
+      where: {
+        roomId,
+        listingId: listing.id,
+        status: "PENDING",
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+    pendingRequestId = pending?.id ?? null;
+  } catch {
+    pendingRequestId = null;
+  }
+
+  return {
+    listingId: listing.id,
+    listingTitle: listing.title,
+    listingStatus: listing.status,
+    sellerId: listing.sellerId,
+    buyerId: link.buyerId,
+    isBuyer,
+    isSeller,
+    canRequestTrade:
+      (isBuyer || isSeller) &&
+      listing.status === "SELLING" &&
+      listing.saleType === "FIXED" &&
+      !pendingRequestId,
+    editLocked: !isUsedListingEditable(listing.status),
+    pendingRequestId,
+  };
+}
+
+export async function createMobileUsedTradeRequest(
+  userId: string,
+  listingId: string,
+  roomId: string,
+  meetAtIso: string
+) {
+  const user = await loadUsedMarketUser(userId);
+  if (!user) return { error: "로그인이 필요합니다." as const };
+  const accessErr = assertUsedMarketAccess(user);
+  if (accessErr) return { error: accessErr };
+
+  const meetAt = new Date(meetAtIso);
+  if (Number.isNaN(meetAt.getTime()) || meetAt.getTime() < Date.now() - 60_000) {
+    return { error: "거래 날짜와 시간을 선택해 주세요." as const };
+  }
+
+  const link = await db.usedListingChat.findFirst({
+    where: { listingId, roomId },
+    include: {
+      listing: {
+        select: { id: true, sellerId: true, status: true, saleType: true, title: true },
+      },
+    },
+  });
+  if (!link?.listing) return { error: "이 채팅방에서 거래 요청을 할 수 없습니다." as const };
+  const listing = link.listing;
+  const isBuyer = link.buyerId === userId;
+  const isSeller = listing.sellerId === userId;
+  if (!isBuyer && !isSeller) return { error: "이 채팅방에서 거래 요청을 할 수 없습니다." as const };
+  if (listing.saleType !== "FIXED") return { error: "경매 상품은 거래 요청을 사용할 수 없습니다." as const };
+  if (listing.status !== "SELLING") {
+    return { error: "이미 거래 진행 중이거나 완료된 상품입니다." as const };
+  }
+
+  const existingPending = await db.usedTradeRequest.findFirst({
+    where: { listingId, roomId, status: "PENDING" },
+  });
+  if (existingPending) {
+    return { error: "이미 거래 요청을 보냈습니다." as const, requestId: existingPending.id };
+  }
+
+  const request = await db.usedTradeRequest.create({
+    data: {
+      listingId,
+      buyerId: link.buyerId,
+      sellerId: listing.sellerId,
+      requestedById: userId,
+      roomId,
+      status: "PENDING",
+      meetAt,
+    },
+  });
+
+  const { buildUsedTradeRequestMessageBody } = await import("@/lib/chat-used-trade-request-marker");
+  await sendMobileDmMessage(userId, {
+    roomId,
+    content: buildUsedTradeRequestMessageBody(request.id),
+  }).catch(() => undefined);
+
+  return { requestId: request.id, status: request.status };
+}
+
+export async function getMobileUsedTradeRequest(userId: string, requestId: string) {
+  const row = await db.usedTradeRequest.findUnique({
+    where: { id: requestId },
+    include: {
+      listing: { select: { id: true, title: true, status: true } },
+      buyer: { select: { id: true, username: true } },
+      seller: { select: { id: true, username: true } },
+    },
+  });
+  if (!row) return { error: "요청을 찾을 수 없습니다." as const };
+  if (row.buyerId !== userId && row.sellerId !== userId) {
+    return { error: "권한이 없습니다." as const };
+  }
+  return {
+    request: {
+      id: row.id,
+      listingId: row.listingId,
+      listingTitle: row.listing.title,
+      listingStatus: row.listing.status,
+      roomId: row.roomId,
+      buyerId: row.buyerId,
+      sellerId: row.sellerId,
+      buyerUsername: row.buyer.username,
+      sellerUsername: row.seller.username,
+      requestedById: row.requestedById,
+      meetAt: row.meetAt?.toISOString() ?? null,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+      respondedAt: row.respondedAt?.toISOString() ?? null,
+      canRespond:
+        row.status === "PENDING" &&
+        userId === (row.requestedById === row.sellerId ? row.buyerId : row.sellerId),
+    },
+  };
+}
+
+export async function respondMobileUsedTradeRequest(
+  userId: string,
+  requestId: string,
+  action: "approve" | "reject"
+) {
+  const row = await db.usedTradeRequest.findUnique({
+    where: { id: requestId },
+    include: { listing: true },
+  });
+  if (!row) return { error: "요청을 찾을 수 없습니다." as const };
+  const initiatorId = row.requestedById ?? row.buyerId;
+  const responderId = initiatorId === row.sellerId ? row.buyerId : row.sellerId;
+  if (userId !== responderId) return { error: "요청을 받은 사람만 응답할 수 있습니다." as const };
+  if (row.status !== "PENDING") return { error: "이미 처리된 요청입니다." as const };
+
+  const now = new Date();
+  if (action === "reject") {
+    await db.usedTradeRequest.update({
+      where: { id: requestId },
+      data: { status: "REJECTED", respondedAt: now },
+    });
+    await sendMobileDmMessage(userId, {
+      roomId: row.roomId,
+      content: "거래 요청을 거절했습니다.",
+    }).catch(() => undefined);
+    return { status: "REJECTED" as const };
+  }
+
+  if (row.listing.status !== "SELLING") {
+    return { error: "이미 다른 거래가 진행 중입니다." as const };
+  }
+
+  await db.$transaction([
+    db.usedTradeRequest.update({
+      where: { id: requestId },
+      data: { status: "APPROVED", respondedAt: now },
+    }),
+    db.usedTradeRequest.updateMany({
+      where: {
+        listingId: row.listingId,
+        status: "PENDING",
+        id: { not: requestId },
+      },
+      data: { status: "REJECTED", respondedAt: now },
+    }),
+    db.usedListing.update({
+      where: { id: row.listingId },
+      data: { status: "RESERVED" },
+    }),
+  ]);
+
+  await sendMobileDmMessage(userId, {
+    roomId: row.roomId,
+    content: "거래 요청을 승인했습니다. 이제 글을 수정할 수 없습니다.",
+  }).catch(() => undefined);
+
+  return { status: "APPROVED" as const, listingStatus: "RESERVED" as const };
+}
+
+export async function listMobileUsedMeetPins(userId: string) {
+  const [selling, confirmed] = await Promise.all([
+    db.usedListing.findMany({
+      where: {
+        status: "SELLING",
+        isNsfw: false,
+        meetLat: { not: null },
+        meetLng: { not: null },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        currency: true,
+        meetPlace: true,
+        meetLat: true,
+        meetLng: true,
+        region: true,
+        images: true,
+      },
+    }),
+    db.usedTradeRequest.findMany({
+      where: {
+        status: "APPROVED",
+        OR: [{ buyerId: userId }, { sellerId: userId }],
+        listing: { meetLat: { not: null }, meetLng: { not: null } },
+      },
+      orderBy: { respondedAt: "desc" },
+      take: 40,
+      include: {
+        listing: {
+          select: {
+            id: true,
+            title: true,
+            price: true,
+            currency: true,
+            meetPlace: true,
+            meetLat: true,
+            meetLng: true,
+            region: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const confirmedIds = new Set(confirmed.map((row) => row.listingId));
+  const listings = selling
+    .filter((row) => !confirmedIds.has(row.id) && row.meetLat != null && row.meetLng != null)
+    .map((row) => ({
+      id: `listing-${row.id}`,
+      listingId: row.id,
+      lat: row.meetLat!,
+      lng: row.meetLng!,
+      title: row.title,
+      place: row.meetPlace?.trim() || row.region,
+      price: formatUsedPrice(row.price, row.currency),
+      image: listingImages(row.images)[0] ?? null,
+      meetAt: null as string | null,
+      confirmed: false,
+    }));
+
+  const meets = confirmed
+    .filter((row) => row.listing.meetLat != null && row.listing.meetLng != null)
+    .map((row) => ({
+      id: `meet-${row.id}`,
+      listingId: row.listingId,
+      lat: row.listing.meetLat!,
+      lng: row.listing.meetLng!,
+      title: row.listing.title,
+      place: row.listing.meetPlace?.trim() || row.listing.region,
+      price: formatUsedPrice(row.listing.price, row.listing.currency),
+      image: null as string | null,
+      meetAt: row.meetAt?.toISOString() ?? null,
+      confirmed: true,
+    }));
+
+  return { pins: [...listings, ...meets] };
 }

@@ -24,25 +24,14 @@ function bannerImageUrl(bannerUrl?: string | null, bannerVideoUrl?: string | nul
   return url || null;
 }
 
-export function ProfileBannerMedia({
-  bannerUrl,
-  bannerVideoUrl,
-  active = true,
-  style,
-}: Props) {
-  const { colors, isDark } = useTheme();
-  const fallback = useMemo(() => createFallbackStyles(colors, isDark), [colors, isDark]);
-  const videoSrc = hasVideo(bannerVideoUrl) ? bannerVideoUrl!.trim() : null;
-  const imageSrc = bannerImageUrl(bannerUrl, bannerVideoUrl);
-  const shouldPlay = Boolean(videoSrc) && active;
-
-  const player = useVideoPlayer(shouldPlay ? videoSrc : null, (p) => {
+function BannerVideo({ uri, active }: { uri: string; active: boolean }) {
+  const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.muted = true;
   });
 
   useEffect(() => {
-    if (!shouldPlay) {
+    if (!active) {
       try {
         player.pause();
       } catch {
@@ -55,18 +44,34 @@ export function ProfileBannerMedia({
     } catch {
       /* autoplay may fail until visible */
     }
-  }, [player, shouldPlay]);
+  }, [player, active]);
+
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+      nativeControls={false}
+      allowsPictureInPicture={false}
+    />
+  );
+}
+
+export function ProfileBannerMedia({
+  bannerUrl,
+  bannerVideoUrl,
+  active = true,
+  style,
+}: Props) {
+  const { colors, isDark } = useTheme();
+  const fallback = useMemo(() => createFallbackStyles(colors, isDark), [colors, isDark]);
+  const videoSrc = hasVideo(bannerVideoUrl) ? bannerVideoUrl!.trim() : null;
+  const imageSrc = bannerImageUrl(bannerUrl, bannerVideoUrl);
 
   return (
     <View style={[StyleSheet.absoluteFill, style]}>
-      {videoSrc ? (
-        <VideoView
-          player={player}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          nativeControls={false}
-          allowsPictureInPicture={false}
-        />
+      {videoSrc && active ? (
+        <BannerVideo uri={videoSrc} active={active} />
       ) : imageSrc ? (
         <Image
           source={{ uri: imageSrc }}

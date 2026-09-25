@@ -1,419 +1,266 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
-import { Image } from "expo-image";
+import { FlashList } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { fetchCommunityList, type CommunityListItem } from "@/api/community";
+import { fetchQnaFeedPage } from "@/api/community";
+import type { FeedItem } from "@/api/feed";
+import { FeedPostCard } from "@/features/feed/FeedPostCard";
+import { useUserProfileNav, type UserProfileSeed } from "@/features/profile/user-profile-nav";
 import {
   COMMUNITY_CATEGORY_OPTIONS,
-  communityCategoryMeta,
-  resolveCommunityCategoryDisplay,
+  type CommunityCategoryId,
 } from "@/features/community/community-labels";
-import {
-  getRecentCommunities,
-  removeRecentCommunity,
-  type RecentCommunity,
-} from "@/features/community/recent-communities";
-import { IMAGE_CACHE_POLICY } from "@/perf/image";
+import { SearchField } from "@/ui/SearchField";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
-type TabId = (typeof COMMUNITY_CATEGORY_OPTIONS)[number]["id"];
-
-function CommunityThumb({
-  community,
-  size,
-}: {
-  community: CommunityListItem;
-  size: number;
-}) {
-  const meta = resolveCommunityCategoryDisplay(
-    community.category,
-    community.customCategoryLabel
-  );
-  const uri = community.iconUrl || community.coverUrl;
-  if (uri) {
-    return (
-      <Image
-        source={{ uri }}
-        style={{ width: size, height: size }}
-        cachePolicy={IMAGE_CACHE_POLICY}
-        transition={0}
-      />
-    );
-  }
-  return (
-    <View style={[stylesShared.thumbFallback, { width: size, height: size }]}>
-      <Text style={stylesShared.thumbEmoji}>{meta.emoji || community.name.slice(0, 1)}</Text>
-    </View>
-  );
-}
+type TabId = "ALL" | CommunityCategoryId;
 
 export function CommunityListScreen() {
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { open: openUserProfile } = useUserProfileNav();
+  const queryClient = useQueryClient();
+  const searchRef = useRef<TextInput>(null);
   const [tab, setTab] = useState<TabId>("ALL");
-  const [recent, setRecent] = useState<RecentCommunity[]>([]);
+  const [searchQ, setSearchQ] = useState("");
+  const [searchSubmitted, setSearchSubmitted] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
-  const query = useQuery({
-    queryKey: ["mobile-community"],
-    queryFn: () => fetchCommunityList(),
+  const query = useInfiniteQuery({
+    queryKey: ["mobile-qna-feed", tab, searchSubmitted],
+    queryFn: ({ pageParam }) =>
+      fetchQnaFeedPage({
+        cursor: pageParam,
+        limit: 12,
+        q: searchSubmitted || undefined,
+        category: tab,
+      }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+    staleTime: 45_000,
   });
 
-  const refreshRecent = useCallback(() => {
-    void getRecentCommunities().then(setRecent);
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      refreshRecent();
-    }, [refreshRecent])
-  );
-
-  useEffect(() => {
-    refreshRecent();
-  }, [refreshRecent]);
-
-  const items = query.data?.items ?? [];
-
-  const filtered = useMemo(() => {
-    if (tab === "ALL") return items;
-    return items.filter((c) => c.category === tab);
-  }, [items, tab]);
-
-  const counts = useMemo(() => {
-    const map = new Map<string, number>();
-    map.set("ALL", items.length);
-    for (const opt of COMMUNITY_CATEGORY_OPTIONS) {
-      if (opt.id === "ALL") continue;
-      map.set(opt.id, items.filter((c) => c.category === opt.id).length);
+  const items = useMemo(() => {
+    const list: FeedItem[] = [];
+    for (const page of query.data?.pages ?? []) {
+      for (const item of page.items) list.push(item);
     }
-    return map;
-  }, [items]);
+    return list;
+  }, [query.data]);
+
+  const paymentsEnabled = query.data?.pages[0]?.paymentsEnabled ?? false;
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["mobile-qna-feed", tab, searchSubmitted] });
+    setRefreshing(false);
+  }, [queryClient, searchSubmitted, tab]);
 
   const openCreate = useCallback(() => {
     navigation.navigate("CommunityCreate");
   }, [navigation]);
 
-  const openCommunityInfo = useCallback(
-    (slug: string) => {
-      navigation.navigate("CommunityDetail", { slug });
-    },
+  const onPressPost = useCallback(
+    (id: string) => navigation.navigate("PostDetail", { id }),
     [navigation]
   );
-
-  const openCommunityServer = useCallback(
-    (slug: string) => {
-      navigation.navigate("CommunityServer", { slug });
-    },
+  const onPressAuthor = useCallback(
+    (author: UserProfileSeed) => openUserProfile(author),
+    [openUserProfile]
+  );
+  const onPressCommunity = useCallback(
+    (slug: string) => navigation.navigate("CommunityServer", { slug }),
     [navigation]
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: CommunityListItem }) => {
-      const cat = resolveCommunityCategoryDisplay(item.category, item.customCategoryLabel);
+    ({ item }: { item: FeedItem }) => {
+      if (item.type !== "post") return null;
       return (
-        <View style={styles.row}>
-          <Pressable onPress={() => openCommunityServer(item.slug)} hitSlop={4}>
-            <View style={styles.thumbWrap}>
-              <CommunityThumb community={item} size={52} />
-            </View>
-          </Pressable>
-          <View style={styles.meta}>
-            <Pressable onPress={() => openCommunityServer(item.slug)}>
-              <View style={styles.titleRow}>
-                <Text style={styles.title} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                {item.isNsfw ? <Text style={styles.nsfw}>NSFW</Text> : null}
-              </View>
-            </Pressable>
-            <Pressable onPress={() => openCommunityInfo(item.slug)}>
-              <Text style={styles.sub} numberOfLines={2}>
-                {item.description?.trim() || "소개가 아직 없습니다."}
-              </Text>
-            </Pressable>
-          </View>
-          <Pressable
-            style={styles.members}
-            onPress={() => openCommunityInfo(item.slug)}
-            hitSlop={8}
-          >
-            <Text style={styles.memberCat} numberOfLines={1}>
-              {cat.shortLabel}
-            </Text>
-            <View style={styles.memberCountRow}>
-              <Ionicons name="people-outline" size={12} color={colors.textMuted} />
-              <Text style={styles.memberCount}>{item.memberCount}</Text>
-            </View>
-          </Pressable>
-        </View>
+        <FeedPostCard
+          post={item.data}
+          paymentsEnabled={paymentsEnabled}
+          onPressPost={onPressPost}
+          onPressAuthor={onPressAuthor}
+          onPressCommunity={onPressCommunity}
+        />
       );
     },
-    [colors.textMuted, openCommunityInfo, openCommunityServer, styles]
+    [onPressAuthor, onPressCommunity, onPressPost, paymentsEnabled]
   );
 
   const listHeader = (
     <View>
-      {recent.length > 0 ? (
-        <View style={styles.recentBar}>
-          <Text style={styles.recentLabel}>최근 방문</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentChips}>
-            {recent.map((r) => (
-              <View key={r.slug} style={styles.recentChip}>
-                <Pressable onPress={() => openCommunityServer(r.slug)} hitSlop={4}>
-                  <Text style={styles.recentName} numberOfLines={1}>
-                    {r.name}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    void removeRecentCommunity(r.slug).then(refreshRecent);
-                  }}
-                  hitSlop={8}
-                  accessibilityLabel={`${r.name} 최근 방문에서 제거`}
-                >
-                  <Ionicons name="close" size={12} color={colors.textMuted} />
-                </Pressable>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      <View style={styles.hubCard}>
-        <View style={styles.tabsRow}>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            hitSlop={10}
-            style={styles.backBtn}
-            accessibilityRole="button"
-            accessibilityLabel="뒤로"
-          >
-            <Ionicons name="chevron-back" size={22} color={colors.brand} />
-          </Pressable>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabs}
-            style={styles.tabsWrap}
-          >
-            {COMMUNITY_CATEGORY_OPTIONS.map((opt) => {
-              const active = tab === opt.id;
-              const count = counts.get(opt.id) ?? 0;
-              return (
-                <Pressable
-                  key={opt.id}
-                  onPress={() => setTab(opt.id)}
-                  style={[styles.tab, active && styles.tabActive]}
-                >
-                  <Text style={[styles.tabText, active && styles.tabTextActive]}>
-                    {opt.emoji ? `${opt.emoji} ` : ""}
-                    {opt.shortLabel}
-                    <Text style={styles.tabCount}> {count}</Text>
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        <View style={styles.sectionHead}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <View style={styles.sectionTitleRow}>
-              <View style={styles.accentDot} />
-              <Text style={styles.sectionTitle}>
-                {tab === "ALL"
-                  ? "커뮤니티"
-                  : `${communityCategoryMeta(tab)?.emoji ?? ""} ${
-                      communityCategoryMeta(tab)?.label ?? tab
-                    }`}
-              </Text>
-            </View>
-            <Text style={styles.sectionDesc}>관심 주제를 골라 커뮤니티에 들어가세요</Text>
-          </View>
-          <Pressable onPress={openCreate} hitSlop={8} style={styles.createBtn}>
-            <Ionicons name="add" size={16} color="#c80000" />
-            <Text style={styles.createText}>만들기</Text>
-          </Pressable>
-        </View>
+      <View style={[styles.topBar, { paddingTop: insets.top + 6 }]}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={10}
+          style={styles.iconBtn}
+          accessibilityRole="button"
+          accessibilityLabel="뒤로"
+        >
+          <Ionicons name="chevron-back" size={22} color={colors.brand} />
+        </Pressable>
+        <SearchField
+          ref={searchRef}
+          variant="pill"
+          value={searchQ}
+          onChangeText={(t) => {
+            setSearchQ(t);
+            if (!t.trim()) setSearchSubmitted("");
+          }}
+          onClear={() => {
+            setSearchQ("");
+            setSearchSubmitted("");
+            searchRef.current?.blur();
+          }}
+          onSubmitEditing={() => {
+            const trimmed = searchQ.trim();
+            setSearchSubmitted(trimmed);
+          }}
+          placeholder="QnA 검색"
+          containerStyle={{ flex: 1 }}
+        />
+        <Pressable
+          onPress={openCreate}
+          hitSlop={10}
+          style={styles.iconBtn}
+          accessibilityRole="button"
+          accessibilityLabel="QnA 만들기"
+        >
+          <Ionicons name="add" size={24} color={colors.brand} />
+        </Pressable>
       </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabs}
+      >
+        {COMMUNITY_CATEGORY_OPTIONS.map((opt) => {
+          const active = tab === opt.id;
+          return (
+            <Pressable
+              key={opt.id}
+              onPress={() => setTab(opt.id)}
+              style={[styles.tab, active && styles.tabActive]}
+            >
+              <Text style={[styles.tabText, active && styles.tabTextActive]}>
+                {opt.emoji ? `${opt.emoji} ` : ""}
+                {opt.shortLabel}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 
   return (
-    <Screen>
-      {query.isLoading && !query.data ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color="#c80000" />
-      ) : query.isError && !query.data ? (
-        <Text style={styles.error}>커뮤니티 목록을 불러오지 못했습니다.</Text>
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          ListHeaderComponent={listHeader}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-          ListEmptyComponent={
+    <Screen safeTop={false}>
+      <FlashList
+        data={items}
+        keyExtractor={(item, index) =>
+          item.type === "post" ? item.data.id : `qna-${index}`
+        }
+        renderItem={renderItem}
+        ListHeaderComponent={listHeader}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} />
+        }
+        onEndReachedThreshold={0.4}
+        onEndReached={() => {
+          if (query.hasNextPage && !query.isFetchingNextPage) {
+            void query.fetchNextPage();
+          }
+        }}
+        ListEmptyComponent={
+          query.isLoading ? (
+            <ActivityIndicator style={{ marginTop: 40 }} color={colors.brand} />
+          ) : query.isError ? (
+            <Text style={styles.error}>QnA를 불러오지 못했습니다.</Text>
+          ) : (
             <View style={styles.empty}>
               <Text style={styles.muted}>
-                {tab === "ALL"
-                  ? "아직 커뮤니티가 없습니다. 첫 커뮤니티를 만들어보세요!"
-                  : "이 카테고리에 커뮤니티가 없습니다."}
+                {searchSubmitted
+                  ? `"${searchSubmitted}"에 맞는 QnA가 없습니다.`
+                  : tab === "ALL"
+                    ? "아직 QnA가 없습니다. 첫 글을 남겨보세요!"
+                    : "이 카테고리에 QnA가 없습니다."}
               </Text>
               <Pressable style={styles.emptyBtn} onPress={openCreate}>
-                <Text style={styles.emptyBtnText}>커뮤니티 만들기</Text>
+                <Text style={styles.emptyBtnText}>QnA 만들기</Text>
               </Pressable>
             </View>
-          }
-        />
-      )}
+          )
+        }
+        ListFooterComponent={
+          query.isFetchingNextPage ? (
+            <ActivityIndicator style={{ marginVertical: 16 }} color={colors.brand} />
+          ) : null
+        }
+      />
     </Screen>
   );
 }
 
-const stylesShared = StyleSheet.create({
-  thumbFallback: {
-    backgroundColor: "#3d4450",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  thumbEmoji: { fontSize: 20 },
-});
-
 function createThemedStyles(colors: ThemeColors, isDark: boolean) {
   return StyleSheet.create({
-    recentBar: {
+    topBar: {
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
-      marginHorizontal: 12,
-      marginTop: 10,
-      marginBottom: 8,
       paddingHorizontal: 10,
-      paddingVertical: 8,
-      borderRadius: 8,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
-      backgroundColor: isDark ? colors.muted : "rgba(0,0,0,0.03)",
+      paddingBottom: 8,
     },
-    recentLabel: { fontSize: 12, fontWeight: "800", color: colors.textMuted },
-    recentChips: { flexDirection: "row", alignItems: "center", gap: 6 },
-    recentChip: {
-      flexDirection: "row",
+    iconBtn: {
+      width: 36,
+      height: 36,
       alignItems: "center",
-      gap: 4,
-      paddingLeft: 8,
-      paddingRight: 4,
-      paddingVertical: 4,
-      borderRadius: 4,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
-      backgroundColor: colors.surfaceRaised,
-    },
-    recentName: { maxWidth: 112, fontSize: 12, fontWeight: "600", color: colors.text },
-    hubCard: {
-      marginHorizontal: 12,
-      marginBottom: 8,
-      borderRadius: 4,
-      borderWidth: 1,
-      borderColor: isDark ? colors.border : "#d5d5d5",
-      backgroundColor: colors.surfaceRaised,
-      overflow: "hidden",
-    },
-    tabsRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: isDark ? colors.muted : "#f3f3f3",
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? colors.border : "#d5d5d5",
-    },
-    backBtn: {
-      paddingLeft: 6,
-      paddingRight: 2,
-      paddingVertical: 8,
       justifyContent: "center",
-      alignItems: "center",
-    },
-    tabsWrap: {
-      flexGrow: 1,
-      flexShrink: 1,
     },
     tabs: {
-      paddingHorizontal: 4,
-      paddingVertical: 8,
-      gap: 2,
+      paddingHorizontal: 12,
+      paddingBottom: 8,
+      gap: 6,
       alignItems: "center",
     },
     tab: {
-      paddingHorizontal: 10,
-      paddingVertical: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 999,
       borderWidth: 1,
-      borderColor: "transparent",
-      marginRight: 2,
+      borderColor: isDark ? colors.border : "#d5d5d5",
+      backgroundColor: colors.surfaceRaised,
+      marginRight: 6,
     },
     tabActive: {
-      backgroundColor: colors.surfaceRaised,
-      borderColor: "#c80000",
+      backgroundColor: colors.brand,
+      borderColor: colors.brand,
     },
-    tabText: { fontSize: 12, fontWeight: "600", color: colors.textMuted },
-    tabTextActive: { color: "#c80000", fontWeight: "800" },
-    tabCount: { opacity: 0.65, fontWeight: "600" },
-    sectionHead: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? colors.border : "#d5d5d5",
-      backgroundColor: colors.surfaceRaised,
-    },
-    sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-    accentDot: { width: 12, height: 12, borderRadius: 2, backgroundColor: "#c80000" },
-    sectionTitle: { fontSize: 14, fontWeight: "800", color: colors.text },
-    sectionDesc: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-    createBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
-    createText: { fontWeight: "800", fontSize: 13, color: "#c80000" },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginHorizontal: 12,
-      paddingHorizontal: 10,
-      paddingVertical: 10,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: isDark ? colors.border : "#e6e6e6",
-      backgroundColor: colors.surfaceRaised,
-      gap: 10,
-    },
-    thumbWrap: { width: 52, height: 52, overflow: "hidden", backgroundColor: "#eee" },
-    meta: { flex: 1, minWidth: 0 },
-    titleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-    title: { flexShrink: 1, fontWeight: "700", color: colors.text, fontSize: 14 },
-    nsfw: { color: "#c80000", fontSize: 10, fontWeight: "800" },
-    sub: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-    members: { alignItems: "flex-end", gap: 2, minWidth: 40 },
-    memberCat: { color: colors.textMuted, fontSize: 11, fontWeight: "600" },
-    memberCountRow: { flexDirection: "row", alignItems: "center", gap: 3 },
-    memberCount: { color: colors.textMuted, fontSize: 12, fontWeight: "600" },
+    tabText: { fontSize: 12, fontWeight: "700", color: colors.textMuted },
+    tabTextActive: { color: "#fff", fontWeight: "800" },
     muted: { color: colors.textMuted, textAlign: "center" },
-    error: { color: colors.danger, padding: spacing.lg },
+    error: { color: colors.danger, padding: spacing.lg, textAlign: "center" },
     empty: { padding: spacing.xl, alignItems: "center", gap: 12 },
     emptyBtn: {
       paddingHorizontal: 16,

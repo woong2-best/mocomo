@@ -38,7 +38,7 @@ export function ProfileCalendarSheet({
         <View
           style={[
             styles.sheet,
-            { paddingTop: insets.top + 8, paddingBottom: Math.max(insets.bottom, 12) },
+            { paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) },
           ]}
         >
           <View style={styles.header}>
@@ -97,6 +97,6 @@ function createStyles(colors: ThemeColors) {
       alignItems: "center",
       justifyContent: "center",
     },
-    scrollBody: { paddingBottom: spacing.lg },
+    scrollBody: { paddingBottom: spacing.sm },
   });
 }

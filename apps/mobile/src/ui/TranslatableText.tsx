@@ -115,7 +115,7 @@ export function TranslatableText({
   );
 }
 
-function createStyles(colors: { textMuted: string; cobalt: string; danger: string }) {
+function createStyles(colors: { textMuted: string; brand: string; danger: string }) {
   return StyleSheet.create({
     metaRow: {
       flexDirection: "row",
@@ -134,7 +134,7 @@ function createStyles(colors: { textMuted: string; cobalt: string; danger: strin
     },
     metaAction: {
       fontSize: 12,
-      color: colors.cobalt,
+      color: colors.brand,
       fontWeight: "600",
     },
     failed: {

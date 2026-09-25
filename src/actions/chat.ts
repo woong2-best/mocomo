@@ -21,6 +21,7 @@ import {
   buildMessagesInboxWhere,
   getCommunityLinkedChatRoomIds,
 } from "@/lib/chat-inbox-eligibility";
+import { addChatMemberByUsername } from "@/lib/chat-group-invite";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -100,7 +101,7 @@ export async function getChatRooms(forUserId?: string) {
     take: 25,
     include: {
       members: {
-        take: 6,
+        take: 12,
         include: { user: { select: { ...userPublicSelectMinimal, name: true } } },
       },
       messages: {
@@ -233,6 +234,11 @@ export async function sendMessage(data: {
     message: serializeChatMessage(message, { viewerId: user.id, purchasedAttachmentIds: purchasedIds }),
     contentFiltered: filtered.wasFiltered,
   };
+}
+
+export async function addChatMemberByHandle(roomId: string, handle: string) {
+  const user = await requireAuth({ writeKind: "dm" });
+  return addChatMemberByUsername(user.id, roomId, handle);
 }
 
 export async function markMessageRead(messageId: string) {

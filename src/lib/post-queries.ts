@@ -36,11 +36,14 @@ const postDetailSelect = {
   createdAt: true,
   isPinned: true,
   isNsfw: true,
+  isAnonymous: true,
   contentRating: true,
   authorId: true,
   visibility: true,
   instantPurchasePriceKrw: true,
   viewCount: true,
+  communityId: true,
+  community: { select: { slug: true, name: true } },
   author: { select: userPublicSelect },
   collaborators: postCollaboratorsHeaderInclude,
   media: {
@@ -71,6 +74,7 @@ const postDetailSelectNoReposts = {
 type AudienceLockedDetail = {
   audienceLocked: true;
   author: Prisma.UserGetPayload<{ select: typeof userPublicSelect }>;
+  communityId?: string | null;
 };
 
 export async function getPostDetail(id: string, viewerId?: string) {
@@ -93,7 +97,7 @@ export async function getPostDetail(id: string, viewerId?: string) {
       post.author.postsLocked
     );
     if (!allowed) {
-      return { audienceLocked: true as const, author: post.author } satisfies AudienceLockedDetail;
+      return { audienceLocked: true as const, author: post.author, communityId: null } satisfies AudienceLockedDetail;
     }
     return enrichPostDetail(post, viewerId);
   } catch (e) {
@@ -116,7 +120,7 @@ export async function getPostDetail(id: string, viewerId?: string) {
       post.author.postsLocked
     );
     if (!allowed) {
-      return { audienceLocked: true as const, author: post.author } satisfies AudienceLockedDetail;
+      return { audienceLocked: true as const, author: post.author, communityId: null } satisfies AudienceLockedDetail;
     }
     return enrichPostDetail({ ...post, poll: null }, viewerId);
   }

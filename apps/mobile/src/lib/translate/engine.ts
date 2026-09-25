@@ -1,8 +1,11 @@
-import TranslateText, { TranslateLanguage } from "@react-native-ml-kit/translate-text";
 import type { Locale } from "@/i18n";
 import { getCachedTranslation, setCachedTranslation } from "@/lib/translate/cache";
 import { detectSourceMlKit } from "@/lib/translate/detect-source";
-import { localeToMlKit, mlKitToLocale } from "@/lib/translate/mlkit-locale";
+import {
+  localeToMlKit,
+  mlKitToLocale,
+  type TranslateLanguage,
+} from "@/lib/translate/mlkit-locale";
 import {
   joinTranslatedSegments,
   splitTranslatableSegments,
@@ -30,6 +33,14 @@ function chunkText(text: string): string[] {
   return chunks.filter(Boolean);
 }
 
+async function loadTranslateText() {
+  try {
+    return (await import("@react-native-ml-kit/translate-text")).default;
+  } catch {
+    return null;
+  }
+}
+
 async function translateChunk(
   text: string,
   sourceLanguage: TranslateLanguage,
@@ -37,6 +48,9 @@ async function translateChunk(
 ): Promise<string> {
   const cached = await getCachedTranslation(sourceLanguage, targetLanguage, text);
   if (cached) return cached;
+
+  const TranslateText = await loadTranslateText();
+  if (!TranslateText?.translate) return text;
 
   const result = (await TranslateText.translate({
     text,

@@ -1,4 +1,6 @@
-export type CommunityPostsBoardTab = "all" | "notice";
+import { COMMUNITY_CONCEPT_LIKE_MIN } from "@/lib/community-author";
+
+export type CommunityPostsBoardTab = "all" | "notice" | "concept";
 
 export type CommunityPostsBoardItem = {
   id: string;
@@ -11,10 +13,12 @@ export type CommunityPostsBoardItem = {
   createdAt: string;
   authorUsername: string;
   authorName: string;
+  isAnonymous?: boolean;
 };
 
 export function parseCommunityPostsTab(value: string | null | undefined): CommunityPostsBoardTab {
   if (value === "notice") return "notice";
+  if (value === "concept") return "concept";
   return "all";
 }
 
@@ -55,6 +59,7 @@ export function filterCommunityPostsByTab(
   tab: CommunityPostsBoardTab
 ): CommunityPostsBoardItem[] {
   if (tab === "notice") return posts.filter((p) => p.isPinned);
+  if (tab === "concept") return posts.filter((p) => p.likeCount >= COMMUNITY_CONCEPT_LIKE_MIN);
   return posts;
 }
 

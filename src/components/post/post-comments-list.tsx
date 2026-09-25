@@ -67,10 +67,12 @@ export function PostCommentsList({
   postId,
   initialComments,
   emptyLabel,
+  showIdHandle = false,
 }: {
   postId: string;
   initialComments: ServerComment[];
   emptyLabel: string;
+  showIdHandle?: boolean;
 }) {
   const [comments, setComments] = useState<OptimisticComment[]>(() =>
     initialComments.map(toOptimistic)
@@ -168,6 +170,7 @@ export function PostCommentsList({
               tier={safeTier(c.author.supportTierSent)}
               nameClassName="font-medium text-sm"
               compact
+              idHandle={showIdHandle ? c.author.username : undefined}
             />
             <TranslatableText text={c.content} as="p" className="text-sm mt-1 whitespace-pre-wrap" />
             {c.replies.map((r) => (
@@ -177,6 +180,7 @@ export function PostCommentsList({
                   tier={safeTier(r.author.supportTierSent)}
                   nameClassName="text-sm font-medium"
                   compact
+                  idHandle={showIdHandle ? r.author.username : undefined}
                 />
                 <TranslatableText text={r.content} as="p" className="text-sm whitespace-pre-wrap" />
               </div>

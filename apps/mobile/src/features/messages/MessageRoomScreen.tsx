@@ -5,6 +5,7 @@ import {
   FlatList,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -17,6 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation, useFocusEffect, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ChatMessage } from "@/api/messages";
 import { uploadLocalFile } from "@/api/upload-file";
@@ -34,6 +36,7 @@ import { CreatorCallBookingSheet } from "@/features/messages/CreatorCallBookingS
 import { FanArtSellSheet } from "@/features/messages/FanArtSellSheet";
 import { FanArtSellComposerButton } from "@/features/messages/FanArtSellComposerButton";
 import { SellButtonTrashOverlay } from "@/features/messages/SellButtonTrashOverlay";
+import { AddChatMemberSheet } from "@/features/messages/AddChatMemberSheet";
 import Animated, { FadeIn, FadeOut, Layout } from "react-native-reanimated";
 import { LetterDonationSheet } from "@/payments/LetterDonationSheet";
 import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
@@ -42,13 +45,27 @@ import {
   setFanArtSellHidden,
 } from "@/lib/message-composer-prefs";
 import { fetchCreatorCallSettings } from "@/api/call-bookings";
+import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { PeerLocalClock, PeerMemberClocks } from "@/features/messages/PeerLocalClock";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
+import { requestUsedTrade } from "@/api/marketplace";
 
 const MAX_VOICE_SEC = 120;
+const MEET_DAY_OFFSETS = [0, 1, 2, 3, 4, 5, 6];
+const MEET_HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+
+function meetDayLabel(offset: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  if (offset === 0) return "오늘";
+  if (offset === 1) return "내일";
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
+  return `${date.getMonth() + 1}/${date.getDate()} (${days[date.getDay()]})`;
+}
 const NEAR_BOTTOM_PX = 140;
 
 type VoiceControls = {
@@ -66,6 +83,8 @@ export function MessageRoomScreen() {
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const route = useRoute<RouteProp<RootStackParamList, "MessageRoom">>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
+  const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const keyboardHeight = useKeyboardBottomInset();
   const keyboardOpen = keyboardHeight > 0;
@@ -78,6 +97,7 @@ export function MessageRoomScreen() {
   } | null>(null);
   const [letterSheet, setLetterSheet] = useState(false);
   const [fanArtSheet, setFanArtSheet] = useState(false);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [fanArtSellHidden, setFanArtSellHiddenState] = useState(false);
   const [sellTrashOverlay, setSellTrashOverlay] = useState(false);
   const adultGate = useAdultVerificationGate("DM_PAID");
@@ -99,12 +119,42 @@ export function MessageRoomScreen() {
   const pendingStartRef = useRef(false);
   const busy = sending || uploading;
 
-  const title = route.params.title ?? room?.displayName ?? "대화";
+  const title = room?.displayName ?? route.params.title ?? "대화";
   const peerImage = room?.displayImage ?? null;
   const peerId = room?.otherUserId ?? null;
   const peerUsername = room?.profileUsername ?? null;
+  const isGroup = room?.type === "GROUP";
+  const memberCount = room?.memberCount ?? room?.members?.length ?? 0;
   const composerBottomPad = keyboardOpen ? 8 : Math.max(insets.bottom, 8);
   const canSendText = !!draft.trim() && !busy && !recording;
+  const usedTrade = room?.usedTrade ?? null;
+  const [tradeRequestBusy, setTradeRequestBusy] = useState(false);
+  const [meetDayOffset, setMeetDayOffset] = useState(1);
+  const [meetHour, setMeetHour] = useState(15);
+
+  const onRequestUsedTrade = useCallback(async () => {
+    if (!usedTrade?.canRequestTrade || tradeRequestBusy) return;
+    const meetAt = new Date();
+    meetAt.setDate(meetAt.getDate() + meetDayOffset);
+    meetAt.setHours(meetHour, 0, 0, 0);
+    if (meetAt.getTime() < Date.now()) {
+      Alert.alert("일정", "지금보다 이후 시간을 선택해 주세요.");
+      return;
+    }
+    setTradeRequestBusy(true);
+    try {
+      await requestUsedTrade(usedTrade.listingId, roomId, meetAt.toISOString());
+      await refresh();
+      Alert.alert(
+        "거래 요청",
+        usedTrade.isSeller ? "구매자에게 거래 일정을 보냈습니다." : "판매자에게 거래 일정을 보냈습니다."
+      );
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "거래 요청에 실패했습니다.");
+    } finally {
+      setTradeRequestBusy(false);
+    }
+  }, [meetDayOffset, meetHour, refresh, roomId, tradeRequestBusy, usedTrade]);
 
   useEffect(() => {
     if (!peerId) {
@@ -265,11 +315,23 @@ export function MessageRoomScreen() {
     setBookingSheet({ callType });
   }, [peerId]);
 
+  const peerProfileSeed = useMemo(
+    () =>
+      peerUsername
+        ? { username: peerUsername, name: title, image: peerImage }
+        : null,
+    [peerImage, peerUsername, title]
+  );
+
+  const prefetchPeerProfile = useCallback(() => {
+    if (isGroup || !peerProfileSeed) return;
+    prefetchUserProfile(peerProfileSeed);
+  }, [isGroup, peerProfileSeed, prefetchUserProfile]);
+
   const openPeerProfile = useCallback(() => {
-    if (peerUsername) {
-      navigation.navigate("UserProfile", { username: peerUsername });
-    }
-  }, [navigation, peerUsername]);
+    if (isGroup || !peerProfileSeed) return;
+    openUserProfile(peerProfileSeed);
+  }, [isGroup, openUserProfile, peerProfileSeed]);
 
   const onOpenImage = useCallback((payload: DmOpenImagePayload) => {
     setLightbox({
@@ -285,22 +347,29 @@ export function MessageRoomScreen() {
   }, []);
 
   const renderItem: ListRenderItem<MessageRow> = useCallback(
-    ({ item }) => (
-      <MessageBubble
-        message={item.message}
-        mine={item.message.sender.id === user?.id}
-        selfUserId={user?.id}
-        showTime={item.showTime}
-        roomId={roomId}
-        peerId={peerId}
-        peerName={title}
-        peerImage={peerImage}
-        onMessagesRefresh={() => void refresh()}
-        onReply={setReplyTo}
-        onOpenImage={onOpenImage}
-      />
-    ),
-    [onOpenImage, peerId, peerImage, refresh, roomId, title, user?.id]
+    ({ item, index }) => {
+      const mine = item.message.sender.id === user?.id;
+      const prev = index > 0 ? rows[index - 1]?.message : null;
+      const showSenderName =
+        isGroup && !mine && (!prev || prev.sender.id !== item.message.sender.id);
+      return (
+        <MessageBubble
+          message={item.message}
+          mine={mine}
+          selfUserId={user?.id}
+          showTime={item.showTime}
+          roomId={roomId}
+          peerId={peerId}
+          peerName={title}
+          peerImage={peerImage}
+          onMessagesRefresh={() => void refresh()}
+          onReply={setReplyTo}
+          onOpenImage={onOpenImage}
+          showSenderName={showSenderName}
+        />
+      );
+    },
+    [isGroup, onOpenImage, peerId, peerImage, refresh, roomId, rows, title, user?.id]
   );
 
   return (
@@ -331,17 +400,50 @@ export function MessageRoomScreen() {
           <Ionicons name="chevron-back" size={28} color={colors.cobalt} />
         </Pressable>
 
-        <Pressable style={styles.headerIdentity} onPress={openPeerProfile}>
+        <Pressable
+          style={styles.headerIdentity}
+          onPressIn={isGroup ? undefined : prefetchPeerProfile}
+          onPress={isGroup ? () => setAddMemberOpen(true) : openPeerProfile}
+        >
           <FolkAvatar uri={peerImage} name={title} size={34} />
           <View style={styles.headerTextCol}>
             <Text style={styles.title} numberOfLines={1}>
               {title}
             </Text>
-            <Text style={styles.presence}>오프라인</Text>
+            <Text style={styles.presence} numberOfLines={1}>
+              {isGroup ? `${memberCount}명` : "오프라인"}
+              {isGroup ? (
+                <>
+                  {" · "}
+                  <PeerMemberClocks
+                    viewerId={user?.id}
+                    members={(room?.members ?? []).map((m) => ({
+                      id: m.id,
+                      name: m.name?.trim() || m.username,
+                      timeZone: m.timeZone,
+                    }))}
+                  />
+                </>
+              ) : (
+                <>
+                  {" · "}
+                  <PeerLocalClock timeZone={room?.otherTimeZone} />
+                </>
+              )}
+            </Text>
           </View>
         </Pressable>
 
         <View style={styles.headerActions}>
+          <Pressable
+            style={styles.callBtn}
+            onPress={() => setAddMemberOpen(true)}
+            accessibilityLabel="대화에 사람 추가"
+          >
+            <Ionicons name="person-add-outline" size={18} color={colors.cobalt} />
+          </Pressable>
+          {!isGroup ? (
+            <>
           <Pressable
             style={styles.callBtn}
             onPress={() => startCall("AUDIO")}
@@ -375,6 +477,8 @@ export function MessageRoomScreen() {
             >
               <Ionicons name="calendar-outline" size={18} color={colors.terracotta} />
             </Pressable>
+          ) : null}
+            </>
           ) : null}
         </View>
       </View>
@@ -434,6 +538,50 @@ export function MessageRoomScreen() {
           },
         ]}
       >
+        {usedTrade?.canRequestTrade ? (
+          <View style={styles.usedTradeSchedule}>
+            <Text style={styles.usedTradeScheduleLabel}>거래 날짜</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+              {MEET_DAY_OFFSETS.map((offset) => (
+                <Pressable
+                  key={offset}
+                  style={[styles.chip, meetDayOffset === offset && styles.chipOn]}
+                  onPress={() => setMeetDayOffset(offset)}
+                >
+                  <Text style={[styles.chipText, meetDayOffset === offset && styles.chipTextOn]}>
+                    {meetDayLabel(offset)}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <Text style={styles.usedTradeScheduleLabel}>거래 시간</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+              {MEET_HOURS.map((hour) => (
+                <Pressable
+                  key={hour}
+                  style={[styles.chip, meetHour === hour && styles.chipOn]}
+                  onPress={() => setMeetHour(hour)}
+                >
+                  <Text style={[styles.chipText, meetHour === hour && styles.chipTextOn]}>
+                    {String(hour).padStart(2, "0")}:00
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <Pressable
+              style={styles.usedTradeBar}
+              disabled={tradeRequestBusy}
+              onPress={() => void onRequestUsedTrade()}
+            >
+              {tradeRequestBusy ? (
+                <ActivityIndicator color={colors.cobalt} size="small" />
+              ) : (
+                <Text style={styles.usedTradeBarText}>거래 요청하기</Text>
+              )}
+            </Pressable>
+          </View>
+        ) : null}
+
         {replyTo ? (
           <ChatReplyComposerBar
             target={replyTo}
@@ -456,7 +604,7 @@ export function MessageRoomScreen() {
 
         <View style={styles.composer}>
           <View style={styles.leftBtns}>
-            {!fanArtSellHidden ? (
+            {!fanArtSellHidden && !isGroup ? (
               <Animated.View
                 entering={FadeIn.duration(240)}
                 exiting={FadeOut.duration(200)}
@@ -544,6 +692,17 @@ export function MessageRoomScreen() {
           </View>
         </View>
       </View>
+
+      <AddChatMemberSheet
+        visible={addMemberOpen}
+        roomId={roomId}
+        members={room?.members ?? []}
+        onClose={() => setAddMemberOpen(false)}
+        onAdded={() => {
+          void refresh();
+          void queryClient.invalidateQueries({ queryKey: ["mobile-dm-inbox"] });
+        }}
+      />
 
       <DmImageLightbox
         visible={!!lightbox}
@@ -643,6 +802,33 @@ function createThemedStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
       paddingTop: 8,
       paddingHorizontal: 10,
+    },
+    usedTradeSchedule: { marginBottom: 8, gap: 6 },
+    usedTradeScheduleLabel: { color: colors.textMuted, fontSize: 12, fontWeight: "700" },
+    chipRow: { gap: 6, paddingVertical: 2 },
+    chip: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      backgroundColor: colors.surfaceRaised,
+    },
+    chipOn: { backgroundColor: colors.cobalt, borderColor: colors.cobalt },
+    chipText: { color: colors.text, fontWeight: "700", fontSize: 12 },
+    chipTextOn: { color: colors.textOnAccent },
+    usedTradeBar: {
+      marginBottom: 8,
+      height: 44,
+      borderRadius: 12,
+      backgroundColor: colors.cobalt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    usedTradeBarText: {
+      color: colors.textOnAccent,
+      fontWeight: "800",
+      fontSize: 15,
     },
     recordingBar: {
       flexDirection: "row",

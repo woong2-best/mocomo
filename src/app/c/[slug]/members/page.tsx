@@ -6,5 +6,5 @@ export default async function CommunityMembersRedirect({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  redirect(`/c/${slug}/members`);
+  redirect(`/c/${slug}`);
 }

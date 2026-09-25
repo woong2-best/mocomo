@@ -7,7 +7,13 @@ import { resolveUsedViewerCountry } from "@/lib/used-market-locale-scope";
 import { listingImages } from "@/lib/used-market";
 import {
   createMobileUsedListing,
+  listMobileLiveAuctions,
   listMobileMyUsedListings,
+  listMobileRecommendedUsed,
+  listMobileUsedByIds,
+  listMobileUsedDisputes,
+  listMobileUsedFavorites,
+  listMobileUsedPurchases,
 } from "@/lib/used-market-mobile";
 import { filterNsfwItems, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { coerceSubcultureListingFields } from "@/lib/subculture-commerce/types";
@@ -21,10 +27,52 @@ export async function GET(req: NextRequest) {
     const auth = await requireMobileApiUser(req);
     if ("error" in auth) return auth.error;
     try {
-      const items = await listMobileMyUsedListings(auth.user.id);
+      const mineMode = req.nextUrl.searchParams.get("mode")?.trim();
+      const mineSaleType =
+        mineMode === "auction" ? "AUCTION" : mineMode === "fixed" ? "FIXED" : undefined;
+      const items = await listMobileMyUsedListings(auth.user.id, mineSaleType);
       return NextResponse.json({ items });
     } catch {
       return NextResponse.json({ error: "내 거래 목록을 불러오지 못했습니다." }, { status: 500 });
+    }
+  }
+
+  const lane = req.nextUrl.searchParams.get("lane")?.trim() || undefined;
+  const idsParam = req.nextUrl.searchParams.get("ids")?.trim() || undefined;
+  if (lane === "favorites" || lane === "purchased" || lane === "live-auctions" || lane === "disputes") {
+    const auth = await requireMobileApiUser(req);
+    if ("error" in auth) return auth.error;
+    const takeLane = Math.min(Number(req.nextUrl.searchParams.get("take") ?? "24") || 24, 48);
+    try {
+      const items =
+        lane === "favorites"
+          ? await listMobileUsedFavorites(auth.user.id, takeLane)
+          : lane === "purchased"
+            ? await listMobileUsedPurchases(auth.user.id, takeLane)
+            : lane === "live-auctions"
+              ? await listMobileLiveAuctions(auth.user.id, takeLane)
+              : await listMobileUsedDisputes(auth.user.id, takeLane);
+      return NextResponse.json({ items, lane });
+    } catch {
+      return NextResponse.json({ error: "목록을 불러오지 못했습니다.", items: [] }, { status: 500 });
+    }
+  }
+  if (idsParam) {
+    try {
+      const items = await listMobileUsedByIds(idsParam.split(","));
+      return NextResponse.json({ items, lane: "ids" });
+    } catch {
+      return NextResponse.json({ error: "상품 목록을 불러오지 못했습니다.", items: [] }, { status: 500 });
+    }
+  }
+  if (lane === "recommend") {
+    try {
+      const viewerId = await getMobileUserId(req);
+      const takeLane = Math.min(Number(req.nextUrl.searchParams.get("take") ?? "24") || 24, 48);
+      const items = await listMobileRecommendedUsed(viewerId, takeLane);
+      return NextResponse.json({ items, lane: "recommend" });
+    } catch {
+      return NextResponse.json({ error: "추천 상품을 불러오지 못했습니다.", items: [] }, { status: 500 });
     }
   }
 
@@ -70,7 +118,7 @@ export async function GET(req: NextRequest) {
         condition: condition || undefined,
         limited: limitedKind || undefined,
         trade: trade || undefined,
-        saleType: mode === "auction" ? "AUCTION" : undefined,
+        saleType: mode === "auction" ? "AUCTION" : mode === "fixed" ? "FIXED" : undefined,
         liveAuctionOnly: mode === "auction",
       }),
       canViewNsfw
@@ -132,7 +180,7 @@ export async function GET(req: NextRequest) {
             limited: limitedKind || undefined,
             trade: trade || undefined,
             anime: anime || undefined,
-            saleType: mode === "auction" ? "AUCTION" : undefined,
+            saleType: mode === "auction" ? "AUCTION" : mode === "fixed" ? "FIXED" : undefined,
             liveAuctionOnly: mode === "auction",
           },
           { viewerId, sessionCountry: viewerCountryCode }
@@ -183,8 +231,11 @@ const createSchema = z.object({
   title: z.string().min(1).max(120),
   description: z.string().max(5000).default(""),
   price: z.coerce.number().min(0),
-  currency: z.enum(["krw", "usd"]).optional(),
-  category: z.string().min(1).max(40).default("OTHER"),
+  currency: z
+    .enum(["krw", "usd", "jpy", "eur", "gbp", "twd", "cny", "hkd", "sgd", "aud", "cad", "thb"])
+    .optional(),
+  category: z.string().min(1).max(40).optional(),
+  categories: z.array(z.string().min(1).max(40)).min(1).max(8).optional(),
   region: z.string().min(1).max(80),
   meetPlace: z.string().max(200).optional(),
   meetLat: z.number().finite().optional(),

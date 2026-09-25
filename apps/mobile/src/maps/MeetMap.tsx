@@ -9,18 +9,17 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { API_BASE_URL } from "@/config/env";
-import { MapProvider } from "@/maps/MapProvider";
 import { getCurrentMeetCoords, meetLocationErrorMessage } from "@/maps/location";
-import { selectMapEngine } from "@/maps/select-engine";
+import { UsedSatelliteMap, type UsedMapPin } from "@/maps/UsedSatelliteMap";
 import type { MeetCoords } from "@/maps/types";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
 const REGION_CENTERS: Record<string, MeetCoords & { zoom: number }> = {
-  default: { lat: 37.5665, lng: 126.978, zoom: 11 },
-  "서울": { lat: 37.5665, lng: 126.978, zoom: 11 },
-  "부산": { lat: 35.1796, lng: 129.0756, zoom: 11 },
-  "경기": { lat: 37.4138, lng: 127.5183, zoom: 10 },
+  default: { lat: 37.5665, lng: 126.978, zoom: 14 },
+  "서울": { lat: 37.5665, lng: 126.978, zoom: 14 },
+  "부산": { lat: 35.1796, lng: 129.0756, zoom: 14 },
+  "경기": { lat: 37.4138, lng: 127.5183, zoom: 12 },
 };
 
 function regionCenter(region: string) {
@@ -39,6 +38,7 @@ type Props = {
   onCoordsChange?: (coords: MeetCoords | null) => void;
   onMeetPlaceChange?: (text: string) => void;
   height?: number;
+  pinTitle?: string;
 };
 
 export function MeetMap({
@@ -50,11 +50,12 @@ export function MeetMap({
   onCoordsChange,
   onMeetPlaceChange,
   height = 220,
+  pinTitle = "거래 장소",
 }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const engine = selectMapEngine(country);
   const shipping = region.includes("전국 택배");
+  const [box, setBox] = useState({ w: 0, h: 0 });
 
   const [searchQ, setSearchQ] = useState(meetPlace);
   const [searching, setSearching] = useState(false);
@@ -64,6 +65,19 @@ export function MeetMap({
   const centerBase = regionCenter(region);
   const center = active ?? { lat: centerBase.lat, lng: centerBase.lng };
   const zoom = active ? 16 : centerBase.zoom;
+  const pins = useMemo<UsedMapPin[]>(() => {
+    if (!active) return [];
+    return [
+      {
+        id: "meet",
+        lat: active.lat,
+        lng: active.lng,
+        color: "#F97316",
+        title: pinTitle,
+        place: meetPlace.trim() || "주소를 입력해 주세요",
+      },
+    ];
+  }, [active, meetPlace, pinTitle]);
 
   useEffect(() => {
     setSearchQ(meetPlace);
@@ -154,9 +168,7 @@ export function MeetMap({
             style={styles.input}
             value={searchQ}
             onChangeText={setSearchQ}
-            placeholder={
-              engine === "kakao" ? "카카오맵 장소 검색" : "Search place (OSM)"
-            }
+            placeholder="주소 또는 장소 이름"
             placeholderTextColor={colors.textMuted}
             onSubmitEditing={() => void searchPlace()}
             returnKeyType="search"
@@ -174,30 +186,32 @@ export function MeetMap({
         </View>
       ) : null}
 
-      <View style={[styles.mapBox, { height }]}>
-        <MapProvider
-          country={country}
-          mode={mode}
+      <View
+        style={[styles.mapBox, { height }]}
+        onLayout={(event) => {
+          const { width, height: layoutH } = event.nativeEvent.layout;
+          setBox((prev) => (prev.w === width && prev.h === layoutH ? prev : { w: width, h: layoutH }));
+        }}
+      >
+        <UsedSatelliteMap
+          backgroundColor={isDark ? "#0F1524" : colors.background}
+          width={box.w}
+          height={box.h || height}
           center={center}
           zoom={zoom}
-          marker={active}
+          pins={pins}
           onPick={mode === "pick" ? handlePick : undefined}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         />
         {mode === "pick" && !active ? (
           <View style={styles.hint} pointerEvents="none">
-            <Text style={styles.hintText}>지도를 탭하거나 검색해서 핀을 찍어 주세요</Text>
+            <Text style={styles.hintText}>지도를 탭하거나 주소로 검색해 핀을 찍어 주세요</Text>
           </View>
         ) : null}
       </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {mode === "pick" ? (
-        <Text style={styles.caption}>
-          {engine === "kakao"
-            ? "한국은 카카오맵 Native로 표시됩니다."
-            : "MapLibre Native + OpenStreetMap으로 표시됩니다."}
-        </Text>
+        <Text style={styles.caption}>위성 지도에 핀을 찍고, 아래 주소란에 만나는 장소를 적어 주세요.</Text>
       ) : null}
     </View>
   );

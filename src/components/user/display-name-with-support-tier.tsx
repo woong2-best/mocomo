@@ -16,6 +16,7 @@ export function DisplayNameWithSupportTier({
   tierInteractive = false,
   as = "span",
   profileUsername,
+  idHandle,
 }: {
   name: React.ReactNode;
   tier?: SupportTierLevel;
@@ -30,6 +31,8 @@ export function DisplayNameWithSupportTier({
   as?: "span" | "p" | "div";
   /** 있으면 닉네임을 프로필 링크로 (채팅 등) */
   profileUsername?: string;
+  /** DC 갤러리식 — 닉네임 옆에 (아이디) */
+  idHandle?: string;
 }) {
   const displayTier = earnedMocoTier
     ? resolveProfileDisplayTier(tier, earnedMocoTier)
@@ -59,6 +62,9 @@ export function DisplayNameWithSupportTier({
       title={tierInteractive ? undefined : `총 후원 등급 · ${info.labelKo} (${info.label})`}
     >
       {nameEl}
+      {idHandle ? (
+        <span className="shrink-0 text-[11px] font-medium text-muted-foreground">({idHandle})</span>
+      ) : null}
       {tierBadge}
     </Comp>
   );

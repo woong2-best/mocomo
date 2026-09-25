@@ -12,6 +12,8 @@ export type SavedMobileAccount = {
   username: string;
   name: string | null;
   image: string | null;
+  bannerUrl?: string | null;
+  bannerVideoUrl?: string | null;
   accessToken: string;
   refreshToken: string;
   savedAt: number;
@@ -110,16 +112,21 @@ export async function getActiveAccount(): Promise<SavedMobileAccount | null> {
 }
 
 export async function saveAccountSession(
-  user: Pick<MobileAuthUser, "id" | "username" | "name" | "image">,
+  user: Pick<MobileAuthUser, "id" | "username" | "name" | "image"> &
+    Partial<Pick<MobileAuthUser, "bannerUrl" | "bannerVideoUrl">>,
   accessToken: string,
   refreshToken: string
 ): Promise<void> {
   const accounts = await readAccountsRaw();
+  const prev = accounts.find((a) => a.userId === user.id);
   const next: SavedMobileAccount = {
     userId: user.id,
     username: user.username,
     name: user.name,
     image: user.image,
+    bannerUrl: user.bannerUrl !== undefined ? user.bannerUrl : prev?.bannerUrl ?? null,
+    bannerVideoUrl:
+      user.bannerVideoUrl !== undefined ? user.bannerVideoUrl : prev?.bannerVideoUrl ?? null,
     accessToken,
     refreshToken,
     savedAt: Date.now(),
@@ -194,6 +201,8 @@ export function savedAccountToCachedUser(
     username: account.username,
     name: account.name,
     image: account.image,
+    bannerUrl: account.bannerUrl ?? null,
+    bannerVideoUrl: account.bannerVideoUrl ?? null,
   };
 }
 
@@ -204,16 +213,21 @@ export async function getCachedActiveUser(): Promise<MobileAuthUser | null> {
 }
 
 export async function patchActiveAccountProfile(
-  user: Pick<MobileAuthUser, "id" | "username" | "name" | "image">
+  user: Pick<MobileAuthUser, "id" | "username" | "name" | "image"> &
+    Partial<Pick<MobileAuthUser, "bannerUrl" | "bannerVideoUrl">>
 ): Promise<void> {
   const accounts = await readAccountsRaw();
   const idx = accounts.findIndex((a) => a.userId === user.id);
   if (idx < 0) return;
+  const prev = accounts[idx]!;
   accounts[idx] = {
-    ...accounts[idx]!,
+    ...prev,
     username: user.username,
     name: user.name,
     image: user.image,
+    bannerUrl: user.bannerUrl !== undefined ? user.bannerUrl : prev.bannerUrl ?? null,
+    bannerVideoUrl:
+      user.bannerVideoUrl !== undefined ? user.bannerVideoUrl : prev.bannerVideoUrl ?? null,
     savedAt: Date.now(),
   };
   await writeAccountsRaw(accounts);

@@ -151,16 +151,19 @@ export async function notifyPostComment(params: {
   actorId: string;
   parentCommentAuthorId?: string | null;
   content: string;
+  /** 익명 게시물 댓글 알림만 작성자 숨김 (QnA 답글은 공개). */
+  anonymous?: boolean;
 }) {
   const { postId, postAuthorId, actorId, parentCommentAuthorId, content } = params;
-  const actor = await getActor(actorId);
-  const label = actorLabel(actor);
+  const actor = params.anonymous ? null : await getActor(actorId);
+  const label = params.anonymous ? "익명" : actorLabel(actor);
   const link = `/post/${postId}#comment-${params.commentId}`;
+  const actorForRow = params.anonymous ? undefined : actorId;
 
   if (parentCommentAuthorId && parentCommentAuthorId !== actorId) {
     scheduleNotification({
       userId: parentCommentAuthorId,
-      actorId,
+      actorId: actorForRow,
       type: "comment_reply",
       title: "댓글 답글",
       body: `${label}님이 회원님의 댓글에 답글을 남겼습니다.`,
@@ -171,7 +174,7 @@ export async function notifyPostComment(params: {
   if (postAuthorId !== actorId && postAuthorId !== parentCommentAuthorId) {
     scheduleNotification({
       userId: postAuthorId,
-      actorId,
+      actorId: actorForRow,
       type: "comment",
       title: "댓글",
       body: `${label}님이 회원님의 게시물에 댓글을 남겼습니다.`,
@@ -179,12 +182,14 @@ export async function notifyPostComment(params: {
     });
   }
 
-  await notifyMentionsInText({
-    text: content,
-    actorId,
-    link,
-    context: "댓글",
-  });
+  if (!params.anonymous) {
+    await notifyMentionsInText({
+      text: content,
+      actorId,
+      link,
+      context: "댓글",
+    });
+  }
 }
 
 export async function notifyCommentLiked(params: {

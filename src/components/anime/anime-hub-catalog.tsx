@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import { displayAnimeTitle, needsAnimeTitleAutoResolve } from "@/lib/anime-display-title";
 import { animeSlugFromTitle, isValidAnimeSlug } from "@/lib/utils";
+import { wikiCoverDisplayUrl } from "@/lib/wiki-cover-url";
 
 export type AnimeHubCatalogItem = {
   id: string;
@@ -107,7 +108,7 @@ export function AnimeHubCatalog({
                 {item.coverUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={item.coverUrl}
+                    src={wikiCoverDisplayUrl(item.coverUrl) ?? item.coverUrl}
                     alt=""
                     className="w-full aspect-[3/4] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     draggable={false}

@@ -16,4 +16,7 @@ export const AUCTION_MIN_WALLET_MOCO = AUCTION_BID_DEPOSIT_MOCO;
 export const INSUFFICIENT_DEPOSIT_ERROR =
   "지갑에 최소 2 MOCO 이상 있어야 경매에 참여할 수 있습니다. MOCO를 충전한 뒤 다시 시도해 주세요.";
 
+export const AUCTION_SELLER_DEPOSIT_ERROR =
+  "경매를 올리려면 지갑에 최소 2 MOCO가 있어야 합니다. 이 금액은 노쇼 방지 보증금으로 잠기고, 거래 완료 후 돌려드립니다.";
+
 export const AUCTION_FORFEIT_PENALTY_MOCO = AUCTION_BID_DEPOSIT_MOCO;

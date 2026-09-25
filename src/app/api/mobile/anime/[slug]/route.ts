@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
+import { wikiCoverDisplayUrl } from "@/lib/wiki-cover-url";
 
 export async function GET(
   req: NextRequest,
@@ -30,6 +31,7 @@ export async function GET(
       viewCount: true,
       characters: true,
       worldInfo: true,
+      infobox: true,
     },
   });
 
@@ -40,6 +42,8 @@ export async function GET(
   return NextResponse.json({
     item: {
       ...anime,
+      coverUrl: wikiCoverDisplayUrl(anime.coverUrl),
+      bannerUrl: wikiCoverDisplayUrl(anime.bannerUrl) ?? anime.bannerUrl,
       characters: Array.isArray(anime.characters) ? anime.characters.slice(0, 24) : [],
     },
   });

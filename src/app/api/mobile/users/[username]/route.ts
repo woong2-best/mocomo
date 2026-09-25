@@ -9,6 +9,7 @@ import { isSubscriptionActive } from "@/lib/creator-subscription";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { platformPostWhere } from "@/lib/post-scope";
 import { nsfwPostWhere, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
 
 export async function GET(
   req: NextRequest,
@@ -31,6 +32,8 @@ export async function GET(
       username: true,
       name: true,
       image: true,
+      email: true,
+      passwordHash: true,
       deletedAt: true,
       createdAt: true,
       countryCode: true,
@@ -96,12 +99,20 @@ export async function GET(
     viewerId
   );
 
+  const displayed = await hydrateUserOAuthProfile({
+    id: user.id,
+    name: user.name,
+    image: user.image,
+    email: user.email,
+    passwordHash: user.passwordHash,
+  });
+
   return NextResponse.json({
     user: {
       id: user.id,
       username: user.username,
-      name: user.name,
-      image: user.image,
+      name: displayed.name,
+      image: displayed.image,
       bio: user.profile?.bio ?? null,
       bannerUrl: user.profile?.bannerUrl ?? null,
       bannerVideoUrl: user.profile?.bannerVideoUrl ?? null,

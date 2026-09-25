@@ -1,173 +1,148 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  type ViewToken,
 } from "react-native";
-import { Image } from "expo-image";
-import * as Haptics from "expo-haptics";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { fetchAnimeDetail } from "@/api/discovery";
-import { buildWikiBookPages, type WikiBookPage } from "@/features/anime/wiki-book-pages";
-import { WikiContent } from "@/features/anime/WikiContent";
 import { genreLabel } from "@/features/anime/anime-genres";
+import {
+  characterNames,
+  continueSectionNumbers,
+  parseWikiArticle,
+  type WikiArticleSection,
+} from "@/features/anime/wiki-article";
+import { WikiContent } from "@/features/anime/WikiContent";
+import { WikiInfobox } from "@/features/anime/WikiInfobox";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
-import { FolkCard } from "@/ui/FolkCard";
 import { Screen } from "@/ui/Screen";
-import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
+function WikiSectionBlock({
+  section,
+  styles,
+  colors,
+  defaultOpen,
+  onLayoutY,
+}: {
+  section: WikiArticleSection;
+  styles: ReturnType<typeof createThemedStyles>;
+  colors: ThemeColors;
+  defaultOpen: boolean;
+  onLayoutY: (y: number) => void;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <View
+      onLayout={(e) => onLayoutY(e.nativeEvent.layout.y)}
+      style={[styles.bodyPad, styles.section]}
+    >
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        style={styles.sectionHead}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+      >
+        <Text style={styles.sectionNum}>{section.number}.</Text>
+        <Text style={styles.sectionTitle} numberOfLines={2}>
+          {section.label}
+        </Text>
+        <Ionicons
+          name={open ? "chevron-up" : "chevron-down"}
+          size={16}
+          color={colors.textMuted}
+        />
+      </Pressable>
+      {open && section.body ? (
+        <View style={styles.sectionBody}>
+          <WikiContent source={section.body} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export function AnimeDetailScreen() {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createThemedStyles(colors), [colors]);
-  const { width } = useWindowDimensions();
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "AnimeDetail">>();
-  const pagerRef = useRef<FlatList<WikiBookPage>>(null);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [chromeVisible, setChromeVisible] = useState(true);
-  const [coverFailed, setCoverFailed] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const yMap = useRef<Record<string, number>>({});
 
   const query = useQuery({
     queryKey: ["mobile-anime-detail", route.params.slug],
     queryFn: () => fetchAnimeDetail(route.params.slug),
   });
   const item = query.data?.item;
+  const photoUrl = item?.coverUrl || item?.bannerUrl || null;
+  const cast = useMemo(() => characterNames(item?.characters), [item?.characters]);
 
-  const pages = useMemo(
-    () =>
-      item
-        ? buildWikiBookPages({
-            title: item.title,
-            synopsis: item.synopsis,
-            worldInfo: item.worldInfo,
-            characters: item.characters,
-          })
-        : [],
-    [item]
-  );
+  const article = useMemo(() => {
+    const syn = parseWikiArticle(item?.synopsis, "syn");
+    const world = parseWikiArticle(item?.worldInfo, "world");
+    const worldNumbered = continueSectionNumbers(world.sections, syn.sections);
+    const sections = [...syn.sections, ...worldNumbered];
+    const leftoverLead = [syn.lead, world.lead].filter(Boolean).join("\n\n");
+    if (sections.length === 0 && leftoverLead) {
+      sections.push({
+        id: "syn-overview",
+        label: "개요",
+        level: 1,
+        number: "1",
+        body: leftoverLead,
+      });
+    }
+    if (cast.length > 0) {
+      let n1 = 0;
+      for (const s of sections) {
+        if (s.level === 1) n1 = Math.max(n1, Number(s.number.split(".")[0]) || 0);
+      }
+      sections.push({
+        id: "characters",
+        label: "등장인물",
+        level: 1,
+        number: String(n1 + 1),
+        body: "",
+      });
+    }
+    const lead = sections.some((s) => s.id === "syn-overview") ? "" : leftoverLead;
+    return { lead, sections };
+  }, [cast.length, item?.synopsis, item?.worldInfo]);
 
-  const goToPage = useCallback(
-    (next: number) => {
-      if (!pages.length) return;
-      const clamped = Math.max(0, Math.min(pages.length - 1, next));
-      if (clamped === pageIndex) return;
-      pagerRef.current?.scrollToIndex({ index: clamped, animated: true });
-      setPageIndex(clamped);
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    },
-    [pageIndex, pages.length]
-  );
-
-  const toggleChrome = useCallback(() => {
-    setChromeVisible((v) => !v);
-    void Haptics.selectionAsync();
+  const scrollTo = useCallback((id: string) => {
+    const y = yMap.current[id];
+    if (y == null) return;
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 6), animated: true });
   }, []);
 
-  const onMomentumEnd = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const idx = Math.round(e.nativeEvent.contentOffset.x / Math.max(width, 1));
-      if (idx !== pageIndex && idx >= 0 && idx < pages.length) {
-        setPageIndex(idx);
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-    },
-    [pageIndex, pages.length, width]
-  );
-
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    const idx = viewableItems[0]?.index;
-    if (typeof idx === "number") setPageIndex(idx);
-  }).current;
-
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 60 }).current;
-
-  const renderPage = useCallback(
-    ({ item: page }: { item: WikiBookPage }) => (
-      <View style={[styles.page, { width }]}>
-        <FolkCard style={styles.pageCard} padded={false}>
-          <ScrollView
-            style={styles.pageScroll}
-            contentContainerStyle={styles.pageScrollContent}
-            showsVerticalScrollIndicator={false}
-            nestedScrollEnabled
-          >
-            <Pressable onPress={toggleChrome} hitSlop={4}>
-              <Text style={styles.pageLabel}>{page.label}</Text>
-            </Pressable>
-
-            {page.kind === "overview" && item ? (
-              <View style={styles.overviewMeta}>
-                <Text style={styles.title}>{item.title}</Text>
-                {item.titleEn ? <Text style={styles.en}>{item.titleEn}</Text> : null}
-                <Text style={styles.meta}>
-                  {[genreLabel(item.genre), item.studio].filter(Boolean).join(" · ")}
-                </Text>
-                {item.tags?.length ? (
-                  <Text style={styles.tags}>{item.tags.slice(0, 8).join(" · ")}</Text>
-                ) : null}
-              </View>
-            ) : null}
-
-            {page.source ? <WikiContent source={page.source} /> : null}
-
-            {page.kind === "cast" && page.characters?.length ? (
-              <View style={styles.castWrap}>
-                {!page.source ? <Text style={styles.castHeading}>주요 등장인물</Text> : null}
-                <View style={styles.castChips}>
-                  {page.characters.map((name) => (
-                    <View key={name} style={styles.castChip}>
-                      <Text style={styles.castChipText}>{name}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {page.kind === "overview" && !page.source && !item?.tags?.length ? (
-              <Text style={styles.emptyHint}>등록된 개요 본문이 없습니다.</Text>
-            ) : null}
-          </ScrollView>
-        </FolkCard>
-
-        {/* Ebook edge taps — 좌 30% 이전 / 우 30% 다음 (중앙은 스크롤·접기 유지) */}
-        <Pressable
-          style={styles.tapLeft}
-          onPress={() => goToPage(pageIndex - 1)}
-          accessibilityLabel="이전 페이지"
-        />
-        <Pressable
-          style={styles.tapRight}
-          onPress={() => goToPage(pageIndex + 1)}
-          accessibilityLabel="다음 페이지"
-        />
-      </View>
-    ),
-    [goToPage, item, pageIndex, styles, toggleChrome, width]
-  );
+  const fallbackRows = useMemo(() => {
+    if (!item) return [];
+    const rows: { label: string; value: string }[] = [];
+    const genre = genreLabel(item.genre);
+    if (genre) rows.push({ label: "분류", value: genre });
+    if (item.studio) rows.push({ label: "스튜디오", value: item.studio });
+    if (item.tags?.length) rows.push({ label: "태그", value: item.tags.slice(0, 12).join(" · ") });
+    return rows;
+  }, [item]);
 
   return (
     <Screen>
-      {chromeVisible ? (
-        <AppHeader title="작품" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
-      ) : (
-        <Pressable style={styles.chromePeek} onPress={toggleChrome} hitSlop={12}>
-          <Text style={styles.chromePeekText}>메뉴</Text>
-        </Pressable>
-      )}
+      <AppHeader
+        title={item?.title ?? "작품"}
+        leftLabel="뒤로"
+        onLeftPress={() => navigation.goBack()}
+      />
 
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
@@ -177,139 +152,158 @@ export function AnimeDetailScreen() {
           <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
         </View>
       ) : (
-        <View style={styles.body}>
-          {chromeVisible ? (
-            <View style={styles.coverWrap}>
-              {item.coverUrl && !coverFailed ? (
-                <Image
-                  source={{ uri: item.coverUrl }}
-                  style={styles.cover}
-                  cachePolicy={IMAGE_CACHE_POLICY}
-                  contentFit="cover"
-                  onError={() => setCoverFailed(true)}
-                />
-              ) : (
-                <View style={[styles.cover, styles.coverFallback]}>
-                  <Text style={styles.coverEmoji}>📺</Text>
-                </View>
-              )}
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View>
+            <View style={styles.bodyPad}>
+              <WikiInfobox
+                title={item.title}
+                titleEn={item.titleEn}
+                photoUrl={photoUrl}
+                infobox={item.infobox}
+                fallbackRows={fallbackRows}
+              />
             </View>
-          ) : null}
 
-          <FlatList
-            ref={pagerRef}
-            style={styles.pager}
-            data={pages}
-            keyExtractor={(p) => p.id}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            decelerationRate="fast"
-            bounces={false}
-            overScrollMode="never"
-            onMomentumScrollEnd={onMomentumEnd}
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={viewabilityConfig}
-            getItemLayout={(_, index) => ({
-              length: width,
-              offset: width * index,
-              index,
-            })}
-            renderItem={renderPage}
-            onScrollToIndexFailed={(info) => {
-              setTimeout(() => {
-                pagerRef.current?.scrollToIndex({ index: info.index, animated: true });
-              }, 80);
-            }}
-          />
-
-          {chromeVisible ? (
-            <View style={styles.indicatorRow}>
-              <Text style={styles.pageCount}>
-                {pageIndex + 1} / {pages.length}
-              </Text>
-              <View style={styles.dots}>
-                {pages.map((p, i) => (
+            {article.sections.length > 0 ? (
+              <View style={styles.toc}>
+                <Text style={styles.tocTitle}>목차</Text>
+                {article.sections.map((sec) => (
                   <Pressable
-                    key={p.id}
-                    onPress={() => goToPage(i)}
-                    hitSlop={8}
-                    style={[styles.dot, i === pageIndex && styles.dotActive]}
-                    accessibilityLabel={`${p.label} 페이지`}
-                  />
+                    key={sec.id}
+                    onPress={() => scrollTo(sec.id)}
+                    style={[styles.tocRow, sec.level === 2 && styles.tocSub]}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.tocNum}>{sec.number}.</Text>
+                    <Text style={styles.tocLabel} numberOfLines={1}>
+                      {sec.label}
+                    </Text>
+                  </Pressable>
                 ))}
               </View>
-              <Text style={styles.pageName} numberOfLines={1}>
-                {pages[pageIndex]?.label ?? ""}
-              </Text>
-            </View>
-          ) : null}
-        </View>
+            ) : null}
+
+            {article.lead ? (
+              <View style={[styles.bodyPad, styles.lead]}>
+                <WikiContent source={article.lead} />
+              </View>
+            ) : null}
+
+            {article.sections.map((sec, i) =>
+              sec.id === "characters" ? (
+                <View
+                  key={sec.id}
+                  onLayout={(e) => {
+                    yMap.current[sec.id] = e.nativeEvent.layout.y;
+                  }}
+                  style={[styles.bodyPad, styles.section]}
+                >
+                  <View style={styles.sectionHead}>
+                    <Text style={styles.sectionNum}>{sec.number}.</Text>
+                    <Text style={styles.sectionTitle}>{sec.label}</Text>
+                  </View>
+                  <View style={styles.castChips}>
+                    {cast.map((name) => (
+                      <View key={name} style={styles.castChip}>
+                        <Text style={styles.castChipText}>{name}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <WikiSectionBlock
+                  key={sec.id}
+                  section={sec}
+                  styles={styles}
+                  colors={colors}
+                  defaultOpen={i < 3}
+                  onLayoutY={(y) => {
+                    yMap.current[sec.id] = y;
+                  }}
+                />
+              )
+            )}
+
+            {!article.lead && article.sections.length === 0 && !item.infobox ? (
+              <Text style={[styles.bodyPad, styles.emptyHint]}>등록된 본문이 없습니다.</Text>
+            ) : null}
+          </View>
+        </ScrollView>
       )}
     </Screen>
   );
 }
 
-function createThemedStyles(colors: ThemeColors) {
+function createThemedStyles(colors: ThemeColors, isDark: boolean) {
+  const line = isDark ? "rgba(255,255,255,0.12)" : "rgba(20,40,72,0.12)";
   return StyleSheet.create({
-    body: { flex: 1 },
-    chromeSpacer: { height: 8 },
-    chromePeek: {
-      alignSelf: "center",
-      marginTop: 4,
-      marginBottom: 4,
+    scroll: { flex: 1 },
+    scrollContent: {
+      paddingBottom: 48,
+    },
+    bodyPad: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+    },
+    toc: {
+      borderRadius: radii.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: line,
+      backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(20,40,72,0.04)",
+      marginHorizontal: spacing.md,
+      marginTop: spacing.md,
       paddingHorizontal: 14,
-      paddingVertical: 4,
-      borderRadius: radii.pill,
-      backgroundColor: colors.muted,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
+      paddingVertical: 12,
     },
-    chromePeekText: { color: colors.textMuted, fontWeight: "700", fontSize: 11 },
-    coverWrap: {
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.sm,
-      paddingBottom: spacing.sm,
+    tocTitle: {
+      color: colors.text,
+      fontWeight: "800",
+      fontSize: 14,
+      marginBottom: 8,
     },
-    cover: {
-      width: "100%",
-      height: 168,
-      borderRadius: radii.lg,
-      backgroundColor: colors.muted,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
+    tocRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 5,
+      gap: 6,
     },
-    coverFallback: { alignItems: "center", justifyContent: "center" },
-    coverEmoji: { fontSize: 36 },
-    pager: { flex: 1 },
-    page: {
-      flex: 1,
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.sm,
+    tocSub: { paddingLeft: 16 },
+    tocNum: { color: colors.terracotta, fontWeight: "800", fontSize: 13, minWidth: 28 },
+    tocLabel: { flex: 1, color: colors.brand, fontWeight: "700", fontSize: 14 },
+    lead: { paddingTop: 4 },
+    section: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: line,
     },
-    pageCard: { flex: 1, padding: 0, overflow: "hidden" },
-    pageScroll: { flex: 1 },
-    pageScrollContent: {
-      padding: spacing.md,
-      paddingBottom: spacing.xl,
-      gap: spacing.sm,
+    sectionHead: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingVertical: 12,
     },
-    pageLabel: {
-      alignSelf: "flex-start",
+    sectionNum: {
       color: colors.terracotta,
       fontWeight: "800",
-      fontSize: 12,
-      letterSpacing: 0.4,
-      marginBottom: 4,
+      fontSize: 18,
     },
-    overviewMeta: { gap: 4, marginBottom: spacing.sm },
-    title: { fontSize: 22, fontWeight: "800", color: colors.cobalt },
-    en: { color: colors.textMuted, fontWeight: "600" },
-    meta: { marginTop: 2, color: colors.textMuted, fontWeight: "700", fontSize: 13 },
-    tags: { marginTop: 6, color: colors.terracotta, fontWeight: "700", fontSize: 13 },
-    castWrap: { marginTop: spacing.sm, gap: spacing.sm },
-    castHeading: { color: colors.cobalt, fontWeight: "800", fontSize: 16 },
-    castChips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    sectionTitle: {
+      flex: 1,
+      color: colors.text,
+      fontWeight: "800",
+      fontSize: 18,
+    },
+    sectionBody: { paddingBottom: 14, paddingLeft: 4 },
+    castChips: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      paddingBottom: 14,
+    },
     castChip: {
       borderRadius: radii.pill,
       borderWidth: 1,
@@ -320,53 +314,6 @@ function createThemedStyles(colors: ThemeColors) {
     },
     castChipText: { color: colors.text, fontWeight: "700", fontSize: 13 },
     emptyHint: { color: colors.textMuted, fontWeight: "600", marginTop: spacing.md },
-    tapLeft: {
-      position: "absolute",
-      left: 0,
-      top: 0,
-      bottom: 0,
-      width: "28%",
-    },
-    tapRight: {
-      position: "absolute",
-      right: 0,
-      top: 0,
-      bottom: 0,
-      width: "28%",
-    },
-    indicatorRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.md,
-      paddingTop: 4,
-      gap: spacing.sm,
-    },
-    pageCount: {
-      width: 48,
-      color: colors.textMuted,
-      fontWeight: "700",
-      fontSize: 12,
-    },
-    pageName: {
-      width: 48,
-      textAlign: "right",
-      color: colors.textMuted,
-      fontWeight: "700",
-      fontSize: 12,
-    },
-    dots: { flexDirection: "row", alignItems: "center", gap: 7 },
-    dot: {
-      width: 7,
-      height: 7,
-      borderRadius: 999,
-      backgroundColor: colors.border,
-    },
-    dotActive: {
-      width: 18,
-      backgroundColor: colors.terracotta,
-    },
     center: { padding: spacing.lg, alignItems: "center", gap: spacing.sm },
     error: { color: colors.danger, fontWeight: "700" },
   });

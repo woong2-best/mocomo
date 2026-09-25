@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import {
   ActivityIndicator,
   InteractionManager,
@@ -21,23 +21,76 @@ import { saveFeedBootstrap } from "@/api/feed-bootstrap-cache";
 import { fetchWeeklyHighlights, type HighlightItem } from "@/api/highlights";
 import { searchAll, type SearchResult } from "@/api/social";
 import { prefetchPostComments } from "@/api/post-comments-query";
+import { useUserProfileNav, type UserProfileSeed } from "@/features/profile/user-profile-nav";
 import { useAuth } from "@/auth/AuthContext";
 import { InlineComposeBox } from "@/features/compose/InlineComposeBox";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
 import { FeedAdCard } from "@/features/feed/FeedAdCard";
-import { SideDrawer, type DrawerRoute } from "@/navigation/SideDrawer";
 import { warmDrawerBundles, warmTabBundles } from "@/navigation/tab-warmup";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { PerformanceBudgets } from "@/perf/budgets";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { resolveVideoPoster } from "@/lib/video-poster";
 import { prefetchImageUrls } from "@/perf/image";
 import { perfMeasure } from "@/perf/mark";
+import { MailboxIcon } from "@/ui/MailboxIcon";
 import { FolkButton } from "@/ui/FolkButton";
+import { useHasUnreadDms } from "@/features/messages/useHasUnreadDms";
 import { Screen } from "@/ui/Screen";
 import { SearchField } from "@/ui/SearchField";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
-import type { RootStackParamList, RootTabParamList } from "@/navigation/types";
+import type { DrawerRoute, RootStackParamList, RootTabParamList } from "@/navigation/types";
+
+type DrawerHostProps = {
+  visible: boolean;
+  onClose: () => void;
+  onNavigate: (route: DrawerRoute) => void;
+  onAddAccountLogin: (intent: "signin" | "signup") => void;
+};
+
+type MessagesDrawerHostProps = {
+  visible: boolean;
+  onClose: () => void;
+};
+
+function FeedMessagesDrawerHost(props: MessagesDrawerHostProps) {
+  const [Drawer, setDrawer] = useState<ComponentType<MessagesDrawerHostProps> | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void import("@/navigation/MessagesDrawer")
+      .then((mod) => {
+        if (alive) setDrawer(() => mod.MessagesDrawer);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!Drawer) return null;
+  return <Drawer {...props} />;
+}
+
+function FeedSideDrawerHost(props: DrawerHostProps) {
+  const [Drawer, setDrawer] = useState<ComponentType<DrawerHostProps> | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void import("@/navigation/SideDrawer")
+      .then((mod) => {
+        if (alive) setDrawer(() => mod.SideDrawer);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!Drawer) return null;
+  return <Drawer {...props} />;
+}
 
 function feedItemType(item: FeedPost): string {
   const media = item.media ?? [];
@@ -50,11 +103,16 @@ export function FeedScreen() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
+  const hasUnreadDms = useHasUnreadDms();
   const queryClient = useQueryClient();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const isFocused = useIsFocused();
   const [refreshing, setRefreshing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerReady, setDrawerReady] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const [messagesReady, setMessagesReady] = useState(false);
   const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
   const [visiblePostIds, setVisiblePostIds] = useState<string[]>([]);
   const [previewArmed, setPreviewArmed] = useState(false);
@@ -140,11 +198,7 @@ export function FeedScreen() {
       for (const m of post.media ?? []) {
         if (m.type === "IMAGE" && m.url) urls.push(m.url);
         if (m.type === "VIDEO") {
-          const poster =
-            m.posterUrl?.trim() ||
-            (m.streamUid?.trim() && /^[a-zA-Z0-9_-]{16,}$/.test(m.streamUid.trim())
-              ? `https://videodelivery.net/${m.streamUid.trim()}/thumbnails/thumbnail.jpg?time=0s&height=720`
-              : null);
+          const poster = resolveVideoPoster(m);
           if (poster) urls.push(poster);
         }
       }
@@ -162,11 +216,12 @@ export function FeedScreen() {
 
   const onDrawerNavigate = useCallback(
     (route: DrawerRoute) => {
-      if (
-        route === "Home" ||
-        route === "Messages" ||
-        route === "Used"
-      ) {
+      if (route === "Messages") {
+        setMessagesReady(true);
+        setMessagesOpen(true);
+        return;
+      }
+      if (route === "Home" || route === "Used") {
         navigation.navigate("Main", { screen: route as keyof RootTabParamList });
         return;
       }
@@ -221,8 +276,8 @@ export function FeedScreen() {
     [navigation]
   );
   const onPressAuthor = useCallback(
-    (username: string) => navigation.navigate("UserProfile", { username }),
-    [navigation]
+    (author: UserProfileSeed) => openUserProfile(author),
+    [openUserProfile]
   );
   const onPressVideo = useCallback(
     (postId: string, mediaId?: string, mediaIndex?: number) => {
@@ -246,6 +301,7 @@ export function FeedScreen() {
         return <FeedAdCard ad={item.data} />;
       }
       const post = item.data;
+      if (!post?.id || !post.author?.id) return null;
       return (
         <FeedPostCard
           post={post}
@@ -284,10 +340,13 @@ export function FeedScreen() {
 
   return (
     <Screen safeTop={false}>
-      {/* Header: menu · search · bell · profile */}
+      {/* Header: menu · search · bell · messages */}
       <View style={[styles.topBar, { paddingTop: insets.top + 6 }]}>
         <Pressable
-          onPress={() => setDrawerOpen(true)}
+          onPress={() => {
+            setDrawerReady(true);
+            setDrawerOpen(true);
+          }}
           hitSlop={10}
           style={styles.iconBtn}
           accessibilityRole="button"
@@ -333,18 +392,16 @@ export function FeedScreen() {
         </Pressable>
 
         <Pressable
-          onPress={() => navigation.navigate("Profile")}
-          hitSlop={6}
-          style={styles.profileHit}
+          onPress={() => {
+            setMessagesReady(true);
+            setMessagesOpen(true);
+          }}
+          hitSlop={8}
+          style={styles.iconBtn}
           accessibilityRole="button"
-          accessibilityLabel="내 프로필"
+          accessibilityLabel="메세지"
         >
-          <FolkAvatar
-            uri={user?.image}
-            name={user?.name || user?.username}
-            size={32}
-            framed={false}
-          />
+          <MailboxIcon unread={hasUnreadDms} size={30} />
         </Pressable>
       </View>
 
@@ -371,10 +428,11 @@ export function FeedScreen() {
                     searchRef.current?.blur();
                     navigation.navigate("PostDetail", { id });
                   }}
-                  onPressUser={(username) => {
+                  onPressInUser={(user) => prefetchUserProfile(user)}
+                  onPressUser={(user) => {
                     setSearchFocused(false);
                     searchRef.current?.blur();
-                    navigation.navigate("UserProfile", { username });
+                    openUserProfile(user);
                   }}
                   onPressAnime={(slug) => {
                     setSearchFocused(false);
@@ -456,11 +514,21 @@ export function FeedScreen() {
         />
       )}
 
-      <SideDrawer
+      {drawerReady || drawerOpen ? <FeedSideDrawerHost
         visible={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         onNavigate={onDrawerNavigate}
-      />
+        onAddAccountLogin={(intent) => {
+          navigation.navigate("Login", { addAccount: true, intent });
+        }}
+      /> : null}
+
+      {messagesReady || messagesOpen ? (
+        <FeedMessagesDrawerHost
+          visible={messagesOpen}
+          onClose={() => setMessagesOpen(false)}
+        />
+      ) : null}
     </Screen>
   );
 }
@@ -556,13 +624,15 @@ function SearchResultsPanel({
   data,
   colors,
   onPressPost,
+  onPressInUser,
   onPressUser,
   onPressAnime,
 }: {
   data: SearchResult;
   colors: ThemeColors;
   onPressPost: (id: string) => void;
-  onPressUser: (username: string) => void;
+  onPressInUser?: (user: UserProfileSeed) => void;
+  onPressUser: (user: UserProfileSeed) => void;
   onPressAnime: (slug: string) => void;
 }) {
   const total = data.users.length + data.posts.length + data.animes.length + data.liveStreams.length;
@@ -572,7 +642,12 @@ function SearchResultsPanel({
   return (
     <View style={{ padding: 8, gap: 4 }}>
       {data.users.map((u) => (
-        <Pressable key={`u-${u.id}`} onPress={() => onPressUser(u.username)} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 8, gap: 8 }}>
+        <Pressable
+          key={`u-${u.id}`}
+          onPressIn={() => onPressInUser?.(u)}
+          onPress={() => onPressUser(u)}
+          style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 8, gap: 8 }}
+        >
           <FolkAvatar uri={u.image} name={u.name || u.username} size={28} />
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{u.name || u.username}</Text>
@@ -614,10 +689,6 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
     iconBtn: {
       width: 36,
       height: 36,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    profileHit: {
       alignItems: "center",
       justifyContent: "center",
     },

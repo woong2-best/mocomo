@@ -5,6 +5,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -27,8 +28,10 @@ import {
   type PostCommentsResponse,
 } from "@/api/post-comments-query";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
+import { useUserProfileNav, type UserProfileSeed } from "@/features/profile/user-profile-nav";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { AppHeader } from "@/ui/AppHeader";
+import { FolkAvatar } from "@/ui/FolkAvatar";
 import { FolkButton } from "@/ui/FolkButton";
 import { TranslatableText } from "@/ui/TranslatableText";
 import { Screen } from "@/ui/Screen";
@@ -43,6 +46,7 @@ export function PostDetailScreen() {
   const keyboardInset = useKeyboardBottomInset();
   const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { open: openUserProfile } = useUserProfileNav();
   const route = useRoute<RouteProp<RootStackParamList, "PostDetail">>();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
@@ -156,9 +160,7 @@ export function PostDetailScreen() {
                     void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
                     void postQuery.refetch();
                   }}
-                  onPressAuthor={(username) =>
-                    navigation.navigate("UserProfile", { username })
-                  }
+                  onPressAuthor={(author: UserProfileSeed) => openUserProfile(author)}
                 />
                 <Text style={styles.section}>댓글</Text>
               </View>
@@ -173,15 +175,37 @@ export function PostDetailScreen() {
                 <Text style={styles.muted}>아직 댓글이 없습니다.</Text>
               )
             }
-            renderItem={({ item }) => (
-              <View style={styles.comment}>
-                <Text style={styles.commentAuthor}>
-                  {item.author.name || item.author.username}
-                  <Text style={styles.commentHandle}> @{item.author.username}</Text>
-                </Text>
-                <TranslatableText text={item.content} style={styles.commentBody} />
-              </View>
-            )}
+            renderItem={({ item }) => {
+              const authorSeed: UserProfileSeed = {
+                username: item.author.username,
+                name: item.author.name,
+                image: item.author.image,
+              };
+              const displayName = item.author.name || item.author.username;
+              return (
+                <View style={styles.comment}>
+                  <Pressable
+                    style={styles.commentHeader}
+                    onPress={() => openUserProfile(authorSeed)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${displayName} 프로필`}
+                  >
+                    <FolkAvatar
+                      uri={item.author.image}
+                      name={displayName}
+                      size={36}
+                    />
+                    <View style={styles.commentHeaderText}>
+                      <Text style={styles.commentAuthor} numberOfLines={1}>
+                        {displayName}
+                        <Text style={styles.commentHandle}> @{item.author.username}</Text>
+                      </Text>
+                    </View>
+                  </Pressable>
+                  <TranslatableText text={item.content} style={styles.commentBody} />
+                </View>
+              );
+            }}
           />
           <View
             style={[
@@ -230,7 +254,14 @@ function createThemedStyles(colors: ThemeColors) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.hairline,
     },
-    commentAuthor: { fontWeight: "800", color: colors.text, marginBottom: 4, fontSize: 14 },
+    commentHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 6,
+    },
+    commentHeaderText: { flex: 1, minWidth: 0 },
+    commentAuthor: { fontWeight: "800", color: colors.text, fontSize: 14 },
     commentHandle: { fontWeight: "500", color: colors.textMuted },
     commentBody: { color: colors.text, lineHeight: 20, fontSize: 15 },
     muted: {

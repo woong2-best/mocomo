@@ -16,7 +16,7 @@ import { LazyFeedVideoPreview } from "@/features/feed/LazyFeedVideoPreview";
 import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
-import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
+import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 
@@ -156,7 +156,7 @@ function FeedPostMediaCarouselInner({
       accessibilityLabel="사진 크게 보기"
     >
       <Image
-        source={{ uri: item.url, width: decode, height: decode }}
+        source={cachedImageSource(item.url, decode)}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         cachePolicy={IMAGE_CACHE_POLICY}
@@ -244,7 +244,7 @@ function FeedPostMediaCarouselInner({
             accessibilityLabel="사진 크게 보기"
           >
             <Image
-              source={{ uri: item.url, width: decode, height: decode }}
+              source={cachedImageSource(item.url, decode)}
               style={StyleSheet.absoluteFill}
               contentFit="cover"
               cachePolicy={IMAGE_CACHE_POLICY}

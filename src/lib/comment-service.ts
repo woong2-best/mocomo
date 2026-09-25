@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { isOperatorIdentity } from "@/lib/operator-config";
+import { publicQnaCommentAuthor } from "@/lib/anonymous-post";
 import type { PostCommentSort } from "@/lib/post-queries";
 
 export const MAX_PINNED_COMMENTS = 3;
@@ -69,14 +70,16 @@ function serializeAuthor(
     username: string;
     image: string | null;
     supportTierSent?: string | null;
-  }
+  },
+  opts?: { anonymous?: boolean; viewerId?: string | null }
 ): SerializedCommentAuthor {
+  const source = opts?.anonymous ? publicQnaCommentAuthor(author, opts.viewerId) : author;
   return {
-    id: author.id,
-    name: author.name,
-    username: author.username,
-    image: author.image,
-    supportTierSent: author.supportTierSent ?? null,
+    id: source.id,
+    name: source.name,
+    username: source.username,
+    image: opts?.anonymous ? null : source.image,
+    supportTierSent: opts?.anonymous ? null : (author.supportTierSent ?? null),
   };
 }
 
@@ -200,7 +203,8 @@ async function mapComments(
     }>;
   }>,
   postAuthorId: string,
-  viewerId: string | null
+  viewerId: string | null,
+  anonymous = false
 ): Promise<SerializedComment[]> {
   const replyIds = rows.flatMap((r) => (r.replies ?? []).map((x) => x.id));
   const allIds = [...rows.map((r) => r.id), ...replyIds];
@@ -223,7 +227,7 @@ async function mapComments(
     pinnedAt: c.pinnedAt ? c.pinnedAt.toISOString() : null,
     isEdited: isEdited(c.createdAt, c.updatedAt),
     replyCount: Math.max(c._count.replies, c.replies?.length ?? 0),
-    author: serializeAuthor(c.author),
+    author: serializeAuthor(c.author, { anonymous, viewerId }),
     replies: (c.replies ?? []).map((r) => ({
       id: r.id,
       content: r.content,
@@ -234,7 +238,7 @@ async function mapComments(
       likedByAuthor: likedByAuthor.has(r.id),
       isPostAuthor: r.authorId === postAuthorId,
       isEdited: isEdited(r.createdAt, r.updatedAt),
-      author: serializeAuthor(r.author),
+      author: serializeAuthor(r.author, { anonymous, viewerId }),
     })),
   }));
 }
@@ -247,6 +251,7 @@ export async function getPostCommentsPage(params: {
   cursor?: string | null;
   viewerId?: string | null;
   includePinned?: boolean;
+  anonymous?: boolean;
 }) {
   const limit = Math.min(
     50,
@@ -286,7 +291,12 @@ export async function getPostCommentsPage(params: {
         replies: replyInclude,
       },
     });
-    pinned = await mapComments(pinnedRows, params.postAuthorId, params.viewerId ?? null);
+    pinned = await mapComments(
+      pinnedRows,
+      params.postAuthorId,
+      params.viewerId ?? null,
+      params.anonymous
+    );
   }
 
   const pinnedIds = pinned.map((p) => p.id);
@@ -359,7 +369,8 @@ export async function getPostCommentsPage(params: {
   const page = await mapComments(
     pageRows,
     params.postAuthorId,
-    params.viewerId ?? null
+    params.viewerId ?? null,
+    params.anonymous
   );
 
   const last = pageRows[pageRows.length - 1];
@@ -393,6 +404,7 @@ export async function getCommentRepliesPage(params: {
   cursor?: string | null;
   limit?: number;
   viewerId?: string | null;
+  anonymous?: boolean;
 }) {
   const limit = Math.min(
     50,
@@ -451,7 +463,10 @@ export async function getCommentRepliesPage(params: {
     likedByAuthor: likedByAuthor.has(r.id),
     isPostAuthor: r.authorId === params.postAuthorId,
     isEdited: isEdited(r.createdAt, r.updatedAt),
-    author: serializeAuthor(r.author),
+    author: serializeAuthor(r.author, {
+      anonymous: params.anonymous,
+      viewerId: params.viewerId,
+    }),
   }));
 
   const last = pageRows[pageRows.length - 1];

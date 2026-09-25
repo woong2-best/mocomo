@@ -107,10 +107,12 @@ export function PostCard({ post, paymentsEnabled = false }: PostCardProps) {
           />
         )}
         <div className="flex items-center gap-6 text-muted-foreground text-sm">
+          {post.community ? null : (
           <span className="flex items-center gap-1 hover:text-neon-pink cursor-pointer">
             <Heart className="h-4 w-4" />
             {formatNumber(post._count?.likes ?? 0)}
           </span>
+          )}
           <span className="flex items-center gap-1 hover:text-neon-cyan cursor-pointer">
             <ReplyBubbleIcon className="h-4 w-4" />
             {formatNumber(post._count?.comments ?? 0)}

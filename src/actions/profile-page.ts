@@ -4,6 +4,7 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { Prisma, type MediaType } from "@prisma/client";
 import { db } from "@/lib/db";
+import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
 import { getAuthUserId } from "@/lib/auth";
 import { profileUserCacheTag } from "@/lib/cache-tags";
 import {
@@ -224,9 +225,27 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     hasPayoutAccount = !!payout?.stripeOnboardingCompleted;
   }
 
+  let shownUser = user;
+  if (!user.image) {
+    const row = await db.user.findUnique({
+      where: { id: user.id },
+      select: { passwordHash: true, email: true, name: true },
+    });
+    if (row && !row.passwordHash) {
+      const hydrated = await hydrateUserOAuthProfile({
+        id: user.id,
+        name: row.name,
+        image: null,
+        email: row.email,
+        passwordHash: null,
+      });
+      if (hydrated.image) shownUser = { ...user, image: hydrated.image };
+    }
+  }
+
   return {
-    user,
-    author: toProfileAuthor(user),
+    user: shownUser,
+    author: toProfileAuthor(shownUser),
     isSelf: viewerId === user.id,
     isFollowing,
     followsYou,

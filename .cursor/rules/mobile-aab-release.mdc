@@ -1,0 +1,31 @@
+---
+description: Mobile Android release — agent builds local AAB only; user uploads to Google Play
+alwaysApply: true
+---
+
+# Mobile AAB (Android App Bundle)
+
+- **Agent responsibility:** Produce the Play **AAB file** in the repo (see below). Run local Gradle build when the user asks for a new version.
+- **User responsibility:** Upload to **Google Play Console** — do not run `eas submit`, Play upload APIs, or store submission unless explicitly asked.
+
+## Build command (Windows, local)
+
+From `apps/mobile`, with `JAVA_HOME` pointing at Android Studio JBR:
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+npm run build:play:aab
+```
+
+## Output path
+
+Script `apps/mobile/scripts/copy-play-aab.cjs` copies the bundle to repo root:
+
+`MoCoMo-{version}-play.aab` (e.g. `C:\dev\mocomo\MoCoMo-1.0.143-play.aab`)
+
+Version comes from `apps/mobile/app.json` (`expo.version` + bump `android.versionCode` when shipping).
+
+## Do not
+
+- Skip the AAB build and only bump version numbers.
+- Assume EAS/cloud build unless local Gradle fails and user approves EAS.

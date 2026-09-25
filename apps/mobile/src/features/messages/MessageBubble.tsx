@@ -17,6 +17,11 @@ import {
 } from "@/lib/chat-letter-donation";
 import { CallBookingCard } from "@/features/messages/CallBookingCard";
 import { LetterDonationCard } from "@/features/messages/LetterDonationCard";
+import { UsedTradeRequestCard } from "@/features/messages/UsedTradeRequestCard";
+import {
+  parseUsedTradeRequestMarker,
+  stripUsedTradeRequestMarker,
+} from "@/lib/chat-used-trade-request";
 import { TranslatableText } from "@/ui/TranslatableText";
 import { LockedMessageMediaTile } from "@/components/media/LockedMessageMediaTile";
 import { ForensicPaidVideoEmbed } from "@/components/media/ForensicPaidVideoEmbed";
@@ -57,8 +62,8 @@ type Props = {
   peerImage?: string | null;
   onMessagesRefresh?: () => void;
   onReply?: (message: ChatMessage) => void;
-  /** Instagram-style fullscreen when tapping DM photos */
-  onOpenImage?: (payload: DmOpenImagePayload) => void;
+  /** Show @username above others' bubbles in group chats */
+  showSenderName?: boolean;
 };
 
 function isAttachmentLocked(a: { url: string; locked?: boolean; priceKrw?: number }) {
@@ -266,6 +271,7 @@ function MessageBubbleInner({
   onMessagesRefresh,
   onReply,
   onOpenImage,
+  showSenderName = false,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
@@ -275,16 +281,27 @@ function MessageBubbleInner({
   const share = parseChatPostShare(message.content);
   const bookingId = parseCallBookingMarker(message.content);
   const letterTipId = parseLetterDonationMarker(message.content);
+  const tradeRequestId = parseUsedTradeRequestMarker(message.content);
   const bookingCaption = bookingId ? stripCallBookingMarker(message.content) : null;
   const letterCaption = letterTipId ? stripLetterDonationMarker(message.content) : null;
-  const visibleText = share ? share.note : bookingId ? bookingCaption : letterTipId ? letterCaption : message.content;
+  const tradeCaption = tradeRequestId ? stripUsedTradeRequestMarker(message.content) : null;
+  const visibleText = share
+    ? share.note
+    : bookingId
+      ? bookingCaption
+      : letterTipId
+        ? letterCaption
+        : tradeRequestId
+          ? tradeCaption
+          : message.content;
   const mediaOnly =
     (images.length > 0 || videos.length > 0) &&
     !visibleText &&
     !message.replyTo &&
     !share &&
     !bookingId &&
-    !letterTipId;
+    !letterTipId &&
+    !tradeRequestId;
   const imageOnly = images.length > 0 && videos.length === 0 && mediaOnly;
   const hasTextBubble = !!(visibleText || message.replyTo) && !mediaOnly;
   const timeLabel = formatBubbleTime(message.createdAt);
@@ -331,6 +348,9 @@ function MessageBubbleInner({
 
   const content = (
     <View style={styles.stack}>
+      {showSenderName && !mine ? (
+        <Text style={styles.senderName}>@{message.sender.username}</Text>
+      ) : null}
       {hasTextBubble || ((images.length > 0 || videos.length > 0) && !mediaOnly) ? (
         <Pressable
           onLongPress={onReply ? () => onReply(message) : undefined}
@@ -446,6 +466,15 @@ function MessageBubbleInner({
         />
       ) : null}
 
+      {tradeRequestId && roomId && selfUserId ? (
+        <UsedTradeRequestCard
+          requestId={tradeRequestId}
+          selfUserId={selfUserId}
+          roomId={roomId}
+          onRefresh={onMessagesRefresh}
+        />
+      ) : null}
+
       {letterTipId ? (
         <LetterDonationCard tipId={letterTipId} interactive={!mine} />
       ) : null}
@@ -505,6 +534,13 @@ function createThemedStyles(colors: ThemeColors) {
     rowMine: { justifyContent: "flex-end" },
     rowOther: { justifyContent: "flex-start" },
     stack: { maxWidth: "72%", gap: 4 },
+    senderName: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.textMuted,
+      marginLeft: 4,
+      marginBottom: 2,
+    },
     replyBtn: {
       width: 28,
       height: 28,
@@ -523,15 +559,15 @@ function createThemedStyles(colors: ThemeColors) {
       borderBottomRightRadius: 5,
     },
     bubbleOther: {
-      backgroundColor: "#FFFFFF",
+      backgroundColor: colors.surfaceRaised,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
       borderBottomLeftRadius: 5,
     },
     text: { fontSize: 15, lineHeight: 21, color: colors.text },
-    textMine: { color: "#fff" },
-    link: { color: colors.cobalt, textDecorationLine: "underline" },
-    linkMine: { color: "#FFF3E8" },
+    textMine: { color: colors.textOnAccent },
+    link: { color: colors.brand, textDecorationLine: "underline" },
+    linkMine: { color: colors.textOnAccent },
     time: { fontSize: 11, color: colors.textMuted, marginTop: 2, marginBottom: 4 },
     timeMine: { alignSelf: "flex-end" },
     timeOther: { alignSelf: "flex-start" },

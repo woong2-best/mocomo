@@ -1,4 +1,4 @@
-import { assertUsedMarketCountryAllowed } from "@/lib/used-regions-global";
+import { assertUsedMarketCountryAllowed, isKoreaUsedMarketCountry } from "@/lib/used-regions-global";
 import {
   isUsedMarketEligible,
   usedMarketVerificationRequiredMsg,
@@ -37,6 +37,18 @@ export function assertUsedMarketAccess(user: UsedMarketUserSlice): string | null
   const regionErr = assertUsedMarketCountryAllowed(user.countryCode);
   if (regionErr) return regionErr;
   if (!isUsedMarketEligible(user)) {
+    return usedMarketVerificationRequiredMsg(user.countryCode, "ko");
+  }
+  return null;
+}
+
+/** 경매 등록 — Stripe 정산 계좌 없이 가능. 해외는 휴대폰 인증, 보증금은 별도. */
+export function assertAuctionPostAccess(user: UsedMarketUserSlice): string | null {
+  const banErr = assertUsedMarketNotBanned(user);
+  if (banErr) return banErr;
+  const regionErr = assertUsedMarketCountryAllowed(user.countryCode);
+  if (regionErr) return regionErr;
+  if (!isKoreaUsedMarketCountry(user.countryCode) && !user.phoneVerified) {
     return usedMarketVerificationRequiredMsg(user.countryCode, "ko");
   }
   return null;

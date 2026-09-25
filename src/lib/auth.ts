@@ -32,6 +32,10 @@ import {
   sanitizeMobileRedirectUri,
 } from "@/lib/mobile-oauth-shared";
 import { sealMobileOAuthNeedsSignup } from "@/lib/mobile-oauth-handoff";
+import {
+  sealWebOAuthPendingSignup,
+  setWebOAuthPendingSignupCookie,
+} from "@/lib/web-oauth-pending-signup";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import { applyAdminWebSessionLifetime } from "@/lib/admin/web-session-ttl";
 import { recordUserAccessLog } from "@/lib/user-access-log";
@@ -231,7 +235,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               const secure = process.env.NODE_ENV === "production";
               jar.set(MOBILE_SIGNUP_HANDOFF_COOKIE, handoff, {
                 path: "/",
-                maxAge: 300,
+                maxAge: 1800,
                 sameSite: "lax",
                 secure,
                 httpOnly: true,
@@ -264,7 +268,59 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           : await resolveUserByEmail(user.email);
 
         if (!existing) {
-          return oauthProviderEmailVerified();
+          if (!oauthProviderEmailVerified()) return false;
+          const provider = account?.provider as
+            | "discord"
+            | "twitter"
+            | "line"
+            | "naver"
+            | "google"
+            | undefined;
+          if (
+            !account?.providerAccountId ||
+            (provider !== "discord" &&
+              provider !== "twitter" &&
+              provider !== "line" &&
+              provider !== "naver" &&
+              provider !== "google")
+          ) {
+            return false;
+          }
+          const profile = {
+            email: user.email?.trim().toLowerCase() || null,
+            name: user.name ?? null,
+            image: user.image ?? null,
+          };
+          const mobile = await readMobileSignupRedirectOpts();
+          if (mobile) {
+            const handoff = sealMobileOAuthNeedsSignup({
+              provider,
+              sub: account.providerAccountId,
+              profile,
+            });
+            const { cookies: cookieStore } = await import("next/headers");
+            const jar = await cookieStore();
+            const secure = process.env.NODE_ENV === "production";
+            jar.set(MOBILE_SIGNUP_HANDOFF_COOKIE, handoff, {
+              path: "/",
+              maxAge: 1800,
+              sameSite: "lax",
+              secure,
+              httpOnly: true,
+            });
+            const platform = mobile.platform === "ios" ? "ios" : "android";
+            return authCallbackRedirect(
+              `/auth/mobile/oauth/pending-signup?platform=${platform}&from=mobile`
+            );
+          }
+          const handoff = sealWebOAuthPendingSignup({
+            provider,
+            sub: account.providerAccountId,
+            profile,
+          });
+          await setWebOAuthPendingSignupCookie(handoff);
+          const addQs = addingAccount ? "?addAccount=1" : "";
+          return authCallbackRedirect(`/auth/complete-oauth-signup${addQs}`);
         }
         if (existing.emailVerified && addingAccount) {
           const mobile = await readMobileSignupRedirectOpts();
@@ -326,7 +382,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
     async jwt({ token, user, trigger }) {
-      if (user?.id && credentialsUserHasJwtFields(user)) {
+        if (user?.id && credentialsUserHasJwtFields(user)) {
+        if ("image" in user) {
+          token.picture = (user as { image?: string | null }).image ?? null;
+        }
         hydrateTokenFromCredentialsUser(
           token,
           user as {
@@ -378,6 +437,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             username: true,
             role: true,
             email: true,
+            name: true,
+            image: true,
+            passwordHash: true,
             premiumTier: true,
             locale: true,
             countryCode: true,
@@ -399,6 +461,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.timeZone = dbUser.timeZone;
           token.supportTierSent = dbUser.supportTierSent;
           token.earnedMocoTier = dbUser.earnedMocoTier;
+          const displayed = await hydrateUserOAuthProfile({
+            id: userId,
+            name: dbUser.name,
+            image: dbUser.image,
+            email: dbUser.email,
+            passwordHash: dbUser.passwordHash,
+          });
+          token.picture = displayed.image ?? null;
           token.isBanned = isServiceBanned(dbUser);
           token.accountStatus = dbUser.accountStatus;
           token.isSuspendedReadOnly = isSuspendedReadOnly(dbUser);

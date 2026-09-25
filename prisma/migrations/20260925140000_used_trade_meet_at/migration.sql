@@ -1,0 +1,2 @@
+ALTER TABLE "UsedTradeRequest" ADD COLUMN IF NOT EXISTS "requestedById" TEXT;
+ALTER TABLE "UsedTradeRequest" ADD COLUMN IF NOT EXISTS "meetAt" TIMESTAMP(3);

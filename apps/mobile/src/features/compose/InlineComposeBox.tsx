@@ -46,6 +46,7 @@ import {
   type WatermarkOptions,
 } from "@/lib/media-watermark";
 import { prepareImageForUpload } from "@/lib/prepare-image-upload";
+import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { NsfwToggleButton } from "@/ui/NsfwToggleButton";
@@ -95,6 +96,7 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
   const queryClient = useQueryClient();
   const inputRef = useRef<TextInput>(null);
   const { user } = useAuth();
+  const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
 
   const [content, setContent] = useState("");
   const [media, setMedia] = useState<LocalMediaDraft[]>([]);
@@ -308,7 +310,31 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
         keyboardDismissMode="interactive"
       >
       <View style={styles.topRow}>
-        <FolkAvatar uri={avatarUrl} name={avatarLetter} size={40} framed={false} />
+        <Pressable
+          onPress={() => {
+            if (!user?.username) return;
+            openUserProfile({
+              username: user.username,
+              name: user.name,
+              image: user.image,
+            });
+          }}
+          onPressIn={() => {
+            if (!user?.username) return;
+            prefetchUserProfile({
+              username: user.username,
+              name: user.name,
+              image: user.image,
+            });
+          }}
+          disabled={!user?.username}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel="내 프로필"
+          style={({ pressed }) => [styles.avatarHit, pressed && styles.avatarHitPressed]}
+        >
+          <FolkAvatar uri={avatarUrl} name={avatarLetter} size={40} framed={false} />
+        </Pressable>
         <Pressable style={styles.inputHit} onPress={focusInput}>
           <TextInput
             ref={inputRef}
@@ -763,6 +789,8 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.background,
     },
     topRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+    avatarHit: { alignSelf: "flex-start" },
+    avatarHitPressed: { opacity: 0.82 },
     inputHit: { flex: 1, paddingTop: 8 },
     input: {
       minHeight: 44,

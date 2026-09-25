@@ -1,6 +1,6 @@
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getCommunityServerContext } from "@/lib/community-server/server-data";
-import { getDefaultChannelSlug } from "@/lib/community-server/path";
+import { PostsChannelView } from "@/components/community-server/channels/posts-channel";
 
 export default async function CommunityRootPage({
   params,
@@ -11,10 +11,5 @@ export default async function CommunityRootPage({
   const ctx = await getCommunityServerContext(slug);
   if (!ctx) notFound();
 
-  const defaultChannel =
-    ctx.channels.find((c) => c.isDefault)?.slug ??
-    ctx.channels.find((c) => c.type === "POSTS")?.slug ??
-    getDefaultChannelSlug();
-
-  redirect(`/c/${slug}/${defaultChannel}`);
+  return <PostsChannelView communitySlug={slug} communityId={ctx.communityId} />;
 }

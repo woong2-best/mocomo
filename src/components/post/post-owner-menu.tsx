@@ -44,6 +44,7 @@ type Props = {
   isOwner?: boolean;
   authorId?: string;
   authorUsername?: string;
+  anonymous?: boolean;
   size?: "sm" | "md";
   className?: string;
 };
@@ -54,6 +55,7 @@ export function PostOwnerMenu({
   isOwner = false,
   authorId,
   authorUsername,
+  anonymous = false,
   size = "sm",
   className,
 }: Props) {
@@ -73,8 +75,9 @@ export function PostOwnerMenu({
 
   const loggedIn = !!session?.data?.user;
   const canShowOtherMenu = !isOwner && loggedIn && !!authorId && !!authorUsername;
+  const canReportAnonymous = !isOwner && loggedIn && !authorId;
 
-  if (!isOwner && !canShowOtherMenu) return null;
+  if (!isOwner && !canShowOtherMenu && !canReportAnonymous) return null;
 
   const iconSize = size === "md" ? "h-5 w-5" : "h-4 w-4";
   const btnSize = size === "md" ? "h-9 w-9" : "h-8 w-8";
@@ -219,27 +222,44 @@ export function PostOwnerMenu({
                 <Trash2 className="h-4 w-4" />
                 {t("post.menu.delete")}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                disabled={busy !== null}
-                onSelect={(e) => {
-                  e.preventDefault();
-                  void togglePin();
-                }}
-              >
-                {pinned ? (
-                  <>
-                    <PinOff className="h-4 w-4" />
-                    {t("post.menu.unpinFromProfile")}
-                  </>
-                ) : (
-                  <>
-                    <Pin className="h-4 w-4" />
-                    {t("post.menu.pinToProfile")}
-                  </>
-                )}
-              </DropdownMenuItem>
+              {!anonymous ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    disabled={busy !== null}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      void togglePin();
+                    }}
+                  >
+                    {pinned ? (
+                      <>
+                        <PinOff className="h-4 w-4" />
+                        {t("post.menu.unpinFromProfile")}
+                      </>
+                    ) : (
+                      <>
+                        <Pin className="h-4 w-4" />
+                        {t("post.menu.pinToProfile")}
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                </>
+              ) : null}
             </>
+          )}
+
+          {canReportAnonymous && (
+            <DropdownMenuItem
+              disabled={busy !== null}
+              onSelect={(e) => {
+                e.preventDefault();
+                openReportOnly();
+              }}
+            >
+              <Flag className="h-4 w-4" />
+              신고
+            </DropdownMenuItem>
           )}
 
           {canShowOtherMenu && (
@@ -315,7 +335,7 @@ export function PostOwnerMenu({
         </p>
       )}
 
-      {authorId ? (
+      {canShowOtherMenu || canReportAnonymous ? (
         <>
           <ContentReportFlow
             open={reportOnlyOpen}
@@ -325,15 +345,17 @@ export function PostOwnerMenu({
             postId={postId}
             reportedUserId={authorId}
           />
-          <ContentReportFlow
-            open={blockReportOpen}
-            onOpenChange={setBlockReportOpen}
-            targetType="POST"
-            targetId={postId}
-            postId={postId}
-            reportedUserId={authorId}
-            onSubmitted={afterBlockReportSubmitted}
-          />
+          {canShowOtherMenu ? (
+            <ContentReportFlow
+              open={blockReportOpen}
+              onOpenChange={setBlockReportOpen}
+              targetType="POST"
+              targetId={postId}
+              postId={postId}
+              reportedUserId={authorId}
+              onSubmitted={afterBlockReportSubmitted}
+            />
+          ) : null}
         </>
       ) : null}
     </div>

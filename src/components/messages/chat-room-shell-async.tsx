@@ -2,7 +2,7 @@ import { getCachedAuthUserMinimal, getCachedSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
 import { getConversationMeta } from "@/lib/chat-display";
-import { userPublicSelectMinimal } from "@/lib/user-public-select";
+import { chatMemberUserSelect } from "@/lib/user-public-select";
 import { chatMessageInclude, serializeChatMessages } from "@/lib/chat-message-serialize";
 import {
   collectPaidAttachmentIds,
@@ -17,7 +17,7 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   const room = await db.chatRoom.findUnique({
     where: { id: roomId },
     include: {
-      members: { include: { user: { select: { ...userPublicSelectMinimal, name: true } } } },
+      members: { include: { user: { select: chatMemberUserSelect } } },
       messages: { take: 1, orderBy: { createdAt: "desc" }, select: { content: true, createdAt: true } },
     },
   });
@@ -63,6 +63,15 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
         supportTierSent: meta.supportTierSent,
         roomType: room.type,
         otherUserId: otherMember?.id,
+        otherTimeZone: otherMember?.timeZone,
+        memberCount: room.members.length,
+        members: room.members.map((m) => ({
+          id: m.user.id,
+          username: m.user.username,
+          name: m.user.name,
+          image: m.user.image,
+          timeZone: m.user.timeZone,
+        })),
       }}
       groupMeta={null}
     />

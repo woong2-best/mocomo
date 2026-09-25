@@ -1,7 +1,11 @@
 import { franc } from "franc";
 import type { Locale } from "@/i18n";
-import { TranslateLanguage } from "@react-native-ml-kit/translate-text";
-import { localeToMlKit, mlKitToLocale } from "@/lib/translate/mlkit-locale";
+import {
+  MlLang,
+  localeToMlKit,
+  mlKitToLocale,
+  type TranslateLanguage,
+} from "@/lib/translate/mlkit-locale";
 import { isTextWorthTranslating } from "@/lib/translate/text-filter";
 
 function stripNoise(text: string): string {
@@ -23,79 +27,79 @@ function detectHeuristicMl(text: string): TranslateLanguage | null {
   const letters = hangul + kana + han + latin;
   if (letters < 2) return null;
 
-  if (hangul / letters >= 0.25) return TranslateLanguage.KOREAN;
-  if (kana / letters >= 0.12) return TranslateLanguage.JAPANESE;
-  if (han / letters >= 0.25 && kana === 0 && hangul === 0) return TranslateLanguage.CHINESE;
-  if (latin / letters >= 0.45) return TranslateLanguage.ENGLISH;
+  if (hangul / letters >= 0.25) return MlLang.KOREAN;
+  if (kana / letters >= 0.12) return MlLang.JAPANESE;
+  if (han / letters >= 0.25 && kana === 0 && hangul === 0) return MlLang.CHINESE;
+  if (latin / letters >= 0.45) return MlLang.ENGLISH;
 
   return null;
 }
 
 const FRANC_TO_ML: Record<string, TranslateLanguage> = {
-  kor: TranslateLanguage.KOREAN,
-  eng: TranslateLanguage.ENGLISH,
-  jpn: TranslateLanguage.JAPANESE,
-  cmn: TranslateLanguage.CHINESE,
-  zho: TranslateLanguage.CHINESE,
-  fra: TranslateLanguage.FRENCH,
-  deu: TranslateLanguage.GERMAN,
-  spa: TranslateLanguage.SPANISH,
-  por: TranslateLanguage.PORTUGUESE,
-  ita: TranslateLanguage.ITALIAN,
-  nld: TranslateLanguage.DUTCH,
-  pol: TranslateLanguage.POLISH,
-  rus: TranslateLanguage.RUSSIAN,
-  ukr: TranslateLanguage.UKRAINIAN,
-  arb: TranslateLanguage.ARABIC,
-  ara: TranslateLanguage.ARABIC,
-  heb: TranslateLanguage.HEBREW,
-  tur: TranslateLanguage.TURKISH,
-  pes: TranslateLanguage.PERSIAN,
-  fas: TranslateLanguage.PERSIAN,
-  hin: TranslateLanguage.HINDI,
-  ben: TranslateLanguage.BENGALI,
-  tam: TranslateLanguage.TAMIL,
-  tel: TranslateLanguage.TELUGU,
-  mar: TranslateLanguage.MARATHI,
-  urd: TranslateLanguage.URDU,
-  tha: TranslateLanguage.THAI,
-  vie: TranslateLanguage.VIETNAMESE,
-  ind: TranslateLanguage.INDONESIAN,
-  msa: TranslateLanguage.MALAY,
-  zsm: TranslateLanguage.MALAY,
-  tgl: TranslateLanguage.TAGALOG,
-  fil: TranslateLanguage.TAGALOG,
-  swh: TranslateLanguage.SWAHILI,
-  swe: TranslateLanguage.SWEDISH,
-  nob: TranslateLanguage.NORWEGIAN,
-  nor: TranslateLanguage.NORWEGIAN,
-  dan: TranslateLanguage.DANISH,
-  fin: TranslateLanguage.FINNISH,
-  ces: TranslateLanguage.CZECH,
-  slk: TranslateLanguage.SLOVAK,
-  hun: TranslateLanguage.HUNGARIAN,
-  ron: TranslateLanguage.ROMANIAN,
-  bul: TranslateLanguage.BULGARIAN,
-  hrv: TranslateLanguage.CROATIAN,
-  slv: TranslateLanguage.SLOVENIAN,
-  lit: TranslateLanguage.LITHUANIAN,
-  lvs: TranslateLanguage.LATVIAN,
-  lav: TranslateLanguage.LATVIAN,
-  est: TranslateLanguage.ESTONIAN,
-  ell: TranslateLanguage.GREEK,
-  cat: TranslateLanguage.CATALAN,
-  glg: TranslateLanguage.GALICIAN,
-  isl: TranslateLanguage.ICELANDIC,
-  gle: TranslateLanguage.IRISH,
-  cym: TranslateLanguage.WELSH,
-  afr: TranslateLanguage.AFRIKAANS,
-  bel: TranslateLanguage.BELARUSIAN,
-  kat: TranslateLanguage.GEORGIAN,
-  mlt: TranslateLanguage.MALTESE,
-  epo: TranslateLanguage.ESPERANTO,
-  mkd: TranslateLanguage.MACEDONIAN,
-  als: TranslateLanguage.ALBANIAN,
-  sqi: TranslateLanguage.ALBANIAN,
+  kor: MlLang.KOREAN,
+  eng: MlLang.ENGLISH,
+  jpn: MlLang.JAPANESE,
+  cmn: MlLang.CHINESE,
+  zho: MlLang.CHINESE,
+  fra: MlLang.FRENCH,
+  deu: MlLang.GERMAN,
+  spa: MlLang.SPANISH,
+  por: MlLang.PORTUGUESE,
+  ita: MlLang.ITALIAN,
+  nld: MlLang.DUTCH,
+  pol: MlLang.POLISH,
+  rus: MlLang.RUSSIAN,
+  ukr: MlLang.UKRAINIAN,
+  arb: MlLang.ARABIC,
+  ara: MlLang.ARABIC,
+  heb: MlLang.HEBREW,
+  tur: MlLang.TURKISH,
+  pes: MlLang.PERSIAN,
+  fas: MlLang.PERSIAN,
+  hin: MlLang.HINDI,
+  ben: MlLang.BENGALI,
+  tam: MlLang.TAMIL,
+  tel: MlLang.TELUGU,
+  mar: MlLang.MARATHI,
+  urd: MlLang.URDU,
+  tha: MlLang.THAI,
+  vie: MlLang.VIETNAMESE,
+  ind: MlLang.INDONESIAN,
+  msa: MlLang.MALAY,
+  zsm: MlLang.MALAY,
+  tgl: MlLang.TAGALOG,
+  fil: MlLang.TAGALOG,
+  swh: MlLang.SWAHILI,
+  swe: MlLang.SWEDISH,
+  nob: MlLang.NORWEGIAN,
+  nor: MlLang.NORWEGIAN,
+  dan: MlLang.DANISH,
+  fin: MlLang.FINNISH,
+  ces: MlLang.CZECH,
+  slk: MlLang.SLOVAK,
+  hun: MlLang.HUNGARIAN,
+  ron: MlLang.ROMANIAN,
+  bul: MlLang.BULGARIAN,
+  hrv: MlLang.CROATIAN,
+  slv: MlLang.SLOVENIAN,
+  lit: MlLang.LITHUANIAN,
+  lvs: MlLang.LATVIAN,
+  lav: MlLang.LATVIAN,
+  est: MlLang.ESTONIAN,
+  ell: MlLang.GREEK,
+  cat: MlLang.CATALAN,
+  glg: MlLang.GALICIAN,
+  isl: MlLang.ICELANDIC,
+  gle: MlLang.IRISH,
+  cym: MlLang.WELSH,
+  afr: MlLang.AFRIKAANS,
+  bel: MlLang.BELARUSIAN,
+  kat: MlLang.GEORGIAN,
+  mlt: MlLang.MALTESE,
+  epo: MlLang.ESPERANTO,
+  mkd: MlLang.MACEDONIAN,
+  als: MlLang.ALBANIAN,
+  sqi: MlLang.ALBANIAN,
 };
 
 export function detectSourceMlKit(text: string): TranslateLanguage | null {
@@ -115,7 +119,7 @@ export function detectSourceMlKit(text: string): TranslateLanguage | null {
   const latin = (sample.match(/[A-Za-z]/g) || []).length;
   const letters = sample.replace(/[^\p{L}]/gu, "").length;
   if (letters >= 2 && latin / letters >= 0.5) {
-    return TranslateLanguage.ENGLISH;
+    return MlLang.ENGLISH;
   }
 
   return null;

@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
-import { Image } from "expo-image";
-import { IMAGE_CACHE_POLICY, avatarDecodeSize } from "@/perf/image";
+import { Image, type ImageProps } from "expo-image";
+import { IMAGE_CACHE_POLICY, avatarImageSource } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 
 /** Squircle radius ≈ 28% of edge — never a circle (50%). */
@@ -15,17 +16,29 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   /** Soft pale cobalt frame around the squircle */
   framed?: boolean;
+  priority?: ImageProps["priority"];
 };
 
 /**
  * Folk profile chip — terracotta fallback + pale cobalt ring, squircle only.
  */
-export function FolkAvatar({ uri, name, size = 40, style, framed = true }: Props) {
+export function FolkAvatar({
+  uri,
+  name,
+  size = 40,
+  style,
+  framed = true,
+  priority = "normal",
+}: Props) {
   const { colors, isDark } = useTheme();
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => {
+    setImageFailed(false);
+  }, [uri]);
   const r = avatarSquircleRadius(size);
   const letter = (name || "?").trim().slice(0, 1).toUpperCase() || "?";
   const ring = isDark ? "rgba(107, 163, 232, 0.45)" : "rgba(168, 180, 200, 0.95)";
-  const decode = avatarDecodeSize(size);
+  const showPhoto = Boolean(uri?.trim()) && !imageFailed;
 
   const inner = (
     <View
@@ -42,14 +55,16 @@ export function FolkAvatar({ uri, name, size = 40, style, framed = true }: Props
         !framed && style,
       ]}
     >
-      {uri ? (
+      {showPhoto ? (
         <Image
-          source={{ uri, width: decode, height: decode }}
+          source={avatarImageSource(uri!.trim())}
           style={StyleSheet.absoluteFill}
           contentFit="cover"
           cachePolicy={IMAGE_CACHE_POLICY}
-          recyclingKey={uri}
+          recyclingKey={uri!.trim()}
+          priority={priority}
           transition={0}
+          onError={() => setImageFailed(true)}
         />
       ) : (
         <Text

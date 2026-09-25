@@ -54,6 +54,7 @@ export function FeedPhotoPostCard({
   const captionPreview =
     captionLong && !captionExpanded ? `${caption.slice(0, CAPTION_PREVIEW_LEN).trim()}…` : caption;
   const { liked, likeCount } = like;
+  const qna = Boolean(post.community?.slug);
   const { starred } = star;
   const displayError = actionError || like.error || star.error;
 
@@ -147,6 +148,7 @@ export function FeedPhotoPostCard({
       <div className="px-3 pt-2.5 pb-1" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {qna ? null : (
             <button
               type="button"
               onClick={handleLike}
@@ -165,6 +167,7 @@ export function FeedPhotoPostCard({
                 </span>
               )}
             </button>
+            )}
             <Link
               href={`/post/${post.id}#comments`}
               className="flex items-center gap-1.5 min-h-9 hover:opacity-70"
@@ -176,6 +179,7 @@ export function FeedPhotoPostCard({
                 </span>
               )}
             </Link>
+            {qna ? null : (
             <PostRepostMenu
               postId={post.id}
               authorUsername={username}
@@ -189,6 +193,7 @@ export function FeedPhotoPostCard({
               onActionError={setActionError}
               formatCount={formatCompactNumberKo}
             />
+            )}
             <PostShareMenu
               postId={post.id}
               authorUsername={username}

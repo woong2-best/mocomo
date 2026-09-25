@@ -9,7 +9,10 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { removeFollowingDmUser } from "@/api/following-dm-cache";
+import { submitUsedListingReport } from "@/api/marketplace";
 import { blockAndReportUser, submitPostReport } from "@/api/social";
 import {
   formatReportPathLabel,
@@ -32,6 +35,8 @@ type Props = {
   authorUsername?: string;
   /** report = report only; block-report = report + block user */
   mode?: "report" | "block-report";
+  reportTarget?: "post" | "used_listing";
+  listingId?: string;
   onSubmitted?: () => void;
 };
 
@@ -42,10 +47,13 @@ export function PostReportSheet({
   authorId,
   authorUsername,
   mode = "report",
+  reportTarget = "post",
+  listingId,
   onSubmitted,
 }: Props) {
   const styles = useMemo(() => createStyles(), []);
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const [phase, setPhase] = useState<Phase>("browse");
   const [stack, setStack] = useState<ReportTaxonomyNode[][]>([]);
   const [path, setPath] = useState<ReportPathStep[]>([]);
@@ -132,6 +140,14 @@ export function PostReportSheet({
           reason: leaf.node.reasonId,
           reasonPath,
         });
+        void removeFollowingDmUser(queryClient, authorId);
+      } else if (reportTarget === "used_listing" && listingId) {
+        await submitUsedListingReport({
+          listingId,
+          reportedUserId: authorId,
+          reason: leaf.node.reasonId,
+          reasonPath,
+        });
       } else {
         await submitPostReport({
           postId,
@@ -147,7 +163,18 @@ export function PostReportSheet({
     } finally {
       setBusy(false);
     }
-  }, [authorId, authorUsername, busy, mode, onSubmitted, path, postId]);
+  }, [
+    authorId,
+    authorUsername,
+    busy,
+    listingId,
+    mode,
+    onSubmitted,
+    path,
+    postId,
+    queryClient,
+    reportTarget,
+  ]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>

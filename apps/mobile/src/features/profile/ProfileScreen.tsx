@@ -19,7 +19,14 @@ export function ProfileScreen() {
     );
   }
 
-  return <SharedProfileScreen username={user.username} showBack />;
+  return (
+    <SharedProfileScreen
+      username={user.username}
+      showBack
+      self
+      preview={{ username: user.username, name: user.name, image: user.image }}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

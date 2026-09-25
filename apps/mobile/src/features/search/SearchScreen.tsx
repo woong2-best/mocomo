@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { searchAll } from "@/api/social";
+import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
 import { SearchField } from "@/ui/SearchField";
@@ -23,6 +24,7 @@ export function SearchScreen() {
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const [q, setQ] = useState("");
   const [submitted, setSubmitted] = useState("");
 
@@ -39,15 +41,18 @@ export function SearchScreen() {
       kind: string;
       title: string;
       subtitle?: string;
+      onPressIn?: () => void;
       onPress: () => void;
     }[] = [];
     for (const u of query.data.users) {
+      const seed = { username: u.username, name: u.name, image: u.image };
       rows.push({
         key: `u-${u.id}`,
         kind: "사람",
         title: u.name || u.username,
         subtitle: `@${u.username}`,
-        onPress: () => navigation.navigate("UserProfile", { username: u.username }),
+        onPressIn: () => prefetchUserProfile(seed),
+        onPress: () => openUserProfile(seed),
       });
     }
     for (const p of query.data.posts) {
@@ -77,7 +82,7 @@ export function SearchScreen() {
       });
     }
     return rows;
-  }, [navigation, query.data]);
+  }, [navigation, openUserProfile, prefetchUserProfile, query.data]);
 
   return (
     <Screen>
@@ -108,7 +113,7 @@ export function SearchScreen() {
           contentContainerStyle={{ padding: spacing.md, paddingBottom: 40, gap: 8 }}
           ListEmptyComponent={<Text style={styles.hint}>결과가 없습니다.</Text>}
           renderItem={({ item }) => (
-            <Pressable style={styles.row} onPress={item.onPress}>
+            <Pressable style={styles.row} onPressIn={item.onPressIn} onPress={item.onPress}>
               <Text style={styles.kind}>{item.kind}</Text>
               <Text style={styles.title} numberOfLines={2}>
                 {item.title}

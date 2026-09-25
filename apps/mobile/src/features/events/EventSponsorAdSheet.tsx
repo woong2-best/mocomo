@@ -79,7 +79,7 @@ export function EventSponsorAdSheet({ visible, eventId, onClose, onSuccess }: Pr
               </Text>
               <Text style={styles.balance}>구매 MOCO 잔액: {balance.toLocaleString()}</Text>
               {canAfford === false ? (
-                <Text style={styles.error}>잔액이 부족합니다. 지갑에서 MOCO를 충전해 주세요.</Text>
+                <Text style={styles.error}>잔액이 부족합니다. mocomo.net 웹에서 MOCO를 충전해 주세요.</Text>
               ) : null}
             </>
           )}

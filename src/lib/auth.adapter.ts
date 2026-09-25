@@ -1,13 +1,6 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Adapter, AdapterAccount, AdapterUser } from "next-auth/adapters";
 import { db } from "@/lib/db";
-import {
-  FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
-  validateUsernameAndName,
-} from "@/lib/forbidden-admin-sequence";
-import { generateUniqueUsername } from "@/lib/oauth-username";
-import { ACCOUNT_SUSPENDED_SIGNUP_MESSAGE } from "@/lib/account-status";
-import { findRestrictedIdentityUser } from "@/lib/ban-evasion";
 import { isOAuthEncryptionConfigured } from "@/lib/encryption";
 import {
   findOAuthAccountBySub,
@@ -46,7 +39,7 @@ export function createPrismaAuthAdapter(): Adapter {
 
   return {
     ...base,
-    createUser: async (data) => {
+    createUser: async () => {
       let oauthFlow = await readOAuthFlowCookie();
       if (oauthFlow !== "signup") {
         const { cookies } = await import("next/headers");
@@ -59,38 +52,9 @@ export function createPrismaAuthAdapter(): Adapter {
         throw new Error("OAUTH_SIGNUP_REQUIRED");
       }
 
-      const restricted = await findRestrictedIdentityUser({ email: data.email });
-      if (restricted) {
-        throw new Error(ACCOUNT_SUSPENDED_SIGNUP_MESSAGE);
-      }
-
-      const seed = data.email ?? data.name ?? "user";
-      const username = await generateUniqueUsername(seed);
-      const displayName = data.name?.trim() || username;
-
-      const nameCheck = validateUsernameAndName(username, displayName);
-      if (!nameCheck.ok) {
-        throw new Error(FORBIDDEN_ADMIN_SEQUENCE_MESSAGE);
-      }
-
-      // Auth.js passes emailVerified: null for OAuth. The signIn callback already
-      // required provider-side verification, and leaving it null locks the account
-      // out of later OAuth sign-ins.
-      const emailVerified = data.emailVerified ?? (data.email ? new Date() : null);
-
-      const user = await db.user.create({
-        data: {
-          email: data.email,
-          emailVerified,
-          name: displayName,
-          image: data.image,
-          username,
-          profile: { create: {} },
-          otakuProfile: { create: {} },
-        },
-      });
-
-      return toAdapterUser(user);
+      // Accounts are created only after birth date + terms on
+      // /auth/complete-oauth-signup or mobile complete-signup APIs.
+      throw new Error("OAUTH_SIGNUP_INCOMPLETE");
     },
 
     getUserByEmail: async (email) => {

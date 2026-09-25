@@ -10,6 +10,8 @@ import { prefetchTabForRoute } from "@/navigation/tab-warmup";
 import type { RootTabParamList } from "@/navigation/types";
 import { useTheme } from "@/theme/ThemeContext";
 import { useI18n } from "@/i18n/I18nProvider";
+import { MailboxIcon } from "@/ui/MailboxIcon";
+import { useHasUnreadDms } from "@/features/messages/useHasUnreadDms";
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -21,7 +23,7 @@ const TAB_LABEL_KEYS: Record<keyof RootTabParamList, string> = {
 
 const TAB_ICONS: Record<keyof RootTabParamList, { active: IconName; inactive: IconName }> = {
   Home: { active: "home", inactive: "home-outline" },
-  Used: { active: "storefront", inactive: "storefront-outline" },
+  Used: { active: "cart", inactive: "cart-outline" },
   Messages: { active: "paper-plane", inactive: "paper-plane-outline" },
 };
 
@@ -31,6 +33,7 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
   const queryClient = useQueryClient();
   const { colors } = useTheme();
   const { t } = useI18n();
+  const hasUnreadDms = useHasUnreadDms();
   const bottom = Math.max(insets.bottom, 8) + FLOATING_TAB.bottomGap;
 
   const pillInner = (
@@ -81,11 +84,15 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
               }}
               style={styles.item}
             >
-              <Ionicons
+              {tabName === "Messages" ? (
+                <MailboxIcon unread={hasUnreadDms} size={30} />
+              ) : (
+                <Ionicons
                   name={focused ? icons.active : icons.inactive}
-                size={23}
-                color={focused ? colors.tabIconActive : colors.tabIcon}
-              />
+                  size={23}
+                  color={focused ? colors.tabIconActive : colors.tabIcon}
+                />
+              )}
               <Text
                 style={[
                   styles.label,

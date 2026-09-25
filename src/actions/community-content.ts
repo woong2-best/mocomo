@@ -27,6 +27,7 @@ export async function createCommunityChannelPost(
   data: {
     content?: string;
     media?: { url: string; type: MediaType; name?: string }[];
+    isAnonymous?: boolean;
   }
 ) {
   try {
@@ -45,6 +46,7 @@ export async function createCommunityChannelPost(
       content,
       media: media.map((m) => ({ url: m.url.trim(), type: m.type })),
       visibility: "PUBLIC",
+      isAnonymous: Boolean(data.isAnonymous),
     });
     if (result.error) return { error: result.error };
     if (!result.postId) return { error: "게시에 실패했습니다." };

@@ -140,6 +140,23 @@ export function guessCountryFromTimeZone(timeZone: string): string | null {
   return TIMEZONE_COUNTRY_HINTS[normalizeTimeZone(timeZone)] ?? null;
 }
 
+/** Live clock in an IANA zone (peer header / device TZ readout). */
+export function formatLocalClock(
+  timeZone: string,
+  now: Date = new Date(),
+  locale?: string
+): string {
+  try {
+    return new Intl.DateTimeFormat(locale || undefined, {
+      timeZone: normalizeTimeZone(timeZone),
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(now);
+  } catch {
+    return "";
+  }
+}
+
 export type CivilDateParts = { y: number; m: number; d: number };
 
 /** “Today” in an IANA zone (not device local, not country-derived). */

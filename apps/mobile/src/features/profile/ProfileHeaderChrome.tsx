@@ -11,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import type { ProfileUser } from "@/api/social";
 import { openDm } from "@/api/messages";
+import { AVATAR_CACHE_LAYOUT } from "@/perf/image";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
 import { useTheme } from "@/theme/ThemeContext";
@@ -50,6 +51,11 @@ type Props = {
   followLoading?: boolean;
   following?: boolean;
   onOpenChat?: (roomId: string) => void;
+  onOpenFollowList?: (tab: "followers" | "following") => void;
+  /** Header identity is known; bio, counts, follow, and banner are still loading. */
+  pending?: boolean;
+  /** Extend banner under the status bar (overlay nav sits on top). */
+  bannerTopInset?: number;
 };
 
 export function ProfileHeaderChrome({
@@ -63,9 +69,12 @@ export function ProfileHeaderChrome({
   followLoading,
   following,
   onOpenChat,
+  onOpenFollowList,
+  pending = false,
+  bannerTopInset = 0,
 }: Props) {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, bannerTopInset), [colors, bannerTopInset]);
   const display = user.name || user.username;
   const joined = formatJoined(user.createdAt);
   const visibleTabs = TABS.filter((t) => !t.selfOnly || user.isSelf);
@@ -87,46 +96,62 @@ export function ProfileHeaderChrome({
   return (
     <View style={styles.root}>
       <View style={styles.banner}>
-        <ProfileBannerMedia
-          bannerUrl={user.bannerUrl}
-          bannerVideoUrl={user.bannerVideoUrl}
-          active
-        />
+        {pending ? null : (
+          <ProfileBannerMedia
+            bannerUrl={user.bannerUrl}
+            bannerVideoUrl={user.bannerVideoUrl}
+            active
+          />
+        )}
       </View>
 
       <View style={styles.avatarRow}>
-        <FolkAvatar uri={user.image} name={display} size={88} />
+        <FolkAvatar
+          uri={user.image}
+          name={display}
+          size={AVATAR_CACHE_LAYOUT}
+          priority="high"
+        />
         {!user.isSelf ? (
           <View style={styles.actionRow}>
-            <Pressable
-              style={[styles.outlineBtn, following ? null : styles.followPrimary]}
-              onPress={onFollow}
-              disabled={followLoading}
-            >
-              <Text
-                style={[
-                  styles.outlineBtnText,
-                  following ? null : styles.followPrimaryText,
-                ]}
-              >
-                {following ? "팔로잉" : "팔로우"}
-              </Text>
-            </Pressable>
-            {onOpenChat ? (
-              <Pressable
-                style={styles.chatBtn}
-                onPress={() => void startChat()}
-                disabled={chatBusy}
-                accessibilityRole="button"
-                accessibilityLabel="채팅"
-              >
-                {chatBusy ? (
-                  <ActivityIndicator size="small" color={colors.brand} />
-                ) : (
-                  <Ionicons name="chatbubble-outline" size={18} color={colors.brand} />
-                )}
-              </Pressable>
-            ) : null}
+            {pending ? (
+              <>
+                <View style={styles.followSkeleton} />
+                <View style={styles.chatSkeleton} />
+              </>
+            ) : (
+              <>
+                <Pressable
+                  style={[styles.outlineBtn, following ? null : styles.followPrimary]}
+                  onPress={onFollow}
+                  disabled={followLoading}
+                >
+                  <Text
+                    style={[
+                      styles.outlineBtnText,
+                      following ? null : styles.followPrimaryText,
+                    ]}
+                  >
+                    {following ? "팔로잉" : "팔로우"}
+                  </Text>
+                </Pressable>
+                {onOpenChat ? (
+                  <Pressable
+                    style={styles.chatBtn}
+                    onPress={() => void startChat()}
+                    disabled={chatBusy}
+                    accessibilityRole="button"
+                    accessibilityLabel="채팅"
+                  >
+                    {chatBusy ? (
+                      <ActivityIndicator size="small" color={colors.brand} />
+                    ) : (
+                      <Ionicons name="chatbubble-outline" size={18} color={colors.brand} />
+                    )}
+                  </Pressable>
+                ) : null}
+              </>
+            )}
           </View>
         ) : null}
       </View>
@@ -141,8 +166,17 @@ export function ProfileHeaderChrome({
           ) : null}
         </View>
         <Text style={styles.handle}>@{user.username}</Text>
-        {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
-        {joined ? (
+        {pending ? (
+          <>
+            <View style={styles.boneWide} />
+            <View style={styles.boneMid} />
+          </>
+        ) : user.bio ? (
+          <Text style={styles.bio}>{user.bio}</Text>
+        ) : null}
+        {pending ? (
+          <View style={styles.boneJoined} />
+        ) : joined ? (
           <View style={styles.joinedRow}>
             <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
             <Text style={styles.joined}>{joined}</Text>
@@ -152,12 +186,37 @@ export function ProfileHeaderChrome({
 
       <View style={styles.countsRow}>
         <View style={styles.counts}>
-          <Text style={styles.count}>
-            <Text style={styles.countNum}>{user.counts.following}</Text> 팔로잉
-          </Text>
-          <Text style={styles.count}>
-            <Text style={styles.countNum}>{user.counts.followers}</Text> 팔로워
-          </Text>
+          {pending ? (
+            <>
+              <View style={styles.boneCount} />
+              <View style={styles.boneCount} />
+            </>
+          ) : (
+            <>
+              <Pressable
+                onPress={() => onOpenFollowList?.("following")}
+                disabled={!onOpenFollowList}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel={`팔로잉 ${user.counts.following}명`}
+              >
+                <Text style={styles.count}>
+                  <Text style={styles.countNum}>{user.counts.following}</Text> 팔로잉
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => onOpenFollowList?.("followers")}
+                disabled={!onOpenFollowList}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel={`팔로워 ${user.counts.followers}명`}
+              >
+                <Text style={styles.count}>
+                  <Text style={styles.countNum}>{user.counts.followers}</Text> 팔로워
+                </Text>
+              </Pressable>
+            </>
+          )}
         </View>
         <View style={styles.feedActions}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -210,7 +269,7 @@ function countryFlagEmoji(code: string): string {
   return String.fromCodePoint(A + (cc.charCodeAt(0) - 65), A + (cc.charCodeAt(1) - 65));
 }
 
-function createStyles(colors: ThemeColors) {
+function createStyles(colors: ThemeColors, bannerTopInset: number) {
   return StyleSheet.create({
     root: {
       backgroundColor: colors.background,
@@ -218,7 +277,7 @@ function createStyles(colors: ThemeColors) {
       borderBottomColor: colors.hairline,
     },
     banner: {
-      height: 128,
+      height: 128 + bannerTopInset,
       width: "100%",
       backgroundColor: colors.muted,
       overflow: "hidden",
@@ -336,6 +395,45 @@ function createStyles(colors: ThemeColors) {
     },
     tabUnderlineOn: {
       backgroundColor: colors.terracotta,
+    },
+    followSkeleton: {
+      width: 88,
+      height: 36,
+      borderRadius: radii.pill,
+      backgroundColor: colors.muted,
+    },
+    chatSkeleton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.muted,
+    },
+    boneWide: {
+      height: 14,
+      width: "86%",
+      borderRadius: 6,
+      backgroundColor: colors.muted,
+      marginTop: 8,
+    },
+    boneMid: {
+      height: 14,
+      width: "58%",
+      borderRadius: 6,
+      backgroundColor: colors.muted,
+      marginTop: 6,
+    },
+    boneJoined: {
+      height: 12,
+      width: 128,
+      borderRadius: 6,
+      backgroundColor: colors.muted,
+      marginTop: 8,
+    },
+    boneCount: {
+      height: 14,
+      width: 76,
+      borderRadius: 6,
+      backgroundColor: colors.muted,
     },
   });
 }

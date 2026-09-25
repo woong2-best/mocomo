@@ -3,6 +3,7 @@ import type { GridPost } from "@/components/feed/feed-post-card";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
+import { redactAnonymousPostAuthors } from "@/lib/anonymous-post";
 
 const STAR_HUB_TAKE = 200;
 
@@ -42,6 +43,7 @@ export async function getStarHubForUser(
   });
 
   const allPosts = bookmarks.map((b) => b.post) as GridPost[];
+  const identifiablePosts = allPosts.filter((p) => !p.isAnonymous);
 
   const followingRows = await db.follow.findMany({
     where: { followerId: userId },
@@ -50,7 +52,7 @@ export async function getStarHubForUser(
   const followingIds = new Set(followingRows.map((f) => f.followingId));
 
   const creatorMap = new Map<string, StarHubCreator>();
-  for (const post of allPosts) {
+  for (const post of identifiablePosts) {
     const author = post.author;
     if (!author?.id || !followingIds.has(author.id)) continue;
     const prev = creatorMap.get(author.id);
@@ -75,7 +77,11 @@ export async function getStarHubForUser(
 
   const gated = await attachWebPaidMediaPlayback(posts, userId);
 
-  return { posts: gated, creators, total: allPosts.length };
+  return {
+    posts: redactAnonymousPostAuthors(gated, userId),
+    creators,
+    total: allPosts.length,
+  };
 }
 
 /** @deprecated Use getStarHubForUser — kept for callers that only need posts. */

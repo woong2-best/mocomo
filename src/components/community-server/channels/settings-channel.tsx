@@ -3,12 +3,10 @@ import { CommunitySettingsForm } from "@/components/communities/community-settin
 import { CommunityRolesPanel } from "@/components/community-server/channels/settings-roles-panel";
 import { CommunityJoinModeSettings } from "@/components/community-server/channels/settings-join-mode";
 import { CommunityJoinRequestsPanel } from "@/components/community-server/channels/settings-join-requests";
-import { CommunityChannelsPanel } from "@/components/community-server/channels/settings-channels-panel";
 import { CommunityBansPanel } from "@/components/community-server/channels/settings-bans-panel";
 import { CommunityBrandingSettings } from "@/components/community-server/channels/settings-branding";
 import { CommunityReportsPanel } from "@/components/community-server/channels/settings-reports-panel";
 import { CommunityStatsAuditPanel } from "@/components/community-server/channels/settings-stats-panel";
-import { CommunityCategoriesPanel } from "@/components/community-server/channels/settings-categories-panel";
 import { SettingsLazySection } from "@/components/community-server/channels/settings-lazy-section";
 import { hasPermission } from "@/lib/community-server/permissions";
 import type { CommunityPermissions } from "@/lib/community-server/types";
@@ -58,8 +56,6 @@ export async function SettingsChannelView({
   const canJoinMode = isOwner || hasPermission(permissions, "setJoinMode");
   const canJoinRequests =
     hasPermission(permissions, "manageJoinRequests") || hasPermission(permissions, "approveMembers");
-  const canChannels =
-    hasPermission(permissions, "manageChannels") || hasPermission(permissions, "createChannel");
   const canRoles = hasPermission(permissions, "manageRoles");
   const canBans = hasPermission(permissions, "banMembers");
   const canReports = hasPermission(permissions, "handleReports");
@@ -70,14 +66,13 @@ export async function SettingsChannelView({
     hasPermission(permissions, "editBanner") ||
     hasPermission(permissions, "setVisibility") ||
     hasPermission(permissions, "deleteServer");
-  const canCategories = hasPermission(permissions, "editCategory") || canChannels;
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <header className="shrink-0 px-4 py-3 border-b border-border/50">
-        <h1 className="font-semibold">서버 설정</h1>
+    <div className="flex flex-col">
+      <header className="px-1 pb-3">
+        <h1 className="font-semibold">갤러리 관리</h1>
       </header>
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-8 max-w-2xl">
+      <div className="space-y-8 max-w-2xl">
         {canEditServer && (
           <CommunitySettingsForm
             communityId={community.id}
@@ -116,16 +111,6 @@ export async function SettingsChannelView({
         {canJoinRequests && community.joinMode === "APPROVE" && (
           <SettingsLazySection title="가입 요청">
             <CommunityJoinRequestsPanel communityId={communityId} />
-          </SettingsLazySection>
-        )}
-        {canCategories && (
-          <SettingsLazySection title="카테고리">
-            <CommunityCategoriesPanel communityId={communityId} />
-          </SettingsLazySection>
-        )}
-        {canChannels && (
-          <SettingsLazySection title="채널 관리">
-            <CommunityChannelsPanel communityId={communityId} communitySlug={communitySlug} />
           </SettingsLazySection>
         )}
         {canBans && (

@@ -7,6 +7,7 @@ import {
 } from "@/lib/community-mobile-mutate";
 import { normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { db } from "@/lib/db";
+import { redactAnonymousPostAuthor } from "@/lib/anonymous-post";
 
 export async function GET(
   req: NextRequest,
@@ -64,7 +65,7 @@ export async function GET(
 
   const posts = await db.post.findMany({
     where: { communityId: community.id },
-    take: 20,
+    take: 80,
     orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
     select: {
       id: true,
@@ -73,7 +74,9 @@ export async function GET(
       isPinned: true,
       createdAt: true,
       isNsfw: true,
-      author: { select: { id: true, username: true, image: true } },
+      viewCount: true,
+      isAnonymous: true,
+      author: { select: { id: true, username: true, name: true, image: true } },
       _count: { select: { likes: true, comments: true } },
     },
   });
@@ -100,17 +103,25 @@ export async function GET(
       isOwner: branding.isOwner,
       canEditIcon: branding.canEditIcon,
       canEditBanner: branding.canEditBanner,
-      posts: posts.map((p) => ({
-        id: p.id,
-        title: p.title,
-        content: p.content.slice(0, 280),
-        isPinned: p.isPinned,
-        createdAt: p.createdAt.toISOString(),
-        isNsfw: p.isNsfw,
-        author: p.author,
-        likeCount: p._count.likes,
-        commentCount: p._count.comments,
-      })),
+      posts: posts.map((p) => {
+        const publicPost = redactAnonymousPostAuthor(
+          { ...p, authorId: p.author.id, isAnonymous: true },
+          viewerId
+        );
+        return {
+          id: publicPost.id,
+          title: publicPost.title,
+          content: publicPost.content.slice(0, 280),
+          isPinned: publicPost.isPinned,
+          viewCount: publicPost.viewCount,
+          createdAt: publicPost.createdAt.toISOString(),
+          isNsfw: publicPost.isNsfw,
+          isAnonymous: publicPost.isAnonymous,
+          author: publicPost.author,
+          likeCount: p._count.likes,
+          commentCount: p._count.comments,
+        };
+      }),
     },
   });
 }

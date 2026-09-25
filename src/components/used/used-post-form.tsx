@@ -36,7 +36,7 @@ import type { UsedRestrictedKind } from "@prisma/client";
 import { UsedRegionSelect } from "@/components/used/used-region-select";
 import { UsedMeetMapPicker } from "@/components/used/used-meet-map-picker";
 import type { MeetCoords } from "@/lib/used-market";
-import { formatUsedRegion, getSigunguList, KOREA_SIDO, parseUsedRegion } from "@/lib/korea-regions";
+import { parseUsedRegion } from "@/lib/korea-regions";
 import { UsedAiDraftButton } from "@/components/used/used-ai-draft-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +68,7 @@ export function UsedPostForm({
 }) {
   const router = useRouter();
   const sellerCountry = sellerCountryCode.toUpperCase();
+  const [listingCountry, setListingCountry] = useState(sellerCountry);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -162,7 +163,7 @@ export function UsedPostForm({
       meetPlace: meetPlace.trim() || undefined,
       meetLat: meetCoords?.lat,
       meetLng: meetCoords?.lng,
-      meetCountry: sellerCountryCode,
+      meetCountry: listingCountry,
       images,
       workTitle: workTitle.trim() || undefined,
       animeSlug: animeSlug ?? undefined,
@@ -508,16 +509,20 @@ export function UsedPostForm({
 
       <UsedRegionSelect
         value={region}
+        countryCode={listingCountry}
+        onCountryChange={(code) => {
+          setListingCountry(code);
+          setMeetCoords(null);
+        }}
         onChange={(r) => {
           setRegion(r);
           setMeetCoords(null);
         }}
-        countryCode={sellerCountryCode}
       />
 
       <UsedMeetMapPicker
         region={region}
-        country={sellerCountryCode}
+        country={listingCountry}
         meetPlace={meetPlace}
         onMeetPlaceChange={setMeetPlace}
         coords={meetCoords}

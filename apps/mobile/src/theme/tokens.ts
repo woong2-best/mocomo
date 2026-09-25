@@ -88,9 +88,12 @@ export const lightColors: ThemeColors = {
   statusBarStyle: "dark",
 };
 
+/** Explore drawer — 라이브 · 마켓 · Ad (saturated violet; not pale lavender). */
+export const FOLK_EXPLORE_ACCENT = "#8B5CF6";
+
 /**
  * Dark — deep navy folk (web .dark hsl(224 45% 12%) …).
- * Cobalt brand brightened for logo/links; terracotta slightly lifted.
+ * Cobalt brand brightened for logo/links; terracotta matches web folk orange.
  */
 export const darkColors: ThemeColors = {
   background: "#111B2E",
@@ -101,7 +104,7 @@ export const darkColors: ThemeColors = {
 
   cobalt: "#1B4A8C",
   brand: "#6BA3E8",
-  terracotta: "#CF6640",
+  terracotta: "#C5522A",
   gold: "#C9A03A",
   forest: "#3D7A4E",
 
@@ -116,18 +119,18 @@ export const darkColors: ThemeColors = {
 
   danger: "#E06B4F",
   success: "#4A9B5C",
-  like: "#CF6640",
-  accent: "#CF6640",
-  fab: "#CF6640",
+  like: "#C5522A",
+  accent: "#C5522A",
+  fab: "#C5522A",
 
-  tabActiveGlow: "rgba(207, 102, 64, 0.28)",
+  tabActiveGlow: "rgba(197, 82, 42, 0.28)",
   tabGlass: "rgba(24, 36, 58, 0.72)",
   tabGlassTint: "rgba(17, 27, 46, 0.45)",
   tabGlassBorder: "rgba(255,255,255,0.12)",
   tabIcon: "#A89F8E",
-  tabIconActive: "#CF6640",
+  tabIconActive: "#C5522A",
   tabLabel: "#A89F8E",
-  tabLabelActive: "#CF6640",
+  tabLabelActive: "#C5522A",
 
   blurTint: "dark",
   statusBarStyle: "light",

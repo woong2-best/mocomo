@@ -18,6 +18,8 @@ export {
 } from "@/lib/mobile-oauth-shared";
 
 const HANDOFF_TTL_MS = 5 * 60 * 1000;
+/** Terms + birth + avatar take longer than a token bounce. */
+const SIGNUP_HANDOFF_TTL_MS = 30 * 60 * 1000;
 const DEFAULT_MOBILE_REDIRECT = MOBILE_OAUTH_REDIRECT;
 
 function handoffSecret(): string {
@@ -110,7 +112,7 @@ export function sealMobileOAuthNeedsSignup(
   const full: MobileOAuthSignupHandoff = {
     kind: "needsSignup",
     ...payload,
-    exp: Date.now() + HANDOFF_TTL_MS,
+    exp: Date.now() + SIGNUP_HANDOFF_TTL_MS,
   };
   return sealRaw(full);
 }

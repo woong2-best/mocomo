@@ -64,7 +64,7 @@ export function ChatVoiceMessage({ url, mine }: { url: string; mine: boolean }) 
         <Ionicons
           name={status.playing ? "pause" : "play"}
           size={18}
-          color={mine ? "#fff" : colors.cobalt}
+          color={mine ? colors.textOnAccent : colors.brand}
           style={!status.playing ? { marginLeft: 2 } : undefined}
         />
       </Pressable>
@@ -119,14 +119,14 @@ function createStyles(colors: ThemeColors, mine: boolean) {
       gap: 2,
     },
     bar: { width: 3, borderRadius: 2 },
-    barFilled: { backgroundColor: mine ? "#fff" : colors.cobalt },
+    barFilled: { backgroundColor: mine ? colors.textOnAccent : colors.brand },
     barEmpty: {
       backgroundColor: mine ? "rgba(255,255,255,0.35)" : "rgba(27,74,140,0.25)",
     },
     time: {
       fontSize: 11,
       fontVariant: ["tabular-nums"],
-      color: mine ? "rgba(255,255,255,0.85)" : colors.textMuted,
+      color: mine ? "rgba(255,255,255,0.9)" : colors.text,
       fontWeight: "600",
     },
   });

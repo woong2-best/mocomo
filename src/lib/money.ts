@@ -31,12 +31,20 @@ export function formatMoney(cents: number, opts?: { freeLabel?: string }): strin
   return formatUsd(cents);
 }
 
-/** Display price in the listing/order currency. krw = whole won, usd = cents. */
+/** Display price in the listing/order currency. krw/jpy = whole units, usd = cents. */
 export function formatPrice(amount: number, currency?: string | null): string {
   const c = (currency ?? SITE_CURRENCY).toLowerCase();
   if (c === "usd") return formatUsd(amount);
   if (c === "krw") return formatKrw(amount);
-  return `${amount.toLocaleString()} ${c.toUpperCase()}`;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: c.toUpperCase(),
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${amount.toLocaleString()} ${c.toUpperCase()}`;
+  }
 }
 
 export function checkoutCurrency(): typeof SITE_CURRENCY {

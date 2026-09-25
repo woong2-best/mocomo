@@ -46,6 +46,10 @@ export type MarketplaceDetail = Omit<MarketplaceListItem, "thumbnailUrl"> & {
   auctionLive: boolean;
   minNextBid: number | null;
   isOwner: boolean;
+  winningBidderId?: string | null;
+  isWinningBidder?: boolean;
+  sellerTradeConfirmed?: boolean;
+  buyerTradeConfirmed?: boolean;
   isNsfw?: boolean;
   sellerId?: string;
   meetPlace?: string | null;
@@ -78,7 +82,9 @@ export type MarketplaceListQuery = {
   condition?: string;
   limited?: string;
   trade?: string;
-  mode?: "auction" | "all";
+  mode?: "auction" | "fixed";
+  lane?: "all" | "recommend" | "purchased" | "favorites" | "live-auctions" | "disputes";
+  ids?: string[];
   mine?: boolean;
   take?: number;
 };
@@ -97,7 +103,9 @@ export async function fetchMarketplaceList(query: MarketplaceListQuery | string 
     if (query.condition) params.set("condition", query.condition);
     if (query.limited) params.set("limited", query.limited);
     if (query.trade) params.set("trade", query.trade);
-    if (query.mode === "auction") params.set("mode", "auction");
+    if (query.mode === "auction" || query.mode === "fixed") params.set("mode", query.mode);
+    if (query.lane) params.set("lane", query.lane);
+    if (query.ids?.length) params.set("ids", query.ids.slice(0, 24).join(","));
     if (query.mine) params.set("mine", "1");
     if (query.take) params.set("take", String(query.take));
   }
@@ -124,7 +132,8 @@ export async function createMarketplaceListing(body: {
   description: string;
   price: number;
   currency?: string;
-  category: string;
+  category?: string;
+  categories?: string[];
   region: string;
   meetPlace?: string;
   meetLat?: number;
@@ -166,6 +175,15 @@ export async function fetchStarMarketMine() {
   }>(MobileApi.starMarketMine, { auth: true });
 }
 
+export async function confirmAuctionTrade(listingId: string) {
+  return apiRequest<{
+    success: true;
+    completed: boolean;
+    sellerConfirmed: boolean;
+    buyerConfirmed: boolean;
+  }>(MobileApi.marketplaceTradeComplete(listingId), { method: "POST" });
+}
+
 export async function fetchMarketplaceDetail(id: string) {
   return apiRequest<{ item: MarketplaceDetail }>(`${MobileApi.marketplace}/${id}`, {
     auth: true,
@@ -182,6 +200,107 @@ export async function startMarketplaceTradeChat(id: string) {
   return apiRequest<{ roomId: string }>(`${MobileApi.marketplace}/${id}/trade-chat`, {
     method: "POST",
     body: {},
+  });
+}
+
+export async function deleteMarketplaceListing(id: string) {
+  return apiRequest<{ success: true }>(`${MobileApi.marketplace}/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function bumpMarketplaceListing(id: string) {
+  return apiRequest<{ success: true; bumpedAt: string }>(MobileApi.marketplaceBump(id), {
+    method: "POST",
+    body: {},
+  });
+}
+
+export async function updateMarketplaceListing(
+  id: string,
+  body: Parameters<typeof createMarketplaceListing>[0]
+) {
+  return apiRequest<{ success: true; listingId: string }>(`${MobileApi.marketplace}/${id}`, {
+    method: "PATCH",
+    body,
+  });
+}
+
+export async function requestUsedTrade(listingId: string, roomId: string, meetAt: string) {
+  return apiRequest<{ requestId: string; status: string }>(
+    MobileApi.marketplaceTradeRequest(listingId),
+    { method: "POST", body: { roomId, meetAt } }
+  );
+}
+
+export type UsedMeetPin = {
+  id: string;
+  listingId: string;
+  lat: number;
+  lng: number;
+  title: string;
+  place: string;
+  price: string;
+  image: string | null;
+  meetAt: string | null;
+  confirmed: boolean;
+};
+
+export async function fetchUsedMeetPins() {
+  return apiRequest<{ pins: UsedMeetPin[] }>(MobileApi.marketplaceMeetPins);
+}
+
+export type UsedTradeRequestDetail = {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  listingStatus: string;
+  roomId: string;
+  buyerId: string;
+  sellerId: string;
+  buyerUsername: string;
+  sellerUsername: string;
+  requestedById?: string | null;
+  meetAt?: string | null;
+  canRespond?: boolean;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  createdAt: string;
+  respondedAt: string | null;
+};
+
+export async function fetchUsedTradeRequest(requestId: string) {
+  return apiRequest<{ request: UsedTradeRequestDetail }>(
+    MobileApi.marketplaceTradeRequestDetail(requestId)
+  );
+}
+
+export async function respondUsedTradeRequest(
+  requestId: string,
+  action: "approve" | "reject"
+) {
+  return apiRequest<{ status: string; listingStatus?: string }>(
+    MobileApi.marketplaceTradeRequestRespond(requestId),
+    { method: "POST", body: { action } }
+  );
+}
+
+export async function submitUsedListingReport(params: {
+  listingId: string;
+  reportedUserId: string;
+  reason: import("@/lib/report-taxonomy").ReportReasonId;
+  reasonPath?: string;
+  details?: string;
+}) {
+  return apiRequest<{ ok: boolean; message: string }>(MobileApi.reports, {
+    method: "POST",
+    body: {
+      targetType: "USED_LISTING",
+      targetId: params.listingId,
+      reportedUserId: params.reportedUserId,
+      reason: params.reason,
+      reasonPath: params.reasonPath,
+      details: params.details,
+    },
   });
 }
 

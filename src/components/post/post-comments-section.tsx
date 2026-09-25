@@ -4,7 +4,13 @@ import { getServerTranslator } from "@/lib/i18n/server";
 import { CommentForm } from "@/components/post/comment-form";
 import { PostCommentsList } from "@/components/post/post-comments-list";
 
-export async function PostCommentsSection({ postId }: { postId: string }) {
+export async function PostCommentsSection({
+  postId,
+  showIdHandle = false,
+}: {
+  postId: string;
+  showIdHandle?: boolean;
+}) {
   const [session, { t }] = await Promise.all([auth(), getServerTranslator()]);
 
   let comments: Awaited<ReturnType<typeof getPostComments>> = [];
@@ -30,6 +36,7 @@ export async function PostCommentsSection({ postId }: { postId: string }) {
           postId={postId}
           initialComments={comments}
           emptyLabel={t("post.noComments")}
+          showIdHandle={showIdHandle}
         />
       )}
     </section>

@@ -40,10 +40,11 @@ Web cookie JWT **unchanged**.
 | POST/DELETE | `/api/mobile/push/register` | Bearer |
 | GET | `/api/mobile/notifications` | Bearer |
 
-| GET | `/api/mobile/messages` | Bearer — DM inbox (rooms with ≥1 message) |
+| GET | `/api/mobile/messages` | Bearer — DM/group inbox (rooms with ≥1 message) |
 | POST | `/api/mobile/messages/dm` | Bearer — `{ userId }` open/create |
 | GET | `/api/mobile/messages/:roomId` | Bearer — room + messages (`?before=`) |
 | POST | `/api/mobile/messages/:roomId` | Bearer — send text/attachments |
+| POST | `/api/mobile/messages/:roomId/members` | Bearer — `{ username }` add by ID; converts DM → GROUP |
 | GET | `/api/mobile/messages/:roomId/sync` | Bearer — fetch after cursor |
 | GET | `/api/mobile/messages/:roomId/wait` | Bearer — long-poll (~9s) |
 | GET | `/api/mobile/follow/following` | Bearer — following list for DM compose (`?q=`) |
@@ -76,7 +77,8 @@ Web cookie JWT **unchanged**.
 | GET | `/api/mobile/events/:id` | Optional Bearer — detail + `joined` |
 | POST | `/api/mobile/events/:id/join` | Bearer — upsert participant |
 
-Messages (`/api/mobile/messages/:roomId*`) accept **DM and FANDOM** (community member).
+Messages (`/api/mobile/messages/:roomId*`) accept **DM, GROUP, and FANDOM** (community member).
+Add a person from a 1:1 by posting `{ username }` — the same room keeps history and becomes `GROUP`.
 
 **Native modules:** LiveKit RN viewer (dev-client/EAS), `react-native-maps` for event pins. No in-app PSP checkout (trade = DM).
 

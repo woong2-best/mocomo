@@ -9,6 +9,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { parseLinkifyParts } from "@/lib/linkify";
+import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { openUserLink } from "@/lib/open-user-link";
 import { useTheme } from "@/theme/ThemeContext";
 import type { RootStackParamList } from "@/navigation/types";
@@ -37,6 +38,7 @@ export function LinkifiedText({
   onTextLayout,
 }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const { colors } = useTheme();
   const parts = useMemo(() => parseLinkifyParts(text), [text]);
 
@@ -80,7 +82,8 @@ export function LinkifiedText({
           <Text
             key={`m-${i}`}
             style={[{ color: mentionColor, fontWeight: "700" }, mentionStyle]}
-            onPress={() => navigation.navigate("UserProfile", { username: part.username })}
+              onPressIn={() => prefetchUserProfile({ username: part.username })}
+              onPress={() => openUserProfile({ username: part.username })}
           >
             {part.label}
           </Text>

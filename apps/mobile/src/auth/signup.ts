@@ -3,6 +3,7 @@ import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
 import { setTokens } from "@/auth/token-store";
 import type { MobileAuthUser } from "@/auth/types";
+import { detectDeviceTimeZone } from "@/lib/device-timezone";
 
 const platform = Platform.OS === "ios" ? "ios" : "android";
 
@@ -32,7 +33,7 @@ export async function registerAccount(payload: SignupPayload) {
     {
       method: "POST",
       auth: false,
-      body: { ...payload, platform, countryCode: payload.countryCode ?? "KR", locale: payload.locale ?? "ko", timeZone: payload.timeZone ?? "Asia/Seoul" },
+      body: { ...payload, platform, countryCode: payload.countryCode ?? "KR", locale: payload.locale ?? "ko", timeZone: payload.timeZone ?? detectDeviceTimeZone() },
     }
   );
 }

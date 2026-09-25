@@ -49,6 +49,13 @@ export type FeedPost = {
   reposted?: boolean;
   viewCount?: number;
   anime?: { title: string; slug: string } | null;
+  community?: {
+    slug: string;
+    name: string;
+    category?: string;
+    customCategoryLabel?: string | null;
+  } | null;
+  isAnonymous?: boolean;
 };
 
 export type FeedAd = {

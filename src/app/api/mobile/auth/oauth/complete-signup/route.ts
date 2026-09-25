@@ -12,6 +12,11 @@ const bodySchema = z.object({
   handoff: z.string().min(20).max(8000),
   deviceId: z.string().max(128).optional(),
   platform: z.enum(["android", "ios"]).optional(),
+  birthYear: z.coerce.number().int().min(1900).max(new Date().getFullYear()),
+  birthMonth: z.coerce.number().int().min(1).max(12),
+  birthDay: z.coerce.number().int().min(1).max(31),
+  termsAccepted: z.literal(true),
+  privacyAccepted: z.literal(true),
 });
 
 /** In-app terms accepted → create account from sealed Discord/X/Naver/LINE handoff. */
@@ -38,6 +43,11 @@ export async function POST(req: NextRequest) {
       handoff: parsed.data.handoff,
       platform: parsed.data.platform,
       deviceId: parsed.data.deviceId,
+      birthYear: parsed.data.birthYear,
+      birthMonth: parsed.data.birthMonth,
+      birthDay: parsed.data.birthDay,
+      termsAccepted: parsed.data.termsAccepted,
+      privacyAccepted: parsed.data.privacyAccepted,
     });
 
     void recordUserAccessLog({

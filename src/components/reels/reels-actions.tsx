@@ -64,7 +64,11 @@ export function ReelsActions({
   function requireLogin() {
     if (status === "loading") return false;
     if (session?.user) return true;
-    router.push(`/auth/signin?callbackUrl=${encodeURIComponent(`/reels?v=${reel.postId}`)}`);
+    router.push(
+      `/auth/signin?callbackUrl=${encodeURIComponent(
+        reel.qna ? `/post/${reel.postId}` : `/reels?v=${reel.postId}`
+      )}`
+    );
     return false;
   }
 
@@ -76,6 +80,7 @@ export function ReelsActions({
       )}
       onClick={(e) => e.stopPropagation()}
     >
+      {reel.qna ? null : (
       <button
         type="button"
         className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
@@ -98,6 +103,7 @@ export function ReelsActions({
           {formatNumber(likeCount)}
         </span>
       </button>
+      )}
 
       {onComment ? (
         <button

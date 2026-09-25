@@ -217,9 +217,6 @@ export async function activateUsedAuctionStripeOrder(
     return { error: fulfilled.error };
   }
 
-  const { refundWinnerDepositOnPaymentComplete } = await import("@/lib/auction-deposit");
-  await refundWinnerDepositOnPaymentComplete(listingId, winnerId);
-
   return { ok: true, orderId: order.id, stripe: true };
 }
 

@@ -1,10 +1,8 @@
 import { useMemo, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { cancelSubscription, fetchMySubscriptions } from "@/api/subscriptions";
-import type { RootStackParamList } from "@/navigation/types";
+import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -13,7 +11,7 @@ import { formatUsd } from "@/lib/money";
 export function MySubscriptionsPanel() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const queryClient = useQueryClient();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
@@ -75,7 +73,10 @@ export function MySubscriptionsPanel() {
         return (
           <View key={s.id} style={[styles.row, { borderColor: colors.hairline }]}>
             <Pressable
-              onPress={() => navigation.navigate("UserProfile", { username: s.creatorUsername })}
+              onPressIn={() =>
+                prefetchUserProfile({ username: s.creatorUsername, name: s.creatorName })
+              }
+              onPress={() => openUserProfile({ username: s.creatorUsername, name: s.creatorName })}
               style={styles.meta}
             >
               <Text style={[styles.username, { color: colors.text }]}>@{s.creatorUsername}</Text>

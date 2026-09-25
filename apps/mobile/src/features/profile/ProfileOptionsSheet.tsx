@@ -12,7 +12,9 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { removeFollowingDmUser } from "@/api/following-dm-cache";
 import {
   blockAndReportUser,
   toggleMuteUser,
@@ -51,6 +53,7 @@ export function ProfileOptionsSheet({
   onBlocked,
 }: Props) {
   const { colors } = useTheme();
+  const queryClient = useQueryClient();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [muted, setMuted] = useState(false);
@@ -113,6 +116,7 @@ export function ProfileOptionsSheet({
                   reason: "OTHER",
                   details: "프로필에서 차단",
                 });
+                void removeFollowingDmUser(queryClient, userId);
                 closeAll();
                 onBlocked?.();
                 Alert.alert("완료", `@${username} 님을 차단했습니다.`);
@@ -129,7 +133,7 @@ export function ProfileOptionsSheet({
         },
       ]
     );
-  }, [busy, closeAll, onBlocked, userId, username]);
+  }, [busy, closeAll, onBlocked, queryClient, userId, username]);
 
   const onSubmitReport = useCallback(async () => {
     if (busy) return;
@@ -142,6 +146,7 @@ export function ProfileOptionsSheet({
         reason: reportReason,
         details: reportDetails.trim() || undefined,
       });
+      void removeFollowingDmUser(queryClient, userId);
       setReportOpen(false);
       closeAll();
       onBlocked?.();
@@ -155,6 +160,7 @@ export function ProfileOptionsSheet({
     busy,
     closeAll,
     onBlocked,
+    queryClient,
     reportDetails,
     reportReason,
     userId,

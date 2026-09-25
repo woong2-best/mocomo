@@ -12,7 +12,7 @@ import {
 } from "@/lib/report-reasons";
 
 const bodySchema = z.object({
-  targetType: z.enum(["POST", "USER", "COMMENT", "MESSAGE"]),
+  targetType: z.enum(["POST", "USER", "COMMENT", "MESSAGE", "USED_LISTING"]),
   targetId: z.string().min(1).max(64),
   reason: z.enum(REPORT_REASON_IDS),
   reasonPath: z.string().max(500).optional(),
@@ -91,9 +91,27 @@ export async function POST(req: NextRequest) {
 
   let moderationCaseId: string | undefined;
   let reportedUserId = data.reportedUserId;
+  if (!reportedUserId || reportedUserId === "anonymous") {
+    const postId = data.postId || (targetType === "POST" ? data.targetId : undefined);
+    if (postId) {
+      const row = await db.post.findUnique({
+        where: { id: postId },
+        select: { authorId: true },
+      });
+      reportedUserId = row?.authorId;
+    }
+  }
 
   if (!reportedUserId && targetType === "USER") {
     reportedUserId = data.targetId;
+  }
+
+  if (!reportedUserId && targetType === "USED_LISTING") {
+    const row = await db.usedListing.findUnique({
+      where: { id: data.targetId },
+      select: { sellerId: true },
+    });
+    reportedUserId = row?.sellerId;
   }
 
   if (reportedUserId && reportedUserId !== auth.user.id) {

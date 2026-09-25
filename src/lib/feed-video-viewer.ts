@@ -85,6 +85,7 @@ export function postVideoToReelItem(
     commentCount: post._count?.comments ?? 0,
     liked,
     starred,
+    qna: Boolean(post.community?.slug),
   };
 }
 
