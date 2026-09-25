@@ -34,7 +34,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
     setError("");
 
     if (!category) {
-      setError("커뮤니티가 속할 카테고리를 선택해 주세요.");
+      setError("QnA가 속할 카테고리를 선택해 주세요.");
       return;
     }
 
@@ -68,7 +68,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
         return;
       }
 
-      setError("커뮤니티가 생성되었지만 이동에 실패했습니다. 커뮤니티 목록에서 확인해 주세요.");
+      setError("QnA가 생성되었지만 이동에 실패했습니다. QnA 목록에서 확인해 주세요.");
     } catch (e) {
       const msg =
         e instanceof Error && e.message.trim()
@@ -87,14 +87,14 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
       >
         <ChevronLeft className="h-4 w-4" />
-        커뮤니티 목록
+        QnA
       </Link>
 
       <Card className="rounded-md border-[#d5d5d5] shadow-sm">
         <CardHeader className="border-b border-[#e8e8e8] bg-[#f7f7f7] dark:bg-muted/30 dark:border-border">
-          <CardTitle className="text-lg">새 커뮤니티</CardTitle>
+          <CardTitle className="text-lg">새 QnA</CardTitle>
           <p className="text-sm text-muted-foreground">
-            카테고리를 고른 뒤 이름을 정하면 커뮤니티 방이 만들어집니다.
+            카테고리를 고른 뒤 이름을 정하면 QnA 보드가 만들어집니다.
           </p>
         </CardHeader>
         <CardContent className="pt-5">
@@ -162,7 +162,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
 
             <div className="space-y-1.5">
               <label htmlFor="community-name" className="text-sm font-semibold">
-                커뮤니티 이름 <span className="text-[#c80000]">*</span>
+                QnA 이름 <span className="text-[#c80000]">*</span>
               </label>
               <Input
                 id="community-name"
@@ -183,7 +183,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
               <textarea
                 id="community-description"
                 name="description"
-                placeholder="어떤 주제의 커뮤니티인지 한 줄로 적어 주세요"
+                placeholder="어떤 주제의 QnA인지 한 줄로 적어 주세요"
                 className="w-full min-h-[96px] rounded-sm border border-border bg-background/50 p-3 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
                 disabled={loading}
               />
@@ -191,7 +191,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
 
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="isNsfw" disabled={loading} />
-              NSFW 커뮤니티
+              NSFW QnA
             </label>
 
             {error && (
@@ -199,6 +199,19 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
                 {error}
               </p>
             )}
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Q&A answers are not professional advice. You post at your own risk. By creating a QnA,
+              you agree to MoCoMo{" "}
+              <Link href="/legal/community-qna-terms" className="font-semibold underline underline-offset-2">
+                Q&A Terms (Section 13)
+              </Link>{" "}
+              and the{" "}
+              <Link href="/legal/terms" className="font-semibold underline underline-offset-2">
+                Terms of Service
+              </Link>
+              .
+            </p>
 
             <Button
               type="submit"
@@ -215,7 +228,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
                   생성 중…
                 </>
               ) : (
-                "커뮤니티 만들기"
+                "QnA 만들기"
               )}
             </Button>
           </form>

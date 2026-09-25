@@ -6,6 +6,7 @@ export type LegalLink = {
 
 export const LEGAL_POLICY_LINKS: LegalLink[] = [
   { label: "이용약관", path: "/legal/terms" },
+  { label: "Q&A 이용 약관 (Section 13)", path: "/legal/community-qna-terms" },
   { label: "AUP (Acceptable Use Policy)", path: "/legal/aup" },
   { label: "크리에이터 약관", path: "/legal/creator-terms" },
   { label: "MOCO 정산 QnA", path: "/legal/qna" },

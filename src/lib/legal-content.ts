@@ -1,4 +1,8 @@
 import { SELLER_TERMS } from "@/lib/marketplace/seller-legal";
+import {
+  COMMUNITY_QNA_TOS_BLOCKS,
+  COMMUNITY_QNA_TOS_BLOCKS_KO,
+} from "@/lib/legal/community-qna-tos-section";
 
 export { SELLER_TERMS };
 
@@ -248,7 +252,7 @@ export const COMMUNITY_POLICY: LegalDocument = {
 export const TERMS_OF_SERVICE: LegalDocument = {
   slug: "terms",
   title: "MoCoMo 이용약관",
-  updatedAt: "2026년 9월 3일",
+  updatedAt: "2026년 9월 25일",
   intro:
     '본 약관은 미합중국 와이오밍 주에 설립된 MoCoMo LLC(이하 "회사" 또는 "MoCoMo")가 제공하는 웹사이트(mocomo.net), 모바일 애플리케이션 및 관련 서비스의 이용 조건을 규정합니다.',
   blocks: [
@@ -263,7 +267,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     {
       type: "ul",
       items: [
-        "피드·게시물·댓글·커뮤니티",
+        "피드·게시물·댓글·커뮤니티 Q&A(질문·답변)",
         "릴스(짧은 영상) 및 미디어 업로드·공유",
         "라이브 스트리밍 및 시청",
         "DM·그룹 채팅, 음성 메시지, 음성·영상 통화",
@@ -863,7 +867,16 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: "(회사의 귀책사유로 인한 환불) 회사의 중대한 과실이나 시스템 오류로 인하여 구매한 유료 콘텐츠를 전혀 이용하지 못한 경우, 회사는 이용자가 지급한 결제 대금 전액을 환불하거나 상응하는 가상재화로 보상합니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제13조 (이벤트, 미니게임, 탐색 및 오프라인 모임의 책임 제한)" },
+    {
+      type: "h2",
+      text: "제13조 (이용자 생성 콘텐츠 및 Q&A 기능 / Section 13. User-Generated Content and Q&A Features)",
+    },
+    ...COMMUNITY_QNA_TOS_BLOCKS_KO,
+    { type: "hr" },
+    { type: "h3", text: "Section 13 — English (Governing Text for Q&A Feature)" },
+    ...COMMUNITY_QNA_TOS_BLOCKS,
+    { type: "hr" },
+    { type: "h2", text: "제14조 (이벤트, 미니게임, 탐색 및 오프라인 모임의 책임 제한)" },
     { type: "h3", text: "(서비스의 목적 및 정보의 정확성)" },
     {
       type: "p",
@@ -913,7 +926,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: "(유해 오프라인 모임의 차단) 회사는 불법 행위, 성매매, 불건전 만남, 범죄 도모, 위험한 오프라인 모임을 모집하거나 유도하는 게시물 및 이벤트에 대해 사전 통보 없이 삭제, 비노출 및 관련 계정 정지 조치를 취할 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제14조 (저작권 및 지식재산권 보호)" },
+    { type: "h2", text: "제15조 (저작권 및 지식재산권 보호)" },
     { type: "h3", text: "(크리에이터 콘텐츠의 권리 및 유료 콘텐츠 보호)" },
     {
       type: "p",
@@ -969,7 +982,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: "(허위 신고에 대한 책임) 고의 또는 과실로 저작권 침해가 아님을 알면서도 허위로 삭제를 요청하거나 반론 통지를 제출하여 제3자 또는 회사에 손해를 입힌 자는 관련 법령(미국 DMCA Section 512(f) 등)에 따라 발생한 모든 손해 및 법률 비용에 대한 배상 책임을 부담합니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제15조 (서비스 이용 제한 및 계정 제재)" },
+    { type: "h2", text: "제16조 (서비스 이용 제한 및 계정 제재)" },
     { type: "h3", text: "(이용제한의 종류 및 단계)" },
     {
       type: "p",
@@ -1032,7 +1045,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: "(손해배상 및 회사의 면책) 회사가 본 조에 따라 정당하게 이용제한 조치를 취한 경우, 회사는 이로 인하여 이용자가 입은 손해(서비스 미이용으로 인한 손실, 콘텐츠 접근 불가, 크리에이터 수익 감소 등)에 대하여 회사의 고의 또는 중과실이 없는 한 책임지지 아니합니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제16조 (서비스 중단 및 회사의 면책)" },
+    { type: "h2", text: "제17조 (서비스 중단 및 회사의 면책)" },
     {
       type: "p",
       text: "회사는 다음 각 호의 어느 하나에 해당하는 경우 서비스의 전부 또는 일부 제공을 일시적으로 중단하거나 제한할 수 있습니다.",
@@ -1055,7 +1068,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: "회사는 본 조 제1항에 따른 서비스 중단, 장애, 변경으로 인하여 이용자 또는 제3자가 입은 손해(가상재화의 이용 불능, 크리에이터의 수익 기회 상실, 진행 중인 거래 중단, 데이터 손실 등 포함)에 대하여 회사의 고의 또는 중과실이 없는 한 어떠한 법적 책임도 부담하지 아니합니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제17조 (회사의 면책 및 책임 제한)" },
+    { type: "h2", text: "제18조 (회사의 면책 및 책임 제한)" },
     {
       type: "p",
       text: "(플랫폼 면책 — Section 230) 회사는 미국 통신품위법(Communications Decency Act) 제230조에 따라 이용자가 게시한 콘텐츠의 정보 제공자가 아닌 상호작용 컴퓨터 서비스 제공자(interactive computer service provider)로서, 이용자가 게시·전송한 콘텐츠에 대해 원칙적으로 책임을 지지 않습니다. 회사는 자체 판단에 따라 본 약관을 위반하거나 부적절하다고 판단되는 콘텐츠를 사전 통지 없이 삭제, 차단 또는 제한할 수 있는 권리를 보유합니다.",
@@ -1070,7 +1083,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: "p",
-      text: "(무중단 보장 불가 및 서비스 장애 면책) 회사는 서비스의 24시간 무중단 제공 및 오류 없는 제공을 보장하지 않으며, 제16조에 따른 서비스 중단, 장애, 점검, 통신망 장애 또는 불가항력적 사유로 인하여 이용자가 입은 손해에 대해 책임을 부담하지 않습니다.",
+      text: "(무중단 보장 불가 및 서비스 장애 면책) 회사는 서비스의 24시간 무중단 제공 및 오류 없는 제공을 보장하지 않으며, 제17조에 따른 서비스 중단, 장애, 점검, 통신망 장애 또는 불가항력적 사유로 인하여 이용자가 입은 손해에 대해 책임을 부담하지 않습니다.",
     },
     {
       type: "p",
@@ -1081,7 +1094,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: "(손해배상 책임을 부담하는 경우의 한도) 관련 법령(약관의 규제에 관한 법률, 소비자기본법 등 강행법규)에 따라 회사가 이용자에 대해 손해배상 책임을 부담하게 되는 경우에도, 회사가 부담하는 총 손해배상 책임의 한도는 해당 분쟁 발생 직전 12개월 동안 이용자가 회사에 실제 지급한 유상 결제 금액의 총합을 초과할 수 없습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제18조 (계정 해지 및 회원 탈퇴)" },
+    { type: "h2", text: "제19조 (계정 해지 및 회원 탈퇴)" },
     {
       type: "p",
       text: "(이용자의 해지 권리) 이용자는 언제든지 서비스 내 설정 메뉴 또는 고객센터를 통해 회원 탈퇴(계정 삭제)를 신청할 수 있으며, 회사는 관련 법령이 정하는 바에 따라 이를 즉시 처리합니다.",
@@ -1102,7 +1115,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     { type: "h3", text: "(회사의 직권 해지 및 재가입 제한)" },
     {
       type: "p",
-      text: "① 회사는 제15조에 따라 영구 정지 조치를 받은 이용자의 계정을 직권으로 해지(강제 탈퇴)할 수 있습니다.",
+      text: "① 회사는 제16조에 따라 영구 정지 조치를 받은 이용자의 계정을 직권으로 해지(강제 탈퇴)할 수 있습니다.",
     },
     {
       type: "p",
@@ -1117,7 +1130,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: "(데이터 삭제 및 면책) 계정 해지 완료 후 이용자가 서비스 내에 작성했던 게시물, 프로필, 메시지 등의 데이터는 파기되거나 비식별화 처리되며, 회사는 해지 이후의 데이터 복구 요청에 대해 책임을 지지 않습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제19조 (준거법 및 재판관할)" },
+    { type: "h2", text: "제20조 (준거법 및 재판관할)" },
     {
       type: "p",
       text: "① (준거법) 본 약관, 서비스 이용 및 회사와 이용자 간에 발생하는 모든 분쟁의 해석과 적용에 대해서는 미합중국 와이오밍 주(State of Wyoming, United States of America)의 법률을 준거법으로 합니다(국제사법 등 타국 법률의 적용을 유도하는 법률 충돌 원칙은 적용하지 아니함).",
@@ -1139,7 +1152,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: "⑤ (일부 무효 시의 효력) 본 조항 또는 본 약관의 일부 조항이 거주국 강행법규나 관할 법원의 판결에 의해 무효 또는 집행 불가능하게 되더라도, 이는 다른 조항의 효력에 영향을 미치지 아니하며 나머지 조항은 계속하여 완전한 효력을 유지합니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제20조 (문의)" },
+    { type: "h2", text: "제21조 (문의)" },
     {
       type: "p",
       text: `운영 주체: ${LEGAL_ENTITY_NAME} (${LEGAL_ENTITY_JURISDICTION})`,
@@ -1441,6 +1454,20 @@ export const SPONSORED_CONTENT_POLICY: LegalDocument = {
       type: "p",
       text: `Legal Entity: ${LEGAL_ENTITY_NAME} · Jurisdiction: ${LEGAL_ENTITY_JURISDICTION} · Registered Office: ${LEGAL_REGISTERED_OFFICE_ADDRESS} · Contact: ${LEGAL_CONTACT_EMAIL}`,
     },
+  ],
+};
+
+export const COMMUNITY_QNA_TERMS: LegalDocument = {
+  slug: "community-qna-terms",
+  title: "User-Generated Content and Q&A Feature (Section 13)",
+  updatedAt: "2026년 9월 25일",
+  intro: `This policy excerpts Article 13 of the MoCoMo Terms of Service regarding the community Q&A Feature. ${LEGAL_ENTITY_NAME} (${LEGAL_ENTITY_JURISDICTION}). By posting a question or answer, you agree to these terms in addition to the full Terms of Service at /legal/terms.`,
+  blocks: [
+    { type: "p", text: "Korean summary is included in the main Terms of Service (제13조). The English text below is the governing language for the Q&A Feature to the extent permitted by applicable law." },
+    ...COMMUNITY_QNA_TOS_BLOCKS_KO,
+    { type: "hr" },
+    { type: "h2", text: "Section 13. User-Generated Content and Q&A Features" },
+    ...COMMUNITY_QNA_TOS_BLOCKS,
   ],
 };
 
@@ -2180,6 +2207,7 @@ export const LEGAL_PAGES = [
   { href: "/legal/aup", label: "Acceptable Use Policy (AUP)", doc: ACCEPTABLE_USE_POLICY },
   { href: "/legal/policy", label: "운영원칙 및 이용정책", doc: COMMUNITY_POLICY },
   { href: "/legal/culture-wiki", label: "컬쳐 위키 이용 약관", doc: CULTURE_WIKI_TERMS },
+  { href: "/legal/community-qna-terms", label: "Q&A 이용 약관 (Section 13)", doc: COMMUNITY_QNA_TERMS },
   { href: "/legal/terms", label: "이용약관", doc: TERMS_OF_SERVICE },
   { href: "/legal/creator-terms", label: "크리에이터 약관", doc: CREATOR_TERMS },
   { href: "/legal/qna", label: "MOCO 정산 QnA", doc: CREATOR_SETTLEMENT_QNA },
