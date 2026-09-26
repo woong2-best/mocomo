@@ -10,25 +10,17 @@ import {
 } from "@/actions/used-market";
 import { cancelUsedAuction } from "@/actions/used-auction";
 import { UsedAuctionBidSheet } from "@/components/used/used-auction-bid-sheet";
-import { Heart, MessageSquare, Gavel } from "lucide-react";
+import { Heart, MessageSquare, Gavel, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { walletSettlementPath, SETTLEMENT_ACCOUNT_REQUIRED_MSG } from "@/lib/settlement-account";
-import { USED_BANK_REQUIRED_MSG } from "@/lib/used-bank-auth";
 import {
   isUsedRestrictedKind,
   usedAdultVerifyUrl,
 } from "@/lib/used-youth-protection";
 import type { UsedListingStatus, UsedRestrictedKind } from "@prisma/client";
 
-function needsSettlementAccount(error: string) {
-  return (
-    error === USED_BANK_REQUIRED_MSG ||
-    error === SETTLEMENT_ACCOUNT_REQUIRED_MSG ||
-    error.includes("입금 계좌") ||
-    error.includes("계좌 1원")
-  );
+function needsPhoneVerification(error: string) {
+  return error.includes("휴대폰") || error.includes("phone verification");
 }
-import { ShieldAlert } from "lucide-react";
 
 export function UsedAuctionBottomBar({
   listingId,
@@ -92,8 +84,8 @@ export function UsedAuctionBottomBar({
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (needsSettlementAccount(res.error)) {
-        router.push(walletSettlementPath(`/market/${listingId}`));
+      if (needsPhoneVerification(res.error)) {
+        router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
         return;
       }
       setBarError(res.error);

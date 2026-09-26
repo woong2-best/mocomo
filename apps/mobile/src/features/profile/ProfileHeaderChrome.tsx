@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +12,7 @@ import type { ProfileUser } from "@/api/social";
 import { openDm } from "@/api/messages";
 import { AVATAR_CACHE_LAYOUT } from "@/perf/image";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { showIslandError } from "@/ui/IslandToast";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
@@ -87,7 +87,7 @@ export function ProfileHeaderChrome({
       const res = await openDm(user.id);
       onOpenChat(res.roomId);
     } catch (e) {
-      Alert.alert("채팅", e instanceof Error ? e.message : "채팅을 열지 못했습니다.");
+      showIslandError("채팅", e instanceof Error ? e.message : "채팅을 열지 못했습니다.");
     } finally {
       setChatBusy(false);
     }

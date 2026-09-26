@@ -246,6 +246,16 @@ export function routeFromPushData(data: Record<string, unknown> | undefined) {
 
   }
 
+  if (parsed.deeplink?.startsWith("mocomo://live/")) {
+    const id = parsed.deeplink.replace("mocomo://live/", "").split(/[?#]/)[0];
+    if (id) return { screen: "LiveDetail" as const, params: { id } };
+  }
+
+  if (parsed.deeplink?.startsWith("mocomo://market/")) {
+    const id = parsed.deeplink.replace("mocomo://market/", "").split(/[?#]/)[0];
+    if (id) return { screen: "MarketplaceDetail" as const, params: { id } };
+  }
+
   if (parsed.deeplink?.startsWith("mocomo://post/")) {
     const postId = parsed.deeplink.replace("mocomo://post/", "").split(/[?#]/)[0];
     if (postId) return { screen: "PostDetail" as const, params: { id: postId } };

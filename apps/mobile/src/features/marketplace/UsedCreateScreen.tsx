@@ -1,6 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Image as RNImage,
   KeyboardAvoidingView,
   Platform,
@@ -15,7 +14,9 @@ import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useScrollFieldAboveKeyboard } from "@/lib/use-scroll-field-above-keyboard";
 import {
   createMarketplaceListing,
   fetchMarketplaceDetail,
@@ -28,6 +29,12 @@ import { MeetMap } from "@/maps/MeetMap";
 import type { MeetCoords } from "@/maps/types";
 import { MarketCheckOption } from "@/features/marketplace/MarketCheckOption";
 import { Screen } from "@/ui/Screen";
+import {
+  showIslandError,
+  showIslandInfo,
+  showIslandPrompt,
+  showIslandSuccess,
+} from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -72,7 +79,6 @@ export function UsedCreateScreen() {
   const [saleKind, setSaleKind] = useState<"FIXED" | "AUCTION">(routeIsAuction ? "AUCTION" : "FIXED");
   const [giveaway, setGiveaway] = useState(false);
   const isAuction = saleKind === "AUCTION";
-  const [auctionHours, setAuctionHours] = useState(24);
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -93,6 +99,10 @@ export function UsedCreateScreen() {
     !isAuction && !giveaway && subculture.tradeMode === "TRADE";
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
+  const insets = useSafeAreaInsets();
+  const { scrollRef, frameRef, keyboardLift, onScrollOffset, onInputFocus } =
+    useScrollFieldAboveKeyboard();
+  const meetPlaceRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (!editId) return;
@@ -103,15 +113,13 @@ export function UsedCreateScreen() {
         if (!alive || !detail.item) return;
         const item = detail.item;
         if (!item.isOwner) {
-          Alert.alert("수정 불가", "본인 글만 수정할 수 있습니다.", [
-            { text: "확인", onPress: () => navigation.goBack() },
-          ]);
+          showIslandError("수정 불가", "본인 글만 수정할 수 있습니다.");
+          navigation.goBack();
           return;
         }
         if (item.status !== "SELLING") {
-          Alert.alert("수정 불가", "거래가 진행 중이어서 수정할 수 없습니다.", [
-            { text: "확인", onPress: () => navigation.goBack() },
-          ]);
+          showIslandError("수정 불가", "거래가 진행 중이어서 수정할 수 없습니다.");
+          navigation.goBack();
           return;
         }
         setTitle(item.title);
@@ -135,7 +143,7 @@ export function UsedCreateScreen() {
           tradeMode: item.tradeMode === "TRADE" ? "TRADE" : "SELL",
         }));
       } catch {
-        if (alive) Alert.alert("오류", "글 정보를 불러오지 못했습니다.");
+        if (alive) showIslandError("오류", "글 정보를 불러오지 못했습니다.");
       }
     })();
     return () => {
@@ -183,12 +191,12 @@ export function UsedCreateScreen() {
 
   async function pickImage() {
     if (imageCount >= MAX_LISTING_IMAGES) {
-      Alert.alert("사진 제한", `사진은 최대 ${MAX_LISTING_IMAGES}장까지 추가할 수 있습니다.`);
+      showIslandInfo("사진 제한", `사진은 최대 ${MAX_LISTING_IMAGES}장까지 추가할 수 있습니다.`);
       return;
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("권한 필요", "사진 라이브러리 접근을 허용해 주세요.");
+      showIslandError("권한 필요", "사진 라이브러리 접근을 허용해 주세요.");
       return;
     }
     const remaining = MAX_LISTING_IMAGES - imageCount;
@@ -201,7 +209,7 @@ export function UsedCreateScreen() {
     if (result.canceled || result.assets.length === 0) return;
     const batch = result.assets.slice(0, remaining);
     if (batch.length < result.assets.length) {
-      Alert.alert("사진 제한", `${remaining}장만 추가했습니다. (최대 ${MAX_LISTING_IMAGES}장)`);
+      showIslandInfo("사진 제한", `${remaining}장만 추가했습니다. (최대 ${MAX_LISTING_IMAGES}장)`);
     }
     setLocalImages((prev) => [
       ...prev,
@@ -224,21 +232,21 @@ export function UsedCreateScreen() {
 
   async function submit() {
     if (!subculture.productType) {
-      Alert.alert("상품 종류", "상품 종류를 선택해 주세요.");
+      showIslandError("상품 종류", "상품 종류를 선택해 주세요.");
       return;
     }
     if (!title.trim()) {
-      Alert.alert("제목 필요", "제목을 입력해 주세요.");
+      showIslandError("제목 필요", "제목을 입력해 주세요.");
       return;
     }
     const priceNum =
       giveaway || isTrade ? 0 : parseListingPriceInput(price, currency);
     if (priceNum < 0 || (isAuction && priceNum <= 0)) {
-      Alert.alert("가격", isAuction ? "경매 시작가를 입력해 주세요." : "가격이 올바르지 않습니다.");
+      showIslandError("가격", isAuction ? "경매 시작가를 입력해 주세요." : "가격이 올바르지 않습니다.");
       return;
     }
     if (!isAuction && !giveaway && !isTrade && priceNum <= 0) {
-      Alert.alert("가격", "가격을 입력해 주세요.");
+      showIslandError("가격", "가격을 입력해 주세요.");
       return;
     }
     setBusy(true);
@@ -255,7 +263,7 @@ export function UsedCreateScreen() {
       }
       const images = uploaded;
       if (images.length === 0) {
-        Alert.alert("사진 필요", "상품 사진을 추가해 주세요.");
+        showIslandError("사진 필요", "상품 사진을 추가해 주세요.");
         setBusy(false);
         return;
       }
@@ -286,7 +294,6 @@ export function UsedCreateScreen() {
         meetCountry: countryCode,
         images,
         saleType: isAuction ? "AUCTION" : "FIXED",
-        auctionHours: isAuction ? auctionHours : undefined,
         isNsfw,
         workTitle: subculture.workTitle.trim() || undefined,
         animeSlug: subculture.animeSlug ?? undefined,
@@ -304,23 +311,17 @@ export function UsedCreateScreen() {
         : (await createMarketplaceListing(payload)).listingId;
       await queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
       await queryClient.invalidateQueries({ queryKey: ["mobile-marketplace-mine"] });
-      Alert.alert(
+      showIslandSuccess(
         editId ? "수정됨" : "등록됨",
         editId
           ? "글이 수정되었습니다."
           : isAuction
             ? "경매가 올라갔습니다. 보증금 2 MOCO가 잠겼습니다."
-            : "글이 올라갔습니다.",
-        [
-          {
-            text: "확인",
-            onPress: () =>
-              navigation.replace(isAuction ? "AuctionDetail" : "MarketplaceDetail", {
-                id: listingId,
-              }),
-          },
-        ]
+            : "글이 올라갔습니다."
       );
+      navigation.replace(isAuction ? "AuctionDetail" : "MarketplaceDetail", {
+        id: listingId,
+      });
     } catch (e) {
       const msg =
         e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body
@@ -329,26 +330,18 @@ export function UsedCreateScreen() {
             ? e.message
             : "등록에 실패했습니다.";
       if (
-        !isAuction &&
-        (msg.includes("입금 계좌") || msg.includes("계좌 1원") || msg.includes("휴대폰") || msg.includes("인증"))
+        countryCode.toUpperCase() !== "KR" &&
+        (msg.includes("휴대폰") || msg.includes("인증"))
       ) {
-        Alert.alert("본인 확인 필요", msg, [
-          { text: "취소", style: "cancel" },
-          {
-            text: countryCode.toUpperCase() === "KR" ? "지갑에서 등록" : "휴대폰 인증",
-            onPress: () =>
-              countryCode.toUpperCase() === "KR"
-                ? navigation.replace("Wallet", {
-                    initialTab: "earnings",
-                    returnScreen: isAuction ? "AuctionCreate" : "UsedCreate",
-                  })
-                : navigation.replace("UsedPhoneVerify", {
-                    next: isAuction ? "AuctionCreate" : "UsedCreate",
-                  }),
-          },
-        ]);
+        showIslandPrompt("본인 확인 필요", msg, {
+          label: "휴대폰 인증",
+          onPress: () =>
+            navigation.replace("UsedPhoneVerify", {
+              next: isAuction ? "AuctionCreate" : "UsedCreate",
+            }),
+        });
       } else {
-        Alert.alert("오류", msg);
+        showIslandError("오류", msg);
       }
     } finally {
       setBusy(false);
@@ -375,7 +368,21 @@ export function UsedCreateScreen() {
         <Text style={{ padding: spacing.md, color: muted, fontWeight: "600" }}>확인 중…</Text>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          <View style={{ flex: 1 }}>
+            <View ref={frameRef} style={{ flex: 1, marginBottom: keyboardLift }}>
+              <ScrollView
+                ref={scrollRef}
+                style={{ flex: 1 }}
+                contentContainerStyle={[
+                  styles.body,
+                  { paddingBottom: insets.bottom + 88 + keyboardLift },
+                ]}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+                onScroll={(e) => onScrollOffset(e.nativeEvent.contentOffset.y)}
+                scrollEventThrottle={16}
+              >
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -539,30 +546,9 @@ export function UsedCreateScreen() {
               {isAuction ? (
                 <View style={{ marginTop: 10 }}>
                   <Text style={styles.hint}>
+                    경매는 등록하는 순간부터 3일 동안 진행됩니다. 남은 시간은 일:시:분:초로 실시간 표시됩니다.
                     정산 계좌 없이 올릴 수 있습니다. 노쇼 방지로 2 MOCO가 잠기고, 거래 완료를 누르면 돌려받습니다.
                   </Text>
-                  <View style={styles.checkWrap}>
-                    {(
-                      [
-                        { hours: 1, label: "1시간" },
-                        { hours: 6, label: "6시간" },
-                        { hours: 12, label: "12시간" },
-                        { hours: 24, label: "1일" },
-                        { hours: 72, label: "3일" },
-                        { hours: 168, label: "7일" },
-                      ] as const
-                    ).map((d) => (
-                      <MarketCheckOption
-                        key={d.hours}
-                        label={d.label}
-                        checked={auctionHours === d.hours}
-                        onPress={() => setAuctionHours(d.hours)}
-                        ink={ink}
-                        paper={paper}
-                        line={line}
-                      />
-                    ))}
-                  </View>
                 </View>
               ) : null}
             </View>
@@ -677,18 +663,18 @@ export function UsedCreateScreen() {
                 mode="pick"
                 country={countryCode}
                 region={region}
-                meetPlace={meetPlace}
                 coords={meetCoords}
                 onCoordsChange={setMeetCoords}
-                onMeetPlaceChange={setMeetPlace}
                 height={220}
               />
               <TextInput
+                ref={meetPlaceRef}
                 style={[styles.input, { marginTop: 10 }]}
                 value={meetPlace}
                 onChangeText={setMeetPlace}
-                placeholder="동·거리 등 (예: 역삼동 스타벅스 앞)"
+                placeholder="주소 상세 (예: 2번 출구 스타벅스 앞)"
                 placeholderTextColor={muted}
+                onFocus={() => onInputFocus(meetPlaceRef.current)}
               />
             </View>
 
@@ -702,7 +688,8 @@ export function UsedCreateScreen() {
                     line={line}
               />
             </View>
-          </ScrollView>
+              </ScrollView>
+            </View>
           <View style={styles.bottomBar}>
             <Pressable
               style={[styles.submit, busy ? { opacity: 0.45 } : null]}
@@ -711,6 +698,7 @@ export function UsedCreateScreen() {
             >
               <Text style={styles.submitText}>{busy ? "등록 중…" : "작성 완료"}</Text>
             </Pressable>
+          </View>
           </View>
         </KeyboardAvoidingView>
       )}

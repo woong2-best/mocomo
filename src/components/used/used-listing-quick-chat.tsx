@@ -4,19 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 import { startUsedTradeChat } from "@/actions/used-market";
-import { walletSettlementPath, SETTLEMENT_ACCOUNT_REQUIRED_MSG } from "@/lib/settlement-account";
-import { USED_BANK_REQUIRED_MSG } from "@/lib/used-bank-auth";
 import { usedAdultVerifyUrl } from "@/lib/used-youth-protection";
 import type { UsedRestrictedKind } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
-function needsSettlementAccount(error: string) {
-  return (
-    error === USED_BANK_REQUIRED_MSG ||
-    error === SETTLEMENT_ACCOUNT_REQUIRED_MSG ||
-    error.includes("입금 계좌") ||
-    error.includes("계좌 1원")
-  );
+function needsPhoneVerification(error: string) {
+  return error.includes("휴대폰") || error.includes("phone verification");
 }
 
 /** Listing card overlay — opens seller DM in /messages without navigating to detail. */
@@ -40,8 +33,8 @@ export function UsedListingQuickChat({
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (needsSettlementAccount(res.error)) {
-        router.push(walletSettlementPath(`/market/${listingId}`));
+      if (needsPhoneVerification(res.error)) {
+        router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
         return;
       }
       if ("needsAdultVerify" in res && res.needsAdultVerify) {

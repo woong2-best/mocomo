@@ -33,6 +33,7 @@ import { FolkAvatar } from "@/ui/FolkAvatar";
 import { resolveVideoPoster } from "@/lib/video-poster";
 import { prefetchImageUrls } from "@/perf/image";
 import { perfMeasure } from "@/perf/mark";
+import { fetchNotifications } from "@/api/notifications";
 import { MailboxIcon } from "@/ui/MailboxIcon";
 import { FolkButton } from "@/ui/FolkButton";
 import { useHasUnreadDms } from "@/features/messages/useHasUnreadDms";
@@ -104,6 +105,13 @@ export function FeedScreen() {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const hasUnreadDms = useHasUnreadDms();
+  const alarmQuery = useQuery({
+    queryKey: ["mobile-notifications"],
+    queryFn: fetchNotifications,
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+  const alarmUnread = alarmQuery.data?.unread ?? 0;
   const queryClient = useQueryClient();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
@@ -389,6 +397,7 @@ export function FeedScreen() {
           accessibilityLabel="알림"
         >
           <Ionicons name="notifications-outline" size={22} color={styles.headerIcon.color} />
+          {alarmUnread > 0 ? <View style={styles.alarmDot} /> : null}
         </Pressable>
 
         <Pressable
@@ -691,6 +700,17 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       height: 36,
       alignItems: "center",
       justifyContent: "center",
+    },
+    alarmDot: {
+      position: "absolute",
+      top: 6,
+      right: 6,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.terracotta,
+      borderWidth: 1,
+      borderColor: colors.background,
     },
     center: {
       alignItems: "center",

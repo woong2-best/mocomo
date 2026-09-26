@@ -23,6 +23,7 @@ import {
   ESRI_ATTRIBUTION_URL,
 } from "@/maps/map-styles";
 import type { RootStackParamList } from "@/navigation/types";
+import { googleMapsExternalUrl } from "@/maps/google-external-url";
 
 type PanelTab = "venue" | "maid_cafe" | "recommendation";
 
@@ -104,17 +105,12 @@ function googleSearchUrlForEvent(pin: MapEventPin) {
 }
 
 function externalMapLink(pin: MapEventPin) {
-  const country = pin.country ?? "";
-  if (country === "KR" || country === "kr" || /korea/i.test(country)) {
-    return {
-      label: "카카오맵",
-      url: `https://map.kakao.com/link/map/${encodeURIComponent(pin.venueName ?? pin.title)},${pin.lat},${pin.lng}`,
-    };
-  }
-  const q = encodeURIComponent(`${pin.venueName ?? pin.title} ${pin.lat},${pin.lng}`);
   return {
     label: "Google 지도",
-    url: `https://www.google.com/maps/search/?api=1&query=${q}`,
+    url: googleMapsExternalUrl({
+      place: pin.venueName ?? pin.title,
+      coords: { lat: pin.lat, lng: pin.lng },
+    }),
   };
 }
 
@@ -450,6 +446,7 @@ export function EventsMapScreen() {
               style={StyleSheet.absoluteFill}
               pins={mapPins}
               global
+              userCountryCode={userCountry}
               selectedId={selected?.id ?? null}
               focusPinId={selected?.id ?? null}
               onSelectPin={(pin) => {

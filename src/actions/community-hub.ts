@@ -16,6 +16,7 @@ import { isCommunityCategory, validateCustomCategoryLabel } from "@/lib/communit
 import { COMMUNITIES_LIST_CACHE_TAG } from "@/lib/cache-tags";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
+import { calcHotScore } from "@/lib/utils";
 
 function revalidateCommunitiesList(slug?: string) {
   after(() => {
@@ -114,6 +115,21 @@ export async function createCommunity(data: {
               userId: user.id,
               role: "owner",
               presence: "ONLINE",
+            },
+          });
+          const contentRating = isNsfw ? "ADULT" : "GENERAL";
+          const body = description?.trim() || name;
+          await tx.post.create({
+            data: {
+              title: description?.trim() ? name : null,
+              content: body,
+              authorId: user.id,
+              communityId: row.id,
+              isAnonymous: true,
+              visibility: "PUBLIC",
+              contentRating,
+              isNsfw: isNsfw,
+              hotScore: calcHotScore(0, 0, new Date()),
             },
           });
           return row;

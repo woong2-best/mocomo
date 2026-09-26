@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
@@ -39,10 +39,12 @@ export default function App() {
             <AuthProvider>
               <I18nProvider>
                 <ClientTranslationProvider>
-                  <ScreenErrorBoundary label="앱">
-                    <RootNavigator />
-                  </ScreenErrorBoundary>
-                  <IslandToastHost />
+                  <View style={styles.appShell}>
+                    <ScreenErrorBoundary label="앱">
+                      <RootNavigator />
+                    </ScreenErrorBoundary>
+                    <IslandToastHost />
+                  </View>
                 </ClientTranslationProvider>
               </I18nProvider>
               <ThemedStatusBar />
@@ -56,4 +58,5 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  appShell: { flex: 1 },
 });

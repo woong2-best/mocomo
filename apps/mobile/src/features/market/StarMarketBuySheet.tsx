@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,6 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { showIslandSuccess } from "@/ui/IslandToast";
 import type { StarMarketDetail, MarketplaceCheckoutBody } from "@/api/star-market";
 import { fetchMarketplaceCheckoutMode } from "@/api/star-market";
 import { MarketplacePaymentSheet } from "@/payments/MarketplacePaymentSheet";
@@ -117,7 +117,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
   function handlePaySuccess() {
     onSuccess?.();
     onClose();
-    Alert.alert("결제 완료", "주문이 접수되었습니다.");
+    showIslandSuccess("결제 완료", "주문이 접수되었습니다.");
   }
 
   return (

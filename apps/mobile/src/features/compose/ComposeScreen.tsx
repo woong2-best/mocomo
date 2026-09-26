@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
 import { InlineComposeBox } from "@/features/compose/InlineComposeBox";
 import { useTheme } from "@/theme/ThemeContext";
-import { showIslandToast } from "@/ui/IslandToast";
+import { IslandToastScreenSlot, showIslandToast } from "@/ui/IslandToast";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
 /** Full-screen compose modal — same composer as the feed strip. */
@@ -25,6 +25,7 @@ export function ComposeScreen() {
   const { user } = useAuth();
 
   return (
+    <View style={styles.flex}>
     <KeyboardAvoidingView
       style={[styles.root, { paddingTop: insets.top + spacing.sm }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -56,11 +57,14 @@ export function ComposeScreen() {
         }}
       />
     </KeyboardAvoidingView>
+    <IslandToastScreenSlot />
+    </View>
   );
 }
 
 function createThemedStyles(colors: ThemeColors) {
   return StyleSheet.create({
+    flex: { flex: 1 },
     root: {
       flex: 1,
       backgroundColor: colors.background,

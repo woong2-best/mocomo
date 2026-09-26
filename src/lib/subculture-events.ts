@@ -1,6 +1,5 @@
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
-import { kakaoSearchPlace } from "@/lib/kakao-local";
 import {
   SUBCULTURE_EVENT_SEEDS,
   SUBCULTURE_EVENT_CATEGORY_LABELS,
@@ -9,7 +8,6 @@ import {
 import {
   eventCountryFromExternalKey,
   inferEventCountryFromCoords,
-  isKoreaEventCountry,
   resolveSubculturePinsForUser,
 } from "@/lib/subculture-event-countries";
 import { fetchAllSubcultureEvents } from "@/lib/subculture-event-fetch";
@@ -550,9 +548,7 @@ export async function geocodePendingSubcultureEvents(max = 5): Promise<number> {
         continue;
       }
 
-      const coord = isKoreaEventCountry(country)
-        ? await kakaoSearchPlace(q)
-        : await geocodeEventVenueInCountry(country, row.venueName, row.address);
+      const coord = await geocodeEventVenueInCountry(country, row.venueName, row.address);
       if (!coord || !isPinCoordinateValid(country, coord.lat, coord.lng)) continue;
       await db.subcultureEventPin.update({
         where: { id: row.id },

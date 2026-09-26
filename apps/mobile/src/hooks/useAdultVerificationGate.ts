@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import { Alert } from "react-native";
 import { fetchAdultVerificationStatus } from "@/api/adult-verification";
+import { showIslandPrompt } from "@/ui/IslandToast";
 import {
   ADULT_VERIFICATION_REQUIRED_MSG,
   BIRTH_DATE_REQUIRED_MSG,
@@ -35,33 +35,19 @@ export function useAdultVerificationGate(_scope: AdultVerificationScope = "DM_PA
         ? ADULT_VERIFICATION_REQUIRED_MSG
         : BIRTH_DATE_REQUIRED_MSG;
 
-      return new Promise((resolve) => {
-        Alert.alert("연령 확인 필요", message, [
-          { text: "취소", style: "cancel", onPress: () => resolve(false) },
-          {
-            text: status.hasBirthDate ? "확인" : "생년월일 입력",
-            onPress: () => {
-              if (!status.hasBirthDate) {
-                openBirthDateSettings();
-              }
-              resolve(false);
-            },
-          },
-        ]);
+      showIslandPrompt("연령 확인 필요", message, {
+        label: status.hasBirthDate ? "확인" : "생년월일 입력",
+        onPress: () => {
+          if (!status.hasBirthDate) openBirthDateSettings();
+        },
       });
+      return false;
     } catch {
-      return new Promise((resolve) => {
-        Alert.alert("연령 확인 필요", BIRTH_DATE_REQUIRED_MSG, [
-          { text: "취소", style: "cancel", onPress: () => resolve(false) },
-          {
-            text: "생년월일 입력",
-            onPress: () => {
-              openBirthDateSettings();
-              resolve(false);
-            },
-          },
-        ]);
+      showIslandPrompt("연령 확인 필요", BIRTH_DATE_REQUIRED_MSG, {
+        label: "생년월일 입력",
+        onPress: () => openBirthDateSettings(),
       });
+      return false;
     }
   }, [openBirthDateSettings]);
 

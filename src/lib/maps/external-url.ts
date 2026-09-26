@@ -1,4 +1,5 @@
-import { normalizeMeetCountry, selectMapEngine } from "@/lib/maps/select-engine";
+import { normalizeMeetCountry } from "@/lib/maps/select-engine";
+import { googleMapsExternalUrl } from "@/lib/maps/google-external-url";
 import type { MeetCoords } from "@/lib/maps/types";
 
 /** Country-aware external map deep link (same for web + mobile clients). */
@@ -8,24 +9,13 @@ export function meetExternalMapUrl(opts: {
   place?: string | null;
   coords?: MeetCoords | null;
 }): string {
-  const country = normalizeMeetCountry(opts.country);
-  const engine = selectMapEngine(country);
-  const coords = opts.coords;
-  const q = [opts.place?.trim(), opts.region?.trim()].filter(Boolean).join(" ");
-
-  if (engine === "kakao") {
-    if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
-      return `https://map.kakao.com/link/map/${coords.lat},${coords.lng}`;
-    }
-    return `https://map.kakao.com/?q=${encodeURIComponent(q || opts.region || "한국")}`;
-  }
-
-  // MapLibre / OSM — openstreetmap.org
-  if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
-    const z = 16;
-    return `https://www.openstreetmap.org/?mlat=${coords.lat}&mlon=${coords.lng}#map=${z}/${coords.lat}/${coords.lng}`;
-  }
-  return `https://www.openstreetmap.org/search?query=${encodeURIComponent(q || "world")}`;
+  normalizeMeetCountry(opts.country);
+  return googleMapsExternalUrl({
+    place: opts.place,
+    region: opts.region,
+    coords: opts.coords,
+    fallbackQuery: opts.region?.trim() || undefined,
+  });
 }
 
 export function meetMapCaption(opts: {

@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -60,12 +60,14 @@ export function UsedListingOverflowMenu({
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [confirm, setConfirm] = useState<"delete" | "block" | null>(null);
 
   const sellerId = item.sellerId ?? item.seller?.id ?? "";
   const sellerUsername = item.seller?.username ?? "user";
 
   const closeAll = useCallback(() => {
     setReportOpen(false);
+    setConfirm(null);
     onClose();
   }, [onClose]);
 
@@ -86,40 +88,36 @@ export function UsedListingOverflowMenu({
       await bumpMarketplaceListing(item.id);
       closeAll();
       void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
-      Alert.alert("끌어올렸습니다", "목록 상단으로 올렸습니다.");
+      showIslandSuccess("끌어올렸습니다", "목록 상단으로 올렸습니다.");
     } catch (e) {
-      Alert.alert("오류", e instanceof Error ? e.message : "끌어올리기에 실패했습니다.");
+      showIslandError("오류", e instanceof Error ? e.message : "끌어올리기에 실패했습니다.");
     } finally {
       setBusy(null);
     }
   }, [busy, closeAll, item.id, queryClient]);
 
+  const runDelete = useCallback(() => {
+    if (busy) return;
+    setBusy("delete");
+    void (async () => {
+      try {
+        await deleteMarketplaceListing(item.id);
+        closeAll();
+        onDeleted?.(item.id);
+        void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
+        showIslandSuccess("삭제했습니다");
+      } catch (e) {
+        showIslandError("오류", e instanceof Error ? e.message : "삭제에 실패했습니다.");
+      } finally {
+        setBusy(null);
+      }
+    })();
+  }, [busy, closeAll, item.id, onDeleted, queryClient]);
+
   const onDelete = useCallback(() => {
     if (busy) return;
-    Alert.alert("글 삭제", "이 중고거래 글을 삭제할까요?", [
-      { text: "취소", style: "cancel" },
-      {
-        text: "삭제하기",
-        style: "destructive",
-        onPress: () => {
-          setBusy("delete");
-          void (async () => {
-            try {
-              await deleteMarketplaceListing(item.id);
-              closeAll();
-              onDeleted?.(item.id);
-              void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
-              Alert.alert("삭제했습니다");
-            } catch (e) {
-              Alert.alert("오류", e instanceof Error ? e.message : "삭제에 실패했습니다.");
-            } finally {
-              setBusy(null);
-            }
-          })();
-        },
-      },
-    ]);
-  }, [busy, closeAll, item.id, onDeleted, queryClient]);
+    setConfirm("delete");
+  }, [busy]);
 
   const onNotInterested = useCallback(async () => {
     if (busy) return;
@@ -128,39 +126,35 @@ export function UsedListingOverflowMenu({
       await dismissUsedListing(item.id);
       closeAll();
       onDismissed?.(item.id);
-      Alert.alert("관심 없음", "이 상품을 목록에서 숨겼습니다.");
+      showIslandSuccess("관심 없음", "이 상품을 목록에서 숨겼습니다.");
     } catch (e) {
-      Alert.alert("오류", e instanceof Error ? e.message : "처리에 실패했습니다.");
+      showIslandError("오류", e instanceof Error ? e.message : "처리에 실패했습니다.");
     } finally {
       setBusy(null);
     }
   }, [busy, closeAll, item.id, onDismissed]);
 
+  const runBlock = useCallback(() => {
+    if (busy || !sellerId) return;
+    setBusy("block");
+    void (async () => {
+      try {
+        await blockUser(sellerId);
+        closeAll();
+        onDismissed?.(item.id);
+        showIslandSuccess("차단했습니다");
+      } catch (e) {
+        showIslandError("오류", e instanceof Error ? e.message : "차단에 실패했습니다.");
+      } finally {
+        setBusy(null);
+      }
+    })();
+  }, [busy, closeAll, item.id, onDismissed, sellerId]);
+
   const onBlock = useCallback(() => {
     if (busy || !sellerId) return;
-    Alert.alert("차단하기", `@${sellerUsername} 님을 차단할까요?`, [
-      { text: "취소", style: "cancel" },
-      {
-        text: "차단하기",
-        style: "destructive",
-        onPress: () => {
-          setBusy("block");
-          void (async () => {
-            try {
-              await blockUser(sellerId);
-              closeAll();
-              onDismissed?.(item.id);
-              Alert.alert("차단했습니다");
-            } catch (e) {
-              Alert.alert("오류", e instanceof Error ? e.message : "차단에 실패했습니다.");
-            } finally {
-              setBusy(null);
-            }
-          })();
-        },
-      },
-    ]);
-  }, [busy, closeAll, item.id, onDismissed, sellerId, sellerUsername]);
+    setConfirm("block");
+  }, [busy, sellerId]);
 
   const openReport = useCallback(() => {
     setReportOpen(true);
@@ -175,7 +169,37 @@ export function UsedListingOverflowMenu({
               style={[styles.menu, { top: menuTop, left: menuLeft, width: MENU_WIDTH }]}
               onStartShouldSetResponder={() => true}
             >
-              {isOwner ? (
+              {confirm === "delete" ? (
+                <>
+                  <Text style={styles.confirmTitle}>글 삭제</Text>
+                  <Text style={styles.confirmBody}>이 중고거래 글을 삭제할까요?</Text>
+                  <Pressable style={styles.row} onPress={runDelete} disabled={!!busy}>
+                    <Ionicons name="trash-outline" size={18} color={colors.terracotta} />
+                    <Text style={[styles.rowText, styles.dangerText]}>삭제하기</Text>
+                    {busy === "delete" ? (
+                      <ActivityIndicator size="small" color={colors.terracotta} />
+                    ) : null}
+                  </Pressable>
+                  <Pressable style={styles.row} onPress={() => setConfirm(null)}>
+                    <Text style={styles.rowText}>취소</Text>
+                  </Pressable>
+                </>
+              ) : confirm === "block" ? (
+                <>
+                  <Text style={styles.confirmTitle}>차단하기</Text>
+                  <Text style={styles.confirmBody}>@{sellerUsername} 님을 차단할까요?</Text>
+                  <Pressable style={styles.row} onPress={runBlock} disabled={!!busy}>
+                    <Ionicons name="ban-outline" size={18} color={colors.terracotta} />
+                    <Text style={[styles.rowText, styles.dangerText]}>차단하기</Text>
+                    {busy === "block" ? (
+                      <ActivityIndicator size="small" color={colors.terracotta} />
+                    ) : null}
+                  </Pressable>
+                  <Pressable style={styles.row} onPress={() => setConfirm(null)}>
+                    <Text style={styles.rowText}>취소</Text>
+                  </Pressable>
+                </>
+              ) : isOwner ? (
                 <>
                   <Pressable style={styles.row} onPress={onEdit} disabled={!!busy}>
                     <Ionicons name="create-outline" size={18} color={colors.text} />
@@ -272,6 +296,20 @@ function createStyles(colors: ThemeColors) {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.border,
       marginHorizontal: spacing.sm,
+    },
+    confirmTitle: {
+      paddingHorizontal: spacing.md,
+      paddingTop: 10,
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: "800",
+    },
+    confirmBody: {
+      paddingHorizontal: spacing.md,
+      paddingBottom: 6,
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: "500",
     },
   });
 }

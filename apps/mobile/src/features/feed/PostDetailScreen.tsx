@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { showIslandError } from "@/ui/IslandToast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -94,7 +94,7 @@ export function PostDetailScreen() {
       if (ctx?.previous) {
         queryClient.setQueryData(postCommentsQueryKey(postId), ctx.previous);
       }
-      Alert.alert("오류", err instanceof Error ? err.message : "댓글 등록에 실패했습니다.");
+      showIslandError("오류", err instanceof Error ? err.message : "댓글 등록에 실패했습니다.");
     },
     onSuccess: (res, _content, ctx) => {
       queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) => {
@@ -114,6 +114,8 @@ export function PostDetailScreen() {
   });
 
   const post = postQuery.data?.post;
+  const isQnaPost = Boolean(post?.community?.slug);
+  const headerTitle = isQnaPost ? "QnA" : "게시물";
   const composerBottomPad =
     keyboardInset > 0 ? spacing.sm : Math.max(spacing.md, insets.bottom);
   const androidKeyboardLift = Platform.OS === "android" ? keyboardInset : 0;
@@ -122,7 +124,7 @@ export function PostDetailScreen() {
     const content = draft.trim();
     if (!content) return;
     if (!user) {
-      Alert.alert("로그인 필요", "댓글을 작성하려면 로그인해 주세요.");
+      showIslandError("로그인 필요", "댓글을 작성하려면 로그인해 주세요.");
       return;
     }
     commentMut.mutate(content);
@@ -130,7 +132,7 @@ export function PostDetailScreen() {
 
   return (
     <Screen>
-      <AppHeader title="게시물" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={headerTitle} leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
       {postQuery.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : postQuery.isError || !post ? (
@@ -162,7 +164,7 @@ export function PostDetailScreen() {
                   }}
                   onPressAuthor={(author: UserProfileSeed) => openUserProfile(author)}
                 />
-                <Text style={styles.section}>댓글</Text>
+                <Text style={styles.section}>{isQnaPost ? "A" : "댓글"}</Text>
               </View>
             }
             ListEmptyComponent={

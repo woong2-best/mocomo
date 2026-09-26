@@ -138,6 +138,29 @@ export function formatUsedPrice(price: number, currency?: string | null) {
   return formatPrice(price, normalizeUsedCurrency(currency));
 }
 
+/** 입력칸에 보여줄 금액. 달러는 센트 저장값을 달러로. */
+export function usedAmountInputValue(amount: number, currency?: string | null): string {
+  if (!Number.isFinite(amount)) return "";
+  if (normalizeUsedCurrency(currency) === "usd") {
+    const dollars = amount / 100;
+    return Number.isInteger(dollars) ? String(dollars) : dollars.toFixed(2);
+  }
+  return String(Math.max(0, Math.round(amount)));
+}
+
+/** 입력값을 저장 단위로. 달러는 달러 → 센트. */
+export function parseUsedAmountInput(raw: string, currency?: string | null): number {
+  const cleaned = raw.trim().replace(/,/g, "");
+  if (!cleaned) return 0;
+  if (normalizeUsedCurrency(currency) === "usd") {
+    const dollars = Number(cleaned);
+    if (!Number.isFinite(dollars) || dollars < 0) return 0;
+    return Math.round(dollars * 100);
+  }
+  const whole = Math.floor(Number(cleaned));
+  return Number.isFinite(whole) && whole > 0 ? whole : 0;
+}
+
 export const BID_INCREMENT_PRESETS_USD = [
   { value: 50, label: "$0.50" },
   { value: 100, label: "$1" },

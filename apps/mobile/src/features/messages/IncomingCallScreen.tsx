@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -16,6 +15,7 @@ import { acceptDmCall, declineDmCall } from "@/api/calls";
 import { emitCallAccept, getCallSocket } from "@/lib/call-socket";
 import { useMobilePeerCall } from "@/lib/use-mobile-peer-call";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { showIslandError } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -40,7 +40,7 @@ function LivePeerStage({
     video,
     enabled: true,
     socket,
-    onFailed: (msg) => Alert.alert("연결 오류", msg),
+    onFailed: (msg) => showIslandError("연결 오류", msg),
   });
 
   if (video && peer.remoteStream) {

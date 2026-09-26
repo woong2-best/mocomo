@@ -2942,6 +2942,10 @@ model UsedListing {
   forfeitedWinnerCount      Int                 @default(0)
   paymentReminder1hSent     Boolean             @default(false)
   paymentReminder10mSent    Boolean             @default(false)
+  /** 3일 경매 — 마감 1일 전 알림을 한 번만 */
+  auctionReminder1dSent     Boolean             @default(false)
+  /** 3일 경매 — 마감 1시간 전 알림을 한 번만 */
+  auctionReminder1hSent     Boolean             @default(false)
   paymentTimeoutProcessed   Boolean             @default(false)
   negotiationTimeoutProcessed Boolean           @default(false)
   /** 경매 거래 완료 — 판매자·낙찰자 둘 다 확인해야 보증금 환원 */

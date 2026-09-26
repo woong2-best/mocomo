@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -16,20 +16,20 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchQnaFeedPage } from "@/api/community";
+import { backfillOwnedEmptyQnaPosts } from "@/features/community/publish-qna-post";
 import type { FeedItem } from "@/api/feed";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
 import { useUserProfileNav, type UserProfileSeed } from "@/features/profile/user-profile-nav";
 import {
-  COMMUNITY_CATEGORY_OPTIONS,
-  type CommunityCategoryId,
+  QNA_FEED_CATEGORY_TABS,
+  type QnaFeedTabId,
 } from "@/features/community/community-labels";
+import { ensureQnaNsfwAccess } from "@/features/community/ensure-qna-nsfw-access";
 import { SearchField } from "@/ui/SearchField";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
-
-type TabId = "ALL" | CommunityCategoryId;
 
 export function CommunityListScreen() {
   const { colors, isDark } = useTheme();
@@ -39,7 +39,7 @@ export function CommunityListScreen() {
   const { open: openUserProfile } = useUserProfileNav();
   const queryClient = useQueryClient();
   const searchRef = useRef<TextInput>(null);
-  const [tab, setTab] = useState<TabId>("ALL");
+  const [tab, setTab] = useState<QnaFeedTabId>("ALL");
   const [searchQ, setSearchQ] = useState("");
   const [searchSubmitted, setSearchSubmitted] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -67,6 +67,23 @@ export function CommunityListScreen() {
   }, [query.data]);
 
   const paymentsEnabled = query.data?.pages[0]?.paymentsEnabled ?? false;
+  const repairedRef = useRef(false);
+
+  useEffect(() => {
+    if (repairedRef.current || !query.isSuccess || tab !== "ALL" || searchSubmitted) return;
+    repairedRef.current = true;
+    const known = new Set(
+      items.flatMap((item) =>
+        item.type === "post" && item.data.community?.slug ? [item.data.community.slug] : []
+      )
+    );
+    void (async () => {
+      const created = await backfillOwnedEmptyQnaPosts(known);
+      if (created > 0) {
+        await queryClient.invalidateQueries({ queryKey: ["mobile-qna-feed"] });
+      }
+    })();
+  }, [items, query.isSuccess, queryClient, searchSubmitted, tab]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -78,6 +95,14 @@ export function CommunityListScreen() {
     navigation.navigate("CommunityCreate");
   }, [navigation]);
 
+  const selectTab = useCallback((next: QnaFeedTabId) => {
+    void (async () => {
+      const ok = await ensureQnaNsfwAccess(next);
+      if (!ok) return;
+      setTab(next);
+    })();
+  }, []);
+
   const onPressPost = useCallback(
     (id: string) => navigation.navigate("PostDetail", { id }),
     [navigation]
@@ -87,8 +112,15 @@ export function CommunityListScreen() {
     [openUserProfile]
   );
   const onPressCommunity = useCallback(
-    (slug: string) => navigation.navigate("CommunityServer", { slug }),
-    [navigation]
+    (slug: string) => {
+      const hit = items.find(
+        (item) => item.type === "post" && item.data.community?.slug === slug
+      );
+      if (hit?.type === "post") {
+        navigation.navigate("PostDetail", { id: hit.data.id });
+      }
+    },
+    [items, navigation]
   );
 
   const renderItem = useCallback(
@@ -155,18 +187,20 @@ export function CommunityListScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tabs}
       >
-        {COMMUNITY_CATEGORY_OPTIONS.map((opt) => {
+        {QNA_FEED_CATEGORY_TABS.map((opt) => {
           const active = tab === opt.id;
           return (
             <Pressable
               key={opt.id}
-              onPress={() => setTab(opt.id)}
+              onPress={() => selectTab(opt.id)}
               style={[styles.tab, active && styles.tabActive]}
             >
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>
-                {opt.emoji ? `${opt.emoji} ` : ""}
-                {opt.shortLabel}
-              </Text>
+              <View style={styles.tabInner}>
+                {opt.emoji ? <Text style={styles.tabEmoji}>{opt.emoji}</Text> : null}
+                <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>
+                  {opt.shortLabel}
+                </Text>
+              </View>
             </Pressable>
           );
         })}
@@ -253,11 +287,22 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
       backgroundColor: colors.surfaceRaised,
       marginRight: 6,
     },
+    tabInner: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    tabEmoji: { fontSize: 12, lineHeight: 16 },
     tabActive: {
       backgroundColor: colors.brand,
       borderColor: colors.brand,
     },
-    tabText: { fontSize: 12, fontWeight: "700", color: colors.textMuted },
+    tabText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.textMuted,
+      flexShrink: 0,
+    },
     tabTextActive: { color: "#fff", fontWeight: "800" },
     muted: { color: colors.textMuted, textAlign: "center" },
     error: { color: colors.danger, padding: spacing.lg, textAlign: "center" },

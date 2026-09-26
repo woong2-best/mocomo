@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -17,6 +16,7 @@ import { openMarketSellerWebFlow } from "@/lib/open-market-seller-web";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
+import { showIslandSuccess } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -88,13 +88,8 @@ export function MarketSellItemScreen() {
           type === "CUSTOM_ORDER" ? parseInt(productionDays, 10) || 7 : undefined,
         isNsfw,
       });
-      Alert.alert("등록 완료", "상품이 등록되었습니다.", [
-        {
-          text: "확인",
-          onPress: () =>
-            navigation.replace("StarMarketDetail", { id: result.listingId }),
-        },
-      ]);
+      showIslandSuccess("등록 완료", "상품이 등록되었습니다.");
+      navigation.replace("StarMarketDetail", { id: result.listingId });
     } catch (e) {
       setError(e instanceof Error ? e.message : "등록에 실패했습니다.");
     } finally {

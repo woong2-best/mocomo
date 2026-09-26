@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -10,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { showIslandError } from "@/ui/IslandToast";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -86,7 +86,7 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
   const pickPhoto = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
+      showIslandError("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({

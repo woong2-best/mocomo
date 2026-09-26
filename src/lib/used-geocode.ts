@@ -4,12 +4,5 @@ export type GeocodeResult = {
   label: string;
 };
 
-export {
-  isKakaoLocalConfigured,
-  KakaoLocalNotConfiguredError,
-  kakaoCoordToAddress,
-  kakaoGeocodeMeetPlace as geocodeMeetPlace,
-  kakaoSearchPlace,
-} from "@/lib/kakao-local";
-
-export type { KakaoCoord } from "@/lib/kakao-local";
+export { geocodeMeetQuery as geocodeMeetPlace, geocodeMeetQuery } from "@/lib/maps/geocode";
+export type { GeocodeResult as MeetGeocodeResult } from "@/lib/maps/geocode";

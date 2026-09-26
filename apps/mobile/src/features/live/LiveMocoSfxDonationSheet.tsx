@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { showIslandError } from "@/ui/IslandToast";
 import { useQuery } from "@tanstack/react-query";
 import { postLiveMocoDonation } from "@/api/live-donate";
 import { ApiError } from "@/api/client";
@@ -96,7 +96,7 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
       onClose();
     } catch (e) {
       if (e instanceof ApiError && e.status === 402) {
-        Alert.alert("MOCO 부족", "mocomo.net 웹사이트에서 MOCO를 충전한 뒤 다시 시도해 주세요.");
+        showIslandError("MOCO 부족", "mocomo.net 웹사이트에서 MOCO를 충전한 뒤 다시 시도해 주세요.");
       } else {
         setError(apiErrorMessage(e, "후원에 실패했습니다."));
       }

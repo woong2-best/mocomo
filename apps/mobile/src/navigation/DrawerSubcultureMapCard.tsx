@@ -31,15 +31,17 @@ export function DrawerSubcultureMapCard({
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [attribOpen, setAttribOpen] = useState(false);
 
+  const userCountry = user?.countryCode ?? "KR";
+
   const query = useQuery({
-    queryKey: ["mobile-events-map", user?.countryCode ?? ""],
-    queryFn: () => fetchEventsMap({ country: user?.countryCode || undefined }),
+    queryKey: ["mobile-events-map", true],
+    queryFn: () => fetchEventsMap({ global: true }),
     staleTime: 60_000,
     enabled: active && !!user?.id,
   });
 
   const pins = useMemo(() => (query.data?.pins ?? []) as MapEventPin[], [query.data?.pins]);
-  const center = globeCenterForCountry(user?.countryCode);
+  const center = globeCenterForCountry(userCountry);
   const mapReady = showGlobe && box.w > 2 && box.h > 2;
 
   return (

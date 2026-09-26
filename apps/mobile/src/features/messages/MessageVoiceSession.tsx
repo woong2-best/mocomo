@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef } from "react";
-import { Alert } from "react-native";
 import {
   RecordingPresets,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioRecorder,
 } from "expo-audio";
+import { showIslandError } from "@/ui/IslandToast";
 import { uploadLocalFile } from "@/api/upload-file";
 
 const MAX_VOICE_SEC = 120;
@@ -92,7 +92,7 @@ export function MessageVoiceSession({
         if (!uri) return;
 
         if (durationMs > 0 && durationMs < 400) {
-          Alert.alert("녹음이 너무 짧습니다.");
+          showIslandError("녹음이 너무 짧습니다.");
           return;
         }
 
@@ -110,7 +110,7 @@ export function MessageVoiceSession({
         await send(caption ?? "", [{ url, type: "AUDIO", name: filename }], replyId);
         onSent();
       } catch (e) {
-        Alert.alert("전송 실패", e instanceof Error ? e.message : "음성을 보내지 못했습니다.");
+        showIslandError("전송 실패", e instanceof Error ? e.message : "음성을 보내지 못했습니다.");
       } finally {
         onBusy(false);
         await setAudioModeAsync({
@@ -138,7 +138,7 @@ export function MessageVoiceSession({
     try {
       const perm = await requestRecordingPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert("권한 필요", "마이크 접근이 필요합니다.");
+        showIslandError("권한 필요", "마이크 접근이 필요합니다.");
         return;
       }
       await setAudioModeAsync({
@@ -160,7 +160,7 @@ export function MessageVoiceSession({
         });
       }, 1000);
     } catch {
-      Alert.alert("녹음 실패", "음성 녹음을 시작할 수 없습니다.");
+      showIslandError("녹음 실패", "음성 녹음을 시작할 수 없습니다.");
       setRecording(false);
       clearRecordTimer();
     }

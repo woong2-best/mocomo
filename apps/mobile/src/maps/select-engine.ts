@@ -6,11 +6,7 @@ export function normalizeMeetCountry(country?: string | null): string {
   return "KR";
 }
 
-/** KR → Kakao Native · else → MapLibre Native + OSM. */
-export function selectMapEngine(country?: string | null): MapEngineId {
-  return normalizeMeetCountry(country) === "KR" ? "kakao" : "maplibre";
-}
-
-export function isKakaoMapCountry(country?: string | null): boolean {
-  return selectMapEngine(country) === "kakao";
+/** Embedded maps: MapLibre globally. External links: Google Maps. */
+export function selectMapEngine(_country?: string | null): MapEngineId {
+  return "maplibre";
 }

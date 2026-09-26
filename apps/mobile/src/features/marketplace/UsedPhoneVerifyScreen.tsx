@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
@@ -44,11 +44,7 @@ export function UsedPhoneVerifyScreen() {
         const status = await fetchUsedPhoneStatus();
         if (!alive) return;
         if (status.countryCode) setCountryCode(status.countryCode);
-        if (status.countryCode?.toUpperCase() === "KR") {
-          navigation.replace("Wallet", { initialTab: "earnings", returnScreen: next });
-          return;
-        }
-        if (status.eligible || status.phoneVerified) {
+        if (status.countryCode?.toUpperCase() === "KR" || status.eligible || status.phoneVerified) {
           navigation.replace(next);
           return;
         }
@@ -68,13 +64,13 @@ export function UsedPhoneVerifyScreen() {
     try {
       await sendUsedPhoneOtp(phone.trim());
       setSent(true);
-      Alert.alert("전송됨", "인증번호를 문자로 보냈습니다.");
+      showIslandSuccess("전송됨", "인증번호를 문자로 보냈습니다.");
     } catch (e) {
       const msg =
         e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body
           ? String((e.body as { error: string }).error)
           : "인증번호 전송에 실패했습니다.";
-      Alert.alert("오류", msg);
+      showIslandError("오류", msg);
     } finally {
       setBusy(false);
     }
@@ -90,7 +86,7 @@ export function UsedPhoneVerifyScreen() {
         e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body
           ? String((e.body as { error: string }).error)
           : "인증에 실패했습니다.";
-      Alert.alert("오류", msg);
+      showIslandError("오류", msg);
     } finally {
       setBusy(false);
     }

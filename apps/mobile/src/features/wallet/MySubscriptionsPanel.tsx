@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cancelSubscription, fetchMySubscriptions } from "@/api/subscriptions";
 import { useUserProfileNav } from "@/features/profile/user-profile-nav";
@@ -7,6 +7,7 @@ import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { formatUsd } from "@/lib/money";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 
 export function MySubscriptionsPanel() {
   const { colors } = useTheme();
@@ -14,6 +15,9 @@ export function MySubscriptionsPanel() {
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const queryClient = useQueryClient();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelConfirm, setCancelConfirm] = useState<{ creatorId: string; username: string } | null>(
+    null
+  );
 
   const query = useQuery({
     queryKey: ["mobile-subscriptions"],
@@ -22,30 +26,24 @@ export function MySubscriptionsPanel() {
 
   const subscriptions = query.data?.subscriptions ?? [];
 
-  async function handleCancel(creatorId: string, username: string) {
-    Alert.alert(
-      "다음 달 결제 취소",
-      `@${username} 정기 후원의 다음 달 자동 결제를 취소할까요? 이미 처리된 후원금은 환불되지 않습니다.`,
-      [
-        { text: "닫기", style: "cancel" },
-        {
-          text: "취소하기",
-          style: "destructive",
-          onPress: () => {
-            setCancellingId(creatorId);
-            void cancelSubscription(creatorId)
-              .then(() => {
-                void queryClient.invalidateQueries({ queryKey: ["mobile-subscriptions"] });
-                Alert.alert("완료", "다음 달부터 자동 결제되지 않습니다.");
-              })
-              .catch((e: unknown) => {
-                Alert.alert("오류", e instanceof Error ? e.message : "취소에 실패했습니다.");
-              })
-              .finally(() => setCancellingId(null));
-          },
-        },
-      ]
-    );
+  function handleCancel(creatorId: string, username: string) {
+    setCancelConfirm({ creatorId, username });
+  }
+
+  function runCancelSubscription() {
+    if (!cancelConfirm) return;
+    const { creatorId } = cancelConfirm;
+    setCancellingId(creatorId);
+    setCancelConfirm(null);
+    void cancelSubscription(creatorId)
+      .then(() => {
+        void queryClient.invalidateQueries({ queryKey: ["mobile-subscriptions"] });
+        showIslandSuccess("완료", "다음 달부터 자동 결제되지 않습니다.");
+      })
+      .catch((e: unknown) => {
+        showIslandError("오류", e instanceof Error ? e.message : "취소에 실패했습니다.");
+      })
+      .finally(() => setCancellingId(null));
   }
 
   if (query.isLoading) {
@@ -62,6 +60,24 @@ export function MySubscriptionsPanel() {
 
   return (
     <View style={styles.list}>
+      <Modal
+        visible={cancelConfirm !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCancelConfirm(null)}
+      >
+        <Pressable style={styles.scrim} onPress={() => setCancelConfirm(null)}>
+          <Pressable style={[styles.confirmCard, { borderColor: colors.hairline }]} onPress={(e) => e.stopPropagation()}>
+            <Text style={[styles.confirmTitle, { color: colors.text }]}>다음 달 결제 취소</Text>
+            <Text style={[styles.confirmBody, { color: colors.textMuted }]}>
+              @{cancelConfirm?.username} 정기 후원의 다음 달 자동 결제를 취소할까요? 이미 처리된 후원금은
+              환불되지 않습니다.
+            </Text>
+            <FolkButton label="취소하기" variant="secondary" onPress={runCancelSubscription} />
+            <FolkButton label="닫기" variant="ghost" onPress={() => setCancelConfirm(null)} />
+          </Pressable>
+        </Pressable>
+      </Modal>
       {subscriptions.map((s) => {
         const periodEnd = new Date(s.currentPeriodEnd).toLocaleDateString("ko-KR");
         const statusLabel = s.active
@@ -118,5 +134,20 @@ function createStyles(colors: ThemeColors) {
       lineHeight: 19,
       color: colors.textMuted,
     },
+    scrim: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      justifyContent: "center",
+      padding: spacing.lg,
+    },
+    confirmCard: {
+      borderWidth: 1,
+      borderRadius: 16,
+      padding: spacing.lg,
+      gap: spacing.sm,
+      backgroundColor: colors.surfaceRaised,
+    },
+    confirmTitle: { fontSize: 16, fontWeight: "800" },
+    confirmBody: { fontSize: 13, fontWeight: "500", lineHeight: 19 },
   });
 }

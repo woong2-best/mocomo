@@ -18,7 +18,18 @@ export const COMMUNITY_CATEGORY_OPTIONS = [
   { id: "INFO", shortLabel: "정보·질문", emoji: "❓", label: "정보 / 질문" },
 ] as const;
 
-export type CommunityCategoryId = Exclude<(typeof COMMUNITY_CATEGORY_OPTIONS)[number]["id"], "ALL">;
+/** QnA list tabs — includes NSFW (age-gated in UI). */
+export const QNA_FEED_CATEGORY_TABS = [
+  ...COMMUNITY_CATEGORY_OPTIONS,
+  { id: "NSFW" as const, shortLabel: "NSFW", emoji: "🔞", label: "NSFW" },
+] as const;
+
+export type QnaFeedTabId = (typeof QNA_FEED_CATEGORY_TABS)[number]["id"];
+
+export type CommunityCategoryId = Exclude<
+  (typeof COMMUNITY_CATEGORY_OPTIONS)[number]["id"],
+  "ALL"
+>;
 
 /** QnA create grid — NSFW is one category chip (mutually exclusive with the rest). */
 export const QNA_NSFW_CATEGORY_ID = "NSFW" as const;

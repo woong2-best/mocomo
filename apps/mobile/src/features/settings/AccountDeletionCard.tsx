@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -15,6 +14,7 @@ import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -60,11 +60,10 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
       });
       setOpen(false);
       resetForm();
-      Alert.alert("탈퇴 접수", result.message, [
-        { text: "확인", onPress: () => void signOut() },
-      ]);
+      showIslandSuccess("탈퇴 접수", result.message);
+      void signOut();
     } catch (e) {
-      Alert.alert("탈퇴 실패", errorMessage(e));
+      showIslandError("탈퇴 실패", errorMessage(e));
     } finally {
       setBusy(false);
     }

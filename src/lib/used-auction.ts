@@ -1,18 +1,20 @@
 import type { UsedAuctionState, UsedSaleType } from "@prisma/client";
 
-/** 경매 최소 입찰 단위 기본값 */
+/** 경매 최소 입찰 단위 기본값 (원). 달러 상품은 1달러(100센트). */
 export const DEFAULT_BID_INCREMENT = 1_000;
+
+export function defaultBidIncrement(currency?: string | null): number {
+  return (currency ?? "").toLowerCase() === "usd" ? 100 : DEFAULT_BID_INCREMENT;
+}
 
 /** 마감 직전 입찰 시 최대 연장 횟수 (회당 antiSnipeMinutes) */
 export const MAX_ANTI_SNIPE_EXTENSIONS = 5;
 
+/** 모든 경매는 등록 시점부터 3일. 클라이언트가 보낸 기간은 쓰지 않는다. */
+export const AUCTION_DURATION_HOURS = 72;
+
 export const AUCTION_DURATION_OPTIONS = [
-  { hours: 1, label: "1시간" },
-  { hours: 6, label: "6시간" },
-  { hours: 12, label: "12시간" },
-  { hours: 24, label: "1일" },
-  { hours: 72, label: "3일" },
-  { hours: 168, label: "7일" },
+  { hours: AUCTION_DURATION_HOURS, label: "3일" },
 ] as const;
 
 export const BID_INCREMENT_PRESETS = [
@@ -95,20 +97,52 @@ export function minNextBidAmount(l: AuctionListingSlice): number {
   return current + inc;
 }
 
-export function formatAuctionCountdown(endsAt: Date | string, now = Date.now()): string {
+export type AuctionCountdownParts = {
+  ended: boolean;
+  days: string;
+  hours: string;
+  minutes: string;
+  seconds: string;
+  /** DD:HH:MM:SS */
+  text: string;
+};
+
+function pad2(n: number): string {
+  return String(Math.max(0, n)).padStart(2, "0");
+}
+
+/** 디지털 타이머. 마감이면 00:00:00:00 */
+export function auctionCountdownParts(
+  endsAt: Date | string | null | undefined,
+  now = Date.now()
+): AuctionCountdownParts | null {
   const end = auctionEndsAtMs(endsAt);
-  if (!end) return "—";
+  if (!end) return null;
   const diff = end - now;
-  if (diff <= 0) return "마감";
-  const secs = Math.floor(diff / 1000);
-  const days = Math.floor(secs / 86400);
-  const hours = Math.floor((secs % 86400) / 3600);
-  const mins = Math.floor((secs % 3600) / 60);
-  const s = secs % 60;
-  if (days > 0) return `${days}일 ${hours}시간`;
-  if (hours > 0) return `${hours}시간 ${mins}분`;
-  if (mins > 0) return `${mins}분 ${s}초`;
-  return `${s}초`;
+  const totalSecs = diff <= 0 ? 0 : Math.floor(diff / 1000);
+  const days = Math.floor(totalSecs / 86400);
+  const hours = Math.floor((totalSecs % 86400) / 3600);
+  const minutes = Math.floor((totalSecs % 3600) / 60);
+  const seconds = totalSecs % 60;
+  const d = pad2(days);
+  const h = pad2(hours);
+  const m = pad2(minutes);
+  const s = pad2(seconds);
+  return {
+    ended: diff <= 0,
+    days: d,
+    hours: h,
+    minutes: m,
+    seconds: s,
+    text: `${d}:${h}:${m}:${s}`,
+  };
+}
+
+export function formatAuctionCountdown(endsAt: Date | string, now = Date.now()): string {
+  const parts = auctionCountdownParts(endsAt, now);
+  if (!parts) return "—";
+  if (parts.ended) return "마감";
+  return parts.text;
 }
 
 export function auctionStateLabel(state: UsedAuctionState | null | undefined): string {
@@ -133,8 +167,12 @@ export function isPriceNegotiation(l: AuctionListingSlice): boolean {
   return l.auctionState === "PRICE_NEGOTIATION";
 }
 
-export function computeAuctionEndsAt(hours: number): Date {
-  return new Date(Date.now() + hours * 60 * 60 * 1000);
+export function computeAuctionEndsAt(hours: number, now = Date.now()): Date {
+  return new Date(now + hours * 60 * 60 * 1000);
+}
+
+export function standardAuctionEndsAt(now = Date.now()): Date {
+  return computeAuctionEndsAt(AUCTION_DURATION_HOURS, now);
 }
 
 /** 입찰 시 마감 연장 여부 (연장 횟수 한도 적용) */

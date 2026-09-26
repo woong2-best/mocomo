@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,6 +19,7 @@ import { StarMarketBuySheet } from "@/features/market/StarMarketBuySheet";
 import { addToMarketplaceCart } from "@/lib/marketplace-cart";
 import { recordRecentMarketView } from "@/lib/market-recently-viewed";
 import { FolkButton } from "@/ui/FolkButton";
+import { showIslandInfo, showIslandSuccess } from "@/ui/IslandToast";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
@@ -150,7 +150,7 @@ export function StarMarketDetailScreen() {
                       priceAmount: item.priceAmount,
                       currency: item.currency,
                       coverUrl: item.coverUrl,
-                    }).then(() => Alert.alert("장바구니", "상품을 담았습니다."));
+                    }).then(() => showIslandSuccess("장바구니", "상품을 담았습니다."));
                   }}
                 />
                 <FolkButton
@@ -158,7 +158,7 @@ export function StarMarketDetailScreen() {
                   variant="secondary"
                   onPress={() => {
                     void toggleMarketFavorite(item.id).then((r) =>
-                      Alert.alert("찜", r.favorited ? "찜 목록에 추가했습니다." : "찜을 해제했습니다.")
+                      showIslandInfo("찜", r.favorited ? "찜 목록에 추가했습니다." : "찜을 해제했습니다.")
                     );
                   }}
                 />
@@ -172,7 +172,7 @@ export function StarMarketDetailScreen() {
               visible={buyOpen}
               onClose={() => setBuyOpen(false)}
               item={item}
-              onSuccess={() => Alert.alert("구매 완료", "주문이 접수되었습니다.")}
+              onSuccess={() => showIslandSuccess("구매 완료", "주문이 접수되었습니다.")}
             />
           ) : null}
         </ScrollView>

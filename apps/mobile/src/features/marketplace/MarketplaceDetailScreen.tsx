@@ -1,7 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { showIslandError } from "@/ui/IslandToast";
 import { Image } from "expo-image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
@@ -33,7 +33,13 @@ import {
   UsedSaleStatsCard,
 } from "@/features/marketplace/UsedSubcultureDetailCards";
 import { UsedWtbAlertCard } from "@/features/marketplace/UsedWtbAlertCard";
-import { formatUsedPrice } from "@/features/marketplace/used-catalog";
+import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
+import {
+  formatUsedPrice,
+  parseListingPriceInput,
+  USED_CURRENCY_META,
+  usedPriceInputValue,
+} from "@/features/marketplace/used-catalog";
 import { rememberViewedListing } from "@/features/marketplace/market-memory";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
@@ -52,6 +58,24 @@ function apiErrMessage(err: unknown, fallback: string) {
     return (err.body as { error: string }).error;
   }
   return fallback;
+}
+
+function auctionQuickBids(item: {
+  minNextBid: number | null;
+  bidIncrement: number | null;
+  currency?: string | null;
+}) {
+  const base = item.minNextBid ?? 0;
+  if (base <= 0) return [];
+  const inc =
+    item.bidIncrement && item.bidIncrement > 0
+      ? item.bidIncrement
+      : (item.currency ?? "krw") === "usd"
+        ? 100
+        : 1000;
+  return [0, 1, 2, 4]
+    .map((n) => base + n * inc)
+    .filter((value, index, all) => all.indexOf(value) === index);
 }
 
 function mineTradeConfirmed(item: {
@@ -74,6 +98,7 @@ export function MarketplaceDetailScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "MarketplaceDetail" | "AuctionDetail">>();
   const queryClient = useQueryClient();
   const [bidText, setBidText] = useState("");
+  const bidPrefilled = useRef(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [holdSheet, setHoldSheet] = useState<{ amount: number } | null>(null);
 
@@ -86,6 +111,12 @@ export function MarketplaceDetailScreen() {
   useEffect(() => {
     if (route.params.id) void rememberViewedListing(route.params.id);
   }, [route.params.id]);
+
+  useEffect(() => {
+    if (bidPrefilled.current || item?.minNextBid == null) return;
+    bidPrefilled.current = true;
+    setBidText(usedPriceInputValue(item.minNextBid, item.currency));
+  }, [item?.minNextBid, item?.currency]);
 
   const depositQuery = useQuery({
     queryKey: ["mobile-auction-deposit", route.params.id],
@@ -133,7 +164,7 @@ export function MarketplaceDetailScreen() {
     onSuccess: async (res) => {
       if (res.error) {
         if (res.needsBidHold) {
-          setHoldSheet({ amount: Number(bidText.replace(/,/g, "")) || 0 });
+          setHoldSheet({ amount: parseListingPriceInput(bidText, item?.currency ?? "krw") });
           return;
         }
         setMsg(res.error);
@@ -155,7 +186,7 @@ export function MarketplaceDetailScreen() {
         "needsBidHold" in err.body &&
         (err.body as { needsBidHold?: boolean }).needsBidHold;
       if (body) {
-        setHoldSheet({ amount: Number(bidText.replace(/,/g, "")) || 0 });
+        setHoldSheet({ amount: parseListingPriceInput(bidText, item?.currency ?? "krw") });
         return;
       }
       setMsg(apiErrMessage(err, "입찰에 실패했습니다."));
@@ -167,16 +198,16 @@ export function MarketplaceDetailScreen() {
       const deposit =
         depositQuery.data ?? (await fetchAuctionDepositStatus(route.params.id));
       if (!deposit.canParticipate) {
-        Alert.alert("경매 참여 불가", AUCTION_INSUFFICIENT_WALLET_MSG);
+        showIslandError("경매 참여 불가", AUCTION_INSUFFICIENT_WALLET_MSG);
         return;
       }
     } catch {
-      Alert.alert("경매 참여 불가", "지갑 잔액을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      showIslandError("경매 참여 불가", "지갑 잔액을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
       return;
     }
-    const amount = Number(bidText.replace(/,/g, ""));
+    const amount = parseListingPriceInput(bidText, item?.currency ?? "krw");
     if (!Number.isFinite(amount) || amount <= 0) {
-      Alert.alert("입찰가", "올바른 금액을 입력해 주세요.");
+      showIslandError("입찰가", "올바른 금액을 입력해 주세요.");
       return;
     }
     bid.mutate(amount);
@@ -214,6 +245,9 @@ export function MarketplaceDetailScreen() {
                 ? `현재가 ${formatUsedPrice(item.currentBidAmount, item.currency)}`
                 : formatUsedPrice(Number(item.price ?? 0), item.currency)}
             </Text>
+            {item.saleType === "AUCTION" && item.auctionEndsAt ? (
+              <AuctionCountdown endsAt={item.auctionEndsAt} variant="clock" />
+            ) : null}
             <Text style={styles.title}>{item.title}</Text>
             <SubcultureMetaChips
               workTitle={item.workTitle}
@@ -308,14 +342,30 @@ export function MarketplaceDetailScreen() {
                   최소 입찰 {item.minNextBid != null ? formatUsedPrice(item.minNextBid, item.currency) : "-"}
                   {item.bidCount != null ? ` · 입찰 ${item.bidCount}회` : ""}
                 </Text>
-                <TextInput
-                  style={styles.input}
-                  keyboardType="number-pad"
-                  placeholder="입찰가"
-                  placeholderTextColor={colors.textMuted}
-                  value={bidText}
-                  onChangeText={setBidText}
-                />
+                <View style={styles.quickRow}>
+                  {auctionQuickBids(item).map((amount) => (
+                    <Pressable
+                      key={amount}
+                      style={styles.quickChip}
+                      onPress={() => setBidText(usedPriceInputValue(amount, item.currency))}
+                    >
+                      <Text style={styles.quickChipText}>{formatUsedPrice(amount, item.currency)}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <View style={styles.priceRow}>
+                  <Text style={styles.pricePrefix}>
+                    {(USED_CURRENCY_META[item.currency ?? "krw"] ?? USED_CURRENCY_META.krw).symbol}
+                  </Text>
+                  <TextInput
+                    style={styles.priceInput}
+                    keyboardType={(item.currency ?? "krw") === "usd" ? "decimal-pad" : "number-pad"}
+                    placeholder={(item.currency ?? "krw") === "usd" ? "달러로 입력" : "금액 입력"}
+                    placeholderTextColor={colors.textMuted}
+                    value={bidText}
+                    onChangeText={setBidText}
+                  />
+                </View>
                 <Pressable
                   style={[styles.btn, bid.isPending && styles.btnDisabled]}
                   disabled={bid.isPending}
@@ -392,6 +442,27 @@ function createThemedStyles(colors: ThemeColors) {
   btnSecondaryText: { color: colors.text, fontWeight: "700" },
   bidBox: { marginTop: spacing.lg, gap: spacing.sm },
   bidLabel: { color: colors.textMuted, fontWeight: "600" },
+  quickRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  quickChip: {
+    borderWidth: 1.5,
+    borderColor: "rgba(27, 74, 140, 0.35)",
+    backgroundColor: colors.surfaceRaised,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  quickChipText: { color: colors.cobalt, fontWeight: "800", fontSize: 13 },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(27, 74, 140, 0.28)",
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    paddingHorizontal: 12,
+  },
+  pricePrefix: { color: colors.cobalt, fontWeight: "900", fontSize: 18, marginRight: 6 },
+  priceInput: { flex: 1, paddingVertical: 12, color: colors.text, fontWeight: "800", fontSize: 18 },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,

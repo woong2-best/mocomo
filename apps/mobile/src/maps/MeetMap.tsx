@@ -36,6 +36,7 @@ type Props = {
   meetPlace?: string;
   coords?: MeetCoords | null;
   onCoordsChange?: (coords: MeetCoords | null) => void;
+  /** @deprecated 지도 검색과 주소 상세는 분리됨. pick 모드에서는 사용하지 않음 */
   onMeetPlaceChange?: (text: string) => void;
   height?: number;
   pinTitle?: string;
@@ -48,16 +49,16 @@ export function MeetMap({
   meetPlace = "",
   coords,
   onCoordsChange,
-  onMeetPlaceChange,
   height = 220,
   pinTitle = "거래 장소",
 }: Props) {
   const { colors, isDark } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const mapChrome = isDark ? "#0F1524" : "#1B2838";
+  const styles = useMemo(() => createStyles(colors, mapChrome), [colors, mapChrome]);
   const shipping = region.includes("전국 택배");
   const [box, setBox] = useState({ w: 0, h: 0 });
 
-  const [searchQ, setSearchQ] = useState(meetPlace);
+  const [searchQ, setSearchQ] = useState("");
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
   const [displayCoords, setDisplayCoords] = useState<MeetCoords | null>(coords ?? null);
@@ -65,6 +66,7 @@ export function MeetMap({
   const centerBase = regionCenter(region);
   const center = active ?? { lat: centerBase.lat, lng: centerBase.lng };
   const zoom = active ? 16 : centerBase.zoom;
+  const pinPlace = mode === "pick" ? searchQ.trim() : meetPlace.trim();
   const pins = useMemo<UsedMapPin[]>(() => {
     if (!active) return [];
     return [
@@ -74,32 +76,25 @@ export function MeetMap({
         lng: active.lng,
         color: "#F97316",
         title: pinTitle,
-        place: meetPlace.trim() || "주소를 입력해 주세요",
+        place: pinPlace || "주소를 검색해 주세요",
       },
     ];
-  }, [active, meetPlace, pinTitle]);
-
-  useEffect(() => {
-    setSearchQ(meetPlace);
-  }, [meetPlace]);
+  }, [active, pinPlace, pinTitle]);
 
   useEffect(() => {
     setDisplayCoords(coords ?? null);
   }, [coords]);
 
-  const reverse = useCallback(
-    async (lat: number, lng: number) => {
-      try {
-        const url = `${API_BASE_URL}/api/used/reverse-geocode?lat=${lat}&lng=${lng}&country=${encodeURIComponent(country)}`;
-        const res = await fetch(url);
-        const body = (await res.json()) as { label?: string };
-        if (res.ok && body.label) onMeetPlaceChange?.(body.label);
-      } catch {
-        /* ignore */
-      }
-    },
-    [country, onMeetPlaceChange]
-  );
+  const reverse = useCallback(async (lat: number, lng: number) => {
+    try {
+      const url = `${API_BASE_URL}/api/used/reverse-geocode?lat=${lat}&lng=${lng}&country=${encodeURIComponent(country)}`;
+      const res = await fetch(url);
+      const body = (await res.json()) as { label?: string };
+      if (res.ok && body.label) setSearchQ(body.label);
+    } catch {
+      /* ignore */
+    }
+  }, [country]);
 
   const handlePick = useCallback(
     (next: MeetCoords) => {
@@ -132,7 +127,7 @@ export function MeetMap({
       }
       const next = { lat: body.lat, lng: body.lng };
       onCoordsChange?.(next);
-      onMeetPlaceChange?.(body.label?.trim() || q);
+      setSearchQ(body.label?.trim() || q);
       setDisplayCoords(next);
       setError("");
     } catch {
@@ -168,7 +163,7 @@ export function MeetMap({
             style={styles.input}
             value={searchQ}
             onChangeText={setSearchQ}
-            placeholder="주소 또는 장소 이름"
+            placeholder="주소 또는 장소 이름 (지도 검색)"
             placeholderTextColor={colors.textMuted}
             onSubmitEditing={() => void searchPlace()}
             returnKeyType="search"
@@ -194,7 +189,7 @@ export function MeetMap({
         }}
       >
         <UsedSatelliteMap
-          backgroundColor={isDark ? "#0F1524" : colors.background}
+          backgroundColor={mapChrome}
           width={box.w}
           height={box.h || height}
           center={center}
@@ -202,22 +197,19 @@ export function MeetMap({
           pins={pins}
           onPick={mode === "pick" ? handlePick : undefined}
         />
-        {mode === "pick" && !active ? (
-          <View style={styles.hint} pointerEvents="none">
-            <Text style={styles.hintText}>지도를 탭하거나 주소로 검색해 핀을 찍어 주세요</Text>
-          </View>
-        ) : null}
       </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {mode === "pick" ? (
-        <Text style={styles.caption}>위성 지도에 핀을 찍고, 아래 주소란에 만나는 장소를 적어 주세요.</Text>
+        <Text style={styles.caption}>
+          위 칸은 지도 검색용입니다. 건물·출입구 등 상세는 아래 주소 상세에만 적어 주세요.
+        </Text>
       ) : null}
     </View>
   );
 }
 
-function createStyles(colors: ThemeColors) {
+function createStyles(colors: ThemeColors, mapChrome: string) {
   return StyleSheet.create({
     wrap: { gap: 8 },
     toolbar: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -254,23 +246,7 @@ function createStyles(colors: ThemeColors) {
       overflow: "hidden",
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
-      backgroundColor: colors.muted,
-    },
-    hint: {
-      position: "absolute",
-      left: 8,
-      right: 8,
-      bottom: 8,
-      backgroundColor: "rgba(255,255,255,0.92)",
-      borderRadius: 8,
-      paddingVertical: 6,
-      paddingHorizontal: 8,
-    },
-    hintText: {
-      fontSize: 11,
-      fontWeight: "600",
-      color: colors.text,
-      textAlign: "center",
+      backgroundColor: mapChrome,
     },
     error: { fontSize: 12, color: colors.danger ?? "#DC2626", fontWeight: "600" },
     caption: { fontSize: 11, color: colors.textMuted, fontWeight: "600" },

@@ -23,9 +23,10 @@ Script `apps/mobile/scripts/copy-play-aab.cjs` copies the bundle to repo root:
 
 `MoCoMo-{version}-play.aab` (e.g. `C:\dev\mocomo\MoCoMo-1.0.143-play.aab`)
 
-Version comes from `apps/mobile/app.json` (`expo.version` + bump `android.versionCode` when shipping).
+`npm run build:play:aab` runs `scripts/next-play-version.cjs` first. That script sets the next Play `versionCode` to one higher than `apps/mobile/play-version.json`, `app.json`, and `android/app/build.gradle`, then writes the same code into all three. Google Play rejects a repeated code forever, so never reuse one.
 
 ## Do not
 
 - Skip the AAB build and only bump version numbers.
+- Set `versionCode` by hand, or write an old code back into `app.json` or `build.gradle`.
 - Assume EAS/cloud build unless local Gradle fails and user approves EAS.

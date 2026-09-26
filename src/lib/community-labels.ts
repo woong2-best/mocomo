@@ -1,4 +1,7 @@
 import type { CommunityCategory } from "@prisma/client";
+import { QNA_NSFW_CATEGORY_ID, type QnaNsfwCategoryId } from "@/lib/qna-nsfw-category";
+
+export { QNA_NSFW_CATEGORY_ID, type QnaNsfwCategoryId };
 
 export const COMMUNITY_CATEGORY_OPTIONS: {
   id: CommunityCategory;
@@ -33,6 +36,31 @@ export const COMMUNITY_CATEGORY_OPTIONS: {
   { id: "MEDICAL", label: "의료", shortLabel: "의료", emoji: "🏥" },
   { id: "INFO", label: "정보 / 질문", shortLabel: "정보·질문", emoji: "❓" },
 ];
+
+/** QnA feed horizontal tabs — preset categories + NSFW (age-gated in UI). */
+export const QNA_FEED_CATEGORY_TABS = [
+  { id: "ALL" as const, label: "전체", shortLabel: "전체", emoji: "" },
+  ...COMMUNITY_CATEGORY_OPTIONS,
+  { id: QNA_NSFW_CATEGORY_ID, label: "NSFW", shortLabel: "NSFW", emoji: "🔞" },
+];
+
+export type QnaFeedTabId =
+  | "ALL"
+  | CommunityCategory
+  | typeof QNA_NSFW_CATEGORY_ID;
+
+export type QnaCreateCategorySelection = CommunityCategory | typeof QNA_NSFW_CATEGORY_ID;
+
+export function qnaCreateSelectionToApi(selection: QnaCreateCategorySelection): {
+  category: CommunityCategory;
+  customCategoryLabel?: string;
+  isNsfw: boolean;
+} {
+  if (selection === QNA_NSFW_CATEGORY_ID) {
+    return { category: "CUSTOM", customCategoryLabel: "NSFW", isNsfw: true };
+  }
+  return { category: selection, isNsfw: false };
+}
 
 /** 이전 taxonomy → v3 매핑 (마이그레이션 전 데이터 표시용) */
 const LEGACY_COMMUNITY_CATEGORY_MAP: Partial<Record<CommunityCategory, CommunityCategory>> = {

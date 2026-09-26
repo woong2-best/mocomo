@@ -13,6 +13,10 @@ test("parseQnaCategoryParam accepts current taxonomy and maps legacy ids", () =>
   assert.equal(parseQnaCategoryParam("ANIME"), "SUBCULTURE");
 });
 
+test("parseQnaCategoryParam accepts NSFW hub tab", () => {
+  assert.equal(parseQnaCategoryParam("NSFW"), "NSFW");
+});
+
 test("parseQnaCategoryParam rejects unknown values", () => {
   assert.equal(parseQnaCategoryParam("not-a-category"), null);
 });
@@ -28,6 +32,14 @@ test("qnaFeedWhere filters by category and search when provided", () => {
   const where = qnaFeedWhere({ category: "GAME", q: "원신", canViewNsfw: true });
   assert.equal((where.community as { category?: string } | undefined)?.category, "GAME");
   assert.ok(Array.isArray(where.OR));
+});
+
+test("qnaFeedWhere NSFW tab requires adult viewer and scopes to nsfw posts", () => {
+  const denied = qnaFeedWhere({ category: "NSFW", q: "", canViewNsfw: false });
+  assert.equal(denied.id, "__qna_nsfw_denied__");
+  const allowed = qnaFeedWhere({ category: "NSFW", q: "", canViewNsfw: true });
+  assert.equal(allowed.isNsfw, true);
+  assert.equal((allowed.community as { isNsfw?: boolean })?.isNsfw, true);
 });
 
 test("qnaFeedWhere does not match anonymous posts by author name", () => {

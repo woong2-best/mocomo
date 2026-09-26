@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { walletSettlementPath } from "@/lib/settlement-account";
 import { ADULT_MIN_AGE } from "@/lib/adult-verification/constants";
 import { useAdultVerificationGate } from "@/hooks/use-adult-verification-gate";
 import { AdultVerificationDialog } from "@/components/adult-verification/adult-verification-dialog";
@@ -65,13 +63,6 @@ export function UsedAdultVerifyForm({
       >
         {loading || adultGate.pending ? "인증 진행 중…" : "휴대폰 본인인증 시작"}
       </Button>
-
-      <p className="text-center text-xs text-muted-foreground">
-        계좌 인증이 안 되어 있나요?{" "}
-        <Link href={walletSettlementPath(callbackUrl)} className="underline">
-          지갑에서 계좌 등록
-        </Link>
-      </p>
 
       <AdultVerificationDialog
         open={adultGate.promptOpen}

@@ -7,7 +7,8 @@ import {
   listingImages,
   usedStatusLabel,
 } from "@/lib/used-market";
-import { isAuctionLive, formatAuctionCountdown } from "@/lib/used-auction";
+import { isAuctionLive } from "@/lib/used-auction";
+import { UsedAuctionCountdown } from "@/components/used/used-auction-countdown";
 import { usedProductTypeLabel } from "@/lib/used-catalog";
 import { SubcultureMetaBadges, parseSubcultureMetaFromDb } from "@/components/used/subculture-meta-badges";
 import { isUsedRestrictedKind, usedRestrictedLabel } from "@/lib/used-youth-protection";
@@ -196,9 +197,7 @@ export function UsedListingCard({
           <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 truncate">
             <MapPin className="h-2.5 w-2.5 shrink-0" />
             {listing.region}
-            {auction && live && listing.auctionEndsAt ? (
-              <> · {formatAuctionCountdown(listing.auctionEndsAt)}</>
-            ) : (
+            {auction && listing.auctionEndsAt && listing.status === "SELLING" ? null : (
               <> · {formatUsedTimeAgo(listing.createdAt)}</>
             )}
           </p>
@@ -207,6 +206,9 @@ export function UsedListingCard({
               {usedRestrictedLabel(listing.restrictedKind!)}
             </p>
           )}
+          {auction && listing.auctionEndsAt && listing.status === "SELLING" ? (
+            <UsedAuctionCountdown endsAt={listing.auctionEndsAt} variant="compact" />
+          ) : null}
           {auction && (listing.bidCount ?? 0) > 0 && (
             <p className="text-[10px] text-orange-600 dark:text-orange-400 font-medium">
               입찰 {listing.bidCount}회

@@ -1,6 +1,7 @@
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/ThemeContext";
+import { IslandToastScreenSlot } from "@/ui/IslandToast";
 
 type Props = {
   children: React.ReactNode;
@@ -36,6 +37,7 @@ export function Screen({
       ]}
     >
       {children}
+      <IslandToastScreenSlot />
     </View>
   );
 }

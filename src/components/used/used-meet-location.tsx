@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { ExternalLink, MapPin } from "lucide-react";
 import { parseMeetCoords, usedMapSearchUrl } from "@/lib/used-market";
 import { isShippingOnlyRegion } from "@/lib/used-region-coords";
-import { normalizeMeetCountry, selectMapEngine } from "@/lib/maps/select-engine";
+import { normalizeMeetCountry } from "@/lib/maps/select-engine";
 
 const MeetMapView = dynamic(
   () => import("@/components/maps/MeetMapView").then((m) => m.MeetMapView),
@@ -32,12 +32,11 @@ export function UsedMeetLocation({
   meetCountry?: string | null;
 }) {
   const country = normalizeMeetCountry(meetCountry);
-  const engine = selectMapEngine(country);
   const coords = parseMeetCoords(meetLat, meetLng);
   const label = meetPlace?.trim() || region;
   const mapUrl = usedMapSearchUrl(region, meetPlace, coords, country);
   const shipping = isShippingOnlyRegion(region);
-  const externalLabel = engine === "kakao" ? "카카오맵" : "OpenStreetMap";
+  const externalLabel = "Google 지도";
 
   if (shipping && !meetPlace?.trim()) {
     return (
@@ -76,9 +75,7 @@ export function UsedMeetLocation({
       />
 
       <p className="text-xs text-muted-foreground">
-        {engine === "kakao"
-          ? `${region} 인근 직거래 · 카카오맵으로 표시된 만남 위치입니다`
-          : `${region} meetup · MapLibre + OpenStreetMap`}
+        {region} 인근 직거래 · 앱 지도는 MapLibre, 외부 링크는 Google 지도입니다
         {!coords && meetPlace ? " (장소명으로 좌표 검색)" : ""}
       </p>
     </section>

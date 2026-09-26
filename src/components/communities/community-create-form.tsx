@@ -1,33 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { createCommunity } from "@/actions/community-hub";
-import { COMMUNITY_CATEGORY_OPTIONS } from "@/lib/community-labels";
-import type { CommunityCategory } from "@prisma/client";
+import {
+  COMMUNITY_CATEGORY_OPTIONS,
+  QNA_NSFW_CATEGORY_ID,
+  qnaCreateSelectionToApi,
+  type QnaCreateCategorySelection,
+} from "@/lib/community-labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, Loader2, Plus } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQnaNsfwGate } from "@/hooks/use-qna-nsfw-gate";
+import { QnaNsfwBlockedDialog } from "@/components/communities/qna-nsfw-blocked-dialog";
+
+const CREATE_CATEGORY_OPTIONS = COMMUNITY_CATEGORY_OPTIONS.filter((o) => o.id !== "INFO");
 
 export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [category, setCategory] = useState<CommunityCategory | "">("");
-  const [customCategoryLabel, setCustomCategoryLabel] = useState("");
-  const [customMode, setCustomMode] = useState(false);
+  const [category, setCategory] = useState<QnaCreateCategorySelection | "">("");
+  const { blockedOpen, setBlockedOpen, guardCategoryNav } = useQnaNsfwGate();
 
-  function selectPreset(next: CommunityCategory) {
-    setCustomMode(false);
-    setCustomCategoryLabel("");
-    setCategory(next);
-  }
-
-  function selectCustom() {
-    setCustomMode(true);
-    setCategory("CUSTOM");
-  }
+  const pickCategory = useCallback(
+    (next: QnaCreateCategorySelection) => {
+      void (async () => {
+        const ok = await guardCategoryNav(next);
+        if (!ok) return;
+        setCategory(next);
+      })();
+    },
+    [guardCategoryNav]
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,21 +45,17 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
       return;
     }
 
-    if (category === "CUSTOM" && !customCategoryLabel.trim()) {
-      setError("직접 입력한 카테고리 이름을 입력해 주세요.");
-      return;
-    }
-
     setLoading(true);
 
     try {
       const form = new FormData(e.currentTarget);
+      const payload = qnaCreateSelectionToApi(category);
       const result = await createCommunity({
         name: form.get("name") as string,
         description: (form.get("description") as string) || undefined,
-        category,
-        customCategoryLabel: category === "CUSTOM" ? customCategoryLabel.trim() : undefined,
-        isNsfw: form.get("isNsfw") === "on",
+        category: payload.category,
+        customCategoryLabel: payload.customCategoryLabel,
+        isNsfw: payload.isNsfw,
       });
 
       if (!result) {
@@ -64,7 +67,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
         return;
       }
       if ("community" in result && result.community?.slug) {
-        window.location.assign(`/c/${result.community.slug}/posts`);
+        window.location.assign("/communities");
         return;
       }
 
@@ -107,16 +110,16 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
                 <span className="text-[11px] text-muted-foreground">필수 · 하나 선택</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                {COMMUNITY_CATEGORY_OPTIONS.map((opt) => {
+                {CREATE_CATEGORY_OPTIONS.map((opt) => {
                   const selected = category === opt.id;
                   return (
                     <button
                       key={opt.id}
                       type="button"
                       disabled={loading}
-                      onClick={() => selectPreset(opt.id)}
+                      onClick={() => pickCategory(opt.id)}
                       className={cn(
-                        "flex items-center gap-2 rounded-sm border px-2.5 py-2.5 text-left text-sm transition-colors",
+                        "flex flex-col items-start gap-1 rounded-sm border px-2.5 py-2.5 text-left text-sm transition-colors",
                         selected
                           ? "border-[#c80000] bg-[#c80000]/5 text-foreground ring-1 ring-[#c80000]/40"
                           : "border-border bg-background hover:border-foreground/30 hover:bg-muted/40",
@@ -131,30 +134,19 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={selectCustom}
+                  onClick={() => pickCategory(QNA_NSFW_CATEGORY_ID)}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-sm border px-2.5 py-2.5 text-sm transition-colors",
-                    customMode
+                    "flex flex-col items-start gap-1 rounded-sm border px-2.5 py-2.5 text-left text-sm transition-colors",
+                    category === QNA_NSFW_CATEGORY_ID
                       ? "border-[#c80000] bg-[#c80000]/5 text-foreground ring-1 ring-[#c80000]/40"
-                      : "border-dashed border-border bg-background hover:border-foreground/30 hover:bg-muted/40",
+                      : "border-[#c80000]/35 bg-background hover:border-[#c80000]/55 hover:bg-muted/40",
                     loading && "opacity-60"
                   )}
                 >
-                  <Plus className="h-4 w-4" />
-                  <span className="font-medium">직접 입력</span>
+                  <span className="text-base leading-none">🔞</span>
+                  <span className="font-medium leading-snug">NSFW</span>
                 </button>
               </div>
-              {customMode && (
-                <Input
-                  value={customCategoryLabel}
-                  onChange={(e) => setCustomCategoryLabel(e.target.value)}
-                  placeholder="원하는 카테고리 이름 (2~24자)"
-                  maxLength={24}
-                  disabled={loading}
-                  className="rounded-sm"
-                  autoFocus
-                />
-              )}
               {!category && (
                 <p className="text-[11px] text-muted-foreground">위에서 소속 카테고리를 골라 주세요.</p>
               )}
@@ -189,11 +181,6 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
               />
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="isNsfw" disabled={loading} />
-              NSFW QnA
-            </label>
-
             {error && (
               <p className="text-sm text-destructive rounded-sm border border-destructive/30 bg-destructive/10 px-3 py-2">
                 {error}
@@ -213,15 +200,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
               .
             </p>
 
-            <Button
-              type="submit"
-              className="w-full rounded-sm"
-              disabled={
-                loading ||
-                !category ||
-                (category === "CUSTOM" && customCategoryLabel.trim().length < 2)
-              }
-            >
+            <Button type="submit" className="w-full rounded-sm" disabled={loading || !category}>
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -234,6 +213,8 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
           </form>
         </CardContent>
       </Card>
+
+      <QnaNsfwBlockedDialog open={blockedOpen} onOpenChange={setBlockedOpen} />
     </div>
   );
 }

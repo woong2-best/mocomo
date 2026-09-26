@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { showIslandError } from "@/ui/IslandToast";
 import * as ImagePicker from "expo-image-picker";
 import { uploadLocalFile } from "@/api/upload-file";
 import { useTheme } from "@/theme/ThemeContext";
@@ -60,7 +60,7 @@ export function FanArtSellSheet({ visible, onClose, onSend }: Props) {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
+        showIslandError("권한 필요", "갤러리 접근 권한이 필요합니다.");
         return;
       }
 
@@ -93,7 +93,7 @@ export function FanArtSellSheet({ visible, onClose, onSend }: Props) {
       });
       onClose();
     } catch (e) {
-      Alert.alert("전송 실패", e instanceof Error ? e.message : "팬아트를 보내지 못했습니다.");
+      showIslandError("전송 실패", e instanceof Error ? e.message : "팬아트를 보내지 못했습니다.");
     } finally {
       setBusy(false);
     }

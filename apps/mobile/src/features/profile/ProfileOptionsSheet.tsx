@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -11,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -62,12 +62,14 @@ export function ProfileOptionsSheet({
   const [reportReason, setReportReason] = useState<ReportReasonId>("SPAM");
   const [reportDetails, setReportDetails] = useState("");
   const [reportError, setReportError] = useState("");
+  const [blockConfirm, setBlockConfirm] = useState(false);
 
   const profileUrl = `${API_BASE_URL.replace(/\/$/, "")}/u/${username}`;
 
   const closeAll = useCallback(() => {
     setReportOpen(false);
     setReportError("");
+    setBlockConfirm(false);
     onClose();
   }, [onClose]);
 
@@ -76,7 +78,7 @@ export function ProfileOptionsSheet({
       await Share.share({ message: profileUrl, url: profileUrl });
       closeAll();
     } catch {
-      Alert.alert("오류", "링크를 공유하지 못했습니다.");
+      showIslandError("오류", "링크를 공유하지 못했습니다.");
     }
   }, [closeAll, profileUrl]);
 
@@ -88,52 +90,41 @@ export function ProfileOptionsSheet({
       setMuted(res.muted);
       onMuted?.(res.muted);
       closeAll();
-      Alert.alert(res.muted ? "뮤트했습니다" : "뮤트를 해제했습니다");
+      showIslandSuccess(res.muted ? "뮤트했습니다" : "뮤트를 해제했습니다");
     } catch (e) {
-      Alert.alert("오류", e instanceof Error ? e.message : "뮤트 처리에 실패했습니다.");
+      showIslandError("오류", e instanceof Error ? e.message : "뮤트 처리에 실패했습니다.");
     } finally {
       setBusy(null);
     }
   }, [busy, closeAll, onMuted, userId, username]);
 
-  const onBlock = useCallback(() => {
-    Alert.alert(
-      "사용자 차단",
-      `@${username} 님을 차단할까요? 차단하면 서로 팔로우가 해제됩니다.`,
-      [
-        { text: "취소", style: "cancel" },
-        {
-          text: "차단",
-          style: "destructive",
-          onPress: () => {
-            void (async () => {
-              if (busy) return;
-              setBusy("block");
-              try {
-                await blockAndReportUser({
-                  userId,
-                  username,
-                  reason: "OTHER",
-                  details: "프로필에서 차단",
-                });
-                void removeFollowingDmUser(queryClient, userId);
-                closeAll();
-                onBlocked?.();
-                Alert.alert("완료", `@${username} 님을 차단했습니다.`);
-              } catch (e) {
-                Alert.alert(
-                  "오류",
-                  e instanceof Error ? e.message : "차단에 실패했습니다."
-                );
-              } finally {
-                setBusy(null);
-              }
-            })();
-          },
-        },
-      ]
-    );
+  const runBlock = useCallback(() => {
+    if (busy) return;
+    setBusy("block");
+    void (async () => {
+      try {
+        await blockAndReportUser({
+          userId,
+          username,
+          reason: "OTHER",
+          details: "프로필에서 차단",
+        });
+        void removeFollowingDmUser(queryClient, userId);
+        closeAll();
+        onBlocked?.();
+        showIslandSuccess("완료", `@${username} 님을 차단했습니다.`);
+      } catch (e) {
+        showIslandError("오류", e instanceof Error ? e.message : "차단에 실패했습니다.");
+      } finally {
+        setBusy(null);
+      }
+    })();
   }, [busy, closeAll, onBlocked, queryClient, userId, username]);
+
+  const onBlock = useCallback(() => {
+    if (busy) return;
+    setBlockConfirm(true);
+  }, [busy]);
 
   const onSubmitReport = useCallback(async () => {
     if (busy) return;
@@ -150,7 +141,7 @@ export function ProfileOptionsSheet({
       setReportOpen(false);
       closeAll();
       onBlocked?.();
-      Alert.alert("완료", "신고가 접수되었고 사용자를 차단했습니다.");
+      showIslandSuccess("완료", "신고가 접수되었고 사용자를 차단했습니다.");
     } catch (e) {
       setReportError(e instanceof Error ? e.message : "신고 처리에 실패했습니다.");
     } finally {
@@ -187,14 +178,35 @@ export function ProfileOptionsSheet({
               </Pressable>
             </View>
 
-            <Pressable style={styles.row} onPress={() => void onCopyLink()} disabled={!!busy}>
+            {blockConfirm ? (
+              <View style={styles.confirmBlock}>
+                <Text style={styles.confirmTitle}>사용자 차단</Text>
+                <Text style={styles.confirmBody}>
+                  @{username} 님을 차단할까요? 차단하면 서로 팔로우가 해제됩니다.
+                </Text>
+                <Pressable style={styles.row} onPress={runBlock} disabled={!!busy}>
+                  <View style={styles.iconCircle}>
+                    <Ionicons name="ban-outline" size={18} color={colors.terracotta} />
+                  </View>
+                  <Text style={[styles.rowText, styles.dangerText]}>차단</Text>
+                  {busy === "block" ? (
+                    <ActivityIndicator size="small" color={colors.terracotta} />
+                  ) : null}
+                </Pressable>
+                <Pressable style={styles.row} onPress={() => setBlockConfirm(false)}>
+                  <Text style={styles.rowText}>취소</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            <Pressable style={styles.row} onPress={() => void onCopyLink()} disabled={!!busy || blockConfirm}>
               <View style={styles.iconCircle}>
                 <Ionicons name="link-outline" size={18} color={colors.text} />
               </View>
               <Text style={styles.rowText}>프로필 링크 복사하기</Text>
             </Pressable>
 
-            <Pressable style={styles.row} onPress={() => void onMute()} disabled={!!busy}>
+            <Pressable style={styles.row} onPress={() => void onMute()} disabled={!!busy || blockConfirm}>
               <View style={styles.iconCircle}>
                 <Ionicons
                   name={muted ? "volume-high-outline" : "volume-mute-outline"}
@@ -208,7 +220,7 @@ export function ProfileOptionsSheet({
               ) : null}
             </Pressable>
 
-            <Pressable style={styles.row} onPress={onBlock} disabled={!!busy}>
+            <Pressable style={styles.row} onPress={onBlock} disabled={!!busy || blockConfirm}>
               <View style={styles.iconCircle}>
                 <Ionicons name="ban-outline" size={18} color={colors.terracotta} />
               </View>
@@ -326,6 +338,24 @@ function createStyles(colors: ThemeColors) {
       borderBottomColor: colors.hairline,
     },
     title: { fontSize: 14, fontWeight: "800", color: colors.cobalt },
+    confirmBlock: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.hairline,
+    },
+    confirmTitle: {
+      paddingHorizontal: spacing.md,
+      paddingTop: 12,
+      fontSize: 15,
+      fontWeight: "800",
+      color: colors.text,
+    },
+    confirmBody: {
+      paddingHorizontal: spacing.md,
+      paddingBottom: 4,
+      fontSize: 13,
+      fontWeight: "500",
+      color: colors.textMuted,
+    },
     row: {
       flexDirection: "row",
       alignItems: "center",

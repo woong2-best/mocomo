@@ -56,6 +56,7 @@ function mapHtml(
 <style>
   html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: ${bg}; overflow: hidden; }
   .maplibregl-map { position: absolute; inset: 0; background: ${bg}; }
+  .maplibregl-canvas-container, .maplibregl-canvas { background: ${bg} !important; }
   .maplibregl-ctrl-attrib, .maplibregl-ctrl-logo, .maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { display: none !important; }
   .pin {
     width: 16px; height: 16px;
@@ -64,10 +65,20 @@ function mapHtml(
     border: 2px solid #fff;
     box-shadow: 0 1px 4px rgba(0,0,0,.5);
   }
-  .maplibregl-popup-content { border-radius: 12px; padding: 8px 10px; font: 12px/1.35 -apple-system, sans-serif; color: #141820; max-width: 220px; }
-  .maplibregl-popup-close-button { font-size: 16px; padding: 2px 6px; }
-  .popup-title { display: block; font-weight: 800; }
-  .popup-meta { display: block; margin-top: 3px; color: #3f3f46; }
+  .maplibregl-popup-content {
+    border-radius: 12px;
+    padding: 8px 10px;
+    font: 12px/1.35 -apple-system, sans-serif;
+    color: #E8EDF5;
+    background: #1E2C45;
+    border: 1px solid rgba(255,255,255,0.12);
+    max-width: 220px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+  }
+  .maplibregl-popup-tip { border-top-color: #1E2C45 !important; }
+  .maplibregl-popup-close-button { font-size: 16px; padding: 2px 6px; color: #94A3B8; }
+  .popup-title { display: block; font-weight: 800; color: #F1F5F9; }
+  .popup-meta { display: block; margin-top: 3px; color: #94A3B8; }
 </style>
 </head>
 <body>
@@ -248,8 +259,9 @@ export function UsedSatelliteMap({
       <WebView
         ref={webRef}
         source={{ html, baseUrl: "https://cdn.jsdelivr.net/" }}
-        style={{ width, height, backgroundColor }}
+        style={{ width, height, backgroundColor, opacity: 0.99 }}
         containerStyle={{ backgroundColor }}
+        {...(backgroundColor ? { webviewBackgroundColor: backgroundColor } : {})}
         originWhitelist={["*"]}
         javaScriptEnabled
         domStorageEnabled

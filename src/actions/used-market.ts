@@ -21,9 +21,9 @@ import {
   processPaymentTimeout,
 } from "@/lib/used-auction-lifecycle";
 import {
-  computeAuctionEndsAt,
-  DEFAULT_BID_INCREMENT,
+  defaultBidIncrement,
   isAuctionLive,
+  standardAuctionEndsAt,
 } from "@/lib/used-auction";
 import {
   maxUsedListingPrice,
@@ -43,9 +43,8 @@ import type { SubcultureListingInput } from "@/lib/subculture-commerce/types";
 import { resolveAnimeSlugFromWorkTitle } from "@/lib/subculture-commerce/anime-suggest";
 import { notifyWtbAlertsForListing } from "@/lib/subculture-commerce/wtb-alerts";
 import { finalizeUsedListingSold } from "@/lib/subculture-commerce/sale-records";
-import { isKakaoLocalConfigured } from "@/lib/kakao-local";
 import { geocodeMeetQuery } from "@/lib/maps/geocode";
-import { isKakaoMapCountry, normalizeMeetCountry } from "@/lib/maps/select-engine";
+import { normalizeMeetCountry } from "@/lib/maps/select-engine";
 import { assertAuctionPostAccess, assertUsedMarketAccess } from "@/lib/used-market-access";
 import {
   AUCTION_SELLER_DEPOSIT_ERROR,
@@ -428,8 +427,7 @@ export async function createUsedListing(data: {
   contentRating?: import("@prisma/client").ContentRating;
 } & SubcultureListingInput) {
   const user = await requireAuth();
-  const isAuctionEarly = data.saleType === "AUCTION";
-  const accessErr = isAuctionEarly ? assertAuctionPostAccess(user) : assertUsedMarketAccess(user);
+  const accessErr = assertAuctionPostAccess(user);
   if (accessErr) return { error: accessErr };
 
   const restricted =
@@ -459,13 +457,12 @@ export async function createUsedListing(data: {
 
   const isAuction = data.saleType === "AUCTION";
   if (isAuction && price <= 0) return { error: "경매 시작가를 입력해 주세요." };
-  if (isAuction && !data.auctionHours) return { error: "경매 기간을 선택해 주세요." };
   if (isAuction) {
     const balance = await getMocoBalanceSnapshot(user.id);
     if (!canParticipateInAuction(balance)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
   }
 
-  const bidIncrement = Math.floor(data.bidIncrement ?? DEFAULT_BID_INCREMENT);
+  const bidIncrement = Math.floor(data.bidIncrement ?? defaultBidIncrement(currency));
   const buyNowPrice =
     data.buyNowPrice != null && data.buyNowPrice > 0
       ? Math.floor(data.buyNowPrice)
@@ -521,12 +518,6 @@ export async function createUsedListing(data: {
       !data.region.includes("전국 택배") &&
       !data.region.includes("Shipping")
     ) {
-      if (isKakaoMapCountry(meetCountry) && !isKakaoLocalConfigured()) {
-        return {
-          error:
-            "거래 장소 검색을 위해 서버에 KAKAO_REST_API_KEY를 설정해 주세요. (카카오 개발자 → Local API)",
-        };
-      }
       const geo = await geocodeMeetQuery({
         country: meetCountry,
         region: data.region,
@@ -586,7 +577,7 @@ export async function createUsedListing(data: {
         saleType: isAuction ? "AUCTION" : "FIXED",
         ...(isAuction
           ? {
-              auctionEndsAt: computeAuctionEndsAt(data.auctionHours!),
+              auctionEndsAt: standardAuctionEndsAt(),
               bidIncrement,
               buyNowPrice,
               reservePrice,
@@ -637,8 +628,7 @@ export async function updateUsedListingStatus(listingId: string, status: UsedLis
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.sellerId !== user.id) return { error: "권한이 없습니다." };
-  const accessErr =
-    listing.saleType === "AUCTION" ? assertAuctionPostAccess(user) : assertUsedMarketAccess(user);
+  const accessErr = assertAuctionPostAccess(user);
   if (accessErr) return { error: accessErr };
 
   if (listing.saleType === "AUCTION" && status === "SOLD") {
@@ -664,8 +654,7 @@ export async function deleteUsedListing(listingId: string) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.sellerId !== user.id) return { error: "권한이 없습니다." };
-  const accessErr =
-    listing.saleType === "AUCTION" ? assertAuctionPostAccess(user) : assertUsedMarketAccess(user);
+  const accessErr = assertAuctionPostAccess(user);
   if (accessErr) return { error: accessErr };
 
   if (listing.saleType === "AUCTION") {
@@ -681,7 +670,7 @@ export async function toggleUsedFavorite(listingId: string) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({
     where: { id: listingId },
-    select: { sellerId: true, meetCountry: true, region: true },
+    select: { sellerId: true, title: true, meetCountry: true, region: true },
   });
   if (!listing) return { error: "게시글을 찾을 수 없습니다." };
   const tradeErr = await assertUsedMarketTradeAccess({
@@ -700,6 +689,13 @@ export async function toggleUsedFavorite(listingId: string) {
     return { favorited: false };
   }
   await db.usedFavorite.create({ data: { userId: user.id, listingId } });
+  const { notifyListingLiked } = await import("@/lib/notifications");
+  void notifyListingLiked({
+    listingId,
+    sellerId: listing.sellerId,
+    actorId: user.id,
+    title: listing.title,
+  });
   revalidatePath(`/market/${listingId}`);
   return { favorited: true };
 }

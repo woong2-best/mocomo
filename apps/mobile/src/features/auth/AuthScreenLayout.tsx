@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing } from "@/theme/tokens";
+import { IslandToastScreenSlot } from "@/ui/IslandToast";
 
 type Props = {
   title: string;
@@ -58,6 +59,7 @@ export function AuthScreenLayout({ title, subtitle, onBack, children }: Props) {
           {children}
         </ScrollView>
       </KeyboardAvoidingView>
+      <IslandToastScreenSlot />
     </View>
   );
 }

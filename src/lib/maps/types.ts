@@ -1,6 +1,6 @@
 /** Shared meet-map types — web & mobile keep the same shape. */
 
-export type MapEngineId = "kakao" | "maplibre" | "google" | "apple";
+export type MapEngineId = "maplibre" | "google" | "apple";
 
 export type MeetCoords = {
   lat: number;
@@ -22,10 +22,7 @@ export type MeetMapCamera = {
   zoom: number;
 };
 
-/**
- * Engine-agnostic map surface contract.
- * Implementations: Kakao (KR), MapLibre+OSM (else). Google/Apple can plug in later.
- */
+/** Engine-agnostic map surface contract. Embedded: MapLibre. External links: Google Maps. */
 export type MapProviderCapabilities = {
   engine: MapEngineId;
   supportsPick: boolean;
@@ -40,7 +37,7 @@ export type MeetMapPayload = {
   lng: number;
   hasPin: boolean;
   country: string;
-  /** Country-selected deep link (Kakao for KR, OSM for others). */
+  /** External deep link (Google Maps). */
   externalMapUrl: string;
   caption: string;
 };

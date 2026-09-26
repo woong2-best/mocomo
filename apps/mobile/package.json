@@ -6,7 +6,6 @@
   "dependencies": {
     "@expo/config-plugins": "^57.0.6",
     "@expo/vector-icons": "^15.1.1",
-    "@jiggag/react-native-kakao-maps": "^0.0.12",
     "@livekit/react-native": "^2.12.0",
     "@livekit/react-native-expo-plugin": "^1.0.2",
     "@livekit/react-native-webrtc": "^144.1.2",
@@ -78,7 +77,7 @@
     "build:internal:ios": "eas build --profile internal --platform ios",
     "build:preview:android": "eas build --profile preview --platform android",
     "submit:internal:android": "eas submit --profile internal --platform android --latest",
-    "build:play:aab": "cd android && gradlew.bat bundleRelease && node ../scripts/copy-play-aab.cjs",
+    "build:play:aab": "node scripts/next-play-version.cjs && cd android && gradlew.bat bundleRelease && node ../scripts/copy-play-aab.cjs",
     "submit:internal:android:local": "eas submit --profile internal --platform android --path ../../MoCoMo-1.0.130-play.aab",
     "eas:whoami": "eas whoami"
   }

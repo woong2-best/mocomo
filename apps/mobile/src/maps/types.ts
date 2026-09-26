@@ -1,4 +1,4 @@
-export type MapEngineId = "kakao" | "maplibre" | "google" | "apple";
+export type MapEngineId = "maplibre" | "google" | "apple";
 
 export type MeetCoords = {
   lat: number;
@@ -15,15 +15,10 @@ export type MeetMapPayload = {
   country: string;
   engine?: string;
   externalMapUrl: string;
-  /** @deprecated use externalMapUrl */
-  kakaoMapUrl?: string;
   caption: string;
 };
 
-/**
- * MapProvider contract — engines plug in behind this.
- * Callers never choose Kakao/MapLibre directly; use selectMapEngine(country).
- */
+/** MapProvider contract — engines plug in behind selectMapEngine(country). */
 export type MapProviderProps = {
   mode: MeetMapMode;
   center: MeetCoords;

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { showIslandError } from "@/ui/IslandToast";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -136,7 +136,7 @@ export function CommunityServerScreen() {
       if (!item?.id || !item.isMember || posting) return;
       const content = draft.trim();
       if (!content && !media) {
-        Alert.alert("글", "내용이나 사진, 영상을 넣어 주세요.");
+        showIslandError("글", "내용이나 사진, 영상을 넣어 주세요.");
         return;
       }
       setPosting(true);
@@ -153,7 +153,7 @@ export function CommunityServerScreen() {
         });
         await queryClient.invalidateQueries({ queryKey: ["mobile-qna-feed"] });
       } catch (err) {
-        Alert.alert("게시 실패", err instanceof Error ? err.message : "글을 올리지 못했습니다.");
+        showIslandError("게시 실패", err instanceof Error ? err.message : "글을 올리지 못했습니다.");
       } finally {
         setPosting(false);
       }
@@ -166,7 +166,7 @@ export function CommunityServerScreen() {
       if (!item?.id || !item.isMember || posting) return;
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert("권한 필요", "사진과 영상 접근 권한이 필요합니다.");
+        showIslandError("권한 필요", "사진과 영상 접근 권한이 필요합니다.");
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -200,7 +200,7 @@ export function CommunityServerScreen() {
         });
         await queryClient.invalidateQueries({ queryKey: ["mobile-qna-feed"] });
       } catch (err) {
-        Alert.alert("업로드 실패", err instanceof Error ? err.message : "파일을 올리지 못했습니다.");
+        showIslandError("업로드 실패", err instanceof Error ? err.message : "파일을 올리지 못했습니다.");
       } finally {
         setPosting(false);
       }

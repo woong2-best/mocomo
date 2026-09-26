@@ -7,7 +7,7 @@ import {
   isAuctionLive,
   reserveMet,
 } from "@/lib/used-auction";
-import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
+import { notifyAuctionLosers, notifyAuctionWatchers, sendUsedAuctionNotification } from "@/lib/used-auction-notify";
 import { formatUsedPrice, normalizeUsedCurrency } from "@/lib/used-market";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
 import { assertUsedMarketTradeAccess } from "@/lib/used-market-locale-scope";
@@ -62,6 +62,13 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
           body: captureCheck.error,
           link: `/market/${listingId}`,
         });
+        await notifyAuctionLosers({
+          listingId,
+          sellerId: listing.sellerId,
+          winnerId: null,
+          title: "경매 유찰",
+          body: `${listing.title} — 낙찰가가 조건에 미달해 유찰되었습니다.`,
+        });
         revalidatePath(`/market/${listingId}`);
         return;
       }
@@ -74,6 +81,13 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
         title: listing.title,
         currency: listing.currency,
         paymentDeadlineHours: config.paymentDeadlineHours,
+      });
+      await notifyAuctionLosers({
+        listingId,
+        sellerId: listing.sellerId,
+        winnerId,
+        title: "경매 유찰",
+        body: `${listing.title} — 다른 입찰자가 낙찰되었습니다.`,
       });
     } else {
       await onAuctionEndedVoidHolds(listingId, null);
@@ -91,6 +105,15 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
         body: listing.title,
         link: `/market/${listingId}`,
       });
+      if (listing.bidCount > 0) {
+        await notifyAuctionLosers({
+          listingId,
+          sellerId: listing.sellerId,
+          winnerId: null,
+          title: "경매 유찰",
+          body: `${listing.title} — 낙찰되지 않았습니다.`,
+        });
+      }
     }
     revalidatePath(`/market/${listingId}`);
     revalidatePath("/market");
@@ -165,11 +188,12 @@ export async function placeUsedAuctionBid(
     }
 
     const link = `/market/${listingId}`;
+    const priceLabel = formatUsedPrice(result.amount, listing.currency);
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "bid",
       title: "새 입찰",
-      body: `${listing.title} · ${formatUsedPrice(result.amount, listing.currency)}`,
+      body: `${listing.title} · ${priceLabel}`,
       link,
       actorId: user.id,
     });
@@ -179,10 +203,20 @@ export async function placeUsedAuctionBid(
       await sendUsedAuctionNotification({
         userId: prevBidderId,
         type: "outbid",
-        title: "입찰 갱신됨",
-        body: `${listing.title} · ${formatUsedPrice(result.amount, listing.currency)}`,
+        title: "더 높은 입찰",
+        body: `${listing.title} — ${priceLabel}로 더 높은 입찰이 들어왔습니다.`,
         link,
         actorId: user.id,
+      });
+    }
+
+    if (result.extended) {
+      await notifyAuctionWatchers({
+        listingId,
+        sellerId: listing.sellerId,
+        type: "extended",
+        title: "경매 마감 연장",
+        body: `${listing.title} — 마감 직전 입찰로 종료 시각이 연장되었습니다.`,
       });
     }
 
@@ -282,6 +316,13 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
       title: listing.title,
       currency: listing.currency,
       paymentDeadlineHours: config.paymentDeadlineHours,
+    });
+    await notifyAuctionLosers({
+      listingId,
+      sellerId: listing.sellerId,
+      winnerId: user.id,
+      title: "즉시구매로 경매 종료",
+      body: `${listing.title} — 다른 분이 즉시구매했습니다.`,
     });
     revalidatePath(`/market/${listingId}`);
     revalidatePath("/market");

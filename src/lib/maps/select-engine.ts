@@ -9,13 +9,8 @@ export function normalizeMeetCountry(country?: string | null): string {
 
 /**
  * Auto-select map engine from country. Users never pick a map service.
- * KR → Kakao · else → MapLibre (+ OSM tiles).
- * google / apple reserved for future providers.
+ * Embedded maps use MapLibre globally; external links use Google Maps.
  */
-export function selectMapEngine(country?: string | null): MapEngineId {
-  return normalizeMeetCountry(country) === "KR" ? "kakao" : "maplibre";
-}
-
-export function isKakaoMapCountry(country?: string | null): boolean {
-  return selectMapEngine(country) === "kakao";
+export function selectMapEngine(_country?: string | null): MapEngineId {
+  return "maplibre";
 }

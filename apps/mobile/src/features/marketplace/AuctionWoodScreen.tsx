@@ -23,6 +23,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import type { MarketplaceListItem } from "@/api/marketplace";
+import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
 import { formatPrice } from "@/lib/money";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { FolkButton } from "@/ui/FolkButton";
@@ -275,6 +276,11 @@ export function AuctionWoodScreen(props: Props) {
             {item.title || "UNTITLED"}
           </Text>
           <Text style={styles.cardPrice}>BID {price ? formatPrice(price, item.currency ?? "krw") : "—"}</Text>
+          {item.auctionEndsAt && item.status === "SELLING" ? (
+            <View style={{ paddingHorizontal: 8 }}>
+              <AuctionCountdown endsAt={item.auctionEndsAt} tone="gold" />
+            </View>
+          ) : null}
           {item.bidCount != null ? <Text style={styles.auctionMeta}>{item.bidCount} BIDS</Text> : null}
           <Text style={styles.cardMeta} numberOfLines={1}>
             {(item.region || "ANYWHERE").toUpperCase()} · {auctionAgo(item.createdAt)}

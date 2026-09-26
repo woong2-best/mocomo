@@ -15,6 +15,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchMarketplaceList, toggleMarketplaceFavorite, type MarketplaceListItem } from "@/api/marketplace";
+import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
 import { formatUsedPrice, formatUsedTimeAgo } from "@/features/marketplace/used-catalog";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { Screen } from "@/ui/Screen";
@@ -192,15 +193,10 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
             <Text style={styles.price}>
               {auction ? `현재 ${formatUsedPrice(price, item.currency)}` : formatUsedPrice(price, item.currency)}
             </Text>
+            {auction && item.auctionEndsAt && item.status === "SELLING" ? (
+              <AuctionCountdown endsAt={item.auctionEndsAt} />
+            ) : null}
             <View style={styles.foot}>
-              <View style={styles.footLeft}>
-                {!auction && item.status === "SELLING" ? (
-                  <View style={styles.buyNow}>
-                    <Ionicons name="flash-outline" size={12} color={colors.terracotta} />
-                    <Text style={styles.buyNowText}>바로구매</Text>
-                  </View>
-                ) : null}
-              </View>
               <View style={styles.stats}>
                 {auction && item.bidCount != null ? (
                   <View style={styles.stat}>
@@ -220,7 +216,6 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     },
     [
       colors.like,
-      colors.terracotta,
       favorite,
       likeBump,
       liked,
@@ -410,11 +405,8 @@ function createStyles(colors: ThemeColors) {
       marginTop: "auto",
       flexDirection: "row",
       alignItems: "flex-end",
-      justifyContent: "space-between",
+      justifyContent: "flex-end",
     },
-    footLeft: { flexDirection: "row", alignItems: "center" },
-    buyNow: { flexDirection: "row", alignItems: "center", gap: 3 },
-    buyNowText: { color: colors.terracotta, fontWeight: "700", fontSize: 11 },
     stats: { flexDirection: "row", alignItems: "center", gap: 10 },
     stat: { flexDirection: "row", alignItems: "center", gap: 3 },
     statText: { color: colors.textMuted, fontSize: 12, fontWeight: "600" },

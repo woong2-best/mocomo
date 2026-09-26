@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, StyleSheet, Switch, Text, View } from "react-native";
+import { StyleSheet, Switch, Text, View } from "react-native";
+import { showIslandError } from "@/ui/IslandToast";
 import { useAuth } from "@/auth/AuthContext";
 import { FolkCard } from "@/ui/FolkCard";
 import { useTheme } from "@/theme/ThemeContext";
@@ -35,7 +36,7 @@ export function MessageComposerSettingsCard() {
         await setFanArtSellHidden(user.id, hidden);
       } catch {
         setFanArtSellHiddenState(!hidden);
-        Alert.alert("오류", "설정을 저장하지 못했습니다.");
+        showIslandError("오류", "설정을 저장하지 못했습니다.");
       }
     },
     [user?.id]

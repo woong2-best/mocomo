@@ -4,6 +4,7 @@ import {
   Bell,
   Heart,
   MessageSquare,
+  Quote,
   Repeat2,
   UserPlus,
   Mail,
@@ -81,6 +82,12 @@ export function notificationIcon(type: string): {
       return { Icon: AtSign, className: "text-violet-500" };
     case "repost":
       return { Icon: Repeat2, className: "text-green-500" };
+    case "quote":
+      return { Icon: Quote, className: "text-folk-cobalt" };
+    case "qna_answer":
+      return { Icon: MessageSquare, className: "text-amber-600" };
+    case "listing_like":
+      return { Icon: Heart, className: "text-folk-terracotta" };
     case "follow":
       return { Icon: UserPlus, className: "text-sky-500" };
     case "dm":
@@ -133,7 +140,7 @@ export function notificationCategoryForType(type: string): string {
     if (type.startsWith("FRAUD_")) return "fraud";
     return "system";
   }
-  if (["like", "comment", "comment_reply", "comment_like", "comment_author_like", "comment_pin", "mention", "repost", "follow", "vote"].includes(type)) {
+  if (["like", "comment", "comment_reply", "comment_like", "comment_author_like", "comment_pin", "mention", "repost", "quote", "qna_answer", "listing_like", "follow", "vote"].includes(type)) {
     return "social";
   }
   if (["dm", "dm_group", "call"].includes(type)) return "messages";

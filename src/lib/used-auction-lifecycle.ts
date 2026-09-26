@@ -6,7 +6,7 @@ import {
   paymentDueAtFromNow,
   type UsedAuctionConfigSlice,
 } from "@/lib/used-auction-config";
-import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
+import { notifyAuctionWatchers, sendUsedAuctionNotification } from "@/lib/used-auction-notify";
 import { forfeitWinnerDeposit } from "@/lib/auction-deposit";
 import { voidActiveHoldForBidder } from "@/lib/used-auction-bid-hold";
 import { USED_MARKET_BAN_MESSAGE } from "@/lib/used-market-access";
@@ -457,6 +457,13 @@ export async function processPaymentReminders(listingId: string) {
       body: listing.title,
       link,
     });
+    await sendUsedAuctionNotification({
+      userId: listing.sellerId,
+      type: "payment_reminder",
+      title: "낙찰자 결제 마감 1시간 전",
+      body: listing.title,
+      link,
+    });
   }
 
   if (!listing.paymentReminder10mSent && remaining <= 10 * 60 * 1000 && remaining > 0) {
@@ -471,7 +478,79 @@ export async function processPaymentReminders(listingId: string) {
       body: listing.title,
       link,
     });
+    await sendUsedAuctionNotification({
+      userId: listing.sellerId,
+      type: "payment_reminder",
+      title: "낙찰자 결제 마감 10분 전",
+      body: listing.title,
+      link,
+    });
   }
+}
+
+/** 3일 경매 — 하루 남음 / 1시간 남음을 판매자와 입찰자에게 한 번씩 */
+export async function processAuctionClockReminders(take = 50) {
+  const now = Date.now();
+  const in24h = new Date(now + 24 * 60 * 60 * 1000);
+  const in1h = new Date(now + 60 * 60 * 1000);
+  const liveWhere = {
+    saleType: "AUCTION" as const,
+    status: "SELLING" as const,
+    OR: [{ auctionState: "LIVE" as const }, { auctionState: null }],
+  };
+  let sent = 0;
+
+  const dayRows = await db.usedListing.findMany({
+    where: {
+      ...liveWhere,
+      auctionReminder1dSent: false,
+      auctionEndsAt: { gt: in1h, lte: in24h },
+    },
+    select: { id: true, title: true, sellerId: true },
+    take,
+  });
+  for (const row of dayRows) {
+    const claimed = await db.usedListing.updateMany({
+      where: { id: row.id, auctionReminder1dSent: false },
+      data: { auctionReminder1dSent: true },
+    });
+    if (claimed.count === 0) continue;
+    await notifyAuctionWatchers({
+      listingId: row.id,
+      sellerId: row.sellerId,
+      type: "reminder",
+      title: "경매 하루 남음",
+      body: `${row.title} — 마감까지 1일 남았습니다.`,
+    });
+    sent += 1;
+  }
+
+  const hourRows = await db.usedListing.findMany({
+    where: {
+      ...liveWhere,
+      auctionReminder1hSent: false,
+      auctionEndsAt: { gt: new Date(now), lte: in1h },
+    },
+    select: { id: true, title: true, sellerId: true },
+    take,
+  });
+  for (const row of hourRows) {
+    const claimed = await db.usedListing.updateMany({
+      where: { id: row.id, auctionReminder1hSent: false },
+      data: { auctionReminder1hSent: true },
+    });
+    if (claimed.count === 0) continue;
+    await notifyAuctionWatchers({
+      listingId: row.id,
+      sellerId: row.sellerId,
+      type: "reminder",
+      title: "경매 마감 1시간 전",
+      body: `${row.title} — 곧 마감됩니다.`,
+    });
+    sent += 1;
+  }
+
+  return sent;
 }
 
 export async function processNegotiationTimeout(listingId: string, config?: UsedAuctionConfigSlice) {
@@ -510,6 +589,7 @@ export async function runAuctionLifecycleBatch(take = 50) {
   let paymentTimeouts = 0;
   let negotiationTimeouts = 0;
   let reminders = 0;
+  let clockReminders = 0;
 
   try {
     const paymentPending = await db.usedListing.findMany({
@@ -555,9 +635,11 @@ export async function runAuctionLifecycleBatch(take = 50) {
       const res = await processNegotiationTimeout(row.id);
       if (res.processed) negotiationTimeouts++;
     }
+
+    clockReminders = await processAuctionClockReminders(take);
   } catch (e) {
     console.error("[runAuctionLifecycleBatch]", e);
   }
 
-  return { paymentTimeouts, negotiationTimeouts, reminders };
+  return { paymentTimeouts, negotiationTimeouts, reminders, clockReminders };
 }

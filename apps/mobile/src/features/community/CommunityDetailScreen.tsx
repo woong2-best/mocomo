@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -30,7 +29,7 @@ import { trackRecentCommunity } from "@/features/community/recent-communities";
 import { useScrollFieldAboveKeyboard } from "@/lib/use-scroll-field-above-keyboard";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { AppHeader } from "@/ui/AppHeader";
-import { showIslandError, showIslandToast } from "@/ui/IslandToast";
+import { showIslandError, showIslandToast } from "@/ui/IslandToast"
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { useShowLikeCounts } from "@/hooks/use-display-preferences";
@@ -112,7 +111,7 @@ export function CommunityDetailScreen() {
   const pickAndUpload = async (kind: "icon" | "banner") => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("권한 필요", "사진 접근 권한이 필요합니다.");
+      showIslandError("권한 필요", "사진 접근 권한이 필요합니다.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({

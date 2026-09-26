@@ -1,5 +1,5 @@
 import type { SubcultureEventCountry } from "@/lib/subculture-event-seeds";
-import { isKoreaEventCountry } from "@/lib/subculture-event-countries";
+import { googleMapsExternalUrl } from "@/lib/maps/google-external-url";
 import type { SubcultureEventPhase } from "@/lib/subculture-event-phase";
 
 export type MapEventPin = {
@@ -33,15 +33,11 @@ export function googleSearchUrlForEvent(pin: MapEventPin): string {
 }
 
 export function mapLinkForEvent(pin: MapEventPin): { label: string; url: string } {
-  if (isKoreaEventCountry(pin.country)) {
-    return {
-      label: "카카오맵",
-      url: `https://map.kakao.com/link/map/${pin.lat},${pin.lng}`,
-    };
-  }
-  const q = encodeURIComponent(`${pin.venueName ?? pin.title} ${pin.lat},${pin.lng}`);
   return {
     label: "Google 지도",
-    url: `https://www.google.com/maps/search/?api=1&query=${q}`,
+    url: googleMapsExternalUrl({
+      place: pin.venueName ?? pin.title,
+      coords: { lat: pin.lat, lng: pin.lng },
+    }),
   };
 }

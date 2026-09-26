@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   Pressable,
@@ -14,6 +13,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation, useFocusEffect, type RouteProp } from "@react-navigation/native";
@@ -138,19 +138,19 @@ export function MessageRoomScreen() {
     meetAt.setDate(meetAt.getDate() + meetDayOffset);
     meetAt.setHours(meetHour, 0, 0, 0);
     if (meetAt.getTime() < Date.now()) {
-      Alert.alert("일정", "지금보다 이후 시간을 선택해 주세요.");
+      showIslandError("일정", "지금보다 이후 시간을 선택해 주세요.");
       return;
     }
     setTradeRequestBusy(true);
     try {
       await requestUsedTrade(usedTrade.listingId, roomId, meetAt.toISOString());
       await refresh();
-      Alert.alert(
+      showIslandSuccess(
         "거래 요청",
         usedTrade.isSeller ? "구매자에게 거래 일정을 보냈습니다." : "판매자에게 거래 일정을 보냈습니다."
       );
     } catch (e) {
-      Alert.alert("오류", e instanceof Error ? e.message : "거래 요청에 실패했습니다.");
+      showIslandError("오류", e instanceof Error ? e.message : "거래 요청에 실패했습니다.");
     } finally {
       setTradeRequestBusy(false);
     }
@@ -256,7 +256,7 @@ export function MessageRoomScreen() {
         await send(caption ?? "", [{ url, type: "IMAGE", name: asset.fileName ?? undefined }], replyId);
         scrollEnd();
       } catch (e) {
-        Alert.alert("전송 실패", e instanceof Error ? e.message : "사진을 보내지 못했습니다.");
+        showIslandError("전송 실패", e instanceof Error ? e.message : "사진을 보내지 못했습니다.");
       } finally {
         setUploading(false);
       }
@@ -293,7 +293,7 @@ export function MessageRoomScreen() {
   const startCall = useCallback(
     (callType: "AUDIO" | "VIDEO") => {
       if (!peerId) {
-        Alert.alert("통화 불가", "상대 정보를 아직 불러오지 못했습니다.");
+        showIslandError("통화 불가", "상대 정보를 아직 불러오지 못했습니다.");
         return;
       }
       navigation.navigate("DmCall", {
@@ -309,7 +309,7 @@ export function MessageRoomScreen() {
 
   const openBooking = useCallback((callType: "AUDIO" | "VIDEO") => {
     if (!peerId) {
-      Alert.alert("예약 불가", "상대 정보를 아직 불러오지 못했습니다.");
+      showIslandError("예약 불가", "상대 정보를 아직 불러오지 못했습니다.");
       return;
     }
     setBookingSheet({ callType });

@@ -1,8 +1,8 @@
-import { Alert } from "react-native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { fetchMarketSellAccess } from "@/api/commerce-market";
 import { openMobileWebSession } from "@/lib/open-web-session";
 import type { RootStackParamList } from "@/navigation/types";
+import { showIslandError, showIslandPrompt } from "@/ui/IslandToast";
 
 const APP_RETURN_PATH = "/market/app-return?target=MarketSellItem";
 
@@ -34,13 +34,13 @@ export function promptMarketSellerWebFlow(
   signedIn: boolean
 ) {
   if (!signedIn) {
-    Alert.alert("로그인 필요", "판매 등록을 위해 먼저 로그인해 주세요.", [
-      { text: "취소", style: "cancel" },
-      { text: "로그인", onPress: () => void openWebAuth("signin") },
-    ]);
+    showIslandPrompt("로그인 필요", "판매 등록을 위해 먼저 로그인해 주세요.", {
+      label: "로그인",
+      onPress: () => void openWebAuth("signin"),
+    });
     return;
   }
   void openMarketSellerWebFlow(navigation).catch(() => {
-    Alert.alert("오류", "판매자 등록 페이지를 열지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    showIslandError("오류", "판매자 등록 페이지를 열지 못했습니다. 잠시 후 다시 시도해 주세요.");
   });
 }

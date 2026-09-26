@@ -90,8 +90,6 @@ export async function GET(
     country: string;
     engine: string;
     externalMapUrl: string;
-    /** @deprecated use externalMapUrl */
-    kakaoMapUrl: string;
     caption: string;
   } | null = null;
 
@@ -119,7 +117,6 @@ export async function GET(
         country: meetCountry,
         engine: selectMapEngine(meetCountry),
         externalMapUrl,
-        kakaoMapUrl: externalMapUrl,
         caption: meetMapCaption({
           country: meetCountry,
           region: listing.region,

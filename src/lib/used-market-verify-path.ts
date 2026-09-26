@@ -1,7 +1,5 @@
 import { isUsedMarketEligible, usedMarketVerificationRequiredMsg } from "@/lib/used-bank-auth";
 import { isKoreaUsedMarketCountry } from "@/lib/used-regions-global";
-import { walletSettlementPath } from "@/lib/settlement-account";
-
 export type UsedMarketVerifyUser = {
   countryCode: string;
   stripeOnboardingCompleted?: boolean;
@@ -9,11 +7,11 @@ export type UsedMarketVerifyUser = {
   phoneVerified?: Date | null;
 };
 
-/** KR → Stripe Connect (wallet) · overseas → phone OTP at /used/verify */
+/** KR 직거래 — 별도 정산 연동 없음 · 해외 → phone OTP at /market/verify */
 export function usedMarketVerifyPath(callbackUrl?: string, countryCode?: string): string {
   const next = callbackUrl?.startsWith("/") ? callbackUrl : "/market/new";
   if (isKoreaUsedMarketCountry(countryCode)) {
-    return walletSettlementPath(next);
+    return next;
   }
   const params = new URLSearchParams({ callbackUrl: next });
   return `/market/verify?${params.toString()}`;

@@ -37,6 +37,7 @@ import { NativeCredentialsForm } from "@/features/auth/NativeCredentialsForm";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { IslandToastScreenSlot } from "@/ui/IslandToast";
 
 /** Matches the cream sky fill of welcome-bg.jpg so letterbox edges never show. */
 const BACKDROP = "#E8DFD0";
@@ -400,6 +401,8 @@ export function LoginScreen({ navigation, route }: Props) {
         visible={showNotification && !addAccountMode}
         onComplete={() => setShowNotification(false)}
       />
+
+      <IslandToastScreenSlot />
     </View>
   );
 }

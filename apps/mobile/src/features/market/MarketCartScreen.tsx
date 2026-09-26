@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
 import {
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -8,6 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { Image } from "expo-image";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -87,7 +87,7 @@ export function MarketCartScreen() {
 
   function startGroupCheckout(group: CartCheckoutGroup) {
     if (blocked) {
-      Alert.alert("이용 불가", disclaimer || "해당 지역에서 이용할 수 없습니다.");
+      showIslandError("이용 불가", disclaimer || "해당 지역에서 이용할 수 없습니다.");
       return;
     }
     setPayGroup(group);
@@ -99,7 +99,7 @@ export function MarketCartScreen() {
       await removeFromMarketplaceCart(line.listingId);
     }
     reload();
-    Alert.alert("결제 완료", "주문이 접수되었습니다.");
+    showIslandSuccess("결제 완료", "주문이 접수되었습니다.");
   }
 
   const checkoutListingId = payGroup?.lines[0]?.listingId ?? "";

@@ -26,10 +26,7 @@ import {
 } from "@/components/used/used-subculture-fields";
 import { UsedWorkTitleField } from "@/components/used/used-work-title-field";
 import { UsedLotTemplatePicker } from "@/components/used/used-lot-template-picker";
-import {
-  AUCTION_DURATION_OPTIONS,
-  DEFAULT_BID_INCREMENT,
-} from "@/lib/used-auction";
+import { DEFAULT_BID_INCREMENT } from "@/lib/used-auction";
 import { parseUsdDollarsToCents, sanitizeUsdDollarInput } from "@/lib/money";
 import { USED_RESTRICTED_OPTIONS } from "@/lib/used-youth-protection";
 import type { UsedRestrictedKind } from "@prisma/client";
@@ -91,7 +88,6 @@ export function UsedPostForm({
   const [restrictedKind, setRestrictedKind] = useState<UsedRestrictedKind>("NONE");
   const [isNsfw, setIsNsfw] = useState(false);
   const [saleType, setSaleType] = useState<"FIXED" | "AUCTION">("FIXED");
-  const [auctionHours, setAuctionHours] = useState(24);
   const [bidIncrement, setBidIncrement] = useState(DEFAULT_BID_INCREMENT);
   const [buyNowPrice, setBuyNowPrice] = useState("");
   const [reservePrice, setReservePrice] = useState("");
@@ -183,7 +179,6 @@ export function UsedPostForm({
       saleType,
       ...(saleType === "AUCTION"
         ? {
-            auctionHours,
             bidIncrement,
             buyNowPrice: parseOptionalFormPrice(buyNowPrice, currency),
             reservePrice: parseOptionalFormPrice(reservePrice, currency),
@@ -338,20 +333,9 @@ export function UsedPostForm({
       {saleType === "AUCTION" && !isFree && (
         <div className="space-y-3 rounded-xl border border-orange-500/25 bg-orange-500/5 p-3">
           <p className="text-sm font-semibold text-orange-600 dark:text-orange-400">경매 설정</p>
-          <div>
-            <label className="text-xs text-muted-foreground">경매 기간</label>
-            <select
-              className="w-full h-10 mt-1 rounded-lg border px-2 text-sm"
-              value={auctionHours}
-              onChange={(e) => setAuctionHours(Number(e.target.value))}
-            >
-              {AUCTION_DURATION_OPTIONS.map((d) => (
-                <option key={d.hours} value={d.hours}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            경매 기간은 등록하는 순간부터 3일입니다. 남은 시간은 일:시:분:초로 실시간 표시됩니다.
+          </p>
           <div>
             <label className="text-xs text-muted-foreground">입찰 단위 (최소 상향)</label>
             <select

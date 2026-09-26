@@ -14,6 +14,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { fetchMarketplaceList, type MarketplaceListItem } from "@/api/marketplace";
 import { fetchMyWtbAlerts } from "@/api/subculture";
 import { UsedWtbAlertList } from "@/features/marketplace/UsedWtbAlertList";
+import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
 import {
   formatUsedPrice,
   formatUsedTimeAgo,
@@ -77,6 +78,9 @@ export function UsedMyScreen() {
             {item.title}
           </Text>
           <Text style={styles.price}>{formatUsedPrice(item.price, item.currency)}</Text>
+          {isAuction && item.auctionEndsAt && item.status === "SELLING" ? (
+            <AuctionCountdown endsAt={item.auctionEndsAt} />
+          ) : null}
           <Text style={styles.sub}>
             {item.region || "지역 미정"} · {formatUsedTimeAgo(item.createdAt)}
           </Text>

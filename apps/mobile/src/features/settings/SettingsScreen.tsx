@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -8,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  View,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "@/auth/AuthContext";
@@ -38,6 +38,7 @@ export function SettingsScreen() {
   const [locale, setLocale] = useState(user?.locale ?? "ko");
   const [countryCode, setCountryCode] = useState(user?.countryCode ?? "KR");
   const [localeBusy, setLocaleBusy] = useState(false);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
 
   useEffect(() => {
     setLocale(user?.locale ?? "ko");
@@ -86,16 +87,26 @@ export function SettingsScreen() {
               {user?.countryCode ? ` · ${user.countryCode}` : ""}
             </Text>
             <Text style={styles.metaMuted}>표시 이름: {user?.name || "—"}</Text>
-            <FolkButton
-              label="로그아웃"
-              variant="secondary"
-              onPress={() => {
-                Alert.alert("로그아웃", "이 기기에서 로그아웃할까요?", [
-                  { text: "취소", style: "cancel" },
-                  { text: "로그아웃", style: "destructive", onPress: () => void signOut() },
-                ]);
-              }}
-            />
+            {logoutConfirm ? (
+              <View style={{ gap: spacing.sm }}>
+                <Text style={styles.cardDesc}>이 기기에서 로그아웃할까요?</Text>
+                <FolkButton
+                  label="로그아웃"
+                  variant="secondary"
+                  onPress={() => {
+                    setLogoutConfirm(false);
+                    void signOut();
+                  }}
+                />
+                <FolkButton label="취소" variant="ghost" onPress={() => setLogoutConfirm(false)} />
+              </View>
+            ) : (
+              <FolkButton
+                label="로그아웃"
+                variant="secondary"
+                onPress={() => setLogoutConfirm(true)}
+              />
+            )}
           </FolkCard>
 
           <AccountDeletionCard

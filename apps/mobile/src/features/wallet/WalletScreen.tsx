@@ -163,8 +163,8 @@ export function WalletScreen() {
                   수익 정산 계좌 연동
                 </Text>
                 <Text style={[styles.returnBannerBody, { color: colors.textMuted }]}>
-                  판매·중고·크리에이터 수익을 받으려면 아래에서 Stripe Connect로 정산 계좌를
-                  연동해 주세요.
+                  Star Market·크리에이터 Reward 등 수익 정산을 받으려면 아래에서 Stripe Connect로
+                  정산 계좌를 연동해 주세요. (중고 직거래·경매 보증금과는 별개입니다.)
                 </Text>
               </View>
             ) : null}

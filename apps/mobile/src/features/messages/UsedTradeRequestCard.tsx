@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -54,12 +55,12 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
       await load();
       await queryClient.invalidateQueries({ queryKey: ["mobile-used-meet-pins"] });
       onRefresh?.();
-      Alert.alert(
+      showIslandSuccess(
         action === "approve" ? "승인했습니다" : "거절했습니다",
         action === "approve" ? "이제 이 글은 수정할 수 없습니다." : undefined
       );
     } catch (e) {
-      Alert.alert("오류", e instanceof Error ? e.message : "처리하지 못했습니다.");
+      showIslandError("오류", e instanceof Error ? e.message : "처리하지 못했습니다.");
     } finally {
       setBusy(false);
     }

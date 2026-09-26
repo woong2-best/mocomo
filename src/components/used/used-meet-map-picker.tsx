@@ -36,14 +36,12 @@ export function UsedMeetMapPicker({
         mode="pick"
         country={country}
         region={region}
-        meetPlace={meetPlace}
         coords={coords}
         onCoordsChange={onCoordsChange}
-        onMeetPlaceChange={onMeetPlaceChange}
         heightClassName="h-56"
       />
       <Input
-        placeholder="동·거리 등 상세 위치 (예: 역삼동 스타벅스 앞)"
+        placeholder="주소 상세 (예: 2번 출구 스타벅스 앞)"
         value={meetPlace}
         onChange={(e) => onMeetPlaceChange(e.target.value)}
         className="rounded-xl h-11"

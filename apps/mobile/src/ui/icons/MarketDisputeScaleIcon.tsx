@@ -1,47 +1,32 @@
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import { useTheme } from "@/theme/ThemeContext";
 
 type Props = {
-  /** Visual height; width follows the wide scale aspect ratio. */
+  /** Visual height. Width follows the scale silhouette. */
   size?: number;
   color?: string;
 };
 
+const VIEW_W = 280;
+const VIEW_H = 211;
+
+/** Traced from the balance-scale silhouette. Holes are the gaps between chains. */
+const SCALE_PATH =
+  "M135 0 L144 0 L150 4 L151 8 L150 10 L146 13 L146 15 L147 16 L147 22 L150 24 L221 24 L224 20 L229 18 L232 18 L233 19 L238 20 L242 26 L241 33 L237 37 L238 38 L238 40 L241 44 L243 51 L247 57 L249 64 L252 68 L252 70 L255 75 L255 77 L261 88 L261 90 L264 96 L266 98 L266 100 L268 103 L269 107 L271 109 L271 111 L277 114 L279 116 L279 119 L275 123 L271 133 L261 143 L256 145 L252 148 L242 150 L241 151 L223 151 L222 150 L218 150 L217 149 L211 148 L207 145 L202 143 L198 139 L197 139 L189 130 L186 124 L186 122 L183 119 L183 115 L189 112 L193 107 L195 100 L199 94 L201 87 L207 76 L207 74 L210 69 L210 67 L212 65 L214 58 L218 52 L218 50 L224 38 L224 36 L222 34 L151 34 L149 36 L150 38 L150 47 L151 48 L152 65 L153 66 L154 79 L155 80 L155 85 L156 86 L156 95 L157 96 L158 112 L159 113 L159 121 L160 122 L160 126 L161 127 L161 134 L162 135 L162 138 L168 141 L171 145 L175 153 L176 162 L182 172 L186 175 L189 181 L189 184 L192 188 L192 193 L186 200 L179 204 L176 204 L173 206 L167 207 L166 208 L162 208 L161 209 L152 209 L151 210 L126 210 L125 209 L116 209 L115 208 L111 208 L110 207 L99 204 L93 201 L89 197 L88 197 L86 194 L87 181 L90 176 L98 167 L99 163 L101 160 L102 152 L104 149 L105 145 L111 139 L114 139 L116 137 L116 131 L117 130 L117 124 L118 123 L118 117 L119 116 L120 103 L121 102 L121 95 L122 94 L122 87 L123 86 L123 78 L124 77 L125 67 L126 66 L127 50 L128 49 L128 42 L129 41 L129 35 L128 34 L57 34 L54 37 L56 42 L58 44 L60 51 L64 57 L66 64 L72 75 L72 77 L75 83 L77 85 L79 92 L83 98 L83 100 L88 111 L90 113 L92 113 L96 116 L96 119 L92 123 L92 125 L89 132 L86 135 L86 136 L77 144 L74 145 L70 148 L68 148 L64 150 L61 150 L60 151 L51 151 L50 152 L48 152 L47 151 L38 151 L37 150 L30 149 L17 142 L6 130 L6 128 L0 119 L0 116 L2 114 L6 113 L8 111 L13 101 L13 99 L18 90 L20 83 L23 79 L23 77 L26 72 L26 70 L29 66 L31 59 L41 39 L41 36 L38 33 L38 31 L37 30 L37 27 L38 26 L38 24 L43 19 L53 19 L55 20 L58 24 L128 24 L132 21 L132 16 L133 15 L133 13 L129 9 L129 5 Z M228 37 L229 37 L229 100 L230 101 L230 108 L212 108 L211 109 L201 109 L200 110 L196 110 L195 111 L195 109 L206 87 L208 80 L210 78 L210 76 L214 69 L214 67 L220 56 L220 54 L226 43 L226 41 Z M233 37 L236 41 L236 43 L242 54 L242 56 L260 93 L262 100 L264 102 L265 106 L268 111 L262 110 L261 109 L233 108 L233 57 L232 56 L232 38 Z M45 38 L46 38 L46 67 L47 68 L47 108 L19 109 L18 110 L12 111 L13 107 L24 85 L26 78 L30 72 L32 65 L35 61 L35 59 L38 54 L38 52 L41 48 L41 46 Z M50 38 L52 39 L52 41 L55 46 L55 48 L59 54 L59 56 L65 67 L65 69 L69 76 L69 78 L71 80 L71 82 L79 98 L79 100 L85 111 L82 111 L77 109 L50 108 Z";
+
 /**
- * 분쟁(저울) — 라인 아트. 라이트: brand stroke, 다크: cream text stroke.
+ * 분쟁(저울) — 채워진 실루엣. 라이트: brand, 다크: cream.
+ * Height matches the other market shortcut icons.
  */
 export function MarketDisputeScaleIcon({ size = 26, color }: Props) {
   const { colors, isDark } = useTheme();
-  const stroke = color ?? (isDark ? colors.text : colors.brand);
-  const width = Math.round(size * 1.42);
+  const fill = color ?? (isDark ? colors.text : colors.brand);
   const height = size;
-  const sw = 1.45;
+  const width = Math.round((size * VIEW_W) / VIEW_H);
 
   return (
-    <Svg width={width} height={height} viewBox="0 0 54 36" fill="none">
-      <Path
-        d="M7 11 Q27 7 47 11"
-        stroke={stroke}
-        strokeWidth={sw}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Circle cx={7} cy={11} r={2} stroke={stroke} strokeWidth={sw} />
-      <Circle cx={47} cy={11} r={2} stroke={stroke} strokeWidth={sw} />
-      <Path d="M9 12.5 L19 27 M13 12.5 L19 27" stroke={stroke} strokeWidth={sw} strokeLinecap="round" />
-      <Path d="M45 12.5 L35 27 M41 12.5 L35 27" stroke={stroke} strokeWidth={sw} strokeLinecap="round" />
-      <Path
-        d="M12 27 A7 7 0 0 0 26 27"
-        stroke={stroke}
-        strokeWidth={sw}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M28 27 A7 7 0 0 0 42 27"
-        stroke={stroke}
-        strokeWidth={sw}
-        strokeLinecap="round"
-      />
+    <Svg width={width} height={height} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
+      <Path d={SCALE_PATH} fill={fill} fillRule="evenodd" />
     </Svg>
   );
 }

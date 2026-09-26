@@ -6,16 +6,10 @@ import { Loader2, MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCurrentCoords, geolocationErrorMessage } from "@/lib/client-geolocation";
-import { selectMapEngine } from "@/lib/maps/select-engine";
-import type { MapEngineId, MeetCoords } from "@/lib/maps/types";
+import type { MeetCoords } from "@/lib/maps/types";
 import { getRegionMapCenter, isShippingOnlyRegion } from "@/lib/used-region-coords";
-import { getKakaoJsKey } from "@/components/maps/kakao-maps-loader";
 import { cn } from "@/lib/utils";
 
-const KakaoMeetMapCanvas = dynamic(
-  () => import("@/components/maps/KakaoMeetMapCanvas").then((m) => m.KakaoMeetMapCanvas),
-  { ssr: false }
-);
 const MapLibreMeetMapCanvas = dynamic(
   () => import("@/components/maps/MapLibreMeetMapCanvas").then((m) => m.MapLibreMeetMapCanvas),
   { ssr: false }
@@ -33,15 +27,6 @@ export type MeetMapViewProps = {
   heightClassName?: string;
 };
 
-function resolveDisplayEngine(country: string): MapEngineId {
-  const preferred = selectMapEngine(country);
-  if (preferred === "kakao" && !getKakaoJsKey()) {
-    // Kakao Local geocode still works via REST key; map tiles fall back to MapLibre.
-    return "maplibre";
-  }
-  return preferred;
-}
-
 export function MeetMapView({
   mode,
   country,
@@ -49,12 +34,9 @@ export function MeetMapView({
   meetPlace = "",
   coords,
   onCoordsChange,
-  onMeetPlaceChange,
   className,
   heightClassName = "h-52",
 }: MeetMapViewProps) {
-  const preferredEngine = selectMapEngine(country);
-  const [engine, setEngine] = useState<MapEngineId>(() => resolveDisplayEngine(country));
   const shipping = isShippingOnlyRegion(region);
   const interactive = mode === "pick" && !shipping;
 
@@ -70,7 +52,6 @@ export function MeetMapView({
   const zoom = activeCoords ? 16 : regionCenter.zoom;
 
   useEffect(() => {
-    setEngine(resolveDisplayEngine(country));
     setMapError("");
   }, [country]);
 
@@ -84,20 +65,16 @@ export function MeetMapView({
         const res = await fetch(
           `/api/used/reverse-geocode?lat=${encodeURIComponent(String(lat))}&lng=${encodeURIComponent(String(lng))}&country=${encodeURIComponent(country)}`
         );
-        const body = (await res.json()) as { label?: string; error?: string; code?: string };
-        if (body.code === "KAKAO_NOT_CONFIGURED") {
-          setResolveError("서버에 KAKAO_REST_API_KEY를 설정해 주세요.");
-          return;
-        }
+        const body = (await res.json()) as { label?: string; error?: string };
         if (res.ok && body.label) {
-          onMeetPlaceChange?.(detail?.trim() ? `${body.label} · ${detail.trim()}` : body.label);
+          setSearchQ(detail?.trim() ? `${body.label} · ${detail.trim()}` : body.label);
           setResolveError("");
         }
       } catch {
         /* keep coords */
       }
     },
-    [country, onMeetPlaceChange]
+    [country]
   );
 
   const handlePick = useCallback(
@@ -110,17 +87,9 @@ export function MeetMapView({
     [interactive, onCoordsChange, resolvePinAddress]
   );
 
-  const handleMapEngineError = useCallback(
-    (message: string) => {
-      if (engine === "kakao") {
-        setEngine("maplibre");
-        setMapError("카카오맵 스크립트가 차단되어 OpenStreetMap으로 표시합니다.");
-        return;
-      }
-      setMapError(message || "지도를 불러오지 못했습니다.");
-    },
-    [engine]
-  );
+  const handleMapEngineError = useCallback((message: string) => {
+    setMapError(message || "지도를 불러오지 못했습니다.");
+  }, []);
 
   const handleMapReady = useCallback(() => {
     setMapError("");
@@ -137,13 +106,8 @@ export function MeetMapView({
         const body = (await res.json()) as {
           lat?: number;
           lng?: number;
-          code?: string;
         };
         if (cancelled) return;
-        if (body.code === "KAKAO_NOT_CONFIGURED") {
-          setResolveError("서버에 KAKAO_REST_API_KEY를 설정해 주세요.");
-          return;
-        }
         if (!res.ok || body.lat == null || body.lng == null) return;
         setDisplayCoords({ lat: body.lat, lng: body.lng });
       } catch {
@@ -161,8 +125,6 @@ export function MeetMapView({
     setSearching(true);
     setResolveError("");
     try {
-      // Use `q` (not place+region) so the typed name is searched as-is.
-      // Server still falls back to region-biased query when needed.
       const params = new URLSearchParams({ q, country, region });
       const res = await fetch(`/api/used/geocode?${params}`);
       const body = (await res.json()) as {
@@ -170,19 +132,14 @@ export function MeetMapView({
         lng?: number;
         label?: string;
         error?: string;
-        code?: string;
       };
-      if (body.code === "KAKAO_NOT_CONFIGURED") {
-        setResolveError("서버에 KAKAO_REST_API_KEY를 설정해 주세요.");
-        return;
-      }
       if (!res.ok || body.lat == null || body.lng == null) {
         setResolveError(body.error ?? "장소를 찾지 못했습니다.");
         return;
       }
       const next = { lat: body.lat, lng: body.lng };
       onCoordsChange?.(next);
-      onMeetPlaceChange?.(body.label?.trim() || q);
+      setSearchQ(body.label?.trim() || q);
       setDisplayCoords(next);
       setResolveError("");
     } catch {
@@ -208,18 +165,10 @@ export function MeetMapView({
   if (shipping) {
     return (
       <p className="text-xs text-muted-foreground rounded-xl border border-dashed p-4 text-center">
-        {preferredEngine === "kakao"
-          ? "전국 택배 거래는 지도 표시 없이 택배로 진행해 주세요."
-          : "Shipping trades proceed without a meetup map pin."}
+        전국 택배 거래는 지도 표시 없이 택배로 진행해 주세요.
       </p>
     );
   }
-
-  const Canvas = engine === "kakao" ? KakaoMeetMapCanvas : MapLibreMeetMapCanvas;
-  const searchPlaceholder =
-    preferredEngine === "kakao"
-      ? "카카오맵 장소 검색 (예: 강남역 2번 출구)"
-      : "Search place (OpenStreetMap)";
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -229,7 +178,7 @@ export function MeetMapView({
             <Input
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
-              placeholder={searchPlaceholder}
+              placeholder="장소 검색 (OpenStreetMap)"
               className="rounded-xl h-10 text-sm"
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), void searchPlace())}
             />
@@ -262,8 +211,7 @@ export function MeetMapView({
           heightClassName
         )}
       >
-        <Canvas
-          key={engine}
+        <MapLibreMeetMapCanvas
           mode={mode}
           center={center}
           zoom={zoom}
@@ -288,11 +236,8 @@ export function MeetMapView({
       {mode === "pick" && (
         <p className="text-xs text-muted-foreground flex items-start gap-1">
           <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-          {preferredEngine === "kakao"
-            ? engine === "kakao"
-              ? "한국은 카카오맵으로 검색·표시됩니다. 핀을 옮기면 장소명이 자동으로 채워져요."
-              : "장소 검색은 카카오 로컬 API, 지도 표시는 OpenStreetMap(MapLibre)입니다."
-            : "이 국가는 MapLibre + OpenStreetMap으로 검색·표시됩니다."}
+          위 칸은 지도 검색용입니다. 건물·출입구 등 상세는 아래 주소 상세에만 적어 주세요. 외부
+          지도 링크는 Google 지도로 열립니다.
         </p>
       )}
     </div>

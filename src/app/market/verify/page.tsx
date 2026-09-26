@@ -4,7 +4,6 @@ import { getCachedCurrentUser } from "@/lib/auth";
 import { isUsedMarketEligible } from "@/lib/used-bank-auth";
 import { usedMarketVerifyPath } from "@/lib/used-market-verify-path";
 import { isKoreaUsedMarketCountry } from "@/lib/used-regions-global";
-import { walletSettlementPath } from "@/lib/settlement-account";
 import { UsedPhoneVerifyForm } from "@/components/used/used-phone-verify-form";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
@@ -25,10 +24,8 @@ export default async function UsedVerifyPage({
     );
   }
 
-  if (isUsedMarketEligible(user)) redirect(next);
-
-  if (isKoreaUsedMarketCountry(user.countryCode)) {
-    redirect(walletSettlementPath(next));
+  if (isUsedMarketEligible(user) || isKoreaUsedMarketCountry(user.countryCode)) {
+    redirect(next);
   }
 
   return (

@@ -1,29 +1,17 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { showIslandError } from "@/ui/IslandToast";
 
 import {
-
   ActivityIndicator,
-
-  Alert,
-
   Linking,
-
   KeyboardAvoidingView,
-
   Platform,
-
   Pressable,
-
   ScrollView,
-
   StyleSheet,
-
   Text,
-
   TextInput,
-
   View,
-
 } from "react-native";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -56,6 +44,8 @@ import {
 
 import { createCommunity } from "@/api/community";
 
+import { publishQnaOpeningPost } from "@/features/community/publish-qna-post";
+
 import { uploadLocalFile } from "@/api/upload-file";
 
 import {
@@ -69,6 +59,8 @@ import {
   type QnaCreateCategorySelection,
 
 } from "@/features/community/community-labels";
+
+import { ensureQnaNsfwAccess } from "@/features/community/ensure-qna-nsfw-access";
 
 import { useScrollFieldAboveKeyboard } from "@/lib/use-scroll-field-above-keyboard";
 
@@ -200,6 +192,14 @@ export function CommunityCreateScreen() {
 
     useScrollFieldAboveKeyboard();
 
+  const pickCategory = useCallback((next: QnaCreateCategorySelection) => {
+    void (async () => {
+      const ok = await ensureQnaNsfwAccess(next);
+      if (!ok) return;
+      setCategory(next);
+    })();
+  }, []);
+
 
 
   const create = useMutation({
@@ -214,7 +214,7 @@ export function CommunityCreateScreen() {
 
       const payload = qnaCreateSelectionToApi(category);
 
-      return createCommunity({
+      const community = await createCommunity({
 
         name: name.trim(),
 
@@ -228,15 +228,31 @@ export function CommunityCreateScreen() {
 
       });
 
+      await publishQnaOpeningPost({
+
+        communityId: community.community.id,
+
+        name: name.trim(),
+
+        description,
+
+        isNsfw: payload.isNsfw,
+
+      });
+
+      return community;
+
     },
 
-    onSuccess: async (res) => {
+    onSuccess: async () => {
 
       await queryClient.invalidateQueries({ queryKey: ["mobile-community"] });
 
       await queryClient.invalidateQueries({ queryKey: ["mobile-qna-feed"] });
 
-      navigation.replace("CommunityDetail", { slug: res.community.slug });
+      await queryClient.refetchQueries({ queryKey: ["mobile-qna-feed"] });
+
+      navigation.replace("CommunityList");
 
     },
 
@@ -258,7 +274,7 @@ export function CommunityCreateScreen() {
 
           : "QnA 생성에 실패했습니다.";
 
-      Alert.alert("생성 실패", msg);
+      showIslandError("생성 실패", msg);
 
     },
 
@@ -274,7 +290,7 @@ export function CommunityCreateScreen() {
 
     if (!perm.granted) {
 
-      Alert.alert("권한 필요", "사진 접근 권한이 필요합니다.");
+      showIslandError("권한 필요", "사진 접근 권한이 필요합니다.");
 
       return;
 
@@ -336,7 +352,7 @@ export function CommunityCreateScreen() {
 
     if (!category) {
 
-      Alert.alert("카테고리", "QnA가 속할 카테고리를 선택해 주세요.");
+      showIslandError("카테고리", "QnA가 속할 카테고리를 선택해 주세요.");
 
       return;
 
@@ -344,7 +360,7 @@ export function CommunityCreateScreen() {
 
     if (name.trim().length < 2) {
 
-      Alert.alert("Q", "질문은 2자 이상 입력해 주세요.");
+      showIslandError("Q", "질문은 2자 이상 입력해 주세요.");
 
       return;
 
@@ -424,7 +440,7 @@ export function CommunityCreateScreen() {
 
                       disabled={create.isPending}
 
-                      onPress={() => setCategory(opt.id)}
+                      onPress={() => pickCategory(opt.id)}
 
                       style={[styles.catBtn, selected && styles.catBtnActive]}
 
@@ -432,7 +448,10 @@ export function CommunityCreateScreen() {
 
                       <Text style={styles.catEmoji}>{opt.emoji}</Text>
 
-                      <Text style={[styles.catLabel, selected && styles.catLabelActive]}>
+                      <Text
+                        style={[styles.catLabel, selected && styles.catLabelActive]}
+                        numberOfLines={2}
+                      >
 
                         {opt.shortLabel}
 
@@ -448,7 +467,7 @@ export function CommunityCreateScreen() {
 
                   disabled={create.isPending}
 
-                  onPress={() => setCategory(QNA_NSFW_CATEGORY_ID)}
+                  onPress={() => pickCategory(QNA_NSFW_CATEGORY_ID)}
 
                   style={[
 
@@ -714,11 +733,11 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
 
       width: "31.5%",
 
-      flexDirection: "row",
+      flexDirection: "column",
 
-      alignItems: "center",
+      alignItems: "flex-start",
 
-      gap: 6,
+      gap: 4,
 
       borderWidth: 1,
 
@@ -744,7 +763,7 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
 
     catEmoji: { fontSize: 14 },
 
-    catLabel: { fontSize: 13, fontWeight: "600", color: colors.text, flexShrink: 1 },
+    catLabel: { fontSize: 12, fontWeight: "600", color: colors.text, flexShrink: 0 },
 
     catLabelActive: { fontWeight: "800" },
 

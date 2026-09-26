@@ -56,12 +56,6 @@ export function UsedAuctionPanel({
           경매
           {live ? " 진행중" : auctionStateLabel(listing.auctionState) || ""}
         </span>
-        {endsAt && live && (
-          <div className="text-right">
-            <p className="text-[10px] text-muted-foreground">남은 시간</p>
-            <UsedAuctionCountdown endsAt={endsAt} className="text-sm" />
-          </div>
-        )}
         {paymentPending && listing.paymentDueAt && (
           <div className="text-right">
             <p className="text-[10px] text-muted-foreground">남은 결제 시간</p>
@@ -69,6 +63,13 @@ export function UsedAuctionPanel({
           </div>
         )}
       </div>
+
+      {endsAt && (live || listing.status === "SELLING") && (
+        <div>
+          <p className="text-[10px] text-muted-foreground mb-1.5">남은 시간</p>
+          <UsedAuctionCountdown endsAt={endsAt} />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>

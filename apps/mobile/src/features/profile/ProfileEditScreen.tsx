@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -33,6 +33,8 @@ import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
 import { Screen } from "@/ui/Screen";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast";
+import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
+import { useScrollFieldAboveKeyboard } from "@/lib/use-scroll-field-above-keyboard";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -83,6 +85,20 @@ export function ProfileEditScreen() {
   const [initialUsername, setInitialUsername] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [uploading, setUploading] = useState<"avatar" | "banner" | "video" | null>(null);
+
+  const keyboardInset = useKeyboardBottomInset();
+  const { scrollRef, frameRef, keyboardLift, onScrollOffset, onInputFocus } =
+    useScrollFieldAboveKeyboard();
+  const nameRef = useRef<TextInput>(null);
+  const usernameRef = useRef<TextInput>(null);
+  const bioRef = useRef<TextInput>(null);
+  const birthYearRef = useRef<TextInput>(null);
+  const birthMonthRef = useRef<TextInput>(null);
+  const birthDayRef = useRef<TextInput>(null);
+  const locationRef = useRef<TextInput>(null);
+  const websiteRef = useRef<TextInput>(null);
+  const mainCharacterRef = useRef<TextInput>(null);
+  const favoriteTagsRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (!query.data || hydrated) return;
@@ -324,10 +340,18 @@ export function ProfileEditScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <ScrollView
-          contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 96 }]}
-          keyboardShouldPersistTaps="handled"
-        >
+        <View ref={frameRef} style={{ flex: 1, marginBottom: keyboardLift }}>
+          <ScrollView
+            ref={scrollRef}
+            style={{ flex: 1 }}
+            contentContainerStyle={[
+              styles.body,
+              { paddingBottom: insets.bottom + spacing.md + keyboardLift },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            onScroll={(e) => onScrollOffset(e.nativeEvent.contentOffset.y)}
+            scrollEventThrottle={16}
+          >
           <FolkCard style={styles.previewCard}>
             <View style={styles.previewBanner}>
               <ProfileBannerMedia
@@ -401,17 +425,20 @@ export function ProfileEditScreen() {
           <FolkCard>
             <Text style={styles.label}>표시 이름</Text>
             <TextInput
+              ref={nameRef}
               style={styles.input}
               value={name}
               onChangeText={setName}
               placeholder="닉네임"
               placeholderTextColor={colors.textMuted}
+              onFocus={() => onInputFocus(nameRef.current)}
             />
 
             <Text style={styles.label}>아이디</Text>
             <View style={styles.atRow}>
               <Text style={styles.atPrefix}>@</Text>
               <TextInput
+                ref={usernameRef}
                 style={[styles.input, styles.atInput, usernameLocked && styles.inputDisabled]}
                 value={username}
                 onChangeText={setUsername}
@@ -420,6 +447,7 @@ export function ProfileEditScreen() {
                 editable={!usernameLocked}
                 placeholder="myid"
                 placeholderTextColor={colors.textMuted}
+                onFocus={() => onInputFocus(usernameRef.current)}
               />
             </View>
             <Text style={styles.hint}>
@@ -430,6 +458,7 @@ export function ProfileEditScreen() {
 
             <Text style={styles.label}>소개</Text>
             <TextInput
+              ref={bioRef}
               style={[styles.input, styles.bioInput]}
               value={bio}
               onChangeText={setBio}
@@ -437,33 +466,40 @@ export function ProfileEditScreen() {
               maxLength={160}
               placeholder="자기소개 (160자)"
               placeholderTextColor={colors.textMuted}
+              onFocus={() => onInputFocus(bioRef.current)}
             />
 
             <Text style={styles.label}>생일</Text>
             <View style={styles.birthRow}>
               <TextInput
+                ref={birthYearRef}
                 style={[styles.input, styles.birthInput]}
                 value={birthYear}
                 onChangeText={setBirthYear}
                 keyboardType="number-pad"
                 placeholder="연"
                 placeholderTextColor={colors.textMuted}
+                onFocus={() => onInputFocus(birthYearRef.current)}
               />
               <TextInput
+                ref={birthMonthRef}
                 style={[styles.input, styles.birthInput]}
                 value={birthMonth}
                 onChangeText={setBirthMonth}
                 keyboardType="number-pad"
                 placeholder="월"
                 placeholderTextColor={colors.textMuted}
+                onFocus={() => onInputFocus(birthMonthRef.current)}
               />
               <TextInput
+                ref={birthDayRef}
                 style={[styles.input, styles.birthInput]}
                 value={birthDay}
                 onChangeText={setBirthDay}
                 keyboardType="number-pad"
                 placeholder="일"
                 placeholderTextColor={colors.textMuted}
+                onFocus={() => onInputFocus(birthDayRef.current)}
               />
             </View>
             <View style={styles.switchRow}>
@@ -477,39 +513,47 @@ export function ProfileEditScreen() {
 
             <Text style={styles.label}>위치</Text>
             <TextInput
+              ref={locationRef}
               style={styles.input}
               value={location}
               onChangeText={setLocation}
               placeholder="서울, 대한민국"
               placeholderTextColor={colors.textMuted}
+              onFocus={() => onInputFocus(locationRef.current)}
             />
 
             <Text style={styles.label}>웹사이트</Text>
             <TextInput
+              ref={websiteRef}
               style={styles.input}
               value={website}
               onChangeText={setWebsite}
               autoCapitalize="none"
               placeholder="https://"
               placeholderTextColor={colors.textMuted}
+              onFocus={() => onInputFocus(websiteRef.current)}
             />
 
             <Text style={styles.label}>대표 캐릭터</Text>
             <TextInput
+              ref={mainCharacterRef}
               style={styles.input}
               value={mainCharacter}
               onChangeText={setMainCharacter}
               placeholder=""
               placeholderTextColor={colors.textMuted}
+              onFocus={() => onInputFocus(mainCharacterRef.current)}
             />
 
             <Text style={styles.label}>좋아하는 작품 (쉼표 구분)</Text>
             <TextInput
+              ref={favoriteTagsRef}
               style={styles.input}
               value={favoriteTags}
               onChangeText={setFavoriteTags}
               placeholder="작품1, 작품2"
               placeholderTextColor={colors.textMuted}
+              onFocus={() => onInputFocus(favoriteTagsRef.current)}
             />
 
             <View style={styles.switchRow}>
@@ -521,9 +565,18 @@ export function ProfileEditScreen() {
               />
             </View>
           </FolkCard>
-        </ScrollView>
+          </ScrollView>
+        </View>
 
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <View
+          style={[
+            styles.footer,
+            {
+              paddingBottom: Math.max(insets.bottom, 12),
+              marginBottom: Platform.OS === "android" ? keyboardInset : 0,
+            },
+          ]}
+        >
           <FolkButton
             label="저장"
             loading={saveMut.isPending}
@@ -593,10 +646,6 @@ function createStyles(colors: ThemeColors) {
     },
     switchLabel: { flex: 1, color: colors.text, fontWeight: "600", fontSize: 14 },
     footer: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 0,
       paddingHorizontal: spacing.md,
       paddingTop: 8,
       backgroundColor: colors.background,

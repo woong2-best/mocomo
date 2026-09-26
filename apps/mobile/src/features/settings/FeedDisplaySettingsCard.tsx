@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, StyleSheet, Switch, Text, View } from "react-native";
+import { StyleSheet, Switch, Text, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth/AuthContext";
 import { clearFeedBootstrap } from "@/api/feed-bootstrap-cache";
 import { patchMe } from "@/api/discovery";
 import { ApiError } from "@/api/client";
 import { FolkCard } from "@/ui/FolkCard";
+import { showIslandError } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -36,7 +37,7 @@ export function FeedDisplaySettingsCard() {
         }
         await refreshMe();
       } catch (e) {
-        Alert.alert("오류", errorMessage(e));
+        showIslandError("오류", errorMessage(e));
         throw e;
       }
     },

@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { requestWalletPayout } from "@/api/checkout-payment";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 
 import { formatUsd, MIN_PAYOUT_USD_CENTS } from "@/lib/money";
 
@@ -23,21 +24,21 @@ export function RevenuePayoutPanel({ withdrawable, bankReady }: Props) {
   async function submit() {
     const n = Number(amount.replace(/\D/g, ""));
     if (n < MIN_PAYOUT_USD_CENTS) {
-      Alert.alert("출금", `최소 ${formatUsd(MIN_PAYOUT_USD_CENTS)} 이상 신청할 수 있습니다.`);
+      showIslandError("출금", `최소 ${formatUsd(MIN_PAYOUT_USD_CENTS)} 이상 신청할 수 있습니다.`);
       return;
     }
     if (n > withdrawable) {
-      Alert.alert("출금", "출금 가능 잔액을 초과했습니다.");
+      showIslandError("출금", "출금 가능 잔액을 초과했습니다.");
       return;
     }
     setBusy(true);
     try {
       await requestWalletPayout(n);
-      Alert.alert("출금 신청", "출금 신청이 접수되었습니다.");
+      showIslandSuccess("출금 신청", "출금 신청이 접수되었습니다.");
       setAmount("");
       void queryClient.invalidateQueries({ queryKey: ["mobile-wallet"] });
     } catch (e: unknown) {
-      Alert.alert("출금 실패", e instanceof Error ? e.message : "출금 신청에 실패했습니다.");
+      showIslandError("출금 실패", e instanceof Error ? e.message : "출금 신청에 실패했습니다.");
     } finally {
       setBusy(false);
     }

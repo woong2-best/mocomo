@@ -8,8 +8,8 @@ import {
   USED_ADULT_SELLER_MSG,
 } from "@/lib/used-youth-protection";
 import {
-  computeAuctionEndsAt,
-  DEFAULT_BID_INCREMENT,
+  defaultBidIncrement,
+  standardAuctionEndsAt,
 } from "@/lib/used-auction";
 import {
   formatUsedPrice,
@@ -30,7 +30,7 @@ import { notifyWtbAlertsForListing } from "@/lib/subculture-commerce/wtb-alerts"
 import { geocodeMeetQuery } from "@/lib/maps/geocode";
 import { normalizeMeetCountry } from "@/lib/maps/select-engine";
 import { finalizeExpiredAuctionIfNeeded } from "@/actions/used-auction";
-import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
+import { notifyAuctionWatchers, sendUsedAuctionNotification } from "@/lib/used-auction-notify";
 import { executeUsedAuctionBid } from "@/lib/used-auction-bid-core";
 import { getOrCreateDmForUser, sendMobileDmMessage } from "@/lib/chat-dm-service";
 import {
@@ -94,7 +94,7 @@ export async function createMobileUsedListing(
   if (!user) return { error: "로그인이 필요합니다." as const };
 
   const isAuction = data.saleType === "AUCTION";
-  const accessErr = isAuction ? assertAuctionPostAccess(user) : assertUsedMarketAccess(user);
+  const accessErr = assertAuctionPostAccess(user);
   if (accessErr) return { error: accessErr };
 
   const restricted =
@@ -123,13 +123,12 @@ export async function createMobileUsedListing(
   if ("error" in parsedCats && parsedCats.error) return { error: parsedCats.error };
 
   if (isAuction && price <= 0) return { error: "경매 시작가를 입력해 주세요." as const };
-  if (isAuction && !data.auctionHours) return { error: "경매 기간을 선택해 주세요." as const };
   if (isAuction) {
     const balance = await getMocoBalanceSnapshot(userId);
     if (!canParticipateInAuction(balance)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
   }
 
-  const bidIncrement = Math.floor(data.bidIncrement ?? DEFAULT_BID_INCREMENT);
+  const bidIncrement = Math.floor(data.bidIncrement ?? defaultBidIncrement(currency));
   const buyNowPrice =
     data.buyNowPrice != null && data.buyNowPrice > 0 ? Math.floor(data.buyNowPrice) : null;
   const reservePrice =
@@ -219,7 +218,7 @@ export async function createMobileUsedListing(
         saleType: isAuction ? "AUCTION" : "FIXED",
         ...(isAuction
           ? {
-              auctionEndsAt: computeAuctionEndsAt(data.auctionHours!),
+              auctionEndsAt: standardAuctionEndsAt(),
               bidIncrement,
               buyNowPrice,
               reservePrice,
@@ -295,7 +294,7 @@ export async function toggleMobileUsedFavorite(userId: string, listingId: string
 
   const listing = await db.usedListing.findUnique({
     where: { id: listingId },
-    select: { sellerId: true, meetCountry: true, region: true },
+    select: { sellerId: true, title: true, meetCountry: true, region: true },
   });
   if (!listing) return { error: "게시글을 찾을 수 없습니다." as const };
   const tradeErr = await assertUsedMarketTradeAccess({
@@ -313,6 +312,13 @@ export async function toggleMobileUsedFavorite(userId: string, listingId: string
     return { favorited: false as const };
   }
   await db.usedFavorite.create({ data: { userId, listingId } });
+  const { notifyListingLiked } = await import("@/lib/notifications");
+  void notifyListingLiked({
+    listingId,
+    sellerId: listing.sellerId,
+    actorId: userId,
+    title: listing.title,
+  });
   return { favorited: true as const };
 }
 
@@ -422,11 +428,12 @@ export async function placeMobileUsedAuctionBid(
     }
 
     const link = `/market/${listingId}`;
+    const priceLabel = formatUsedPrice(result.amount, listing.currency);
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "bid",
       title: "새 입찰",
-      body: `${listing.title} · ${formatUsedPrice(result.amount, listing.currency)}`,
+      body: `${listing.title} · ${priceLabel}`,
       link,
       actorId: userId,
     });
@@ -436,10 +443,20 @@ export async function placeMobileUsedAuctionBid(
       await sendUsedAuctionNotification({
         userId: prevBidderId,
         type: "outbid",
-        title: "입찰 갱신됨",
-        body: `${listing.title} · ${formatUsedPrice(result.amount, listing.currency)}`,
+        title: "더 높은 입찰",
+        body: `${listing.title} — ${priceLabel}로 더 높은 입찰이 들어왔습니다.`,
         link,
         actorId: userId,
+      });
+    }
+
+    if (result.extended) {
+      await notifyAuctionWatchers({
+        listingId,
+        sellerId: listing.sellerId,
+        type: "extended",
+        title: "경매 마감 연장",
+        body: `${listing.title} — 마감 직전 입찰로 종료 시각이 연장되었습니다.`,
       });
     }
 
@@ -702,8 +719,7 @@ export async function deleteMobileUsedListing(userId: string, listingId: string)
   if (!listing || listing.sellerId !== userId) return { error: "권한이 없습니다." as const };
   const user = await loadUsedMarketUser(userId);
   if (!user) return { error: "로그인이 필요합니다." as const };
-  const accessErr =
-    listing.saleType === "AUCTION" ? assertAuctionPostAccess(user) : assertUsedMarketAccess(user);
+  const accessErr = assertAuctionPostAccess(user);
   if (accessErr) return { error: accessErr };
 
   if (listing.saleType === "AUCTION") {

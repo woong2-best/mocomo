@@ -1,8 +1,9 @@
-import { Alert, Linking } from "react-native";
+import { Linking } from "react-native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { openUserProfile } from "@/features/profile/user-profile-nav";
 import { normalizeUserLink } from "@/lib/linkify";
 import type { RootStackParamList } from "@/navigation/types";
+import { showIslandError } from "@/ui/IslandToast";
 
 function isMocomoHost(hostname: string) {
   const h = hostname.toLowerCase();
@@ -37,10 +38,10 @@ export async function openUserLink(
 
   const opened = await Linking.canOpenURL(href).catch(() => false);
   if (!opened) {
-    Alert.alert("링크를 열 수 없습니다", href);
+    showIslandError("링크를 열 수 없습니다", href);
     return;
   }
   await Linking.openURL(href).catch(() => {
-    Alert.alert("링크를 열 수 없습니다", "브라우저에서 열지 못했습니다.");
+    showIslandError("링크를 열 수 없습니다", "브라우저에서 열지 못했습니다.");
   });
 }

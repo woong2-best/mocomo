@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -50,7 +49,7 @@ import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { NsfwToggleButton } from "@/ui/NsfwToggleButton";
-import { showIslandError, showIslandToast } from "@/ui/IslandToast";
+import { showIslandError, showIslandToast } from "@/ui/IslandToast"
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -146,7 +145,7 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
     const ImagePicker = await loadImagePicker();
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("권한 필요", "사진·동영상 라이브러리 접근을 허용해 주세요.");
+      showIslandError("권한 필요", "사진·동영상 라이브러리 접근을 허용해 주세요.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -165,7 +164,7 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
     const ImagePicker = await loadImagePicker();
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("권한 필요", "카메라 접근을 허용해 주세요.");
+      showIslandError("권한 필요", "카메라 접근을 허용해 주세요.");
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -182,7 +181,7 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
     const ImagePicker = await loadImagePicker();
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("권한 필요", "카메라 접근을 허용해 주세요.");
+      showIslandError("권한 필요", "카메라 접근을 허용해 주세요.");
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -735,7 +734,7 @@ function CollaboratorModal({
                       return;
                     }
                     if (selected.length >= 5) {
-                      Alert.alert("제한", "공동 제작자는 최대 5명까지입니다.");
+                      showIslandError("제한", "공동 제작자는 최대 5명까지입니다.");
                       return;
                     }
                     onChange([...selected, u]);

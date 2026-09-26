@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -87,9 +88,9 @@ export function CallBookingCard({
       await fn();
       await load();
       onRefresh?.();
-      if (successMsg) Alert.alert("완료", successMsg);
+      if (successMsg) showIslandSuccess("완료", successMsg);
     } catch (e) {
-      Alert.alert("오류", e instanceof Error ? e.message : "처리하지 못했습니다.");
+      showIslandError("오류", e instanceof Error ? e.message : "처리하지 못했습니다.");
       throw e;
     } finally {
       setBusy(false);
@@ -111,7 +112,7 @@ export function CallBookingCard({
   function submitRefund() {
     const reason = refundReason.trim();
     if (reason.length < 5) {
-      Alert.alert("오류", "사유를 5자 이상 입력해 주세요.");
+      showIslandError("오류", "사유를 5자 이상 입력해 주세요.");
       return;
     }
     void runAction(() => requestCallBookingRefund(bookingId, reason), "환불 신청이 전달되었습니다.")

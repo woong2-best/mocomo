@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { showIslandError } from "@/ui/IslandToast";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
@@ -92,7 +93,7 @@ function FeedPostCardInner({
   const isQna = Boolean(post.community?.slug);
   const hideIdentity = isQna || post.isAnonymous || post.author?.username === "anonymous";
   const isSelf = user?.id === post.author?.id;
-  const canShowMenu = status === "signedIn" && (isSelf || !hideIdentity);
+  const canShowMenu = status === "signedIn" && (isSelf || !hideIdentity || isQna);
 
   useEffect(() => {
     setViewCount(post.viewCount ?? 0);
@@ -126,7 +127,7 @@ function FeedPostCardInner({
 
   const requireLogin = useCallback(() => {
     if (status !== "signedIn") {
-      Alert.alert("로그인 필요", "이 기능을 사용하려면 로그인해 주세요.");
+      showIslandError("로그인 필요", "이 기능을 사용하려면 로그인해 주세요.");
       return false;
     }
     return true;

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -11,6 +10,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { showIslandError } from "@/ui/IslandToast";
 import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
@@ -188,7 +188,7 @@ export function ComposeImageEditor({
       }));
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
-      Alert.alert("오류", "오디오 파일을 불러오지 못했습니다.");
+      showIslandError("오류", "오디오 파일을 불러오지 못했습니다.");
     }
   }, []);
 

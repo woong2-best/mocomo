@@ -1,6 +1,5 @@
-import type { CommunityCategory } from "@prisma/client";
 import { db } from "@/lib/db";
-import { parseQnaCategoryParam, qnaFeedWhere } from "@/lib/qna-feed-query";
+import { parseQnaCategoryParam, qnaFeedWhere, type QnaCategoryFilter } from "@/lib/qna-feed-query";
 import {
   feedPostListSelect,
   feedPostListSelectNoPoll,
@@ -24,7 +23,7 @@ export async function fetchQnaFeedPage(opts: {
   cursor: string | null;
   limit: number;
   q?: string;
-  category?: CommunityCategory | null;
+  category?: QnaCategoryFilter;
   canViewNsfw: boolean;
   variant: QnaFeedVariant;
 }) {

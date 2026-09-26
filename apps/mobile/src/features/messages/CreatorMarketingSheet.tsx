@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,7 +22,7 @@ import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { FolkButton } from "@/ui/FolkButton";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
-import { showIslandToast } from "@/ui/IslandToast";
+import { showIslandToast, showIslandError } from "@/ui/IslandToast"
 import {
   SALE_MEDIA_MIN_PRICE_KRW,
   SALE_MEDIA_MAX_PRICE_USD_CENTS,
@@ -161,7 +160,7 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
 
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
+        showIslandError("권한 필요", "갤러리 접근 권한이 필요합니다.");
         return;
       }
 
@@ -195,7 +194,7 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
         if (target === "welcome") setWelcomeMedia(draft);
         else setBulkMedia(draft);
       } catch (e) {
-        Alert.alert("업로드 실패", e instanceof Error ? e.message : "미디어를 업로드하지 못했습니다.");
+        showIslandError("업로드 실패", e instanceof Error ? e.message : "미디어를 업로드하지 못했습니다.");
       }
     },
     [bulkEffectivePrice, welcomeEffectivePrice]
@@ -241,10 +240,7 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
         mediaPriceKrw: media?.priceKrw ?? null,
       });
       await queryClient.invalidateQueries({ queryKey: ["creator-dm-marketing"] });
-      Alert.alert(
-        "발송 시작",
-        `팔로워 ${result.totalFollowers.toLocaleString()}명에게 순차 발송을 시작했습니다.`
-      );
+      showIslandToast("발송 시작", `팔로워 ${result.totalFollowers.toLocaleString()}명에게 순차 발송을 시작했습니다.`);
       setBulkText("");
       setBulkMedia(null);
     } catch (e) {

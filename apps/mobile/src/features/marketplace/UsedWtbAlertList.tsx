@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { showIslandInfo } from "@/ui/IslandToast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { removeWtbAlert, type WtbAlertItem } from "@/api/subculture";
 import { formatUsedPrice, productTypeLabel } from "@/features/marketplace/used-catalog";
@@ -28,7 +29,7 @@ export function UsedWtbAlertList({ items }: { items: WtbAlertItem[] }) {
         err instanceof ApiError && err.body && typeof err.body === "object" && "error" in err.body
           ? String((err.body as { error: string }).error)
           : "알림 해제에 실패했습니다.";
-      Alert.alert("WTB", msg);
+      showIslandInfo("WTB", msg);
     },
   });
 

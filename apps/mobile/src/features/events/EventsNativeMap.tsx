@@ -8,6 +8,7 @@ import {
   ESRI_SATELLITE_STYLE,
   SUBCULTURE_MAP_GLOBAL_VIEW,
 } from "@/maps/map-styles";
+import { globeCenterForCountry } from "@/navigation/DrawerMapLibreGlobe";
 
 type ViewConfig = { lat: number; lng: number; zoom: number };
 
@@ -15,8 +16,18 @@ function validPins(pins: MapEventPin[]) {
   return pins.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 }
 
-export function viewForEventPins(pins: MapEventPin[], global: boolean): ViewConfig {
-  if (global) return SUBCULTURE_MAP_GLOBAL_VIEW;
+export function viewForEventPins(
+  pins: MapEventPin[],
+  global: boolean,
+  userCountryCode?: string | null
+): ViewConfig {
+  if (global) {
+    if (userCountryCode) {
+      const center = globeCenterForCountry(userCountryCode);
+      return { lat: center.lat, lng: center.lng, zoom: 3.4 };
+    }
+    return SUBCULTURE_MAP_GLOBAL_VIEW;
+  }
   const usable = validPins(pins);
   if (usable.length === 0) {
     return { lat: 37.5665, lng: 126.978, zoom: 11 };
@@ -39,6 +50,8 @@ const PIN_FOCUS_ZOOM = 16;
 type Props = {
   pins: MapEventPin[];
   global?: boolean;
+  /** With `global` pins: first camera frame centers on the user’s country (e.g. KR → Korea). */
+  userCountryCode?: string | null;
   selectedId: string | null;
   onSelectPin: (pin: MapEventPin) => void;
   /** Focus camera on this pin when set */
@@ -58,11 +71,12 @@ function MapFallback({ style }: { style?: object }) {
 
 /**
  * Subculture Map — Esri World Imagery via MapLibre (same tiles as web).
- * Used-trade keep OSM/Kakao in `MeetMap` / `MapLibreMapProvider`.
+ * Used-trade meet maps use `MeetMap` (MapLibre satellite).
  */
 export function EventsNativeMap({
   pins,
   global = true,
+  userCountryCode,
   selectedId,
   onSelectPin,
   focusPinId,
@@ -71,8 +85,8 @@ export function EventsNativeMap({
 }: Props) {
   const usablePins = useMemo(() => validPins(pins), [pins]);
   const baseView = useMemo(
-    () => viewForEventPins(usablePins, global),
-    [usablePins, global]
+    () => viewForEventPins(usablePins, global, userCountryCode),
+    [usablePins, global, userCountryCode]
   );
 
   const focused = useMemo(() => {

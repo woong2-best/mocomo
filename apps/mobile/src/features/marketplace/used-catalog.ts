@@ -236,6 +236,16 @@ export function parseListingPriceInput(raw: string, currency: string): number {
   return Math.floor(Number(cleaned) || 0);
 }
 
+/** 저장 금액을 입력칸 문자열로. 달러 상품은 달러 단위. */
+export function usedPriceInputValue(amount: number, currency?: string | null): string {
+  if (!Number.isFinite(amount)) return "";
+  if ((currency ?? "krw").toLowerCase() === "usd") {
+    const dollars = amount / 100;
+    return Number.isInteger(dollars) ? String(dollars) : dollars.toFixed(2);
+  }
+  return String(Math.max(0, Math.round(amount)));
+}
+
 export function productTypeForSellKind(kind: string): string | undefined {
   const id = kind.toUpperCase();
   if (id === "FIGURE") return "FIGURE";

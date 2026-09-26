@@ -1,7 +1,7 @@
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -62,32 +62,25 @@ export function StarListScreen() {
   const queryClient = useQueryClient();
   const [creatorId, setCreatorId] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [clearConfirm, setClearConfirm] = useState(false);
 
   const query = useQuery(starHubQueryOptions(queryClient, creatorId));
+
+  const runClearAll = useCallback(() => {
+    const prevCreator = creatorId;
+    setClearConfirm(false);
+    setClearing(true);
+    setCreatorId(null);
+    void commitClearStarHub(queryClient)
+      .catch(() => setCreatorId(prevCreator))
+      .finally(() => setClearing(false));
+  }, [creatorId, queryClient]);
 
   const onClearAll = useCallback(() => {
     const total = query.data?.total ?? 0;
     if (total <= 0) return;
-    Alert.alert(
-      "전체 삭제",
-      "STAR에 저장한 게시물 기록을 모두 삭제할까요? 북마크만 지워지며 게시물 자체는 삭제되지 않습니다.",
-      [
-        { text: "취소", style: "cancel" },
-        {
-          text: "전체 삭제",
-          style: "destructive",
-          onPress: () => {
-            const prevCreator = creatorId;
-            setClearing(true);
-            setCreatorId(null);
-            void commitClearStarHub(queryClient)
-              .catch(() => setCreatorId(prevCreator))
-              .finally(() => setClearing(false));
-          },
-        },
-      ]
-    );
-  }, [creatorId, query.data?.total, queryClient]);
+    setClearConfirm(true);
+  }, [query.data?.total]);
 
   const renderCreator = useCallback(
     (creator: StarHubCreator | "all") => {
@@ -165,6 +158,24 @@ export function StarListScreen() {
 
   return (
     <Screen>
+      <Modal
+        visible={clearConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setClearConfirm(false)}
+      >
+        <Pressable style={styles.confirmScrim} onPress={() => setClearConfirm(false)}>
+          <Pressable style={styles.confirmCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.confirmTitle}>전체 삭제</Text>
+            <Text style={styles.confirmBody}>
+              STAR에 저장한 게시물 기록을 모두 삭제할까요? 북마크만 지워지며 게시물 자체는 삭제되지
+              않습니다.
+            </Text>
+            <FolkButton label="전체 삭제" variant="secondary" onPress={runClearAll} />
+            <FolkButton label="취소" variant="ghost" onPress={() => setClearConfirm(false)} />
+          </Pressable>
+        </Pressable>
+      </Modal>
       <AppHeader
         title="STAR"
         leftLabel="뒤로"
@@ -333,5 +344,21 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
     },
     center: { padding: spacing.lg, alignItems: "center", gap: spacing.sm },
     error: { color: colors.danger, fontWeight: "700" },
+    confirmScrim: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      justifyContent: "center",
+      padding: spacing.lg,
+    },
+    confirmCard: {
+      borderRadius: radii.lg,
+      padding: spacing.lg,
+      gap: spacing.sm,
+      backgroundColor: colors.surfaceRaised,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    confirmTitle: { fontSize: 16, fontWeight: "800", color: colors.text },
+    confirmBody: { fontSize: 13, fontWeight: "500", lineHeight: 19, color: colors.textMuted },
   });
 }

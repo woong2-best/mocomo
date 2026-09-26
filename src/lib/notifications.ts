@@ -8,6 +8,7 @@ import {
   extractPostIdFromLink,
   isPostInteractionPush,
 } from "@/lib/post-push-enrich";
+import { isAppAlarmType } from "@/lib/app-alarm";
 
 export type NotificationInput = {
   userId: string;
@@ -52,6 +53,7 @@ export async function createNotification(data: NotificationInput): Promise<void>
           }
         }
 
+        if (data.type !== "call" && !isAppAlarmType(data.type)) return;
         return deliverMobilePush({
           userId: data.userId,
           title: data.title,
@@ -138,9 +140,67 @@ export async function notifyPostRepost(
     userId: authorId,
     actorId,
     type: "repost",
-    title: "리포스트",
-    body: `${actorLabel(actor)}님이 회원님의 게시물을 리포스트했습니다.`,
+    title: "재게시",
+    body: `${actorLabel(actor)}님이 회원님의 게시물을 재게시했습니다.`,
     link: `/post/${postId}`,
+  });
+}
+
+const QUOTED_POST_ID = /\/post\/([A-Za-z0-9_-]{8,})/g;
+
+export function extractQuotedPostIds(content: string, excludeId?: string): string[] {
+  const ids = new Set<string>();
+  for (const match of content.matchAll(QUOTED_POST_ID)) {
+    const id = match[1];
+    if (!id || id === excludeId) continue;
+    ids.add(id);
+    if (ids.size >= 3) break;
+  }
+  return [...ids];
+}
+
+/** 인용 게시 — 본문의 원문 게시물 작성자에게 알림 */
+export async function notifyQuotedPosts(params: {
+  content: string;
+  actorId: string;
+  quotePostId: string;
+}) {
+  const ids = extractQuotedPostIds(params.content, params.quotePostId);
+  if (ids.length === 0) return;
+  const posts = await db.post.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, authorId: true },
+  });
+  const actor = await getActor(params.actorId);
+  for (const post of posts) {
+    if (post.authorId === params.actorId) continue;
+    scheduleNotification({
+      userId: post.authorId,
+      actorId: params.actorId,
+      type: "quote",
+      title: "인용",
+      body: `${actorLabel(actor)}님이 회원님의 게시물을 인용했습니다.`,
+      link: `/post/${params.quotePostId}`,
+    });
+  }
+}
+
+export async function notifyListingLiked(params: {
+  listingId: string;
+  sellerId: string;
+  actorId: string;
+  title: string;
+}) {
+  if (params.sellerId === params.actorId) return;
+  const actor = await getActor(params.actorId);
+  const name = params.title.trim().slice(0, 40) || "상품";
+  scheduleNotification({
+    userId: params.sellerId,
+    actorId: params.actorId,
+    type: "listing_like",
+    title: "상품 맘찍",
+    body: `${actorLabel(actor)}님이 「${name}」에 맘찍을 남겼습니다.`,
+    link: `/market/${params.listingId}`,
   });
 }
 
@@ -155,10 +215,16 @@ export async function notifyPostComment(params: {
   anonymous?: boolean;
 }) {
   const { postId, postAuthorId, actorId, parentCommentAuthorId, content } = params;
-  const actor = params.anonymous ? null : await getActor(actorId);
-  const label = params.anonymous ? "익명" : actorLabel(actor);
+  const postMeta = await db.post.findUnique({
+    where: { id: postId },
+    select: { isAnonymous: true, communityId: true },
+  });
+  const isQnaAnswer = Boolean(postMeta?.communityId && postMeta.isAnonymous);
+  const hideActor = Boolean(params.anonymous) && !isQnaAnswer;
+  const actor = hideActor ? null : await getActor(actorId);
+  const label = hideActor ? "익명" : actorLabel(actor);
   const link = `/post/${postId}#comment-${params.commentId}`;
-  const actorForRow = params.anonymous ? undefined : actorId;
+  const actorForRow = hideActor ? undefined : actorId;
 
   if (parentCommentAuthorId && parentCommentAuthorId !== actorId) {
     scheduleNotification({
@@ -175,9 +241,11 @@ export async function notifyPostComment(params: {
     scheduleNotification({
       userId: postAuthorId,
       actorId: actorForRow,
-      type: "comment",
-      title: "댓글",
-      body: `${label}님이 회원님의 게시물에 댓글을 남겼습니다.`,
+      type: isQnaAnswer ? "qna_answer" : "comment",
+      title: isQnaAnswer ? "QnA 답변" : "댓글",
+      body: isQnaAnswer
+        ? `${label}님이 회원님의 질문에 답변을 남겼습니다.`
+        : `${label}님이 회원님의 게시물에 댓글을 남겼습니다.`,
       link,
     });
   }
@@ -548,22 +616,6 @@ export async function notifyChatMessage(params: {
 
   await createNotificationsMany(items);
 
-  for (const m of members) {
-    void import("@/lib/mobile-push")
-      .then(({ deliverMobilePush }) =>
-        deliverMobilePush({
-          userId: m.userId,
-          title: isDm ? "쪽지" : "그룹 메시지",
-          body: `${label}: ${preview}`,
-          url: link,
-          tag: `dm-${params.roomId}`,
-          type: "dm",
-          data: { roomId: params.roomId },
-        })
-      )
-      .catch(() => undefined);
-  }
-
   if (params.mentionUserIds?.length) {
     for (const uid of params.mentionUserIds) {
       if (uid === params.senderId) continue;
@@ -693,6 +745,22 @@ export async function notifyLiveStart(
       link,
     }));
   await createNotificationsMany(rows);
+  await Promise.all(
+    rows.map((row) =>
+      import("@/lib/mobile-push")
+        .then(({ deliverMobilePush }) =>
+          deliverMobilePush({
+            userId: row.userId,
+            title: "라이브 시작",
+            body,
+            url: link,
+            tag: `live-${channelId}`,
+            type: "live",
+          })
+        )
+        .catch(() => undefined)
+    )
+  );
 }
 
 export async function notifyPostCollabInvite(
@@ -744,6 +812,9 @@ export const NOTIFICATION_CATEGORIES = {
     "comment_pin",
     "mention",
     "repost",
+    "quote",
+    "qna_answer",
+    "listing_like",
     "follow",
     "vote",
     "post_collab_invite",

@@ -1,8 +1,5 @@
 import { assertUsedMarketCountryAllowed, isKoreaUsedMarketCountry } from "@/lib/used-regions-global";
-import {
-  isUsedMarketEligible,
-  usedMarketVerificationRequiredMsg,
-} from "@/lib/used-bank-auth";
+import { usedMarketVerificationRequiredMsg } from "@/lib/used-bank-auth";
 
 export const USED_MARKET_BAN_MESSAGE =
   "경매 낙찰 후 결제를 완료하지 않아 중고거래 이용이 제한되었습니다. 경매는 판매자와 다른 입찰자에게 큰 피해를 줄 수 있으므로, 낙찰 후 결제 의무를 반드시 이행해야 합니다.";
@@ -31,19 +28,8 @@ export function assertUsedMarketNotBanned(user: UsedMarketUserSlice): string | n
   return null;
 }
 
-export function assertUsedMarketAccess(user: UsedMarketUserSlice): string | null {
-  const banErr = assertUsedMarketNotBanned(user);
-  if (banErr) return banErr;
-  const regionErr = assertUsedMarketCountryAllowed(user.countryCode);
-  if (regionErr) return regionErr;
-  if (!isUsedMarketEligible(user)) {
-    return usedMarketVerificationRequiredMsg(user.countryCode, "ko");
-  }
-  return null;
-}
-
-/** 경매 등록 — Stripe 정산 계좌 없이 가능. 해외는 휴대폰 인증, 보증금은 별도. */
-export function assertAuctionPostAccess(user: UsedMarketUserSlice): string | null {
+/** 직거래·경매 공통 — KR 정산 계좌 불필요, 해외 휴대폰 인증, 경매 보증금은 MOCO 별도 */
+function assertUsedListingActivityAccess(user: UsedMarketUserSlice): string | null {
   const banErr = assertUsedMarketNotBanned(user);
   if (banErr) return banErr;
   const regionErr = assertUsedMarketCountryAllowed(user.countryCode);
@@ -52,4 +38,13 @@ export function assertAuctionPostAccess(user: UsedMarketUserSlice): string | nul
     return usedMarketVerificationRequiredMsg(user.countryCode, "ko");
   }
   return null;
+}
+
+export function assertUsedMarketAccess(user: UsedMarketUserSlice): string | null {
+  return assertUsedListingActivityAccess(user);
+}
+
+/** @deprecated assertUsedMarketAccess 와 동일 */
+export function assertAuctionPostAccess(user: UsedMarketUserSlice): string | null {
+  return assertUsedListingActivityAccess(user);
 }

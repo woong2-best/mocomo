@@ -8,8 +8,8 @@ import {
   StyleSheet,
   Text,
   View,
-  Alert,
 } from "react-native";
+import { showIslandError, showIslandInfo } from "@/ui/IslandToast";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
@@ -476,11 +476,11 @@ function FeedVideoPostSlideInner({
 
   const onReportPress = useCallback(() => {
     if (!user) {
-      Alert.alert("로그인 필요", "신고하려면 로그인해 주세요.");
+      showIslandError("로그인 필요", "신고하려면 로그인해 주세요.");
       return;
     }
     if (user.id === current?.author.id) {
-      Alert.alert("알림", "자신의 게시물은 신고할 수 없습니다.");
+      showIslandInfo("알림", "자신의 게시물은 신고할 수 없습니다.");
       return;
     }
     setReportOpen(true);

@@ -30,8 +30,6 @@ export type MarketplaceMeetMap = {
   country?: string;
   engine?: string;
   externalMapUrl?: string;
-  /** @deprecated use externalMapUrl */
-  kakaoMapUrl?: string;
   caption: string;
 };
 

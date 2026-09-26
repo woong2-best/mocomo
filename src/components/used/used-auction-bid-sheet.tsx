@@ -8,9 +8,7 @@ import {
   payUsedAuctionBidHoldAction,
   prepareUsedAuctionBidHoldAction,
 } from "@/actions/used-auction-bid-hold";
-import { formatUsedPrice } from "@/lib/used-market";
-import { walletSettlementPath, SETTLEMENT_ACCOUNT_REQUIRED_MSG } from "@/lib/settlement-account";
-import { USED_BANK_REQUIRED_MSG } from "@/lib/used-bank-auth";
+import { formatUsedPrice, parseUsedAmountInput, usedAmountInputValue } from "@/lib/used-market";
 import { usedAdultVerifyUrl } from "@/lib/used-youth-protection";
 import type { UsedRestrictedKind } from "@prisma/client";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
@@ -25,13 +23,8 @@ import {
 import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
 import Link from "next/link";
 
-function needsSettlementAccount(error: string) {
-  return (
-    error === USED_BANK_REQUIRED_MSG ||
-    error === SETTLEMENT_ACCOUNT_REQUIRED_MSG ||
-    error.includes("입금 계좌") ||
-    error.includes("계좌 1원")
-  );
+function needsPhoneVerification(error: string) {
+  return error.includes("휴대폰") || error.includes("phone verification");
 }
 
 export function UsedAuctionBidSheet({
@@ -76,7 +69,7 @@ export function UsedAuctionBidSheet({
       return;
     }
     setWalletWarning("");
-    setAmount(String(minBid));
+    setAmount(usedAmountInputValue(minBid, currency));
     setBidConsent(false);
     setBuyNowConsent(false);
     setHoldOrderId(null);
@@ -90,8 +83,8 @@ export function UsedAuctionBidSheet({
         paymentIntentDbId,
       });
       if ("error" in res && res.error) {
-        if (needsSettlementAccount(res.error)) {
-          router.push(walletSettlementPath(`/market/${listingId}`));
+        if (needsPhoneVerification(res.error)) {
+          router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
           return;
         }
         if (res.error.includes("중고거래 이용이 제한")) {
@@ -197,8 +190,8 @@ export function UsedAuctionBidSheet({
     const res = await buyNowUsedAuction(listingId, true);
     setBusy(false);
     if ("error" in res && res.error) {
-      if (needsSettlementAccount(res.error)) {
-        router.push(walletSettlementPath(`/market/${listingId}`));
+      if (needsPhoneVerification(res.error)) {
+        router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
         return;
       }
       if (res.error.includes("중고거래 이용이 제한")) {
@@ -216,14 +209,16 @@ export function UsedAuctionBidSheet({
     router.refresh();
   }
 
+  const usdBid = (currency ?? "").toLowerCase() === "usd";
+  const step = usdBid ? 100 : 1000;
   const presets = quickBids ?? [
     minBid,
-    minBid + 1000,
-    minBid + 5000,
-    minBid + 10000,
+    minBid + step,
+    minBid + step * 5,
+    minBid + step * 10,
   ].filter((v, i, a) => a.indexOf(v) === i);
 
-  const bidAmountNum = Number(amount) || minBid;
+  const bidAmountNum = parseUsedAmountInput(amount, currency) || minBid;
 
   return (
     <>
@@ -295,7 +290,7 @@ export function UsedAuctionBidSheet({
                       key={p}
                       type="button"
                       className="px-3 py-1.5 rounded-full text-xs font-medium border bg-muted hover:bg-muted/80"
-                      onClick={() => setAmount(String(p))}
+                      onClick={() => setAmount(usedAmountInputValue(p, currency))}
                     >
                       {formatUsedPrice(p, currency)}
                     </button>
@@ -304,11 +299,13 @@ export function UsedAuctionBidSheet({
 
                 <Input
                   type="number"
-                  inputMode="numeric"
+                  inputMode={usdBid ? "decimal" : "numeric"}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="rounded-xl h-12 text-lg font-bold tabular-nums"
-                  min={minBid}
+                  min={usdBid ? minBid / 100 : minBid}
+                  step={usdBid ? "0.01" : "1"}
+                  placeholder={usdBid ? "달러로 입력" : "원으로 입력"}
                 />
               </>
             )}

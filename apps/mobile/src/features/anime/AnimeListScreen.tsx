@@ -86,7 +86,7 @@ export function AnimeListScreen() {
 
   return (
     <Screen safeTop={false} style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
         <View style={styles.titleRow}>
           <Pressable
             onPress={() => navigation.goBack()}
@@ -97,31 +97,26 @@ export function AnimeListScreen() {
           >
             <Ionicons name="chevron-back" size={26} color={WIKI.text} />
           </Pressable>
-          <Text style={styles.title} numberOfLines={1}>
-            컬쳐 위키
-          </Text>
-          <View style={styles.backHit} />
-        </View>
-
-        <View style={styles.searchRow}>
-          <TextInput
-            style={styles.input}
-            placeholder="작품 검색"
-            placeholderTextColor={WIKI.textMuted}
-            value={q}
-            onChangeText={setQ}
-            onSubmitEditing={onSearch}
-            returnKeyType="search"
-            selectionColor={WIKI.searchBtn}
-          />
-          <Pressable
-            onPress={onSearch}
-            style={({ pressed }) => [styles.searchBtn, pressed && { opacity: 0.88 }]}
-            accessibilityRole="button"
-            accessibilityLabel="검색"
-          >
-            <Text style={styles.searchBtnLabel}>검색</Text>
-          </Pressable>
+          <View style={styles.searchRow}>
+            <TextInput
+              style={styles.input}
+              placeholder="작품 검색"
+              placeholderTextColor={WIKI.textMuted}
+              value={q}
+              onChangeText={setQ}
+              onSubmitEditing={onSearch}
+              returnKeyType="search"
+              selectionColor={WIKI.searchBtn}
+            />
+            <Pressable
+              onPress={onSearch}
+              style={({ pressed }) => [styles.searchBtn, pressed && { opacity: 0.88 }]}
+              accessibilityRole="button"
+              accessibilityLabel="검색"
+            >
+              <Text style={styles.searchBtnLabel}>검색</Text>
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView
@@ -289,7 +284,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: WIKI.woodHeader,
-    paddingBottom: 10,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(0,0,0,0.45)",
     zIndex: 10,
@@ -298,29 +293,21 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    height: 44,
-    paddingHorizontal: 6,
+    minHeight: 40,
+    paddingLeft: 2,
+    paddingRight: 14,
     marginBottom: 8,
   },
   backHit: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
   },
-  title: {
-    flex: 1,
-    textAlign: "center",
-    color: WIKI.text,
-    fontSize: 19,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-  },
   searchRow: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "stretch",
-    paddingHorizontal: H_PAD + SIDE_W * 0.15,
-    marginBottom: 10,
   },
   input: {
     flex: 1,
@@ -330,15 +317,15 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 3,
     borderBottomLeftRadius: 3,
     borderRightWidth: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     color: WIKI.text,
     fontSize: 14,
     fontWeight: "600",
   },
   searchBtn: {
     backgroundColor: WIKI.searchBtn,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     justifyContent: "center",
     borderTopRightRadius: 3,
     borderBottomRightRadius: 3,

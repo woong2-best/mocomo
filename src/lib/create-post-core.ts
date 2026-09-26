@@ -4,7 +4,7 @@ import { prismaErrorMessage } from "@/lib/prisma-user-error";
 import { calcHotScore, tagSlugFromName } from "@/lib/utils";
 import type { MediaType } from "@prisma/client";
 import { revalidateTag } from "next/cache";
-import { notifyNewPostMentions } from "@/lib/notifications";
+import { notifyNewPostMentions, notifyQuotedPosts } from "@/lib/notifications";
 import {
   CollaboratorError,
   inviteCollaborators,
@@ -252,6 +252,11 @@ export async function createPostForUser(
     if (!isCommunityScopedPost({ communityId })) {
       void notifyNewPostMentions(post.id, user.id, data.title, content);
     }
+    void notifyQuotedPosts({
+      content,
+      actorId: user.id,
+      quotePostId: post.id,
+    });
 
     const videoMedia = post.media
       .filter((m) => m.type === "VIDEO")

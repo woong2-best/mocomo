@@ -1,9 +1,8 @@
-import { hasSettlementAccount } from "@/lib/settlement-account";
 import { isOfacSanctionedCountry } from "@/lib/compliance/ofac-sanctioned-countries";
 import type { Locale } from "@/lib/i18n/config";
 import { isKoreaUsedMarketCountry, normalizeUsedMarketCountry } from "@/lib/used-regions-global";
 
-/** 중고거래 이용 자격 — KR: Stripe Connect · 해외: 휴대폰 SMS 인증 */
+/** 중고거래 이용 자격 — KR: 직거래(정산 계좌 불필요) · 해외: 휴대폰 SMS 인증 */
 export function isUsedMarketEligible(user: {
   countryCode: string;
   stripeOnboardingCompleted?: boolean;
@@ -13,13 +12,14 @@ export function isUsedMarketEligible(user: {
   const cc = normalizeUsedMarketCountry(user.countryCode);
   if (isOfacSanctionedCountry(cc)) return false;
   if (isKoreaUsedMarketCountry(cc)) {
-    return hasSettlementAccount(user);
+    return true;
   }
   return !!user.phoneVerified;
 }
 
+/** @deprecated KR 직거래에는 불필요 — 레거시 UI·에러 매칭용 */
 export const USED_BANK_REQUIRED_MSG =
-  "중고거래 이용을 위해 지갑에서 Stripe Connect 정산 계좌를 연동해 주세요.";
+  "중고거래 이용을 위해 휴대폰 번호 인증을 완료해 주세요.";
 
 export const USED_PHONE_REQUIRED_MSG =
   "중고거래 이용을 위해 휴대폰 번호 인증을 완료해 주세요.";
@@ -28,17 +28,7 @@ export const USED_PHONE_REQUIRED_MSG =
 export const USED_PHONE_REQUIRED_MSG_LEGACY = USED_BANK_REQUIRED_MSG;
 
 export function usedBankRequiredMsg(locale: Locale = "ko") {
-  if (locale === "en") {
-    return "Stripe Connect payout account setup is required for the used marketplace in Korea.";
-  }
-  if (locale === "ja") {
-    return "韓国のフリマ利用にはStripe Connectの精算口座連携が必要です。";
-  }
-  if (locale === "zh" || locale === "zh-TW") {
-    return "在韩国使用二手交易需完成 Stripe Connect 结算账户绑定。";
-  }
-  if (locale === "ko") return USED_BANK_REQUIRED_MSG;
-  return "Stripe Connect payout account setup is required for the used marketplace in Korea.";
+  return usedPhoneRequiredMsg(locale);
 }
 
 export function usedPhoneRequiredMsg(locale: Locale = "ko") {
@@ -56,9 +46,10 @@ export function usedPhoneRequiredMsg(locale: Locale = "ko") {
 }
 
 export function usedMarketVerificationRequiredMsg(countryCode: string, locale: Locale = "ko") {
-  return isKoreaUsedMarketCountry(countryCode)
-    ? usedBankRequiredMsg(locale)
-    : usedPhoneRequiredMsg(locale);
+  if (isKoreaUsedMarketCountry(countryCode)) {
+    return usedMarketBlockedRegionMsg(locale);
+  }
+  return usedPhoneRequiredMsg(locale);
 }
 
 /** @deprecated */
@@ -97,7 +88,7 @@ export function isBankVerifiedForUsed(user: {
   phoneVerified?: Date | null;
   countryCode?: string;
 }): boolean {
-  if (!user.countryCode) return hasSettlementAccount(user) || !!user.phoneVerified;
+  if (!user.countryCode) return !!user.phoneVerified;
   return isUsedMarketEligible({
     countryCode: user.countryCode,
     stripeOnboardingCompleted: user.stripeOnboardingCompleted,

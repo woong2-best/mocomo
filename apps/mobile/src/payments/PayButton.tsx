@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import type { PaymentIntentType } from "@/api/checkout";
 import { getAccessToken } from "@/auth/token-store";
 import { FolkButton } from "@/ui/FolkButton";
@@ -8,6 +8,7 @@ import { paymentTypeLabel } from "@/payments/stripe-checkout";
 import { ADULT_MONETIZATION_BANNED_SHORT } from "@/lib/stripe-payment-notice";
 import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
 import { paymentTypeRequiresAdultVerification } from "@/lib/adult-verification-messages";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 
 type Props = {
   type: PaymentIntentType;
@@ -75,11 +76,11 @@ export function PayButton({
   async function openCheckout() {
     const token = await getAccessToken();
     if (!token) {
-      Alert.alert("로그인 필요", "결제하려면 먼저 로그인해 주세요.");
+      showIslandError("로그인 필요", "결제하려면 먼저 로그인해 주세요.");
       return;
     }
     if (isAdult) {
-      Alert.alert("결제 불가", ADULT_MONETIZATION_BANNED_SHORT);
+      showIslandError("결제 불가", ADULT_MONETIZATION_BANNED_SHORT);
       return;
     }
     if (paymentTypeRequiresAdultVerification(type)) {
@@ -103,7 +104,7 @@ export function PayButton({
         onClose={() => setOpen(false)}
         onSuccess={(result) => {
           onSuccess?.();
-          Alert.alert(
+          showIslandSuccess(
             result.alreadyPaid ? "이미 처리됨" : "결제 완료",
             `${paymentTypeLabel(result.type)}이 완료되었습니다.`
           );

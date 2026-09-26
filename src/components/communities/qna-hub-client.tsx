@@ -11,11 +11,14 @@ import {
   type FeedLayoutItem,
 } from "@/components/feed/feed-dual-column-layout";
 import { FeedVideoViewerProvider } from "@/components/feed/feed-video-viewer-provider";
-import { COMMUNITY_CATEGORY_OPTIONS } from "@/lib/community-labels";
-import type { CommunityCategory } from "@prisma/client";
+import {
+  QNA_FEED_CATEGORY_TABS,
+  QNA_NSFW_CATEGORY_ID,
+  type QnaFeedTabId,
+} from "@/lib/community-labels";
 import { cn } from "@/lib/utils";
-
-type TabId = "ALL" | CommunityCategory;
+import { useQnaNsfwGate } from "@/hooks/use-qna-nsfw-gate";
+import { QnaNsfwBlockedDialog } from "@/components/communities/qna-nsfw-blocked-dialog";
 
 type FeedPage = {
   items?: FeedLayoutItem[];
@@ -41,12 +44,12 @@ export function QnaHubClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const qFromUrl = searchParams.get("q")?.trim() ?? "";
-  const categoryFromUrl = (searchParams.get("category")?.trim() || "ALL") as TabId;
-  const tab: TabId =
-    categoryFromUrl === "ALL" ||
-    COMMUNITY_CATEGORY_OPTIONS.some((opt) => opt.id === categoryFromUrl)
-      ? categoryFromUrl
-      : "ALL";
+  const categoryFromUrl = (searchParams.get("category")?.trim() || "ALL") as QnaFeedTabId;
+  const tab: QnaFeedTabId = QNA_FEED_CATEGORY_TABS.some((opt) => opt.id === categoryFromUrl)
+    ? categoryFromUrl
+    : "ALL";
+
+  const { blockedOpen, setBlockedOpen, guardCategoryNav, checking } = useQnaNsfwGate();
 
   const [qInput, setQInput] = useState(qFromUrl);
   const [items, setItems] = useState<FeedLayoutItem[]>([]);
@@ -80,14 +83,18 @@ export function QnaHubClient() {
   }, [qInput, qFromUrl, router, searchParams]);
 
   const setTab = useCallback(
-    (next: TabId) => {
-      const sp = new URLSearchParams(searchParams.toString());
-      if (next === "ALL") sp.delete("category");
-      else sp.set("category", next);
-      const qs = sp.toString();
-      router.replace(qs ? `/communities?${qs}` : "/communities", { scroll: false });
+    (next: QnaFeedTabId) => {
+      void (async () => {
+        const ok = await guardCategoryNav(next === "ALL" ? null : next);
+        if (!ok) return;
+        const sp = new URLSearchParams(searchParams.toString());
+        if (next === "ALL") sp.delete("category");
+        else sp.set("category", next);
+        const qs = sp.toString();
+        router.replace(qs ? `/communities?${qs}` : "/communities", { scroll: false });
+      })();
     },
-    [router, searchParams]
+    [guardCategoryNav, router, searchParams]
   );
 
   const fetchPage = useCallback(
@@ -153,6 +160,18 @@ export function QnaHubClient() {
     void fetchPage(null, "replace");
   }, [qFromUrl, tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (tab !== QNA_NSFW_CATEGORY_ID) return;
+    void (async () => {
+      const ok = await guardCategoryNav(QNA_NSFW_CATEGORY_ID);
+      if (ok) return;
+      const sp = new URLSearchParams(searchParams.toString());
+      sp.delete("category");
+      const qs = sp.toString();
+      router.replace(qs ? `/communities?${qs}` : "/communities", { scroll: false });
+    })();
+  }, [guardCategoryNav, router, searchParams, tab]);
+
   const loadMore = useCallback(() => {
     void fetchPage(cursor, "append");
   }, [cursor, fetchPage]);
@@ -197,35 +216,30 @@ export function QnaHubClient() {
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-thin">
-        <button
-          type="button"
-          onClick={() => setTab("ALL")}
-          className={cn(
-            "shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
-            tab === "ALL"
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border bg-background text-muted-foreground hover:text-foreground"
-          )}
-        >
-          전체
-        </button>
-        {COMMUNITY_CATEGORY_OPTIONS.map((opt) => (
+        {QNA_FEED_CATEGORY_TABS.map((opt) => (
           <button
             key={opt.id}
             type="button"
+            disabled={checking}
             onClick={() => setTab(opt.id)}
             className={cn(
-              "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+              "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors inline-flex items-center gap-1",
               tab === opt.id
                 ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-background text-muted-foreground hover:text-foreground"
+                : "border-border bg-background text-muted-foreground hover:text-foreground",
+              opt.id === QNA_NSFW_CATEGORY_ID &&
+                tab !== opt.id &&
+                "border-[#c80000]/40 text-[#c80000]",
+              checking && "opacity-70"
             )}
           >
-            <span className="mr-1">{opt.emoji}</span>
-            {opt.shortLabel}
+            {opt.emoji ? <span aria-hidden>{opt.emoji}</span> : null}
+            <span>{opt.shortLabel}</span>
           </button>
         ))}
       </div>
+
+      <QnaNsfwBlockedDialog open={blockedOpen} onOpenChange={setBlockedOpen} />
 
       {loading && items.length === 0 ? (
         <div className="space-y-3" aria-busy="true">

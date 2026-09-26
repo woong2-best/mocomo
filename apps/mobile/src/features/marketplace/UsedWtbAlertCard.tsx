@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
+import { showIslandInfo } from "@/ui/IslandToast";
 import { useMutation } from "@tanstack/react-query";
 import { createWtbAlert } from "@/api/subculture";
 import { ApiError } from "@/api/client";
@@ -48,7 +49,7 @@ export function UsedWtbAlertCard({
         err instanceof ApiError && err.body && typeof err.body === "object" && "error" in err.body
           ? String((err.body as { error: string }).error)
           : "WTB 등록에 실패했습니다.";
-      Alert.alert("WTB", msg);
+      showIslandInfo("WTB", msg);
     },
   });
 
