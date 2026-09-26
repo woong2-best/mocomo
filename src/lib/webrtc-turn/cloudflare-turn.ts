@@ -68,3 +68,41 @@ export async function fetchCloudflareIceServers(_userId: string): Promise<IceSer
 export function cloudflareStunServer(): IceServerConfig {
   return { urls: "stun:stun.cloudflare.com:3478" };
 }
+
+/** Canonical Cloudflare Realtime TURN. Credentials come from the TURN key API or env. */
+export const CLOUDFLARE_TURN_URLS = [
+  "turn:turn.cloudflare.com:3478",
+  "turn:turn.cloudflare.com:3478?transport=udp",
+  "turn:turn.cloudflare.com:3478?transport=tcp",
+  "turns:turn.cloudflare.com:5349?transport=tcp",
+];
+
+export function cloudflareTurnServer(username: string, credential: string): IceServerConfig {
+  return {
+    urls: CLOUDFLARE_TURN_URLS,
+    username,
+    credential,
+  };
+}
+
+/**
+ * Fallback relay after Google STUN.
+ * Prefers short-lived credentials from CLOUDFLARE_TURN_KEY_ID / CLOUDFLARE_TURN_KEY_TOKEN.
+ * CLOUDFLARE_TURN_USERNAME + CLOUDFLARE_TURN_CREDENTIAL are a static override.
+ */
+export async function resolveCloudflareTurnServer(): Promise<IceServerConfig | null> {
+  const keyId = process.env.CLOUDFLARE_TURN_KEY_ID?.trim();
+  const token = process.env.CLOUDFLARE_TURN_KEY_TOKEN?.trim();
+  if (keyId && token) {
+    const blocks = await fetchCloudflareIceServers("dm-voice");
+    const creds = blocks.find((block) => block.username && block.credential);
+    if (creds?.username && creds.credential) {
+      return cloudflareTurnServer(creds.username, creds.credential);
+    }
+  }
+
+  const username = process.env.CLOUDFLARE_TURN_USERNAME?.trim();
+  const credential = process.env.CLOUDFLARE_TURN_CREDENTIAL?.trim();
+  if (username && credential) return cloudflareTurnServer(username, credential);
+  return null;
+}

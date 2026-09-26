@@ -1,9 +1,6 @@
 import type { IceServerConfig, TurnProvider } from "@/lib/webrtc-turn/types";
 
-const DEFAULT_STUN: IceServerConfig[] = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-];
+const DEFAULT_STUN: IceServerConfig[] = [{ urls: "stun:stun.l.google.com:19302" }];
 
 export function parseIceServersJson(raw: string | undefined): IceServerConfig[] | null {
   if (!raw?.trim()) return null;

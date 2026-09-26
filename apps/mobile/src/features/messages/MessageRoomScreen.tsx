@@ -290,22 +290,19 @@ export function MessageRoomScreen() {
     void voiceControlsRef.current?.start();
   }, [busy, recording, finishRecording, voiceArmed]);
 
-  const startCall = useCallback(
-    (callType: "AUDIO" | "VIDEO") => {
-      if (!peerId) {
-        showIslandError("통화 불가", "상대 정보를 아직 불러오지 못했습니다.");
-        return;
-      }
-      navigation.navigate("DmCall", {
-        roomId,
-        calleeId: peerId,
-        callType,
-        displayName: title,
-        displayImage: peerImage,
-      });
-    },
-    [navigation, peerId, peerImage, roomId, title]
-  );
+  const startCall = useCallback(() => {
+    if (!peerId) {
+      showIslandError("통화 불가", "상대 정보를 아직 불러오지 못했습니다.");
+      return;
+    }
+    navigation.navigate("DmCall", {
+      roomId,
+      calleeId: peerId,
+      callType: "AUDIO",
+      displayName: title,
+      displayImage: peerImage,
+    });
+  }, [navigation, peerId, peerImage, roomId, title]);
 
   const openBooking = useCallback((callType: "AUDIO" | "VIDEO") => {
     if (!peerId) {
@@ -446,19 +443,11 @@ export function MessageRoomScreen() {
             <>
           <Pressable
             style={styles.callBtn}
-            onPress={() => startCall("AUDIO")}
+            onPress={startCall}
             onLongPress={peerBookable ? () => openBooking("AUDIO") : undefined}
             accessibilityLabel={peerBookable ? "음성 통화 (길게 누르면 예약)" : "음성 통화"}
           >
             <Ionicons name="call-outline" size={18} color={colors.cobalt} />
-          </Pressable>
-          <Pressable
-            style={styles.callBtn}
-            onPress={() => startCall("VIDEO")}
-            onLongPress={peerBookable ? () => openBooking("VIDEO") : undefined}
-            accessibilityLabel={peerBookable ? "영상 통화 (길게 누르면 예약)" : "영상 통화"}
-          >
-            <Ionicons name="videocam-outline" size={19} color={colors.cobalt} />
           </Pressable>
           {peerId ? (
             <Pressable

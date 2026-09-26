@@ -1,20 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RTCView } from "@livekit/react-native-webrtc";
-import type { Socket } from "socket.io-client";
 import { ApiError } from "@/api/client";
-import { endDmCall, initiateDmCall } from "@/api/calls";
+import { endDmCall, fetchMobileCallSync, initiateDmCall, acceptDmCall, type DmCallPayload } from "@/api/calls";
 import { joinCallBooking } from "@/api/call-bookings";
-import { emitCallInvite, getCallSocket } from "@/lib/call-socket";
+import { useAuth } from "@/auth/AuthContext";
+import { publishUserCallEvent, subscribeUserCallEvents } from "@/lib/supabase-call-signal";
 import { useMobilePeerCall } from "@/lib/use-mobile-peer-call";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { showIslandError } from "@/ui/IslandToast";
@@ -24,46 +18,53 @@ import type { RootStackParamList } from "@/navigation/types";
 
 function PeerCallStage({
   callId,
+  signalingRoomId,
+  userId,
   peerUserId,
   isCaller,
-  video,
-  socket,
 }: {
   callId: string;
+  signalingRoomId: string;
+  userId: string;
   peerUserId: string;
   isCaller: boolean;
-  video: boolean;
-  socket: Socket;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const peer = useMobilePeerCall({
     callId,
+    signalingRoomId,
+    userId,
     peerUserId,
     isCaller,
-    video,
     enabled: true,
-    socket,
     onFailed: (msg) => showIslandError("연결 오류", msg),
   });
 
-  if (video && peer.remoteStream) {
-    return (
-      <RTCView
-        streamURL={peer.remoteStream.toURL()}
-        style={styles.fullVideo}
-        objectFit="cover"
-      />
-    );
-  }
-
   return (
     <View style={styles.audioStage}>
+      {peer.remoteStream ? (
+        <RTCView streamURL={peer.remoteStream.toURL()} style={styles.hiddenAudio} objectFit="cover" />
+      ) : null}
       <Text style={styles.stageHint}>
-        {video ? "상대 영상을 기다리는 중…" : "음성 연결 중…"}
+        {peer.state === "connected" ? "음성 통화 중" : "음성 연결 중…"}
       </Text>
+      <Pressable
+        style={styles.micBtn}
+        onPress={() => peer.setMic(!peer.micEnabled)}
+        accessibilityLabel={peer.micEnabled ? "마이크 끄기" : "마이크 켜기"}
+      >
+        <Ionicons name={peer.micEnabled ? "mic" : "mic-off"} size={26} color="#fff" />
+      </Pressable>
     </View>
   );
+}
+
+function errorMessage(e: unknown) {
+  if (e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body) {
+    return String((e.body as { error: string }).error);
+  }
+  return e instanceof Error ? e.message : "통화를 시작하지 못했습니다.";
 }
 
 export function DmCallScreen() {
@@ -71,75 +72,104 @@ export function DmCallScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { user } = useAuth();
   const route = useRoute<RouteProp<RootStackParamList, "DmCall">>();
-  const { roomId, calleeId, callType, displayName, displayImage, bookingId } = route.params;
-  const isVideo = callType === "VIDEO";
+  const { roomId, calleeId, displayName, displayImage, bookingId } = route.params;
 
-  const [status, setStatus] = useState<"connecting" | "live" | "error">("connecting");
+  const [phase, setPhase] = useState<"dialing" | "ringing" | "live" | "error">("dialing");
   const [error, setError] = useState<string | null>(null);
-  const [callId, setCallId] = useState<string | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [call, setCall] = useState<DmCallPayload | null>(null);
 
   useEffect(() => {
+    if (!user?.id) return;
     let cancelled = false;
     void (async () => {
       try {
-        const sock = await getCallSocket();
-        if (cancelled) return;
-        if (!sock) {
-          setError("실시간 서버에 연결할 수 없습니다.");
-          setStatus("error");
-          return;
-        }
-        setSocket(sock);
-
         const res = bookingId
           ? await joinCallBooking(bookingId)
           : await initiateDmCall({
               calleeId,
               chatRoomId: roomId,
-              callType,
+              callType: "AUDIO",
             });
         if (cancelled) {
           void endDmCall(res.call.id).catch(() => undefined);
           return;
         }
-        setCallId(res.call.id);
-        emitCallInvite(sock, res.call);
-        setStatus("live");
+        const next = res.call;
+        setCall(next);
+        const selfIsCaller = next.caller.id === user?.id;
+        if (next.status === "ACTIVE" || (!selfIsCaller && next.status === "RINGING")) {
+          if (!selfIsCaller && next.status === "RINGING") {
+            const accepted = await acceptDmCall(next.id);
+            if (cancelled) return;
+            setCall(accepted.call);
+            void publishUserCallEvent(accepted.call.caller.id, "accepted", accepted.call.id);
+          }
+          setPhase("live");
+          return;
+        }
+        void publishUserCallEvent(next.callee.id, "ring", next.id);
+        setPhase("ringing");
       } catch (e) {
         if (cancelled) return;
-        const msg =
-          e instanceof ApiError &&
-          e.body &&
-          typeof e.body === "object" &&
-          "error" in e.body
-            ? String((e.body as { error: string }).error)
-            : e instanceof Error
-              ? e.message
-              : "통화를 시작하지 못했습니다.";
-        setError(msg);
-        setStatus("error");
+        setError(errorMessage(e));
+        setPhase("error");
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [bookingId, calleeId, callType, roomId]);
+  }, [bookingId, calleeId, roomId, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !call || phase !== "ringing") return;
+    const callId = call.id;
+    const unsub = subscribeUserCallEvents(user.id, (event, id) => {
+      if (id !== callId) return;
+      if (event === "accepted") setPhase("live");
+      if (event === "declined" || event === "ended") {
+        setError(event === "declined" ? "상대방이 통화를 거절했습니다." : "통화가 종료되었습니다.");
+        setPhase("error");
+      }
+    });
+    const timer = setInterval(() => {
+      void fetchMobileCallSync()
+        .then((data) => {
+          if (data.event === "active" && data.call.id === callId) setPhase("live");
+          if ((data.event === "declined" || data.event === "ended") && data.callId === callId) {
+            setError(
+              data.event === "declined" ? "상대방이 통화를 거절했습니다." : "통화가 종료되었습니다."
+            );
+            setPhase("error");
+          }
+        })
+        .catch(() => undefined);
+    }, 2000);
+    return () => {
+      unsub();
+      clearInterval(timer);
+    };
+  }, [call, phase, user?.id]);
 
   const hangUp = useCallback(async () => {
-    if (callId) {
+    if (call) {
+      const peerId = call.caller.id === user?.id ? call.callee.id : call.caller.id;
+      const event = phase === "live" ? "ended" : "declined";
+      void publishUserCallEvent(peerId, event, call.id);
       try {
-        await endDmCall(callId);
+        await endDmCall(call.id);
       } catch {
         /* ignore */
       }
     }
-    socket?.disconnect();
     navigation.goBack();
-  }, [callId, navigation, socket]);
+  }, [call, navigation, phase, user?.id]);
 
-  if (status === "error") {
+  const selfIsCaller = call ? call.caller.id === user?.id : true;
+  const peerUserId = call ? (selfIsCaller ? call.callee.id : call.caller.id) : calleeId;
+
+  if (phase === "error") {
     return (
       <View style={[styles.root, { paddingTop: insets.top + 24 }]}>
         <Text style={styles.errorTitle}>통화 실패</Text>
@@ -151,28 +181,30 @@ export function DmCallScreen() {
     );
   }
 
+  const liveReady = phase === "live" && call && user?.id;
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {status === "connecting" || !callId || !socket ? (
+      {!liveReady ? (
         <View style={styles.center}>
           <FolkAvatar uri={displayImage} name={displayName} size={96} />
           <Text style={styles.name}>{displayName}</Text>
-          <Text style={styles.sub}>{isVideo ? "영상 연결 중…" : "전화 거는 중…"}</Text>
+          <Text style={styles.sub}>{phase === "ringing" ? "상대방에게 전화 거는 중…" : "전화 연결 중…"}</Text>
           <ActivityIndicator color="#fff" style={{ marginTop: 20 }} />
         </View>
       ) : (
         <View style={styles.room}>
           <PeerCallStage
-            callId={callId}
-            peerUserId={calleeId}
-            isCaller
-            video={isVideo}
-            socket={socket}
+            callId={call.id}
+            signalingRoomId={call.signalingRoomId}
+            userId={user.id}
+            peerUserId={peerUserId}
+            isCaller={selfIsCaller}
           />
           <View style={[styles.overlayTop, { paddingTop: insets.top + 12 }]}>
             <FolkAvatar uri={displayImage} name={displayName} size={44} />
             <Text style={styles.name}>{displayName}</Text>
-            <Text style={styles.sub}>{isVideo ? "영상 통화" : "음성 통화"}</Text>
+            <Text style={styles.sub}>음성 통화</Text>
           </View>
         </View>
       )}
@@ -207,7 +239,16 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: "#0B1220",
     },
     stageHint: { color: "rgba(255,255,255,0.55)", fontWeight: "600" },
-    fullVideo: { flex: 1, width: "100%" },
+    hiddenAudio: { width: 1, height: 1, opacity: 0, position: "absolute" },
+    micBtn: {
+      marginTop: 28,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: "rgba(255,255,255,0.16)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
     controls: {
       position: "absolute",
       left: 0,

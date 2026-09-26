@@ -21,6 +21,10 @@ import {
 import { CallOverlay } from "@/components/call/call-overlay";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
 import { prefetchWebRtcIceConfiguration } from "@/lib/webrtc-ice-config";
+import {
+  publishUserCallEvent,
+  subscribeUserCallEvents,
+} from "@/lib/peer-call/supabase-signal";
 
 const PeerCallRoom = dynamic(
   () => import("@/components/call/peer-call-room").then((m) => m.PeerCallRoom),
@@ -215,7 +219,10 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       const current = callStateRef.current;
       const peerId = isCallPhase(current) ? current.peer.id : undefined;
       dismissCallUi(callId);
-      if (peerId) emit("call_end", { callId, peerId });
+      if (peerId) {
+        void publishUserCallEvent(peerId, "ended", callId);
+        emit("call_end", { callId, peerId });
+      }
       void endCall(callId)
         .then(() => locallyDismissedCallIdsRef.current.delete(callId))
         .catch(() => undefined);
@@ -315,6 +322,18 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const prefetchCallRoom = useCallback(() => {
     void import("@/components/call/peer-call-room");
   }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    return subscribeUserCallEvents(userId, () => {
+      void fetch("/api/calls/sync", { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) applySync(data as SyncResponse);
+        })
+        .catch(() => undefined);
+    });
+  }, [userId, applySync]);
 
   useEffect(() => {
     if (!userId || !socket) return;
@@ -498,6 +517,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
       const callPeer = peerForUser(result.call, userId);
       setCallState({ phase: "outgoing", call: result.call, peer: callPeer });
+      void publishUserCallEvent(result.call.callee.id, "ring", result.call.id);
       emit("call_invite", { callId: result.call.id, call: result.call });
       return {};
     },
@@ -534,6 +554,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       resetCall();
       return;
     }
+    void publishUserCallEvent(callState.call.caller.id, "accepted", callState.call.id);
     emit("call_accept", {
       callId: callState.call.id,
       callerId: callState.call.caller.id,
@@ -548,6 +569,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     const callId = current.call.id;
     const peerId = current.peer.id;
     dismissCallUi(callId);
+    void publishUserCallEvent(peerId, "declined", callId);
     emit("call_decline", { callId, peerId });
     void declineCall(callId)
       .then(() => locallyDismissedCallIdsRef.current.delete(callId))
@@ -560,6 +582,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     const callId = current.call.id;
     const peerId = current.peer.id;
     dismissCallUi(callId);
+    void publishUserCallEvent(peerId, "declined", callId);
     emit("call_decline", { callId, peerId });
     void declineCall(callId)
       .then(() => locallyDismissedCallIdsRef.current.delete(callId))
@@ -629,12 +652,12 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
                 <PeerCallRoom
                   key={callState.call.id}
                   callId={callState.call.id}
+                  signalingRoomId={callState.call.signalingRoomId}
                   userId={userId}
                   peerUserId={callState.peer.id}
                   isCaller={callState.call.caller.id === userId}
                   video={activeVideo || isVideoCall(callState.call)}
                   enabled={connectPeer}
-                  socket={socket}
                   peer={callState.peer}
                   selfPeer={selfPeer}
                   phase="active"

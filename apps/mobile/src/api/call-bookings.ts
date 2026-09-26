@@ -1,4 +1,5 @@
 import { apiRequest } from "@/api/client";
+import type { DmCallPayload } from "@/api/calls";
 import { MobileApi } from "@/api/paths";
 
 export type CallBookingStatus =
@@ -102,7 +103,7 @@ export async function rejectCallBooking(id: string, note?: string) {
 
 export async function joinCallBooking(id: string) {
   return apiRequest<{
-    call: { id: string; callType: "AUDIO" | "VIDEO"; status: string };
+    call: DmCallPayload;
     role: "fan" | "creator";
   }>(MobileApi.callBookingJoin(id), { method: "POST" });
 }

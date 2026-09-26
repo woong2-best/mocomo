@@ -1,32 +1,36 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Socket } from "socket.io-client";
 import { fetchWebRtcIceConfiguration } from "@/lib/webrtc-ice-config";
-import type { CallSignalEvent, CallSignalPayload } from "@/lib/peer-call/types";
+import type { CallSignalPayload } from "@/lib/peer-call/types";
+import {
+  openVoiceSignalChannel,
+  type VoiceSignalSession,
+  type VoiceWireSignal,
+} from "@/lib/peer-call/supabase-signal";
 
 export type PeerCallState = "idle" | "connecting" | "connected" | "failed" | "closed";
 
 type UsePeerCallOptions = {
   callId: string;
+  signalingRoomId: string;
   userId: string;
   peerUserId: string;
   isCaller: boolean;
   video: boolean;
   enabled: boolean;
-  socket: Socket | null;
   onConnected?: () => void;
   onFailed?: (message: string) => void;
 };
 
 export function usePeerCall({
   callId,
+  signalingRoomId,
   userId,
   peerUserId,
   isCaller,
   video,
   enabled,
-  socket,
   onConnected,
   onFailed,
 }: UsePeerCallOptions) {
@@ -37,13 +41,14 @@ export function usePeerCall({
   const makingOfferRef = useRef(false);
   const ignoreOfferRef = useRef(false);
   const politeRef = useRef(!isCaller);
-  const initSessionRef = useRef<string | null>(null);
+  const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
+  const sessionSendRef = useRef<(signal: VoiceWireSignal) => void>(() => undefined);
   const onConnectedRef = useRef(onConnected);
   const onFailedRef = useRef(onFailed);
-  const socketRef = useRef(socket);
   const callIdRef = useRef(callId);
   const peerUserIdRef = useRef(peerUserId);
   const videoRef = useRef(video);
+  const isCallerRef = useRef(isCaller);
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -54,26 +59,21 @@ export function usePeerCall({
   useEffect(() => {
     onConnectedRef.current = onConnected;
     onFailedRef.current = onFailed;
-    socketRef.current = socket;
     callIdRef.current = callId;
     peerUserIdRef.current = peerUserId;
     videoRef.current = video;
+    isCallerRef.current = isCaller;
     politeRef.current = !isCaller;
   });
 
   const emitSignal = useCallback((payload: CallSignalPayload) => {
-    const sock = socketRef.current;
-    if (!sock?.connected) return;
-    sock.emit("call_signal", {
-      callId: callIdRef.current,
-      toUserId: peerUserIdRef.current,
-      payload,
-    });
+    sessionSendRef.current(payload);
   }, []);
 
   const cleanup = useCallback(() => {
     const pc = pcRef.current;
     pcRef.current = null;
+    pendingIceRef.current = [];
     if (pc) {
       pc.onicecandidate = null;
       pc.ontrack = null;
@@ -86,7 +86,6 @@ export function usePeerCall({
     localStreamRef.current = null;
     remoteStreamRef.current = null;
     rtcConfigRef.current = null;
-    initSessionRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
     setState("closed");
@@ -105,6 +104,17 @@ export function usePeerCall({
     setLocalStream(stream);
     setCameraEnabled(wantsVideo && stream.getVideoTracks().some((t) => t.enabled));
     return stream;
+  }, []);
+
+  const flushIce = useCallback(async (pc: RTCPeerConnection) => {
+    const queued = pendingIceRef.current.splice(0);
+    for (const candidate of queued) {
+      try {
+        await pc.addIceCandidate(candidate);
+      } catch {
+        /* ignore stale ICE */
+      }
+    }
   }, []);
 
   const createPeerConnection = useCallback(async (rtcConfiguration?: RTCConfiguration) => {
@@ -178,6 +188,7 @@ export function usePeerCall({
         if (ignoreOfferRef.current) return;
 
         await pc.setRemoteDescription(payload.sdp);
+        await flushIce(pc);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         emitSignal({ type: "answer", sdp: answer });
@@ -188,85 +199,129 @@ export function usePeerCall({
       if (payload.type === "answer") {
         if (pc.signalingState === "have-local-offer") {
           await pc.setRemoteDescription(payload.sdp);
+          await flushIce(pc);
         }
         return;
       }
 
       if (payload.type === "ice") {
-        if (payload.candidate) {
-          try {
-            await pc.addIceCandidate(payload.candidate);
-          } catch {
-            /* ignore stale ICE */
-          }
+        if (!payload.candidate) return;
+        if (!pc.remoteDescription) {
+          pendingIceRef.current.push(payload.candidate);
+          return;
+        }
+        try {
+          await pc.addIceCandidate(payload.candidate);
+        } catch {
+          /* ignore stale ICE */
         }
       }
     },
-    [cleanup, createPeerConnection, emitSignal]
+    [cleanup, createPeerConnection, emitSignal, flushIce]
   );
-
-  useEffect(() => {
-    if (!enabled || !socket || !callId) return;
-
-    const onSignal = (data: CallSignalEvent) => {
-      if (data.callId !== callId || data.fromUserId !== peerUserId) return;
-      void handleRemoteSignal(data.payload).catch(() => {
-        setState("failed");
-        onFailedRef.current?.("시그널 처리 중 오류가 발생했습니다.");
-      });
-    };
-
-    socket.on("call_signal", onSignal);
-    return () => {
-      socket.off("call_signal", onSignal);
-    };
-  }, [enabled, socket, callId, peerUserId, handleRemoteSignal]);
 
   const createPeerConnectionRef = useRef(createPeerConnection);
   createPeerConnectionRef.current = createPeerConnection;
+  const handleRemoteSignalRef = useRef(handleRemoteSignal);
+  handleRemoteSignalRef.current = handleRemoteSignal;
 
   useEffect(() => {
-    if (!enabled || !callId) return;
-
-    const sessionKey = `${callId}:${isCaller ? "caller" : "callee"}`;
-    if (initSessionRef.current === sessionKey) return;
-    initSessionRef.current = sessionKey;
+    if (!enabled || !callId || !signalingRoomId || !userId) return;
 
     let cancelled = false;
+    let session: VoiceSignalSession | null = null;
+    let offerTimer: ReturnType<typeof setTimeout> | null = null;
+    const offered = { current: false };
+
+    const fail = (message: string) => {
+      if (cancelled) return;
+      setState("failed");
+      onFailedRef.current?.(message);
+    };
+
+    const maybeOffer = async () => {
+      if (!isCallerRef.current || cancelled) return;
+      try {
+        const pc = await createPeerConnectionRef.current();
+        if (cancelled) return;
+        if (offered.current) {
+          const local = pc.localDescription;
+          if (local?.type === "offer") {
+            sessionSendRef.current({ type: "offer", sdp: local });
+          }
+          return;
+        }
+        offered.current = true;
+        makingOfferRef.current = true;
+        const offer = await pc.createOffer();
+        if (cancelled) return;
+        await pc.setLocalDescription(offer);
+        sessionSendRef.current({ type: "offer", sdp: offer });
+      } catch (e) {
+        offered.current = false;
+        fail(e instanceof Error ? e.message : "미디어 연결에 실패했습니다.");
+      } finally {
+        makingOfferRef.current = false;
+      }
+    };
 
     void (async () => {
       try {
         setState("connecting");
         const rtcConfiguration = await fetchWebRtcIceConfiguration();
         if (cancelled) return;
-        const pc = await createPeerConnectionRef.current(rtcConfiguration);
+        await createPeerConnectionRef.current(rtcConfiguration);
         if (cancelled) return;
 
+        session = await openVoiceSignalChannel({
+          signalingRoomId,
+          userId,
+          onSignal: (fromUserId, signal) => {
+            if (cancelled || fromUserId !== peerUserIdRef.current) return;
+            if (signal.type === "hello") {
+              if (!isCallerRef.current) sessionSendRef.current({ type: "ready" });
+              return;
+            }
+            if (signal.type === "ready") {
+              void maybeOffer();
+              return;
+            }
+            void handleRemoteSignalRef.current(signal).catch(() => {
+              fail("시그널 처리 중 오류가 발생했습니다.");
+            });
+          },
+        });
+
+        if (cancelled) {
+          session?.close();
+          return;
+        }
+        if (!session) {
+          fail("시그널링 서버에 연결할 수 없습니다.");
+          return;
+        }
+
+        sessionSendRef.current = session.send;
+        session.send({ type: "hello" });
+        if (!isCaller) session.send({ type: "ready" });
         if (isCaller) {
-          makingOfferRef.current = true;
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          emitSignal({ type: "offer", sdp: offer });
-          makingOfferRef.current = false;
+          offerTimer = setTimeout(() => {
+            void maybeOffer();
+          }, 1500);
         }
       } catch (e) {
-        if (cancelled) return;
-        initSessionRef.current = null;
-        setState("failed");
-        onFailedRef.current?.(
-          e instanceof Error ? e.message : "미디어 연결에 실패했습니다."
-        );
+        fail(e instanceof Error ? e.message : "미디어 연결에 실패했습니다.");
       }
     })();
 
     return () => {
       cancelled = true;
-      if (initSessionRef.current === sessionKey) {
-        initSessionRef.current = null;
-      }
+      if (offerTimer) clearTimeout(offerTimer);
+      sessionSendRef.current = () => undefined;
+      session?.close();
       cleanup();
     };
-  }, [enabled, callId, isCaller, emitSignal, cleanup]);
+  }, [enabled, callId, signalingRoomId, userId, isCaller, cleanup]);
 
   const setMic = useCallback((on: boolean) => {
     for (const track of localStreamRef.current?.getAudioTracks() ?? []) {

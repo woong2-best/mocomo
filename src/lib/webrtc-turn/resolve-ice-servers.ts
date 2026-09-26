@@ -1,46 +1,31 @@
 import type { IceServerConfig, ResolvedIceConfig } from "@/lib/webrtc-turn/types";
 import {
   getIceTransportPolicyFromEnv,
-  getStunServersFromEnv,
   getStaticTurnServersFromEnv,
   normalizeTurnProvider,
 } from "@/lib/webrtc-turn/stun";
 import { resolveCoturnIceServer } from "@/lib/webrtc-turn/coturn-credentials";
-import { cloudflareStunServer, fetchCloudflareIceServers } from "@/lib/webrtc-turn/cloudflare-turn";
+import { resolveCloudflareTurnServer } from "@/lib/webrtc-turn/cloudflare-turn";
+
+/** 1st choice. Direct/srflx candidates are gathered from this STUN server. */
+const GOOGLE_PUBLIC_STUN: IceServerConfig = { urls: "stun:stun.l.google.com:19302" };
 
 export async function resolveIceServersForCall(userId: string): Promise<ResolvedIceConfig> {
   const provider = normalizeTurnProvider(process.env.TURN_PROVIDER);
   const iceTransportPolicy = getIceTransportPolicyFromEnv();
-  const stun = getStunServersFromEnv();
-  const servers: IceServerConfig[] = [...stun];
-
-  if (provider === "none") {
-    return { iceServers: servers, iceTransportPolicy };
-  }
+  const servers: IceServerConfig[] = [GOOGLE_PUBLIC_STUN];
 
   if (provider === "static") {
     servers.push(...getStaticTurnServersFromEnv());
-    return { iceServers: dedupeIceServers(servers), iceTransportPolicy };
-  }
-
-  if (provider === "coturn") {
+  } else if (provider === "coturn") {
     const turn = resolveCoturnIceServer(userId);
     if (turn) servers.push(turn);
-    return { iceServers: dedupeIceServers(servers), iceTransportPolicy };
+  } else if (provider === "cloudflare") {
+    const turn = await resolveCloudflareTurnServer();
+    if (turn) servers.push(turn);
   }
 
-  if (provider === "cloudflare") {
-    const cf = await fetchCloudflareIceServers(userId);
-    if (cf.length) {
-      servers.length = 0;
-      servers.push(...cf);
-    } else {
-      servers.push(cloudflareStunServer());
-    }
-    return { iceServers: dedupeIceServers(servers), iceTransportPolicy };
-  }
-
-  return { iceServers: servers, iceTransportPolicy };
+  return { iceServers: dedupeIceServers(servers), iceTransportPolicy };
 }
 
 function dedupeIceServers(servers: IceServerConfig[]): IceServerConfig[] {
@@ -63,7 +48,10 @@ export function isTurnConfigured(): boolean {
     return !!(process.env.TURN_SECRET && process.env.COTURN_HOST) || getStaticTurnServersFromEnv().length > 0;
   }
   if (provider === "cloudflare") {
-    return !!(process.env.CLOUDFLARE_TURN_KEY_ID && process.env.CLOUDFLARE_TURN_KEY_TOKEN);
+    return !!(
+      (process.env.CLOUDFLARE_TURN_KEY_ID && process.env.CLOUDFLARE_TURN_KEY_TOKEN) ||
+      (process.env.CLOUDFLARE_TURN_USERNAME && process.env.CLOUDFLARE_TURN_CREDENTIAL)
+    );
   }
   return false;
 }

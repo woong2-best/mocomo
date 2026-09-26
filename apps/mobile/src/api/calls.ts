@@ -42,6 +42,19 @@ export async function declineDmCall(callId: string) {
   return endDmCall(callId);
 }
 
+export type MobileCallSync =
+  | { event: null }
+  | { event: "declined" | "ended"; callId: string }
+  | {
+      event: "incoming" | "outgoing" | "active";
+      call: DmCallPayload;
+      peer: DmCallPayload["caller"];
+    };
+
+export async function fetchMobileCallSync() {
+  return apiRequest<MobileCallSync>(MobileApi.callsSync);
+}
+
 export async function fetchMobileSocketAuthToken() {
   return apiRequest<{ token: string; expiresIn: number }>("/api/mobile/socket-auth", {
     method: "GET",

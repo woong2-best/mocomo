@@ -12,10 +12,7 @@ type ResolvedIceConfig = {
   iceTransportPolicy?: RTCIceTransportPolicy;
 };
 
-const DEFAULT_STUN: IceServerConfig[] = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-];
+const DEFAULT_STUN: IceServerConfig[] = [{ urls: "stun:stun.l.google.com:19302" }];
 
 function parseIceServersJson(raw: string | undefined): IceServerConfig[] | null {
   if (!raw?.trim()) return null;

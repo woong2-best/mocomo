@@ -29,6 +29,13 @@ function UsedTabScreen() {
 
 import { useI18n } from "@/i18n/I18nProvider";
 
+function SignedInCallListener() {
+  const { IncomingCallListener } = require("@/features/messages/IncomingCallListener") as {
+    IncomingCallListener: ComponentType;
+  };
+  return <IncomingCallListener />;
+}
+
 function MainTabs() {
   const { t } = useI18n();
   return (
@@ -81,6 +88,7 @@ export function RootNavigator() {
   return (
     <NavigationContainer ref={navigationRef} theme={theme}>
       <PushNotificationHandler />
+      {status === "signedIn" ? <SignedInCallListener /> : null}
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

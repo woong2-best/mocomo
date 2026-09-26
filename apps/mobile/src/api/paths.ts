@@ -51,6 +51,8 @@ export const MobileApi = {
   upload: "/api/mobile/upload",
   messages: "/api/mobile/messages",
   calls: "/api/mobile/calls",
+  callsSync: "/api/mobile/calls/sync",
+  realtimeConfig: "/api/mobile/realtime/config",
   callAccept: (id: string) => `/api/mobile/calls/${id}/accept`,
   callEnd: (id: string) => `/api/mobile/calls/${id}/end`,
   live: "/api/mobile/live",

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { CallStatus } from "@prisma/client";
+import { CallStatus, CallType } from "@prisma/client";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { loadBookingForUser } from "@/lib/call-booking-guards";
@@ -51,15 +51,12 @@ export async function POST(
   }
 
   if (booking.voiceCall) {
-    const existing = await db.voiceCall.findUnique({
-      where: { id: booking.voiceCall.id },
-      select: { id: true, status: true, signalingRoomId: true, callType: true },
-    });
+    const existing = await loadCallPayload(booking.voiceCall.id);
     if (!existing) {
       return NextResponse.json({ error: "통화 정보를 찾을 수 없습니다." }, { status: 404 });
     }
     return NextResponse.json({
-      call: { id: existing.id, callType: existing.callType, status: existing.status },
+      call: existing,
       role: booking.fanId === auth.user.id ? "fan" : "creator",
     });
   }
@@ -74,16 +71,41 @@ export async function POST(
       calleeId,
       chatRoomId: booking.chatRoomId,
       signalingRoomId,
-      callType: booking.callType,
+      callType: CallType.AUDIO,
       status: CallStatus.RINGING,
       bookingId: booking.id,
     },
   });
 
-  void notifyIncomingCall(calleeId, callerId, booking.callType, call.id, booking.chatRoomId);
+  void notifyIncomingCall(calleeId, callerId, CallType.AUDIO, call.id, booking.chatRoomId);
+
+  const payload = await loadCallPayload(call.id);
+  if (!payload) {
+    return NextResponse.json({ error: "통화 정보를 찾을 수 없습니다." }, { status: 404 });
+  }
 
   return NextResponse.json({
-    call: { id: call.id, callType: call.callType, status: call.status },
+    call: payload,
     role: booking.fanId === auth.user.id ? "fan" : "creator",
   });
+}
+
+async function loadCallPayload(id: string) {
+  const call = await db.voiceCall.findUnique({
+    where: { id },
+    include: {
+      caller: { select: { id: true, username: true, image: true } },
+      callee: { select: { id: true, username: true, image: true } },
+    },
+  });
+  if (!call) return null;
+  return {
+    id: call.id,
+    signalingRoomId: call.signalingRoomId,
+    chatRoomId: call.chatRoomId,
+    callType: call.callType,
+    status: call.status,
+    caller: call.caller,
+    callee: call.callee,
+  };
 }

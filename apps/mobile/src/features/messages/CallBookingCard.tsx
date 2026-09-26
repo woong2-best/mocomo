@@ -102,7 +102,7 @@ export function CallBookingCard({
     navigation.navigate("DmCall", {
       roomId,
       calleeId: peerId,
-      callType: booking.callType,
+      callType: "AUDIO",
       displayName: peerName,
       displayImage: peerImage,
       bookingId: booking.id,
