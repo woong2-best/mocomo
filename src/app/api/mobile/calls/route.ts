@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { z } from "zod";
-import { CallStatus, CallType, SupportTierLevel } from "@prisma/client";
+import { CallStatus, CallType } from "@prisma/client";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { notifyIncomingCall } from "@/lib/notifications";
 import { db } from "@/lib/db";
-import { canAccessDm } from "@/lib/tiers";
 
 const ACTIVE_STATUSES: CallStatus[] = [CallStatus.RINGING, CallStatus.ACTIVE];
 
@@ -16,38 +15,17 @@ const bodySchema = z.object({
   callType: z.enum(["AUDIO", "VIDEO"]).optional(),
 });
 
-async function assertDmAccess(userId: string, otherUserId: string) {
-  const [cosplayer, support, block] = await Promise.all([
-    db.cosplayerProfile.findUnique({
-      where: { userId: otherUserId },
-      select: { dmEnabled: true, minChatTier: true },
-    }),
-    db.creatorSupport.findUnique({
-      where: { supporterId_creatorId: { supporterId: userId, creatorId: otherUserId } },
-      select: { tier: true },
-    }),
-    // A ringing phone is the loudest thing an app can do, so a block has to stop
-    // it in either direction.
-    db.userBlock.findFirst({
-      where: {
-        OR: [
-          { blockerId: otherUserId, blockedId: userId },
-          { blockerId: userId, blockedId: otherUserId },
-        ],
-      },
-      select: { id: true },
-    }),
-  ]);
-
-  if (block) return false;
-
-  if (cosplayer?.dmEnabled) {
-    const userTier = (support?.tier ?? "SEED") as SupportTierLevel;
-    if (!canAccessDm(userTier, cosplayer.minChatTier)) {
-      return false;
-    }
-  }
-  return true;
+async function isCallBlocked(userId: string, otherUserId: string) {
+  const block = await db.userBlock.findFirst({
+    where: {
+      OR: [
+        { blockerId: otherUserId, blockedId: userId },
+        { blockerId: userId, blockedId: otherUserId },
+      ],
+    },
+    select: { id: true },
+  });
+  return !!block;
 }
 
 /** POST /api/mobile/calls — start DM voice/video call (Bearer). */
@@ -95,17 +73,17 @@ export async function POST(req: NextRequest) {
       })
     : Promise.resolve(null);
 
-  const [active, room, canDm] = await Promise.all([
+  const [active, room, blocked] = await Promise.all([
     activePromise,
     roomPromise,
-    assertDmAccess(user.id, calleeId),
+    isCallBlocked(user.id, calleeId),
   ]);
 
   if (active) {
     return NextResponse.json({ error: "이미 진행 중인 통화가 있습니다." }, { status: 409 });
   }
-  if (!canDm) {
-    return NextResponse.json({ error: "DM 등급 조건을 충족해야 통화할 수 있습니다." }, { status: 403 });
+  if (blocked) {
+    return NextResponse.json({ error: "차단된 사용자와는 통화할 수 없습니다." }, { status: 403 });
   }
   if (chatRoomId) {
     if (!room || room.type !== "DM") {

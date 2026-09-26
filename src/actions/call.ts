@@ -4,8 +4,7 @@ import { randomUUID } from "crypto";
 import { notifyIncomingCall } from "@/lib/notifications";
 import { db } from "@/lib/db";
 import { requireAuth, requireAuthMinimal } from "@/lib/auth";
-import { canAccessDm } from "@/lib/tiers";
-import { CallStatus, CallType, SupportTierLevel } from "@prisma/client";
+import { CallStatus, CallType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 const ACTIVE_STATUSES: CallStatus[] = [CallStatus.RINGING, CallStatus.ACTIVE];
@@ -56,37 +55,17 @@ async function getCallWithUsers(callId: string) {
   });
 }
 
-async function assertDmAccess(userId: string, otherUserId: string) {
-  const [cosplayer, support, block] = await Promise.all([
-    db.cosplayerProfile.findUnique({
-      where: { userId: otherUserId },
-      select: { dmEnabled: true, minChatTier: true },
-    }),
-    db.creatorSupport.findUnique({
-      where: { supporterId_creatorId: { supporterId: userId, creatorId: otherUserId } },
-      select: { tier: true },
-    }),
-    // A ringing phone is the loudest thing an app can do, so a block has to stop
-    // it in either direction.
-    db.userBlock.findFirst({
-      where: {
-        OR: [
-          { blockerId: otherUserId, blockedId: userId },
-          { blockerId: userId, blockedId: otherUserId },
-        ],
-      },
-      select: { id: true },
-    }),
-  ]);
-
-  if (block) throw new Error("BLOCKED");
-
-  if (cosplayer?.dmEnabled) {
-    const userTier = (support?.tier ?? "SEED") as SupportTierLevel;
-    if (!canAccessDm(userTier, cosplayer.minChatTier)) {
-      throw new Error("DM_TIER_REQUIRED");
-    }
-  }
+async function isCallBlocked(userId: string, otherUserId: string) {
+  const block = await db.userBlock.findFirst({
+    where: {
+      OR: [
+        { blockerId: otherUserId, blockedId: userId },
+        { blockerId: userId, blockedId: otherUserId },
+      ],
+    },
+    select: { id: true },
+  });
+  return !!block;
 }
 
 export async function initiateCall(data: {
@@ -110,13 +89,13 @@ export async function initiateCall(data: {
         include: { members: { select: { userId: true } } },
       })
     : Promise.resolve(null);
-  const accessPromise = assertDmAccess(user.id, data.calleeId)
-    .then(() => true)
-    .catch(() => false);
-
-  const [active, room, canDm] = await Promise.all([activePromise, roomPromise, accessPromise]);
+  const [active, room, blocked] = await Promise.all([
+    activePromise,
+    roomPromise,
+    isCallBlocked(user.id, data.calleeId),
+  ]);
   if (active) return { error: "이미 진행 중인 통화가 있습니다." };
-  if (!canDm) return { error: "DM 등급 조건을 충족해야 통화할 수 있습니다." };
+  if (blocked) return { error: "차단된 사용자와는 통화할 수 없습니다." };
 
   if (data.chatRoomId) {
     if (!room || room.type !== "DM") return { error: "DM 방에서만 통화할 수 있습니다." };
