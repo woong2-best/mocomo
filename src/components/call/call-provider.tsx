@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import type { Socket } from "socket.io-client";
 import { acceptCall, declineCall, endCall, initiateCall } from "@/actions/call";
 import type { ActiveCallState, CallPayload, CallParticipant, CallType } from "@/lib/call-types";
+import type { CallSignalEvent } from "@/lib/peer-call/types";
 import {
   ensureMicrophoneAccess,
   probeMicrophonePermission,
@@ -102,6 +103,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   } | null>(null);
   /** 로컬에서 끊은 통화 — sync 폴링이 다시 띄우지 않도록 */
   const locallyDismissedCallIdsRef = useRef<Set<string>>(new Set());
+  const earlySignalsRef = useRef<CallSignalEvent[]>([]);
 
   callStateRef.current = callState;
 
@@ -385,7 +387,13 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       });
     };
 
+    const onCallSignal = (data: CallSignalEvent) => {
+      if (!data?.callId || !data.payload) return;
+      earlySignalsRef.current = [...earlySignalsRef.current, data].slice(-40);
+    };
+
     socket.on("connect", onConnect);
+    socket.on("call_signal", onCallSignal);
     socket.on("call_incoming", onCallIncoming);
     socket.on("call_accepted", onCallAccepted);
     socket.on("call_declined", onCallDeclined);
@@ -397,6 +405,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
     return () => {
       socket.off("connect", onConnect);
+      socket.off("call_signal", onCallSignal);
       socket.off("call_incoming", onCallIncoming);
       socket.off("call_accepted", onCallAccepted);
       socket.off("call_declined", onCallDeclined);
@@ -658,6 +667,8 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
                   isCaller={callState.call.caller.id === userId}
                   video={activeVideo || isVideoCall(callState.call)}
                   enabled={connectPeer}
+                  socket={socket}
+                  initialSignals={earlySignalsRef.current.filter((s) => s.callId === callState.call.id)}
                   peer={callState.peer}
                   selfPeer={selfPeer}
                   phase="active"

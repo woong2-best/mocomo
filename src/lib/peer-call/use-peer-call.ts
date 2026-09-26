@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Socket } from "socket.io-client";
 import { fetchWebRtcIceConfiguration } from "@/lib/webrtc-ice-config";
-import type { CallSignalPayload } from "@/lib/peer-call/types";
+import type { CallSignalEvent, CallSignalPayload } from "@/lib/peer-call/types";
 import {
   openVoiceSignalChannel,
   type VoiceSignalSession,
@@ -10,6 +11,15 @@ import {
 } from "@/lib/peer-call/supabase-signal";
 
 export type PeerCallState = "idle" | "connecting" | "connected" | "failed" | "closed";
+
+function asSdp(
+  raw: RTCSessionDescriptionInit | undefined,
+  fallback: "offer" | "answer"
+): RTCSessionDescriptionInit {
+  const type =
+    raw?.type === "offer" || raw?.type === "answer" || raw?.type === "pranswer" ? raw.type : fallback;
+  return { type, sdp: typeof raw?.sdp === "string" ? raw.sdp : "" };
+}
 
 type UsePeerCallOptions = {
   callId: string;
@@ -19,6 +29,9 @@ type UsePeerCallOptions = {
   isCaller: boolean;
   video: boolean;
   enabled: boolean;
+  /** Installed phone app still exchanges SDP on the socket. Supabase is the other path. */
+  socket?: Socket | null;
+  initialSignals?: CallSignalEvent[];
   onConnected?: () => void;
   onFailed?: (message: string) => void;
 };
@@ -31,6 +44,8 @@ export function usePeerCall({
   isCaller,
   video,
   enabled,
+  socket,
+  initialSignals,
   onConnected,
   onFailed,
 }: UsePeerCallOptions) {
@@ -49,6 +64,10 @@ export function usePeerCall({
   const peerUserIdRef = useRef(peerUserId);
   const videoRef = useRef(video);
   const isCallerRef = useRef(isCaller);
+  const socketRef = useRef(socket);
+  const answeredRef = useRef(false);
+  const initialSignalsRef = useRef(initialSignals);
+  initialSignalsRef.current = initialSignals;
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -63,11 +82,21 @@ export function usePeerCall({
     peerUserIdRef.current = peerUserId;
     videoRef.current = video;
     isCallerRef.current = isCaller;
+    socketRef.current = socket;
     politeRef.current = !isCaller;
   });
 
   const emitSignal = useCallback((payload: CallSignalPayload) => {
-    sessionSendRef.current(payload);
+    const plain = JSON.parse(JSON.stringify(payload)) as CallSignalPayload;
+    sessionSendRef.current(plain);
+    const sock = socketRef.current;
+    if (sock?.connected) {
+      sock.emit("call_signal", {
+        callId: callIdRef.current,
+        toUserId: peerUserIdRef.current,
+        payload: plain,
+      });
+    }
   }, []);
 
   const cleanup = useCallback(() => {
@@ -158,9 +187,7 @@ export function usePeerCall({
         onConnectedRef.current?.();
       } else if (cs === "failed") {
         setState("failed");
-        onFailedRef.current?.("P2P 연결에 실패했습니다.");
-      } else if (cs === "disconnected" || cs === "closed") {
-        setState("closed");
+        onFailedRef.current?.("통화 연결이 끊겼습니다. 같은 와이파이가 아니면 잠시 후 다시 걸어 주세요.");
       }
     };
 
@@ -183,14 +210,22 @@ export function usePeerCall({
       }
 
       if (payload.type === "offer") {
+        if (answeredRef.current && pc.signalingState === "stable") return;
         const offerCollision = makingOfferRef.current || pc.signalingState !== "stable";
         ignoreOfferRef.current = !polite && offerCollision;
         if (ignoreOfferRef.current) return;
 
-        await pc.setRemoteDescription(payload.sdp);
+        const offer = asSdp(payload.sdp, "offer");
+        if (!offer.sdp) return;
+        try {
+          await pc.setRemoteDescription(offer);
+        } catch {
+          return;
+        }
         await flushIce(pc);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        answeredRef.current = true;
         emitSignal({ type: "answer", sdp: answer });
         setState("connecting");
         return;
@@ -198,7 +233,10 @@ export function usePeerCall({
 
       if (payload.type === "answer") {
         if (pc.signalingState === "have-local-offer") {
-          await pc.setRemoteDescription(payload.sdp);
+          const answer = asSdp(payload.sdp, "answer");
+          if (!answer.sdp) return;
+          await pc.setRemoteDescription(answer);
+          answeredRef.current = true;
           await flushIce(pc);
         }
         return;
@@ -247,7 +285,7 @@ export function usePeerCall({
         if (offered.current) {
           const local = pc.localDescription;
           if (local?.type === "offer") {
-            sessionSendRef.current({ type: "offer", sdp: local });
+            emitSignal({ type: "offer", sdp: local });
           }
           return;
         }
@@ -256,7 +294,7 @@ export function usePeerCall({
         const offer = await pc.createOffer();
         if (cancelled) return;
         await pc.setLocalDescription(offer);
-        sessionSendRef.current({ type: "offer", sdp: offer });
+        emitSignal({ type: "offer", sdp: offer });
       } catch (e) {
         offered.current = false;
         fail(e instanceof Error ? e.message : "미디어 연결에 실패했습니다.");
@@ -269,8 +307,6 @@ export function usePeerCall({
       try {
         setState("connecting");
         const rtcConfiguration = await fetchWebRtcIceConfiguration();
-        if (cancelled) return;
-        await createPeerConnectionRef.current(rtcConfiguration);
         if (cancelled) return;
 
         session = await openVoiceSignalChannel({
@@ -296,32 +332,67 @@ export function usePeerCall({
           session?.close();
           return;
         }
-        if (!session) {
+        if (session) {
+          sessionSendRef.current = session.send;
+        } else if (!socketRef.current?.connected) {
           fail("시그널링 서버에 연결할 수 없습니다.");
           return;
         }
 
-        sessionSendRef.current = session.send;
-        session.send({ type: "hello" });
-        if (!isCaller) session.send({ type: "ready" });
+        await createPeerConnectionRef.current(rtcConfiguration);
+        if (cancelled) return;
+        session?.send({ type: "hello" });
+        if (session && !isCaller) session.send({ type: "ready" });
+
         if (isCaller) {
           offerTimer = setTimeout(() => {
             void maybeOffer();
-          }, 1500);
+          }, 800);
+        }
+
+        for (const queued of initialSignalsRef.current ?? []) {
+          if (queued.callId !== callId || queued.fromUserId !== peerUserIdRef.current) continue;
+          void handleRemoteSignalRef.current(queued.payload);
         }
       } catch (e) {
         fail(e instanceof Error ? e.message : "미디어 연결에 실패했습니다.");
       }
     })();
 
+    const retry = isCaller
+      ? setInterval(() => {
+          if (answeredRef.current || cancelled) return;
+          const pc = pcRef.current;
+          const local = pc?.localDescription;
+          if (local?.type === "offer" && local.sdp) {
+            emitSignal({ type: "offer", sdp: local });
+          }
+        }, 3000)
+      : null;
+
     return () => {
       cancelled = true;
       if (offerTimer) clearTimeout(offerTimer);
+      if (retry) clearInterval(retry);
       sessionSendRef.current = () => undefined;
       session?.close();
       cleanup();
     };
-  }, [enabled, callId, signalingRoomId, userId, isCaller, cleanup]);
+  }, [enabled, callId, signalingRoomId, userId, isCaller, cleanup, emitSignal]);
+
+  useEffect(() => {
+    if (!enabled || !socket) return;
+    const onSignal = (data: CallSignalEvent) => {
+      if (data.callId !== callIdRef.current || data.fromUserId !== peerUserIdRef.current) return;
+      void handleRemoteSignalRef.current(data.payload).catch(() => {
+        onFailedRef.current?.("시그널 처리 중 오류가 발생했습니다.");
+      });
+    };
+    socket.on("call_signal", onSignal);
+    return () => {
+      socket.off("call_signal", onSignal);
+    };
+  }, [enabled, socket]);
 
   const setMic = useCallback((on: boolean) => {
     for (const track of localStreamRef.current?.getAudioTracks() ?? []) {

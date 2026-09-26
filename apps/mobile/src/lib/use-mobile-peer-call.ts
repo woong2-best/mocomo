@@ -8,6 +8,35 @@ import {
 } from "@livekit/react-native-webrtc";
 import { fetchMobileWebRtcIceConfiguration } from "@/lib/webrtc-ice-config";
 import { ensureLiveKitGlobals } from "@/native/livekit-bootstrap";
+
+async function startCallAudio() {
+  await ensureLiveKitGlobals();
+  const { AudioSession, AndroidAudioTypePresets } = await import("@livekit/react-native");
+  await AudioSession.configureAudio({
+    android: {
+      preferredOutputList: ["speaker", "bluetooth", "headset", "earpiece"],
+      audioTypeOptions: AndroidAudioTypePresets.communication,
+    },
+    ios: { defaultOutput: "speaker" },
+  });
+  await AudioSession.setAppleAudioConfiguration({
+    audioCategory: "playAndRecord",
+    audioCategoryOptions: ["allowBluetooth", "defaultToSpeaker"],
+    audioMode: "voiceChat",
+  });
+  await AudioSession.setDefaultRemoteAudioTrackVolume(1);
+  await AudioSession.startAudioSession();
+  const outputs = await AudioSession.getAudioOutputs().catch(() => [] as string[]);
+  const speaker = outputs.find((id) => id === "speaker" || id === "force_speaker");
+  if (speaker) {
+    await AudioSession.selectAudioOutput(speaker).catch(() => undefined);
+  }
+}
+
+async function stopCallAudio() {
+  const { AudioSession } = await import("@livekit/react-native");
+  await AudioSession.stopAudioSession().catch(() => undefined);
+}
 import {
   openVoiceSignalChannel,
   type VoiceSignalSession,
@@ -35,6 +64,7 @@ export function useMobilePeerCall({
 }) {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
   const rtcConfigRef = useRef<object | null>(null);
   const makingOfferRef = useRef(false);
   const politeRef = useRef(!isCaller);
@@ -64,6 +94,7 @@ export function useMobilePeerCall({
       track.stop();
     }
     localStreamRef.current = null;
+    remoteStreamRef.current = null;
     rtcConfigRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
@@ -114,9 +145,24 @@ export function useMobilePeerCall({
     };
 
     pc.ontrack = (ev) => {
-      const streams = (ev as { streams?: readonly MediaStream[] }).streams;
-      const [first] = streams ?? [];
-      if (first) setRemoteStream(first);
+      const event = ev as {
+        streams?: readonly MediaStream[];
+        track?: MediaStream extends { getTracks(): Array<infer T> } ? T : never;
+      };
+      const [first] = event.streams ?? [];
+      if (first) {
+        remoteStreamRef.current = first;
+        setRemoteStream(first);
+        return;
+      }
+      if (!event.track) return;
+      const merged = new MediaStream();
+      for (const existing of remoteStreamRef.current?.getTracks() ?? []) {
+        if (existing.id !== event.track.id) merged.addTrack(existing);
+      }
+      merged.addTrack(event.track);
+      remoteStreamRef.current = merged;
+      setRemoteStream(merged);
     };
 
     pc.onconnectionstatechange = () => {
@@ -124,9 +170,7 @@ export function useMobilePeerCall({
       if (cs === "connected") setState("connected");
       else if (cs === "failed") {
         setState("failed");
-        onFailedRef.current?.("P2P 연결에 실패했습니다.");
-      } else if (cs === "disconnected" || cs === "closed") {
-        setState("closed");
+        onFailedRef.current?.("통화 연결이 끊겼습니다. 잠시 후 다시 걸어 주세요.");
       }
     };
 
@@ -240,7 +284,7 @@ export function useMobilePeerCall({
     void (async () => {
       try {
         setState("connecting");
-        await ensureLiveKitGlobals();
+        await startCallAudio();
         const rtcConfiguration = await fetchMobileWebRtcIceConfiguration();
         if (cancelled) return;
         await createPeerConnectionRef.current(rtcConfiguration);
@@ -293,6 +337,7 @@ export function useMobilePeerCall({
       sessionSendRef.current = () => undefined;
       session?.close();
       cleanup();
+      void stopCallAudio();
     };
   }, [enabled, callId, signalingRoomId, userId, isCaller, cleanup]);
 

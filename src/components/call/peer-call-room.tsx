@@ -8,7 +8,9 @@ import { CallTopBar } from "@/components/call/call-top-bar";
 import { CallRingingStage } from "@/components/call/call-overlay";
 import { CallInviteSheet } from "@/components/call/call-invite-sheet";
 import { CallSettingsSheet } from "@/components/call/call-settings-sheet";
+import type { Socket } from "socket.io-client";
 import type { CallParticipant } from "@/lib/call-types";
+import type { CallSignalEvent } from "@/lib/peer-call/types";
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -122,6 +124,8 @@ export function PeerCallRoom({
   isCaller,
   video,
   enabled,
+  socket,
+  initialSignals,
   peer,
   selfPeer,
   phase,
@@ -134,6 +138,8 @@ export function PeerCallRoom({
   isCaller: boolean;
   video: boolean;
   enabled: boolean;
+  socket?: Socket | null;
+  initialSignals?: CallSignalEvent[];
   peer: CallParticipant;
   selfPeer: CallParticipant;
   phase: "outgoing" | "active";
@@ -153,6 +159,8 @@ export function PeerCallRoom({
     isCaller,
     video,
     enabled,
+    socket,
+    initialSignals,
     onFailed: onPeerFailed,
   });
 
