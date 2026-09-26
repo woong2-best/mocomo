@@ -84,10 +84,23 @@ export const KOREA_SIGUNGU_BY_SIDO: Record<string, readonly string[]> = {
   jeju: ["제주시", "서귀포시"],
 };
 
-export const USED_SHIPPING_REGION = "전국 택배" as const;
+/** Stored on new listings; legacy DB rows may still use {@link LEGACY_USED_SHIPPING_REGION}. */
+export const USED_SHIPPING_REGION = "전국 배송" as const;
+export const LEGACY_USED_SHIPPING_REGION = "전국 택배" as const;
+
+export function displayUsedRegion(region: string): string {
+  const trimmed = region.trim();
+  if (trimmed === LEGACY_USED_SHIPPING_REGION) return USED_SHIPPING_REGION;
+  return region;
+}
 
 export function formatUsedRegion(sidoShort: string, sigungu: string): string {
-  if (sigungu === USED_SHIPPING_REGION) return USED_SHIPPING_REGION;
+  if (
+    sigungu === USED_SHIPPING_REGION ||
+    sigungu === LEGACY_USED_SHIPPING_REGION
+  ) {
+    return USED_SHIPPING_REGION;
+  }
   return `${sidoShort} ${sigungu}`;
 }
 
@@ -106,12 +119,14 @@ export function getAllUsedRegions(): string[] {
 const _regionSet = new Set(getAllUsedRegions());
 
 export function isValidUsedRegion(region: string): boolean {
-  return _regionSet.has(region.trim());
+  const trimmed = region.trim();
+  if (trimmed === LEGACY_USED_SHIPPING_REGION) return true;
+  return _regionSet.has(trimmed);
 }
 
 export function parseUsedRegion(region: string): { sidoId: string; sigungu: string } | null {
   const trimmed = region.trim();
-  if (trimmed === USED_SHIPPING_REGION) {
+  if (trimmed === USED_SHIPPING_REGION || trimmed === LEGACY_USED_SHIPPING_REGION) {
     return { sidoId: "__shipping__", sigungu: USED_SHIPPING_REGION };
   }
   for (const sido of KOREA_SIDO) {

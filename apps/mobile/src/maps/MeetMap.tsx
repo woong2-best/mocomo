@@ -55,7 +55,10 @@ export function MeetMap({
   const { colors, isDark } = useTheme();
   const mapChrome = isDark ? "#0F1524" : "#1B2838";
   const styles = useMemo(() => createStyles(colors, mapChrome), [colors, mapChrome]);
-  const shipping = region.includes("전국 택배");
+  const shipping =
+    region.includes("전국 배송") ||
+    region.includes("전국 택배") ||
+    region === "Shipping";
   const [box, setBox] = useState({ w: 0, h: 0 });
 
   const [searchQ, setSearchQ] = useState("");
@@ -151,7 +154,7 @@ export function MeetMap({
 
   if (shipping) {
     return (
-      <Text style={styles.shipping}>전국 택배 거래는 지도 없이 택배로 진행해 주세요.</Text>
+      <Text style={styles.shipping}>전국 배송 거래는 지도 없이 배송으로 진행해 주세요.</Text>
     );
   }
 

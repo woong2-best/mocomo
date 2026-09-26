@@ -13,7 +13,10 @@ import {
   type SubcultureLimitedKind,
   type SubcultureTradeMode,
 } from "@prisma/client";
-import { isValidUsedRegion as validateUsedRegion } from "@/lib/used-regions-global";
+import {
+  isUsedShippingRegion,
+  isValidUsedRegion as validateUsedRegion,
+} from "@/lib/used-regions-global";
 import { finalizeExpiredAuctionIfNeeded } from "@/actions/used-auction";
 import {
   processNegotiationTimeout,
@@ -515,7 +518,7 @@ export async function createUsedListing(data: {
     if (
       (meetLat == null || meetLng == null) &&
       meetPlaceTrim &&
-      !data.region.includes("전국 택배") &&
+      !isUsedShippingRegion(data.region) &&
       !data.region.includes("Shipping")
     ) {
       const geo = await geocodeMeetQuery({

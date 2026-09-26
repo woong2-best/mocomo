@@ -826,7 +826,7 @@ export async function sellerUpdateShipment(input: {
   return { success: true };
 }
 
-/** 판매자: 결제완료 → 준비중 → 발송 (배송완료는 택배 추적 자동) */
+/** 판매자: 결제완료 → 준비중 → 발송 (배송완료는 배송 추적 자동) */
 export async function sellerSetOrderStatus(
   orderId: string,
   status: "PREPARING" | "SHIPPED"

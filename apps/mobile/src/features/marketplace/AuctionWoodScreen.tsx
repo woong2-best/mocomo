@@ -24,6 +24,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { MarketplaceListItem } from "@/api/marketplace";
 import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
+import { displayUsedRegion } from "@/features/marketplace/used-catalog";
 import { formatPrice } from "@/lib/money";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { FolkButton } from "@/ui/FolkButton";
@@ -283,7 +284,7 @@ export function AuctionWoodScreen(props: Props) {
           ) : null}
           {item.bidCount != null ? <Text style={styles.auctionMeta}>{item.bidCount} BIDS</Text> : null}
           <Text style={styles.cardMeta} numberOfLines={1}>
-            {(item.region || "ANYWHERE").toUpperCase()} · {auctionAgo(item.createdAt)}
+            {(displayUsedRegion(item.region || "") || "ANYWHERE").toUpperCase()} · {auctionAgo(item.createdAt)}
           </Text>
         </Pressable>
       );

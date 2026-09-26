@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   displayAuctionPrice,
+  displayUsedRegion,
   formatUsedPrice,
   formatUsedTimeAgo,
   isAuctionListing,
@@ -196,7 +197,7 @@ export function UsedListingCard({
           </p>
           <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 truncate">
             <MapPin className="h-2.5 w-2.5 shrink-0" />
-            {listing.region}
+            {displayUsedRegion(listing.region)}
             {auction && listing.auctionEndsAt && listing.status === "SELLING" ? null : (
               <> · {formatUsedTimeAgo(listing.createdAt)}</>
             )}

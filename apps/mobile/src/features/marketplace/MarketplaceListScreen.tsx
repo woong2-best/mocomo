@@ -16,7 +16,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchMarketplaceList, toggleMarketplaceFavorite, type MarketplaceListItem } from "@/api/marketplace";
 import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
-import { formatUsedPrice, formatUsedTimeAgo } from "@/features/marketplace/used-catalog";
+import { displayUsedRegion, formatUsedPrice, formatUsedTimeAgo } from "@/features/marketplace/used-catalog";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { Screen } from "@/ui/Screen";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
@@ -188,7 +188,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
               </Pressable>
             </View>
             <Text style={styles.meta} numberOfLines={1}>
-              {[item.region || "지역 미정", formatUsedTimeAgo(item.createdAt)].join(" · ")}
+              {[displayUsedRegion(item.region || "") || "지역 미정", formatUsedTimeAgo(item.createdAt)].join(" · ")}
             </Text>
             <Text style={styles.price}>
               {auction ? `현재 ${formatUsedPrice(price, item.currency)}` : formatUsedPrice(price, item.currency)}

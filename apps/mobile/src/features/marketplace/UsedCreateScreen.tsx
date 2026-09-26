@@ -354,7 +354,7 @@ export function UsedCreateScreen() {
         ? USED_SHIPPING_REGION
         : `${KOREA_SIDO.find((s) => s.id === sidoId)?.short ?? ""} ${sigungu}`.trim()
       : region === "Shipping"
-        ? "택배"
+        ? "배송"
         : regionText.trim() || "도시 입력";
 
   return (
@@ -589,7 +589,7 @@ export function UsedCreateScreen() {
                       />
                     ))}
                     <MarketCheckOption
-                      label="전국 택배"
+                      label="전국 배송"
                       checked={sidoId === "__shipping__"}
                       onPress={() => {
                         setSidoId("__shipping__");
@@ -626,7 +626,7 @@ export function UsedCreateScreen() {
                 <>
                   <View style={styles.checkWrap}>
                     <MarketCheckOption
-                      label="택배"
+                      label="배송"
                       checked={region === "Shipping"}
                       onPress={() => {
                         setRegion("Shipping");

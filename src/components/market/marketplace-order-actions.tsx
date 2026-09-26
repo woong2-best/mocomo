@@ -60,7 +60,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
         <section className="rounded-xl border border-border/60 p-3 space-y-2">
           <p className="text-sm font-semibold">배송 처리</p>
           <p className="text-[11px] text-muted-foreground">
-            MoCoMo는 배송을 대행하지 않습니다. 송장 등록 후 택배 추적으로 배송완료가 자동 확인됩니다.
+            MoCoMo는 배송을 대행하지 않습니다. 송장 등록 후 배송 추적으로 배송완료가 자동 확인됩니다.
           </p>
 
           <div className="flex flex-wrap gap-2">

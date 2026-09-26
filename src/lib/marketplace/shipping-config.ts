@@ -32,8 +32,8 @@ export const MARKETPLACE_DOMESTIC_CARRIERS: Record<MarketplaceShipCountryCode, M
   KR: [
     { id: "KR_POST", label: "우체국", country: "KR", trackingSlug: "korea-post" },
     { id: "KR_CJ", label: "CJ대한통운", country: "KR", trackingSlug: "cj-korea-thai" },
-    { id: "KR_HANJIN", label: "한진택배", country: "KR", trackingSlug: "hanjin" },
-    { id: "KR_LOTTE", label: "롯데택배", country: "KR", trackingSlug: "lotte" },
+    { id: "KR_HANJIN", label: "한진", country: "KR", trackingSlug: "hanjin" },
+    { id: "KR_LOTTE", label: "롯데", country: "KR", trackingSlug: "lotte" },
   ],
   US: [
     { id: "US_USPS", label: "USPS", country: "US", trackingSlug: "usps" },

@@ -35,6 +35,7 @@ import {
 import { UsedWtbAlertCard } from "@/features/marketplace/UsedWtbAlertCard";
 import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
 import {
+  displayUsedRegion,
   formatUsedPrice,
   parseListingPriceInput,
   USED_CURRENCY_META,
@@ -257,7 +258,7 @@ export function MarketplaceDetailScreen() {
               tradeMode={item.tradeMode}
             />
             <Text style={styles.sub}>
-              {item.region || "지역 미정"}
+              {displayUsedRegion(item.region || "") || "지역 미정"}
               {item.seller?.username ? ` · @${item.seller.username}` : ""}
             </Text>
             {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}

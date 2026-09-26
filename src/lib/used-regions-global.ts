@@ -6,6 +6,7 @@ import {
   getSigunguList,
   isValidUsedRegion as isValidKoreaUsedRegion,
   KOREA_SIDO,
+  LEGACY_USED_SHIPPING_REGION,
   parseUsedRegion,
   USED_SHIPPING_REGION,
 } from "@/lib/korea-regions";
@@ -18,6 +19,7 @@ export const USED_GLOBAL_SHIPPING_REGION = "Shipping" as const;
 
 const SHIPPING_REGION_LABELS = new Set([
   USED_SHIPPING_REGION,
+  LEGACY_USED_SHIPPING_REGION,
   USED_GLOBAL_SHIPPING_REGION,
   "Shipping worldwide",
   "全国配送",
@@ -28,7 +30,8 @@ const SHIPPING_REGION_LABELS = new Set([
 ]);
 
 export function isUsedShippingRegion(region: string): boolean {
-  return SHIPPING_REGION_LABELS.has(region.trim());
+  const trimmed = region.trim();
+  return SHIPPING_REGION_LABELS.has(trimmed);
 }
 
 export function usedShippingRegionLabel(locale: Locale = "ko"): string {

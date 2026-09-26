@@ -10,6 +10,6 @@ export function rejectSellerManualDeliveredForPhysical(
   if (!orderNeedsPhysicalShipment(items)) return { ok: true };
   return {
     error:
-      "실물 상품의 배송 완료는 택배 추적 확인 후 자동 처리됩니다. 송장번호와 발송 정보만 등록해 주세요.",
+      "실물 상품의 배송 완료는 배송 추적 확인 후 자동 처리됩니다. 송장번호와 발송 정보만 등록해 주세요.",
   };
 }

@@ -16,6 +16,7 @@ import { fetchMyWtbAlerts } from "@/api/subculture";
 import { UsedWtbAlertList } from "@/features/marketplace/UsedWtbAlertList";
 import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
 import {
+  displayUsedRegion,
   formatUsedPrice,
   formatUsedTimeAgo,
   usedStatusLabel,
@@ -82,7 +83,7 @@ export function UsedMyScreen() {
             <AuctionCountdown endsAt={item.auctionEndsAt} />
           ) : null}
           <Text style={styles.sub}>
-            {item.region || "지역 미정"} · {formatUsedTimeAgo(item.createdAt)}
+            {displayUsedRegion(item.region || "") || "지역 미정"} · {formatUsedTimeAgo(item.createdAt)}
           </Text>
         </View>
       </Pressable>

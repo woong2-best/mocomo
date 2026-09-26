@@ -107,10 +107,15 @@ export function usedBrowseCategoryWhere(category: string): Prisma.UsedListingWhe
   return null;
 }
 
-/** 전국 시·군·구 + 전국 택배 */
+/** 전국 시·군·구 + 전국 배송 */
 export const USED_REGIONS = getAllUsedRegions();
 
-export { KOREA_SIDO, USED_SHIPPING_REGION, isValidUsedRegion };
+export {
+  displayUsedRegion,
+  KOREA_SIDO,
+  USED_SHIPPING_REGION,
+  isValidUsedRegion,
+} from "@/lib/korea-regions";
 export {
   defaultUsedRegionForCountry,
   isKoreaUsedMarketCountry,

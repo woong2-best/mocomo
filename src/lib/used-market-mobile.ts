@@ -18,7 +18,7 @@ import {
   normalizeUsedCurrency,
   listingImages,
 } from "@/lib/used-market";
-import { isValidUsedRegion } from "@/lib/used-regions-global";
+import { isUsedShippingRegion, isValidUsedRegion } from "@/lib/used-regions-global";
 import {
   isValidProductType,
   normalizeWorkTitle,
@@ -157,7 +157,7 @@ export async function createMobileUsedListing(
     if (
       (meetLat == null || meetLng == null) &&
       meetPlaceTrim &&
-      !data.region.includes("전국 택배") &&
+      !isUsedShippingRegion(data.region) &&
       !data.region.includes("Shipping")
     ) {
       const geo = await geocodeMeetQuery({

@@ -127,10 +127,31 @@ export const USED_TRADE_MODES = [
   { id: "SELL_OR_TRADE", label: "판매·교환" },
 ] as const;
 
-export const USED_SHIPPING_REGION = "전국 택배";
+export const USED_SHIPPING_REGION = "전국 배송";
+export const LEGACY_USED_SHIPPING_REGION = "전국 택배";
+
+export function displayUsedRegion(region: string): string {
+  const trimmed = region.trim();
+  if (trimmed === LEGACY_USED_SHIPPING_REGION) return USED_SHIPPING_REGION;
+  return region;
+}
+
+export function isUsedShippingRegionLabel(region: string): boolean {
+  const trimmed = region.trim();
+  return (
+    trimmed === USED_SHIPPING_REGION ||
+    trimmed === LEGACY_USED_SHIPPING_REGION ||
+    trimmed === "Shipping"
+  );
+}
 
 export function formatUsedRegion(sidoShort: string, sigungu: string) {
-  if (sigungu === USED_SHIPPING_REGION) return USED_SHIPPING_REGION;
+  if (
+    sigungu === USED_SHIPPING_REGION ||
+    sigungu === LEGACY_USED_SHIPPING_REGION
+  ) {
+    return USED_SHIPPING_REGION;
+  }
   return `${sidoShort} ${sigungu}`;
 }
 

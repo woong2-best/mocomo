@@ -59,7 +59,7 @@ export function canBuyerManuallyConfirmOrder(order: {
     }
     if (!isPhysicalManualConfirmSource(source)) {
       return {
-        error: "택배사 배송완료 확인 후에만 구매 확정할 수 있습니다.",
+        error: "배송사 배송완료 확인 후에만 구매 확정할 수 있습니다.",
       };
     }
 

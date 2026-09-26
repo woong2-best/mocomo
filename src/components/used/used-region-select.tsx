@@ -101,7 +101,7 @@ export function UsedRegionSelect({
                   {s.label}
                 </option>
               ))}
-              <option value="__shipping__">전국 택배</option>
+              <option value="__shipping__">{shippingLabel}</option>
             </select>
             {sidoId !== "__shipping__" ? (
               <select
@@ -116,7 +116,7 @@ export function UsedRegionSelect({
                 ))}
               </select>
             ) : (
-              <div className={`${selectClass} flex items-center text-muted-foreground`}>전국 택배</div>
+              <div className={`${selectClass} flex items-center text-muted-foreground`}>{shippingLabel}</div>
             )}
           </div>
         </div>

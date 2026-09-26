@@ -165,7 +165,7 @@ export function MeetMapView({
   if (shipping) {
     return (
       <p className="text-xs text-muted-foreground rounded-xl border border-dashed p-4 text-center">
-        전국 택배 거래는 지도 표시 없이 택배로 진행해 주세요.
+        전국 배송 거래는 지도 없이 배송으로 진행해 주세요.
       </p>
     );
   }

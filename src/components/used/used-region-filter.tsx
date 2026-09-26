@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { KOREA_SIDO, USED_SHIPPING_REGION, formatUsedRegion, getSidoById, getSigunguList } from "@/lib/korea-regions";
+import { usedShippingRegionLabel } from "@/lib/used-regions-global";
 import { isKoreaUsedMarketCountry, isUsedShippingRegion } from "@/lib/used-regions-global";
 import { usedMarketPhoneCountryLabel } from "@/lib/used-phone-countries";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -68,7 +69,7 @@ export function UsedRegionFilter({
           className="text-[10px] text-muted-foreground underline"
           onClick={() => apply({ region: "Shipping", sido: null })}
         >
-          {locale === "en" ? "Shipping only" : "택배 거래만"}
+          {locale === "en" ? "Shipping only" : "배송 거래만"}
         </button>
         <p className="text-[10px] text-muted-foreground">
           {usedMarketPhoneCountryLabel(viewerCountry, locale)}
@@ -115,7 +116,7 @@ export function UsedRegionFilter({
               {s.short}
             </option>
           ))}
-          <option value="__shipping__">전국 택배</option>
+          <option value="__shipping__">{usedShippingRegionLabel(locale)}</option>
         </select>
 
         <select
