@@ -186,6 +186,8 @@ export function CallOverlay({
   onDecline,
   onCancel,
   onHangup,
+  minimized,
+  onExpand,
 }: {
   callState: Exclude<ActiveCallState, { phase: "idle" }>;
   error: string;
@@ -200,6 +202,8 @@ export function CallOverlay({
   onDecline: () => void;
   onCancel: () => void;
   onHangup: () => void;
+  minimized?: boolean;
+  onExpand?: () => void;
 }) {
   const isVideo =
     callState.phase === "preparing"
@@ -213,6 +217,37 @@ export function CallOverlay({
   const micReady = !!mic?.ok;
   const camReady = !isVideo || !!camera?.ok;
   const mediaReady = micReady && camReady;
+
+  if (callState.phase === "active" && peerCallSlot && minimized) {
+    const name = callState.peer.username || "통화";
+    return (
+      <>
+        <div className="pointer-events-none fixed bottom-0 left-0 h-px w-px overflow-hidden [&_*]:pointer-events-none" aria-hidden>
+          {peerCallSlot}
+        </div>
+        <div className="fixed inset-x-3 bottom-24 z-[220] flex items-center gap-3 rounded-full bg-zinc-900/95 px-3 py-2 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
+          <button
+            type="button"
+            onClick={onExpand}
+            className="flex min-w-0 flex-1 items-center gap-3 text-left"
+            aria-label="통화 화면 열기"
+          >
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400" />
+            <span className="truncate text-sm font-semibold">{name}</span>
+            <span className="shrink-0 text-xs text-white/60">통화 중</span>
+          </button>
+          <button
+            type="button"
+            onClick={onHangup}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500"
+            aria-label="통화 종료"
+          >
+            <PhoneOff className="h-5 w-5" />
+          </button>
+        </div>
+      </>
+    );
+  }
 
   if (callState.phase === "active" && peerCallSlot) {
     return (

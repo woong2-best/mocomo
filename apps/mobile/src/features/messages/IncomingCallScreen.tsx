@@ -3,61 +3,14 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { RTCView } from "@livekit/react-native-webrtc";
 import { acceptDmCall, declineDmCall, endDmCall, fetchMobileCallSync } from "@/api/calls";
 import { useAuth } from "@/auth/AuthContext";
 import { publishUserCallEvent, subscribeUserCallEvents } from "@/lib/supabase-call-signal";
-import { useMobilePeerCall } from "@/lib/use-mobile-peer-call";
+import { useMobileCallSession } from "@/features/messages/MobileCallSession";
 import { FolkAvatar } from "@/ui/FolkAvatar";
-import { showIslandError } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
-
-function LivePeerStage({
-  callId,
-  signalingRoomId,
-  userId,
-  callerId,
-  onRemoteHangup,
-}: {
-  callId: string;
-  signalingRoomId: string;
-  userId: string;
-  callerId: string;
-  onRemoteHangup: () => void;
-}) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const peer = useMobilePeerCall({
-    callId,
-    signalingRoomId,
-    userId,
-    peerUserId: callerId,
-    isCaller: false,
-    enabled: true,
-    onFailed: (msg) => showIslandError("연결 오류", msg),
-    onRemoteHangup,
-  });
-
-  return (
-    <View style={styles.audioStage}>
-      {peer.remoteStream ? (
-        <RTCView streamURL={peer.remoteStream.toURL()} style={styles.hiddenAudio} objectFit="cover" />
-      ) : null}
-      <Text style={styles.stageHint}>
-        {peer.state === "connected" ? "음성 통화 중" : "음성 연결 중…"}
-      </Text>
-      <Pressable
-        style={styles.micBtn}
-        onPress={() => peer.setMic(!peer.micEnabled)}
-        accessibilityLabel={peer.micEnabled ? "마이크 끄기" : "마이크 켜기"}
-      >
-        <Ionicons name={peer.micEnabled ? "mic" : "mic-off"} size={26} color="#fff" />
-      </Pressable>
-    </View>
-  );
-}
 
 /** Callee — push tap or in-app incoming voice call */
 export function IncomingCallScreen() {
@@ -66,23 +19,66 @@ export function IncomingCallScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user } = useAuth();
+  const session = useMobileCallSession();
   const route = useRoute<RouteProp<RootStackParamList, "IncomingCall">>();
   const { callId } = route.params;
+  const resumed = session.live?.callId === callId ? session.live : null;
 
-  const [phase, setPhase] = useState<"ringing" | "connecting" | "live">("ringing");
-  const [callerName, setCallerName] = useState("음성 통화");
-  const [callerImage, setCallerImage] = useState<string | null>(null);
-  const [callerId, setCallerId] = useState<string | null>(null);
-  const [signalingRoomId, setSignalingRoomId] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"ringing" | "connecting" | "live">(resumed ? "live" : "ringing");
+  const [callerName, setCallerName] = useState(resumed?.displayName ?? "음성 통화");
+  const [callerImage, setCallerImage] = useState<string | null>(resumed?.displayImage ?? null);
+  const [callerId, setCallerId] = useState<string | null>(resumed?.peerUserId ?? null);
+  const [signalingRoomId, setSignalingRoomId] = useState<string | null>(resumed?.signalingRoomId ?? null);
   const [error, setError] = useState<string | null>(null);
   const closedRef = useRef(false);
+  const hadLiveRef = useRef(false);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
 
   const closeFromRemote = useCallback(() => {
     if (closedRef.current) return;
     closedRef.current = true;
-    void endDmCall(callId).catch(() => undefined);
+    if (phaseRef.current === "live") session.end();
+    else void endDmCall(callId).catch(() => undefined);
+    if (navigation.isFocused()) navigation.goBack();
+  }, [callId, navigation, session]);
+
+  useEffect(() => {
+    const unsubRemove = navigation.addListener("beforeRemove", () => {
+      if (closedRef.current) return;
+      if (phaseRef.current === "live") {
+        session.collapse();
+        return;
+      }
+      if (phaseRef.current === "ringing" || phaseRef.current === "connecting") {
+        void endDmCall(callId).catch(() => undefined);
+        if (callerId) void publishUserCallEvent(callerId, "declined", callId);
+      }
+    });
+    const unsubBlur = navigation.addListener("blur", () => {
+      if (closedRef.current) return;
+      if (phaseRef.current === "live") session.collapse();
+    });
+    const unsubFocus = navigation.addListener("focus", () => {
+      if (phaseRef.current === "live" && session.live) session.show();
+    });
+    return () => {
+      unsubRemove();
+      unsubBlur();
+      unsubFocus();
+    };
+  }, [callId, callerId, navigation, session]);
+
+  useEffect(() => {
+    if (session.live) {
+      hadLiveRef.current = true;
+      return;
+    }
+    if (!hadLiveRef.current || phaseRef.current !== "live" || closedRef.current) return;
+    if (!navigation.isFocused()) return;
+    closedRef.current = true;
     navigation.goBack();
-  }, [callId, navigation]);
+  }, [navigation, session.live]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -135,6 +131,10 @@ export function IncomingCallScreen() {
     setError(null);
     try {
       const res = await acceptDmCall(callId);
+      if (closedRef.current) {
+        void endDmCall(callId).catch(() => undefined);
+        return;
+      }
       const caller = res.call.caller;
       setCallerName(caller.username ? `@${caller.username}` : "음성 통화");
       setCallerImage(caller.image);
@@ -148,13 +148,32 @@ export function IncomingCallScreen() {
     }
   }, [callId]);
 
+  useEffect(() => {
+    if (phase !== "live" || !user?.id || !callerId || !signalingRoomId) return;
+    session.attach({
+      callId,
+      signalingRoomId,
+      peerUserId: callerId,
+      isCaller: false,
+      displayName: callerName,
+      displayImage: callerImage,
+      resumeName: "IncomingCall",
+      resumeParams: { callId },
+    });
+  }, [callId, callerId, callerImage, callerName, phase, session, signalingRoomId, user?.id]);
+
   const hangUp = useCallback(async () => {
     if (closedRef.current) return;
     closedRef.current = true;
+    if (phase === "live") {
+      session.end();
+      navigation.goBack();
+      return;
+    }
     await endDmCall(callId).catch(() => undefined);
     if (callerId) void publishUserCallEvent(callerId, "ended", callId);
     navigation.goBack();
-  }, [callId, callerId, navigation]);
+  }, [callId, callerId, navigation, phase, session]);
 
   if (phase === "ringing") {
     return (
@@ -186,13 +205,18 @@ export function IncomingCallScreen() {
 
   return (
     <View style={styles.liveRoot}>
-      <LivePeerStage
-        callId={callId}
-        signalingRoomId={signalingRoomId}
-        userId={user.id}
-        callerId={callerId}
-        onRemoteHangup={closeFromRemote}
-      />
+      <View style={styles.audioStage}>
+        <Text style={styles.stageHint}>
+          {session.peer.state === "connected" ? "음성 통화 중" : "음성 연결 중…"}
+        </Text>
+        <Pressable
+          style={styles.micBtn}
+          onPress={() => session.peer.setMic(!session.peer.micEnabled)}
+          accessibilityLabel={session.peer.micEnabled ? "마이크 끄기" : "마이크 켜기"}
+        >
+          <Ionicons name={session.peer.micEnabled ? "mic" : "mic-off"} size={26} color="#fff" />
+        </Pressable>
+      </View>
       <View style={[styles.liveBar, { paddingBottom: insets.bottom + spacing.md }]}>
         <Text style={styles.liveName}>{callerName}</Text>
         <Pressable style={[styles.btn, styles.decline]} onPress={() => void hangUp()}>

@@ -133,6 +133,8 @@ export function PeerCallRoom({
   phase,
   onHangup,
   onRemoteHangup,
+  onMinimize,
+  onCallFailed,
 }: {
   callId: string;
   signalingRoomId: string;
@@ -148,6 +150,8 @@ export function PeerCallRoom({
   phase: "outgoing" | "active";
   onHangup: () => void;
   onRemoteHangup?: () => void;
+  onMinimize?: () => void;
+  onCallFailed?: () => void;
 }) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -166,6 +170,7 @@ export function PeerCallRoom({
     socket,
     initialSignals,
     onFailed: onPeerFailed,
+    onConnectionLost: () => onCallFailed?.(),
     onRemoteHangup,
   });
 
@@ -190,6 +195,8 @@ export function PeerCallRoom({
   if (enabled && peerCall.state === "connecting") {
     return (
       <div className="relative flex h-full min-h-0 flex-col bg-gradient-to-b from-zinc-900 via-black to-zinc-950 text-white">
+        <AudioAttach stream={peerCall.remoteStream} />
+        <CallTopBar onMinimize={onMinimize} />
         <CallRingingStage
           peer={peer}
           isVideo={video}
@@ -218,7 +225,7 @@ export function PeerCallRoom({
     <div className="relative flex h-full min-h-0 flex-col bg-black text-white">
       <AudioAttach stream={peerCall.remoteStream} />
       <CallTopBar
-        onMinimize={() => undefined}
+        onMinimize={onMinimize}
         onInvite={() => setInviteOpen(true)}
         onSettings={() => setSettingsOpen(true)}
       />

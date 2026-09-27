@@ -54,6 +54,8 @@ type UsePeerCallOptions = {
   initialSignals?: CallSignalEvent[];
   onConnected?: () => void;
   onFailed?: (message: string) => void;
+  /** ICE reached `failed` — the other process is gone, or the path cannot recover. */
+  onConnectionLost?: () => void;
   onRemoteHangup?: () => void;
 };
 
@@ -69,6 +71,7 @@ export function usePeerCall({
   initialSignals,
   onConnected,
   onFailed,
+  onConnectionLost,
   onRemoteHangup,
 }: UsePeerCallOptions) {
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -82,6 +85,7 @@ export function usePeerCall({
   const sessionSendRef = useRef<(signal: VoiceWireSignal) => void>(() => undefined);
   const onConnectedRef = useRef(onConnected);
   const onFailedRef = useRef(onFailed);
+  const onConnectionLostRef = useRef(onConnectionLost);
   const onRemoteHangupRef = useRef(onRemoteHangup);
   const callIdRef = useRef(callId);
   const peerUserIdRef = useRef(peerUserId);
@@ -101,6 +105,7 @@ export function usePeerCall({
   useEffect(() => {
     onConnectedRef.current = onConnected;
     onFailedRef.current = onFailed;
+    onConnectionLostRef.current = onConnectionLost;
     onRemoteHangupRef.current = onRemoteHangup;
     callIdRef.current = callId;
     peerUserIdRef.current = peerUserId;
@@ -216,6 +221,7 @@ export function usePeerCall({
       } else if (cs === "failed") {
         setState("failed");
         onFailedRef.current?.("통화 연결이 끊겼습니다. 같은 와이파이가 아니면 잠시 후 다시 걸어 주세요.");
+        onConnectionLostRef.current?.();
       }
     };
 

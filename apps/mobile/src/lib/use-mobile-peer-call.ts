@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   mediaDevices,
+  MediaStream,
   RTCIceCandidate,
   RTCPeerConnection,
   RTCSessionDescription,
-  type MediaStream,
 } from "@livekit/react-native-webrtc";
 import { fetchMobileWebRtcIceConfiguration } from "@/lib/webrtc-ice-config";
 import { ensureLiveKitGlobals } from "@/native/livekit-bootstrap";
@@ -53,6 +53,7 @@ export function useMobilePeerCall({
   isCaller,
   enabled,
   onFailed,
+  onConnectionLost,
   onRemoteHangup,
 }: {
   callId: string;
@@ -62,6 +63,7 @@ export function useMobilePeerCall({
   isCaller: boolean;
   enabled: boolean;
   onFailed?: (message: string) => void;
+  onConnectionLost?: () => void;
   onRemoteHangup?: () => void;
 }) {
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -73,6 +75,7 @@ export function useMobilePeerCall({
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
   const sessionSendRef = useRef<(signal: VoiceWireSignal) => void>(() => undefined);
   const onFailedRef = useRef(onFailed);
+  const onConnectionLostRef = useRef(onConnectionLost);
   const onRemoteHangupRef = useRef(onRemoteHangup);
   const peerUserIdRef = useRef(peerUserId);
   const isCallerRef = useRef(isCaller);
@@ -84,6 +87,7 @@ export function useMobilePeerCall({
 
   useEffect(() => {
     onFailedRef.current = onFailed;
+    onConnectionLostRef.current = onConnectionLost;
     onRemoteHangupRef.current = onRemoteHangup;
     peerUserIdRef.current = peerUserId;
     isCallerRef.current = isCaller;
@@ -108,13 +112,14 @@ export function useMobilePeerCall({
   const ensureLocalStream = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
     await ensureLiveKitGlobals();
+    const audioConstraints = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: 1,
+    };
     const stream = (await mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        channelCount: 1,
-      },
+      audio: audioConstraints as never,
       video: false,
     })) as MediaStream;
     localStreamRef.current = stream;
@@ -180,6 +185,7 @@ export function useMobilePeerCall({
       else if (cs === "failed") {
         setState("failed");
         onFailedRef.current?.("통화 연결이 끊겼습니다. 잠시 후 다시 걸어 주세요.");
+        onConnectionLostRef.current?.();
       }
     };
 
@@ -318,7 +324,6 @@ export function useMobilePeerCall({
         });
 
         if (cancelled) {
-          session?.send({ type: "hangup" });
           session?.close();
           return;
         }
@@ -343,7 +348,6 @@ export function useMobilePeerCall({
     return () => {
       cancelled = true;
       if (offerTimer) clearTimeout(offerTimer);
-      sessionSendRef.current({ type: "hangup" });
       sessionSendRef.current = () => undefined;
       session?.close();
       cleanup();

@@ -44,6 +44,7 @@
     "ffmpeg-kit-react-native": "^6.0.2",
     "franc": "^6.2.0",
     "livekit-client": "^2.21.0",
+    "mocomo-call-audio": "file:modules/mocomo-call-audio",
     "mocomo-live-pip": "file:modules/mocomo-live-pip",
     "mocomo-native-feed": "file:modules/mocomo-native-feed",
     "react": "19.2.3",

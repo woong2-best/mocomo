@@ -8,6 +8,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { LoginScreen } from "@/features/auth/LoginScreen";
 import { FeedScreen } from "@/features/feed/FeedScreen";
 import { navigationRef } from "@/navigation/navigationRef";
+import { MobileCallSessionProvider } from "@/features/messages/MobileCallSession";
 import { subscribeMobileDeepLinks } from "@/navigation/mobile-deeplink-handler";
 import { PushNotificationHandler } from "@/push/PushNotificationHandler";
 import { useTheme } from "@/theme/ThemeContext";
@@ -87,6 +88,7 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer ref={navigationRef} theme={theme}>
+      <MobileCallSessionProvider>
       <PushNotificationHandler />
       {status === "signedIn" ? <SignedInCallListener /> : null}
       <Stack.Navigator
@@ -408,6 +410,7 @@ export function RootNavigator() {
           </>
         )}
       </Stack.Navigator>
+      </MobileCallSessionProvider>
     </NavigationContainer>
   );
 }

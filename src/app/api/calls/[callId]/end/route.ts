@@ -1,21 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireMobileApiUser } from "@/lib/api-mobile-auth";
+import { getCachedAuthUserMinimal } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { endVoiceCallForParticipant } from "@/lib/call-sync";
 
-/** POST /api/mobile/calls/[callId]/end — end/decline a call. */
+/** POST /api/calls/[callId]/end — cookie session. Used when the tab is actually closed. */
 export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ callId: string }> }
 ) {
-  const auth = await requireMobileApiUser(req);
-  if ("error" in auth) return auth.error;
-  const { user } = auth;
-  const { callId } = await ctx.params;
+  const user = await getCachedAuthUserMinimal();
+  if (!user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (user.isBanned) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
-  const limited = await rateLimitPublicApi(req, `mobile-call-end:${user.id}`, 40);
+  const limited = await rateLimitPublicApi(req, `call-end:${user.id}`, 40);
   if (limited) return limited;
 
+  const { callId } = await ctx.params;
   const result = await endVoiceCallForParticipant(user.id, callId);
   if (!result.ok) {
     const error = result.status === 404 ? "통화를 찾을 수 없습니다." : "권한이 없습니다.";

@@ -46,6 +46,35 @@ function serializeCall(call: CallSyncCall): CallSyncCall {
   };
 }
 
+/** Mark a participant's call finished. Ringing becomes declined; a live call becomes ended. */
+export async function endVoiceCallForParticipant(
+  userId: string,
+  callId: string
+): Promise<{ ok: true } | { ok: false; status: 404 | 403 }> {
+  const call = await db.voiceCall.findUnique({
+    where: { id: callId },
+    select: { id: true, callerId: true, calleeId: true, status: true },
+  });
+  if (!call) return { ok: false, status: 404 };
+  if (call.callerId !== userId && call.calleeId !== userId) return { ok: false, status: 403 };
+  if (
+    call.status === CallStatus.ENDED ||
+    call.status === CallStatus.DECLINED ||
+    call.status === CallStatus.CANCELLED ||
+    call.status === CallStatus.MISSED
+  ) {
+    return { ok: true };
+  }
+  await db.voiceCall.update({
+    where: { id: callId },
+    data: {
+      status: call.status === CallStatus.RINGING ? CallStatus.DECLINED : CallStatus.ENDED,
+      endedAt: new Date(),
+    },
+  });
+  return { ok: true };
+}
+
 /** Drop this user's leftover ringing/active rows so the next call can start. */
 export async function releaseCallerActiveCalls(userId: string): Promise<void> {
   await db.voiceCall.updateMany({

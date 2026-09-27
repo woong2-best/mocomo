@@ -93,6 +93,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const [camera, setCamera] = useState<CameraCheckResult | null>(null);
   const [micChecking, setMicChecking] = useState(false);
   const [cameraChecking, setCameraChecking] = useState(false);
+  const [callMinimized, setCallMinimized] = useState(false);
   const { socket, socketReady } = useAppSocket();
   const pendingEmitsRef = useRef<{ event: string; payload: Record<string, unknown> }[]>([]);
   const startCallGenRef = useRef(0);
@@ -154,6 +155,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
   const resetCall = useCallback(() => {
     startCallGenRef.current += 1;
+    setCallMinimized(false);
     setCallState({ phase: "idle" });
     setError("");
     setMic(null);
@@ -256,6 +258,29 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     },
     [dismissCallUi, emit]
   );
+
+  useEffect(() => {
+    const onPageHide = (event: PageTransitionEvent) => {
+      if (event.persisted) return;
+      const current = callStateRef.current;
+      if (!isCallPhase(current)) return;
+      const callId = current.call.id;
+      const url = `/api/calls/${callId}/end`;
+      const body = new Blob(["{}"], { type: "application/json" });
+      const sent = navigator.sendBeacon?.(url, body);
+      if (!sent) {
+        void fetch(url, {
+          method: "POST",
+          keepalive: true,
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        }).catch(() => undefined);
+      }
+    };
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, []);
 
   const pullSync = useCallback(async () => {
     const my = ++syncGenRef.current;
@@ -658,6 +683,8 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
             onHangup={() => {
               if (callState.phase === "active") hangup(callState.call.id);
             }}
+            minimized={callState.phase === "active" && callMinimized}
+            onExpand={() => setCallMinimized(false)}
             peerCallSlot={
               connectPeer && isCallPhase(callState) && userId ? (
                 <PeerCallRoom
@@ -678,6 +705,8 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
                     hangup(callState.call.id);
                   }}
                   onRemoteHangup={() => endFromRemote(callState.call.id, "ended")}
+                  onMinimize={() => setCallMinimized(true)}
+                  onCallFailed={() => endFromRemote(callState.call.id, "ended")}
                 />
               ) : undefined
             }
