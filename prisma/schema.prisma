@@ -246,6 +246,10 @@ model User {
   feedRecommendationEnabled Boolean @default(true)
   /** 좋아요 수 UI 표시 — Off 시 본인·타인 모두 숨김 */
   showLikeCounts Boolean @default(true)
+  /** 게시물 사진·영상 워터마크 삽입. 기본 Off */
+  watermarkInsertEnabled Boolean @default(false)
+  /** corner = 하단, diagonal = 전체(사선). Off이거나 미선택이면 null */
+  watermarkPlacement String?
   /** 트위터 Protect와 동일 — 잠금 시 승인된 팔로워만 글 열람, 새 팔로우는 요청 */
   postsLocked   Boolean   @default(false)
   phone         String?   @unique
@@ -279,6 +283,10 @@ model User {
   /** 1:1 유료 통화 예약 — 크리에이터(코스플레이/스트리머) 전용 */
   creatorCallEnabled        Boolean @default(false)
   creatorCallRateKrwPerHour Int?
+  /** 메시지 요청 허용. FOLLOWING_ONLY = 내가 팔로우하는 사람만 새 DM 가능 */
+  messageRequestAudience ContactAudience @default(EVERYONE)
+  /** 통화 허용. EVERYONE = On, FOLLOWING_ONLY = Off (내가 팔로우하는 사람만) */
+  callRequestAudience    ContactAudience @default(EVERYONE)
   /** Stripe Connect Custom 계정 ID (stripe_account_id) */
   stripeConnectAccountId String?
   /** payouts_enabled && requirements clear 시각 (웹훅·return URL 동기화) */
@@ -409,9 +417,12 @@ model User {
   flowerRedeems       FlowerRedeemRequest[]
   usedListings     UsedListing[]
   usedFavorites    UsedFavorite[]
+  usedListingStars UsedListingStar[]
   usedListingChats UsedListingChat[] @relation("UsedListingChatBuyer")
   usedTradeRequestsAsBuyer  UsedTradeRequest[] @relation("UsedTradeRequestBuyer")
   usedTradeRequestsAsSeller UsedTradeRequest[] @relation("UsedTradeRequestSeller")
+  directTradesAsBuyer UsedDirectTrade[] @relation("UsedDirectTradeBuyer")
+  directTradesAsSeller UsedDirectTrade[] @relation("UsedDirectTradeSeller")
   usedAuctionBids  UsedAuctionBid[]
   auctionDeposits  AuctionDeposit[]
   sponsoredAdCampaigns SponsoredAdCampaign[]
@@ -1376,6 +1387,8 @@ enum ChatRoomType {
   GROUP
   COSPLAYER_GROUP
   SOCIAL_GROUP
+  /** 상품 상세에서만 여는 마켓 거래 메시지. 일반 DM 함에 넣지 않는다. */
+  MARKET
 }
 
 model ChatRoom {
@@ -1406,6 +1419,7 @@ model ChatRoom {
   voiceChannel VoiceChannel? @relation(fields: [voiceChannelId], references: [id], onDelete: SetNull)
   polls     ChatPoll[]
   communityChannel CommunityChannel?
+  marketDirectTrade UsedDirectTrade?
 }
 
 model ChatPoll {
@@ -1984,6 +1998,11 @@ model VoiceCall {
 
   @@index([callerId, status])
   @@index([calleeId, status])
+}
+
+enum ContactAudience {
+  EVERYONE
+  FOLLOWING_ONLY
 }
 
 enum CallBookingStatus {
@@ -2966,8 +2985,10 @@ model UsedListing {
   winningBidder User?             @relation("UsedAuctionWinningBidder", fields: [winningBidderId], references: [id], onDelete: SetNull)
   negotiationBuyer User?          @relation("UsedAuctionNegotiationBuyer", fields: [negotiationBuyerId], references: [id], onDelete: SetNull)
   favorites   UsedFavorite[]
+  stars       UsedListingStar[]
   tradeChats  UsedListingChat[]
   tradeRequests UsedTradeRequest[]
+  directTrade UsedDirectTrade?
   auctionBids UsedAuctionBid[]
   auctionDeposits AuctionDeposit[]
   priceOffers UsedPriceOffer[]
@@ -3215,6 +3236,19 @@ model UsedFavorite {
   @@unique([userId, listingId])
 }
 
+/** STAR 북마크 — 관심(하트)과 별개로 마켓 글을 저장 */
+model UsedListingStar {
+  id        String      @id @default(cuid())
+  userId    String
+  listingId String
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing   UsedListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
 enum UsedTradeRequestStatus {
   PENDING
   APPROVED
@@ -3243,6 +3277,81 @@ model UsedTradeRequest {
   @@index([listingId, status])
   @@index([roomId, createdAt(sort: Desc)])
   @@index([buyerId, listingId])
+}
+
+/** 경매 직거래 도착 인증. 좌표는 저장하지 않고 판정 결과만 남긴다. */
+enum DirectTradePhase {
+  SCHEDULED
+  NO_SHOW_REPORTED
+  DISPUTE_REVIEW
+  NO_SHOW_CONFIRMED
+  COMPLETED
+  CANCELLED
+  FORFEITED
+}
+
+enum DirectArrivalStatus {
+  ARRIVAL_PENDING
+  ARRIVAL_VERIFIED
+  ARRIVAL_GPS_FAILED
+  ARRIVAL_PERMISSION_DENIED
+  ARRIVAL_LOW_ACCURACY
+}
+
+model UsedDirectTrade {
+  id          String           @id @default(cuid())
+  listingId   String           @unique
+  roomId      String           @unique
+  buyerId     String
+  sellerId    String
+  meetAt      DateTime?
+  proposedMeetAt DateTime?
+  proposedById   String?
+  meetAdjustCount Int          @default(0)
+  phase       DirectTradePhase @default(SCHEDULED)
+
+  buyerArrival  DirectArrivalStatus @default(ARRIVAL_PENDING)
+  sellerArrival DirectArrivalStatus @default(ARRIVAL_PENDING)
+  buyerArrivalAt  DateTime?
+  sellerArrivalAt DateTime?
+  /** WITHIN_50M | BEYOND_50M — 좌표 원문은 저장하지 않음 */
+  buyerDistanceBucket  String? @db.VarChar(24)
+  sellerDistanceBucket String? @db.VarChar(24)
+  /** OK | LOW | UNKNOWN */
+  buyerAccuracyBucket  String? @db.VarChar(24)
+  sellerAccuracyBucket String? @db.VarChar(24)
+  buyerGpsAttempts   Int @default(0)
+  sellerGpsAttempts  Int @default(0)
+  buyerRangeAttempts Int @default(0)
+  sellerRangeAttempts Int @default(0)
+  buyerLastVerifyAt  DateTime?
+  sellerLastVerifyAt DateTime?
+
+  noShowReportedById String?
+  noShowUserId       String?
+  noShowReportedAt   DateTime?
+  noShowResponseDueAt DateTime?
+
+  /** 구매자 PIN. AES-GCM JSON. 완료 시 삭제 */
+  buyerPinCipher String? @db.Text
+  buyerPinHmac   String? @db.VarChar(64)
+  pinAttempts    Int     @default(0)
+  pinsIssuedAt   DateTime?
+  pinsClearedAt  DateTime?
+
+  resolvedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  listing UsedListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  room    ChatRoom    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  buyer   User        @relation("UsedDirectTradeBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller  User        @relation("UsedDirectTradeSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([buyerId, phase])
+  @@index([sellerId, phase])
+  @@index([phase, meetAt])
+  @@index([phase, noShowResponseDueAt])
 }
 
 /** 중고거래 글별 1:1 채팅 (구매자–판매자) */

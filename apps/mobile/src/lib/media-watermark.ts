@@ -14,6 +14,23 @@ export function hasActiveWatermark(options?: WatermarkOptions | null): boolean {
   return !!(options?.diagonal || options?.corner);
 }
 
+export type WatermarkPlacement = "corner" | "diagonal";
+
+export function isWatermarkPlacement(value: unknown): value is WatermarkPlacement {
+  return value === "corner" || value === "diagonal";
+}
+
+export function optionsFromWatermarkSettings(
+  enabled: boolean,
+  placement?: WatermarkPlacement | null
+): WatermarkOptions {
+  if (!enabled || !placement) return EMPTY_WATERMARK_OPTIONS;
+  return {
+    diagonal: placement === "diagonal",
+    corner: placement === "corner",
+  };
+}
+
 export function watermarkSiteHost(): string {
   return "MoCoMo";
 }

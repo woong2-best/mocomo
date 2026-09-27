@@ -24,8 +24,6 @@ import {
   type LocalMediaDraft,
   type PollDraft,
 } from "@/features/compose/compose-types";
-import { ComposeImageEditor } from "@/features/compose/ComposeImageEditor";
-import { ComposeVideoEditor } from "@/features/compose/ComposeVideoEditor";
 import { publishComposePost } from "@/features/compose/publish-post";
 import {
   queueWatermarkCapture,
@@ -43,6 +41,7 @@ import {
   buildPostCreditLabel,
   EMPTY_WATERMARK_OPTIONS,
   hasActiveWatermark,
+  optionsFromWatermarkSettings,
   type WatermarkOptions,
 } from "@/lib/media-watermark";
 import { prepareImageForUpload } from "@/lib/prepare-image-upload";
@@ -120,8 +119,6 @@ export function InlineComposeBox({
   const [watermarkOptions, setWatermarkOptions] = useState<WatermarkOptions>(
     EMPTY_WATERMARK_OPTIONS
   );
-  const [editorItem, setEditorItem] = useState<LocalMediaDraft | null>(null);
-  const [videoEditorItem, setVideoEditorItem] = useState<LocalMediaDraft | null>(null);
   const [captureJob, setCaptureJob] = useState<WatermarkCaptureJob | null>(null);
   const [overlayJob, setOverlayJob] = useState<WatermarkOverlayJob | null>(null);
   const [textOverlayJob, setTextOverlayJob] = useState<TextOverlayCaptureJob | null>(null);
@@ -130,6 +127,16 @@ export function InlineComposeBox({
     () => (user?.username ? buildPostCreditLabel(user.username) : undefined),
     [user?.username]
   );
+
+  useEffect(() => {
+    const prefs = user?.preferences;
+    setWatermarkOptions(
+      optionsFromWatermarkSettings(
+        prefs?.watermarkInsertEnabled === true,
+        prefs?.watermarkPlacement ?? null
+      )
+    );
+  }, [user?.preferences?.watermarkInsertEnabled, user?.preferences?.watermarkPlacement]);
   const canPost =
     !busy && (content.trim().length > 0 || media.length > 0 || !!poll);
 
@@ -150,13 +157,6 @@ export function InlineComposeBox({
     if (!assets.length) return;
     const drafts = assets.map(assetToDraft);
     setMedia((prev) => [...prev, ...drafts].slice(0, 8));
-    const lastVideo = [...drafts].reverse().find((d) => d.type === "VIDEO");
-    if (lastVideo) {
-      setVideoEditorItem(lastVideo);
-      return;
-    }
-    const lastImage = [...drafts].reverse().find((d) => d.type === "IMAGE");
-    if (lastImage) setEditorItem(lastImage);
   }, []);
 
   const pickGallery = useCallback(async () => {
@@ -370,23 +370,7 @@ export function InlineComposeBox({
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaRow}>
           {media.map((item) => (
             <View key={item.id} style={styles.mediaItem}>
-              <Pressable
-                onPress={() => {
-                  if (busy) return;
-                  if (item.type === "IMAGE") setEditorItem(item);
-                  if (item.type === "VIDEO") setVideoEditorItem(item);
-                }}
-                style={{ flex: 1 }}
-              >
-                <Image source={{ uri: item.uri }} style={styles.mediaThumb} contentFit="cover" />
-                <View style={styles.editBadge}>
-                  <Ionicons
-                    name={item.type === "VIDEO" ? "film-outline" : "create-outline"}
-                    size={11}
-                    color="#fff"
-                  />
-                </View>
-              </Pressable>
+              <Image source={{ uri: item.uri }} style={styles.mediaThumb} contentFit="cover" />
               {item.type === "VIDEO" ? (
                 <View style={styles.videoBadge}>
                   <Ionicons name="videocam" size={12} color="#fff" />
@@ -482,34 +466,6 @@ export function InlineComposeBox({
           setCollabAnchor(null);
         }}
         onChange={setCollaborators}
-      />
-
-      <ComposeImageEditor
-        visible={!!editorItem}
-        item={editorItem}
-        allImages={media.filter((m) => m.type === "IMAGE")}
-        watermarkOptions={watermarkOptions}
-        onWatermarkChange={setWatermarkOptions}
-        creditLabel={watermarkCreditLabel}
-        onSwitchImage={(target) => setEditorItem(target)}
-        onAddImage={() => void pickGallery()}
-        onClose={() => setEditorItem(null)}
-        onApply={(next) => {
-          setMedia((prev) => prev.map((m) => (m.id === next.id ? next : m)));
-        }}
-      />
-
-      <ComposeVideoEditor
-        visible={!!videoEditorItem}
-        item={videoEditorItem}
-        watermarkOptions={watermarkOptions}
-        onWatermarkChange={setWatermarkOptions}
-        creditLabel={watermarkCreditLabel}
-        onClose={() => setVideoEditorItem(null)}
-        onApply={(next) => {
-          setMedia((prev) => prev.map((m) => (m.id === next.id ? next : m)));
-          setVideoEditorItem(null);
-        }}
       />
 
       <WatermarkCaptureHost job={captureJob} onDone={() => setCaptureJob(null)} />

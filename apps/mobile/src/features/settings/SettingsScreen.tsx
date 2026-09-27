@@ -19,6 +19,7 @@ import { LocaleRegionCrtCard } from "@/features/settings/LocaleRegionCrtCard";
 import { detectDeviceTimeZone } from "@/lib/device-timezone";
 import { FeedDisplaySettingsCard } from "@/features/settings/FeedDisplaySettingsCard";
 import { PostsLockSettingsCard } from "@/features/settings/PostsLockSettingsCard";
+import { WatermarkSettingsCard } from "@/features/settings/WatermarkSettingsCard";
 import { AccountDeletionCard } from "@/features/settings/AccountDeletionCard";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
@@ -77,6 +78,8 @@ export function SettingsScreen() {
           />
 
           <FeedDisplaySettingsCard />
+
+          <WatermarkSettingsCard />
 
           <PostsLockSettingsCard />
 

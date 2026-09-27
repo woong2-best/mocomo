@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LocaleSettingsForm } from "@/components/settings/locale-settings-form";
 import { PostsLockSettingsForm } from "@/components/settings/posts-lock-settings-form";
+import { WatermarkSettingsForm } from "@/components/settings/watermark-settings-form";
+import { isWatermarkPlacement } from "@/lib/media-watermark";
 import { FollowRequestsPanel } from "@/components/settings/follow-requests-panel";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { AccountDeletionForm } from "@/components/settings/account-deletion-form";
@@ -32,6 +34,8 @@ export default async function SettingsPage() {
         postsLocked: true,
         twoFactorEnabled: true,
         showNsfw: true,
+        watermarkInsertEnabled: true,
+        watermarkPlacement: true,
         profile: true,
         otakuProfile: true,
         cosplayerProfile: { select: { id: true } },
@@ -45,11 +49,41 @@ export default async function SettingsPage() {
     <SettingsPageChrome>
       <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>메시지</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm">
+          <p className="text-muted-foreground mb-3">
+            메시지 요청 허용 범위와 통화 On/Off를 설정합니다.
+          </p>
+          <Link href="/settings/messages" className="text-primary hover:underline font-semibold">
+            메시지 설정
+          </Link>
+        </CardContent>
+      </Card>
+
       <LocaleSettingsForm
         initialLocale={user?.locale ?? "ko"}
         initialCountryCode={user?.countryCode ?? "KR"}
         initialTimeZone={user?.timeZone ?? "UTC"}
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>워터마크</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <WatermarkSettingsForm
+            initial={{
+              enabled: user?.watermarkInsertEnabled ?? false,
+              placement: isWatermarkPlacement(user?.watermarkPlacement)
+                ? user.watermarkPlacement
+                : null,
+            }}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

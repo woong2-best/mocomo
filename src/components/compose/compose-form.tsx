@@ -464,7 +464,7 @@ export function ComposeForm({
     <form onSubmit={handleSubmit} onPasteCapture={handleComposePaste} className="space-y-4">
       {variant === "sheet" && (
         <p className="text-sm text-muted-foreground -mt-1">
-          사진·영상을 고른 뒤 편집에서 워터마크를 넣을 수 있습니다.
+          사진·영상을 고른 뒤 바로 올릴 수 있습니다.
         </p>
       )}
       <PostMediaComposer
@@ -562,7 +562,7 @@ export function ComposeForm({
       <div>
         <h2 className="font-bold text-folk-cobalt">글쓰기</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          사진·영상을 고른 뒤 편집에서 워터마크를 넣을 수 있습니다.
+          사진·영상을 고른 뒤 바로 올릴 수 있습니다.
         </p>
       </div>
       {formBody}

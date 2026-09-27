@@ -10,15 +10,39 @@ export type StarHubCreator = {
   count: number;
 };
 
+export type StarHubKind = "posts" | "qna" | "market";
+
+export type StarMarketItem = {
+  id: string;
+  title: string;
+  price: number;
+  currency: string | null;
+  thumbnailUrl: string | null;
+  region: string | null;
+  status: string;
+  saleType: string;
+  viewCount: number;
+  favoriteCount: number;
+};
+
 export type StarHubResponse = {
   items: FeedPost[];
   creators: StarHubCreator[];
   total: number;
 };
 
-export async function fetchStarHub(creatorId?: string | null) {
-  const q = creatorId ? `?creatorId=${encodeURIComponent(creatorId)}` : "";
+export async function fetchStarHub(creatorId?: string | null, kind: "posts" | "qna" = "posts") {
+  const params = new URLSearchParams();
+  if (creatorId) params.set("creatorId", creatorId);
+  if (kind === "qna") params.set("kind", "qna");
+  const q = params.toString() ? `?${params}` : "";
   return apiRequest<StarHubResponse>(`${MobileApi.star}${q}`, { auth: true });
+}
+
+export async function fetchStarMarket() {
+  return apiRequest<{ items: StarMarketItem[]; total: number }>(`${MobileApi.star}?kind=market`, {
+    auth: true,
+  });
 }
 
 /** @deprecated Use fetchStarHub */
@@ -26,8 +50,9 @@ export async function fetchStarredPosts() {
   return fetchStarHub();
 }
 
-export async function clearAllStarBookmarks() {
-  return apiRequest<{ ok: boolean; deleted: number }>(MobileApi.star, {
+export async function clearAllStarBookmarks(kind?: StarHubKind | "all") {
+  const q = kind ? `?kind=${kind}` : "";
+  return apiRequest<{ ok: boolean; deleted: number }>(`${MobileApi.star}${q}`, {
     method: "DELETE",
     auth: true,
   });
@@ -76,6 +101,8 @@ export async function patchMe(body: {
   feedRecommendationEnabled?: boolean;
   showLikeCounts?: boolean;
   postsLocked?: boolean;
+  watermarkInsertEnabled?: boolean;
+  watermarkPlacement?: "corner" | "diagonal" | null;
 }) {
   return apiRequest<{ ok: boolean }>(MobileApi.me, {
     method: "PATCH",

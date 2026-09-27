@@ -36,6 +36,8 @@ const meSelect = {
   usedServiceRegion: true,
   timeZone: true,
   postsLocked: true,
+  watermarkInsertEnabled: true,
+  watermarkPlacement: true,
   createdAt: true,
   isBanned: true,
   accountStatus: true,
@@ -126,12 +128,15 @@ export async function GET(req: NextRequest) {
             showLikeCounts: settings.showLikeCounts,
           }
         : null,
-      preferences: settings
-        ? {
-            feedRecommendationEnabled: settings.feedRecommendationEnabled,
-            showLikeCounts: settings.showLikeCounts,
-          }
-        : { feedRecommendationEnabled: true, showLikeCounts: true },
+      preferences: {
+        feedRecommendationEnabled: settings?.feedRecommendationEnabled ?? true,
+        showLikeCounts: settings?.showLikeCounts ?? true,
+        watermarkInsertEnabled: user.watermarkInsertEnabled,
+        watermarkPlacement:
+          user.watermarkPlacement === "corner" || user.watermarkPlacement === "diagonal"
+            ? user.watermarkPlacement
+            : null,
+      },
     },
   });
 }
@@ -160,6 +165,8 @@ const patchSchema = z.object({
   feedRecommendationEnabled: z.boolean().optional(),
   showLikeCounts: z.boolean().optional(),
   postsLocked: z.boolean().optional(),
+  watermarkInsertEnabled: z.boolean().optional(),
+  watermarkPlacement: z.enum(["corner", "diagonal"]).nullable().optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -302,7 +309,12 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  if (data.feedRecommendationEnabled !== undefined || data.showLikeCounts !== undefined) {
+  if (
+    data.feedRecommendationEnabled !== undefined ||
+    data.showLikeCounts !== undefined ||
+    data.watermarkInsertEnabled !== undefined ||
+    data.watermarkPlacement !== undefined
+  ) {
     await db.user.update({
       where: { id: auth.user.id },
       data: {
@@ -310,6 +322,12 @@ export async function PATCH(req: NextRequest) {
           ? { feedRecommendationEnabled: data.feedRecommendationEnabled }
           : {}),
         ...(data.showLikeCounts !== undefined ? { showLikeCounts: data.showLikeCounts } : {}),
+        ...(data.watermarkInsertEnabled !== undefined
+          ? { watermarkInsertEnabled: data.watermarkInsertEnabled }
+          : {}),
+        ...(data.watermarkPlacement !== undefined
+          ? { watermarkPlacement: data.watermarkPlacement }
+          : {}),
       },
     });
   }

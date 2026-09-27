@@ -14,22 +14,25 @@ import {
   Film,
   ImagePlus,
   Loader2,
-  Pencil,
   Trash2,
   Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ImageEditorDialog } from "@/components/media/editor/image-editor-dialog";
 import { CameraCaptureDialog } from "@/components/media/camera-capture-dialog";
-import { VideoEditDialog } from "@/components/media/video-edit-dialog";
-import { readFileAsObjectUrl } from "@/lib/crop-image";
-import { uploadImageBlob, type UploadMediaOptions } from "@/lib/client-upload";
+import { uploadImageBlob, uploadVideoBlob, type UploadMediaOptions } from "@/lib/client-upload";
 import {
   isGalleryImageFile,
   prepareGalleryImageForUpload,
 } from "@/lib/gallery-image-upload";
 import { normalizeGalleryVideoFile } from "@/lib/gallery-video-upload";
-import { EMPTY_WATERMARK_OPTIONS, hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
+import { readVideoMetadata } from "@/lib/video-metadata";
+import { getWatermarkSettings } from "@/actions/watermark-settings";
+import {
+  EMPTY_WATERMARK_OPTIONS,
+  hasActiveWatermark,
+  optionsFromWatermarkSettings,
+  type WatermarkOptions,
+} from "@/lib/media-watermark";
 import { filesFromClipboard } from "@/lib/clipboard-files";
 import { cn } from "@/lib/utils";
 
@@ -121,23 +124,26 @@ export const PostMediaComposer = forwardRef<
   const canAddImage = imageCount < maxImages;
   const canAddVideo = allowVideo && videoCount < maxVideos;
 
-  const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const [cropOpen, setCropOpen] = useState(false);
-  const [cropFilename, setCropFilename] = useState("post-image.jpg");
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-
   const [cameraOpen, setCameraOpen] = useState(false);
-
-  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
-  const [videoEditOpen, setVideoEditOpen] = useState(false);
-  const [videoSessionKey, setVideoSessionKey] = useState(0);
-  const [pendingImageFiles, setPendingImageFiles] = useState<File[]>([]);
-  const pendingVideoFilesRef = useRef<File[]>([]);
-  const advancingVideoQueueRef = useRef(false);
   const [watermarkOptions, setWatermarkOptions] = useState(EMPTY_WATERMARK_OPTIONS);
   const pasteLockUntilRef = useRef(0);
   const watermarkOptionsRef = useRef(watermarkOptions);
   watermarkOptionsRef.current = watermarkOptions;
+
+  useEffect(() => {
+    if (!watermarkCreditLabel) {
+      setWatermarkOptions(EMPTY_WATERMARK_OPTIONS);
+      return;
+    }
+    let cancelled = false;
+    void getWatermarkSettings().then((settings) => {
+      if (cancelled) return;
+      setWatermarkOptions(optionsFromWatermarkSettings(settings.enabled, settings.placement));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [watermarkCreditLabel]);
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -157,11 +163,6 @@ export const PostMediaComposer = forwardRef<
   const galleryUploadTimerRef = useRef<number | null>(null);
   const galleryUploadGenRef = useRef(0);
 
-  function handleWatermarkOptionsChange(next: WatermarkOptions) {
-    setWatermarkOptions(next);
-    watermarkOptionsRef.current = next;
-  }
-
   function schedulePendingGalleryUpload(delayMs: number) {
     if (galleryUploadTimerRef.current) {
       window.clearTimeout(galleryUploadTimerRef.current);
@@ -178,13 +179,6 @@ export const PostMediaComposer = forwardRef<
 
   function addItem(item: PostMediaItem) {
     onChange([...items, item]);
-  }
-
-  async function openImageCrop(file: File | Blob, filename: string) {
-    const src = await readFileAsObjectUrl(file instanceof File ? file : new File([file], filename));
-    setCropFilename(filename);
-    setCropSrc(src);
-    setCropOpen(true);
   }
 
   function finishUploadBusy(gen: number) {
@@ -212,7 +206,8 @@ export const PostMediaComposer = forwardRef<
             const prepared = await prepareGalleryImageForUpload(file);
             const url = await uploadImageBlob(
               prepared,
-              prepared.name || "photo.jpg"
+              prepared.name || "photo.jpg",
+              resolveUploadOpts()
             );
             return { i, url, error: null };
           } catch (e) {
@@ -282,7 +277,8 @@ export const PostMediaComposer = forwardRef<
             const prepared = await prepareGalleryImageForUpload(file);
             const url = await uploadImageBlob(
               prepared,
-              prepared.name || "photo.jpg"
+              prepared.name || "photo.jpg",
+              resolveUploadOpts()
             );
             return { previewUrl: previewUrls[i], url, error: null };
           } catch (e) {
@@ -367,27 +363,62 @@ export const PostMediaComposer = forwardRef<
 
   function onCameraCapture(blob: Blob, mimeType: string) {
     if (!mimeType.startsWith("image/")) return;
-    if (quickUpload) {
-      const name = mimeType.includes("png") ? "camera.png" : "camera.jpg";
-      void uploadFilesDirect([new File([blob], name, { type: mimeType || "image/jpeg" })]);
-      return;
+    const name = mimeType.includes("png") ? "camera.png" : "camera.jpg";
+    void uploadFilesDirect([new File([blob], name, { type: mimeType || "image/jpeg" })]);
+  }
+
+  async function uploadVideosDirect(files: File[]) {
+    const baseItems = itemsRef.current;
+    const previewUrls = files.map((f) => URL.createObjectURL(f));
+    onChange([
+      ...baseItems,
+      ...previewUrls.map((url) => ({ url, type: "VIDEO" as const })),
+    ]);
+    setUploading(true);
+    onUploadingChange?.(true);
+    setError("");
+    let next = [
+      ...baseItems,
+      ...previewUrls.map((url) => ({ url, type: "VIDEO" as const })),
+    ];
+    const errors: string[] = [];
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = normalizeGalleryVideoFile(files[i]!);
+        const previewUrl = previewUrls[i]!;
+        try {
+          const meta = await readVideoMetadata(file);
+          const url = await uploadVideoBlob(
+            file,
+            file.name || `video-${Date.now()}.mp4`,
+            resolveUploadOpts()
+          );
+          next = next.map((item) =>
+            item.url === previewUrl
+              ? {
+                  url,
+                  type: "VIDEO" as const,
+                  width: meta.width,
+                  height: meta.height,
+                  duration: meta.duration,
+                }
+              : item
+          );
+        } catch (e) {
+          next = next.filter((item) => item.url !== previewUrl);
+          errors.push(e instanceof Error ? e.message : `영상 ${i + 1} 업로드 실패`);
+        } finally {
+          URL.revokeObjectURL(previewUrl);
+        }
+      }
+      onChange(next);
+      if (errors.length > 0) {
+        setError(errors[0] ?? "영상 업로드에 실패했습니다.");
+      }
+    } finally {
+      setUploading(false);
+      onUploadingChange?.(false);
     }
-    openImageCrop(blob, "camera-photo.jpg");
-  }
-
-  function openVideoEditor(file: File | Blob) {
-    const normalized =
-      file instanceof File ? normalizeGalleryVideoFile(file) : file;
-    setVideoSessionKey((k) => k + 1);
-    setVideoBlob(normalized);
-    setVideoEditOpen(true);
-  }
-
-  function openNextPendingVideo() {
-    const next = pendingVideoFilesRef.current.shift();
-    if (!next) return;
-    // 다이얼로그가 완전히 닫힌 뒤 다음 영상을 열어 이전 duration/edit 잔존을 막음
-    window.setTimeout(() => openVideoEditor(next), 50);
   }
 
   function pickVideoFiles() {
@@ -457,9 +488,7 @@ export const PostMediaComposer = forwardRef<
       setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다. ${batch.length}개만 추가했습니다.`);
     }
     setError("");
-    const [first, ...rest] = batch;
-    pendingVideoFilesRef.current = rest;
-    if (first) openVideoEditor(first);
+    void uploadVideosDirect(batch);
   }
 
   function handlePaste(event: React.ClipboardEvent): boolean {
@@ -502,104 +531,6 @@ export const PostMediaComposer = forwardRef<
     }),
     []
   );
-
-  async function onCropComplete(url: string) {
-    if (editingIndex !== null) {
-      const next = itemsRef.current.map((item, i) =>
-        i === editingIndex ? { url, type: "IMAGE" as const } : item
-      );
-      onChange(next);
-      setEditingIndex(null);
-      setCropSrc(null);
-      setPendingImageFiles([]);
-      return;
-    }
-    const nextImages = imageCount + 1;
-    if (nextImages > maxImages) {
-      setError(`사진은 최대 ${maxImages}장까지 추가할 수 있습니다.`);
-      setPendingImageFiles([]);
-      return;
-    }
-    onChange([...items, { url, type: "IMAGE" }]);
-    setCropSrc(null);
-    if (pendingImageFiles.length > 0 && nextImages < maxImages) {
-      const [next, ...rest] = pendingImageFiles;
-      setPendingImageFiles(rest);
-      await openImageCrop(next, next.name);
-    } else {
-      setPendingImageFiles([]);
-    }
-  }
-
-  function onVideoComplete(
-    url: string,
-    meta?: { width?: number | null; height?: number | null; duration?: number | null }
-  ) {
-    const currentVideos = itemsRef.current.filter((m) => m.type === "VIDEO").length;
-    if (currentVideos >= maxVideos) {
-      pendingVideoFilesRef.current = [];
-      advancingVideoQueueRef.current = false;
-      setVideoBlob(null);
-      setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다.`);
-      return;
-    }
-    onChange([
-      ...itemsRef.current,
-      {
-        url,
-        type: "VIDEO",
-        width: meta?.width ?? null,
-        height: meta?.height ?? null,
-        duration: meta?.duration ?? null,
-      },
-    ]);
-    setVideoBlob(null);
-    if (pendingVideoFilesRef.current.length > 0) {
-      advancingVideoQueueRef.current = true;
-      window.setTimeout(() => openNextPendingVideo(), 0);
-    } else {
-      advancingVideoQueueRef.current = false;
-    }
-  }
-
-  async function reEditVideo(url: string, index: number) {
-    setUploading(true);
-    onUploadingChange?.(true);
-    setError("");
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("fetch failed");
-      const blob = await res.blob();
-      onChange(items.filter((_, i) => i !== index));
-      openVideoEditor(blob);
-    } catch {
-      setError("영상을 다시 불러올 수 없습니다.");
-    } finally {
-      setUploading(false);
-      onUploadingChange?.(false);
-    }
-  }
-
-  async function reEditImage(url: string, index: number) {
-    setUploading(true);
-    setError("");
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("fetch failed");
-      const blob = await res.blob();
-      const src = await readFileAsObjectUrl(
-        new File([blob], "post-image-edit.jpg", { type: blob.type || "image/jpeg" })
-      );
-      setEditingIndex(index);
-      setCropFilename("post-image-edit.jpg");
-      setCropSrc(src);
-      setCropOpen(true);
-    } catch {
-      setError("이미지를 다시 불러올 수 없습니다.");
-    } finally {
-      setUploading(false);
-    }
-  }
 
   const iconBtnClass =
     "h-9 w-9 rounded-full flex items-center justify-center text-primary hover:bg-primary/10 transition-colors disabled:opacity-40";
@@ -651,19 +582,6 @@ export const PostMediaComposer = forwardRef<
               <img src={m.url} alt="" className="h-full w-full object-cover" />
             )}
             <div className="absolute inset-0 bg-black/50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-              <button
-                type="button"
-                className="p-1 rounded-md bg-white/20 text-white"
-                onClick={() =>
-                  m.type === "VIDEO"
-                    ? void reEditVideo(m.url, i)
-                    : void reEditImage(m.url, i)
-                }
-                disabled={disabled || uploading}
-                aria-label={m.type === "VIDEO" ? "영상 편집" : "사진 편집"}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
               <button
                 type="button"
                 className="p-1 rounded-md bg-white/20 text-white"
@@ -769,10 +687,8 @@ export const PostMediaComposer = forwardRef<
       {layout === "default" && (
       <p className="text-xs text-muted-foreground">
         {allowVideo
-          ? `사진 최대 ${maxImages}장 · 영상 ${maxVideos}개 (갤러리는 바로 업로드, 연필로 편집)`
-          : enableFaceFilter
-            ? `사진 최대 ${maxImages}장 (갤러리 바로 업로드 · 촬영 후 자르기)`
-            : `사진 최대 ${maxImages}장 (갤러리·카메라, 필터 없음)`}
+          ? `사진 최대 ${maxImages}장 · 영상 ${maxVideos}개`
+          : `사진 최대 ${maxImages}장`}
       </p>
       )}
       {error && <p className="text-xs text-destructive">{error}</p>}
@@ -788,65 +704,12 @@ export const PostMediaComposer = forwardRef<
         onChange={onGalleryImagePick}
       />
 
-      {cropSrc && (
-        <ImageEditorDialog
-          open={cropOpen}
-          onOpenChange={(o) => {
-            setCropOpen(o);
-            if (!o) {
-              setCropSrc(null);
-              setEditingIndex(null);
-            }
-          }}
-          imageSrc={cropSrc}
-          title="사진 편집"
-          description="워터마크를 고른 뒤 적용하세요."
-          maxWidth={1920}
-          maxHeight={1920}
-          uploadFilename={cropFilename}
-          uploadOptions={resolveUploadOpts()}
-          watermarkCreditLabel={watermarkCreditLabel}
-          watermarkOptions={watermarkOptions}
-          onWatermarkOptionsChange={handleWatermarkOptionsChange}
-          toolsMode={watermarkCreditLabel ? "watermark" : "full"}
-          onComplete={onCropComplete}
-        />
-      )}
-
       <CameraCaptureDialog
         open={cameraOpen}
         onOpenChange={setCameraOpen}
         mode="photo"
         enableFaceFilter={enableFaceFilter}
         onCapture={onCameraCapture}
-      />
-
-      <VideoEditDialog
-        key={videoSessionKey}
-        open={videoEditOpen}
-        onOpenChange={(o) => {
-          setVideoEditOpen(o);
-          if (!o) {
-            setVideoBlob(null);
-            // 완료 후 다음 영상으로 이어갈 때는 큐를 유지, 사용자가 닫으면 중단
-            if (advancingVideoQueueRef.current) {
-              advancingVideoQueueRef.current = false;
-            } else {
-              pendingVideoFilesRef.current = [];
-            }
-          }
-        }}
-        videoBlob={videoBlob}
-        uploadFilename={`post-video-${videoSessionKey}.mp4`}
-        uploadOptions={resolveUploadOpts()}
-        watermarkCreditLabel={watermarkCreditLabel}
-        watermarkOptions={watermarkOptions}
-        onWatermarkOptionsChange={handleWatermarkOptionsChange}
-        onComplete={onVideoComplete}
-        onUploadingChange={(busy) => {
-          setUploading(busy);
-          onUploadingChange?.(busy);
-        }}
       />
     </div>
   );

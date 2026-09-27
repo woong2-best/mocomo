@@ -21,5 +21,7 @@ export type MobileAuthUser = {
   preferences?: {
     feedRecommendationEnabled: boolean;
     showLikeCounts: boolean;
+    watermarkInsertEnabled?: boolean;
+    watermarkPlacement?: "corner" | "diagonal" | null;
   };
 };
