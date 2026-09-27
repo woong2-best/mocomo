@@ -6,7 +6,6 @@ import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { notifyIncomingCall } from "@/lib/notifications";
 import { db } from "@/lib/db";
-import { incomingContactDecision } from "@/lib/contact-audience";
 import { peerBusyWithSomeoneElse, releaseCallerActiveCalls } from "@/lib/call-sync";
 
 const bodySchema = z.object({
@@ -75,10 +74,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "차단된 사용자와는 통화할 수 없습니다." }, { status: 403 });
   }
 
-  const audience = await incomingContactDecision(user.id, calleeId, "call");
-  if (!audience.allowed) {
-    return NextResponse.json({ error: audience.error }, { status: 403 });
-  }
   if (chatRoomId) {
     if (!room || room.type !== "DM") {
       return NextResponse.json({ error: "DM 방에서만 통화할 수 있습니다." }, { status: 400 });

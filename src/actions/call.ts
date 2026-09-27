@@ -6,7 +6,6 @@ import { db } from "@/lib/db";
 import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { CallStatus, CallType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { incomingContactDecision } from "@/lib/contact-audience";
 import { peerBusyWithSomeoneElse, releaseCallerActiveCalls } from "@/lib/call-sync";
 
 const ACTIVE_STATUSES: CallStatus[] = [CallStatus.RINGING, CallStatus.ACTIVE];
@@ -92,9 +91,6 @@ export async function initiateCall(data: {
   ]);
   if (peerBusy) return { error: "상대방이 다른 통화 중입니다." };
   if (blocked) return { error: "차단된 사용자와는 통화할 수 없습니다." };
-
-  const audience = await incomingContactDecision(user.id, data.calleeId, "call");
-  if (!audience.allowed) return { error: audience.error };
 
   if (data.chatRoomId) {
     if (!room || room.type !== "DM") return { error: "DM 방에서만 통화할 수 있습니다." };
