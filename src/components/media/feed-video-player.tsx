@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ForensicVideoCanvas } from "@/components/media/forensic-video-canvas";
-import { PaidVideoCopyrightWarning } from "@/components/media/paid-video-copyright-warning";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import {
   AUTOPLAY_THRESHOLD,
@@ -81,7 +80,7 @@ type Props = {
   forensicRenderConfig?: ForensicRenderConfig | null;
   /** Session endpoint failed (e.g. author) — show unmarked playback. */
   forensicSessionFailed?: boolean;
-  /** Locked teaser: loop only the first N seconds, no copyright warning. */
+  /** Locked teaser: loop only the first N seconds. */
   previewMaxSeconds?: number | null;
   /** Fired once when a teaser preview reaches previewMaxSeconds. */
   onPreviewEnded?: () => void;
@@ -210,7 +209,6 @@ export function FeedVideoPlayer({
   const lastProgressSaveRef = useRef(0);
   const bufferingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoPlayingRef = useRef(false);
-  const copyrightDismissedRef = useRef(!protect);
   const previewEndedRef = useRef(false);
 
   const [isScrubbing, setIsScrubbing] = useState(false);
@@ -232,13 +230,6 @@ export function FeedVideoPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [buffering, setBuffering] = useState(false);
   const [likeBurst, setLikeBurst] = useState(false);
-  const [copyrightDismissed, setCopyrightDismissed] = useState(!protect);
-  const [protectSeen, setProtectSeen] = useState(protect);
-  if (protect !== protectSeen) {
-    setProtectSeen(protect);
-    setCopyrightDismissed(!protect);
-    copyrightDismissedRef.current = !protect;
-  }
   const [forensicCanvasReady, setForensicCanvasReady] = useState(false);
   const [forensicCanvasFailed, setForensicCanvasFailed] = useState(false);
   const [holdBoost, setHoldBoost] = useState(false);
@@ -384,20 +375,8 @@ export function FeedVideoPlayer({
       }
       return ok;
     },
-    [ensureMediaSrc, playerId, previewMode, protect, playbackSrc]
+    [ensureMediaSrc, playerId, previewMode, playbackSrc]
   );
-
-  const resetCopyrightWarning = useCallback(() => {
-    if (!protect) return;
-    copyrightDismissedRef.current = false;
-    setCopyrightDismissed(false);
-  }, [protect]);
-
-  const dismissCopyrightWarning = useCallback(() => {
-    if (!protect || copyrightDismissedRef.current) return;
-    copyrightDismissedRef.current = true;
-    setCopyrightDismissed(true);
-  }, [protect]);
 
   const pauseSelf = useCallback(
     (clearResume = false) => {
@@ -490,18 +469,6 @@ export function FeedVideoPlayer({
     setShowPosterOverlay(Boolean(poster));
   }, [src, mediaId, forensicRenderConfig?.sessionId, previewMaxSeconds, poster]);
 
-  useEffect(() => {
-    if (!protect) {
-      copyrightDismissedRef.current = true;
-      setCopyrightDismissed(true);
-      return;
-    }
-    resetCopyrightWarning();
-  }, [mediaId, protect, resetCopyrightWarning, src]);
-
-  const showCopyrightWarning =
-    protect && !previewMode && !copyrightDismissed && started;
-
   // Core media events
   useEffect(() => {
     const v = videoRef.current;
@@ -566,7 +533,6 @@ export function FeedVideoPlayer({
       scrubbingRef.current = false;
       if (!loop) {
         saveProgress(pKey, v.currentTime);
-        if (protect) resetCopyrightWarning();
       }
     };
     const onVolume = () => {
@@ -655,7 +621,7 @@ export function FeedVideoPlayer({
       v.removeEventListener("error", onError);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once per src attach
-  }, [src, mediaAttached, retryToken, syncDuration, restoreProgress, pKey, loop, protect, previewMode, previewMaxSeconds, resetCopyrightWarning, onPreviewEnded, poster, playbackSrc]);
+  }, [src, mediaAttached, retryToken, syncDuration, restoreProgress, pKey, loop, protect, previewMode, previewMaxSeconds, onPreviewEnded, poster, playbackSrc]);
 
   // IntersectionObserver: autoplay / pause / unload / preload
   useEffect(() => {
@@ -718,7 +684,6 @@ export function FeedVideoPlayer({
               setPlaying(false);
               posterHiddenForSrcRef.current = null;
               if (poster) setShowPosterOverlay(true);
-              resetCopyrightWarning();
             }, UNLOAD_AFTER_MS);
           }
         }
@@ -749,7 +714,6 @@ export function FeedVideoPlayer({
             autoPlayingRef.current = false;
             registeredRef.current.autoplayIntent = false;
           }
-          resetCopyrightWarning();
         }
       },
       {
@@ -768,7 +732,6 @@ export function FeedVideoPlayer({
     pKey,
     preloadProp,
     isPlayerFullscreen,
-    resetCopyrightWarning,
     keepMediaLoaded,
     poster,
   ]);
@@ -1364,11 +1327,7 @@ export function FeedVideoPlayer({
         </div>
       )}
 
-      {showCopyrightWarning ? (
-        <PaidVideoCopyrightWarning onDismiss={dismissCopyrightWarning} />
-      ) : null}
-
-      {!playing && !buffering && !showCopyrightWarning && !previewMode && (
+      {!playing && !buffering && !previewMode && (
         <div
           className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center"
           aria-hidden

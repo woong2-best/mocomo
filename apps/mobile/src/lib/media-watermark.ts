@@ -1,7 +1,5 @@
 /** 게시물 미디어 크레딧 라벨 — OnlyFans 스타일 워터마크 텍스트 */
 
-import { API_BASE_URL } from "@/config/env";
-
 export type WatermarkOptions = {
   diagonal: boolean;
   corner: boolean;
@@ -17,16 +15,12 @@ export function hasActiveWatermark(options?: WatermarkOptions | null): boolean {
 }
 
 export function watermarkSiteHost(): string {
-  try {
-    return new URL(API_BASE_URL).host.replace(/^www\./, "");
-  } catch {
-    return "mocomo.net";
-  }
+  return "MoCoMo";
 }
 
 export function buildPostCreditLabel(username: string): string {
   const handle = username.trim().replace(/^@/, "");
-  return `@${handle} · ${watermarkSiteHost()}`;
+  return `@${handle} · MoCoMo`;
 }
 
 export function escapeXml(text: string): string {

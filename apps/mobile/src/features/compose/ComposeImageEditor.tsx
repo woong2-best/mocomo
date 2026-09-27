@@ -30,10 +30,9 @@ import {
   hasActiveWatermark,
   type WatermarkOptions,
 } from "@/lib/media-watermark";
-import { MOBILE_VIDEO_FILTERS, getVideoFilter } from "@/lib/video-filters";
+import { MOBILE_VIDEO_FILTERS } from "@/lib/video-filters";
 import { createComposeEditorStyles } from "@/features/compose/compose-editor-styles";
 import { TextColorPicker } from "@/features/compose/TextColorPicker";
-import { TextOverlayDraggable } from "@/features/compose/TextOverlayDraggable";
 import { DEFAULT_TEXT_OVERLAY_COLOR } from "@/features/compose/text-overlay-utils";
 import { useTheme } from "@/theme/ThemeContext";
 import { type ThemeColors } from "@/theme/tokens";
@@ -55,12 +54,7 @@ const IMAGE_TOOL_ITEMS: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
 }[] = [
-  { panel: "crop", icon: "crop-outline", label: "자르기" },
-  { panel: "adjust", icon: "sunny-outline", label: "보정" },
-  { panel: "filter", icon: "color-filter-outline", label: "필터" },
-  { panel: "text", icon: "text-outline", label: "텍스트" },
   { panel: "overlay", icon: "shield-checkmark-outline", label: "워터마크" },
-  { panel: "audio", icon: "musical-note-outline", label: "오디오" },
 ];
 
 type Props = {
@@ -126,7 +120,7 @@ export function ComposeImageEditor({
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
   const [edit, setEdit] = useState<ImageEditDraft>(DEFAULT_IMAGE_EDIT);
-  const [panel, setPanel] = useState<EditorPanel>("crop");
+  const [panel, setPanel] = useState<EditorPanel>("overlay");
   const [showAspectPick, setShowAspectPick] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -141,7 +135,7 @@ export function ComposeImageEditor({
     setWidth(item.width ?? 0);
     setHeight(item.height ?? 0);
     setEdit(cloneImageEdit(item.imageEdit ?? DEFAULT_IMAGE_EDIT));
-    setPanel("crop");
+    setPanel("overlay");
     setShowAspectPick(false);
     setError("");
     setSelectedTextId(null);
@@ -251,7 +245,6 @@ export function ComposeImageEditor({
     onClose();
   }, [edit, height, item, onApply, onClose, width, workingUri]);
 
-  const filterPreset = getVideoFilter(edit.filterId);
   const watermarkSvg =
     creditLabel && hasActiveWatermark(watermarkOptions)
       ? buildWatermarkSvg(
@@ -261,9 +254,6 @@ export function ComposeImageEditor({
           watermarkOptions
         )
       : null;
-
-  const imageW = width || item?.width || previewSize.w;
-  const imageH = height || item?.height || previewSize.h;
 
   if (!item) return null;
 
@@ -322,63 +312,9 @@ export function ComposeImageEditor({
             <Image source={{ uri: workingUri }} style={StyleSheet.absoluteFill} contentFit="contain" />
           ) : null}
 
-          {filterPreset.preview ? (
-            <View
-              pointerEvents="none"
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor: filterPreset.preview.color,
-                  opacity: filterPreset.preview.opacity,
-                },
-              ]}
-            />
-          ) : null}
-
-          {edit.brightness !== 0 || edit.contrast !== 0 || edit.saturation !== 0 ? (
-            <View
-              pointerEvents="none"
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor:
-                    edit.brightness > 0 ? "#fff" : edit.brightness < 0 ? "#000" : "transparent",
-                  opacity: Math.abs(edit.brightness) / 200,
-                },
-              ]}
-            />
-          ) : null}
-
           {watermarkSvg ? (
             <View pointerEvents="none" style={StyleSheet.absoluteFill}>
               <SvgXml xml={watermarkSvg} width={previewSize.w} height={previewSize.h} />
-            </View>
-          ) : null}
-
-          {edit.textOverlays.map((o) => (
-            <TextOverlayDraggable
-              key={o.id}
-              overlay={o}
-              selected={selectedTextId === o.id}
-              containerW={previewSize.w}
-              containerH={previewSize.h}
-              imageW={imageW}
-              imageH={imageH}
-              onSelect={() => setSelectedTextId(o.id)}
-              onMove={(x, y) => {
-                setEdit((prev) => ({
-                  ...prev,
-                  textOverlays: prev.textOverlays.map((t) =>
-                    t.id === o.id ? { ...t, x, y } : t
-                  ),
-                }));
-              }}
-            />
-          ))}
-
-          {panel === "crop" && width > 0 && height > 0 ? (
-            <View pointerEvents="none" style={styles.cropDimBadge}>
-              <Text style={styles.cropDimText}>{`${width} × ${height}`}</Text>
             </View>
           ) : null}
 

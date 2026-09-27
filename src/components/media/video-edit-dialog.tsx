@@ -22,6 +22,7 @@ import {
   Undo2,
   Volume2,
   Crop,
+  Droplets,
 } from "lucide-react";
 import { VideoPreviewCanvas } from "@/components/media/video/video-preview-canvas";
 import { VideoTimeline } from "@/components/media/video/video-timeline";
@@ -34,7 +35,7 @@ import type { VideoTool } from "@/lib/video-editor/types";
 import { EMOJI_QUICK_PICK } from "@/lib/media-editor/constants";
 import { guessVideoMime } from "@/lib/gallery-video-upload";
 import { uploadVideoBlob, type UploadMediaOptions } from "@/lib/client-upload";
-import { hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
+import { buildWatermarkSvg, hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
 import { WatermarkToggleButtons } from "@/components/media/watermark-toggle-buttons";
 import { getUploadMaxBytes, uploadSizeExceededMessage, MAX_VIDEO_DURATION_SEC } from "@/lib/upload-limits";
 import { readVideoMetadata } from "@/lib/video-metadata";
@@ -72,6 +73,7 @@ const TOOLS: { id: VideoTool; label: string; icon: typeof Scissors }[] = [
   { id: "adjust", label: "보정", icon: Sun },
   { id: "sticker", label: "이모지", icon: Smile },
   { id: "audio", label: "소리", icon: Volume2 },
+  { id: "watermark", label: "워터마크", icon: Droplets },
 ];
 
 function formatMaxDurationLabel(sec: number): string {
@@ -137,9 +139,9 @@ export function VideoEditDialog({
     reset(0, maxDurationSec);
     const url = URL.createObjectURL(videoBlob);
     setPreviewUrl(url);
-    setTool("trim");
+    setTool(watermarkCreditLabel ? "watermark" : "trim");
     return () => URL.revokeObjectURL(url);
-  }, [open, videoBlob, maxDurationSec, reset]);
+  }, [open, videoBlob, maxDurationSec, reset, watermarkCreditLabel]);
 
   const loadThumbnails = useCallback(async (video: HTMLVideoElement, dur: number) => {
     const thumbs = await generateVideoThumbnails(video, dur, 14);
@@ -176,7 +178,7 @@ export function VideoEditDialog({
     }
     reset(duration, maxDurationSec);
     setPlaying(false);
-    setTool("trim");
+    setTool(watermarkCreditLabel ? "watermark" : "trim");
   }
 
   function hasUnsavedEdits(): boolean {
@@ -376,7 +378,9 @@ export function VideoEditDialog({
             </div>
           </div>
           <DialogDescription>
-            구간 자르기·회전·필터·보정·이모지·소리 조절 후 적용하세요.
+            {watermarkCreditLabel
+              ? "워터마크를 고른 뒤 적용하세요."
+              : "구간 자르기·회전·필터·보정·이모지·소리 조절 후 적용하세요."}
           </DialogDescription>
         </DialogHeader>
 
@@ -401,10 +405,19 @@ export function VideoEditDialog({
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           )}
+          {watermarkCreditLabel && watermarkOptions && hasActiveWatermark(watermarkOptions) ? (
+            <div
+              className="pointer-events-none absolute inset-0"
+              aria-hidden
+              dangerouslySetInnerHTML={{
+                __html: buildWatermarkSvg(720, 405, watermarkCreditLabel, watermarkOptions),
+              }}
+            />
+          ) : null}
         </div>
 
         {/* 타임라인 */}
-        {duration > 0 && (
+        {duration > 0 && !watermarkCreditLabel && (
           <VideoTimeline
             duration={duration}
             startSec={edit.startSec}
@@ -428,7 +441,7 @@ export function VideoEditDialog({
         {/* 도구 바 */}
         <div className="shrink-0 border-t border-border bg-background">
           <div className="flex items-center justify-around gap-1 px-2 py-2 overflow-x-auto">
-            {TOOLS.map(({ id, label, icon: Icon }) => (
+            {(watermarkCreditLabel ? TOOLS.filter((t) => t.id === "watermark") : TOOLS.filter((t) => t.id !== "watermark")).map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 type="button"
@@ -578,13 +591,16 @@ export function VideoEditDialog({
                 타임라인 핸들을 드래그해 구간을 조절하세요. 길이 {(edit.endSec - edit.startSec).toFixed(1)}초 / 전체 {duration.toFixed(1)}초
               </p>
             )}
-          </div>
 
-          {watermarkCreditLabel && watermarkOptions && onWatermarkOptionsChange ? (
-            <div className="px-4 pb-2 space-y-1">
-              <WatermarkToggleButtons value={watermarkOptions} onChange={onWatermarkOptionsChange} disabled={busy} />
-            </div>
-          ) : null}
+            {tool === "watermark" && watermarkCreditLabel && watermarkOptions && onWatermarkOptionsChange ? (
+              <WatermarkToggleButtons
+                value={watermarkOptions}
+                onChange={onWatermarkOptionsChange}
+                disabled={busy}
+                creditLabel={watermarkCreditLabel}
+              />
+            ) : null}
+          </div>
 
           {busy && (
             <div className="px-4 pb-2 space-y-1">

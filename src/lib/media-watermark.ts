@@ -15,20 +15,12 @@ export function hasActiveWatermark(options?: WatermarkOptions | null): boolean {
 }
 
 export function watermarkSiteHost(): string {
-  const raw =
-    typeof process !== "undefined"
-      ? process.env.NEXT_PUBLIC_APP_URL || "https://mocomo.net"
-      : "https://mocomo.net";
-  try {
-    return new URL(raw).host.replace(/^www\./, "");
-  } catch {
-    return "mocomo.net";
-  }
+  return "MoCoMo";
 }
 
 export function buildPostCreditLabel(username: string): string {
   const handle = username.trim().replace(/^@/, "");
-  return `@${handle} · ${watermarkSiteHost()}`;
+  return `@${handle} · MoCoMo`;
 }
 
 export function escapeXml(text: string): string {

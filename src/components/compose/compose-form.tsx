@@ -464,13 +464,7 @@ export function ComposeForm({
     <form onSubmit={handleSubmit} onPasteCapture={handleComposePaste} className="space-y-4">
       {variant === "sheet" && (
         <p className="text-sm text-muted-foreground -mt-1">
-          사진·영상을 고른 뒤, 앱 안에서 자르기·구간 편집할 수 있습니다.
-          {watermarkCreditLabel ? (
-            <span className="block mt-1 text-xs">
-              사진·영상을 첨부하면 사선·하단 워터마크를 선택할 수 있습니다. (
-              <span className="font-medium">{watermarkCreditLabel}</span>)
-            </span>
-          ) : null}
+          사진·영상을 고른 뒤 편집에서 워터마크를 넣을 수 있습니다.
         </p>
       )}
       <PostMediaComposer
@@ -568,7 +562,7 @@ export function ComposeForm({
       <div>
         <h2 className="font-bold text-folk-cobalt">글쓰기</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          사진·영상 파일을 고른 뒤 편집할 수 있습니다.
+          사진·영상을 고른 뒤 편집에서 워터마크를 넣을 수 있습니다.
         </p>
       </div>
       {formBody}

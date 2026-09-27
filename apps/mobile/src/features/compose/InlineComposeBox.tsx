@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Image } from "expo-image";
@@ -25,7 +27,6 @@ import {
 import { ComposeImageEditor } from "@/features/compose/ComposeImageEditor";
 import { ComposeVideoEditor } from "@/features/compose/ComposeVideoEditor";
 import { publishComposePost } from "@/features/compose/publish-post";
-import { WatermarkToggleRow } from "@/features/compose/WatermarkToggleRow";
 import {
   queueWatermarkCapture,
   queueWatermarkOverlay,
@@ -46,9 +47,10 @@ import {
 } from "@/lib/media-watermark";
 import { prepareImageForUpload } from "@/lib/prepare-image-upload";
 import { useUserProfileNav } from "@/features/profile/user-profile-nav";
+import type { MenuAnchor } from "@/features/feed/FeedPostOverflowMenu";
 import { FolkAvatar } from "@/ui/FolkAvatar";
-import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { NsfwToggleButton } from "@/ui/NsfwToggleButton";
+import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast"
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
@@ -56,6 +58,9 @@ import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 type Props = {
   avatarUrl?: string | null;
   avatarLetter?: string;
+  /** Prefill body (e.g. quote repost draft). */
+  initialContent?: string;
+  autoFocus?: boolean;
   /** Called after a successful publish (modal can close). */
   onPosted?: (postId: string) => void;
 };
@@ -89,11 +94,19 @@ async function loadImagePicker() {
   return import("expo-image-picker");
 }
 
-export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Props) {
+export function InlineComposeBox({
+  avatarUrl,
+  avatarLetter = "?",
+  initialContent,
+  autoFocus = false,
+  onPosted,
+}: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
   const inputRef = useRef<TextInput>(null);
+  const collabAnchorRef = useRef<View>(null);
+  const [collabAnchor, setCollabAnchor] = useState<MenuAnchor | null>(null);
   const { user } = useAuth();
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
 
@@ -117,16 +130,21 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
     () => (user?.username ? buildPostCreditLabel(user.username) : undefined),
     [user?.username]
   );
-  const showWatermarkControls = !!(
-    watermarkCreditLabel && media.some((m) => m.type === "IMAGE" || m.type === "VIDEO")
-  );
-
   const canPost =
     !busy && (content.trim().length > 0 || media.length > 0 || !!poll);
 
   const focusInput = useCallback(() => {
     inputRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!initialContent?.length) return;
+    setContent(initialContent);
+    if (autoFocus) {
+      const t = setTimeout(() => focusInput(), 120);
+      return () => clearTimeout(t);
+    }
+  }, [autoFocus, focusInput, initialContent]);
 
   const appendAssets = useCallback((assets: PickerAsset[]) => {
     if (!assets.length) return;
@@ -386,15 +404,6 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
         </ScrollView>
       ) : null}
 
-      {showWatermarkControls ? (
-        <WatermarkToggleRow
-          value={watermarkOptions}
-          onChange={setWatermarkOptions}
-          disabled={busy}
-          creditLabel={watermarkCreditLabel}
-        />
-      ) : null}
-
       {poll ? (
         <PollEditor
           value={poll}
@@ -431,12 +440,19 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
             disabled={busy}
             color={poll ? colors.brand : colors.terracotta}
           />
-          <ToolIcon
-            name="people-outline"
-            onPress={() => setCollabOpen(true)}
-            disabled={busy}
-            color={collaborators.length ? colors.brand : colors.terracotta}
-          />
+          <View ref={collabAnchorRef} collapsable={false}>
+            <ToolIcon
+              name="people-outline"
+              onPress={() => {
+                collabAnchorRef.current?.measureInWindow((x, y, width, height) => {
+                  setCollabAnchor({ x, y, width, height });
+                  setCollabOpen(true);
+                });
+              }}
+              disabled={busy}
+              color={collaborators.length ? colors.brand : colors.terracotta}
+            />
+          </View>
           <NsfwToggleButton
             active={isNsfw}
             onToggle={() => setIsNsfw((v) => !v)}
@@ -459,8 +475,12 @@ export function InlineComposeBox({ avatarUrl, avatarLetter = "?", onPosted }: Pr
 
       <CollaboratorModal
         visible={collabOpen}
+        anchor={collabAnchor}
         selected={collaborators}
-        onClose={() => setCollabOpen(false)}
+        onClose={() => {
+          setCollabOpen(false);
+          setCollabAnchor(null);
+        }}
         onChange={setCollaborators}
       />
 
@@ -631,21 +651,34 @@ function PollEditor({
   );
 }
 
+const COLLAB_POPUP_WIDTH = 300;
+
 function CollaboratorModal({
   visible,
+  anchor,
   selected,
   onClose,
   onChange,
 }: {
   visible: boolean;
+  anchor: MenuAnchor | null;
   selected: CollaboratorDraft[];
   onClose: () => void;
   onChange: (next: CollaboratorDraft[]) => void;
 }) {
   const { colors } = useTheme();
+  const popupStyles = useMemo(() => createCollabPopupStyles(colors), [colors]);
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const keyboardBottom = useKeyboardBottomInset();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<CollaboratorDraft[]>([]);
   const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (visible) return;
+    setQ("");
+    setResults([]);
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return;
@@ -684,97 +717,159 @@ function CollaboratorModal({
 
   const selectedIds = useMemo(() => new Set(selected.map((s) => s.id)), [selected]);
 
+  const popupWidth = Math.min(COLLAB_POPUP_WIDTH, windowWidth - spacing.sm * 2);
+  const popupTop = anchor ? anchor.y + anchor.height + 6 : 0;
+  const popupLeft = anchor
+    ? Math.max(
+        spacing.sm,
+        Math.min(
+          anchor.x + anchor.width / 2 - popupWidth / 2,
+          windowWidth - popupWidth - spacing.sm
+        )
+      )
+    : spacing.sm;
+  const popupMaxHeight = anchor
+    ? Math.max(160, windowHeight - popupTop - keyboardBottom - spacing.md)
+    : 280;
+
   return (
-    <KeyboardSheet
-      visible={visible}
-      onClose={onClose}
-      maxHeight="70%"
-      sheetStyle={{ backgroundColor: colors.background }}
-    >
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
-            <Text style={{ fontSize: 17, fontWeight: "800", color: colors.text }}>공동 제작자</Text>
-            <Pressable onPress={onClose}>
-              <Text style={{ color: colors.terracotta, fontWeight: "700" }}>완료</Text>
-            </Pressable>
-          </View>
-          <TextInput
-            value={q}
-            onChangeText={setQ}
-            placeholder="사용자 검색"
-            placeholderTextColor={colors.textMuted}
-            autoFocus
-            style={{
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: radii.md,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              color: colors.text,
-              backgroundColor: colors.surfaceRaised,
-              marginBottom: 10,
-            }}
-          />
-          {searching ? <ActivityIndicator color={colors.terracotta} style={{ marginVertical: 8 }} /> : null}
-          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 320 }}>
-            {results.map((u) => {
-              const picked = selectedIds.has(u.id);
-              return (
-                <Pressable
-                  key={u.id}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
-                    paddingVertical: 10,
-                    opacity: picked ? 0.55 : 1,
-                  }}
-                  onPress={() => {
-                    if (picked) {
-                      onChange(selected.filter((s) => s.id !== u.id));
-                      return;
-                    }
-                    if (selected.length >= 5) {
-                      showIslandError("제한", "공동 제작자는 최대 5명까지입니다.");
-                      return;
-                    }
-                    onChange([...selected, u]);
-                  }}
-                >
-                  {u.image ? (
-                    <Image source={{ uri: u.image }} style={{ width: 36, height: 36, borderRadius: 10 }} />
-                  ) : (
-                    <View
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        backgroundColor: colors.terracotta,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Text style={{ color: "#fff", fontWeight: "800" }}>
-                        {(u.name || u.username).slice(0, 1).toUpperCase()}
-                      </Text>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={popupStyles.root}>
+        <Pressable style={popupStyles.scrim} onPress={onClose} accessibilityRole="button" />
+        {anchor ? (
+          <View
+            style={[
+              popupStyles.panel,
+              {
+                top: popupTop,
+                left: popupLeft,
+                width: popupWidth,
+                maxHeight: popupMaxHeight,
+              },
+            ]}
+          >
+            <View style={popupStyles.header}>
+              <Text style={popupStyles.title}>공동 제작자</Text>
+              <Pressable onPress={onClose} hitSlop={8}>
+                <Text style={popupStyles.done}>완료</Text>
+              </Pressable>
+            </View>
+            <TextInput
+              value={q}
+              onChangeText={setQ}
+              placeholder="사용자 검색"
+              placeholderTextColor={colors.textMuted}
+              autoFocus
+              style={popupStyles.input}
+            />
+            {searching ? (
+              <ActivityIndicator color={colors.terracotta} style={{ marginVertical: 8 }} />
+            ) : null}
+            <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: popupMaxHeight - 100 }}>
+              {results.map((u) => {
+                const picked = selectedIds.has(u.id);
+                return (
+                  <Pressable
+                    key={u.id}
+                    style={[popupStyles.row, picked && { opacity: 0.55 }]}
+                    onPress={() => {
+                      if (picked) {
+                        onChange(selected.filter((s) => s.id !== u.id));
+                        return;
+                      }
+                      if (selected.length >= 5) {
+                        showIslandError("제한", "공동 제작자는 최대 5명까지입니다.");
+                        return;
+                      }
+                      onChange([...selected, u]);
+                    }}
+                  >
+                    {u.image ? (
+                      <Image source={{ uri: u.image }} style={popupStyles.avatar} />
+                    ) : (
+                      <View style={popupStyles.avatarFallback}>
+                        <Text style={popupStyles.avatarLetter}>
+                          {(u.name || u.username).slice(0, 1).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={popupStyles.name}>{u.name || u.username}</Text>
+                      <Text style={popupStyles.username}>@{u.username}</Text>
                     </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: "800", color: colors.text }}>
-                      {u.name || u.username}
-                    </Text>
-                    <Text style={{ color: colors.textMuted }}>@{u.username}</Text>
-                  </View>
-                  <Ionicons
-                    name={picked ? "checkmark-circle" : "add-circle-outline"}
-                    size={22}
-                    color={picked ? colors.terracotta : colors.brand}
-                  />
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-    </KeyboardSheet>
+                    <Ionicons
+                      name={picked ? "checkmark-circle" : "add-circle-outline"}
+                      size={22}
+                      color={picked ? colors.terracotta : colors.brand}
+                    />
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        ) : null}
+      </View>
+    </Modal>
   );
+}
+
+function createCollabPopupStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    root: { flex: 1 },
+    scrim: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: "rgba(0,0,0,0.25)",
+    },
+    panel: {
+      position: "absolute",
+      backgroundColor: colors.surfaceRaised,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      padding: spacing.md,
+      shadowColor: "#000",
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 8,
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 10,
+    },
+    title: { fontSize: 16, fontWeight: "800", color: colors.text },
+    done: { color: colors.terracotta, fontWeight: "700" },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radii.md,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      color: colors.text,
+      backgroundColor: colors.background,
+      marginBottom: 8,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingVertical: 10,
+    },
+    avatar: { width: 36, height: 36, borderRadius: 10 },
+    avatarFallback: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: colors.terracotta,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    avatarLetter: { color: "#fff", fontWeight: "800" },
+    name: { fontWeight: "800", color: colors.text },
+    username: { color: colors.textMuted },
+  });
 }
 
 function createStyles(colors: ThemeColors) {

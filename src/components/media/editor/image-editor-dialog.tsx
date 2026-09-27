@@ -31,7 +31,7 @@ import { createProjectFromImageSrc, minCoverScale } from "@/lib/media-editor/lay
 import { fitCropRect } from "@/lib/media-editor/crop-presets";
 import { exportStageToBlob } from "@/lib/media-editor/export";
 import { uploadImageBlob, type UploadMediaOptions } from "@/lib/client-upload";
-import { hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
+import { buildWatermarkSvg, hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
 import { WatermarkToggleButtons } from "@/components/media/watermark-toggle-buttons";
 import type { CropAspectPreset, EditorLayer, ShapeKind } from "@/lib/media-editor/types";
 import { EDITOR_FONTS, EMOJI_QUICK_PICK } from "@/lib/media-editor/constants";
@@ -68,6 +68,8 @@ export type ImageEditorDialogProps = {
   watermarkCreditLabel?: string;
   watermarkOptions?: WatermarkOptions;
   onWatermarkOptionsChange?: (next: WatermarkOptions) => void;
+  /** compose: crop/adjust/text hidden — watermark only */
+  toolsMode?: "full" | "watermark";
   lockAspect?: boolean;
   aspect?: number;
   aspectPresets?: CropAspectPreset[];
@@ -104,6 +106,7 @@ export function ImageEditorDialog({
   watermarkCreditLabel,
   watermarkOptions,
   onWatermarkOptionsChange,
+  toolsMode = "full",
   lockAspect = false,
   aspect = 4 / 5,
   aspectPresets = DEFAULT_ASPECT_PRESETS,
@@ -130,8 +133,9 @@ export function ImageEditorDialog({
   const presets = lockAspect ? aspectPresets.filter((p) => p.aspect === aspect) : aspectPresets;
   const activeLayer = project?.layers.find((l) => l.id === project.activeLayerId) ?? null;
   const bgLayer = project?.layers.find((l) => l.type === "background") ?? null;
-  const brushMode = localTool === "draw";
-  const cropEditing = localTool === "crop";
+  const watermarkOnly = toolsMode === "watermark";
+  const brushMode = !watermarkOnly && localTool === "draw";
+  const cropEditing = !watermarkOnly && localTool === "crop";
   const activeAspectLabel =
     presets.find((p) =>
       p.aspect === undefined ? cropAspect === undefined : p.aspect === cropAspect
@@ -172,7 +176,7 @@ export function ImageEditorDialog({
     let cancelled = false;
     setLoading(true);
     setError("");
-    setLocalTool("crop");
+    setLocalTool(toolsMode === "watermark" ? "watermark" : "crop");
     setShowEmojiPick(false);
     setShowShapePick(false);
     setShowAspectPick(false);
@@ -202,7 +206,7 @@ export function ImageEditorDialog({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, imageSrc]);
+  }, [open, imageSrc, toolsMode]);
 
   useEffect(() => {
     if (!open) return;
@@ -314,7 +318,7 @@ export function ImageEditorDialog({
       if (!ok) return;
     }
     setCropAspect(initialAspect);
-    setLocalTool("crop");
+    setLocalTool(watermarkOnly ? "watermark" : "crop");
     setShowEmojiPick(false);
     setShowShapePick(false);
     setShowAspectPick(false);
@@ -379,7 +383,9 @@ export function ImageEditorDialog({
 
   const showObjectToolbar =
     activeLayer && activeLayer.type !== "background" && localTool !== "draw" && !editingTextId;
-  const visibleTools = EDITOR_TOOLS.filter((t) => !t.watermarkOnly || !!watermarkCreditLabel);
+  const visibleTools = watermarkOnly
+    ? EDITOR_TOOLS.filter((t) => t.id === "watermark")
+    : EDITOR_TOOLS.filter((t) => !t.watermarkOnly || !!watermarkCreditLabel);
   const adjustSliders = EFFECT_SLIDERS.filter(
     (s) => s.key === "brightness" || s.key === "contrast" || s.key === "saturation"
   );
@@ -527,6 +533,24 @@ export function ImageEditorDialog({
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-md bg-black/70 px-2 py-0.5 text-[10px] text-white tabular-nums pointer-events-none">
                   {Math.round(project.crop.width)} × {Math.round(project.crop.height)}
                 </div>
+              ) : null}
+              {watermarkCreditLabel &&
+              watermarkOptions &&
+              hasActiveWatermark(watermarkOptions) &&
+              containerSize.w > 0 &&
+              containerSize.h > 0 ? (
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  aria-hidden
+                  dangerouslySetInnerHTML={{
+                    __html: buildWatermarkSvg(
+                      Math.round(containerSize.w),
+                      Math.round(containerSize.h),
+                      watermarkCreditLabel,
+                      watermarkOptions
+                    ),
+                  }}
+                />
               ) : null}
             </>
           )}
@@ -884,10 +908,12 @@ export function ImageEditorDialog({
 
           {localTool === "watermark" && watermarkCreditLabel && watermarkOptions && onWatermarkOptionsChange ? (
             <div className="px-4 pb-4 pt-2 space-y-1">
-              <WatermarkToggleButtons value={watermarkOptions} onChange={onWatermarkOptionsChange} disabled={busy} />
-              <p className="text-[10px] text-muted-foreground">
-                적용 시 워터마크가 함께 들어갑니다. ({watermarkCreditLabel})
-              </p>
+              <WatermarkToggleButtons
+                value={watermarkOptions}
+                onChange={onWatermarkOptionsChange}
+                disabled={busy}
+                creditLabel={watermarkCreditLabel}
+              />
             </div>
           ) : null}
         </div>

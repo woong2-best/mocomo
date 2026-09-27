@@ -1,5 +1,3 @@
-import { isSalePricedMedia } from "@/lib/paid-media-protection";
-
 export const PAID_CONTENT_PROTECTION_SLIDE_ID = "__mocomo_content_protection_warning__";
 export const PAID_VIDEO_PROTECTION_WARNING_MS = 6000;
 
@@ -28,22 +26,15 @@ export function createProtectionWarningSlide(): ProtectionSlideMedia {
   };
 }
 
-/** Unlocked paid photos in a set get a synthetic warning slide prepended once. */
+/** Protection warning slide is retired — never prepend it. */
 export function shouldPrependProtectionSlide(
-  media: ProtectionSlideMedia[],
-  opts: {
+  _media: ProtectionSlideMedia[],
+  _opts: {
     postInstantPurchasePriceKrw?: number | null;
     isOwner?: boolean;
   } = {}
 ): boolean {
-  if (opts.isOwner) return false;
-  if (media.some(isProtectionWarningSlide)) return false;
-  return media.some(
-    (m) =>
-      m.type === "IMAGE" &&
-      !m.locked &&
-      isSalePricedMedia(m.priceKrw, m.instantPurchasePriceKrw ?? opts.postInstantPurchasePriceKrw)
-  );
+  return false;
 }
 
 export function withProtectionSlide<T extends ProtectionSlideMedia>(

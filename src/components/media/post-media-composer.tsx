@@ -30,7 +30,6 @@ import {
 } from "@/lib/gallery-image-upload";
 import { normalizeGalleryVideoFile } from "@/lib/gallery-video-upload";
 import { EMPTY_WATERMARK_OPTIONS, hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
-import { WatermarkToggleButtons } from "@/components/media/watermark-toggle-buttons";
 import { filesFromClipboard } from "@/lib/clipboard-files";
 import { cn } from "@/lib/utils";
 
@@ -150,8 +149,6 @@ export const PostMediaComposer = forwardRef<
     return { watermarkLabel: watermarkCreditLabel, watermarkOptions: options };
   }
 
-  const showWatermarkControls = !!(watermarkCreditLabel && items.length > 0);
-
   const pendingGalleryRef = useRef<{
     files: File[];
     previewUrls: string[];
@@ -163,10 +160,6 @@ export const PostMediaComposer = forwardRef<
   function handleWatermarkOptionsChange(next: WatermarkOptions) {
     setWatermarkOptions(next);
     watermarkOptionsRef.current = next;
-    if (pendingGalleryRef.current) {
-      galleryUploadGenRef.current += 1;
-      schedulePendingGalleryUpload(350);
-    }
   }
 
   function schedulePendingGalleryUpload(delayMs: number) {
@@ -205,7 +198,6 @@ export const PostMediaComposer = forwardRef<
     if (!pending) return;
 
     const gen = ++galleryUploadGenRef.current;
-    const uploadOpts = resolveUploadOpts();
     setUploading(true);
     onUploadingChange?.(true);
     setError("");
@@ -220,8 +212,7 @@ export const PostMediaComposer = forwardRef<
             const prepared = await prepareGalleryImageForUpload(file);
             const url = await uploadImageBlob(
               prepared,
-              prepared.name || "photo.jpg",
-              uploadOpts
+              prepared.name || "photo.jpg"
             );
             return { i, url, error: null };
           } catch (e) {
@@ -291,8 +282,7 @@ export const PostMediaComposer = forwardRef<
             const prepared = await prepareGalleryImageForUpload(file);
             const url = await uploadImageBlob(
               prepared,
-              prepared.name || "photo.jpg",
-              resolveUploadOpts()
+              prepared.name || "photo.jpg"
             );
             return { previewUrl: previewUrls[i], url, error: null };
           } catch (e) {
@@ -708,24 +698,6 @@ export const PostMediaComposer = forwardRef<
         </div>
       )}
 
-      {showWatermarkControls ? (
-        <div className={cn("space-y-1", layout === "toolbar" ? "pt-1" : "")}>
-          <WatermarkToggleButtons
-            value={watermarkOptions}
-            onChange={handleWatermarkOptionsChange}
-            disabled={disabled || uploading}
-          />
-          <p
-            className={cn(
-              "text-muted-foreground",
-              layout === "toolbar" ? "text-[10px]" : "text-xs"
-            )}
-          >
-            워터마크를 선택하면 자동 반영됩니다. ({watermarkCreditLabel})
-          </p>
-        </div>
-      ) : null}
-
       {layout === "toolbar" ? (
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
           <div className="flex items-center gap-0.5 flex-wrap min-w-0">
@@ -828,7 +800,7 @@ export const PostMediaComposer = forwardRef<
           }}
           imageSrc={cropSrc}
           title="사진 편집"
-          description="자르고 회전한 뒤 적용하세요."
+          description="워터마크를 고른 뒤 적용하세요."
           maxWidth={1920}
           maxHeight={1920}
           uploadFilename={cropFilename}
@@ -836,6 +808,7 @@ export const PostMediaComposer = forwardRef<
           watermarkCreditLabel={watermarkCreditLabel}
           watermarkOptions={watermarkOptions}
           onWatermarkOptionsChange={handleWatermarkOptionsChange}
+          toolsMode={watermarkCreditLabel ? "watermark" : "full"}
           onComplete={onCropComplete}
         />
       )}

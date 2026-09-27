@@ -1,4 +1,4 @@
-export type VideoTool = "trim" | "transform" | "filter" | "adjust" | "sticker" | "audio";
+export type VideoTool = "trim" | "transform" | "filter" | "adjust" | "sticker" | "audio" | "watermark";
 
 export type VideoSticker = {
   id: string;
