@@ -6,7 +6,7 @@ import { ProfileSortControls } from "@/components/profile/profile-feed-controls"
 import { useSuspendedAccount } from "@/hooks/use-suspended-account";
 import { Button } from "@/components/ui/button";
 
-/** Sort + Create — opens the unified compose sheet (글쓰기). */
+/** Sort + Create — 홈 피드 상단 인라인 작성으로 이동 */
 export function ProfileHeaderFeedActions({ isSelf }: { isSelf: boolean }) {
   const { openCompose } = useCompose();
   const { suspended, blockAction } = useSuspendedAccount();

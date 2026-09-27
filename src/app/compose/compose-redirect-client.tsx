@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { useCompose } from "@/components/compose/compose-provider";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
-/** /compose 링크 호환 — 피드로 돌아가며 글쓰기 시트 오픈 */
+/** /compose 링크 호환 — 피드로 돌아가며 상단 인라인 작성 포커스 */
 export function ComposeRedirectClient() {
   const router = useRouter();
   const searchParams = useSearchParams();

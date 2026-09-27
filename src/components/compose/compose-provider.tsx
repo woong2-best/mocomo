@@ -15,8 +15,13 @@ import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X, Loader2 } from "lucide-react";
+import {
+  focusFeedInlineCompose,
+  shouldUseFeedInlineCompose,
+} from "@/lib/compose-inline";
 import { composeSheetRegionClass } from "@/lib/compose-sheet-layout";
 import { safeRouterRefresh } from "@/lib/feed-overlay-guard";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
 
 const ComposeForm = dynamic(
@@ -40,8 +45,15 @@ type ComposeOptions = {
   viaMailbox?: boolean;
 };
 
+export type FeedInlineComposeDraft = {
+  key: number;
+  initialContent?: string;
+  initialTitle?: string;
+};
+
 type ComposeContextValue = {
   open: boolean;
+  feedInlineCompose: FeedInlineComposeDraft | null;
   openCompose: (opts?: ComposeOptions) => void;
   closeCompose: () => void;
 };
@@ -72,6 +84,19 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const [viaMailbox, setViaMailbox] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [pendingOpen, setPendingOpen] = useState<ComposeOptions | null>(null);
+  const [feedInlineCompose, setFeedInlineCompose] =
+    useState<FeedInlineComposeDraft | null>(null);
+  const [pendingInlineNavigate, setPendingInlineNavigate] =
+    useState<ComposeOptions | null>(null);
+
+  const activateFeedInlineCompose = useCallback((opts?: ComposeOptions) => {
+    setFeedInlineCompose({
+      key: Date.now(),
+      initialContent: opts?.initialContent,
+      initialTitle: opts?.initialTitle,
+    });
+    window.requestAnimationFrame(() => focusFeedInlineCompose());
+  }, []);
 
   const showComposeSheet = useCallback((opts?: ComposeOptions) => {
     setCommunityId(opts?.communityId);
@@ -82,6 +107,24 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     setOpen(true);
   }, []);
 
+  const routeCompose = useCallback(
+    (opts?: ComposeOptions) => {
+      if (shouldUseFeedInlineCompose(pathname || DEFAULT_LANDING_PATH, opts)) {
+        setOpen(false);
+        activateFeedInlineCompose(opts);
+        return;
+      }
+      if (shouldUseFeedInlineCompose(DEFAULT_LANDING_PATH, opts)) {
+        setOpen(false);
+        setPendingInlineNavigate(opts ?? {});
+        router.push(DEFAULT_LANDING_PATH);
+        return;
+      }
+      showComposeSheet(opts);
+    },
+    [activateFeedInlineCompose, pathname, router, showComposeSheet]
+  );
+
   const openCompose = useCallback(
     (opts?: ComposeOptions) => {
       if (status === "loading") {
@@ -89,15 +132,15 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (!session?.user) {
-        const callback = pathname || "/";
+        const callback = pathname || DEFAULT_LANDING_PATH;
         router.push(
           `/auth/signin?callbackUrl=${encodeURIComponent(callback)}`
         );
         return;
       }
-      showComposeSheet(opts);
+      routeCompose(opts);
     },
-    [pathname, router, session?.user, showComposeSheet, status]
+    [pathname, router, routeCompose, session?.user, status]
   );
 
   useEffect(() => {
@@ -105,12 +148,24 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     const opts = pendingOpen;
     setPendingOpen(null);
     if (!session?.user) {
-      const callback = pathname || "/";
+      const callback = pathname || DEFAULT_LANDING_PATH;
       router.push(`/auth/signin?callbackUrl=${encodeURIComponent(callback)}`);
       return;
     }
-    showComposeSheet(opts);
-  }, [status, pendingOpen, session?.user, pathname, router, showComposeSheet]);
+    routeCompose(opts);
+  }, [status, pendingOpen, session?.user, pathname, router, routeCompose]);
+
+  useEffect(() => {
+    if (pendingInlineNavigate === null) return;
+    if ((pathname || DEFAULT_LANDING_PATH) !== DEFAULT_LANDING_PATH) return;
+    const opts = pendingInlineNavigate;
+    setPendingInlineNavigate(null);
+    activateFeedInlineCompose(opts);
+  }, [
+    pathname,
+    pendingInlineNavigate,
+    activateFeedInlineCompose,
+  ]);
 
   const closeCompose = useCallback(() => {
     setOpen(false);
@@ -131,8 +186,8 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const value = useMemo(
-    () => ({ open, openCompose, closeCompose }),
-    [open, openCompose, closeCompose]
+    () => ({ open, feedInlineCompose, openCompose, closeCompose }),
+    [open, feedInlineCompose, openCompose, closeCompose]
   );
 
   const sheetRegion = composeSheetRegionClass(pathname || "/");
