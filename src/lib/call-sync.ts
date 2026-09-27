@@ -46,6 +46,32 @@ function serializeCall(call: CallSyncCall): CallSyncCall {
   };
 }
 
+/** Drop this user's leftover ringing/active rows so the next call can start. */
+export async function releaseCallerActiveCalls(userId: string): Promise<void> {
+  await db.voiceCall.updateMany({
+    where: {
+      status: { in: ACTIVE },
+      OR: [{ callerId: userId }, { calleeId: userId }],
+    },
+    data: { status: CallStatus.ENDED, endedAt: new Date() },
+  });
+}
+
+/** True when the peer is already in a call with somebody else. */
+export async function peerBusyWithSomeoneElse(userId: string, peerId: string): Promise<boolean> {
+  const row = await db.voiceCall.findFirst({
+    where: {
+      status: { in: ACTIVE },
+      AND: [
+        { OR: [{ callerId: peerId }, { calleeId: peerId }] },
+        { NOT: { OR: [{ callerId: userId }, { calleeId: userId }] } },
+      ],
+    },
+    select: { id: true },
+  });
+  return !!row;
+}
+
 /** Authoritative 1:1 call state. Clients use this after a Realtime hint. */
 export async function getCallSyncForUser(userId: string): Promise<CallSyncResponse> {
   const includeUsers = {

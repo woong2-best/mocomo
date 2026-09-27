@@ -6,6 +6,8 @@ import { db } from "@/lib/db";
 import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { CallStatus, CallType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { incomingContactDecision } from "@/lib/contact-audience";
+import { peerBusyWithSomeoneElse, releaseCallerActiveCalls } from "@/lib/call-sync";
 
 const ACTIVE_STATUSES: CallStatus[] = [CallStatus.RINGING, CallStatus.ACTIVE];
 
@@ -76,26 +78,23 @@ export async function initiateCall(data: {
   const user = await requireAuthMinimal();
   if (user.id === data.calleeId) return { error: "자기 자신에게는 전화할 수 없습니다." };
 
-  const activePromise = db.voiceCall.findFirst({
-    where: {
-      status: { in: ACTIVE_STATUSES },
-      OR: [{ callerId: user.id }, { calleeId: user.id }, { callerId: data.calleeId }, { calleeId: data.calleeId }],
-    },
-    select: { id: true },
-  });
+  await releaseCallerActiveCalls(user.id);
   const roomPromise = data.chatRoomId
     ? db.chatRoom.findUnique({
         where: { id: data.chatRoomId },
         include: { members: { select: { userId: true } } },
       })
     : Promise.resolve(null);
-  const [active, room, blocked] = await Promise.all([
-    activePromise,
+  const [room, blocked, peerBusy] = await Promise.all([
     roomPromise,
     isCallBlocked(user.id, data.calleeId),
+    peerBusyWithSomeoneElse(user.id, data.calleeId),
   ]);
-  if (active) return { error: "이미 진행 중인 통화가 있습니다." };
+  if (peerBusy) return { error: "상대방이 다른 통화 중입니다." };
   if (blocked) return { error: "차단된 사용자와는 통화할 수 없습니다." };
+
+  const audience = await incomingContactDecision(user.id, data.calleeId, "call");
+  if (!audience.allowed) return { error: audience.error };
 
   if (data.chatRoomId) {
     if (!room || room.type !== "DM") return { error: "DM 방에서만 통화할 수 있습니다." };

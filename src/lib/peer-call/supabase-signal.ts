@@ -134,36 +134,41 @@ export function subscribeUserCallEvents(
   };
 }
 
+const publishChannels = new Map<string, Promise<RealtimeChannel | null>>();
+
+function publisherChannel(topic: string): Promise<RealtimeChannel | null> {
+  const cached = publishChannels.get(topic);
+  if (cached) return cached;
+  const pending = (async () => {
+    const supabase = getCallRealtimeClient();
+    if (!supabase) return null;
+    const channel = supabase.channel(topic, {
+      config: { broadcast: { self: false, ack: true } },
+    });
+    const ok = await waitUntilSubscribed(channel);
+    if (!ok) {
+      publishChannels.delete(topic);
+      void supabase.removeChannel(channel);
+      return null;
+    }
+    return channel;
+  })();
+  publishChannels.set(topic, pending);
+  return pending;
+}
+
 /** Notify the other participant. Broadcast is a hint; clients confirm with /api/calls/sync. */
 export async function publishUserCallEvent(
   targetUserId: string,
   event: UserCallEventName,
   callId: string
 ): Promise<void> {
-  const supabase = getCallRealtimeClient();
-  if (!supabase || !targetUserId || !callId) return;
-
-  const topic = userCallTopic(targetUserId);
-  const channel = supabase.channel(topic, {
-    config: { broadcast: { self: false, ack: true } },
-  });
-  const alreadyJoined = channel.state === "joined";
-
-  if (!alreadyJoined) {
-    const ok = await waitUntilSubscribed(channel);
-    if (!ok) {
-      void supabase.removeChannel(channel);
-      return;
-    }
-  }
-
+  if (!getCallRealtimeClient() || !targetUserId || !callId) return;
+  const channel = await publisherChannel(userCallTopic(targetUserId));
+  if (!channel) return;
   await channel.send({
     type: "broadcast",
     event,
     payload: { callId },
   });
-
-  if (!alreadyJoined) {
-    void supabase.removeChannel(channel);
-  }
 }

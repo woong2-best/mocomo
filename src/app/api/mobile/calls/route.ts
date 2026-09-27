@@ -6,8 +6,8 @@ import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { notifyIncomingCall } from "@/lib/notifications";
 import { db } from "@/lib/db";
-
-const ACTIVE_STATUSES: CallStatus[] = [CallStatus.RINGING, CallStatus.ACTIVE];
+import { incomingContactDecision } from "@/lib/contact-audience";
+import { peerBusyWithSomeoneElse, releaseCallerActiveCalls } from "@/lib/call-sync";
 
 const bodySchema = z.object({
   calleeId: z.string().min(1).max(64),
@@ -54,18 +54,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "자기 자신에게는 전화할 수 없습니다." }, { status: 400 });
   }
 
-  const activePromise = db.voiceCall.findFirst({
-    where: {
-      status: { in: ACTIVE_STATUSES },
-      OR: [
-        { callerId: user.id },
-        { calleeId: user.id },
-        { callerId: calleeId },
-        { calleeId },
-      ],
-    },
-    select: { id: true },
-  });
+  await releaseCallerActiveCalls(user.id);
   const roomPromise = chatRoomId
     ? db.chatRoom.findUnique({
         where: { id: chatRoomId },
@@ -73,17 +62,22 @@ export async function POST(req: NextRequest) {
       })
     : Promise.resolve(null);
 
-  const [active, room, blocked] = await Promise.all([
-    activePromise,
+  const [room, blocked, peerBusy] = await Promise.all([
     roomPromise,
     isCallBlocked(user.id, calleeId),
+    peerBusyWithSomeoneElse(user.id, calleeId),
   ]);
 
-  if (active) {
-    return NextResponse.json({ error: "이미 진행 중인 통화가 있습니다." }, { status: 409 });
+  if (peerBusy) {
+    return NextResponse.json({ error: "상대방이 다른 통화 중입니다." }, { status: 409 });
   }
   if (blocked) {
     return NextResponse.json({ error: "차단된 사용자와는 통화할 수 없습니다." }, { status: 403 });
+  }
+
+  const audience = await incomingContactDecision(user.id, calleeId, "call");
+  if (!audience.allowed) {
+    return NextResponse.json({ error: audience.error }, { status: 403 });
   }
   if (chatRoomId) {
     if (!room || room.type !== "DM") {

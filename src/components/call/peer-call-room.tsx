@@ -24,9 +24,10 @@ function VideoAttach({ stream, className }: { stream: MediaStream | null; classN
     const el = ref.current;
     if (!el) return;
     el.srcObject = stream;
+    el.muted = true;
     void el.play().catch(() => undefined);
   }, [stream]);
-  return <video ref={ref} autoPlay playsInline className={className} />;
+  return <video ref={ref} autoPlay playsInline muted className={className} />;
 }
 
 function AudioAttach({ stream }: { stream: MediaStream | null }) {
@@ -35,9 +36,10 @@ function AudioAttach({ stream }: { stream: MediaStream | null }) {
     const el = ref.current;
     if (!el) return;
     el.srcObject = stream;
+    el.volume = 1;
     void el.play().catch(() => undefined);
   }, [stream]);
-  return <audio ref={ref} autoPlay />;
+  return <audio ref={ref} autoPlay playsInline />;
 }
 
 function DmVideoSplitStage({

@@ -104,6 +104,9 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   } | null>(null);
   /** 로컬에서 끊은 통화 — sync 폴링이 다시 띄우지 않도록 */
   const locallyDismissedCallIdsRef = useRef<Set<string>>(new Set());
+  /** Calls we already finished. A late sync must not reopen them over a new call. */
+  const finishedCallIdsRef = useRef<Set<string>>(new Set());
+  const syncGenRef = useRef(0);
   const earlySignalsRef = useRef<CallSignalEvent[]>([]);
 
   callStateRef.current = callState;
@@ -163,7 +166,9 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     (callId?: string) => {
       if (callId) {
         locallyDismissedCallIdsRef.current.add(callId);
+        finishedCallIdsRef.current.add(callId);
         lastTerminalRef.current = callId;
+        window.setTimeout(() => finishedCallIdsRef.current.delete(callId), 60_000);
       }
       resetCall();
     },
@@ -199,6 +204,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
       if (data.event === "incoming" || data.event === "outgoing" || data.event === "active") {
         if (locallyDismissedCallIdsRef.current.has(data.call.id)) return;
+        if (finishedCallIdsRef.current.has(data.call.id)) return;
 
         if (current.phase === "active" && current.call.id === data.call.id && data.event === "active") {
           return;
@@ -251,6 +257,19 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     [dismissCallUi, emit]
   );
 
+  const pullSync = useCallback(async () => {
+    const my = ++syncGenRef.current;
+    try {
+      const res = await fetch("/api/calls/sync", { cache: "no-store" });
+      if (!res.ok || my !== syncGenRef.current) return;
+      const data = (await res.json()) as SyncResponse;
+      if (my !== syncGenRef.current) return;
+      applySync(data);
+    } catch {
+      /* ignore */
+    }
+  }, [applySync]);
+
   useEffect(() => {
     if (!userId || typeof window === "undefined") return;
 
@@ -271,54 +290,38 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     url.searchParams.delete("decline");
     window.history.replaceState({}, "", url.pathname + url.search + url.hash);
 
-    void fetch("/api/calls/sync", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data) applySync(data as SyncResponse);
-      })
-      .catch(() => undefined);
-  }, [userId, applySync]);
+    void pullSync();
+  }, [userId, pullSync]);
 
   const callPhase = callState.phase;
 
   useEffect(() => {
     if (!userId) return;
 
-    let cancelled = false;
     let intervalId: ReturnType<typeof setInterval> | null = null;
-
-    async function syncCalls() {
-      try {
-        const res = await fetch("/api/calls/sync", { cache: "no-store" });
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as SyncResponse;
-        if (!cancelled) applySync(data);
-      } catch {
-        /* ignore */
-      }
-    }
 
     function schedule() {
       if (intervalId) clearInterval(intervalId);
       const ms = syncPollIntervalMs(callPhase, document.hidden);
-      intervalId = setInterval(syncCalls, ms);
+      intervalId = setInterval(() => {
+        void pullSync();
+      }, ms);
     }
 
-    syncCalls();
+    void pullSync();
     schedule();
 
     const onVisibility = () => {
-      syncCalls();
+      void pullSync();
       schedule();
     };
     document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      cancelled = true;
       if (intervalId) clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [userId, applySync, callPhase]);
+  }, [userId, pullSync, callPhase]);
 
   const ringingSyncKey =
     callState.phase === "outgoing" || callState.phase === "incoming"
@@ -327,20 +330,8 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!ringingSyncKey || !userId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/calls/sync", { cache: "no-store" });
-        if (!res.ok || cancelled) return;
-        applySync((await res.json()) as SyncResponse);
-      } catch {
-        /* ignore */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [ringingSyncKey, userId, applySync]);
+    void pullSync();
+  }, [ringingSyncKey, userId, pullSync]);
 
   const prefetchCallRoom = useCallback(() => {
     void import("@/components/call/peer-call-room");
@@ -352,29 +343,22 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       if (event === "ended" || event === "declined") {
         endFromRemote(callId, event === "declined" ? "declined" : "ended");
       }
-      void fetch("/api/calls/sync", { cache: "no-store" })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data) applySync(data as SyncResponse);
-        })
-        .catch(() => undefined);
+      void pullSync();
     });
-  }, [userId, applySync, endFromRemote]);
+  }, [userId, pullSync, endFromRemote]);
 
   useEffect(() => {
     if (!userId || !socket) return;
 
     const onConnect = () => {
       flushPendingEmits(socket);
-      void fetch("/api/calls/sync", { cache: "no-store" })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data) applySync(data as SyncResponse);
-        })
-        .catch(() => undefined);
+      void pullSync();
     };
 
     const onCallIncoming = (call: CallPayload) => {
+      if (finishedCallIdsRef.current.has(call.id) || locallyDismissedCallIdsRef.current.has(call.id)) {
+        return;
+      }
       setCallState({ phase: "incoming", call, peer: call.caller });
       setError("");
       prefetchCallRoom();
@@ -426,7 +410,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       socket.off("call_ended", onCallEnded);
       pendingEmitsRef.current = [];
     };
-  }, [userId, socket, flushPendingEmits, prefetchCallRoom, applySync, endFromRemote]);
+  }, [userId, socket, flushPendingEmits, prefetchCallRoom, pullSync, endFromRemote]);
 
   useEffect(() => {
     if (!socketReady || !socket?.connected) return;

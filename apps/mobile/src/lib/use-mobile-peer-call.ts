@@ -109,7 +109,12 @@ export function useMobilePeerCall({
     if (localStreamRef.current) return localStreamRef.current;
     await ensureLiveKitGlobals();
     const stream = (await mediaDevices.getUserMedia({
-      audio: true,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,
+      },
       video: false,
     })) as MediaStream;
     localStreamRef.current = stream;

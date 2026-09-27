@@ -12,6 +12,26 @@ import {
 
 export type PeerCallState = "idle" | "connecting" | "connected" | "failed" | "closed";
 
+const CALL_AUDIO: MediaTrackConstraints = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  channelCount: 1,
+};
+
+let heldMic: MediaStream | null = null;
+
+function holdMic(stream: MediaStream) {
+  if (heldMic && heldMic !== stream) {
+    for (const track of heldMic.getTracks()) track.stop();
+  }
+  heldMic = stream;
+}
+
+function releaseMic(stream: MediaStream | null) {
+  if (stream && heldMic === stream) heldMic = null;
+}
+
 function asSdp(
   raw: RTCSessionDescriptionInit | undefined,
   fallback: "offer" | "answer"
@@ -116,6 +136,7 @@ export function usePeerCall({
     for (const track of localStreamRef.current?.getTracks() ?? []) {
       track.stop();
     }
+    releaseMic(localStreamRef.current);
     localStreamRef.current = null;
     remoteStreamRef.current = null;
     rtcConfigRef.current = null;
@@ -128,11 +149,12 @@ export function usePeerCall({
     if (localStreamRef.current) return localStreamRef.current;
     const wantsVideo = videoRef.current;
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
+      audio: CALL_AUDIO,
       video: wantsVideo
         ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
         : false,
     });
+    holdMic(stream);
     localStreamRef.current = stream;
     setLocalStream(stream);
     setCameraEnabled(wantsVideo && stream.getVideoTracks().some((t) => t.enabled));
@@ -176,12 +198,14 @@ export function usePeerCall({
       if (first) {
         remoteStreamRef.current = first;
         setRemoteStream(first);
-      } else {
-        const merged = remoteStreamRef.current ?? new MediaStream();
-        merged.addTrack(ev.track);
-        remoteStreamRef.current = merged;
-        setRemoteStream(merged);
+        return;
       }
+      const merged = remoteStreamRef.current ?? new MediaStream();
+      if (!merged.getTracks().some((track) => track.id === ev.track.id)) {
+        merged.addTrack(ev.track);
+      }
+      remoteStreamRef.current = merged;
+      setRemoteStream(merged);
     };
 
     pc.onconnectionstatechange = () => {
@@ -222,6 +246,7 @@ export function usePeerCall({
 
         const offer = asSdp(payload.sdp, "offer");
         if (!offer.sdp) return;
+        if (answeredRef.current && pc.currentRemoteDescription?.sdp === offer.sdp) return;
         try {
           await pc.setRemoteDescription(offer);
         } catch {
@@ -365,20 +390,20 @@ export function usePeerCall({
     })();
 
     const retry = isCaller
-      ? setInterval(() => {
+      ? setTimeout(() => {
           if (answeredRef.current || cancelled) return;
           const pc = pcRef.current;
           const local = pc?.localDescription;
           if (local?.type === "offer" && local.sdp) {
             emitSignal({ type: "offer", sdp: local });
           }
-        }, 3000)
+        }, 2000)
       : null;
 
     return () => {
       cancelled = true;
       if (offerTimer) clearTimeout(offerTimer);
-      if (retry) clearInterval(retry);
+      if (retry) clearTimeout(retry);
       sessionSendRef.current = () => undefined;
       session?.close();
       cleanup();

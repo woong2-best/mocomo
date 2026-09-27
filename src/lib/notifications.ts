@@ -54,12 +54,13 @@ export async function createNotification(data: NotificationInput): Promise<void>
         }
 
         if (data.type !== "call" && !isAppAlarmType(data.type)) return;
+        const callId = data.pushData?.callId;
         return deliverMobilePush({
           userId: data.userId,
           title: data.title,
           body: data.body || data.title,
           url: data.link,
-          tag: `sns-${data.type}`,
+          tag: data.type === "call" && callId ? `call-${callId}` : `sns-${data.type}`,
           type: pushType,
           data: pushData,
         });
