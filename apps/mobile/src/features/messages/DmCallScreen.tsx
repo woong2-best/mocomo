@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RTCView } from "@livekit/react-native-webrtc";
 import { ApiError } from "@/api/client";
 import { endDmCall, fetchMobileCallSync, initiateDmCall, acceptDmCall, type DmCallPayload } from "@/api/calls";
-import { joinCallBooking } from "@/api/call-bookings";
 import { useAuth } from "@/auth/AuthContext";
 import { publishUserCallEvent, subscribeUserCallEvents } from "@/lib/supabase-call-signal";
 import { useMobilePeerCall } from "@/lib/use-mobile-peer-call";
@@ -22,12 +21,14 @@ function PeerCallStage({
   userId,
   peerUserId,
   isCaller,
+  onRemoteHangup,
 }: {
   callId: string;
   signalingRoomId: string;
   userId: string;
   peerUserId: string;
   isCaller: boolean;
+  onRemoteHangup: () => void;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -39,6 +40,7 @@ function PeerCallStage({
     isCaller,
     enabled: true,
     onFailed: (msg) => showIslandError("연결 오류", msg),
+    onRemoteHangup,
   });
 
   return (
@@ -74,24 +76,30 @@ export function DmCallScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const route = useRoute<RouteProp<RootStackParamList, "DmCall">>();
-  const { roomId, calleeId, displayName, displayImage, bookingId } = route.params;
+  const { roomId, calleeId, displayName, displayImage } = route.params;
 
   const [phase, setPhase] = useState<"dialing" | "ringing" | "live" | "error">("dialing");
   const [error, setError] = useState<string | null>(null);
   const [call, setCall] = useState<DmCallPayload | null>(null);
+  const closedRef = useRef(false);
+
+  const closeFromRemote = useCallback(() => {
+    if (closedRef.current) return;
+    closedRef.current = true;
+    if (call?.id) void endDmCall(call.id).catch(() => undefined);
+    navigation.goBack();
+  }, [call?.id, navigation]);
 
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
     void (async () => {
       try {
-        const res = bookingId
-          ? await joinCallBooking(bookingId)
-          : await initiateDmCall({
-              calleeId,
-              chatRoomId: roomId,
-              callType: "AUDIO",
-            });
+        const res = await initiateDmCall({
+          calleeId,
+          chatRoomId: roomId,
+          callType: "AUDIO",
+        });
         if (cancelled) {
           void endDmCall(res.call.id).catch(() => undefined);
           return;
@@ -120,48 +128,44 @@ export function DmCallScreen() {
     return () => {
       cancelled = true;
     };
-  }, [bookingId, calleeId, roomId, user?.id]);
+  }, [calleeId, roomId, user?.id]);
 
   useEffect(() => {
-    if (!user?.id || !call || phase !== "ringing") return;
+    if (!user?.id || !call || (phase !== "ringing" && phase !== "live")) return;
     const callId = call.id;
     const unsub = subscribeUserCallEvents(user.id, (event, id) => {
       if (id !== callId) return;
       if (event === "accepted") setPhase("live");
-      if (event === "declined" || event === "ended") {
-        setError(event === "declined" ? "상대방이 통화를 거절했습니다." : "통화가 종료되었습니다.");
-        setPhase("error");
-      }
+      if (event === "declined" || event === "ended") closeFromRemote();
     });
     const timer = setInterval(() => {
       void fetchMobileCallSync()
         .then((data) => {
           if (data.event === "active" && data.call.id === callId) setPhase("live");
           if ((data.event === "declined" || data.event === "ended") && data.callId === callId) {
-            setError(
-              data.event === "declined" ? "상대방이 통화를 거절했습니다." : "통화가 종료되었습니다."
-            );
-            setPhase("error");
+            closeFromRemote();
           }
         })
         .catch(() => undefined);
-    }, 2000);
+    }, 1500);
     return () => {
       unsub();
       clearInterval(timer);
     };
-  }, [call, phase, user?.id]);
+  }, [call, phase, user?.id, closeFromRemote]);
 
   const hangUp = useCallback(async () => {
+    if (closedRef.current) return;
+    closedRef.current = true;
     if (call) {
       const peerId = call.caller.id === user?.id ? call.callee.id : call.caller.id;
       const event = phase === "live" ? "ended" : "declined";
-      void publishUserCallEvent(peerId, event, call.id);
       try {
         await endDmCall(call.id);
       } catch {
         /* ignore */
       }
+      void publishUserCallEvent(peerId, event, call.id);
     }
     navigation.goBack();
   }, [call, navigation, phase, user?.id]);
@@ -200,6 +204,7 @@ export function DmCallScreen() {
             userId={user.id}
             peerUserId={peerUserId}
             isCaller={selfIsCaller}
+            onRemoteHangup={closeFromRemote}
           />
           <View style={[styles.overlayTop, { paddingTop: insets.top + 12 }]}>
             <FolkAvatar uri={displayImage} name={displayName} size={44} />

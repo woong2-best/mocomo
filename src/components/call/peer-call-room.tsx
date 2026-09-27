@@ -130,6 +130,7 @@ export function PeerCallRoom({
   selfPeer,
   phase,
   onHangup,
+  onRemoteHangup,
 }: {
   callId: string;
   signalingRoomId: string;
@@ -144,6 +145,7 @@ export function PeerCallRoom({
   selfPeer: CallParticipant;
   phase: "outgoing" | "active";
   onHangup: () => void;
+  onRemoteHangup?: () => void;
 }) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -162,6 +164,7 @@ export function PeerCallRoom({
     socket,
     initialSignals,
     onFailed: onPeerFailed,
+    onRemoteHangup,
   });
 
   useEffect(() => {

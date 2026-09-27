@@ -78,9 +78,10 @@ type SyncResponse =
   | { event: "incoming" | "outgoing" | "active"; call: CallPayload; peer: CallPayload["caller"] };
 
 function syncPollIntervalMs(phase: ActiveCallState["phase"], hidden: boolean) {
-  if (phase === "active") return 5000;
-  if (phase === "outgoing" || phase === "incoming" || phase === "preparing") return 250;
-  return hidden ? 15000 : 2000;
+  if (phase === "active" || phase === "outgoing" || phase === "incoming" || phase === "preparing") {
+    return 1000;
+  }
+  return hidden ? 15000 : 4000;
 }
 
 function CallProviderRuntime({ children }: { children: React.ReactNode }) {
@@ -216,17 +217,35 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     [dismissCallUi]
   );
 
+  const endFromRemote = useCallback(
+    (callId: string, kind: "ended" | "declined" = "ended") => {
+      const current = callStateRef.current;
+      if (!isCallPhase(current) || current.call.id !== callId) return;
+      if (locallyDismissedCallIdsRef.current.has(callId)) return;
+      if (kind === "declined" && current.phase !== "active") {
+        setError("상대방이 통화를 거절했습니다.");
+      }
+      dismissCallUi(callId);
+      const finish =
+        kind === "declined" && current.phase !== "active" ? declineCall(callId) : endCall(callId);
+      void finish.finally(() => {
+        locallyDismissedCallIdsRef.current.delete(callId);
+      });
+    },
+    [dismissCallUi]
+  );
+
   const hangup = useCallback(
     (callId: string) => {
       const current = callStateRef.current;
       const peerId = isCallPhase(current) ? current.peer.id : undefined;
       dismissCallUi(callId);
-      if (peerId) {
-        void publishUserCallEvent(peerId, "ended", callId);
-        emit("call_end", { callId, peerId });
-      }
+      if (peerId) emit("call_end", { callId, peerId });
       void endCall(callId)
-        .then(() => locallyDismissedCallIdsRef.current.delete(callId))
+        .then(() => {
+          if (peerId) void publishUserCallEvent(peerId, "ended", callId);
+          locallyDismissedCallIdsRef.current.delete(callId);
+        })
         .catch(() => undefined);
     },
     [dismissCallUi, emit]
@@ -260,6 +279,8 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       .catch(() => undefined);
   }, [userId, applySync]);
 
+  const callPhase = callState.phase;
+
   useEffect(() => {
     if (!userId) return;
 
@@ -279,7 +300,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
     function schedule() {
       if (intervalId) clearInterval(intervalId);
-      const ms = syncPollIntervalMs(callStateRef.current.phase, document.hidden);
+      const ms = syncPollIntervalMs(callPhase, document.hidden);
       intervalId = setInterval(syncCalls, ms);
     }
 
@@ -297,7 +318,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       if (intervalId) clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [userId, applySync]);
+  }, [userId, applySync, callPhase]);
 
   const ringingSyncKey =
     callState.phase === "outgoing" || callState.phase === "incoming"
@@ -327,7 +348,10 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!userId) return;
-    return subscribeUserCallEvents(userId, () => {
+    return subscribeUserCallEvents(userId, (event, callId) => {
+      if (event === "ended" || event === "declined") {
+        endFromRemote(callId, event === "declined" ? "declined" : "ended");
+      }
       void fetch("/api/calls/sync", { cache: "no-store" })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
@@ -335,7 +359,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
         })
         .catch(() => undefined);
     });
-  }, [userId, applySync]);
+  }, [userId, applySync, endFromRemote]);
 
   useEffect(() => {
     if (!userId || !socket) return;
@@ -369,27 +393,17 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     };
 
     const onCallDeclined = ({ callId }: { callId: string }) => {
-      setCallState((prev) => {
-        if (isCallPhase(prev) && prev.call.id === callId) {
-          setError("상대방이 통화를 거절했습니다.");
-          return { phase: "idle" };
-        }
-        return prev;
-      });
+      endFromRemote(callId, "declined");
     };
 
     const onCallEnded = ({ callId }: { callId: string }) => {
-      setCallState((prev) => {
-        if (isCallPhase(prev) && prev.call.id === callId) {
-          return { phase: "idle" };
-        }
-        return prev;
-      });
+      endFromRemote(callId, "ended");
     };
 
     const onCallSignal = (data: CallSignalEvent) => {
       if (!data?.callId || !data.payload) return;
       earlySignalsRef.current = [...earlySignalsRef.current, data].slice(-40);
+      if (data.payload.type === "hangup") endFromRemote(data.callId, "ended");
     };
 
     socket.on("connect", onConnect);
@@ -412,7 +426,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       socket.off("call_ended", onCallEnded);
       pendingEmitsRef.current = [];
     };
-  }, [userId, socket, flushPendingEmits, prefetchCallRoom, applySync]);
+  }, [userId, socket, flushPendingEmits, prefetchCallRoom, applySync, endFromRemote]);
 
   useEffect(() => {
     if (!socketReady || !socket?.connected) return;
@@ -578,10 +592,12 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     const callId = current.call.id;
     const peerId = current.peer.id;
     dismissCallUi(callId);
-    void publishUserCallEvent(peerId, "declined", callId);
     emit("call_decline", { callId, peerId });
     void declineCall(callId)
-      .then(() => locallyDismissedCallIdsRef.current.delete(callId))
+      .then(() => {
+        void publishUserCallEvent(peerId, "declined", callId);
+        locallyDismissedCallIdsRef.current.delete(callId);
+      })
       .catch(() => undefined);
   }, [dismissCallUi, emit]);
 
@@ -591,10 +607,12 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     const callId = current.call.id;
     const peerId = current.peer.id;
     dismissCallUi(callId);
-    void publishUserCallEvent(peerId, "declined", callId);
     emit("call_decline", { callId, peerId });
     void declineCall(callId)
-      .then(() => locallyDismissedCallIdsRef.current.delete(callId))
+      .then(() => {
+        void publishUserCallEvent(peerId, "declined", callId);
+        locallyDismissedCallIdsRef.current.delete(callId);
+      })
       .catch(() => undefined);
   }, [dismissCallUi, emit]);
 
@@ -675,6 +693,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
                   onHangup={() => {
                     hangup(callState.call.id);
                   }}
+                  onRemoteHangup={() => endFromRemote(callState.call.id, "ended")}
                 />
               ) : undefined
             }

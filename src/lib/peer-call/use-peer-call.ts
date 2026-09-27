@@ -34,6 +34,7 @@ type UsePeerCallOptions = {
   initialSignals?: CallSignalEvent[];
   onConnected?: () => void;
   onFailed?: (message: string) => void;
+  onRemoteHangup?: () => void;
 };
 
 export function usePeerCall({
@@ -48,6 +49,7 @@ export function usePeerCall({
   initialSignals,
   onConnected,
   onFailed,
+  onRemoteHangup,
 }: UsePeerCallOptions) {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -60,6 +62,7 @@ export function usePeerCall({
   const sessionSendRef = useRef<(signal: VoiceWireSignal) => void>(() => undefined);
   const onConnectedRef = useRef(onConnected);
   const onFailedRef = useRef(onFailed);
+  const onRemoteHangupRef = useRef(onRemoteHangup);
   const callIdRef = useRef(callId);
   const peerUserIdRef = useRef(peerUserId);
   const videoRef = useRef(video);
@@ -78,6 +81,7 @@ export function usePeerCall({
   useEffect(() => {
     onConnectedRef.current = onConnected;
     onFailedRef.current = onFailed;
+    onRemoteHangupRef.current = onRemoteHangup;
     callIdRef.current = callId;
     peerUserIdRef.current = peerUserId;
     videoRef.current = video;
@@ -205,6 +209,7 @@ export function usePeerCall({
       const polite = politeRef.current;
 
       if (payload.type === "hangup") {
+        onRemoteHangupRef.current?.();
         cleanup();
         return;
       }

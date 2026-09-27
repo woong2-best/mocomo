@@ -53,6 +53,7 @@ export function useMobilePeerCall({
   isCaller,
   enabled,
   onFailed,
+  onRemoteHangup,
 }: {
   callId: string;
   signalingRoomId: string;
@@ -61,6 +62,7 @@ export function useMobilePeerCall({
   isCaller: boolean;
   enabled: boolean;
   onFailed?: (message: string) => void;
+  onRemoteHangup?: () => void;
 }) {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -71,6 +73,7 @@ export function useMobilePeerCall({
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
   const sessionSendRef = useRef<(signal: VoiceWireSignal) => void>(() => undefined);
   const onFailedRef = useRef(onFailed);
+  const onRemoteHangupRef = useRef(onRemoteHangup);
   const peerUserIdRef = useRef(peerUserId);
   const isCallerRef = useRef(isCaller);
 
@@ -81,6 +84,7 @@ export function useMobilePeerCall({
 
   useEffect(() => {
     onFailedRef.current = onFailed;
+    onRemoteHangupRef.current = onRemoteHangup;
     peerUserIdRef.current = peerUserId;
     isCallerRef.current = isCaller;
     politeRef.current = !isCaller;
@@ -189,6 +193,7 @@ export function useMobilePeerCall({
       const polite = politeRef.current;
 
       if (payload.type === "hangup") {
+        onRemoteHangupRef.current?.();
         cleanup();
         return;
       }

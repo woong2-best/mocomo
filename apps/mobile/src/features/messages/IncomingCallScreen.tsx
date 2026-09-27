@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RTCView } from "@livekit/react-native-webrtc";
 import { acceptDmCall, declineDmCall, endDmCall, fetchMobileCallSync } from "@/api/calls";
 import { useAuth } from "@/auth/AuthContext";
-import { publishUserCallEvent } from "@/lib/supabase-call-signal";
+import { publishUserCallEvent, subscribeUserCallEvents } from "@/lib/supabase-call-signal";
 import { useMobilePeerCall } from "@/lib/use-mobile-peer-call";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { showIslandError } from "@/ui/IslandToast";
@@ -19,11 +19,13 @@ function LivePeerStage({
   signalingRoomId,
   userId,
   callerId,
+  onRemoteHangup,
 }: {
   callId: string;
   signalingRoomId: string;
   userId: string;
   callerId: string;
+  onRemoteHangup: () => void;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -35,6 +37,7 @@ function LivePeerStage({
     isCaller: false,
     enabled: true,
     onFailed: (msg) => showIslandError("연결 오류", msg),
+    onRemoteHangup,
   });
 
   return (
@@ -72,6 +75,35 @@ export function IncomingCallScreen() {
   const [callerId, setCallerId] = useState<string | null>(null);
   const [signalingRoomId, setSignalingRoomId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const closedRef = useRef(false);
+
+  const closeFromRemote = useCallback(() => {
+    if (closedRef.current) return;
+    closedRef.current = true;
+    void endDmCall(callId).catch(() => undefined);
+    navigation.goBack();
+  }, [callId, navigation]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const unsub = subscribeUserCallEvents(user.id, (event, id) => {
+      if (id !== callId) return;
+      if (event === "ended" || event === "declined") closeFromRemote();
+    });
+    const timer = setInterval(() => {
+      void fetchMobileCallSync()
+        .then((data) => {
+          if ((data.event === "ended" || data.event === "declined") && data.callId === callId) {
+            closeFromRemote();
+          }
+        })
+        .catch(() => undefined);
+    }, 1500);
+    return () => {
+      unsub();
+      clearInterval(timer);
+    };
+  }, [callId, closeFromRemote, user?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,8 +123,10 @@ export function IncomingCallScreen() {
   }, [callId]);
 
   const decline = useCallback(async () => {
-    if (callerId) void publishUserCallEvent(callerId, "declined", callId);
+    if (closedRef.current) return;
+    closedRef.current = true;
     await declineDmCall(callId).catch(() => undefined);
+    if (callerId) void publishUserCallEvent(callerId, "declined", callId);
     navigation.goBack();
   }, [callId, callerId, navigation]);
 
@@ -115,8 +149,10 @@ export function IncomingCallScreen() {
   }, [callId]);
 
   const hangUp = useCallback(async () => {
-    if (callerId) void publishUserCallEvent(callerId, "ended", callId);
+    if (closedRef.current) return;
+    closedRef.current = true;
     await endDmCall(callId).catch(() => undefined);
+    if (callerId) void publishUserCallEvent(callerId, "ended", callId);
     navigation.goBack();
   }, [callId, callerId, navigation]);
 
@@ -155,6 +191,7 @@ export function IncomingCallScreen() {
         signalingRoomId={signalingRoomId}
         userId={user.id}
         callerId={callerId}
+        onRemoteHangup={closeFromRemote}
       />
       <View style={[styles.liveBar, { paddingBottom: insets.bottom + spacing.md }]}>
         <Text style={styles.liveName}>{callerName}</Text>
