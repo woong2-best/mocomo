@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { useCompose } from "@/components/compose/compose-provider";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
-/** /compose 링크 호환 — 피드로 돌아가며 상단 인라인 작성 포커스 */
+/** /compose 링크 호환 — 현재 페이지에서 떠 있는 작성 창 오픈 */
 export function ComposeRedirectClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,7 +23,14 @@ export function ComposeRedirectClient() {
       initialContent: searchParams.get("text") ?? undefined,
       initialTitle: searchParams.get("title") ?? undefined,
     });
-    router.replace(DEFAULT_LANDING_PATH, { scroll: false });
+    const returnPath = searchParams.get("from");
+    if (returnPath?.startsWith("/") && !returnPath.startsWith("//")) {
+      router.replace(returnPath, { scroll: false });
+    } else if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.replace(DEFAULT_LANDING_PATH, { scroll: false });
+    }
   }, [openCompose, router, searchParams, status]);
 
   return null;
