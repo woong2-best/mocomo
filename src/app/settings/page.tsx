@@ -139,11 +139,6 @@ export default async function SettingsPage() {
                 정기 후원 관리
               </Button>
             </Link>
-            <Link href="/settings/creator">
-              <Button variant="outline" size="sm">
-                {t("settings.creatorRevenue")}
-              </Button>
-            </Link>
             <Link href="/coupons">
               <Button variant="outline" size="sm">
                 내 쿠폰

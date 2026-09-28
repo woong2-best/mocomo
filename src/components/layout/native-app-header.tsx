@@ -42,7 +42,6 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   if (pathname.startsWith("/post/")) return "게시물";
   if (pathname.startsWith("/settings")) {
     if (pathname === "/settings/profile") return t("settings.editProfile");
-    if (pathname === "/settings/creator") return t("settings.creatorRevenue");
     if (pathname === "/settings/streamer") return "스트리머";
     return t("settings.title");
   }

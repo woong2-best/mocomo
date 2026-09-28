@@ -172,11 +172,6 @@ export function ProfileHeader({
                       프로필 수정
                     </Button>
                   </Link>
-                  <Link href="/settings/creator">
-                    <Button variant="outline" className="rounded-full font-bold px-5">
-                      수익 설정
-                    </Button>
-                  </Link>
                 </>
               ) : (
                 actionBar
