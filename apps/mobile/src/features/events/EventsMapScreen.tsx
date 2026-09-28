@@ -7,15 +7,20 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
-import { fetchEventsMap, type MapEventPin } from "@/api/events";
+import {
+  createEventMapRecommendation,
+  fetchEventsMap,
+  type MapEventPin,
+} from "@/api/events";
 import { eventPinColor } from "@/features/events/event-map-colors";
 import { EventsNativeMap } from "@/features/events/EventsNativeMap";
 import {
@@ -387,10 +392,16 @@ function EventPinCard({
 export function EventsMapScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [tab, setTab] = useState<PanelTab>("venue");
   const [selected, setSelected] = useState<MapEventPin | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [addMode, setAddMode] = useState(false);
+  const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [recTitle, setRecTitle] = useState("");
+  const [recNote, setRecNote] = useState("");
+  const [formError, setFormError] = useState("");
   const userCountry = (user?.countryCode ?? "KR").toUpperCase();
 
   const query = useQuery({
@@ -398,7 +409,24 @@ export function EventsMapScreen() {
     queryFn: () => fetchEventsMap({ global: true }),
   });
 
+  const createRec = useMutation({
+    mutationFn: createEventMapRecommendation,
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ["mobile-events-map", true] });
+      setSelected(data.pin);
+      setPendingCoords(null);
+      setRecTitle("");
+      setRecNote("");
+      setAddMode(false);
+      setFormError("");
+    },
+    onError: (err: Error) => {
+      setFormError(err.message || "저장에 실패했습니다.");
+    },
+  });
+
   const pins = query.data?.pins ?? [];
+  const pickMode = addMode && tab === "recommendation";
   const listPins = useMemo(
     () => sortPinsByUserCountryThenDate(filterListPins(pins, tab), userCountry),
     [pins, tab, userCountry]
@@ -449,10 +477,21 @@ export function EventsMapScreen() {
               userCountryCode={userCountry}
               selectedId={selected?.id ?? null}
               focusPinId={selected?.id ?? null}
+              pickMode={pickMode}
+              onMapPick={(coords) => {
+                if (!pickMode) return;
+                setPendingCoords(coords);
+                setFormError("");
+              }}
               onSelectPin={(pin) => {
                 setSelected(pin);
               }}
             />
+            {pickMode && !pendingCoords ? (
+              <View style={styles.pickHint} pointerEvents="none">
+                <Text style={styles.pickHintText}>지도에서 원하는 위치를 탭하세요</Text>
+              </View>
+            ) : null}
             {selected ? (
               <View
                 style={[
@@ -478,6 +517,14 @@ export function EventsMapScreen() {
                       onPress={() => {
                         setTab(t.id);
                         setSelected(null);
+                        if (t.id !== "recommendation") {
+                          setAddMode(false);
+                          setPendingCoords(null);
+                          setFormError("");
+                        }
+                        if (t.id === "recommendation") {
+                          setPanelOpen(true);
+                        }
                       }}
                     >
                       <Text style={[styles.tabText, active && styles.tabTextActive]}>
@@ -488,6 +535,103 @@ export function EventsMapScreen() {
                 })}
               </View>
 
+              {tab === "recommendation" ? (
+                <View style={styles.recToolbar}>
+                  <Text style={styles.recHint}>유저 추천 · 초록 핀</Text>
+                  <Pressable
+                    style={[styles.recAddBtn, addMode && styles.recAddBtnActive]}
+                    onPress={() => {
+                      if (addMode) {
+                        setAddMode(false);
+                        setPendingCoords(null);
+                        setFormError("");
+                        return;
+                      }
+                      if (!user?.id) {
+                        setFormError("로그인 후 추천 장소를 등록할 수 있습니다.");
+                        return;
+                      }
+                      setFormError("");
+                      setAddMode(true);
+                    }}
+                  >
+                    <Ionicons
+                      name={addMode ? "close" : "add"}
+                      size={14}
+                      color={addMode ? "#0B1020" : "#ECFDF5"}
+                    />
+                    <Text style={[styles.recAddText, addMode && styles.recAddTextActive]}>
+                      {addMode ? "취소" : "추가"}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {pendingCoords && tab === "recommendation" ? (
+                <View style={styles.recForm}>
+                  <Text style={styles.recCoords}>
+                    선택 좌표 · {pendingCoords.lat.toFixed(5)}, {pendingCoords.lng.toFixed(5)}
+                  </Text>
+                  <TextInput
+                    value={recTitle}
+                    onChangeText={setRecTitle}
+                    placeholder="장소 이름"
+                    placeholderTextColor="rgba(255,255,255,0.35)"
+                    maxLength={80}
+                    style={styles.recInput}
+                  />
+                  <TextInput
+                    value={recNote}
+                    onChangeText={setRecNote}
+                    placeholder="한 줄 메모 (선택)"
+                    placeholderTextColor="rgba(255,255,255,0.35)"
+                    maxLength={200}
+                    style={styles.recInput}
+                  />
+                  {formError ? <Text style={styles.recFormError}>{formError}</Text> : null}
+                  <View style={styles.recFormActions}>
+                    <Pressable
+                      style={[
+                        styles.recSubmit,
+                        createRec.isPending && styles.recSubmitDisabled,
+                      ]}
+                      disabled={createRec.isPending}
+                      onPress={() => {
+                        if (!pendingCoords || !recTitle.trim()) {
+                          setFormError("장소 이름을 입력해 주세요.");
+                          return;
+                        }
+                        setFormError("");
+                        createRec.mutate({
+                          title: recTitle.trim(),
+                          description: recNote.trim() || undefined,
+                          lat: pendingCoords.lat,
+                          lng: pendingCoords.lng,
+                        });
+                      }}
+                    >
+                      <Text style={styles.recSubmitText}>
+                        {createRec.isPending ? "저장 중…" : "등록"}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.recCancel}
+                      onPress={() => {
+                        setPendingCoords(null);
+                        setRecTitle("");
+                        setRecNote("");
+                      }}
+                    >
+                      <Text style={styles.recCancelText}>취소</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : null}
+
+              {!pendingCoords && formError && tab === "recommendation" ? (
+                <Text style={styles.recFormErrorBanner}>{formError}</Text>
+              ) : null}
+
               <FlatList
                 data={listPins}
                 keyExtractor={(item) => item.id}
@@ -497,7 +641,11 @@ export function EventsMapScreen() {
                 }
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
-                  <Text style={styles.emptyList}>이 탭에 표시할 항목이 없습니다</Text>
+                  <Text style={styles.emptyList}>
+                    {tab === "recommendation"
+                      ? "아직 추천 장소가 없습니다."
+                      : "이 탭에 표시할 항목이 없습니다"}
+                  </Text>
                 }
                 renderItem={({ item }) => (
                   <EventPinCard
@@ -556,6 +704,94 @@ const styles = StyleSheet.create({
     minHeight: 180,
     backgroundColor: "#0B1020",
   },
+  pickHint: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    right: 12,
+    alignItems: "center",
+    zIndex: 3,
+  },
+  pickHintText: {
+    color: "#A7F3D0",
+    fontSize: 12,
+    fontWeight: "700",
+    backgroundColor: "rgba(6,78,59,0.82)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  recToolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingBottom: 6,
+  },
+  recHint: { color: "rgba(167,243,208,0.9)", fontSize: 10, fontWeight: "600" },
+  recAddBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "rgba(5,150,105,0.9)",
+  },
+  recAddBtnActive: { backgroundColor: "#E8ECF8" },
+  recAddText: { color: "#ECFDF5", fontSize: 12, fontWeight: "800" },
+  recAddTextActive: { color: "#0B1020" },
+  recForm: {
+    marginHorizontal: 10,
+    marginBottom: 8,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(6,78,59,0.35)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(167,243,208,0.2)",
+    gap: 8,
+  },
+  recCoords: { color: "rgba(167,243,208,0.9)", fontSize: 11, fontWeight: "600" },
+  recInput: {
+    height: 38,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    backgroundColor: "rgba(0,0,0,0.28)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.12)",
+    color: "#F9FAFB",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  recFormError: { color: "#FCA5A5", fontSize: 11, fontWeight: "600" },
+  recFormErrorBanner: {
+    color: "#FCA5A5",
+    fontSize: 11,
+    fontWeight: "600",
+    paddingHorizontal: 12,
+    paddingBottom: 6,
+  },
+  recFormActions: { flexDirection: "row", gap: 8 },
+  recSubmit: {
+    flex: 1,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#059669",
+  },
+  recSubmitDisabled: { opacity: 0.6 },
+  recSubmitText: { color: "#FFFFFF", fontSize: 13, fontWeight: "800" },
+  recCancel: {
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  recCancelText: { color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: "700" },
   popupAnchor: {
     position: "absolute",
     left: 12,

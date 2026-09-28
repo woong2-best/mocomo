@@ -273,6 +273,30 @@ export const TH_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   }),
 ];
 
+/** 영국 — 런던·맨체스터 상설 메이드 카페 */
+export const GB_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
+  maid("gb", {
+    externalKey: "venue-maid-gb-usagi-london",
+    title: "Usagi Anime Maid Cafe",
+    description: "상설 · 런던 홀본 · 영국 최초 애니 메이드 카페",
+    venueName: "Usagi Anime Maid Cafe",
+    address: "17 Little Russell Street, London WC1A 2HL",
+    lat: 51.5180307,
+    lng: -0.1248916,
+    sourceUrl: "https://www.usagi-maid.com/",
+  }),
+  maid("gb", {
+    externalKey: "venue-maid-gb-animaid-manchester",
+    title: "Animaid Cafe",
+    description: "상설 · 맨체스터 Afflecks 2F · 일본풍 메이드 카페",
+    venueName: "Animaid Cafe",
+    address: "Afflecks, 52 Church Street, Manchester M4 1PW",
+    lat: 53.4825243,
+    lng: -2.2362288,
+    sourceUrl: "https://www.animaidcafe.co.uk/",
+  }),
+];
+
 /** 대만 — 시먼딩 일대 대표 여포카페 존 */
 export const TW_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("tw", {
@@ -291,4 +315,5 @@ export const INTERNATIONAL_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   ...JP_MAID_CAFE_SEEDS,
   ...TH_MAID_CAFE_SEEDS,
   ...TW_MAID_CAFE_SEEDS,
+  ...GB_MAID_CAFE_SEEDS,
 ];

@@ -76,3 +76,19 @@ export async function fetchEventsMap(opts?: { global?: boolean; country?: string
   const suffix = params.toString() ? `?${params}` : "";
   return apiRequest<{ pins: MapEventPin[] }>(`${MobileApi.events}/map${suffix}`, { auth: true });
 }
+
+export async function createEventMapRecommendation(input: {
+  title: string;
+  description?: string;
+  lat: number;
+  lng: number;
+}) {
+  return apiRequest<{ ok: boolean; pin: MapEventPin }>(
+    `${MobileApi.events}/map/recommendations`,
+    {
+      method: "POST",
+      body: input,
+      auth: true,
+    }
+  );
+}

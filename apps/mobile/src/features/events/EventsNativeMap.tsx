@@ -58,6 +58,9 @@ type Props = {
   focusPinId?: string | null;
   /** Drawer preview — no pan/zoom/pin taps */
   preview?: boolean;
+  /** 추천 장소 등록 — 지도 탭으로 좌표 선택 */
+  pickMode?: boolean;
+  onMapPick?: (coords: { lat: number; lng: number }) => void;
   style?: object;
 };
 
@@ -81,6 +84,8 @@ export function EventsNativeMap({
   onSelectPin,
   focusPinId,
   preview = false,
+  pickMode = false,
+  onMapPick,
   style,
 }: Props) {
   const usablePins = useMemo(() => validPins(pins), [pins]);
@@ -148,6 +153,15 @@ export function EventsNativeMap({
         rotateEnabled={!preview}
         pitchEnabled={!preview}
         doubleTouchZoomEnabled={!preview}
+        onPress={
+          preview || !pickMode || !onMapPick
+            ? undefined
+            : (e: { nativeEvent?: { lngLat?: [number, number] } }) => {
+                const lngLat = e.nativeEvent?.lngLat;
+                if (!lngLat || lngLat.length < 2) return;
+                onMapPick({ lng: lngLat[0]!, lat: lngLat[1]! });
+              }
+        }
       >
         <Camera
           center={[view.lng, view.lat]}

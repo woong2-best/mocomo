@@ -144,6 +144,7 @@ export function eventCountryFromExternalKey(
   if (key.startsWith("venue-maid-th-")) return "th";
   if (key.startsWith("venue-maid-tw-")) return "tw";
   if (key.startsWith("venue-maid-us-")) return "us";
+  if (key.startsWith("venue-maid-gb-")) return "gb";
   if (
     key.startsWith("venue-maid-") &&
     !key.includes("-jp-") &&
