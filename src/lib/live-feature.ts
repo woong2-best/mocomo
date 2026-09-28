@@ -32,6 +32,11 @@ export function isLiveNavHref(href: string): boolean {
   return href === "/live" || href.startsWith("/voice") || href.startsWith("/avatar");
 }
 
+/** /live 허브 목록 — 사이드바 컴팩트·자동 접기 */
+export function isLiveHubListingPath(pathname: string): boolean {
+  return pathname === "/live";
+}
+
 export function isFirstPartyLivePath(pathname: string): boolean {
   return pathname === "/voice/new" || pathname.startsWith("/voice/new/");
 }

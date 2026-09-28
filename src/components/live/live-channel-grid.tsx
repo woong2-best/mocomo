@@ -15,7 +15,7 @@ import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cardHover, pressTap } from "@/lib/motion-presets";
 import { useLocale } from "@/components/providers/locale-provider";
-import { LiveNoBroadcastEmpty } from "@/components/live/live-no-broadcast-empty";
+import { LiveHubNeonDivider, LiveOffAirHero } from "@/components/live/live-off-air-hero";
 import { cn } from "@/lib/utils";
 
 export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHubHost }) {
@@ -177,25 +177,33 @@ export function LiveChannelGrid({
   const isEmpty = visible.length === 0;
   const hubEmpty = channels.length === 0;
 
+  if (hubEmpty) {
+    return (
+      <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+        <LiveOffAirHero />
+        <LiveHubNeonDivider />
+        <div className="shrink-0 pb-2">
+          <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
       <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto scrollbar-thin pr-0.5">
-        {hubEmpty && isEmpty ? (
-          <LiveNoBroadcastEmpty />
-        ) : (
-          <div
-            className={cn(
-              "grid gap-4 sm:gap-5 pb-4 pt-1",
-              "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-            )}
-          >
-            {isEmpty ? <LiveEmptyGridPlaceholder /> : null}
-            {visible.map((ch) => (
-              <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
-            ))}
-          </div>
-        )}
+        <div
+          className={cn(
+            "grid gap-4 sm:gap-5 pb-4 pt-1",
+            "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          )}
+        >
+          {isEmpty ? <LiveEmptyGridPlaceholder /> : null}
+          {visible.map((ch) => (
+            <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
+          ))}
+        </div>
       </div>
     </div>
   );
