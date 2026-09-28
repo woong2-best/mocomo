@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { useCall, useCallBusy } from "@/components/call/call-provider";
-import type { CallParticipant, CallType } from "@/lib/call-types";
+import type { CallParticipant } from "@/lib/call-types";
 import { Button } from "@/components/ui/button";
-import { Phone, Video } from "lucide-react";
+import { Phone } from "lucide-react";
 
-function CallActionButton({
-  callType,
+function VoiceCallButton({
   calleeId,
   chatRoomId,
   calleePeer,
@@ -15,7 +14,6 @@ function CallActionButton({
   busy,
   onError,
 }: {
-  callType: CallType;
   calleeId: string;
   chatRoomId: string;
   calleePeer: CallParticipant;
@@ -24,11 +22,10 @@ function CallActionButton({
   onError: (msg: string) => void;
 }) {
   const { startCall } = useCall();
-  const isVideo = callType === "VIDEO";
 
   async function handleCall() {
     onError("");
-    const result = await startCall(calleeId, chatRoomId, callType, calleePeer);
+    const result = await startCall(calleeId, chatRoomId, "AUDIO", calleePeer);
     if (result.error) onError(result.error);
   }
 
@@ -40,14 +37,10 @@ function CallActionButton({
       className="rounded-xl shrink-0"
       disabled={disabled || busy}
       onClick={handleCall}
-      title={isVideo ? "영상 통화" : "음성 통화"}
-      aria-label={isVideo ? "영상 통화" : "음성 통화"}
+      title="음성 통화"
+      aria-label="음성 통화"
     >
-      {isVideo ? (
-        <Video className="h-4 w-4" />
-      ) : (
-        <Phone className="h-4 w-4" />
-      )}
+      <Phone className="h-4 w-4" />
     </Button>
   );
 }
@@ -68,17 +61,7 @@ export function DmCallButtons({
 
   return (
     <div className="relative flex items-center gap-1.5 shrink-0">
-      <CallActionButton
-        callType="AUDIO"
-        calleeId={calleeId}
-        chatRoomId={chatRoomId}
-        calleePeer={calleePeer}
-        disabled={disabled}
-        busy={busy}
-        onError={setError}
-      />
-      <CallActionButton
-        callType="VIDEO"
+      <VoiceCallButton
         calleeId={calleeId}
         chatRoomId={chatRoomId}
         calleePeer={calleePeer}
