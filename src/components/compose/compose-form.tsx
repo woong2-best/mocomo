@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import type { ContentVisibility } from "@prisma/client";
 import { PostMediaComposer, type PostMediaComposerHandle, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ComposePollEditor } from "@/components/compose/compose-poll-editor";
-import { ComposeSalePriceField } from "@/components/compose/compose-sale-price-field";
 import {
   ComposeCollaboratorPicker,
   type CollabPickerUser,
@@ -84,7 +83,6 @@ export function ComposeForm({
   const [defaultTitle] = useState(initialTitle ?? "");
   const [collaborators, setCollaborators] = useState<CollabPickerUser[]>([]);
   const [visibility, setVisibility] = useState<ContentVisibility>("PUBLIC");
-  const [priceUsd, setPriceUsd] = useState("");
   const [instantPriceUsd, setInstantPriceUsd] = useState("");
   const [payoutAccountRegistered, setPayoutAccountRegistered] = useState(true);
   const [paidMediaWarned, setPaidMediaWarned] = useState(false);
@@ -101,16 +99,12 @@ export function ComposeForm({
     );
   const submitBusy = loading || mediaUploading || !mediaReady;
   const canSubmit = content.trim().length > 0 || media.length > 0;
-  const priceCents = parseUsdDollarsToCents(priceUsd);
   const instantPriceCents = parseUsdDollarsToCents(instantPriceUsd);
   const showInstantPurchase = visibility !== "PUBLIC" && contentRating !== "ADULT";
   const adultBlocksPaid = contentRating === "ADULT";
   const paidPriceIntent =
     !adultBlocksPaid &&
-    (priceCents > 0 ||
-      instantPriceCents > 0 ||
-      priceUsd.trim().length > 0 ||
-      instantPriceUsd.trim().length > 0);
+    (instantPriceCents > 0 || instantPriceUsd.trim().length > 0);
   const showPaidMediaRequired = paidPriceIntent && media.length === 0;
   const sellingIntent = paidPriceIntent || visibility !== "PUBLIC";
   const showSettlementBanner = !payoutAccountRegistered && sellingIntent;
@@ -121,7 +115,6 @@ export function ComposeForm({
 
   useEffect(() => {
     if (contentRating !== "ADULT") return;
-    setPriceUsd("");
     setInstantPriceUsd("");
     if (visibility !== "PUBLIC") setVisibility("PUBLIC");
   }, [contentRating, visibility]);
@@ -174,22 +167,6 @@ export function ComposeForm({
     />
   );
 
-  const salePriceField = adultBlocksPaid ? null : (
-    <ComposeSalePriceField
-      priceUsd={priceUsd}
-      onChange={setPriceUsd}
-      disabled={submitBusy}
-      variant={variant === "inline" ? "toolbar" : "inline"}
-    />
-  );
-
-  const mediaToolbarExtras = (
-    <>
-      {salePriceField}
-      {nsfwToggle}
-    </>
-  );
-
   function handleComposePaste(event: React.ClipboardEvent) {
     mediaComposerRef.current?.handlePaste(event);
   }
@@ -234,7 +211,7 @@ export function ComposeForm({
       }
     }
 
-    const pricingErr = validateSaleMediaPricing(priceCents, instantPriceCents);
+    const pricingErr = validateSaleMediaPricing(0, instantPriceCents);
     if (pricingErr) {
       setError(pricingErr);
       return;
@@ -251,7 +228,7 @@ export function ComposeForm({
       media: media.map((m) => ({
         url: m.url,
         type: m.type,
-        priceKrw: priceCents > 0 ? priceCents : 0,
+        priceKrw: 0,
         width: m.width ?? null,
         height: m.height ?? null,
         duration: m.duration ?? null,
@@ -390,7 +367,6 @@ export function ComposeForm({
               allowVideoCapture={false}
               watermarkCreditLabel={watermarkCreditLabel}
               onUploadingChange={setMediaUploading}
-              afterVideoButton={salePriceField}
               toolbarFooterStart={
                 <>
                   {!poll && (
@@ -476,7 +452,7 @@ export function ComposeForm({
         maxVideos={10}
         allowVideoCapture={false}
         onUploadingChange={setMediaUploading}
-        afterVideoButton={mediaToolbarExtras}
+        afterVideoButton={nsfwToggle}
       />
       <input
         name="title"
@@ -515,11 +491,6 @@ export function ComposeForm({
           </div>
         ) : null}
       </div>
-      {priceUsd.trim() && priceCents === 0 ? (
-        <p className="text-xs text-muted-foreground -mt-2">
-          유료 판매는 $1.00(1.00 USD) 이상부터 설정할 수 있습니다.
-        </p>
-      ) : null}
       <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
       {!isAnonymous && (
         <ComposeCollaboratorPicker
