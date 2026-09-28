@@ -9,6 +9,7 @@ import {
   LiveFolderRail,
   type LiveFolderFilter,
 } from "@/components/live/live-folder-rail";
+import { LiveHubTabBar } from "@/components/live/live-hub-tab-bar";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LIVE_SMPTE_COLORS } from "@/lib/live-categories";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
@@ -17,6 +18,7 @@ import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cardHover, pressTap } from "@/lib/motion-presets";
 import { useLocale } from "@/components/providers/locale-provider";
+import { LiveNoBroadcastEmpty } from "@/components/live/live-no-broadcast-empty";
 import { cn } from "@/lib/utils";
 
 export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHubHost }) {
@@ -176,9 +178,12 @@ export function LiveChannelGrid({
     [channels, activeFilter, followedSet]
   );
   const isEmpty = visible.length === 0;
+  const hubEmpty = channels.length === 0;
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-1 flex-row gap-2.5 overflow-hidden sm:gap-4">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
+      <div className="flex min-h-0 w-full flex-1 flex-row overflow-hidden">
       {/* Only the live grid scrolls */}
       <div className="relative min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin pr-0.5">
         <div
@@ -187,15 +192,17 @@ export function LiveChannelGrid({
             "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           )}
         >
-          {isEmpty ? <LiveEmptyGridPlaceholder /> : null}
+          {isEmpty ? (
+            hubEmpty ? <LiveNoBroadcastEmpty /> : <LiveEmptyGridPlaceholder />
+          ) : null}
           {visible.map((ch) => (
             <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
           ))}
         </div>
       </div>
 
-      {/* Folder rail: fixed in the viewport column, never scrolls with the grid */}
-      <div className="live-folder-rail-column sticky top-0 shrink-0 self-start overflow-visible pr-1">
+      {/* Folder rail stays mounted; parked so it does not show or take width */}
+      <div className="live-folder-rail-column live-folder-rail-parked" aria-hidden>
         <Suspense
           fallback={
             <div
@@ -206,6 +213,7 @@ export function LiveChannelGrid({
         >
           <LiveFolderRail activeFilter={activeFilter} onFilterChange={setActiveFilter} />
         </Suspense>
+      </div>
       </div>
     </div>
   );

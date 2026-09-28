@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale } from "@/components/providers/locale-provider";
+import { LiveNoBroadcastEmpty } from "@/components/live/live-no-broadcast-empty";
 import { LIVE_SMPTE_COLORS } from "@/lib/live-categories";
 import { cn } from "@/lib/utils";
 import { LiveHeroCarousel } from "@/components/live/live-hero-carousel";
@@ -58,7 +59,7 @@ export function LiveHeroSpotlight({
   className?: string;
 }) {
   if (channels.length === 0) {
-    return <LiveMiniEmptyTv className={className} />;
+    return <LiveNoBroadcastEmpty className={className} />;
   }
 
   return (
