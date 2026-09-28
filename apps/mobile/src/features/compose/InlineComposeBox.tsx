@@ -25,18 +25,11 @@ import {
   type PollDraft,
 } from "@/features/compose/compose-types";
 import { publishComposePost } from "@/features/compose/publish-post";
-import {
-  queueWatermarkCapture,
-  queueWatermarkOverlay,
-  WatermarkCaptureHost,
-  WatermarkOverlayHost,
-  TextOverlayCaptureHost,
-  queueTextOverlay,
-  type TextOverlayCaptureJob,
-  type WatermarkCaptureJob,
-  type WatermarkOverlayJob,
+import type {
+  TextOverlayCaptureJob,
+  WatermarkCaptureJob,
+  WatermarkOverlayJob,
 } from "@/lib/apply-image-watermark";
-import { probeVideo, processVideoForUpload } from "@/lib/apply-video-watermark";
 import {
   buildPostCreditLabel,
   EMPTY_WATERMARK_OPTIONS,
@@ -50,6 +43,7 @@ import type { MenuAnchor } from "@/features/feed/FeedPostOverflowMenu";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { NsfwToggleButton } from "@/ui/NsfwToggleButton";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
+import { FeedImageLightbox } from "@/features/feed/FeedImageLightbox";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast"
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
@@ -93,6 +87,35 @@ async function loadImagePicker() {
   return import("expo-image-picker");
 }
 
+function WatermarkJobHosts({
+  mod,
+  captureJob,
+  overlayJob,
+  textOverlayJob,
+  onCaptureDone,
+  onOverlayDone,
+  onTextDone,
+}: {
+  mod: typeof import("@/lib/apply-image-watermark");
+  captureJob: WatermarkCaptureJob | null;
+  overlayJob: WatermarkOverlayJob | null;
+  textOverlayJob: TextOverlayCaptureJob | null;
+  onCaptureDone: () => void;
+  onOverlayDone: () => void;
+  onTextDone: () => void;
+}) {
+  const CaptureHost = mod.WatermarkCaptureHost;
+  const OverlayHost = mod.WatermarkOverlayHost;
+  const TextHost = mod.TextOverlayCaptureHost;
+  return (
+    <>
+      <CaptureHost job={captureJob} onDone={onCaptureDone} />
+      <OverlayHost job={overlayJob} onDone={onOverlayDone} />
+      <TextHost job={textOverlayJob} onDone={onTextDone} />
+    </>
+  );
+}
+
 export function InlineComposeBox({
   avatarUrl,
   avatarLetter = "?",
@@ -122,6 +145,23 @@ export function InlineComposeBox({
   const [captureJob, setCaptureJob] = useState<WatermarkCaptureJob | null>(null);
   const [overlayJob, setOverlayJob] = useState<WatermarkOverlayJob | null>(null);
   const [textOverlayJob, setTextOverlayJob] = useState<TextOverlayCaptureJob | null>(null);
+  const [mediaLightbox, setMediaLightbox] = useState<{ open: boolean; index: number }>({
+    open: false,
+    index: 0,
+  });
+  const [watermarkMod, setWatermarkMod] = useState<typeof import("@/lib/apply-image-watermark") | null>(
+    null
+  );
+  const watermarkModRef = useRef<typeof import("@/lib/apply-image-watermark") | null>(null);
+
+  const ensureWatermarkModule = useCallback(async () => {
+    if (watermarkModRef.current) return watermarkModRef.current;
+    const mod = await import("@/lib/apply-image-watermark");
+    watermarkModRef.current = mod;
+    setWatermarkMod(mod);
+    await new Promise((resolve) => setTimeout(resolve, 32));
+    return mod;
+  }, []);
 
   const watermarkCreditLabel = useMemo(
     () => (user?.username ? buildPostCreditLabel(user.username) : undefined),
@@ -139,6 +179,16 @@ export function InlineComposeBox({
   }, [user?.preferences?.watermarkInsertEnabled, user?.preferences?.watermarkPlacement]);
   const canPost =
     !busy && (content.trim().length > 0 || media.length > 0 || !!poll);
+
+  const composeLightboxImages = useMemo(
+    () =>
+      media.map((m) => ({
+        id: m.id,
+        url: m.uri,
+        kind: m.type === "VIDEO" ? ("video" as const) : ("image" as const),
+      })),
+    [media]
+  );
 
   const focusInput = useCallback(() => {
     inputRef.current?.focus();
@@ -237,7 +287,8 @@ export function InlineComposeBox({
       for (const item of items) {
         if (item.type === "IMAGE") {
           let next = await prepareImageForUpload(item);
-          next = await queueWatermarkCapture(
+          const mod = await ensureWatermarkModule();
+          next = await mod.queueWatermarkCapture(
             setCaptureJob,
             next,
             watermarkCreditLabel ?? "",
@@ -249,9 +300,11 @@ export function InlineComposeBox({
         if (item.type === "VIDEO") {
           let overlayUri: string | null = null;
           let textOverlayUri: string | null = null;
+          const mod = await ensureWatermarkModule();
+          const { probeVideo, processVideoForUpload } = await import("@/lib/apply-video-watermark");
           const probe = await probeVideo(item.uri);
           if (watermarkCreditLabel && hasActiveWatermark(watermarkOptions)) {
-            overlayUri = await queueWatermarkOverlay(
+            overlayUri = await mod.queueWatermarkOverlay(
               setOverlayJob,
               probe.width,
               probe.height,
@@ -260,7 +313,7 @@ export function InlineComposeBox({
             );
           }
           if (item.videoEdit?.textOverlays?.length) {
-            textOverlayUri = await queueTextOverlay(
+            textOverlayUri = await mod.queueTextOverlay(
               setTextOverlayJob,
               probe.width,
               probe.height,
@@ -282,7 +335,7 @@ export function InlineComposeBox({
       }
       return out;
     },
-    [watermarkCreditLabel, watermarkOptions]
+    [ensureWatermarkModule, watermarkCreditLabel, watermarkOptions]
   );
 
   const onPost = useCallback(async () => {
@@ -368,11 +421,18 @@ export function InlineComposeBox({
 
       {media.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaRow}>
-          {media.map((item) => (
+          {media.map((item, itemIndex) => (
             <View key={item.id} style={styles.mediaItem}>
-              <Image source={{ uri: item.uri }} style={styles.mediaThumb} contentFit="cover" />
+              <Pressable
+                style={styles.mediaThumbHit}
+                onPress={() => setMediaLightbox({ open: true, index: itemIndex })}
+                accessibilityRole="button"
+                accessibilityLabel="미리보기"
+              >
+                <Image source={{ uri: item.uri }} style={styles.mediaThumb} contentFit="cover" />
+              </Pressable>
               {item.type === "VIDEO" ? (
-                <View style={styles.videoBadge}>
+                <View style={styles.videoBadge} pointerEvents="none">
                   <Ionicons name="videocam" size={12} color="#fff" />
                 </View>
               ) : null}
@@ -380,6 +440,8 @@ export function InlineComposeBox({
                 style={styles.mediaRemove}
                 onPress={() => setMedia((prev) => prev.filter((m) => m.id !== item.id))}
                 hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel="첨부 삭제"
               >
                 <Ionicons name="close" size={14} color="#fff" />
               </Pressable>
@@ -468,9 +530,24 @@ export function InlineComposeBox({
         onChange={setCollaborators}
       />
 
-      <WatermarkCaptureHost job={captureJob} onDone={() => setCaptureJob(null)} />
-      <WatermarkOverlayHost job={overlayJob} onDone={() => setOverlayJob(null)} />
-      <TextOverlayCaptureHost job={textOverlayJob} onDone={() => setTextOverlayJob(null)} />
+      {watermarkMod ? (
+        <WatermarkJobHosts
+          mod={watermarkMod}
+          captureJob={captureJob}
+          overlayJob={overlayJob}
+          textOverlayJob={textOverlayJob}
+          onCaptureDone={() => setCaptureJob(null)}
+          onOverlayDone={() => setOverlayJob(null)}
+          onTextDone={() => setTextOverlayJob(null)}
+        />
+      ) : null}
+
+      <FeedImageLightbox
+        visible={mediaLightbox.open}
+        images={composeLightboxImages}
+        initialIndex={mediaLightbox.index}
+        onClose={() => setMediaLightbox((prev) => ({ ...prev, open: false }))}
+      />
     </View>
   );
 }
@@ -860,6 +937,7 @@ function createStyles(colors: ThemeColors) {
       overflow: "hidden",
       backgroundColor: colors.muted,
     },
+    mediaThumbHit: { width: "100%", height: "100%" },
     mediaThumb: { width: "100%", height: "100%" },
     editBadge: {
       position: "absolute",

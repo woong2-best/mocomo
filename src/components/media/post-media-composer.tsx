@@ -14,9 +14,10 @@ import {
   Film,
   ImagePlus,
   Loader2,
-  Trash2,
   Video,
+  X,
 } from "lucide-react";
+import { PostMediaLightbox } from "@/components/media/post-media-lightbox";
 import { Button } from "@/components/ui/button";
 import { CameraCaptureDialog } from "@/components/media/camera-capture-dialog";
 import { uploadImageBlob, uploadVideoBlob, type UploadMediaOptions } from "@/lib/client-upload";
@@ -125,6 +126,8 @@ export const PostMediaComposer = forwardRef<
   const canAddVideo = allowVideo && videoCount < maxVideos;
 
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [watermarkOptions, setWatermarkOptions] = useState(EMPTY_WATERMARK_OPTIONS);
   const pasteLockUntilRef = useRef(0);
   const watermarkOptionsRef = useRef(watermarkOptions);
@@ -574,31 +577,42 @@ export const PostMediaComposer = forwardRef<
       {items.length > 0 && (
         <div className="flex flex-wrap gap-2">
         {items.map((m, i) => (
-          <div key={`${m.url}-${i}`} className="relative h-20 w-20 rounded-xl overflow-hidden border border-border group">
-            {m.type === "VIDEO" ? (
-              <video src={m.url} className="h-full w-full object-cover" muted playsInline />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={m.url} alt="" className="h-full w-full object-cover" />
-            )}
-            <div className="absolute inset-0 bg-black/50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-              <button
-                type="button"
-                className="p-1 rounded-md bg-white/20 text-white"
-                onClick={() => removeAt(i)}
-                disabled={disabled}
-                aria-label="삭제"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
+          <div key={`${m.url}-${i}`} className="relative h-20 w-20 rounded-xl overflow-hidden border border-border">
+            <button
+              type="button"
+              className="absolute inset-0 z-0 block h-full w-full cursor-pointer"
+              onClick={() => {
+                setPreviewIndex(i);
+                setPreviewOpen(true);
+              }}
+              aria-label="미리보기"
+            >
+              {m.type === "VIDEO" ? (
+                <video src={m.url} className="h-full w-full object-cover pointer-events-none" muted playsInline />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={m.url} alt="" className="h-full w-full object-cover pointer-events-none" />
+              )}
+            </button>
+            <button
+              type="button"
+              className="absolute top-1 right-1 z-10 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-black/55 text-white hover:bg-black/70"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeAt(i);
+              }}
+              disabled={disabled}
+              aria-label="삭제"
+            >
+              <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </button>
             {m.type === "VIDEO" && (
-              <span className="absolute bottom-0.5 left-0.5 text-[10px] bg-black/70 text-white px-1 rounded">
+              <span className="pointer-events-none absolute bottom-0.5 left-0.5 z-[1] rounded bg-black/70 px-1 text-[10px] text-white">
                 영상
               </span>
             )}
             {isLocalPreviewUrl(m.url) && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/35 pointer-events-none">
+              <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-black/35">
                 <Loader2 className="h-5 w-5 animate-spin text-white" aria-hidden />
               </div>
             )}
@@ -710,6 +724,19 @@ export const PostMediaComposer = forwardRef<
         mode="photo"
         enableFaceFilter={enableFaceFilter}
         onCapture={onCameraCapture}
+      />
+
+      <PostMediaLightbox
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        postId="compose-draft"
+        media={items.map((m, i) => ({
+          id: `compose-${i}`,
+          url: m.url,
+          type: m.type,
+        }))}
+        initialIndex={previewIndex}
+        isOwner
       />
     </div>
   );
