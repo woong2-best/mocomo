@@ -8,14 +8,14 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
 import { LiveHubTabBar } from "@/components/live/live-hub-tab-bar";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
-import { LIVE_SMPTE_COLORS } from "@/lib/live-categories";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cardHover, pressTap } from "@/lib/motion-presets";
 import { useLocale } from "@/components/providers/locale-provider";
-import { LiveHubNeonDivider, LiveOffAirHero } from "@/components/live/live-off-air-hero";
+import { LiveHubNeonDivider } from "@/components/live/live-off-air-hero";
+import { LiveHubHeroRail } from "@/components/live/live-hub-hero-rail";
 import { cn } from "@/lib/utils";
 
 export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHubHost }) {
@@ -111,36 +111,6 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
 const LiveStreamCardMemo = memo(LiveStreamCard);
 export { LiveStreamCardMemo };
 
-/** Empty grid lead card — SMPTE color-bar TV (matches empty-broadcast mock). */
-function LiveEmptyGridPlaceholder() {
-  const { t } = useLocale();
-  const colCount = LIVE_SMPTE_COLORS.length;
-
-  return (
-    <div className="group block min-w-0">
-      <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
-        <div
-          className="absolute inset-0"
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
-          }}
-          aria-hidden
-        >
-          {LIVE_SMPTE_COLORS.map((color) => (
-            <div key={color} className="min-h-0 min-w-0 h-full" style={{ backgroundColor: color }} />
-          ))}
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center p-3">
-          <p className="text-center text-xs font-semibold text-white sm:text-sm">
-            {t("live.noBroadcastHero")}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function filterChannels(
   channels: LiveHubChannel[],
   filter: LiveFolderFilter,
@@ -154,7 +124,20 @@ function filterChannels(
   return channels.filter((ch) => ch.category === filter);
 }
 
-/** Category chips across the top, stream grid below. */
+const GRAY_PLACEHOLDER_COUNT = 10;
+
+function LiveGrayPlaceholderCard({ index }: { index: number }) {
+  const shade = 22 + (index % 5) * 4;
+  return (
+    <div
+      className="min-w-0 rounded-xl border border-white/[0.06] aspect-video"
+      style={{ backgroundColor: `rgb(${shade},${shade},${shade + 2})` }}
+      aria-hidden
+    />
+  );
+}
+
+/** Hero rail + neon bar + tabs + 3-column grid below. */
 export function LiveChannelGrid({
   channels,
   hosts,
@@ -175,34 +158,23 @@ export function LiveChannelGrid({
     [channels, activeFilter, followedSet]
   );
   const isEmpty = visible.length === 0;
-  const hubEmpty = channels.length === 0;
-
-  if (hubEmpty) {
-    return (
-      <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
-        <LiveOffAirHero />
-        <LiveHubNeonDivider />
-        <div className="shrink-0 pb-2">
-          <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
-      <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
+      <LiveHubHeroRail channels={channels} hosts={hosts} className="min-h-[min(42vh,360px)] max-h-[min(52vh,480px)]" />
+      <LiveHubNeonDivider />
+      <div className="shrink-0 px-0.5 pb-2">
+        <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
+      </div>
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto scrollbar-thin pr-0.5">
-        <div
-          className={cn(
-            "grid gap-4 sm:gap-5 pb-4 pt-1",
-            "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          )}
-        >
-          {isEmpty ? <LiveEmptyGridPlaceholder /> : null}
-          {visible.map((ch) => (
-            <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
-          ))}
+        <div className={cn("grid gap-3 sm:gap-4 pb-4 pt-0.5", "grid-cols-3")}>
+          {isEmpty
+            ? Array.from({ length: GRAY_PLACEHOLDER_COUNT }, (_, i) => (
+                <LiveGrayPlaceholderCard key={`ph-${i}`} index={i} />
+              ))
+            : visible.map((ch) => (
+                <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
+              ))}
         </div>
       </div>
     </div>

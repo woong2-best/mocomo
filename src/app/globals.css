@@ -493,6 +493,9 @@ html[data-client="app"] .native-live-pad {
     margin: 0 0 12px;
     min-width: 0;
   }
+  .live-hub-toolbar-split {
+    justify-content: space-between;
+  }
   .live-hub-tab-bar {
     display: flex;
     flex: 1 1 auto;
@@ -501,6 +504,13 @@ html[data-client="app"] .native-live-pad {
     overflow-x: auto;
     scrollbar-width: thin;
     font-family: "Arial Black", "Helvetica Neue", "Noto Sans KR", sans-serif;
+  }
+  .live-hub-tab-bar-left {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+  }
+  .live-hub-quick-actions {
+    margin-left: auto;
   }
   .live-hub-tab {
     flex: 0 0 auto;
@@ -518,20 +528,76 @@ html[data-client="app"] .native-live-pad {
     white-space: nowrap;
     cursor: pointer;
     user-select: none;
-    background: #111;
-    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: #0a0a0a;
+    border: 1px solid rgba(120, 180, 255, 0.45);
+    box-shadow:
+      0 0 6px rgba(26, 106, 255, 0.35),
+      inset 0 0 12px rgba(26, 106, 255, 0.08);
     appearance: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      background 0.15s ease;
   }
   .live-hub-tab.active {
     background: #000;
     border-color: #1a6aff;
     box-shadow:
       0 0 8px #1a6aff,
-      0 0 16px rgba(26, 106, 255, 0.65);
+      0 0 18px rgba(26, 106, 255, 0.75),
+      0 0 28px rgba(26, 106, 255, 0.35);
   }
   .live-hub-tab:hover:not(.active) {
-    background: #1a1a1a;
-    border-color: rgba(255, 255, 255, 0.7);
+    background: #121212;
+    border-color: rgba(160, 200, 255, 0.75);
+    box-shadow:
+      0 0 10px rgba(26, 106, 255, 0.45),
+      inset 0 0 14px rgba(26, 106, 255, 0.12);
+  }
+  .live-hub-action-live,
+  .live-hub-action-studio {
+    display: inline-flex;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+    text-decoration: none;
+    transition:
+      box-shadow 0.15s ease,
+      border-color 0.15s ease,
+      background 0.15s ease;
+  }
+  .live-hub-action-live {
+    color: #fff;
+    background: linear-gradient(180deg, #c45a32 0%, #9a3d1c 100%);
+    border: 1px solid rgba(255, 160, 100, 0.85);
+    box-shadow:
+      0 0 10px rgba(255, 120, 60, 0.65),
+      0 0 22px rgba(255, 90, 40, 0.35);
+  }
+  .live-hub-action-live:hover {
+    box-shadow:
+      0 0 14px rgba(255, 130, 70, 0.85),
+      0 0 28px rgba(255, 90, 40, 0.45);
+  }
+  .live-hub-action-studio {
+    color: #fff;
+    background: #0a0a0a;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+      0 0 8px rgba(255, 255, 255, 0.25),
+      inset 0 0 10px rgba(255, 255, 255, 0.06);
+  }
+  .live-hub-action-studio:hover {
+    border-color: rgba(255, 255, 255, 0.85);
+    box-shadow:
+      0 0 12px rgba(255, 255, 255, 0.35),
+      inset 0 0 14px rgba(255, 255, 255, 0.1);
   }
 
   .live-hub-neon-green-line {

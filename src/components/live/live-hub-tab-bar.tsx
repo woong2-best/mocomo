@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { MonitorPlay, Video } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useLiveR18Gate } from "@/hooks/use-live-r18-gate";
 import { LiveR18BlockedDialog } from "@/components/live/live-r18-blocked-dialog";
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
@@ -46,22 +45,14 @@ function LiveHubQuickActions() {
   const studioHref = loggedIn ? "/live/studio" : "/auth/signin?callbackUrl=/live/studio";
 
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
-      <Link href={liveHref}>
-        <Button className="h-9 rounded-xl gap-1.5 px-3 text-xs font-bold shadow-sm" size="sm">
-          <Video className="h-3.5 w-3.5 shrink-0" />
-          라이브
-        </Button>
+    <div className="live-hub-quick-actions flex shrink-0 items-center gap-2">
+      <Link href={liveHref} className="live-hub-action-live">
+        <Video className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        라이브
       </Link>
-      <Link href={studioHref}>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 rounded-xl gap-1.5 border-white/25 bg-black/40 px-3 text-xs font-bold text-white hover:bg-black/55 hover:text-white"
-        >
-          <MonitorPlay className="h-3.5 w-3.5 shrink-0" />
-          스튜디오
-        </Button>
+      <Link href={studioHref} className="live-hub-action-studio">
+        <MonitorPlay className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        스튜디오
       </Link>
     </div>
   );
@@ -87,8 +78,8 @@ export function LiveHubTabBar({
 
   return (
     <>
-      <div className="live-hub-toolbar">
-        <div className="live-hub-tab-bar" role="tablist" aria-label="라이브 카테고리">
+      <div className="live-hub-toolbar live-hub-toolbar-split">
+        <div className="live-hub-tab-bar live-hub-tab-bar-left" role="tablist" aria-label="라이브 카테고리">
           {TABS.map((tab) => {
             const on = tab.id === active;
             return (
