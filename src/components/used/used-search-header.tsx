@@ -2,7 +2,6 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
-import { LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { USED_MARKET_BROWSE_CATEGORIES } from "@/lib/used-market";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
@@ -56,53 +55,47 @@ export function UsedSearchHeader({
         </div>
       ) : null}
 
-      <section className="space-y-1.5">
-        <h3 className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
-          <LayoutGrid className="h-3 w-3" />
-          카테고리 · 경매
-        </h3>
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          type="button"
+          onClick={() => apply({ category: null, mode: null })}
+          className={cn(
+            "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold",
+            !searchParams.get("category") && searchParams.get("mode") !== "auction"
+              ? "border-folk-cobalt bg-folk-cobalt text-white"
+              : "border-border bg-card text-folk-cobalt"
+          )}
+        >
+          전체
+        </button>
+        <button
+          type="button"
+          onClick={() => apply({ mode: "auction", category: null })}
+          className={cn(
+            "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
+            searchParams.get("mode") === "auction"
+              ? "border-folk-terracotta bg-folk-terracotta text-white"
+              : "border-border bg-card text-folk-cobalt"
+          )}
+        >
+          경매
+        </button>
+        {USED_MARKET_BROWSE_CATEGORIES.map((c) => (
           <button
+            key={c.id}
             type="button"
-            onClick={() => apply({ category: null, mode: null })}
+            onClick={() => apply({ category: c.id, mode: null })}
             className={cn(
-              "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium",
-              !searchParams.get("category") && searchParams.get("mode") !== "auction"
-                ? "bg-foreground text-background"
-                : "bg-muted border border-border"
+              "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
+              searchParams.get("category") === c.id
+                ? "border-folk-cobalt bg-folk-cobalt text-white"
+                : "border-border bg-card text-folk-cobalt"
             )}
           >
-            전체
+            {c.label.split(" / ")[0]}
           </button>
-          <button
-            type="button"
-            onClick={() => apply({ mode: "auction", category: null })}
-            className={cn(
-              "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
-              searchParams.get("mode") === "auction"
-                ? "bg-orange-600 text-white"
-                : "bg-muted border border-border"
-            )}
-          >
-            🔨 경매
-          </button>
-          {USED_MARKET_BROWSE_CATEGORIES.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => apply({ category: c.id })}
-              className={cn(
-                "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
-                searchParams.get("category") === c.id
-                  ? "bg-foreground text-background"
-                  : "bg-muted border border-border"
-              )}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-      </section>
+        ))}
+      </div>
 
       <UsedRegionFilter
         viewerCountryCode={viewerCountryCode}

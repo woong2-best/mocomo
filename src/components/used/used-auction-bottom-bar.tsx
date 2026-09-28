@@ -4,13 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  toggleUsedFavorite,
   startUsedTradeChat,
   getUsedListingChatRooms,
 } from "@/actions/used-market";
 import { cancelUsedAuction } from "@/actions/used-auction";
 import { UsedAuctionBidSheet } from "@/components/used/used-auction-bid-sheet";
-import { Heart, MessageSquare, Gavel, ShieldAlert } from "lucide-react";
+import { MessageSquare, Gavel, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   isUsedRestrictedKind,
@@ -26,9 +25,7 @@ export function UsedAuctionBottomBar({
   listingId,
   isSeller,
   isLoggedIn,
-  initialFavorited,
   status,
-  chatCount,
   initialBuyerRoomId,
   auctionLive,
   auctionState,
@@ -60,23 +57,12 @@ export function UsedAuctionBottomBar({
   const needsAdult =
     isUsedRestrictedKind(restrictedKind) && !isSeller && !viewerAdultVerified;
   const router = useRouter();
-  const [favorited, setFavorited] = useState(initialFavorited);
   const [loading, setLoading] = useState(false);
   const [sellerRooms, setSellerRooms] = useState<{ roomId: string; buyer: { username: string } }[] | null>(
     null
   );
   const [barError, setBarError] = useState("");
   const [confirmCancel, setConfirmCancel] = useState(false);
-
-  async function toggleFav() {
-    if (!isLoggedIn) {
-      router.push(`/auth/signin?callbackUrl=/market/${listingId}`);
-      return;
-    }
-    const res = await toggleUsedFavorite(listingId);
-    if ("error" in res) return;
-    setFavorited(res.favorited);
-  }
 
   async function openChat() {
     setBarError("");
@@ -111,11 +97,11 @@ export function UsedAuctionBottomBar({
       return;
     }
     const rooms = res.rooms ?? [];
-    setSellerRooms(rooms);
     if (rooms.length === 0) {
-      setBarError("아직 문의 채팅이 없습니다.");
+      await openChat();
       return;
     }
+    setSellerRooms(rooms);
     if (rooms.length === 1) router.push(`/messages/${rooms[0].roomId}`);
   }
 
@@ -171,16 +157,12 @@ export function UsedAuctionBottomBar({
           type="button"
           variant="secondary"
           size="lg"
-          className="w-full h-12 rounded-xl font-semibold"
+          className="w-full h-12 rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90"
           disabled={loading}
           onClick={() => void openSellerChats()}
         >
           <MessageSquare className="h-5 w-5 mr-2" />
-          {loading
-            ? "불러오는 중…"
-            : chatCount > 0
-              ? `대화 중인 채팅 ${chatCount}`
-              : "채팅 문의 없음"}
+          {loading ? "불러오는 중…" : "메시지 보내기"}
         </Button>
         {sellerRooms && sellerRooms.length > 1 && (
           <ul className="max-h-32 overflow-y-auto rounded-xl border divide-y text-sm">
@@ -205,7 +187,7 @@ export function UsedAuctionBottomBar({
           <p className="text-sm font-bold text-orange-600 dark:text-orange-400">낙찰 · 결제 필요</p>
           <p className="text-xs text-muted-foreground">기한 내 결제 완료를 신고해 주세요</p>
         </div>
-        <Button asChild variant="secondary" size="lg" className="h-12 rounded-xl font-semibold">
+        <Button asChild size="lg" className="h-12 rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
           <Link href={`/messages/${initialBuyerRoomId}`}>채팅 · 결제</Link>
         </Button>
       </div>
@@ -219,8 +201,8 @@ export function UsedAuctionBottomBar({
           <p className="text-sm font-bold text-green-600 dark:text-green-400">낙찰되었습니다</p>
           <p className="text-xs text-muted-foreground">판매자와 채팅으로 거래를 진행하세요</p>
         </div>
-        <Button asChild variant="secondary" size="lg" className="h-12 rounded-xl font-semibold">
-          <Link href={`/messages/${initialBuyerRoomId}`}>채팅 열기</Link>
+        <Button asChild size="lg" className="h-12 rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
+          <Link href={`/messages/${initialBuyerRoomId}`}>메시지 보내기</Link>
         </Button>
       </div>
     );
@@ -238,7 +220,7 @@ export function UsedAuctionBottomBar({
             disabled={loading}
             onClick={() => void openChat()}
           >
-            일반 문의 채팅
+            메시지 보내기
           </Button>
         )}
       </div>
@@ -247,26 +229,16 @@ export function UsedAuctionBottomBar({
 
   if (needsAdult) {
     return (
-      <div className="used-action-bar flex gap-2 border-t bg-background p-3 pb-safe z-20">
-        <button
-          type="button"
-          onClick={() => void toggleFav()}
-          className={`h-12 w-12 rounded-xl border flex items-center justify-center shrink-0 ${
-            favorited ? "bg-orange-500/10 border-orange-400 text-orange-500" : "border-border"
-          }`}
-          aria-label="관심"
-        >
-          <Heart className={`h-6 w-6 ${favorited ? "fill-current" : ""}`} />
-        </button>
+      <div className="used-action-bar border-t bg-background p-3 pb-safe z-20">
         {isLoggedIn ? (
-          <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">
+          <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2">
             <Link href={usedAdultVerifyUrl(listingId, restrictedKind)}>
               <ShieldAlert className="h-5 w-5" />
               성인 인증 후 입찰
             </Link>
           </Button>
         ) : (
-          <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">
+          <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2">
             <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>
               <Gavel className="h-5 w-5" />
               로그인 후 입찰
@@ -280,17 +252,7 @@ export function UsedAuctionBottomBar({
   return (
     <div className="used-action-bar border-t bg-background z-20">
       {barError && <p className="px-3 pt-2 text-xs text-destructive text-center">{barError}</p>}
-      <div className="flex gap-2 p-3 pb-safe">
-      <button
-        type="button"
-        onClick={() => void toggleFav()}
-        className={`h-12 w-12 rounded-xl border flex items-center justify-center shrink-0 ${
-          favorited ? "bg-orange-500/10 border-orange-400 text-orange-500" : "border-border"
-        }`}
-        aria-label="관심"
-      >
-        <Heart className={`h-6 w-6 ${favorited ? "fill-current" : ""}`} />
-      </button>
+      <div className="p-3 pb-safe">
       {isLoggedIn ? (
         <UsedAuctionBidSheet
           listingId={listingId}
@@ -301,7 +263,7 @@ export function UsedAuctionBottomBar({
           availableMocoBalance={availableMocoBalance}
         />
       ) : (
-        <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">
+        <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2">
           <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>
             <Gavel className="h-5 w-5" />
             로그인 후 입찰

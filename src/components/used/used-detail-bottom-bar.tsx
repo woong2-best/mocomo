@@ -4,11 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  toggleUsedFavorite,
   startUsedTradeChat,
   getUsedListingChatRooms,
 } from "@/actions/used-market";
-import { Heart, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   isUsedRestrictedKind,
@@ -25,7 +23,6 @@ export function UsedDetailBottomBar({
   listingId,
   isSeller,
   isLoggedIn,
-  initialFavorited,
   status,
   chatCount,
   initialBuyerRoomId,
@@ -45,22 +42,11 @@ export function UsedDetailBottomBar({
   const needsAdult =
     isUsedRestrictedKind(restrictedKind) && !isSeller && !viewerAdultVerified;
   const router = useRouter();
-  const [favorited, setFavorited] = useState(initialFavorited);
   const [loading, setLoading] = useState(false);
   const [sellerRooms, setSellerRooms] = useState<{ roomId: string; buyer: { username: string } }[] | null>(
     null
   );
   const [barError, setBarError] = useState("");
-
-  async function toggleFav() {
-    if (!isLoggedIn) {
-      router.push(`/auth/signin?callbackUrl=/market/${listingId}`);
-      return;
-    }
-    const res = await toggleUsedFavorite(listingId);
-    if ("error" in res) return;
-    setFavorited(res.favorited);
-  }
 
   async function openChat() {
     setBarError("");
@@ -119,18 +105,12 @@ export function UsedDetailBottomBar({
         <div className="p-3 pb-safe">
         <Button
           type="button"
-          variant="secondary"
           size="lg"
-          className="w-full h-12 rounded-xl font-semibold"
+          className="w-full h-12 rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90"
           disabled={loading}
           onClick={() => void openSellerChats()}
         >
-          <MessageSquare className="h-5 w-5 mr-2" />
-          {loading
-            ? "불러오는 중…"
-            : chatCount > 0
-              ? `대화 중인 채팅 ${chatCount}`
-              : "채팅 문의 없음"}
+          {loading ? "불러오는 중…" : chatCount > 0 ? `메시지 보내기 · ${chatCount}` : "메시지 보내기"}
         </Button>
         {sellerRooms && sellerRooms.length > 1 && (
           <ul className="mt-2 max-h-32 overflow-y-auto rounded-xl border divide-y text-sm">
@@ -163,26 +143,16 @@ export function UsedDetailBottomBar({
 
   if (needsAdult) {
     return (
-      <div className="used-action-bar flex gap-2 border-t bg-background p-3 pb-safe z-20">
-        <button
-          type="button"
-          onClick={() => void toggleFav()}
-          className={`h-12 w-12 rounded-xl border flex items-center justify-center shrink-0 ${
-            favorited ? "bg-orange-500/10 border-orange-400 text-orange-500" : "border-border"
-          }`}
-          aria-label="관심"
-        >
-          <Heart className={`h-6 w-6 ${favorited ? "fill-current" : ""}`} />
-        </button>
+      <div className="used-action-bar border-t bg-background p-3 pb-safe z-20">
         {isLoggedIn ? (
-          <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">
+          <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2">
             <Link href={usedAdultVerifyUrl(listingId, restrictedKind)}>
               <ShieldAlert className="h-5 w-5" />
               성인 인증 후 채팅
             </Link>
           </Button>
         ) : (
-          <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl">
+          <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
             <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>로그인 후 성인 인증</Link>
           </Button>
         )}
@@ -195,35 +165,23 @@ export function UsedDetailBottomBar({
       {barError && (
         <p className="px-3 pt-2 text-xs text-destructive text-center">{barError}</p>
       )}
-      <div className="flex gap-2 p-3 pb-safe">
-      <button
-        type="button"
-        onClick={() => void toggleFav()}
-        className={`h-12 w-12 rounded-xl border flex items-center justify-center shrink-0 ${
-          favorited ? "bg-orange-500/10 border-orange-400 text-orange-500" : "border-border"
-        }`}
-        aria-label="관심"
-      >
-        <Heart className={`h-6 w-6 ${favorited ? "fill-current" : ""}`} />
-      </button>
+      <div className="p-3 pb-safe">
       {existingRoom ? (
-        <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl font-semibold">
-          <Link href={`/messages/${existingRoom}`}>대화 중인 채팅</Link>
+        <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
+          <Link href={`/messages/${existingRoom}`}>메시지 보내기</Link>
         </Button>
       ) : isLoggedIn ? (
         <Button
           type="button"
-          variant="secondary"
           size="lg"
-          className="flex-1 h-12 rounded-xl font-semibold gap-2"
+          className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90"
           disabled={loading}
           onClick={() => void openChat()}
         >
-          <MessageSquare className="h-5 w-5" />
-          {loading ? "연결 중…" : "채팅하기"}
+          {loading ? "연결 중…" : "메시지 보내기"}
         </Button>
       ) : (
-        <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl">
+        <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
           <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>로그인 후 채팅</Link>
         </Button>
       )}

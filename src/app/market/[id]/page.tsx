@@ -1,7 +1,5 @@
 import Link from "next/link";
 
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-
 import { notFound } from "next/navigation";
 
 import { auth, isSiteOperator } from "@/lib/auth";
@@ -29,8 +27,6 @@ import { UsedStatusSheet } from "@/components/used/used-status-sheet";
 
 import { ContentModerationBar } from "@/components/moderation/content-moderation-bar";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
 import {
 
   displayAuctionPrice,
@@ -46,7 +42,6 @@ import {
   usedStatusLabel,
 
 } from "@/lib/used-market";
-import { usedProductTypeLabel } from "@/lib/used-catalog";
 import {
   SubcultureMetaBadges,
   SubcultureMetaDetail,
@@ -172,7 +167,12 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
 
 
-      <UsedDetailHeader listingId={listing.id} isSeller={!!isSeller} />
+      <UsedDetailHeader
+        listingId={listing.id}
+        isSeller={!!isSeller}
+        initialFavorited={favorited}
+        heading={isAuction ? "경매" : "상품"}
+      />
 
 
 
@@ -220,27 +220,21 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
 
 
-        <div>
-
-          {(listing.workTitle || listing.productType) && (
-            <p className="text-sm text-primary font-medium mb-1">
-              {listing.workTitle && (
-                <>
-                  {listing.animeSlug ? (
-                    <Link href={`/anime/${listing.animeSlug}`} className="hover:underline">
-                      {listing.workTitle}
-                    </Link>
-                  ) : (
-                    listing.workTitle
-                  )}
-                </>
-              )}
-              {listing.workTitle && listing.productType ? " · " : ""}
-              {listing.productType ? usedProductTypeLabel(listing.productType) : ""}
+        <div className="space-y-2">
+          <h1 className="text-lg font-bold leading-snug">{listing.title}</h1>
+          <p className="text-[22px] font-extrabold leading-none">
+            {isAuction && listing.bidCount > 0 ? "현재 " : isAuction ? "최소 입찰 " : ""}
+            {formatUsedPrice(displayPrice, listing.currency)}
+            {isAuction && listing.bidCount > 0 ? ` · 입찰 ${listing.bidCount}회` : ""}
+          </p>
+          {isAuction && listing.bidCount === 0 && (
+            <p className="text-xs text-muted-foreground">
+              시작가 {formatUsedPrice(listing.price, listing.currency)}
             </p>
           )}
-          <h1 className="text-lg font-bold leading-snug">{listing.title}</h1>
-
+          {listing.description ? (
+            <p className="whitespace-pre-wrap pt-2 text-sm leading-6 text-foreground">{listing.description}</p>
+          ) : null}
           <SubcultureMetaBadges
             productType={listing.productType}
             characterName={listing.characterName}
@@ -251,58 +245,24 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
             itemOrigin={listing.itemOrigin}
             packagingState={listing.packagingState}
             subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
-            className="mt-2"
+            className="pt-1"
             max={8}
+            tone="cobalt"
           />
           <SubcultureMetaDetail
             subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
-            className="mt-1.5"
           />
-
-          <UsedSaleStatsPanel
-            workTitle={listing.workTitle}
-            animeSlug={listing.animeSlug}
-            productType={listing.productType}
-            characterName={listing.characterName}
-          />
-
-          {!isSeller && status === "SELLING" && (
-            <UsedWtbAlertPanel
-              workTitle={listing.workTitle}
-              animeSlug={listing.animeSlug}
-              productType={listing.productType}
-              characterName={listing.characterName}
-              currency={listing.currency}
-              loggedIn={!!session?.user?.id}
-            />
-          )}
-
-          <p className="text-2xl font-black mt-2">
-
-            {isAuction && listing.bidCount > 0 ? "현재 " : ""}
-
-            {formatUsedPrice(displayPrice, listing.currency)}
-
-          </p>
-
-          {isAuction && listing.bidCount === 0 && (
-
-            <p className="text-xs text-muted-foreground mt-1">
-
-              시작가 {formatUsedPrice(listing.price, listing.currency)}
-
-            </p>
-
-          )}
-
-          <p className="text-xs text-muted-foreground mt-2">
-
+          <p className="text-sm text-muted-foreground">
             {usedCategoryLabel(listing.category)} · {formatUsedTimeAgo(listing.createdAt)}
-
-            {isAuction ? " · 경매" : ""}
-
+            {listing.seller?.username ? (
+              <>
+                {" · "}
+                <Link href={`/u/${listing.seller.username}`} className="font-semibold text-foreground">
+                  @{listing.seller.username}
+                </Link>
+              </>
+            ) : null}
           </p>
-
         </div>
 
 
@@ -390,13 +350,23 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
 
 
-        <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">
+        <UsedSaleStatsPanel
+          workTitle={listing.workTitle}
+          animeSlug={listing.animeSlug}
+          productType={listing.productType}
+          characterName={listing.characterName}
+        />
 
-          {listing.description}
-
-        </p>
-
-
+        {!isSeller && status === "SELLING" && (
+          <UsedWtbAlertPanel
+            workTitle={listing.workTitle}
+            animeSlug={listing.animeSlug}
+            productType={listing.productType}
+            characterName={listing.characterName}
+            currency={listing.currency}
+            loggedIn={!!session?.user?.id}
+          />
+        )}
 
         <UsedMeetLocation
           region={listing.region}
@@ -406,53 +376,10 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           meetCountry={listing.meetCountry}
         />
 
-
-
-        <p className="text-xs text-muted-foreground tabular-nums">
-
+        <p className="text-xs font-semibold text-muted-foreground tabular-nums">
           {isAuction ? `입찰 ${listing.bidCount}` : `채팅 ${chatCount}`} · 관심 {favoriteCount} · 조회{" "}
-
           {listing.viewCount}
-
         </p>
-
-
-
-        <Link
-
-          href={`/u/${listing.seller.username}`}
-
-          className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border"
-
-        >
-
-          <Avatar className="h-11 w-11">
-
-            <AvatarImage src={listing.seller.image ?? undefined} />
-
-            <AvatarFallback>{listing.seller.username[0]?.toUpperCase()}</AvatarFallback>
-
-          </Avatar>
-
-          <div>
-
-            <DisplayNameWithSupportTier
-
-              name={listing.seller.name || listing.seller.username}
-
-              tier={listing.seller.supportTierSent ?? "SEED"}
-
-              nameClassName="font-semibold text-sm"
-
-              compact
-
-            />
-
-            <p className="text-xs text-muted-foreground">@{listing.seller.username} · 판매자</p>
-
-          </div>
-
-        </Link>
 
       </div>
 

@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { ExternalLink, MapPin } from "lucide-react";
-import { parseMeetCoords, usedMapSearchUrl } from "@/lib/used-market";
+import { MapPin } from "lucide-react";
+import { parseMeetCoords } from "@/lib/used-market";
 import { isShippingOnlyRegion } from "@/lib/used-region-coords";
 import { normalizeMeetCountry } from "@/lib/maps/select-engine";
 
@@ -33,12 +33,10 @@ export function UsedMeetLocation({
 }) {
   const country = normalizeMeetCountry(meetCountry);
   const coords = parseMeetCoords(meetLat, meetLng);
-  const label = meetPlace?.trim() || region;
-  const mapUrl = usedMapSearchUrl(region, meetPlace, coords, country);
+  const placeLabel = meetPlace?.trim();
   const shipping = isShippingOnlyRegion(region);
-  const externalLabel = "Google 지도";
 
-  if (shipping && !meetPlace?.trim()) {
+  if (shipping && !placeLabel) {
     return (
       <section className="text-sm text-muted-foreground flex items-center gap-2">
         <MapPin className="h-4 w-4 shrink-0" />
@@ -49,20 +47,14 @@ export function UsedMeetLocation({
 
   return (
     <section className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-medium flex items-center gap-1 min-w-0">
+      <div className="space-y-1">
+        <p className="text-sm font-medium flex items-center gap-1 min-w-0">
           <MapPin className="h-4 w-4 shrink-0 text-primary" />
-          <span className="truncate">거래 희망 장소 · {label}</span>
-        </h3>
-        <a
-          href={mapUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-muted-foreground hover:text-primary flex items-center gap-0.5 shrink-0"
-        >
-          {externalLabel}
-          <ExternalLink className="h-3 w-3" />
-        </a>
+          <span className="truncate">거래 지역 · {region}</span>
+        </p>
+        {placeLabel ? (
+          <p className="text-sm text-muted-foreground pl-5 truncate">거래 희망 장소 · {placeLabel}</p>
+        ) : null}
       </div>
 
       <MeetMapView
@@ -74,9 +66,8 @@ export function UsedMeetLocation({
         heightClassName="h-56 sm:h-64"
       />
 
-      <p className="text-xs text-muted-foreground">
-        {region} 인근 직거래 · 앱 지도는 MapLibre, 외부 링크는 Google 지도입니다
-        {!coords && meetPlace ? " (장소명으로 좌표 검색)" : ""}
+      <p className="text-[11px] font-semibold leading-4 text-muted-foreground">
+        {region} 인근 직거래
       </p>
     </section>
   );

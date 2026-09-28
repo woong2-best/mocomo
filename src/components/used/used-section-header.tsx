@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
@@ -12,22 +11,13 @@ export function UsedSectionHeader() {
   const { isNativeApp } = useClientPlatform();
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div className={cn("min-w-0", isNativeApp && "sr-only")}>
-        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-          <Store className="h-6 w-6 sm:h-7 sm:w-7 text-muted-foreground shrink-0" />
-          <span className="truncate">{MARKET_BRAND_NAME}</span>
-        </h1>
-      </div>
-      <nav className="flex flex-wrap items-center gap-2 shrink-0">
-        <Button variant="outline" size="sm" className="rounded-xl" asChild>
-          <Link href="/market?mode=auction">경매</Link>
-        </Button>
-        <Button variant="outline" size="sm" className="rounded-xl" asChild>
+    <div className="flex items-center justify-between gap-3">
+      <h1 className={cn("min-w-0 truncate text-xl font-extrabold", isNativeApp && "sr-only")}>
+        {MARKET_BRAND_NAME}
+      </h1>
+      <nav className="flex shrink-0 items-center gap-2">
+        <Button variant="outline" size="sm" className="rounded-full border-folk-cobalt/30 font-extrabold text-folk-cobalt" asChild>
           <Link href="/market/my">내 거래</Link>
-        </Button>
-        <Button variant="secondary" size="sm" className="rounded-xl" asChild>
-          <Link href="/market/new">글쓰기</Link>
         </Button>
       </nav>
     </div>

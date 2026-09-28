@@ -76,26 +76,6 @@ export function UsedImageGallery({
           </>
         )}
       </div>
-      {images.length > 1 && (
-        <div className="flex gap-1 p-2 overflow-x-auto bg-background border-b">
-          {images.map((url, i) => (
-            <button
-              key={url}
-              type="button"
-              onClick={() => setIdx(i)}
-              className={`shrink-0 rounded-lg overflow-hidden border-2 ${
-                i === idx ? "border-primary" : "border-transparent opacity-70"
-              }`}
-            >
-              {wrap(
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={url} alt="" className="h-14 w-14 object-cover" />,
-                "h-14 w-14"
-              )}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

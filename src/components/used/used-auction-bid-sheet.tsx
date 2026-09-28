@@ -226,7 +226,7 @@ export function UsedAuctionBidSheet({
         type="button"
         variant="secondary"
         size="lg"
-        className="flex-1 h-12 rounded-xl font-semibold gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+        className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2"
         onClick={tryOpenBidSheet}
       >
         <Gavel className="h-5 w-5" />

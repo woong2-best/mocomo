@@ -25,6 +25,7 @@ export function SubcultureMetaBadges({
   subcultureMeta,
   className,
   max = 6,
+  tone = "default",
 }: {
   productType?: string | null;
   characterName?: string | null;
@@ -37,6 +38,7 @@ export function SubcultureMetaBadges({
   subcultureMeta?: SubcultureVerticalMeta | null;
   className?: string;
   max?: number;
+  tone?: "default" | "cobalt";
 }) {
   const badges = buildSubcultureBadges({
     productType,
@@ -53,13 +55,15 @@ export function SubcultureMetaBadges({
   if (!badges.length) return null;
 
   return (
-    <div className={cn("flex flex-wrap gap-1", className)}>
+    <div className={cn("flex flex-wrap gap-1.5", className)}>
       {badges.map((b) => (
         <span
           key={b.key}
           className={cn(
-            "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold leading-tight",
-            toneClass[b.tone ?? "muted"]
+            tone === "cobalt"
+              ? "inline-flex items-center rounded-[10px] bg-folk-cobalt/10 px-2 py-1 text-[11px] font-bold leading-tight text-folk-cobalt"
+              : "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold leading-tight",
+            tone === "cobalt" ? null : toneClass[b.tone ?? "muted"]
           )}
         >
           {b.label}

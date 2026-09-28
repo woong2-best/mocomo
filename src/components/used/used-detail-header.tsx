@@ -3,37 +3,25 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Home, MoreHorizontal, Trash2 } from "lucide-react";
-import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
+import { ChevronLeft, MoreHorizontal, Trash2 } from "lucide-react";
 import { deleteUsedListing } from "@/actions/used-market";
+import { UsedListingHeartButton } from "@/components/used/used-listing-heart-button";
 
 export function UsedDetailHeader({
   listingId,
   isSeller,
+  initialFavorited = false,
+  heading = "상품",
 }: {
   listingId: string;
   isSeller: boolean;
+  initialFavorited?: boolean;
+  heading?: string;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [shareMsg, setShareMsg] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  async function share() {
-    const url = `${window.location.origin}/used/${listingId}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ url, title: document.title });
-        return;
-      } catch {
-        /* fallback */
-      }
-    }
-    await navigator.clipboard.writeText(url);
-    setShareMsg("링크를 복사했습니다.");
-    window.setTimeout(() => setShareMsg(""), 2000);
-  }
 
   async function remove() {
     setDeleting(true);
@@ -42,23 +30,16 @@ export function UsedDetailHeader({
   }
 
   return (
-    <div className="border-b border-border/60">
-      {shareMsg && (
-        <p className="px-4 py-1.5 text-xs text-center text-emerald-600 bg-emerald-500/10">{shareMsg}</p>
-      )}
-      <div className="flex items-center justify-between px-2 py-2">
-        <div className="flex items-center gap-1">
-          <Link href="/market" className="p-2 -ml-1 rounded-lg hover:bg-muted" aria-label="뒤로">
-            <ChevronLeft className="h-5 w-5" />
-          </Link>
-          <Link href="/market" className="p-2 rounded-lg hover:bg-muted" aria-label="More Commerce Moment">
-            <Home className="h-5 w-5" />
-          </Link>
-        </div>
-        <div className="flex items-center gap-1">
-          <button type="button" onClick={() => void share()} className="p-2 rounded-lg hover:bg-muted" aria-label="공유">
-            <ShareGlobeIcon className="h-5 w-5" />
-          </button>
+    <div className="border-b border-border/60 bg-card">
+      <div className="flex items-center gap-2 px-2 py-2">
+        <Link href="/market" className="p-2 -ml-1 rounded-lg hover:bg-muted" aria-label="뒤로">
+          <ChevronLeft className="h-6 w-6" />
+        </Link>
+        <p className="min-w-0 flex-1 truncate text-xl font-extrabold">{heading}</p>
+        <div className="flex items-center">
+          {!isSeller ? (
+            <UsedListingHeartButton listingId={listingId} initialFavorited={initialFavorited} />
+          ) : null}
           {isSeller && (
             <div className="relative">
               <button

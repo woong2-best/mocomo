@@ -59,9 +59,9 @@ export function UsedSaleStatsPanel({
   if (!loaded || records.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-border/80 bg-muted/30 p-4 space-y-2">
+    <section className="space-y-1.5 rounded-[14px] border-2 border-folk-cobalt/15 bg-muted p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-bold">최근 거래가</h2>
+        <h2 className="text-sm font-extrabold text-folk-cobalt">최근 거래가</h2>
         {median != null && records[0] && (
           <p className="text-xs text-muted-foreground">
             중앙값{" "}

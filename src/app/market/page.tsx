@@ -11,7 +11,6 @@ import { UsedSearchHeader } from "@/components/used/used-search-header";
 import { UsedFeedSkeleton } from "@/components/used/used-loading-skeletons";
 import { UsedWriteFab } from "@/components/used/used-write-fab";
 import { Button } from "@/components/ui/button";
-import { PageSection } from "@/components/layout/page-section";
 
 async function UsedFeed({
   searchParams,
@@ -88,13 +87,11 @@ async function UsedFeed({
   }
 
   return (
-    <PageSection title="상품 목록" description={`${listings.length}개`} variant="plain" className="pt-1">
-      <UsedListingGrid
-        listings={listings}
-        viewerUserId={session?.user?.id ?? null}
-        viewerShowNsfw={viewerShowNsfw}
-      />
-    </PageSection>
+    <UsedListingGrid
+      listings={listings}
+      viewerUserId={session?.user?.id ?? null}
+      viewerShowNsfw={viewerShowNsfw}
+    />
   );
 }
 

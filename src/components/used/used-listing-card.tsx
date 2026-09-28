@@ -6,17 +6,12 @@ import {
   formatUsedTimeAgo,
   isAuctionListing,
   listingImages,
-  usedStatusLabel,
 } from "@/lib/used-market";
 import { isAuctionLive } from "@/lib/used-auction";
 import { UsedAuctionCountdown } from "@/components/used/used-auction-countdown";
-import { usedProductTypeLabel } from "@/lib/used-catalog";
-import { SubcultureMetaBadges, parseSubcultureMetaFromDb } from "@/components/used/subculture-meta-badges";
-import { isUsedRestrictedKind, usedRestrictedLabel } from "@/lib/used-youth-protection";
 import { UsedListingThumb } from "@/components/used/used-listing-thumb";
-import { MapPin, Gavel } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { UsedListingQuickChat } from "@/components/used/used-listing-quick-chat";
+import { UsedListingHeartButton } from "@/components/used/used-listing-heart-button";
+import { Eye, Heart } from "lucide-react";
 
 type Listing = {
   id: string;
@@ -38,23 +33,16 @@ type Listing = {
   currentBidderId?: string | null;
   antiSnipeMinutes?: number;
   restrictedKind?: string;
-  workTitle?: string | null;
-  productType?: string | null;
-  characterName?: string | null;
-  conditionGrade?: string | null;
-  limitedKind?: string | null;
-  listingFormat?: string | null;
-  tradeMode?: string | null;
-  itemOrigin?: string | null;
-  packagingState?: string | null;
-  subcultureMeta?: unknown;
   isNsfw?: boolean;
   sellerId?: string;
+  viewCount?: number;
+  favoriteCount?: number;
+  favorited?: boolean;
+  _count?: { favorites?: number };
 };
 
 export function UsedListingCard({
   listing,
-  dense = false,
   viewerUserId = null,
   viewerShowNsfw = false,
 }: {
@@ -65,8 +53,6 @@ export function UsedListingCard({
 }) {
   const imgs = listingImages(listing.images);
   const thumb = imgs[0];
-  const status = usedStatusLabel(listing.status);
-  const isDone = listing.status !== "SELLING";
   const auction = isAuctionListing(listing);
   const live =
     auction &&
@@ -85,138 +71,56 @@ export function UsedListingCard({
       status: listing.status,
     });
   const showPrice = auction ? displayAuctionPrice(listing as Parameters<typeof displayAuctionPrice>[0]) : listing.price;
-  const restricted = isUsedRestrictedKind(listing.restrictedKind);
   const isOwner = !!viewerUserId && viewerUserId === listing.sellerId;
-  const showQuickChat =
-    !!viewerUserId && !isOwner && listing.status === "SELLING" && !live;
+  const region = displayUsedRegion(listing.region) || "지역 미정";
 
   return (
-    <Link
-      href={`/market/${listing.id}`}
-      prefetch={false}
-      className={cn("block group used-listing-card h-full", dense && "used-listing-card--dense")}
-    >
-      <article
-        className={cn(
-          "h-full overflow-hidden bg-card",
-          dense
-            ? "rounded-none border-0 ring-1 ring-inset ring-border/50"
-            : "folk-card-interactive rounded-xl border border-border/50",
-          isDone && "opacity-70"
-        )}
-      >
-        <div className="relative aspect-square bg-muted/40 overflow-hidden">
+    <article className="relative flex gap-3 px-1 py-3.5">
+      <Link href={`/market/${listing.id}`} prefetch={false} className="flex min-w-0 flex-1 gap-3">
+        <div className="relative h-[108px] w-[108px] shrink-0 overflow-hidden rounded-lg bg-muted">
           <UsedListingThumb
             thumb={thumb ?? null}
-            dense={dense}
+            dense
             isNsfw={listing.isNsfw}
             isOwner={isOwner}
             viewerShowNsfw={viewerShowNsfw}
           />
-          {restricted && (
-            <span
-              className={cn(
-                "absolute font-bold rounded-md bg-amber-600 text-white",
-                dense ? "top-1 right-1 text-[9px] px-1.5 py-0.5" : "top-2 right-2 text-[10px] px-2 py-0.5"
-              )}
-            >
-              19+
-            </span>
-          )}
-          {auction && live && (
-            <span
-              className={cn(
-                "absolute font-bold rounded-md bg-orange-600 text-white flex items-center gap-0.5",
-                dense ? "top-1 left-1 text-[9px] px-1.5 py-0.5" : "top-2 left-2 text-[10px] px-2 py-0.5"
-              )}
-            >
-              <Gavel className={dense ? "h-2.5 w-2.5" : "h-3 w-3"} />
-              경매
-            </span>
-          )}
-          {status && !(auction && live) && (
-            <span
-              className={cn(
-                "absolute font-bold rounded-md bg-black/65 text-white",
-                dense ? "top-1 left-1 text-[9px] px-1.5 py-0.5" : "top-2 left-2 text-[10px] px-2 py-0.5"
-              )}
-            >
-              {status}
-            </span>
-          )}
-          {listing.price === 0 && !status && !auction && (
-            <span
-              className={cn(
-                "absolute font-bold rounded-md bg-muted-foreground text-background",
-                dense ? "top-1 left-1 text-[9px] px-1.5 py-0.5" : "top-2 left-2 text-[10px] px-2 py-0.5"
-              )}
-            >
-              나눔
-            </span>
-          )}
-          {showQuickChat ? (
-            <UsedListingQuickChat
-              listingId={listing.id}
-              restrictedKind={listing.restrictedKind}
-              className={cn("absolute z-10", dense ? "bottom-1 right-1 h-8 w-8" : "bottom-2 right-2 h-9 w-9")}
-            />
-          ) : null}
         </div>
-        <div className={cn(dense ? "p-1.5 space-y-0.5" : "p-2.5 space-y-1")}>
-          {(listing.workTitle || listing.productType) && (
-            <p className="text-[10px] text-muted-foreground line-clamp-1">
-              {[listing.workTitle, usedProductTypeLabel(listing.productType)]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          )}
-          <p
-            className={cn(
-              "font-medium line-clamp-2 leading-snug",
-              dense ? "text-xs min-h-0" : "text-sm min-h-[2.5rem]"
-            )}
-          >
-            {listing.title}
-          </p>
-          <SubcultureMetaBadges
-            productType={listing.productType}
-            characterName={listing.characterName}
-            conditionGrade={listing.conditionGrade}
-            limitedKind={listing.limitedKind}
-            listingFormat={listing.listingFormat}
-            tradeMode={listing.tradeMode}
-            itemOrigin={listing.itemOrigin}
-            packagingState={listing.packagingState}
-            subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
-            max={dense ? 3 : 4}
-            className="pt-0.5"
-          />
-          <p className={cn("font-black text-foreground", dense ? "text-sm" : "text-base")}>
-            {auction && (listing.bidCount ?? 0) > 0 ? "현재 " : ""}
-            {formatUsedPrice(showPrice, listing.currency)}
-          </p>
-          <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 truncate">
-            <MapPin className="h-2.5 w-2.5 shrink-0" />
-            {displayUsedRegion(listing.region)}
+        <div className="min-w-0 flex-1 pr-7">
+          <p className="line-clamp-2 text-[15px] font-bold leading-5">{listing.title}</p>
+          <p className="mt-1 truncate text-xs font-semibold text-muted-foreground">
+            {region}
             {auction && listing.auctionEndsAt && listing.status === "SELLING" ? null : (
               <> · {formatUsedTimeAgo(listing.createdAt)}</>
             )}
           </p>
-          {restricted && (
-            <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium line-clamp-1">
-              {usedRestrictedLabel(listing.restrictedKind!)}
-            </p>
-          )}
+          <p className="mt-1.5 text-base font-extrabold text-folk-terracotta">
+            {auction && (listing.bidCount ?? 0) > 0 ? "현재 " : ""}
+            {formatUsedPrice(showPrice, listing.currency)}
+          </p>
+          <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-muted-foreground tabular-nums">
+            <Eye className="h-3.5 w-3.5" />
+            {listing.viewCount ?? 0}
+            <Heart className="ml-2 h-3.5 w-3.5" />
+            {listing.favoriteCount ?? listing._count?.favorites ?? 0}
+          </p>
           {auction && listing.auctionEndsAt && listing.status === "SELLING" ? (
             <UsedAuctionCountdown endsAt={listing.auctionEndsAt} variant="compact" />
           ) : null}
-          {auction && (listing.bidCount ?? 0) > 0 && (
-            <p className="text-[10px] text-orange-600 dark:text-orange-400 font-medium">
-              입찰 {listing.bidCount}회
-            </p>
-          )}
+          {live && (listing.bidCount ?? 0) > 0 ? (
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">입찰 {listing.bidCount}</p>
+          ) : null}
         </div>
-      </article>
-    </Link>
+      </Link>
+      {!isOwner ? (
+        <div className="absolute bottom-3 right-0">
+          <UsedListingHeartButton
+            listingId={listing.id}
+            initialFavorited={!!listing.favorited}
+            size="sm"
+          />
+        </div>
+      ) : null}
+    </article>
   );
 }
