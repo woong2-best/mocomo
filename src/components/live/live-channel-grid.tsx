@@ -1,14 +1,11 @@
 "use client";
 
-import { memo, Suspense, useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, Radio, User } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import {
-  LiveFolderRail,
-  type LiveFolderFilter,
-} from "@/components/live/live-folder-rail";
+import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
 import { LiveHubTabBar } from "@/components/live/live-hub-tab-bar";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LIVE_SMPTE_COLORS } from "@/lib/live-categories";
@@ -157,7 +154,7 @@ function filterChannels(
   return channels.filter((ch) => ch.category === filter);
 }
 
-/** YouTube-style 4-column grid + folder rail on the right. */
+/** Category chips across the top, stream grid below. */
 export function LiveChannelGrid({
   channels,
   hosts,
@@ -183,8 +180,6 @@ export function LiveChannelGrid({
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
       <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
-      <div className="flex min-h-0 w-full flex-1 flex-row overflow-hidden">
-      {/* Only the live grid scrolls */}
       <div className="relative min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin pr-0.5">
         <div
           className={cn(
@@ -199,21 +194,6 @@ export function LiveChannelGrid({
             <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
           ))}
         </div>
-      </div>
-
-      {/* Folder rail stays mounted; parked so it does not show or take width */}
-      <div className="live-folder-rail-column live-folder-rail-parked" aria-hidden>
-        <Suspense
-          fallback={
-            <div
-              className="w-[132px] rounded-b-[1.75rem] bg-white/90 animate-pulse"
-              style={{ height: "min(640px, calc(100dvh - var(--header-h) - 2rem))" }}
-            />
-          }
-        >
-          <LiveFolderRail activeFilter={activeFilter} onFilterChange={setActiveFilter} />
-        </Suspense>
-      </div>
       </div>
     </div>
   );

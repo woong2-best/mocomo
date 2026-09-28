@@ -13,7 +13,6 @@ export function LiveChannelGridSkeleton() {
           </div>
         ))}
       </div>
-      <div className="w-[140px] shrink-0 rounded-b-[1.75rem] bg-white animate-pulse" />
     </div>
   );
 }

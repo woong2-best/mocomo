@@ -467,14 +467,10 @@ html[data-client="app"] .native-live-pad {
     @apply bg-[hsl(224,45%,10%)];
   }
 
-  /* /live hub — full space backdrop (Earth / Moon / Mars) */
+  /* /live hub — solid black (space art kept on disk, not shown) */
   .live-page-shell.live-hub-space {
-    background-color: #02040a;
-    background-image: url("/images/live/live-hub-space-bg.png");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    background-color: #000;
+    background-image: none;
   }
 
   /* /live hub — fit viewport; grid scrolls inside */
@@ -489,15 +485,53 @@ html[data-client="app"] .native-live-pad {
     overflow: hidden;
   }
 
-  /* /live — folder rail height locked to viewport; grid scrolls independently */
-  .live-folder-rail-column {
-    height: min(640px, calc(100dvh - var(--header-h, 3.5rem) - 2rem));
-    max-height: calc(100dvh - var(--header-h, 3.5rem) - 2rem);
+  .live-hub-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin: 0 0 12px;
+    min-width: 0;
   }
-
-  html[data-client="app"] .live-folder-rail-column {
-    max-height: calc(100dvh - var(--header-h, 3.5rem) - var(--mobile-nav-h, 0px) - 2rem);
-    height: min(640px, calc(100dvh - var(--header-h, 3.5rem) - var(--mobile-nav-h, 0px) - 2rem));
+  .live-hub-tab-bar {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    font-family: "Arial Black", "Helvetica Neue", "Noto Sans KR", sans-serif;
+  }
+  .live-hub-tab {
+    flex: 0 0 auto;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    border-radius: 999px;
+    color: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    background: #111;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    appearance: none;
+  }
+  .live-hub-tab.active {
+    background: #000;
+    border-color: #1a6aff;
+    box-shadow:
+      0 0 8px #1a6aff,
+      0 0 16px rgba(26, 106, 255, 0.65);
+  }
+  .live-hub-tab:hover:not(.active) {
+    background: #1a1a1a;
+    border-color: rgba(255, 255, 255, 0.7);
   }
 
   .live-hero {
@@ -979,6 +1013,40 @@ html[data-client="app"] .native-live-pad {
     border-radius: 8px 0 0 8px;
     border-right: none;
     border-left: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
+  .meet-map-popup .maplibregl-popup-content {
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #0f172a;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  }
+
+  .meet-map-popup-title {
+    display: block;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .meet-map-popup-links {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .meet-map-popup-links a {
+    color: #1d4ed8;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .meet-map-popup-links a:hover {
+    text-decoration: underline;
   }
 
   .subculture-map-popup .maplibregl-popup-content {
