@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /** Static empty card (user asset) — when the live hub has zero active broadcasts. */
-export const LIVE_NO_BROADCAST_EMPTY_SRC = "/images/live/no-broadcast-empty.png?v=1";
+export const LIVE_NO_BROADCAST_EMPTY_SRC = "/images/live/no-broadcast-empty.png?v=2";
 
 export function LiveNoBroadcastEmpty({
   className,
