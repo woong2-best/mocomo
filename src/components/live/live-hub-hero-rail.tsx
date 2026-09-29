@@ -8,8 +8,8 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { OFF_AIR_TV_SRC } from "@/components/live/live-off-air-hero";
 import { Eye, Radio } from "lucide-react";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import { wrapIndex } from "@/lib/live-bead-slots";
@@ -18,13 +18,12 @@ import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-a
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
-const OFF_AIR_TV_SRC = "/images/live/off-air-tv.png";
 /** Same spring as the vertical bead feed (`live-bead-feed.tsx`). */
 const SPRING_STIFFNESS = 180;
 const SPRING_DAMPING = 22;
 const HERO_RAIL_MIN_SLOTS = 8;
-/** Always left peek + center + right peek, like the vertical 3-bead stage. */
-const VISIBLE_COUNT = 3;
+/** Center + two stacked peeks per side (reference mock). */
+const VISIBLE_COUNT = 5;
 
 export type LiveHeroRailSlot =
   | { kind: "off-air"; key: "off-air" }
@@ -52,7 +51,7 @@ function measureHeroRail(width: number): { cardWidth: number; spacing: number; v
   return {
     cardWidth,
     spacing: Math.round(cardWidth * 0.68),
-    visibleRadius: (VISIBLE_COUNT - 1) / 2 + 0.2,
+    visibleRadius: (VISIBLE_COUNT - 1) / 2 + 0.35,
   };
 }
 
@@ -179,7 +178,7 @@ export function LiveHubHeroRail({ channels, hosts, className }: Props) {
     <div
       ref={stageRef}
       className={cn(
-        "relative w-full min-h-0 flex-1 overflow-hidden touch-none select-none bg-black",
+        "relative isolate w-full shrink-0 overflow-hidden touch-none select-none bg-black",
         className
       )}
       onPointerDown={onPointerDown}
@@ -286,13 +285,13 @@ function OffAirHeroCard({ focused }: { focused: boolean }) {
   const { t } = useLocale();
   return (
     <div className="relative w-full aspect-[16/10] overflow-hidden">
-      <Image
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={OFF_AIR_TV_SRC}
         alt={t("live.noBroadcastEmptyHub")}
-        fill
-        priority={focused}
-        className="object-contain object-center"
-        sizes="760px"
+        className="h-full w-full object-contain object-center"
+        decoding="async"
+        fetchPriority={focused ? "high" : "low"}
       />
     </div>
   );

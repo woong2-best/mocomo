@@ -56,7 +56,7 @@ export default async function LivePage({
       currentUserId={currentUserId ?? undefined}
       view={view}
       channelFeed={
-        <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
+        <div className="flex w-full flex-col">
           <Suspense fallback={<LiveChannelGridSkeleton />}>
             <LiveChannelFeed searchParams={Promise.resolve(params)} />
           </Suspense>

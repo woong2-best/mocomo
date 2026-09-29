@@ -1,10 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
-const OFF_AIR_TV_SRC = "/images/live/off-air-tv.png";
+export const OFF_AIR_TV_SRC = "/images/live/off-air-tv.png";
 
 /** Off-air hero — uses the SMPTE TV artwork as-is (no CSS recreation). */
 export function LiveOffAirHero({ className }: { className?: string }) {
@@ -18,13 +17,13 @@ export function LiveOffAirHero({ className }: { className?: string }) {
       )}
     >
       <div className="relative w-full max-w-[min(920px,96vw)] aspect-[16/10] max-h-[min(58vh,calc(100dvh-var(--header-h,3.5rem)-14rem))]">
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={OFF_AIR_TV_SRC}
           alt={t("live.noBroadcastEmptyHub")}
-          fill
-          priority
-          className="object-contain object-center"
-          sizes="(max-width: 920px) 96vw, 920px"
+          className="h-full w-full object-contain object-center"
+          decoding="async"
+          fetchPriority="high"
         />
       </div>
     </div>

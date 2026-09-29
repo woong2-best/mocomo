@@ -161,7 +161,11 @@ export function LiveChannelGrid({
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <LiveHubHeroRail channels={channels} hosts={hosts} className="h-[min(48vh,420px)] shrink-0" />
+      <LiveHubHeroRail
+        channels={channels}
+        hosts={hosts}
+        className="h-[clamp(240px,48vh,520px)] min-h-[240px] w-full"
+      />
       <LiveHubNeonDivider />
       <div className="shrink-0 px-0.5 pb-2">
         <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
