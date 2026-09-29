@@ -84,7 +84,7 @@ npm run economy:stress    # 경제 스트레스
 
 ## 배포
 
-- **웹:** `npx vercel --prod` (`postinstall`에서 prisma·에셋 복사; `prisma/` 변경 시 빌드가 migrate deploy 자동 실행)
+- **웹:** `git push origin main` → Vercel Git 연동이 Production 빌드. `vercel --prod`는 로컬 워킹트리(미커밋 포함)를 올려 `main`과 어긋날 수 있으니 쓰지 않는다. (`postinstall`에서 prisma·에셋 복사; `prisma/` 변경 시 빌드가 migrate deploy 자동 실행)
 - **DB:** `npm run db:deploy` (로컬·CI 수동 실행용; Vercel은 schema/migrations diff 있을 때만 자동)
 - **Socket:** `npm run start:socket` 별도 프로세스
 - **헬스:** `/api/health`, `/api/health/summary`

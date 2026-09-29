@@ -128,16 +128,11 @@ Preview / Development에도 같은 값을 추가하려면 `production` 대신 �
 2. 맨 위 **Production** 배포 → **⋯** → **Redeploy**  
 3. **Use existing Build Cache** 끄고 Redeploy (환경 변수만 바꿨을 때 권장)
 
-### 방법 B — CLI
+### 방법 B — Git push (정상 경로)
 
-```powershell
-cd "c:\Users\백권웅\Desktop\mocomo"
-npx vercel --prod
-```
+커밋 후 `git push origin main`. GitHub에 연결된 Vercel이 Production을 빌드한다.
 
-### 방법 C — Git push
-
-GitHub에 연결되어 있으면 `main` push 후 자동 배포.
+`npx vercel --prod`는 로컬 디스크(미커밋 포함)를 올려 GitHub `main`과 다른 사이트가 될 수 있다. 쓰지 않는다.
 
 ---
 
