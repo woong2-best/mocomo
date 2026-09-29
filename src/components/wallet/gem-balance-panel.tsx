@@ -10,6 +10,7 @@ import type { AtmScreenOverlay } from "@/components/wallet/wallet-payment-types"
 import { payGemTopupWithSavedCard } from "@/actions/gems";
 import { confirmCheckoutPayment } from "@/actions/checkout-payment";
 import {
+  MOCO_PURCHASE_PG_FEE_NOTE,
   MOCO_PURCHASE_TERMS_COPY,
   MOCO_TOPUP_INPUT_MAX_DIGITS,
   parseMocoTopupCount,
@@ -513,6 +514,13 @@ export function GemBalancePanel({
             />
             <span className="text-[11px] leading-relaxed text-slate-400">{MOCO_PURCHASE_TERMS_COPY}</span>
           </label>
+          <p className="text-[10px] leading-relaxed text-slate-500">{MOCO_PURCHASE_PG_FEE_NOTE}</p>
+          <a
+            href="/contribution-tower"
+            className="block text-center text-[11px] font-bold text-emerald-400/90 underline"
+          >
+            기여 탑 보러가기
+          </a>
 
           {purchases.length > 0 ? (
             <div className="space-y-2 border-t border-slate-700/50 pt-3">

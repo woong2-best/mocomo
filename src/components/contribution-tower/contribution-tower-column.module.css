@@ -1,0 +1,160 @@
+.skyScene {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, #4a9fd8 0%, #6eb5e8 35%, #9dceef 70%, #e8f4fc 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    0 24px 48px rgb(15 35 70 / 0.25);
+}
+
+:global(.dark) .skyScene {
+  background: linear-gradient(180deg, #0c1a32 0%, #122845 40%, #1a3a5c 75%, #234a6e 100%);
+}
+
+.clouds {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  background:
+    radial-gradient(ellipse 120px 40px at 15% 88%, rgb(255 255 255 / 0.9) 0%, transparent 70%),
+    radial-gradient(ellipse 160px 50px at 55% 92%, rgb(255 255 255 / 0.75) 0%, transparent 70%),
+    radial-gradient(ellipse 100px 36px at 85% 86%, rgb(255 255 255 / 0.65) 0%, transparent 70%);
+}
+
+:global(.dark) .clouds {
+  opacity: 0.2;
+}
+
+.columnWrap {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: min(68vh, 640px);
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 2.5rem 1rem 2rem;
+}
+
+.capital {
+  flex-shrink: 0;
+  width: min(100%, 19.5rem);
+  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.2));
+}
+
+.shaft {
+  position: relative;
+  display: flex;
+  width: min(100%, 19.5rem);
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0;
+}
+
+.shaftEmpty {
+  min-height: 12rem;
+}
+
+.fluteOverlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-left: 1px solid rgb(0 0 0 / 0.06);
+  border-right: 1px solid rgb(0 0 0 / 0.06);
+  background: repeating-linear-gradient(
+    90deg,
+    rgb(0 0 0 / 0.07) 0,
+    rgb(0 0 0 / 0.07) 3px,
+    transparent 3px,
+    transparent 14px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.45;
+}
+
+:global(.dark) .fluteOverlay {
+  mix-blend-mode: soft-light;
+  opacity: 0.35;
+}
+
+.shaftBackdrop {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    90deg,
+    #b8aea0 0%,
+    #ebe6dc 18%,
+    #f5f2eb 50%,
+    #ebe6dc 82%,
+    #b8aea0 100%
+  );
+  box-shadow:
+    inset 8px 0 16px rgb(0 0 0 / 0.08),
+    inset -8px 0 16px rgb(0 0 0 / 0.08);
+}
+
+.blockStack {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0;
+}
+
+.stoneBlock {
+  position: relative;
+  border-top: 1px solid rgb(255 255 255 / 0.55);
+  border-bottom: 2px solid rgb(0 0 0 / 0.12);
+  background: linear-gradient(180deg, #f0ebe3 0%, #ddd5c8 48%, #cfc5b6 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    0 2px 4px rgb(0 0 0 / 0.08);
+}
+
+.stoneBlockAccent {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--block-accent, #c4b8a8) 35%, #f0ebe3) 0%,
+    color-mix(in srgb, var(--block-accent, #a89888) 25%, #ddd5c8) 100%
+  );
+}
+
+.torus {
+  flex-shrink: 0;
+  height: 6px;
+  background: linear-gradient(180deg, #e8e2d8 0%, #a89f92 50%, #8a8175 100%);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.4);
+}
+
+.base {
+  flex-shrink: 0;
+  width: min(100%, 21rem);
+  margin-top: -1px;
+  filter: drop-shadow(0 6px 12px rgb(0 0 0 / 0.25));
+}
+
+.emptyShaft {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 10rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #4a5568;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.5);
+}
+
+:global(.dark) .emptyShaft {
+  color: #cbd5e1;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+}

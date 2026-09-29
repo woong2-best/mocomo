@@ -453,6 +453,7 @@ model User {
   creatorSupportsGiven CreatorSupport[] @relation("Supporter")
   creatorSupportsReceived CreatorSupport[] @relation("Creator")
   animeFollows  AnimeFollow[]
+  animeStars    AnimeStar[]
   animesCreated Anime[] @relation("AnimeCreator")
   animeRevisions AnimeRevision[] @relation("AnimeRevisionEditor")
   animeDeleteRequests AnimeDeleteRequest[]
@@ -543,6 +544,7 @@ model User {
   payoutsProcessed PayoutRequest[] @relation("PayoutProcessor")
 
   gemPurchases                 GemPurchase[]              @relation("GemPurchaseFan")
+  mocoContributionTowerBlocks  MocoContributionTowerBlock[]
   mocoTopupTransactions        MocoTopupTransaction[]
   creatorBalance               CreatorBalance?
   giftEventsSent               GiftEvent[]                @relation("GiftEventFan")
@@ -1068,6 +1070,10 @@ model Post {
   instantPurchasePriceKrw Int @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  /** 인용 게시 — 원본 게시물. 단순 재게시는 Repost 테이블. */
+  quotedPostId String?
+  quotedPost   Post?  @relation("PostQuotes", fields: [quotedPostId], references: [id], onDelete: SetNull)
+  quotes       Post[] @relation("PostQuotes")
 
   author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   community Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
@@ -1092,6 +1098,7 @@ model Post {
   @@index([authorId, createdAt(sort: Desc)])
   @@index([authorId, isPinned])
   @@index([communityId, createdAt(sort: Desc)])
+  @@index([quotedPostId])
 }
 
 enum PostCollaboratorStatus {
@@ -1367,6 +1374,8 @@ model Repost {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   @@unique([userId, postId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }
 
 model TrendingSnapshot {
@@ -2181,9 +2190,32 @@ model GemPurchase {
 
   fan         User                  @relation("GemPurchaseFan", fields: [fanId], references: [id], onDelete: Cascade)
   allocations GiftEventAllocation[]
+  contributionTowerBlock MocoContributionTowerBlock?
 
   @@index([fanId, createdAt])
   @@index([fanId, remainingGems])
+}
+
+/** MOCO 충전 1건 = 기여 탑 블록 1개 (결제 완료 즉시 등록) */
+model MocoContributionTowerBlock {
+  id                    String    @id @default(cuid())
+  stackOrder            Int       @unique @default(autoincrement())
+  userId                String
+  gemPurchaseId         String    @unique
+  stripePaymentIntentId String    @unique
+  mocoQuantity          Int
+  username              String
+  displayName           String?
+  profileImageUrl       String?
+  visible               Boolean   @default(true)
+  removedAt             DateTime?
+  createdAt             DateTime  @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gemPurchase GemPurchase @relation(fields: [gemPurchaseId], references: [id], onDelete: Cascade)
+
+  @@index([visible, stackOrder])
+  @@index([userId, createdAt])
 }
 
 enum MocoTopupTransactionStatus {
@@ -3075,6 +3107,8 @@ enum MocoTransactionType {
   AD_PURCHASE
   AUCTION_PENALTY
   CHECKOUT_BURN
+  /** 결제로 충전한 보유 MOCO를 다른 사용자 정산으로 전달. 수령자 보유 잔액에는 넣지 않음 */
+  PEER_TRANSFER
 }
 
 /** MOCO 소멸(Burn) 감사 원장 — 유저 지갑 내역 (플랫폼 이체 없음) */
@@ -3533,6 +3567,7 @@ model Anime {
   @@index([updatedAt(sort: Desc)])
   posts       Post[]
   followers   AnimeFollow[]
+  stars       AnimeStar[]
   cosplayers  CosplayerAnime[]
   goods       AnimeGoods[]
 }
@@ -3705,6 +3740,19 @@ model AnimeFollow {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
   @@unique([userId, animeId])
+}
+
+/** STAR 북마크 — 컬처 위키 문서를 저장 */
+model AnimeStar {
+  id        String   @id @default(cuid())
+  userId    String
+  animeId   String
+  createdAt DateTime @default(now())
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, animeId])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model CosplayerAnime {
