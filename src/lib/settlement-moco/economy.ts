@@ -32,62 +32,75 @@ async function getOrCreatePlatformWallet(userId: string) {
   return db.platformWallet.create({ data: { userId } });
 }
 
-/** 후원 완료 시 earnedMoco 적립 (purchasedMoco → earnedMoco 전환, 멱등) */
-export async function creditSettlementMoco(input: {
+export type CreditSettlementMocoInput = {
   userId: string;
   amount: number;
   reason: string;
   referenceType?: string;
   referenceId?: string;
   metadata?: Record<string, unknown>;
-}) {
+};
+
+/**
+ * 받은 MOCO는 settlementMocoPoints에만 넣는다.
+ * gemBalance · mocoPoints(보유)는 절대 올리지 않는다.
+ */
+export async function creditSettlementMocoInTx(
+  tx: Prisma.TransactionClient,
+  input: CreditSettlementMocoInput
+) {
   if (input.amount <= 0) return null;
-  const wallet = await getOrCreatePlatformWallet(input.userId);
+  const existingWallet = await tx.platformWallet.findUnique({ where: { userId: input.userId } });
+  const wallet =
+    existingWallet ?? (await tx.platformWallet.create({ data: { userId: input.userId } }));
 
-  const updated = await db.$transaction(async (tx) => {
-    if (input.referenceType && input.referenceId) {
-      const existing = await tx.platformWalletLedger.findFirst({
-        where: {
-          walletId: wallet.id,
-          bucket: "SETTLEMENT_MOCO",
-          referenceType: input.referenceType,
-          referenceId: input.referenceId,
-          delta: { gt: 0 },
-        },
-      });
-      if (existing) {
-        return tx.platformWallet.findUniqueOrThrow({ where: { id: wallet.id } });
-      }
-    }
-
-    const row = await tx.platformWallet.update({
-      where: { id: wallet.id },
-      data: { settlementMocoPoints: { increment: input.amount } },
-    });
-
-    await tx.platformWalletLedger.create({
-      data: {
+  if (input.referenceType && input.referenceId) {
+    const existing = await tx.platformWalletLedger.findFirst({
+      where: {
         walletId: wallet.id,
         bucket: "SETTLEMENT_MOCO",
-        delta: input.amount,
-        balanceAfter: row.settlementMocoPoints,
-        reason: input.reason,
         referenceType: input.referenceType,
         referenceId: input.referenceId,
-        metadata: input.metadata as Prisma.InputJsonValue | undefined,
+        delta: { gt: 0 },
       },
     });
+    if (existing) {
+      return tx.platformWallet.findUniqueOrThrow({ where: { id: wallet.id } });
+    }
+  }
 
-    await syncEarnedMocoDisplayTier(input.userId, row.settlementMocoPoints, tx);
-    await creditCreatorAllocationCents(
-      tx,
-      input.userId,
-      creatorAllocationCentsFromMoco(input.amount)
-    );
-    return row;
+  const row = await tx.platformWallet.update({
+    where: { id: wallet.id },
+    data: { settlementMocoPoints: { increment: input.amount } },
   });
 
-  return updated;
+  await tx.platformWalletLedger.create({
+    data: {
+      walletId: wallet.id,
+      bucket: "SETTLEMENT_MOCO",
+      delta: input.amount,
+      balanceAfter: row.settlementMocoPoints,
+      reason: input.reason,
+      referenceType: input.referenceType,
+      referenceId: input.referenceId,
+      metadata: input.metadata as Prisma.InputJsonValue | undefined,
+    },
+  });
+
+  await syncEarnedMocoDisplayTier(input.userId, row.settlementMocoPoints, tx);
+  await creditCreatorAllocationCents(
+    tx,
+    input.userId,
+    creatorAllocationCentsFromMoco(input.amount)
+  );
+  return row;
+}
+
+/** 후원·전달 수령 시 earnedMoco 적립 (보유 MOCO에는 넣지 않음, 멱등) */
+export async function creditSettlementMoco(input: CreditSettlementMocoInput) {
+  if (input.amount <= 0) return null;
+  await getOrCreatePlatformWallet(input.userId);
+  return db.$transaction((tx) => creditSettlementMocoInTx(tx, input));
 }
 
 /** 월간 정산 — achievedTier.requiredMoco 차감, 잔여 이월 */

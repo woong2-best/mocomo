@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { confirmPaymentMethodSetup } from "@/actions/payment-methods";
 import { WalletStripeTopup } from "@/components/wallet/wallet-stripe-topup";
+import { WalletMocoTransferStation } from "@/components/wallet/wallet-moco-transfer-station";
 import { PaymentHistoryPanel } from "@/components/wallet/payment-history-panel";
 import { RevenueSettlementPanel } from "@/components/wallet/revenue-settlement-panel";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
@@ -39,10 +40,13 @@ type Props = {
   >;
 };
 
-type Tab = "wallet" | "earnings";
+type Tab = "wallet" | "earnings" | "transfer";
 
 function tabFromParams(params: URLSearchParams): Tab {
-  return params.get("tab") === "earnings" ? "earnings" : "wallet";
+  const tab = params.get("tab");
+  if (tab === "earnings") return "earnings";
+  if (tab === "transfer") return "transfer";
+  return "wallet";
 }
 
 export function WalletHub({
@@ -52,6 +56,7 @@ export function WalletHub({
   paymentHistory,
   minTopupMoco,
   lowBalanceNotice,
+  userImageUrl,
   settlement,
 }: Props) {
   const router = useRouter();
@@ -65,7 +70,7 @@ export function WalletHub({
   const syncTabToUrl = useCallback(
     (next: Tab) => {
       const nextParams = new URLSearchParams();
-      if (next === "earnings") nextParams.set("tab", "earnings");
+      if (next !== "wallet") nextParams.set("tab", next);
       if (safeCallbackUrl) nextParams.set("callbackUrl", safeCallbackUrl);
       const qs = nextParams.toString();
       router.replace(qs ? `/wallet?${qs}` : "/wallet", { scroll: false });
@@ -133,11 +138,12 @@ export function WalletHub({
         </div>
       ) : null}
 
-      <div className="flex items-end gap-6 px-1">
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-1 px-1">
         {(
           [
             { id: "wallet" as const, label: "지갑" },
             { id: "earnings" as const, label: "수익" },
+            { id: "transfer" as const, label: "전달" },
           ] as const
         ).map((t) => (
           <button
@@ -145,7 +151,7 @@ export function WalletHub({
             type="button"
             onClick={() => selectTab(t.id)}
             className={cn(
-              "text-3xl font-black tracking-tight transition-colors",
+              "text-2xl font-black tracking-tight transition-colors min-[400px]:text-3xl",
               tab === t.id ? "text-foreground" : "text-muted-foreground/50 hover:text-muted-foreground"
             )}
           >
@@ -163,6 +169,11 @@ export function WalletHub({
           />
           <PaymentHistoryPanel items={paymentHistory} />
         </>
+      ) : tab === "transfer" ? (
+        <WalletMocoTransferStation
+          purchasedMoco={settlement.purchasedMocoPoints}
+          userImageUrl={userImageUrl}
+        />
       ) : (
         <RevenueSettlementPanel
           data={data}
