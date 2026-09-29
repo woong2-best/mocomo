@@ -13,6 +13,7 @@ import {
   isLiveFeatureEnabled,
 } from "@/lib/live-feature";
 import { LiveHubSlantTabs } from "@/components/live/live-hub-slant-tabs";
+import { LiveHubNeonDivider } from "@/components/live/live-off-air-hero";
 import { useLocale } from "@/components/providers/locale-provider";
 
 function LiveHubQuickActions() {
@@ -76,6 +77,7 @@ export function LiveHubTabBar({
         </div>
         <LiveHubQuickActions />
       </div>
+      <LiveHubNeonDivider />
       <LiveR18BlockedDialog open={blockedOpen} onOpenChange={setBlockedOpen} />
     </>
   );

@@ -14,8 +14,6 @@ import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cardHover, pressTap } from "@/lib/motion-presets";
 import { useLocale } from "@/components/providers/locale-provider";
-import { LiveHubNeonDivider } from "@/components/live/live-off-air-hero";
-import { LiveHubHeroRail } from "@/components/live/live-hub-hero-rail";
 import { cn } from "@/lib/utils";
 
 export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHubHost }) {
@@ -137,7 +135,7 @@ function LiveGrayPlaceholderCard({ index }: { index: number }) {
   );
 }
 
-/** Hero rail + neon bar + tabs + 3-column grid below. */
+/** Category tabs + neon bar + 3-column grid. */
 export function LiveChannelGrid({
   channels,
   hosts,
@@ -161,12 +159,6 @@ export function LiveChannelGrid({
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <LiveHubHeroRail
-        channels={channels}
-        hosts={hosts}
-        className="h-[clamp(240px,48vh,520px)] min-h-[240px] w-full"
-      />
-      <LiveHubNeonDivider />
       <div className="shrink-0 px-0.5 pb-2">
         <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
       </div>

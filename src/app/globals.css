@@ -478,8 +478,11 @@ html[data-client="app"] .native-live-pad {
     align-items: center;
     gap: 12px;
     width: 100%;
-    margin: 0 0 12px;
+    margin: 0 0 6px;
     min-width: 0;
+  }
+  .live-hub-toolbar + .live-hub-neon-green-line {
+    margin-top: 0;
   }
   .live-hub-toolbar-split {
     justify-content: space-between;
