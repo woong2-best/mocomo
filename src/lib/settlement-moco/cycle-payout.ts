@@ -81,7 +81,6 @@ export async function returnSettlementCycleToAvailable(
     ) {
       return;
     }
-    if (cycle.status === MocoSettlementCycleStatus.RETURNED) return;
 
     const returnMoco = cycle.lockedMoco - cycle.deductedMoco;
     if (returnMoco > 0) {
