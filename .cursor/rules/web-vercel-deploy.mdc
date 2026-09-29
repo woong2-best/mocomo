@@ -1,0 +1,34 @@
+---
+description: Web production deploy — GitHub main is source of truth; avoid CLI/local drift
+alwaysApply: true
+---
+
+# Web deploy (Vercel)
+
+## Why prod looked “only on my PC”
+
+- **`vercel --prod`** uploads **whatever is on disk** (including **uncommitted** edits). That production URL can differ from what anyone else gets from Git.
+- **Git-connected Vercel** builds from **`main` on GitHub**. Other devices and teammates only see changes after **`git push origin main`** and a successful Vercel deploy for that commit.
+
+Using CLI prod without pushing the same commit (or pushing without waiting for the Git deploy) causes **two production truths**.
+
+## Required workflow (default)
+
+1. Finish the feature on **`main`** (or merge to `main`).
+2. **Commit** everything that should be live (never rely on dirty working tree for “배포 완료”).
+3. **`git push origin main`**.
+4. Confirm the **Vercel deployment for that commit** is Ready (Git integration — do not assume local `vercel --prod` replaced it).
+
+## Do not
+
+- Run **`vercel --prod`** as the only deploy step when the user asked for **everyone** to see the change.
+- Run **`vercel --prod`** with **uncommitted** changes unless the user explicitly wants a one-off preview prod and understands Git prod will differ until pushed.
+- Tell the user “배포 완료” after only a local CLI deploy without **push + Git deploy** confirmation.
+
+## When CLI prod is OK
+
+- User explicitly asks for **`vercel --prod`**, **and** the same tree is **committed and pushed to `main`** immediately after (same commit SHA on Git and Vercel).
+
+## Build
+
+- Production build command: `npm run vercel-build` (see `vercel.json`).
