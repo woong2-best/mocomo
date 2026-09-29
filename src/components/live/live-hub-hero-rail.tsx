@@ -10,7 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { Eye, Radio } from "lucide-react";
-import { LiveOffAirTvGraphic } from "@/components/live/live-off-air-tv-graphic";
+import { LIVE_HERO_CARD_ASPECT, OFF_AIR_TV_SRC } from "@/components/live/live-off-air-tv-asset";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import { wrapIndex } from "@/lib/live-bead-slots";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils";
 const SPRING_STIFFNESS = 180;
 const SPRING_DAMPING = 22;
 const HERO_RAIL_MIN_SLOTS = 12;
-/** Center + two peeks per side. */
 const VISIBLE_COUNT = 5;
 
 export type LiveHeroRailSlot =
@@ -29,12 +28,23 @@ export type LiveHeroRailSlot =
   | { kind: "live"; key: string; channel: LiveHubChannel }
   | { kind: "empty"; key: string; tone: number };
 
-function buildHeroRailSlots(channels: LiveHubChannel[]): LiveHeroRailSlot[] {
+/**
+ * No live → [off-air, empty…] (center = TV).
+ * With live → [live… by viewers desc, off-air, empty…] (center = top live).
+ */
+export function buildHeroRailSlots(channels: LiveHubChannel[]): LiveHeroRailSlot[] {
   const sorted = [...channels].sort((a, b) => b.viewerCount - a.viewerCount);
-  const slots: LiveHeroRailSlot[] = [{ kind: "off-air", key: "off-air" }];
-  for (const channel of sorted) {
-    slots.push({ kind: "live", key: `live-${channel.id}`, channel });
+  const slots: LiveHeroRailSlot[] = [];
+
+  if (sorted.length === 0) {
+    slots.push({ kind: "off-air", key: "off-air" });
+  } else {
+    for (const channel of sorted) {
+      slots.push({ kind: "live", key: `live-${channel.id}`, channel });
+    }
+    slots.push({ kind: "off-air", key: "off-air" });
   }
+
   let tone = 0;
   while (slots.length < HERO_RAIL_MIN_SLOTS) {
     slots.push({ kind: "empty", key: `empty-${tone}`, tone });
@@ -45,15 +55,15 @@ function buildHeroRailSlots(channels: LiveHubChannel[]): LiveHeroRailSlot[] {
 
 function measureHeroRail(width: number): { cardWidth: number; spacing: number; visibleRadius: number } {
   const w = Math.max(width, 1);
-  const cardWidth = Math.round(Math.min(Math.max(w * 0.46, 320), 640));
+  const cardWidth = Math.round(Math.min(Math.max(w * 0.34, 240), 400));
   return {
     cardWidth,
-    spacing: Math.round(cardWidth * 0.5),
-    visibleRadius: (VISIBLE_COUNT - 1) / 2 + 0.45,
+    spacing: Math.round(cardWidth * 0.54),
+    visibleRadius: (VISIBLE_COUNT - 1) / 2 + 0.5,
   };
 }
 
-function coverFlowMotion(delta: number): {
+export function coverFlowMotion(delta: number): {
   scale: number;
   opacity: number;
   translateX: number;
@@ -64,23 +74,30 @@ function coverFlowMotion(delta: number): {
   const abs = Math.abs(delta);
   const sign = delta > 0 ? 1 : delta < 0 ? -1 : 0;
 
-  const scale =
-    abs < 0.02 ? 1 : abs < 1 ? 1 - abs * 0.18 : abs < 2 ? 0.82 - (abs - 1) * 0.12 : 0.7 - (abs - 2) * 0.08;
+  let scale = 1;
+  if (abs >= 0.02) {
+    if (abs < 1) scale = 1 - abs * 0.26;
+    else if (abs < 2) scale = 0.74 - (abs - 1) * 0.14;
+    else scale = 0.6 - (abs - 2) * 0.08;
+  }
 
-  const opacity =
-    abs < 0.02 ? 1 : abs < 1 ? 0.92 - abs * 0.08 : abs < 2 ? 0.84 - (abs - 1) * 0.14 : Math.max(0.55, 0.7 - (abs - 2) * 0.12);
+  let opacity = 1;
+  if (abs >= 0.02) {
+    if (abs < 1) opacity = 0.88 - abs * 0.28;
+    else if (abs < 2) opacity = 0.6 - (abs - 1) * 0.18;
+    else opacity = Math.max(0.28, 0.42 - (abs - 2) * 0.12);
+  }
 
-  const translateX = delta * 1;
-  const translateZ = abs < 0.02 ? 140 : -abs * 95;
-  const rotateY = sign * -Math.min(48, 12 + abs * 22);
+  const translateZ = abs < 0.02 ? 220 : -abs * 130;
+  const rotateY = sign * (abs < 0.02 ? 0 : Math.min(52, 28 + abs * 18));
 
   return {
-    scale: Math.max(0.52, scale),
+    scale: Math.max(0.48, scale),
     opacity,
-    translateX,
+    translateX: delta,
     translateZ,
     rotateY,
-    zIndex: Math.round(240 - abs * 45),
+    zIndex: Math.round(300 - abs * 55),
   };
 }
 
@@ -90,7 +107,7 @@ type Props = {
   className?: string;
 };
 
-/** Cover-flow hero: largest center card, smaller cards tucked behind, infinite wrap. */
+/** 3D Cover Flow — infinite drag/wheel + spring snap. */
 export function LiveHubHeroRail({ channels, hosts, className }: Props) {
   const hostMap = useMemo(
     () => Object.fromEntries(hosts.map((h) => [h.id, h])),
@@ -106,10 +123,12 @@ export function LiveHubHeroRail({ channels, hosts, className }: Props) {
   const lastTRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const liveIdsKeyRef = useRef("");
+
   const [index, setIndex] = useState(0);
-  const [cardWidth, setCardWidth] = useState(420);
-  const [spacing, setSpacing] = useState(280);
-  const [visibleRadius, setVisibleRadius] = useState(2.2);
+  const [cardWidth, setCardWidth] = useState(320);
+  const [spacing, setSpacing] = useState(200);
+  const [visibleRadius, setVisibleRadius] = useState(2.5);
 
   useEffect(() => {
     const el = stageRef.current;
@@ -158,6 +177,20 @@ export function LiveHubHeroRail({ channels, hosts, className }: Props) {
     },
     []
   );
+
+  /** New/removed live → snap center to slot 0 (top live or off-air). */
+  useEffect(() => {
+    const key = channels
+      .map((c) => c.id)
+      .sort()
+      .join("|");
+    if (key === liveIdsKeyRef.current) return;
+    liveIdsKeyRef.current = key;
+    indexRef.current = 0;
+    velocityRef.current = 0;
+    setIndex(0);
+    ensureRaf();
+  }, [channels, ensureRaf]);
 
   useEffect(() => {
     const el = stageRef.current;
@@ -217,7 +250,7 @@ export function LiveHubHeroRail({ channels, hosts, className }: Props) {
       onPointerCancel={onPointerUp}
       role="list"
       aria-label="Live hero rail"
-      style={{ perspective: "1400px" }}
+      style={{ perspective: "2000px", perspectiveOrigin: "50% 42%" }}
     >
       <div className="relative h-full w-full" style={{ transformStyle: "preserve-3d" }}>
         {slots.map((slot, baseIndex) => (
@@ -311,19 +344,42 @@ function HeroRailCard({
 function OffAirHeroCard({ focused }: { focused: boolean }) {
   const { t } = useLocale();
   return (
-    <LiveOffAirTvGraphic
-      variant="bars"
-      message={focused ? t("live.noBroadcastEmptyHub") : undefined}
-    />
+    <div
+      className={cn(
+        "relative w-full overflow-hidden rounded-xl bg-black shadow-[0_24px_48px_rgba(0,0,0,0.65)]",
+        LIVE_HERO_CARD_ASPECT
+      )}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={OFF_AIR_TV_SRC}
+        alt=""
+        className="absolute inset-0 h-full w-full object-contain object-center"
+        decoding="async"
+        draggable={false}
+      />
+      {focused ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/25 p-3">
+          <p className="text-center text-xs font-semibold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] sm:text-sm">
+            {t("live.noBroadcastEmptyHub")}
+          </p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
 function EmptyHeroCard({ tone }: { tone: number }) {
-  const dim = 0.88 - (tone % 4) * 0.06;
+  const shade = 12 + (tone % 6) * 3;
   return (
-    <div style={{ opacity: dim }}>
-      <LiveOffAirTvGraphic variant="dark" />
-    </div>
+    <div
+      className={cn(
+        "w-full rounded-xl border border-white/[0.06] bg-[#0c0c0f]",
+        LIVE_HERO_CARD_ASPECT
+      )}
+      style={{ backgroundColor: `rgb(${shade},${shade},${shade + 4})` }}
+      aria-hidden
+    />
   );
 }
 
@@ -335,9 +391,12 @@ function LiveHeroCard({ channel, host }: { channel: LiveHubChannel; host?: LiveH
     <Link
       href={`/voice/${channel.id}`}
       prefetch={false}
-      className="block w-full rounded-xl overflow-hidden border border-white/15 bg-black"
+      className={cn(
+        "block w-full overflow-hidden rounded-xl border border-white/12 bg-black shadow-[0_24px_48px_rgba(0,0,0,0.55)]",
+        LIVE_HERO_CARD_ASPECT
+      )}
     >
-      <div className="relative aspect-[16/10] bg-black overflow-hidden">
+      <div className="relative h-full w-full bg-black">
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -347,22 +406,22 @@ function LiveHeroCard({ channel, host }: { channel: LiveHubChannel; host?: LiveH
           </div>
         )}
         {isLiveAdultChannel(channel) ? <LiveAdultWatermark /> : null}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20" />
-        <span className="live-badge absolute top-3 left-3 !bg-emerald-600">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/15" />
+        <span className="live-badge absolute top-2.5 left-2.5 !bg-emerald-600">
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
           LIVE
         </span>
-        <div className="absolute bottom-3 left-3 right-3 space-y-1">
+        <div className="absolute bottom-2.5 left-2.5 right-2.5 space-y-0.5">
           {host ? (
-            <p className="text-sm font-bold text-white truncate">@{host.username}</p>
+            <p className="text-xs font-bold text-white truncate sm:text-sm">@{host.username}</p>
           ) : null}
-          <p className="text-base font-black text-white line-clamp-2">{channel.name}</p>
+          <p className="text-sm font-black text-white line-clamp-2 sm:text-base">{channel.name}</p>
           <span className="inline-flex text-[10px] font-semibold text-white/75 rounded-md bg-white/10 px-2 py-0.5">
             {localizedLiveCategoryLabel(channel.category, locale)}
           </span>
         </div>
-        <div className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-md bg-black/60 px-2 py-1 text-xs font-semibold text-white tabular-nums">
-          <Eye className="h-3.5 w-3.5" />
+        <div className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white tabular-nums">
+          <Eye className="h-3 w-3" />
           {channel.viewerCount}
         </div>
       </div>
