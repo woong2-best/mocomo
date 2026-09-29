@@ -5,11 +5,7 @@ import { Loader2, MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCurrentCoords, geolocationErrorMessage } from "@/lib/client-geolocation";
-import {
-  googleSearchUrlForMeet,
-  marketplaceMeetLocationQuery,
-  marketplaceMeetMapUrl,
-} from "@/lib/maps/external-url";
+import { meetExternalMapUrl } from "@/lib/maps/external-url";
 import type { MeetCoords } from "@/lib/maps/types";
 import { parseUsedRegion } from "@/lib/korea-regions";
 import { getRegionMapCenter, isShippingOnlyRegion } from "@/lib/used-region-coords";
@@ -55,11 +51,18 @@ export function MeetMapView({
 
   const markerPopup = useMemo(() => {
     if (mode !== "view" || !activeCoords) return null;
-    const locationQuery = marketplaceMeetLocationQuery({ region, place: meetPlace });
-    const searchUrl = locationQuery ? googleSearchUrlForMeet({ place: meetPlace, region }) : "";
-    const mapUrl = marketplaceMeetMapUrl({ region, place: meetPlace, coords: activeCoords });
+    const locationQuery = [region, meetPlace].map((v) => v.trim()).filter(Boolean).join(" ");
+    const searchUrl = locationQuery
+      ? `https://www.google.com/search?q=${encodeURIComponent(locationQuery)}`
+      : "";
+    const mapUrl = meetExternalMapUrl({
+      country,
+      region,
+      place: meetPlace,
+      coords: activeCoords,
+    });
     return { title: locationQuery || "거래 장소", searchUrl, mapUrl };
-  }, [mode, activeCoords, meetPlace, region]);
+  }, [mode, activeCoords, meetPlace, region, country]);
 
   useEffect(() => {
     setMapError("");

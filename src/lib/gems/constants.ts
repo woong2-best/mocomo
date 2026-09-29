@@ -154,9 +154,13 @@ export const findMocoTopupPackage = findGemTopupPackage;
 /** @deprecated 패키지 버튼 제거 — quoteGemTopup 사용 */
 export const GEM_TOPUP_PACKAGES = [] as const;
 
-/** Legal copy — payment UI footer (구매 MOCO) */
+/** Legal copy — MOCO 충전 결제 직전 필수 체크 (Stripe dispute evidence) */
 export const MOCO_PURCHASE_TERMS_COPY =
-  "결제 시 이용약관에 동의합니다. MOCO 충전 시 액면가($5/MOCO)에 더해 Stripe 결제 대행(PG) 실비가 청구될 수 있습니다. 구매 MOCO는 환불·인출·환전이 불가합니다. 후원 광석 등급은 구매가 아닌 타 사용자에게 후원한 누적 MOCO 기준이며, Reward 정산 등급(Novice/Pulse 등)과는 별개입니다.";
+  "[필수] 본 상품은 가상재화(MOCO) 지급 및 '실시간 기여 탑 등록 서비스'가 결합된 패키지 상품입니다. 결제 완료 즉시 사이트 내 기여 탑에 유저 정보가 실시간으로 기록(서비스 공급 완료)되므로, 전자상거래법 제17조 제2항에 의거하여 결제 후에는 유저의 사용 여부와 관계없이 단순 변심으로 인한 환불이 절대 불가능함에 동의합니다.";
+
+/** MOCO 충전 UI — PG 수수료 안내 (체크박스와 분리) */
+export const MOCO_PURCHASE_PG_FEE_NOTE =
+  "MOCO 충전 시 액면가($5/MOCO)에 더해 Stripe 결제 대행(PG) 실비가 청구될 수 있습니다. 후원 광석 등급은 구매가 아닌 타 사용자에게 후원한 누적 MOCO 기준이며, Reward 정산 등급과는 별개입니다.";
 
 /** @deprecated MOCO_PURCHASE_TERMS_COPY */
 export const GEM_PURCHASE_TERMS_COPY = MOCO_PURCHASE_TERMS_COPY;

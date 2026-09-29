@@ -387,7 +387,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
             sellerConfirmed={!!listing.sellerTradeConfirmedAt}
             buyerConfirmed={!!listing.buyerTradeConfirmedAt}
             hasMeetPin={listing.meetLat != null && listing.meetLng != null}
-            sold={status === "SOLD"}
+            sold={false}
           />
         ) : null}
 

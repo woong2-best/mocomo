@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { openMarketListingChat } from "@/lib/market-trade-chat";
+import { getOrCreateDM, sendMessage } from "@/actions/chat";
 import {
   Prisma,
   type UsedListingCategory,
@@ -821,24 +821,47 @@ export async function startUsedTradeChat(listingId: string) {
     include: { seller: { select: { id: true, username: true } } },
   });
   if (!listing) return { error: "게시글을 찾을 수 없습니다." };
-  if (listing.sellerId !== user.id) {
-    const tradeErr = await assertUsedMarketTradeAccess({
-      userId: user.id,
-      buyerCountry: user.countryCode,
-      listing,
-    });
-    if (tradeErr) return { error: tradeErr };
+  if (listing.sellerId === user.id) return { error: "본인 글에는 채팅할 수 없습니다." };
+  const tradeErr = await assertUsedMarketTradeAccess({
+    userId: user.id,
+    buyerCountry: user.countryCode,
+    listing,
+  });
+  if (tradeErr) return { error: tradeErr };
+  if (listing.status === "SOLD") return { error: "이미 거래 완료된 상품입니다." };
+  if (
+    listing.saleType === "AUCTION" &&
+    listing.auctionEndsAt &&
+    listing.auctionEndsAt.getTime() > Date.now() &&
+    listing.auctionState !== "ENDED"
+  ) {
+    return { error: "경매 진행 중에는 채팅 대신 입찰을 이용해 주세요." };
   }
 
-  const adultErr = assertUsedAdultForRestricted(
-    user,
-    listing.restrictedKind ?? "NONE"
-  );
-  if (adultErr) return { error: adultErr, needsAdultVerify: true as const };
+  const dm = await getOrCreateDM(listing.sellerId);
+  if ("error" in dm && dm.error) return { error: dm.error };
+  if (!("room" in dm) || !dm.room) return { error: "채팅방을 열 수 없습니다." };
 
-  const opened = await openMarketListingChat(user.id, listingId);
-  if ("roomId" in opened && opened.roomId) revalidatePath(`/market/${listingId}`);
-  return opened;
+  try {
+    await db.usedListingChat.upsert({
+      where: { listingId_buyerId: { listingId, buyerId: user.id } },
+      create: { listingId, roomId: dm.room.id, buyerId: user.id },
+      update: { roomId: dm.room.id },
+    });
+  } catch {
+    /* DB 미적용 환경에서도 채팅은 진행 */
+  }
+
+  const priceText = formatUsedPrice(listing.price, listing.currency);
+  const intro = `안녕하세요. 중고거래 문의입니다.\n\n상품: ${listing.title}\n가격: ${priceText}\n링크: /market/${listing.id}`;
+  try {
+    await sendMessage({ roomId: dm.room.id, content: intro });
+  } catch {
+    /* 메시지 실패해도 방으로 이동 */
+  }
+
+  revalidatePath(`/market/${listingId}`);
+  return { roomId: dm.room.id };
 }
 
 /** 판매자 — 이 글에 연결된 채팅방 목록 */
