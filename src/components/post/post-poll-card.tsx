@@ -1,21 +1,15 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
-import {
-  formatPollMeta,
-  isPostPollClosed,
-  pollOptionPercents,
-  type PostPollView,
-} from "@/lib/post-poll";
+import { BarChart3, Check } from "lucide-react";
+import { formatPollTimeLeft, type PostPollView } from "@/lib/post-poll";
 import { cn } from "@/lib/utils";
 
 type PostPollCardProps = {
   postId: string;
   poll: PostPollView;
-  /** 글 작성자 — 투표 없이 득표율을 본다 */
   isAuthor?: boolean;
   compact?: boolean;
   onVote?: (poll: PostPollView) => void;
@@ -25,33 +19,13 @@ export function PostPollCard({ postId, poll: initialPoll, isAuthor = false, comp
   const [poll, setPoll] = useState(initialPoll);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const sessionState = useSession();
-  const session = sessionState?.data;
-  const status = sessionState?.status ?? "unauthenticated";
+  const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [now, setNow] = useState(() => Date.now());
-  const incomingKey = `${initialPoll.id}:${initialPoll.myVoteOptionId ?? ""}:${initialPoll.totalVotes}:${initialPoll.closed}:${initialPoll.closesAt}`;
-  useEffect(() => {
-    setPoll(initialPoll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomingKey]);
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  const ended = poll.closed || new Date(poll.closesAt).getTime() <= now || isPostPollClosed(poll);
-  const showResults = isAuthor || ended || poll.myVoteOptionId != null;
-
-  const pctByOption = useMemo(
-    () => pollOptionPercents(poll.options, poll.totalVotes),
-    [poll.options, poll.totalVotes]
-  );
+  const revealBars = isAuthor || poll.closed || poll.myVoteOptionId != null;
 
   async function handleVote(optionId: string) {
-    if (showResults || ended || busy || isAuthor) return;
+    if (poll.closed || busy) return;
     if (status === "loading") return;
     if (!session?.user) {
       router.push(`/auth/signin?callbackUrl=${encodeURIComponent(`/post/${postId}`)}`);
@@ -72,78 +46,85 @@ export function PostPollCard({ postId, poll: initialPoll, isAuthor = false, comp
         error?: string;
       };
       if (!res.ok || !data.poll) {
-        if (data.error?.includes("종료")) {
-          setPoll((current) => ({ ...current, closed: true }));
-        }
-        setError(data.error ?? "투표에 실패했습니다.");
+        setError(data.error ?? "?ы몴???ㅽ뙣?덉뒿?덈떎.");
         return;
       }
       setPoll(data.poll);
       onVote?.(data.poll);
     } catch {
-      setError("투표에 실패했습니다.");
+      setError("?ы몴???ㅽ뙣?덉뒿?덈떎.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className={cn(compact ? "" : "mt-3")} onClick={(e) => e.stopPropagation()}>
-      <div className="space-y-2">
-        {poll.options.map((opt) => {
-          const { labelPct, barPct } = pctByOption.get(opt.id) ?? { labelPct: 0, barPct: 0 };
-          const selected = poll.myVoteOptionId === opt.id;
-          const fillScale = Math.min(1, Math.max(0, barPct / 100));
+    <div
+      className={cn(
+        "rounded-xl border border-border/80 bg-muted/20 overflow-hidden",
+        compact ? "mx-3 mb-3" : ""
+      )}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="px-3 py-2 border-b border-border/60 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1 font-medium">
+          <BarChart3 className="h-3.5 w-3.5" />
+          {poll.totalVotes.toLocaleString()}??        </span>
+        <span>{formatPollTimeLeft(poll.closesAt, poll.closed)}</span>
+      </div>
 
-          if (!showResults) {
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                disabled={busy}
-                onClick={() => void handleVote(opt.id)}
-                className="w-full rounded-lg border-2 border-folk-cobalt bg-folk-cream/40 px-4 py-2.5 text-center text-[15px] font-semibold text-folk-cobalt transition-colors hover:bg-folk-cobalt/10 disabled:opacity-60 dark:border-[#6BA3E8] dark:bg-transparent dark:text-[#6BA3E8] dark:hover:bg-[#6BA3E8]/10"
-              >
-                {opt.label}
-              </button>
-            );
-          }
+      <div className="p-2 space-y-1.5">
+        {poll.options.map((opt) => {
+          const pct =
+            poll.totalVotes > 0 ? Math.round((opt.count / poll.totalVotes) * 100) : 0;
+          const selected = poll.myVoteOptionId === opt.id;
+          const maxCount = Math.max(...poll.options.map((o) => o.count), 0);
+          const isWinner = poll.closed && poll.totalVotes > 0 && opt.count === maxCount && maxCount > 0;
 
           return (
-            <div
+            <button
               key={opt.id}
-              className="relative w-full overflow-hidden rounded-lg bg-muted/50 text-[15px]"
+              type="button"
+              disabled={poll.closed || busy}
+              onClick={() => void handleVote(opt.id)}
+              className={cn(
+                "relative w-full text-left rounded-lg border px-3 py-2 text-sm transition-colors overflow-hidden min-h-[40px]",
+                poll.closed ? "cursor-default" : "hover:border-primary/50",
+                selected
+                  ? "border-primary bg-primary/5 font-medium"
+                  : "border-border/70 bg-background/80",
+                isWinner && poll.closed && "border-primary/60"
+              )}
             >
-              <div
-                className={cn(
-                  "pointer-events-none absolute inset-y-0 left-0 w-full origin-left transition-transform duration-500",
-                  selected
-                    ? "bg-folk-cobalt/40 dark:bg-[#6BA3E8]/50"
-                    : "bg-folk-cobalt/22 dark:bg-[#6BA3E8]/30"
-                )}
-                style={{ transform: `scaleX(${fillScale})` }}
-                aria-hidden
-              />
-              <div
-                className={cn(
-                  "relative flex items-center justify-between gap-3 px-4 py-2.5",
-                  selected ? "font-semibold text-foreground" : "text-foreground/85"
-                )}
-              >
-                <span className="flex min-w-0 items-center gap-1.5">
-                  {selected ? <Check className="h-4 w-4 shrink-0 text-folk-cobalt dark:text-[#6BA3E8]" /> : null}
+              {revealBars && (
+                <span
+                  className="absolute inset-y-0 left-0 bg-primary/15 transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              )}
+              <span className="relative flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 min-w-0">
+                  {selected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
                   <span className="truncate">{opt.label}</span>
                 </span>
-                <span className="shrink-0 tabular-nums text-sm text-muted-foreground">{labelPct}%</span>
-              </div>
-            </div>
+                {revealBars && (
+                  <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+                    {pct}%
+                  </span>
+                )}
+              </span>
+            </button>
           );
         })}
       </div>
-      <p className="mt-2 px-1 text-xs text-muted-foreground">
-        {formatPollMeta(poll.totalVotes, poll.closesAt, ended)}
-      </p>
-      {error ? <p className="mt-1 px-1 text-xs text-destructive">{error}</p> : null}
+
+      {!poll.closed && !poll.myVoteOptionId && (
+        <p className="px-3 pb-2 text-[10px] text-muted-foreground">??븯???ы몴 쨌 留덇컧 ??蹂寃?媛??/p>
+      )}
+      {poll.closed && (
+        <p className="px-3 pb-2 text-[10px] text-muted-foreground">?ы몴媛 醫낅즺?섏뿀?듬땲??/p>
+      )}
+      {error && <p className="px-3 pb-2 text-[10px] text-destructive">{error}</p>}
     </div>
   );
 }
