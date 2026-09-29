@@ -20,7 +20,7 @@ export function shouldShowRightPanel(pathname: string): boolean {
   if (pathname.startsWith("/admin")) return false;
   if (pathname.startsWith("/auth")) return false;
   if (pathname.startsWith("/legal")) return false;
-  if (pathname.startsWith("/live")) return false;
+  if (pathname.startsWith("/live/")) return false;
   if (pathname.startsWith("/games")) return false;
   if (pathname.startsWith("/rankings")) return false;
   if (pathname.startsWith("/search")) return false;

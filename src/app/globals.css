@@ -467,9 +467,9 @@ html[data-client="app"] .native-live-pad {
     @apply bg-[hsl(224,45%,10%)];
   }
 
-  /* /live hub — solid black (space art kept on disk, not shown) */
+  /* /live hub — deep cobalt (matches site shell) */
   .live-page-shell.live-hub-space {
-    background-color: #000;
+    background-color: hsl(224, 45%, 10%);
     background-image: none;
   }
 

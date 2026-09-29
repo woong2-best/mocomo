@@ -3,21 +3,15 @@
 import type { MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu } from "lucide-react";
-import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 import { DEFAULT_LANDING_PATH, isCommunityFeedPath } from "@/lib/site-routes";
 import { scrollMainToTop } from "@/lib/scroll-main";
-import { useSidebarToggle } from "@/components/providers/sidebar-toggle-provider";
-import { isCommunityServerPath } from "@/lib/community-server/path";
 import { cn } from "@/lib/utils";
 
 export function SidebarToggleButton() {
   const pathname = usePathname() ?? "";
   const router = useRouter();
   const isHome = isCommunityFeedPath(pathname);
-  const isCommunityServer = isCommunityServerPath(pathname);
-  const { open: sidebarOpen, toggle: toggleSidebar } = useSidebarToggle();
 
   function onBrandClick(e: MouseEvent<HTMLAnchorElement>) {
     if (!isHome) return;
@@ -27,61 +21,20 @@ export function SidebarToggleButton() {
   }
 
   return (
-    <div className="app-header-interactive hidden lg:flex items-center gap-2 shrink-0 min-w-0">
-      {!isCommunityServer && (
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          aria-label={sidebarOpen ? "사이드바 숨기기" : "사이드바 보이기"}
-          aria-expanded={sidebarOpen}
-          className={cn(
-            "rounded-xl p-1 transition-colors",
-            "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-folk-terracotta/50",
-            !sidebarOpen && "bg-muted/30 ring-2 ring-folk-terracotta/35"
-          )}
-        >
-          <span
-            className={cn(
-              "relative h-9 w-9 rounded-lg shrink-0 overflow-hidden border-2 shadow-folk-sm transition-colors block",
-              sidebarOpen
-                ? "border-folk-cobalt/40 ring-2 ring-folk-terracotta/30 bg-folk-cream"
-                : "border-folk-cobalt/25"
-            )}
-          >
-            <span
-              className={cn(
-                "absolute inset-0 flex items-center justify-center bg-[hsl(224,38%,16%)] transition-opacity duration-200",
-                sidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"
-              )}
-              aria-hidden={sidebarOpen}
-            >
-              <Menu className="h-4 w-4 text-white" strokeWidth={2.25} />
-            </span>
-            <span
-              className={cn(
-                "absolute inset-0 flex items-center justify-center bg-folk-cream p-0.5 transition-opacity duration-200",
-                sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-              )}
-              aria-hidden={!sidebarOpen}
-            >
-              <BrandLogo size={30} priority />
-            </span>
-          </span>
-        </button>
-      )}
-
+    <div className="app-header-interactive hidden lg:flex items-center shrink-0 min-w-0">
       <Link
         href={DEFAULT_LANDING_PATH}
         onClick={onBrandClick}
         className={cn(
-          "group/home relative inline-block min-w-[5.5rem] rounded-lg px-1 py-0.5 transition-colors",
+          "group/home relative inline-flex items-center min-h-10 rounded-lg px-2 py-1 transition-colors",
           "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-folk-terracotta/50"
         )}
         aria-label={isHome ? `${BRAND.name} 새로고침` : "Home으로 이동"}
       >
         <span
           className={cn(
-            "block font-display font-bold text-lg folk-chunky-text text-folk-cobalt transition-opacity duration-200",
+            "font-display font-bold text-[1.65rem] leading-none tracking-tight folk-chunky-text text-[hsl(330,82%,72%)] transition-opacity duration-200",
+            "[text-shadow:1px_2px_0_hsl(330,55%,38%/0.45)]",
             !isHome && "group-hover/home:opacity-0"
           )}
         >
@@ -90,7 +43,8 @@ export function SidebarToggleButton() {
         {!isHome && (
           <span
             className={cn(
-              "absolute inset-0 flex items-center font-display font-bold text-lg folk-chunky-text text-folk-cobalt opacity-0 transition-opacity duration-200",
+              "absolute inset-0 flex items-center font-display font-bold text-[1.65rem] leading-none folk-chunky-text text-[hsl(330,82%,72%)] opacity-0 transition-opacity duration-200",
+              "[text-shadow:1px_2px_0_hsl(330,55%,38%/0.45)]",
               "group-hover/home:opacity-100"
             )}
           >
