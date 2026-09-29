@@ -162,7 +162,10 @@ export default async function PostPage({
         qna={Boolean(post.communityId)}
       />
       <Suspense fallback={<PostCommentsSkeleton />}>
-        <PostCommentsSection postId={post.id} showIdHandle={!!post.communityId} />
+        <PostCommentsSection
+          postId={post.id}
+          showIdHandle={!displayPost.isAnonymous}
+        />
       </Suspense>
     </AppPageChrome>
   );

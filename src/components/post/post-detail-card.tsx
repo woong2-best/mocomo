@@ -13,6 +13,8 @@ import { PostCollabManageDialog } from "@/components/post/post-collab-manage-dia
 import { PostCollabActions } from "@/components/post/post-collab-actions";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostDetailMedia } from "@/components/post/post-detail-media";
+import { QuotePostPreviewCard } from "@/components/post/quote-post-preview-card";
+import { readQuotedPost } from "@/lib/quoted-post";
 
 type PostDetailOk = Exclude<
   NonNullable<Awaited<ReturnType<typeof getPostDetail>>>,
@@ -67,7 +69,7 @@ export function PostDetailCard({
               author={post.author}
               collaborators={collaborators}
               size="md"
-              showIdHandle={!!post.communityId && !post.isAnonymous}
+              showIdHandle={!post.isAnonymous}
               anonymous={!!post.isAnonymous}
               trailing={
                 <span>
@@ -101,7 +103,20 @@ export function PostDetailCard({
         {post.content ? (
           <TranslatableText text={post.content} as="p" className="whitespace-pre-wrap" />
         ) : null}
-        {post.poll && <PostPollCard postId={post.id} poll={post.poll} />}
+        {(() => {
+          const quoted = readQuotedPost(post);
+          if (!quoted) return null;
+          return (
+            <QuotePostPreviewCard
+              post={quoted}
+              href={`/post/${quoted.id}`}
+              className="mt-3"
+              isOwner={isOwner}
+              viewerShowNsfw={viewerShowNsfw}
+            />
+          );
+        })()}
+        {post.poll && <PostPollCard postId={post.id} poll={post.poll} isAuthor={isOwner} />}
         <PostDetailMedia
           media={(post.media ?? []).map((m) => ({
             id: m.id,

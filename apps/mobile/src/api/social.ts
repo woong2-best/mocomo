@@ -161,6 +161,36 @@ export async function submitPostReport(params: {
   });
 }
 
+export async function submitCommentReport(params: {
+  postId: string;
+  commentId: string;
+  reportedUserId: string;
+  reason: ReportReasonId;
+  reasonPath?: string;
+  details?: string;
+}) {
+  return apiRequest<{ ok: boolean; message: string }>(MobileApi.reports, {
+    method: "POST",
+    body: {
+      targetType: "COMMENT",
+      targetId: params.commentId,
+      postId: params.postId,
+      commentId: params.commentId,
+      reportedUserId: params.reportedUserId,
+      reason: params.reason,
+      reasonPath: params.reasonPath,
+      details: params.details,
+    },
+  });
+}
+
+export async function toggleCommentLike(commentId: string, liked: boolean) {
+  return apiRequest<{ ok: boolean; liked: boolean; likeCount: number }>(
+    MobileApi.commentLike(commentId),
+    { method: liked ? "DELETE" : "POST" }
+  );
+}
+
 export type ProfileUser = {
   id: string;
   username: string;
@@ -175,13 +205,17 @@ export type ProfileUser = {
   following: boolean;
   subscribed?: boolean;
   isSelf: boolean;
+  canMessage?: boolean;
+  canCall?: boolean;
   paymentsEnabled?: boolean;
   creatorSubscriptionPriceKrw?: number | null;
+  mutedByViewer?: boolean;
 };
 
 export async function fetchUserProfile(username: string) {
   return apiRequest<{
     user: ProfileUser;
+    pinnedPost: FeedPost | null;
     posts: FeedPost[];
   }>(MobileApi.user(username), { auth: true });
 }

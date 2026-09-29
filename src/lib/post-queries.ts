@@ -12,6 +12,7 @@ import { canViewLockedAccountContent } from "@/lib/posts-lock";
 import type { ContentVisibility, Prisma } from "@prisma/client";
 import { rewritePaidVideoSrc } from "@/lib/paid-media-playback";
 import { canViewNsfwResource, type PostNsfwBlocked } from "@/lib/nsfw-viewer-access";
+import { quotedPostPreviewSelect } from "@/lib/quoted-post";
 
 type PostDetailMedia = {
   id: string;
@@ -63,11 +64,14 @@ const postDetailSelect = {
   },
   tags: { select: { tag: { select: { id: true, name: true } } } },
   poll: { select: postPollSelect },
+  quotedPost: { select: quotedPostPreviewSelect },
   _count: { select: { likes: true, votes: true, comments: true, reposts: true } },
 } satisfies Prisma.PostSelect;
 
+const { quotedPost: _detailQuotedPost, ...postDetailSelectWithoutQuote } = postDetailSelect;
+
 const postDetailSelectNoReposts = {
-  ...postDetailSelect,
+  ...postDetailSelectWithoutQuote,
   _count: { select: { likes: true, votes: true, comments: true } },
 } as const;
 
@@ -237,7 +241,8 @@ export type PostCommentSort = "newest" | "popular" | "oldest";
 export async function getPostComments(
   postId: string,
   limit = 40,
-  sort: PostCommentSort = "oldest"
+  sort: PostCommentSort = "oldest",
+  viewerId?: string | null
 ) {
   const orderBy =
     sort === "popular"
@@ -249,7 +254,7 @@ export async function getPostComments(
         ? ({ createdAt: "desc" as const })
         : ({ createdAt: "asc" as const });
 
-  return db.comment.findMany({
+  const rows = await db.comment.findMany({
     where: {
       postId,
       parentId: null,
@@ -282,6 +287,31 @@ export async function getPostComments(
       },
     },
   });
+
+  if (!viewerId || rows.length === 0) {
+    return rows.map((c) => ({
+      ...c,
+      likedByMe: false,
+      replies: c.replies.map((r) => ({ ...r, likedByMe: false })),
+    }));
+  }
+
+  const ids: string[] = [];
+  for (const c of rows) {
+    ids.push(c.id);
+    for (const r of c.replies) ids.push(r.id);
+  }
+  const likedRows = await db.commentLike.findMany({
+    where: { userId: viewerId, commentId: { in: ids } },
+    select: { commentId: true },
+  });
+  const likedSet = new Set(likedRows.map((l) => l.commentId));
+
+  return rows.map((c) => ({
+    ...c,
+    likedByMe: likedSet.has(c.id),
+    replies: c.replies.map((r) => ({ ...r, likedByMe: likedSet.has(r.id) })),
+  }));
 }
 
 export async function countPostComments(postId: string) {

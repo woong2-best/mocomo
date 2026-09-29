@@ -17,7 +17,7 @@ export async function PostCommentsSection({
   let loadError = "";
 
   try {
-    comments = await getPostComments(postId);
+    comments = await getPostComments(postId, 40, "oldest", session?.user?.id ?? null);
   } catch (e) {
     console.error("[PostCommentsSection]", e);
     loadError = "댓글을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.";

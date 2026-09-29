@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { TranslatableText } from "@/components/ui/translatable-text";
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import type { SupportTierLevel } from "@prisma/client";
+import { PostCommentRow, type PostCommentRowData } from "@/components/post/post-comment-row";
 import {
   COMMENT_ADDED_EVENT,
   COMMENT_CONFIRMED_EVENT,
@@ -16,7 +14,10 @@ export type ServerComment = {
   id: string;
   content: string;
   createdAt: Date | string;
+  likeCount: number;
+  likedByMe: boolean;
   author: {
+    id: string;
     name: string | null;
     username: string;
     supportTierSent?: string | null;
@@ -24,7 +25,10 @@ export type ServerComment = {
   replies: {
     id: string;
     content: string;
+    likeCount: number;
+    likedByMe: boolean;
     author: {
+      id: string;
       name: string | null;
       username: string;
       supportTierSent?: string | null;
@@ -32,21 +36,37 @@ export type ServerComment = {
   }[];
 };
 
-function safeTier(tier: string | null | undefined): SupportTierLevel {
-  if (!tier) return "SEED";
-  const allowed = [
-    "SEED", "STONE", "BRONZE", "SILVER", "GOLD", "CRYSTAL",
-    "EMERALD", "SAPPHIRE", "RUBY", "DIAMOND", "MYTHRIL", "ORICHALCUM",
-    "LUNA", "TERRA", "JUPITER", "ASTRAL", "COSMIC",
-  ];
-  return allowed.includes(tier) ? (tier as SupportTierLevel) : "SEED";
-}
+type ListComment = PostCommentRowData & {
+  pending?: boolean;
+  replies: PostCommentRowData[];
+};
 
-function toOptimistic(c: ServerComment): OptimisticComment {
+function toListComment(c: ServerComment): ListComment {
   return {
     id: c.id,
     content: c.content,
+    likeCount: c.likeCount,
+    likedByMe: c.likedByMe,
+    author: c.author,
+    replies: c.replies.map((r) => ({
+      id: r.id,
+      content: r.content,
+      likeCount: r.likeCount,
+      likedByMe: r.likedByMe,
+      author: r.author,
+    })),
+  };
+}
+
+function optimisticToList(c: OptimisticComment): ListComment {
+  return {
+    id: c.id,
+    content: c.content,
+    likeCount: 0,
+    likedByMe: false,
+    pending: c.pending,
     author: {
+      id: c.author.id ?? c.author.username,
       name: c.author.name,
       username: c.author.username,
       supportTierSent: c.author.supportTierSent,
@@ -54,7 +74,10 @@ function toOptimistic(c: ServerComment): OptimisticComment {
     replies: c.replies.map((r) => ({
       id: r.id,
       content: r.content,
+      likeCount: 0,
+      likedByMe: false,
       author: {
+        id: r.author.id ?? r.author.username,
         name: r.author.name,
         username: r.author.username,
         supportTierSent: r.author.supportTierSent,
@@ -67,21 +90,21 @@ export function PostCommentsList({
   postId,
   initialComments,
   emptyLabel,
-  showIdHandle = false,
+  showIdHandle = true,
 }: {
   postId: string;
   initialComments: ServerComment[];
   emptyLabel: string;
   showIdHandle?: boolean;
 }) {
-  const [comments, setComments] = useState<OptimisticComment[]>(() =>
-    initialComments.map(toOptimistic)
+  const [comments, setComments] = useState<ListComment[]>(() =>
+    initialComments.map(toListComment)
   );
 
   useEffect(() => {
     setComments((prev) => {
       const pending = prev.filter((c) => c.pending);
-      const fromServer = initialComments.map(toOptimistic);
+      const fromServer = initialComments.map(toListComment);
       const serverIds = new Set(fromServer.map((c) => c.id));
       const stillPending = pending.filter((p) => !serverIds.has(p.id));
       return [...fromServer, ...stillPending];
@@ -104,7 +127,14 @@ export function PostCommentsList({
                     {
                       id: comment.id,
                       content: comment.content,
-                      author: comment.author,
+                      likeCount: 0,
+                      likedByMe: false,
+                      author: {
+                        id: comment.author.id ?? comment.author.username,
+                        name: comment.author.name,
+                        username: comment.author.username,
+                        supportTierSent: comment.author.supportTierSent,
+                      },
                     },
                   ],
                 }
@@ -113,7 +143,7 @@ export function PostCommentsList({
         );
         return;
       }
-      setComments((prev) => [...prev, comment]);
+      setComments((prev) => [...prev, optimisticToList(comment)]);
     }
 
     function onConfirmed(e: Event) {
@@ -163,27 +193,21 @@ export function PostCommentsList({
   return (
     <>
       {comments.map((c) => (
-        <Card key={c.id} className={c.pending ? "opacity-70" : undefined}>
+        <Card key={c.id} id={`comment-${c.id}`} className={c.pending ? "opacity-70" : undefined}>
           <CardContent className="p-4">
-            <DisplayNameWithSupportTier
-              name={c.author.name || c.author.username}
-              tier={safeTier(c.author.supportTierSent)}
-              nameClassName="font-medium text-sm"
-              compact
-              idHandle={showIdHandle ? c.author.username : undefined}
+            <PostCommentRow
+              comment={c}
+              postId={postId}
+              showIdHandle={showIdHandle}
             />
-            <TranslatableText text={c.content} as="p" className="text-sm mt-1 whitespace-pre-wrap" />
             {c.replies.map((r) => (
-              <div key={r.id} className="ml-6 mt-2 pl-4 border-l border-border">
-                <DisplayNameWithSupportTier
-                  name={r.author.name || r.author.username}
-                  tier={safeTier(r.author.supportTierSent)}
-                  nameClassName="text-sm font-medium"
-                  compact
-                  idHandle={showIdHandle ? r.author.username : undefined}
-                />
-                <TranslatableText text={r.content} as="p" className="text-sm whitespace-pre-wrap" />
-              </div>
+              <PostCommentRow
+                key={r.id}
+                comment={r}
+                postId={postId}
+                showIdHandle={showIdHandle}
+                isReply
+              />
             ))}
           </CardContent>
         </Card>

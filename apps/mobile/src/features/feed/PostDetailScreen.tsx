@@ -19,8 +19,11 @@ import { useAuth } from "@/auth/AuthContext";
 import {
   createPostComment,
   fetchPostDetail,
+  toggleCommentLike,
   type CommentItem,
 } from "@/api/social";
+import { PostCommentOverflowMenu } from "@/features/feed/PostCommentOverflowMenu";
+import { Ionicons } from "@expo/vector-icons";
 import {
   parsePostComments,
   postCommentsQueryKey,
@@ -50,6 +53,8 @@ export function PostDetailScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "PostDetail">>();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
+  const [menuComment, setMenuComment] = useState<CommentItem | null>(null);
+  const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
   const postId = route.params.id;
 
   const postQuery = useQuery({
@@ -130,6 +135,42 @@ export function PostDetailScreen() {
     commentMut.mutate(content);
   }
 
+  async function toggleLike(item: CommentItem) {
+    if (!user || likeBusyId) return;
+    const liked = Boolean(item.liked);
+    const prevCount = item.likeCount ?? 0;
+    const nextLiked = !liked;
+    const nextCount = Math.max(0, prevCount + (nextLiked ? 1 : -1));
+    setLikeBusyId(item.id);
+    queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) => {
+      const list = parsePostComments(old).map((c) =>
+        c.id === item.id ? { ...c, liked: nextLiked, likeCount: nextCount } : c
+      );
+      return { ...(old ?? {}), comments: list, items: list };
+    });
+    try {
+      const res = await toggleCommentLike(item.id, liked);
+      queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) => {
+        const list = parsePostComments(old).map((c) =>
+          c.id === item.id
+            ? { ...c, liked: res.liked, likeCount: res.likeCount }
+            : c
+        );
+        return { ...(old ?? {}), comments: list, items: list };
+      });
+    } catch (err) {
+      queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) => {
+        const list = parsePostComments(old).map((c) =>
+          c.id === item.id ? { ...c, liked, likeCount: prevCount } : c
+        );
+        return { ...(old ?? {}), comments: list, items: list };
+      });
+      showIslandError("오류", err instanceof Error ? err.message : "좋아요에 실패했습니다.");
+    } finally {
+      setLikeBusyId(null);
+    }
+  }
+
   return (
     <Screen>
       <AppHeader title={headerTitle} leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
@@ -184,26 +225,62 @@ export function PostDetailScreen() {
                 image: item.author.image,
               };
               const displayName = item.author.name || item.author.username;
+              const likeCount = item.likeCount ?? 0;
+              const liked = Boolean(item.liked);
+              const isOwn = user?.id === item.author.id;
               return (
                 <View style={styles.comment}>
-                  <Pressable
-                    style={styles.commentHeader}
-                    onPress={() => openUserProfile(authorSeed)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${displayName} 프로필`}
-                  >
-                    <FolkAvatar
-                      uri={item.author.image}
-                      name={displayName}
-                      size={36}
-                    />
-                    <View style={styles.commentHeaderText}>
-                      <Text style={styles.commentAuthor} numberOfLines={1}>
-                        {displayName}
-                        <Text style={styles.commentHandle}> @{item.author.username}</Text>
-                      </Text>
+                  <View style={styles.commentTopRow}>
+                    <Pressable
+                      style={styles.commentHeader}
+                      onPress={() => openUserProfile(authorSeed)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${displayName} 프로필`}
+                    >
+                      <FolkAvatar
+                        uri={item.author.image}
+                        name={displayName}
+                        size={36}
+                      />
+                      <View style={styles.commentHeaderText}>
+                        <Text style={styles.commentAuthor} numberOfLines={1}>
+                          {displayName}
+                          <Text style={styles.commentHandle}> @{item.author.username}</Text>
+                        </Text>
+                      </View>
+                    </Pressable>
+                    <View style={styles.commentActions}>
+                      {user && !isOwn ? (
+                        <Pressable
+                          style={styles.iconBtn}
+                          onPress={() => setMenuComment(item)}
+                          accessibilityLabel="댓글 메뉴"
+                        >
+                          <Ionicons name="ellipsis-horizontal" size={20} color={colors.textMuted} />
+                        </Pressable>
+                      ) : null}
+                      <Pressable
+                        style={styles.likeBtn}
+                        onPress={() => void toggleLike(item)}
+                        disabled={!user || likeBusyId === item.id}
+                        accessibilityLabel={liked ? "좋아요 취소" : "좋아요"}
+                      >
+                        <Ionicons
+                          name={liked ? "heart" : "heart-outline"}
+                          size={18}
+                          color={liked ? colors.terracotta : colors.textMuted}
+                        />
+                        <Text
+                          style={[
+                            styles.likeCount,
+                            liked && { color: colors.terracotta },
+                          ]}
+                        >
+                          {likeCount}
+                        </Text>
+                      </Pressable>
                     </View>
-                  </Pressable>
+                  </View>
                   <TranslatableText text={item.content} style={styles.commentBody} />
                 </View>
               );
@@ -235,6 +312,17 @@ export function PostDetailScreen() {
           </View>
         </KeyboardAvoidingView>
       )}
+      {menuComment ? (
+        <PostCommentOverflowMenu
+          visible={!!menuComment}
+          onClose={() => setMenuComment(null)}
+          postId={postId}
+          commentId={menuComment.id}
+          authorId={menuComment.author.id}
+          authorUsername={menuComment.author.username}
+          isOwnComment={user?.id === menuComment.author.id}
+        />
+      ) : null}
     </Screen>
   );
 }
@@ -256,11 +344,42 @@ function createThemedStyles(colors: ThemeColors) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.hairline,
     },
+    commentTopRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 8,
+    },
     commentHeader: {
+      flex: 1,
       flexDirection: "row",
       alignItems: "center",
       gap: 10,
       marginBottom: 6,
+      minWidth: 0,
+    },
+    commentActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 2,
+      paddingTop: 4,
+    },
+    iconBtn: {
+      minWidth: 36,
+      minHeight: 36,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    likeBtn: {
+      minWidth: 44,
+      minHeight: 36,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 2,
+    },
+    likeCount: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.textMuted,
     },
     commentHeaderText: { flex: 1, minWidth: 0 },
     commentAuthor: { fontWeight: "800", color: colors.text, fontSize: 14 },

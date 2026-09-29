@@ -7,9 +7,13 @@ export const postCommentsQueryKey = (postId: string) =>
   ["mobile-post-comments", postId] as const;
 
 export function parsePostComments(data: PostCommentsResponse | undefined): CommentItem[] {
-  const list = (data?.items ?? data?.comments ?? []) as CommentItem[];
+  const list = (data?.items ?? data?.comments ?? []) as (CommentItem & {
+    likedByMe?: boolean;
+  })[];
   return list.map((c) => ({
     ...c,
+    liked: c.liked ?? c.likedByMe ?? false,
+    likeCount: c.likeCount ?? 0,
     createdAt:
       typeof c.createdAt === "string"
         ? c.createdAt
