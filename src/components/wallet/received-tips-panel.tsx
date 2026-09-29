@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { formatUsd } from "@/lib/money";
+import { formatMocoDisplay, ledgerCentsToMoco } from "@/lib/gems/display";
 import type { TipHistory } from "@/actions/support";
 
 type Props = {
@@ -36,7 +36,7 @@ export function ReceivedTipsPanel({ tips }: Props) {
                   </p>
                 </div>
                 <span className="shrink-0 font-semibold tabular-nums text-emerald-700">
-                  +{formatUsd(tip.amount)}
+                  +{formatMocoDisplay(ledgerCentsToMoco(tip.amount))}
                 </span>
               </div>
             </li>

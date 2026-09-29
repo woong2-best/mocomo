@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { formatUsd } from "@/lib/money";
+import { formatMocoDisplay, formatMocoNetFromCents, ledgerCentsToMoco } from "@/lib/gems/display";
 import type { WalletEnrichedTransaction } from "@/lib/wallet-analytics";
 import {
   EARNING_CATEGORY_LABELS,
@@ -79,11 +79,10 @@ function TransactionRow({ tx }: { tx: WalletEnrichedTransaction }) {
             isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
           )}
         >
-          {isIncome ? "" : "-"}
-          {formatUsd(Math.abs(tx.net))}
+          {formatMocoNetFromCents(tx.net)}
         </p>
         <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
-          잔액 {formatUsd(tx.cumulative)}
+          잔액 {formatMocoDisplay(ledgerCentsToMoco(tx.cumulative))}
         </p>
       </div>
     </motion.div>
@@ -115,9 +114,11 @@ function CategoryBlock({
         </p>
         <p className="text-[10px] text-muted-foreground tabular-nums">
           {earned > 0 ? (
-            <span className="text-emerald-600 font-bold mr-2">+{formatUsd(earned)}</span>
+            <span className="text-emerald-600 font-bold mr-2">+{formatMocoDisplay(ledgerCentsToMoco(earned))}</span>
           ) : null}
-          {spent > 0 ? <span className="text-red-600 font-bold">-{formatUsd(spent)}</span> : null}
+          {spent > 0 ? (
+            <span className="text-red-600 font-bold">-{formatMocoDisplay(ledgerCentsToMoco(spent))}</span>
+          ) : null}
           {earned === 0 && spent === 0 ? `${items.length}건` : null}
         </p>
       </div>
@@ -172,10 +173,14 @@ export function WalletMonthDetailPanel({ year, month, monthLabel, transactions, 
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   수익{" "}
-                  <span className="text-emerald-600 font-bold tabular-nums">{formatUsd(incomeTotal)}</span>
+                  <span className="text-emerald-600 font-bold tabular-nums">
+                    +{formatMocoDisplay(ledgerCentsToMoco(incomeTotal))}
+                  </span>
                   {" · "}
                   지출{" "}
-                  <span className="text-red-600 font-bold tabular-nums">{formatUsd(expenseTotal)}</span>
+                  <span className="text-red-600 font-bold tabular-nums">
+                    -{formatMocoDisplay(ledgerCentsToMoco(expenseTotal))}
+                  </span>
                   {" · "}
                   {monthTx.length}건
                 </p>

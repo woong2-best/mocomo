@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { formatUsd } from "@/lib/money";
+import { formatMocoDisplay, ledgerCentsToMoco } from "@/lib/gems/display";
 import type { WalletEnrichedTransaction, WalletMonthBucket } from "@/lib/wallet-analytics";
 import { WalletMonthDetailPanel } from "@/components/wallet/wallet-month-detail-panel";
 import {
@@ -56,7 +56,7 @@ export function WalletEarningsExportPanel({
               trendUp ? "bg-emerald-500/15 text-emerald-700" : "bg-red-500/15 text-red-700"
             )}
           >
-            {trendUp ? "▲" : "▼"} {formatUsd(Math.abs(yearNet))}
+            {trendUp ? "▲" : "▼"} {formatMocoDisplay(ledgerCentsToMoco(yearNet))}
           </span>
         </div>
 
@@ -147,15 +147,15 @@ export function WalletEarningsExportPanel({
             );
           })}
         </div>
-      </div>
 
-      <WalletMonthDetailPanel
-        year={year}
-        month={selectedMonth}
-        monthLabel={selectedMonthLabel}
-        transactions={transactions}
-        onClose={() => setSelectedMonth(null)}
-      />
+        <WalletMonthDetailPanel
+          year={year}
+          month={selectedMonth}
+          monthLabel={selectedMonthLabel}
+          transactions={transactions}
+          onClose={() => setSelectedMonth(null)}
+        />
+      </div>
     </div>
   );
 }

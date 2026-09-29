@@ -4,17 +4,17 @@ import { useState, useTransition } from "react";
 import { WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
 import { WalletEarningsExportPanel } from "@/components/wallet/wallet-earnings-export-panel";
 import { SettlementRegistrationPanel } from "@/components/wallet/settlement-registration-panel";
-import { formatKrw } from "@/lib/money";
-import { mocoToKrw } from "@/lib/moco/economy";
 import { LEDGER_LABELS } from "@/lib/wallet-labels";
 import { REWARD_TERMS_LABEL } from "@/lib/settlement-moco/constants";
-import {
-  achievedCreatorRewardTier,
-  formatRewardUsd,
-} from "@/lib/settlement-moco/reward-tier-table";
+import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
 import { CreatorRewardTierTable } from "@/components/wallet/creator-reward-tier-table";
-import { mocoCreatorNetUsd } from "@/lib/moco/stripe-pass-through";
+import { ReceivedTipsPanel } from "@/components/wallet/received-tips-panel";
+import {
+  formatMocoDisplay,
+  formatMocoSignedFromCents,
+} from "@/lib/gems/display";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
+import type { TipHistory } from "@/actions/support";
 import { cn } from "@/lib/utils";
 
 type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWallet>>;
@@ -27,17 +27,28 @@ type Props = {
   data: WalletData;
   earnings: WalletEarningsAnalytics;
   settlement: SettlementStatus;
+  receivedTips: TipHistory["receivedTips"];
   callbackUrl?: string | null;
 };
 
-export function RevenueSettlementPanel({ data, earnings: initialEarnings, settlement }: Props) {
+export function RevenueSettlementPanel({
+  data,
+  earnings: initialEarnings,
+  settlement,
+  receivedTips,
+}: Props) {
   const [earnings, setEarnings] = useState(initialEarnings);
   const [year, setYear] = useState(initialEarnings.year);
   const [pending, startTransition] = useTransition();
 
-  const settlementKrw = mocoToKrw(settlement.settlementMocoPoints);
-  const rewardTier = achievedCreatorRewardTier(settlement.settlementMocoPoints);
-  const netUsdPreview = mocoCreatorNetUsd(settlement.settlementMocoPoints);
+  const earned = settlement.settlementMocoPoints;
+  const progress = rewardTierProgress(earned);
+  const span = progress.nextRequiredMoco
+    ? Math.max(1, progress.nextRequiredMoco - progress.currentRequiredMoco)
+    : 1;
+  const filled = progress.atMaxTier
+    ? 1
+    : Math.min(1, Math.max(0, (earned - progress.currentRequiredMoco) / span));
 
   function changeYear(nextYear: number) {
     setYear(nextYear);
@@ -50,21 +61,41 @@ export function RevenueSettlementPanel({ data, earnings: initialEarnings, settle
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-2">
-        <p className="text-sm text-muted-foreground">earned MOCO (후원 수령 · 정산 대상)</p>
-        <p className="text-3xl font-black tabular-nums">
-          {settlement.settlementMocoPoints.toLocaleString()} MOCO
-        </p>
+      <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
+        <div>
+          <p className="text-sm text-muted-foreground">정산 MOCO · 다른 사용자에게 받은 수량</p>
+          <p className="text-3xl font-black tabular-nums">{earned.toLocaleString()} MOCO</p>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <p className="font-bold">정산 등급 {progress.currentLabel}</p>
+            {progress.atMaxTier ? (
+              <p className="text-xs font-semibold text-muted-foreground">최고 등급</p>
+            ) : (
+              <p className="text-xs font-semibold tabular-nums">
+                {progress.nextLabel}까지 {progress.mocoRemaining.toLocaleString()} MOCO
+              </p>
+            )}
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary"
+              style={{ width: `${Math.round(filled * 100)}%` }}
+            />
+          </div>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {progress.atMaxTier
+              ? `${progress.currentLabel} 등급입니다.`
+              : `${progress.nextLabel} 등급이 되려면 정산 MOCO를 ${progress.mocoRemaining.toLocaleString()} 더 받아야 합니다.`}
+          </p>
+        </div>
         <p className="text-sm text-muted-foreground">
-          Reward 정산 등급 {rewardTier.label} (지급액 {formatRewardUsd(rewardTier.rewardUsd)}) · 누적 가치 약{' '}
-          {formatRewardUsd(netUsdPreview)} · 후원 광석 뱃지 {settlement.earnedMocoTier ?? "SEED"} (별도 체계)
+          후원 광석 뱃지 {settlement.earnedMocoTier ?? "SEED"} (정산 등급과 별개)
         </p>
         <p className="text-xs text-muted-foreground">
-          매월 1일 등급 차감 후 {REWARD_TERMS_LABEL} 지급 · 잔여 이월. 출금 시 Stripe Express 월 유지비($2.00) 및
-          해외 송금 수수료는 금융사 정책에 따라 실비 차감됩니다.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          purchased MOCO {settlement.purchasedMocoPoints.toLocaleString()} (충전만으로는 정산 등급·출금 불가)
+          매월 1일 등급만큼 정산 MOCO를 차감한 뒤 {REWARD_TERMS_LABEL}을 지급하고, 남은 수량은 다음 달로 넘어갑니다.
+          보유 MOCO {settlement.purchasedMocoPoints.toLocaleString()}는 결제로 충전한 수량이라 정산 등급에 포함되지
+          않습니다.
         </p>
       </div>
 
@@ -74,7 +105,7 @@ export function RevenueSettlementPanel({ data, earnings: initialEarnings, settle
             key={e.id}
             title={LEDGER_LABELS[e.type] ?? e.type}
             subtitle={e.memo ?? undefined}
-            right={`+${e.amount}`}
+            right={formatMocoSignedFromCents(e.amount, e.type !== "PAYOUT_REQUEST")}
             tone={e.type === "SELLER_EARNING" ? "cobalt" : "muted"}
           />
         ))}
@@ -86,7 +117,7 @@ export function RevenueSettlementPanel({ data, earnings: initialEarnings, settle
         ) : null}
       </div>
 
-      <CreatorRewardTierTable />
+      <CreatorRewardTierTable earnedMoco={earned} />
 
       <SettlementRegistrationPanel
         registered={settlement.registered}
@@ -96,6 +127,8 @@ export function RevenueSettlementPanel({ data, earnings: initialEarnings, settle
         taxReportingReady={settlement.taxReportingReady}
         taxRequirementsDue={settlement.taxRequirementsDue}
         profile={settlement.profile}
+        detailsSubmitted={settlement.payoutDashboard?.detailsSubmitted}
+        notReadyReasons={settlement.payoutDashboard?.reasons}
       />
 
       {settlement.recentRewards.length > 0 ? (
@@ -106,11 +139,7 @@ export function RevenueSettlementPanel({ data, earnings: initialEarnings, settle
               key={batch.id}
               title={`${batch.periodYear}.${String(batch.periodMonth).padStart(2, "0")} ${REWARD_TERMS_LABEL}`}
               subtitle={batch.status}
-              right={
-                batch.currency === "krw"
-                  ? formatKrw(batch.netAmountMinor)
-                  : `${batch.netAmountMinor}`
-              }
+              right={`${batch.deductedMoco.toLocaleString()} MOCO`}
               tone={batch.status === "COMPLETED" ? "forest" : "muted"}
             />
           ))}
@@ -143,6 +172,8 @@ export function RevenueSettlementPanel({ data, earnings: initialEarnings, settle
           year={earnings.year}
           yearNet={earnings.yearNet}
         />
+
+        <ReceivedTipsPanel tips={receivedTips} />
       </div>
     </div>
   );

@@ -4,9 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { confirmPaymentMethodSetup } from "@/actions/payment-methods";
-import { WalletPaymentStation } from "@/components/wallet/wallet-payment-station";
+import { WalletStripeTopup } from "@/components/wallet/wallet-stripe-topup";
 import { PaymentHistoryPanel } from "@/components/wallet/payment-history-panel";
-import { ReceivedTipsPanel } from "@/components/wallet/received-tips-panel";
 import { RevenueSettlementPanel } from "@/components/wallet/revenue-settlement-panel";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
@@ -49,14 +48,10 @@ function tabFromParams(params: URLSearchParams): Tab {
 export function WalletHub({
   data,
   earnings,
-  paymentMethods,
   tipHistory,
   paymentHistory,
-  gemBalance,
   minTopupMoco,
   lowBalanceNotice,
-  gemPurchases,
-  userImageUrl,
   settlement,
 }: Props) {
   const router = useRouter();
@@ -161,29 +156,21 @@ export function WalletHub({
 
       {tab === "wallet" ? (
         <>
-          <WalletPaymentStation
-            balance={gemBalance}
+          <WalletStripeTopup
+            purchasedMoco={settlement.purchasedMocoPoints}
             minTopupMoco={minTopupMoco}
-            paymentMethods={paymentMethods}
-            purchases={gemPurchases}
             lowBalanceNotice={lowBalanceNotice}
-            userImageUrl={userImageUrl}
           />
           <PaymentHistoryPanel items={paymentHistory} />
-          <p className="text-center text-xs text-muted-foreground px-4">
-            ATM [확인] 후 ZERO 카드를 리더기 방향으로 밀어 결제합니다.
-          </p>
         </>
       ) : (
-        <>
-          <ReceivedTipsPanel tips={tipHistory.receivedTips} />
-          <RevenueSettlementPanel
-            data={data}
-            earnings={earnings}
-            settlement={settlement}
-            callbackUrl={safeCallbackUrl ?? "/wallet?tab=earnings"}
-          />
-        </>
+        <RevenueSettlementPanel
+          data={data}
+          earnings={earnings}
+          settlement={settlement}
+          receivedTips={tipHistory.receivedTips}
+          callbackUrl={safeCallbackUrl ?? "/wallet?tab=earnings"}
+        />
       )}
 
       {setupMsg ? <p className="text-sm text-center text-muted-foreground">{setupMsg}</p> : null}

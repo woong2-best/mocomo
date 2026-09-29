@@ -1,10 +1,17 @@
 import { db } from "@/lib/db";
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
-import { normalizeSellerCountry } from "@/lib/marketplace/seller-region-policy";
+import { resolveExpressPayoutCountry } from "@/lib/marketplace/stripe-supported-countries";
 import { pullAndSyncStripeConnectAccount } from "@/lib/stripe-connect";
 import { resolveTaxFormType } from "@/lib/settlement-moco/tax";
 import { createNotification } from "@/lib/notifications";
 import type Stripe from "stripe";
+
+export {
+  listExpressPayoutCountries,
+  listExpressPayoutCountryCodes,
+  DEFAULT_EXPRESS_PAYOUT_COUNTRY,
+  resolveExpressPayoutCountry,
+} from "@/lib/marketplace/stripe-supported-countries";
 
 const PAYOUT_PATH = {
   refresh: "/payouts/refresh",
@@ -25,7 +32,6 @@ async function loadUserConnectRow(userId: string) {
     select: {
       id: true,
       email: true,
-      countryCode: true,
       stripeConnectAccountId: true,
     },
   });
@@ -84,7 +90,7 @@ async function detachLegacyCustomConnectAccount(userId: string, customAccountId:
 /** Stripe Express Connect 계정 확보 (없으면 생성). Custom 계정은 Express로 마이그레이션 안내. */
 export async function ensureExpressConnectAccount(
   userId: string,
-  opts?: { requestCardPayments?: boolean }
+  opts?: { requestCardPayments?: boolean; payoutCountry?: string }
 ): Promise<{ accountId: string } | { error: string }> {
   if (!isStripeConfigured()) {
     return { error: "Stripe가 설정되지 않았습니다." };
@@ -94,7 +100,6 @@ export async function ensureExpressConnectAccount(
   if (!user) return { error: "사용자를 찾을 수 없습니다." };
 
   const stripe = getStripe();
-  const country = normalizeSellerCountry(user.countryCode).toUpperCase();
 
   if (user.stripeConnectAccountId) {
     try {
@@ -120,6 +125,10 @@ export async function ensureExpressConnectAccount(
       });
     }
   }
+
+  const resolved = resolveExpressPayoutCountry(opts?.payoutCountry);
+  if ("error" in resolved) return resolved;
+  const country = resolved.country;
 
   try {
     const account = await stripe.accounts.create({
@@ -197,21 +206,45 @@ export async function createExpressOnboardingLink(
   }
 }
 
-export async function createExpressDashboardLink(
+/**
+ * 온보딩이 끝나기 전에는 Login Link를 만들 수 없다.
+ * details_submitted가 아니면 온보딩 링크, 끝나면 Express 로그인 링크.
+ */
+export async function createExpressAccountLink(
   accountId: string
-): Promise<{ url: string } | { error: string }> {
+): Promise<{ url: string; mode: "onboarding" | "login" } | { error: string }> {
   if (!isStripeConfigured()) return { error: "Stripe가 설정되지 않았습니다." };
 
   const stripe = getStripe();
   try {
+    const account = await stripe.accounts.retrieve(accountId);
+    if (!account.details_submitted) {
+      const onboarding = await createExpressOnboardingLink(accountId);
+      if ("error" in onboarding) return onboarding;
+      return { url: onboarding.url, mode: "onboarding" };
+    }
+
     const link = await stripe.accounts.createLoginLink(accountId);
     if (!link.url) return { error: "대시보드 링크를 만들 수 없습니다." };
-    return { url: link.url };
+    return { url: link.url, mode: "login" };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "대시보드 링크 생성 실패";
-    console.error("[settlement-express-connect] createExpressDashboardLink:", msg);
+    const msg = e instanceof Error ? e.message : "정산 링크 생성 실패";
+    if (/has not completed onboarding/i.test(msg)) {
+      const onboarding = await createExpressOnboardingLink(accountId);
+      if ("error" in onboarding) return onboarding;
+      return { url: onboarding.url, mode: "onboarding" };
+    }
+    console.error("[settlement-express-connect] createExpressAccountLink:", msg);
     return { error: msg };
   }
+}
+
+export async function createExpressDashboardLink(
+  accountId: string
+): Promise<{ url: string } | { error: string }> {
+  const result = await createExpressAccountLink(accountId);
+  if ("error" in result) return result;
+  return { url: result.url };
 }
 
 type StripeDobParts = { year: number | null; month: number | null; day: number | null };
@@ -344,12 +377,12 @@ export async function syncUserExpressConnectFromStripe(userId: string, accountId
 
 export async function startExpressConnectOnboarding(
   userId: string,
-  opts?: { requestCardPayments?: boolean }
+  opts?: { requestCardPayments?: boolean; payoutCountry?: string }
 ): Promise<{ url: string; accountId: string } | { error: string }> {
   const ensured = await ensureExpressConnectAccount(userId, opts);
   if ("error" in ensured) return ensured;
 
-  const link = await createExpressOnboardingLink(ensured.accountId);
+  const link = await createExpressAccountLink(ensured.accountId);
   if ("error" in link) return link;
 
   return { url: link.url, accountId: ensured.accountId };
