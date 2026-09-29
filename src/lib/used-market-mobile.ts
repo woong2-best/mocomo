@@ -97,7 +97,7 @@ export async function createMobileUsedListing(
   if (!user) return { error: "로그인이 필요합니다." as const };
 
   const isAuction = data.saleType === "AUCTION";
-  if (USED_AUCTION_RETIRED && isAuction) return { error: USED_AUCTION_RETIRED_MSG as const };
+  if (USED_AUCTION_RETIRED && isAuction) return { error: USED_AUCTION_RETIRED_MSG };
   const accessErr = assertAuctionPostAccess(user);
   if (accessErr) return { error: accessErr };
 
