@@ -9,8 +9,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import Link from "next/link";
-import { OFF_AIR_TV_SRC } from "@/components/live/live-off-air-hero";
 import { Eye, Radio } from "lucide-react";
+import { LiveOffAirTvGraphic } from "@/components/live/live-off-air-tv-graphic";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import { wrapIndex } from "@/lib/live-bead-slots";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
@@ -18,11 +18,10 @@ import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-a
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
-/** Same spring as the vertical bead feed (`live-bead-feed.tsx`). */
 const SPRING_STIFFNESS = 180;
 const SPRING_DAMPING = 22;
-const HERO_RAIL_MIN_SLOTS = 8;
-/** Center + two stacked peeks per side (reference mock). */
+const HERO_RAIL_MIN_SLOTS = 12;
+/** Center + two peeks per side. */
 const VISIBLE_COUNT = 5;
 
 export type LiveHeroRailSlot =
@@ -44,14 +43,44 @@ function buildHeroRailSlots(channels: LiveHubChannel[]): LiveHeroRailSlot[] {
   return slots;
 }
 
-/** Large center TV; neighbors tuck behind it and peek at the sides. */
 function measureHeroRail(width: number): { cardWidth: number; spacing: number; visibleRadius: number } {
   const w = Math.max(width, 1);
-  const cardWidth = Math.round(Math.min(Math.max(w * 0.38, 300), 560));
+  const cardWidth = Math.round(Math.min(Math.max(w * 0.46, 320), 640));
   return {
     cardWidth,
-    spacing: Math.round(cardWidth * 0.76),
-    visibleRadius: (VISIBLE_COUNT - 1) / 2 + 0.35,
+    spacing: Math.round(cardWidth * 0.5),
+    visibleRadius: (VISIBLE_COUNT - 1) / 2 + 0.45,
+  };
+}
+
+function coverFlowMotion(delta: number): {
+  scale: number;
+  opacity: number;
+  translateX: number;
+  translateZ: number;
+  rotateY: number;
+  zIndex: number;
+} {
+  const abs = Math.abs(delta);
+  const sign = delta > 0 ? 1 : delta < 0 ? -1 : 0;
+
+  const scale =
+    abs < 0.02 ? 1 : abs < 1 ? 1 - abs * 0.18 : abs < 2 ? 0.82 - (abs - 1) * 0.12 : 0.7 - (abs - 2) * 0.08;
+
+  const opacity =
+    abs < 0.02 ? 1 : abs < 1 ? 0.92 - abs * 0.08 : abs < 2 ? 0.84 - (abs - 1) * 0.14 : Math.max(0.55, 0.7 - (abs - 2) * 0.12);
+
+  const translateX = delta * 1;
+  const translateZ = abs < 0.02 ? 140 : -abs * 95;
+  const rotateY = sign * -Math.min(48, 12 + abs * 22);
+
+  return {
+    scale: Math.max(0.52, scale),
+    opacity,
+    translateX,
+    translateZ,
+    rotateY,
+    zIndex: Math.round(240 - abs * 45),
   };
 }
 
@@ -61,7 +90,7 @@ type Props = {
   className?: string;
 };
 
-/** Horizontal port of `LiveBeadFeed`: wrap forever, spring snap, drag + wheel. */
+/** Cover-flow hero: largest center card, smaller cards tucked behind, infinite wrap. */
 export function LiveHubHeroRail({ channels, hosts, className }: Props) {
   const hostMap = useMemo(
     () => Object.fromEntries(hosts.map((h) => [h.id, h])),
@@ -79,8 +108,8 @@ export function LiveHubHeroRail({ channels, hosts, className }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const [cardWidth, setCardWidth] = useState(420);
-  const [spacing, setSpacing] = useState(520);
-  const [visibleRadius, setVisibleRadius] = useState(1.2);
+  const [spacing, setSpacing] = useState(280);
+  const [visibleRadius, setVisibleRadius] = useState(2.2);
 
   useEffect(() => {
     const el = stageRef.current;
@@ -134,10 +163,11 @@ export function LiveHubHeroRail({ channels, hosts, className }: Props) {
     const el = stageRef.current;
     if (!el) return;
     const onWheelNative = (e: WheelEvent) => {
-      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      const raw = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (Math.abs(raw) < 1) return;
       e.preventDefault();
-      indexRef.current += e.deltaX / spacing;
-      velocityRef.current = e.deltaX / spacing;
+      indexRef.current += raw / spacing;
+      velocityRef.current = raw / spacing;
       setIndex(indexRef.current);
       ensureRaf();
     };
@@ -187,21 +217,24 @@ export function LiveHubHeroRail({ channels, hosts, className }: Props) {
       onPointerCancel={onPointerUp}
       role="list"
       aria-label="Live hero rail"
+      style={{ perspective: "1400px" }}
     >
-      {slots.map((slot, baseIndex) => (
-        <HeroRailLayer
-          key={slot.key}
-          slot={slot}
-          baseIndex={baseIndex}
-          length={length}
-          index={index}
-          spacing={spacing}
-          cardWidth={cardWidth}
-          visibleRadius={visibleRadius}
-          active={baseIndex === activeIdx}
-          host={slot.kind === "live" ? hostMap[slot.channel.createdBy] : undefined}
-        />
-      ))}
+      <div className="relative h-full w-full" style={{ transformStyle: "preserve-3d" }}>
+        {slots.map((slot, baseIndex) => (
+          <HeroRailLayer
+            key={slot.key}
+            slot={slot}
+            baseIndex={baseIndex}
+            length={length}
+            index={index}
+            spacing={spacing}
+            cardWidth={cardWidth}
+            visibleRadius={visibleRadius}
+            active={baseIndex === activeIdx}
+            host={slot.kind === "live" ? hostMap[slot.channel.createdBy] : undefined}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -236,15 +269,8 @@ function HeroRailLayer({
   const abs = Math.abs(delta);
   if (abs > visibleRadius) return null;
 
-  const scale =
-    abs < 1 ? 1 - abs * 0.1 : abs < 2 ? 0.9 - (abs - 1) * 0.08 : 0.82 - (abs - 2) * 0.06;
-  const opacity =
-    abs < 1
-      ? 1 - abs * 0.14
-      : abs < 2
-        ? 0.86 - (abs - 1) * 0.22
-        : Math.max(0.25, 0.64 - (abs - 2) * 0.35);
-  const translateX = delta * spacing;
+  const motion = coverFlowMotion(delta);
+  const translateX = motion.translateX * spacing;
 
   return (
     <div
@@ -252,9 +278,10 @@ function HeroRailLayer({
       className="absolute left-1/2 top-1/2 will-change-transform"
       style={{
         width: cardWidth,
-        opacity,
-        zIndex: Math.round(100 - abs * 10),
-        transform: `translate(calc(-50% + ${translateX}px), -50%) scale(${scale})`,
+        opacity: motion.opacity,
+        zIndex: motion.zIndex,
+        transform: `translate3d(calc(-50% + ${translateX}px), -50%, ${motion.translateZ}px) rotateY(${motion.rotateY}deg) scale(${motion.scale})`,
+        transformStyle: "preserve-3d",
         pointerEvents: active ? "auto" : "none",
       }}
     >
@@ -284,52 +311,18 @@ function HeroRailCard({
 function OffAirHeroCard({ focused }: { focused: boolean }) {
   const { t } = useLocale();
   return (
-    <div className="relative w-full aspect-[16/10] overflow-hidden">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={OFF_AIR_TV_SRC}
-        alt={t("live.noBroadcastEmptyHub")}
-        className="h-full w-full object-contain object-center"
-        decoding="async"
-        fetchPriority={focused ? "high" : "low"}
-      />
-    </div>
+    <LiveOffAirTvGraphic
+      variant="bars"
+      message={focused ? t("live.noBroadcastEmptyHub") : undefined}
+    />
   );
 }
 
 function EmptyHeroCard({ tone }: { tone: number }) {
-  const shade = 20 + (tone % 5) * 3;
-  const panel = `rgb(${shade},${shade},${shade + 2})`;
-
+  const dim = 0.88 - (tone % 4) * 0.06;
   return (
-    <div className="relative w-full aspect-[16/10]" aria-hidden>
-      <div className="absolute inset-[14%_26%] rounded-md bg-black/80" />
-      {[0, 1, 2].map((step) => (
-        <div
-          key={`l-${step}`}
-          className="absolute rounded-sm"
-          style={{
-            left: `${6 + step * 5}%`,
-            top: `${18 + step * 6}%`,
-            width: `${14 - step * 2}%`,
-            height: `${64 - step * 10}%`,
-            backgroundColor: panel,
-          }}
-        />
-      ))}
-      {[0, 1, 2].map((step) => (
-        <div
-          key={`r-${step}`}
-          className="absolute rounded-sm"
-          style={{
-            right: `${6 + step * 5}%`,
-            top: `${18 + step * 6}%`,
-            width: `${14 - step * 2}%`,
-            height: `${64 - step * 10}%`,
-            backgroundColor: panel,
-          }}
-        />
-      ))}
+    <div style={{ opacity: dim }}>
+      <LiveOffAirTvGraphic variant="dark" />
     </div>
   );
 }
