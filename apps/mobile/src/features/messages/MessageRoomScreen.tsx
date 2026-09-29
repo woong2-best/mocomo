@@ -19,7 +19,6 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ChatMessage } from "@/api/messages";
 import { uploadLocalFile } from "@/api/upload-file";
@@ -33,7 +32,6 @@ import {
 } from "@/features/messages/MessageBubble";
 import { MessageVoiceSession } from "@/features/messages/MessageVoiceSession";
 import { useRoomMessages } from "@/features/messages/useRoomMessages";
-import { AddChatMemberSheet } from "@/features/messages/AddChatMemberSheet";
 import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { PeerLocalClock, PeerMemberClocks } from "@/features/messages/PeerLocalClock";
@@ -73,7 +71,6 @@ export function MessageRoomScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "MessageRoom">>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
-  const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const keyboardHeight = useKeyboardBottomInset();
   const keyboardOpen = keyboardHeight > 0;
@@ -81,7 +78,6 @@ export function MessageRoomScreen() {
   const { roomId } = route.params;
   const { room, messages, loading, error, sending, nextBefore, loadOlder, send, refresh } =
     useRoomMessages(roomId);
-  const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -365,13 +361,6 @@ export function MessageRoomScreen() {
         </Pressable>
 
         <View style={styles.headerActions}>
-          <Pressable
-            style={styles.callBtn}
-            onPress={() => setAddMemberOpen(true)}
-            accessibilityLabel="대화에 사람 추가"
-          >
-            <Ionicons name="person-add-outline" size={18} color={colors.cobalt} />
-          </Pressable>
           {!isGroup && canCallPeer ? (
             <Pressable
               style={styles.callBtn}
@@ -604,17 +593,6 @@ export function MessageRoomScreen() {
           </View>
         </View> : null}
       </View>
-
-      <AddChatMemberSheet
-        visible={addMemberOpen}
-        roomId={roomId}
-        members={room?.members ?? []}
-        onClose={() => setAddMemberOpen(false)}
-        onAdded={() => {
-          void refresh();
-          void queryClient.invalidateQueries({ queryKey: ["mobile-dm-inbox"] });
-        }}
-      />
 
       <DmImageLightbox
         visible={!!lightbox}

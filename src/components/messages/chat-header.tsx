@@ -5,10 +5,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DmCallButtons } from "@/components/call/dm-call-buttons";
-import {
-  AddChatMemberDialog,
-  type ChatMemberPreview,
-} from "@/components/messages/add-chat-member-dialog";
+import type { ChatMemberPreview } from "@/components/messages/add-chat-member-dialog";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { PresenceAvatar } from "@/components/user/presence-avatar";
 import { useChatSocket } from "@/components/messages/chat-socket-context";
@@ -49,7 +46,6 @@ export function ChatHeader({
   const profileHref = profileUsername ? `/u/${profileUsername}` : undefined;
   const { isUserOnline, socketReady, realtimeOff } = useChatSocket();
   const otherOnline = otherUserId ? isUserOnline(otherUserId) : false;
-  const canAddMembers = roomType === "DM" || roomType === "GROUP";
   const clockMembers = members
     .filter((m) => m.id !== viewerUserId)
     .map((m) => ({
@@ -151,8 +147,6 @@ export function ChatHeader({
           </div>
         </div>
       )}
-
-      {canAddMembers ? <AddChatMemberDialog roomId={roomId} members={members} /> : null}
 
       {roomType === "DM" && otherUserId && canCall ? (
         <DmCallButtons
