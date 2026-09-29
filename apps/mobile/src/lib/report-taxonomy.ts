@@ -127,7 +127,7 @@ export const POST_REPORT_TAXONOMY: ReportTaxonomyNode[] = [
   },
   {
     id: "abuse_hate",
-    label: "욕설 / 비방 / 혐오 표현",
+    label: "욕설 / 비방 / 혐오 / 폭력 표현",
     childQuestion: "어떤 유형의 문제인가요?",
     children: [
       {
@@ -183,17 +183,16 @@ export const POST_REPORT_TAXONOMY: ReportTaxonomyNode[] = [
       },
       {
         id: "adult_minor_target",
-        label: "미성년자를 대상으로 하거나 관련된 성적 콘텐츠",
+        label: "미성년자를 대상으로 한 성적 콘텐츠",
         reasonId: "UNDERAGE",
       },
       {
         id: "adult_threat_share",
-        label: "나체 이미지를 공유하거나 공유하겠다는 위협",
+        label: "공유하겠다는 위협",
         reasonId: "SEXUAL",
       },
       { id: "adult_sex_work", label: "성매매인 것 같음", reasonId: "SEXUAL" },
       { id: "adult_abuse", label: "성적 학대인 것 같음", reasonId: "SEXUAL" },
-      { id: "adult_nude", label: "나체 이미지 또는 성적 행위", reasonId: "SEXUAL" },
       {
         id: "underage_safety",
         label: "18세 미만 이용자와 관련된 문제(성적 외)",
@@ -215,7 +214,6 @@ export const POST_REPORT_TAXONOMY: ReportTaxonomyNode[] = [
     label: "허위 사실 및 거짓 정보",
     childQuestion: "어떤 유형의 허위·조작 정보인가요?",
     children: [
-      { id: "political", label: "정치적 허위·조작 콘텐츠", reasonId: "POLITICAL" },
       { id: "false_info_general", label: "건강·안전 등 허위 정보", reasonId: "FALSE_INFO" },
       { id: "false_info_other", label: "기타 거짓·오해 유발 정보", reasonId: "FALSE_INFO" },
     ],
