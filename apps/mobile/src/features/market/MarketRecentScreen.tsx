@@ -8,11 +8,13 @@ import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { getRecentMarketViews, type RecentMarketView } from "@/lib/market-recently-viewed";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
 export function MarketRecentScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -27,14 +29,14 @@ export function MarketRecentScreen() {
 
   return (
     <Screen>
-      <AppHeader title="최근본상품" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={u("최근본상품", "Recently viewed")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       <FlatList
         data={items}
         keyExtractor={(i) => i.listingId}
         numColumns={2}
         columnWrapperStyle={{ gap: 10, paddingHorizontal: spacing.md }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24, gap: 10, paddingTop: spacing.sm }}
-        ListEmptyComponent={<Text style={styles.empty}>최근 본 상품이 없습니다.</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{u("최근 본 상품이 없습니다.", "No recently viewed items.")}</Text>}
         renderItem={({ item }) => (
           <Pressable
             style={styles.card}

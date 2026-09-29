@@ -11,6 +11,7 @@ import {
 } from "@/features/messages/share-card-cache";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -26,6 +27,7 @@ export function ChatSharedPostCard({
   onOpenImage?: (url: string, id: string) => void;
   onLongPress?: () => void;
 }) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors, !!mine), [colors, mine]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -81,8 +83,8 @@ export function ChatSharedPostCard({
         onLongPress={onLongPress}
         delayLongPress={280}
       >
-        <Text style={styles.title}>게시물</Text>
-        <Text style={styles.muted}>불러오는 중… 탭하면 바로 열기</Text>
+        <Text style={styles.title}>{u("게시물", "Post")}</Text>
+        <Text style={styles.muted}>{u("불러오는 중… 탭하면 바로 열기", "Loading… tap to open")}</Text>
       </Pressable>
     );
   }
@@ -109,8 +111,10 @@ export function ChatSharedPostCard({
         onLongPress={onLongPress}
         delayLongPress={280}
       >
-        <Text style={styles.title}>게시물 보기</Text>
-        <Text style={styles.muted}>카드를 불러오지 못했습니다 · 탭하여 다시 시도</Text>
+        <Text style={styles.title}>{u("게시물 보기", "View post")}</Text>
+        <Text style={styles.muted}>
+          {u("카드를 불러오지 못했습니다 · 탭하여 다시 시도", "Could not load card · tap to retry")}
+        </Text>
       </Pressable>
     );
   }
@@ -157,7 +161,7 @@ export function ChatSharedPostCard({
           )}
           {isVideo ? (
             <View style={styles.videoBadge}>
-              <Text style={styles.videoBadgeText}>동영상</Text>
+              <Text style={styles.videoBadgeText}>{u("동영상", "Video")}</Text>
             </View>
           ) : null}
           {!isVideo && previewUri ? (
@@ -165,7 +169,7 @@ export function ChatSharedPostCard({
               style={StyleSheet.absoluteFill}
               onPress={() => onOpenImage?.(previewUri, post.id)}
               accessibilityRole="button"
-              accessibilityLabel="사진 크게 보기"
+              accessibilityLabel={u("사진 크게 보기", "View photo")}
             />
           ) : null}
         </View>
@@ -174,7 +178,7 @@ export function ChatSharedPostCard({
         <Text style={styles.body} numberOfLines={3}>
           {post.title?.trim() || post.content}
         </Text>
-        <Text style={styles.link}>게시물 열기</Text>
+        <Text style={styles.link}>{u("게시물 열기", "Open post")}</Text>
       </Pressable>
     </Pressable>
   );

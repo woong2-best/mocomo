@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { USED_MARKET_BROWSE_CATEGORIES } from "@/lib/used-market";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
 import { UsedSubcultureFilters } from "@/components/used/used-subculture-filters";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 type UsedSearchHeaderProps = {
   viewerCountryCode: string;
@@ -16,6 +18,7 @@ export function UsedSearchHeader({
   viewerCountryCode,
   viewerServiceRegion,
 }: UsedSearchHeaderProps) {
+  const { locale } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -43,14 +46,15 @@ export function UsedSearchHeader({
       {activeQ ? (
         <div className="flex items-center justify-between gap-2 pt-0.5">
           <p className="text-[10px] text-muted-foreground">
-            검색: <span className="text-foreground font-medium">&quot;{activeQ}&quot;</span>
+            {uiText(locale, "검색:", "Search:")}{" "}
+            <span className="text-foreground font-medium">&quot;{activeQ}&quot;</span>
           </p>
           <button
             type="button"
             onClick={() => apply({ q: null })}
             className="text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
           >
-            검색어 지우기
+            {uiText(locale, "검색어 지우기", "Clear search")}
           </button>
         </div>
       ) : null}
@@ -66,7 +70,7 @@ export function UsedSearchHeader({
               : "border-border bg-card text-folk-cobalt"
           )}
         >
-          전체
+          {uiText(locale, "전체", "All")}
         </button>
         {USED_MARKET_BROWSE_CATEGORIES.map((c) => (
           <button

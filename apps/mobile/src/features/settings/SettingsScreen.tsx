@@ -13,6 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "@/auth/AuthContext";
 import { useI18n } from "@/i18n/I18nProvider";
 import { normalizeMobileLocale, type Locale } from "@/i18n";
+import { localeForCountry } from "@/i18n/locale-from-country";
 import { patchMe } from "@/api/discovery";
 import { ApiError } from "@/api/client";
 import { LocaleRegionCrtCard } from "@/features/settings/LocaleRegionCrtCard";
@@ -34,16 +35,18 @@ export function SettingsScreen() {
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const navigation = useNavigation();
   const { user, refreshMe, signOut } = useAuth();
-  const { setLocale: applyUiLocale } = useI18n();
+  const { setLocale: applyUiLocale, u, t } = useI18n();
 
-  const [locale, setLocale] = useState(user?.locale ?? "ko");
-  const [countryCode, setCountryCode] = useState(user?.countryCode ?? "KR");
+  const [locale, setLocale] = useState(
+    user?.locale ?? localeForCountry(user?.countryCode ?? "US")
+  );
+  const [countryCode, setCountryCode] = useState(user?.countryCode ?? "US");
   const [localeBusy, setLocaleBusy] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
 
   useEffect(() => {
-    setLocale(user?.locale ?? "ko");
-    setCountryCode(user?.countryCode ?? "KR");
+    setLocale(user?.locale ?? localeForCountry(user?.countryCode ?? "US"));
+    setCountryCode(user?.countryCode ?? "US");
   }, [user?.locale, user?.countryCode]);
 
   async function saveLocale() {
@@ -52,9 +55,9 @@ export function SettingsScreen() {
       await patchMe({ locale, countryCode, timeZone: detectDeviceTimeZone() });
       await applyUiLocale(normalizeMobileLocale(locale) as Locale);
       await refreshMe();
-      showIslandToast("Saved", "지역·언어 설정이 업데이트되었습니다.");
+      showIslandToast(t("settings.saved"), u("지역·언어 설정이 업데이트되었습니다.", "Region and language updated."));
     } catch (e) {
-      showIslandError("오류", errorMessage(e));
+      showIslandError(u("오류", "Error"), errorMessage(e, u));
     } finally {
       setLocaleBusy(false);
     }
@@ -62,7 +65,11 @@ export function SettingsScreen() {
 
   return (
     <Screen>
-      <AppHeader title="설정" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader
+        title={t("nav.settings")}
+        leftLabel={t("common.back")}
+        onLeftPress={() => navigation.goBack()}
+      />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -72,7 +79,10 @@ export function SettingsScreen() {
             locale={locale}
             countryCode={countryCode}
             onLocaleChange={setLocale}
-            onCountryChange={setCountryCode}
+            onCountryChange={(code) => {
+              setCountryCode(code);
+              setLocale(localeForCountry(code));
+            }}
             saving={localeBusy}
             onSave={() => void saveLocale()}
           />
@@ -139,11 +149,11 @@ export function SettingsScreen() {
   );
 }
 
-function errorMessage(e: unknown) {
+function errorMessage(e: unknown, u: (ko: string, en: string) => string) {
   if (e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body) {
     return String((e.body as { error: string }).error);
   }
-  return "저장에 실패했습니다.";
+  return u("저장에 실패했습니다.", "Could not save.");
 }
 
 function createThemedStyles(colors: ThemeColors) {

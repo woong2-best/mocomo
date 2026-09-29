@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { openDm, searchMessageUsers } from "@/api/messages";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -24,6 +25,7 @@ export function MessagesNewScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t, u } = useI18n();
   const [q, setQ] = useState("");
   const [openingId, setOpeningId] = useState<string | null>(null);
 
@@ -49,7 +51,7 @@ export function MessagesNewScreen() {
         <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.back}>
           <Ionicons name="chevron-back" size={24} color={colors.cobalt} />
         </Pressable>
-        <Text style={styles.title}>새 메시지</Text>
+        <Text style={styles.title}>{u("새 메시지", "New message")}</Text>
         <View style={styles.back} />
       </View>
       <View style={styles.searchWrap}>
@@ -58,7 +60,7 @@ export function MessagesNewScreen() {
           style={styles.search}
           value={q}
           onChangeText={setQ}
-          placeholder="사용자 검색"
+          placeholder={t("common.search")}
           placeholderTextColor={colors.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
@@ -73,9 +75,9 @@ export function MessagesNewScreen() {
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             q.trim() ? (
-              <Text style={styles.empty}>검색 결과가 없습니다.</Text>
+              <Text style={styles.empty}>{u("검색 결과가 없습니다.", "No results.")}</Text>
             ) : (
-              <Text style={styles.empty}>보낼 사람을 검색하세요.</Text>
+              <Text style={styles.empty}>{u("보낼 사람을 검색하세요.", "Search for someone to message.")}</Text>
             )
           }
           renderItem={({ item }) => {
@@ -93,7 +95,7 @@ export function MessagesNewScreen() {
                   <Text style={styles.name}>{label}</Text>
                   <Text style={styles.username}>
                     @{item.username}
-                    {blocked ? " · 메시지 요청을 받지 않음" : ""}
+                    {blocked ? u(" · 메시지 요청을 받지 않음", " · does not accept message requests") : ""}
                   </Text>
                 </View>
                 {busy ? <ActivityIndicator color={colors.terracotta} /> : null}

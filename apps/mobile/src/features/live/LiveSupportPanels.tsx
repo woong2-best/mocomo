@@ -7,6 +7,8 @@ import {
   voteLiveSupportPoll,
 } from "@/api/live";
 import type { LiveSupportMission, LiveSupportPoll } from "@/lib/live-support";
+import { liveUi } from "@/features/live/live-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -23,6 +25,8 @@ export function LiveSupportPanels({
   currentUserId,
   onSupportEvent,
 }: Props) {
+  const { u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [missions, setMissions] = useState<LiveSupportMission[]>([]);
@@ -58,13 +62,13 @@ export function LiveSupportPanels({
         optionId,
       });
       if (!res.ok) {
-        setError(res.error ?? "투표에 실패했습니다.");
+        setError(res.error ?? u("투표에 실패했습니다.", "Vote failed."));
         return;
       }
       setPoll(res.poll);
       onSupportEvent?.();
     } catch {
-      setError("투표에 실패했습니다.");
+      setError(u("투표에 실패했습니다.", "Vote failed."));
     }
   }
 
@@ -76,13 +80,13 @@ export function LiveSupportPanels({
     try {
       const res = await resolveLiveSupportMission(channelId, missionId, status);
       if (!res.ok) {
-        setError(res.error ?? "미션 처리에 실패했습니다.");
+        setError(res.error ?? u("미션 처리에 실패했습니다.", "Could not update mission."));
         return;
       }
       void refresh();
       onSupportEvent?.();
     } catch {
-      setError("미션 처리에 실패했습니다.");
+      setError(u("미션 처리에 실패했습니다.", "Could not update mission."));
     }
   }
 
@@ -114,14 +118,16 @@ export function LiveSupportPanels({
             );
           })}
           {!isHost ? (
-            <Text style={styles.hint}>탭해서 투표 · {poll.voteCost.toLocaleString()} CP</Text>
+            <Text style={styles.hint}>
+              {u("탭해서 투표", "Tap to vote")} · {poll.voteCost.toLocaleString()} CP
+            </Text>
           ) : null}
         </View>
       ) : null}
 
       {missions.length > 0 ? (
         <View style={styles.block}>
-          <Text style={styles.blockTitle}>🎯 미션</Text>
+          <Text style={styles.blockTitle}>🎯 {copy.mission}</Text>
           {missions.slice(0, 4).map((m) => (
             <View key={m.id} style={styles.missionRow}>
               <View style={{ flex: 1 }}>
@@ -135,7 +141,7 @@ export function LiveSupportPanels({
                   style={styles.missionBtn}
                   onPress={() => void onMissionAction(m.id, "ACCEPTED")}
                 >
-                  <Text style={styles.missionBtnText}>수락</Text>
+                  <Text style={styles.missionBtnText}>{u("수락", "Accept")}</Text>
                 </Pressable>
               ) : null}
               {isHost && m.status === "ACCEPTED" ? (
@@ -144,13 +150,13 @@ export function LiveSupportPanels({
                     style={styles.missionBtn}
                     onPress={() => void onMissionAction(m.id, "COMPLETED")}
                   >
-                    <Text style={styles.missionBtnText}>완료</Text>
+                    <Text style={styles.missionBtnText}>{u("완료", "Complete")}</Text>
                   </Pressable>
                   <Pressable
                     style={[styles.missionBtn, styles.missionBtnFail]}
                     onPress={() => void onMissionAction(m.id, "FAILED")}
                   >
-                    <Text style={styles.missionBtnText}>실패</Text>
+                    <Text style={styles.missionBtnText}>{u("실패", "Fail")}</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -159,7 +165,7 @@ export function LiveSupportPanels({
                   style={[styles.missionBtn, styles.missionBtnFail]}
                   onPress={() => void onMissionAction(m.id, "CANCELLED")}
                 >
-                  <Text style={styles.missionBtnText}>취소</Text>
+                  <Text style={styles.missionBtnText}>{u("취소", "Cancel")}</Text>
                 </Pressable>
               ) : null}
             </View>

@@ -8,16 +8,13 @@ import type { ReportTargetType } from "@prisma/client";
 import { submitContentReport } from "@/actions/report";
 import {
   formatReportPathLabel,
-  POST_REPORT_DISCLAIMER,
+  getPostReportCopy,
   POST_REPORT_OTHER_DETAILS_MIN,
-  POST_REPORT_OTHER_DETAILS_PROMPT,
-  POST_REPORT_REVIEW_HINT,
-  POST_REPORT_ROOT_QUESTION,
-  POST_REPORT_TAXONOMY,
   type ReportPathStep,
   type ReportReasonId,
   type ReportTaxonomyNode,
 } from "@/lib/report-reasons";
+import { useLocale } from "@/components/providers/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -63,6 +60,8 @@ export function ContentReportFlow({
   trigger,
 }: Props) {
   const router = useRouter();
+  const { locale, t } = useLocale();
+  const reportCopy = useMemo(() => getPostReportCopy(locale), [locale]);
   const [phase, setPhase] = useState<Phase>("browse");
   const [stack, setStack] = useState<ReportTaxonomyNode[][]>([]);
   const [path, setPath] = useState<ReportPathStep[]>([]);
@@ -70,11 +69,11 @@ export function ContentReportFlow({
   const [error, setError] = useState("");
   const [details, setDetails] = useState("");
 
-  const currentNodes = stack.length > 0 ? stack[stack.length - 1]! : POST_REPORT_TAXONOMY;
+  const currentNodes = stack.length > 0 ? stack[stack.length - 1]! : reportCopy.taxonomy;
   const currentQuestion =
     path.length > 0
-      ? path[path.length - 1]!.node.childQuestion ?? POST_REPORT_ROOT_QUESTION
-      : POST_REPORT_ROOT_QUESTION;
+      ? path[path.length - 1]!.node.childQuestion ?? reportCopy.rootQuestion
+      : reportCopy.rootQuestion;
 
   const reviewSteps = useMemo(() => path, [path]);
 
@@ -94,8 +93,8 @@ export function ContentReportFlow({
   function selectNode(node: ReportTaxonomyNode) {
     const question =
       path.length === 0
-        ? POST_REPORT_ROOT_QUESTION
-        : path[path.length - 1]!.node.childQuestion ?? POST_REPORT_ROOT_QUESTION;
+        ? reportCopy.rootQuestion
+        : path[path.length - 1]!.node.childQuestion ?? reportCopy.rootQuestion;
     const nextPath = [...path, { question, node }];
     setPath(nextPath);
 
@@ -149,7 +148,7 @@ export function ContentReportFlow({
     setPath(path.slice(0, index));
     // Rebuild stack from path so user can re-pick from that level
     const nextStack: ReportTaxonomyNode[][] = [];
-    let nodes = POST_REPORT_TAXONOMY;
+    let nodes = reportCopy.taxonomy;
     for (let i = 0; i < index; i++) {
       const selected = path[i]!.node;
       if (selected.children) {
@@ -164,7 +163,7 @@ export function ContentReportFlow({
   function submit() {
     const leaf = path[path.length - 1];
     if (!leaf?.node.reasonId) {
-      setError("신고 사유를 선택해 주세요.");
+      setError(t("report.selectReason"));
       return;
     }
     setError("");
@@ -172,7 +171,7 @@ export function ContentReportFlow({
     const reasonPath = formatReportPathLabel(path);
     const trimmedDetails = details.trim();
     if (leaf.node.requiresDetails && trimmedDetails.length < POST_REPORT_OTHER_DETAILS_MIN) {
-      setError(`기타 문제는 ${POST_REPORT_OTHER_DETAILS_MIN}자 이상 입력해 주세요.`);
+      setError(t("report.otherMinLength", { min: String(POST_REPORT_OTHER_DETAILS_MIN) }));
       if (phase !== "details") setPhase("details");
       return;
     }
@@ -220,7 +219,7 @@ export function ContentReportFlow({
           className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center"
           role="dialog"
           aria-modal="true"
-          aria-label="신고하기"
+          aria-label={t("report.closeDialog")}
         >
           <button
             type="button"
@@ -242,7 +241,7 @@ export function ContentReportFlow({
                 <button
                   type="button"
                   className="absolute left-4 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground transition-colors hover:bg-secondary active:bg-[hsl(var(--folk-cobalt))] active:text-[hsl(var(--folk-cream))]"
-                  aria-label="뒤로"
+                  aria-label={t("common.back")}
                   onClick={goBack}
                 >
                   <ChevronLeft className="h-5 w-5" />
@@ -251,14 +250,14 @@ export function ContentReportFlow({
                 <button
                   type="button"
                   className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground transition-colors hover:bg-secondary"
-                  aria-label="닫기"
+                  aria-label={t("common.close")}
                   onClick={() => handleOpenChange(false)}
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
               <h2 className="text-base font-bold tracking-tight text-foreground">
-                {phase === "done" ? "완료" : "신고하기"}
+                {phase === "done" ? t("common.done") : t("report.title")}
               </h2>
             </div>
 
@@ -270,7 +269,7 @@ export function ContentReportFlow({
                   </p>
                   {path.length === 0 ? (
                     <p className="mb-6 rounded-xl bg-muted/80 px-4 py-3.5 text-sm leading-relaxed text-muted-foreground">
-                      {POST_REPORT_DISCLAIMER}
+                      {reportCopy.disclaimer}
                     </p>
                   ) : null}
                   <ul className="space-y-2">
@@ -294,15 +293,12 @@ export function ContentReportFlow({
 
               {phase === "details" ? (
                 <>
-                  <p className="mb-2 text-xl font-bold text-foreground">{POST_REPORT_OTHER_DETAILS_PROMPT}</p>
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    운영진이 상황을 이해하는 데 도움이 됩니다. 개인정보는 신고 접수 외 용도로 사용하지
-                    않습니다.
-                  </p>
+                  <p className="mb-2 text-xl font-bold text-foreground">{reportCopy.otherDetailsPrompt}</p>
+                  <p className="mb-4 text-sm text-muted-foreground">{t("report.detailsHelp")}</p>
                   <Textarea
                     value={details}
                     onChange={(e) => setDetails(e.target.value)}
-                    placeholder="문제 상황을 설명해 주세요."
+                    placeholder={t("report.detailsPlaceholder")}
                     className="min-h-[120px] resize-none rounded-xl border-border bg-background text-[15px]"
                     maxLength={2000}
                   />
@@ -312,11 +308,11 @@ export function ContentReportFlow({
 
               {phase === "review" ? (
                 <>
-                  <p className="mb-2 text-2xl font-bold text-foreground">신고를 제출합니다</p>
+                  <p className="mb-2 text-2xl font-bold text-foreground">{t("report.submitTitle")}</p>
                   <p className="mb-6 text-sm leading-relaxed text-[hsl(var(--folk-cobalt))]">
-                    {POST_REPORT_REVIEW_HINT}
+                    {reportCopy.reviewHint}
                   </p>
-                  <h3 className="mb-3 text-base font-bold text-foreground">신고 상세 정보</h3>
+                  <h3 className="mb-3 text-base font-bold text-foreground">{t("report.detailsTitle")}</h3>
                   <div className="space-y-3">
                     {reviewSteps.map((step, i) => (
                       <button
@@ -332,7 +328,7 @@ export function ContentReportFlow({
                   </div>
                   {details.trim() ? (
                     <div className="mt-4 rounded-xl border border-border/80 bg-muted/40 px-4 py-3">
-                      <p className="text-sm font-semibold text-foreground">추가 설명</p>
+                      <p className="text-sm font-semibold text-foreground">{t("report.extraDetails")}</p>
                       <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
                         {details.trim()}
                       </p>
@@ -344,10 +340,8 @@ export function ContentReportFlow({
 
               {phase === "done" ? (
                 <>
-                  <p className="mb-3 text-2xl font-bold text-foreground">소중한 의견 감사합니다</p>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    회원님의 신고는 콘텐츠 검토에 반영되며, 비슷한 게시물이 덜 보일 수 있습니다.
-                  </p>
+                  <p className="mb-3 text-2xl font-bold text-foreground">{t("report.thankYou")}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{t("report.thankYouBody")}</p>
                 </>
               ) : null}
             </div>
@@ -359,14 +353,14 @@ export function ContentReportFlow({
                   className="h-12 w-full rounded-xl bg-[hsl(var(--folk-cobalt))] text-base font-bold text-[hsl(var(--folk-cream))] hover:bg-[hsl(var(--folk-cobalt))]/90"
                   onClick={() => {
                     if (details.trim().length < POST_REPORT_OTHER_DETAILS_MIN) {
-                      setError(`기타 문제는 ${POST_REPORT_OTHER_DETAILS_MIN}자 이상 입력해 주세요.`);
+                      setError(t("report.otherMinLength", { min: String(POST_REPORT_OTHER_DETAILS_MIN) }));
                       return;
                     }
                     setError("");
                     setPhase("review");
                   }}
                 >
-                  다음
+                  {t("common.next")}
                 </Button>
               </div>
             ) : null}
@@ -379,7 +373,7 @@ export function ContentReportFlow({
                   disabled={pending}
                   onClick={submit}
                 >
-                  {pending ? "제출 중…" : "신고 제출"}
+                  {pending ? t("report.submitting") : t("report.submit")}
                 </Button>
               </div>
             ) : null}
@@ -391,7 +385,7 @@ export function ContentReportFlow({
                   className="h-12 w-full rounded-xl bg-[hsl(var(--folk-cobalt))] text-base font-bold text-[hsl(var(--folk-cream))] hover:bg-[hsl(var(--folk-cobalt))]/90"
                   onClick={() => handleOpenChange(false)}
                 >
-                  완료
+                  {t("common.done")}
                 </Button>
               </div>
             ) : null}

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { FolkButton } from "@/ui/FolkButton";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing } from "@/theme/tokens";
 
@@ -27,6 +28,7 @@ export type NativeCredentialsFormHandle = {
 /** Native @username + password — mirrors web sign-in form. */
 export const NativeCredentialsForm = forwardRef<NativeCredentialsFormHandle, Props>(
   function NativeCredentialsForm({ busy, error, showSubmit = true, onSubmit, onFieldFocus }, ref) {
+  const { t, u } = useI18n();
   const { colors } = useTheme();
   const loginRef = useRef<TextInputType>(null);
   const [loginId, setLoginId] = useState("");
@@ -52,7 +54,7 @@ export const NativeCredentialsForm = forwardRef<NativeCredentialsFormHandle, Pro
           ref={loginRef}
           value={loginId}
           onChangeText={setLoginId}
-          placeholder="사용자 아이디"
+          placeholder={u("사용자 아이디", "Username")}
           placeholderTextColor={colors.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
@@ -74,7 +76,7 @@ export const NativeCredentialsForm = forwardRef<NativeCredentialsFormHandle, Pro
         <TextInput
           value={password}
           onChangeText={setPassword}
-          placeholder="비밀번호"
+          placeholder={t("auth.passwordSimple")}
           placeholderTextColor={colors.textMuted}
           secureTextEntry={!showPassword}
           autoCapitalize="none"
@@ -91,7 +93,9 @@ export const NativeCredentialsForm = forwardRef<NativeCredentialsFormHandle, Pro
         <Pressable
           onPress={() => setShowPassword((v) => !v)}
           hitSlop={8}
-          accessibilityLabel={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+          accessibilityLabel={
+            showPassword ? u("비밀번호 숨기기", "Hide password") : u("비밀번호 보기", "Show password")
+          }
         >
           <Ionicons
             name={showPassword ? "eye-off-outline" : "eye-outline"}
@@ -107,7 +111,7 @@ export const NativeCredentialsForm = forwardRef<NativeCredentialsFormHandle, Pro
 
       {showSubmit ? (
         <FolkButton
-          label="로그인"
+          label={t("auth.signIn")}
           loading={busy}
           disabled={!canSubmit}
           onPress={() => onSubmit(loginId, password)}

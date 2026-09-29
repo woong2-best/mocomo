@@ -4,6 +4,8 @@ import { fetchLiveAlerts, type LiveAlertItem } from "@/api/live";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
 import { formatUsd } from "@/lib/money";
+import { liveUi } from "@/features/live/live-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const ALERT_MS: Record<string, number> = {
   cheer: 5200,
@@ -15,18 +17,20 @@ function formatName(username: string) {
 }
 
 function AlertCard({ item, colors }: { item: LiveAlertItem; colors: ThemeColors }) {
+  const { u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const isCheer = item.kind === "cheer";
   const name = formatName(item.username);
 
   let title = "";
   if (item.eventType === "ROULETTE" && item.rouletteLabel) {
-    title = `${name} · 룰렛 ${item.rouletteLabel}`;
+    title = `${name} · ${copy.alertRoulette} ${item.rouletteLabel}`;
   } else if (isCheer) {
     title = `${name} · ${item.amount.toLocaleString()} MOCO`;
   } else {
     title = `${name} · ${formatUsd(item.amount)}`;
     if (item.viaLivePage === false) {
-      title += " · 프로필";
+      title += ` · ${copy.alertProfile}`;
     }
   }
 

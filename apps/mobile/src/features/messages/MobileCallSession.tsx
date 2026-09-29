@@ -9,6 +9,7 @@ import { API_BASE_URL } from "@/config/env";
 import { publishUserCallEvent } from "@/lib/supabase-call-signal";
 import { useMobilePeerCall } from "@/lib/use-mobile-peer-call";
 import { startCallForeground, stopCallForeground } from "mocomo-call-audio";
+import { useI18n } from "@/i18n/I18nProvider";
 import { navigationRef } from "@/navigation/navigationRef";
 import type { RootStackParamList } from "@/navigation/types";
 
@@ -55,6 +56,7 @@ export function useMobileCallSession(): SessionValue {
 }
 
 export function MobileCallSessionProvider({ children }: { children: ReactNode }) {
+  const { u } = useI18n();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [live, setLive] = useState<LiveCall | null>(null);
@@ -179,14 +181,18 @@ export function MobileCallSessionProvider({ children }: { children: ReactNode })
       ) : null}
       {live && collapsed ? (
         <View style={[styles.bar, { bottom: Math.max(insets.bottom, 12) + 64 }]}>
-          <Pressable style={styles.barMain} onPress={expand} accessibilityLabel="통화 화면 열기">
+          <Pressable
+            style={styles.barMain}
+            onPress={expand}
+            accessibilityLabel={u("통화 화면 열기", "Open call screen")}
+          >
             <View style={styles.dot} />
             <Text style={styles.barName} numberOfLines={1}>
               {live.displayName}
             </Text>
-            <Text style={styles.barSub}>통화 중</Text>
+            <Text style={styles.barSub}>{u("통화 중", "On call")}</Text>
           </Pressable>
-          <Pressable style={styles.hangup} onPress={end} accessibilityLabel="통화 종료">
+          <Pressable style={styles.hangup} onPress={end} accessibilityLabel={u("통화 종료", "End call")}>
             <Ionicons name="call" size={18} color="#fff" style={{ transform: [{ rotate: "135deg" }] }} />
           </Pressable>
         </View>

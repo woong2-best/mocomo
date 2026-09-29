@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, typography } from "@/theme/tokens";
 
@@ -29,6 +30,8 @@ export function AppHeader({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useI18n();
+  const backA11y = leftLabel ?? t("common.back");
 
   return (
     <View
@@ -51,7 +54,7 @@ export function AppHeader({
                     hitSlop={12}
                     style={styles.backHit}
                     accessibilityRole="button"
-                    accessibilityLabel={leftLabel ?? "뒤로"}
+                    accessibilityLabel={backA11y}
                   >
                     <Ionicons name="chevron-back" size={26} color={colors.brand} />
                   </Pressable>

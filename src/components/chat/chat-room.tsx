@@ -44,9 +44,12 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import { UserProfileLink } from "@/components/user/user-profile-link";
 import { cn } from "@/lib/utils";
 import {
+  DM_CONTENT_FILTER_WARNING_EN,
   DM_CONTENT_FILTER_WARNING_KO,
   filterDmMessageContent,
 } from "@/lib/chat-content-filter";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
 
 type Message = ChatMessageView;
@@ -79,6 +82,8 @@ export function ChatRoomClient({
   /** SSR 메시지가 있으면 소켓 연결 전 전체 sync 생략 */
   skipInitialSync?: boolean;
 }) {
+  const { locale } = useLocale();
+  const filterWarningCopy = uiText(locale, DM_CONTENT_FILTER_WARNING_KO, DM_CONTENT_FILTER_WARNING_EN);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [replyTarget, setReplyTarget] = useState<Message | null>(null);
@@ -318,7 +323,7 @@ export function ChatRoomClient({
       );
       if (!confirmed) return;
       if (result.contentFiltered) {
-        setFilterWarning(DM_CONTENT_FILTER_WARNING_KO);
+        setFilterWarning(filterWarningCopy);
       }
       setMessages((prev) => {
         const without = prev.filter((m) => m.id !== pendingId && m.id !== confirmed.id);
@@ -330,16 +335,28 @@ export function ChatRoomClient({
       const msg = e instanceof Error ? e.message : "";
       setError(
         msg.startsWith("SLOW_MODE:")
-          ? `슬로우 모드: ${msg.split(":")[1]}초 후에 다시 보낼 수 있습니다.`
+          ? uiText(
+              locale,
+              `슬로우 모드: ${msg.split(":")[1]}초 후에 다시 보낼 수 있습니다.`,
+              `Slow mode: try again in ${msg.split(":")[1]}s.`
+            )
           : msg === "CHANNEL_LOCKED"
-            ? "채널이 잠겨 있어 메시지를 보낼 수 없습니다."
+            ? uiText(locale, "채널이 잠겨 있어 메시지를 보낼 수 없습니다.", "This channel is locked.")
             : msg === "ATTACHMENT_INVALID"
-              ? "첨부 파일을 저장하지 못했습니다. 다시 보내 주세요."
+              ? uiText(
+                  locale,
+                  "첨부 파일을 저장하지 못했습니다. 다시 보내 주세요.",
+                  "Couldn't save attachment. Please try again."
+                )
               : msg === "PAID_DM_DISABLED"
-                ? "메시지에서 유료 팬아트 판매는 더 이상 지원하지 않습니다."
+                ? uiText(
+                    locale,
+                    "메시지에서 유료 팬아트 판매는 더 이상 지원하지 않습니다.",
+                    "Paid fan art sales in messages are no longer supported."
+                  )
                 : msg === MESSAGE_REQUEST_BLOCKED
-                ? msg
-                : "메시지 전송에 실패했습니다."
+                  ? msg
+                  : uiText(locale, "메시지 전송에 실패했습니다.", "Couldn't send message.")
       );
     }
   }
@@ -350,7 +367,7 @@ export function ChatRoomClient({
 
     const filtered = filterDmMessageContent(raw);
     if (filtered.wasFiltered) {
-      setFilterWarning(DM_CONTENT_FILTER_WARNING_KO);
+      setFilterWarning(filterWarningCopy);
     }
 
     sendLockRef.current = true;
@@ -384,7 +401,7 @@ export function ChatRoomClient({
       ? filterDmMessageContent(caption.trim())
       : { text: "", wasFiltered: false, matchedRuleIds: [] as string[] };
     if (filteredCaption.wasFiltered) {
-      setFilterWarning(DM_CONTENT_FILTER_WARNING_KO);
+      setFilterWarning(filterWarningCopy);
     }
 
     sendLockRef.current = true;
@@ -414,7 +431,7 @@ export function ChatRoomClient({
 
     const filtered = filterDmMessageContent(raw);
     if (filtered.wasFiltered) {
-      setFilterWarning(DM_CONTENT_FILTER_WARNING_KO);
+      setFilterWarning(filterWarningCopy);
     }
     const text = filtered.text;
 
@@ -429,7 +446,7 @@ export function ChatRoomClient({
 
   function removeMessage(messageId: string) {
     if (!communityId || !canDeleteMessages || isPendingMessageId(messageId)) return;
-    if (!confirm("이 메시지를 삭제할까요?")) return;
+    if (!confirm(uiText(locale, "이 메시지를 삭제할까요?", "Delete this message?"))) return;
     void deleteCommunityChatMessage(messageId, communityId).then((res) => {
       if ("error" in res && res.error) setError(res.error);
       else setMessages((prev) => prev.filter((m) => m.id !== messageId));
@@ -445,8 +462,12 @@ export function ChatRoomClient({
       >
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-sm font-medium text-muted-foreground">아직 메시지가 없어요</p>
-            <p className="text-xs text-muted-foreground mt-1">인사를 건네 보세요 👋</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              {uiText(locale, "아직 메시지가 없어요", "No messages yet")}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {uiText(locale, "인사를 건네 보세요 👋", "Say hello 👋")}
+            </p>
           </div>
         )}
 
@@ -488,7 +509,7 @@ export function ChatRoomClient({
               {showDate && (
                 <div className="flex justify-center my-4">
                   <span className="text-[11px] font-medium text-muted-foreground bg-background/80 border border-border/50 px-3 py-1 rounded-full">
-                    {formatDateDivider(m.createdAt)}
+                    {formatDateDivider(m.createdAt, locale)}
                   </span>
                 </div>
               )}
@@ -570,7 +591,7 @@ export function ChatRoomClient({
                             : "rounded-bl-md bg-muted text-muted-foreground"
                         )}
                       >
-                        미디어를 불러올 수 없습니다
+                        {uiText(locale, "미디어를 불러올 수 없습니다", "Couldn't load media")}
                       </div>
                     )}
                     {hasText && (
@@ -656,7 +677,7 @@ export function ChatRoomClient({
                         isMine ? "mr-1" : "ml-1"
                       )}
                     >
-                      {formatBubbleTime(m.createdAt)}
+                      {formatBubbleTime(m.createdAt, locale)}
                     </span>
                   )}
                   </div>
@@ -666,7 +687,7 @@ export function ChatRoomClient({
                         type="button"
                         onClick={() => startReply(m)}
                         className="h-7 w-7 rounded-md bg-muted/70 hover:bg-muted border border-border/40 flex items-center justify-center text-muted-foreground opacity-80 hover:opacity-100 transition-opacity"
-                        aria-label="답장"
+                        aria-label={uiText(locale, "답장", "Reply")}
                       >
                         <ReplyBubbleIcon className="h-3.5 w-3.5" />
                       </button>
@@ -675,7 +696,7 @@ export function ChatRoomClient({
                           type="button"
                           onClick={() => removeMessage(m.id)}
                           className="h-7 w-7 rounded-md bg-muted/70 hover:bg-destructive/20 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-destructive opacity-80 hover:opacity-100 transition-opacity"
-                          aria-label="삭제"
+                          aria-label={uiText(locale, "삭제", "Delete")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -717,8 +738,16 @@ export function ChatRoomClient({
           {readOnlyHint
             ? readOnlyHint
             : userId === "guest"
-              ? "게스트 읽기 전용입니다. 로그인 후 커뮤니티에 참여하면 채팅을 보낼 수 있습니다."
-              : "읽기 전용 모드입니다. 상단에서 커뮤니티에 참여하면 채팅을 보낼 수 있습니다."}
+              ? uiText(
+                  locale,
+                  "게스트 읽기 전용입니다. 로그인 후 커뮤니티에 참여하면 채팅을 보낼 수 있습니다.",
+                  "Read-only as guest. Sign in and join the community to chat."
+                )
+              : uiText(
+                  locale,
+                  "읽기 전용 모드입니다. 상단에서 커뮤니티에 참여하면 채팅을 보낼 수 있습니다.",
+                  "Read-only. Join the community from the header to chat."
+                )}
         </div>
       )}
     </div>

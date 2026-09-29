@@ -14,6 +14,8 @@ import {
 } from "@/lib/used-youth-protection";
 import type { UsedListingStatus, UsedRestrictedKind } from "@prisma/client";
 import { ShieldAlert } from "lucide-react";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 function needsPhoneVerification(error: string) {
   return error.includes("휴대폰") || error.includes("phone verification");
@@ -39,6 +41,7 @@ export function UsedDetailBottomBar({
   restrictedKind?: UsedRestrictedKind | string;
   viewerAdultVerified?: boolean;
 }) {
+  const { locale, t } = useLocale();
   const needsAdult =
     isUsedRestrictedKind(restrictedKind) && !isSeller && !viewerAdultVerified;
   const router = useRouter();
@@ -87,7 +90,7 @@ export function UsedDetailBottomBar({
     const rooms = res.rooms ?? [];
     setSellerRooms(rooms);
     if (rooms.length === 0) {
-      setBarError("아직 문의 채팅이 없습니다.");
+      setBarError(uiText(locale, "아직 문의 채팅이 없습니다.", "No inquiry chats yet."));
       return;
     }
     if (rooms.length === 1) {
@@ -110,7 +113,11 @@ export function UsedDetailBottomBar({
           disabled={loading}
           onClick={() => void openSellerChats()}
         >
-          {loading ? "불러오는 중…" : chatCount > 0 ? `메시지 보내기 · ${chatCount}` : "메시지 보내기"}
+          {loading
+            ? t("common.loading")
+            : chatCount > 0
+              ? uiText(locale, `메시지 보내기 · ${chatCount}`, `Message · ${chatCount}`)
+              : uiText(locale, "메시지 보내기", "Message seller")}
         </Button>
         {sellerRooms && sellerRooms.length > 1 && (
           <ul className="mt-2 max-h-32 overflow-y-auto rounded-xl border divide-y text-sm">
@@ -134,7 +141,9 @@ export function UsedDetailBottomBar({
   if (status !== "SELLING") {
     return (
       <div className="used-action-bar border-t bg-muted/40 p-4 text-center text-sm text-muted-foreground pb-safe">
-        {status === "RESERVED" ? "다른 분과 예약 중이에요" : "거래가 완료된 상품이에요"}
+        {status === "RESERVED"
+          ? uiText(locale, "다른 분과 예약 중이에요", "Reserved for another buyer")
+          : uiText(locale, "거래가 완료된 상품이에요", "This listing is sold")}
       </div>
     );
   }
@@ -148,12 +157,14 @@ export function UsedDetailBottomBar({
           <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2">
             <Link href={usedAdultVerifyUrl(listingId, restrictedKind)}>
               <ShieldAlert className="h-5 w-5" />
-              성인 인증 후 채팅
+              {uiText(locale, "성인 인증 후 채팅", "Verify age to chat")}
             </Link>
           </Button>
         ) : (
           <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
-            <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>로그인 후 성인 인증</Link>
+            <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>
+              {uiText(locale, "로그인 후 성인 인증", "Sign in to verify age")}
+            </Link>
           </Button>
         )}
       </div>
@@ -168,7 +179,9 @@ export function UsedDetailBottomBar({
       <div className="p-3 pb-safe">
       {existingRoom ? (
         <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
-          <Link href={`/messages/${existingRoom}`}>메시지 보내기</Link>
+          <Link href={`/messages/${existingRoom}`}>
+            {uiText(locale, "메시지 보내기", "Message seller")}
+          </Link>
         </Button>
       ) : isLoggedIn ? (
         <Button
@@ -178,11 +191,15 @@ export function UsedDetailBottomBar({
           disabled={loading}
           onClick={() => void openChat()}
         >
-          {loading ? "연결 중…" : "메시지 보내기"}
+          {loading
+            ? uiText(locale, "연결 중…", "Connecting…")
+            : uiText(locale, "메시지 보내기", "Message seller")}
         </Button>
       ) : (
         <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
-          <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>로그인 후 채팅</Link>
+          <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>
+            {uiText(locale, "로그인 후 채팅", "Sign in to chat")}
+          </Link>
         </Button>
       )}
       </div>

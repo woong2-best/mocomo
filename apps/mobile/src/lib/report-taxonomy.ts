@@ -36,6 +36,14 @@ export type ReportPathStep = {
   node: ReportTaxonomyNode;
 };
 
+import {
+  POST_REPORT_DISCLAIMER_EN,
+  POST_REPORT_OTHER_DETAILS_PROMPT_EN,
+  POST_REPORT_REVIEW_HINT_EN,
+  POST_REPORT_ROOT_QUESTION_EN,
+  POST_REPORT_TAXONOMY_EN,
+} from "@/lib/report-taxonomy-en";
+
 export const POST_REPORT_ROOT_QUESTION =
   "이 게시물을 신고하는 이유는 무엇인가요?";
 
@@ -229,4 +237,31 @@ export const POST_REPORT_TAXONOMY: ReportTaxonomyNode[] = [
 
 export function formatReportPathLabel(path: ReportPathStep[]): string {
   return path.map((s) => s.node.label).join(" › ");
+}
+
+export type PostReportCopy = {
+  taxonomy: ReportTaxonomyNode[];
+  rootQuestion: string;
+  disclaimer: string;
+  reviewHint: string;
+  otherDetailsPrompt: string;
+};
+
+export function getPostReportCopy(locale: string | undefined): PostReportCopy {
+  if (locale === "ko") {
+    return {
+      taxonomy: POST_REPORT_TAXONOMY,
+      rootQuestion: POST_REPORT_ROOT_QUESTION,
+      disclaimer: POST_REPORT_DISCLAIMER,
+      reviewHint: POST_REPORT_REVIEW_HINT,
+      otherDetailsPrompt: POST_REPORT_OTHER_DETAILS_PROMPT,
+    };
+  }
+  return {
+    taxonomy: POST_REPORT_TAXONOMY_EN,
+    rootQuestion: POST_REPORT_ROOT_QUESTION_EN,
+    disclaimer: POST_REPORT_DISCLAIMER_EN,
+    reviewHint: POST_REPORT_REVIEW_HINT_EN,
+    otherDetailsPrompt: POST_REPORT_OTHER_DETAILS_PROMPT_EN,
+  };
 }

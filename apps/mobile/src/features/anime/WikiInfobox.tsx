@@ -7,6 +7,8 @@ import {
   parseWikiInfobox,
   type WikiInfoboxSection,
 } from "@/features/anime/wiki-infobox";
+import { animeUi } from "@/features/anime/anime-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
 
@@ -74,15 +76,17 @@ function InfoboxTable({
  * (full image, no crop) + data table.
  */
 export function WikiInfobox({ title, titleEn, photoUrl, infobox, fallbackRows }: Props) {
+  const { u, locale } = useI18n();
+  const copy = useMemo(() => animeUi(u), [u]);
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
-  const parsed = useMemo(() => parseWikiInfobox(infobox), [infobox]);
+  const parsed = useMemo(() => parseWikiInfobox(infobox, locale), [infobox, locale]);
   const [aspect, setAspect] = useState(3 / 4);
   const sections =
     parsed.length > 0
       ? parsed
       : fallbackRows.length > 0
-        ? [{ title: "작품 정보", rows: fallbackRows }]
+        ? [{ title: copy.defaultInfoboxTitle, rows: fallbackRows }]
         : [];
 
   return (

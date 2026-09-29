@@ -6,6 +6,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { fetchEventsMap, type MapEventPin } from "@/api/events";
 import { ESRI_ATTRIBUTION, ESRI_ATTRIBUTION_URL } from "@/maps/map-styles";
 import { DrawerMapLibreGlobe, globeCenterForCountry } from "@/navigation/DrawerMapLibreGlobe";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing } from "@/theme/tokens";
 
@@ -25,6 +26,7 @@ export function DrawerSubcultureMapCard({
   onExpandPressIn,
 }: Props) {
   const { user } = useAuth();
+  const { locale, u } = useI18n();
   const { colors, isDark } = useTheme();
   const mapH = Math.max(180, height);
   const backgroundColor = isDark ? "#0F1524" : colors.background;
@@ -61,6 +63,7 @@ export function DrawerSubcultureMapCard({
             width={box.w}
             height={box.h}
             center={center}
+            locale={locale}
             onOpen={onExpand}
             onOpenPressIn={onExpandPressIn}
           />
@@ -70,7 +73,7 @@ export function DrawerSubcultureMapCard({
               onPress={() => setAttribOpen((open) => !open)}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel="지도 타일 저작권 정보"
+              accessibilityLabel={u("지도 타일 저작권 정보", "Map tile attribution")}
             >
               <Ionicons name="information" size={10} color={isDark ? "rgba(245,240,232,0.8)" : colors.textMuted} />
             </Pressable>

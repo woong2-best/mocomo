@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MarketHomeScreen, type MarketHubLane } from "@/features/marketplace/MarketHomeScreen";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 
 const OPEN_MS = 280;
@@ -22,6 +23,7 @@ type Props = {
 };
 
 export function MarketHubSlidePanel({ visible, onClose, onOpenLane }: Props) {
+  const { t } = useI18n();
   const { colors } = useTheme();
   const { width: screenW } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -67,7 +69,7 @@ export function MarketHubSlidePanel({ visible, onClose, onOpenLane }: Props) {
           style={[StyleSheet.absoluteFill, styles.scrim, { opacity: backdropOpacity }]}
           pointerEvents={visible ? "auto" : "none"}
         >
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="닫기" />
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t("common.close")} />
         </Animated.View>
         <Animated.View
           style={[

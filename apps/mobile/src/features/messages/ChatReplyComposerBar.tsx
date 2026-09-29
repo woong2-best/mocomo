@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import type { ChatMessage } from "@/api/messages";
 import { getChatReplyPreview } from "@/features/messages/chat-display";
+import { useI18n } from "@/i18n/I18nProvider";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -17,10 +18,11 @@ export function ChatReplyComposerBar({
   selfUserId?: string;
   onCancel: () => void;
 }) {
+  const { locale, u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isSelf = !!selfUserId && target.sender.id === selfUserId;
-  const preview = getChatReplyPreview(target);
+  const preview = getChatReplyPreview(target, locale);
   const thumb = target.attachments?.find((a) => a.type === "IMAGE" || a.type === "GIF");
 
   return (
@@ -28,8 +30,9 @@ export function ChatReplyComposerBar({
       <View style={styles.bar} />
       <View style={styles.body}>
         <Text style={styles.label}>
-          <Text style={styles.name}>{isSelf ? "나" : target.sender.username}</Text>
-          에 답장
+          {isSelf
+            ? u("나에게 답장", "Replying to you")
+            : u(`${target.sender.username}에게 답장`, `Replying to ${target.sender.username}`)}
         </Text>
         <Text style={styles.preview} numberOfLines={1}>
           {preview}
@@ -44,7 +47,12 @@ export function ChatReplyComposerBar({
           transition={0}
         />
       ) : null}
-      <Pressable onPress={onCancel} hitSlop={10} style={styles.close} accessibilityLabel="답장 취소">
+      <Pressable
+        onPress={onCancel}
+        hitSlop={10}
+        style={styles.close}
+        accessibilityLabel={u("답장 취소", "Cancel reply")}
+      >
         <Ionicons name="close" size={18} color={colors.textMuted} />
       </Pressable>
     </View>

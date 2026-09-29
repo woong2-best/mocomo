@@ -29,20 +29,17 @@ import {
 } from "@/maps/map-styles";
 import type { RootStackParamList } from "@/navigation/types";
 import { googleMapsExternalUrl } from "@/maps/google-external-url";
+import { useI18n } from "@/i18n/I18nProvider";
+import { eventsUi, type EventsUi } from "@/features/events/events-ui";
 
 type PanelTab = "venue" | "maid_cafe" | "recommendation";
 
-const TABS: { id: PanelTab; label: string }[] = [
-  { id: "venue", label: "행사장" },
-  { id: "maid_cafe", label: "메이드 카페" },
-  { id: "recommendation", label: "추천" },
-];
-
-const PHASE_LABEL: Record<string, string> = {
-  ongoing: "진행 중",
-  upcoming: "예정",
-  permanent: "상설",
-};
+function mapPhaseLabel(phase: string | undefined, copy: EventsUi): string | null {
+  if (phase === "ongoing") return copy.statusOngoing;
+  if (phase === "upcoming") return copy.statusUpcoming;
+  if (phase === "permanent") return copy.statusPermanent;
+  return null;
+}
 
 function filterListPins(pins: MapEventPin[], tab: PanelTab) {
   if (tab === "maid_cafe") return pins.filter((p) => p.category === "maid_cafe");
@@ -109,9 +106,9 @@ function googleSearchUrlForEvent(pin: MapEventPin) {
   return `https://www.google.com/search?q=${encodeURIComponent(parts.join(" "))}`;
 }
 
-function externalMapLink(pin: MapEventPin) {
+function externalMapLink(pin: MapEventPin, mapsLabel: string) {
   return {
-    label: "Google 지도",
+    label: mapsLabel,
     url: googleMapsExternalUrl({
       place: pin.venueName ?? pin.title,
       coords: { lat: pin.lat, lng: pin.lng },
@@ -119,12 +116,13 @@ function externalMapLink(pin: MapEventPin) {
   };
 }
 
-function formatEventDates(pin: MapEventPin) {
-  if (pin.category === "user_recommendation") return "유저 추천";
-  if (pin.category === "maid_cafe") return "상설 영업";
+function formatEventDates(pin: MapEventPin, copy: EventsUi, locale: string) {
+  if (pin.category === "user_recommendation") return copy.pinUserRec;
+  if (pin.category === "maid_cafe") return copy.pinMaidOpen;
   const start = new Date(pin.startsAt);
   if (Number.isNaN(start.getTime())) return "";
-  const startLabel = start.toLocaleDateString("ko-KR", {
+  const dateLoc = locale === "ko" ? "ko-KR" : "en-US";
+  const startLabel = start.toLocaleDateString(dateLoc, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -133,19 +131,20 @@ function formatEventDates(pin: MapEventPin) {
   if (!pin.endsAt) return startLabel;
   const end = new Date(pin.endsAt);
   if (Number.isNaN(end.getTime())) return startLabel;
-  const endLabel = end.toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
+  const endLabel = end.toLocaleDateString(dateLoc, { month: "long", day: "numeric" });
   return `${startLabel} — ${endLabel}`;
 }
 
-function formatPopupDate(pin: MapEventPin) {
-  if (pin.category === "user_recommendation") return "추천";
-  if (pin.category === "maid_cafe") return "상설";
+function formatPopupDate(pin: MapEventPin, copy: EventsUi, locale: string) {
+  if (pin.category === "user_recommendation") return copy.pinRecShort;
+  if (pin.category === "maid_cafe") return copy.pinMaidShort;
   const start = new Date(pin.startsAt);
   if (Number.isNaN(start.getTime())) return "";
-  return start.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
+  const dateLoc = locale === "ko" ? "ko-KR" : "en-US";
+  return start.toLocaleDateString(dateLoc, { month: "numeric", day: "numeric" });
 }
 
-function MapAttributionButton() {
+function MapAttributionButton({ a11yLabel }: { a11yLabel: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -154,7 +153,7 @@ function MapAttributionButton() {
         onPress={() => setOpen((v) => !v)}
         hitSlop={10}
         style={attrStyles.btn}
-        accessibilityLabel="지도 타일 저작권 정보"
+        accessibilityLabel={a11yLabel}
         accessibilityRole="button"
       >
         <Ionicons name="information-circle-outline" size={18} color="rgba(255,255,255,0.88)" />
@@ -175,14 +174,17 @@ function MapAttributionButton() {
 function PinPopupCard({
   pin,
   onClose,
+  copy,
+  locale,
 }: {
   pin: MapEventPin;
   onClose: () => void;
+  copy: EventsUi;
+  locale: string;
 }) {
-  const mapLink = externalMapLink(pin);
+  const mapLink = externalMapLink(pin, copy.googleMaps);
   const searchUrl = googleSearchUrlForEvent(pin);
-  const phase =
-    pin.phase && PHASE_LABEL[pin.phase] ? PHASE_LABEL[pin.phase] : null;
+  const phase = mapPhaseLabel(pin.phase, copy);
   const phaseOngoing = pin.phase === "ongoing";
   const isOfficial = pin.source === "official" || pin.source === "auto";
   const isMaid = pin.category === "maid_cafe";
@@ -194,7 +196,7 @@ function PinPopupCard({
         style={popupStyles.close}
         onPress={onClose}
         hitSlop={8}
-        accessibilityLabel="팝업 닫기"
+        accessibilityLabel={copy.closePopupA11y}
       >
         <Ionicons name="close" size={16} color="rgba(255,255,255,0.75)" />
       </Pressable>
@@ -209,7 +211,7 @@ function PinPopupCard({
             style={popupStyles.roadView}
             resizeMode="cover"
           />
-          <Text style={popupStyles.roadViewCaption}>로드뷰</Text>
+          <Text style={popupStyles.roadViewCaption}>{copy.roadView}</Text>
         </View>
       ) : null}
 
@@ -233,15 +235,15 @@ function PinPopupCard({
         ) : null}
         {isOfficial ? (
           <View style={[popupStyles.badge, popupStyles.badgeOfficial]}>
-            <Text style={[popupStyles.badgeText, popupStyles.badgeTextOfficial]}>공식 자동</Text>
+            <Text style={[popupStyles.badgeText, popupStyles.badgeTextOfficial]}>{copy.badgeOfficial}</Text>
           </View>
         ) : isMaid ? (
           <View style={[popupStyles.badge, popupStyles.badgeMaid]}>
-            <Text style={[popupStyles.badgeText, popupStyles.badgeTextMaid]}>메이드 카페</Text>
+            <Text style={[popupStyles.badgeText, popupStyles.badgeTextMaid]}>{copy.badgeMaid}</Text>
           </View>
         ) : isUserRec ? (
           <View style={[popupStyles.badge, popupStyles.badgeOngoing]}>
-            <Text style={[popupStyles.badgeText, popupStyles.badgeTextOngoing]}>유저 추천</Text>
+            <Text style={[popupStyles.badgeText, popupStyles.badgeTextOngoing]}>{copy.badgeUserRec}</Text>
           </View>
         ) : null}
       </View>
@@ -249,7 +251,7 @@ function PinPopupCard({
       <Text style={popupStyles.title}>{pin.title}</Text>
 
       <Text style={popupStyles.meta}>
-        {countryCode(pin.country)} {formatPopupDate(pin)}
+        {countryCode(pin.country)} {formatPopupDate(pin, copy, locale)}
         {pin.venueName ? " · " : ""}
         {pin.venueName ? (
           <Text
@@ -267,7 +269,7 @@ function PinPopupCard({
           onPress={() => void Linking.openURL(searchUrl)}
           hitSlop={6}
         >
-          <Text style={popupStyles.linkText}>Google 검색</Text>
+          <Text style={popupStyles.linkText}>{copy.googleSearch}</Text>
           <Ionicons name="search-outline" size={12} color="#93C5FD" />
         </Pressable>
         <Pressable
@@ -284,7 +286,7 @@ function PinPopupCard({
             onPress={() => void Linking.openURL(pin.sourceUrl!)}
             hitSlop={6}
           >
-            <Text style={popupStyles.linkText}>공식</Text>
+            <Text style={popupStyles.linkText}>{copy.official}</Text>
             <Ionicons name="open-outline" size={12} color="#93C5FD" />
           </Pressable>
         ) : null}
@@ -297,15 +299,18 @@ function EventPinCard({
   pin,
   selected,
   onPress,
+  copy,
+  locale,
 }: {
   pin: MapEventPin;
   selected: boolean;
   onPress: () => void;
+  copy: EventsUi;
+  locale: string;
 }) {
-  const mapLink = externalMapLink(pin);
+  const mapLink = externalMapLink(pin, copy.googleMaps);
   const searchUrl = googleSearchUrlForEvent(pin);
-  const phase =
-    pin.phase && PHASE_LABEL[pin.phase] ? PHASE_LABEL[pin.phase] : null;
+  const phase = mapPhaseLabel(pin.phase, copy);
   const phaseOngoing = pin.phase === "ongoing";
 
   return (
@@ -346,7 +351,7 @@ function EventPinCard({
         </Text>
       ) : null}
 
-      <Text style={cardStyles.meta}>{formatEventDates(pin)}</Text>
+      <Text style={cardStyles.meta}>{formatEventDates(pin, copy, locale)}</Text>
 
       {pin.venueName ? (
         <View style={cardStyles.venueRow}>
@@ -363,7 +368,7 @@ function EventPinCard({
           onPress={() => void Linking.openURL(searchUrl)}
           hitSlop={6}
         >
-          <Text style={cardStyles.linkText}>Google 검색</Text>
+          <Text style={cardStyles.linkText}>{copy.googleSearch}</Text>
           <Ionicons name="search-outline" size={12} color="#93C5FD" />
         </Pressable>
         <Pressable
@@ -380,7 +385,7 @@ function EventPinCard({
             onPress={() => void Linking.openURL(pin.sourceUrl!)}
             hitSlop={6}
           >
-            <Text style={cardStyles.linkText}>공식</Text>
+            <Text style={cardStyles.linkText}>{copy.official}</Text>
             <Ionicons name="open-outline" size={12} color="#93C5FD" />
           </Pressable>
         ) : null}
@@ -390,6 +395,16 @@ function EventPinCard({
 }
 
 export function EventsMapScreen() {
+  const { u, locale } = useI18n();
+  const copy = useMemo(() => eventsUi(u), [u]);
+  const tabs = useMemo(
+    (): { id: PanelTab; label: string }[] => [
+      { id: "venue", label: copy.mapTabVenue },
+      { id: "maid_cafe", label: copy.mapTabMaid },
+      { id: "recommendation", label: copy.mapTabRec },
+    ],
+    [copy]
+  );
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -421,7 +436,7 @@ export function EventsMapScreen() {
       setFormError("");
     },
     onError: (err: Error) => {
-      setFormError(err.message || "저장에 실패했습니다.");
+      setFormError(err.message || copy.saveFail);
     },
   });
 
@@ -439,14 +454,14 @@ export function EventsMapScreen() {
       <View style={styles.topBar}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color="#E8ECF8" />
-          <Text style={styles.back}>뒤로</Text>
+          <Text style={styles.back}>{copy.back}</Text>
         </Pressable>
-        <Text style={styles.heading}>서브컬처 맵</Text>
+        <Text style={styles.heading}>{copy.mapTitle}</Text>
         <Pressable
           onPress={() => setPanelOpen((v) => !v)}
           hitSlop={8}
           style={[styles.splitBtn, panelOpen && styles.splitBtnActive]}
-          accessibilityLabel={panelOpen ? "목록 접기" : "목록으로 반 나누기"}
+          accessibilityLabel={copy.panelToggle(panelOpen)}
           accessibilityRole="button"
         >
           <Ionicons
@@ -455,17 +470,17 @@ export function EventsMapScreen() {
             color={panelOpen ? "#0B1020" : "rgba(255,255,255,0.9)"}
           />
         </Pressable>
-        <MapAttributionButton />
+        <MapAttributionButton a11yLabel={copy.mapAttributionA11y} />
       </View>
 
       {query.isLoading && !query.data ? (
         <ActivityIndicator style={{ marginTop: 40 }} color="#A78BFA" />
       ) : query.isError && !query.data ? (
-        <Text style={styles.error}>지도를 불러오지 못했습니다.</Text>
+        <Text style={styles.error}>{copy.loadMapError}</Text>
       ) : !hasPins ? (
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>표시할 행사가 없습니다</Text>
-          <Text style={styles.emptySub}>등록된 서브컬처 행사 핀이 없습니다.</Text>
+          <Text style={styles.emptyTitle}>{copy.noPinsTitle}</Text>
+          <Text style={styles.emptySub}>{copy.noPinsSub}</Text>
         </View>
       ) : (
         <View style={styles.body}>
@@ -489,7 +504,7 @@ export function EventsMapScreen() {
             />
             {pickMode && !pendingCoords ? (
               <View style={styles.pickHint} pointerEvents="none">
-                <Text style={styles.pickHintText}>지도에서 원하는 위치를 탭하세요</Text>
+                <Text style={styles.pickHintText}>{copy.pickOnMap}</Text>
               </View>
             ) : null}
             {selected ? (
@@ -500,7 +515,12 @@ export function EventsMapScreen() {
                 ]}
                 pointerEvents="box-none"
               >
-                <PinPopupCard pin={selected} onClose={() => setSelected(null)} />
+                <PinPopupCard
+                  pin={selected}
+                  onClose={() => setSelected(null)}
+                  copy={copy}
+                  locale={locale}
+                />
               </View>
             ) : null}
           </View>
@@ -508,7 +528,7 @@ export function EventsMapScreen() {
           {panelOpen ? (
             <View style={[styles.panel, { paddingBottom: Math.max(insets.bottom, 10) }]}>
               <View style={styles.tabRow}>
-                {TABS.map((t) => {
+                {tabs.map((t) => {
                   const active = tab === t.id;
                   return (
                     <Pressable
@@ -537,7 +557,7 @@ export function EventsMapScreen() {
 
               {tab === "recommendation" ? (
                 <View style={styles.recToolbar}>
-                  <Text style={styles.recHint}>유저 추천 · 초록 핀</Text>
+                  <Text style={styles.recHint}>{copy.recHint}</Text>
                   <Pressable
                     style={[styles.recAddBtn, addMode && styles.recAddBtnActive]}
                     onPress={() => {
@@ -548,7 +568,7 @@ export function EventsMapScreen() {
                         return;
                       }
                       if (!user?.id) {
-                        setFormError("로그인 후 추천 장소를 등록할 수 있습니다.");
+                        setFormError(copy.loginToRec);
                         return;
                       }
                       setFormError("");
@@ -561,7 +581,7 @@ export function EventsMapScreen() {
                       color={addMode ? "#0B1020" : "#ECFDF5"}
                     />
                     <Text style={[styles.recAddText, addMode && styles.recAddTextActive]}>
-                      {addMode ? "취소" : "추가"}
+                      {addMode ? copy.cancel : copy.add}
                     </Text>
                   </Pressable>
                 </View>
@@ -570,12 +590,12 @@ export function EventsMapScreen() {
               {pendingCoords && tab === "recommendation" ? (
                 <View style={styles.recForm}>
                   <Text style={styles.recCoords}>
-                    선택 좌표 · {pendingCoords.lat.toFixed(5)}, {pendingCoords.lng.toFixed(5)}
+                    {copy.selectedCoords(pendingCoords.lat, pendingCoords.lng)}
                   </Text>
                   <TextInput
                     value={recTitle}
                     onChangeText={setRecTitle}
-                    placeholder="장소 이름"
+                    placeholder={copy.placeNamePh}
                     placeholderTextColor="rgba(255,255,255,0.35)"
                     maxLength={80}
                     style={styles.recInput}
@@ -583,7 +603,7 @@ export function EventsMapScreen() {
                   <TextInput
                     value={recNote}
                     onChangeText={setRecNote}
-                    placeholder="한 줄 메모 (선택)"
+                    placeholder={copy.memoPh}
                     placeholderTextColor="rgba(255,255,255,0.35)"
                     maxLength={200}
                     style={styles.recInput}
@@ -598,7 +618,7 @@ export function EventsMapScreen() {
                       disabled={createRec.isPending}
                       onPress={() => {
                         if (!pendingCoords || !recTitle.trim()) {
-                          setFormError("장소 이름을 입력해 주세요.");
+                          setFormError(copy.placeNameRequired);
                           return;
                         }
                         setFormError("");
@@ -611,7 +631,7 @@ export function EventsMapScreen() {
                       }}
                     >
                       <Text style={styles.recSubmitText}>
-                        {createRec.isPending ? "저장 중…" : "등록"}
+                        {createRec.isPending ? copy.saving : copy.register}
                       </Text>
                     </Pressable>
                     <Pressable
@@ -622,7 +642,7 @@ export function EventsMapScreen() {
                         setRecNote("");
                       }}
                     >
-                      <Text style={styles.recCancelText}>취소</Text>
+                      <Text style={styles.recCancelText}>{copy.cancel}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -642,9 +662,7 @@ export function EventsMapScreen() {
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                   <Text style={styles.emptyList}>
-                    {tab === "recommendation"
-                      ? "아직 추천 장소가 없습니다."
-                      : "이 탭에 표시할 항목이 없습니다"}
+                    {tab === "recommendation" ? copy.emptyRec : copy.emptyTab}
                   </Text>
                 }
                 renderItem={({ item }) => (
@@ -652,6 +670,8 @@ export function EventsMapScreen() {
                     pin={item}
                     selected={selected?.id === item.id}
                     onPress={() => setSelected(item)}
+                    copy={copy}
+                    locale={locale}
                   />
                 )}
               />

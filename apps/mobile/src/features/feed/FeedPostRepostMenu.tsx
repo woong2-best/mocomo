@@ -18,6 +18,7 @@ import type { RootStackParamList } from "@/navigation/types";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { MenuAnchor } from "@/features/feed/FeedPostOverflowMenu";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   visible: boolean;
@@ -53,6 +54,7 @@ export function FeedPostRepostMenu({
   repostCount,
   requireLogin,
 }: Props) {
+  const { u } = useI18n();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const { width: windowWidth } = useWindowDimensions();
@@ -87,7 +89,7 @@ export function FeedPostRepostMenu({
       })
       .catch(() => {
         onRepostChange(prevReposted, prevCount);
-        showIslandError("재게시", "재게시에 실패했습니다.");
+        showIslandError(u("재게시", "Repost"), u("재게시에 실패했습니다.", "Could not repost."));
       })
       .finally(() => {
         onBusyChange?.(false);
@@ -107,9 +109,9 @@ export function FeedPostRepostMenu({
   const quotePost = useCallback(() => {
     if (!requireLogin()) return;
     onClose();
-    const preview = title?.trim() || content?.trim().replace(/\s+/g, " ").slice(0, 80) || "게시물";
+    const preview = title?.trim() || content?.trim().replace(/\s+/g, " ").slice(0, 80) || u("게시물", "Post");
     navigation.navigate("ComposeModal", {
-      initialTitle: "인용하기",
+      initialTitle: u("인용하기", "Quote"),
       quotedPostId: postId,
       quotedAuthorUsername: authorUsername,
     });
@@ -125,12 +127,12 @@ export function FeedPostRepostMenu({
           >
             <Pressable style={styles.row} onPress={toggleRepost} disabled={busy}>
               <Ionicons name="repeat-outline" size={18} color={colors.terracotta} />
-              <Text style={styles.rowText}>{reposted ? "재게시 취소" : "재게시"}</Text>
+              <Text style={styles.rowText}>{reposted ? u("재게시 취소", "Undo repost") : u("재게시", "Repost")}</Text>
               {busy ? <ActivityIndicator size="small" color={colors.terracotta} /> : null}
             </Pressable>
             <Pressable style={styles.row} onPress={quotePost} disabled={busy}>
               <Ionicons name="create-outline" size={18} color={colors.terracotta} />
-              <Text style={styles.rowText}>인용하세요</Text>
+              <Text style={styles.rowText}>{u("인용하세요", "Quote post")}</Text>
             </Pressable>
           </View>
         ) : null}

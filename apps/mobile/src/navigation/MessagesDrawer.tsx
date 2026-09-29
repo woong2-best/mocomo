@@ -11,6 +11,7 @@ import {
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MessagesInboxScreen } from "@/features/messages/MessagesInboxScreen";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 
@@ -27,6 +28,7 @@ export function MessagesDrawer({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
   const { colors, isDark } = useTheme();
+  const { u } = useI18n();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const panelWidth = Math.min(Math.round(screenW * 0.92), screenW - 48);
 
@@ -101,7 +103,7 @@ export function MessagesDrawer({ visible, onClose }: Props) {
           style={[styles.marginDismiss, { right: panelWidth }]}
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel="메세지 닫기"
+          accessibilityLabel={u("메세지 닫기", "Close messages")}
         />
 
         <Animated.View

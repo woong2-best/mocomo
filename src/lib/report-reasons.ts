@@ -1,3 +1,13 @@
+import type { Locale } from "@/lib/i18n/config";
+import {
+  POST_REPORT_DISCLAIMER_EN,
+  POST_REPORT_OTHER_DETAILS_PROMPT_EN,
+  POST_REPORT_REVIEW_HINT_EN,
+  POST_REPORT_ROOT_QUESTION_EN,
+  POST_REPORT_TAXONOMY_EN,
+  REPORT_REASONS_EN,
+} from "@/lib/report-reasons-en";
+
 /** Client + server 공용 — `"use server"` 파일에서 객체를 export하면 Next.js가 거부함 */
 
 /** Flat reason ids used for risk scoring + API validation */
@@ -254,4 +264,34 @@ export function formatReportPathLabel(path: ReportPathStep[]): string {
 
 export function isReportReasonId(value: string): value is ReportReasonId {
   return REPORT_REASON_IDS.includes(value as ReportReasonId);
+}
+
+export type PostReportCopy = {
+  reasons: ReadonlyArray<{ id: ReportReasonId; label: string }>;
+  taxonomy: ReportTaxonomyNode[];
+  rootQuestion: string;
+  disclaimer: string;
+  reviewHint: string;
+  otherDetailsPrompt: string;
+};
+
+export function getPostReportCopy(locale: Locale | string | undefined): PostReportCopy {
+  if (locale === "ko") {
+    return {
+      reasons: REPORT_REASONS,
+      taxonomy: POST_REPORT_TAXONOMY,
+      rootQuestion: POST_REPORT_ROOT_QUESTION,
+      disclaimer: POST_REPORT_DISCLAIMER,
+      reviewHint: POST_REPORT_REVIEW_HINT,
+      otherDetailsPrompt: POST_REPORT_OTHER_DETAILS_PROMPT,
+    };
+  }
+  return {
+    reasons: REPORT_REASONS_EN,
+    taxonomy: POST_REPORT_TAXONOMY_EN,
+    rootQuestion: POST_REPORT_ROOT_QUESTION_EN,
+    disclaimer: POST_REPORT_DISCLAIMER_EN,
+    reviewHint: POST_REPORT_REVIEW_HINT_EN,
+    otherDetailsPrompt: POST_REPORT_OTHER_DETAILS_PROMPT_EN,
+  };
 }

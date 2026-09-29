@@ -5,7 +5,9 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { ko } from "date-fns/locale";
+import { enUS, ko } from "date-fns/locale";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Star } from "lucide-react";
@@ -22,15 +24,19 @@ import { TranslatableText } from "@/components/ui/translatable-text";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engage";
 
-const typeLabels: Record<string, string> = {
-  COSPLAY: "코스프레",
-  FANART: "팬아트",
-  REVIEW: "리뷰",
-  MEME: "밈",
-  NEWS: "뉴스",
-  PHOTO: "사진",
-  VIDEO: "영상",
-};
+function postTypeLabel(type: string, locale: string): string | undefined {
+  const labels: Record<string, [string, string]> = {
+    COSPLAY: ["코스프레", "Cosplay"],
+    FANART: ["팬아트", "Fan art"],
+    REVIEW: ["리뷰", "Review"],
+    MEME: ["밈", "Meme"],
+    NEWS: ["뉴스", "News"],
+    PHOTO: ["사진", "Photo"],
+    VIDEO: ["영상", "Video"],
+  };
+  const pair = labels[type];
+  return pair ? uiText(locale, pair[0], pair[1]) : undefined;
+}
 
 export function FeedTextPostCard({
   post,
@@ -43,6 +49,7 @@ export function FeedTextPostCard({
   initialStarred?: boolean;
   initialReposted?: boolean;
 }) {
+  const { locale, t } = useLocale();
   const like = useOptimisticLike(post.id, initialLiked, post._count?.likes ?? 0);
   const star = useOptimisticStar(post.id, initialStarred);
   const [actionError, setActionError] = useState("");
@@ -106,14 +113,17 @@ export function FeedTextPostCard({
             <div className="flex items-center gap-1.5 flex-wrap">
               {post.postType && post.postType !== "GENERAL" && (
                 <span className="folk-tag">
-                  {typeLabels[post.postType] || post.postType}
+                  {postTypeLabel(post.postType, locale) || post.postType}
                 </span>
               )}
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <span className="text-[10px] text-muted-foreground">
-              {formatDistanceToNow(createdAt, { addSuffix: true, locale: ko })}
+              {formatDistanceToNow(createdAt, {
+                addSuffix: true,
+                locale: locale === "ko" ? ko : enUS,
+              })}
             </span>
             <PostOwnerMenu
               postId={post.id}
@@ -213,8 +223,16 @@ export function FeedTextPostCard({
           <button
             type="button"
             onClick={handleStar}
-            aria-label={starred ? "STAR에서 제거" : "STAR에 저장"}
-            title={starred ? "STAR에 저장됨" : "STAR에 저장"}
+            aria-label={
+              starred
+                ? uiText(locale, "STAR에서 제거", "Remove from STAR")
+                : uiText(locale, "STAR에 저장", "Save to STAR")
+            }
+            title={
+              starred
+                ? uiText(locale, "STAR에 저장됨", "Saved to STAR")
+                : uiText(locale, "STAR에 저장", "Save to STAR")
+            }
             className={cn(
               "transition-colors min-h-8 min-w-8 flex items-center justify-center",
               starred ? "text-folk-gold" : "text-folk-gold/60 hover:text-folk-gold"

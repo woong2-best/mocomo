@@ -33,7 +33,7 @@ type Props = {
 
 export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props) {
   const { colors } = useTheme();
-  const { locale, t } = useI18n();
+  const { locale, t, u } = useI18n();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const needsShip = item.type !== "DIGITAL";
   const shipLocale = locale.startsWith("en") ? "en" : "ko";
@@ -50,7 +50,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
   const [error, setError] = useState("");
   const [payVisible, setPayVisible] = useState(false);
   const [checkoutBody, setCheckoutBody] = useState<MarketplaceCheckoutBody | null>(null);
-  const [buyLabel, setBuyLabel] = useState("구매하기");
+  const [buyLabel, setBuyLabel] = useState(() => u("구매하기", "Buy now"));
   const [disclaimer, setDisclaimer] = useState("");
   const [blocked, setBlocked] = useState(false);
 
@@ -87,7 +87,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
       })
       .catch(() => {
         setBlocked(false);
-        setBuyLabel("바로 구매 / Checkout");
+        setBuyLabel(u("바로 구매", "Checkout"));
       });
   }, [visible, item.id, shipCountry, needsShip, locale]);
 
@@ -117,7 +117,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
   function handlePaySuccess() {
     onSuccess?.();
     onClose();
-    showIslandSuccess("결제 완료", "주문이 접수되었습니다.");
+    showIslandSuccess(u("결제 완료", "Payment complete"), u("주문이 접수되었습니다.", "Your order was placed."));
   }
 
   return (
@@ -137,7 +137,10 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
           <Text style={styles.price}>
             {formatUsd(total)}
             {shippingExtra > 0
-              ? ` (상품 ${formatUsd(item.priceAmount * qty)} + 배송 ${formatUsd(shippingExtra)})`
+              ? u(
+                  ` (상품 ${formatUsd(item.priceAmount * qty)} + 배송 ${formatUsd(shippingExtra)})`,
+                  ` (item ${formatUsd(item.priceAmount * qty)} + shipping ${formatUsd(shippingExtra)})`
+                )
               : ""}
           </Text>
 
@@ -154,10 +157,10 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
 
           {needsShip ? (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>배송지</Text>
+              <Text style={styles.sectionLabel}>{t("market.shippingAddress")}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="이름"
+                placeholder={u("이름", "Name")}
                 placeholderTextColor={colors.textMuted}
                 value={shipName}
                 onChangeText={setShipName}
@@ -185,35 +188,35 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
               ) : null}
               <TextInput
                 style={styles.input}
-                placeholder="우편번호"
+                placeholder={u("우편번호", "Postal code")}
                 placeholderTextColor={colors.textMuted}
                 value={shipPostal}
                 onChangeText={setShipPostal}
               />
               <TextInput
                 style={styles.input}
-                placeholder="주소"
+                placeholder={u("주소", "Address")}
                 placeholderTextColor={colors.textMuted}
                 value={shipAddress1}
                 onChangeText={setShipAddress1}
               />
               <TextInput
                 style={styles.input}
-                placeholder="상세 주소 (선택)"
+                placeholder={u("상세 주소 (선택)", "Address line 2 (optional)")}
                 placeholderTextColor={colors.textMuted}
                 value={shipAddress2}
                 onChangeText={setShipAddress2}
               />
               <TextInput
                 style={styles.input}
-                placeholder="연락처 (선택)"
+                placeholder={u("연락처 (선택)", "Phone (optional)")}
                 placeholderTextColor={colors.textMuted}
                 value={shipPhone}
                 onChangeText={setShipPhone}
               />
               <TextInput
                 style={styles.input}
-                placeholder="수량"
+                placeholder={u("수량", "Quantity")}
                 placeholderTextColor={colors.textMuted}
                 value={quantity}
                 onChangeText={setQuantity}
@@ -230,7 +233,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
             disabled={item.isOwner || !item.paymentsEnabled || !!error || blocked}
           />
           <Pressable onPress={onClose} style={styles.cancel}>
-            <Text style={styles.cancelText}>닫기</Text>
+            <Text style={styles.cancelText}>{t("common.close")}</Text>
           </Pressable>
         </ScrollView>
       </KeyboardSheet>

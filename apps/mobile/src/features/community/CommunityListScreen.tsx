@@ -33,8 +33,11 @@ import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
+import { localizedCategoryTab } from "@/features/community/community-labels";
 
 export function CommunityListScreen() {
+  const { u, locale } = useI18n();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
@@ -103,15 +106,15 @@ export function CommunityListScreen() {
     (next: QnaFeedTabId) => {
       void (async () => {
         if (next === QNA_MY_CATEGORY_ID && authStatus !== "signedIn") {
-          showIslandError("로그인 필요", "내 QnA를 보려면 로그인해 주세요.");
+          showIslandError(u("로그인 필요", "Sign in required"), u("내 QnA를 보려면 로그인해 주세요.", "Sign in to view your QnA."));
           return;
         }
-        const ok = await ensureQnaNsfwAccess(next);
+        const ok = await ensureQnaNsfwAccess(next, locale);
         if (!ok) return;
         setTab(next);
       })();
     },
-    [authStatus]
+    [authStatus, locale, u]
   );
 
   const onPressPost = useCallback(
@@ -158,7 +161,7 @@ export function CommunityListScreen() {
           hitSlop={10}
           style={styles.iconBtn}
           accessibilityRole="button"
-          accessibilityLabel="뒤로"
+          accessibilityLabel={u("뒤로", "Back")}
         >
           <Ionicons name="chevron-back" size={22} color={colors.brand} />
         </Pressable>
@@ -179,7 +182,7 @@ export function CommunityListScreen() {
             const trimmed = searchQ.trim();
             setSearchSubmitted(trimmed);
           }}
-          placeholder="QnA 검색"
+          placeholder={u("QnA 검색", "Search QnA")}
           containerStyle={{ flex: 1 }}
         />
         <Pressable
@@ -187,7 +190,7 @@ export function CommunityListScreen() {
           hitSlop={10}
           style={styles.iconBtn}
           accessibilityRole="button"
-          accessibilityLabel="QnA 만들기"
+          accessibilityLabel={u("QnA 만들기", "Create QnA")}
         >
           <Ionicons name="add" size={24} color={colors.brand} />
         </Pressable>
@@ -200,6 +203,7 @@ export function CommunityListScreen() {
       >
         {QNA_FEED_CATEGORY_TABS.map((opt) => {
           const active = tab === opt.id;
+          const tabOpt = localizedCategoryTab(opt, locale);
           return (
             <Pressable
               key={opt.id}
@@ -209,7 +213,7 @@ export function CommunityListScreen() {
               <View style={styles.tabInner}>
                 {opt.emoji ? <Text style={styles.tabEmoji}>{opt.emoji}</Text> : null}
                 <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>
-                  {opt.shortLabel}
+                  {tabOpt.shortLabel}
                 </Text>
               </View>
             </Pressable>
@@ -242,20 +246,20 @@ export function CommunityListScreen() {
           query.isLoading ? (
             <ActivityIndicator style={{ marginTop: 40 }} color={colors.brand} />
           ) : query.isError ? (
-            <Text style={styles.error}>QnA를 불러오지 못했습니다.</Text>
+            <Text style={styles.error}>{u("QnA를 불러오지 못했습니다.", "Could not load QnA.")}</Text>
           ) : (
             <View style={styles.empty}>
               <Text style={styles.muted}>
                 {searchSubmitted
-                  ? `"${searchSubmitted}"에 맞는 QnA가 없습니다.`
+                  ? u(`"${searchSubmitted}"에 맞는 QnA가 없습니다.`, `No QnA matching "${searchSubmitted}".`)
                   : tab === QNA_MY_CATEGORY_ID
-                    ? "아직 작성한 QnA가 없습니다."
+                    ? u("아직 작성한 QnA가 없습니다.", "You have not posted QnA yet.")
                     : tab === "ALL"
-                      ? "아직 QnA가 없습니다. 첫 글을 남겨보세요!"
-                      : "이 카테고리에 QnA가 없습니다."}
+                      ? u("아직 QnA가 없습니다. 첫 글을 남겨보세요!", "No QnA yet. Be the first to post!")
+                      : u("이 카테고리에 QnA가 없습니다.", "No QnA in this category.")}
               </Text>
               <Pressable style={styles.emptyBtn} onPress={openCreate}>
-                <Text style={styles.emptyBtnText}>QnA 만들기</Text>
+                <Text style={styles.emptyBtnText}>{u("QnA 만들기", "Create QnA")}</Text>
               </Pressable>
             </View>
           )

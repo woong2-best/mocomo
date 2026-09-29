@@ -41,8 +41,10 @@ import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export function PostDetailScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -82,7 +84,7 @@ export function PostDetailScreen() {
         author: {
           id: user?.id ?? "me",
           username: user?.username ?? "me",
-          name: user?.name ?? user?.username ?? "나",
+          name: user?.name ?? user?.username ?? u("나", "Me"),
           image: user?.image ?? null,
         },
       };
@@ -99,7 +101,7 @@ export function PostDetailScreen() {
       if (ctx?.previous) {
         queryClient.setQueryData(postCommentsQueryKey(postId), ctx.previous);
       }
-      showIslandError("오류", err instanceof Error ? err.message : "댓글 등록에 실패했습니다.");
+      showIslandError(u("오류", "Error"), err instanceof Error ? err.message : u("댓글 등록에 실패했습니다.", "Could not post comment."));
     },
     onSuccess: (res, _content, ctx) => {
       queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) => {
@@ -120,7 +122,7 @@ export function PostDetailScreen() {
 
   const post = postQuery.data?.post;
   const isQnaPost = Boolean(post?.community?.slug);
-  const headerTitle = isQnaPost ? "QnA" : "게시물";
+  const headerTitle = isQnaPost ? "QnA" : u("게시물", "Post");
   const composerBottomPad =
     keyboardInset > 0 ? spacing.sm : Math.max(spacing.md, insets.bottom);
   const androidKeyboardLift = Platform.OS === "android" ? keyboardInset : 0;
@@ -129,7 +131,7 @@ export function PostDetailScreen() {
     const content = draft.trim();
     if (!content) return;
     if (!user) {
-      showIslandError("로그인 필요", "댓글을 작성하려면 로그인해 주세요.");
+      showIslandError(u("로그인 필요", "Sign in required"), u("댓글을 작성하려면 로그인해 주세요.", "Sign in to comment."));
       return;
     }
     commentMut.mutate(content);
@@ -165,7 +167,7 @@ export function PostDetailScreen() {
         );
         return { ...(old ?? {}), comments: list, items: list };
       });
-      showIslandError("오류", err instanceof Error ? err.message : "좋아요에 실패했습니다.");
+      showIslandError(u("오류", "Error"), err instanceof Error ? err.message : u("좋아요에 실패했습니다.", "Could not like comment."));
     } finally {
       setLikeBusyId(null);
     }
@@ -173,11 +175,11 @@ export function PostDetailScreen() {
 
   return (
     <Screen>
-      <AppHeader title={headerTitle} leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={headerTitle} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       {postQuery.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : postQuery.isError || !post ? (
-        <Text style={styles.error}>게시물을 불러오지 못했습니다.</Text>
+        <Text style={styles.error}>{u("게시물을 불러오지 못했습니다.", "Could not load post.")}</Text>
       ) : (
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -205,7 +207,7 @@ export function PostDetailScreen() {
                   }}
                   onPressAuthor={(author: UserProfileSeed) => openUserProfile(author)}
                 />
-                <Text style={styles.section}>{isQnaPost ? "A" : "댓글"}</Text>
+                <Text style={styles.section}>{isQnaPost ? "A" : u("댓글", "Comments")}</Text>
               </View>
             }
             ListEmptyComponent={
@@ -215,7 +217,7 @@ export function PostDetailScreen() {
                   style={{ marginVertical: spacing.md }}
                 />
               ) : (
-                <Text style={styles.muted}>아직 댓글이 없습니다.</Text>
+                <Text style={styles.muted}>{u("아직 댓글이 없습니다.", "No comments yet.")}</Text>
               )
             }
             renderItem={({ item }) => {
@@ -235,7 +237,7 @@ export function PostDetailScreen() {
                       style={styles.commentHeader}
                       onPress={() => openUserProfile(authorSeed)}
                       accessibilityRole="button"
-                      accessibilityLabel={`${displayName} 프로필`}
+                      accessibilityLabel={u(`${displayName} 프로필`, `${displayName} profile`)}
                     >
                       <FolkAvatar
                         uri={item.author.image}
@@ -254,7 +256,7 @@ export function PostDetailScreen() {
                         <Pressable
                           style={styles.iconBtn}
                           onPress={() => setMenuComment(item)}
-                          accessibilityLabel="댓글 메뉴"
+                          accessibilityLabel={u("댓글 메뉴", "Comment menu")}
                         >
                           <Ionicons name="ellipsis-horizontal" size={20} color={colors.textMuted} />
                         </Pressable>
@@ -263,7 +265,7 @@ export function PostDetailScreen() {
                         style={styles.likeBtn}
                         onPress={() => void toggleLike(item)}
                         disabled={!user || likeBusyId === item.id}
-                        accessibilityLabel={liked ? "좋아요 취소" : "좋아요"}
+                        accessibilityLabel={liked ? u("좋아요 취소", "Unlike") : u("좋아요", "Like")}
                       >
                         <Ionicons
                           name={liked ? "heart" : "heart-outline"}
@@ -299,12 +301,12 @@ export function PostDetailScreen() {
               style={styles.input}
               value={draft}
               onChangeText={setDraft}
-              placeholder="댓글 작성…"
+              placeholder={u("댓글 작성…", "Write a comment…")}
               placeholderTextColor={colors.textMuted}
               multiline
             />
             <FolkButton
-              label="등록"
+              label={u("등록", "Post")}
               disabled={!draft.trim()}
               onPress={submitComment}
               style={{ minWidth: 88 }}

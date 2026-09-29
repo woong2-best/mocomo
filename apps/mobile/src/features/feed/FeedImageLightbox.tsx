@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export type FeedLightboxImage = {
   id: string;
@@ -72,6 +73,7 @@ export function FeedImageLightbox({
   initialIndex = 0,
   onClose,
 }: Props) {
+  const { u, t } = useI18n();
   const insets = useSafeAreaInsets();
   const { width, height } = Dimensions.get("window");
   const [index, setIndex] = useState(initialIndex);
@@ -154,7 +156,7 @@ export function FeedImageLightbox({
           style={[styles.close, { top: insets.top + 8 }]}
           onPress={onClose}
           hitSlop={12}
-          accessibilityLabel="닫기"
+          accessibilityLabel={t("common.close")}
         >
           <Ionicons name="close" size={22} color="#fff" />
         </Pressable>

@@ -11,8 +11,10 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { formatUsd } from "@/lib/money";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export function MarketCouponsScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -27,8 +29,8 @@ export function MarketCouponsScreen() {
 
   return (
     <Screen>
-      <AppHeader title="쿠폰" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
-      <Text style={styles.sub}>정산·수수료 혜택 쿠폰과 프로모션</Text>
+      <AppHeader title={u("쿠폰", "Coupons")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+      <Text style={styles.sub}>{u("정산·수수료 혜택 쿠폰과 프로모션", "Fee and settlement benefit coupons & promos")}</Text>
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : (
@@ -36,16 +38,16 @@ export function MarketCouponsScreen() {
           data={rows}
           keyExtractor={(r) => `${r.kind}-${r.id}`}
           contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 24, gap: 10 }}
-          ListEmptyComponent={<Text style={styles.empty}>보유 쿠폰이 없습니다.</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>{u("보유 쿠폰이 없습니다.", "No coupons yet.")}</Text>}
           renderItem={({ item }) => (
             <View style={styles.card}>
-              <Text style={styles.badge}>{item.kind === "promotion" ? "프로모션" : "쿠폰"}</Text>
+              <Text style={styles.badge}>{item.kind === "promotion" ? u("프로모션", "Promo") : u("쿠폰", "Coupon")}</Text>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.benefit}>{item.benefitLabel}</Text>
               <Text style={styles.meta}>
-                상태 {item.status}
+                {u("상태", "Status")} {item.status}
                 {item.remainingBenefitKrw != null
-                  ? ` · 잔여 ${formatUsd(item.remainingBenefitKrw)}`
+                  ? u(` · 잔여 ${formatUsd(item.remainingBenefitKrw)}`, ` · left ${formatUsd(item.remainingBenefitKrw)}`)
                   : ""}
               </Text>
             </View>

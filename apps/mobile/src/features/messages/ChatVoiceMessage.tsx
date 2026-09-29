@@ -6,6 +6,7 @@ import {
   useAudioPlayerStatus,
 } from "expo-audio";
 import { Ionicons } from "@expo/vector-icons";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { type ThemeColors } from "@/theme/tokens";
 
@@ -20,6 +21,7 @@ function formatVoiceTime(sec: number) {
 
 /** Instagram-style voice bubble — matches web ChatVoiceMessage */
 export function ChatVoiceMessage({ url, mine }: { url: string; mine: boolean }) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors, mine), [colors, mine]);
   const player = useAudioPlayer(url, { updateInterval: 80 });
@@ -60,7 +62,11 @@ export function ChatVoiceMessage({ url, mine }: { url: string; mine: boolean }) 
 
   return (
     <View style={styles.wrap}>
-      <Pressable style={styles.playBtn} onPress={toggle} accessibilityLabel={status.playing ? "일시정지" : "재생"}>
+      <Pressable
+        style={styles.playBtn}
+        onPress={toggle}
+        accessibilityLabel={status.playing ? u("일시정지", "Pause") : u("재생", "Play")}
+      >
         <Ionicons
           name={status.playing ? "pause" : "play"}
           size={18}

@@ -38,9 +38,13 @@ import {
   type ReelsSlot,
 } from "@/features/reels/reels-slots";
 import { TranslatableText } from "@/ui/TranslatableText";
+import { useI18n } from "@/i18n/I18nProvider";
+import { reelsUi } from "@/features/reels/reels-ui";
 import type { RootStackParamList } from "@/navigation/types";
 
 export function ReelsScreen() {
+  const { u } = useI18n();
+  const copy = useMemo(() => reelsUi(u), [u]);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -289,7 +293,7 @@ export function ReelsScreen() {
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={28} color="#fff" />
           </Pressable>
-          <Text style={styles.title}>영상</Text>
+          <Text style={styles.title}>{copy.title}</Text>
           <View style={styles.backBtn} />
         </View>
       ) : null}
@@ -338,7 +342,7 @@ export function ReelsScreen() {
         removeClippedSubviews
         ListEmptyComponent={
           <View style={[styles.center, { height }]}>
-            <Text style={styles.muted}>재생할 영상이 없습니다.</Text>
+            <Text style={styles.muted}>{copy.noVideos}</Text>
           </View>
         }
       />
@@ -354,12 +358,12 @@ export function ReelsScreen() {
           <View style={[styles.sheet, { paddingBottom: insets.bottom + 10 }]}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>댓글 {commentTotal}</Text>
+              <Text style={styles.sheetTitle}>{copy.comments(commentTotal)}</Text>
               <Pressable onPress={() => setCommentsPostId(null)} hitSlop={10}>
                 <Ionicons name="close" size={22} color="#fff" />
               </Pressable>
             </View>
-            <Text style={styles.sheetSort}>최신순</Text>
+            <Text style={styles.sheetSort}>{copy.sortNewest}</Text>
             {showCommentsSpinner ? (
               <ActivityIndicator color="#fff" style={{ marginVertical: 24 }} />
             ) : (
@@ -377,14 +381,14 @@ export function ReelsScreen() {
                   </View>
                 )}
                 ListEmptyComponent={
-                  <Text style={styles.muted}>아직 댓글이 없습니다.</Text>
+                  <Text style={styles.muted}>{copy.noComments}</Text>
                 }
               />
             )}
             <View style={styles.commentInputRow}>
               <TextInput
                 style={styles.commentInput}
-                placeholder="댓글 추가..."
+                placeholder={copy.commentPh}
                 placeholderTextColor="rgba(255,255,255,0.45)"
                 value={commentDraft}
                 onChangeText={setCommentDraft}
@@ -392,7 +396,7 @@ export function ReelsScreen() {
                 returnKeyType="send"
               />
               <Pressable onPress={() => void submitComment()} disabled={commentBusy}>
-                <Text style={styles.commentSend}>게시</Text>
+                <Text style={styles.commentSend}>{copy.postComment}</Text>
               </Pressable>
             </View>
           </View>

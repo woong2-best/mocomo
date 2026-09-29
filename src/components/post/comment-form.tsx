@@ -10,6 +10,8 @@ import {
   notifyCommentFailed,
 } from "@/lib/comment-optimistic-sync";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 export function CommentForm({
   postId,
@@ -28,6 +30,7 @@ export function CommentForm({
   autoFocus?: boolean;
   onSubmitted?: () => void;
 }) {
+  const { locale, t } = useLocale();
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -68,7 +71,11 @@ export function CommentForm({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(typeof body.error === "string" ? body.error : "댓글 등록에 실패했습니다.");
+        throw new Error(
+          typeof body.error === "string"
+            ? body.error
+            : uiText(locale, "댓글 등록에 실패했습니다.", "Couldn't post comment.")
+        );
       }
       const realId =
         typeof body?.comment?.id === "string" ? body.comment.id : pendingId;
@@ -78,7 +85,11 @@ export function CommentForm({
     } catch (err) {
       notifyCommentFailed(postId, pendingId);
       setContent(text);
-      setError(err instanceof Error ? err.message : "댓글 등록에 실패했습니다.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : uiText(locale, "댓글 등록에 실패했습니다.", "Couldn't post comment.")
+      );
     } finally {
       setSubmitting(false);
     }
@@ -108,7 +119,9 @@ export function CommentForm({
           autoFocus={autoFocus}
           placeholder={
             placeholder ??
-            (parentId ? "답글 달기..." : "댓글 추가...")
+            (parentId
+              ? uiText(locale, "답글 달기...", "Write a reply…")
+              : t("post.writeComment"))
           }
           className={cn(
             "max-h-28 min-h-10 flex-1 resize-none rounded-full border border-border bg-background/50 px-4 py-2.5 text-sm leading-snug focus:outline-none focus:ring-2 focus:ring-primary/40",
@@ -116,12 +129,12 @@ export function CommentForm({
           )}
         />
         <Button type="submit" size="sm" disabled={!content.trim() || submitting}>
-          등록
+          {uiText(locale, "등록", "Post")}
         </Button>
       </div>
       {content.trim() ? (
         <p className="px-1 text-[11px] text-muted-foreground">
-          Enter 등록 · Shift+Enter 줄바꿈
+          {uiText(locale, "Enter 등록 · Shift+Enter 줄바꿈", "Enter to post · Shift+Enter for newline")}
         </p>
       ) : null}
       {error && <p className="text-xs text-destructive">{error}</p>}

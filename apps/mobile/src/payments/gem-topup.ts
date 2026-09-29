@@ -1,15 +1,24 @@
 import * as Linking from "expo-linking";
 import { confirmCheckout } from "@/api/checkout";
 import { topupGems } from "@/api/gems";
+import { uiText } from "@/i18n/ui-text";
 
 /** Gem top-up — external browser only (no WebView), per Gems spec */
-export async function openGemTopupCheckout(gems: number): Promise<{ ok: true } | { error: string }> {
+export async function openGemTopupCheckout(
+  gems: number,
+  locale?: string
+): Promise<{ ok: true } | { error: string }> {
   try {
     const { checkoutUrl } = await topupGems(gems);
     await Linking.openURL(checkoutUrl);
     return { ok: true };
   } catch (e: unknown) {
-    return { error: e instanceof Error ? e.message : "젬 충전을 시작할 수 없습니다." };
+    return {
+      error:
+        e instanceof Error
+          ? e.message
+          : uiText(locale, "젬 충전을 시작할 수 없습니다.", "Could not start MOCO top-up."),
+    };
   }
 }
 

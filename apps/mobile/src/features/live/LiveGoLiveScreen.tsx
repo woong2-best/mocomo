@@ -21,9 +21,12 @@ import {
 import { ApiError } from "@/api/client";
 import {
   MOBILE_LIVE_CATEGORIES,
+  liveCategoryLabel,
   providerLabel,
   type MobileLiveCategoryId,
 } from "@/features/live/live-categories";
+import { useI18n } from "@/i18n/I18nProvider";
+import { liveUi } from "@/features/live/live-ui";
 import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkAvatar } from "@/ui/FolkAvatar";
@@ -37,6 +40,8 @@ const PLATFORM_CATS = MOBILE_LIVE_CATEGORIES.filter(
 );
 
 export function LiveGoLiveScreen() {
+  const { locale, u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -75,31 +80,26 @@ export function LiveGoLiveScreen() {
           ? String((e.body as { error: string }).error)
           : e instanceof Error
             ? e.message
-            : "방송을 시작하지 못했습니다.";
+            : copy.goLiveStartFailed;
       setFormError(msg);
     },
   });
 
   return (
     <Screen>
-      <AppHeader title="라이브 방송 시작" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={copy.goLiveTitle} leftLabel={copy.back} onLeftPress={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <Text style={styles.lead}>
-          영상은 YouTube · Twitch · 치지직 플레이어로만 표시됩니다. 채팅은 MoCoMo에서 제공합니다.
-        </Text>
+        <Text style={styles.lead}>{copy.goLiveLead}</Text>
 
         {accountsQuery.isLoading ? (
           <ActivityIndicator color={colors.terracotta} style={{ marginTop: 24 }} />
         ) : accountsQuery.isError ? (
-          <Text style={styles.error}>계정 목록을 불러오지 못했습니다.</Text>
+          <Text style={styles.error}>{copy.accountsLoadFailed}</Text>
         ) : accounts.length === 0 ? (
           <View style={styles.gate}>
             <Ionicons name="link-outline" size={28} color={colors.terracotta} />
-            <Text style={styles.gateTitle}>인증된 스트리밍 계정이 필요합니다</Text>
-            <Text style={styles.gateCopy}>
-              웹 설정에서 YouTube · Twitch · 치지직 계정을 연결·인증한 뒤 앱에서 방송을 시작할 수
-              있습니다.
-            </Text>
+            <Text style={styles.gateTitle}>{copy.streamingAccountRequired}</Text>
+            <Text style={styles.gateCopy}>{copy.streamingAccountHint}</Text>
             <Pressable
               style={styles.primaryBtn}
               onPress={() =>
@@ -109,25 +109,27 @@ export function LiveGoLiveScreen() {
               }
             >
               <Ionicons name="open-outline" size={16} color="#fff" />
-              <Text style={styles.primaryBtnText}>웹에서 계정 연결</Text>
+              <Text style={styles.primaryBtnText}>{copy.connectAccountsWeb}</Text>
             </Pressable>
             <Pressable style={styles.secondaryBtn} onPress={() => navigation.navigate("LiveList")}>
-              <Text style={styles.secondaryBtnText}>진행 중 방송 보기</Text>
+              <Text style={styles.secondaryBtnText}>{copy.viewLiveNow}</Text>
             </Pressable>
           </View>
         ) : (
           <View style={styles.form}>
-            <Text style={styles.label}>방송 제목</Text>
+            <Text style={styles.label}>{copy.streamTitleLabel}</Text>
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder={selected ? `${selected.channelName} 라이브` : "오늘의 라이브"}
+              placeholder={
+                selected ? copy.streamTitleChannelLive(selected.channelName) : copy.streamTitlePlaceholder
+              }
               placeholderTextColor={colors.textMuted}
               maxLength={120}
             />
 
-            <Text style={[styles.label, { marginTop: spacing.md }]}>스트리밍 계정</Text>
+            <Text style={[styles.label, { marginTop: spacing.md }]}>{copy.streamingAccountLabel}</Text>
             {accounts.map((acc) => (
               <AccountRow
                 key={acc.id}
@@ -139,7 +141,7 @@ export function LiveGoLiveScreen() {
               />
             ))}
 
-            <Text style={[styles.label, { marginTop: spacing.md }]}>카테고리</Text>
+            <Text style={[styles.label, { marginTop: spacing.md }]}>{copy.categoryLabel}</Text>
             <View style={styles.catRow}>
               {PLATFORM_CATS.map((c) => {
                 const active = category === c.id;
@@ -148,7 +150,7 @@ export function LiveGoLiveScreen() {
                     key={c.id}
                     onPress={() => {
                       void (async () => {
-                        const ok = await ensureR18LiveAccess(c.id);
+                        const ok = await ensureR18LiveAccess(c.id, locale);
                         if (!ok) return;
                         setCategory(c.id);
                       })();
@@ -161,7 +163,7 @@ export function LiveGoLiveScreen() {
                     ]}
                   >
                     <Text style={{ color: active ? "#fff" : colors.text, fontWeight: "700", fontSize: 12 }}>
-                      {c.label}
+                      {liveCategoryLabel(c.id, locale)}
                     </Text>
                   </Pressable>
                 );
@@ -183,13 +185,13 @@ export function LiveGoLiveScreen() {
               ) : (
                 <>
                   <Ionicons name="radio" size={18} color="#fff" />
-                  <Text style={styles.primaryBtnText}>방송 시작</Text>
+                  <Text style={styles.primaryBtnText}>{copy.startStream}</Text>
                 </>
               )}
             </Pressable>
 
             <Pressable style={styles.secondaryBtn} onPress={() => navigation.navigate("LiveList")}>
-              <Text style={styles.secondaryBtnText}>진행 중 방송 보기</Text>
+              <Text style={styles.secondaryBtnText}>{copy.viewLiveNow}</Text>
             </Pressable>
           </View>
         )}
@@ -211,6 +213,7 @@ function AccountRow({
   styles: ReturnType<typeof createStyles>;
   colors: ThemeColors;
 }) {
+  const { locale } = useI18n();
   return (
     <Pressable
       onPress={onPress}
@@ -228,7 +231,7 @@ function AccountRow({
             {account.channelName}
           </Text>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{providerLabel(account.platform)}</Text>
+            <Text style={styles.badgeText}>{providerLabel(account.platform, locale)}</Text>
           </View>
         </View>
         <Text style={styles.accountId} numberOfLines={1}>

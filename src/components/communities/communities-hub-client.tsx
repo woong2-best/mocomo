@@ -8,9 +8,12 @@ import {
   COMMUNITY_CATEGORY_OPTIONS,
   communityCategoryMeta,
   resolveCommunityCategoryDisplay,
+  qnaFeedTabDisplay,
 } from "@/lib/community-labels";
 import type { CommunityCategory } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 export type CommunityHubItem = {
   id: string;
@@ -31,11 +34,13 @@ type TabId = "ALL" | CommunityCategory;
 function CommunityThumb({
   community,
   className,
+  locale,
 }: {
   community: CommunityHubItem;
   className?: string;
+  locale: string;
 }) {
-  const meta = resolveCommunityCategoryDisplay(community.category, community.customCategoryLabel);
+  const meta = resolveCommunityCategoryDisplay(community.category, community.customCategoryLabel, locale);
   const initial = community.name.slice(0, 1);
 
   if (community.iconUrl || community.coverUrl) {
@@ -61,8 +66,8 @@ function CommunityThumb({
   );
 }
 
-function CommunityRow({ community }: { community: CommunityHubItem }) {
-  const meta = resolveCommunityCategoryDisplay(community.category, community.customCategoryLabel);
+function CommunityRow({ community, locale }: { community: CommunityHubItem; locale: string }) {
+  const meta = resolveCommunityCategoryDisplay(community.category, community.customCategoryLabel, locale);
 
   return (
     <Link
@@ -70,7 +75,7 @@ function CommunityRow({ community }: { community: CommunityHubItem }) {
       className="group flex items-center gap-2.5 border-b border-[#e6e6e6] px-2.5 py-2 hover:bg-[#f7f7f7] transition-colors last:border-b-0 dark:border-border/50 dark:hover:bg-muted/40"
     >
       <div className="relative h-12 w-12 sm:h-[52px] sm:w-[52px] shrink-0 overflow-hidden bg-[#eee] dark:bg-muted">
-        <CommunityThumb community={community} />
+        <CommunityThumb community={community} locale={locale} />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -106,6 +111,7 @@ export function CommunitiesHubClient({
   communities: CommunityHubItem[];
   loadError?: string | null;
 }) {
+  const { locale } = useLocale();
   const searchParams = useSearchParams();
   const query = (searchParams.get("q") ?? "").trim().toLowerCase();
   const [tab, setTab] = useState<TabId>("ALL");
@@ -147,7 +153,7 @@ export function CommunitiesHubClient({
                 : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-white/70 dark:hover:bg-background/50"
             )}
           >
-            전체
+            {qnaFeedTabDisplay("ALL", locale).shortLabel}
             <span className="ml-1 tabular-nums opacity-70">{counts.get("ALL") ?? 0}</span>
           </button>
           {COMMUNITY_CATEGORY_OPTIONS.map((opt) => (
@@ -163,7 +169,7 @@ export function CommunitiesHubClient({
               )}
             >
               <span className="mr-1">{opt.emoji}</span>
-              {opt.shortLabel}
+              {resolveCommunityCategoryDisplay(opt.id, null, locale).shortLabel}
               <span className="ml-1 tabular-nums opacity-60">{counts.get(opt.id) ?? 0}</span>
             </button>
           ))}
@@ -175,10 +181,12 @@ export function CommunitiesHubClient({
         <div className="min-w-0">
           <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
             <span className="inline-block h-3.5 w-3.5 rounded-[2px] bg-[#c80000]" aria-hidden />
-            {tab === "ALL" ? "커뮤니티" : communityCategoryTabTitle(tab)}
+            {tab === "ALL"
+              ? uiText(locale, "커뮤니티", "Communities")
+              : communityCategoryTabTitle(tab, locale)}
           </h2>
           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-            관심 주제를 골라 커뮤니티에 들어가세요
+            {uiText(locale, "관심 주제를 골라 커뮤니티에 들어가세요", "Pick a topic and join a community")}
           </p>
         </div>
         <Link
@@ -186,7 +194,7 @@ export function CommunitiesHubClient({
           className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#c80000] hover:underline underline-offset-2"
         >
           <Plus className="h-3.5 w-3.5" />
-          만들기
+          {uiText(locale, "만들기", "Create")}
         </Link>
       </div>
 
@@ -214,7 +222,7 @@ export function CommunitiesHubClient({
       ) : (
         <div>
           {filtered.map((c) => (
-            <CommunityRow key={c.id} community={c} />
+            <CommunityRow key={c.id} community={c} locale={locale} />
           ))}
         </div>
       )}
@@ -222,7 +230,7 @@ export function CommunitiesHubClient({
   );
 }
 
-function communityCategoryTabTitle(id: CommunityCategory): string {
-  const meta = communityCategoryMeta(id);
-  return meta ? `${meta.emoji} ${meta.label}` : id;
+function communityCategoryTabTitle(id: CommunityCategory, locale: string): string {
+  const display = resolveCommunityCategoryDisplay(id, null, locale);
+  return `${display.emoji} ${display.label}`;
 }

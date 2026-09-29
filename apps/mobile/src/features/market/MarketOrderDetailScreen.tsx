@@ -12,23 +12,42 @@ import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { formatUsd } from "@/lib/money";
 import { shipCountryLabel } from "@/lib/marketplace-shipping";
+import { useI18n } from "@/i18n/I18nProvider";
+import type { UsedUiText } from "@/features/marketplace/used-catalog";
 
-const STATUS_LABEL: Record<string, string> = {
-  AWAITING_PAYMENT: "결제대기",
-  PAID: "결제 완료",
-  PREPARING: "상품 준비 중",
-  SHIPPED: "발송 완료",
-  DELIVERED: "배송 완료",
-  CONFIRMED: "구매 확정",
-  SETTLED: "정산 완료",
-  CANCELLED: "취소",
-  REFUND_REQUESTED: "환불요청",
-  REFUNDED: "환불완료",
-  DISPUTED: "분쟁",
-  ADMIN_REVIEW: "관리자 검토",
-};
+function orderStatusLabel(status: string, u: UsedUiText): string {
+  switch (status) {
+    case "AWAITING_PAYMENT":
+      return u("결제대기", "Awaiting payment");
+    case "PAID":
+      return u("결제 완료", "Paid");
+    case "PREPARING":
+      return u("상품 준비 중", "Preparing");
+    case "SHIPPED":
+      return u("발송 완료", "Shipped");
+    case "DELIVERED":
+      return u("배송 완료", "Delivered");
+    case "CONFIRMED":
+      return u("구매 확정", "Confirmed");
+    case "SETTLED":
+      return u("정산 완료", "Settled");
+    case "CANCELLED":
+      return u("취소", "Cancelled");
+    case "REFUND_REQUESTED":
+      return u("환불요청", "Refund requested");
+    case "REFUNDED":
+      return u("환불완료", "Refunded");
+    case "DISPUTED":
+      return u("분쟁", "Disputed");
+    case "ADMIN_REVIEW":
+      return u("관리자 검토", "Admin review");
+    default:
+      return status;
+  }
+}
 
 export function MarketOrderDetailScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -44,25 +63,25 @@ export function MarketOrderDetailScreen() {
 
   return (
     <Screen>
-      <AppHeader title="주문 상세" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={u("주문 상세", "Order details")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : !order ? (
-        <Text style={styles.muted}>주문을 불러오지 못했습니다.</Text>
+        <Text style={styles.muted}>{u("주문을 불러오지 못했습니다.", "Could not load order.")}</Text>
       ) : (
         <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 24, gap: 14 }}>
-          <Text style={styles.status}>{STATUS_LABEL[order.status] ?? order.status}</Text>
+          <Text style={styles.status}>{orderStatusLabel(order.status, u)}</Text>
           <Text style={styles.total}>
             {formatUsd(order.subtotalAmount + order.shippingAmount)}
           </Text>
           <Text style={styles.meta}>
             {new Date(order.createdAt).toLocaleString("ko-KR")}
-            {order.isBuyer && order.seller ? ` · 판매자 @${order.seller.username}` : ""}
-            {order.isSeller && order.buyer ? ` · 구매자 @${order.buyer.username}` : ""}
+            {order.isBuyer && order.seller ? u(` · 판매자 @${order.seller.username}`, ` · Seller @${order.seller.username}`) : ""}
+            {order.isSeller && order.buyer ? u(` · 구매자 @${order.buyer.username}`, ` · Buyer @${order.buyer.username}`) : ""}
           </Text>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>상품</Text>
+            <Text style={styles.sectionTitle}>{u("상품", "Items")}</Text>
             {order.items.map((item) => (
               <Pressable
                 key={item.id}
@@ -79,7 +98,7 @@ export function MarketOrderDetailScreen() {
 
           {order.shipAddress1 ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>배송지</Text>
+              <Text style={styles.sectionTitle}>{t("market.shippingAddress")}</Text>
               <Text style={styles.bodyText}>
                 {order.shipName}
                 {"\n"}
@@ -94,7 +113,7 @@ export function MarketOrderDetailScreen() {
 
           {order.shipment ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>배송</Text>
+              <Text style={styles.sectionTitle}>{u("배송", "Shipping")}</Text>
               <Text style={styles.bodyText}>
                 {order.shipment.status}
                 {order.shipment.carrier ? ` · ${order.shipment.carrier}` : ""}
@@ -105,7 +124,7 @@ export function MarketOrderDetailScreen() {
 
           {order.downloads.length > 0 ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>디지털 다운로드</Text>
+              <Text style={styles.sectionTitle}>{u("디지털 다운로드", "Digital download")}</Text>
               {order.downloads.map((d) => (
                 <Text key={d.id} style={styles.bodyText} numberOfLines={2}>
                   {d.fileUrl}

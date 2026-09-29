@@ -29,6 +29,7 @@ import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   visible: boolean;
@@ -37,11 +38,12 @@ type Props = {
   tab: FollowListTab;
 };
 
-function tabTitle(tab: FollowListTab): string {
-  return tab === "followers" ? "팔로워" : "팔로잉";
+function tabTitle(tab: FollowListTab, u: (ko: string, en: string) => string): string {
+  return tab === "followers" ? u("팔로워", "Followers") : u("팔로잉", "Following");
 }
 
 export function ProfileFollowListSheet({ visible, onClose, username, tab }: Props) {
+  const { u, t } = useI18n();
   const { colors, mode } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -158,23 +160,23 @@ export function ProfileFollowListSheet({ visible, onClose, username, tab }: Prop
               onPress={() => followMut.mutate(item)}
               disabled={followMut.isPending}
               accessibilityRole="button"
-              accessibilityLabel={following ? "팔로잉" : "팔로우"}
+              accessibilityLabel={following ? u("팔로잉", "Following") : u("팔로우", "Follow")}
             >
               <Text style={[styles.followBtnText, following ? null : styles.followBtnTextPrimary]}>
-                {following ? "팔로잉" : "팔로우"}
+                {following ? u("팔로잉", "Following") : u("팔로우", "Follow")}
               </Text>
             </Pressable>
           ) : null}
         </View>
       );
     },
-    [authUser?.id, followMut, onClose, openProfile, styles]
+    [authUser?.id, followMut, onClose, openProfile, styles, u]
   );
 
   const empty =
     !listQuery.isPending && !listQuery.isError && users.length === 0 ? (
       <Text style={styles.empty}>
-        {tab === "followers" ? "팔로워가 없습니다." : "팔로잉한 사용자가 없습니다."}
+        {tab === "followers" ? u("팔로워가 없습니다.", "No followers yet.") : u("팔로잉한 사용자가 없습니다.", "Not following anyone yet.")}
       </Text>
     ) : null;
 
@@ -198,8 +200,8 @@ export function ProfileFollowListSheet({ visible, onClose, username, tab }: Prop
           ]}
         >
           <View style={styles.panelHeader}>
-            <Text style={styles.panelTitle}>{tabTitle(tab)}</Text>
-            <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="닫기">
+            <Text style={styles.panelTitle}>{tabTitle(tab, u)}</Text>
+            <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("common.close")}>
               <Ionicons name="close" size={24} color={colors.text} />
             </Pressable>
           </View>
@@ -210,7 +212,7 @@ export function ProfileFollowListSheet({ visible, onClose, username, tab }: Prop
             </View>
           ) : listQuery.isError ? (
             <Pressable onPress={() => void listQuery.refetch()} style={styles.loaderWrap}>
-              <Text style={styles.error}>목록을 불러오지 못했습니다. 탭하여 다시 시도</Text>
+              <Text style={styles.error}>{u("목록을 불러오지 못했습니다. 탭하여 다시 시도", "Could not load list. Tap to retry")}</Text>
             </Pressable>
           ) : (
             <FlatList

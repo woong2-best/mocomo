@@ -6,6 +6,7 @@ import { API_BASE_URL } from "@/config/env";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   orderId: string | null;
@@ -30,6 +31,7 @@ export function GemPayOption({
   onSuccess,
   onError,
 }: Props) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = createStyles();
   const [pending, setPending] = useState(false);
@@ -42,7 +44,7 @@ export function GemPayOption({
       await payCheckoutWithGems(orderId);
       onSuccess();
     } catch (e: unknown) {
-      onError(e instanceof Error ? e.message : "MOCO 결제에 실패했습니다.");
+      onError(e instanceof Error ? e.message : u("MOCO 결제에 실패했습니다.", "MOCO payment failed."));
     } finally {
       setPending(false);
     }
@@ -58,20 +60,30 @@ export function GemPayOption({
         },
       ]}
     >
-      <Text style={[styles.title, { color: colors.text }]}>MOCO 잔액으로 결제</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{u("MOCO 잔액으로 결제", "Pay with MOCO balance")}</Text>
       <Text style={[styles.meta, { color: colors.textMuted }]}>
-        보유 {formatMoco(gemBalance)} · 필요 {formatMoco(gemsRequired)}
+        {u("보유", "Balance")} {formatMoco(gemBalance)} · {u("필요", "Need")} {formatMoco(gemsRequired)}
       </Text>
-      <Text style={[styles.hint, { color: colors.textMuted }]}>{amountLabel} · 즉시 결제</Text>
+      <Text style={[styles.hint, { color: colors.textMuted }]}>
+        {amountLabel} · {u("즉시 결제", "Instant payment")}
+      </Text>
       <FolkButton
-        label={pending ? "결제 중…" : canPay ? `${formatMoco(gemsRequired)}로 결제` : "MOCO 잔액 부족"}
+        label={
+          pending
+            ? u("결제 중…", "Paying…")
+            : canPay
+              ? u(`${formatMoco(gemsRequired)}로 결제`, `Pay ${formatMoco(gemsRequired)}`)
+              : u("MOCO 잔액 부족", "Insufficient MOCO")
+        }
         onPress={() => void handlePay()}
         loading={pending}
         disabled={disabled || !canPay}
       />
       {!canPay ? (
         <Pressable onPress={() => void Linking.openURL(`${API_BASE_URL.replace(/\/$/, "")}/wallet`)}>
-          <Text style={[styles.topupLink, { color: colors.cobalt }]}>웹사이트에서 MOCO 충전</Text>
+          <Text style={[styles.topupLink, { color: colors.cobalt }]}>
+            {u("웹사이트에서 MOCO 충전", "Top up MOCO on the website")}
+          </Text>
         </Pressable>
       ) : null}
     </View>

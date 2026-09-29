@@ -35,19 +35,16 @@ import { uploadLocalFile } from "@/api/upload-file";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
+import { communityUi } from "@/features/community/community-ui";
 
 type PostsTab = "all" | "concept" | "notice";
 
-const TABS: { id: PostsTab; label: string }[] = [
-  { id: "all", label: "전체글" },
-  { id: "notice", label: "공지" },
-];
-
-function postTitle(post: CommunityPostPreview): string {
+function postTitle(post: CommunityPostPreview, noTitle: string): string {
   const title = post.title?.trim();
   if (title) return title;
   const line = post.content.trim().split("\n")[0] ?? "";
-  return line.length > 80 ? `${line.slice(0, 80)}…` : line || "(제목 없음)";
+  return line.length > 80 ? `${line.slice(0, 80)}…` : line || noTitle;
 }
 
 function formatBoardDate(iso: string): string {
@@ -87,6 +84,15 @@ function apiErrorMessage(err: unknown, fallback: string) {
 }
 
 export function CommunityServerScreen() {
+  const { u } = useI18n();
+  const copy = useMemo(() => communityUi(u), [u]);
+  const tabs = useMemo(
+    (): { id: PostsTab; label: string }[] => [
+      { id: "all", label: copy.tabAllPosts },
+      { id: "notice", label: copy.tabNotice },
+    ],
+    [copy]
+  );
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
@@ -121,14 +127,14 @@ export function CommunityServerScreen() {
         item?.hasJoinPassword ? joinPassword : undefined
       ),
     onSuccess: async (res) => {
-      if (res.pending) setJoinMsg(res.message ?? "가입 요청이 접수되었습니다.");
-      else setJoinMsg("가입되었습니다.");
+      if (res.pending) setJoinMsg(res.message ?? copy.joinPending);
+      else setJoinMsg(copy.joined);
       setJoinPassword("");
       await queryClient.invalidateQueries({
         queryKey: ["mobile-community", route.params.slug],
       });
     },
-    onError: (err) => setJoinMsg(apiErrorMessage(err, "가입에 실패했습니다.")),
+    onError: (err) => setJoinMsg(apiErrorMessage(err, copy.joinFail)),
   });
 
   const publishQna = useCallback(
@@ -136,7 +142,7 @@ export function CommunityServerScreen() {
       if (!item?.id || !item.isMember || posting) return;
       const content = draft.trim();
       if (!content && !media) {
-        showIslandError("글", "내용이나 사진, 영상을 넣어 주세요.");
+        showIslandError(copy.postTitle, copy.postNeedContent);
         return;
       }
       setPosting(true);
@@ -153,12 +159,12 @@ export function CommunityServerScreen() {
         });
         await queryClient.invalidateQueries({ queryKey: ["mobile-qna-feed"] });
       } catch (err) {
-        showIslandError("게시 실패", err instanceof Error ? err.message : "글을 올리지 못했습니다.");
+        showIslandError(copy.publishFailTitle, err instanceof Error ? err.message : copy.publishFail);
       } finally {
         setPosting(false);
       }
     },
-    [draft, item?.id, item?.isMember, posting, queryClient, route.params.slug]
+    [copy, draft, item?.id, item?.isMember, posting, queryClient, route.params.slug]
   );
 
   const pickQnaMedia = useCallback(
@@ -166,7 +172,7 @@ export function CommunityServerScreen() {
       if (!item?.id || !item.isMember || posting) return;
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        showIslandError("권한 필요", "사진과 영상 접근 권한이 필요합니다.");
+        showIslandError(copy.permTitle, copy.mediaPerm);
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -200,12 +206,12 @@ export function CommunityServerScreen() {
         });
         await queryClient.invalidateQueries({ queryKey: ["mobile-qna-feed"] });
       } catch (err) {
-        showIslandError("업로드 실패", err instanceof Error ? err.message : "파일을 올리지 못했습니다.");
+        showIslandError(copy.uploadFailTitle, err instanceof Error ? err.message : copy.fileUploadFail);
       } finally {
         setPosting(false);
       }
     },
-    [draft, item?.id, item?.isMember, posting, queryClient, route.params.slug]
+    [copy, draft, item?.id, item?.isMember, posting, queryClient, route.params.slug]
   );
 
   const posts = useMemo(() => {
@@ -225,7 +231,7 @@ export function CommunityServerScreen() {
     ({ item: post, index }: { item: CommunityPostPreview; index: number }) => {
       const regularBefore = posts.slice(0, index + 1).filter((p) => !p.isPinned).length;
       const regularTotal = posts.filter((p) => !p.isPinned).length;
-      const displayNo = post.isPinned ? "공지" : String(regularTotal - regularBefore + 1);
+      const displayNo = post.isPinned ? copy.noticeNo : String(regularTotal - regularBefore + 1);
       const writer = galleryAuthorLabel(post.author.name, post.author.username, true);
       return (
         <Pressable
@@ -235,18 +241,18 @@ export function CommunityServerScreen() {
           <Text style={[styles.postNo, post.isPinned && styles.postNoNotice]}>{displayNo}</Text>
           <View style={styles.postBody}>
             <Text style={styles.postTitle} numberOfLines={2}>
-              {postTitle(post)}
+              {postTitle(post, copy.noTitle)}
               {post.commentCount > 0 ? ` [${post.commentCount}]` : ""}
             </Text>
             <Text style={styles.postMeta} numberOfLines={1}>
               {writer} · {formatBoardDate(post.createdAt)}
-              {post.viewCount != null ? ` · 조회 ${post.viewCount}` : ""}
+              {post.viewCount != null ? ` · ${copy.views(post.viewCount)}` : ""}
             </Text>
           </View>
         </Pressable>
       );
     },
-    [navigation, posts, styles]
+    [copy, navigation, posts, styles]
   );
 
   const passwordReady = !item?.hasJoinPassword || /^\d{4}$/.test(joinPassword);
@@ -254,10 +260,10 @@ export function CommunityServerScreen() {
     join.isPending || item?.joinMode === "INVITE_ONLY" || !passwordReady;
   const joinLabel =
     item?.joinMode === "APPROVE"
-      ? "가입 요청하기"
+      ? copy.joinRequestBtn
       : item?.joinMode === "INVITE_ONLY"
-        ? "초대 필요"
-        : "갤러리 참여하기";
+        ? copy.inviteOnly
+        : copy.joinGallery;
 
   return (
     <Screen safeTop={false}>
@@ -265,7 +271,7 @@ export function CommunityServerScreen() {
         <ActivityIndicator style={{ marginTop: insets.top + 40 }} color="#3b4890" />
       ) : detailQuery.isError || !item ? (
         <Text style={[styles.error, { marginTop: insets.top }]}>
-          갤러리를 불러오지 못했습니다.
+          {copy.loadGalleryError}
         </Text>
       ) : (
         <KeyboardAvoidingView
@@ -290,7 +296,7 @@ export function CommunityServerScreen() {
               onPress={() => navigation.navigate("CommunityDetail", { slug: route.params.slug })}
               hitSlop={10}
               style={styles.headerBtn}
-              accessibilityLabel="갤러리 정보"
+              accessibilityLabel={copy.galleryInfoA11y}
             >
               <Ionicons name="information-circle-outline" size={22} color="#fff" />
             </Pressable>
@@ -298,20 +304,20 @@ export function CommunityServerScreen() {
 
           {!item.isMember ? (
             <View style={styles.joinBanner}>
-              <Text style={styles.joinTitle}>갤러리 둘러보기 중</Text>
+              <Text style={styles.joinTitle}>{copy.browsingGallery}</Text>
               <Text style={styles.joinSub}>
                 {item.joinMode === "APPROVE"
-                  ? "글은 읽을 수 있습니다. 쓰려면 가입 요청을 보내세요."
+                  ? copy.browseApproveHint
                   : item.joinMode === "INVITE_ONLY"
-                    ? "초대 링크가 있는 멤버만 참여할 수 있습니다."
-                    : "글은 읽을 수 있습니다. 참여하면 글·댓글을 작성할 수 있어요."}
-                {item.hasJoinPassword ? " 가입 시 4자리 비밀번호가 필요합니다." : ""}
+                    ? copy.browseInviteHint
+                    : copy.browseOpenHint}
+                {item.hasJoinPassword ? copy.joinPasswordSuffix : ""}
               </Text>
               {item.hasJoinPassword ? (
                 <TextInput
                   value={joinPassword}
                   onChangeText={(v) => setJoinPassword(v.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="비밀번호 4자리"
+                  placeholder={copy.passwordPh}
                   placeholderTextColor={colors.textMuted}
                   keyboardType="number-pad"
                   maxLength={4}
@@ -325,13 +331,13 @@ export function CommunityServerScreen() {
                 disabled={joinDisabled}
                 onPress={() => join.mutate()}
               >
-                <Text style={styles.joinBtnText}>{join.isPending ? "처리 중…" : joinLabel}</Text>
+                <Text style={styles.joinBtnText}>{join.isPending ? copy.processing : joinLabel}</Text>
               </Pressable>
             </View>
           ) : null}
 
           <View style={styles.tabRow}>
-            {TABS.map((t) => {
+            {tabs.map((t) => {
               const active = tab === t.id;
               return (
                 <Pressable
@@ -346,8 +352,8 @@ export function CommunityServerScreen() {
           </View>
 
           <View style={styles.tableHead}>
-            <Text style={[styles.colNo, styles.headText]}>번호</Text>
-            <Text style={[styles.colTitle, styles.headText]}>제목</Text>
+            <Text style={[styles.colNo, styles.headText]}>{copy.colNo}</Text>
+            <Text style={[styles.colTitle, styles.headText]}>{copy.colTitle}</Text>
           </View>
 
           <FlatList
@@ -359,10 +365,10 @@ export function CommunityServerScreen() {
             ListEmptyComponent={
               <Text style={styles.empty}>
                 {tab === "concept"
-                  ? "개념글이 없습니다."
+                  ? copy.emptyConcept
                   : tab === "notice"
-                    ? "공지가 없습니다."
-                    : "등록된 글이 없습니다."}
+                    ? copy.emptyNotice
+                    : copy.emptyPosts}
               </Text>
             }
           />
@@ -371,7 +377,7 @@ export function CommunityServerScreen() {
               <TextInput
                 value={draft}
                 onChangeText={setDraft}
-                placeholder="글 남기기"
+                placeholder={copy.composerPh}
                 placeholderTextColor={colors.textMuted}
                 style={styles.composerInput}
                 editable={!posting}
@@ -382,7 +388,7 @@ export function CommunityServerScreen() {
                   onPress={() => void pickQnaMedia("image")}
                   disabled={posting}
                   hitSlop={8}
-                  accessibilityLabel="사진 추가"
+                  accessibilityLabel={copy.addPhotoA11y}
                 >
                   <Ionicons name="image-outline" size={22} color="#3b4890" />
                 </Pressable>
@@ -390,7 +396,7 @@ export function CommunityServerScreen() {
                   onPress={() => void pickQnaMedia("video")}
                   disabled={posting}
                   hitSlop={8}
-                  accessibilityLabel="영상 추가"
+                  accessibilityLabel={copy.addVideoA11y}
                 >
                   <Ionicons name="videocam-outline" size={22} color="#3b4890" />
                 </Pressable>
@@ -399,7 +405,7 @@ export function CommunityServerScreen() {
                   disabled={posting || !draft.trim()}
                   style={styles.composerSend}
                 >
-                  <Text style={styles.composerSendText}>{posting ? "올리는 중" : "등록"}</Text>
+                  <Text style={styles.composerSendText}>{posting ? copy.posting : copy.submitPost}</Text>
                 </Pressable>
               </View>
             </View>

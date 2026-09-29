@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { API_BASE_URL } from "@/config/env";
 import { formatUsedPrice, productTypeLabel } from "@/features/marketplace/used-catalog";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -24,9 +25,11 @@ export function UsedSaleStatsCard({
   productType?: string | null;
   characterName?: string | null;
 }) {
+  const { u, locale } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const [records, setRecords] = useState<SaleRecord[]>([]);
+  const dateLocale = locale.startsWith("en") ? "en-US" : "ko-KR";
   const [median, setMedian] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -63,20 +66,20 @@ export function UsedSaleStatsCard({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>최근 거래가</Text>
+        <Text style={styles.title}>{u("최근 거래가", "Recent sale prices")}</Text>
         {median != null && records[0] ? (
           <Text style={styles.median}>
-            중앙값 {formatUsedPrice(median, records[0].currency)}
+            {u("중앙값", "Median")} {formatUsedPrice(median, records[0].currency, u)}
           </Text>
         ) : null}
       </View>
       {records.slice(0, 5).map((r) => (
         <View key={r.id} style={styles.row}>
           <Text style={styles.rowLeft} numberOfLines={1}>
-            {new Date(r.soldAt).toLocaleDateString("ko-KR")}
+            {new Date(r.soldAt).toLocaleDateString(dateLocale)}
             {r.characterName ? ` · ${r.characterName}` : ""}
           </Text>
-          <Text style={styles.rowRight}>{formatUsedPrice(r.soldPrice, r.currency)}</Text>
+          <Text style={styles.rowRight}>{formatUsedPrice(r.soldPrice, r.currency, u)}</Text>
         </View>
       ))}
     </View>
@@ -96,14 +99,19 @@ export function SubcultureMetaChips({
   conditionGrade?: string | null;
   tradeMode?: string | null;
 }) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const chips = [
     workTitle,
-    productType ? productTypeLabel(productType) : null,
+    productType ? productTypeLabel(productType, u) : null,
     characterName,
     conditionGrade,
-    tradeMode === "TRADE" ? "교환" : tradeMode === "SELL_OR_TRADE" ? "판매·교환" : null,
+    tradeMode === "TRADE"
+      ? u("교환", "Trade")
+      : tradeMode === "SELL_OR_TRADE"
+        ? u("판매·교환", "Sell or trade")
+        : null,
   ].filter(Boolean) as string[];
 
   if (chips.length === 0) return null;

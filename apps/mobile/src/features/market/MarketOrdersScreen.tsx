@@ -11,8 +11,10 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { formatUsd } from "@/lib/money";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export function MarketOrdersScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -26,7 +28,7 @@ export function MarketOrdersScreen() {
 
   return (
     <Screen>
-      <AppHeader title="내 주문" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={u("내 주문", "My orders")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       <View style={styles.tabs}>
         {(["buyer", "seller"] as const).map((r) => (
           <Pressable
@@ -35,7 +37,7 @@ export function MarketOrdersScreen() {
             onPress={() => setRole(r)}
           >
             <Text style={[styles.tabText, role === r && styles.tabTextActive]}>
-              {r === "buyer" ? "구매" : "판매"}
+              {r === "buyer" ? u("구매", "Buying") : u("판매", "Selling")}
             </Text>
           </Pressable>
         ))}
@@ -50,7 +52,7 @@ export function MarketOrdersScreen() {
           contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 24, gap: 10 }}
           ListEmptyComponent={
             <Text style={styles.empty}>
-              {role === "buyer" ? "구매 내역이 없습니다." : "판매 주문이 없습니다."}
+              {role === "buyer" ? u("구매 내역이 없습니다.", "No purchase orders yet.") : u("판매 주문이 없습니다.", "No seller orders yet.")}
             </Text>
           }
           renderItem={({ item }) => (
@@ -70,13 +72,13 @@ export function MarketOrdersScreen() {
                 </Text>
               ))}
               <Text style={styles.total}>
-                합계 {formatUsd(item.subtotalAmount + item.shippingAmount)}
+                {u("합계", "Total")} {formatUsd(item.subtotalAmount + item.shippingAmount)}
               </Text>
               {role === "buyer" && item.seller ? (
-                <Text style={styles.party}>판매자 @{item.seller.username}</Text>
+                <Text style={styles.party}>{u("판매자", "Seller")} @{item.seller.username}</Text>
               ) : null}
               {role === "seller" && item.buyer ? (
-                <Text style={styles.party}>구매자 @{item.buyer.username}</Text>
+                <Text style={styles.party}>{u("구매자", "Buyer")} @{item.buyer.username}</Text>
               ) : null}
             </Pressable>
           )}

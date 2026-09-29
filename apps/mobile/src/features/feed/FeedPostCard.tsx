@@ -32,6 +32,7 @@ import { spacing, type ThemeColors } from "@/theme/tokens";
 import { SupportTierBadge } from "@/ui/SupportTierBadge";
 import { profileDisplayTier } from "@/lib/support-tier-display";
 import { useUserProfileNav, type UserProfileSeed, userProfileQueryKey } from "@/features/profile/user-profile-nav";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   post: FeedPost;
@@ -85,6 +86,7 @@ function FeedPostCardInner({
   const { prefetch: prefetchAuthorProfile } = useUserProfileNav();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const { width: windowWidth } = useWindowDimensions();
+  const { u, t } = useI18n();
   const { status, user } = useAuth();
   const starLock = useRef(false);
   const postIdRef = useRef(post.id);
@@ -144,11 +146,11 @@ function FeedPostCardInner({
 
   const requireLogin = useCallback(() => {
     if (status !== "signedIn") {
-      showIslandError("로그인 필요", "이 기능을 사용하려면 로그인해 주세요.");
+      showIslandError(u("로그인 필요", "Sign in required"), u("이 기능을 사용하려면 로그인해 주세요.", "Sign in to use this feature."));
       return false;
     }
     return true;
-  }, [status]);
+  }, [status, u]);
 
   const onLike = useCallback(() => {
     if (pending || !requireLogin()) return;
@@ -276,7 +278,7 @@ function FeedPostCardInner({
       {pinnedHighlight ? (
         <View style={styles.pinnedLabel}>
           <Ionicons name="pin" size={14} color={colors.textMuted} />
-          <Text style={styles.pinnedLabelText}>고정된 게시물</Text>
+          <Text style={styles.pinnedLabelText}>{u("고정된 게시물", "Pinned post")}</Text>
         </View>
       ) : null}
       {post.repostBy && repostName ? (
@@ -293,7 +295,7 @@ function FeedPostCardInner({
         >
           <Ionicons name="repeat-outline" size={14} color={colors.textMuted} />
           <Text style={styles.repostBannerText} numberOfLines={1}>
-            {repostName} 님이 재게시함
+            {u(`${repostName} 님이 재게시함`, `Reposted by ${repostName}`)}
           </Text>
         </Pressable>
       ) : null}
@@ -303,7 +305,7 @@ function FeedPostCardInner({
           onPress={openPost}
           disabled={!onPressPost}
           accessibilityRole="button"
-          accessibilityLabel="게시물 보기"
+          accessibilityLabel={u("게시물 보기", "View post")}
         >
           <View style={styles.headerRow} pointerEvents="box-none">
             {isQna ? (
@@ -322,7 +324,7 @@ function FeedPostCardInner({
                 disabled={!onPressAuthor || hideIdentity}
                 hitSlop={4}
                 accessibilityRole="button"
-                accessibilityLabel="프로필 보기"
+                accessibilityLabel={u("프로필 보기", "View profile")}
               >
                 <FolkAvatar
                   uri={post.author.image}
@@ -342,7 +344,7 @@ function FeedPostCardInner({
                   <View style={styles.nameRow}>
                     <Text style={styles.name} numberOfLines={1}>
                       {hideIdentity
-                        ? "익명"
+                        ? u("익명", "Anonymous")
                         : post.author.name || post.author.username}
                     </Text>
                     {!hideIdentity ? (
@@ -401,7 +403,7 @@ function FeedPostCardInner({
               hitSlop={10}
               style={styles.menuBtn}
               accessibilityRole="button"
-              accessibilityLabel="게시물 메뉴"
+              accessibilityLabel={t("post.menu.ariaLabel")}
             >
               <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
             </Pressable>
@@ -521,7 +523,7 @@ function FeedPostCardInner({
           </Pressable>
         </View>
         <View style={styles.actionsRight}>
-          <View style={styles.viewBtn} accessibilityLabel={`조회수 ${viewCount}회`}>
+          <View style={styles.viewBtn} accessibilityLabel={u(`조회수 ${viewCount}회`, `${viewCount} views`)}>
             <Ionicons name="eye-outline" size={17} color={colors.textMuted} />
             <Text style={styles.viewText}>{formatCount(viewCount)}</Text>
           </View>

@@ -9,11 +9,13 @@ import { fetchMarketFavorites } from "@/api/commerce-market";
 import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
 export function MarketWishlistScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -23,7 +25,7 @@ export function MarketWishlistScreen() {
 
   return (
     <Screen>
-      <AppHeader title="찜리스트" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={u("찜리스트", "Wishlist")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : (
@@ -33,7 +35,7 @@ export function MarketWishlistScreen() {
           numColumns={2}
           columnWrapperStyle={{ gap: 10, paddingHorizontal: spacing.md }}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24, gap: 10, paddingTop: spacing.sm }}
-          ListEmptyComponent={<Text style={styles.empty}>찜한 상품이 없습니다.</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>{u("찜한 상품이 없습니다.", "No wishlist items yet.")}</Text>}
           renderItem={({ item }) => (
             <Pressable
               style={styles.card}

@@ -26,6 +26,7 @@ import {
 } from "@/lib/moco-donation-sfx-catalog";
 import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -45,7 +46,16 @@ function apiErrorMessage(e: unknown, fallback: string) {
 }
 
 export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSuccess }: Props) {
+  const { u } = useI18n();
   const { colors } = useTheme();
+  const payoutBlockedMsg = u(
+    CREATOR_PAYOUT_BLOCKED_KO,
+    "This creator has not linked a payout (Stripe) account yet."
+  );
+  const payoutToastMsg = u(
+    CREATOR_PAYOUT_BLOCKED_TOAST_KO,
+    "This creator has not linked a payout account yet."
+  );
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [sfxKey, setSfxKey] = useState(DONATION_SFX_CATALOG[0]?.id ?? "default");
   const [mocoAmount, setMocoAmount] = useState(String(MOCO_DONATION_MIN_SFX));
@@ -77,17 +87,22 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
 
   async function submit() {
     if (!termsAccepted) {
-      setError("후원 전 약관에 동의해 주세요.");
+      setError(u("후원 전 약관에 동의해 주세요.", "Accept the terms before tipping."));
       return;
     }
     const trimmed = message.trim();
     if (!trimmed) {
-      setError("방송 화면에 표시할 메시지를 입력해 주세요.");
+      setError(u("방송 화면에 표시할 메시지를 입력해 주세요.", "Enter a message to show on stream."));
       return;
     }
     const moco = Math.floor(Number(mocoAmount) || 0);
     if (moco < MOCO_DONATION_MIN_SFX || moco > MOCO_DONATION_MAX_AMOUNT) {
-      setError(`MOCO는 ${MOCO_DONATION_MIN_SFX}~${MOCO_DONATION_MAX_AMOUNT.toLocaleString()} 범위입니다.`);
+      setError(
+        u(
+          `MOCO는 ${MOCO_DONATION_MIN_SFX}~${MOCO_DONATION_MAX_AMOUNT.toLocaleString()} 범위입니다.`,
+          `MOCO must be between ${MOCO_DONATION_MIN_SFX} and ${MOCO_DONATION_MAX_AMOUNT.toLocaleString()}.`
+        )
+      );
       return;
     }
 
@@ -101,19 +116,25 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
         message: trimmed,
       });
       if (!res.success) {
-        setError(res.error ?? "후원에 실패했습니다.");
+        setError(res.error ?? u("후원에 실패했습니다.", "Tip failed."));
         return;
       }
       onSuccess?.();
       onClose();
     } catch (e) {
       if (isStripeAccountNotReady(e)) {
-        showIslandError("후원 불가", CREATOR_PAYOUT_BLOCKED_TOAST_KO);
-        setError(CREATOR_PAYOUT_BLOCKED_KO);
+        showIslandError(u("후원 불가", "Tip unavailable"), payoutToastMsg);
+        setError(payoutBlockedMsg);
       } else if (e instanceof ApiError && e.status === 402) {
-        showIslandError("MOCO 부족", "mocomo.net 웹사이트에서 MOCO를 충전한 뒤 다시 시도해 주세요.");
+        showIslandError(
+          u("MOCO 부족", "Not enough MOCO"),
+          u(
+            "mocomo.net 웹사이트에서 MOCO를 충전한 뒤 다시 시도해 주세요.",
+            "Top up MOCO on mocomo.net and try again."
+          )
+        );
       } else {
-        setError(apiErrorMessage(e, "후원에 실패했습니다."));
+        setError(apiErrorMessage(e, u("후원에 실패했습니다.", "Tip failed.")));
       }
     } finally {
       setBusy(false);
@@ -125,14 +146,16 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
   return (
     <KeyboardSheet visible={visible} onClose={onClose} maxHeight="88%" sheetStyle={{ backgroundColor: colors.surface }}>
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>효과음 후원</Text>
+        <Text style={styles.title}>{u("효과음 후원", "Sound effect tip")}</Text>
         {typeof balance === "number" ? (
-          <Text style={styles.balance}>보유 MOCO: {balance.toLocaleString()}</Text>
+          <Text style={styles.balance}>
+            {u("보유 MOCO:", "MOCO balance:")} {balance.toLocaleString()}
+          </Text>
         ) : wallet.isLoading ? (
           <ActivityIndicator style={{ marginVertical: 8 }} />
         ) : null}
 
-        <Text style={styles.label}>효과음</Text>
+        <Text style={styles.label}>{u("효과음", "Sound effect")}</Text>
         <View style={styles.sfxRow}>
           {DONATION_SFX_CATALOG.map((s) => (
             <Pressable
@@ -151,28 +174,33 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
           value={mocoAmount}
           onChangeText={setMocoAmount}
           keyboardType="number-pad"
-          placeholder={`최소 ${MOCO_DONATION_MIN_SFX}`}
+          placeholder={u(`최소 ${MOCO_DONATION_MIN_SFX}`, `Min ${MOCO_DONATION_MIN_SFX}`)}
           placeholderTextColor={colors.textMuted}
         />
 
-        <Text style={styles.label}>방송 화면 메시지</Text>
+        <Text style={styles.label}>{u("방송 화면 메시지", "On-stream message")}</Text>
         <TextInput
           style={[styles.input, styles.textarea]}
           value={message}
           onChangeText={(t) => setMessage(t.slice(0, 500))}
-          placeholder="후원과 함께 표시할 문구"
+          placeholder={u("후원과 함께 표시할 문구", "Message shown with your tip")}
           placeholderTextColor={colors.textMuted}
           multiline
           maxLength={500}
         />
-        <Text style={styles.hint}>OBS 알림에 닉네임·MOCO·메시지가 함께 노출됩니다.</Text>
+        <Text style={styles.hint}>
+          {u(
+            "OBS 알림에 닉네임·MOCO·메시지가 함께 노출됩니다.",
+            "OBS alerts show nickname, MOCO, and message."
+          )}
+        </Text>
 
         <Pressable style={styles.termsRow} onPress={() => setTermsAccepted((v) => !v)}>
           <View style={[styles.checkbox, termsAccepted && styles.checkboxOn]} />
           <Text style={styles.termsText}>{MOCO_PURCHASE_TERMS_COPY}</Text>
         </Pressable>
 
-        {payoutBlocked ? <Text style={styles.error}>{CREATOR_PAYOUT_BLOCKED_KO}</Text> : null}
+        {payoutBlocked ? <Text style={styles.error}>{payoutBlockedMsg}</Text> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Pressable
@@ -180,7 +208,11 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
           disabled={busy || payoutBlocked}
           onPress={() => void submit()}
         >
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>후원하기</Text>}
+          {busy ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.submitText}>{u("후원하기", "Send tip")}</Text>
+          )}
         </Pressable>
       </ScrollView>
     </KeyboardSheet>

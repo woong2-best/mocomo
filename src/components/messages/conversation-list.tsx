@@ -10,6 +10,8 @@ import { getConversationMeta, formatChatListTime } from "@/lib/chat-display";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 type Room = {
   id: string;
@@ -43,6 +45,7 @@ export function ConversationList({
   activeRoomId?: string;
   className?: string;
 }) {
+  const { locale, t } = useLocale();
   const pathname = usePathname() ?? "";
   const { isNativeApp } = useClientPlatform();
   const activeFromPath = pathname.match(/^\/messages\/([^/]+)$/)?.[1];
@@ -60,11 +63,11 @@ export function ConversationList({
       )}
     >
       <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between gap-2 shrink-0">
-        <h1 className="font-bold text-lg tracking-tight flex-1 min-w-0">메세지</h1>
+        <h1 className="font-bold text-lg tracking-tight flex-1 min-w-0">{t("nav.messages")}</h1>
         <Link
           href="/settings/messages"
           className="p-2 rounded-full hover:bg-muted/80 shrink-0"
-          aria-label="메시지 설정"
+          aria-label={uiText(locale, "메시지 설정", "Message settings")}
         >
           <Settings className="h-5 w-5" />
         </Link>
@@ -77,18 +80,18 @@ export function ConversationList({
               <MessageSquare className="h-7 w-7 text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              아직 대화가 없어요.
+              {uiText(locale, "아직 대화가 없어요.", "No conversations yet.")}
               <br />
-              친구에게 첫 메시지를 보내 보세요.
+              {uiText(locale, "친구에게 첫 메시지를 보내 보세요.", "Send someone your first message.")}
             </p>
             <Button asChild className="rounded-full">
-              <Link href="/messages/new">새 메시지</Link>
+              <Link href="/messages/new">{uiText(locale, "새 메시지", "New message")}</Link>
             </Button>
           </div>
         ) : (
           <ul className="py-1">
             {rooms.map((room) => {
-              const meta = getConversationMeta(room, currentUserId);
+              const meta = getConversationMeta(room, currentUserId, locale);
               const active = resolvedActiveRoomId === room.id;
               return (
                 <li key={room.id}>
@@ -116,7 +119,7 @@ export function ConversationList({
                         />
                         {meta.lastMessageAt && (
                           <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
-                            {formatChatListTime(meta.lastMessageAt)}
+                            {formatChatListTime(meta.lastMessageAt, locale)}
                           </span>
                         )}
                       </div>

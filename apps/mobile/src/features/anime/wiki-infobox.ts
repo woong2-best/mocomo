@@ -1,5 +1,11 @@
 /** Namu-style infobox text parser — mirrors web `anime-wiki-infobox.ts`. */
 
+import { uiText } from "@/i18n/ui-text";
+
+export function defaultWikiInfoboxSectionTitle(locale?: string): string {
+  return uiText(locale, "작품 정보", "Work info");
+}
+
 export type WikiInfoboxRow = {
   label: string;
   value: string;
@@ -10,7 +16,10 @@ export type WikiInfoboxSection = {
   rows: WikiInfoboxRow[];
 };
 
-export function parseWikiInfobox(source: string | null | undefined): WikiInfoboxSection[] {
+export function parseWikiInfobox(
+  source: string | null | undefined,
+  locale?: string
+): WikiInfoboxSection[] {
   if (!source?.trim()) return [];
 
   const sections: WikiInfoboxSection[] = [];
@@ -38,7 +47,7 @@ export function parseWikiInfobox(source: string | null | undefined): WikiInfobox
     const rowMatch = trimmed.match(/^([^|]+)\|\s*(.*)$/);
     if (rowMatch) {
       if (!current) {
-        current = { title: "작품 정보", rows: [] };
+        current = { title: defaultWikiInfoboxSectionTitle(locale), rows: [] };
         sections.push(current);
       }
       const row = { label: rowMatch[1].trim(), value: rowMatch[2].trim() };

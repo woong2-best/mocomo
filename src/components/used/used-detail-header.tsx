@@ -7,13 +7,15 @@ import { ChevronLeft, MoreHorizontal, Trash2 } from "lucide-react";
 import { deleteUsedListing } from "@/actions/used-market";
 import { UsedListingHeartButton } from "@/components/used/used-listing-heart-button";
 import { UsedListingStarButton } from "@/components/used/used-listing-star-button";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 export function UsedDetailHeader({
   listingId,
   isSeller,
   initialFavorited = false,
   initialStarred = false,
-  heading = "상품",
+  heading,
 }: {
   listingId: string;
   isSeller: boolean;
@@ -21,6 +23,8 @@ export function UsedDetailHeader({
   initialStarred?: boolean;
   heading?: string;
 }) {
+  const { locale } = useLocale();
+  const resolvedHeading = heading ?? uiText(locale, "상품", "Listing");
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -35,10 +39,14 @@ export function UsedDetailHeader({
   return (
     <div className="border-b border-border/60 bg-card">
       <div className="flex items-center gap-2 px-2 py-2">
-        <Link href="/market" className="p-2 -ml-1 rounded-lg hover:bg-muted" aria-label="뒤로">
+        <Link
+          href="/market"
+          className="p-2 -ml-1 rounded-lg hover:bg-muted"
+          aria-label={uiText(locale, "뒤로", "Back")}
+        >
           <ChevronLeft className="h-6 w-6" />
         </Link>
-        <p className="min-w-0 flex-1 truncate text-xl font-extrabold">{heading}</p>
+        <p className="min-w-0 flex-1 truncate text-xl font-extrabold">{resolvedHeading}</p>
         <div className="flex items-center">
           <UsedListingStarButton listingId={listingId} initialStarred={initialStarred} />
           {!isSeller ? (
@@ -53,7 +61,7 @@ export function UsedDetailHeader({
                   setConfirmDelete(false);
                 }}
                 className="p-2 rounded-lg hover:bg-muted"
-                aria-label="더보기"
+                aria-label={uiText(locale, "더보기", "More")}
               >
                 <MoreHorizontal className="h-5 w-5" />
               </button>
@@ -62,7 +70,7 @@ export function UsedDetailHeader({
                   <button
                     type="button"
                     className="fixed inset-0 z-40"
-                    aria-label="닫기"
+                    aria-label={uiText(locale, "닫기", "Close")}
                     onClick={() => {
                       setMenuOpen(false);
                       setConfirmDelete(false);
@@ -76,18 +84,20 @@ export function UsedDetailHeader({
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted"
                       >
                         <Trash2 className="h-4 w-4" />
-                        글 삭제
+                        {uiText(locale, "글 삭제", "Delete listing")}
                       </button>
                     ) : (
                       <div className="px-3 py-2 space-y-2">
-                        <p className="text-xs text-muted-foreground">삭제할까요?</p>
+                        <p className="text-xs text-muted-foreground">
+                          {uiText(locale, "삭제할까요?", "Delete this listing?")}
+                        </p>
                         <div className="flex gap-2">
                           <button
                             type="button"
                             className="flex-1 rounded-lg border py-1.5 text-xs"
                             onClick={() => setConfirmDelete(false)}
                           >
-                            취소
+                            {uiText(locale, "취소", "Cancel")}
                           </button>
                           <button
                             type="button"
@@ -95,7 +105,7 @@ export function UsedDetailHeader({
                             className="flex-1 rounded-lg bg-destructive text-destructive-foreground py-1.5 text-xs font-medium"
                             onClick={() => void remove()}
                           >
-                            {deleting ? "…" : "삭제"}
+                            {deleting ? "…" : uiText(locale, "삭제", "Delete")}
                           </button>
                         </div>
                       </div>

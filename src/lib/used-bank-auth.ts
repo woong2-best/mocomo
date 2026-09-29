@@ -45,7 +45,7 @@ export function usedPhoneRequiredMsg(locale: Locale = "ko") {
   return "Mobile phone verification is required for the used marketplace.";
 }
 
-export function usedMarketVerificationRequiredMsg(countryCode: string, locale: Locale = "ko") {
+export function usedMarketVerificationRequiredMsg(countryCode: string, locale: Locale = "en") {
   if (isKoreaUsedMarketCountry(countryCode)) {
     return usedMarketBlockedRegionMsg(locale);
   }
@@ -53,7 +53,7 @@ export function usedMarketVerificationRequiredMsg(countryCode: string, locale: L
 }
 
 /** @deprecated */
-export function usedPhoneRequiredMsgLegacy(_countryCode: string, locale: Locale = "ko") {
+export function usedPhoneRequiredMsgLegacy(_countryCode: string, locale: Locale = "en") {
   return usedMarketVerificationRequiredMsg(_countryCode, locale);
 }
 

@@ -20,8 +20,10 @@ import { fetchAnimeList, type AnimeListItem } from "@/api/discovery";
 import {
   MOBILE_ANIME_GENRES,
   genreToApiParam,
+  mobileAnimeGenrePillLabel,
   type MobileAnimeGenreId,
 } from "@/features/anime/anime-genres";
+import { useI18n } from "@/i18n/I18nProvider";
 import { WikiCoverImage } from "@/features/anime/WikiCoverImage";
 import { useAuth } from "@/auth/AuthContext";
 import { Screen } from "@/ui/Screen";
@@ -56,6 +58,7 @@ const GRID_GAP = 14;
  * Culture Wiki — opaque fixed header + scrollable wood panel with framed posters.
  */
 export function AnimeListScreen() {
+  const { u, locale } = useI18n();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -105,14 +108,14 @@ export function AnimeListScreen() {
             hitSlop={12}
             style={styles.backHit}
             accessibilityRole="button"
-            accessibilityLabel="뒤로"
+            accessibilityLabel={u("뒤로", "Back")}
           >
             <Ionicons name="chevron-back" size={26} color={WIKI.text} />
           </Pressable>
           <View style={styles.searchRow}>
             <TextInput
               style={styles.input}
-              placeholder="작품 검색"
+              placeholder={u("작품 검색", "Search titles")}
               placeholderTextColor={WIKI.textMuted}
               value={q}
               onChangeText={setQ}
@@ -124,9 +127,9 @@ export function AnimeListScreen() {
               onPress={onSearch}
               style={({ pressed }) => [styles.searchBtn, pressed && { opacity: 0.88 }]}
               accessibilityRole="button"
-              accessibilityLabel="검색"
+              accessibilityLabel={u("검색", "Search")}
             >
-              <Text style={styles.searchBtnLabel}>검색</Text>
+              <Text style={styles.searchBtnLabel}>{u("검색", "Search")}</Text>
             </Pressable>
           </View>
         </View>
@@ -136,19 +139,19 @@ export function AnimeListScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryRow}
         >
-          <CategoryPlaque label="전체" active={genre === null} onPress={() => setGenre(null)} />
+          <CategoryPlaque label={u("전체", "All")} active={genre === null} onPress={() => setGenre(null)} />
           <Pressable
             onPress={onRegisterWork}
             style={({ pressed }) => [styles.addPlaque, pressed && { opacity: 0.88 }]}
             accessibilityRole="button"
-            accessibilityLabel="작품 등록"
+            accessibilityLabel={u("작품 등록", "Add title")}
           >
             <Ionicons name="add" size={20} color="#fff" />
           </Pressable>
           {MOBILE_ANIME_GENRES.map((g) => (
             <CategoryPlaque
               key={g.id}
-              label={g.label}
+              label={mobileAnimeGenrePillLabel(g, locale)}
               active={genre === g.id}
               onPress={() => setGenre(g.id)}
             />
@@ -187,9 +190,9 @@ export function AnimeListScreen() {
                   </View>
                 ) : query.isError && !query.data ? (
                   <View style={styles.centerState}>
-                    <Text style={styles.errorText}>목록을 불러오지 못했습니다.</Text>
+                    <Text style={styles.errorText}>{u("목록을 불러오지 못했습니다.", "Could not load the list.")}</Text>
                     <Pressable onPress={() => void query.refetch()} style={styles.retryBtn}>
-                      <Text style={styles.retryLabel}>다시 시도</Text>
+                      <Text style={styles.retryLabel}>{u("다시 시도", "Try again")}</Text>
                     </Pressable>
                   </View>
                 ) : posters.length > 0 ? (
@@ -205,7 +208,9 @@ export function AnimeListScreen() {
                   </View>
                 ) : (
                   <View style={styles.centerState}>
-                    <Text style={styles.emptyHint}>작품을 불러오면 여기에 포스터가 표시됩니다</Text>
+                    <Text style={styles.emptyHint}>
+                      {u("작품을 불러오면 여기에 포스터가 표시됩니다", "Posters appear here when titles load.")}
+                    </Text>
                   </View>
                 )}
               </View>

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
+import { useI18n } from "@/i18n/I18nProvider";
 import { spacing } from "@/theme/tokens";
 
 type TipPayload = {
@@ -33,6 +34,7 @@ export function LetterDonationCard({
   tipId: string;
   interactive?: boolean;
 }) {
+  const { u } = useI18n();
   const [tip, setTip] = useState<TipPayload | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
@@ -47,7 +49,7 @@ export function LetterDonationCard({
         if (!cancelled) setTip(data.tip);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "편지를 불러오지 못했습니다.");
+        if (!cancelled) setError(e instanceof Error ? e.message : u("편지를 불러오지 못했습니다.", "Could not load letter."));
       });
     return () => {
       cancelled = true;
@@ -81,12 +83,12 @@ export function LetterDonationCard({
       setTip(res.tip);
       setOpen(true);
       if (res.credited && res.mocoCredited) {
-        setCreditNote(`${formatMoco(res.mocoCredited)}를 받았습니다`);
+        setCreditNote(u(`${formatMoco(res.mocoCredited)}를 받았습니다`, `Received ${formatMoco(res.mocoCredited)}`));
       } else if (res.alreadyCredited && res.mocoCredited) {
-        setCreditNote(`${formatMoco(res.mocoCredited)} 수령 완료`);
+        setCreditNote(u(`${formatMoco(res.mocoCredited)} 수령 완료`, `${formatMoco(res.mocoCredited)} already claimed`));
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "편지를 열지 못했습니다.");
+      setError(e instanceof Error ? e.message : u("편지를 열지 못했습니다.", "Could not open letter."));
     } finally {
       setOpening(false);
     }
@@ -119,7 +121,9 @@ export function LetterDonationCard({
       </Pressable>
       {!open && interactive ? (
         <Text style={styles.hint}>
-          {opening ? "여는 중…" : "봉투를 눌러 편지를 열고 MOCO를 받으세요"}
+          {opening
+            ? u("여는 중…", "Opening…")
+            : u("봉투를 눌러 편지를 열고 MOCO를 받으세요", "Tap the envelope to open the letter and claim MOCO")}
         </Text>
       ) : null}
       {creditNote ? <Text style={styles.credit}>{creditNote}</Text> : null}

@@ -13,8 +13,10 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { formatUsd } from "@/lib/money";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export function SellerListingsScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -26,13 +28,13 @@ export function SellerListingsScreen() {
 
   return (
     <Screen>
-      <AppHeader title="내 STAR 판매" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={u("내 STAR 판매", "My STAR listings")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : query.isError ? (
         <View style={styles.center}>
-          <Text style={styles.error}>목록을 불러오지 못했습니다.</Text>
-          <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
+          <Text style={styles.error}>{u("목록을 불러오지 못했습니다.", "Could not load list.")}</Text>
+          <FolkButton label={t("toast.retry")} onPress={() => void query.refetch()} />
         </View>
       ) : (
         <FlatList
@@ -40,7 +42,7 @@ export function SellerListingsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 40, paddingTop: spacing.sm }}
           ListEmptyComponent={
-            <Text style={styles.muted}>판매 중인 STAR 상품이 없습니다. 등록은 웹에서 가능합니다.</Text>
+            <Text style={styles.muted}>{u("판매 중인 STAR 상품이 없습니다. 등록은 웹에서 가능합니다.", "No STAR listings yet. Add them on the web.")}</Text>
           }
           renderItem={({ item }) => (
             <Pressable
@@ -62,7 +64,7 @@ export function SellerListingsScreen() {
                 </Text>
                 <Text style={styles.price}>{formatUsd(item.priceAmount)}</Text>
                 <Text style={styles.sub}>
-                  {item.status} · 판매 {item.salesCount}
+                  {item.status} · {u("판매", "Sold")} {item.salesCount}
                 </Text>
               </View>
             </Pressable>

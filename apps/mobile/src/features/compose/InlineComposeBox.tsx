@@ -19,7 +19,7 @@ import { searchAll } from "@/api/social";
 import { useAuth } from "@/auth/AuthContext";
 import {
   DEFAULT_POLL_DURATION_MINUTES,
-  POLL_DURATION_OPTIONS,
+  getPollDurationOptions,
   type CollaboratorDraft,
   type LocalMediaDraft,
   type PollDraft,
@@ -49,6 +49,7 @@ import { FeedImageLightbox } from "@/features/feed/FeedImageLightbox";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast"
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   avatarUrl?: string | null;
@@ -131,8 +132,10 @@ export function InlineComposeBox({
   autoFocus = false,
   onPosted,
 }: Props) {
+  const { t, u, locale } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const pollDurationOptions = useMemo(() => getPollDurationOptions(locale), [locale]);
   const queryClient = useQueryClient();
   const inputRef = useRef<TextInput>(null);
   const collabAnchorRef = useRef<View>(null);
@@ -232,7 +235,7 @@ export function InlineComposeBox({
     const ImagePicker = await loadImagePicker();
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showIslandError("권한 필요", "사진·동영상 라이브러리 접근을 허용해 주세요.");
+      showIslandError(u("권한 필요", "Permission required"), u("사진·동영상 라이브러리 접근을 허용해 주세요.", "Allow access to your photo and video library."));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -245,13 +248,13 @@ export function InlineComposeBox({
     if (result.canceled) return;
     appendAssets(result.assets);
     focusInput();
-  }, [appendAssets, focusInput]);
+  }, [appendAssets, focusInput, u]);
 
   const takePhoto = useCallback(async () => {
     const ImagePicker = await loadImagePicker();
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      showIslandError("권한 필요", "카메라 접근을 허용해 주세요.");
+      showIslandError(u("권한 필요", "Permission required"), u("카메라 접근을 허용해 주세요.", "Allow camera access."));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -262,13 +265,13 @@ export function InlineComposeBox({
     if (result.canceled) return;
     appendAssets(result.assets);
     focusInput();
-  }, [appendAssets, focusInput]);
+  }, [appendAssets, focusInput, u]);
 
   const recordVideo = useCallback(async () => {
     const ImagePicker = await loadImagePicker();
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      showIslandError("권한 필요", "카메라 접근을 허용해 주세요.");
+      showIslandError(u("권한 필요", "Permission required"), u("카메라 접근을 허용해 주세요.", "Allow camera access."));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -280,7 +283,7 @@ export function InlineComposeBox({
     if (result.canceled) return;
     appendAssets(result.assets);
     focusInput();
-  }, [appendAssets, focusInput]);
+  }, [appendAssets, focusInput, u]);
 
   const togglePoll = useCallback(() => {
     setPoll((prev) =>
@@ -369,6 +372,7 @@ export function InlineComposeBox({
         collaborators,
         isNsfw: isNsfw || quotedSourceNsfw,
         quotedPostId,
+        locale,
       });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       reset();
@@ -388,8 +392,8 @@ export function InlineComposeBox({
           ? String((e.body as { error: string }).error)
           : e instanceof Error
             ? e.message
-            : "게시 실패";
-      showIslandError("오류", msg);
+            : u("게시 실패", "Post failed");
+      showIslandError(u("오류", "Error"), msg);
     } finally {
       setBusy(false);
     }
@@ -405,7 +409,9 @@ export function InlineComposeBox({
     queryClient,
     quotedPostId,
     quotedSourceNsfw,
+    locale,
     reset,
+    u,
   ]);
 
   return (
@@ -438,7 +444,7 @@ export function InlineComposeBox({
           disabled={!user?.username}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel="내 프로필"
+          accessibilityLabel={t("common.myProfile")}
           style={({ pressed }) => [styles.avatarHit, pressed && styles.avatarHitPressed]}
         >
           <FolkAvatar uri={avatarUrl} name={avatarLetter} size={40} framed={false} />
@@ -473,7 +479,7 @@ export function InlineComposeBox({
                 style={styles.mediaThumbHit}
                 onPress={() => setMediaLightbox({ open: true, index: itemIndex })}
                 accessibilityRole="button"
-                accessibilityLabel="미리보기"
+                accessibilityLabel={u("미리보기", "Preview")}
               >
                 <Image source={{ uri: item.uri }} style={styles.mediaThumb} contentFit="cover" />
               </Pressable>
@@ -487,7 +493,7 @@ export function InlineComposeBox({
                 onPress={() => setMedia((prev) => prev.filter((m) => m.id !== item.id))}
                 hitSlop={6}
                 accessibilityRole="button"
-                accessibilityLabel="첨부 삭제"
+                accessibilityLabel={u("첨부 삭제", "Remove attachment")}
               >
                 <Ionicons name="close" size={14} color="#fff" />
               </Pressable>
@@ -503,6 +509,7 @@ export function InlineComposeBox({
           onRemove={() => setPoll(null)}
           disabled={busy}
           colors={colors}
+          durationOptions={pollDurationOptions}
         />
       ) : null}
 
@@ -626,13 +633,16 @@ function PollEditor({
   onRemove,
   disabled,
   colors,
+  durationOptions,
 }: {
   value: PollDraft;
   onChange: (p: PollDraft) => void;
   onRemove: () => void;
   disabled?: boolean;
   colors: ThemeColors;
+  durationOptions: ReturnType<typeof getPollDurationOptions>;
 }) {
+  const { u } = useI18n();
   return (
     <View
       style={{
@@ -646,13 +656,13 @@ function PollEditor({
       }}
     >
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ fontWeight: "800", color: colors.text, fontSize: 14 }}>투표</Text>
+        <Text style={{ fontWeight: "800", color: colors.text, fontSize: 14 }}>{u("투표", "Poll")}</Text>
         <Pressable onPress={onRemove} hitSlop={8} disabled={disabled}>
-          <Text style={{ color: colors.textMuted, fontWeight: "700" }}>제거</Text>
+          <Text style={{ color: colors.textMuted, fontWeight: "700" }}>{u("제거", "Remove")}</Text>
         </Pressable>
       </View>
       <Text style={{ color: colors.textMuted, fontSize: 11 }}>
-        본문이 투표 질문이 됩니다 · 선택지 2~4개
+        {u("본문이 투표 질문이 됩니다 · 선택지 2~4개", "Post body becomes the question · 2–4 options")}
       </Text>
       {value.options.map((opt, i) => (
         <View key={i} style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
@@ -660,7 +670,7 @@ function PollEditor({
             value={opt}
             editable={!disabled}
             maxLength={50}
-            placeholder={`선택지 ${i + 1}`}
+            placeholder={u(`선택지 ${i + 1}`, `Option ${i + 1}`)}
             placeholderTextColor={colors.textMuted}
             onChangeText={(t) => {
               const options = [...value.options];
@@ -695,12 +705,12 @@ function PollEditor({
           disabled={disabled}
           onPress={() => onChange({ ...value, options: [...value.options, ""] })}
         >
-          <Text style={{ color: colors.terracotta, fontWeight: "800" }}>+ 선택지 추가</Text>
+          <Text style={{ color: colors.terracotta, fontWeight: "800" }}>{u("+ 선택지 추가", "+ Add option")}</Text>
         </Pressable>
       ) : null}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={{ flexDirection: "row", gap: 6 }}>
-          {POLL_DURATION_OPTIONS.map((d) => {
+          {durationOptions.map((d) => {
             const active = value.durationMinutes === d.minutes;
             return (
               <Pressable
@@ -749,6 +759,7 @@ function CollaboratorModal({
   onClose: () => void;
   onChange: (next: CollaboratorDraft[]) => void;
 }) {
+  const { t, u } = useI18n();
   const { colors } = useTheme();
   const popupStyles = useMemo(() => createCollabPopupStyles(colors), [colors]);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -832,15 +843,15 @@ function CollaboratorModal({
             ]}
           >
             <View style={popupStyles.header}>
-              <Text style={popupStyles.title}>공동 제작자</Text>
+              <Text style={popupStyles.title}>{u("공동 제작자", "Co-creators")}</Text>
               <Pressable onPress={onClose} hitSlop={8}>
-                <Text style={popupStyles.done}>완료</Text>
+                <Text style={popupStyles.done}>{t("common.done")}</Text>
               </Pressable>
             </View>
             <TextInput
               value={q}
               onChangeText={setQ}
-              placeholder="사용자 검색"
+              placeholder={t("compose.collabSearch")}
               placeholderTextColor={colors.textMuted}
               autoFocus
               style={popupStyles.input}
@@ -849,36 +860,36 @@ function CollaboratorModal({
               <ActivityIndicator color={colors.terracotta} style={{ marginVertical: 8 }} />
             ) : null}
             <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: popupMaxHeight - 100 }}>
-              {results.map((u) => {
-                const picked = selectedIds.has(u.id);
+              {results.map((person) => {
+                const picked = selectedIds.has(person.id);
                 return (
                   <Pressable
-                    key={u.id}
+                    key={person.id}
                     style={[popupStyles.row, picked && { opacity: 0.55 }]}
                     onPress={() => {
                       if (picked) {
-                        onChange(selected.filter((s) => s.id !== u.id));
+                        onChange(selected.filter((s) => s.id !== person.id));
                         return;
                       }
                       if (selected.length >= 5) {
-                        showIslandError("제한", "공동 제작자는 최대 5명까지입니다.");
+                        showIslandError(u("제한", "Limit"), t("compose.collabMax"));
                         return;
                       }
-                      onChange([...selected, u]);
+                      onChange([...selected, person]);
                     }}
                   >
-                    {u.image ? (
-                      <Image source={{ uri: u.image }} style={popupStyles.avatar} />
+                    {person.image ? (
+                      <Image source={{ uri: person.image }} style={popupStyles.avatar} />
                     ) : (
                       <View style={popupStyles.avatarFallback}>
                         <Text style={popupStyles.avatarLetter}>
-                          {(u.name || u.username).slice(0, 1).toUpperCase()}
+                          {(person.name || person.username).slice(0, 1).toUpperCase()}
                         </Text>
                       </View>
                     )}
                     <View style={{ flex: 1 }}>
-                      <Text style={popupStyles.name}>{u.name || u.username}</Text>
-                      <Text style={popupStyles.username}>@{u.username}</Text>
+                      <Text style={popupStyles.name}>{person.name || person.username}</Text>
+                      <Text style={popupStyles.username}>@{person.username}</Text>
                     </View>
                     <Ionicons
                       name={picked ? "checkmark-circle" : "add-circle-outline"}

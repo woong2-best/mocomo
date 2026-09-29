@@ -1,14 +1,11 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
-import type { RootStackParamList } from "@/navigation/types";
 import type { MarketListingFilterId } from "@/lib/market-brand";
-
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Slide = {
   id: string;
@@ -21,44 +18,71 @@ type Slide = {
   panelBg: string;
 };
 
-const SLIDES: Slide[] = [
-  {
-    id: "custom",
-    eyebrow: "주문제작 OPEN",
-    title: "코스프레·소품\n맞춤 제작",
-    subtitle: "제작 일수·견적을 확인하고 크리에이터에게 바로 주문하세요.",
-    cta: "주문제작 둘러보기",
-    filter: "CUSTOM_ORDER",
-    panelBg: "#F3E8D8",
-  },
-  {
-    id: "preorder",
-    eyebrow: "예약판매",
-    title: "한정 굿즈\n미리 확보",
-    subtitle: "예약 오픈 상품을 먼저 잡고, 발송 일정을 추적하세요.",
-    cta: "예약판매 보기",
-    filter: "PREORDER",
-    panelBg: "#EDE6DA",
-  },
-  {
-    id: "physical",
-    eyebrow: "일반 판매",
-    title: "굿즈·피규어\n실물 상품",
-    subtitle: "재고 기반 실물 상품을 등록하고 전 세계에 판매하세요.",
-    cta: "일반 상품 보기",
-    filter: "PHYSICAL",
-    panelBg: "#E8EEF8",
-  },
-  {
-    id: "seller",
-    eyebrow: "판매자 온보딩",
-    title: `글로벌 ${MARKET_BRAND_NAME}\n판매 시작`,
-    subtitle: "계좌·사업자·Stripe 경로로 판매자 등록을 완료하세요.",
-    cta: "판매자 등록",
-    action: "sell",
-    panelBg: "#E8EFE6",
-  },
-];
+function buildSlides(u: (ko: string, en: string) => string): Slide[] {
+  return [
+    {
+      id: "custom",
+      eyebrow: u("주문제작 OPEN", "Custom orders OPEN"),
+      title: u("코스프레·소품\n맞춤 제작", "Cosplay & props\ncustom made"),
+      subtitle: u(
+        "제작 일수·견적을 확인하고 크리에이터에게 바로 주문하세요.",
+        "Check lead time and quotes, then order from the creator."
+      ),
+      cta: u("주문제작 둘러보기", "Browse custom orders"),
+      filter: "CUSTOM_ORDER",
+      panelBg: "#F3E8D8",
+    },
+    {
+      id: "preorder",
+      eyebrow: u("예약판매", "Pre-order"),
+      title: u("한정 굿즈\n미리 확보", "Limited goods\nreserve early"),
+      subtitle: u(
+        "예약 오픈 상품을 먼저 잡고, 발송 일정을 추적하세요.",
+        "Grab pre-order drops first and track ship dates."
+      ),
+      cta: u("예약판매 보기", "View pre-orders"),
+      filter: "PREORDER",
+      panelBg: "#EDE6DA",
+    },
+    {
+      id: "physical",
+      eyebrow: u("일반 판매", "In stock"),
+      title: u("굿즈·피규어\n실물 상품", "Goods & figures\nphysical items"),
+      subtitle: u(
+        "재고 기반 실물 상품을 등록하고 전 세계에 판매하세요.",
+        "List in-stock items and sell worldwide."
+      ),
+      cta: u("일반 상품 보기", "Browse physical items"),
+      filter: "PHYSICAL",
+      panelBg: "#E8EEF8",
+    },
+    {
+      id: "seller",
+      eyebrow: u("판매자 온보딩", "Seller onboarding"),
+      title: u(`글로벌 ${MARKET_BRAND_NAME}\n판매 시작`, `Go global with ${MARKET_BRAND_NAME}\nStart selling`),
+      subtitle: u(
+        "계좌·사업자·Stripe 경로로 판매자 등록을 완료하세요.",
+        "Finish seller signup with bank, business, and Stripe."
+      ),
+      cta: u("판매자 등록", "Register as seller"),
+      action: "sell",
+      panelBg: "#E8EFE6",
+    },
+  ];
+}
+
+function tabLabelFor(id: string, u: (ko: string, en: string) => string): string {
+  switch (id) {
+    case "custom":
+      return u("주문제작", "Custom");
+    case "preorder":
+      return u("예약판매", "Pre-order");
+    case "physical":
+      return u("일반 판매", "In stock");
+    default:
+      return u("판매 시작", "Start selling");
+  }
+}
 
 type Props = {
   onFilter: (filter: MarketListingFilterId) => void;
@@ -66,10 +90,12 @@ type Props = {
 };
 
 export function MarketHeroShowcase({ onFilter, onSellRegister }: Props) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const slides = useMemo(() => buildSlides(u), [u]);
   const [active, setActive] = useState(0);
-  const slide = SLIDES[active] ?? SLIDES[0];
+  const slide = slides[active] ?? slides[0];
 
   function onCta() {
     if (slide.action === "sell") {
@@ -100,7 +126,7 @@ export function MarketHeroShowcase({ onFilter, onSellRegister }: Props) {
         style={styles.tabs}
         contentContainerStyle={styles.tabsInner}
       >
-        {SLIDES.map((s, i) => {
+        {slides.map((s, i) => {
           const selected = i === active;
           return (
             <Pressable
@@ -109,13 +135,7 @@ export function MarketHeroShowcase({ onFilter, onSellRegister }: Props) {
               style={[styles.tab, selected && styles.tabActive]}
             >
               <Text style={[styles.tabLabel, selected && styles.tabLabelActive]}>
-                {s.id === "custom"
-                  ? "주문제작"
-                  : s.id === "preorder"
-                    ? "예약판매"
-                    : s.id === "physical"
-                      ? "일반 판매"
-                      : "판매 시작"}
+                {tabLabelFor(s.id, u)}
               </Text>
               <Text style={styles.tabSub} numberOfLines={1}>
                 {s.eyebrow}

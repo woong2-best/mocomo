@@ -35,6 +35,8 @@ import { useTheme } from "@/theme/ThemeContext";
 import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
+import { communityUi } from "@/features/community/community-ui";
 
 function apiErrorMessage(err: unknown, fallback: string) {
   if (
@@ -61,6 +63,8 @@ async function uploadPickedImage(asset: ImagePicker.ImagePickerAsset) {
 }
 
 export function CommunityDetailScreen() {
+  const { u, locale } = useI18n();
+  const copy = useMemo(() => communityUi(u), [u]);
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
@@ -81,7 +85,7 @@ export function CommunityDetailScreen() {
   });
   const item = query.data?.item;
   const meta = item
-    ? resolveCommunityCategoryDisplay(item.category, item.customCategoryLabel)
+    ? resolveCommunityCategoryDisplay(item.category, item.customCategoryLabel, locale)
     : null;
 
   useEffect(() => {
@@ -98,20 +102,20 @@ export function CommunityDetailScreen() {
         item?.hasJoinPassword ? joinPassword : undefined
       ),
     onSuccess: async (res) => {
-      if (res.pending) setJoinMsg(res.message ?? "가입 요청이 접수되었습니다.");
-      else setJoinMsg("가입되었습니다.");
+      if (res.pending) setJoinMsg(res.message ?? copy.joinPending);
+      else setJoinMsg(copy.joined);
       setJoinPassword("");
       await queryClient.invalidateQueries({
         queryKey: ["mobile-community", route.params.slug],
       });
     },
-    onError: (err) => setJoinMsg(apiErrorMessage(err, "가입에 실패했습니다.")),
+    onError: (err) => setJoinMsg(apiErrorMessage(err, copy.joinFail)),
   });
 
   const pickAndUpload = async (kind: "icon" | "banner") => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showIslandError("권한 필요", "사진 접근 권한이 필요합니다.");
+      showIslandError(copy.permTitle, copy.photoPerm);
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -134,10 +138,10 @@ export function CommunityDetailScreen() {
       await queryClient.invalidateQueries({ queryKey: ["mobile-community"] });
       showIslandToast(
         "Saved",
-        kind === "icon" ? "대표 이미지를 변경했습니다." : "배너를 변경했습니다."
+        kind === "icon" ? copy.iconUpdated : copy.bannerUpdated
       );
     } catch (err) {
-      showIslandError("업로드 실패", err instanceof Error ? err.message : "이미지 변경에 실패했습니다.");
+      showIslandError(copy.uploadFailTitle, err instanceof Error ? err.message : copy.imageChangeFail);
     } finally {
       setUploadingKind(null);
     }
@@ -145,11 +149,11 @@ export function CommunityDetailScreen() {
 
   return (
     <Screen>
-      <AppHeader title="QnA" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={copy.qna} leftLabel={copy.back} onLeftPress={() => navigation.goBack()} />
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color="#c80000" />
       ) : query.isError || !item ? (
-        <Text style={styles.error}>QnA를 불러오지 못했습니다.</Text>
+        <Text style={styles.error}>{copy.loadQnaError}</Text>
       ) : (
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -178,7 +182,7 @@ export function CommunityDetailScreen() {
             ) : (
               <View style={[styles.banner, styles.bannerEmpty]}>
                 <Text style={styles.bannerEmptyText}>
-                  {item.canEditBanner ? "탭해서 배너 설정" : meta?.emoji ?? "🏠"}
+                  {item.canEditBanner ? copy.tapSetBanner : meta?.emoji ?? "🏠"}
                 </Text>
               </View>
             )}
@@ -186,7 +190,7 @@ export function CommunityDetailScreen() {
               <View style={styles.bannerEditBadge}>
                 <Ionicons name="camera-outline" size={14} color="#fff" />
                 <Text style={styles.bannerEditText}>
-                  {uploadingKind === "banner" ? "업로드 중…" : "배너"}
+                  {uploadingKind === "banner" ? copy.uploading : copy.banner}
                 </Text>
               </View>
             ) : null}
@@ -226,7 +230,7 @@ export function CommunityDetailScreen() {
                 <Text style={styles.sub}>
                   {`${meta?.emoji ?? ""} ${meta?.label ?? ""}`.trim()}
                   {" · "}
-                  {item.memberCount.toLocaleString("ko-KR")}명
+                  {copy.members(item.memberCount, locale)}
                   {item.isNsfw ? " · NSFW" : ""}
                 </Text>
               </View>
@@ -236,10 +240,8 @@ export function CommunityDetailScreen() {
 
             {(item.canEditIcon || item.canEditBanner) && (
               <View style={styles.brandingCard}>
-                <Text style={styles.brandingTitle}>대표 이미지 / 배너</Text>
-                <Text style={styles.brandingHint}>
-                  권한이 있는 멤버만 변경할 수 있습니다. 이미지를 탭하거나 아래 버튼을 사용하세요.
-                </Text>
+                <Text style={styles.brandingTitle}>{copy.brandingTitle}</Text>
+                <Text style={styles.brandingHint}>{copy.brandingHint}</Text>
                 <View style={styles.brandingActions}>
                   {item.canEditIcon ? (
                     <Pressable
@@ -247,7 +249,7 @@ export function CommunityDetailScreen() {
                       disabled={uploadingKind !== null}
                       onPress={() => void pickAndUpload("icon")}
                     >
-                      <Text style={styles.brandingBtnText}>대표 이미지</Text>
+                      <Text style={styles.brandingBtnText}>{copy.icon}</Text>
                     </Pressable>
                   ) : null}
                   {item.canEditBanner ? (
@@ -256,7 +258,7 @@ export function CommunityDetailScreen() {
                       disabled={uploadingKind !== null}
                       onPress={() => void pickAndUpload("banner")}
                     >
-                      <Text style={styles.brandingBtnText}>배너</Text>
+                      <Text style={styles.brandingBtnText}>{copy.banner}</Text>
                     </Pressable>
                   ) : null}
                 </View>
@@ -275,7 +277,7 @@ export function CommunityDetailScreen() {
                     keyboardType="number-pad"
                     maxLength={4}
                     secureTextEntry
-                    placeholder="가입 비밀번호 4자리"
+                    placeholder={copy.joinPasswordPh}
                     placeholderTextColor={colors.textMuted}
                   />
                 ) : null}
@@ -293,7 +295,7 @@ export function CommunityDetailScreen() {
                   onPress={() => join.mutate()}
                 >
                   <Text style={styles.btnText}>
-                    {item.joinMode === "APPROVE" ? "가입 요청" : "가입하기"}
+                    {item.joinMode === "APPROVE" ? copy.joinRequest : copy.join}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -303,13 +305,13 @@ export function CommunityDetailScreen() {
                   }
                 >
                   <Ionicons name="arrow-forward-circle-outline" size={18} color="#c80000" />
-                  <Text style={styles.enterBtnOutlineText}>갤러리 들어가기</Text>
+                  <Text style={styles.enterBtnOutlineText}>{copy.enterGallery}</Text>
                 </Pressable>
               </>
             ) : (
               <>
                 <Text style={styles.joined}>
-                  가입됨{item.role ? ` · ${item.role}` : ""}
+                  {copy.joinedLabel}{item.role ? ` · ${item.role}` : ""}
                   {item.isOwner ? " · owner" : ""}
                 </Text>
                 <Pressable
@@ -319,15 +321,15 @@ export function CommunityDetailScreen() {
                   }
                 >
                   <Ionicons name="arrow-forward-circle-outline" size={18} color="#fff" />
-                  <Text style={styles.enterBtnText}>갤러리 들어가기</Text>
+                  <Text style={styles.enterBtnText}>{copy.enterGallery}</Text>
                 </Pressable>
               </>
             )}
             {joinMsg ? <Text style={styles.note}>{joinMsg}</Text> : null}
 
-            <Text style={styles.section}>최근 글</Text>
+            <Text style={styles.section}>{copy.recentPosts}</Text>
             {item.posts.length === 0 ? (
-              <Text style={styles.muted}>아직 글이 없습니다.</Text>
+              <Text style={styles.muted}>{copy.noPostsYet}</Text>
             ) : (
               item.posts.map((p) => (
                 <Pressable

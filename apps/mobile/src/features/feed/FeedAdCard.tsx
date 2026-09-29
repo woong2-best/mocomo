@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export type FeedAd = {
   id: string;
@@ -22,6 +23,7 @@ function sponsorHandle(name: string | null | undefined): string {
 }
 
 function FeedAdCardInner({ ad }: { ad: FeedAd }) {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const sponsor = ad.sponsorName?.trim() || "MoCoMo";
@@ -49,7 +51,7 @@ function FeedAdCardInner({ ad }: { ad: FeedAd }) {
             </Text>
           </View>
         </View>
-        <Text style={styles.adLabel}>{ad.adCategory || "광고"}</Text>
+        <Text style={styles.adLabel}>{ad.adCategory || u("광고", "Ad")}</Text>
       </View>
 
       <Text style={styles.title}>{ad.title}</Text>
@@ -69,7 +71,7 @@ function FeedAdCardInner({ ad }: { ad: FeedAd }) {
           <Ionicons name="stats-chart-outline" size={18} color={colors.textMuted} />
         </View>
         <View style={styles.actionGroup}>
-          <Text style={styles.cta}>{ad.ctaLabel || "자세히 보기"}</Text>
+          <Text style={styles.cta}>{ad.ctaLabel || u("자세히 보기", "Learn more")}</Text>
           <Ionicons name="bookmark-outline" size={18} color={colors.textMuted} />
           <Ionicons name="share-outline" size={18} color={colors.textMuted} />
         </View>

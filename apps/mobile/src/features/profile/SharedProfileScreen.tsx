@@ -41,6 +41,7 @@ import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   username: string;
@@ -97,6 +98,7 @@ function filterByTab(posts: FeedPost[], tab: ProfileTabId): FeedPost[] {
 export function SharedProfileScreen({ username, showBack = true, preview, self = false }: Props) {
   const handle = username.trim();
   const insets = useSafeAreaInsets();
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -180,12 +182,12 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
   }, [pinnedPost, query.data?.posts, sort, tab]);
 
   const emptyMessage = useMemo(() => {
-    if (tab === "replies") return "답글 탭은 곧 지원됩니다.";
-    if (tab === "wiki") return "위키 기여가 없습니다.";
-    if (tab === "likes") return "좋아요한 게시물이 없습니다.";
-    if (tab === "media") return "미디어가 없습니다.";
-    return "아직 게시물이 없습니다.";
-  }, [tab]);
+    if (tab === "replies") return u("답글 탭은 곧 지원됩니다.", "Replies tab coming soon.");
+    if (tab === "wiki") return u("위키 기여가 없습니다.", "No wiki contributions yet.");
+    if (tab === "likes") return u("좋아요한 게시물이 없습니다.", "No liked posts yet.");
+    if (tab === "media") return u("미디어가 없습니다.", "No media yet.");
+    return u("아직 게시물이 없습니다.", "No posts yet.");
+  }, [tab, u]);
 
   const renderItem = useCallback(
     ({ item }: { item: FeedPost }) => (
@@ -262,7 +264,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                     hitSlop={10}
                     style={styles.iconBtn}
                     accessibilityRole="button"
-                    accessibilityLabel="일정 · 메모 달력"
+                    accessibilityLabel={u("일정 · 메모 달력", "Schedule and memo calendar")}
                   >
                     <Ionicons name="calendar-outline" size={22} color={colors.brand} />
                   </Pressable>
@@ -272,7 +274,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                     hitSlop={10}
                     style={styles.moreBtn}
                     accessibilityRole="button"
-                    accessibilityLabel="프로필 옵션"
+                    accessibilityLabel={u("프로필 옵션", "Profile options")}
                   >
                     <Ionicons name="ellipsis-horizontal" size={18} color={colors.text} />
                   </Pressable>
@@ -357,7 +359,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
               {query.isFetching ? (
                 <ActivityIndicator color={colors.terracotta} />
               ) : (
-                <Text style={styles.error}>프로필을 불러오지 못했습니다. 탭하여 다시 시도</Text>
+                <Text style={styles.error}>{u("프로필을 불러오지 못했습니다. 탭하여 다시 시도", "Could not load profile. Tap to retry")}</Text>
               )}
             </Pressable>
           ) : (

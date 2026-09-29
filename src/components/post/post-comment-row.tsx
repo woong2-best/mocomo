@@ -16,6 +16,8 @@ import { submitContentReport } from "@/actions/report";
 import { blockUserAction } from "@/actions/user-relationship";
 import type { SupportTierLevel } from "@prisma/client";
 import { cn, formatNumber } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 export type PostCommentRowData = {
   id: string;
@@ -53,6 +55,7 @@ export function PostCommentRow({
   isReply?: boolean;
   onLikeChange?: (commentId: string, liked: boolean, likeCount: number) => void;
 }) {
+  const { locale, t } = useLocale();
   const session = useSession();
   const viewerId = session.data?.user?.id ?? null;
   const [liked, setLiked] = useState(comment.likedByMe);
@@ -87,7 +90,7 @@ export function PostCommentRow({
         liked?: boolean;
         error?: string;
       };
-      if (!res.ok) throw new Error(body.error || "실패");
+      if (!res.ok) throw new Error(body.error || uiText(locale, "실패", "Failed"));
       const finalLiked = !!body.liked;
       const finalCount =
         typeof body.likeCount === "number" ? body.likeCount : optimisticCount;
@@ -121,13 +124,20 @@ export function PostCommentRow({
       postId,
       commentId: comment.id,
     });
-    window.alert(res.error ?? "신고가 접수되었습니다.");
+    window.alert(
+      res.error ?? uiText(locale, "신고가 접수되었습니다.", "Report submitted.")
+    );
   }
 
   async function block() {
-    if (!window.confirm(`@${comment.author.username} 님을 차단할까요?`)) return;
+    if (
+      !window.confirm(
+        uiText(locale, `@${comment.author.username} 님을 차단할까요?`, `Block @${comment.author.username}?`)
+      )
+    )
+      return;
     const res = await blockUserAction(comment.author.id, comment.author.username);
-    window.alert(res.error ?? "차단되었습니다.");
+    window.alert(res.error ?? uiText(locale, "차단되었습니다.", "User blocked."));
   }
 
   return (
@@ -148,7 +158,7 @@ export function PostCommentRow({
         />
         {likeCount > 0 ? (
           <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
-            좋아요 {formatNumber(likeCount)}개
+            {uiText(locale, `좋아요 ${formatNumber(likeCount)}개`, `${formatNumber(likeCount)} likes`)}
           </p>
         ) : null}
       </div>
@@ -159,18 +169,22 @@ export function PostCommentRow({
               <button
                 type="button"
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label="댓글 메뉴"
+                aria-label={uiText(locale, "댓글 메뉴", "Comment menu")}
               >
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[10rem]">
-              <DropdownMenuItem onClick={() => void copyLink()}>링크 복사</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void copyLink()}>{t("toast.copyLink")}</DropdownMenuItem>
               {!isMine ? (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => void report()}>신고</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void block()}>차단</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void report()}>
+                    {uiText(locale, "신고", "Report")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void block()}>
+                    {uiText(locale, "차단", "Block")}
+                  </DropdownMenuItem>
                 </>
               ) : null}
             </DropdownMenuContent>
@@ -183,7 +197,11 @@ export function PostCommentRow({
             liked && "text-folk-terracotta",
             !viewerId && "opacity-50"
           )}
-          aria-label={liked ? "좋아요 취소" : "좋아요"}
+          aria-label={
+            liked
+              ? uiText(locale, "좋아요 취소", "Unlike")
+              : uiText(locale, "좋아요", "Like")
+          }
           aria-pressed={liked}
           disabled={!viewerId || likeBusy}
           onClick={() => void toggleLike()}

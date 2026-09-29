@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
 import {
@@ -16,17 +17,18 @@ type Props = {
 };
 
 export function WatermarkToggleRow({ value, onChange, disabled, creditLabel }: Props) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>워터마크</Text>
+      <Text style={styles.label}>{u("워터마크", "Watermark")}</Text>
       <View style={styles.row}>
         <ToggleChip
           active={value.diagonal}
           disabled={disabled}
-          label="사선"
+          label={u("사선", "Diagonal")}
           icon="grid-outline"
           onPress={() => onChange({ ...value, diagonal: !value.diagonal })}
           colors={colors}
@@ -34,7 +36,7 @@ export function WatermarkToggleRow({ value, onChange, disabled, creditLabel }: P
         <ToggleChip
           active={value.corner}
           disabled={disabled}
-          label="하단"
+          label={u("하단", "Bottom")}
           icon="bookmark-outline"
           onPress={() => onChange({ ...value, corner: !value.corner })}
           colors={colors}
@@ -45,7 +47,7 @@ export function WatermarkToggleRow({ value, onChange, disabled, creditLabel }: P
             onPress={() => onChange({ diagonal: true, corner: true })}
             hitSlop={6}
           >
-            <Text style={styles.reset}>기본 켜기</Text>
+            <Text style={styles.reset}>{u("기본 켜기", "Reset to on")}</Text>
           </Pressable>
         ) : (
           <Pressable
@@ -53,13 +55,13 @@ export function WatermarkToggleRow({ value, onChange, disabled, creditLabel }: P
             onPress={() => onChange(EMPTY_WATERMARK_OPTIONS)}
             hitSlop={6}
           >
-            <Text style={styles.reset}>끄기</Text>
+            <Text style={styles.reset}>{u("끄기", "Turn off")}</Text>
           </Pressable>
         )}
       </View>
       {creditLabel ? (
         <Text style={styles.preview} numberOfLines={1}>
-          미리보기: {creditLabel}
+          {u("미리보기:", "Preview:")} {creditLabel}
         </Text>
       ) : null}
     </View>

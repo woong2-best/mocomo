@@ -27,6 +27,7 @@ import { API_BASE_URL } from "@/config/env";
 import { DrawerSubcultureMapCard } from "@/navigation/DrawerSubcultureMapCard";
 import { prefetchDrawerRoute, warmDrawerBundles } from "@/navigation/tab-warmup";
 import type { DrawerRoute } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { FOLK_EXPLORE_ACCENT, radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -45,7 +46,7 @@ type Props = {
 type ExploreItem =
   | {
       route: DrawerRoute;
-      label: string;
+      labelKey: string;
       icon: keyof typeof Ionicons.glyphMap;
       accent?: boolean;
     }
@@ -57,13 +58,13 @@ type ExploreItem =
     };
 
 const EXPLORE: ExploreItem[] = [
-  { route: "LiveList", label: "라이브", icon: "radio-outline", accent: true },
-  { route: "Used", label: "마켓", icon: "cart-outline", accent: true },
-  { route: "StarList", label: "STAR", icon: "star-outline" },
-  { route: "CommunityList", label: "QnA", icon: "people-outline" },
-  { route: "AnimeList", label: "컬쳐 위키", icon: "book-outline" },
+  { route: "LiveList", labelKey: "nav.live", icon: "radio-outline", accent: true },
+  { route: "Used", labelKey: "nav.market", icon: "cart-outline", accent: true },
+  { route: "StarList", labelKey: "nav.star", icon: "star-outline" },
+  { route: "CommunityList", labelKey: "nav.communities", icon: "people-outline" },
+  { route: "AnimeList", labelKey: "nav.anime", icon: "book-outline" },
   { externalUrl: AD_REGISTER_URL, label: "Ad", icon: "megaphone-outline", accent: true },
-  { route: "Wallet", label: "지갑", icon: "wallet-outline" },
+  { route: "Wallet", labelKey: "nav.wallet", icon: "wallet-outline" },
 ];
 
 const OPEN_MS = 280;
@@ -116,6 +117,7 @@ function DrawerRow({
 }
 
 export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: Props) {
+  const { t, u } = useI18n();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const panelWidth = Math.min(Math.round(screenW * 0.86), 360);
@@ -318,7 +320,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                   onPress={() => go("ProfileEdit")}
                   hitSlop={8}
                   accessibilityRole="button"
-                  accessibilityLabel="프로필 수정"
+                  accessibilityLabel={t("settings.editProfile")}
                 >
                   <Ionicons name="pencil" size={16} color="#fff" />
                 </Pressable>
@@ -331,7 +333,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                   onPress={() => go("Settings")}
                   hitSlop={8}
                   accessibilityRole="button"
-                  accessibilityLabel="설정"
+                  accessibilityLabel={t("nav.settings")}
                 >
                   <Ionicons name="settings-outline" size={16} color="#fff" />
                 </Pressable>
@@ -345,7 +347,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                       setAccountSheetOpen(true);
                     }}
                     accessibilityRole="button"
-                    accessibilityLabel="계정 전환"
+                    accessibilityLabel={u("계정 전환", "Switch account")}
                   >
                     <FolkAvatar
                       uri={user?.image}
@@ -370,10 +372,14 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                   }}
                   hitSlop={4}
                   accessibilityRole="button"
-                  accessibilityLabel={`팔로잉 ${user?.counts?.following ?? 0}명`}
+                  accessibilityLabel={u(
+                    `팔로잉 ${user?.counts?.following ?? 0}명`,
+                    `Following ${user?.counts?.following ?? 0}`
+                  )}
                 >
                   <Text style={styles.stat}>
-                    <Text style={styles.statNum}>{user?.counts?.following ?? 0}</Text> 팔로잉
+                    <Text style={styles.statNum}>{user?.counts?.following ?? 0}</Text>{" "}
+                    {u("팔로잉", "Following")}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -383,17 +389,21 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                   }}
                   hitSlop={4}
                   accessibilityRole="button"
-                  accessibilityLabel={`팔로워 ${user?.counts?.followers ?? 0}명`}
+                  accessibilityLabel={u(
+                    `팔로워 ${user?.counts?.followers ?? 0}명`,
+                    `Followers ${user?.counts?.followers ?? 0}`
+                  )}
                 >
                   <Text style={styles.stat}>
-                    <Text style={styles.statNum}>{user?.counts?.followers ?? 0}</Text> 팔로워
+                    <Text style={styles.statNum}>{user?.counts?.followers ?? 0}</Text>{" "}
+                    {u("팔로워", "Followers")}
                   </Text>
                 </Pressable>
               </View>
             </View>
 
             <View style={styles.menuBlock}>
-              <Text style={styles.sectionTitle}>Explore</Text>
+              <Text style={styles.sectionTitle}>{t("nav.explore")}</Text>
               {EXPLORE.map((item) =>
                 "externalUrl" in item ? (
                   <DrawerRow
@@ -413,7 +423,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                 ) : (
                   <DrawerRow
                     key={item.route}
-                    label={item.label}
+                    label={t(item.labelKey)}
                     icon={item.icon}
                     iconColor={item.accent ? FOLK_EXPLORE_ACCENT : rowIcon}
                     labelColor={item.accent ? FOLK_EXPLORE_ACCENT : rowLabel}
@@ -440,7 +450,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
           style={[styles.marginDismiss, { left: panelWidth }]}
           onPress={handleDrawerClose}
           accessibilityRole="button"
-          accessibilityLabel="메뉴 닫기"
+          accessibilityLabel={u("메뉴 닫기", "Close menu")}
         />
       </View>
     </Modal>

@@ -6,12 +6,14 @@ import { useAuth } from "@/auth/AuthContext";
 import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
 import { promptMarketSellerWebFlow } from "@/lib/open-market-seller-web";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
 /** 레거시 라우트 — 판매자 온보딩은 웹 전용. 진입 시 브라우저로 바로 연다. */
 export function SellerRegisterScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -27,10 +29,10 @@ export function SellerRegisterScreen() {
 
   return (
     <Screen>
-      <AppHeader title="판매자 등록" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={u("판매자 등록", "Seller registration")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       <View style={styles.center}>
         <ActivityIndicator color={colors.terracotta} />
-        <Text style={styles.text}>웹 판매자 등록 페이지를 여는 중…</Text>
+        <Text style={styles.text}>{u("웹 판매자 등록 페이지를 여는 중…", "Opening seller registration in browser…")}</Text>
       </View>
     </Screen>
   );

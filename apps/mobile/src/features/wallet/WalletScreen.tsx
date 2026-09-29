@@ -34,24 +34,36 @@ import {
   ledgerCentsToMoco,
 } from "@/lib/wallet-moco-display";
 import { ReceivedTipsPanel } from "@/features/wallet/ReceivedTipsPanel";
+import { useI18n } from "@/i18n/I18nProvider";
+import type { UsedUiText } from "@/features/marketplace/used-catalog";
 
 type Tab = "wallet" | "earnings" | "transfer" | "tier";
 
-const TAB_ITEMS: { id: Tab; label: string }[] = [
-  { id: "wallet", label: "지갑" },
-  { id: "earnings", label: "수익" },
-  { id: "transfer", label: "전달" },
-  { id: "tier", label: "등급" },
-];
-
-const LEDGER_LABELS: Record<string, string> = {
-  SELLER_EARNING: "수익 적립",
-  PAYOUT_REQUEST: "출금",
-  PAYOUT_REJECTED: "출금 반려 환급",
-};
+function ledgerLabel(type: string, u: UsedUiText): string {
+  switch (type) {
+    case "SELLER_EARNING":
+      return u("수익 적립", "Earnings");
+    case "PAYOUT_REQUEST":
+      return u("출금", "Payout");
+    case "PAYOUT_REJECTED":
+      return u("출금 반려 환급", "Payout reversal");
+    default:
+      return type;
+  }
+}
 
 export function WalletScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
+  const tabItems = useMemo(
+    (): { id: Tab; label: string }[] => [
+      { id: "wallet", label: u("지갑", "Wallet") },
+      { id: "earnings", label: u("수익", "Earnings") },
+      { id: "transfer", label: u("전달", "Send") },
+      { id: "tier", label: u("등급", "Tier") },
+    ],
+    [u]
+  );
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "Wallet">>();
@@ -110,14 +122,14 @@ export function WalletScreen() {
           hitSlop={12}
           style={styles.backHit}
           accessibilityRole="button"
-          accessibilityLabel="뒤로"
+          accessibilityLabel={t("common.back")}
         >
           <Ionicons name="chevron-back" size={26} color={colors.brand} />
         </Pressable>
         <View style={styles.tabs}>
-          {TAB_ITEMS.map((t) => (
-            <Pressable key={t.id} onPress={() => setTab(t.id)}>
-              <Text style={[styles.tabLabel, tab === t.id && styles.tabLabelActive]}>{t.label}</Text>
+          {tabItems.map((item) => (
+            <Pressable key={item.id} onPress={() => setTab(item.id)}>
+              <Text style={[styles.tabLabel, tab === item.id && styles.tabLabelActive]}>{item.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -125,8 +137,8 @@ export function WalletScreen() {
       <View style={styles.root}>
         {walletQuery.isError && !data && tab !== "tier" ? (
           <View style={styles.center}>
-            <Text style={styles.error}>지갑을 불러오지 못했습니다.</Text>
-            <FolkButton label="다시 시도" onPress={() => void walletQuery.refetch()} />
+            <Text style={styles.error}>{u("지갑을 불러오지 못했습니다.", "Could not load wallet.")}</Text>
+            <FolkButton label={t("toast.retry")} onPress={() => void walletQuery.refetch()} />
           </View>
         ) : tab === "wallet" ? (
             <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
@@ -142,8 +154,8 @@ export function WalletScreen() {
           <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
         ) : earningsQuery.isError || !earnings || !data ? (
           <View style={styles.center}>
-            <Text style={styles.error}>수익 데이터를 불러오지 못했습니다.</Text>
-            <FolkButton label="다시 시도" onPress={() => void earningsQuery.refetch()} />
+            <Text style={styles.error}>{u("수익 데이터를 불러오지 못했습니다.", "Could not load earnings.")}</Text>
+            <FolkButton label={t("toast.retry")} onPress={() => void earningsQuery.refetch()} />
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
@@ -155,11 +167,13 @@ export function WalletScreen() {
                 ]}
               >
                 <Text style={[styles.returnBannerTitle, { color: colors.text }]}>
-                  수익 정산 계좌 연동
+                  {u("수익 정산 계좌 연동", "Link payout account")}
                 </Text>
                 <Text style={[styles.returnBannerBody, { color: colors.textMuted }]}>
-                  Star Market·크리에이터 Reward 등 수익 정산을 받으려면 아래에서 Stripe Connect로
-                  정산 계좌를 연동해 주세요. (중고 직거래·경매 보증금과는 별개입니다.)
+                  {u(
+                    "Star Market·크리에이터 Reward 등 수익 정산을 받으려면 아래에서 Stripe Connect로 정산 계좌를 연동해 주세요. (중고 직거래·경매 보증금과는 별개입니다.)",
+                    "Link a Stripe Connect payout account below to receive Star Market and creator rewards. (Separate from used-market deposits.)"
+                  )}
                 </Text>
               </View>
             ) : null}
@@ -196,17 +210,17 @@ export function WalletScreen() {
                         { color: year === y ? colors.textOnAccent : colors.textMuted },
                       ]}
                     >
-                      {y}년
+                      {u(`${y}년`, String(y))}
                     </Text>
                   </Pressable>
                 ))}
               </ScrollView>
 
               <View style={styles.statRow}>
-                <StatCard label="수익" cents={earnings.yearEarned ?? 0} tone="up" colors={colors} />
-                <StatCard label="지출" cents={earnings.yearWithdrawn ?? 0} tone="down" colors={colors} />
+                <StatCard label={u("수익", "Earned")} cents={earnings.yearEarned ?? 0} tone="up" colors={colors} />
+                <StatCard label={u("지출", "Withdrawn")} cents={earnings.yearWithdrawn ?? 0} tone="down" colors={colors} />
                 <StatCard
-                  label="순수익"
+                  label={u("순수익", "Net")}
                   cents={earnings.yearNet ?? 0}
                   tone={(earnings.yearNet ?? 0) >= 0 ? "up" : "down"}
                   colors={colors}
@@ -233,7 +247,7 @@ export function WalletScreen() {
               {data.recent.slice(0, 8).map((item) => (
                 <WalletMembershipStrip
                   key={item.id}
-                  title={LEDGER_LABELS[item.type] ?? item.type}
+                  title={ledgerLabel(item.type, u)}
                   subtitle={item.memo ?? undefined}
                   right={formatMocoSignedFromCents(item.amount, item.type !== "PAYOUT_REQUEST")}
                   backgroundColor={
@@ -247,8 +261,8 @@ export function WalletScreen() {
               ))}
               {data.recent.length === 0 ? (
                 <WalletMembershipStrip
-                  title="아직 활동 보상 내역이 없습니다"
-                  subtitle="후원·판매·구독 수익이 정산 MOCO로 적립됩니다"
+                  title={u("아직 활동 보상 내역이 없습니다", "No reward activity yet")}
+                  subtitle={u("후원·판매·구독 수익이 정산 MOCO로 적립됩니다", "Tips, sales, and subs settle as settlement MOCO.")}
                   backgroundColor="#4b5563"
                 />
               ) : null}
@@ -281,6 +295,7 @@ function SettlementProgressCard({
   };
   colors: ThemeColors;
 }) {
+  const { u } = useI18n();
   const nextRequired = progress?.nextRequiredMoco ?? 0;
   const ratio = !progress
     ? 0
@@ -289,23 +304,31 @@ function SettlementProgressCard({
       : Math.min(1, Math.max(0, settlementMoco / nextRequired));
   return (
     <View style={[stylesCard.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
-      <Text style={[stylesCard.kicker, { color: colors.textMuted }]}>정산 MOCO · 다른 사용자에게 받은 수량</Text>
+      <Text style={[stylesCard.kicker, { color: colors.textMuted }]}>
+        {u("정산 MOCO · 다른 사용자에게 받은 수량", "Settlement MOCO · received from others")}
+      </Text>
       <Text style={[stylesCard.amount, { color: colors.text }]}>{settlementMoco.toLocaleString()} MOCO</Text>
       <Text style={[stylesCard.line, { color: colors.text }]}>
-        정산 등급 {progress?.currentLabel ?? "Novice"}
+        {u("정산 등급", "Settlement tier")} {progress?.currentLabel ?? "Novice"}
       </Text>
       <View style={[stylesCard.track, { backgroundColor: colors.hairline }]}>
         <View style={[stylesCard.fill, { width: `${Math.round(ratio * 100)}%`, backgroundColor: colors.cobalt }]} />
       </View>
       <Text style={[stylesCard.note, { color: colors.textMuted }]}>
         {progress?.atMaxTier
-          ? "최고 정산 등급입니다."
+          ? u("최고 정산 등급입니다.", "You're at the top settlement tier.")
           : progress?.nextLabel
-            ? `${progress.nextLabel}까지 정산 MOCO ${progress.mocoRemaining.toLocaleString()}를 더 받아야 합니다.`
-            : "정산 등급을 불러오는 중…"}
+            ? u(
+                `${progress.nextLabel}까지 정산 MOCO ${progress.mocoRemaining.toLocaleString()}를 더 받아야 합니다.`,
+                `${progress.mocoRemaining.toLocaleString()} more settlement MOCO needed for ${progress.nextLabel}.`
+              )
+            : u("정산 등급을 불러오는 중…", "Loading settlement tier…")}
       </Text>
       <Text style={[stylesCard.note, { color: colors.textMuted }]}>
-        보유 MOCO {purchasedMoco.toLocaleString()}는 결제로 충전한 수량이라 정산 등급에 포함되지 않습니다.
+        {u(
+          `보유 MOCO ${purchasedMoco.toLocaleString()}는 결제로 충전한 수량이라 정산 등급에 포함되지 않습니다.`,
+          `Purchased MOCO (${purchasedMoco.toLocaleString()}) from checkout does not count toward settlement tier.`
+        )}
       </Text>
     </View>
   );

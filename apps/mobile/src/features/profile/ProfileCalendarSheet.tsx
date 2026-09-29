@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProfileCalendarPanel } from "@/features/profile/ProfileCalendarPanel";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   visible: boolean;
@@ -28,6 +29,7 @@ export function ProfileCalendarSheet({
   timeZone,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -42,13 +44,13 @@ export function ProfileCalendarSheet({
           ]}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>일정 · 메모</Text>
+            <Text style={styles.title}>{u("일정 · 메모", "Schedule & memos")}</Text>
             <Pressable
               onPress={onClose}
               hitSlop={10}
               style={styles.closeBtn}
               accessibilityRole="button"
-              accessibilityLabel="닫기"
+              accessibilityLabel={t("common.close")}
             >
               <Ionicons name="close" size={24} color={colors.text} />
             </Pressable>

@@ -19,8 +19,13 @@ import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
+import { eventsUi } from "@/features/events/events-ui";
 
 export function EventDetailScreen() {
+  const { u, locale } = useI18n();
+  const copy = useMemo(() => eventsUi(u), [u]);
+  const dateLocale = locale === "ko" ? "ko-KR" : "en-US";
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -40,7 +45,7 @@ export function EventDetailScreen() {
   const join = useMutation({
     mutationFn: () => joinEvent(route.params.id),
     onSuccess: async () => {
-      setMsg("참여 완료");
+      setMsg(copy.joinDone);
       await queryClient.invalidateQueries({ queryKey: ["mobile-events", route.params.id] });
     },
     onError: (err) => {
@@ -51,7 +56,7 @@ export function EventDetailScreen() {
         "error" in err.body &&
         typeof (err.body as { error: unknown }).error === "string"
           ? (err.body as { error: string }).error
-          : "참여에 실패했습니다.";
+          : copy.joinFail;
       setMsg(text);
     },
   });
@@ -60,14 +65,14 @@ export function EventDetailScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.topBar}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Text style={styles.back}>뒤로</Text>
+          <Text style={styles.back}>{copy.back}</Text>
         </Pressable>
-        <Text style={styles.heading}>이벤트</Text>
+        <Text style={styles.heading}>{copy.eventsTitle}</Text>
       </View>
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.accent} />
       ) : query.isError || !item ? (
-        <Text style={styles.error}>이벤트를 불러오지 못했습니다.</Text>
+        <Text style={styles.error}>{copy.loadEventError}</Text>
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
           {item.imageUrl ? (
@@ -83,11 +88,11 @@ export function EventDetailScreen() {
           <View style={styles.body}>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.sub}>
-              {new Date(item.startsAt).toLocaleString("ko-KR")} –{" "}
-              {new Date(item.endsAt).toLocaleString("ko-KR")}
+              {new Date(item.startsAt).toLocaleString(dateLocale)} –{" "}
+              {new Date(item.endsAt).toLocaleString(dateLocale)}
             </Text>
-            <Text style={styles.sub}>{item.participantCount}명 참여</Text>
-            {item.prize ? <Text style={styles.prize}>상품: {item.prize}</Text> : null}
+            <Text style={styles.sub}>{copy.participants(item.participantCount)}</Text>
+            {item.prize ? <Text style={styles.prize}>{copy.prize(item.prize)}</Text> : null}
             <Text style={styles.desc}>{item.description}</Text>
             {!item.joined ? (
               <Pressable
@@ -95,14 +100,14 @@ export function EventDetailScreen() {
                 disabled={join.isPending}
                 onPress={() => join.mutate()}
               >
-                <Text style={styles.btnText}>참여하기</Text>
+                <Text style={styles.btnText}>{copy.join}</Text>
               </Pressable>
             ) : (
-              <Text style={styles.joined}>참여 중</Text>
+              <Text style={styles.joined}>{copy.joining}</Text>
             )}
             {msg ? <Text style={styles.note}>{msg}</Text> : null}
             <Pressable style={styles.sponsorBtn} onPress={() => setSponsorOpen(true)}>
-              <Text style={styles.sponsorBtnText}>스폰서 광고 구매 (MOCO)</Text>
+              <Text style={styles.sponsorBtnText}>{copy.sponsorBtn}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -111,7 +116,7 @@ export function EventDetailScreen() {
         visible={sponsorOpen}
         eventId={route.params.id}
         onClose={() => setSponsorOpen(false)}
-        onSuccess={() => setMsg("스폰서 광고가 등록되었습니다.")}
+        onSuccess={() => setMsg(copy.sponsorDone)}
       />
     </View>
   );

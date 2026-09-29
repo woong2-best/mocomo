@@ -2,6 +2,59 @@
 
 import { formatPrice } from "@/lib/money";
 
+export type UsedUiText = (ko: string, en: string) => string;
+
+/** English labels for catalog ids (KO labels stay on const arrays for storage parity). */
+const CATALOG_LABEL_EN: Record<string, string> = {
+  FIGURE: "Figures",
+  TCG: "TCG",
+  GOODS: "Goods",
+  BOOK: "Books",
+  COSPLAY: "Cosplay",
+  DIGITAL: "Digital",
+  PLAMODEL: "Plastic models",
+  PLUSH: "Plush",
+  STATUE: "Statues",
+  ACRYLIC_STAND: "Acrylic stands",
+  CAN_BADGE: "Pin badges",
+  KEYRING: "Keychains",
+  COSPLAY_COSTUME: "Cosplay costumes",
+  WIG: "Wigs",
+  TCG_CARD: "Trading cards",
+  TCG_POKEMON: "Pokémon cards",
+  TCG_YGO: "Yu-Gi-Oh!",
+  TCG_MTG: "Magic: The Gathering",
+  TCG_ONEPIECE: "One Piece cards",
+  TCG_OTHER: "Other TCG",
+  PHOTOCARD: "Photocards",
+  DOUJIN: "Doujin",
+  ARTBOOK: "Art books",
+  BOARDGAME: "Board games",
+  VTUBER_GOODS: "VTuber goods",
+  EVENT_GOODS: "Event exclusives",
+  MEDIA: "CD / DVD / Blu-ray",
+  OTHER: "Other",
+  COSPLAY_FASHION: "Cosplay / fashion",
+  NEW: "Sealed / like new",
+  LIKE_NEW: "Like new",
+  POOR: "Damaged / defects",
+  UNKNOWN: "Condition not listed",
+  EVENT_EXCLUSIVE: "Event exclusive",
+  VENUE_ONLY: "Venue exclusive",
+  PREORDER: "Pre-order",
+  COLLAB: "Collab / limited",
+  LIMITED_RUN: "Limited run",
+  LOTTERY: "Lottery / kuji",
+  PROMO: "Promo bonus",
+  TRADE: "Trade only (WTT)",
+  SELL_OR_TRADE: "Sell or trade",
+};
+
+export function usedCatalogLabel(ko: string, id: string, u?: UsedUiText): string {
+  const en = CATALOG_LABEL_EN[id] ?? ko;
+  return u ? u(ko, en) : ko;
+}
+
 export const USED_CATEGORIES = [
   { id: "FIGURE", label: "피규어 / 인형" },
   { id: "TCG", label: "TCG / 카드" },
@@ -129,10 +182,14 @@ export const USED_TRADE_MODES = [
 
 export const USED_SHIPPING_REGION = "전국 배송";
 export const LEGACY_USED_SHIPPING_REGION = "전국 택배";
+const SHIPPING_REGION_EN = "Nationwide shipping";
 
-export function displayUsedRegion(region: string): string {
+export function displayUsedRegion(region: string, u?: UsedUiText): string {
   const trimmed = region.trim();
-  if (trimmed === LEGACY_USED_SHIPPING_REGION) return USED_SHIPPING_REGION;
+  if (trimmed === LEGACY_USED_SHIPPING_REGION || trimmed === USED_SHIPPING_REGION) {
+    return u ? u(USED_SHIPPING_REGION, SHIPPING_REGION_EN) : USED_SHIPPING_REGION;
+  }
+  if (trimmed === "Shipping") return SHIPPING_REGION_EN;
   return region;
 }
 
@@ -155,47 +212,74 @@ export function formatUsedRegion(sidoShort: string, sigungu: string) {
   return `${sidoShort} ${sigungu}`;
 }
 
-export function formatUsedPrice(price: number, currency?: string | null) {
-  if (price === 0) return "나눔";
+export function formatUsedPrice(price: number, currency?: string | null, u?: UsedUiText) {
+  if (price === 0) return u ? u("나눔", "Free") : "나눔";
   return formatPrice(price, currency ?? "krw");
 }
 
-export function formatUsedTimeAgo(date: string) {
+export function formatUsedTimeAgo(date: string, u?: UsedUiText) {
   const diff = Date.now() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "방금 전";
-  if (mins < 60) return `${mins}분 전`;
+  if (mins < 1) return u ? u("방금 전", "Just now") : "방금 전";
+  if (mins < 60) {
+    return u ? u(`${mins}분 전`, `${mins}m ago`) : `${mins}분 전`;
+  }
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}시간 전`;
+  if (hours < 24) {
+    return u ? u(`${hours}시간 전`, `${hours}h ago`) : `${hours}시간 전`;
+  }
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}일 전`;
+  if (days < 7) return u ? u(`${days}일 전`, `${days}d ago`) : `${days}일 전`;
   const weeks = Math.floor(days / 7);
-  if (weeks < 5) return `${weeks}주 전`;
+  if (weeks < 5) return u ? u(`${weeks}주 전`, `${weeks}w ago`) : `${weeks}주 전`;
   const months = Math.floor(days / 30);
-  if (months < 12) return `${months}개월 전`;
-  return `${Math.floor(days / 365)}년 전`;
+  if (months < 12) {
+    return u ? u(`${months}개월 전`, `${months}mo ago`) : `${months}개월 전`;
+  }
+  const years = Math.floor(days / 365);
+  return u ? u(`${years}년 전`, `${years}y ago`) : `${years}년 전`;
 }
 
-export function usedStatusLabel(status: string) {
+export function usedStatusLabel(status: string, u?: UsedUiText) {
   switch (status) {
     case "SELLING":
-      return "판매중";
+      return u ? u("판매중", "For sale") : "판매중";
     case "RESERVED":
-      return "예약중";
+      return u ? u("예약중", "Reserved") : "예약중";
     case "SOLD":
-      return "거래완료";
+      return u ? u("거래완료", "Sold") : "거래완료";
     default:
       return status;
   }
 }
 
-export function productTypeLabel(id: string | null | undefined): string {
+export function productTypeLabel(id: string | null | undefined, u?: UsedUiText): string {
   if (!id) return "";
-  return (
-    USED_SELL_KINDS.find((p) => p.id === id)?.label ??
-    USED_PRODUCT_TYPES.find((p) => p.id === id)?.label ??
-    id
-  );
+  const fromSell = USED_SELL_KINDS.find((p) => p.id === id);
+  if (fromSell) return usedCatalogLabel(fromSell.label, fromSell.id, u);
+  const fromProduct = USED_PRODUCT_TYPES.find((p) => p.id === id);
+  if (fromProduct) return usedCatalogLabel(fromProduct.label, fromProduct.id, u);
+  return id;
+}
+
+export function usedCurrencyLabel(currencyId: string, u?: UsedUiText): string {
+  const meta = USED_CURRENCY_META[currencyId.toLowerCase()];
+  if (!meta) return currencyId;
+  const en: Record<string, string> = {
+    krw: "KRW (₩)",
+    usd: "USD ($)",
+    jpy: "JPY (¥)",
+    eur: "EUR (€)",
+    gbp: "GBP (£)",
+    twd: "TWD (NT$)",
+    cny: "CNY (¥)",
+    hkd: "HKD (HK$)",
+    sgd: "SGD (S$)",
+    aud: "AUD (A$)",
+    cad: "CAD (C$)",
+    thb: "THB (฿)",
+  };
+  return u ? u(meta.label, en[currencyId.toLowerCase()] ?? meta.label) : meta.label;
 }
 
 export const USED_CURRENCY_META: Record<string, { id: string; label: string; symbol: string }> = {

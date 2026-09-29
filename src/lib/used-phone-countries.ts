@@ -13,7 +13,7 @@ export const USED_MARKET_PHONE_COUNTRY_CODES = new Set(
   ALLOWED_COUNTRIES.map((c) => c.code.toUpperCase())
 );
 
-export function usedMarketPhoneCountryLabel(countryCode: string, locale: Locale = "ko") {
+export function usedMarketPhoneCountryLabel(countryCode: string, locale: Locale = "en") {
   const cc = countryCode.toUpperCase();
   const entry = ALLOWED_COUNTRIES.find((c) => c.code.toUpperCase() === cc);
   if (!entry) {

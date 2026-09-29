@@ -28,8 +28,12 @@ import type { RootStackParamList } from "@/navigation/types";
 import { LiveDonationAlertOverlay } from "@/features/live/LiveDonationAlertOverlay";
 import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
 import { useLivePictureInPicture } from "@/features/live/useLivePictureInPicture";
+import { useI18n } from "@/i18n/I18nProvider";
+import { liveUi } from "@/features/live/live-ui";
 
 export function LiveDetailScreen() {
+  const { u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -74,7 +78,7 @@ export function LiveDetailScreen() {
         "error" in err.body &&
         typeof (err.body as { error: unknown }).error === "string"
           ? (err.body as { error: string }).error
-          : "라이브에 연결하지 못했습니다.";
+          : copy.connectError;
       setTokenError(msg);
     } finally {
       setTokenLoading(false);
@@ -120,7 +124,7 @@ export function LiveDetailScreen() {
         <Pressable onPress={() => navigation.goBack()} style={styles.topBack}>
           <Ionicons name="chevron-back" size={22} color="#fff" />
         </Pressable>
-        <Text style={styles.error}>라이브를 불러오지 못했습니다.</Text>
+        <Text style={styles.error}>{copy.loadHubError}</Text>
       </View>
     );
   }
@@ -128,10 +132,10 @@ export function LiveDetailScreen() {
   if (ended) {
     return (
       <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
-        <Text style={styles.endedTitle}>방송이 종료되었습니다</Text>
-        <Text style={styles.endedSub}>다른 라이브 방송을 둘러보세요.</Text>
+        <Text style={styles.endedTitle}>{copy.streamEnded}</Text>
+        <Text style={styles.endedSub}>{copy.browseOther}</Text>
         <Pressable style={styles.primaryBtn} onPress={() => navigation.navigate("LiveList")}>
-          <Text style={styles.primaryBtnText}>라이브 홈</Text>
+          <Text style={styles.primaryBtnText}>{copy.liveHome}</Text>
         </Pressable>
       </View>
     );
@@ -189,8 +193,8 @@ export function LiveDetailScreen() {
                 )}
                 <LiveAdultWatermark />
                 <View style={styles.adultGateOverlay}>
-                  <Text style={styles.adultGateTitle}>19+ 성인 방송</Text>
-                  <Text style={styles.adultGateSub}>본인인증된 회원만 시청할 수 있습니다.</Text>
+                  <Text style={styles.adultGateTitle}>{copy.adult19}</Text>
+                  <Text style={styles.adultGateSub}>{copy.adultSub}</Text>
                   <Pressable
                     style={[styles.primaryBtn, adultGate.busy && styles.btnDisabled]}
                     disabled={adultGate.busy}
@@ -200,7 +204,7 @@ export function LiveDetailScreen() {
                       })
                     }
                   >
-                    <Text style={styles.primaryBtnText}>성인 본인인증</Text>
+                    <Text style={styles.primaryBtnText}>{copy.adultVerify}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -234,7 +238,7 @@ export function LiveDetailScreen() {
               {isLiveAdultItem(item) ? <LiveAdultWatermark style={styles.hero} /> : null}
               {adultBlocked ? (
                 <View style={styles.adultGateOverlay}>
-                  <Text style={styles.adultGateTitle}>19+ 성인 방송</Text>
+                  <Text style={styles.adultGateTitle}>{copy.adult19}</Text>
                   <Pressable
                     style={styles.primaryBtn}
                     onPress={() =>
@@ -243,12 +247,12 @@ export function LiveDetailScreen() {
                       })
                     }
                   >
-                    <Text style={styles.primaryBtnText}>성인 본인인증 후 시청</Text>
+                    <Text style={styles.primaryBtnText}>{copy.adultVerifyWatch}</Text>
                   </Pressable>
                 </View>
               ) : (
                 <Pressable style={styles.watchOverlay} onPress={() => void startFirstParty()}>
-                  <Text style={styles.primaryBtnText}>시청하기</Text>
+                  <Text style={styles.primaryBtnText}>{copy.watch}</Text>
                 </Pressable>
               )}
             </View>
@@ -280,7 +284,7 @@ export function LiveDetailScreen() {
           />
         ) : (
           <View style={styles.chatPlaceholder}>
-            <Text style={styles.endedSub}>채팅에 참여할 수 없습니다.</Text>
+            <Text style={styles.endedSub}>{copy.chatUnavailable}</Text>
           </View>
         )
       ) : null}

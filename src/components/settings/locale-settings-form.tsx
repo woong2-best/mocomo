@@ -7,6 +7,7 @@ import { LOCALE_LABELS, LOCALES, localeDisplayLabel, type Locale } from "@/lib/i
 import { CountrySelect } from "@/components/i18n/country-select";
 import { detectBrowserTimeZone } from "@/lib/i18n/timezone";
 import { prefetchLocaleTable } from "@/lib/i18n/messages";
+import { localeForCountry } from "@/lib/i18n/locale-from-country";
 
 export function LocaleSettingsForm({
   initialLocale,
@@ -91,7 +92,10 @@ export function LocaleSettingsForm({
         <span className="text-sm font-medium">COUNTRY</span>
         <CountrySelect
           value={countryCode}
-          onChange={setCountryCode}
+          onChange={(code) => {
+            setCountryCode(code);
+            setLocaleValue(localeForCountry(code) as Locale);
+          }}
           locale={uiLocale}
           searchPlaceholder={t("settings.country")}
           className="h-10 w-full rounded-none border border-[#1E5A1C] bg-[#021008] px-3 text-sm text-[#6CFF62] placeholder:text-[#1E5A1C] outline-none"

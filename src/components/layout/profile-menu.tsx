@@ -19,10 +19,11 @@ import { OreIcon } from "@/components/support/ore-icon";
 import { getTierInfo } from "@/lib/tiers";
 import { AccountSwitcherDialog } from "@/components/auth/account-switcher-dialog";
 import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTierLevel }) {
   const { data: session } = useSession();
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const tierInfo = getTierInfo(displayTier);
 
@@ -68,23 +69,26 @@ export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTie
           <DropdownMenuItem asChild>
             <Link href="/messages">
               <MessageSquare className="h-4 w-4 shrink-0" />
-              쪽지
+              {t("nav.messages")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href={`/u/${username}`}>
               <User className="h-4 w-4 shrink-0" />
-              내 프로필
+              {uiText(locale, "내 프로필", "My profile")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/settings">
               <Settings className="h-4 w-4 shrink-0" />
-              설정
+              {t("nav.settings")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/support" aria-label={`${tierInfo.labelKo} (${tierInfo.label}) · 등급`}>
+            <Link
+              href="/support"
+              aria-label={uiText(locale, `${tierInfo.labelKo} (${tierInfo.label}) · 등급`, `${tierInfo.label} · tier`)}
+            >
               <OreIcon tier={displayTier} size={16} />
             </Link>
           </DropdownMenuItem>
@@ -94,7 +98,7 @@ export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTie
             onSelect={handleSignOut}
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            로그아웃
+            {uiText(locale, "로그아웃", "Sign out")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

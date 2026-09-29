@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/api/client";
+import { formatUsedTimeAgo } from "@/features/marketplace/used-catalog";
+import { useI18n } from "@/i18n/I18nProvider";
 import { formatMocoDisplay } from "@/lib/wallet-moco-display";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -18,18 +20,8 @@ async function fetchReceivedTips() {
   return apiRequest<{ tips: ReceivedTip[] }>("/api/mobile/wallet/received-tips", { auth: true });
 }
 
-function formatRelative(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.max(0, Math.floor(diff / 60_000));
-  if (mins < 1) return "방금";
-  if (mins < 60) return `${mins}분 전`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(hours / 24);
-  return `${days}일 전`;
-}
-
 export function ReceivedTipsPanel() {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const query = useQuery({
@@ -40,9 +32,9 @@ export function ReceivedTipsPanel() {
 
   return (
     <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
-      <Text style={[styles.heading, { color: colors.text }]}>받은 후원</Text>
+      <Text style={[styles.heading, { color: colors.text }]}>{u("받은 후원", "Received tips")}</Text>
       {tips.length === 0 ? (
-        <Text style={[styles.body, { color: colors.textMuted }]}>받은 후원이 없습니다.</Text>
+        <Text style={[styles.body, { color: colors.textMuted }]}>{u("받은 후원이 없습니다.", "No tips received yet.")}</Text>
       ) : (
         tips.map((tip) => (
           <View key={tip.id} style={[styles.row, { borderBottomColor: colors.hairline }]}>
@@ -53,7 +45,7 @@ export function ReceivedTipsPanel() {
                   {tip.message}
                 </Text>
               ) : null}
-              <Text style={[styles.when, { color: colors.textMuted }]}>{formatRelative(tip.createdAt)}</Text>
+              <Text style={[styles.when, { color: colors.textMuted }]}>{formatUsedTimeAgo(tip.createdAt, u)}</Text>
             </View>
             <Text style={[styles.amount, { color: colors.success }]}>
               +{formatMocoDisplay(tip.moco)}

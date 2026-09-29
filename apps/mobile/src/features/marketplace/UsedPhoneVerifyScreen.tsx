@@ -21,6 +21,7 @@ import { ApiError } from "@/api/client";
 import { Screen } from "@/ui/Screen";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -29,6 +30,7 @@ export function UsedPhoneVerifyScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "UsedPhoneVerify">>();
   const next = "UsedCreate" as const;
+  const { t, u } = useI18n();
   const { colors } = useTheme();
   const [countryCode, setCountryCode] = useState("US");
   const [phone, setPhone] = useState("");
@@ -64,13 +66,13 @@ export function UsedPhoneVerifyScreen() {
     try {
       await sendUsedPhoneOtp(phone.trim());
       setSent(true);
-      showIslandSuccess("전송됨", "인증번호를 문자로 보냈습니다.");
+      showIslandSuccess(u("전송됨", "Sent"), u("인증번호를 문자로 보냈습니다.", "We sent a verification code by SMS."));
     } catch (e) {
       const msg =
         e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body
           ? String((e.body as { error: string }).error)
-          : "인증번호 전송에 실패했습니다.";
-      showIslandError("오류", msg);
+          : u("인증번호 전송에 실패했습니다.", "Could not send the verification code.");
+      showIslandError(u("오류", "Error"), msg);
     } finally {
       setBusy(false);
     }
@@ -85,8 +87,8 @@ export function UsedPhoneVerifyScreen() {
       const msg =
         e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body
           ? String((e.body as { error: string }).error)
-          : "인증에 실패했습니다.";
-      showIslandError("오류", msg);
+          : u("인증에 실패했습니다.", "Verification failed.");
+      showIslandError(u("오류", "Error"), msg);
     } finally {
       setBusy(false);
     }
@@ -94,7 +96,11 @@ export function UsedPhoneVerifyScreen() {
 
   return (
     <Screen>
-      <AppHeader title="휴대폰 인증" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader
+        title={u("휴대폰 인증", "Phone verification")}
+        leftLabel={t("common.back")}
+        onLeftPress={() => navigation.goBack()}
+      />
       {checking ? (
         <View style={styles.center}>
           <ActivityIndicator />
@@ -106,7 +112,10 @@ export function UsedPhoneVerifyScreen() {
         >
           <ScrollView contentContainerStyle={styles.body}>
             <Text style={[styles.hint, { color: colors.textMuted }]}>
-              중고거래 이용을 위해 휴대폰 SMS 인증이 필요합니다 ({countryCode}).
+              {u(
+                `중고거래 이용을 위해 휴대폰 SMS 인증이 필요합니다 (${countryCode}).`,
+                `SMS phone verification is required for the used marketplace (${countryCode}).`
+              )}
             </Text>
             <TextInput
               style={[styles.input, { borderColor: colors.border, color: colors.text }]}
@@ -127,9 +136,17 @@ export function UsedPhoneVerifyScreen() {
               />
             ) : null}
             {!sent ? (
-              <FolkButton label="인증번호 받기" loading={busy} onPress={() => void requestOtp()} />
+              <FolkButton
+                label={u("인증번호 받기", "Send code")}
+                loading={busy}
+                onPress={() => void requestOtp()}
+              />
             ) : (
-              <FolkButton label="인증 완료" loading={busy} onPress={() => void verify()} />
+              <FolkButton
+                label={u("인증 완료", "Verify")}
+                loading={busy}
+                onPress={() => void verify()}
+              />
             )}
           </ScrollView>
         </KeyboardAvoidingView>

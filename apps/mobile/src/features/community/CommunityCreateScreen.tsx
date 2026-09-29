@@ -58,9 +58,12 @@ import {
 
   type QnaCreateCategorySelection,
 
+  localizedCategoryTab,
 } from "@/features/community/community-labels";
 
 import { ensureQnaNsfwAccess } from "@/features/community/ensure-qna-nsfw-access";
+import { communityUi } from "@/features/community/community-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 
 import { useScrollFieldAboveKeyboard } from "@/lib/use-scroll-field-above-keyboard";
 
@@ -164,6 +167,8 @@ async function serializeDetailContent(
 
 export function CommunityCreateScreen() {
 
+  const { u, locale } = useI18n();
+  const copy = useMemo(() => communityUi(u), [u]);
   const { colors, isDark } = useTheme();
 
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
@@ -194,11 +199,11 @@ export function CommunityCreateScreen() {
 
   const pickCategory = useCallback((next: QnaCreateCategorySelection) => {
     void (async () => {
-      const ok = await ensureQnaNsfwAccess(next);
+      const ok = await ensureQnaNsfwAccess(next, locale);
       if (!ok) return;
       setCategory(next);
     })();
-  }, []);
+  }, [locale]);
 
 
 
@@ -272,9 +277,9 @@ export function CommunityCreateScreen() {
 
           ? (err.body as { error: string }).error
 
-          : "QnA 생성에 실패했습니다.";
+          : copy.createFailDefault;
 
-      showIslandError("생성 실패", msg);
+      showIslandError(copy.createFailTitle, msg);
 
     },
 
@@ -290,7 +295,7 @@ export function CommunityCreateScreen() {
 
     if (!perm.granted) {
 
-      showIslandError("권한 필요", "사진 접근 권한이 필요합니다.");
+      showIslandError(copy.permTitle, copy.photoPerm);
 
       return;
 
@@ -352,7 +357,7 @@ export function CommunityCreateScreen() {
 
     if (!category) {
 
-      showIslandError("카테고리", "QnA가 속할 카테고리를 선택해 주세요.");
+      showIslandError(copy.pickCategoryTitle, copy.pickCategoryMsg);
 
       return;
 
@@ -360,7 +365,7 @@ export function CommunityCreateScreen() {
 
     if (name.trim().length < 2) {
 
-      showIslandError("Q", "질문은 2자 이상 입력해 주세요.");
+      showIslandError(copy.questionTitle, copy.questionMinMsg);
 
       return;
 
@@ -376,7 +381,7 @@ export function CommunityCreateScreen() {
 
     <Screen>
 
-      <AppHeader title="새 QnA" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={copy.newQna} leftLabel={copy.back} onLeftPress={() => navigation.goBack()} />
 
       <KeyboardAvoidingView
 
@@ -418,11 +423,11 @@ export function CommunityCreateScreen() {
 
                 <Text style={styles.label}>
 
-                  카테고리 <Text style={{ color: "#c80000" }}>*</Text>
+                  {copy.category} <Text style={{ color: "#c80000" }}>*</Text>
 
                 </Text>
 
-                <Text style={styles.hint}>필수 · 하나 선택</Text>
+                <Text style={styles.hint}>{copy.categoryRequiredHint}</Text>
 
               </View>
 
@@ -453,7 +458,7 @@ export function CommunityCreateScreen() {
                         numberOfLines={2}
                       >
 
-                        {opt.shortLabel}
+                        {localizedCategoryTab(opt, locale).shortLabel}
 
                       </Text>
 
@@ -553,13 +558,13 @@ export function CommunityCreateScreen() {
 
                   accessibilityRole="button"
 
-                  accessibilityLabel="첨부파일 추가"
+                  accessibilityLabel={copy.attachAddA11y}
 
                 >
 
                   <Ionicons name="image-outline" size={20} color={colors.cobalt} />
 
-                  <Text style={styles.attachBtnText}>첨부</Text>
+                  <Text style={styles.attachBtnText}>{copy.attach}</Text>
 
                 </Pressable>
 
@@ -603,7 +608,7 @@ export function CommunityCreateScreen() {
 
                         accessibilityRole="button"
 
-                        accessibilityLabel="첨부 사진 삭제"
+                        accessibilityLabel={copy.attachRemoveA11y}
 
                       >
 
@@ -685,7 +690,7 @@ export function CommunityCreateScreen() {
 
               ) : (
 
-                <Text style={styles.submitText}>QnA 만들기</Text>
+                <Text style={styles.submitText}>{copy.createQna}</Text>
 
               )}
 

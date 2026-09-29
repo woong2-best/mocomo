@@ -6,6 +6,7 @@ import { createWtbAlert } from "@/api/subculture";
 import { ApiError } from "@/api/client";
 import { productTypeLabel } from "@/features/marketplace/used-catalog";
 import { FolkButton } from "@/ui/FolkButton";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -26,6 +27,7 @@ export function UsedWtbAlertCard({
   isOwner?: boolean;
   status?: string;
 }) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const [maxPrice, setMaxPrice] = useState("");
@@ -48,7 +50,7 @@ export function UsedWtbAlertCard({
       const msg =
         err instanceof ApiError && err.body && typeof err.body === "object" && "error" in err.body
           ? String((err.body as { error: string }).error)
-          : "WTB 등록에 실패했습니다.";
+          : u("WTB 등록에 실패했습니다.", "Could not save WTB alert.");
       showIslandInfo("WTB", msg);
     },
   });
@@ -58,14 +60,14 @@ export function UsedWtbAlertCard({
   if (done) {
     return (
       <View style={styles.card}>
-        <Text style={styles.done}>WTB 알림이 등록됐어요.</Text>
+        <Text style={styles.done}>{u("WTB 알림이 등록됐어요.", "WTB alert saved.")}</Text>
       </View>
     );
   }
 
   const summary = [
     workTitle,
-    productType ? productTypeLabel(productType) : null,
+    productType ? productTypeLabel(productType, u) : null,
     characterName,
   ]
     .filter(Boolean)
@@ -73,25 +75,27 @@ export function UsedWtbAlertCard({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>WTB 알림 받기</Text>
-      <Text style={styles.hint}>{summary} 조건의 새 글이 올라오면 알려 드려요.</Text>
+      <Text style={styles.title}>{u("WTB 알림 받기", "Get WTB alerts")}</Text>
+      <Text style={styles.hint}>
+        {u(`${summary} 조건의 새 글이 올라오면 알려 드려요.`, `We'll notify you when a new listing matches: ${summary}.`)}
+      </Text>
       <TextInput
         style={styles.input}
         keyboardType="number-pad"
-        placeholder="희망 최대가 (선택)"
+        placeholder={u("희망 최대가 (선택)", "Max price (optional)")}
         placeholderTextColor={colors.textMuted}
         value={maxPrice}
         onChangeText={setMaxPrice}
       />
       <TextInput
         style={styles.input}
-        placeholder="메모 (선택)"
+        placeholder={u("메모 (선택)", "Note (optional)")}
         placeholderTextColor={colors.textMuted}
         value={note}
         onChangeText={setNote}
       />
       <FolkButton
-        label="WTB 알림 등록"
+        label={u("WTB 알림 등록", "Save WTB alert")}
         loading={create.isPending}
         onPress={() => create.mutate()}
       />

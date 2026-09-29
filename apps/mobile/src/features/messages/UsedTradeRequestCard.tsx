@@ -8,6 +8,9 @@ import {
   respondUsedTradeRequest,
   type UsedTradeRequestDetail,
 } from "@/api/marketplace";
+import type { Locale } from "@/i18n";
+import { useI18n } from "@/i18n/I18nProvider";
+import { uiText } from "@/i18n/ui-text";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -19,6 +22,7 @@ type Props = {
 };
 
 export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh }: Props) {
+  const { locale, u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
@@ -56,11 +60,11 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
       await queryClient.invalidateQueries({ queryKey: ["mobile-used-meet-pins"] });
       onRefresh?.();
       showIslandSuccess(
-        action === "approve" ? "승인했습니다" : "거절했습니다",
-        action === "approve" ? "이제 이 글은 수정할 수 없습니다." : undefined
+        action === "approve" ? u("승인했습니다", "Approved") : u("거절했습니다", "Declined"),
+        action === "approve" ? u("이제 이 글은 수정할 수 없습니다.", "This listing can no longer be edited.") : undefined
       );
     } catch (e) {
-      showIslandError("오류", e instanceof Error ? e.message : "처리하지 못했습니다.");
+      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("처리하지 못했습니다.", "Could not complete action."));
     } finally {
       setBusy(false);
     }
@@ -78,26 +82,28 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
 
   const statusLabel =
     request.status === "PENDING"
-      ? "대기 중"
+      ? u("대기 중", "Pending")
       : request.status === "APPROVED"
-        ? "승인됨"
+        ? u("승인됨", "Approved")
         : request.status === "REJECTED"
-          ? "거절됨"
-          : "취소됨";
+          ? u("거절됨", "Declined")
+          : u("취소됨", "Cancelled");
 
   return (
     <View style={styles.card}>
       <View style={styles.head}>
         <Ionicons name="bag-handle-outline" size={20} color={colors.cobalt} />
-        <Text style={styles.title}>중고 거래 요청</Text>
+        <Text style={styles.title}>{u("중고 거래 요청", "Used trade request")}</Text>
       </View>
       <Text style={styles.body}>
-        {sentByMe ? "거래 일정을 보냈습니다." : "거래 일정이 도착했습니다."}
+        {sentByMe
+          ? u("거래 일정을 보냈습니다.", "You sent a trade schedule.")
+          : u("거래 일정이 도착했습니다.", "A trade schedule arrived.")}
       </Text>
       <Text style={styles.meta} numberOfLines={1}>
         {request.listingTitle}
       </Text>
-      {request.meetAt ? <Text style={styles.meta}>{formatMeetAt(request.meetAt)}</Text> : null}
+      {request.meetAt ? <Text style={styles.meta}>{formatMeetAt(request.meetAt, locale)}</Text> : null}
       <Text style={styles.status}>{statusLabel}</Text>
       {request.status === "PENDING" && canRespond ? (
         <View style={styles.actions}>
@@ -106,7 +112,7 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
             disabled={busy}
             onPress={() => void respond("reject")}
           >
-            <Text style={styles.rejectText}>거절</Text>
+            <Text style={styles.rejectText}>{u("거절", "Decline")}</Text>
           </Pressable>
           <Pressable
             style={[styles.btn, styles.approveBtn]}
@@ -116,7 +122,7 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
             {busy ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.approveText}>승인</Text>
+              <Text style={styles.approveText}>{u("승인", "Approve")}</Text>
             )}
           </Pressable>
         </View>
@@ -125,10 +131,12 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
   );
 }
 
-function formatMeetAt(iso: string) {
+function formatMeetAt(iso: string, locale: Locale) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  const days = ["일", "월", "화", "수", "목", "금", "토"];
+  const daysKo = ["일", "월", "화", "수", "목", "금", "토"];
+  const daysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const days = locale === "ko" ? daysKo : daysEn;
   const hh = String(date.getHours()).padStart(2, "0");
   const mm = String(date.getMinutes()).padStart(2, "0");
   return `${date.getMonth() + 1}/${date.getDate()} (${days[date.getDay()]}) ${hh}:${mm}`;

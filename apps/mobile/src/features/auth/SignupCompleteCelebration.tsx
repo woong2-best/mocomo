@@ -17,6 +17,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const COLORS = ["#FF6B4A", "#FFD166", "#06D6A0", "#4CC9F0", "#F72585", "#FFE66D", "#FFFFFF"];
 
@@ -89,6 +90,7 @@ type Props = {
 
 /** Full-screen “가입이 완료되었습니다” + birthday fireworks. */
 export function SignupCompleteCelebration({ visible, onDone }: Props) {
+  const { u } = useI18n();
   const { width, height } = useWindowDimensions();
   const [ready, setReady] = useState(false);
 
@@ -125,10 +127,10 @@ export function SignupCompleteCelebration({ visible, onDone }: Props) {
             ? particles.map((p) => <FireworkParticle key={p.id} p={p} height={height} />)
             : null}
         </View>
-        <Text style={styles.title}>가입이 완료되었습니다</Text>
-        <Text style={styles.sub}>MoCoMo에 오신 걸 환영해요!</Text>
+        <Text style={styles.title}>{u("가입이 완료되었습니다", "Sign-up complete")}</Text>
+        <Text style={styles.sub}>{u("MoCoMo에 오신 걸 환영해요!", "Welcome to MoCoMo!")}</Text>
         <Pressable style={styles.btn} onPress={onDone}>
-          <Text style={styles.btnText}>시작하기</Text>
+          <Text style={styles.btnText}>{u("시작하기", "Get started")}</Text>
         </Pressable>
       </View>
     </Modal>
@@ -153,7 +155,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   stage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: "hidden",
   },
   particle: {
@@ -182,7 +184,7 @@ const styles = StyleSheet.create({
   },
   btnText: { color: "#fff", fontWeight: "800", fontSize: 15 },
   busy: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.45)",
     alignItems: "center",
     justifyContent: "center",

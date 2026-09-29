@@ -8,10 +8,12 @@ import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const WEB_BASE = "https://mocomo.net";
 
 export function GamesHubScreen() {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -23,21 +25,23 @@ export function GamesHubScreen() {
 
   return (
     <Screen>
-      <AppHeader title="게임" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
-      <Text style={styles.hint}>앱에서는 목록을 보고, 플레이는 웹에서 이어집니다.</Text>
+      <AppHeader title={u("게임", "Games")} leftLabel={u("뒤로", "Back")} onLeftPress={() => navigation.goBack()} />
+      <Text style={styles.hint}>
+        {u("앱에서는 목록을 보고, 플레이는 웹에서 이어집니다.", "Browse games in the app; play continues on the web.")}
+      </Text>
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : query.isError ? (
         <View style={styles.center}>
-          <Text style={styles.error}>게임 목록을 불러오지 못했습니다.</Text>
-          <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
+          <Text style={styles.error}>{u("게임 목록을 불러오지 못했습니다.", "Could not load games.")}</Text>
+          <FolkButton label={u("다시 시도", "Try again")} onPress={() => void query.refetch()} />
         </View>
       ) : (
         <FlatList
           data={query.data?.items ?? []}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 40, paddingTop: spacing.sm }}
-          ListEmptyComponent={<Text style={styles.muted}>공개 게임이 없습니다.</Text>}
+          ListEmptyComponent={<Text style={styles.muted}>{u("공개 게임이 없습니다.", "No public games yet.")}</Text>}
           renderItem={({ item }) => (
             <Pressable
               style={styles.row}
@@ -56,7 +60,7 @@ export function GamesHubScreen() {
                   {item.category} · {item.status}
                 </Text>
               </View>
-              <Text style={styles.open}>웹에서</Text>
+              <Text style={styles.open}>{u("웹에서", "On web")}</Text>
             </Pressable>
           )}
         />

@@ -8,8 +8,10 @@ import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { formatUsd } from "@/lib/money";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export function MySubscriptionsPanel() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
@@ -38,22 +40,25 @@ export function MySubscriptionsPanel() {
     void cancelSubscription(creatorId)
       .then(() => {
         void queryClient.invalidateQueries({ queryKey: ["mobile-subscriptions"] });
-        showIslandSuccess("완료", "다음 달부터 자동 결제되지 않습니다.");
+        showIslandSuccess(u("완료", "Done"), u("다음 달부터 자동 결제되지 않습니다.", "Auto-renewal stops next month."));
       })
       .catch((e: unknown) => {
-        showIslandError("오류", e instanceof Error ? e.message : "취소에 실패했습니다.");
+        showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("취소에 실패했습니다.", "Could not cancel."));
       })
       .finally(() => setCancellingId(null));
   }
 
   if (query.isLoading) {
-    return <Text style={styles.empty}>정기 후원 목록을 불러오는 중…</Text>;
+    return <Text style={styles.empty}>{u("정기 후원 목록을 불러오는 중…", "Loading subscriptions…")}</Text>;
   }
 
   if (subscriptions.length === 0) {
     return (
       <Text style={styles.empty}>
-        활성 정기 후원이 없습니다. 크리에이터 프로필에서 월 정기 후원을 시작할 수 있습니다.
+        {u(
+          "활성 정기 후원이 없습니다. 크리에이터 프로필에서 월 정기 후원을 시작할 수 있습니다.",
+          "No active subscriptions. Start monthly support from a creator profile."
+        )}
       </Text>
     );
   }
@@ -68,13 +73,15 @@ export function MySubscriptionsPanel() {
       >
         <Pressable style={styles.scrim} onPress={() => setCancelConfirm(null)}>
           <Pressable style={[styles.confirmCard, { borderColor: colors.hairline }]} onPress={(e) => e.stopPropagation()}>
-            <Text style={[styles.confirmTitle, { color: colors.text }]}>다음 달 결제 취소</Text>
+            <Text style={[styles.confirmTitle, { color: colors.text }]}>{u("다음 달 결제 취소", "Cancel next payment")}</Text>
             <Text style={[styles.confirmBody, { color: colors.textMuted }]}>
-              @{cancelConfirm?.username} 정기 후원의 다음 달 자동 결제를 취소할까요? 이미 처리된 후원금은
-              환불되지 않습니다.
+              {u(
+                `@${cancelConfirm?.username} 정기 후원의 다음 달 자동 결제를 취소할까요? 이미 처리된 후원금은 환불되지 않습니다.`,
+                `Cancel next auto-payment for @${cancelConfirm?.username}? Past charges are not refunded.`
+              )}
             </Text>
-            <FolkButton label="취소하기" variant="secondary" onPress={runCancelSubscription} />
-            <FolkButton label="닫기" variant="ghost" onPress={() => setCancelConfirm(null)} />
+            <FolkButton label={u("취소하기", "Confirm cancel")} variant="secondary" onPress={runCancelSubscription} />
+            <FolkButton label={t("common.close")} variant="ghost" onPress={() => setCancelConfirm(null)} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -82,9 +89,9 @@ export function MySubscriptionsPanel() {
         const periodEnd = new Date(s.currentPeriodEnd).toLocaleDateString("ko-KR");
         const statusLabel = s.active
           ? s.cancelAtPeriodEnd
-            ? `해지 예정 (${periodEnd}까지 이용)`
-            : `다음 결제 ${periodEnd}`
-          : "만료됨";
+            ? u(`해지 예정 (${periodEnd}까지 이용)`, `Cancels (active until ${periodEnd})`)
+            : u(`다음 결제 ${periodEnd}`, `Next charge ${periodEnd}`)
+          : u("만료됨", "Expired");
 
         return (
           <View key={s.id} style={[styles.row, { borderColor: colors.hairline }]}>
@@ -97,12 +104,12 @@ export function MySubscriptionsPanel() {
             >
               <Text style={[styles.username, { color: colors.text }]}>@{s.creatorUsername}</Text>
               <Text style={[styles.detail, { color: colors.textMuted }]}>
-                {formatUsd(s.amount)}/월 · {statusLabel}
+                {u(`${formatUsd(s.amount)}/월`, `${formatUsd(s.amount)}/mo`)} · {statusLabel}
               </Text>
             </Pressable>
             {s.active && !s.cancelAtPeriodEnd ? (
               <FolkButton
-                label="다음 달 결제 취소"
+                label={u("다음 달 결제 취소", "Cancel next payment")}
                 variant="secondary"
                 onPress={() => void handleCancel(s.creatorId, s.creatorUsername)}
                 loading={cancellingId === s.creatorId}

@@ -2,6 +2,7 @@ import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { createCheckout, confirmCheckout, type CheckoutBody } from "@/api/checkout";
 import { createStarMarketCheckout, type MarketplaceCheckoutBody } from "@/api/star-market";
+import { uiText } from "@/i18n/ui-text";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -25,7 +26,10 @@ export type CheckoutResult = {
 };
 
 /** Open Stripe Checkout in AuthSession; confirm on return to mocomo:// */
-export async function openStripeCheckout(body: CheckoutBody): Promise<CheckoutResult> {
+export async function openStripeCheckout(
+  body: CheckoutBody,
+  locale?: string
+): Promise<CheckoutResult> {
   const { checkoutUrl } = await createCheckout(body);
 
   const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, RETURN_PREFIX, {
@@ -34,20 +38,20 @@ export async function openStripeCheckout(body: CheckoutBody): Promise<CheckoutRe
   });
 
   if (result.type === "cancel" || result.type === "dismiss") {
-    throw new Error("결제가 취소되었습니다.");
+    throw new Error(uiText(locale, "결제가 취소되었습니다.", "Payment was canceled."));
   }
 
   if (result.type !== "success" || !result.url) {
-    throw new Error("결제를 완료하지 못했습니다.");
+    throw new Error(uiText(locale, "결제를 완료하지 못했습니다.", "Could not complete payment."));
   }
 
   if (result.url.includes("payment/cancel")) {
-    throw new Error("결제가 취소되었습니다.");
+    throw new Error(uiText(locale, "결제가 취소되었습니다.", "Payment was canceled."));
   }
 
   const sessionId = extractSessionId(result.url);
   if (!sessionId) {
-    throw new Error("결제 세션을 확인하지 못했습니다.");
+    throw new Error(uiText(locale, "결제 세션을 확인하지 못했습니다.", "Could not verify payment session."));
   }
 
   const confirmed = await confirmCheckout(sessionId);
@@ -57,7 +61,8 @@ export async function openStripeCheckout(body: CheckoutBody): Promise<CheckoutRe
 /** Star market (marketplace listing) checkout */
 export async function openMarketplaceCheckout(
   listingId: string,
-  body: MarketplaceCheckoutBody
+  body: MarketplaceCheckoutBody,
+  locale?: string
 ): Promise<CheckoutResult> {
   const { checkoutUrl } = await createStarMarketCheckout(listingId, body);
 
@@ -67,38 +72,39 @@ export async function openMarketplaceCheckout(
   });
 
   if (result.type === "cancel" || result.type === "dismiss") {
-    throw new Error("결제가 취소되었습니다.");
+    throw new Error(uiText(locale, "결제가 취소되었습니다.", "Payment was canceled."));
   }
   if (result.type !== "success" || !result.url) {
-    throw new Error("결제를 완료하지 못했습니다.");
+    throw new Error(uiText(locale, "결제를 완료하지 못했습니다.", "Could not complete payment."));
   }
   if (result.url.includes("payment/cancel")) {
-    throw new Error("결제가 취소되었습니다.");
+    throw new Error(uiText(locale, "결제가 취소되었습니다.", "Payment was canceled."));
   }
 
   const sessionId = extractSessionId(result.url);
   if (!sessionId) {
-    throw new Error("결제 세션을 확인하지 못했습니다.");
+    throw new Error(uiText(locale, "결제 세션을 확인하지 못했습니다.", "Could not verify payment session."));
   }
 
   const confirmed = await confirmCheckout(sessionId);
   return { type: confirmed.type, alreadyPaid: confirmed.alreadyPaid };
 }
 
-export function paymentTypeLabel(type: string): string {
+export function paymentTypeLabel(type: string, locale?: string): string {
+  const u = (ko: string, en: string) => uiText(locale, ko, en);
   const labels: Record<string, string> = {
-    TIP: "후원",
-    CREATOR_SUBSCRIPTION: "구독",
-    PREMIUM: "프리미엄",
-    PRODUCT: "구매",
-    MARKETPLACE: "마켓 구매",
-    EMOTICON: "이모티콘",
-    CREATOR_EPISODE: "회차 구매",
-    POST_MEDIA: "미디어 구매",
-    MESSAGE_MEDIA: "팬아트 구매",
-    EVENT_REGISTRATION: "이벤트 등록",
-    STUDIO_ASSET: "Studio 구매",
-    CALL_BOOKING: "통화 예약",
+    TIP: u("후원", "Tip"),
+    CREATOR_SUBSCRIPTION: u("구독", "Subscription"),
+    PREMIUM: u("프리미엄", "Premium"),
+    PRODUCT: u("구매", "Purchase"),
+    MARKETPLACE: u("마켓 구매", "Marketplace purchase"),
+    EMOTICON: u("이모티콘", "Emoticon"),
+    CREATOR_EPISODE: u("회차 구매", "Episode purchase"),
+    POST_MEDIA: u("미디어 구매", "Media purchase"),
+    MESSAGE_MEDIA: u("팬아트 구매", "Fan art purchase"),
+    EVENT_REGISTRATION: u("이벤트 등록", "Event registration"),
+    STUDIO_ASSET: u("Studio 구매", "Studio purchase"),
+    CALL_BOOKING: u("통화 예약", "Call booking"),
   };
-  return labels[type] ?? "결제";
+  return labels[type] ?? u("결제", "Payment");
 }

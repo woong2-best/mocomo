@@ -4,6 +4,8 @@ import { fetchSponsoredAdStatus, purchaseEventSponsoredAd } from "@/api/sponsore
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
+import { eventsUi } from "@/features/events/events-ui";
 
 type Props = {
   visible: boolean;
@@ -13,6 +15,8 @@ type Props = {
 };
 
 export function EventSponsorAdSheet({ visible, eventId, onClose, onSuccess }: Props) {
+  const { u } = useI18n();
+  const copy = useMemo(() => eventsUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [days, setDays] = useState(3);
@@ -33,7 +37,7 @@ export function EventSponsorAdSheet({ visible, eventId, onClose, onSuccess }: Pr
         setBalance(s.purchasedMocoBalance);
         setCanAfford(s.canAfford);
       })
-      .catch(() => setError("광고 견적을 불러오지 못했습니다."))
+      .catch(() => setError(copy.quoteLoadFail))
       .finally(() => setLoading(false));
   }, [visible, eventId, days]);
 
@@ -45,7 +49,7 @@ export function EventSponsorAdSheet({ visible, eventId, onClose, onSuccess }: Pr
       onSuccess?.();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "광고 구매에 실패했습니다.");
+      setError(e instanceof Error ? e.message : copy.purchaseFail);
     } finally {
       setBusy(false);
     }
@@ -55,8 +59,8 @@ export function EventSponsorAdSheet({ visible, eventId, onClose, onSuccess }: Pr
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { backgroundColor: colors.surfaceRaised }]}>
-          <Text style={styles.title}>이벤트 스폰서 광고</Text>
-          <Text style={styles.sub}>웹과 동일 — MOCO로 기간 광고를 구매합니다.</Text>
+          <Text style={styles.title}>{copy.sponsorTitle}</Text>
+          <Text style={styles.sub}>{copy.sponsorSub}</Text>
 
           <View style={styles.dayRow}>
             {[1, 3, 7, 14].map((d) => (
@@ -65,7 +69,7 @@ export function EventSponsorAdSheet({ visible, eventId, onClose, onSuccess }: Pr
                 style={[styles.dayChip, days === d && styles.dayChipActive]}
                 onPress={() => setDays(d)}
               >
-                <Text style={[styles.dayText, days === d && styles.dayTextActive]}>{d}일</Text>
+                <Text style={[styles.dayText, days === d && styles.dayTextActive]}>{copy.days(d)}</Text>
               </Pressable>
             ))}
           </View>
@@ -75,11 +79,11 @@ export function EventSponsorAdSheet({ visible, eventId, onClose, onSuccess }: Pr
           ) : (
             <>
               <Text style={styles.quote}>
-                견적: {quoteMoco != null ? `${quoteMoco.toLocaleString()} MOCO` : "—"}
+                {copy.quote(quoteMoco != null ? `${quoteMoco.toLocaleString()} MOCO` : "—")}
               </Text>
-              <Text style={styles.balance}>구매 MOCO 잔액: {balance.toLocaleString()}</Text>
+              <Text style={styles.balance}>{copy.balance(balance)}</Text>
               {canAfford === false ? (
-                <Text style={styles.error}>잔액이 부족합니다. mocomo.net 웹에서 MOCO를 충전해 주세요.</Text>
+                <Text style={styles.error}>{copy.insufficientMoco}</Text>
               ) : null}
             </>
           )}
@@ -87,9 +91,9 @@ export function EventSponsorAdSheet({ visible, eventId, onClose, onSuccess }: Pr
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <View style={styles.actions}>
-            <FolkButton label="닫기" variant="ghost" onPress={onClose} />
+            <FolkButton label={copy.close} variant="ghost" onPress={onClose} />
             <FolkButton
-              label={busy ? "처리 중…" : "광고 구매"}
+              label={busy ? copy.purchaseBusy : copy.purchase}
               onPress={() => void purchase()}
               loading={busy}
               disabled={loading || canAfford === false}

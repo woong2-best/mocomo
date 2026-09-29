@@ -16,6 +16,7 @@ import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { isNavItemActive, resolveMyPageHref } from "@/lib/nav-active";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { springSnappy } from "@/lib/motion-presets";
+import { uiText } from "@/lib/i18n/ui-text";
 
 type MobileDrawerNavProps = {
   open: boolean;
@@ -28,7 +29,7 @@ const PANEL_WIDTH = "min(58vw, 14.5rem)";
 export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
   const pathname = usePathname() ?? "";
   const { data: session } = useSession();
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const reduced = usePrefersReducedMotion();
   const { openCompose } = useCompose();
   const [mounted, setMounted] = useState(false);
@@ -65,7 +66,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
           <>
             <motion.button
               type="button"
-              aria-label="메뉴 닫기"
+              aria-label={uiText(locale, "메뉴 닫기", "Close menu")}
               className="mobile-drawer-scrim"
               initial={reduced ? false : { opacity: 0 }}
               animate={reduced ? undefined : { opacity: 1 }}
@@ -76,7 +77,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
             <motion.aside
               role="dialog"
               aria-modal="true"
-              aria-label="사이드 메뉴"
+              aria-label={uiText(locale, "사이드 메뉴", "Side menu")}
               className="mobile-drawer-panel folk-sidebar-panel"
               style={{ width: PANEL_WIDTH }}
               initial={reduced ? false : { x: "-100%" }}
@@ -90,13 +91,13 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
                 size="icon"
                 className="mobile-drawer-close"
                 onClick={() => onOpenChange(false)}
-                aria-label="메뉴 닫기"
+                aria-label={uiText(locale, "메뉴 닫기", "Close menu")}
               >
                 <X className="h-5 w-5" />
               </Button>
 
               <div className="folk-sidebar-nav-stack mobile-drawer-nav-stack">
-                <nav className="folk-sidebar-nav" aria-label="주요 메뉴">
+                <nav className="folk-sidebar-nav" aria-label={uiText(locale, "주요 메뉴", "Main menu")}>
                   {items.map(({ href, icon: Icon, labelKey }) => {
                     const active = isNavItemActive(pathname, href, navHrefs, ownProfilePath);
 
@@ -146,6 +147,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
 }
 
 export function MobileMenuButton({ onClick }: { onClick: () => void }) {
+  const { locale } = useLocale();
   return (
     <Button
       type="button"
@@ -153,10 +155,10 @@ export function MobileMenuButton({ onClick }: { onClick: () => void }) {
       size="icon"
       className="lg:hidden h-10 w-10 rounded-full shrink-0"
       onClick={onClick}
-      aria-label="메뉴 보기"
+      aria-label={uiText(locale, "메뉴 보기", "Open menu")}
     >
       <Menu className="h-6 w-6" strokeWidth={2} />
-      <span className="sr-only">메뉴</span>
+      <span className="sr-only">{uiText(locale, "메뉴", "Menu")}</span>
     </Button>
   );
 }

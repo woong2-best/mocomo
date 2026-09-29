@@ -9,6 +9,7 @@ import { AuthTextField } from "@/features/auth/AuthTextField";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PasswordReset">;
 type Step = "email" | "code" | "done";
@@ -22,6 +23,7 @@ function errMsg(e: unknown, fallback: string) {
 /** Native password reset — email code + new password, no web redirect. */
 export function PasswordResetScreen({ navigation }: Props) {
   const { colors } = useTheme();
+  const { u } = useI18n();
   const { signInWithCredentials, refreshMe } = useAuth();
   const [step, setStep] = useState<Step>("email");
   const [busy, setBusy] = useState(false);
@@ -43,10 +45,10 @@ export function PasswordResetScreen({ navigation }: Props) {
         setError(result.error);
         return;
       }
-      setMessage(result.message ?? "인증 코드를 보냈습니다.");
+      setMessage(result.message ?? u("인증 코드를 보냈습니다.", "We sent a verification code."));
       setStep("code");
     } catch (e) {
-      setError(errMsg(e, "코드 발송에 실패했습니다."));
+      setError(errMsg(e, u("코드 발송에 실패했습니다.", "Could not send the code.")));
     } finally {
       setBusy(false);
     }
@@ -54,7 +56,7 @@ export function PasswordResetScreen({ navigation }: Props) {
 
   async function handleReset() {
     if (newPassword !== confirmPassword) {
-      setError("비밀번호가 일치하지 않습니다.");
+      setError(u("비밀번호가 일치하지 않습니다.", "Passwords do not match."));
       return;
     }
     setError("");
@@ -74,27 +76,31 @@ export function PasswordResetScreen({ navigation }: Props) {
         return;
       }
       await signInWithCredentials(email.trim().toLowerCase(), newPassword);
-      setMessage(result.message ?? "비밀번호가 변경되었습니다.");
+      setMessage(result.message ?? u("비밀번호가 변경되었습니다.", "Your password was changed."));
       setStep("done");
     } catch (e) {
-      setError(errMsg(e, "비밀번호 재설정에 실패했습니다."));
+      setError(errMsg(e, u("비밀번호 재설정에 실패했습니다.", "Password reset failed.")));
     } finally {
       setBusy(false);
     }
   }
 
   const title =
-    step === "email" ? "비밀번호 재설정" : step === "code" ? "새 비밀번호" : "완료";
+    step === "email"
+      ? u("비밀번호 재설정", "Reset password")
+      : step === "code"
+        ? u("새 비밀번호", "New password")
+        : u("완료", "Done");
 
   return (
     <AuthScreenLayout
       title={title}
       subtitle={
         step === "email"
-          ? "가입한 이메일로 인증 코드를 보내드립니다."
+          ? u("가입한 이메일로 인증 코드를 보내드립니다.", "We will send a verification code to your sign-up email.")
           : step === "code"
-            ? `${email.trim()}로 보낸 코드를 입력하세요.`
-            : "새 비밀번호로 로그인되었습니다."
+            ? u(`${email.trim()}로 보낸 코드를 입력하세요.`, `Enter the code we sent to ${email.trim()}.`)
+            : u("새 비밀번호로 로그인되었습니다.", "You are signed in with your new password.")
       }
       onBack={() => {
         if (step === "code") setStep("email");
@@ -104,7 +110,7 @@ export function PasswordResetScreen({ navigation }: Props) {
       {step === "email" ? (
         <>
           <AuthTextField
-            label="이메일"
+            label={u("이메일", "Email")}
             value={email}
             onChangeText={setEmail}
             placeholder="you@example.com"
@@ -112,7 +118,7 @@ export function PasswordResetScreen({ navigation }: Props) {
           />
           {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
           <FolkButton
-            label="인증 코드 받기"
+            label={u("인증 코드 받기", "Send verification code")}
             loading={busy}
             disabled={!email.trim()}
             onPress={() => void handleSendCode()}
@@ -126,30 +132,30 @@ export function PasswordResetScreen({ navigation }: Props) {
             <Text style={[styles.message, { color: colors.brand }]}>{message}</Text>
           ) : null}
           <AuthTextField
-            label="인증 코드"
+            label={u("인증 코드", "Verification code")}
             value={code}
             onChangeText={setCode}
-            placeholder="6자리 코드"
+            placeholder={u("6자리 코드", "6-digit code")}
             keyboardType="number-pad"
             maxLength={6}
           />
           <AuthTextField
-            label="새 비밀번호"
+            label={u("새 비밀번호", "New password")}
             value={newPassword}
             onChangeText={setNewPassword}
-            placeholder="8자 이상"
+            placeholder={u("8자 이상", "8+ characters")}
             secureTextEntry
           />
           <AuthTextField
-            label="비밀번호 확인"
+            label={u("비밀번호 확인", "Confirm password")}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
-            placeholder="다시 입력"
+            placeholder={u("다시 입력", "Re-enter")}
             secureTextEntry
           />
           {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
           <FolkButton
-            label="비밀번호 변경"
+            label={u("비밀번호 변경", "Change password")}
             loading={busy}
             disabled={code.trim().length < 4 || newPassword.length < 8}
             onPress={() => void handleReset()}
@@ -162,7 +168,7 @@ export function PasswordResetScreen({ navigation }: Props) {
           {message ? (
             <Text style={[styles.message, { color: colors.brand }]}>{message}</Text>
           ) : null}
-          <FolkButton label="로그인으로" onPress={() => navigation.navigate("Login")} />
+          <FolkButton label={u("로그인으로", "Go to sign in")} onPress={() => navigation.navigate("Login")} />
         </>
       ) : null}
 
@@ -172,7 +178,7 @@ export function PasswordResetScreen({ navigation }: Props) {
             style={{ color: colors.brand, fontWeight: "700" }}
             onPress={() => navigation.navigate("Login")}
           >
-            로그인으로 돌아가기
+            {u("로그인으로 돌아가기", "Back to sign in")}
           </Text>
         </Text>
       ) : null}

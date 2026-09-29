@@ -6,6 +6,8 @@ import { startUsedTradeChat } from "@/actions/used-market";
 import { usedMarketVerifyPath } from "@/lib/used-market-verify-path";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 function needsVerification(error: string) {
   return (
@@ -23,6 +25,7 @@ export function UsedTradeChatButton({
   listingId: string;
   countryCode?: string;
 }) {
+  const { locale } = useLocale();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -55,7 +58,9 @@ export function UsedTradeChatButton({
         className="w-full h-12 gap-2"
       >
         <MessageSquare className="h-5 w-5" />
-        {loading ? "연결 중…" : "채팅하기"}
+        {loading
+          ? uiText(locale, "연결 중…", "Connecting…")
+          : uiText(locale, "채팅하기", "Chat")}
       </Button>
     </div>
   );

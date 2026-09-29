@@ -9,18 +9,22 @@ import { useAuth } from "@/auth/AuthContext";
 import { publishUserCallEvent, subscribeUserCallEvents } from "@/lib/supabase-call-signal";
 import { useMobileCallSession } from "@/features/messages/MobileCallSession";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
-function errorMessage(e: unknown) {
-  if (e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body) {
-    return String((e.body as { error: string }).error);
-  }
-  return e instanceof Error ? e.message : "통화를 시작하지 못했습니다.";
-}
-
 export function DmCallScreen() {
+  const { t, u } = useI18n();
+  const errorMessage = useCallback(
+    (e: unknown) => {
+      if (e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body) {
+        return String((e.body as { error: string }).error);
+      }
+      return e instanceof Error ? e.message : u("통화를 시작하지 못했습니다.", "Could not start the call.");
+    },
+    [u]
+  );
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -215,10 +219,10 @@ export function DmCallScreen() {
   if (phase === "error") {
     return (
       <View style={[styles.root, { paddingTop: insets.top + 24 }]}>
-        <Text style={styles.errorTitle}>통화 실패</Text>
+        <Text style={styles.errorTitle}>{u("통화 실패", "Call failed")}</Text>
         <Text style={styles.errorBody}>{error}</Text>
         <Pressable style={styles.endBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.endBtnText}>닫기</Text>
+          <Text style={styles.endBtnText}>{t("common.close")}</Text>
         </Pressable>
       </View>
     );
@@ -232,19 +236,27 @@ export function DmCallScreen() {
         <View style={styles.center}>
           <FolkAvatar uri={displayImage} name={displayName} size={96} />
           <Text style={styles.name}>{displayName}</Text>
-          <Text style={styles.sub}>{phase === "ringing" ? "상대방에게 전화 거는 중…" : "전화 연결 중…"}</Text>
+          <Text style={styles.sub}>
+            {phase === "ringing"
+              ? u("상대방에게 전화 거는 중…", "Ringing…")
+              : u("전화 연결 중…", "Connecting…")}
+          </Text>
           <ActivityIndicator color="#fff" style={{ marginTop: 20 }} />
         </View>
       ) : (
         <View style={styles.room}>
           <View style={styles.audioStage}>
             <Text style={styles.stageHint}>
-              {session.peer.state === "connected" ? "음성 통화 중" : "음성 연결 중…"}
+              {session.peer.state === "connected"
+                ? u("음성 통화 중", "On voice call")
+                : u("음성 연결 중…", "Connecting voice…")}
             </Text>
             <Pressable
               style={styles.micBtn}
               onPress={() => session.peer.setMic(!session.peer.micEnabled)}
-              accessibilityLabel={session.peer.micEnabled ? "마이크 끄기" : "마이크 켜기"}
+              accessibilityLabel={
+                session.peer.micEnabled ? u("마이크 끄기", "Mute mic") : u("마이크 켜기", "Unmute mic")
+              }
             >
               <Ionicons name={session.peer.micEnabled ? "mic" : "mic-off"} size={26} color="#fff" />
             </Pressable>
@@ -252,13 +264,17 @@ export function DmCallScreen() {
           <View style={[styles.overlayTop, { paddingTop: insets.top + 12 }]}>
             <FolkAvatar uri={displayImage} name={displayName} size={44} />
             <Text style={styles.name}>{displayName}</Text>
-            <Text style={styles.sub}>음성 통화</Text>
+            <Text style={styles.sub}>{u("음성 통화", "Voice call")}</Text>
           </View>
         </View>
       )}
 
       <View style={[styles.controls, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-        <Pressable style={styles.hangup} onPress={() => void hangUp()} accessibilityLabel="통화 종료">
+        <Pressable
+          style={styles.hangup}
+          onPress={() => void hangUp()}
+          accessibilityLabel={u("통화 종료", "End call")}
+        >
           <Ionicons name="call" size={28} color="#fff" style={{ transform: [{ rotate: "135deg" }] }} />
         </Pressable>
       </View>

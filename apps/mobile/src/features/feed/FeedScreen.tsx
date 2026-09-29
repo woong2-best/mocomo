@@ -55,6 +55,7 @@ import { SearchField } from "@/ui/SearchField";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { DrawerRoute, RootStackParamList, RootTabParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type DrawerHostProps = {
   visible: boolean;
@@ -114,6 +115,7 @@ function feedItemType(item: FeedPost): string {
 }
 
 export function FeedScreen() {
+  const { u, t } = useI18n();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
@@ -377,7 +379,7 @@ export function FeedScreen() {
           hitSlop={10}
           style={styles.iconBtn}
           accessibilityRole="button"
-          accessibilityLabel="메뉴"
+          accessibilityLabel={t("common.menu")}
         >
           <Ionicons name="menu" size={24} color={styles.headerIcon.color} />
         </Pressable>
@@ -404,7 +406,7 @@ export function FeedScreen() {
             const trimmed = searchQ.trim();
             if (trimmed) setSearchSubmitted(trimmed);
           }}
-          placeholder="검색"
+          placeholder={t("common.search")}
           containerStyle={{ flex: 1 }}
         />
 
@@ -413,7 +415,7 @@ export function FeedScreen() {
           hitSlop={8}
           style={styles.iconBtn}
           accessibilityRole="button"
-          accessibilityLabel="알림"
+          accessibilityLabel={t("nav.notifications")}
         >
           <Ionicons name="notifications-outline" size={22} color={styles.headerIcon.color} />
           {alarmUnread > 0 ? <View style={styles.alarmDot} /> : null}
@@ -427,7 +429,7 @@ export function FeedScreen() {
           hitSlop={8}
           style={styles.iconBtn}
           accessibilityRole="button"
-          accessibilityLabel="메세지"
+          accessibilityLabel={t("nav.messages")}
         >
           <MailboxIcon unread={hasUnreadDms} size={30} />
         </Pressable>
@@ -499,8 +501,8 @@ export function FeedScreen() {
         </View>
       ) : query.isError && posts.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.error}>피드를 불러오지 못했습니다.</Text>
-          <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
+          <Text style={styles.error}>{u("피드를 불러오지 못했습니다.", "Could not load feed.")}</Text>
+          <FolkButton label={t("toast.retry")} onPress={() => void query.refetch()} />
         </View>
       ) : (
         <FlashList
@@ -539,7 +541,7 @@ export function FeedScreen() {
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.muted}>아직 게시물이 없습니다.</Text>
+              <Text style={styles.muted}>{u("아직 게시물이 없습니다.", "No posts yet.")}</Text>
             </View>
           }
           contentContainerStyle={{ paddingBottom: bottomPad }}
@@ -578,8 +580,13 @@ function HighlightsPanel({
   colors: ThemeColors;
   onPressPost: (id: string) => void;
 }) {
+  const { u } = useI18n();
   if (topLiked.length === 0 && topViewed.length === 0) {
-    return <Text style={{ color: colors.textMuted, padding: 16, fontWeight: "600" }}>아직 하이라이트가 없습니다.</Text>;
+    return (
+      <Text style={{ color: colors.textMuted, padding: 16, fontWeight: "600" }}>
+        {u("아직 하이라이트가 없습니다.", "No highlights yet.")}
+      </Text>
+    );
   }
   return (
     <View style={{ padding: 12, gap: 16 }}>
@@ -667,36 +674,41 @@ function SearchResultsPanel({
   onPressUser: (user: UserProfileSeed) => void;
   onPressAnime: (slug: string) => void;
 }) {
+  const { u } = useI18n();
   const total = data.users.length + data.posts.length + data.animes.length + data.liveStreams.length;
   if (total === 0) {
-    return <Text style={{ color: colors.textMuted, padding: 16, fontWeight: "600" }}>결과가 없습니다.</Text>;
+    return (
+      <Text style={{ color: colors.textMuted, padding: 16, fontWeight: "600" }}>
+        {u("결과가 없습니다.", "No results.")}
+      </Text>
+    );
   }
   return (
     <View style={{ padding: 8, gap: 4 }}>
-      {data.users.map((u) => (
+      {data.users.map((person) => (
         <Pressable
-          key={`u-${u.id}`}
-          onPressIn={() => onPressInUser?.(u)}
-          onPress={() => onPressUser(u)}
+          key={`u-${person.id}`}
+          onPressIn={() => onPressInUser?.(person)}
+          onPress={() => onPressUser(person)}
           style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 8, gap: 8 }}
         >
-          <FolkAvatar uri={u.image} name={u.name || u.username} size={28} />
+          <FolkAvatar uri={person.image} name={person.name || person.username} size={28} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{u.name || u.username}</Text>
-            <Text style={{ fontSize: 11, color: colors.textMuted }}>@{u.username}</Text>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{person.name || person.username}</Text>
+            <Text style={{ fontSize: 11, color: colors.textMuted }}>@{person.username}</Text>
           </View>
-          <Text style={{ fontSize: 10, fontWeight: "700", color: colors.terracotta }}>사람</Text>
+          <Text style={{ fontSize: 10, fontWeight: "700", color: colors.terracotta }}>{u("사람", "People")}</Text>
         </Pressable>
       ))}
       {data.posts.map((p) => (
         <Pressable key={`p-${p.id}`} onPress={() => onPressPost(p.id)} style={{ paddingVertical: 8, paddingHorizontal: 8 }}>
-          <Text style={{ fontSize: 10, fontWeight: "800", color: colors.terracotta, marginBottom: 2 }}>게시물</Text>
+          <Text style={{ fontSize: 10, fontWeight: "800", color: colors.terracotta, marginBottom: 2 }}>{u("게시물", "Posts")}</Text>
           <Text numberOfLines={2} style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{p.title || p.content.slice(0, 80)}</Text>
         </Pressable>
       ))}
       {data.animes.map((a) => (
         <Pressable key={`a-${a.slug}`} onPress={() => onPressAnime(a.slug)} style={{ paddingVertical: 8, paddingHorizontal: 8 }}>
-          <Text style={{ fontSize: 10, fontWeight: "800", color: colors.terracotta, marginBottom: 2 }}>컬처위키</Text>
+          <Text style={{ fontSize: 10, fontWeight: "800", color: colors.terracotta, marginBottom: 2 }}>{u("컬처위키", "Culture Wiki")}</Text>
           <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{a.title}</Text>
         </Pressable>
       ))}

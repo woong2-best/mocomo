@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Notifications from "expo-notifications";
 import { markNotificationPromptSeen } from "@/lib/onboarding-store";
 import { radii } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   visible: boolean;
@@ -12,6 +13,7 @@ type Props = {
 
 /** X-style notification priming — shown once on fresh install before login. */
 export function NotificationPermissionSheet({ visible, onComplete }: Props) {
+  const { u } = useI18n();
   const insets = useSafeAreaInsets();
 
   async function finish(allow: boolean) {
@@ -32,16 +34,18 @@ export function NotificationPermissionSheet({ visible, onComplete }: Props) {
           <View style={styles.iconWrap}>
             <Ionicons name="notifications" size={32} color="#1DA1F2" />
           </View>
-          <Text style={styles.title}>MoCoMo에서 알림을 보내도록{"\n"}허용하시겠습니까?</Text>
+          <Text style={styles.title}>
+            {u("MoCoMo에서 알림을 보내도록\n허용하시겠습니까?", "Allow MoCoMo to send you notifications?")}
+          </Text>
           <Text style={styles.sub}>
-            새 메시지, 라이브, 활동 알림을 받을 수 있습니다.
+            {u("새 메시지, 라이브, 활동 알림을 받을 수 있습니다.", "Get alerts for new messages, live streams, and activity.")}
           </Text>
 
           <Pressable style={styles.allowBtn} onPress={() => void finish(true)}>
-            <Text style={styles.allowText}>허용</Text>
+            <Text style={styles.allowText}>{u("허용", "Allow")}</Text>
           </Pressable>
           <Pressable style={styles.denyBtn} onPress={() => void finish(false)}>
-            <Text style={styles.denyText}>허용 안함</Text>
+            <Text style={styles.denyText}>{u("허용 안함", "Don't allow")}</Text>
           </Pressable>
         </View>
       </View>

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { ContactAudienceSettingsCard } from "@/features/settings/ContactAudienceSettingsCard";
+import { useI18n } from "@/i18n/I18nProvider";
 import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
@@ -11,10 +12,15 @@ export function ChatSettingsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation();
+  const { t, u } = useI18n();
 
   return (
     <Screen safeTop={false}>
-      <AppHeader title="채팅 설정" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader
+        title={u("채팅 설정", "Chat settings")}
+        leftLabel={t("common.back")}
+        onLeftPress={() => navigation.goBack()}
+      />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <ContactAudienceSettingsCard />
       </ScrollView>

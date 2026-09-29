@@ -11,6 +11,8 @@ import {
 import { Track } from "livekit-client";
 import type { LiveToken } from "@/api/live";
 import { ensureLiveKitGlobals } from "@/native/livekit-bootstrap";
+import { liveUi } from "@/features/live/live-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -21,6 +23,8 @@ function RoomTracks({
   audioOnly: boolean;
   enableIosPip: boolean;
 }) {
+  const { u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -32,9 +36,9 @@ function RoomTracks({
   if (audioOnly) {
     return (
       <View style={styles.audioOnly}>
-        <Text style={styles.audioTitle}>음성 라이브</Text>
+        <Text style={styles.audioTitle}>{copy.kitAudioLive}</Text>
         <Text style={styles.audioSub}>
-          {tracks.length > 0 ? "호스트 오디오 수신 중" : "연결 대기 중…"}
+          {tracks.length > 0 ? copy.kitReceivingHost : copy.kitWaitingConnection}
         </Text>
       </View>
     );
@@ -44,7 +48,7 @@ function RoomTracks({
   if (videoTracks.length === 0) {
     return (
       <View style={styles.audioOnly}>
-        <Text style={styles.audioSub}>영상 트랙을 기다리는 중…</Text>
+        <Text style={styles.audioSub}>{copy.kitWaitingVideo}</Text>
       </View>
     );
   }
@@ -148,13 +152,15 @@ export function LiveKitViewer({
 }
 
 export function LiveKitConnecting() {
+  const { u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
   return (
     <View style={styles.audioOnly}>
       <ActivityIndicator color="#fff" />
-      <Text style={[styles.audioSub, { marginTop: spacing.sm }]}>라이브 연결 중…</Text>
+      <Text style={[styles.audioSub, { marginTop: spacing.sm }]}>{copy.kitConnecting}</Text>
     </View>
   );
 }

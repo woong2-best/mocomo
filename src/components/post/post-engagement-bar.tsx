@@ -13,6 +13,8 @@ import { PostViewTracker } from "@/components/post/post-view-tracker";
 import { formatNumber, cn } from "@/lib/utils";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engage";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 export function PostEngagementBar({
   postId,
@@ -52,6 +54,7 @@ export function PostEngagementBar({
   const session = sessionState?.data;
   const status = sessionState?.status ?? "unauthenticated";
   const router = useRouter();
+  const { locale } = useLocale();
   const { liked, likeCount } = like;
   const { starred } = star;
   const displayError = actionError || like.error || star.error;
@@ -133,7 +136,11 @@ export function PostEngagementBar({
           <button
             type="button"
             onClick={handleStar}
-            aria-label={starred ? "STAR에서 제거" : "STAR에 저장"}
+            aria-label={
+              starred
+                ? uiText(locale, "STAR에서 제거", "Remove from STAR")
+                : uiText(locale, "STAR에 저장", "Save to STAR")
+            }
             className={cn(
               "transition-colors min-h-8 min-w-8 flex items-center justify-center rounded-lg",
               starred ? "text-folk-gold" : "text-folk-gold/60 hover:text-folk-gold hover:bg-muted/50"

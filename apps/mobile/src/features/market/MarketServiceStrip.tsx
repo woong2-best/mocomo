@@ -6,6 +6,7 @@ import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -21,41 +22,65 @@ type ServiceItem = {
 /** Destinations reachable from the strip without navigation params. */
 type ParamlessRoute = "MarketMy" | "SellerListings";
 
+function serviceLabel(key: string, u: (ko: string, en: string) => string): string {
+  const brandTail = MARKET_BRAND_NAME.split(" ").slice(-1)[0];
+  switch (key) {
+    case "all":
+      return u(`전체\n${brandTail}`, `All\n${brandTail}`);
+    case "physical":
+      return u("일반상품", "Physical");
+    case "custom":
+      return u("주문제작", "Custom order");
+    case "preorder":
+      return u("예약판매", "Pre-order");
+    case "sell":
+      return u("판매 시작", "Start selling");
+    case "used":
+      return u("중고거래", "Used market");
+    case "orders":
+      return u("내 주문", "My orders");
+    case "seller":
+      return u("판매자", "Seller");
+    default:
+      return key;
+  }
+}
+
 const SERVICES: ServiceItem[] = [
   {
     key: "all",
-    label: `전체\n${MARKET_BRAND_NAME.split(" ").slice(-1)[0]}`,
+    label: "",
     icon: "storefront-outline",
     colorKey: "terracotta",
   },
   {
     key: "physical",
-    label: "일반상품",
+    label: "",
     icon: "cube-outline",
     colorKey: "cobalt",
   },
   {
     key: "custom",
-    label: "주문제작",
+    label: "",
     icon: "color-palette-outline",
     colorKey: "forest",
   },
   {
     key: "preorder",
-    label: "예약판매",
+    label: "",
     icon: "car-outline",
     colorKey: "gold",
   },
   {
     key: "sell",
-    label: "판매 시작",
+    label: "",
     icon: "add-circle-outline",
     colorKey: "terracotta",
     action: "sell",
   },
   {
     key: "used",
-    label: "중고거래",
+    label: "",
     icon: "pricetag-outline",
     colorKey: "gold",
     action: "navigate",
@@ -63,7 +88,7 @@ const SERVICES: ServiceItem[] = [
   },
   {
     key: "orders",
-    label: "내 주문",
+    label: "",
     icon: "clipboard-outline",
     colorKey: "cobalt",
     action: "navigate",
@@ -71,7 +96,7 @@ const SERVICES: ServiceItem[] = [
   },
   {
     key: "seller",
-    label: "판매자",
+    label: "",
     icon: "briefcase-outline",
     colorKey: "terracotta",
     action: "navigate",
@@ -86,6 +111,7 @@ type Props = {
 };
 
 export function MarketServiceStrip({ navigation, onFilter, onSellRegister }: Props) {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -119,8 +145,7 @@ export function MarketServiceStrip({ navigation, onFilter, onSellRegister }: Pro
               <Ionicons name={s.icon} size={22} color={tone} />
             </View>
             <Text style={styles.label} numberOfLines={2}>
-              {s.label.replace(`\n${MARKET_BRAND_NAME.split(" ").slice(-1)[0]}`, "")}
-              {s.key === "all" ? `\nMoment` : ""}
+              {serviceLabel(s.key, u)}
             </Text>
           </Pressable>
         );

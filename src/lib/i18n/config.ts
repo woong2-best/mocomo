@@ -89,7 +89,7 @@ export const LOCALE_COOKIE = "mocomo_locale";
 export const COUNTRY_COOKIE = "mocomo_country";
 export { TIMEZONE_COOKIE, DEFAULT_TIMEZONE } from "@/lib/i18n/timezone";
 
-export const DEFAULT_USER_LOCALE: Locale = "ko";
+export const DEFAULT_USER_LOCALE: Locale = "en";
 export const DEFAULT_GUEST_LOCALE: Locale = "en";
 export const DEFAULT_GUEST_COUNTRY = "US";
 
@@ -134,7 +134,7 @@ export function isLocale(value: string): value is Locale {
   return (LOCALES as readonly string[]).includes(value);
 }
 
-export function normalizeLocale(value?: string | null, fallback: Locale = "ko"): Locale {
+export function normalizeLocale(value?: string | null, fallback: Locale = "en"): Locale {
   if (value && isLocale(value)) return value;
   return fallback;
 }

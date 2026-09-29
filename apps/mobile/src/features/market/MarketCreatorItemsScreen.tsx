@@ -12,8 +12,10 @@ import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export function MarketCreatorItemsScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -23,9 +25,9 @@ export function MarketCreatorItemsScreen() {
 
   return (
     <Screen>
-      <AppHeader title="크리에이터" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={u("크리에이터", "Creators")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       <Text style={styles.sub}>
-        내가 구매한 판매자(크리에이터)의 다른 상품
+        {u("내가 구매한 판매자(크리에이터)의 다른 상품", "More from creators you've bought from")}
       </Text>
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
@@ -36,7 +38,7 @@ export function MarketCreatorItemsScreen() {
           numColumns={2}
           columnWrapperStyle={{ gap: 10, paddingHorizontal: spacing.md }}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24, gap: 10 }}
-          ListEmptyComponent={<Text style={styles.empty}>구매한 크리에이터 상품이 없습니다.</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>{u("구매한 크리에이터 상품이 없습니다.", "No creator items from your purchases yet.")}</Text>}
           renderItem={({ item }) => (
             <Pressable
               style={styles.card}

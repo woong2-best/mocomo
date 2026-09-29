@@ -9,6 +9,7 @@ import { ChatSharedPostCard } from "@/features/messages/ChatSharedPostCard";
 import { ChatVoiceMessage } from "@/features/messages/ChatVoiceMessage";
 import type { DmLightboxImage } from "@/features/messages/DmImageLightbox";
 import { formatBubbleTime } from "@/features/messages/chat-display";
+import { useI18n } from "@/i18n/I18nProvider";
 import { parseChatPostShare } from "@/lib/chat-post-share";
 import { parseCallBookingMarker, stripCallBookingMarker } from "@/lib/chat-call-booking";
 import {
@@ -99,6 +100,7 @@ function ChatMessageImage({
   mine?: boolean;
   onPurchaseSuccess?: () => void;
 }) {
+  const { u } = useI18n();
   const isLocked = locked || isAttachmentLocked(image);
   const paid = (priceKrw ?? image.priceKrw ?? 0) > 0;
 
@@ -162,7 +164,7 @@ function ChatMessageImage({
           onLongPress={onLongPress}
           delayLongPress={280}
           accessibilityRole="button"
-          accessibilityLabel="사진 크게 보기"
+          accessibilityLabel={u("사진 크게 보기", "View photo")}
         />
       )}
     </View>
@@ -256,8 +258,9 @@ function ReplyButton({
   styles: ReturnType<typeof createThemedStyles>;
 }) {
   const { colors } = useTheme();
+  const { u } = useI18n();
   return (
-    <Pressable onPress={onPress} hitSlop={10} style={styles.replyBtn} accessibilityLabel="답장">
+    <Pressable onPress={onPress} hitSlop={10} style={styles.replyBtn} accessibilityLabel={u("답장", "Reply")}>
       <ReplyBubbleIcon size={16} color={colors.text} />
     </Pressable>
   );
@@ -274,6 +277,7 @@ function MessageBubbleInner({
   onOpenImage,
   showSenderName = false,
 }: Props) {
+  const { locale, u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const listingCard = message.usedListing ?? null;
@@ -323,7 +327,7 @@ function MessageBubbleInner({
     !tradeRequestId;
   const imageOnly = images.length > 0 && videos.length === 0 && mediaOnly;
   const hasTextBubble = !!(visibleText || message.replyTo) && !mediaOnly;
-  const timeLabel = formatBubbleTime(message.createdAt);
+  const timeLabel = formatBubbleTime(message.createdAt, locale);
   const bubbleDecode = feedMediaDecodeWidth(BUBBLE_IMAGE);
   const standaloneDecodeW = feedMediaDecodeWidth(STANDALONE_W);
   const standaloneDecodeH = feedMediaDecodeWidth(STANDALONE_H);
@@ -338,7 +342,7 @@ function MessageBubbleInner({
   );
 
   const senderName = message.sender.username;
-  const selfLabel = mine ? "나" : undefined;
+  const selfLabel = mine ? u("나", "You") : undefined;
 
   const openImageAt = (index: number) => {
     if (!onOpenImage || lightboxImages.length === 0) return;

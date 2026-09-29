@@ -13,10 +13,12 @@ import {
   isLiveFeatureEnabled,
 } from "@/lib/live-feature";
 import { LiveHubSlantTabs } from "@/components/live/live-hub-slant-tabs";
+import { useLocale } from "@/components/providers/locale-provider";
 
 function LiveHubQuickActions() {
   const sessionState = useSession();
   const session = sessionState?.data;
+  const { t } = useLocale();
 
   if (!isLiveFeatureEnabled()) return null;
 
@@ -38,11 +40,11 @@ function LiveHubQuickActions() {
     <div className="live-hub-quick-actions flex shrink-0 items-center gap-2">
       <Link href={liveHref} className="live-hub-action-live">
         <Video className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        라이브
+        {t("nav.live")}
       </Link>
       <Link href={studioHref} className="live-hub-action-studio">
         <MonitorPlay className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        스튜디오
+        {t("nav.liveStudio")}
       </Link>
     </div>
   );

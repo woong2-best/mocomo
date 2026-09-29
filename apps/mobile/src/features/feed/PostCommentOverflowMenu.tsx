@@ -12,6 +12,7 @@ import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { blockUser, submitCommentReport } from "@/api/social";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   visible: boolean;
@@ -32,6 +33,7 @@ export function PostCommentOverflowMenu({
   authorUsername,
   isOwnComment = false,
 }: Props) {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [busy, setBusy] = useState<"report" | "block" | null>(null);
@@ -52,10 +54,10 @@ export function PostCommentOverflowMenu({
         reportedUserId: authorId,
         reason: "SPAM",
       });
-      showIslandSuccess("신고 접수", "운영진이 검토합니다.");
+      showIslandSuccess(u("신고 접수", "Report submitted"), u("운영진이 검토합니다.", "Our team will review it."));
       closeAll();
     } catch (err) {
-      showIslandError("신고 실패", err instanceof Error ? err.message : "다시 시도해 주세요.");
+      showIslandError(u("신고 실패", "Report failed"), err instanceof Error ? err.message : t("toast.retry"));
     } finally {
       setBusy(null);
     }
@@ -66,10 +68,10 @@ export function PostCommentOverflowMenu({
     setBusy("block");
     try {
       await blockUser(authorId);
-      showIslandSuccess("차단됨", `@${authorUsername} 님을 차단했습니다.`);
+      showIslandSuccess(u("차단됨", "Blocked"), u(`@${authorUsername} 님을 차단했습니다.`, `Blocked @${authorUsername}.`));
       closeAll();
     } catch (err) {
-      showIslandError("차단 실패", err instanceof Error ? err.message : "다시 시도해 주세요.");
+      showIslandError(u("차단 실패", "Block failed"), err instanceof Error ? err.message : t("toast.retry"));
     } finally {
       setBusy(null);
     }
@@ -83,17 +85,17 @@ export function PostCommentOverflowMenu({
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           {confirmBlock ? (
             <>
-              <Text style={styles.title}>@{authorUsername} 님을 차단할까요?</Text>
-              <Text style={styles.hint}>차단하면 서로의 게시물과 댓글이 보이지 않습니다.</Text>
+              <Text style={styles.title}>{u(`@${authorUsername} 님을 차단할까요?`, `Block @${authorUsername}?`)}</Text>
+              <Text style={styles.hint}>{u("차단하면 서로의 게시물과 댓글이 보이지 않습니다.", "You won't see each other's posts and comments.")}</Text>
               <View style={styles.row}>
                 <Pressable style={styles.secondaryBtn} onPress={() => setConfirmBlock(false)}>
-                  <Text style={styles.secondaryLabel}>취소</Text>
+                  <Text style={styles.secondaryLabel}>{t("toast.cancel")}</Text>
                 </Pressable>
                 <Pressable style={styles.dangerBtn} onPress={() => void onBlock()} disabled={!!busy}>
                   {busy === "block" ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.dangerLabel}>차단</Text>
+                    <Text style={styles.dangerLabel}>{u("차단", "Block")}</Text>
                   )}
                 </Pressable>
               </View>
@@ -110,7 +112,7 @@ export function PostCommentOverflowMenu({
                 ) : (
                   <>
                     <Ionicons name="flag-outline" size={20} color={colors.text} />
-                    <Text style={styles.menuLabel}>신고</Text>
+                    <Text style={styles.menuLabel}>{t("post.menu.report")}</Text>
                   </>
                 )}
               </Pressable>
@@ -120,10 +122,10 @@ export function PostCommentOverflowMenu({
                 disabled={!!busy}
               >
                 <Ionicons name="ban-outline" size={20} color={colors.danger} />
-                <Text style={[styles.menuLabel, { color: colors.danger }]}>차단</Text>
+                <Text style={[styles.menuLabel, { color: colors.danger }]}>{u("차단", "Block")}</Text>
               </Pressable>
               <Pressable style={styles.cancelRow} onPress={closeAll}>
-                <Text style={styles.cancelLabel}>닫기</Text>
+                <Text style={styles.cancelLabel}>{t("common.close")}</Text>
               </Pressable>
             </>
           )}

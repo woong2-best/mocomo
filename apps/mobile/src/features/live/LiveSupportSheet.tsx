@@ -21,6 +21,8 @@ import {
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { spacing } from "@/theme/tokens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { liveUi } from "@/features/live/live-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Tab = SupportEventType | "MISSION";
 
@@ -86,6 +88,8 @@ export function LiveSupportSheet({
   initialTab = "GENERAL",
   onSuccess,
 }: Props) {
+  const { u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -111,7 +115,7 @@ export function LiveSupportSheet({
     setLoading(true);
     const min = SUPPORT_MIN_AMOUNT[type];
     if (effectiveAmount < min) {
-      setError(`최소 ${min.toLocaleString()} MOCO`);
+      setError(u(`최소 ${min.toLocaleString()} MOCO`, `Minimum ${min.toLocaleString()} MOCO`));
       setLoading(false);
       return;
     }
@@ -122,14 +126,18 @@ export function LiveSupportSheet({
         message: message.trim() || undefined,
       });
       if (!res.ok || !res.event) {
-        setError(res.error ?? "응원에 실패했습니다.");
+        setError(res.error ?? u("응원에 실패했습니다.", "Could not send cheer."));
         return;
       }
       const roulette =
         type === "ROULETTE" && typeof res.event.metadata?.rouletteLabel === "string"
           ? res.event.metadata.rouletteLabel
           : null;
-      setSuccess(roulette ? `룰렛 결과: ${roulette}` : "응원을 보냈습니다!");
+      setSuccess(
+        roulette
+          ? u(`룰렛 결과: ${roulette}`, `Roulette: ${roulette}`)
+          : u("응원을 보냈습니다!", "Cheer sent!")
+      );
       setMessage("");
       onSuccess?.();
     } catch (e) {
@@ -139,7 +147,7 @@ export function LiveSupportSheet({
           typeof e.body === "object" &&
           "error" in e.body
           ? String((e.body as { error: string }).error)
-          : "응원에 실패했습니다."
+          : u("응원에 실패했습니다.", "Could not send cheer.")
       );
     } finally {
       setLoading(false);
@@ -152,12 +160,12 @@ export function LiveSupportSheet({
     setLoading(true);
     const title = missionTitle.trim();
     if (!title) {
-      setError("미션 내용을 입력해 주세요.");
+      setError(u("미션 내용을 입력해 주세요.", "Enter a mission description."));
       setLoading(false);
       return;
     }
     if (missionReward < 500) {
-      setError("최소 500 MOCO");
+      setError(u("최소 500 MOCO", "Minimum 500 MOCO"));
       setLoading(false);
       return;
     }
@@ -167,10 +175,10 @@ export function LiveSupportSheet({
         rewardAmount: missionReward,
       });
       if (!res.ok || !res.mission) {
-        setError(res.error ?? "미션 등록에 실패했습니다.");
+        setError(res.error ?? u("미션 등록에 실패했습니다.", "Could not create mission."));
         return;
       }
-      setSuccess("미션이 등록되었습니다.");
+      setSuccess(u("미션이 등록되었습니다.", "Mission created."));
       setMissionTitle("");
       onSuccess?.();
     } catch (e) {
@@ -180,7 +188,7 @@ export function LiveSupportSheet({
           typeof e.body === "object" &&
           "error" in e.body
           ? String((e.body as { error: string }).error)
-          : "미션 등록에 실패했습니다."
+          : u("미션 등록에 실패했습니다.", "Could not create mission.")
       );
     } finally {
       setLoading(false);
@@ -190,11 +198,11 @@ export function LiveSupportSheet({
   const tabs = useMemo(
     () =>
       [
-        { id: "GENERAL" as const, label: "후원" },
-        { id: "ROULETTE" as const, label: "룰렛" },
-        { id: "MISSION" as const, label: "미션" },
+        { id: "GENERAL" as const, label: copy.donation },
+        { id: "ROULETTE" as const, label: copy.roulette },
+        { id: "MISSION" as const, label: copy.mission },
       ] as const,
-    []
+    [copy.donation, copy.mission, copy.roulette]
   );
 
   return (
@@ -249,7 +257,7 @@ export function LiveSupportSheet({
                 style={[styles.atmInput, styles.atmMessage]}
                 value={missionTitle}
                 onChangeText={setMissionTitle}
-                placeholder="미션 내용"
+                placeholder={u("미션 내용", "Mission description")}
                 placeholderTextColor="rgba(0,0,0,0.35)"
                 maxLength={120}
               />
@@ -273,7 +281,7 @@ export function LiveSupportSheet({
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.sendBtnText}>미션 등록</Text>
+                <Text style={styles.sendBtnText}>{u("미션 등록", "Create mission")}</Text>
               )}
             </Pressable>
           </View>
@@ -298,7 +306,7 @@ export function LiveSupportSheet({
                   style={[styles.atmInput, styles.atmMessage]}
                   value={message}
                   onChangeText={setMessage}
-                  placeholder="메시지 (선택)"
+                  placeholder={u("메시지 (선택)", "Message (optional)")}
                   placeholderTextColor="rgba(0,0,0,0.35)"
                   maxLength={200}
                 />
@@ -314,7 +322,7 @@ export function LiveSupportSheet({
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.sendBtnText}>
-                  {tab === "ROULETTE" ? "룰렛 돌리기" : "보내기"}
+                  {tab === "ROULETTE" ? u("룰렛 돌리기", "Spin roulette") : u("보내기", "Send")}
                 </Text>
               )}
             </Pressable>

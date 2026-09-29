@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { formatViewerCountCompact } from "@/features/live/live-categories";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   viewerCount: number;
@@ -11,7 +12,10 @@ type Props = {
 
 /** Chzzk-style joined badge: red `LIVE` segment + dark viewer-count segment. */
 function LiveViewerBadgeInner({ viewerCount, showLive = true, size = "md" }: Props) {
+  const { locale, u } = useI18n();
   const small = size === "sm";
+  const countLabel = formatViewerCountCompact(viewerCount, locale);
+  const suffix = u("명", "");
 
   return (
     <View style={styles.group}>
@@ -23,7 +27,8 @@ function LiveViewerBadgeInner({ viewerCount, showLive = true, size = "md" }: Pro
       <View style={[styles.countSeg, small && styles.countSegSm]}>
         {showLive ? null : <View style={styles.dot} />}
         <Text style={[styles.countText, small && styles.countTextSm]}>
-          {formatViewerCountCompact(viewerCount)}명
+          {countLabel}
+          {suffix}
         </Text>
       </View>
     </View>

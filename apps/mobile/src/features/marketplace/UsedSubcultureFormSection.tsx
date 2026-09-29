@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import { API_BASE_URL } from "@/config/env";
 import { MarketCheckOption } from "@/features/marketplace/MarketCheckOption";
-import { USED_SELL_KINDS } from "@/features/marketplace/used-catalog";
+import { usedCatalogLabel, USED_SELL_KINDS } from "@/features/marketplace/used-catalog";
+import { useI18n } from "@/i18n/I18nProvider";
 import { spacing } from "@/theme/tokens";
 
 const CONDITION_OPTIONS = [
@@ -66,6 +67,7 @@ export function UsedSubcultureFormSection({
   muted: string;
   line: string;
 }) {
+  const { u } = useI18n();
   const styles = useMemo(() => createStyles(ink, paper, muted, line), [ink, paper, muted, line]);
   const [hits, setHits] = useState<AnimeHit[]>([]);
 
@@ -91,12 +93,12 @@ export function UsedSubcultureFormSection({
   return (
     <View style={{ gap: 18 }}>
       <View>
-        <Text style={styles.label}>작품명</Text>
+        <Text style={styles.label}>{u("작품명", "Work title")}</Text>
         <TextInput
           style={styles.input}
           value={value.workTitle}
           onChangeText={(t) => patch({ workTitle: t, animeSlug: null })}
-          placeholder="블루아카이브, 원신…"
+          placeholder={u("블루아카이브, 원신…", "Blue Archive, Genshin…")}
           placeholderTextColor={muted}
         />
         {hits.length > 0 ? (
@@ -126,12 +128,12 @@ export function UsedSubcultureFormSection({
       </View>
 
       <View>
-        <Text style={styles.label}>상품 종류</Text>
+        <Text style={styles.label}>{u("상품 종류", "Product type")}</Text>
         <View style={styles.checkWrap}>
           {USED_SELL_KINDS.map((p) => (
             <MarketCheckOption
               key={p.id}
-              label={p.label}
+              label={usedCatalogLabel(p.label, p.id, u)}
               checked={value.productType === p.id}
               onPress={() => patch({ productType: p.id })}
               ink={ink}
@@ -143,7 +145,7 @@ export function UsedSubcultureFormSection({
       </View>
 
       <View>
-        <Text style={styles.label}>상태</Text>
+        <Text style={styles.label}>{u("상태", "Condition")}</Text>
         <View style={styles.checkWrap}>
           {CONDITION_OPTIONS.map((o) => (
             <MarketCheckOption

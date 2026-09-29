@@ -23,17 +23,39 @@ import {
 import { API_BASE_URL } from "@/config/env";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
-const REPORT_REASONS: { id: ReportReasonId; label: string }[] = [
-  { id: "SPAM", label: "스팸·광고" },
-  { id: "ABUSE", label: "욕설·괴롭힘" },
-  { id: "HARASSMENT", label: "괴롭힘" },
-  { id: "HATE", label: "혐오 표현" },
-  { id: "FRAUD", label: "사기·불법 거래" },
-  { id: "SEXUAL", label: "음란물" },
-  { id: "IMPERSONATION", label: "사칭" },
-  { id: "OTHER", label: "기타" },
+const REPORT_REASON_IDS: ReportReasonId[] = [
+  "SPAM",
+  "ABUSE",
+  "HARASSMENT",
+  "HATE",
+  "FRAUD",
+  "SEXUAL",
+  "IMPERSONATION",
+  "OTHER",
 ];
+
+function reportReasonLabel(id: ReportReasonId, u: (ko: string, en: string) => string): string {
+  switch (id) {
+    case "SPAM":
+      return u("스팸·광고", "Spam or ads");
+    case "ABUSE":
+      return u("욕설·괴롭힘", "Abuse or harassment");
+    case "HARASSMENT":
+      return u("괴롭힘", "Harassment");
+    case "HATE":
+      return u("혐오 표현", "Hate speech");
+    case "FRAUD":
+      return u("사기·불법 거래", "Fraud or illegal activity");
+    case "SEXUAL":
+      return u("음란물", "Sexual content");
+    case "IMPERSONATION":
+      return u("사칭", "Impersonation");
+    case "OTHER":
+      return u("기타", "Other");
+  }
+}
 
 type Props = {
   visible: boolean;
@@ -54,6 +76,7 @@ export function ProfileOptionsSheet({
   onMuted,
   onBlocked,
 }: Props) {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const queryClient = useQueryClient();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -84,7 +107,7 @@ export function ProfileOptionsSheet({
       await Share.share({ message: profileUrl, url: profileUrl });
       closeAll();
     } catch {
-      showIslandError("오류", "링크를 공유하지 못했습니다.");
+      showIslandError(u("오류", "Error"), u("링크를 공유하지 못했습니다.", "Could not share link."));
     }
   }, [closeAll, profileUrl]);
 
@@ -96,9 +119,11 @@ export function ProfileOptionsSheet({
       setMuted(res.muted);
       onMuted?.(res.muted);
       closeAll();
-      showIslandSuccess(res.muted ? "Quiet로 설정했습니다" : "Quiet을 해제했습니다");
+      showIslandSuccess(
+        res.muted ? u("Quiet로 설정했습니다", "Quiet mode on") : u("Quiet을 해제했습니다", "Quiet mode off")
+      );
     } catch (e) {
-      showIslandError("오류", e instanceof Error ? e.message : "Quiet 처리에 실패했습니다.");
+      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("Quiet 처리에 실패했습니다.", "Could not update Quiet."));
     } finally {
       setBusy(null);
     }
@@ -113,14 +138,14 @@ export function ProfileOptionsSheet({
           userId,
           username,
           reason: "OTHER",
-          details: "프로필에서 차단",
+          details: u("프로필에서 차단", "Blocked from profile"),
         });
         void removeFollowingDmUser(queryClient, userId);
         closeAll();
         onBlocked?.();
-        showIslandSuccess("완료", `@${username} 님을 차단했습니다.`);
+        showIslandSuccess(u("완료", "Done"), u(`@${username} 님을 차단했습니다.`, `@${username} was blocked.`));
       } catch (e) {
-        showIslandError("오류", e instanceof Error ? e.message : "차단에 실패했습니다.");
+        showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("차단에 실패했습니다.", "Could not block."));
       } finally {
         setBusy(null);
       }
@@ -147,9 +172,12 @@ export function ProfileOptionsSheet({
       setReportOpen(false);
       closeAll();
       onBlocked?.();
-      showIslandSuccess("완료", "신고가 접수되었고 사용자를 차단했습니다.");
+      showIslandSuccess(
+        u("완료", "Done"),
+        u("신고가 접수되었고 사용자를 차단했습니다.", "Report submitted and user blocked.")
+      );
     } catch (e) {
-      setReportError(e instanceof Error ? e.message : "신고 처리에 실패했습니다.");
+      setReportError(e instanceof Error ? e.message : u("신고 처리에 실패했습니다.", "Could not submit report."));
     } finally {
       setBusy(null);
     }
@@ -178,29 +206,32 @@ export function ProfileOptionsSheet({
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.header}>
-              <Text style={styles.title}>프로필 옵션</Text>
-              <Pressable onPress={closeAll} hitSlop={10} accessibilityLabel="닫기">
+              <Text style={styles.title}>{u("프로필 옵션", "Profile options")}</Text>
+              <Pressable onPress={closeAll} hitSlop={10} accessibilityLabel={t("common.close")}>
                 <Ionicons name="close" size={20} color={colors.text} />
               </Pressable>
             </View>
 
             {blockConfirm ? (
               <View style={styles.confirmBlock}>
-                <Text style={styles.confirmTitle}>사용자 차단</Text>
+                <Text style={styles.confirmTitle}>{u("사용자 차단", "Block user")}</Text>
                 <Text style={styles.confirmBody}>
-                  @{username} 님을 차단할까요? 차단하면 서로 팔로우가 해제됩니다.
+                  {u(
+                    `@${username} 님을 차단할까요? 차단하면 서로 팔로우가 해제됩니다.`,
+                    `Block @${username}? This removes mutual follows.`
+                  )}
                 </Text>
                 <Pressable style={styles.row} onPress={runBlock} disabled={!!busy}>
                   <View style={styles.iconCircle}>
                     <Ionicons name="ban-outline" size={18} color={colors.terracotta} />
                   </View>
-                  <Text style={[styles.rowText, styles.dangerText]}>차단</Text>
+                  <Text style={[styles.rowText, styles.dangerText]}>{u("차단", "Block")}</Text>
                   {busy === "block" ? (
                     <ActivityIndicator size="small" color={colors.terracotta} />
                   ) : null}
                 </Pressable>
                 <Pressable style={styles.row} onPress={() => setBlockConfirm(false)}>
-                  <Text style={styles.rowText}>취소</Text>
+                  <Text style={styles.rowText}>{t("toast.cancel")}</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -209,7 +240,7 @@ export function ProfileOptionsSheet({
               <View style={styles.iconCircle}>
                 <Ionicons name="link-outline" size={18} color={colors.text} />
               </View>
-              <Text style={styles.rowText}>프로필 링크 복사하기</Text>
+              <Text style={styles.rowText}>{u("프로필 링크 복사하기", "Copy profile link")}</Text>
             </Pressable>
 
             <Pressable style={styles.row} onPress={() => void onQuiet()} disabled={!!busy || blockConfirm}>
@@ -231,7 +262,7 @@ export function ProfileOptionsSheet({
                 <Ionicons name="ban-outline" size={18} color={colors.terracotta} />
               </View>
               <Text style={[styles.rowText, styles.dangerText]}>
-                @{username} 님 차단하기
+                {u(`@${username} 님 차단하기`, `Block @${username}`)}
               </Text>
               {busy === "block" ? (
                 <ActivityIndicator size="small" color={colors.terracotta} />
@@ -247,7 +278,7 @@ export function ProfileOptionsSheet({
                 <Ionicons name="flag-outline" size={18} color={colors.terracotta} />
               </View>
               <Text style={[styles.rowText, styles.dangerText]}>
-                @{username} 님 신고하기
+                {u(`@${username} 님 신고하기`, `Report @${username}`)}
               </Text>
             </Pressable>
           </View>
@@ -266,32 +297,32 @@ export function ProfileOptionsSheet({
             { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 },
           ]}
         >
-          <Text style={styles.reportTitle}>@{username} 님 신고하기</Text>
-          <Text style={styles.reportDesc}>신고 후 해당 사용자를 차단합니다.</Text>
+          <Text style={styles.reportTitle}>{u(`@${username} 님 신고하기`, `Report @${username}`)}</Text>
+          <Text style={styles.reportDesc}>{u("신고 후 해당 사용자를 차단합니다.", "We block this user after you report.")}</Text>
           <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
-            <Text style={styles.fieldLabel}>신고 사유</Text>
-            {REPORT_REASONS.map((item) => (
+            <Text style={styles.fieldLabel}>{u("신고 사유", "Reason")}</Text>
+            {REPORT_REASON_IDS.map((id) => (
               <Pressable
-                key={item.id}
-                style={[styles.reasonRow, reportReason === item.id && styles.reasonRowActive]}
-                onPress={() => setReportReason(item.id)}
+                key={id}
+                style={[styles.reasonRow, reportReason === id && styles.reasonRowActive]}
+                onPress={() => setReportReason(id)}
               >
                 <Text
                   style={[
                     styles.reasonText,
-                    reportReason === item.id && styles.reasonTextActive,
+                    reportReason === id && styles.reasonTextActive,
                   ]}
                 >
-                  {item.label}
+                  {reportReasonLabel(id, u)}
                 </Text>
               </Pressable>
             ))}
-            <Text style={styles.fieldLabel}>상세 (선택)</Text>
+            <Text style={styles.fieldLabel}>{u("상세 (선택)", "Details (optional)")}</Text>
             <TextInput
               style={styles.details}
               value={reportDetails}
               onChangeText={setReportDetails}
-              placeholder="추가 설명"
+              placeholder={u("추가 설명", "Additional details")}
               placeholderTextColor={colors.textMuted}
               multiline
             />
@@ -299,7 +330,7 @@ export function ProfileOptionsSheet({
           </ScrollView>
           <View style={styles.reportActions}>
             <Pressable style={styles.cancelBtn} onPress={() => setReportOpen(false)}>
-              <Text style={styles.cancelText}>취소</Text>
+              <Text style={styles.cancelText}>{t("toast.cancel")}</Text>
             </Pressable>
             <Pressable
               style={styles.submitBtn}
@@ -309,7 +340,7 @@ export function ProfileOptionsSheet({
               {busy === "report" ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.submitText}>신고 · 차단</Text>
+                <Text style={styles.submitText}>{u("신고 · 차단", "Report & block")}</Text>
               )}
             </Pressable>
           </View>

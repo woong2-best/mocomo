@@ -8,6 +8,7 @@ import {
 } from "@/maps/google-external-url";
 import { normalizeMeetCountry } from "@/maps/select-engine";
 import type { MeetMapPayload } from "@/maps/types";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -26,6 +27,7 @@ export function UsedMeetMapCard({
   region?: string | null;
   meetPlace?: string | null;
 }) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -52,7 +54,7 @@ export function UsedMeetMapCard({
         meetPlace={placeLabel || undefined}
         coords={coords}
         height={220}
-        pinTitle={locationQuery || "거래 장소"}
+        pinTitle={locationQuery || u("거래 장소", "Meetup location")}
         pinSearchUrl={searchUrl}
         pinMapUrl={mapUrl}
       />

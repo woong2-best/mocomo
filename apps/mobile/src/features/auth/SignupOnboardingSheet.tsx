@@ -23,6 +23,8 @@ import { radii, spacing } from "@/theme/tokens";
 import { SignupCompleteCelebration } from "@/features/auth/SignupCompleteCelebration";
 import { detectDeviceTimeZone } from "@/lib/device-timezone";
 import { filterSettingCountries, settingCountryLabel } from "@/lib/setting-countries";
+import { localeForCountry } from "@/i18n/locale-from-country";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export type SignupOnboardingBirth = {
   birthYear: number;
@@ -62,11 +64,12 @@ export function SignupOnboardingSheet({
   onFinished,
 }: Props) {
   const { colors } = useTheme();
+  const { locale, t, u } = useI18n();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>("locale");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [countryCode, setCountryCode] = useState("KR");
+  const [countryCode, setCountryCode] = useState("US");
   const [timeZone, setTimeZone] = useState(() => detectDeviceTimeZone());
   const [countryQuery, setCountryQuery] = useState("");
   const [username, setUsername] = useState("");
@@ -81,7 +84,7 @@ export function SignupOnboardingSheet({
       setStep("locale");
       setBusy(false);
       setError("");
-      setCountryCode("KR");
+      setCountryCode("US");
       setTimeZone(detectDeviceTimeZone());
       setCountryQuery("");
       setUsername("");
@@ -101,7 +104,7 @@ export function SignupOnboardingSheet({
   const pickAvatar = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showIslandError("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
+      showIslandError(u("권한 필요", "Permission required"), u("사진 라이브러리 접근 권한이 필요합니다.", "Photo library access is required."));
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({
@@ -120,11 +123,15 @@ export function SignupOnboardingSheet({
     setError("");
     try {
       if (mode === "postAuth") {
-        await patchMe({ countryCode, timeZone: detectDeviceTimeZone() });
+        await patchMe({
+          countryCode,
+          locale: localeForCountry(countryCode),
+          timeZone: detectDeviceTimeZone(),
+        });
       }
       setStep("identity");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "국가·시간대 저장에 실패했습니다.");
+      setError(e instanceof Error ? e.message : u("국가·시간대 저장에 실패했습니다.", "Could not save country and time zone."));
     } finally {
       setBusy(false);
     }
@@ -132,16 +139,16 @@ export function SignupOnboardingSheet({
 
   async function submitAvatar() {
     if (!localUri) {
-      setError("프로필 사진을 선택해 주세요.");
+      setError(u("프로필 사진을 선택해 주세요.", "Please choose a profile photo."));
       return;
     }
     if (!birthOk || !confirmedBirth) {
-      setError("생년월일을 확인해 주세요.");
+      setError(u("생년월일을 확인해 주세요.", "Please check your date of birth."));
       onClose();
       return;
     }
     if (!identityOk || !passwordOk) {
-      setError("아이디·닉네임·비밀번호를 확인해 주세요.");
+      setError(u("아이디·닉네임·비밀번호를 확인해 주세요.", "Please check username, display name, and password."));
       setStep("identity");
       return;
     }
@@ -181,7 +188,7 @@ export function SignupOnboardingSheet({
       setImageUrl(url);
       setStep("done");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "프로필 저장에 실패했습니다.");
+      setError(e instanceof Error ? e.message : u("프로필 저장에 실패했습니다.", "Could not save profile."));
     } finally {
       setBusy(false);
     }
@@ -218,14 +225,17 @@ export function SignupOnboardingSheet({
 
             {step === "locale" ? (
               <>
-                <Text style={[styles.title, { color: colors.text }]}>국가</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{t("auth.country")}</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
-                  국가를 검색해 선택하세요. 시간대는 이 스마트폰 시계를 따릅니다.
+                  {u(
+                    "국가를 검색해 선택하세요. 시간대는 이 스마트폰 시계를 따릅니다.",
+                    "Search and pick a country. Time zone follows this device clock."
+                  )}
                 </Text>
                 <TextInput
                   value={countryQuery}
                   onChangeText={setCountryQuery}
-                  placeholder="국가 이름 검색"
+                  placeholder={u("국가 이름 검색", "Search country name")}
                   placeholderTextColor={colors.textMuted}
                   autoCorrect={false}
                   autoCapitalize="none"
@@ -239,7 +249,7 @@ export function SignupOnboardingSheet({
                   ]}
                 />
                 <ScrollView style={{ maxHeight: 220, marginBottom: 12 }} keyboardShouldPersistTaps="handled">
-                  {filterSettingCountries(countryQuery, "ko").map((code) => {
+                  {filterSettingCountries(countryQuery, locale).map((code) => {
                     const active = countryCode === code;
                     return (
                       <Pressable
@@ -254,7 +264,7 @@ export function SignupOnboardingSheet({
                       >
                         <Text style={{ color: colors.text, fontWeight: active ? "800" : "600", fontSize: 14 }}>
                           {active ? ">> " : ""}
-                          {settingCountryLabel(code, "ko")}
+                          {settingCountryLabel(code, locale)}
                         </Text>
                         <Text style={{ color: colors.textMuted, fontSize: 12 }}>{code}</Text>
                       </Pressable>
@@ -262,7 +272,7 @@ export function SignupOnboardingSheet({
                   })}
                 </ScrollView>
                 <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>
-                  시간대 · {timeZone}
+                  {t("auth.timeZone")} · {timeZone}
                 </Text>
                 {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
                 <Pressable
@@ -273,18 +283,18 @@ export function SignupOnboardingSheet({
                   {busy ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.primaryText}>다음</Text>
+                    <Text style={styles.primaryText}>{t("common.next")}</Text>
                   )}
                 </Pressable>
               </>
             ) : step === "identity" ? (
               <>
-                <Text style={[styles.title, { color: colors.text }]}>아이디 · 닉네임</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{u("아이디 · 닉네임", "Username · display name")}</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
-                  MoCoMo에서 쓸 아이디와 닉네임을 정해 주세요.
+                  {u("MoCoMo에서 쓸 아이디와 닉네임을 정해 주세요.", "Choose the username and display name you will use on MoCoMo.")}
                 </Text>
                 <Field
-                  label="아이디"
+                  label={u("아이디", "Username")}
                   value={username}
                   onChangeText={(v) =>
                     setUsername(v.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20))
@@ -295,10 +305,10 @@ export function SignupOnboardingSheet({
                   autoCapitalize="none"
                 />
                 <Field
-                  label="닉네임"
+                  label={u("닉네임", "Display name")}
                   value={displayName}
                   onChangeText={(v) => setDisplayName(v.slice(0, 40))}
-                  placeholder="표시 이름"
+                  placeholder={u("표시 이름", "Display name")}
                   maxLength={40}
                   colors={colors}
                 />
@@ -311,17 +321,17 @@ export function SignupOnboardingSheet({
                     setStep("password");
                   }}
                 >
-                  <Text style={styles.primaryText}>다음</Text>
+                  <Text style={styles.primaryText}>{t("common.next")}</Text>
                 </Pressable>
               </>
             ) : step === "password" ? (
               <>
-                <Text style={[styles.title, { color: colors.text }]}>비밀번호</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{t("auth.passwordSimple")}</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
-                  아이디 로그인에 사용할 비밀번호를 만드세요. (8자 이상)
+                  {u("아이디 로그인에 사용할 비밀번호를 만드세요. (8자 이상)", "Create a password for ID login. (8+ characters)")}
                 </Text>
                 <Field
-                  label="비밀번호"
+                  label={t("auth.passwordSimple")}
                   value={password}
                   onChangeText={setPassword}
                   placeholder="••••••••"
@@ -330,7 +340,7 @@ export function SignupOnboardingSheet({
                   secure
                 />
                 <Field
-                  label="비밀번호 확인"
+                  label={u("비밀번호 확인", "Confirm password")}
                   value={passwordConfirm}
                   onChangeText={setPasswordConfirm}
                   placeholder="••••••••"
@@ -347,14 +357,17 @@ export function SignupOnboardingSheet({
                     setStep("avatar");
                   }}
                 >
-                  <Text style={styles.primaryText}>다음</Text>
+                  <Text style={styles.primaryText}>{t("common.next")}</Text>
                 </Pressable>
               </>
             ) : (
               <>
-                <Text style={[styles.title, { color: colors.text }]}>프로필 사진</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{u("프로필 사진", "Profile photo")}</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
-                  갤러리에서 사진을 하나 골라 주세요. (배너는 나중에 설정할 수 있어요)
+                  {u(
+                    "갤러리에서 사진을 하나 골라 주세요. (배너는 나중에 설정할 수 있어요)",
+                    "Pick one photo from your gallery. (You can set a banner later.)"
+                  )}
                 </Text>
 
                 <Pressable style={styles.avatarPick} onPress={() => void pickAvatar()} disabled={busy}>
@@ -364,7 +377,7 @@ export function SignupOnboardingSheet({
                     <View style={[styles.avatarEmpty, { borderColor: colors.border }]}>
                       <Ionicons name="image-outline" size={28} color={colors.textMuted} />
                       <Text style={{ color: colors.textMuted, fontWeight: "700", marginTop: 8 }}>
-                        갤러리에서 선택
+                        {u("갤러리에서 선택", "Choose from gallery")}
                       </Text>
                     </View>
                   )}
@@ -383,7 +396,7 @@ export function SignupOnboardingSheet({
                   {busy ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.primaryText}>다음</Text>
+                    <Text style={styles.primaryText}>{t("common.next")}</Text>
                   )}
                 </Pressable>
               </>

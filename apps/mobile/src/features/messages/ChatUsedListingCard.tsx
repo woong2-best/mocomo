@@ -8,6 +8,7 @@ import { MobileApi } from "@/api/paths";
 import type { UsedListingChatCard } from "@/api/messages";
 import { resolveAbsolutePlaybackUrl } from "@/api/watermark";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -23,6 +24,7 @@ export function ChatUsedListingCard({
   card?: UsedListingChatCard | null;
   onLongPress?: () => void;
 }) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -49,7 +51,7 @@ export function ChatUsedListingCard({
     };
   }, [card, listingId]);
 
-  const title = loaded?.title ?? "상품 보기";
+  const title = loaded?.title ?? u("상품 보기", "View listing");
   const imageUrl = loaded?.imageUrl ? resolveAbsolutePlaybackUrl(loaded.imageUrl) : null;
 
   return (
@@ -59,7 +61,7 @@ export function ChatUsedListingCard({
       delayLongPress={280}
       style={styles.card}
       accessibilityRole="button"
-      accessibilityLabel={`${title} 상품 페이지`}
+      accessibilityLabel={u(`${title} 상품 페이지`, `${title} listing page`)}
     >
       <View style={styles.photo}>
         {imageUrl ? (

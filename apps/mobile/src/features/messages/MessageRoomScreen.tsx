@@ -40,18 +40,23 @@ import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { requestUsedTrade } from "@/api/marketplace";
+import type { Locale } from "@/i18n";
+import { useI18n } from "@/i18n/I18nProvider";
+import { uiText } from "@/i18n/ui-text";
 
 const MAX_VOICE_SEC = 120;
 const MEET_DAY_OFFSETS = [0, 1, 2, 3, 4, 5, 6];
 const MEET_HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
 
-function meetDayLabel(offset: number) {
+function meetDayLabel(offset: number, locale: Locale) {
   const date = new Date();
   date.setDate(date.getDate() + offset);
-  if (offset === 0) return "오늘";
-  if (offset === 1) return "내일";
-  const days = ["일", "월", "화", "수", "목", "금", "토"];
-  return `${date.getMonth() + 1}/${date.getDate()} (${days[date.getDay()]})`;
+  if (offset === 0) return uiText(locale, "오늘", "Today");
+  if (offset === 1) return uiText(locale, "내일", "Tomorrow");
+  const daysKo = ["일", "월", "화", "수", "목", "금", "토"];
+  const daysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const dayName = locale === "ko" ? daysKo[date.getDay()] : daysEn[date.getDay()];
+  return `${date.getMonth() + 1}/${date.getDate()} (${dayName})`;
 }
 const NEAR_BOTTOM_PX = 140;
 
@@ -66,6 +71,7 @@ type MessageRow = {
 };
 
 export function MessageRoomScreen() {
+  const { locale, t, u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const route = useRoute<RouteProp<RootStackParamList, "MessageRoom">>();
@@ -95,7 +101,7 @@ export function MessageRoomScreen() {
   const pendingStartRef = useRef(false);
   const busy = sending || uploading;
 
-  const title = room?.displayName ?? route.params.title ?? "대화";
+  const title = room?.displayName ?? route.params.title ?? u("대화", "Chat");
   const peerImage = room?.displayImage ?? null;
   const peerId = room?.otherUserId ?? null;
   const peerUsername = room?.profileUsername ?? null;
@@ -114,7 +120,7 @@ export function MessageRoomScreen() {
     meetAt.setDate(meetAt.getDate() + meetDayOffset);
     meetAt.setHours(meetHour, 0, 0, 0);
     if (meetAt.getTime() < Date.now()) {
-      showIslandError("일정", "지금보다 이후 시간을 선택해 주세요.");
+      showIslandError(u("일정", "Schedule"), u("지금보다 이후 시간을 선택해 주세요.", "Pick a time later than now."));
       return;
     }
     setTradeRequestBusy(true);
@@ -122,15 +128,17 @@ export function MessageRoomScreen() {
       await requestUsedTrade(usedTrade.listingId, roomId, meetAt.toISOString());
       await refresh();
       showIslandSuccess(
-        "거래 요청",
-        usedTrade.isSeller ? "구매자에게 거래 일정을 보냈습니다." : "판매자에게 거래 일정을 보냈습니다."
+        u("거래 요청", "Trade request"),
+        usedTrade.isSeller
+          ? u("구매자에게 거래 일정을 보냈습니다.", "Trade schedule sent to the buyer.")
+          : u("판매자에게 거래 일정을 보냈습니다.", "Trade schedule sent to the seller.")
       );
     } catch (e) {
-      showIslandError("오류", e instanceof Error ? e.message : "거래 요청에 실패했습니다.");
+      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("거래 요청에 실패했습니다.", "Could not send trade request."));
     } finally {
       setTradeRequestBusy(false);
     }
-  }, [meetDayOffset, meetHour, refresh, roomId, tradeRequestBusy, usedTrade]);
+  }, [meetDayOffset, meetHour, refresh, roomId, tradeRequestBusy, u, usedTrade]);
 
   const rows = useMemo<MessageRow[]>(
     () =>
@@ -193,12 +201,12 @@ export function MessageRoomScreen() {
         await send(caption ?? "", [{ url, type: "IMAGE", name: asset.fileName ?? undefined }], replyId);
         scrollEnd();
       } catch (e) {
-        showIslandError("전송 실패", e instanceof Error ? e.message : "사진을 보내지 못했습니다.");
+        showIslandError(u("전송 실패", "Send failed"), e instanceof Error ? e.message : u("사진을 보내지 못했습니다.", "Could not send photo."));
       } finally {
         setUploading(false);
       }
     },
-    [draft, replyTo, send, scrollEnd]
+    [draft, replyTo, send, scrollEnd, u]
   );
 
   const registerVoiceControls = useCallback((controls: VoiceControls) => {
@@ -229,7 +237,7 @@ export function MessageRoomScreen() {
 
   const startCall = useCallback(() => {
     if (!peerId) {
-      showIslandError("통화 불가", "상대 정보를 아직 불러오지 못했습니다.");
+      showIslandError(u("통화 불가", "Cannot call"), u("상대 정보를 아직 불러오지 못했습니다.", "Peer info is not loaded yet."));
       return;
     }
     navigation.navigate("DmCall", {
@@ -239,7 +247,7 @@ export function MessageRoomScreen() {
       displayName: title,
       displayImage: peerImage,
     });
-  }, [navigation, peerId, peerImage, roomId, title]);
+  }, [navigation, peerId, peerImage, roomId, title, u]);
 
   const canSend = room?.type !== "DM" || room.canMessage !== false;
   const canCallPeer = room?.type !== "DM" || room.canCall !== false;
@@ -337,7 +345,9 @@ export function MessageRoomScreen() {
               {title}
             </Text>
             <Text style={styles.presence} numberOfLines={1}>
-              {isGroup ? `${memberCount}명` : "오프라인"}
+              {isGroup
+                ? u(`${memberCount}명`, `${memberCount} members`)
+                : u("오프라인", "Offline")}
               {isGroup ? (
                 <>
                   {" · "}
@@ -365,7 +375,7 @@ export function MessageRoomScreen() {
             <Pressable
               style={styles.callBtn}
               onPress={startCall}
-              accessibilityLabel="음성 통화"
+              accessibilityLabel={u("음성 통화", "Voice call")}
             >
               <Ionicons name="call-outline" size={18} color={colors.cobalt} />
             </Pressable>
@@ -382,11 +392,13 @@ export function MessageRoomScreen() {
             navigation.navigate("MarketplaceDetail", { id: usedTrade.listingId })
           }
           accessibilityRole="button"
-          accessibilityLabel={`${usedTrade.listingTitle} 상품 페이지`}
+          accessibilityLabel={u(`${usedTrade.listingTitle} 상품 페이지`, `${usedTrade.listingTitle} listing`)}
         >
-          <Text style={styles.usedTradeScheduleLabel}>상품 · {usedTrade.listingTitle}</Text>
           <Text style={styles.usedTradeScheduleLabel}>
-            판매자 @{usedTrade.sellerUsername ?? ""} · {usedTrade.priceLabel ?? ""}
+            {u("상품", "Listing")} · {usedTrade.listingTitle}
+          </Text>
+          <Text style={styles.usedTradeScheduleLabel}>
+            {u("판매자", "Seller")} @{usedTrade.sellerUsername ?? ""} · {usedTrade.priceLabel ?? ""}
           </Text>
         </Pressable>
       ) : null}
@@ -407,12 +419,12 @@ export function MessageRoomScreen() {
             loading ? (
               <View style={styles.empty}>
                 <ActivityIndicator color={colors.terracotta} />
-                <Text style={styles.emptySub}>대화 불러오는 중…</Text>
+                <Text style={styles.emptySub}>{t("common.loading")}</Text>
               </View>
             ) : (
               <View style={styles.empty}>
-                <Text style={styles.emptyTitle}>아직 메시지가 없어요</Text>
-                <Text style={styles.emptySub}>인사를 건네 보세요</Text>
+                <Text style={styles.emptyTitle}>{u("아직 메시지가 없어요", "No messages yet")}</Text>
+                <Text style={styles.emptySub}>{u("인사를 건네 보세요", "Say hello")}</Text>
               </View>
             )
           }
@@ -448,13 +460,16 @@ export function MessageRoomScreen() {
       >
         {!canSend ? (
           <Text style={styles.lockedNote}>
-            이 사용자는 자신이 팔로우한 사람에게만 메시지를 받습니다.
+            {u(
+              "이 사용자는 자신이 팔로우한 사람에게만 메시지를 받습니다.",
+              "This user only accepts messages from people they follow."
+            )}
           </Text>
         ) : null}
 
         {canSend && usedTrade?.canRequestTrade ? (
           <View style={styles.usedTradeSchedule}>
-            <Text style={styles.usedTradeScheduleLabel}>거래 날짜</Text>
+            <Text style={styles.usedTradeScheduleLabel}>{u("거래 날짜", "Trade date")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
               {MEET_DAY_OFFSETS.map((offset) => (
                 <Pressable
@@ -463,12 +478,12 @@ export function MessageRoomScreen() {
                   onPress={() => setMeetDayOffset(offset)}
                 >
                   <Text style={[styles.chipText, meetDayOffset === offset && styles.chipTextOn]}>
-                    {meetDayLabel(offset)}
+                    {meetDayLabel(offset, locale)}
                   </Text>
                 </Pressable>
               ))}
             </ScrollView>
-            <Text style={styles.usedTradeScheduleLabel}>거래 시간</Text>
+            <Text style={styles.usedTradeScheduleLabel}>{u("거래 시간", "Trade time")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
               {MEET_HOURS.map((hour) => (
                 <Pressable
@@ -490,7 +505,7 @@ export function MessageRoomScreen() {
               {tradeRequestBusy ? (
                 <ActivityIndicator color={colors.cobalt} size="small" />
               ) : (
-                <Text style={styles.usedTradeBarText}>거래 요청하기</Text>
+                <Text style={styles.usedTradeBarText}>{u("거래 요청하기", "Request trade meetup")}</Text>
               )}
             </Pressable>
           </View>
@@ -508,10 +523,10 @@ export function MessageRoomScreen() {
           <View style={styles.recordingBar}>
             <View style={styles.recDot} />
             <Text style={styles.recordingText}>
-              녹음 중 {recordSec}s / {MAX_VOICE_SEC}s
+              {u("녹음 중", "Recording")} {recordSec}s / {MAX_VOICE_SEC}s
             </Text>
             <Pressable onPress={() => void finishRecording(false)} style={styles.cancelRec}>
-              <Text style={styles.cancelRecText}>취소</Text>
+              <Text style={styles.cancelRecText}>{u("취소", "Cancel")}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -522,7 +537,7 @@ export function MessageRoomScreen() {
               style={styles.cameraBtn}
               disabled={busy || recording}
               onPress={() => void pickAndSendImage("camera")}
-              accessibilityLabel="카메라"
+              accessibilityLabel={u("카메라", "Camera")}
             >
               <Ionicons name="camera" size={20} color="#fff" />
             </Pressable>
@@ -533,7 +548,7 @@ export function MessageRoomScreen() {
               style={styles.input}
               value={draft}
               onChangeText={setDraft}
-              placeholder="메시지 보내기..."
+              placeholder={u("메시지 보내기...", "Message…")}
               placeholderTextColor={colors.textMuted}
               multiline
               editable={!recording}
@@ -544,7 +559,9 @@ export function MessageRoomScreen() {
                   onPress={toggleRecording}
                   hitSlop={8}
                   style={styles.pillIcon}
-                  accessibilityLabel={recording ? "녹음 완료·전송" : "음성 녹음"}
+                  accessibilityLabel={
+                    recording ? u("녹음 완료·전송", "Stop and send") : u("음성 녹음", "Voice message")
+                  }
                 >
                   <Ionicons
                     name={recording ? "stop-circle" : "mic"}
@@ -558,7 +575,7 @@ export function MessageRoomScreen() {
                     disabled={busy}
                     hitSlop={8}
                     style={styles.pillIcon}
-                    accessibilityLabel="갤러리"
+                    accessibilityLabel={u("갤러리", "Gallery")}
                   >
                     <Ionicons name="image-outline" size={22} color={colors.cobalt} />
                   </Pressable>
@@ -569,7 +586,7 @@ export function MessageRoomScreen() {
                     disabled={busy}
                     hitSlop={8}
                     style={styles.pillIcon}
-                    accessibilityLabel="게임"
+                    accessibilityLabel={t("nav.games")}
                   >
                     <Ionicons name="game-controller-outline" size={22} color={colors.cobalt} />
                   </Pressable>
@@ -581,7 +598,7 @@ export function MessageRoomScreen() {
                 disabled={busy || recording}
                 hitSlop={8}
                 style={styles.sendBtn}
-                accessibilityLabel="전송"
+                accessibilityLabel={u("전송", "Send")}
               >
                 {busy && !recording ? (
                   <ActivityIndicator color="#fff" size="small" />

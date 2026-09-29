@@ -8,41 +8,101 @@ import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList, RootTabParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type HubTarget =
   | { kind: "stack"; route: keyof RootStackParamList }
   | { kind: "tab"; route: keyof RootTabParamList };
 
-const SECTIONS: {
-  title: string;
-  subtitle: string;
-  target: HubTarget;
-  icon: keyof typeof Ionicons.glyphMap;
-}[] = [
-  { title: "검색", subtitle: "사람 · 게시 · 애니", target: { kind: "stack", route: "Search" }, icon: "search-outline" },
-  { title: "라이브", subtitle: "시청 · 방송 시작", target: { kind: "stack", route: "LiveList" }, icon: "radio-outline" },
-  { title: "메세지", subtitle: "DM", target: { kind: "tab", route: "Messages" }, icon: "chatbubbles-outline" },
-  { title: "STAR", subtitle: "저장한 게시물", target: { kind: "stack", route: "StarList" }, icon: "star-outline" },
-  { title: "컬쳐 위키", subtitle: "작품 탐색", target: { kind: "stack", route: "AnimeList" }, icon: "book-outline" },
-  { title: "MCM", subtitle: "More Commerce Moment", target: { kind: "stack", route: "Market" }, icon: "storefront-outline" },
-  { title: "QnA", subtitle: "질문·답변 피드", target: { kind: "stack", route: "CommunityList" }, icon: "people-outline" },
-  { title: "이벤트", subtitle: "참여·대회", target: { kind: "stack", route: "EventsList" }, icon: "calendar-outline" },
-  { title: "게임", subtitle: "미니게임 허브", target: { kind: "stack", route: "GamesHub" }, icon: "game-controller-outline" },
-  { title: "지갑", subtitle: "잔액·정산", target: { kind: "stack", route: "Wallet" }, icon: "wallet-outline" },
-  { title: "설정", subtitle: "프로필·언어", target: { kind: "stack", route: "Settings" }, icon: "settings-outline" },
-];
-
 export function DiscoverHubScreen() {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
+  const sections = useMemo(
+    (): {
+      title: string;
+      subtitle: string;
+      target: HubTarget;
+      icon: keyof typeof Ionicons.glyphMap;
+    }[] => [
+      {
+        title: u("검색", "Search"),
+        subtitle: u("사람 · 게시 · 애니", "People · posts · anime"),
+        target: { kind: "stack", route: "Search" },
+        icon: "search-outline",
+      },
+      {
+        title: u("라이브", "Live"),
+        subtitle: u("시청 · 방송 시작", "Watch · go live"),
+        target: { kind: "stack", route: "LiveList" },
+        icon: "radio-outline",
+      },
+      {
+        title: u("메세지", "Messages"),
+        subtitle: "DM",
+        target: { kind: "tab", route: "Messages" },
+        icon: "chatbubbles-outline",
+      },
+      {
+        title: "STAR",
+        subtitle: u("저장한 게시물", "Saved posts"),
+        target: { kind: "stack", route: "StarList" },
+        icon: "star-outline",
+      },
+      {
+        title: u("컬쳐 위키", "Culture wiki"),
+        subtitle: u("작품 탐색", "Browse titles"),
+        target: { kind: "stack", route: "AnimeList" },
+        icon: "book-outline",
+      },
+      {
+        title: "MCM",
+        subtitle: "More Commerce Moment",
+        target: { kind: "stack", route: "Market" },
+        icon: "storefront-outline",
+      },
+      {
+        title: "QnA",
+        subtitle: u("질문·답변 피드", "Q&A feed"),
+        target: { kind: "stack", route: "CommunityList" },
+        icon: "people-outline",
+      },
+      {
+        title: u("이벤트", "Events"),
+        subtitle: u("참여·대회", "Join · contests"),
+        target: { kind: "stack", route: "EventsList" },
+        icon: "calendar-outline",
+      },
+      {
+        title: u("게임", "Games"),
+        subtitle: u("미니게임 허브", "Mini-game hub"),
+        target: { kind: "stack", route: "GamesHub" },
+        icon: "game-controller-outline",
+      },
+      {
+        title: u("지갑", "Wallet"),
+        subtitle: u("잔액·정산", "Balance · payouts"),
+        target: { kind: "stack", route: "Wallet" },
+        icon: "wallet-outline",
+      },
+      {
+        title: u("설정", "Settings"),
+        subtitle: u("프로필·언어", "Profile · language"),
+        target: { kind: "stack", route: "Settings" },
+        icon: "settings-outline",
+      },
+    ],
+    [u]
+  );
+
   return (
     <Screen>
-      <AppHeader title="탐색" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={u("탐색", "Discover")} leftLabel={u("뒤로", "Back")} onLeftPress={() => navigation.goBack()} />
       <View style={styles.grid}>
-        {SECTIONS.map((s) => (
+        {sections.map((s) => (
           <Pressable
             key={s.title}
             style={styles.card}
@@ -98,4 +158,3 @@ function createThemedStyles(colors: ThemeColors) {
   cardSub: { color: colors.textMuted, fontSize: 13, fontWeight: "600", marginTop: 2 },
 });
 }
-

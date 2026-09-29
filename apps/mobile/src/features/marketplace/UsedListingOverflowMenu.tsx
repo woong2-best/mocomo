@@ -19,6 +19,7 @@ import {
 import { blockUser } from "@/api/social";
 import { PostReportSheet } from "@/features/feed/PostReportSheet";
 import { dismissUsedListing } from "@/lib/used-listing-dismiss";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -54,6 +55,7 @@ export function UsedListingOverflowMenu({
   onDismissed,
   onDeleted,
 }: Props) {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { width: windowWidth } = useWindowDimensions();
@@ -88,9 +90,9 @@ export function UsedListingOverflowMenu({
       await bumpMarketplaceListing(item.id);
       closeAll();
       void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
-      showIslandSuccess("끌어올렸습니다", "목록 상단으로 올렸습니다.");
+      showIslandSuccess(u("끌어올렸습니다", "Bumped"), u("목록 상단으로 올렸습니다.", "Moved to the top of the list."));
     } catch (e) {
-      showIslandError("오류", e instanceof Error ? e.message : "끌어올리기에 실패했습니다.");
+      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("끌어올리기에 실패했습니다.", "Could not bump listing."));
     } finally {
       setBusy(null);
     }
@@ -105,9 +107,9 @@ export function UsedListingOverflowMenu({
         closeAll();
         onDeleted?.(item.id);
         void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
-        showIslandSuccess("삭제했습니다");
+        showIslandSuccess(u("삭제했습니다", "Deleted"));
       } catch (e) {
-        showIslandError("오류", e instanceof Error ? e.message : "삭제에 실패했습니다.");
+        showIslandError(u("오류", "Error"), e instanceof Error ? e.message : t("post.menu.deleteFailed"));
       } finally {
         setBusy(null);
       }
@@ -126,9 +128,9 @@ export function UsedListingOverflowMenu({
       await dismissUsedListing(item.id);
       closeAll();
       onDismissed?.(item.id);
-      showIslandSuccess("관심 없음", "이 상품을 목록에서 숨겼습니다.");
+      showIslandSuccess(u("관심 없음", "Not interested"), u("이 상품을 목록에서 숨겼습니다.", "Hidden this listing from your feed."));
     } catch (e) {
-      showIslandError("오류", e instanceof Error ? e.message : "처리에 실패했습니다.");
+      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("처리에 실패했습니다.", "Something went wrong."));
     } finally {
       setBusy(null);
     }
@@ -142,9 +144,9 @@ export function UsedListingOverflowMenu({
         await blockUser(sellerId);
         closeAll();
         onDismissed?.(item.id);
-        showIslandSuccess("차단했습니다");
+        showIslandSuccess(u("차단했습니다", "User blocked"));
       } catch (e) {
-        showIslandError("오류", e instanceof Error ? e.message : "차단에 실패했습니다.");
+        showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("차단에 실패했습니다.", "Could not block user."));
       } finally {
         setBusy(null);
       }
@@ -171,44 +173,44 @@ export function UsedListingOverflowMenu({
             >
               {confirm === "delete" ? (
                 <>
-                  <Text style={styles.confirmTitle}>글 삭제</Text>
-                  <Text style={styles.confirmBody}>이 중고거래 글을 삭제할까요?</Text>
+                  <Text style={styles.confirmTitle}>{u("글 삭제", "Delete listing")}</Text>
+                  <Text style={styles.confirmBody}>{u("이 중고거래 글을 삭제할까요?", "Delete this used-market listing?")}</Text>
                   <Pressable style={styles.row} onPress={runDelete} disabled={!!busy}>
                     <Ionicons name="trash-outline" size={18} color={colors.terracotta} />
-                    <Text style={[styles.rowText, styles.dangerText]}>삭제하기</Text>
+                    <Text style={[styles.rowText, styles.dangerText]}>{t("post.menu.delete")}</Text>
                     {busy === "delete" ? (
                       <ActivityIndicator size="small" color={colors.terracotta} />
                     ) : null}
                   </Pressable>
                   <Pressable style={styles.row} onPress={() => setConfirm(null)}>
-                    <Text style={styles.rowText}>취소</Text>
+                    <Text style={styles.rowText}>{t("toast.cancel")}</Text>
                   </Pressable>
                 </>
               ) : confirm === "block" ? (
                 <>
-                  <Text style={styles.confirmTitle}>차단하기</Text>
-                  <Text style={styles.confirmBody}>@{sellerUsername} 님을 차단할까요?</Text>
+                  <Text style={styles.confirmTitle}>{u("차단하기", "Block")}</Text>
+                  <Text style={styles.confirmBody}>{u(`@${sellerUsername} 님을 차단할까요?`, `Block @${sellerUsername}?`)}</Text>
                   <Pressable style={styles.row} onPress={runBlock} disabled={!!busy}>
                     <Ionicons name="ban-outline" size={18} color={colors.terracotta} />
-                    <Text style={[styles.rowText, styles.dangerText]}>차단하기</Text>
+                    <Text style={[styles.rowText, styles.dangerText]}>{u("차단하기", "Block")}</Text>
                     {busy === "block" ? (
                       <ActivityIndicator size="small" color={colors.terracotta} />
                     ) : null}
                   </Pressable>
                   <Pressable style={styles.row} onPress={() => setConfirm(null)}>
-                    <Text style={styles.rowText}>취소</Text>
+                    <Text style={styles.rowText}>{t("toast.cancel")}</Text>
                   </Pressable>
                 </>
               ) : isOwner ? (
                 <>
                   <Pressable style={styles.row} onPress={onEdit} disabled={!!busy}>
                     <Ionicons name="create-outline" size={18} color={colors.text} />
-                    <Text style={styles.rowText}>수정</Text>
+                    <Text style={styles.rowText}>{u("수정", "Edit")}</Text>
                   </Pressable>
                   <View style={styles.sep} />
                   <Pressable style={styles.row} onPress={() => void onBump()} disabled={!!busy}>
                     <Ionicons name="arrow-up-circle-outline" size={18} color={colors.text} />
-                    <Text style={styles.rowText}>끌어올리기</Text>
+                    <Text style={styles.rowText}>{u("끌어올리기", "Bump")}</Text>
                     {busy === "bump" ? (
                       <ActivityIndicator size="small" color={colors.cobalt} />
                     ) : null}
@@ -216,7 +218,7 @@ export function UsedListingOverflowMenu({
                   <View style={styles.sep} />
                   <Pressable style={styles.row} onPress={onDelete} disabled={!!busy}>
                     <Ionicons name="trash-outline" size={18} color={colors.terracotta} />
-                    <Text style={[styles.rowText, styles.dangerText]}>삭제</Text>
+                    <Text style={[styles.rowText, styles.dangerText]}>{t("post.menu.delete")}</Text>
                     {busy === "delete" ? (
                       <ActivityIndicator size="small" color={colors.terracotta} />
                     ) : null}
@@ -226,18 +228,18 @@ export function UsedListingOverflowMenu({
                 <>
                   <Pressable style={styles.row} onPress={openReport} disabled={!!busy}>
                     <Ionicons name="flag-outline" size={18} color={colors.text} />
-                    <Text style={styles.rowText}>신고하기</Text>
+                    <Text style={styles.rowText}>{t("post.menu.report")}</Text>
                   </Pressable>
                   <View style={styles.sep} />
                   <Pressable style={styles.row} onPress={() => void onNotInterested()} disabled={!!busy}>
                     <Ionicons name="eye-off-outline" size={18} color={colors.text} />
-                    <Text style={styles.rowText}>관심 없음</Text>
+                    <Text style={styles.rowText}>{u("관심 없음", "Not interested")}</Text>
                     {busy === "hide" ? <ActivityIndicator size="small" color={colors.cobalt} /> : null}
                   </Pressable>
                   <View style={styles.sep} />
                   <Pressable style={styles.row} onPress={onBlock} disabled={!!busy}>
                     <Ionicons name="ban-outline" size={18} color={colors.terracotta} />
-                    <Text style={[styles.rowText, styles.dangerText]}>차단하기</Text>
+                    <Text style={[styles.rowText, styles.dangerText]}>{u("차단하기", "Block")}</Text>
                     {busy === "block" ? (
                       <ActivityIndicator size="small" color={colors.terracotta} />
                     ) : null}

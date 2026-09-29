@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { LiveScheduledItem } from "@/api/live";
 import { liveCategoryLabel } from "@/features/live/live-categories";
+import { liveUi } from "@/features/live/live-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -11,21 +13,23 @@ type Props = {
   onPress: () => void;
 };
 
-function formatWhen(iso: string | null): string {
-  if (!iso) return "예약됨";
+function formatWhen(iso: string | null, locale: string, scheduledLabel: string): string {
+  if (!iso) return scheduledLabel;
   try {
-    return new Date(iso).toLocaleString("ko-KR", {
+    return new Date(iso).toLocaleString(locale === "ko" ? "ko-KR" : "en-US", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
   } catch {
-    return "예약됨";
+    return scheduledLabel;
   }
 }
 
 function LiveScheduledRowInner({ item, onPress }: Props) {
+  const { locale, u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -38,9 +42,9 @@ function LiveScheduledRowInner({ item, onPress }: Props) {
         <Text style={styles.title} numberOfLines={2}>
           {item.title}
         </Text>
-        <Text style={styles.when}>{formatWhen(item.scheduledAt)}</Text>
+        <Text style={styles.when}>{formatWhen(item.scheduledAt, locale, copy.scheduled)}</Text>
         <View style={styles.tag}>
-          <Text style={styles.tagText}>{liveCategoryLabel(item.category)}</Text>
+          <Text style={styles.tagText}>{liveCategoryLabel(item.category, locale)}</Text>
         </View>
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />

@@ -4,6 +4,8 @@ import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import type { LiveExternalInfo } from "@/api/live";
 import { API_BASE_URL, APP_PACKAGE_ID } from "@/config/env";
+import { liveUi } from "@/features/live/live-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -98,6 +100,8 @@ export function ExternalLivePlayer({
   showChrome = false,
   onPress,
 }: Props) {
+  const { u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [failed, setFailed] = useState(false);
@@ -157,7 +161,7 @@ export function ExternalLivePlayer({
         ) : (
           <View style={styles.fallback}>
             <Text style={styles.fallbackText}>
-              {!active ? "스크롤하면 재생됩니다" : "원본 페이지에서 시청해 주세요."}
+              {!active ? copy.scrollToPlay : copy.watchOnSource}
             </Text>
             {active ? (
               <Pressable
@@ -165,7 +169,7 @@ export function ExternalLivePlayer({
                 onPress={() => void Linking.openURL(external.watchUrl).catch(() => undefined)}
               >
                 <Ionicons name="open-outline" size={16} color="#111" />
-                <Text style={styles.openBtnText}>새 창에서 시청하기</Text>
+                <Text style={styles.openBtnText}>{copy.openExternal}</Text>
               </Pressable>
             ) : null}
           </View>
@@ -176,7 +180,7 @@ export function ExternalLivePlayer({
             style={StyleSheet.absoluteFill}
             onPress={onPress}
             accessibilityRole="button"
-            accessibilityLabel={`${title} 라이브 열기`}
+            accessibilityLabel={copy.openLiveA11y(title)}
           />
         ) : null}
       </View>

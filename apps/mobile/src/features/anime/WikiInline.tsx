@@ -3,6 +3,8 @@ import { Linking, StyleSheet, Text } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { wikiLinkSlug } from "@/features/anime/wiki-link-slug";
+import { animeUi } from "@/features/anime/anime-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -20,6 +22,8 @@ type Props = {
 };
 
 export function WikiInline({ text, notes = new Map(), keyPrefix = "wi", style }: Props) {
+  const { u } = useI18n();
+  const copy = useMemo(() => animeUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -76,7 +80,7 @@ export function WikiInline({ text, notes = new Map(), keyPrefix = "wi", style }:
         </Text>
       );
     } else if (m[7] !== undefined && m[8]) {
-      const alt = (m[7] || "이미지").trim();
+      const alt = (m[7] || copy.imageAlt).trim();
       const href = m[8].trim();
       parts.push(
         <Text

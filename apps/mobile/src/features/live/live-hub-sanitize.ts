@@ -12,7 +12,7 @@ export function sanitizeLiveListItem(raw: LiveListItem): LiveListItem {
 
   return {
     id: String(raw.id ?? ""),
-    title: typeof raw.title === "string" && raw.title.trim() ? raw.title : "라이브",
+    title: typeof raw.title === "string" && raw.title.trim() ? raw.title : "Live",
     thumbnailUrl: raw.thumbnailUrl ?? null,
     viewerCount: coerceViewerCount(raw.viewerCount),
     category: typeof raw.category === "string" ? raw.category : "LIVE",

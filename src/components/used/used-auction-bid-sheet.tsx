@@ -22,6 +22,12 @@ import {
 } from "@/lib/auction-deposit/constants";
 import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
 import Link from "next/link";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
+
+const BID_CONSENT_KO = USED_AUCTION_BID_CONSENT_LABEL;
+const BID_CONSENT_EN =
+  "I agree that failing to pay within the deadline after winning may restrict my access to used goods and auctions.";
 
 function needsPhoneVerification(error: string) {
   return error.includes("휴대폰") || error.includes("phone verification");
@@ -46,6 +52,7 @@ export function UsedAuctionBidSheet({
   availableMocoBalance?: number | null;
 }) {
   const router = useRouter();
+  const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(minBid));
   const [busy, setBusy] = useState(false);
@@ -65,7 +72,13 @@ export function UsedAuctionBidSheet({
       availableMocoBalance != null &&
       availableMocoBalance < AUCTION_MIN_WALLET_MOCO
     ) {
-      setWalletWarning(INSUFFICIENT_DEPOSIT_ERROR);
+      setWalletWarning(
+        uiText(
+          locale,
+          INSUFFICIENT_DEPOSIT_ERROR,
+          "You need at least 2 MOCO in your wallet to join an auction. Top up MOCO and try again."
+        )
+      );
       return;
     }
     setWalletWarning("");
@@ -122,7 +135,7 @@ export function UsedAuctionBidSheet({
 
   async function authorizeHold(bidAmount: number) {
     if (!holdOrderId || !selectedPm) {
-      setError("카드를 선택해 주세요.");
+      setError(uiText(locale, "카드를 선택해 주세요.", "Select a card."));
       return;
     }
     setBusy(true);
@@ -137,13 +150,13 @@ export function UsedAuctionBidSheet({
       const pk = publishableKey || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
       if (!pk) {
         setBusy(false);
-        setError("Stripe 설정이 없습니다.");
+        setError(uiText(locale, "Stripe 설정이 없습니다.", "Stripe is not configured."));
         return;
       }
       const stripe = await loadStripe(pk);
       if (!stripe) {
         setBusy(false);
-        setError("Stripe를 불러오지 못했습니다.");
+        setError(uiText(locale, "Stripe를 불러오지 못했습니다.", "Could not load Stripe."));
         return;
       }
       const returnUrl = stripePaymentIntentReturnUrlClient(pay.orderId, `/market/${listingId}`);
@@ -152,7 +165,9 @@ export function UsedAuctionBidSheet({
       });
       setBusy(false);
       if (confirmError) {
-        setError(confirmError.message ?? "카드 인증에 실패했습니다.");
+        setError(
+          confirmError.message ?? uiText(locale, "카드 인증에 실패했습니다.", "Card verification failed.")
+        );
         return;
       }
       await finishBid(bidAmount, pay.orderId);
@@ -164,7 +179,13 @@ export function UsedAuctionBidSheet({
 
   async function submitBid(bidAmount: number) {
     if (!bidConsent) {
-      setError("입찰 전 결제 의무 및 이용 제한 안내에 동의해 주세요.");
+      setError(
+        uiText(
+          locale,
+          "입찰 전 결제 의무 및 이용 제한 안내에 동의해 주세요.",
+          "Agree to the payment obligation and restriction notice before bidding."
+        )
+      );
       return;
     }
     setBusy(true);
@@ -181,7 +202,13 @@ export function UsedAuctionBidSheet({
   async function buyNow() {
     if (!buyNowPrice) return;
     if (!buyNowConsent) {
-      setError("즉시구매 전 결제 의무 및 이용 제한 안내에 동의해 주세요.");
+      setError(
+        uiText(
+          locale,
+          "즉시구매 전 결제 의무 및 이용 제한 안내에 동의해 주세요.",
+          "Agree to the payment obligation and restriction notice before buying now."
+        )
+      );
       return;
     }
     setBusy(true);
@@ -227,7 +254,7 @@ export function UsedAuctionBidSheet({
         onClick={tryOpenBidSheet}
       >
         <Gavel className="h-5 w-5" />
-        입찰하기
+        {uiText(locale, "입찰하기", "Place bid")}
       </Button>
 
       {walletWarning ? (
@@ -235,18 +262,18 @@ export function UsedAuctionBidSheet({
           <button
             type="button"
             className="absolute inset-0 bg-black/55"
-            aria-label="닫기"
+            aria-label={uiText(locale, "닫기", "Close")}
             onClick={() => setWalletWarning("")}
           />
           <div className="relative z-10 w-full max-w-sm rounded-2xl border border-border bg-card p-5 space-y-4 shadow-xl">
-            <h3 className="text-lg font-bold">경매 참여 불가</h3>
+            <h3 className="text-lg font-bold">{uiText(locale, "경매 참여 불가", "Cannot join auction")}</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">{walletWarning}</p>
             <div className="flex gap-2">
               <Button type="button" variant="outline" className="flex-1" asChild>
-                <Link href="/wallet">MOCO 충전</Link>
+                <Link href="/wallet">{uiText(locale, "MOCO 충전", "Top up MOCO")}</Link>
               </Button>
               <Button type="button" className="flex-1" onClick={() => setWalletWarning("")}>
-                확인
+                {uiText(locale, "확인", "OK")}
               </Button>
             </div>
           </div>
@@ -258,23 +285,28 @@ export function UsedAuctionBidSheet({
           <button
             type="button"
             className="absolute inset-0 bg-black/55"
-            aria-label="닫기"
+            aria-label={uiText(locale, "닫기", "Close")}
             onClick={() => setOpen(false)}
           />
           <div className="relative bg-card rounded-t-2xl border-t p-4 pb-8 space-y-4 max-h-[85dvh] overflow-y-auto">
-            <h3 className="text-lg font-bold">{holdOrderId ? "카드 hold 승인" : "입찰"}</h3>
+            <h3 className="text-lg font-bold">
+              {holdOrderId
+                ? uiText(locale, "카드 hold 승인", "Authorize card hold")
+                : uiText(locale, "입찰", "Bid")}
+            </h3>
             {!holdOrderId ? (
               <p className="text-sm text-muted-foreground">
-                최소 입찰가{" "}
+                {uiText(locale, "최소 입찰가", "Minimum bid")}{" "}
                 <span className="font-bold text-foreground">{formatUsedPrice(minBid, currency)}</span>
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                입찰가{" "}
+                {uiText(locale, "입찰가", "Bid")}{" "}
                 <span className="font-bold text-foreground">
                   {formatUsedPrice(bidAmountNum, currency)}
                 </span>
-                {" · "}카드 hold{" "}
+                {" · "}
+                {uiText(locale, "카드 hold", "Card hold")}{" "}
                 <span className="font-bold text-foreground">{formatUsedPrice(holdAmount, "usd")}</span>
               </p>
             )}
@@ -302,7 +334,11 @@ export function UsedAuctionBidSheet({
                   className="rounded-xl h-12 text-lg font-bold tabular-nums"
                   min={usdBid ? minBid / 100 : minBid}
                   step={usdBid ? "0.01" : "1"}
-                  placeholder={usdBid ? "달러로 입력" : "원으로 입력"}
+                  placeholder={
+                    usdBid
+                      ? uiText(locale, "달러로 입력", "Amount in USD")
+                      : uiText(locale, "원으로 입력", "Amount in KRW")
+                  }
                 />
               </>
             )}
@@ -319,7 +355,7 @@ export function UsedAuctionBidSheet({
                     }`}
                   >
                     {pm.brand} •••• {pm.last4}
-                    {pm.isDefault ? " · 기본" : ""}
+                    {pm.isDefault ? uiText(locale, " · 기본", " · default") : ""}
                   </button>
                 ))}
               </div>
@@ -336,9 +372,9 @@ export function UsedAuctionBidSheet({
                   onChange={(e) => setBidConsent(e.target.checked)}
                 />
                 <span className="text-[11px] text-muted-foreground leading-relaxed">
-                  {USED_AUCTION_BID_CONSENT_LABEL}{" "}
+                  {uiText(locale, BID_CONSENT_KO, BID_CONSENT_EN)}{" "}
                   <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
-                    (이용약관)
+                    {uiText(locale, "(이용약관)", "(Terms)")}
                   </Link>
                 </span>
               </label>
@@ -351,17 +387,25 @@ export function UsedAuctionBidSheet({
               onClick={() => void submitBid(bidAmountNum)}
             >
               {busy
-                ? "처리 중…"
+                ? uiText(locale, "처리 중…", "Processing…")
                 : holdOrderId
-                  ? "카드 승인 후 입찰"
-                  : `${formatUsedPrice(bidAmountNum, currency)} 입찰`}
+                  ? uiText(locale, "카드 승인 후 입찰", "Authorize card & bid")
+                  : uiText(
+                      locale,
+                      `${formatUsedPrice(bidAmountNum, currency)} 입찰`,
+                      `Bid ${formatUsedPrice(bidAmountNum, currency)}`
+                    )}
             </Button>
 
             {buyNowPrice != null && buyNowPrice > 0 && !holdOrderId && (
               confirmBuyNow ? (
                 <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
                   <p className="text-sm font-medium">
-                    {formatUsedPrice(buyNowPrice, currency)}에 즉시구매하시겠습니까?
+                    {uiText(
+                      locale,
+                      `${formatUsedPrice(buyNowPrice, currency)}에 즉시구매하시겠습니까?`,
+                      `Buy now for ${formatUsedPrice(buyNowPrice, currency)}?`
+                    )}
                   </p>
                   <label className="flex items-start gap-2.5 cursor-pointer">
                     <input
@@ -371,7 +415,7 @@ export function UsedAuctionBidSheet({
                       onChange={(e) => setBuyNowConsent(e.target.checked)}
                     />
                     <span className="text-[11px] text-muted-foreground leading-relaxed">
-                      {USED_AUCTION_BID_CONSENT_LABEL}
+                      {uiText(locale, BID_CONSENT_KO, BID_CONSENT_EN)}
                     </span>
                   </label>
                   <div className="flex gap-2">
@@ -382,7 +426,7 @@ export function UsedAuctionBidSheet({
                       onClick={() => void buyNow()}
                     >
                       <Zap className="h-4 w-4" />
-                      즉시구매
+                      {uiText(locale, "즉시구매", "Buy now")}
                     </Button>
                     <Button
                       type="button"
@@ -391,7 +435,7 @@ export function UsedAuctionBidSheet({
                       disabled={busy}
                       onClick={() => setConfirmBuyNow(false)}
                     >
-                      취소
+                      {uiText(locale, "취소", "Cancel")}
                     </Button>
                   </div>
                 </div>
@@ -404,7 +448,7 @@ export function UsedAuctionBidSheet({
                   onClick={() => setConfirmBuyNow(true)}
                 >
                   <Zap className="h-5 w-5 text-amber-500" />
-                  즉시구매 {formatUsedPrice(buyNowPrice, currency)}
+                  {uiText(locale, "즉시구매", "Buy now")} {formatUsedPrice(buyNowPrice, currency)}
                 </Button>
               )
             )}
@@ -414,7 +458,7 @@ export function UsedAuctionBidSheet({
               className="w-full py-2 text-muted-foreground text-sm"
               onClick={() => setOpen(false)}
             >
-              닫기
+              {uiText(locale, "닫기", "Close")}
             </button>
           </div>
         </div>

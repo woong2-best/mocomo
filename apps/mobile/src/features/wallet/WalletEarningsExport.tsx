@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { formatMocoDisplay, formatMocoNetFromCents, ledgerCentsToMoco } from "@/lib/wallet-moco-display";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Month = {
   month: number;
@@ -51,19 +52,23 @@ function formatKoDateTime(iso: string): string {
   return `${y}.${m}.${day} ${hh}:${mm}:${ss}`;
 }
 
-function buildYearSummaryCsv(months: Month[], year: number): string {
-  const header = "연도,월,수익,지출,순수익,누적순수익";
+function buildYearSummaryCsv(
+  months: Month[],
+  year: number,
+  u: (ko: string, en: string) => string
+): string {
+  const header = u("연도,월,수익,지출,순수익,누적순수익", "Year,Month,Earned,Withdrawn,Net,Cumulative net");
   const rows = months.map((m) =>
     [year, m.label, m.earned, m.withdrawn, m.net, m.cumulative].map(csvCell).join(",")
   );
   const totalEarned = months.reduce((s, m) => s + m.earned, 0);
   const totalWithdrawn = months.reduce((s, m) => s + m.withdrawn, 0);
-  rows.push(["합계", "", totalEarned, totalWithdrawn, totalEarned - totalWithdrawn, ""].map(csvCell).join(","));
+  rows.push([u("합계", "Total"), "", totalEarned, totalWithdrawn, totalEarned - totalWithdrawn, ""].map(csvCell).join(","));
   return `\uFEFF${header}\n${rows.join("\n")}`;
 }
 
-function buildTransactionsCsv(items: Transaction[]): string {
-  const header = "일시,유형,금액,순변동,누적잔액,후원자,메모";
+function buildTransactionsCsv(items: Transaction[], u: (ko: string, en: string) => string): string {
+  const header = u("일시,유형,금액,순변동,누적잔액,후원자,메모", "Date,Type,Amount,Net change,Balance,Tipper,Memo");
   const rows = items.map((t) =>
     [
       formatKoDateTime(t.at),
@@ -85,6 +90,7 @@ async function shareCsv(title: string, csv: string) {
 }
 
 export function WalletEarningsExport({ months, transactions, year, yearNet, colors }: Props) {
+  const { u, t } = useI18n();
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const trendUp = yearNet >= 0;
   const safeMonths = months?.length === 12 ? months : [];
@@ -102,9 +108,9 @@ export function WalletEarningsExport({ months, transactions, year, yearNet, colo
       <View style={[styles.panel, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
         <View style={styles.panelHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.panelTitle, { color: colors.text }]}>수익 내역 Excel</Text>
+            <Text style={[styles.panelTitle, { color: colors.text }]}>{u("수익 내역 Excel", "Earnings Excel export")}</Text>
             <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-              {year}년 연간·월별 거래 내역을 Excel(CSV)로 공유합니다.
+              {u(`${year}년 연간·월별 거래 내역을 Excel(CSV)로 공유합니다.`, `Share ${year} monthly CSV exports.`)}
             </Text>
           </View>
           <Text style={[styles.trend, { color: trendUp ? colors.success : colors.danger }]}>
@@ -114,22 +120,22 @@ export function WalletEarningsExport({ months, transactions, year, yearNet, colo
 
         <View style={styles.exportRow}>
           <Pressable
-            onPress={() => void shareCsv(`${year}년 월별 요약`, buildYearSummaryCsv(safeMonths, year))}
+            onPress={() => void shareCsv(u(`${year}년 월별 요약`, `${year} monthly summary`), buildYearSummaryCsv(safeMonths, year, u))}
             style={[styles.primaryBtn, { backgroundColor: colors.cobalt }]}
           >
-            <Text style={[styles.primaryBtnText, { color: colors.textOnAccent }]}>{year}년 월별 요약 Excel</Text>
+            <Text style={[styles.primaryBtnText, { color: colors.textOnAccent }]}>{u(`${year}년 월별 요약 Excel`, `${year} monthly Excel`)}</Text>
           </Pressable>
           <Pressable
-            onPress={() => void shareCsv(`${year}년 전체 거래`, buildTransactionsCsv(transactions))}
+            onPress={() => void shareCsv(u(`${year}년 전체 거래`, `${year} all transactions`), buildTransactionsCsv(transactions, u))}
             style={[styles.secondaryBtn, { borderColor: colors.hairline, backgroundColor: colors.surface }]}
           >
-            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>{year}년 전체 거래 Excel</Text>
+            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>{u(`${year}년 전체 거래 Excel`, `${year} full Excel`)}</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={[styles.panel, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
-        <Text style={[styles.panelTitle, { color: colors.textMuted, marginBottom: spacing.sm }]}>월별 Excel</Text>
+        <Text style={[styles.panelTitle, { color: colors.textMuted, marginBottom: spacing.sm }]}>{u("월별 Excel", "Monthly Excel")}</Text>
         <View style={styles.monthGrid}>
           {safeMonths.map((m) => {
             const active = selectedMonth === m.month;
@@ -153,7 +159,7 @@ export function WalletEarningsExport({ months, transactions, year, yearNet, colo
                       color: active ? colors.textOnAccent : hasActivity ? colors.text : colors.textMuted,
                     }}
                   >
-                    {m.label.replace("월", "")}
+                    {String(m.month)}
                   </Text>
                 </Pressable>
                 {hasActivity ? (
@@ -164,8 +170,8 @@ export function WalletEarningsExport({ months, transactions, year, yearNet, colo
                         return d.getFullYear() === year && d.getMonth() + 1 === m.month;
                       });
                       void shareCsv(
-                        `${year}년 ${m.label}`,
-                        buildTransactionsCsv(filtered)
+                        u(`${year}년 ${m.label}`, `${year} ${m.label}`),
+                        buildTransactionsCsv(filtered, u)
                       );
                     }}
                     style={[styles.excelBtn, { borderColor: colors.hairline }]}
@@ -182,15 +188,15 @@ export function WalletEarningsExport({ months, transactions, year, yearNet, colo
         <View style={styles.monthDetailPanel}>
           <View style={styles.detailHeader}>
             <Text style={[styles.panelTitle, { color: colors.text }]}>
-              {year}년 {selectedMonth}월 ({monthTx.length}건)
+              {u(`${year}년 ${selectedMonth}월 (${monthTx.length}건)`, `${year}-${selectedMonth} (${monthTx.length} items)`)}
             </Text>
             <Pressable onPress={() => setSelectedMonth(null)}>
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted }}>닫기</Text>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted }}>{t("common.close")}</Text>
             </Pressable>
           </View>
           {monthTx.length === 0 ? (
             <Text style={[styles.subtitle, { color: colors.textMuted, textAlign: "center", paddingVertical: spacing.md }]}>
-              이 달 거래가 없습니다.
+              {u("이 달 거래가 없습니다.", "No transactions this month.")}
             </Text>
           ) : (
             monthTx.slice(0, 20).map((tx) => (

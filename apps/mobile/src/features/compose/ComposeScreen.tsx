@@ -18,9 +18,11 @@ import { InlineComposeBox } from "@/features/compose/InlineComposeBox";
 import { useTheme } from "@/theme/ThemeContext";
 import { IslandToastScreenSlot, showIslandToast } from "@/ui/IslandToast";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 /** Full-screen compose modal — same composer as the feed strip. */
 export function ComposeScreen() {
+  const { t, u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -30,7 +32,7 @@ export function ComposeScreen() {
   const quotedPostId = route.params?.quotedPostId;
   const quotedAuthorUsername = route.params?.quotedAuthorUsername;
   const quotedPreview = route.params?.quotedPreview;
-  const screenTitle = route.params?.initialTitle?.trim() || "새 게시물";
+  const screenTitle = route.params?.initialTitle?.trim() || u("새 게시물", "New post");
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -48,7 +50,7 @@ export function ComposeScreen() {
             hitSlop={12}
             style={styles.backHit}
             accessibilityRole="button"
-            accessibilityLabel="뒤로"
+            accessibilityLabel={t("common.back")}
           >
             <Ionicons name="chevron-back" size={26} color={colors.brand} />
           </Pressable>
@@ -71,7 +73,7 @@ export function ComposeScreen() {
         onPosted={async () => {
           resetFeedPostOffset();
           await queryClient.resetQueries({ queryKey: ["mobile-feed"] });
-          showIslandToast("Posted", "게시물이 업로드되었습니다.");
+          showIslandToast(t("toast.published"), u("게시물이 업로드되었습니다.", "Your post was uploaded."));
           if (navigation.canGoBack()) navigation.goBack();
         }}
       />

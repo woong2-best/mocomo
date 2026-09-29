@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { addRoomMember, type ChatRoomMember } from "@/api/messages";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { FolkButton } from "@/ui/FolkButton";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -26,6 +27,7 @@ type Props = {
 };
 
 export function AddChatMemberSheet({ visible, roomId, members, onClose, onAdded }: Props) {
+  const { t, u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -53,10 +55,10 @@ export function AddChatMemberSheet({ visible, roomId, members, onClose, onAdded 
       const result = await addRoomMember(roomId, next);
       setList((prev) => (prev.some((m) => m.id === result.added.id) ? prev : [...prev, result.added]));
       setHandle("");
-      setOkNote(`@${result.added.username} 님을 추가했습니다.`);
+      setOkNote(u(`@${result.added.username} 님을 추가했습니다.`, `@${result.added.username} was added.`));
       onAdded(result.added);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "추가하지 못했습니다.");
+      setError(e instanceof Error ? e.message : u("추가하지 못했습니다.", "Could not add member."));
     } finally {
       setBusy(false);
     }
@@ -70,8 +72,10 @@ export function AddChatMemberSheet({ visible, roomId, members, onClose, onAdded 
       >
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <Text style={styles.title}>사람 추가</Text>
-          <Text style={styles.sub}>아이디를 한 명씩 입력해 이 대화에 추가합니다.</Text>
+          <Text style={styles.title}>{u("사람 추가", "Add people")}</Text>
+          <Text style={styles.sub}>
+            {u("아이디를 한 명씩 입력해 이 대화에 추가합니다.", "Enter one username at a time to add to this chat.")}
+          </Text>
           {list.map((m) => {
             const label = m.name?.trim() || m.username;
             return (
@@ -93,7 +97,7 @@ export function AddChatMemberSheet({ visible, roomId, members, onClose, onAdded 
               style={styles.input}
               value={handle}
               onChangeText={setHandle}
-              placeholder="아이디 입력"
+              placeholder={u("아이디 입력", "Username")}
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
               autoCorrect={false}
@@ -105,12 +109,12 @@ export function AddChatMemberSheet({ visible, roomId, members, onClose, onAdded 
             {busy ? (
               <ActivityIndicator color={colors.terracotta} />
             ) : (
-              <FolkButton label="추가" onPress={() => void onAdd()} disabled={!handle.trim()} />
+              <FolkButton label={u("추가", "Add")} onPress={() => void onAdd()} disabled={!handle.trim()} />
             )}
           </View>
           {okNote ? <Text style={styles.ok}>{okNote}</Text> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <FolkButton label="닫기" variant="ghost" onPress={onClose} />
+          <FolkButton label={t("common.close")} variant="ghost" onPress={onClose} />
         </View>
       </KeyboardAvoidingView>
     </Modal>

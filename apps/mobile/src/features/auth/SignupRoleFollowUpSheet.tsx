@@ -26,6 +26,7 @@ import { uploadLocalFile } from "@/api/upload-file";
 import { prepareProfileBannerImage } from "@/lib/prepare-profile-media";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export type SignupRole = "fan" | "coser";
 
@@ -42,6 +43,7 @@ const BIO_MAX = 300;
  * After account exists: fan → follow popular cosers; coser → inline Culture Wiki register.
  */
 export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: Props) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -72,7 +74,7 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
         if (!cancelled) setItems(res.items ?? []);
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "코스어 목록을 불러오지 못했습니다.");
+          setError(e instanceof Error ? e.message : u("코스어 목록을 불러오지 못했습니다.", "Could not load cosplayers."));
         }
       } finally {
         if (!cancelled) setLoadingList(false);
@@ -86,7 +88,7 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
   const pickPhoto = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showIslandError("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
+      showIslandError(u("권한 필요", "Permission required"), u("사진 라이브러리 접근 권한이 필요합니다.", "Photo library access is required."));
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({
@@ -98,7 +100,7 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
     if (picked.canceled || !picked.assets[0]) return;
     setLocalUri(picked.assets[0].uri);
     setError("");
-  }, []);
+  }, [u]);
 
   async function onFollow(userId: string) {
     setFollowBusyId(userId);
@@ -125,7 +127,7 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
         void removeFollowingDmUser(queryClient, userId);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "팔로우에 실패했습니다.");
+      setError(e instanceof Error ? e.message : u("팔로우에 실패했습니다.", "Could not follow."));
     } finally {
       setFollowBusyId(null);
     }
@@ -133,11 +135,11 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
 
   async function submitCoser() {
     if (!localUri) {
-      setError("대표 사진을 선택해 주세요.");
+      setError(u("대표 사진을 선택해 주세요.", "Please choose a profile photo."));
       return;
     }
     if (!bio.trim()) {
-      setError("자기소개를 입력해 주세요.");
+      setError(u("자기소개를 입력해 주세요.", "Please enter a bio."));
       return;
     }
     setBusy(true);
@@ -157,7 +159,7 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
       }
       onFinished();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "코스어 등록에 실패했습니다.");
+      setError(e instanceof Error ? e.message : u("코스어 등록에 실패했습니다.", "Cosplayer registration failed."));
     } finally {
       setBusy(false);
     }
@@ -196,9 +198,14 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
 
           {role === "fan" ? (
             <>
-              <Text style={[styles.title, { color: colors.text }]}>코스어를 팔로우해 보세요</Text>
+              <Text style={[styles.title, { color: colors.text }]}>
+                {u("코스어를 팔로우해 보세요", "Follow cosplayers")}
+              </Text>
               <Text style={[styles.sub, { color: colors.textMuted }]}>
-                관심 있는 코스어를 팔로우하면 홈에서 더 쉽게 만날 수 있어요.
+                {u(
+                  "관심 있는 코스어를 팔로우하면 홈에서 더 쉽게 만날 수 있어요.",
+                  "Follow cosplayers you like to see more of them on Home."
+                )}
               </Text>
 
               {loadingList ? (
@@ -210,7 +217,10 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
                   style={{ maxHeight: 360 }}
                   ListEmptyComponent={
                     <Text style={[styles.empty, { color: colors.textMuted }]}>
-                      아직 등록된 코스어가 없어요. 나중에 컬쳐위키에서 찾아볼 수 있습니다.
+                      {u(
+                        "아직 등록된 코스어가 없어요. 나중에 컬쳐위키에서 찾아볼 수 있습니다.",
+                        "No cosplayers listed yet. You can find more in Culture Wiki later."
+                      )}
                     </Text>
                   }
                   renderItem={({ item }) => (
@@ -246,7 +256,7 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <Text style={styles.followText}>
-                            {item.following ? "팔로잉" : "팔로우"}
+                            {item.following ? u("팔로잉", "Following") : u("팔로우", "Follow")}
                           </Text>
                         )}
                       </Pressable>
@@ -262,14 +272,19 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
                 disabled={busy}
                 onPress={onFinished}
               >
-                <Text style={styles.primaryText}>다음</Text>
+                <Text style={styles.primaryText}>{u("다음", "Next")}</Text>
               </Pressable>
             </>
           ) : (
             <>
-              <Text style={[styles.title, { color: colors.text }]}>컬쳐위키 코스어 등록</Text>
+              <Text style={[styles.title, { color: colors.text }]}>
+                {u("컬쳐위키 코스어 등록", "Register as cosplayer")}
+              </Text>
               <Text style={[styles.sub, { color: colors.textMuted }]}>
-                사진과 소개만 입력하면 바로 코스어로 등록됩니다. (컬쳐위키 페이지로 이동하지 않아요)
+                {u(
+                  "사진과 소개만 입력하면 바로 코스어로 등록됩니다. (컬쳐위키 페이지로 이동하지 않아요)",
+                  "Add a photo and bio to register as a cosplayer—no Culture Wiki page visit needed."
+                )}
               </Text>
 
               <Pressable style={styles.photoPick} onPress={() => void pickPhoto()} disabled={busy}>
@@ -279,19 +294,19 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
                   <View style={[styles.photoEmpty, { borderColor: colors.border }]}>
                     <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
                     <Text style={{ color: colors.textMuted, fontWeight: "700", marginTop: 8 }}>
-                      대표 사진 선택
+                      {u("대표 사진 선택", "Choose photo")}
                     </Text>
                   </View>
                 )}
               </Pressable>
 
               <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>
-                자기소개 ({bio.length}/{BIO_MAX})
+                {u("자기소개", "Bio")} ({bio.length}/{BIO_MAX})
               </Text>
               <TextInput
                 value={bio}
                 onChangeText={setBio}
-                placeholder="코스 스타일, 좋아하는 작품, 행사 일정 등"
+                placeholder={u("코스 스타일, 좋아하는 작품, 행사 일정 등", "Cosplay style, favorite series, event schedule, etc.")}
                 placeholderTextColor={colors.textMuted}
                 multiline
                 maxLength={BIO_MAX}
@@ -321,7 +336,7 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
                 {busy ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.primaryText}>코스어 등록하고 완료</Text>
+                  <Text style={styles.primaryText}>{u("코스어 등록하고 완료", "Register and finish")}</Text>
                 )}
               </Pressable>
 
@@ -331,7 +346,7 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
                 onPress={onFinished}
               >
                 <Text style={[styles.skipText, { color: colors.textMuted }]}>
-                  나중에 등록하고 완료
+                  {u("나중에 등록하고 완료", "Skip and finish")}
                 </Text>
               </Pressable>
             </>
@@ -344,7 +359,7 @@ export function SignupRoleFollowUpSheet({ visible, role, onFinished, onClose }: 
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: "flex-end" },
-  scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(9,16,30,0.55)" },
+  scrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(9,16,30,0.55)" },
   sheet: {
     borderTopLeftRadius: radii.xl,
     borderTopRightRadius: radii.xl,

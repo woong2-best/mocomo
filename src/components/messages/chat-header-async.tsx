@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
 import { ChatHeader } from "@/components/messages/chat-header";
 import { getConversationMeta } from "@/lib/chat-display";
+import { getRequestLocale } from "@/lib/i18n/server";
 import { chatMemberUserSelect } from "@/lib/user-public-select";
 
 export async function ChatHeaderAsync({ roomId }: { roomId: string }) {
@@ -24,7 +25,8 @@ export async function ChatHeaderAsync({ roomId }: { roomId: string }) {
   const isMember = room.members.some((m) => m.userId === session.user.id);
   if (!isMember) notFound();
 
-  const meta = getConversationMeta(room, session.user.id);
+  const locale = await getRequestLocale();
+  const meta = getConversationMeta(room, session.user.id, locale);
   const otherMember =
     room.type === "DM" ? room.members.find((m) => m.userId !== session.user.id)?.user : undefined;
 

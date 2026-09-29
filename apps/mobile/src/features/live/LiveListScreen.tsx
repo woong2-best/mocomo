@@ -19,8 +19,12 @@ import { ScreenErrorBoundary } from "@/ui/ScreenErrorBoundary";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
+import { liveUi } from "@/features/live/live-ui";
 
 export function LiveListScreen() {
+  const { u, locale } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const queryClient = useQueryClient();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -92,12 +96,12 @@ export function LiveListScreen() {
   const selectCategory = useCallback((id: MobileLiveCategoryId) => {
     void (async () => {
       if (id !== "ALL") {
-        const ok = await ensureR18LiveAccess(id);
+        const ok = await ensureR18LiveAccess(id, locale);
         if (!ok) return;
       }
       setCategory(id);
     })();
-  }, []);
+  }, [locale]);
 
   const searchWidth = Math.max(160, width - insets.left - insets.right - 64);
 
@@ -109,7 +113,7 @@ export function LiveListScreen() {
   );
 
   return (
-    <ScreenErrorBoundary label="라이브" onRetry={onRefresh}>
+    <ScreenErrorBoundary label={copy.feature} onRetry={onRefresh}>
       <View style={styles.root}>
         <View
           pointerEvents="box-none"
@@ -119,7 +123,7 @@ export function LiveListScreen() {
             onPress={() => navigation.goBack()}
             hitSlop={12}
             style={styles.backHit}
-            accessibilityLabel="뒤로"
+            accessibilityLabel={copy.back}
           >
             <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
           </Pressable>
@@ -131,8 +135,8 @@ export function LiveListScreen() {
             <LiveEmptyTestPattern />
             <LiveSlantTabs active={category} onSelect={selectCategory} />
             <View style={styles.center}>
-              <Text style={styles.error}>라이브를 불러오지 못했습니다.</Text>
-              <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
+              <Text style={styles.error}>{copy.loadHubError}</Text>
+              <FolkButton label={copy.retry} onPress={() => void query.refetch()} />
             </View>
           </View>
         ) : (
@@ -165,7 +169,7 @@ export function LiveListScreen() {
               query.isPending && !hasHubPages ? (
                 <ActivityIndicator style={{ marginTop: 48 }} color={colors.terracotta} />
               ) : hero || showPattern ? null : (
-                <Text style={styles.empty}>검색 결과가 없습니다.</Text>
+                <Text style={styles.empty}>{copy.noSearchResults}</Text>
               )
             }
             ListFooterComponent={

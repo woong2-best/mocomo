@@ -16,28 +16,51 @@ import { showIslandError } from "@/ui/IslandToast";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export type ProfileTabId = "posts" | "replies" | "media" | "wiki" | "likes";
 export type ProfileSortId = "new" | "popular" | "oldest";
 
-const TABS: { id: ProfileTabId; label: string; selfOnly?: boolean }[] = [
-  { id: "posts", label: "게시물" },
-  { id: "replies", label: "답글" },
-  { id: "media", label: "미디어" },
-  { id: "wiki", label: "위키" },
-  { id: "likes", label: "좋아요", selfOnly: true },
+const TABS: { id: ProfileTabId; selfOnly?: boolean }[] = [
+  { id: "posts" },
+  { id: "replies" },
+  { id: "media" },
+  { id: "wiki" },
+  { id: "likes", selfOnly: true },
 ];
 
-const SORTS: { id: ProfileSortId; label: string }[] = [
-  { id: "new", label: "새로운" },
-  { id: "popular", label: "인기 순" },
-  { id: "oldest", label: "오래된 순" },
-];
+const SORTS: { id: ProfileSortId }[] = [{ id: "new" }, { id: "popular" }, { id: "oldest" }];
 
-function formatJoined(iso: string): string {
+function profileTabLabel(id: ProfileTabId, u: (ko: string, en: string) => string): string {
+  switch (id) {
+    case "posts":
+      return u("게시물", "Posts");
+    case "replies":
+      return u("답글", "Replies");
+    case "media":
+      return u("미디어", "Media");
+    case "wiki":
+      return u("위키", "Wiki");
+    case "likes":
+      return u("좋아요", "Likes");
+  }
+}
+
+function profileSortLabel(id: ProfileSortId, u: (ko: string, en: string) => string): string {
+  switch (id) {
+    case "new":
+      return u("새로운", "New");
+    case "popular":
+      return u("인기 순", "Popular");
+    case "oldest":
+      return u("오래된 순", "Oldest");
+  }
+}
+
+function formatJoined(iso: string, u: (ko: string, en: string) => string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 가입`;
+  return u(`${d.getFullYear()}년 ${d.getMonth() + 1}월 가입`, `Joined ${d.toLocaleString("en-US", { month: "short", year: "numeric" })}`);
 }
 
 type Props = {
@@ -73,11 +96,12 @@ export function ProfileHeaderChrome({
   pending = false,
   bannerTopInset = 0,
 }: Props) {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors, bannerTopInset), [colors, bannerTopInset]);
   const display = user.name || user.username;
-  const joined = formatJoined(user.createdAt);
-  const visibleTabs = TABS.filter((t) => !t.selfOnly || user.isSelf);
+  const joined = formatJoined(user.createdAt, u);
+  const visibleTabs = TABS.filter((tabDef) => !tabDef.selfOnly || user.isSelf);
   const [chatBusy, setChatBusy] = useState(false);
 
   async function startChat() {
@@ -87,7 +111,7 @@ export function ProfileHeaderChrome({
       const res = await openDm(user.id);
       onOpenChat(res.roomId);
     } catch (e) {
-      showIslandError("채팅", e instanceof Error ? e.message : "채팅을 열지 못했습니다.");
+      showIslandError(u("채팅", "Chat"), e instanceof Error ? e.message : u("채팅을 열지 못했습니다.", "Could not open chat."));
     } finally {
       setChatBusy(false);
     }
@@ -132,7 +156,7 @@ export function ProfileHeaderChrome({
                       following ? null : styles.followPrimaryText,
                     ]}
                   >
-                    {following ? "팔로잉" : "팔로우"}
+                    {following ? u("팔로잉", "Following") : u("팔로우", "Follow")}
                   </Text>
                 </Pressable>
                 {onOpenChat && user.canMessage !== false ? (
@@ -141,7 +165,7 @@ export function ProfileHeaderChrome({
                     onPress={() => void startChat()}
                     disabled={chatBusy}
                     accessibilityRole="button"
-                    accessibilityLabel="채팅"
+                    accessibilityLabel={u("채팅", "Chat")}
                   >
                     {chatBusy ? (
                       <ActivityIndicator size="small" color={colors.brand} />
@@ -198,10 +222,10 @@ export function ProfileHeaderChrome({
                 disabled={!onOpenFollowList}
                 hitSlop={6}
                 accessibilityRole="button"
-                accessibilityLabel={`팔로잉 ${user.counts.following}명`}
+                accessibilityLabel={u(`팔로잉 ${user.counts.following}명`, `${user.counts.following} following`)}
               >
                 <Text style={styles.count}>
-                  <Text style={styles.countNum}>{user.counts.following}</Text> 팔로잉
+                  <Text style={styles.countNum}>{user.counts.following}</Text> {u("팔로잉", "Following")}
                 </Text>
               </Pressable>
               <Pressable
@@ -209,10 +233,10 @@ export function ProfileHeaderChrome({
                 disabled={!onOpenFollowList}
                 hitSlop={6}
                 accessibilityRole="button"
-                accessibilityLabel={`팔로워 ${user.counts.followers}명`}
+                accessibilityLabel={u(`팔로워 ${user.counts.followers}명`, `${user.counts.followers} followers`)}
               >
                 <Text style={styles.count}>
-                  <Text style={styles.countNum}>{user.counts.followers}</Text> 팔로워
+                  <Text style={styles.countNum}>{user.counts.followers}</Text> {u("팔로워", "Followers")}
                 </Text>
               </Pressable>
             </>
@@ -225,7 +249,7 @@ export function ProfileHeaderChrome({
                 const active = sort === s.id;
                 return (
                   <Pressable key={s.id} onPress={() => onSortChange(s.id)} hitSlop={4}>
-                    <Text style={[styles.sortLabel, active && styles.sortActive]}>{s.label}</Text>
+                    <Text style={[styles.sortLabel, active && styles.sortActive]}>{profileSortLabel(s.id, u)}</Text>
                   </Pressable>
                 );
               })}
@@ -240,18 +264,18 @@ export function ProfileHeaderChrome({
       </View>
 
       <View style={styles.tabs}>
-        {visibleTabs.map((t) => {
-          const active = tab === t.id;
+        {visibleTabs.map((tabDef) => {
+          const active = tab === tabDef.id;
           return (
             <Pressable
-              key={t.id}
-              onPress={() => onTabChange(t.id)}
+              key={tabDef.id}
+              onPress={() => onTabChange(tabDef.id)}
               style={styles.tabItem}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
             >
               <View style={styles.tabLabelWrap}>
-                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{t.label}</Text>
+                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{profileTabLabel(tabDef.id, u)}</Text>
                 <View style={[styles.tabUnderline, active ? styles.tabUnderlineOn : null]} />
               </View>
             </Pressable>

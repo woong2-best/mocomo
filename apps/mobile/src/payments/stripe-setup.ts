@@ -3,6 +3,7 @@ import * as WebBrowser from "expo-web-browser";
 import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
 import type { PaymentMethodItem } from "@/features/wallet/wallet-card-builders";
+import { uiText } from "@/i18n/ui-text";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -48,7 +49,7 @@ export async function setDefaultPaymentMethod(id: string) {
 }
 
 /** Stripe Setup Checkout — save card for later payments */
-export async function openPaymentMethodSetup(): Promise<PaymentMethodItem[]> {
+export async function openPaymentMethodSetup(locale?: string): Promise<PaymentMethodItem[]> {
   const { checkoutUrl } = await startPaymentMethodSetup();
 
   const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, RETURN_PREFIX, {
@@ -57,14 +58,16 @@ export async function openPaymentMethodSetup(): Promise<PaymentMethodItem[]> {
   });
 
   if (result.type === "cancel" || result.type === "dismiss") {
-    throw new Error("카드 등록이 취소되었습니다.");
+    throw new Error(uiText(locale, "카드 등록이 취소되었습니다.", "Card setup was canceled."));
   }
   if (result.type !== "success" || !result.url) {
-    throw new Error("카드 등록을 완료하지 못했습니다.");
+    throw new Error(uiText(locale, "카드 등록을 완료하지 못했습니다.", "Could not finish card setup."));
   }
 
   const sessionId = extractSessionId(result.url);
-  if (!sessionId) throw new Error("등록 세션을 확인하지 못했습니다.");
+  if (!sessionId) {
+    throw new Error(uiText(locale, "등록 세션을 확인하지 못했습니다.", "Could not verify setup session."));
+  }
 
   const confirmed = await confirmPaymentMethodSetup(sessionId);
   return confirmed.methods;

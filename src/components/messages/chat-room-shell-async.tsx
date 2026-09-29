@@ -2,6 +2,7 @@ import { getCachedAuthUserMinimal, getCachedSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
 import { getConversationMeta } from "@/lib/chat-display";
+import { getRequestLocale } from "@/lib/i18n/server";
 import { chatMemberUserSelect } from "@/lib/user-public-select";
 import { chatMessageInclude, serializeChatMessages } from "@/lib/chat-message-serialize";
 import {
@@ -42,7 +43,8 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
     }),
   ]);
 
-  const meta = getConversationMeta(room, session.user.id);
+  const locale = await getRequestLocale();
+  const meta = getConversationMeta(room, session.user.id, locale);
   const isMarket = room.type === "MARKET";
   const otherMember =
     room.type === "DM" || isMarket

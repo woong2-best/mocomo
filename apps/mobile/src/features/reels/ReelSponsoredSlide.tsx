@@ -5,6 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import type { FeedAd } from "@/api/feed";
 import { API_BASE_URL } from "@/config/env";
+import { useI18n } from "@/i18n/I18nProvider";
+import { reelsUi } from "@/features/reels/reels-ui";
 
 type Props = {
   ad: FeedAd;
@@ -19,8 +21,10 @@ function resolveAdUrl(linkUrl: string): string {
 }
 
 function ReelSponsoredSlideInner({ ad, width, height }: Props) {
+  const { u } = useI18n();
+  const copy = useMemo(() => reelsUi(u), [u]);
   const styles = useMemo(() => createStyles(width, height), [width, height]);
-  const cta = ad.ctaLabel?.trim() || "참가하기";
+  const cta = ad.ctaLabel?.trim() || copy.ctaJoin;
   const imageUri = resolveAdUrl(ad.imageUrl);
 
   const onPress = () => {
@@ -44,7 +48,7 @@ function ReelSponsoredSlideInner({ ad, width, height }: Props) {
           <Ionicons name="megaphone-outline" size={16} color="#D4A017" />
           <Text style={styles.sponsoredLabel}>Sponsored</Text>
         </View>
-        <Text style={styles.adCategory}>{ad.adCategory || "광고"}</Text>
+        <Text style={styles.adCategory}>{ad.adCategory || copy.adCategory}</Text>
       </View>
 
       <View style={styles.bottom}>

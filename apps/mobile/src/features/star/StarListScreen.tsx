@@ -39,19 +39,13 @@ import { cachedImageSource, IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
+import { starUi } from "@/features/star/star-ui";
 
 const GRID_GAP = 2;
 const GRID_COLS = 3;
 
 type StarTab = "all" | "posts" | "qna" | "market" | "wiki";
-
-const STAR_TABS: { id: StarTab; label: string }[] = [
-  { id: "all", label: "전체" },
-  { id: "posts", label: "게시물" },
-  { id: "qna", label: "QnA" },
-  { id: "market", label: "마켓" },
-  { id: "wiki", label: "컬처위키" },
-];
 
 type GridRow =
   | { key: string; kind: "post"; post: FeedPost }
@@ -93,6 +87,18 @@ function pickCover(post: FeedPost) {
 }
 
 export function StarListScreen() {
+  const { u } = useI18n();
+  const copy = useMemo(() => starUi(u), [u]);
+  const starTabs = useMemo(
+    (): { id: StarTab; label: string }[] => [
+      { id: "all", label: copy.tabAll },
+      { id: "posts", label: copy.tabPosts },
+      { id: "qna", label: copy.tabQna },
+      { id: "market", label: copy.tabMarket },
+      { id: "wiki", label: copy.tabWiki },
+    ],
+    [copy]
+  );
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const { width: screenW } = useWindowDimensions();
@@ -138,7 +144,7 @@ export function StarListScreen() {
           : tab === "wiki"
             ? (wikiQuery.data?.total ?? 0)
             : (marketQuery.data?.total ?? 0);
-  const tabLabel = STAR_TABS.find((item) => item.id === tab)?.label ?? "게시물";
+  const tabLabel = copy.tabLabel(tab);
 
   const runClearAll = useCallback(() => {
     const prevCreator = creatorId;
@@ -209,12 +215,12 @@ export function StarListScreen() {
             </View>
           )}
           <Text style={[styles.creatorLabel, active && styles.creatorLabelActive]} numberOfLines={1}>
-            {creator === "all" ? "전체" : creator.name || creator.username}
+            {creator === "all" ? copy.tabAll : creator.name || creator.username}
           </Text>
         </Pressable>
       );
     },
-    [colors.brand, colors.textOnAccent, creatorId, styles]
+    [colors.brand, colors.textOnAccent, copy.tabAll, creatorId, styles]
   );
 
   const renderPostCell = useCallback(
@@ -225,7 +231,7 @@ export function StarListScreen() {
       const qna = isQnaPost(item);
       const fallback = qna
         ? item.community?.name || item.title || item.content || "QnA"
-        : item.title || item.content || "게시물";
+        : item.title || item.content || copy.postFallback;
 
       return (
         <Pressable
@@ -249,7 +255,7 @@ export function StarListScreen() {
             </View>
           )}
           <Text style={[styles.kindBadge, qna ? styles.kindBadgeQna : styles.kindBadgePost]}>
-            {qna ? "QnA" : "게시물"}
+            {qna ? copy.tabQna : copy.tabPosts}
           </Text>
           {isVideo ? (
             <View style={styles.videoBadge}>
@@ -260,7 +266,7 @@ export function StarListScreen() {
         </Pressable>
       );
     },
-    [cellSize, navigation, styles]
+    [cellSize, copy.postFallback, copy.tabPosts, copy.tabQna, navigation, styles]
   );
 
   const creators = useMemo(() => {
@@ -353,7 +359,7 @@ export function StarListScreen() {
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.cellFallback]}>
             <Text style={styles.cellFallbackText} numberOfLines={3}>
-              {item.title || "상품"}
+              {item.title || copy.productFallback}
             </Text>
           </View>
         )}
@@ -362,7 +368,7 @@ export function StarListScreen() {
         </Text>
       </Pressable>
     ),
-    [cellSize, navigation, styles]
+    [cellSize, copy.productFallback, navigation, styles]
   );
 
   const renderWikiCell = useCallback(
@@ -383,17 +389,17 @@ export function StarListScreen() {
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.cellFallback]}>
             <Text style={styles.cellFallbackText} numberOfLines={3}>
-              {item.title || "컬처위키"}
+              {item.title || copy.wikiFallback}
             </Text>
           </View>
         )}
-        <Text style={[styles.kindBadge, styles.kindBadgeWiki]}>컬처위키</Text>
+        <Text style={[styles.kindBadge, styles.kindBadgeWiki]}>{copy.badgeWiki}</Text>
         <Text style={styles.priceBadge} numberOfLines={1}>
           {item.title}
         </Text>
       </Pressable>
     ),
-    [cellSize, navigation, styles]
+    [cellSize, copy.badgeWiki, copy.wikiFallback, navigation, styles]
   );
 
   const renderGrid = useCallback(
@@ -407,16 +413,16 @@ export function StarListScreen() {
   );
 
   const emptyLabel = creatorId
-    ? "이 크리에이터의 STAR 저장 글이 없습니다."
+    ? copy.emptyCreator
     : tab === "all"
-      ? "저장한 항목이 없습니다."
+      ? copy.emptyAll
       : tab === "qna"
-        ? "저장한 QnA가 없습니다."
+        ? copy.emptyQna
         : tab === "market"
-          ? "저장한 마켓 상품이 없습니다."
+          ? copy.emptyMarket
           : tab === "wiki"
-            ? "저장한 컬처 위키가 없습니다."
-            : "저장한 게시물이 없습니다.";
+            ? copy.emptyWiki
+            : copy.emptyPosts;
 
   return (
     <Screen>
@@ -428,14 +434,12 @@ export function StarListScreen() {
       >
         <Pressable style={styles.confirmScrim} onPress={() => setClearConfirm(false)}>
           <Pressable style={styles.confirmCard} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.confirmTitle}>전체 삭제</Text>
+            <Text style={styles.confirmTitle}>{copy.clearAllTitle}</Text>
             <Text style={styles.confirmBody}>
-              {tab === "all"
-                ? "STAR에 저장한 게시물, QnA, 마켓, 컬처위키를 모두 삭제할까요? 북마크만 지워지며 글과 상품 자체는 삭제되지 않습니다."
-                : `STAR에 저장한 ${tabLabel}을 모두 삭제할까요? 북마크만 지워지며 글 자체는 삭제되지 않습니다.`}
+              {tab === "all" ? copy.clearAllAllMsg : copy.clearAllTabMsg(tabLabel)}
             </Text>
-            <FolkButton label="전체 삭제" variant="secondary" onPress={runClearAll} />
-            <FolkButton label="취소" variant="ghost" onPress={() => setClearConfirm(false)} />
+            <FolkButton label={copy.clearAllBtn} variant="secondary" onPress={runClearAll} />
+            <FolkButton label={copy.cancel} variant="ghost" onPress={() => setClearConfirm(false)} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -443,7 +447,7 @@ export function StarListScreen() {
         title="STAR"
         border={false}
         style={styles.headerFlush}
-        leftLabel="뒤로"
+        leftLabel={copy.back}
         onLeftPress={() => navigation.goBack()}
         rightSlot={
           <Pressable
@@ -461,7 +465,7 @@ export function StarListScreen() {
                   activeTotal <= 0 && styles.clearAllDisabled,
                 ]}
               >
-                전체 삭제하기
+                {copy.clearAllAction}
               </Text>
             )}
           </Pressable>
@@ -469,7 +473,7 @@ export function StarListScreen() {
       />
 
       <View style={styles.tabs}>
-        {STAR_TABS.map((item, index) => {
+        {starTabs.map((item, index) => {
           const active = tab === item.id;
           return (
             <Pressable
@@ -503,9 +507,9 @@ export function StarListScreen() {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : listError ? (
         <View style={styles.center}>
-          <Text style={styles.error}>STAR 목록을 불러오지 못했습니다.</Text>
+          <Text style={styles.error}>{copy.loadError}</Text>
           <FolkButton
-            label="다시 시도"
+            label={copy.retry}
             onPress={() => {
               if (tab === "all") {
                 void Promise.all([

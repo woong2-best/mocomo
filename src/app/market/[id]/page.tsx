@@ -54,14 +54,22 @@ import { UsedAuctionLegalNotice } from "@/components/used/used-auction-legal-not
 import { isUsedRestrictedKind } from "@/lib/used-youth-protection";
 
 import type { UsedListingStatus } from "@prisma/client";
+import { getServerTranslator } from "@/lib/i18n/server";
+import { uiText } from "@/lib/i18n/ui-text";
 
-
+function localizedListingStatus(locale: string | undefined, status: UsedListingStatus) {
+  if (status === "RESERVED") return uiText(locale, "예약중", "Reserved");
+  if (status === "SOLD") return uiText(locale, "거래완료", "Sold");
+  if (status === "SELLING") return uiText(locale, "판매중", "For sale");
+  return usedStatusLabel(status);
+}
 
 export default async function UsedDetailPage({ params }: { params: Promise<{ id: string }> }) {
 
   const { id } = await params;
 
   const session = await auth();
+  const { locale } = await getServerTranslator();
 
   const data = await getUsedListing(id, session?.user?.id);
 
@@ -138,11 +146,11 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
     status !== "SELLING"
 
-      ? usedStatusLabel(status)
+      ? localizedListingStatus(locale, status)
 
       : isAuction && auctionLive
 
-        ? "경매중"
+        ? uiText(locale, "경매중", "Live auction")
 
         : undefined;
 
@@ -189,7 +197,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
         isSeller={!!isSeller}
         initialFavorited={favorited}
         initialStarred={starred}
-        heading={showLiveAuctionUi ? "경매" : "상품"}
+        heading={showLiveAuctionUi ? uiText(locale, "경매", "Auction") : uiText(locale, "상품", "Listing")}
       />
 
 
@@ -226,7 +234,11 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
           <p className="text-xs text-muted-foreground px-1">
 
-            경매 종료 후 예약/완료 상태를 변경할 수 있습니다.
+            {uiText(
+              locale,
+              "경매 종료 후 예약/완료 상태를 변경할 수 있습니다.",
+              "You can mark reserved or sold after the auction ends."
+            )}
 
           </p>
 
@@ -243,13 +255,20 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
         <div className="space-y-2">
           <h1 className="text-lg font-bold leading-snug">{listing.title}</h1>
           <p className="text-[22px] font-extrabold leading-none">
-            {isAuction && listing.bidCount > 0 ? "현재 " : isAuction ? "최소 입찰 " : ""}
+            {isAuction && listing.bidCount > 0
+              ? uiText(locale, "현재 ", "Current ")
+              : isAuction
+                ? uiText(locale, "최소 입찰 ", "Min bid ")
+                : ""}
             {formatUsedPrice(displayPrice, listing.currency)}
-            {isAuction && listing.bidCount > 0 ? ` · 입찰 ${listing.bidCount}회` : ""}
+            {isAuction && listing.bidCount > 0
+              ? uiText(locale, ` · 입찰 ${listing.bidCount}회`, ` · ${listing.bidCount} bid(s)`)
+              : ""}
           </p>
           {isAuction && listing.bidCount === 0 && (
             <p className="text-xs text-muted-foreground">
-              시작가 {formatUsedPrice(listing.price, listing.currency)}
+              {uiText(locale, "시작가", "Starting price")}{" "}
+              {formatUsedPrice(listing.price, listing.currency)}
             </p>
           )}
           {isAuction && listing.auctionEndsAt && listing.status === "SELLING" ? (
@@ -288,7 +307,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
             subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
           />
           <p className="text-sm text-muted-foreground">
-            {displayUsedRegion(listing.region) || "지역 미정"}
+            {displayUsedRegion(listing.region) || uiText(locale, "지역 미정", "Region TBD")}
             {listing.seller?.username ? (
               <>
                 {" · "}
@@ -300,7 +319,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           </p>
           {listing.meetPlace?.trim() ? (
             <p className="text-sm font-semibold text-foreground">
-              거래 희망 장소 · {listing.meetPlace.trim()}
+              {uiText(locale, "거래 희망 장소", "Preferred meetup")} · {listing.meetPlace.trim()}
             </p>
           ) : null}
         </div>
@@ -367,7 +386,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
             <div>
 
-              <h2 className="text-sm font-semibold mb-2">입찰 내역</h2>
+              <h2 className="text-sm font-semibold mb-2">{uiText(locale, "입찰 내역", "Bid history")}</h2>
 
               <UsedAuctionBidHistory
                 listingId={listing.id}

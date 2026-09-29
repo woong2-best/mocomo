@@ -5,6 +5,8 @@ import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import * as Haptics from "expo-haptics";
 import type { MapEventPin } from "@/api/events";
 import { eventPinColor } from "@/features/events/event-map-colors";
+import type { Locale } from "@/i18n";
+import { uiText } from "@/i18n/ui-text";
 
 const MAPLIBRE_VERSION = "6.1.0";
 
@@ -95,6 +97,7 @@ type Props = {
   width: number;
   height: number;
   center: { lat: number; lng: number };
+  locale?: Locale;
   onOpen: () => void;
   onOpenPressIn?: () => void;
 };
@@ -124,9 +127,30 @@ function globePins(pins: MapEventPin[]) {
     }));
 }
 
-function globeHtml(backgroundColor: string, lat: number, lng: number) {
+type GlobeUiLabels = {
+  permanent: string;
+  recommended: string;
+  ongoing: string;
+  upcoming: string;
+  googleSearch: string;
+  googleMaps: string;
+};
+
+function globeUiLabels(locale: Locale): GlobeUiLabels {
+  return {
+    permanent: uiText(locale, "상설", "Permanent"),
+    recommended: uiText(locale, "추천", "Recommended"),
+    ongoing: uiText(locale, "진행 중", "Ongoing"),
+    upcoming: uiText(locale, "예정", "Upcoming"),
+    googleSearch: uiText(locale, "Google 검색", "Google search"),
+    googleMaps: uiText(locale, "Google 지도", "Google Maps"),
+  };
+}
+
+function globeHtml(backgroundColor: string, lat: number, lng: number, labels: GlobeUiLabels) {
   const bg = safeColor(backgroundColor);
   const sources = JSON.stringify(MAPLIBRE_SOURCES);
+  const uiLabels = JSON.stringify(labels);
   const safeLat = Number.isFinite(lat) ? lat : 20;
   const safeLng = Number.isFinite(lng) ? lng : 0;
   return `<!DOCTYPE html>
@@ -157,6 +181,7 @@ function globeHtml(backgroundColor: string, lat: number, lng: number) {
 const post = (msg) => {
   try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(msg)); } catch (e) {}
 };
+const UI = ${uiLabels};
 const sources = ${sources};
 let maplibregl = null;
 let loadedFrom = "";
@@ -308,8 +333,8 @@ if (!maplibregl) {
   };
   const esc = (value) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const pinDate = (pin) => {
-    if (pin.category === "maid_cafe") return "상설";
-    if (pin.category === "user_recommendation") return "추천";
+    if (pin.category === "maid_cafe") return UI.permanent;
+    if (pin.category === "user_recommendation") return UI.recommended;
     const d = new Date(pin.startsAt);
     if (!pin.startsAt || Number.isNaN(d.getTime())) return "";
     return (d.getMonth() + 1) + "/" + d.getDate();
@@ -324,16 +349,16 @@ if (!maplibregl) {
     const q = encodeURIComponent(
       label ? label + " " + pin.lat + "," + pin.lng : pin.lat + "," + pin.lng
     );
-    return { label: "Google 지도", url: "https://www.google.com/maps/search/?api=1&query=" + q };
+    return { label: UI.googleMaps, url: "https://www.google.com/maps/search/?api=1&query=" + q };
   };
   const showPin = (pin) => {
-    const phase = pin.phase === "ongoing" ? "진행 중" : pin.phase === "upcoming" ? "예정" : "";
+    const phase = pin.phase === "ongoing" ? UI.ongoing : pin.phase === "upcoming" ? UI.upcoming : "";
     const place = placeLink(pin);
     const html = '<div class="popup-card">'
       + (phase ? '<span class="popup-badge">' + esc(phase) + "</span>" : "")
       + '<strong class="popup-title">' + esc(pin.title) + "</strong>"
       + '<span class="popup-meta">' + esc([pinDate(pin), pin.venue].filter(Boolean).join(" · ")) + "</span>"
-      + '<div class="popup-links"><a href="#" data-url="' + esc(googleSearch(pin)) + '">Google 검색</a>'
+      + '<div class="popup-links"><a href="#" data-url="' + esc(googleSearch(pin)) + '">' + esc(UI.googleSearch) + "</a>"
       + '<a href="#" data-url="' + esc(place.url) + '">' + esc(place.label) + "</a></div></div>";
     if (popup) popup.remove();
     popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 14 })
@@ -556,6 +581,7 @@ export function DrawerMapLibreGlobe({
   width,
   height,
   center,
+  locale = "ko",
   onOpen,
   onOpenPressIn,
 }: Props) {
@@ -565,8 +591,8 @@ export function DrawerMapLibreGlobe({
   onOpenRef.current = onOpen;
   onPressRef.current = onOpenPressIn;
   const html = useMemo(
-    () => globeHtml(backgroundColor, center.lat, center.lng),
-    [backgroundColor, center.lat, center.lng]
+    () => globeHtml(backgroundColor, center.lat, center.lng, globeUiLabels(locale)),
+    [backgroundColor, center.lat, center.lng, locale]
   );
   const payload = useMemo(() => globePins(pins), [pins]);
   const payloadRef = useRef(payload);

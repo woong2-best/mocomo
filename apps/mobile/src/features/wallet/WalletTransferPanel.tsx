@@ -24,6 +24,7 @@ import { showIslandError } from "@/ui/IslandToast";
 import { transferMoco } from "@/api/moco-transfer";
 import { ATM_LETTER_MESSAGE_MAX } from "@/lib/chat-atm-letter";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { useI18n } from "@/i18n/I18nProvider";
 import { spacing } from "@/theme/tokens";
 
 const EARTH_BG = require("../../../assets/live/moco-support-earth.png");
@@ -149,13 +150,16 @@ function sanitizeAmountInput(raw: string) {
 }
 
 export function WalletTransferPanel() {
+  const { u } = useI18n();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [username, setUsername] = useState("");
   const [amount, setAmount] = useState("");
   const [letter, setLetter] = useState("");
   const [error, setError] = useState("");
-  const [statusLine, setStatusLine] = useState("받는 사람 아이디와 보낼 MOCO를 입력해 주세요.");
+  const [statusLine, setStatusLine] = useState(() =>
+    u("받는 사람 아이디와 보낼 MOCO를 입력해 주세요.", "Enter recipient username and MOCO amount.")
+  );
   const [overlay, setOverlay] = useState<Overlay>(null);
 
   const gems = useQuery({
@@ -174,7 +178,10 @@ export function WalletTransferPanel() {
       setAmount("");
       setLetter("");
       setStatusLine(
-        `@${res.recipientUsername}의 정산에 ${res.amount.toLocaleString()} MOCO를 기록했습니다.`,
+        u(
+          `@${res.recipientUsername}의 정산에 ${res.amount.toLocaleString()} MOCO를 기록했습니다.`,
+          `Recorded ${res.amount.toLocaleString()} MOCO to @${res.recipientUsername}'s settlement.`
+        )
       );
       setError("");
       setOverlay("success");
@@ -183,13 +190,16 @@ export function WalletTransferPanel() {
     },
     onError: (err) => {
       if (isStripeAccountNotReady(err)) {
-        showIslandError("후원 불가", CREATOR_PAYOUT_BLOCKED_TOAST_KO);
-        setError(CREATOR_PAYOUT_BLOCKED_KO);
-        setStatusLine(CREATOR_PAYOUT_BLOCKED_KO);
+        showIslandError(
+          u("후원 불가", "Can't send"),
+          u(CREATOR_PAYOUT_BLOCKED_TOAST_KO, "This creator hasn't linked a Stripe payout account yet.")
+        );
+        setError(u(CREATOR_PAYOUT_BLOCKED_KO, "This creator hasn't linked a Stripe payout account yet."));
+        setStatusLine(u(CREATOR_PAYOUT_BLOCKED_KO, "This creator hasn't linked a Stripe payout account yet."));
         setOverlay("failure");
         return;
       }
-      const msg = err instanceof ApiError ? err.message : "전달에 실패했습니다.";
+      const msg = err instanceof ApiError ? err.message : u("전달에 실패했습니다.", "Transfer failed.");
       setError(msg);
       setStatusLine(msg);
       setOverlay("failure");
@@ -204,41 +214,46 @@ export function WalletTransferPanel() {
     if (next.length > 7) return;
     setAmount(next);
     if (error) setError("");
-    setStatusLine("수량과 아이디를 확인한 뒤 [전달]을 눌러 주세요.");
+    setStatusLine(u("수량과 아이디를 확인한 뒤 [전달]을 눌러 주세요.", "Confirm amount and username, then tap Send."));
   }
 
   function backspace() {
     if (pending || overlay || !amount) return;
     setAmount(amount.slice(0, -1));
-    setStatusLine("보낼 MOCO 수량을 입력해 주세요.");
+    setStatusLine(u("보낼 MOCO 수량을 입력해 주세요.", "Enter MOCO amount to send."));
   }
 
   function send() {
     if (pending || overlay) return;
     if (!username.trim() || parsed == null || parsed < 1) {
-      const msg = "아이디와 1 MOCO 이상을 입력해 주세요.";
+      const msg = u("아이디와 1 MOCO 이상을 입력해 주세요.", "Enter a username and at least 1 MOCO.");
       setError(msg);
       setStatusLine(msg);
       setOverlay("failure");
       return;
     }
     if (parsed > held) {
-      const msg = "보유 MOCO가 부족합니다. 결제로 충전한 MOCO만 보낼 수 있습니다.";
+      const msg = u(
+        "보유 MOCO가 부족합니다. 결제로 충전한 MOCO만 보낼 수 있습니다.",
+        "Not enough purchased MOCO. Only checkout top-ups can be sent."
+      );
       setError(msg);
       setStatusLine(msg);
       setOverlay("failure");
       return;
     }
     setError("");
-    setStatusLine("전달하는 중…");
+    setStatusLine(u("전달하는 중…", "Sending…"));
     mutation.mutate();
   }
 
   return (
     <View style={styles.wrap}>
       <Text style={styles.intro}>
-        보낼 수 있는 것은 결제로 충전한 보유 MOCO입니다. 받는 사람의 정산에 기록되고, 메시지에는 편지가
-        도착합니다. 편지에 적을 말을 함께 보낼 수 있습니다.
+        {u(
+          "보낼 수 있는 것은 결제로 충전한 보유 MOCO입니다. 받는 사람의 정산에 기록되고, 메시지에는 편지가 도착합니다. 편지에 적을 말을 함께 보낼 수 있습니다.",
+          "You can send purchased MOCO from checkout. It credits the recipient's settlement and delivers an optional letter in messages."
+        )}
       </Text>
 
       <LinearGradient colors={["#d1d5db", "#aeb4bd", "#8b939e"]} style={styles.atmShell}>
@@ -270,9 +285,9 @@ export function WalletTransferPanel() {
                   />
                 </View>
                 <Text style={[styles.overlayTitle, overlay === "success" ? styles.overlayOk : styles.overlayFail]}>
-                  {overlay === "success" ? "전달 완료" : "전달 실패"}
+                  {overlay === "success" ? u("전달 완료", "Sent") : u("전달 실패", "Failed")}
                 </Text>
-                <Text style={styles.overlayDismiss}>닫기</Text>
+                <Text style={styles.overlayDismiss}>{u("닫기", "Close")}</Text>
               </Pressable>
             ) : null}
 
@@ -292,10 +307,10 @@ export function WalletTransferPanel() {
               </View>
 
               <View style={styles.earthForm}>
-                <Text style={styles.fieldKicker}>보낼 수 있는 보유 MOCO</Text>
+                <Text style={styles.fieldKicker}>{u("보낼 수 있는 보유 MOCO", "Purchased MOCO you can send")}</Text>
                 <Text style={styles.balanceLine}>{held.toLocaleString()} MOCO</Text>
 
-                <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>받는 사람 아이디</Text>
+                <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{u("받는 사람 아이디", "Recipient username")}</Text>
                 <TextInput
                   value={username}
                   editable={!pending && !overlay}
@@ -310,13 +325,13 @@ export function WalletTransferPanel() {
                   style={styles.usernameInput}
                 />
 
-                <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>편지</Text>
+                <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{u("편지", "Letter")}</Text>
                 <TextInput
                   value={letter}
                   editable={!pending && !overlay}
                   multiline
                   maxLength={ATM_LETTER_MESSAGE_MAX}
-                  placeholder="편지에 적을 말"
+                  placeholder={u("편지에 적을 말", "Message for the letter")}
                   placeholderTextColor="rgba(0,0,0,0.35)"
                   onChangeText={(v) => {
                     setLetter(v.slice(0, ATM_LETTER_MESSAGE_MAX));
@@ -342,7 +357,7 @@ export function WalletTransferPanel() {
             {pending ? (
               <View style={styles.tickerPending}>
                 <ActivityIndicator size="small" color="#fcd34d" />
-                <Text style={styles.tickerText}>처리 중…</Text>
+                <Text style={styles.tickerText}>{u("처리 중…", "Processing…")}</Text>
               </View>
             ) : (
               <Text style={styles.tickerText}>{statusLine}</Text>
@@ -376,7 +391,7 @@ export function WalletTransferPanel() {
               </View>
               <View style={styles.keypadSide}>
                 <AtmActionKey
-                  label="지우기"
+                  label={u("지우기", "Clear")}
                   subLabel="←"
                   tone="clear"
                   disabled={pending || !!overlay || !amount}
@@ -384,7 +399,7 @@ export function WalletTransferPanel() {
                   onPress={backspace}
                 />
                 <AtmActionKey
-                  label="전달"
+                  label={u("전달", "Send")}
                   subLabel="SEND"
                   tone="confirm"
                   disabled={
@@ -405,7 +420,10 @@ export function WalletTransferPanel() {
             <Text style={styles.error}>{error}</Text>
           ) : (
             <Text style={styles.hint}>
-              예: 보유 100 MOCO를 보내면 상대 정산에 100이 바로 쌓입니다. 상대 보유 MOCO는 그대로입니다.
+              {u(
+                "예: 보유 100 MOCO를 보내면 상대 정산에 100이 바로 쌓입니다. 상대 보유 MOCO는 그대로입니다.",
+                "Example: sending 100 MOCO adds 100 to their settlement; their purchased balance stays the same."
+              )}
             </Text>
           )}
         </View>

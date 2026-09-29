@@ -1,3 +1,6 @@
+import { uiText } from "@/i18n/ui-text";
+import { COMMUNITY_CATEGORY_EN } from "@/features/community/community-labels-i18n";
+
 /** Matches web `src/lib/community-labels.ts` */
 export const COMMUNITY_CATEGORY_OPTIONS = [
   { id: "ALL", shortLabel: "전체", emoji: "", label: "전체" },
@@ -85,23 +88,54 @@ export const COMMUNITY_CONCEPT_LIKE_MIN = 10;
 
 export function resolveCommunityCategoryDisplay(
   category: string,
-  customCategoryLabel?: string | null
+  customCategoryLabel?: string | null,
+  locale = "ko"
 ) {
   if (category === "CUSTOM") {
-    const label = customCategoryLabel?.trim() || "직접 입력";
+    const label = customCategoryLabel?.trim() || uiText(locale, "직접 입력", "Custom");
     return { label, shortLabel: label, emoji: "➕" };
+  }
+  if (category === "ALL") {
+    const en = COMMUNITY_CATEGORY_EN.ALL;
+    return locale === "ko"
+      ? { label: "전체", shortLabel: "전체", emoji: "" }
+      : { label: en.label, shortLabel: en.shortLabel, emoji: "" };
   }
   const meta = communityCategoryMeta(category);
   if (meta) {
+    const en = COMMUNITY_CATEGORY_EN[meta.id];
+    if (locale !== "ko" && en) {
+      return { label: en.label, shortLabel: en.shortLabel, emoji: meta.emoji };
+    }
     return { label: meta.label, shortLabel: meta.shortLabel, emoji: meta.emoji };
   }
   return { label: category, shortLabel: category, emoji: "🏷️" };
 }
 
-export function validateCustomCategoryLabel(label: string | undefined | null): string | null {
+/** Tab chip labels for QnA feed / create grids. */
+export function localizedCategoryTab<T extends { id: string; shortLabel: string; label: string }>(
+  opt: T,
+  locale: string
+): T {
+  if (opt.id === "NSFW" || opt.id === "MY") return opt;
+  const en = COMMUNITY_CATEGORY_EN[opt.id];
+  if (locale !== "ko" && en) {
+    return { ...opt, shortLabel: en.shortLabel, label: en.label };
+  }
+  return opt;
+}
+
+export function validateCustomCategoryLabel(
+  label: string | undefined | null,
+  locale = "ko"
+): string | null {
   const trimmed = label?.trim();
-  if (!trimmed) return "카테고리 이름을 입력해 주세요.";
-  if (trimmed.length < 2) return "카테고리 이름은 2자 이상 입력해 주세요.";
-  if (trimmed.length > 24) return "카테고리 이름은 24자 이하로 입력해 주세요.";
+  if (!trimmed) return uiText(locale, "카테고리 이름을 입력해 주세요.", "Enter a category name.");
+  if (trimmed.length < 2) {
+    return uiText(locale, "카테고리 이름은 2자 이상 입력해 주세요.", "At least 2 characters.");
+  }
+  if (trimmed.length > 24) {
+    return uiText(locale, "카테고리 이름은 24자 이하로 입력해 주세요.", "24 characters or fewer.");
+  }
   return null;
 }

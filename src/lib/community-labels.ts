@@ -1,6 +1,9 @@
 import type { CommunityCategory } from "@prisma/client";
 import { QNA_MY_CATEGORY_ID, type QnaMyCategoryId } from "@/lib/qna-my-category";
 import { QNA_NSFW_CATEGORY_ID, type QnaNsfwCategoryId } from "@/lib/qna-nsfw-category";
+import type { Locale } from "@/lib/i18n/config";
+import { COMMUNITY_CATEGORY_EN } from "@/lib/community-labels-i18n";
+import { uiText } from "@/lib/i18n/ui-text";
 
 export { QNA_MY_CATEGORY_ID, type QnaMyCategoryId, QNA_NSFW_CATEGORY_ID, type QnaNsfwCategoryId };
 
@@ -98,9 +101,10 @@ export function normalizeCommunityCategory(value: string): CommunityCategory | n
 
 export function communityCategoryLabel(
   category: string,
-  customCategoryLabel?: string | null
+  customCategoryLabel?: string | null,
+  locale: Locale | string = "ko"
 ): string {
-  return resolveCommunityCategoryDisplay(category, customCategoryLabel).label;
+  return resolveCommunityCategoryDisplay(category, customCategoryLabel, locale).label;
 }
 
 export function communityCategoryMeta(category: string) {
@@ -110,14 +114,22 @@ export function communityCategoryMeta(category: string) {
 
 export function resolveCommunityCategoryDisplay(
   category: string,
-  customCategoryLabel?: string | null
+  customCategoryLabel?: string | null,
+  locale: Locale | string = "ko"
 ): { label: string; shortLabel: string; emoji: string } {
   if (category === "CUSTOM") {
-    const label = customCategoryLabel?.trim() || "직접 입력";
+    const label = customCategoryLabel?.trim() || uiText(locale, "직접 입력", "Custom");
     return { label, shortLabel: label, emoji: "➕" };
   }
   const meta = communityCategoryMeta(category);
   if (meta) {
+    const normalized = normalizeCommunityCategory(category) ?? category;
+    const en =
+      COMMUNITY_CATEGORY_EN[normalized as keyof typeof COMMUNITY_CATEGORY_EN] ??
+      COMMUNITY_CATEGORY_EN[meta.id];
+    if (locale !== "ko" && en) {
+      return { label: en.label, shortLabel: en.shortLabel, emoji: meta.emoji };
+    }
     return { label: meta.label, shortLabel: meta.shortLabel, emoji: meta.emoji };
   }
   return { label: category, shortLabel: category, emoji: "🏷️" };
@@ -125,16 +137,44 @@ export function resolveCommunityCategoryDisplay(
 
 export function communityCategoryTabLabel(
   category: string,
-  customCategoryLabel?: string | null
+  customCategoryLabel?: string | null,
+  locale: Locale | string = "ko"
 ): string {
-  const display = resolveCommunityCategoryDisplay(category, customCategoryLabel);
+  const display = resolveCommunityCategoryDisplay(category, customCategoryLabel, locale);
   return `${display.emoji} ${display.shortLabel}`;
 }
 
-export function validateCustomCategoryLabel(label: string | undefined | null): string | null {
+export function validateCustomCategoryLabel(
+  label: string | undefined | null,
+  locale: Locale | string = "ko"
+): string | null {
   const trimmed = label?.trim();
-  if (!trimmed) return "카테고리 이름을 입력해 주세요.";
-  if (trimmed.length < 2) return "카테고리 이름은 2자 이상 입력해 주세요.";
-  if (trimmed.length > 24) return "카테고리 이름은 24자 이하로 입력해 주세요.";
+  if (!trimmed) return uiText(locale, "카테고리 이름을 입력해 주세요.", "Enter a category name.");
+  if (trimmed.length < 2) {
+    return uiText(locale, "카테고리 이름은 2자 이상 입력해 주세요.", "Category name must be at least 2 characters.");
+  }
+  if (trimmed.length > 24) {
+    return uiText(locale, "카테고리 이름은 24자 이하로 입력해 주세요.", "Category name must be 24 characters or fewer.");
+  }
   return null;
+}
+
+/** QnA feed tab label (ALL preset) */
+export function qnaFeedTabDisplay(
+  tabId: string,
+  locale: Locale | string = "ko"
+): { label: string; shortLabel: string; emoji: string } {
+  if (tabId === "ALL") {
+    const en = COMMUNITY_CATEGORY_EN.ALL;
+    return locale === "ko"
+      ? { label: "전체", shortLabel: "전체", emoji: "" }
+      : { label: en.label, shortLabel: en.shortLabel, emoji: "" };
+  }
+  if (tabId === QNA_NSFW_CATEGORY_ID) {
+    return { label: "NSFW", shortLabel: "NSFW", emoji: "🔞" };
+  }
+  if (tabId === QNA_MY_CATEGORY_ID) {
+    return { label: "My", shortLabel: "My", emoji: "👤" };
+  }
+  return resolveCommunityCategoryDisplay(tabId, null, locale);
 }

@@ -23,10 +23,12 @@ import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const QUERY_KEY = ["mobile-notifications"] as const;
 
 export function ActivityScreen() {
+  const { u, locale } = useI18n();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -63,13 +65,13 @@ export function ActivityScreen() {
   return (
     <Screen>
       <AppHeader
-        title="알림"
-        leftLabel="뒤로"
+        title={u("알림", "Notifications")}
+        leftLabel={u("뒤로", "Back")}
         onLeftPress={() => navigation.goBack()}
         rightSlot={
           unread > 0 ? (
             <Pressable onPress={() => markAll.mutate()} hitSlop={10} disabled={markAll.isPending}>
-              <Text style={styles.markAll}>모두 읽음</Text>
+              <Text style={styles.markAll}>{u("모두 읽음", "Mark all read")}</Text>
             </Pressable>
           ) : (
             <Pressable onPress={() => navigation.navigate("Settings")} hitSlop={10}>
@@ -82,8 +84,8 @@ export function ActivityScreen() {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : query.isError ? (
         <View style={styles.center}>
-          <Text style={styles.error}>알림을 불러오지 못했습니다.</Text>
-          <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
+          <Text style={styles.error}>{u("알림을 불러오지 못했습니다.", "Could not load notifications.")}</Text>
+          <FolkButton label={u("다시 시도", "Try again")} onPress={() => void query.refetch()} />
         </View>
       ) : (
         <FlatList
@@ -102,9 +104,12 @@ export function ActivityScreen() {
               <View style={[styles.iconBubble, styles.iconMuted]}>
                 <Ionicons name="notifications-outline" size={26} color={colors.textMuted} />
               </View>
-              <Text style={styles.emptyTitle}>새 알림이 없습니다</Text>
+              <Text style={styles.emptyTitle}>{u("새 알림이 없습니다", "No new notifications")}</Text>
               <Text style={styles.emptyBody}>
-                댓글, QnA 답변, 맘찍, 인용, 재게시, 팔로우 라이브, 상품 맘찍 등이 여기에 모입니다.
+                {u(
+                  "댓글, QnA 답변, 맘찍, 인용, 재게시, 팔로우 라이브, 상품 맘찍 등이 여기에 모입니다.",
+                  "Comments, Q&A answers, likes, quotes, reposts, followed lives, listing likes, and more appear here."
+                )}
               </Text>
             </View>
           }
@@ -113,6 +118,8 @@ export function ActivityScreen() {
               item={item}
               styles={styles}
               colors={colors}
+              locale={locale}
+              u={u}
               onPress={() => {
                 if (!item.read) markOne.mutate(item.id);
                 openAlarm(item, navigation);
@@ -129,11 +136,15 @@ function AlarmRow({
   item,
   styles,
   colors,
+  locale,
+  u,
   onPress,
 }: {
   item: NotificationItem;
   styles: ReturnType<typeof createThemedStyles>;
   colors: ThemeColors;
+  locale: string;
+  u: (ko: string, en: string) => string;
   onPress: () => void;
 }) {
   const { isDark } = useTheme();
@@ -152,7 +163,9 @@ function AlarmRow({
           <Text style={styles.rowTitle} numberOfLines={1}>
             {item.title}
           </Text>
-          {item.createdAt ? <Text style={styles.time}>{formatAlarmTime(item.createdAt)}</Text> : null}
+          {item.createdAt ? (
+            <Text style={styles.time}>{formatAlarmTime(item.createdAt, locale, u)}</Text>
+          ) : null}
         </View>
         {item.body ? (
           <Text style={styles.rowBody} numberOfLines={3}>
@@ -215,16 +228,19 @@ function alarmVisual(type: string | undefined): {
   }
 }
 
-function formatAlarmTime(iso: string) {
+function formatAlarmTime(iso: string, locale: string, u: (ko: string, en: string) => string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "방금";
-  if (mins < 60) return `${mins}분`;
+  if (mins < 1) return u("방금", "Just now");
+  if (mins < 60) return u(`${mins}분`, `${mins}m`);
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}시간`;
+  if (hours < 24) return u(`${hours}시간`, `${hours}h`);
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}일`;
-  return new Date(iso).toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
+  if (days < 7) return u(`${days}일`, `${days}d`);
+  return new Date(iso).toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function createThemedStyles(colors: ThemeColors, isDark: boolean) {

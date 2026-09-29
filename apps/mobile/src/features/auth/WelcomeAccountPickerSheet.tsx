@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SavedMobileAccountPublic } from "@/auth/account-store";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { radii } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   visible: boolean;
@@ -26,6 +27,7 @@ export function WelcomeAccountPickerSheet({
   onUsernameLogin,
   onClose,
 }: Props) {
+  const { u } = useI18n();
   const insets = useSafeAreaInsets();
 
   return (
@@ -37,8 +39,8 @@ export function WelcomeAccountPickerSheet({
             style={styles.logo}
             contentFit="contain"
           />
-          <Text style={styles.title}>계정 선택</Text>
-          <Text style={styles.sub}>MoCoMo 계정으로 계속</Text>
+          <Text style={styles.title}>{u("계정 선택", "Choose account")}</Text>
+          <Text style={styles.sub}>{u("MoCoMo 계정으로 계속", "Continue with a MoCoMo account")}</Text>
 
           <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
             {accounts.map((account) => (
@@ -73,13 +75,13 @@ export function WelcomeAccountPickerSheet({
               <View style={styles.addIcon}>
                 <Ionicons name="person-add-outline" size={20} color="#E7E9EA" />
               </View>
-              <Text style={styles.addText}>다른 계정 추가</Text>
+              <Text style={styles.addText}>{u("다른 계정 추가", "Add another account")}</Text>
             </Pressable>
           </ScrollView>
         </View>
 
         <Pressable style={styles.usernameLink} onPress={onUsernameLogin}>
-          <Text style={styles.usernameText}>사용자 아이디로 로그인 ›</Text>
+          <Text style={styles.usernameText}>{u("사용자 아이디로 로그인 ›", "Sign in with username ›")}</Text>
         </Pressable>
       </View>
     </Modal>

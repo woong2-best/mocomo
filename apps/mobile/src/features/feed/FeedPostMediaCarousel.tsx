@@ -19,6 +19,7 @@ import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const ITEM_GAP = 8;
 const EDGE_PEEK = 14;
@@ -66,6 +67,7 @@ function FeedPostMediaCarouselInner({
   onPurchaseSuccess,
   onPressVideo,
 }: Props) {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const monetization = useMemo(
@@ -153,7 +155,7 @@ function FeedPostMediaCarouselInner({
       style={StyleSheet.absoluteFill}
       onPress={() => openImage(item)}
       accessibilityRole="button"
-      accessibilityLabel="사진 크게 보기"
+      accessibilityLabel={u("사진 크게 보기", "View photo full screen")}
     >
       <Image
         source={cachedImageSource(item.url, decode)}
@@ -241,7 +243,7 @@ function FeedPostMediaCarouselInner({
             style={[styles.singleMedia, { width: layoutWidth, aspectRatio: aspect }]}
             onPress={() => openImage(item)}
             accessibilityRole="button"
-            accessibilityLabel="사진 크게 보기"
+            accessibilityLabel={u("사진 크게 보기", "View photo full screen")}
           >
             <Image
               source={cachedImageSource(item.url, decode)}

@@ -6,6 +6,8 @@ import { fetchGemsWallet, type GemPurchaseRow, type GemsWalletResponse } from "@
 import { saveWalletBootstrap } from "@/api/wallet-bootstrap-cache";
 import { formatUsd } from "@/lib/money";
 import { FolkCard } from "@/ui/FolkCard";
+import { formatUsedTimeAgo, type UsedUiText } from "@/features/marketplace/used-catalog";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -20,9 +22,9 @@ function formatMoco(moco: number) {
   return `${Math.max(0, moco).toLocaleString()} MOCO`;
 }
 
-function formatWhen(iso: string): { absolute: string; relative: string } {
+function formatWhen(iso: string, locale: string, u: UsedUiText): { absolute: string; relative: string } {
   const d = new Date(iso);
-  const absolute = new Intl.DateTimeFormat("ko-KR", {
+  const absolute = new Intl.DateTimeFormat(locale.startsWith("en") ? "en-US" : "ko-KR", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -32,27 +34,24 @@ function formatWhen(iso: string): { absolute: string; relative: string } {
     hour12: false,
   }).format(d);
 
-  const diff = Date.now() - d.getTime();
-  const mins = Math.max(0, Math.floor(diff / 60_000));
-  let relative = "방금";
-  if (mins >= 1 && mins < 60) relative = `${mins}분 전`;
-  else if (mins >= 60 && mins < 60 * 24) relative = `${Math.floor(mins / 60)}시간 전`;
-  else if (mins >= 60 * 24 && mins < 60 * 24 * 7) relative = `${Math.floor(mins / (60 * 24))}일 전`;
-  else if (mins >= 60 * 24 * 7) relative = absolute;
-
-  return { absolute, relative };
+  const relative = formatUsedTimeAgo(iso, u);
+  return { absolute, relative: relative === absolute ? absolute : relative };
 }
 
 function PurchaseRow({
   row,
   colors,
   styles,
+  locale,
+  u,
 }: {
   row: GemPurchaseRow;
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
+  locale: string;
+  u: UsedUiText;
 }) {
-  const when = formatWhen(row.createdAt);
+  const when = formatWhen(row.createdAt, locale, u);
   const used = row.remainingGems < row.gems;
   return (
     <View style={styles.historyRow}>
@@ -62,7 +61,7 @@ function PurchaseRow({
       <View style={styles.historyMeta}>
         <Text style={styles.historyTitle}>
           {formatMoco(row.gems)}
-          {row.refunded ? " · 환불" : used ? " · 일부 사용" : ""}
+          {row.refunded ? u(" · 환불", " · Refunded") : used ? u(" · 일부 사용", " · Partially used") : ""}
         </Text>
         <Text style={styles.historyWhen}>{when.absolute}</Text>
         {when.relative !== when.absolute ? (
@@ -71,13 +70,14 @@ function PurchaseRow({
       </View>
       <View style={styles.historyRight}>
         <Text style={styles.historyPaid}>{formatUsd(row.krwAmount)}</Text>
-        <Text style={styles.historyRemain}>잔여 {formatMoco(row.remainingGems)}</Text>
+        <Text style={styles.historyRemain}>{u("잔여", "Left")} {formatMoco(row.remainingGems)}</Text>
       </View>
     </View>
   );
 }
 
 export function GemBalancePanel() {
+  const { u, locale } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -100,30 +100,30 @@ export function GemBalancePanel() {
     <View style={styles.wrap}>
       <FolkCard style={styles.balanceCard} padded={false}>
         <View style={styles.balanceInner}>
-          <Text style={styles.caption}>MOCO 잔액</Text>
+          <Text style={styles.caption}>{u("MOCO 잔액", "MOCO balance")}</Text>
           <Text style={styles.balance}>{formatMoco(data.balance)}</Text>
-          <Text style={styles.webHint}>충전은 mocomo.net 웹사이트에서만 할 수 있습니다.</Text>
+          <Text style={styles.webHint}>{u("충전은 mocomo.net 웹사이트에서만 할 수 있습니다.", "Top up MOCO on mocomo.net only.")}</Text>
         </View>
       </FolkCard>
 
       <View style={styles.historyHead}>
-        <Text style={styles.historyCaption}>충전 내역</Text>
+        <Text style={styles.historyCaption}>{u("충전 내역", "Top-up history")}</Text>
         <Text style={styles.historyCount}>
-          {purchases.length > 0 ? `${purchases.length}건` : ""}
+          {purchases.length > 0 ? u(`${purchases.length}건`, `${purchases.length} items`) : ""}
         </Text>
       </View>
 
       {purchases.length === 0 ? (
         <FolkCard style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>아직 충전 내역이 없습니다</Text>
-          <Text style={styles.emptyBody}>웹에서 MOCO를 충전하신 뒤 날짜·시각과 함께 여기에 표시됩니다.</Text>
+          <Text style={styles.emptyTitle}>{u("아직 충전 내역이 없습니다", "No top-ups yet")}</Text>
+          <Text style={styles.emptyBody}>{u("웹에서 MOCO를 충전하신 뒤 날짜·시각과 함께 여기에 표시됩니다.", "After topping up on the web, entries appear here with date and time.")}</Text>
         </FolkCard>
       ) : (
         <FolkCard padded={false} style={styles.historyCard}>
           {purchases.map((p, i) => (
             <View key={p.id}>
               {i > 0 ? <View style={styles.rowLine} /> : null}
-              <PurchaseRow row={p} colors={colors} styles={styles} />
+              <PurchaseRow row={p} colors={colors} styles={styles} locale={locale} u={u} />
             </View>
           ))}
         </FolkCard>

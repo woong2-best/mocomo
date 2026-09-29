@@ -38,16 +38,29 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { formatUsd } from "@/lib/money";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function formatPrice(amount: number, _currency?: string) {
   return formatUsd(amount);
 }
 
-function typeBadge(type: string) {
-  return MARKET_LISTING_FILTERS.find((f) => f.id === type)?.label ?? type;
+function marketFilterLabel(id: string, u: (ko: string, en: string) => string): string {
+  switch (id) {
+    case "ALL":
+      return u("전체", "All");
+    case "PHYSICAL":
+      return u("일반상품", "Physical");
+    case "CUSTOM_ORDER":
+      return u("주문제작", "Custom order");
+    case "PREORDER":
+      return u("예약판매", "Pre-order");
+    default:
+      return id;
+  }
 }
 
 export function MarketScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -119,13 +132,13 @@ export function MarketScreen() {
             <View style={[StyleSheet.absoluteFill, styles.coverFallback]} />
           )}
         </SensitiveContentGate>
-        <Text style={styles.badge}>{typeBadge(item.type)}</Text>
+        <Text style={styles.badge}>{marketFilterLabel(item.type, u)}</Text>
         <Text style={styles.title} numberOfLines={2}>
           {item.title}
         </Text>
         <Text style={styles.price}>{formatPrice(item.priceAmount, item.currency)}</Text>
         {item.salesCount != null && item.salesCount > 0 ? (
-          <Text style={styles.sales}>판매 {item.salesCount.toLocaleString()}</Text>
+          <Text style={styles.sales}>{u(`판매 ${item.salesCount.toLocaleString()}`, `${item.salesCount.toLocaleString()} sold`)}</Text>
         ) : null}
         {item.seller ? (
           <Text style={styles.seller} numberOfLines={1}>
@@ -135,7 +148,7 @@ export function MarketScreen() {
       </Pressable>
       );
     },
-    [cardW, onOpen, styles, user?.id]
+    [cardW, onOpen, styles, u, user?.id]
   );
 
   const listHeader = (
@@ -145,7 +158,7 @@ export function MarketScreen() {
           <Text style={styles.brandTitle}>{MARKET_BRAND_NAME}</Text>
         </View>
         <Pressable style={styles.sellBtn} onPress={onSellRegister}>
-          <Text style={styles.sellBtnText}>판매 등록</Text>
+          <Text style={styles.sellBtnText}>{u("판매 등록", "New listing")}</Text>
         </Pressable>
       </View>
 
@@ -156,7 +169,7 @@ export function MarketScreen() {
             style={styles.search}
             value={q}
             onChangeText={setQ}
-            placeholder="상품 검색"
+            placeholder={u("상품 검색", "Search products")}
             placeholderTextColor={colors.textMuted}
             returnKeyType="search"
             onSubmitEditing={() => setSubmittedQ(q.trim())}
@@ -166,7 +179,7 @@ export function MarketScreen() {
         </View>
         <Pressable style={styles.quickBtn} onPress={() => navigation.navigate("MarketMy")}>
           <Ionicons name="person-outline" size={20} color={colors.cobalt} />
-          <Text style={styles.quickLabel}>마이</Text>
+          <Text style={styles.quickLabel}>{u("마이", "My")}</Text>
         </Pressable>
         <Pressable style={styles.quickBtn} onPress={() => navigation.navigate("MarketCart")}>
           <Ionicons name="cart-outline" size={20} color={colors.cobalt} />
@@ -175,7 +188,7 @@ export function MarketScreen() {
               <Text style={styles.cartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
             </View>
           ) : null}
-          <Text style={styles.quickLabel}>장바구니</Text>
+          <Text style={styles.quickLabel}>{u("장바구니", "Cart")}</Text>
         </Pressable>
       </View>
 
@@ -199,7 +212,7 @@ export function MarketScreen() {
               onPress={() => setFilter(f.id)}
               style={[styles.chip, active && styles.chipActive]}
             >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{f.label}</Text>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{marketFilterLabel(f.id, u)}</Text>
             </Pressable>
           );
         })}
@@ -208,12 +221,12 @@ export function MarketScreen() {
       <View style={styles.sectionHead}>
         <Text style={styles.sectionTitle}>
           {submittedQ
-            ? `"${submittedQ}" 검색 결과`
+            ? u(`"${submittedQ}" 검색 결과`, `Results for "${submittedQ}"`)
             : filter !== "ALL"
-              ? MARKET_LISTING_FILTERS.find((f) => f.id === filter)?.label
-              : "오늘의 발견"}
+              ? marketFilterLabel(filter, u)
+              : u("오늘의 발견", "Today's picks")}
         </Text>
-        <Text style={styles.sectionSub}>서브컬처 크리에이터 상품을 한눈에</Text>
+        <Text style={styles.sectionSub}>{u("서브컬처 크리에이터 상품을 한눈에", "Subculture creator goods at a glance")}</Text>
       </View>
     </View>
   );
@@ -221,7 +234,7 @@ export function MarketScreen() {
   return (
     <Screen>
       {!isTab ? (
-        <AppHeader title={MARKET_BRAND_NAME} leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+        <AppHeader title={MARKET_BRAND_NAME} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       ) : null}
       {loading ? (
         <View style={{ flex: 1 }}>
@@ -232,8 +245,8 @@ export function MarketScreen() {
         <View style={{ flex: 1 }}>
           {listHeader}
           <View style={styles.center}>
-            <Text style={styles.error}>마켓을 불러오지 못했습니다.</Text>
-            <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
+            <Text style={styles.error}>{u("마켓을 불러오지 못했습니다.", "Could not load market.")}</Text>
+            <FolkButton label={t("toast.retry")} onPress={() => void query.refetch()} />
           </View>
         </View>
       ) : (
@@ -247,7 +260,7 @@ export function MarketScreen() {
           renderItem={renderItem}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Text style={styles.muted}>아직 등록된 상품이 없습니다</Text>
+              <Text style={styles.muted}>{u("아직 등록된 상품이 없습니다", "No listings yet")}</Text>
             </View>
           }
         />

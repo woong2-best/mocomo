@@ -27,8 +27,11 @@ import {
 import { uploadLocalFile } from "@/api/upload-file";
 import {
   MOBILE_ANIME_GENRES,
+  genreLabel,
   type MobileAnimeGenreId,
 } from "@/features/anime/anime-genres";
+import { useI18n } from "@/i18n/I18nProvider";
+import { animeUi } from "@/features/anime/anime-ui";
 import { WikiContent } from "@/features/anime/WikiContent";
 import { extractYoutubeId } from "@/features/anime/wiki-youtube";
 import { characterNames } from "@/features/anime/wiki-article";
@@ -47,10 +50,10 @@ type Props = {
   initial?: AnimeDetailItem;
 };
 
-async function pickAndUploadImage(aspect?: [number, number]) {
+async function pickAndUploadImage(aspect?: [number, number], permDeniedMsg?: string) {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) {
-    throw new Error("사진 라이브러리 접근 권한이 필요합니다.");
+    throw new Error(permDeniedMsg ?? "Photo library access is required.");
   }
   const picked = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ["images"],
@@ -72,6 +75,8 @@ async function pickAndUploadImage(aspect?: [number, number]) {
 }
 
 export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
+  const { u, locale } = useI18n();
+  const copy = useMemo(() => animeUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -81,7 +86,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
   const initialGenre: MobileAnimeGenreId =
     (initial?.genre as MobileAnimeGenreId | undefined) &&
     MOBILE_ANIME_GENRES.some((g) => g.id === initial?.genre)
-      ? (initial.genre as MobileAnimeGenreId)
+      ? (initial!.genre as MobileAnimeGenreId)
       : presetGenre && MOBILE_ANIME_GENRES.some((g) => g.id === presetGenre)
         ? (presetGenre as MobileAnimeGenreId)
         : "OTHER";
@@ -111,27 +116,27 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
       void queryClient.invalidateQueries({ queryKey: ["mobile-anime-detail", res.anime.slug] });
       void queryClient.invalidateQueries({ queryKey: ["mobile-anime-history", res.anime.slug] });
       showIslandSuccess(
-        mode === "edit" ? "수정 완료" : "등록 완료",
-        "컬쳐 위키에 반영되었습니다."
+        mode === "edit" ? copy.saveDoneTitle : copy.saveCreateDoneTitle,
+        copy.saveDoneMsg
       );
       navigation.replace("AnimeDetail", { slug: res.anime.slug });
     },
     onError: (e) => {
       const msg =
-        e instanceof ApiError ? e.message : e instanceof Error ? e.message : "저장에 실패했습니다.";
-      showIslandError("저장 실패", msg);
+        e instanceof ApiError ? e.message : e instanceof Error ? e.message : copy.saveFailDefault;
+      showIslandError(copy.saveFailTitle, msg);
     },
   });
 
   async function pickCover() {
     setUploading(true);
     try {
-      const picked = await pickAndUploadImage([2, 3]);
+      const picked = await pickAndUploadImage([2, 3], copy.photoLibPerm);
       if (!picked) return;
       setLocalCoverUri(picked.uri);
       setCoverUrl(picked.url);
     } catch (e) {
-      showIslandError("업로드 실패", e instanceof Error ? e.message : "표지를 올리지 못했습니다.");
+      showIslandError(copy.saveFailTitle, e instanceof Error ? e.message : copy.coverFail);
     } finally {
       setUploading(false);
     }
@@ -140,12 +145,12 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
   async function pickBanner() {
     setUploading(true);
     try {
-      const picked = await pickAndUploadImage([3, 1]);
+      const picked = await pickAndUploadImage([3, 1], copy.photoLibPerm);
       if (!picked) return;
       setLocalBannerUri(picked.uri);
       setBannerUrl(picked.url);
     } catch (e) {
-      showIslandError("업로드 실패", e instanceof Error ? e.message : "배너를 올리지 못했습니다.");
+      showIslandError(copy.saveFailTitle, e instanceof Error ? e.message : copy.bannerFail);
     } finally {
       setUploading(false);
     }
@@ -154,11 +159,11 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
   async function insertBodyImage() {
     setUploading(true);
     try {
-      const picked = await pickAndUploadImage();
+      const picked = await pickAndUploadImage(undefined, copy.photoLibPerm);
       if (!picked) return;
-      setSynopsis((v) => `${v.trim() ? `${v.trim()}\n\n` : ""}![사진](${picked.url})\n\n`);
+      setSynopsis((v) => `${v.trim() ? `${v.trim()}\n\n` : ""}![${copy.photoCaption}](${picked.url})\n\n`);
     } catch (e) {
-      showIslandError("업로드 실패", e instanceof Error ? e.message : "사진을 올리지 못했습니다.");
+      showIslandError(copy.saveFailTitle, e instanceof Error ? e.message : copy.photoFail);
     } finally {
       setUploading(false);
     }
@@ -167,11 +172,11 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
   function insertVideoLink() {
     const trimmed = videoUrl.trim();
     if (!trimmed) {
-      showIslandError("입력 확인", "영상 링크를 붙여넣어 주세요.");
+      showIslandError(copy.inputCheckTitle, copy.videoLinkRequired);
       return;
     }
     if (!extractYoutubeId(trimmed)) {
-      showIslandError("입력 확인", "유튜브 링크를 붙여넣어 주세요.");
+      showIslandError(copy.inputCheckTitle, copy.youtubeRequired);
       return;
     }
     setSynopsis((v) => `${v.trim() ? `${v.trim()}\n\n` : ""}${trimmed}\n\n`);
@@ -181,7 +186,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
   function onSubmit() {
     const trimmed = title.trim();
     if (!trimmed) {
-      showIslandError("입력 확인", "제목을 입력해 주세요.");
+      showIslandError(copy.inputCheckTitle, copy.titleRequired);
       return;
     }
     mutation.mutate({
@@ -205,9 +210,9 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
   return (
     <Screen style={styles.screen}>
       <AppHeader
-        title={mode === "edit" ? "문서 편집" : "작품 등록"}
+        title={mode === "edit" ? copy.formEditTitle : copy.formCreateTitle}
         onLeftPress={() => navigation.goBack()}
-        leftLabel="뒤로"
+        leftLabel={copy.back}
       />
       <KeyboardAvoidingView
         style={styles.flex}
@@ -218,21 +223,19 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
           contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 24 }]}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.lead}>
-            로그인한 누구나 작품 문서를 등록·수정할 수 있습니다. 저장하면 컬쳐 위키에 바로 반영됩니다.
-          </Text>
+          <Text style={styles.lead}>{copy.formIntro}</Text>
 
-          <Label text="제목 *" colors={colors} />
+          <Label text={copy.titleLabel} colors={colors} />
           <TextInput
             style={styles.input}
             value={title}
             onChangeText={setTitle}
-            placeholder="한글 제목"
+            placeholder={copy.titlePh}
             placeholderTextColor={colors.textMuted}
             maxLength={200}
           />
 
-          <Label text="영문 제목" colors={colors} />
+          <Label text={copy.titleEnLabel} colors={colors} />
           <TextInput
             style={styles.input}
             value={titleEn}
@@ -242,7 +245,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             autoCapitalize="words"
           />
 
-          <Label text="장르 *" colors={colors} />
+          <Label text={copy.genreLabel} colors={colors} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.genreScroll}>
             <View style={styles.genreRow}>
               {MOBILE_ANIME_GENRES.map((g) => {
@@ -254,7 +257,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
                     style={[styles.genreChip, active && styles.genreChipActive]}
                   >
                     <Text style={[styles.genreChipText, active && styles.genreChipTextActive]}>
-                      {g.label}
+                      {genreLabel(g.id, locale)}
                     </Text>
                   </Pressable>
                 );
@@ -262,13 +265,13 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             </View>
           </ScrollView>
 
-          <Label text="표지 이미지" colors={colors} />
+          <Label text={copy.coverLabel} colors={colors} />
           <Pressable
             onPress={() => void pickCover()}
             disabled={busy}
             style={styles.coverPick}
             accessibilityRole="button"
-            accessibilityLabel="표지 이미지 업로드"
+            accessibilityLabel={copy.coverUploadA11y}
           >
             {localCoverUri || coverUrl ? (
               <Image
@@ -279,7 +282,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             ) : (
               <View style={styles.coverEmpty}>
                 <Ionicons name="image-outline" size={28} color={colors.textMuted} />
-                <Text style={styles.coverEmptyText}>사진 업로드</Text>
+                <Text style={styles.coverEmptyText}>{copy.coverUpload}</Text>
               </View>
             )}
             {uploading ? (
@@ -289,13 +292,13 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             ) : null}
           </Pressable>
 
-          <Label text="배너 이미지" colors={colors} />
+          <Label text={copy.bannerLabel} colors={colors} />
           <Pressable
             onPress={() => void pickBanner()}
             disabled={busy}
             style={styles.bannerPick}
             accessibilityRole="button"
-            accessibilityLabel="배너 이미지 업로드"
+            accessibilityLabel={copy.bannerUploadA11y}
           >
             {localBannerUri || bannerUrl ? (
               <Image
@@ -306,36 +309,36 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             ) : (
               <View style={styles.bannerEmpty}>
                 <Ionicons name="image-outline" size={22} color={colors.textMuted} />
-                <Text style={styles.coverEmptyText}>배너 사진 업로드</Text>
+                <Text style={styles.coverEmptyText}>{copy.bannerUpload}</Text>
               </View>
             )}
           </Pressable>
 
-          <Label text="제작사" colors={colors} />
+          <Label text={copy.studioLabel} colors={colors} />
           <TextInput
             style={styles.input}
             value={studio}
             onChangeText={setStudio}
-            placeholder="스튜디오 · 제작사"
+            placeholder={copy.studioPh}
             placeholderTextColor={colors.textMuted}
           />
 
-          <Label text="작품 정보표" colors={colors} />
+          <Label text={copy.infoboxLabel} colors={colors} />
           <TextInput
             style={[styles.input, styles.textArea]}
             value={infobox}
             onChangeText={setInfobox}
-            placeholder={"=== 작품 정보 ===\n장르 | 액션\n감독 | ..."}
+            placeholder={copy.infoboxPh}
             placeholderTextColor={colors.textMuted}
             multiline
             textAlignVertical="top"
           />
 
-          <Label text="줄거리 / 설명" colors={colors} />
+          <Label text={copy.synopsisLabel} colors={colors} />
           <View style={styles.toolbar}>
             <Pressable onPress={() => void insertBodyImage()} disabled={busy} style={styles.toolBtn}>
               <Ionicons name="image-outline" size={16} color={colors.brand} />
-              <Text style={styles.toolBtnText}>사진 업로드</Text>
+              <Text style={styles.toolBtnText}>{copy.photoUploadBtn}</Text>
             </Pressable>
           </View>
           <View style={styles.videoRow}>
@@ -343,71 +346,71 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
               style={[styles.input, styles.videoInput]}
               value={videoUrl}
               onChangeText={setVideoUrl}
-              placeholder="영상 링크 붙여넣기 (유튜브)"
+              placeholder={copy.videoPh}
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
               autoCorrect={false}
             />
             <Pressable onPress={insertVideoLink} style={styles.toolBtn}>
               <Ionicons name="link-outline" size={16} color={colors.brand} />
-              <Text style={styles.toolBtnText}>넣기</Text>
+              <Text style={styles.toolBtnText}>{copy.insertBtn}</Text>
             </Pressable>
           </View>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={synopsis}
             onChangeText={setSynopsis}
-            placeholder="작품 소개. 사진은 업로드, 영상은 링크를 붙여넣으세요."
+            placeholder={copy.synopsisPh}
             placeholderTextColor={colors.textMuted}
             multiline
             textAlignVertical="top"
           />
           {synopsis.trim() ? (
             <View style={styles.preview}>
-              <Text style={styles.previewLabel}>미리보기</Text>
+              <Text style={styles.previewLabel}>{copy.preview}</Text>
               <WikiContent source={synopsis} />
             </View>
           ) : null}
 
-          <Label text="세계관" colors={colors} />
+          <Label text={copy.worldLabel} colors={colors} />
           <TextInput
             style={[styles.input, styles.textArea]}
             value={worldInfo}
             onChangeText={setWorldInfo}
-            placeholder="세계관 · 설정"
+            placeholder={copy.worldPh}
             placeholderTextColor={colors.textMuted}
             multiline
             textAlignVertical="top"
           />
 
-          <Label text="등장인물 (한 줄에 한 명)" colors={colors} />
+          <Label text={copy.castLabel} colors={colors} />
           <TextInput
             style={[styles.input, styles.textAreaSm]}
             value={charactersText}
             onChangeText={setCharactersText}
-            placeholder={"캐릭터 이름\n한 줄에 하나씩"}
+            placeholder={copy.castPh}
             placeholderTextColor={colors.textMuted}
             multiline
             textAlignVertical="top"
           />
 
-          <Label text="태그 (쉼표 구분)" colors={colors} />
+          <Label text={copy.tagsLabel} colors={colors} />
           <TextInput
             style={styles.input}
             value={tags}
             onChangeText={setTags}
-            placeholder="예: 2024, TV, 인기"
+            placeholder={copy.tagsPh}
             placeholderTextColor={colors.textMuted}
           />
 
           {mode === "edit" ? (
             <>
-              <Label text="수정 요약 (선택)" colors={colors} />
+              <Label text={copy.summaryLabel} colors={colors} />
               <TextInput
                 style={styles.input}
                 value={editSummary}
                 onChangeText={setEditSummary}
-                placeholder="예: 줄거리 보강, 오타 수정"
+                placeholder={copy.summaryPh}
                 placeholderTextColor={colors.textMuted}
               />
             </>
@@ -415,14 +418,11 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
 
           <View style={styles.notice}>
             <Ionicons name="warning-outline" size={16} color="#D97706" />
-            <Text style={styles.noticeText}>
-              컬쳐 위키 글은 CC BY-NC-SA 4.0로 공유됩니다. 저작권·명예훼손에 유의해 주세요. 자세한
-              내용은 설정의 이용 약관에서 확인할 수 있습니다.
-            </Text>
+            <Text style={styles.noticeText}>{copy.licenseNote}</Text>
           </View>
 
           <FolkButton
-            label={mutation.isPending ? "저장 중…" : mode === "edit" ? "수정 저장" : "등록하기"}
+            label={mutation.isPending ? copy.saving : mode === "edit" ? copy.saveEdit : copy.saveCreate}
             onPress={onSubmit}
             disabled={busy}
           />
@@ -527,7 +527,7 @@ function createStyles(colors: ThemeColors) {
       textAlign: "center",
     },
     coverBusy: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: "rgba(0,0,0,0.45)",
       alignItems: "center",
       justifyContent: "center",

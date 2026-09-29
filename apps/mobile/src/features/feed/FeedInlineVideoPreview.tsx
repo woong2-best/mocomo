@@ -10,6 +10,7 @@ import type { PaidMediaMonetization } from "@/components/media/paid-media-types"
 import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
 import { resolveVideoPoster } from "@/lib/video-poster";
 import { cachedImageSource, IMAGE_CACHE_POLICY } from "@/perf/image";
+import { useI18n } from "@/i18n/I18nProvider";
 import {
   isPooledVideoSupported,
   MocomoPooledVideoView,
@@ -75,6 +76,7 @@ function FeedInlineVideoPreviewInner({
   embedded = false,
   monetization,
 }: Props) {
+  const { u } = useI18n();
   const poster = useMemo(() => resolveVideoPoster(media), [media]);
   const src = useMemo(() => resolveVideoSrc(media), [media]);
   const isPaid =
@@ -259,7 +261,7 @@ function FeedInlineVideoPreviewInner({
         style={styles.openHit}
         onPress={openImmersive}
         accessibilityRole="button"
-        accessibilityLabel="영상 전체화면으로 보기"
+        accessibilityLabel={u("영상 전체화면으로 보기", "Open video full screen")}
       />
 
       <Pressable
@@ -267,7 +269,7 @@ function FeedInlineVideoPreviewInner({
         hitSlop={8}
         onPress={() => setMuted(!muted)}
         accessibilityRole="button"
-        accessibilityLabel={muted ? "소리 켜기" : "음소거"}
+        accessibilityLabel={muted ? u("소리 켜기", "Unmute") : u("음소거", "Mute")}
       >
         <Ionicons name={muted ? "volume-mute" : "volume-high"} size={16} color="#fff" />
       </Pressable>

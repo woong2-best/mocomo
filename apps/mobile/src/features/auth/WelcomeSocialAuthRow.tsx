@@ -2,6 +2,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import * as Haptics from "expo-haptics";
 import type { MobileAuthProvider } from "@/auth/oauth";
 import { GoogleIcon } from "@/features/auth/SocialBrandIcons";
+import { useI18n } from "@/i18n/I18nProvider";
 import { radii, spacing } from "@/theme/tokens";
 
 type Props = {
@@ -18,8 +19,10 @@ export function WelcomeSocialAuthRow({
   busyProvider,
   disabled,
   onPress,
-  label = "Google로 계속",
+  label,
 }: Props) {
+  const { t } = useI18n();
+  const buttonLabel = label ?? t("auth.continueWithGoogle");
   const busy = busyProvider === "gmail";
 
   return (
@@ -31,7 +34,7 @@ export function WelcomeSocialAuthRow({
       ]}
       disabled={disabled || busyProvider !== null}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={buttonLabel}
       onPressIn={() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }}
@@ -42,7 +45,7 @@ export function WelcomeSocialAuthRow({
       ) : (
         <View style={styles.inner}>
           <GoogleIcon size={20} />
-          <Text style={styles.label}>{label}</Text>
+          <Text style={styles.label}>{buttonLabel}</Text>
         </View>
       )}
     </Pressable>

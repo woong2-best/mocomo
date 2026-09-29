@@ -23,6 +23,7 @@ import { fetchGemsWallet } from "@/api/gems";
 import { formatSecLabel } from "@/lib/format-sec-label";
 import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -50,7 +51,16 @@ function apiErrorMessage(e: unknown, fallback: string) {
 }
 
 export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSuccess }: Props) {
+  const { u } = useI18n();
   const { colors } = useTheme();
+  const payoutBlockedMsg = u(
+    CREATOR_PAYOUT_BLOCKED_KO,
+    "This creator has not linked a payout (Stripe) account yet."
+  );
+  const payoutToastMsg = u(
+    CREATOR_PAYOUT_BLOCKED_TOAST_KO,
+    "This creator has not linked a payout account yet."
+  );
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [step, setStep] = useState<1 | 2>(1);
   const [urlInput, setUrlInput] = useState("");
@@ -103,7 +113,7 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
         play_to_end: playToEnd,
       });
       if (!res.ok || !res.video_id) {
-        setError(res.error ?? "영상을 확인할 수 없습니다.");
+        setError(res.error ?? u("영상을 확인할 수 없습니다.", "Could not load the video."));
         setQuote(null);
         return null;
       }
@@ -117,7 +127,7 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
       setQuote(next);
       return next;
     } catch (e) {
-      setError(apiErrorMessage(e, "영상을 확인할 수 없습니다."));
+      setError(apiErrorMessage(e, u("영상을 확인할 수 없습니다.", "Could not load the video.")));
       setQuote(null);
       return null;
     } finally {
@@ -128,7 +138,7 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
   async function goNext() {
     const url = urlInput.trim();
     if (!url) {
-      setError("YouTube URL을 입력해 주세요.");
+      setError(u("YouTube URL을 입력해 주세요.", "Enter a YouTube URL."));
       return;
     }
     const q = await loadQuote(url);
@@ -137,12 +147,12 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
 
   async function submit() {
     if (!termsAccepted) {
-      setError("후원 전 약관에 동의해 주세요.");
+      setError(u("후원 전 약관에 동의해 주세요.", "Accept the terms before tipping."));
       return;
     }
     const url = urlInput.trim();
     if (!url || !quote) {
-      setError("영상 견적을 다시 확인해 주세요.");
+      setError(u("영상 견적을 다시 확인해 주세요.", "Recheck the video quote."));
       return;
     }
 
@@ -160,19 +170,25 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
         play_to_end: playToEnd,
       });
       if (!res.success) {
-        setError(res.error ?? "후원에 실패했습니다.");
+        setError(res.error ?? u("후원에 실패했습니다.", "Tip failed."));
         return;
       }
       onSuccess?.();
       onClose();
     } catch (e) {
       if (isStripeAccountNotReady(e)) {
-        showIslandError("후원 불가", CREATOR_PAYOUT_BLOCKED_TOAST_KO);
-        setError(CREATOR_PAYOUT_BLOCKED_KO);
+        showIslandError(u("후원 불가", "Tip unavailable"), payoutToastMsg);
+        setError(payoutBlockedMsg);
       } else if (e instanceof ApiError && e.status === 402) {
-        showIslandError("MOCO 부족", "mocomo.net 웹사이트에서 MOCO를 충전한 뒤 다시 시도해 주세요.");
+        showIslandError(
+          u("MOCO 부족", "Not enough MOCO"),
+          u(
+            "mocomo.net 웹사이트에서 MOCO를 충전한 뒤 다시 시도해 주세요.",
+            "Top up MOCO on mocomo.net and try again."
+          )
+        );
       } else {
-        setError(apiErrorMessage(e, "후원에 실패했습니다."));
+        setError(apiErrorMessage(e, u("후원에 실패했습니다.", "Tip failed.")));
       }
     } finally {
       setBusy(false);
@@ -185,10 +201,14 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
   return (
     <KeyboardSheet visible={visible} onClose={onClose} maxHeight="92%" sheetStyle={{ backgroundColor: colors.surface }}>
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>YouTube 영상 후원</Text>
-        <Text style={styles.step}>{step === 1 ? "1/2 · URL" : "2/2 · 구간 · MOCO"}</Text>
+        <Text style={styles.title}>{u("YouTube 영상 후원", "YouTube video tip")}</Text>
+        <Text style={styles.step}>
+          {step === 1 ? "1/2 · URL" : u("2/2 · 구간 · MOCO", "2/2 · Segment · MOCO")}
+        </Text>
         {typeof balance === "number" ? (
-          <Text style={styles.balance}>보유 MOCO: {balance.toLocaleString()}</Text>
+          <Text style={styles.balance}>
+            {u("보유 MOCO:", "MOCO balance:")} {balance.toLocaleString()}
+          </Text>
         ) : null}
 
         {step === 1 ? (
@@ -203,18 +223,22 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <Text style={styles.label}>메시지 (선택)</Text>
+            <Text style={styles.label}>{u("메시지 (선택)", "Message (optional)")}</Text>
             <TextInput
               style={[styles.input, styles.textarea]}
               value={message}
               onChangeText={(t) => setMessage(t.slice(0, 500))}
-              placeholder="방송 화면에 함께 표시"
+              placeholder={u("방송 화면에 함께 표시", "Shown on stream")}
               placeholderTextColor={colors.textMuted}
               multiline
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Pressable style={[styles.submit, styles.submitGreen, quoteLoading && styles.submitDisabled]} disabled={quoteLoading} onPress={() => void goNext()}>
-              {quoteLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>다음</Text>}
+              {quoteLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.submitText}>{u("다음", "Next")}</Text>
+              )}
             </Pressable>
           </>
         ) : (
@@ -222,7 +246,7 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
             {quote ? (
               <>
                 <Text style={styles.videoTitle} numberOfLines={2}>
-                  {quote.videoTitle ?? "YouTube 영상"}
+                  {quote.videoTitle ?? u("YouTube 영상", "YouTube video")}
                 </Text>
                 {thumbUri ? (
                   <Image source={{ uri: thumbUri }} style={styles.thumb} resizeMode="cover" />
@@ -230,7 +254,7 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
 
                 <View style={styles.row2}>
                   <View style={styles.half}>
-                    <Text style={styles.label}>시작(초)</Text>
+                    <Text style={styles.label}>{u("시작(초)", "Start (sec)")}</Text>
                     <TextInput
                       style={styles.input}
                       value={startSec}
@@ -239,7 +263,7 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
                     />
                   </View>
                   <View style={styles.half}>
-                    <Text style={styles.label}>끝(초)</Text>
+                    <Text style={styles.label}>{u("끝(초)", "End (sec)")}</Text>
                     <TextInput
                       style={styles.input}
                       value={endSec}
@@ -252,7 +276,12 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
 
                 <Pressable style={styles.playToEndRow} onPress={() => setPlayToEnd((v) => !v)}>
                   <View style={[styles.checkbox, playToEnd && styles.checkboxOn]} />
-                  <Text style={styles.playToEndText}>끝까지 재생 (최대 {quote.maxPlaySec}초)</Text>
+                  <Text style={styles.playToEndText}>
+                    {u(
+                      `끝까지 재생 (최대 ${quote.maxPlaySec}초)`,
+                      `Play to end (max ${quote.maxPlaySec}s)`
+                    )}
+                  </Text>
                 </Pressable>
 
                 <Pressable
@@ -263,12 +292,16 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
                   {quoteLoading ? (
                     <ActivityIndicator />
                   ) : (
-                    <Text style={styles.outlineBtnText}>구간 변경 후 MOCO 다시 계산</Text>
+                    <Text style={styles.outlineBtnText}>
+                      {u("구간 변경 후 MOCO 다시 계산", "Recalculate MOCO after segment change")}
+                    </Text>
                   )}
                 </Pressable>
 
                 <View style={styles.quoteBox}>
-                  <Text style={styles.quoteSub}>재생 {formatSecLabel(quote.segmentSec)}</Text>
+                  <Text style={styles.quoteSub}>
+                    {u("재생", "Play")} {formatSecLabel(quote.segmentSec)}
+                  </Text>
                   <Text style={styles.quoteMoco}>{quote.mocoAmount.toLocaleString()} MOCO</Text>
                 </View>
               </>
@@ -279,19 +312,23 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
               <Text style={styles.termsText}>{MOCO_PURCHASE_TERMS_COPY}</Text>
             </Pressable>
 
-            {payoutBlocked ? <Text style={styles.error}>{CREATOR_PAYOUT_BLOCKED_KO}</Text> : null}
+            {payoutBlocked ? <Text style={styles.error}>{payoutBlockedMsg}</Text> : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <View style={styles.actions}>
               <Pressable style={[styles.outlineBtn, styles.flex1]} onPress={() => setStep(1)}>
-                <Text style={styles.outlineBtnText}>이전</Text>
+                <Text style={styles.outlineBtnText}>{u("이전", "Back")}</Text>
               </Pressable>
               <Pressable
                 style={[styles.submit, styles.submitGreen, styles.flex1, (busy || !quote || payoutBlocked) && styles.submitDisabled]}
                 disabled={busy || !quote || payoutBlocked}
                 onPress={() => void submit()}
               >
-                {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>후원하기</Text>}
+                {busy ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitText}>{u("후원하기", "Send tip")}</Text>
+                )}
               </Pressable>
             </View>
           </>

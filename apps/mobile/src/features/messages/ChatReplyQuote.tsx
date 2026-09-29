@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import type { ChatReplyTo } from "@/api/messages";
 import { getChatReplyPreview } from "@/features/messages/chat-display";
+import { useI18n } from "@/i18n/I18nProvider";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { type ThemeColors } from "@/theme/tokens";
@@ -16,10 +17,11 @@ export function ChatReplyQuote({
   mine: boolean;
   selfUserId?: string;
 }) {
+  const { locale, u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors, mine), [colors, mine]);
   const isSelf = !!selfUserId && replyTo.sender.id === selfUserId;
-  const preview = getChatReplyPreview(replyTo);
+  const preview = getChatReplyPreview(replyTo, locale);
   // Paid media never renders outside the forensic canvas, not even as a
   // reply thumbnail.
   const thumb = replyTo.attachments?.find(
@@ -31,7 +33,7 @@ export function ChatReplyQuote({
       <View style={[styles.bar, isSelf ? styles.barSelf : styles.barOther]} />
       <View style={styles.body}>
         <Text style={[styles.author, isSelf ? styles.authorSelf : styles.authorOther]} numberOfLines={1}>
-          {isSelf ? "나" : replyTo.sender.username}
+          {isSelf ? u("나", "You") : replyTo.sender.username}
         </Text>
         <Text style={styles.preview} numberOfLines={1}>
           {preview}

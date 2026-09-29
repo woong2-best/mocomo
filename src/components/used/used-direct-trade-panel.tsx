@@ -11,12 +11,16 @@ import {
   verifyDirectArrivalAction,
 } from "@/actions/direct-trade";
 import type { DirectTradeView } from "@/lib/direct-trade/types";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
-function formatWhen(iso: string | null) {
-  if (!iso) return "아직 없음";
+function formatWhen(iso: string | null, locale: string | undefined) {
+  const none = uiText(locale, "아직 없음", "Not set");
+  if (!iso) return none;
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "아직 없음";
-  return date.toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  if (Number.isNaN(date.getTime())) return none;
+  const tag = locale === "ko" ? "ko-KR" : "en-US";
+  return date.toLocaleString(tag, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 async function readArrivalFix(): Promise<
@@ -42,6 +46,7 @@ async function readArrivalFix(): Promise<
 
 export function UsedDirectTradePanel({ initial }: { initial: DirectTradeView }) {
   const router = useRouter();
+  const { locale } = useLocale();
   const [view, setView] = useState(initial);
   useEffect(() => {
     setView(initial);
@@ -61,7 +66,7 @@ export function UsedDirectTradePanel({ initial }: { initial: DirectTradeView }) 
       if (result.error) setNote(result.error);
       router.refresh();
     } catch {
-      setNote("요청에 실패했습니다.");
+      setNote(uiText(locale, "요청에 실패했습니다.", "Request failed."));
     } finally {
       setBusy(false);
     }
@@ -76,24 +81,24 @@ export function UsedDirectTradePanel({ initial }: { initial: DirectTradeView }) 
     <div className="shrink-0 border-b border-border/60 bg-muted/20 p-3 space-y-2 text-sm">
       <p className="font-semibold truncate">{view.listingTitle}</p>
       <p className="text-xs text-muted-foreground">
-        판매자 @{view.sellerUsername} · {view.priceLabel}
+        {uiText(locale, "판매자", "Seller")} @{view.sellerUsername} · {view.priceLabel}
       </p>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-        <dt className="text-muted-foreground">상대</dt>
+        <dt className="text-muted-foreground">{uiText(locale, "상대", "Counterparty")}</dt>
         <dd>@{view.counterpartUsername}</dd>
-        <dt className="text-muted-foreground">거래 상태</dt>
+        <dt className="text-muted-foreground">{uiText(locale, "거래 상태", "Trade status")}</dt>
         <dd>{view.tradeStatusLabel}</dd>
-        <dt className="text-muted-foreground">약속 시간</dt>
-        <dd>{formatWhen(view.meetAt)}</dd>
-        <dt className="text-muted-foreground">보증금</dt>
+        <dt className="text-muted-foreground">{uiText(locale, "약속 시간", "Meet time")}</dt>
+        <dd>{formatWhen(view.meetAt, locale)}</dd>
+        <dt className="text-muted-foreground">{uiText(locale, "보증금", "Deposit")}</dt>
         <dd>{view.depositStatusLabel}</dd>
-        <dt className="text-muted-foreground">분쟁</dt>
+        <dt className="text-muted-foreground">{uiText(locale, "분쟁", "Dispute")}</dt>
         <dd>{view.disputeStatusLabel}</dd>
-        <dt className="text-muted-foreground">내 도착</dt>
+        <dt className="text-muted-foreground">{uiText(locale, "내 도착", "My arrival")}</dt>
         <dd>{view.myArrivalLabel}</dd>
-        <dt className="text-muted-foreground">상대 도착</dt>
+        <dt className="text-muted-foreground">{uiText(locale, "상대 도착", "Their arrival")}</dt>
         <dd>{view.counterpartArrivalLabel}</dd>
-        <dt className="text-muted-foreground">패널티</dt>
+        <dt className="text-muted-foreground">{uiText(locale, "패널티", "Penalty")}</dt>
         <dd>{view.penaltyStatusLabel}</dd>
       </dl>
       {view.guidance ? <p className="text-xs leading-5">{view.guidance}</p> : null}
@@ -122,7 +127,7 @@ export function UsedDirectTradePanel({ initial }: { initial: DirectTradeView }) 
               void run(() => proposeDirectMeetAction(view.listingId, date.toISOString()));
             }}
           >
-            약속 제안
+            {uiText(locale, "약속 제안", "Propose meetup")}
           </button>
         </div>
       ) : null}
@@ -133,16 +138,16 @@ export function UsedDirectTradePanel({ initial }: { initial: DirectTradeView }) 
           className="h-9 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"
           onClick={() => void run(() => acceptDirectMeetAction(view.listingId))}
         >
-          거래 수락
+          {uiText(locale, "거래 수락", "Accept trade")}
         </button>
       ) : null}
       {view.canAdjustMeet ? (
         <div className="flex gap-2">
           <button type="button" disabled={busy} className="h-9 rounded-lg border px-3 text-xs font-semibold" onClick={() => void run(() => adjustDirectMeetAction(view.listingId, "earlier"))}>
-            15분 앞당기기
+            {uiText(locale, "15분 앞당기기", "15 min earlier")}
           </button>
           <button type="button" disabled={busy} className="h-9 rounded-lg border px-3 text-xs font-semibold" onClick={() => void run(() => adjustDirectMeetAction(view.listingId, "later"))}>
-            15분 늦추기
+            {uiText(locale, "15분 늦추기", "15 min later")}
           </button>
         </div>
       ) : null}
@@ -153,7 +158,9 @@ export function UsedDirectTradePanel({ initial }: { initial: DirectTradeView }) 
           className="h-9 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"
           onClick={() => void verify()}
         >
-          {view.myArrivalStatus === "ARRIVAL_PENDING" ? "현장 도착 인증" : "다시 인증"}
+          {view.myArrivalStatus === "ARRIVAL_PENDING"
+            ? uiText(locale, "현장 도착 인증", "Verify arrival")
+            : uiText(locale, "다시 인증", "Verify again")}
         </button>
       ) : null}
       {view.canReportNoShow ? (
@@ -163,7 +170,7 @@ export function UsedDirectTradePanel({ initial }: { initial: DirectTradeView }) 
           className="h-9 rounded-lg bg-destructive px-3 text-xs font-semibold text-destructive-foreground disabled:opacity-50"
           onClick={() => void run(() => reportDirectNoShowAction(view.listingId))}
         >
-          상대방 노쇼 신고
+          {uiText(locale, "상대방 노쇼 신고", "Report no-show")}
         </button>
       ) : null}
       {view.canSubmitPin ? (
@@ -172,7 +179,7 @@ export function UsedDirectTradePanel({ initial }: { initial: DirectTradeView }) 
             inputMode="numeric"
             maxLength={6}
             value={pin}
-            placeholder="암호코드 6자리"
+            placeholder={uiText(locale, "암호코드 6자리", "6-digit code")}
             onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 6))}
             className="h-9 w-32 rounded-lg border bg-background px-2 tracking-widest"
           />
@@ -182,7 +189,7 @@ export function UsedDirectTradePanel({ initial }: { initial: DirectTradeView }) 
             className="h-9 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"
             onClick={() => void run(() => submitDirectTradePinAction(view.listingId, pin))}
           >
-            거래 완료
+            {uiText(locale, "거래 완료", "Complete trade")}
           </button>
         </div>
       ) : null}

@@ -26,6 +26,7 @@ import {
 } from "@/lib/media-watermark";
 import { createComposeEditorStyles } from "@/features/compose/compose-editor-styles";
 import { useTheme } from "@/theme/ThemeContext";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   visible: boolean;
@@ -63,6 +64,7 @@ export function ComposeVideoEditor({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
+  const { u } = useI18n();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createComposeEditorStyles(colors, isDark), [colors, isDark]);
 
@@ -113,7 +115,7 @@ export function ComposeVideoEditor({
         setHistoryIdx(0);
       })
       .catch((e) => {
-        setError(e instanceof Error ? e.message : "영상 정보 로드 실패");
+        setError(e instanceof Error ? e.message : u("영상 정보 로드 실패", "Could not load video info"));
         const fallback = cloneEdit(base);
         setEdit(fallback);
         setHistory([fallback]);
@@ -170,7 +172,7 @@ export function ComposeVideoEditor({
           <Pressable onPress={onClose} hitSlop={12} style={styles.headerSide}>
             <Ionicons name="chevron-back" size={26} color={colors.terracotta} />
           </Pressable>
-          <Text style={styles.headerTitle}>영상 편집</Text>
+          <Text style={styles.headerTitle}>{u("영상 편집", "Edit video")}</Text>
           <Pressable onPress={onDone} hitSlop={12} style={styles.headerSide}>
             <View style={styles.topDoneBtn}>
               <Ionicons name="checkmark" size={22} color={colors.textOnAccent} />
@@ -258,10 +260,12 @@ export function ComposeVideoEditor({
               />
             </View>
           ) : (
-            <Text style={styles.sheetMuted}>로그인 후 워터마크를 사용할 수 있습니다.</Text>
+            <Text style={styles.sheetMuted}>
+              {u("로그인 후 워터마크를 사용할 수 있습니다.", "Sign in to use watermarks.")}
+            </Text>
           )}
           <View style={styles.sheetActions}>
-            <Text style={styles.sheetTitle}>워터마크</Text>
+            <Text style={styles.sheetTitle}>{u("워터마크", "Watermark")}</Text>
           </View>
         </View>
 

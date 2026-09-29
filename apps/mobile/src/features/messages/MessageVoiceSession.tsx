@@ -5,6 +5,7 @@ import {
   setAudioModeAsync,
   useAudioRecorder,
 } from "expo-audio";
+import { useI18n } from "@/i18n/I18nProvider";
 import { showIslandError } from "@/ui/IslandToast";
 import { uploadLocalFile } from "@/api/upload-file";
 
@@ -55,6 +56,7 @@ export function MessageVoiceSession({
   setRecordSec,
   registerControls,
 }: Props) {
+  const { u } = useI18n();
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordSecRef = useRef(recordSec);
@@ -92,7 +94,7 @@ export function MessageVoiceSession({
         if (!uri) return;
 
         if (durationMs > 0 && durationMs < 400) {
-          showIslandError("녹음이 너무 짧습니다.");
+          showIslandError(u("녹음이 너무 짧습니다.", "Recording is too short."));
           return;
         }
 
@@ -110,7 +112,10 @@ export function MessageVoiceSession({
         await send(caption ?? "", [{ url, type: "AUDIO", name: filename }], replyId);
         onSent();
       } catch (e) {
-        showIslandError("전송 실패", e instanceof Error ? e.message : "음성을 보내지 못했습니다.");
+        showIslandError(
+          u("전송 실패", "Send failed"),
+          e instanceof Error ? e.message : u("음성을 보내지 못했습니다.", "Could not send voice message.")
+        );
       } finally {
         onBusy(false);
         await setAudioModeAsync({
@@ -131,6 +136,7 @@ export function MessageVoiceSession({
       setDraft,
       setRecordSec,
       setRecording,
+      u,
     ]
   );
 
@@ -138,7 +144,7 @@ export function MessageVoiceSession({
     try {
       const perm = await requestRecordingPermissionsAsync();
       if (!perm.granted) {
-        showIslandError("권한 필요", "마이크 접근이 필요합니다.");
+        showIslandError(u("권한 필요", "Permission required"), u("마이크 접근이 필요합니다.", "Microphone access is required."));
         return;
       }
       await setAudioModeAsync({
@@ -160,11 +166,14 @@ export function MessageVoiceSession({
         });
       }, 1000);
     } catch {
-      showIslandError("녹음 실패", "음성 녹음을 시작할 수 없습니다.");
+      showIslandError(
+        u("녹음 실패", "Recording failed"),
+        u("음성 녹음을 시작할 수 없습니다.", "Could not start voice recording.")
+      );
       setRecording(false);
       clearRecordTimer();
     }
-  }, [audioRecorder, clearRecordTimer, finish, setRecordSec, setRecording]);
+  }, [audioRecorder, clearRecordTimer, finish, setRecordSec, setRecording, u]);
 
   useEffect(() => {
     registerControls({ start, finish });

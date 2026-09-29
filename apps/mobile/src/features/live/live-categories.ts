@@ -1,20 +1,30 @@
+import { uiText } from "@/i18n/ui-text";
+
 /** Mobile live category pills — mirrors web LIVE_CATEGORY_ORDER (FOLLOWING first, R-18 last). */
 export const MOBILE_LIVE_CATEGORIES = [
-  { id: "ALL", label: "전체" },
-  { id: "VIRTUAL", label: "Follow" },
-  { id: "GAME", label: "GAMING" },
-  { id: "JUST_CHATTING", label: "Chat" },
-  { id: "IRL", label: "FESTIVAL" },
-  { id: "MUSIC", label: "MUSIC" },
-  { id: "LIVE", label: "R-18" },
+  { id: "ALL", labelKo: "전체", labelEn: "All" },
+  { id: "VIRTUAL", labelKo: "Follow", labelEn: "Follow" },
+  { id: "GAME", labelKo: "GAMING", labelEn: "GAMING" },
+  { id: "JUST_CHATTING", labelKo: "Chat", labelEn: "Chat" },
+  { id: "IRL", labelKo: "FESTIVAL", labelEn: "FESTIVAL" },
+  { id: "MUSIC", labelKo: "MUSIC", labelEn: "MUSIC" },
+  { id: "LIVE", labelKo: "R-18", labelEn: "R-18" },
 ] as const;
 
 /** DB enum stays `LIVE`; display label is R-18 (age-gated). */
 export const R18_LIVE_CATEGORY = "LIVE" as const;
 
-export const R18_LIVE_CATEGORY_BLOCKED_TITLE = "성인 전용";
-export const R18_LIVE_CATEGORY_BLOCKED_MSG =
-  "프로필에 등록된 생년월일 기준 만 19세 이상만 R-18 카테고리를 이용할 수 있습니다.";
+export function r18LiveCategoryBlockedTitle(locale?: string): string {
+  return uiText(locale, "성인 전용", "Adults only");
+}
+
+export function r18LiveCategoryBlockedMsg(locale?: string): string {
+  return uiText(
+    locale,
+    "프로필에 등록된 생년월일 기준 만 19세 이상만 R-18 카테고리를 이용할 수 있습니다.",
+    "You must be 19 or older (based on the birth date on your profile) to use the R-18 category."
+  );
+}
 
 export function isR18LiveCategory(id: string | null | undefined): boolean {
   return id === R18_LIVE_CATEGORY;
@@ -22,9 +32,10 @@ export function isR18LiveCategory(id: string | null | undefined): boolean {
 
 export type MobileLiveCategoryId = (typeof MOBILE_LIVE_CATEGORIES)[number]["id"];
 
-export function liveCategoryLabel(id: string | null | undefined): string {
+export function liveCategoryLabel(id: string | null | undefined, locale?: string): string {
   const found = MOBILE_LIVE_CATEGORIES.find((c) => c.id === id);
-  return found?.label ?? "라이브";
+  if (found) return uiText(locale, found.labelKo, found.labelEn);
+  return uiText(locale, "라이브", "Live");
 }
 
 /** Folder PNGs for chrome category rail (labels drawn white on top). */
@@ -76,35 +87,39 @@ export function coerceViewerCount(n: unknown): number {
   return Math.floor(v);
 }
 
-export function formatViewerCount(n: number): string {
+export function formatViewerCount(n: number, locale?: string): string {
   const count = coerceViewerCount(n);
   if (count >= 10000) {
     const man = count / 10000;
-    return `${man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "")}만명 시청 중`;
+    const num = man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "");
+    return uiText(locale, `${num}만명 시청 중`, `${num}0K watching`);
   }
   if (count >= 1000) {
-    return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}천명 시청 중`;
+    const num = (count / 1000).toFixed(1).replace(/\.0$/, "");
+    return uiText(locale, `${num}천명 시청 중`, `${num}K watching`);
   }
-  return `${count}명 시청 중`;
+  return uiText(locale, `${count}명 시청 중`, `${count} watching`);
 }
 
-/** Compact badge — e.g. "9,750명", "1.2만" */
-export function formatViewerCountCompact(n: number): string {
+/** Compact badge — e.g. 9,750 or 1.2K style */
+export function formatViewerCountCompact(n: number, locale?: string): string {
   const count = coerceViewerCount(n);
   if (count >= 10000) {
     const man = count / 10000;
-    return `${man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "")}만`;
+    const num = man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "");
+    return uiText(locale, `${num}만`, `${num}0K`);
   }
   if (count >= 1000) {
-    return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}천`;
+    const num = (count / 1000).toFixed(1).replace(/\.0$/, "");
+    return uiText(locale, `${num}천`, `${num}K`);
   }
-  return count.toLocaleString("ko-KR");
+  return count.toLocaleString(locale === "ko" ? "ko-KR" : "en-US");
 }
 
-export function providerLabel(provider: string): string {
+export function providerLabel(provider: string, locale?: string): string {
   const p = provider.toUpperCase();
   if (p === "YOUTUBE") return "YouTube";
   if (p === "TWITCH") return "Twitch";
-  if (p === "CHZZK") return "치지직";
+  if (p === "CHZZK") return uiText(locale, "치지직", "CHZZK");
   return provider;
 }

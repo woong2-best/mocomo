@@ -19,15 +19,12 @@ import { submitUsedListingReport } from "@/api/marketplace";
 import { blockAndReportUser, submitPostReport } from "@/api/social";
 import {
   formatReportPathLabel,
-  POST_REPORT_DISCLAIMER,
+  getPostReportCopy,
   POST_REPORT_OTHER_DETAILS_MIN,
-  POST_REPORT_OTHER_DETAILS_PROMPT,
-  POST_REPORT_REVIEW_HINT,
-  POST_REPORT_ROOT_QUESTION,
-  POST_REPORT_TAXONOMY,
   type ReportPathStep,
   type ReportTaxonomyNode,
 } from "@/lib/report-taxonomy";
+import { useI18n } from "@/i18n/I18nProvider";
 import { radii, spacing } from "@/theme/tokens";
 
 type Phase = "browse" | "details" | "review" | "done";
@@ -68,6 +65,8 @@ export function PostReportSheet({
   onSubmitted,
 }: Props) {
   const { colors } = useTheme();
+  const { locale, t, u } = useI18n();
+  const reportCopy = useMemo(() => getPostReportCopy(locale), [locale]);
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -78,11 +77,11 @@ export function PostReportSheet({
   const [error, setError] = useState("");
   const [details, setDetails] = useState("");
 
-  const currentNodes = stack.length > 0 ? stack[stack.length - 1]! : POST_REPORT_TAXONOMY;
+  const currentNodes = stack.length > 0 ? stack[stack.length - 1]! : reportCopy.taxonomy;
   const currentQuestion =
     path.length > 0
-      ? path[path.length - 1]!.node.childQuestion ?? POST_REPORT_ROOT_QUESTION
-      : POST_REPORT_ROOT_QUESTION;
+      ? path[path.length - 1]!.node.childQuestion ?? reportCopy.rootQuestion
+      : reportCopy.rootQuestion;
 
   const reset = useCallback(() => {
     setPhase("browse");
@@ -102,8 +101,8 @@ export function PostReportSheet({
     (node: ReportTaxonomyNode) => {
       const question =
         path.length === 0
-          ? POST_REPORT_ROOT_QUESTION
-          : path[path.length - 1]!.node.childQuestion ?? POST_REPORT_ROOT_QUESTION;
+          ? reportCopy.rootQuestion
+          : path[path.length - 1]!.node.childQuestion ?? reportCopy.rootQuestion;
       const nextPath = [...path, { question, node }];
       setPath(nextPath);
       if (node.children && node.children.length > 0) {
@@ -116,7 +115,7 @@ export function PostReportSheet({
       }
       setPhase("review");
     },
-    [path]
+    [path, reportCopy.rootQuestion]
   );
 
   const goBack = useCallback(() => {
@@ -174,7 +173,7 @@ export function PostReportSheet({
     if (!leaf?.node.reasonId || busy) return;
     const trimmedDetails = details.trim();
     if (leaf.node.requiresDetails && trimmedDetails.length < POST_REPORT_OTHER_DETAILS_MIN) {
-      setError(`기타 문제는 ${POST_REPORT_OTHER_DETAILS_MIN}자 이상 입력해 주세요.`);
+      setError(t("report.otherMinLength", { min: String(POST_REPORT_OTHER_DETAILS_MIN) }));
       setPhase("details");
       return;
     }
@@ -212,7 +211,7 @@ export function PostReportSheet({
       onSubmitted?.();
       setPhase("done");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "신고 처리에 실패했습니다.");
+      setError(e instanceof Error ? e.message : u("신고 처리에 실패했습니다.", "Could not submit report."));
     } finally {
       setBusy(false);
     }
@@ -243,14 +242,14 @@ export function PostReportSheet({
                 style={styles.backBtn}
                 hitSlop={12}
                 accessibilityRole="button"
-                accessibilityLabel="뒤로"
+                accessibilityLabel={t("common.back")}
               >
                 <Ionicons name="chevron-back" size={22} color={colors.text} />
               </Pressable>
             ) : (
               <View style={styles.backBtn} />
             )}
-            <Text style={styles.title}>{phase === "done" ? "완료" : "신고하기"}</Text>
+            <Text style={styles.title}>{phase === "done" ? t("common.done") : t("report.title")}</Text>
             <View style={styles.backBtn} />
           </View>
 
@@ -263,7 +262,7 @@ export function PostReportSheet({
               <>
                 <Text style={styles.question}>{currentQuestion}</Text>
                 {path.length === 0 ? (
-                  <Text style={styles.disclaimer}>{POST_REPORT_DISCLAIMER}</Text>
+                  <Text style={styles.disclaimer}>{reportCopy.disclaimer}</Text>
                 ) : null}
                 {currentNodes.map((node) => (
                   <Pressable
@@ -281,16 +280,13 @@ export function PostReportSheet({
 
             {phase === "details" ? (
               <>
-                <Text style={styles.question}>{POST_REPORT_OTHER_DETAILS_PROMPT}</Text>
-                <Text style={styles.disclaimer}>
-                  운영진이 상황을 이해하는 데 도움이 됩니다. 개인정보는 신고 접수 외 용도로 사용하지
-                  않습니다.
-                </Text>
+                <Text style={styles.question}>{reportCopy.otherDetailsPrompt}</Text>
+                <Text style={styles.disclaimer}>{t("report.detailsHelp")}</Text>
                 <TextInput
                   style={styles.detailsInput}
                   value={details}
                   onChangeText={setDetails}
-                  placeholder="문제 상황을 설명해 주세요."
+                  placeholder={t("report.detailsPlaceholder")}
                   placeholderTextColor={colors.textMuted}
                   multiline
                   maxLength={2000}
@@ -302,12 +298,14 @@ export function PostReportSheet({
 
             {phase === "review" ? (
               <>
-                <Text style={styles.reviewTitle}>신고를 제출합니다</Text>
-                <Text style={styles.hint}>{POST_REPORT_REVIEW_HINT}</Text>
+                <Text style={styles.reviewTitle}>{t("report.submitTitle")}</Text>
+                <Text style={styles.hint}>{reportCopy.reviewHint}</Text>
                 {mode === "block-report" ? (
-                  <Text style={styles.disclaimer}>제출 후 해당 사용자를 차단합니다.</Text>
+                  <Text style={styles.disclaimer}>
+                    {u("제출 후 해당 사용자를 차단합니다.", "This user will be blocked after you submit.")}
+                  </Text>
                 ) : null}
-                <Text style={styles.sectionTitle}>신고 상세 정보</Text>
+                <Text style={styles.sectionTitle}>{t("report.detailsTitle")}</Text>
                 {path.map((step, i) => (
                   <Pressable
                     key={`${step.node.id}-${i}`}
@@ -320,7 +318,7 @@ export function PostReportSheet({
                 ))}
                 {details.trim() ? (
                   <View style={styles.detailsPreview}>
-                    <Text style={styles.reviewQ}>추가 설명</Text>
+                    <Text style={styles.reviewQ}>{t("report.extraDetails")}</Text>
                     <Text style={styles.reviewA}>{details.trim()}</Text>
                   </View>
                 ) : null}
@@ -330,10 +328,8 @@ export function PostReportSheet({
 
             {phase === "done" ? (
               <>
-                <Text style={styles.reviewTitle}>소중한 의견 감사합니다</Text>
-                <Text style={styles.doneBody}>
-                  회원님의 신고는 콘텐츠 검토에 반영되며, 비슷한 게시물이 덜 보일 수 있습니다.
-                </Text>
+                <Text style={styles.reviewTitle}>{t("report.thankYou")}</Text>
+                <Text style={styles.doneBody}>{t("report.thankYouBody")}</Text>
               </>
             ) : null}
           </ScrollView>
@@ -343,14 +339,14 @@ export function PostReportSheet({
               style={styles.submit}
               onPress={() => {
                 if (details.trim().length < POST_REPORT_OTHER_DETAILS_MIN) {
-                  setError(`기타 문제는 ${POST_REPORT_OTHER_DETAILS_MIN}자 이상 입력해 주세요.`);
+                  setError(t("report.otherMinLength", { min: String(POST_REPORT_OTHER_DETAILS_MIN) }));
                   return;
                 }
                 setError("");
                 setPhase("review");
               }}
             >
-              <Text style={styles.submitText}>다음</Text>
+              <Text style={styles.submitText}>{t("common.next")}</Text>
             </Pressable>
           ) : null}
 
@@ -364,7 +360,9 @@ export function PostReportSheet({
                 <ActivityIndicator color={colors.textOnAccent} />
               ) : (
                 <Text style={styles.submitText}>
-                  {mode === "block-report" ? "차단 및 신고 제출" : "신고 제출"}
+                  {mode === "block-report"
+                    ? u("차단 및 신고 제출", "Block and submit")
+                    : t("report.submit")}
                 </Text>
               )}
             </Pressable>
@@ -372,7 +370,7 @@ export function PostReportSheet({
 
           {phase === "done" ? (
             <Pressable style={styles.submit} onPress={handleClose}>
-              <Text style={styles.submitText}>완료</Text>
+              <Text style={styles.submitText}>{t("common.done")}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -384,7 +382,7 @@ export function PostReportSheet({
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: { flex: 1, justifyContent: "flex-end" },
-    scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(20, 40, 72, 0.45)" },
+    scrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(20, 40, 72, 0.45)" },
     sheet: {
       backgroundColor: colors.surfaceRaised,
       borderTopLeftRadius: radii.xl,

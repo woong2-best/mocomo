@@ -24,6 +24,8 @@ import { LiveViewerBadge } from "@/features/live/LiveViewerBadge";
 import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { liveUi } from "@/features/live/live-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -41,6 +43,8 @@ type Props = {
  * Not fullscreen — designed so neighbors peek while scrolling.
  */
 function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
+  const { locale, u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const adultGate = useAdultVerificationGate("LIVE");
@@ -96,7 +100,7 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
           "error" in err.body &&
           typeof (err.body as { error: unknown }).error === "string"
             ? (err.body as { error: string }).error
-            : "라이브에 연결하지 못했습니다.";
+            : copy.connectError;
         setTokenError(msg);
       } finally {
         if (!cancelled) setTokenBusy(false);
@@ -112,7 +116,7 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
 
   const provider =
     detail?.isExternal && detail.external
-      ? providerLabel(detail.external.provider)
+      ? providerLabel(detail.external.provider, locale)
       : detail && !detail.isExternal
         ? "MoCoMo"
         : null;
@@ -151,8 +155,8 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
               <View style={[styles.poster, styles.posterFallback]} />
             )}
             <View style={styles.loadingScrim}>
-              <Text style={styles.loadError}>라이브를 불러오지 못했습니다</Text>
-              <Text style={styles.loadRetry}>탭하여 다시 시도</Text>
+              <Text style={styles.loadError}>{copy.loadHubError}</Text>
+              <Text style={styles.loadRetry}>{copy.tapRetry}</Text>
             </View>
           </Pressable>
         ) : active && (detailQuery.isLoading || tokenBusy) ? (
@@ -202,8 +206,8 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
 
         {adultBlocked ? (
           <View style={styles.adultGate}>
-            <Text style={styles.adultTitle}>19+ 성인 방송</Text>
-            <Text style={styles.adultSub}>본인인증된 회원만 시청할 수 있습니다.</Text>
+            <Text style={styles.adultTitle}>{copy.adult19}</Text>
+            <Text style={styles.adultSub}>{copy.adultSub}</Text>
             <Pressable
               style={styles.adultBtn}
               disabled={adultGate.busy}
@@ -213,7 +217,7 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
                 });
               }}
             >
-              <Text style={styles.adultBtnText}>성인 본인인증</Text>
+              <Text style={styles.adultBtnText}>{copy.adultVerify}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -227,7 +231,7 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
         style={styles.meta}
         onPress={() => onPress(item.id)}
         accessibilityRole="button"
-        accessibilityLabel={`${item.title} 라이브 열기`}
+        accessibilityLabel={copy.openLiveA11y(item.title)}
       >
         <View style={styles.hostRow}>
           <FolkAvatar
@@ -241,7 +245,7 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
               @{item.host?.username ?? "host"}
             </Text>
             <Text style={styles.sub} numberOfLines={1}>
-              {liveCategoryLabel(item.category)}
+              {liveCategoryLabel(item.category, locale)}
               {provider ? ` · ${provider}` : ""}
             </Text>
           </View>

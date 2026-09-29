@@ -18,6 +18,7 @@ import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { pressTap } from "@/lib/motion-presets";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { uiText } from "@/lib/i18n/ui-text";
 import { isMobileHubChromePath } from "@/lib/floating-tab-nav";
 import { MobileHubHeader } from "@/components/layout/mobile-hub-header";
 
@@ -34,105 +35,109 @@ const ROOT_PATHS = new Set([
   "/market",
 ]);
 
-function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<string, string>) => string): string | null {
-  if (pathname.match(/^\/u\/[^/]+\/connections$/)) return "팔로워 · 팔로잉";
-  if (pathname.match(/^\/u\/[^/]+\/followers$/)) return "팔로워";
-  if (pathname.match(/^\/u\/[^/]+\/following$/)) return "팔로잉";
-  if (pathname.startsWith("/u/")) return "프로필";
-  if (pathname.startsWith("/post/")) return "게시물";
+function titleForPath(
+  pathname: string,
+  t: (key: MessageKey, vars?: Record<string, string>) => string,
+  locale: string
+): string | null {
+  const u = (ko: string, en: string) => uiText(locale, ko, en);
+  if (pathname.match(/^\/u\/[^/]+\/connections$/)) return u("팔로워 · 팔로잉", "Followers · Following");
+  if (pathname.match(/^\/u\/[^/]+\/followers$/)) return u("팔로워", "Followers");
+  if (pathname.match(/^\/u\/[^/]+\/following$/)) return u("팔로잉", "Following");
+  if (pathname.startsWith("/u/")) return u("프로필", "Profile");
+  if (pathname.startsWith("/post/")) return u("게시물", "Post");
   if (pathname.startsWith("/settings")) {
     if (pathname === "/settings/profile") return t("settings.editProfile");
-    if (pathname === "/settings/streamer") return "스트리머";
+    if (pathname === "/settings/streamer") return u("스트리머", "Streamer");
     return t("settings.title");
   }
-  if (pathname.startsWith("/auth/")) return "계정";
+  if (pathname.startsWith("/auth/")) return u("계정", "Account");
   if (pathname === EXPLORE_PATH) return t("nav.explore");
   if (isCommunityFeedPath(pathname)) return t("nav.home");
   if (pathname === "/games") return t("nav.games");
   if (pathname.startsWith("/games/")) {
-    if (pathname === "/games/ranking") return "게임 랭킹";
-    if (pathname === "/games/history") return "내 전적";
-    if (pathname === "/games/achievements") return "업적";
-    if (pathname === "/games/season") return "시즌";
-    if (pathname === "/games/live") return "관전";
+    if (pathname === "/games/ranking") return u("게임 랭킹", "Game rankings");
+    if (pathname === "/games/history") return t("games.history");
+    if (pathname === "/games/achievements") return u("업적", "Achievements");
+    if (pathname === "/games/season") return u("시즌", "Season");
+    if (pathname === "/games/live") return t("games.spectate");
     return "GAME";
   }
-  if (pathname === "/voice/new") return "방송 만들기";
-  if (pathname.startsWith("/live/clips")) return "클립 업로드";
+  if (pathname === "/voice/new") return u("방송 만들기", "Create broadcast");
+  if (pathname.startsWith("/live/clips")) return u("클립 업로드", "Upload clip");
   if (pathname === "/live") return t("nav.live");
   if (pathname.startsWith("/live/")) return t("nav.live");
   if (pathname === "/market") return t("nav.market");
-  if (pathname === "/cosplay/apply") return "코스어 등록";
-  if (pathname.startsWith("/cosplay")) return "코스프레";
-  if (pathname === "/messages/new") return "새 메시지";
-  if (pathname === "/apt/house") return "주택";
-  if (pathname === "/apt/cohabitation") return "동거 관리";
+  if (pathname === "/cosplay/apply") return t("settings.cosplayApply");
+  if (pathname.startsWith("/cosplay")) return t("nav.cosplay");
+  if (pathname === "/messages/new") return u("새 메시지", "New message");
+  if (pathname === "/apt/house") return u("주택", "Home");
+  if (pathname === "/apt/cohabitation") return u("동거 관리", "Roommates");
   if (pathname === "/notifications") return t("nav.notifications");
   if (pathname === "/messages") return t("nav.messages");
-  if (pathname === "/market/new") return "글쓰기";
-  if (pathname === "/market/my") return "내 글";
+  if (pathname === "/market/new") return t("nav.compose");
+  if (pathname === "/market/my") return u("내 글", "My listings");
   if (pathname === "/discover") return t("nav.discover");
-  if (pathname === "/discover/matches") return "매칭 목록";
-  if (pathname === "/discover/settings") return "매칭 설정";
-  if (pathname.startsWith("/discover/")) return "매칭";
+  if (pathname === "/discover/matches") return u("매칭 목록", "Matches");
+  if (pathname === "/discover/settings") return t("settings.discoverSettings");
+  if (pathname.startsWith("/discover/")) return t("nav.discover");
   if (pathname === "/money") return t("nav.money");
-  if (pathname === "/wallet") return "지갑";
-  if (pathname.startsWith("/support/emoticons")) return "이모티콘";
-  if (pathname.startsWith("/support")) return "후원 정산 출금";
-  if (pathname === "/premium") return "프리미엄";
-  if (pathname === "/search") return "검색";
-  if (pathname === "/rankings") return "랭킹";
-  if (pathname === "/events" || pathname === "/events/new") return "광고 등록";
-  if (pathname === "/communities") return "QnA";
-  if (pathname === "/communities/new") return "QnA 만들기";
-  if (pathname === "/sketch-quiz") return "스케치퀴즈";
-  if (pathname.startsWith("/play/")) return "미니게임";
-  if (pathname === "/voice") return "음성 · 라이브";
-  if (pathname.match(/^\/voice\/[^/]+$/) && pathname !== "/voice/new") return "방송 스튜디오";
-  if (pathname === "/star") return "STAR";
-  if (pathname.match(/^\/c\/[^/]+\/members$/)) return "멤버";
-  if (pathname.match(/^\/c\/[^/]+\/settings$/)) return "QnA 설정";
-  if (pathname.startsWith("/c/")) return "QnA";
-  if (pathname === "/events/map") return "행사 지도";
-  if (pathname === "/anime/delete-requests") return "삭제 요청";
-  if (pathname.match(/^\/anime\/[^/]+\/history$/)) return "수정 기록";
+  if (pathname === "/wallet") return t("nav.wallet");
+  if (pathname.startsWith("/support/emoticons")) return u("이모티콘", "Emoticons");
+  if (pathname.startsWith("/support")) return t("nav.support");
+  if (pathname === "/premium") return t("nav.premium");
+  if (pathname === "/search") return t("common.search");
+  if (pathname === "/rankings") return t("nav.rankings");
+  if (pathname === "/events" || pathname === "/events/new") return u("광고 등록", "Create ad");
+  if (pathname === "/communities") return t("nav.communities");
+  if (pathname === "/communities/new") return u("QnA 만들기", "Create QnA");
+  if (pathname === "/sketch-quiz") return u("스케치퀴즈", "Sketch quiz");
+  if (pathname.startsWith("/play/")) return t("games.title");
+  if (pathname === "/voice") return u("음성 · 라이브", "Voice · Live");
+  if (pathname.match(/^\/voice\/[^/]+$/) && pathname !== "/voice/new") return t("nav.liveStudio");
+  if (pathname === "/star") return t("nav.star");
+  if (pathname.match(/^\/c\/[^/]+\/members$/)) return u("멤버", "Members");
+  if (pathname.match(/^\/c\/[^/]+\/settings$/)) return u("QnA 설정", "QnA settings");
+  if (pathname.startsWith("/c/")) return t("nav.communities");
+  if (pathname === "/events/map") return t("nav.eventsMap");
+  if (pathname === "/anime/delete-requests") return t("anime.deleteRequests");
+  if (pathname.match(/^\/anime\/[^/]+\/history$/)) return u("수정 기록", "Edit history");
   if (pathname === "/anime") return t("nav.anime");
-  if (pathname === "/anime/popular") return "인기 글";
-  if (pathname === "/anime/recent") return "최근 변경";
-  if (pathname === "/anime/newest") return "최신 글";
-  if (pathname.startsWith("/anime/list/")) return "장르 목록";
-  if (pathname.match(/^\/anime\/[^/]+\/edit$/)) return "문서 편집";
-  if (pathname === "/anime/new") return "문서 작성";
+  if (pathname === "/anime/popular") return t("anime.trendingTitle");
+  if (pathname === "/anime/recent") return t("anime.recentTitle");
+  if (pathname === "/anime/newest") return t("anime.newArticles");
+  if (pathname.startsWith("/anime/list/")) return u("장르 목록", "Genre list");
+  if (pathname.match(/^\/anime\/[^/]+\/edit$/)) return u("문서 편집", "Edit article");
+  if (pathname === "/anime/new") return t("anime.addNew");
   if (pathname.startsWith("/anime/")) return t("nav.anime");
-  if (pathname === "/cosplay/profiles") return "코스어 프로필";
-  if (pathname === "/cosplay/board/new") return "글쓰기";
-  if (pathname === "/market/adult-verify") return "성인 인증";
-  if (pathname === "/market/verify") return "본인 확인";
-  if (pathname.startsWith("/wallet")) return "지갑";
+  if (pathname === "/cosplay/profiles") return t("anime.cosplayerHubTitle");
+  if (pathname === "/cosplay/board/new") return t("nav.compose");
+  if (pathname === "/market/adult-verify") return u("성인 인증", "Adult verification");
+  if (pathname === "/market/verify") return u("본인 확인", "Identity verification");
+  if (pathname.startsWith("/wallet")) return t("nav.wallet");
   if (pathname.match(/^\/market\/[^/]+$/) && pathname !== "/market/new" && pathname !== "/market/my") {
-    return "상품";
+    return u("상품", "Listing");
   }
   if (pathname.startsWith("/market/")) return t("nav.market");
-  if (pathname.startsWith("/works")) return "크리에이터 작품";
-  if (pathname.startsWith("/webtoon")) return "일러스트";
-  if (pathname.startsWith("/payments/")) return "결제";
-  if (pathname.startsWith("/legal")) return "약관";
-  if (pathname === "/bookmarks") return "STAR";
+  if (pathname.startsWith("/works")) return t("nav.works");
+  if (pathname.startsWith("/webtoon")) return t("nav.webtoon");
+  if (pathname.startsWith("/payments/")) return u("결제", "Payment");
+  if (pathname.startsWith("/legal")) return t("settings.legalTitle");
+  if (pathname === "/bookmarks") return t("nav.star");
   if (pathname === "/my-page") return t("nav.myPage");
-  if (pathname === "/compose") return "글쓰기";
-  if (pathname.startsWith("/support/emoticons")) return "이모티콘";
-  if (pathname.startsWith("/avatar")) return "아바타";
+  if (pathname === "/compose") return t("nav.compose");
+  if (pathname.startsWith("/avatar")) return u("아바타", "Avatar");
   return null;
 }
 
 export function NativeAppHeader() {
   const pathname = usePathname() ?? "";
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const reduced = usePrefersReducedMotion();
   const isSearchPage = pathname === "/search";
   const isRoot = ROOT_PATHS.has(pathname);
-  const title = titleForPath(pathname, t);
+  const title = titleForPath(pathname, t, locale);
   const showBack = !isRoot && !!title && !isSearchPage;
 
   if (isMobileHubChromePath(pathname)) {
@@ -152,7 +157,7 @@ export function NativeAppHeader() {
             type="button"
             onClick={() => router.back()}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/60"
-            aria-label="뒤로"
+            aria-label={t("common.back")}
             whileTap={reduced ? undefined : pressTap}
           >
             <ArrowLeft className="h-5 w-5" />
@@ -187,7 +192,7 @@ export function NativeAppHeader() {
             type="button"
             onClick={() => router.back()}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/60"
-            aria-label="뒤로"
+            aria-label={t("common.back")}
             whileTap={reduced ? undefined : pressTap}
           >
             <ArrowLeft className="h-5 w-5" />
@@ -221,7 +226,7 @@ export function NativeAppHeader() {
               "inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/60",
               pathname.startsWith("/search") && "text-primary"
             )}
-            aria-label="검색"
+            aria-label={t("common.search")}
           >
             <Search className="h-5 w-5" />
           </Link>

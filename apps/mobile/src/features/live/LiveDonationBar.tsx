@@ -3,6 +3,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { formatUsd } from "@/lib/money";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
+import { liveUi } from "@/features/live/live-ui";
 
 export function LiveDonationBar({
   goalKrw,
@@ -11,6 +13,8 @@ export function LiveDonationBar({
   goalKrw?: number | null;
   totalKrw?: number;
 }) {
+  const { u } = useI18n();
+  const copy = liveUi(u);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const total = totalKrw ?? 0;
@@ -22,7 +26,7 @@ export function LiveDonationBar({
   return (
     <View style={styles.root}>
       <View style={styles.row}>
-        <Text style={styles.label}>후원</Text>
+        <Text style={styles.label}>{copy.donation}</Text>
         <Text style={styles.amount}>
           {formatUsd(total)}
           {goal > 0 ? ` / ${formatUsd(goal)}` : ""}

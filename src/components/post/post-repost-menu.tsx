@@ -19,6 +19,8 @@ import {
   FOLK_DROPDOWN_ITEM_CLASS,
   FOLK_DROPDOWN_MENU_CLASS,
 } from "@/lib/folk-dropdown-accent";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 type PostRepostMenuProps = {
   postId: string;
@@ -47,6 +49,7 @@ export function PostRepostMenu({
   onActionError,
   formatCount,
 }: PostRepostMenuProps) {
+  const { locale } = useLocale();
   const router = useRouter();
   const compose = useComposeOptional();
   const [open, setOpen] = useState(false);
@@ -100,7 +103,9 @@ export function PostRepostMenu({
     } catch (err) {
       setReposted(prevReposted);
       setRepostCount(prevCount);
-      onActionError?.(err instanceof Error ? err.message : "재게시에 실패했습니다.");
+      onActionError?.(
+        err instanceof Error ? err.message : uiText(locale, "재게시에 실패했습니다.", "Repost failed.")
+      );
     } finally {
       setBusy(false);
     }
@@ -109,7 +114,10 @@ export function PostRepostMenu({
   function quotePost() {
     if (!requireLogin()) return;
     setOpen(false);
-    const preview = title?.trim() || content?.trim().replace(/\s+/g, " ").slice(0, 80) || "게시물";
+    const preview =
+      title?.trim() ||
+      content?.trim().replace(/\s+/g, " ").slice(0, 80) ||
+      uiText(locale, "게시물", "Post");
     if (compose) {
       compose.openCompose({
         quotedPostId: postId,
@@ -127,7 +135,7 @@ export function PostRepostMenu({
             title,
             content,
           }),
-          initialTitle: `@${authorUsername} 인용`,
+          initialTitle: uiText(locale, `@${authorUsername} 인용`, `Quote @${authorUsername}`),
         })
       );
     }
@@ -143,7 +151,7 @@ export function PostRepostMenu({
             buttonClass,
             reposted ? accent.active : accent.hover
           )}
-          aria-label="재게시"
+          aria-label={uiText(locale, "재게시", "Repost")}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -179,7 +187,9 @@ export function PostRepostMenu({
           className={cn("gap-3 font-medium cursor-pointer", accent.item)}
         >
           <Repeat2 className={cn("h-4 w-4 shrink-0", accent.icon)} />
-          {reposted ? "재게시 취소" : "재게시"}
+          {reposted
+            ? uiText(locale, "재게시 취소", "Undo repost")
+            : uiText(locale, "재게시", "Repost")}
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={(e) => {
@@ -189,7 +199,7 @@ export function PostRepostMenu({
           className={cn("gap-3 font-medium cursor-pointer", accent.item)}
         >
           <PenLine className={cn("h-4 w-4 shrink-0", accent.icon)} />
-          인용하세요
+          {uiText(locale, "인용하세요", "Quote")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

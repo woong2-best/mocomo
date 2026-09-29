@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   },
   /** Center on the folder body (below the tab). */
   labelWrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 2,

@@ -4,9 +4,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { FeedPoll } from "@/api/feed";
 import { voteOnPostPoll } from "@/api/posts";
+import type { UsedUiText } from "@/features/marketplace/used-catalog";
 import { showIslandError } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   postId: string;
@@ -16,19 +18,28 @@ type Props = {
   onNeedLogin: () => void;
 };
 
-function formatTimeLeft(closesAt: string, closed: boolean): string {
+function formatTimeLeft(closesAt: string, closed: boolean, u: UsedUiText): string {
   const end = new Date(closesAt).getTime();
-  if (closed || !Number.isFinite(end) || end <= Date.now()) return "종료됨";
+  if (closed || !Number.isFinite(end) || end <= Date.now()) return u("종료됨", "Ended");
   const totalMins = Math.max(1, Math.ceil((end - Date.now()) / 60000));
   const days = Math.floor(totalMins / (60 * 24));
   const hours = Math.floor((totalMins % (60 * 24)) / 60);
   const mins = totalMins % 60;
-  if (days >= 1) return hours > 0 ? `${days}일 ${hours}시간 남음` : `${days}일 남음`;
-  if (hours >= 1) return mins > 0 ? `${hours}시간 ${mins}분 남음` : `${hours}시간 남음`;
-  return `${mins}분 남음`;
+  if (days >= 1) {
+    return hours > 0
+      ? u(`${days}일 ${hours}시간 남음`, `${days}d ${hours}h left`)
+      : u(`${days}일 남음`, `${days}d left`);
+  }
+  if (hours >= 1) {
+    return mins > 0
+      ? u(`${hours}시간 ${mins}분 남음`, `${hours}h ${mins}m left`)
+      : u(`${hours}시간 남음`, `${hours}h left`);
+  }
+  return u(`${mins}분 남음`, `${mins}m left`);
 }
 
 export function FeedPostPoll({ postId, poll: initialPoll, isAuthor, signedIn, onNeedLogin }: Props) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [poll, setPoll] = useState(initialPoll);
@@ -57,7 +68,7 @@ export function FeedPostPoll({ postId, poll: initialPoll, isAuthor, signedIn, on
 
   const ended = poll.closed || new Date(poll.closesAt).getTime() <= now;
   const showResults = isAuthor || ended || poll.myVoteOptionId != null;
-  const meta = `${totalVotes.toLocaleString()}표 · ${formatTimeLeft(poll.closesAt, ended)}`;
+  const meta = `${u(`${totalVotes.toLocaleString()}표`, `${totalVotes.toLocaleString()} votes`)} · ${formatTimeLeft(poll.closesAt, ended, u)}`;
 
   async function vote(optionId: string) {
     if (showResults || busy || isAuthor) return;
@@ -70,7 +81,7 @@ export function FeedPostPoll({ postId, poll: initialPoll, isAuthor, signedIn, on
       const res = await voteOnPostPoll(postId, optionId);
       if (res.poll) setPoll(res.poll);
     } catch (err) {
-      showIslandError("투표", err instanceof Error ? err.message : "투표에 실패했습니다.");
+      showIslandError(u("투표", "Poll"), err instanceof Error ? err.message : u("투표에 실패했습니다.", "Could not vote."));
     } finally {
       setBusy(false);
     }
@@ -89,7 +100,7 @@ export function FeedPostPoll({ postId, poll: initialPoll, isAuthor, signedIn, on
               disabled={busy}
               style={({ pressed }) => [styles.choice, pressed && styles.choicePressed]}
               accessibilityRole="button"
-              accessibilityLabel={`${opt.label}에 투표`}
+              accessibilityLabel={u(`${opt.label}에 투표`, `Vote for ${opt.label}`)}
             >
               <Text style={[styles.choiceLabel, busy && { opacity: 0.5 }]}>{opt.label}</Text>
             </Pressable>

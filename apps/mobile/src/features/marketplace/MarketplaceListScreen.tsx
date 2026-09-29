@@ -16,7 +16,13 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchMarketplaceList, toggleMarketplaceFavorite, type MarketplaceListItem } from "@/api/marketplace";
 import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
-import { displayUsedRegion, formatUsedPrice, formatUsedTimeAgo } from "@/features/marketplace/used-catalog";
+import {
+  displayUsedRegion,
+  formatUsedPrice,
+  formatUsedTimeAgo,
+  usedCatalogLabel,
+} from "@/features/marketplace/used-catalog";
+import { useI18n } from "@/i18n/I18nProvider";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { showIslandError } from "@/ui/IslandToast";
 import { Screen } from "@/ui/Screen";
@@ -39,16 +45,17 @@ type HubLane = MarketHubLane;
 type Props = { mode?: "tab" | "stack"; lane?: "used" | "auction" };
 
 const LIST_CATEGORIES = [
-  { id: "ALL", label: "전체" },
-  { id: "FIGURE", label: "피규어" },
-  { id: "TCG", label: "TCG" },
-  { id: "GOODS", label: "굿즈" },
-  { id: "BOOK", label: "도서" },
-  { id: "COSPLAY", label: "코스프레" },
-  { id: "DIGITAL", label: "디지털" },
+  { id: "ALL", labelKo: "전체", labelEn: "All" },
+  { id: "FIGURE", labelKo: "피규어", labelEn: "Figures" },
+  { id: "TCG", labelKo: "TCG", labelEn: "TCG" },
+  { id: "GOODS", labelKo: "굿즈", labelEn: "Goods" },
+  { id: "BOOK", labelKo: "도서", labelEn: "Books" },
+  { id: "COSPLAY", labelKo: "코스프레", labelEn: "Cosplay" },
+  { id: "DIGITAL", labelKo: "디지털", labelEn: "Digital" },
 ] as const;
 
 export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) {
+  const { t, u } = useI18n();
   const { colors, isDark } = useTheme();
   const ink = isDark ? colors.text : colors.brand;
   const muted = colors.textMuted;
@@ -126,12 +133,15 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const toggleFavorite = useCallback(
     (id: string) => {
       if (authStatus !== "signedIn") {
-        showIslandError("로그인 필요", "관심 등록은 로그인 후 이용할 수 있습니다.");
+        showIslandError(
+          u("로그인 필요", "Sign in required"),
+          u("관심 등록은 로그인 후 이용할 수 있습니다.", "Sign in to save favorites.")
+        );
         return;
       }
       favorite.mutate(id);
     },
-    [authStatus, favorite]
+    [authStatus, favorite, u]
   );
 
   const items = (query.data?.items ?? []).filter(
@@ -194,7 +204,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
               style={styles.menuBtn}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel="더보기"
+              accessibilityLabel={t("nav.more")}
               onPress={(e) => {
                 e.currentTarget.measureInWindow((x, y, width, height) => {
                   setMenuAnchor({ x, y, width, height });
@@ -206,13 +216,18 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
             </Pressable>
             <Pressable style={styles.bodyTap} onPress={() => openItem(item)}>
               <Text style={styles.title} numberOfLines={2}>
-                {item.title || "상품"}
+                {item.title || u("상품", "Listing")}
               </Text>
               <Text style={styles.meta} numberOfLines={1}>
-                {[displayUsedRegion(item.region || "") || "지역 미정", formatUsedTimeAgo(item.createdAt)].join(" · ")}
+                {[
+                  displayUsedRegion(item.region || "", u) || u("지역 미정", "Location TBD"),
+                  formatUsedTimeAgo(item.createdAt, u),
+                ].join(" · ")}
               </Text>
               <Text style={styles.price}>
-                {auction ? `현재 ${formatUsedPrice(price, item.currency)}` : formatUsedPrice(price, item.currency)}
+                {auction
+                  ? `${u("현재", "Current")} ${formatUsedPrice(price, item.currency, u)}`
+                  : formatUsedPrice(price, item.currency, u)}
               </Text>
               <View style={styles.stat}>
                 <Ionicons name="eye-outline" size={14} color={muted} />
@@ -235,7 +250,9 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
                 style={styles.heartBtn}
                 hitSlop={10}
                 accessibilityRole="button"
-                accessibilityLabel={on ? "관심 해제" : "관심 등록"}
+                accessibilityLabel={
+                  on ? u("관심 해제", "Remove favorite") : u("관심 등록", "Add to favorites")
+                }
                 onPress={() => toggleFavorite(item.id)}
               >
                 <Ionicons name={on ? "heart" : "heart-outline"} size={22} color={on ? colors.like : muted} />
@@ -245,7 +262,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         </View>
       );
     },
-    [colors.like, liked, muted, openItem, styles, toggleFavorite, user?.id]
+    [colors.like, liked, muted, openItem, styles, t, toggleFavorite, u, user?.id]
   );
 
   const listHeader = (
@@ -258,7 +275,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           }}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel="뒤로"
+          accessibilityLabel={t("common.back")}
         >
           <Ionicons name="chevron-back" size={26} color={ink} />
         </Pressable>
@@ -267,14 +284,14 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           value={q}
           onChangeText={setQ}
           onClear={() => setQ("")}
-          placeholder="검색"
+          placeholder={t("common.search")}
           containerStyle={{ flex: 1 }}
         />
         <Pressable
           onPress={() => setHubOpen(true)}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel="마켓 메뉴"
+          accessibilityLabel={u("마켓 메뉴", "Market menu")}
         >
           <Ionicons name="menu-outline" size={26} color={ink} />
         </Pressable>
@@ -299,7 +316,9 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
                 },
               ]}
             >
-              <Text style={[styles.catText, { color: active ? colors.textOnAccent : colors.brand }]}>{c.label}</Text>
+              <Text style={[styles.catText, { color: active ? colors.textOnAccent : colors.brand }]}>
+                {c.id === "ALL" ? u(c.labelKo, c.labelEn) : usedCatalogLabel(c.labelKo, c.id, u)}
+              </Text>
             </Pressable>
           );
         })}
@@ -312,10 +331,12 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
       <ActivityIndicator style={{ marginTop: 24 }} color={colors.terracotta} />
     ) : query.isError ? (
       <Pressable style={{ padding: 24 }} onPress={() => void query.refetch()}>
-        <Text style={styles.empty}>목록을 불러오지 못했습니다. 다시 시도</Text>
+        <Text style={styles.empty}>
+          {u("목록을 불러오지 못했습니다. 다시 시도", "Could not load list. Tap to retry")}
+        </Text>
       </Pressable>
     ) : (
-      <Text style={styles.empty}>조건에 맞는 상품이 없습니다.</Text>
+      <Text style={styles.empty}>{u("조건에 맞는 상품이 없습니다.", "No listings match your filters.")}</Text>
     );
 
   return (

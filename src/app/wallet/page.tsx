@@ -11,6 +11,8 @@ import { getCreatorSettlementStatus } from "@/actions/settlement-register";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import { MIN_MOCO_TOPUP_COUNT } from "@/lib/gems/constants";
 import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
+import { getServerTranslator } from "@/lib/i18n/server";
+import { uiText } from "@/lib/i18n/ui-text";
 
 const EMPTY_EARNINGS = (): WalletEarningsAnalytics => {
   const year = new Date().getFullYear();
@@ -40,6 +42,8 @@ export default async function WalletPage({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/wallet");
+
+  const { locale, t } = await getServerTranslator();
 
   const params = await searchParams;
   const lowBalanceNotice = params.topup === "1";
@@ -116,7 +120,11 @@ export default async function WalletPage({
             reasons: [
               {
                 code: "NO_CONNECT_ACCOUNT",
-                message: "Stripe Connect 계정이 없습니다. 정산 계좌 연동을 시작해 주세요.",
+                message: uiText(
+                  locale,
+                  "Stripe Connect 계정이 없습니다. 정산 계좌 연동을 시작해 주세요.",
+                  "No Stripe Connect account. Set up payout details to get started."
+                ),
               },
             ],
           },
@@ -127,7 +135,7 @@ export default async function WalletPage({
   return (
     <AppPageChrome spacing="sm">
       <NativePageTitle>
-        <h1 className="text-2xl font-black tracking-tight text-foreground lg:sr-only">지갑</h1>
+        <h1 className="text-2xl font-black tracking-tight text-foreground lg:sr-only">{t("nav.wallet")}</h1>
       </NativePageTitle>
       <Suspense fallback={null}>
         <WalletHub

@@ -1,5 +1,7 @@
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useI18n } from "@/i18n/I18nProvider";
+import { liveUi } from "@/features/live/live-ui";
 
 type Props = {
   onPress: () => void;
@@ -9,10 +11,13 @@ type Props = {
 
 /** Chzzk-cheese analogue — bright MOCO coin for live tips / cheer. */
 function MocoTipButtonInner({ onPress, disabled, size = 40 }: Props) {
+  const { u } = useI18n();
+  const copy = liveUi(u);
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="MOCO 후원"
+      accessibilityLabel={copy.mocoDonation}
       disabled={disabled}
       onPress={onPress}
       style={[styles.hit, { width: size, height: size, opacity: disabled ? 0.45 : 1 }]}

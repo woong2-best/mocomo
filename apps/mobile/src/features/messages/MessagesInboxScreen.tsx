@@ -37,32 +37,35 @@ import { floatingTabClearance } from "@/navigation/tab-layout";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
+import type { Locale } from "@/i18n";
+import { useI18n } from "@/i18n/I18nProvider";
+import { uiText } from "@/i18n/ui-text";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
-function relativeTime(iso: string | null) {
+function relativeTime(iso: string | null, locale: Locale) {
   if (!iso) return "";
   const t = new Date(iso).getTime();
   if (!Number.isFinite(t)) return "";
   const diff = Date.now() - t;
   const m = Math.floor(diff / 60_000);
-  if (m < 1) return "지금";
-  if (m < 60) return `${m}분`;
+  if (m < 1) return uiText(locale, "지금", "Now");
+  if (m < 60) return uiText(locale, `${m}분`, `${m}m`);
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}시간`;
+  if (h < 24) return uiText(locale, `${h}시간`, `${h}h`);
   const d = Math.floor(h / 24);
-  if (d < 7) return `${d}일`;
-  if (d < 30) return `${Math.floor(d / 7)}주`;
-  return `${Math.floor(d / 30)}달`;
+  if (d < 7) return uiText(locale, `${d}일`, `${d}d`);
+  if (d < 30) return uiText(locale, `${Math.floor(d / 7)}주`, `${Math.floor(d / 7)}w`);
+  return uiText(locale, `${Math.floor(d / 30)}달`, `${Math.floor(d / 30)}mo`);
 }
 
-function previewText(raw: string) {
+function previewText(raw: string, locale: Locale) {
   return (
     chatPostShareListPreview(raw) ||
     chatUsedListingListPreview(raw) ||
     raw ||
-    "대화를 시작해 보세요"
+    uiText(locale, "대화를 시작해 보세요", "Start a conversation")
   );
 }
 
@@ -92,6 +95,7 @@ type Props = {
 };
 
 export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}) {
+  const { locale, t, u } = useI18n();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
@@ -181,7 +185,11 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           onPressIn={() => prefetchRoom(item.id)}
-          accessibilityLabel={unread ? `${item.displayName}, 읽지 않음` : item.displayName}
+          accessibilityLabel={
+            unread
+              ? u(`${item.displayName}, 읽지 않음`, `${item.displayName}, unread`)
+              : item.displayName
+          }
           onPress={() => {
             onRequestClose?.();
             navigation.navigate("MessageRoom", {
@@ -199,16 +207,16 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
                 </Text>
                 {unread ? <View style={styles.unreadDot} /> : null}
               </View>
-              <Text style={styles.time}>{relativeTime(item.lastMessageAt)}</Text>
+              <Text style={styles.time}>{relativeTime(item.lastMessageAt, locale)}</Text>
             </View>
             <Text style={styles.preview} numberOfLines={1}>
-              {previewText(item.lastMessage)}
+              {previewText(item.lastMessage, locale)}
             </Text>
           </View>
         </Pressable>
       );
     },
-    [navigation, onRequestClose, prefetchRoom, styles]
+    [locale, navigation, onRequestClose, prefetchRoom, styles, u]
   );
 
   const renderPickerItem = useCallback(
@@ -229,14 +237,14 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
             </Text>
             <Text style={styles.pickerUsername} numberOfLines={1}>
               @{item.username}
-              {blocked ? " · 요청을 받지 않음" : ""}
+              {blocked ? u(" · 요청을 받지 않음", " · does not accept requests") : ""}
             </Text>
           </View>
           {busy ? <ActivityIndicator color={colors.terracotta} /> : null}
         </Pressable>
       );
     },
-    [colors.terracotta, openingId, startDm, styles]
+    [colors.terracotta, openingId, startDm, styles, u]
   );
 
   const body = (
@@ -257,7 +265,7 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
               if (!pickerOpen) setPickerOpen(true);
             }}
             onFocus={() => setPickerOpen(true)}
-            placeholder="Send message"
+            placeholder={u("메시지 보내기", "Send message")}
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
@@ -267,7 +275,7 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
             style={styles.searchBtn}
             onPress={() => setPickerOpen(true)}
             accessibilityRole="button"
-            accessibilityLabel="Send message"
+            accessibilityLabel={u("메시지 보내기", "Send message")}
           >
             <Ionicons name="search" size={18} color="#fff" />
           </Pressable>
@@ -281,7 +289,7 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
           hitSlop={8}
           style={styles.settingsBtn}
           accessibilityRole="button"
-          accessibilityLabel="채팅 설정"
+          accessibilityLabel={u("채팅 설정", "Chat settings")}
         >
           <Ionicons name="settings-outline" size={22} color={colors.brand} />
         </Pressable>
@@ -300,10 +308,10 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
               ListEmptyComponent={
                 <Text style={styles.pickerEmpty}>
                   {sendQ.trim()
-                    ? "검색 결과가 없습니다."
+                    ? u("검색 결과가 없습니다.", "No results.")
                     : followingQuery.isError
-                      ? "팔로우 목록을 불러오지 못했습니다."
-                      : "팔로우한 사용자가 없습니다."}
+                      ? u("팔로우 목록을 불러오지 못했습니다.", "Could not load following list.")
+                      : u("팔로우한 사용자가 없습니다.", "You are not following anyone yet.")}
                 </Text>
               }
               renderItem={renderPickerItem}
@@ -316,7 +324,7 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
               setSendQ("");
             }}
           >
-            <Text style={styles.pickerDismissText}>닫기</Text>
+            <Text style={styles.pickerDismissText}>{t("common.close")}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -327,8 +335,8 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
         </View>
       ) : query.isError && !query.data ? (
         <View style={styles.center}>
-          <Text style={styles.muted}>메시지를 불러오지 못했습니다.</Text>
-          <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
+          <Text style={styles.muted}>{u("메시지를 불러오지 못했습니다.", "Could not load messages.")}</Text>
+          <FolkButton label={u("다시 시도", "Try again")} onPress={() => void query.refetch()} />
         </View>
       ) : (
         <FlatList
@@ -342,8 +350,10 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
               <View style={styles.emptyIcon}>
                 <Ionicons name="chatbubbles-outline" size={28} color={colors.textMuted} />
               </View>
-              <Text style={styles.emptyTitle}>아직 대화가 없어요.</Text>
-              <Text style={styles.muted}>위에서 친구를 찾아 첫 메시지를 보내 보세요.</Text>
+              <Text style={styles.emptyTitle}>{u("아직 대화가 없어요.", "No conversations yet.")}</Text>
+              <Text style={styles.muted}>
+                {u("위에서 친구를 찾아 첫 메시지를 보내 보세요.", "Search above to send your first message.")}
+              </Text>
             </View>
           }
         />

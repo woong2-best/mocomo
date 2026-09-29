@@ -6,21 +6,8 @@ import { Heart, Scale, ShoppingBag, DollarSign } from "lucide-react";
 import { getMyUsedHubLane, type UsedHubLane } from "@/actions/used-market";
 import { UsedListingGrid } from "@/components/used/used-listing-grid";
 import { cn } from "@/lib/utils";
-
-const SHORTCUTS: { lane: UsedHubLane; label: string; icon: typeof ShoppingBag }[] = [
-  { lane: "purchased", label: "구매내역", icon: ShoppingBag },
-  { lane: "selling", label: "판매내역", icon: DollarSign },
-  { lane: "favorites", label: "찜리스트", icon: Heart },
-  { lane: "disputes", label: "분쟁", icon: Scale },
-];
-
-const EMPTY: Record<UsedHubLane, string> = {
-  purchased: "구매한 상품이 없어요.",
-  selling: "판매한 글이 없어요.",
-  "live-auctions": "진행 중인 경매가 없어요.",
-  favorites: "찜한 상품이 없어요.",
-  disputes: "분쟁 내역이 없어요.",
-};
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 type HubItem = {
   id: string;
@@ -60,9 +47,34 @@ function toCard(item: HubItem) {
 }
 
 export function UsedMyHub({ userId }: { userId: string }) {
+  const { locale } = useLocale();
   const [lane, setLane] = useState<UsedHubLane>("selling");
   const [items, setItems] = useState<HubItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const shortcuts: { lane: UsedHubLane; label: string; icon: typeof ShoppingBag }[] = [
+    { lane: "purchased", label: uiText(locale, "구매내역", "Purchases"), icon: ShoppingBag },
+    { lane: "selling", label: uiText(locale, "판매내역", "Sales"), icon: DollarSign },
+    { lane: "favorites", label: uiText(locale, "찜리스트", "Favorites"), icon: Heart },
+    { lane: "disputes", label: uiText(locale, "분쟁", "Disputes"), icon: Scale },
+  ];
+
+  const emptyMessage = (hubLane: UsedHubLane) => {
+    switch (hubLane) {
+      case "purchased":
+        return uiText(locale, "구매한 상품이 없어요.", "No purchases yet.");
+      case "selling":
+        return uiText(locale, "판매한 글이 없어요.", "No listings yet.");
+      case "live-auctions":
+        return uiText(locale, "진행 중인 경매가 없어요.", "No live auctions.");
+      case "favorites":
+        return uiText(locale, "찜한 상품이 없어요.", "No favorites yet.");
+      case "disputes":
+        return uiText(locale, "분쟁 내역이 없어요.", "No disputes.");
+      default:
+        return "";
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -80,7 +92,7 @@ export function UsedMyHub({ userId }: { userId: string }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-5 gap-1 pt-1">
-        {SHORTCUTS.map((item) => {
+        {shortcuts.map((item) => {
           const Icon = item.icon;
           const active = lane === item.lane;
           return (
@@ -104,13 +116,15 @@ export function UsedMyHub({ userId }: { userId: string }) {
         href="/market/new"
         className="flex h-12 w-full items-center justify-center rounded-full bg-folk-terracotta text-base font-extrabold text-white hover:bg-folk-terracotta/90"
       >
-        판매
+        {uiText(locale, "판매", "Sell")}
       </Link>
 
       {loading ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">불러오는 중…</p>
+        <p className="py-10 text-center text-sm text-muted-foreground">
+          {uiText(locale, "불러오는 중…", "Loading…")}
+        </p>
       ) : items.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">{EMPTY[lane]}</p>
+        <p className="py-10 text-center text-sm text-muted-foreground">{emptyMessage(lane)}</p>
       ) : (
         <UsedListingGrid listings={items.map(toCard)} viewerUserId={userId} />
       )}

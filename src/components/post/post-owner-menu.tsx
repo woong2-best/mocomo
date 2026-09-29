@@ -262,7 +262,7 @@ export function PostOwnerMenu({
               }}
             >
               <Flag className="h-4 w-4" />
-              신고
+              {t("post.menu.report")}
             </DropdownMenuItem>
           )}
 
@@ -316,7 +316,7 @@ export function PostOwnerMenu({
                 }}
               >
                 <Flag className="h-4 w-4" />
-                신고
+                {t("post.menu.report")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={busy !== null}

@@ -1,11 +1,15 @@
 import { memo } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { Image } from "expo-image";
+import { useI18n } from "@/i18n/I18nProvider";
+import { liveUi } from "@/features/live/live-ui";
 
 const OFF_AIR_TV = require("../../../assets/live/off-air-tv.png");
 
 /** Off-air hero. The TV artwork is shown unchanged inside the 16:9 stage. */
 function LiveEmptyTestPatternInner() {
+  const { u } = useI18n();
+  const copy = liveUi(u);
   const { width } = useWindowDimensions();
   const height = Math.round(width * (9 / 16));
 
@@ -16,7 +20,7 @@ function LiveEmptyTestPatternInner() {
         style={styles.photo}
         contentFit="contain"
         contentPosition="center"
-        accessibilityLabel="방송중인 방송이 없습니다"
+        accessibilityLabel={copy.noStreamsEmpty}
       />
     </View>
   );

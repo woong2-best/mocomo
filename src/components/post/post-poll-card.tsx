@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { BarChart3, Check } from "lucide-react";
 import { formatPollTimeLeft, type PostPollView } from "@/lib/post-poll";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 
 type PostPollCardProps = {
   postId: string;
@@ -16,6 +18,7 @@ type PostPollCardProps = {
 };
 
 export function PostPollCard({ postId, poll: initialPoll, isAuthor = false, compact, onVote }: PostPollCardProps) {
+  const { locale } = useLocale();
   const [poll, setPoll] = useState(initialPoll);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -46,13 +49,13 @@ export function PostPollCard({ postId, poll: initialPoll, isAuthor = false, comp
         error?: string;
       };
       if (!res.ok || !data.poll) {
-        setError(data.error ?? "투표에 실패했습니다.");
+        setError(data.error ?? uiText(locale, "투표에 실패했습니다.", "Vote failed."));
         return;
       }
       setPoll(data.poll);
       onVote?.(data.poll);
     } catch {
-      setError("투표에 실패했습니다.");
+      setError(uiText(locale, "투표에 실패했습니다.", "Vote failed."));
     } finally {
       setBusy(false);
     }
@@ -69,7 +72,7 @@ export function PostPollCard({ postId, poll: initialPoll, isAuthor = false, comp
       <div className="px-3 py-2 border-b border-border/60 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1 font-medium">
           <BarChart3 className="h-3.5 w-3.5" />
-          {poll.totalVotes.toLocaleString()}표
+          {uiText(locale, `${poll.totalVotes.toLocaleString()}표`, `${poll.totalVotes.toLocaleString()} votes`)}
         </span>
         <span>{formatPollTimeLeft(poll.closesAt, poll.closed)}</span>
       </div>
@@ -120,10 +123,14 @@ export function PostPollCard({ postId, poll: initialPoll, isAuthor = false, comp
       </div>
 
       {!poll.closed && !poll.myVoteOptionId && (
-        <p className="px-3 pb-2 text-[10px] text-muted-foreground">탭하여 투표 · 마감 전 변경 가능</p>
+        <p className="px-3 pb-2 text-[10px] text-muted-foreground">
+          {uiText(locale, "탭하여 투표 · 마감 전 변경 가능", "Tap to vote · change before close")}
+        </p>
       )}
       {poll.closed && (
-        <p className="px-3 pb-2 text-[10px] text-muted-foreground">투표가 종료되었습니다</p>
+        <p className="px-3 pb-2 text-[10px] text-muted-foreground">
+          {uiText(locale, "투표가 종료되었습니다", "Poll closed")}
+        </p>
       )}
       {error && <p className="px-3 pb-2 text-[10px] text-destructive">{error}</p>}
     </div>

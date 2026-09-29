@@ -18,8 +18,10 @@ import { SearchField } from "@/ui/SearchField";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export function SearchScreen() {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -44,13 +46,13 @@ export function SearchScreen() {
       onPressIn?: () => void;
       onPress: () => void;
     }[] = [];
-    for (const u of query.data.users) {
-      const seed = { username: u.username, name: u.name, image: u.image };
+    for (const user of query.data.users) {
+      const seed = { username: user.username, name: user.name, image: user.image };
       rows.push({
-        key: `u-${u.id}`,
-        kind: "사람",
-        title: u.name || u.username,
-        subtitle: `@${u.username}`,
+        key: `u-${user.id}`,
+        kind: u("사람", "People"),
+        title: user.name || user.username,
+        subtitle: `@${user.username}`,
         onPressIn: () => prefetchUserProfile(seed),
         onPress: () => openUserProfile(seed),
       });
@@ -58,15 +60,15 @@ export function SearchScreen() {
     for (const p of query.data.posts) {
       rows.push({
         key: `p-${p.id}`,
-        kind: "게시물",
-        title: p.title || p.content.slice(0, 80) || "게시물",
+        kind: u("게시물", "Posts"),
+        title: p.title || p.content.slice(0, 80) || u("게시물", "Post"),
         onPress: () => navigation.navigate("PostDetail", { id: p.id }),
       });
     }
     for (const a of query.data.animes) {
       rows.push({
         key: `a-${a.slug}`,
-        kind: "컬처위키",
+        kind: u("컬처위키", "Culture wiki"),
         title: a.title,
         subtitle: a.titleEn ?? undefined,
         onPress: () => navigation.navigate("AnimeDetail", { slug: a.slug }),
@@ -75,18 +77,18 @@ export function SearchScreen() {
     for (const live of query.data.liveStreams) {
       rows.push({
         key: `l-${live.id}`,
-        kind: "라이브",
+        kind: u("라이브", "Live"),
         title: live.name,
         subtitle: live.category,
         onPress: () => navigation.navigate("LiveDetail", { id: live.id }),
       });
     }
     return rows;
-  }, [navigation, openUserProfile, prefetchUserProfile, query.data]);
+  }, [navigation, openUserProfile, prefetchUserProfile, query.data, u]);
 
   return (
     <Screen>
-      <AppHeader title="검색" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={u("검색", "Search")} leftLabel={u("뒤로", "Back")} onLeftPress={() => navigation.goBack()} />
       <View style={styles.searchRow}>
         <SearchField
           value={q}
@@ -96,22 +98,22 @@ export function SearchScreen() {
             setSubmitted("");
           }}
           onSubmitEditing={() => setSubmitted(q.trim())}
-          placeholder="사람, 애니, 게시물 검색"
+          placeholder={u("사람, 애니, 게시물 검색", "Search people, anime, posts")}
         />
       </View>
 
       {!submitted ? (
-        <Text style={styles.hint}>웹과 같은 통합 검색입니다.</Text>
+        <Text style={styles.hint}>{u("웹과 같은 통합 검색입니다.", "Same unified search as the website.")}</Text>
       ) : query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 32 }} color={colors.terracotta} />
       ) : query.isError ? (
-        <Text style={styles.error}>검색에 실패했습니다.</Text>
+        <Text style={styles.error}>{u("검색에 실패했습니다.", "Search failed.")}</Text>
       ) : (
         <FlatList
           data={sections}
           keyExtractor={(item) => item.key}
           contentContainerStyle={{ padding: spacing.md, paddingBottom: 40, gap: 8 }}
-          ListEmptyComponent={<Text style={styles.hint}>결과가 없습니다.</Text>}
+          ListEmptyComponent={<Text style={styles.hint}>{u("결과가 없습니다.", "No results.")}</Text>}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPressIn={item.onPressIn} onPress={item.onPress}>
               <Text style={styles.kind}>{item.kind}</Text>
@@ -153,4 +155,3 @@ function createThemedStyles(colors: ThemeColors) {
   sub: { marginTop: 2, color: colors.textMuted, fontWeight: "600" },
 });
 }
-

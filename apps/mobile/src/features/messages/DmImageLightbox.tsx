@@ -15,6 +15,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatLightboxTime } from "@/features/messages/chat-display";
+import { useI18n } from "@/i18n/I18nProvider";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 
@@ -50,6 +51,7 @@ export function DmImageLightbox({
   onClose,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { locale, t } = useI18n();
   const { width, height } = Dimensions.get("window");
   const [index, setIndex] = useState(initialIndex);
   const listRef = useRef<FlatList<DmLightboxImage>>(null);
@@ -103,7 +105,7 @@ export function DmImageLightbox({
   if (!images.length) return null;
 
   const headerName = meta?.selfLabel ?? meta?.senderName ?? "";
-  const headerTime = meta ? formatLightboxTime(meta.createdAt) : "";
+  const headerTime = meta ? formatLightboxTime(meta.createdAt, locale) : "";
 
   return (
     <Modal
@@ -119,7 +121,7 @@ export function DmImageLightbox({
             onPress={onClose}
             hitSlop={12}
             style={styles.close}
-            accessibilityLabel="닫기"
+            accessibilityLabel={t("common.close")}
           >
             <Ionicons name="close" size={26} color="#fff" />
           </Pressable>

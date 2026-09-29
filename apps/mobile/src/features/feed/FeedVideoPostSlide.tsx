@@ -37,6 +37,7 @@ import { PostReportSheet } from "@/features/feed/PostReportSheet";
 import { useAuth } from "@/auth/AuthContext";
 import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { useShowLikeCounts } from "@/hooks/use-display-preferences";
+import { useI18n } from "@/i18n/I18nProvider";
 
 /** Instagram Reels-style edge hold width — narrow so center taps / right rail stay safe. */
 const EDGE_HOLD_WIDTH = 52;
@@ -272,6 +273,7 @@ function EdgeHoldZone({
   onHoldStart: () => void;
   onHoldEnd: () => void;
 }) {
+  const { u } = useI18n();
   const holdingRef = useRef(false);
 
   const endHold = useCallback(() => {
@@ -293,7 +295,11 @@ function EdgeHoldZone({
       onPressOut={endHold}
       delayLongPress={160}
       accessibilityRole="button"
-      accessibilityLabel={side === "left" ? "왼쪽 가장자리 길게 눌러 2배속" : "오른쪽 가장자리 길게 눌러 2배속"}
+      accessibilityLabel={
+        side === "left"
+          ? u("왼쪽 가장자리 길게 눌러 2배속", "Hold left edge for 2× speed")
+          : u("오른쪽 가장자리 길게 눌러 2배속", "Hold right edge for 2× speed")
+      }
     />
   );
 }
@@ -309,6 +315,7 @@ function FeedVideoPostSlideInner({
   onChangeVideoIndex,
   onFastForwardChange,
 }: Props) {
+  const { u, t } = useI18n();
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const queryClient = useQueryClient();
   const starLock = useRef(false);
@@ -476,15 +483,15 @@ function FeedVideoPostSlideInner({
 
   const onReportPress = useCallback(() => {
     if (!user) {
-      showIslandError("로그인 필요", "신고하려면 로그인해 주세요.");
+      showIslandError(u("로그인 필요", "Sign in required"), u("신고하려면 로그인해 주세요.", "Sign in to report."));
       return;
     }
     if (user.id === current?.author.id) {
-      showIslandInfo("알림", "자신의 게시물은 신고할 수 없습니다.");
+      showIslandInfo(u("알림", "Notice"), u("자신의 게시물은 신고할 수 없습니다.", "You can't report your own post."));
       return;
     }
     setReportOpen(true);
-  }, [current?.author.id, user]);
+  }, [current?.author.id, u, user]);
 
   if (!current) {
     return <View style={{ width, height, backgroundColor: "#000" }} />;
@@ -531,7 +538,7 @@ function FeedVideoPostSlideInner({
                     style={styles.tapZone}
                     onPress={togglePause}
                     accessibilityRole="button"
-                    accessibilityLabel={pausedByUser ? "재생" : "일시정지"}
+                    accessibilityLabel={pausedByUser ? u("재생", "Play") : u("일시정지", "Pause")}
                   />
                   {pausedByUser ? (
                     <View style={styles.pauseBadge} pointerEvents="none">
@@ -586,7 +593,7 @@ function FeedVideoPostSlideInner({
           style={styles.railBtn}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel="댓글"
+          accessibilityLabel={u("댓글", "Comments")}
         >
           <Ionicons name="chatbox-outline" size={26} color="#fff" />
           <Text style={styles.railCount}>{current.commentCount}</Text>
@@ -596,7 +603,7 @@ function FeedVideoPostSlideInner({
           style={styles.railBtn}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel={starred ? "저장 취소" : "저장"}
+          accessibilityLabel={starred ? u("저장 취소", "Unsave") : u("저장", "Save")}
         >
           <Ionicons name={starred ? "star" : "star-outline"} size={26} color="#fff" />
         </Pressable>
@@ -605,7 +612,7 @@ function FeedVideoPostSlideInner({
           style={styles.railBtn}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel="공유"
+          accessibilityLabel={u("공유", "Share")}
         >
           <ShareGlobeIcon size={26} color="#fff" />
         </Pressable>
@@ -617,7 +624,7 @@ function FeedVideoPostSlideInner({
           style={styles.railBtn}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel="신고"
+          accessibilityLabel={t("post.menu.report")}
         >
           <Ionicons name="flag-outline" size={24} color="#fff" />
         </Pressable>
@@ -629,7 +636,7 @@ function FeedVideoPostSlideInner({
           style={collapsibleCaptionStyles.expandedBackdrop}
           onPress={() => setCaptionExpanded(false)}
           accessibilityRole="button"
-          accessibilityLabel="설명 닫기"
+          accessibilityLabel={u("설명 닫기", "Close caption")}
         />
       ) : null}
 
@@ -644,7 +651,7 @@ function FeedVideoPostSlideInner({
           onPress={onAuthorPress}
           style={styles.authorRow}
           accessibilityRole="button"
-          accessibilityLabel={`${current.author.username} 프로필`}
+          accessibilityLabel={u(`${current.author.username} 프로필`, `${current.author.username} profile`)}
         >
           <FolkAvatar
             uri={current.author.image}
@@ -682,7 +689,7 @@ function FeedVideoPostSlideInner({
         <Pressable
           style={styles.releaseCatcher}
           onPressOut={stopFastForward}
-          accessibilityLabel="2배속 해제"
+          accessibilityLabel={u("2배속 해제", "Release 2× speed")}
         />
       ) : null}
     </View>

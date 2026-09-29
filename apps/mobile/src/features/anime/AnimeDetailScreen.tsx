@@ -29,6 +29,8 @@ import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useI18n } from "@/i18n/I18nProvider";
+import { animeUi } from "@/features/anime/anime-ui";
 
 function WikiSectionBlock({
   section,
@@ -75,6 +77,9 @@ function WikiSectionBlock({
 }
 
 export function AnimeDetailScreen() {
+  const { u, locale } = useI18n();
+  const copy = useMemo(() => animeUi(u), [u]);
+  const dateLocale = locale === "ko" ? "ko-KR" : "en-US";
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -99,7 +104,7 @@ export function AnimeDetailScreen() {
       void queryClient.invalidateQueries({ queryKey: ["mobile-star-wiki"] });
     },
     onError: () => {
-      showIslandError("STAR", "STAR 저장에 실패했습니다.");
+      showIslandError("STAR", copy.starFail);
     },
   });
   const item = query.data?.item;
@@ -115,7 +120,7 @@ export function AnimeDetailScreen() {
     if (sections.length === 0 && leftoverLead) {
       sections.push({
         id: "syn-overview",
-        label: "개요",
+        label: copy.overview,
         level: 1,
         number: "1",
         body: leftoverLead,
@@ -128,7 +133,7 @@ export function AnimeDetailScreen() {
       }
       sections.push({
         id: "characters",
-        label: "등장인물",
+        label: copy.characters,
         level: 1,
         number: String(n1 + 1),
         body: "",
@@ -136,7 +141,7 @@ export function AnimeDetailScreen() {
     }
     const lead = sections.some((s) => s.id === "syn-overview") ? "" : leftoverLead;
     return { lead, sections };
-  }, [cast.length, item?.synopsis, item?.worldInfo]);
+  }, [cast.length, copy.characters, copy.overview, item?.synopsis, item?.worldInfo]);
 
   const scrollTo = useCallback((id: string) => {
     const y = yMap.current[id];
@@ -147,18 +152,18 @@ export function AnimeDetailScreen() {
   const fallbackRows = useMemo(() => {
     if (!item) return [];
     const rows: { label: string; value: string }[] = [];
-    const genre = genreLabel(item.genre);
-    if (genre) rows.push({ label: "분류", value: genre });
-    if (item.studio) rows.push({ label: "스튜디오", value: item.studio });
-    if (item.tags?.length) rows.push({ label: "태그", value: item.tags.slice(0, 12).join(" · ") });
+    const genre = genreLabel(item.genre, locale);
+    if (genre) rows.push({ label: copy.infoboxCategory, value: genre });
+    if (item.studio) rows.push({ label: copy.studio, value: item.studio });
+    if (item.tags?.length) rows.push({ label: copy.tags, value: item.tags.slice(0, 12).join(" · ") });
     return rows;
-  }, [item]);
+  }, [copy, item, locale]);
 
   return (
     <Screen>
       <AppHeader
-        title={item?.title ?? "작품"}
-        leftLabel="뒤로"
+        title={item?.title ?? copy.work}
+        leftLabel={copy.back}
         onLeftPress={() => navigation.goBack()}
         rightSlot={
           item ? (
@@ -167,28 +172,28 @@ export function AnimeDetailScreen() {
                 onPress={() => navigation.navigate("AnimeHistory", { slug: item.slug })}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel="수정 기록"
+                accessibilityLabel={copy.historyA11y}
               >
                 <Ionicons name="time-outline" size={22} color={colors.textMuted} />
               </Pressable>
               <Pressable
                 onPress={() => {
                   if (authStatus !== "signedIn") {
-                    showIslandError("로그인 필요", "편집은 로그인 후 이용할 수 있습니다.");
+                    showIslandError(copy.loginRequired, copy.editLoginMsg);
                     return;
                   }
                   navigation.navigate("AnimeEdit", { slug: item.slug });
                 }}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel="문서 편집"
+                accessibilityLabel={copy.editA11y}
               >
                 <Ionicons name="create-outline" size={22} color={colors.textMuted} />
               </Pressable>
               <Pressable
                 onPress={() => {
                   if (authStatus !== "signedIn") {
-                    showIslandError("로그인 필요", "STAR 저장은 로그인 후 이용할 수 있습니다.");
+                    showIslandError(copy.loginRequired, copy.starLoginMsg);
                     return;
                   }
                   star.mutate();
@@ -196,7 +201,7 @@ export function AnimeDetailScreen() {
                 disabled={star.isPending}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={item.starred ? "STAR 해제" : "STAR 저장"}
+                accessibilityLabel={item.starred ? copy.starRemoveA11y : copy.starAddA11y}
               >
                 <Ionicons
                   name={item.starred ? "star" : "star-outline"}
@@ -213,8 +218,8 @@ export function AnimeDetailScreen() {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : query.isError || !item ? (
         <View style={styles.center}>
-          <Text style={styles.error}>작품을 불러오지 못했습니다.</Text>
-          <FolkButton label="다시 시도" onPress={() => void query.refetch()} />
+          <Text style={styles.error}>{copy.loadError}</Text>
+          <FolkButton label={copy.retry} onPress={() => void query.refetch()} />
         </View>
       ) : (
         <ScrollView
@@ -235,35 +240,35 @@ export function AnimeDetailScreen() {
               {item.creator?.username || item.createdAt || item.updatedAt ? (
                 <View style={styles.metaBox}>
                   {item.creator?.username ? (
-                    <Text style={styles.metaText}>작성자 @{item.creator.username}</Text>
+                    <Text style={styles.metaText}>{copy.author(item.creator.username)}</Text>
                   ) : null}
                   {item.createdAt ? (
                     <Text style={styles.metaText}>
-                      최초 등록 {new Date(item.createdAt).toLocaleString("ko-KR")}
+                      {copy.createdAt(new Date(item.createdAt).toLocaleString(dateLocale))}
                     </Text>
                   ) : null}
                   {item.updatedAt ? (
                     <Text style={styles.metaText}>
-                      마지막 수정 {new Date(item.updatedAt).toLocaleString("ko-KR")}
+                      {copy.updatedAt(new Date(item.updatedAt).toLocaleString(dateLocale))}
                     </Text>
                   ) : null}
                 </View>
               ) : null}
               <View style={styles.actionRow}>
                 <FolkButton
-                  label="편집"
+                  label={copy.edit}
                   variant="secondary"
                   style={styles.actionBtn}
                   onPress={() => {
                     if (authStatus !== "signedIn") {
-                      showIslandError("로그인 필요", "편집은 로그인 후 이용할 수 있습니다.");
+                      showIslandError(copy.loginRequired, copy.editLoginMsg);
                       return;
                     }
                     navigation.navigate("AnimeEdit", { slug: item.slug });
                   }}
                 />
                 <FolkButton
-                  label="수정 기록"
+                  label={copy.history}
                   variant="secondary"
                   style={styles.actionBtn}
                   onPress={() => navigation.navigate("AnimeHistory", { slug: item.slug })}
@@ -273,7 +278,7 @@ export function AnimeDetailScreen() {
 
             {article.sections.length > 0 ? (
               <View style={styles.toc}>
-                <Text style={styles.tocTitle}>목차</Text>
+                <Text style={styles.tocTitle}>{copy.toc}</Text>
                 {article.sections.map((sec) => (
                   <Pressable
                     key={sec.id}
@@ -332,7 +337,7 @@ export function AnimeDetailScreen() {
             )}
 
             {!article.lead && article.sections.length === 0 && !item.infobox ? (
-              <Text style={[styles.bodyPad, styles.emptyHint]}>등록된 본문이 없습니다.</Text>
+              <Text style={[styles.bodyPad, styles.emptyHint]}>{copy.emptyBody}</Text>
             ) : null}
           </View>
         </ScrollView>

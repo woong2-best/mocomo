@@ -8,12 +8,15 @@ import { useAuth } from "@/auth/AuthContext";
 import { publishUserCallEvent, subscribeUserCallEvents } from "@/lib/supabase-call-signal";
 import { useMobileCallSession } from "@/features/messages/MobileCallSession";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
 /** Callee — push tap or in-app incoming voice call */
 export function IncomingCallScreen() {
+  const { t, u } = useI18n();
+  const voiceCallLabel = u("음성 통화", "Voice call");
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -25,7 +28,7 @@ export function IncomingCallScreen() {
   const resumed = session.live?.callId === callId ? session.live : null;
 
   const [phase, setPhase] = useState<"ringing" | "connecting" | "live">(resumed ? "live" : "ringing");
-  const [callerName, setCallerName] = useState(resumed?.displayName ?? "음성 통화");
+  const [callerName, setCallerName] = useState(resumed?.displayName ?? voiceCallLabel);
   const [callerImage, setCallerImage] = useState<string | null>(resumed?.displayImage ?? null);
   const [callerId, setCallerId] = useState<string | null>(resumed?.peerUserId ?? null);
   const [signalingRoomId, setSignalingRoomId] = useState<string | null>(resumed?.signalingRoomId ?? null);
@@ -107,7 +110,7 @@ export function IncomingCallScreen() {
       .then((data) => {
         if (cancelled || data.event !== "incoming" || data.call.id !== callId) return;
         const caller = data.call.caller;
-        setCallerName(caller.username ? `@${caller.username}` : "음성 통화");
+        setCallerName(caller.username ? `@${caller.username}` : voiceCallLabel);
         setCallerImage(caller.image);
         setCallerId(caller.id);
         setSignalingRoomId(data.call.signalingRoomId);
@@ -136,14 +139,14 @@ export function IncomingCallScreen() {
         return;
       }
       const caller = res.call.caller;
-      setCallerName(caller.username ? `@${caller.username}` : "음성 통화");
+      setCallerName(caller.username ? `@${caller.username}` : voiceCallLabel);
       setCallerImage(caller.image);
       setCallerId(caller.id);
       setSignalingRoomId(res.call.signalingRoomId);
       void publishUserCallEvent(caller.id, "accepted", callId);
       setPhase("live");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "통화 연결에 실패했습니다.");
+      setError(e instanceof Error ? e.message : u("통화 연결에 실패했습니다.", "Could not connect the call."));
       setPhase("ringing");
     }
   }, [callId]);
@@ -178,7 +181,7 @@ export function IncomingCallScreen() {
   if (phase === "ringing") {
     return (
       <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <Text style={styles.label}>수신 음성 통화</Text>
+        <Text style={styles.label}>{u("수신 음성 통화", "Incoming voice call")}</Text>
         <FolkAvatar uri={callerImage} name={callerName} size={96} />
         <Text style={styles.name}>{callerName}</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -198,7 +201,7 @@ export function IncomingCallScreen() {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color={colors.terracotta} />
-        <Text style={styles.stageHintDark}>연결 중…</Text>
+        <Text style={styles.stageHintDark}>{u("연결 중…", "Connecting…")}</Text>
       </View>
     );
   }
@@ -207,12 +210,16 @@ export function IncomingCallScreen() {
     <View style={styles.liveRoot}>
       <View style={styles.audioStage}>
         <Text style={styles.stageHint}>
-          {session.peer.state === "connected" ? "음성 통화 중" : "음성 연결 중…"}
+          {session.peer.state === "connected"
+            ? u("음성 통화 중", "On voice call")
+            : u("음성 연결 중…", "Connecting voice…")}
         </Text>
         <Pressable
           style={styles.micBtn}
           onPress={() => session.peer.setMic(!session.peer.micEnabled)}
-          accessibilityLabel={session.peer.micEnabled ? "마이크 끄기" : "마이크 켜기"}
+          accessibilityLabel={
+            session.peer.micEnabled ? u("마이크 끄기", "Mute mic") : u("마이크 켜기", "Unmute mic")
+          }
         >
           <Ionicons name={session.peer.micEnabled ? "mic" : "mic-off"} size={26} color="#fff" />
         </Pressable>

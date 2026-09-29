@@ -9,6 +9,7 @@ import { ADULT_MONETIZATION_BANNED_SHORT } from "@/lib/stripe-payment-notice";
 import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
 import { paymentTypeRequiresAdultVerification } from "@/lib/adult-verification-messages";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   type: PaymentIntentType;
@@ -61,6 +62,7 @@ export function PayButton({
   onSuccess,
   variant = "primary",
 }: Props) {
+  const { u, locale } = useI18n();
   const isAdult =
     contentRating === "ADULT" ||
     contentRating === true ||
@@ -75,16 +77,19 @@ export function PayButton({
 
   async function openCheckout() {
     if (type === "CREATOR_SUBSCRIPTION") {
-      showIslandError("이용 불가", "크리에이터 정기 후원 기능은 종료되었습니다.");
+      showIslandError(
+        u("이용 불가", "Unavailable"),
+        u("크리에이터 정기 후원 기능은 종료되었습니다.", "Creator subscriptions are no longer available.")
+      );
       return;
     }
     const token = await getAccessToken();
     if (!token) {
-      showIslandError("로그인 필요", "결제하려면 먼저 로그인해 주세요.");
+      showIslandError(u("로그인 필요", "Sign in required"), u("결제하려면 먼저 로그인해 주세요.", "Sign in to pay."));
       return;
     }
     if (isAdult) {
-      showIslandError("결제 불가", ADULT_MONETIZATION_BANNED_SHORT);
+      showIslandError(u("결제 불가", "Payment blocked"), ADULT_MONETIZATION_BANNED_SHORT);
       return;
     }
     if (paymentTypeRequiresAdultVerification(type)) {
@@ -109,8 +114,11 @@ export function PayButton({
         onSuccess={(result) => {
           onSuccess?.();
           showIslandSuccess(
-            result.alreadyPaid ? "이미 처리됨" : "결제 완료",
-            `${paymentTypeLabel(result.type)}이 완료되었습니다.`
+            result.alreadyPaid ? u("이미 처리됨", "Already processed") : u("결제 완료", "Payment complete"),
+            u(
+              `${paymentTypeLabel(result.type, locale)}이 완료되었습니다.`,
+              `${paymentTypeLabel(result.type, locale)} completed.`
+            )
           );
         }}
       />

@@ -1,4 +1,5 @@
 import type { LiveListItem } from "@/api/live";
+import { uiText } from "@/i18n/ui-text";
 
 export const LIVE_BEAD_MIN_SLOTS = 8;
 
@@ -6,19 +7,20 @@ export type LiveBeadSlot =
   | { kind: "live"; key: string; item: LiveListItem }
   | { kind: "empty"; key: string; tone: number };
 
-const EMPTY_HINTS = [
-  "대기 중",
-  "빈 슬롯",
-  "곧 시작",
-  "준비 중",
-  "오프라인",
-  "예약 가능",
-  "조용한 채널",
-  "다음 방송",
-] as const;
+const EMPTY_HINTS: { ko: string; en: string }[] = [
+  { ko: "대기 중", en: "Waiting" },
+  { ko: "빈 슬롯", en: "Empty slot" },
+  { ko: "곧 시작", en: "Starting soon" },
+  { ko: "준비 중", en: "Getting ready" },
+  { ko: "오프라인", en: "Offline" },
+  { ko: "예약 가능", en: "Available" },
+  { ko: "조용한 채널", en: "Quiet channel" },
+  { ko: "다음 방송", en: "Next stream" },
+];
 
-export function emptySlotHint(tone: number): string {
-  return EMPTY_HINTS[((tone % EMPTY_HINTS.length) + EMPTY_HINTS.length) % EMPTY_HINTS.length]!;
+export function emptySlotHint(tone: number, locale?: string): string {
+  const row = EMPTY_HINTS[((tone % EMPTY_HINTS.length) + EMPTY_HINTS.length) % EMPTY_HINTS.length]!;
+  return uiText(locale, row.ko, row.en);
 }
 
 /** Pad live rows to at least 8 bead slots; extras are empty placeholders. */

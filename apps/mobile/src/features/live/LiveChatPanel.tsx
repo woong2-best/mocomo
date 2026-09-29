@@ -36,6 +36,8 @@ import { radii, type ThemeColors } from "@/theme/tokens";
 import { useMobileLiveChatSocket } from "@/lib/live-chat-socket";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
+import { liveUi } from "@/features/live/live-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   channelId: string;
@@ -67,6 +69,8 @@ export function LiveChatPanel({
   streamStartedAt,
   immersive = false,
 }: Props) {
+  const { u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const { colors } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -157,7 +161,7 @@ export function LiveChatPanel({
       } catch (e) {
         if (cancelled || (e instanceof Error && e.name === "AbortError")) return;
         if (e instanceof ApiError && e.status === 403) {
-          setError("채팅에 참여할 수 없습니다.");
+          setError(copy.chatUnavailable);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -180,7 +184,7 @@ export function LiveChatPanel({
       ac.abort();
       if (timer) clearTimeout(timer);
     };
-  }, [channelId, onViewerCount, socketConnected]);
+  }, [channelId, copy.chatUnavailable, onViewerCount, socketConnected]);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,7 +277,7 @@ export function LiveChatPanel({
       } else {
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
         setDraft(content);
-        let msg = "채팅 전송에 실패했습니다.";
+        let msg = copy.chatSendFailed;
         if (e instanceof ApiError) {
           msg =
             (e.body &&
@@ -291,7 +295,17 @@ export function LiveChatPanel({
       sendingRef.current = false;
       setSending(false);
     }
-  }, [channelId, currentUserId, draft, mergeChatLine, relayMessage, user?.id, user?.image, user?.username]);
+  }, [
+    channelId,
+    copy.chatSendFailed,
+    currentUserId,
+    draft,
+    mergeChatLine,
+    relayMessage,
+    user?.id,
+    user?.image,
+    user?.username,
+  ]);
 
   const onSupportRefresh = useCallback(() => {
     void fetchLiveAlerts(channelId, alertSinceRef.current)
@@ -333,8 +347,8 @@ export function LiveChatPanel({
     >
       {!immersive ? (
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>채팅</Text>
-          <Text style={styles.headerSub}>{viewerCount}명 시청</Text>
+          <Text style={styles.headerTitle}>{copy.chatTitle}</Text>
+          <Text style={styles.headerSub}>{copy.viewersWatching(viewerCount)}</Text>
         </View>
       ) : null}
 
@@ -374,7 +388,7 @@ export function LiveChatPanel({
           keyboardDismissMode="interactive"
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
           ListEmptyComponent={
-            <Text style={styles.empty}>아직 채팅이 없습니다. 첫 메시지를 남겨 보세요.</Text>
+            <Text style={styles.empty}>{copy.chatEmpty}</Text>
           }
           ListHeaderComponent={pinnedTip ? <CommentDonationTicker message={pinnedTip} /> : null}
           renderItem={({ item }) =>
@@ -429,19 +443,19 @@ export function LiveChatPanel({
         <View style={styles.actionRow}>
           <Pressable style={styles.actionBtn} onPress={() => setMocoVideoOpen(true)}>
             <Ionicons name="logo-youtube" size={14} color="#0d4d2c" />
-            <Text style={styles.actionText}>영상 후원</Text>
+            <Text style={styles.actionText}>{copy.videoDonation}</Text>
           </Pressable>
           <Pressable style={styles.actionBtn} onPress={() => setMocoSfxOpen(true)}>
             <Ionicons name="musical-notes" size={14} color="#E85D04" />
-            <Text style={styles.actionText}>효과음</Text>
+            <Text style={styles.actionText}>{copy.sfxDonation}</Text>
           </Pressable>
           <Pressable style={styles.actionBtn} onPress={() => setCheerOpen(true)}>
             <Ionicons name="heart" size={14} color="#eab308" />
-            <Text style={styles.actionText}>응원 CP</Text>
+            <Text style={styles.actionText}>{copy.cheerCp}</Text>
           </Pressable>
           <Pressable style={styles.actionBtn} onPress={() => setMissionOpen(true)}>
             <Ionicons name="flag" size={14} color={colors.terracotta} />
-            <Text style={styles.actionText}>미션</Text>
+            <Text style={styles.actionText}>{copy.mission}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -462,7 +476,7 @@ export function LiveChatPanel({
           style={styles.input}
           value={draft}
           onChangeText={setDraft}
-          placeholder={immersive ? "채팅을 입력해 주세요." : "채팅 메시지..."}
+          placeholder={immersive ? copy.chatPlaceholderImmersive : copy.chatPlaceholder}
           placeholderTextColor={immersive ? "#6b7280" : colors.textMuted}
           maxLength={200}
           editable={!sending}
@@ -480,7 +494,7 @@ export function LiveChatPanel({
             {sending ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.sendText}>전송</Text>
+              <Text style={styles.sendText}>{copy.send}</Text>
             )}
           </Pressable>
         ) : (
@@ -609,6 +623,8 @@ function SupportLine({
   colors: ThemeColors;
   immersive?: boolean;
 }) {
+  const { u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const kind = message.messageKind ?? "support";
   const tone =
     kind === "tip"
@@ -629,12 +645,12 @@ function SupportLine({
     >
       <Text style={[supportStyles.label, { color: immersive ? "#9ca3af" : colors.textMuted }]}>
         {kind === "tip"
-          ? "MOCO 후원"
+          ? copy.mocoDonation
           : kind === "mission"
-            ? "미션"
+            ? copy.mission
             : message.eventType === "ROULETTE"
-              ? "룰렛"
-              : "MOCO 응원"}
+              ? copy.roulette
+              : copy.mocoCheer}
       </Text>
       <Text style={[supportStyles.content, { color: immersive ? "#f9fafb" : colors.text }]}>
         {message.content}

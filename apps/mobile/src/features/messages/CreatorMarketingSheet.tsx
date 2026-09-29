@@ -18,6 +18,7 @@ import {
   sendCreatorBulkMessage,
 } from "@/api/creator-dm-marketing";
 import { uploadLocalFile } from "@/api/upload-file";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { FolkButton } from "@/ui/FolkButton";
@@ -58,6 +59,7 @@ function PricePicker({
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
 }) {
+  const { u } = useI18n();
   return (
     <>
       <View style={styles.presets}>
@@ -79,7 +81,7 @@ function PricePicker({
         style={styles.customInput}
         value={customPrice}
         onChangeText={onCustomChange}
-        placeholder="직접 입력 (결제 후 열람 가격)"
+        placeholder={u("직접 입력 (결제 후 열람 가격)", "Custom price (unlocked after payment)")}
         placeholderTextColor={colors.textMuted}
         keyboardType="number-pad"
       />
@@ -88,6 +90,7 @@ function PricePicker({
 }
 
 export function CreatorMarketingSheet({ visible, onClose }: Props) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
@@ -143,13 +146,19 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
     async (target: "welcome" | "bulk") => {
       const effectivePrice = target === "welcome" ? welcomeEffectivePrice : bulkEffectivePrice;
       if (effectivePrice < SALE_MEDIA_MIN_PRICE_KRW) {
-        const msg = `최소 ${formatUsd(SALE_MEDIA_MIN_PRICE_KRW)}부터 설정할 수 있습니다.`;
+        const msg = u(
+          `최소 ${formatUsd(SALE_MEDIA_MIN_PRICE_KRW)}부터 설정할 수 있습니다.`,
+          `Minimum price is ${formatUsd(SALE_MEDIA_MIN_PRICE_KRW)}.`
+        );
         if (target === "welcome") setWelcomeError(msg);
         else setBulkError(msg);
         return;
       }
       if (effectivePrice > SALE_MEDIA_MAX_PRICE_USD_CENTS) {
-        const msg = `가격은 ${formatUsd(SALE_MEDIA_MAX_PRICE_USD_CENTS)} 이하로 설정해 주세요.`;
+        const msg = u(
+          `가격은 ${formatUsd(SALE_MEDIA_MAX_PRICE_USD_CENTS)} 이하로 설정해 주세요.`,
+          `Price must be at most ${formatUsd(SALE_MEDIA_MAX_PRICE_USD_CENTS)}.`
+        );
         if (target === "welcome") setWelcomeError(msg);
         else setBulkError(msg);
         return;
@@ -160,7 +169,7 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
 
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        showIslandError("권한 필요", "갤러리 접근 권한이 필요합니다.");
+        showIslandError(u("권한 필요", "Permission required"), u("갤러리 접근 권한이 필요합니다.", "Photo library access is required."));
         return;
       }
 
@@ -194,10 +203,13 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
         if (target === "welcome") setWelcomeMedia(draft);
         else setBulkMedia(draft);
       } catch (e) {
-        showIslandError("업로드 실패", e instanceof Error ? e.message : "미디어를 업로드하지 못했습니다.");
+        showIslandError(
+          u("업로드 실패", "Upload failed"),
+          e instanceof Error ? e.message : u("미디어를 업로드하지 못했습니다.", "Could not upload media.")
+        );
       }
     },
-    [bulkEffectivePrice, welcomeEffectivePrice]
+    [bulkEffectivePrice, u, welcomeEffectivePrice]
   );
 
   async function handleSaveWelcome() {
@@ -217,11 +229,13 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
       });
       await queryClient.invalidateQueries({ queryKey: ["creator-dm-marketing"] });
       showIslandToast(
-        "Saved",
-        welcomeEnabled ? "웰컴 메시지 자동 발송이 활성화되었습니다." : "설정이 저장되었습니다."
+        u("저장됨", "Saved"),
+        welcomeEnabled
+          ? u("웰컴 메시지 자동 발송이 활성화되었습니다.", "Welcome message auto-send is on.")
+          : u("설정이 저장되었습니다.", "Settings saved.")
       );
     } catch (e) {
-      setWelcomeError(e instanceof Error ? e.message : "저장하지 못했습니다.");
+      setWelcomeError(e instanceof Error ? e.message : u("저장하지 못했습니다.", "Could not save."));
     } finally {
       setWelcomeBusy(false);
     }
@@ -240,11 +254,17 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
         mediaPriceKrw: media?.priceKrw ?? null,
       });
       await queryClient.invalidateQueries({ queryKey: ["creator-dm-marketing"] });
-      showIslandToast("발송 시작", `팔로워 ${result.totalFollowers.toLocaleString()}명에게 순차 발송을 시작했습니다.`);
+      showIslandToast(
+        u("발송 시작", "Sending started"),
+        u(
+          `팔로워 ${result.totalFollowers.toLocaleString()}명에게 순차 발송을 시작했습니다.`,
+          `Started sending to ${result.totalFollowers.toLocaleString()} followers.`
+        )
+      );
       setBulkText("");
       setBulkMedia(null);
     } catch (e) {
-      setBulkError(e instanceof Error ? e.message : "발송하지 못했습니다.");
+      setBulkError(e instanceof Error ? e.message : u("발송하지 못했습니다.", "Could not send."));
     } finally {
       setBulkBusy(false);
     }
@@ -261,7 +281,7 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
       sheetStyle={{ backgroundColor: colors.surface }}
     >
       <View style={styles.sheetHeader}>
-        <Text style={styles.sheetTitle}>크리에이터 마케팅</Text>
+        <Text style={styles.sheetTitle}>{u("크리에이터 마케팅", "Creator marketing")}</Text>
         <Pressable onPress={onClose} hitSlop={10}>
           <Ionicons name="close" size={22} color={colors.textMuted} />
         </Pressable>
@@ -276,14 +296,16 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
           contentContainerStyle={styles.scrollContent}
         >
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>웰컴 메시지</Text>
+            <Text style={styles.sectionTitle}>{u("웰컴 메시지", "Welcome message")}</Text>
             <Text style={styles.sectionSub}>
-              새 팔로워에게 자동으로 1:1 메시지를 보냅니다. 유료 미디어는 잠금·블러 처리 후 결제 시
-              열람됩니다.
+              {u(
+                "새 팔로워에게 자동으로 1:1 메시지를 보냅니다. 유료 미디어는 잠금·블러 처리 후 결제 시 열람됩니다.",
+                "Sends an automatic DM to new followers. Paid media stays locked and blurred until purchase."
+              )}
             </Text>
 
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>자동 발송 활성화</Text>
+              <Text style={styles.switchLabel}>{u("자동 발송 활성화", "Enable auto-send")}</Text>
               <Switch
                 value={welcomeEnabled}
                 onValueChange={setWelcomeEnabled}
@@ -296,13 +318,13 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
               style={styles.textArea}
               value={welcomeText}
               onChangeText={setWelcomeText}
-              placeholder="Welcome 인사말"
+              placeholder={u("Welcome 인사말", "Welcome message")}
               placeholderTextColor={colors.textMuted}
               multiline
               textAlignVertical="top"
             />
 
-            <Text style={styles.label}>유료 미디어 (선택)</Text>
+            <Text style={styles.label}>{u("유료 미디어 (선택)", "Paid media (optional)")}</Text>
             <PricePicker
               price={welcomePrice}
               customPrice={welcomeCustomPrice}
@@ -323,7 +345,7 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
                   color={colors.terracotta}
                 />
                 <Text style={styles.mediaName} numberOfLines={1}>
-                  {welcomeMedia.name ?? "첨부됨"} · {formatUsd(welcomeEffectivePrice)}
+                  {welcomeMedia.name ?? u("첨부됨", "Attached")} · {formatUsd(welcomeEffectivePrice)}
                 </Text>
                 <Pressable onPress={() => setWelcomeMedia(null)} hitSlop={8}>
                   <Ionicons name="close-circle" size={18} color={colors.textMuted} />
@@ -332,7 +354,7 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
             ) : null}
 
             <FolkButton
-              label="사진·동영상 업로드"
+              label={u("사진·동영상 업로드", "Upload photo or video")}
               variant="secondary"
               onPress={() => void pickMedia("welcome")}
             />
@@ -340,7 +362,7 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
             {welcomeError ? <Text style={styles.error}>{welcomeError}</Text> : null}
 
             <FolkButton
-              label={welcomeBusy ? "저장 중…" : "자동 발송 활성화 저장"}
+              label={welcomeBusy ? u("저장 중…", "Saving…") : u("자동 발송 활성화 저장", "Save welcome auto-send")}
               onPress={() => void handleSaveWelcome()}
               disabled={welcomeBusy}
             />
@@ -349,16 +371,21 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
           <View style={styles.divider} />
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>전체 팔로워 단체 발송</Text>
+            <Text style={styles.sectionTitle}>{u("전체 팔로워 단체 발송", "Message all followers")}</Text>
             <Text style={styles.sectionSub}>
-              현재 팔로워 {followerCount.toLocaleString()}명 · 백그라운드에서 순차 발송됩니다.
+              {u(
+                `현재 팔로워 ${followerCount.toLocaleString()}명 · 백그라운드에서 순차 발송됩니다.`,
+                `${followerCount.toLocaleString()} followers · sends sequentially in the background.`
+              )}
             </Text>
 
             {activeJob ? (
               <View style={styles.jobBanner}>
                 <Text style={styles.jobText}>
-                  발송 진행 중… {activeJob.sentCount}/{activeJob.totalFollowers}
-                  {activeJob.failedCount > 0 ? ` (실패 ${activeJob.failedCount})` : ""}
+                  {u("발송 진행 중…", "Sending…")} {activeJob.sentCount}/{activeJob.totalFollowers}
+                  {activeJob.failedCount > 0
+                    ? u(` (실패 ${activeJob.failedCount})`, ` (failed ${activeJob.failedCount})`)
+                    : ""}
                 </Text>
               </View>
             ) : null}
@@ -367,13 +394,13 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
               style={styles.textArea}
               value={bulkText}
               onChangeText={setBulkText}
-              placeholder="공지 및 유료 콘텐츠 홍보 문구"
+              placeholder={u("공지 및 유료 콘텐츠 홍보 문구", "Announcement or paid content promo")}
               placeholderTextColor={colors.textMuted}
               multiline
               textAlignVertical="top"
             />
 
-            <Text style={styles.label}>유료 미디어 (선택)</Text>
+            <Text style={styles.label}>{u("유료 미디어 (선택)", "Paid media (optional)")}</Text>
             <PricePicker
               price={bulkPrice}
               customPrice={bulkCustomPrice}
@@ -394,7 +421,7 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
                   color={colors.terracotta}
                 />
                 <Text style={styles.mediaName} numberOfLines={1}>
-                  {bulkMedia.name ?? "첨부됨"} · {formatUsd(bulkEffectivePrice)}
+                  {bulkMedia.name ?? u("첨부됨", "Attached")} · {formatUsd(bulkEffectivePrice)}
                 </Text>
                 <Pressable onPress={() => setBulkMedia(null)} hitSlop={8}>
                   <Ionicons name="close-circle" size={18} color={colors.textMuted} />
@@ -403,7 +430,7 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
             ) : null}
 
             <FolkButton
-              label="사진·동영상 업로드"
+              label={u("사진·동영상 업로드", "Upload photo or video")}
               variant="secondary"
               onPress={() => void pickMedia("bulk")}
             />
@@ -411,7 +438,9 @@ export function CreatorMarketingSheet({ visible, onClose }: Props) {
             {bulkError ? <Text style={styles.error}>{bulkError}</Text> : null}
 
             <FolkButton
-              label={bulkBusy ? "발송 준비 중…" : "전체 팔로워에게 발송하기"}
+              label={
+                bulkBusy ? u("발송 준비 중…", "Preparing send…") : u("전체 팔로워에게 발송하기", "Send to all followers")
+              }
               onPress={() => void handleBulkSend()}
               disabled={bulkBusy || !!activeJob || followerCount === 0}
             />

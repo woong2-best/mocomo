@@ -9,6 +9,7 @@ import { MobileDrawerNav, MobileMenuButton } from "@/components/layout/mobile-dr
 import { HeaderSearch } from "@/components/search/header-search";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
 
 function SearchPill() {
   return (
@@ -27,6 +28,7 @@ export function MobileHubHeader({ className }: { className?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { session, pending, authenticated } = useAuthReady();
   const router = useRouter();
+  const { t } = useLocale();
   const username = session?.user?.username;
   const displayName = session?.user?.name || username || "?";
 
@@ -46,7 +48,7 @@ export function MobileHubHeader({ className }: { className?: string }) {
           <Link
             href="/notifications"
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-muted/60"
-            aria-label="알림"
+            aria-label={t("nav.notifications")}
           >
             <Bell className="h-[22px] w-[22px]" strokeWidth={2} />
           </Link>
@@ -64,7 +66,7 @@ export function MobileHubHeader({ className }: { className?: string }) {
           <Link
             href={`/u/${username}`}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            aria-label="내 프로필"
+            aria-label={t("common.myProfile")}
           >
             <Avatar className="h-8 w-8">
               <AvatarImage src={session?.user?.image ?? undefined} />
@@ -77,7 +79,7 @@ export function MobileHubHeader({ className }: { className?: string }) {
             onClick={() => router.push("/auth/signin")}
             className="inline-flex h-8 shrink-0 items-center rounded-full border border-border px-3 text-xs font-bold text-foreground"
           >
-            로그인
+            {t("common.signIn")}
           </button>
         )}
       </header>

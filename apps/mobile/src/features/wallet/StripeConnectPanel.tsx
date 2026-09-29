@@ -20,6 +20,7 @@ import {
   STRIPE_EXPRESS_SUPPORTED_COUNTRIES,
 } from "@/lib/stripe-express-countries";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useI18n } from "@/i18n/I18nProvider";
 
 async function startExpressConnect(payoutCountry: string, requestCardPayments = false) {
   return apiRequest<{ url: string }>("/api/mobile/settlements/connect-account", {
@@ -37,6 +38,7 @@ async function openExpressDashboard() {
 }
 
 export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }) {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -63,7 +65,7 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
       await Linking.openURL(res.url);
       onConnected?.();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Stripe 연동을 시작할 수 없습니다.");
+      setError(e instanceof Error ? e.message : u("Stripe 연동을 시작할 수 없습니다.", "Could not start Stripe setup."));
     } finally {
       setBusy(false);
     }
@@ -76,7 +78,7 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
       const res = await openExpressDashboard();
       await Linking.openURL(res.url);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Stripe 대시보드를 열 수 없습니다.");
+      setError(e instanceof Error ? e.message : u("Stripe 대시보드를 열 수 없습니다.", "Could not open Stripe dashboard."));
     } finally {
       setBusy(false);
     }
@@ -88,21 +90,35 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
 
   return (
     <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
-      <Text style={[styles.heading, { color: colors.text }]}>Reward 정산 등록</Text>
+      <Text style={[styles.heading, { color: colors.text }]}>{u("Reward 정산 등록", "Reward payout setup")}</Text>
       <Text style={[styles.body, { color: colors.textMuted }]}>
-        Stripe Express 온보딩에서 본인 확인·계좌·세무 정보(W-9/W-8BEN)를 등록합니다.
+        {u(
+          "Stripe Express 온보딩에서 본인 확인·계좌·세무 정보(W-9/W-8BEN)를 등록합니다.",
+          "Complete identity, bank, and tax info (W-9/W-8BEN) in Stripe Express."
+        )}
       </Text>
       <Text style={[styles.body, { color: colors.textMuted }]}>
-        • 해외 Stripe 지원 국가의 은행 계좌를 보유하고 계신 경우 정산 계좌 연동이 가능합니다.
+        {u(
+          "• 해외 Stripe 지원 국가의 은행 계좌를 보유하고 계신 경우 정산 계좌 연동이 가능합니다.",
+          "• Link a bank account in a Stripe-supported country."
+        )}
       </Text>
       <Text style={[styles.body, { color: colors.textMuted }]}>
-        • 정산 계좌(Stripe)를 연동하셔야 팬들로부터 MOCO 후원을 수령할 수 있습니다.
+        {u(
+          "• 정산 계좌(Stripe)를 연동하셔야 팬들로부터 MOCO 후원을 수령할 수 있습니다.",
+          "• Connect Stripe to receive MOCO tips from fans."
+        )}
       </Text>
       <Pressable onPress={() => void Linking.openURL("https://stripe.com/global")}>
-        <Text style={[styles.link, { color: colors.cobalt }]}>Stripe 정산 지원 국가 및 계좌 조건 확인하기</Text>
+        <Text style={[styles.link, { color: colors.cobalt }]}>
+          {u("Stripe 정산 지원 국가 및 계좌 조건 확인하기", "Stripe payout countries & requirements")}
+        </Text>
       </Pressable>
       <Text style={[styles.body, { color: data?.payoutsEnabled ? colors.success : colors.cobalt }]}>
-        정산 수령: {data?.payoutsEnabled ? "가능 (payouts_enabled)" : "불가 — Stripe 연동 미완료"}
+        {u("정산 수령", "Payouts")}:{" "}
+        {data?.payoutsEnabled
+          ? u("가능 (payouts_enabled)", "Enabled (payouts_enabled)")
+          : u("불가 — Stripe 연동 미완료", "Disabled — Stripe not complete")}
       </Text>
       {!data?.payoutsEnabled
         ? data?.payoutDashboard?.reasons.map((reason) => (
@@ -114,19 +130,22 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
 
       {data?.needsExpressMigration ? (
         <Text style={[styles.body, { color: colors.danger }]}>
-          이전 정산 계정은 더 이상 지원되지 않습니다. Express로 다시 연동해 주세요.
+          {u(
+            "이전 정산 계정은 더 이상 지원되지 않습니다. Express로 다시 연동해 주세요.",
+            "Legacy payout accounts are deprecated. Reconnect with Express."
+          )}
         </Text>
       ) : null}
 
       {data?.taxRequirementsDue ? (
         <Text style={[styles.body, { color: colors.cobalt }]}>
-          세무 정보가 미비합니다. Stripe에서 W-9/W-8BEN을 완료해 주세요.
+          {u("세무 정보가 미비합니다. Stripe에서 W-9/W-8BEN을 완료해 주세요.", "Complete W-9/W-8BEN tax forms in Stripe.")}
         </Text>
       ) : null}
 
       {!data?.hasConnectAccount || data?.needsExpressMigration ? (
         <View style={{ gap: 6 }}>
-          <Text style={[styles.body, { color: colors.text }]}>정산받을 계좌 국가</Text>
+          <Text style={[styles.body, { color: colors.text }]}>{u("정산받을 계좌 국가", "Payout bank country")}</Text>
           <Pressable
             onPress={() => setPickerOpen(true)}
             style={[styles.picker, { borderColor: colors.hairline, backgroundColor: colors.surface }]}
@@ -137,35 +156,38 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
             </Text>
           </Pressable>
           <Text style={[styles.body, { color: colors.textMuted }]}>
-            은행 계좌가 있는 국가를 선택하세요. 한국에 거주해도 미국(US) 등 해외 계좌로 정산받을 수 있습니다.
+            {u(
+              "은행 계좌가 있는 국가를 선택하세요. 한국에 거주해도 미국(US) 등 해외 계좌로 정산받을 수 있습니다.",
+              "Choose where your bank account is. You can use US or other overseas accounts while living in Korea."
+            )}
           </Text>
         </View>
       ) : null}
 
       {connected && data?.profile && !data.needsExpressMigration && !data.taxRequirementsDue ? (
         <View style={[styles.okBox, { borderColor: colors.success }]}>
-          <Text style={[styles.okText, { color: colors.success }]}>✓ Reward 정산 등록 완료</Text>
+          <Text style={[styles.okText, { color: colors.success }]}>{u("✓ Reward 정산 등록 완료", "✓ Reward payout ready")}</Text>
           <Text style={[styles.body, { color: colors.textMuted }]}>
             {data.profile.legalName} · ****{data.profile.accountNumberLast4}
           </Text>
         </View>
       ) : linked && !data?.needsExpressMigration ? (
         <Text style={[styles.body, { color: colors.cobalt }]}>
-          Stripe 온보딩을 이어서 완료해 주세요.
+          {u("Stripe 온보딩을 이어서 완료해 주세요.", "Finish Stripe onboarding.")}
         </Text>
       ) : null}
 
       <FolkButton
         label={
           busy
-            ? "Stripe 열기…"
+            ? u("Stripe 열기…", "Opening Stripe…")
             : data?.needsExpressMigration
-              ? "Express로 다시 연동하기"
+              ? u("Express로 다시 연동하기", "Reconnect with Express")
               : !linked
-                ? "Stripe Express 정산 계좌 연동하기"
+                ? u("Stripe Express 정산 계좌 연동하기", "Connect Stripe Express payout")
                 : detailsSubmitted
-                  ? "연동 완료 · 계좌 정보 수정하기"
-                  : "Stripe 온보딩 이어서 진행하기"
+                  ? u("연동 완료 · 계좌 정보 수정하기", "Connected · edit payout details")
+                  : u("Stripe 온보딩 이어서 진행하기", "Continue Stripe onboarding")
         }
         onPress={() => void (detailsSubmitted ? openDashboard() : openOnboarding())}
         loading={busy}
@@ -184,7 +206,7 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
             },
           ]}
         >
-          <Text style={[styles.heading, { color: colors.text }]}>정산받을 계좌 국가</Text>
+          <Text style={[styles.heading, { color: colors.text }]}>{u("정산받을 계좌 국가", "Payout bank country")}</Text>
           <FlatList
             data={STRIPE_EXPRESS_SUPPORTED_COUNTRIES}
             keyExtractor={(item) => item.code}
@@ -202,12 +224,12 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
               </Pressable>
             )}
           />
-          <FolkButton label="닫기" variant="secondary" onPress={() => setPickerOpen(false)} />
+          <FolkButton label={t("common.close")} variant="secondary" onPress={() => setPickerOpen(false)} />
         </View>
       </Modal>
 
       <FolkButton
-        label="상태 새로고침"
+        label={u("상태 새로고침", "Refresh status")}
         variant="secondary"
         onPress={() => void queryClient.invalidateQueries({ queryKey: ["mobile-settlement"] })}
       />

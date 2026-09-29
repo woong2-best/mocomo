@@ -4,6 +4,8 @@ import { Image } from "expo-image";
 import { WebView } from "react-native-webview";
 import { WikiInline, type FootnoteMap } from "@/features/anime/WikiInline";
 import { extractYoutubeId } from "@/features/anime/wiki-youtube";
+import { animeUi } from "@/features/anime/anime-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -38,6 +40,8 @@ function parseTableBlock(lines: string[]): string[][] | null {
 }
 
 function CollapseBlock({ title, body }: { title: string; body: string }) {
+  const { u } = useI18n();
+  const copy = useMemo(() => animeUi(u), [u]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [open, setOpen] = useState(false);
@@ -48,7 +52,7 @@ function CollapseBlock({ title, body }: { title: string; body: string }) {
         <Text style={styles.collapseTitle}>
           {open ? "▾" : "▸"} {title}
         </Text>
-        <Text style={styles.collapseHint}>{open ? "접기" : "스포일러 · 탭하여 펼치기"}</Text>
+        <Text style={styles.collapseHint}>{open ? copy.collapseClose : copy.collapseOpen}</Text>
       </Pressable>
       {open ? (
         <View style={styles.collapseBody}>

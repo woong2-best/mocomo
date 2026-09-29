@@ -56,6 +56,7 @@ import { rememberViewedListing } from "@/features/marketplace/market-memory";
 import { FeedImageLightbox } from "@/features/feed/FeedImageLightbox";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -122,6 +123,7 @@ function HeroVideoSlide({ url, width, active }: { url: string; width: number; ac
 }
 
 export function MarketplaceDetailScreen() {
+  const { t, u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -205,7 +207,7 @@ export function MarketplaceDetailScreen() {
           style={{ width: screenWidth, aspectRatio: 1 }}
           onPress={() => openLightbox(index)}
           accessibilityRole="button"
-          accessibilityLabel="사진 크게 보기"
+          accessibilityLabel={u("사진 크게 보기", "View photo full screen")}
         >
           {isVideo ? (
             <HeroVideoSlide url={slide.url} width={screenWidth} active={heroIndex === index && !lightboxOpen} />
@@ -229,29 +231,36 @@ export function MarketplaceDetailScreen() {
   const star = useMutation({
     mutationFn: () => toggleMarketplaceStar(route.params.id),
     onSuccess: async (res) => {
-      setMsg(res.starred ? "STAR에 저장했습니다." : "STAR에서 뺐습니다.");
+      setMsg(
+        res.starred
+          ? u("STAR에 저장했습니다.", "Saved to STAR.")
+          : u("STAR에서 뺐습니다.", "Removed from STAR.")
+      );
       await invalidate();
       void queryClient.invalidateQueries({ queryKey: ["mobile-star-market"] });
       void queryClient.invalidateQueries({ queryKey: ["mobile-star-hub"] });
     },
-    onError: (err) => setMsg(apiErrMessage(err, "STAR 저장에 실패했습니다.")),
+    onError: (err) => setMsg(apiErrMessage(err, u("STAR 저장에 실패했습니다.", "Could not update STAR."))),
   });
 
   const favorite = useMutation({
     mutationFn: () => toggleMarketplaceFavorite(route.params.id),
     onSuccess: async (res) => {
-      setMsg(res.favorited ? "관심 등록" : "관심 해제");
+      setMsg(res.favorited ? u("관심 등록", "Added to favorites") : u("관심 해제", "Removed from favorites"));
       await invalidate();
     },
-    onError: (err) => setMsg(apiErrMessage(err, "관심 등록에 실패했습니다.")),
+    onError: (err) => setMsg(apiErrMessage(err, u("관심 등록에 실패했습니다.", "Could not update favorites."))),
   });
 
   const trade = useMutation({
     mutationFn: () => startMarketplaceTradeChat(route.params.id),
     onSuccess: (res) => {
-      navigation.navigate("MessageRoom", { roomId: res.roomId, title: "거래 메시지" });
+      navigation.navigate("MessageRoom", {
+        roomId: res.roomId,
+        title: u("거래 메시지", "Trade chat"),
+      });
     },
-    onError: (err) => setMsg(apiErrMessage(err, "채팅을 열 수 없습니다.")),
+    onError: (err) => setMsg(apiErrMessage(err, u("채팅을 열 수 없습니다.", "Could not open chat."))),
   });
 
   const tradeComplete = useMutation({
@@ -259,12 +268,15 @@ export function MarketplaceDetailScreen() {
     onSuccess: async (res) => {
       setMsg(
         res.completed
-          ? "거래가 완료되어 보증금 2 MOCO가 돌아왔습니다."
-          : "거래 완료를 남겼습니다. 상대방도 누르면 보증금이 돌아옵니다."
+          ? u("거래가 완료되어 보증금 2 MOCO가 돌아왔습니다.", "Trade complete — your 2 MOCO deposit was returned.")
+          : u(
+              "거래 완료를 남겼습니다. 상대방도 누르면 보증금이 돌아옵니다.",
+              "You marked the trade complete. When the other party confirms, deposits are returned."
+            )
       );
       await invalidate();
     },
-    onError: (err) => setMsg(apiErrMessage(err, "거래 완료 처리에 실패했습니다.")),
+    onError: (err) => setMsg(apiErrMessage(err, u("거래 완료 처리에 실패했습니다.", "Could not confirm trade."))),
   });
 
   const bid = useMutation({
@@ -280,10 +292,10 @@ export function MarketplaceDetailScreen() {
         return;
       }
       if (!res.amount) {
-        setMsg("입찰에 실패했습니다.");
+        setMsg(u("입찰에 실패했습니다.", "Bid failed."));
         return;
       }
-      setMsg(`입찰 완료 · ${formatUsedPrice(res.amount, item?.currency)}`);
+      setMsg(`${u("입찰 완료", "Bid placed")} · ${formatUsedPrice(res.amount, item?.currency, u)}`);
       setBidText("");
       await invalidate();
     },
@@ -298,29 +310,32 @@ export function MarketplaceDetailScreen() {
         setHoldSheet({ amount: parseListingPriceInput(bidText, item?.currency ?? "krw") });
         return;
       }
-      setMsg(apiErrMessage(err, "입찰에 실패했습니다."));
+      setMsg(apiErrMessage(err, u("입찰에 실패했습니다.", "Bid failed.")));
     },
   });
 
   const onBid = async () => {
     if (USED_AUCTION_RETIRED) {
-      showIslandError("경매 종료", USED_AUCTION_RETIRED_MSG);
+      showIslandError(u("경매 종료", "Auctions ended"), USED_AUCTION_RETIRED_MSG);
       return;
     }
     try {
       const deposit =
         depositQuery.data ?? (await fetchAuctionDepositStatus(route.params.id));
       if (!deposit.canParticipate) {
-        showIslandError("경매 참여 불가", AUCTION_INSUFFICIENT_WALLET_MSG);
+        showIslandError(u("경매 참여 불가", "Cannot bid"), AUCTION_INSUFFICIENT_WALLET_MSG);
         return;
       }
     } catch {
-      showIslandError("경매 참여 불가", "지갑 잔액을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      showIslandError(
+        u("경매 참여 불가", "Cannot bid"),
+        u("지갑 잔액을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.", "Could not verify wallet balance. Try again shortly.")
+      );
       return;
     }
     const amount = parseListingPriceInput(bidText, item?.currency ?? "krw");
     if (!Number.isFinite(amount) || amount <= 0) {
-      showIslandError("입찰가", "올바른 금액을 입력해 주세요.");
+      showIslandError(u("입찰가", "Bid amount"), u("올바른 금액을 입력해 주세요.", "Enter a valid amount."));
       return;
     }
     bid.mutate(amount);
@@ -330,10 +345,10 @@ export function MarketplaceDetailScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.topBar}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Text style={styles.back}>뒤로</Text>
+          <Text style={styles.back}>{t("common.back")}</Text>
         </Pressable>
         <Text style={styles.heading}>
-          {item?.saleType === "AUCTION" && !USED_AUCTION_RETIRED ? "경매" : "상품"}
+          {item?.saleType === "AUCTION" && !USED_AUCTION_RETIRED ? u("경매", "Auction") : u("상품", "Listing")}
         </Text>
         <View style={styles.topActions}>
           {item ? (
@@ -342,10 +357,15 @@ export function MarketplaceDetailScreen() {
               disabled={star.isPending}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel={item.starred ? "STAR 해제" : "STAR 저장"}
+              accessibilityLabel={
+                item.starred ? u("STAR 해제", "Remove from STAR") : u("STAR 저장", "Save to STAR")
+              }
               onPress={() => {
                 if (authStatus !== "signedIn") {
-                  showIslandError("로그인 필요", "STAR 저장은 로그인 후 이용할 수 있습니다.");
+                  showIslandError(
+                    u("로그인 필요", "Sign in required"),
+                    u("STAR 저장은 로그인 후 이용할 수 있습니다.", "Sign in to save to STAR.")
+                  );
                   return;
                 }
                 star.mutate();
@@ -366,10 +386,17 @@ export function MarketplaceDetailScreen() {
               disabled={favorite.isPending}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel={item.favorited ? "관심 해제" : "관심 등록"}
+              accessibilityLabel={
+                item.favorited
+                  ? u("관심 해제", "Remove favorite")
+                  : u("관심 등록", "Add to favorites")
+              }
               onPress={() => {
                 if (authStatus !== "signedIn") {
-                  showIslandError("로그인 필요", "관심 등록은 로그인 후 이용할 수 있습니다.");
+                  showIslandError(
+                    u("로그인 필요", "Sign in required"),
+                    u("관심 등록은 로그인 후 이용할 수 있습니다.", "Sign in to save favorites.")
+                  );
                   return;
                 }
                 favorite.mutate();
@@ -387,7 +414,7 @@ export function MarketplaceDetailScreen() {
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.accent} />
       ) : query.isError || !item ? (
-        <Text style={styles.error}>상품을 불러오지 못했습니다.</Text>
+        <Text style={styles.error}>{u("상품을 불러오지 못했습니다.", "Could not load listing.")}</Text>
       ) : (
         <View style={[styles.flex, { marginBottom: keyboardLift }]}>
         <ScrollView
@@ -433,12 +460,16 @@ export function MarketplaceDetailScreen() {
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.price}>
               {item.saleType === "AUCTION"
-                ? `최소 입찰 ${
+                ? `${u("최소 입찰", "Min bid")} ${
                     item.minNextBid != null
-                      ? formatUsedPrice(item.minNextBid, item.currency)
-                      : formatUsedPrice(Number(item.price ?? 0), item.currency)
-                  }${item.bidCount != null ? ` · 입찰 ${item.bidCount}회` : ""}`
-                : formatUsedPrice(Number(item.price ?? 0), item.currency)}
+                      ? formatUsedPrice(item.minNextBid, item.currency, u)
+                      : formatUsedPrice(Number(item.price ?? 0), item.currency, u)
+                  }${
+                    item.bidCount != null
+                      ? ` · ${u(`입찰 ${item.bidCount}회`, `${item.bidCount} bids`)}`
+                      : ""
+                  }`
+                : formatUsedPrice(Number(item.price ?? 0), item.currency, u)}
             </Text>
             {item.saleType === "AUCTION" && item.auctionEndsAt && !USED_AUCTION_RETIRED ? (
               <View style={styles.timer}>
@@ -454,11 +485,13 @@ export function MarketplaceDetailScreen() {
               tradeMode={item.tradeMode}
             />
             <Text style={styles.sub}>
-              {displayUsedRegion(item.region || "") || "지역 미정"}
+              {displayUsedRegion(item.region || "", u) || u("지역 미정", "Location TBD")}
               {item.seller?.username ? ` · @${item.seller.username}` : ""}
             </Text>
             {item.meetPlace?.trim() ? (
-              <Text style={styles.meetPlace}>거래 희망 장소 · {item.meetPlace.trim()}</Text>
+              <Text style={styles.meetPlace}>
+                {u("거래 희망 장소", "Meetup")} · {item.meetPlace.trim()}
+              </Text>
             ) : null}
 
             <UsedSaleStatsCard
@@ -496,7 +529,7 @@ export function MarketplaceDetailScreen() {
                     }
                   }}
                 >
-                  <Text style={styles.btnText}>메시지 보내기</Text>
+                  <Text style={styles.btnText}>{u("메시지 보내기", "Message")}</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -510,7 +543,10 @@ export function MarketplaceDetailScreen() {
             (item.isOwner || item.isWinningBidder) ? (
               <View style={styles.bidBox}>
                 <Text style={styles.bidLabel}>
-                  약속 시간에 거래 메시지에서 현장 도착 인증을 눌러 주세요. 양쪽이 인증되면 암호코드로 거래를 끝냅니다.
+                  {u(
+                    "약속 시간에 거래 메시지에서 현장 도착 인증을 눌러 주세요. 양쪽이 인증되면 암호코드로 거래를 끝냅니다.",
+                    "At meetup time, confirm arrival in trade chat. When both confirm, finish with the passcode."
+                  )}
                 </Text>
               </View>
             ) : null}
@@ -523,7 +559,10 @@ export function MarketplaceDetailScreen() {
             (item.isOwner || item.isWinningBidder) ? (
               <View style={styles.bidBox}>
                 <Text style={styles.bidLabel}>
-                  거래가 끝나면 판매자와 낙찰자가 각각 거래 완료를 눌러 주세요. 둘 다 누르면 보증금 2 MOCO가 각각 돌아옵니다.
+                  {u(
+                    "거래가 끝나면 판매자와 낙찰자가 각각 거래 완료를 눌러 주세요. 둘 다 누르면 보증금 2 MOCO가 각각 돌아옵니다.",
+                    "When done, seller and winning bidder each tap trade complete. Both deposits return when confirmed."
+                  )}
                 </Text>
                 <Pressable
                   style={[styles.btn, (tradeComplete.isPending || mineTradeConfirmed(item)) && styles.btnDisabled]}
@@ -531,7 +570,9 @@ export function MarketplaceDetailScreen() {
                   onPress={() => tradeComplete.mutate()}
                 >
                   <Text style={styles.btnText}>
-                    {mineTradeConfirmed(item) ? "상대방 확인 대기" : "거래 완료"}
+                    {mineTradeConfirmed(item)
+                      ? u("상대방 확인 대기", "Waiting for other party")
+                      : u("거래 완료", "Mark complete")}
                   </Text>
                 </Pressable>
               </View>
@@ -557,7 +598,7 @@ export function MarketplaceDetailScreen() {
                   style={styles.quickChip}
                   onPress={() => setBidText(usedPriceInputValue(amount, item.currency))}
                 >
-                  <Text style={styles.quickChipText}>{formatUsedPrice(amount, item.currency)}</Text>
+                  <Text style={styles.quickChipText}>{formatUsedPrice(amount, item.currency, u)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -568,7 +609,11 @@ export function MarketplaceDetailScreen() {
               <TextInput
                 style={styles.priceInput}
                 keyboardType={(item.currency ?? "krw") === "usd" ? "decimal-pad" : "number-pad"}
-                placeholder={(item.currency ?? "krw") === "usd" ? "달러로 입력" : "금액 입력"}
+                placeholder={
+                  (item.currency ?? "krw") === "usd"
+                    ? u("달러로 입력", "Amount in USD")
+                    : u("금액 입력", "Enter amount")
+                }
                 placeholderTextColor={colors.textMuted}
                 value={bidText}
                 onChangeText={setBidText}
@@ -579,7 +624,7 @@ export function MarketplaceDetailScreen() {
               disabled={bid.isPending}
               onPress={onBid}
             >
-              <Text style={styles.btnText}>입찰하기</Text>
+              <Text style={styles.btnText}>{u("입찰하기", "Place bid")}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -606,7 +651,7 @@ export function MarketplaceDetailScreen() {
           onClose={() => setHoldSheet(null)}
           onSuccess={async (res) => {
             setHoldSheet(null);
-            setMsg(`입찰 완료 · ${formatUsedPrice(res.amount, item?.currency)}`);
+            setMsg(`${u("입찰 완료", "Bid placed")} · ${formatUsedPrice(res.amount, item?.currency, u)}`);
             setBidText("");
             await invalidate();
           }}

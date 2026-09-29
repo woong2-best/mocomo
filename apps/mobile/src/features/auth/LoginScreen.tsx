@@ -37,6 +37,7 @@ import { useTheme } from "@/theme/ThemeContext";
 import { spacing } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { IslandToastScreenSlot } from "@/ui/IslandToast";
+import { useI18n } from "@/i18n/I18nProvider";
 
 /** Matches the cream sky fill of welcome-bg.jpg so letterbox edges never show. */
 const BACKDROP = "#E8DFD0";
@@ -70,6 +71,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 /** MoCoMo welcome login — Google + native credentials. */
 export function LoginScreen({ navigation, route }: Props) {
   const addAccountMode = route.params?.addAccount === true;
+  const { t, u } = useI18n();
   const { colors } = useTheme();
   const {
     openWebAuth,
@@ -208,11 +210,16 @@ export function LoginScreen({ navigation, route }: Props) {
             return;
           }
           setCredentialsError(
-            credentialsErrorMessage(e, "Google 로그인에 실패했습니다. 다시 시도해 주세요.")
+            credentialsErrorMessage(
+              e,
+              u("Google 로그인에 실패했습니다. 다시 시도해 주세요.", "Google sign-in failed. Please try again.")
+            )
           );
         }
       } catch (e) {
-        setCredentialsError(credentialsErrorMessage(e, "인증을 완료하지 못했습니다."));
+        setCredentialsError(
+          credentialsErrorMessage(e, u("인증을 완료하지 못했습니다.", "Could not complete sign-in."))
+        );
       } finally {
         setBusyProvider(null);
       }
@@ -279,7 +286,9 @@ export function LoginScreen({ navigation, route }: Props) {
         setPendingBirth(null);
         setShowCelebration(true);
       } catch (e) {
-        setSignupError(credentialsErrorMessage(e, "계정을 만들지 못했습니다."));
+        setSignupError(
+          credentialsErrorMessage(e, u("계정을 만들지 못했습니다.", "Could not create account."))
+        );
         setPendingSignup(snapshot);
       } finally {
         setSignupBusy(false);
@@ -296,7 +305,9 @@ export function LoginScreen({ navigation, route }: Props) {
       await signInWithCredentials(loginId, password);
       await finishAddAccountIfNeeded();
     } catch (e) {
-      setCredentialsError(credentialsErrorMessage(e, "로그인에 실패했습니다."));
+      setCredentialsError(
+        credentialsErrorMessage(e, u("로그인에 실패했습니다.", "Sign-in failed."))
+      );
     } finally {
       setCredentialsBusy(false);
     }
@@ -320,9 +331,9 @@ export function LoginScreen({ navigation, route }: Props) {
             style={[styles.addAccountClose, { top: insets.top + 8 }]}
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
-            accessibilityLabel="닫기"
+            accessibilityLabel={t("common.close")}
           >
-            <Text style={styles.addAccountCloseText}>닫기</Text>
+            <Text style={styles.addAccountCloseText}>{t("common.close")}</Text>
           </Pressable>
         ) : null}
         <View
@@ -350,7 +361,7 @@ export function LoginScreen({ navigation, route }: Props) {
               navigation.navigate("PasswordReset");
             }}
           >
-            비밀번호 재설정
+            {t("auth.passwordResetTab")}
           </Text>
         </View>
       </View>

@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { API_BASE_URL } from "@/config/env";
 import { SIGNUP_PRIVACY_PATH, SIGNUP_TERMS_PATH } from "@/lib/signup-legal-links";
 import type { SignupOnboardingBirth } from "@/features/auth/SignupOnboardingSheet";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 import { radii } from "@/theme/tokens";
@@ -61,6 +62,7 @@ function Checkbox({
   label: string;
   linkPath: string;
 }) {
+  const { u } = useI18n();
   return (
     <View style={styles.checkRow}>
       <Pressable style={styles.checkTap} onPress={onPress} hitSlop={8}>
@@ -76,11 +78,11 @@ function Checkbox({
           ) : null}
         </View>
         <Text style={[styles.checkLabel, { color: colors.text }]}>
-          (필수) {label}
+          {u("(필수)", "(Required)")} {label}
         </Text>
       </Pressable>
       <Pressable onPress={() => void Linking.openURL(`${WEB}${linkPath}`)} hitSlop={8}>
-        <Text style={[styles.viewLink, { color: colors.textMuted }]}>보기 ›</Text>
+        <Text style={[styles.viewLink, { color: colors.textMuted }]}>{u("보기 ›", "View ›")}</Text>
       </Pressable>
     </View>
   );
@@ -133,6 +135,7 @@ export function TermsConsentSheet({
   onClose,
   onAgree,
 }: Props) {
+  const { t, u } = useI18n();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [terms, setTerms] = useState(false);
@@ -187,15 +190,15 @@ export function TermsConsentSheet({
           <View style={styles.brandWrap}>
             <Text style={styles.brandMark}>MoCoMo</Text>
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>회원가입</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t("auth.signupTitle")}</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            생년월일과 필수 약관에 동의해 주세요.
+            {u("생년월일과 필수 약관에 동의해 주세요.", "Enter your date of birth and accept the required terms.")}
           </Text>
 
           {account ? (
             <View style={styles.accountLine}>
               <Text style={[styles.accountName, { color: colors.text }]} numberOfLines={1}>
-                {account.name || account.email || "새 계정"}
+                {account.name || account.email || u("새 계정", "New account")}
               </Text>
               {account.email ? (
                 <Text style={[styles.accountEmail, { color: colors.textMuted }]} numberOfLines={1}>
@@ -205,10 +208,12 @@ export function TermsConsentSheet({
             </View>
           ) : null}
 
-          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>생년월일 *</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+            {u("생년월일 *", "Date of birth *")}
+          </Text>
           <View style={styles.birthRow}>
             <BirthField
-              label="년"
+              label={u("년", "Year")}
               value={birthYear}
               onChangeText={setBirthYear}
               placeholder="YYYY"
@@ -216,7 +221,7 @@ export function TermsConsentSheet({
               colors={colors}
             />
             <BirthField
-              label="월"
+              label={u("월", "Month")}
               value={birthMonth}
               onChangeText={setBirthMonth}
               placeholder="MM"
@@ -224,7 +229,7 @@ export function TermsConsentSheet({
               colors={colors}
             />
             <BirthField
-              label="일"
+              label={u("일", "Day")}
               value={birthDay}
               onChangeText={setBirthDay}
               placeholder="DD"
@@ -233,7 +238,10 @@ export function TermsConsentSheet({
             />
           </View>
           <Text style={[styles.birthHint, { color: colors.textMuted }]}>
-            허위 생년월일 기재 시 약관에 따라 계정이 제한될 수 있습니다.
+            {u(
+              "허위 생년월일 기재 시 약관에 따라 계정이 제한될 수 있습니다.",
+              "False birth dates may lead to account restrictions under our terms."
+            )}
           </Text>
 
           <View style={styles.consentBlock}>
@@ -241,14 +249,14 @@ export function TermsConsentSheet({
               colors={colors}
               checked={terms}
               onPress={() => setTerms((v) => !v)}
-              label="이용약관 동의"
+              label={t("auth.termsOfService")}
               linkPath={SIGNUP_TERMS_PATH}
             />
             <Checkbox
               colors={colors}
               checked={privacy}
               onPress={() => setPrivacy((v) => !v)}
-              label="개인정보 처리방침 동의"
+              label={t("auth.privacyPolicy")}
               linkPath={SIGNUP_PRIVACY_PATH}
             />
           </View>
@@ -267,7 +275,12 @@ export function TermsConsentSheet({
             disabled={!canSubmit}
             onPress={() => {
               if (!birthOk) {
-                setLocalError("생년월일을 확인해 주세요. (연 4자리, 월·일 각 2자리)");
+                setLocalError(
+                  u(
+                    "생년월일을 확인해 주세요. (연 4자리, 월·일 각 2자리)",
+                    "Check your date of birth. (4-digit year, 2-digit month and day)"
+                  )
+                );
                 return;
               }
               setLocalError("");
@@ -287,7 +300,7 @@ export function TermsConsentSheet({
                   { color: canSubmit ? colors.textOnAccent : colors.textMuted },
                 ]}
               >
-                동의하고 계속
+                {u("동의하고 계속", "Agree and continue")}
               </Text>
             )}
           </Pressable>

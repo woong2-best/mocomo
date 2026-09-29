@@ -20,6 +20,7 @@ import { formatUsd } from "@/lib/money";
 import { PaymentCheckoutSheet } from "@/payments/PaymentCheckoutSheet";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -42,6 +43,7 @@ export function CommentDonationSheet({
   channelId,
   onSuccess,
 }: Props) {
+  const { u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { user } = useAuth();
@@ -66,11 +68,16 @@ export function CommentDonationSheet({
 
   async function submit() {
     if (effectiveAmount < MIN_TIP_USD_CENTS) {
-      setError(`최소 ${formatUsd(MIN_TIP_USD_CENTS)}부터 후원할 수 있습니다.`);
+      setError(
+        u(
+          `최소 ${formatUsd(MIN_TIP_USD_CENTS)}부터 후원할 수 있습니다.`,
+          `Minimum tip is ${formatUsd(MIN_TIP_USD_CENTS)}.`
+        )
+      );
       return;
     }
     if (!trimmed) {
-      setError("채팅에 표시할 메시지를 입력해 주세요.");
+      setError(u("채팅에 표시할 메시지를 입력해 주세요.", "Enter a message to show in chat."));
       return;
     }
     setBusy(true);
@@ -78,7 +85,7 @@ export function CommentDonationSheet({
     setPayBody({
       type: "TIP",
       amount: effectiveAmount,
-      orderName: `${displayName} 댓글 후원`,
+      orderName: u(`${displayName} 댓글 후원`, `${displayName} chat tip`),
       metadata: {
         receiverId: creatorId,
         username,
@@ -94,8 +101,15 @@ export function CommentDonationSheet({
   return (
     <>
       <KeyboardSheet visible={visible} onClose={onClose} maxHeight="88%" sheetStyle={{ backgroundColor: colors.surface }}>
-        <Text style={styles.title}>{displayName}에게 감사를 전하세요</Text>
-        <Text style={styles.sub}>댓글 후원을 구매하면 채팅에 하이라이트 댓글이 게시됩니다.</Text>
+        <Text style={styles.title}>
+          {u(`${displayName}에게 감사를 전하세요`, `Send thanks to ${displayName}`)}
+        </Text>
+        <Text style={styles.sub}>
+          {u(
+            "댓글 후원을 구매하면 채팅에 하이라이트 댓글이 게시됩니다.",
+            "Purchasing a chat tip posts a highlighted message in chat."
+          )}
+        </Text>
 
         <View style={styles.preview}>
           <View style={[styles.previewHeader, { backgroundColor: tier.headerBg }]}>
@@ -108,7 +122,9 @@ export function CommentDonationSheet({
                   <Text style={styles.badgeText}>{formatUsd(effectiveAmount)}</Text>
                 </View>
               </View>
-              <Text style={styles.previewMsg}>{trimmed || "후원 메시지 미리보기…"}</Text>
+              <Text style={styles.previewMsg}>
+                {trimmed || u("후원 메시지 미리보기…", "Tip message preview…")}
+              </Text>
             </View>
           </View>
         </View>
@@ -134,7 +150,10 @@ export function CommentDonationSheet({
           style={styles.input}
           value={custom}
           onChangeText={setCustom}
-          placeholder={`금액 직접 입력 (최소 ${formatUsd(MIN_TIP_USD_CENTS)})`}
+          placeholder={u(
+            `금액 직접 입력 (최소 ${formatUsd(MIN_TIP_USD_CENTS)})`,
+            `Custom amount (min ${formatUsd(MIN_TIP_USD_CENTS)})`
+          )}
           placeholderTextColor={colors.textMuted}
           keyboardType="number-pad"
         />
@@ -143,7 +162,7 @@ export function CommentDonationSheet({
           style={[styles.input, styles.textarea]}
           value={message}
           onChangeText={(t) => setMessage(t.slice(0, COMMENT_DONATION_MESSAGE_MAX))}
-          placeholder="채팅에 표시할 메시지 (필수)"
+          placeholder={u("채팅에 표시할 메시지 (필수)", "Message for chat (required)")}
           placeholderTextColor={colors.textMuted}
           multiline
           maxLength={COMMENT_DONATION_MESSAGE_MAX}
@@ -152,7 +171,12 @@ export function CommentDonationSheet({
           {trimmed.length}/{COMMENT_DONATION_MESSAGE_MAX}
         </Text>
 
-        <Text style={styles.fee}>수수료 10% · 크리에이터 정산 {formatUsd(creatorGets)}</Text>
+        <Text style={styles.fee}>
+          {u(
+            `수수료 10% · 크리에이터 정산 ${formatUsd(creatorGets)}`,
+            `10% fee · Creator receives ${formatUsd(creatorGets)}`
+          )}
+        </Text>
 
         <Pressable
           style={[styles.submit, busy && styles.submitDisabled]}
@@ -162,7 +186,9 @@ export function CommentDonationSheet({
           {busy ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.submitText}>구매 후 보내기 · {formatUsd(effectiveAmount)}</Text>
+            <Text style={styles.submitText}>
+              {u("구매 후 보내기", "Pay & send")} · {formatUsd(effectiveAmount)}
+            </Text>
           )}
         </Pressable>
 

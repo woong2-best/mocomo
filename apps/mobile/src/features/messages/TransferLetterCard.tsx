@@ -14,6 +14,7 @@ import {
 import Svg, { Path, Polygon } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatAtmLetterDate } from "@/lib/chat-atm-letter";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   amount: number;
@@ -80,6 +81,7 @@ function LetterStage({
   onClose,
   ...props
 }: Props & { onClose: () => void }) {
+  const { u } = useI18n();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const slide = useRef(new Animated.Value(0)).current;
@@ -119,7 +121,11 @@ function LetterStage({
   return (
     <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={close}>
       <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="편지 닫기" />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={close}
+          accessibilityLabel={u("편지 닫기", "Close letter")}
+        />
         <Animated.View
           pointerEvents="none"
           style={[styles.envFloat, { opacity: envOpacity, top: insets.top + height * 0.22 }]}
@@ -142,6 +148,7 @@ function LetterStage({
 }
 
 export function TransferLetterCard(props: Props) {
+  const { u } = useI18n();
   const { width } = useWindowDimensions();
   const [open, setOpen] = useState(false);
   const inlineW = Math.min(210, Math.max(160, width * 0.58));
@@ -151,12 +158,12 @@ export function TransferLetterCard(props: Props) {
       <Pressable
         onPress={() => setOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel="편지 열기"
+        accessibilityLabel={u("편지 열기", "Open letter")}
         style={({ pressed }) => [pressed && { transform: [{ scale: 0.98 }] }]}
       >
         <EnvelopeGraphic width={inlineW} />
       </Pressable>
-      <Text style={styles.hint}>봉투를 눌러 편지를 여세요</Text>
+      <Text style={styles.hint}>{u("봉투를 눌러 편지를 여세요", "Tap the envelope to open the letter")}</Text>
       {open ? <LetterStage {...props} onClose={() => setOpen(false)} /> : null}
     </View>
   );

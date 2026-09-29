@@ -26,12 +26,14 @@ import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { formatUsd } from "@/lib/money";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function formatPrice(amount: number, _currency?: string) {
   return formatUsd(amount);
 }
 
 export function StarMarketDetailScreen() {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -65,17 +67,17 @@ export function StarMarketDetailScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.topBar}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Text style={styles.back}>뒤로</Text>
+          <Text style={styles.back}>{t("common.back")}</Text>
         </Pressable>
         <Text style={styles.heading} numberOfLines={1}>
-          상품
+          {u("상품", "Product")}
         </Text>
       </View>
 
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.accent} />
       ) : query.isError || !item ? (
-        <Text style={styles.error}>상품을 불러오지 못했습니다.</Text>
+        <Text style={styles.error}>{u("상품을 불러오지 못했습니다.", "Could not load product.")}</Text>
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
           <SensitiveContentGate enabled={nsfwGate} style={{ width, height: width }}>
@@ -119,10 +121,10 @@ export function StarMarketDetailScreen() {
                 {item.seller.displayName || item.seller.name || `@${item.seller.username}`}
               </Text>
             ) : null}
-            {item.category ? <Text style={styles.meta}>카테고리 · {item.category}</Text> : null}
-            {item.stock != null ? <Text style={styles.meta}>재고 · {item.stock}</Text> : null}
+            {item.category ? <Text style={styles.meta}>{u("카테고리", "Category")} · {item.category}</Text> : null}
+            {item.stock != null ? <Text style={styles.meta}>{u("재고", "Stock")} · {item.stock}</Text> : null}
             {item.salesCount != null && item.salesCount > 0 ? (
-              <Text style={styles.meta}>판매 · {item.salesCount.toLocaleString()}</Text>
+              <Text style={styles.meta}>{u("판매", "Sold")} · {item.salesCount.toLocaleString()}</Text>
             ) : null}
             {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
             {item.tags?.length ? (
@@ -137,11 +139,11 @@ export function StarMarketDetailScreen() {
             {!item.isOwner && item.paymentsEnabled ? (
               <View style={{ gap: 10, marginTop: spacing.md }}>
                 <FolkButton
-                  label={`${formatPrice(item.priceAmount, item.currency)} 구매하기`}
+                  label={u(`${formatPrice(item.priceAmount, item.currency)} 구매하기`, `Buy for ${formatPrice(item.priceAmount, item.currency)}`)}
                   onPress={() => setBuyOpen(true)}
                 />
                 <FolkButton
-                  label="장바구니 담기"
+                  label={u("장바구니 담기", "Add to cart")}
                   variant="secondary"
                   onPress={() => {
                     void addToMarketplaceCart({
@@ -150,21 +152,24 @@ export function StarMarketDetailScreen() {
                       priceAmount: item.priceAmount,
                       currency: item.currency,
                       coverUrl: item.coverUrl,
-                    }).then(() => showIslandSuccess("장바구니", "상품을 담았습니다."));
+                    }).then(() => showIslandSuccess(u("장바구니", "Cart"), u("상품을 담았습니다.", "Added to cart.")));
                   }}
                 />
                 <FolkButton
-                  label="찜하기"
+                  label={u("찜하기", "Wishlist")}
                   variant="secondary"
                   onPress={() => {
                     void toggleMarketFavorite(item.id).then((r) =>
-                      showIslandInfo("찜", r.favorited ? "찜 목록에 추가했습니다." : "찜을 해제했습니다.")
+                      showIslandInfo(
+                        u("찜", "Wishlist"),
+                        r.favorited ? u("찜 목록에 추가했습니다.", "Added to wishlist.") : u("찜을 해제했습니다.", "Removed from wishlist.")
+                      )
                     );
                   }}
                 />
               </View>
             ) : !item.paymentsEnabled ? (
-              <Text style={styles.meta}>결제 연동 후 구매할 수 있습니다.</Text>
+              <Text style={styles.meta}>{u("결제 연동 후 구매할 수 있습니다.", "Available after seller enables payments.")}</Text>
             ) : null}
           </View>
           {item ? (
@@ -172,7 +177,7 @@ export function StarMarketDetailScreen() {
               visible={buyOpen}
               onClose={() => setBuyOpen(false)}
               item={item}
-              onSuccess={() => showIslandSuccess("구매 완료", "주문이 접수되었습니다.")}
+              onSuccess={() => showIslandSuccess(u("구매 완료", "Purchase complete"), u("주문이 접수되었습니다.", "Your order was placed."))}
             />
           ) : null}
         </ScrollView>

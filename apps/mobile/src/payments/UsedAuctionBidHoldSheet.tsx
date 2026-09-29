@@ -19,6 +19,7 @@ import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { formatUsedPrice } from "@/features/marketplace/used-catalog";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const RETURN_PREFIX = Linking.createURL("payment/success");
 
@@ -39,6 +40,7 @@ export function UsedAuctionBidHoldSheet({
   onClose,
   onSuccess,
 }: Props) {
+  const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
@@ -64,10 +66,10 @@ export function UsedAuctionBidHoldSheet({
         setSelectedId(def?.id ?? null);
       })
       .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : "입찰 hold 준비에 실패했습니다.");
+        setError(e instanceof Error ? e.message : u("입찰 hold 준비에 실패했습니다.", "Could not prepare bid hold."));
       })
       .finally(() => setLoading(false));
-  }, [visible, listingId, bidAmount]);
+  }, [visible, listingId, bidAmount, u]);
 
   async function placeBidWithHold(paymentIntentDbId: string) {
     const placed = await placeMarketplaceBid(listingId, bidAmount, {
@@ -75,14 +77,14 @@ export function UsedAuctionBidHoldSheet({
       paymentIntentDbId,
     });
     if (placed.error) throw new Error(placed.error);
-    if (!placed.amount) throw new Error("입찰에 실패했습니다.");
+    if (!placed.amount) throw new Error(u("입찰에 실패했습니다.", "Bid failed."));
     onSuccess({ amount: placed.amount, extended: placed.extended });
     onClose();
   }
 
   async function openAuthenticate(clientSecret: string, oid: string) {
     const pk = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-    if (!pk) throw new Error("Stripe 설정이 없습니다.");
+    if (!pk) throw new Error(u("Stripe 설정이 없습니다.", "Stripe is not configured."));
     const returnTo = encodeURIComponent(`/market/${listingId}`);
     const authUrl = `${process.env.EXPO_PUBLIC_API_BASE_URL ?? ""}/payments/authenticate?order_id=${encodeURIComponent(oid)}&client_secret=${encodeURIComponent(clientSecret)}&return_to=${returnTo}`;
     const result = await WebBrowser.openAuthSessionAsync(authUrl, RETURN_PREFIX, {
@@ -90,14 +92,14 @@ export function UsedAuctionBidHoldSheet({
       showInRecents: true,
     });
     if (result.type !== "success" || !result.url) {
-      throw new Error("카드 인증이 취소되었습니다.");
+      throw new Error(u("카드 인증이 취소되었습니다.", "Card verification was canceled."));
     }
     await placeBidWithHold(oid);
   }
 
   async function paySelected() {
     if (!orderId || !selectedId) {
-      setError("카드를 선택해 주세요.");
+      setError(u("카드를 선택해 주세요.", "Select a card."));
       return;
     }
     setPaying(true);
@@ -114,7 +116,7 @@ export function UsedAuctionBidHoldSheet({
       }
       await placeBidWithHold(orderId);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "카드 승인에 실패했습니다.");
+      setError(e instanceof Error ? e.message : u("카드 승인에 실패했습니다.", "Card authorization failed."));
     } finally {
       setPaying(false);
     }
@@ -124,9 +126,9 @@ export function UsedAuctionBidHoldSheet({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { backgroundColor: colors.surfaceRaised }]}>
-          <Text style={[styles.title, { color: colors.text }]}>입찰 카드 hold</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{u("입찰 카드 hold", "Bid card hold")}</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            입찰 {formatUsedPrice(bidAmount, currency)} · hold {formatUsedPrice(holdAmount, "usd")}
+            {u("입찰", "Bid")} {formatUsedPrice(bidAmount, currency)} · hold {formatUsedPrice(holdAmount, "usd")}
           </Text>
 
           {loading ? (
@@ -147,7 +149,7 @@ export function UsedAuctionBidHoldSheet({
                 >
                   <Text style={[styles.cardTitle, { color: colors.text }]}>
                     {pm.brand} •••• {pm.last4}
-                    {pm.isDefault ? " · 기본" : ""}
+                    {pm.isDefault ? u(" · 기본", " · Default") : ""}
                   </Text>
                 </Pressable>
               ))}
@@ -157,9 +159,9 @@ export function UsedAuctionBidHoldSheet({
           {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
 
           <View style={styles.actions}>
-            <FolkButton label="취소" variant="ghost" onPress={onClose} disabled={paying} />
+            <FolkButton label={t("toast.cancel")} variant="ghost" onPress={onClose} disabled={paying} />
             <FolkButton
-              label={paying ? "처리 중…" : "승인 후 입찰"}
+              label={paying ? u("처리 중…", "Processing…") : u("승인 후 입찰", "Authorize and bid")}
               onPress={() => void paySelected()}
               loading={paying}
               disabled={!selectedId || loading}

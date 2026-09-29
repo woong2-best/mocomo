@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -12,6 +12,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LiveFolderRack } from "@/features/live/LiveFolderRack";
 import type { MobileLiveCategoryId } from "@/features/live/live-categories";
+import { liveUi } from "@/features/live/live-ui";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const OPEN_MS = 280;
 const CLOSE_MS = 220;
@@ -30,6 +32,8 @@ export function LiveCategorySlidePanel({
   onClose,
   onSelectCategory,
 }: Props) {
+  const { u } = useI18n();
+  const copy = useMemo(() => liveUi(u), [u]);
   const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [presented, setPresented] = useState(false);
@@ -76,7 +80,7 @@ export function LiveCategorySlidePanel({
           style={[StyleSheet.absoluteFill, styles.scrim, { opacity: backdropOpacity }]}
           pointerEvents={visible ? "auto" : "none"}
         >
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="닫기" />
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={copy.close} />
         </Animated.View>
         <Animated.View
           style={[
@@ -94,9 +98,9 @@ export function LiveCategorySlidePanel({
             style={[styles.allHit, allOn && styles.allHitOn]}
             accessibilityRole="button"
             accessibilityState={{ selected: allOn }}
-            accessibilityLabel="전체"
+            accessibilityLabel={copy.all}
           >
-            <Text style={[styles.allText, allOn && styles.allTextOn]}>전체</Text>
+            <Text style={[styles.allText, allOn && styles.allTextOn]}>{copy.all}</Text>
             {allOn ? <View style={styles.catDot} /> : <View style={styles.catDotSpacer} />}
           </Pressable>
 

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Parts = {
   ended: boolean;
@@ -38,13 +39,6 @@ export function auctionCountdownParts(endsAt: string | null | undefined, now = D
   };
 }
 
-const CELLS = [
-  ["days", "일"],
-  ["hours", "시"],
-  ["minutes", "분"],
-  ["seconds", "초"],
-] as const;
-
 export function AuctionCountdown({
   endsAt,
   variant = "compact",
@@ -54,7 +48,20 @@ export function AuctionCountdown({
   variant?: "compact" | "clock";
   tone?: "brand" | "gold";
 }) {
+  const { u } = useI18n();
+  const cells = useMemo(
+    () =>
+      [
+        ["days", u("일", "d")],
+        ["hours", u("시", "h")],
+        ["minutes", u("분", "m")],
+        ["seconds", u("초", "s")],
+      ] as const,
+    [u]
+  );
   const [parts, setParts] = useState<Parts | null>(null);
+  const a11yEnded = u("경매 마감", "Auction ended");
+  const a11yRemaining = (text: string) => u(`남은 시간 ${text}`, `Time left ${text}`);
 
   useEffect(() => {
     const tick = () => setParts(auctionCountdownParts(endsAt));
@@ -70,15 +77,21 @@ export function AuctionCountdown({
 
   if (variant === "compact") {
     return (
-      <View style={[styles.compact, chip]} accessibilityLabel={parts?.ended ? "경매 마감" : `남은 시간 ${parts?.text ?? ""}`}>
+      <View
+        style={[styles.compact, chip]}
+        accessibilityLabel={parts?.ended ? a11yEnded : a11yRemaining(parts?.text ?? "")}
+      >
         <Text style={[styles.compactText, styles[digit]]}>{parts?.text ?? "--:--:--:--"}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.clock} accessibilityLabel={parts?.ended ? "경매 마감" : `남은 시간 ${parts?.text ?? ""}`}>
-      {CELLS.map(([key, label], index) => (
+    <View
+      style={styles.clock}
+      accessibilityLabel={parts?.ended ? a11yEnded : a11yRemaining(parts?.text ?? "")}
+    >
+      {cells.map(([key, label], index) => (
         <View key={key} style={styles.cellWrap}>
           {index > 0 ? <Text style={[styles.colon, styles[digit]]}>:</Text> : null}
           <View style={styles.cell}>

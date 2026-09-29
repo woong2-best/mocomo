@@ -27,6 +27,7 @@ import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { DirectTradeDisputeSheet } from "@/features/marketplace/DirectTradeDisputeSheet";
 import { MarketDisputeScaleIcon } from "@/ui/icons/MarketDisputeScaleIcon";
 import { Screen } from "@/ui/Screen";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -41,20 +42,24 @@ type MarketHomeProps = {
   onOpenLane?: (lane: HubLane, q?: string) => void;
 };
 
-const SHORTCUTS: {
-  lane?: HubLane;
-  my?: boolean;
-  label: string;
-  icon?: keyof typeof Ionicons.glyphMap;
-}[] = [
-  { lane: "purchased", label: "구매내역", icon: "bag-handle-outline" },
-  { my: true, label: "판매내역", icon: "logo-usd" },
-  { lane: "favorites", label: "찜리스트", icon: "heart-outline" },
-  { lane: "disputes", label: "분쟁" },
-];
-
 export function MarketHomeScreen(props: MarketHomeProps = {}) {
   const { embedded = false, onClose, onOpenLane } = props;
+  const { t, u } = useI18n();
+  const shortcuts = useMemo(
+    () =>
+      [
+        { lane: "purchased" as const, label: u("구매내역", "Purchases"), icon: "bag-handle-outline" as const },
+        { my: true, label: u("판매내역", "Sales"), icon: "logo-usd" as const },
+        { lane: "favorites" as const, label: u("찜리스트", "Favorites"), icon: "heart-outline" as const },
+        { lane: "disputes" as const, label: u("분쟁", "Disputes") },
+      ] satisfies {
+        lane?: HubLane;
+        my?: boolean;
+        label: string;
+        icon?: keyof typeof Ionicons.glyphMap;
+      }[],
+    [u]
+  );
   const { colors, isDark } = useTheme();
   const icon = isDark ? colors.text : colors.brand;
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -116,7 +121,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
               onPress={() => navigation.navigate("Main", { screen: "Home" })}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel="뒤로"
+              accessibilityLabel={t("common.back")}
             >
               <Ionicons name="chevron-back" size={26} color={icon} />
             </Pressable>
@@ -124,12 +129,12 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
         ) : null}
 
         <View style={[styles.sectionHead, embedded && styles.sectionHeadEmbeddedTop]}>
-          <Text style={styles.sectionTitle}>최근검색어</Text>
+          <Text style={styles.sectionTitle}>{u("최근검색어", "Recent searches")}</Text>
           <Pressable
             hitSlop={10}
             onPress={() => setClearOpen(true)}
             accessibilityRole="button"
-            accessibilityLabel="최근 검색어 메뉴"
+            accessibilityLabel={u("최근 검색어 메뉴", "Recent search menu")}
           >
             <Ionicons name="ellipsis-horizontal" size={18} color={icon} />
           </Pressable>
@@ -141,7 +146,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
           contentContainerStyle={styles.chipRow}
         >
           {recentQ.length === 0 ? (
-            <Text style={styles.muted}>최근 검색어가 없습니다</Text>
+            <Text style={styles.muted}>{u("최근 검색어가 없습니다", "No recent searches")}</Text>
           ) : (
             recentQ.map((term) => (
               <Pressable key={term} style={styles.chip} onPress={() => openLane("all", term)}>
@@ -154,7 +159,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
         </ScrollView>
 
         <View style={styles.shortcutRow}>
-          {SHORTCUTS.map((item) => (
+          {shortcuts.map((item) => (
             <Pressable
               key={item.label}
               style={styles.shortcut}
@@ -180,7 +185,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
         </View>
 
         <ProductRail
-          title="최근 본 상품"
+          title={u("최근 본 상품", "Recently viewed")}
           items={recent.data?.items ?? []}
           loading={recent.isLoading && recentIds.length > 0}
           onMore={() => openLane("all")}
@@ -192,7 +197,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
           styles={styles}
         />
         <ProductRail
-          title="추천상품"
+          title={u("추천상품", "Recommended")}
           items={recommend.data?.items ?? []}
           loading={recommend.isLoading}
           onMore={() => openLane("recommend")}
@@ -250,7 +255,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
                 });
               }}
             >
-              <Text style={styles.popupBtnText}>검색어 초기화</Text>
+              <Text style={styles.popupBtnText}>{u("검색어 초기화", "Clear search history")}</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -287,19 +292,20 @@ function ProductRail({
   ink: string;
   styles: ReturnType<typeof createStyles>;
 }) {
+  const { u } = useI18n();
   return (
     <View style={styles.rail}>
       <View style={styles.sectionHead}>
         <Text style={styles.railTitle}>{title}</Text>
         <Pressable onPress={onMore} style={styles.moreBtn} accessibilityRole="button">
-          <Text style={styles.moreText}>전체보기</Text>
+          <Text style={styles.moreText}>{u("전체보기", "See all")}</Text>
           <Ionicons name="chevron-forward" size={16} color={ink} />
         </Pressable>
       </View>
       {loading ? (
         <ActivityIndicator color={ink} style={{ marginVertical: 24 }} />
       ) : items.length === 0 ? (
-        <Text style={styles.muted}>아직 상품이 없습니다</Text>
+        <Text style={styles.muted}>{u("아직 상품이 없습니다", "No listings yet")}</Text>
       ) : (
         <View style={styles.grid}>
           {items.slice(0, 4).map((item) => (

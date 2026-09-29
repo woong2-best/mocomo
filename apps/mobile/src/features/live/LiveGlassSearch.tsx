@@ -4,6 +4,8 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useI18n } from "@/i18n/I18nProvider";
+import { liveUi } from "@/features/live/live-ui";
 import Animated, {
   Easing,
   Extrapolation,
@@ -23,6 +25,8 @@ type Props = {
 };
 
 export function LiveGlassSearch({ value, onChangeText, expandedWidth }: Props) {
+  const { u } = useI18n();
+  const copy = liveUi(u);
   const inputRef = useRef<TextInput>(null);
   const open = useSharedValue(0);
   const [openUi, setOpenUi] = useState(false);
@@ -72,7 +76,7 @@ export function LiveGlassSearch({ value, onChangeText, expandedWidth }: Props) {
           ref={inputRef}
           value={value}
           onChangeText={onChangeText}
-          placeholder="닉네임, 제목"
+          placeholder={copy.searchPlaceholder}
           placeholderTextColor="rgba(255,255,255,0.55)"
           style={[styles.input, openUi && value.length > 0 ? styles.inputWithClear : null]}
           returnKeyType="search"
@@ -86,7 +90,7 @@ export function LiveGlassSearch({ value, onChangeText, expandedWidth }: Props) {
           onPress={() => onChangeText("")}
           hitSlop={8}
           style={styles.clear}
-          accessibilityLabel="검색어 지우기"
+          accessibilityLabel={copy.clearSearch}
         >
           <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.75)" />
         </Pressable>
@@ -96,7 +100,7 @@ export function LiveGlassSearch({ value, onChangeText, expandedWidth }: Props) {
         hitSlop={8}
         style={styles.iconHit}
         accessibilityRole="button"
-        accessibilityLabel={openUi ? "검색 닫기" : "검색"}
+        accessibilityLabel={copy.searchToggle(openUi)}
       >
         <Ionicons name="search" size={20} color="#FFFFFF" />
         {!openUi && value.length > 0 ? <View style={styles.dot} /> : null}

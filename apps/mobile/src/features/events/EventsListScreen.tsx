@@ -20,30 +20,21 @@ import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
-
-const EVENT_CATEGORY_LINE = "팬아트 · 코스프레 · 굿즈 · 오프라인 · 버츄얼";
-
-const FILTER_TAGS = [
-  { id: "all", label: "전체", hash: null },
-  { id: "fanart", label: "팬아트", hash: "#팬아트" },
-  { id: "cosplay", label: "코스프레", hash: "#코스프레" },
-  { id: "goods", label: "굿즈", hash: "#굿즈" },
-  { id: "virtual", label: "버츄얼", hash: "#버츄얼" },
-  { id: "meetup", label: "행사", hash: "#행사" },
-  { id: "other", label: "이벤트", hash: "#이벤트" },
-] as const;
+import { useI18n } from "@/i18n/I18nProvider";
+import { eventsUi } from "@/features/events/events-ui";
 
 const PURPLE = "#A855F7";
 const PURPLE_LIGHT = "#C084FC";
 
-function formatRange(startsAt: string, endsAt: string) {
+function formatRange(startsAt: string, endsAt: string, locale: string) {
   const s = new Date(startsAt);
   const e = new Date(endsAt);
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  return `${s.toLocaleDateString("ko-KR", opts)} – ${e.toLocaleDateString("ko-KR", opts)}`;
+  const loc = locale === "ko" ? "ko-KR" : "en-US";
+  return `${s.toLocaleDateString(loc, opts)} – ${e.toLocaleDateString(loc, opts)}`;
 }
 
-function eventDday(endsAt: string): string {
+function eventDday(endsAt: string, endedLabel: string): string {
   const end = new Date(endsAt);
   if (Number.isNaN(end.getTime())) return "—";
   const now = new Date();
@@ -53,11 +44,26 @@ function eventDday(endsAt: string): string {
     (startOfEnd.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24)
   );
   if (diff === 0) return "D-Day";
-  if (diff < 0) return "종료";
+  if (diff < 0) return endedLabel;
   return `D-${diff}`;
 }
 
 export function EventsListScreen() {
+  const { u, locale } = useI18n();
+  const copy = useMemo(() => eventsUi(u), [u]);
+  const filterTags = useMemo(
+    () =>
+      [
+        { id: "all", label: copy.tabAll, hash: null },
+        { id: "fanart", label: copy.tabFanart, hash: "#팬아트" },
+        { id: "cosplay", label: copy.tabCosplay, hash: "#코스프레" },
+        { id: "goods", label: copy.tabGoods, hash: "#굿즈" },
+        { id: "virtual", label: copy.tabVirtual, hash: "#버츄얼" },
+        { id: "meetup", label: copy.tabMeetup, hash: "#행사" },
+        { id: "other", label: copy.tabOther, hash: "#이벤트" },
+      ] as const,
+    [copy]
+  );
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
@@ -103,29 +109,29 @@ export function EventsListScreen() {
         )}
         <View style={styles.cardBody}>
           <View style={styles.cardMeta}>
-            <Text style={styles.dday}>{eventDday(item.endsAt)}</Text>
-            <Text style={styles.participants}>{item.participantCount}명 참여</Text>
+            <Text style={styles.dday}>{eventDday(item.endsAt, copy.ended)}</Text>
+            <Text style={styles.participants}>{copy.participants(item.participantCount)}</Text>
           </View>
           <Text style={styles.cardTitle} numberOfLines={2}>
             {item.title}
           </Text>
-          <Text style={styles.cardSub}>{formatRange(item.startsAt, item.endsAt)}</Text>
+          <Text style={styles.cardSub}>{formatRange(item.startsAt, item.endsAt, locale)}</Text>
         </View>
       </Pressable>
     ),
-    [navigation, styles]
+    [copy.ended, copy.participants, locale, navigation, styles]
   );
 
   const listHeader = (
     <View style={styles.headerBlock}>
       <View style={styles.titleRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.pageTitle}>이벤트</Text>
-          <Text style={styles.categoryLine}>{EVENT_CATEGORY_LINE}</Text>
+          <Text style={styles.pageTitle}>{copy.eventsTitle}</Text>
+          <Text style={styles.categoryLine}>{copy.categoryLine}</Text>
         </View>
         <Pressable style={styles.registerBtn} onPress={onRegisterEvent}>
           <Ionicons name="add-circle-outline" size={18} color="#fff" />
-          <Text style={styles.registerBtnText}>이벤트 등록</Text>
+          <Text style={styles.registerBtnText}>{copy.registerEvent}</Text>
         </Pressable>
       </View>
 
@@ -153,7 +159,7 @@ export function EventsListScreen() {
             <View style={styles.featuredOverlay} />
             <View style={styles.featuredContent}>
               <Text style={styles.featuredType}>
-                {FILTER_TAGS.find((t) => t.id === featured.type)?.label ?? featured.type}
+                {filterTags.find((t) => t.id === featured.type)?.label ?? featured.type}
               </Text>
               <Text style={styles.featuredTitle} numberOfLines={2}>
                 {featured.title}
@@ -168,7 +174,7 @@ export function EventsListScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterRow}
       >
-        {FILTER_TAGS.map((tag) => {
+        {filterTags.map((tag) => {
           const active = filter === tag.id;
           return (
             <Pressable
@@ -191,11 +197,11 @@ export function EventsListScreen() {
       <View style={styles.emptyIcon}>
         <Ionicons name="sparkles" size={28} color={PURPLE} />
       </View>
-      <Text style={styles.emptyTitle}>✨ 아직 진행 중인 이벤트가 없습니다. ✨</Text>
-      <Text style={styles.emptySub}>첫 번째 이벤트를 등록해보세요.</Text>
+      <Text style={styles.emptyTitle}>{copy.emptyEventsTitle}</Text>
+      <Text style={styles.emptySub}>{copy.emptyEventsSub}</Text>
       <Pressable style={styles.registerBtnLarge} onPress={onRegisterEvent}>
         <Ionicons name="add-circle-outline" size={20} color="#fff" />
-        <Text style={styles.registerBtnText}>이벤트 등록</Text>
+        <Text style={styles.registerBtnText}>{copy.registerEvent}</Text>
       </Pressable>
     </View>
   );
@@ -204,7 +210,7 @@ export function EventsListScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.topBar}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Text style={styles.back}>뒤로</Text>
+          <Text style={styles.back}>{copy.back}</Text>
         </Pressable>
         <View style={{ width: 40 }} />
       </View>
@@ -212,7 +218,7 @@ export function EventsListScreen() {
       {query.isLoading && !query.data ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={PURPLE} />
       ) : query.isError && !query.data ? (
-        <Text style={styles.error}>이벤트 목록을 불러오지 못했습니다.</Text>
+        <Text style={styles.error}>{copy.loadListError}</Text>
       ) : (
         <FlatList
           data={filtered}
