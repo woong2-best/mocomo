@@ -1,19 +1,20 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCurrentCoords, geolocationErrorMessage } from "@/lib/client-geolocation";
+import {
+  googleSearchUrlForMeet,
+  marketplaceMeetLocationQuery,
+  marketplaceMeetMapUrl,
+} from "@/lib/maps/external-url";
 import type { MeetCoords } from "@/lib/maps/types";
+import { parseUsedRegion } from "@/lib/korea-regions";
 import { getRegionMapCenter, isShippingOnlyRegion } from "@/lib/used-region-coords";
 import { cn } from "@/lib/utils";
-
-const MapLibreMeetMapCanvas = dynamic(
-  () => import("@/components/maps/MapLibreMeetMapCanvas").then((m) => m.MapLibreMeetMapCanvas),
-  { ssr: false }
-);
+import { MapLibreMeetMapCanvas } from "@/components/maps/MapLibreMeetMapCanvas";
 
 export type MeetMapViewProps = {
   mode: "view" | "pick";
@@ -44,12 +45,21 @@ export function MeetMapView({
   const [searching, setSearching] = useState(false);
   const [resolveError, setResolveError] = useState("");
   const [mapError, setMapError] = useState("");
+  const [mapReady, setMapReady] = useState(false);
   const [displayCoords, setDisplayCoords] = useState<MeetCoords | null>(coords ?? null);
   const activeCoords = coords ?? displayCoords;
 
   const regionCenter = useMemo(() => getRegionMapCenter(region, country), [region, country]);
   const center = activeCoords ?? { lat: regionCenter.lat, lng: regionCenter.lng };
   const zoom = activeCoords ? 16 : regionCenter.zoom;
+
+  const markerPopup = useMemo(() => {
+    if (mode !== "view" || !activeCoords) return null;
+    const locationQuery = marketplaceMeetLocationQuery({ region, place: meetPlace });
+    const searchUrl = locationQuery ? googleSearchUrlForMeet({ place: meetPlace, region }) : "";
+    const mapUrl = marketplaceMeetMapUrl({ region, place: meetPlace, coords: activeCoords });
+    return { title: locationQuery || "거래 장소", searchUrl, mapUrl };
+  }, [mode, activeCoords, meetPlace, region]);
 
   useEffect(() => {
     setMapError("");
@@ -92,6 +102,7 @@ export function MeetMapView({
   }, []);
 
   const handleMapReady = useCallback(() => {
+    setMapReady(true);
     setMapError("");
   }, []);
 
@@ -126,6 +137,8 @@ export function MeetMapView({
     setResolveError("");
     try {
       const params = new URLSearchParams({ q, country, region });
+      const parsedRegion = parseUsedRegion(region);
+      if (parsedRegion?.sigungu) params.set("place", parsedRegion.sigungu);
       const res = await fetch(`/api/used/geocode?${params}`);
       const body = (await res.json()) as {
         lat?: number;
@@ -211,14 +224,25 @@ export function MeetMapView({
           heightClassName
         )}
       >
+        {!mapReady ? (
+          <iframe
+            title="거래 장소 지도"
+            src={`https://www.google.com/maps?q=${center.lat},${center.lng}&z=${Math.max(1, Math.round(zoom))}&output=embed`}
+            className="absolute inset-0 h-full w-full border-0"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        ) : null}
         <MapLibreMeetMapCanvas
           mode={mode}
           center={center}
           zoom={zoom}
           marker={activeCoords}
+          markerPopup={markerPopup}
           onPick={interactive ? handlePick : undefined}
           onError={handleMapEngineError}
           onReady={handleMapReady}
+          className={mapReady ? undefined : "pointer-events-none opacity-0"}
         />
         {!activeCoords && mode === "pick" && (
           <div className="absolute bottom-2 left-2 right-2 z-10 pointer-events-none">

@@ -3,15 +3,13 @@ import {
   displayAuctionPrice,
   displayUsedRegion,
   formatUsedPrice,
-  formatUsedTimeAgo,
   isAuctionListing,
   listingImages,
 } from "@/lib/used-market";
 import { isAuctionLive } from "@/lib/used-auction";
 import { UsedAuctionCountdown } from "@/components/used/used-auction-countdown";
 import { UsedListingThumb } from "@/components/used/used-listing-thumb";
-import { UsedListingHeartButton } from "@/components/used/used-listing-heart-button";
-import { Eye, Heart } from "lucide-react";
+import { UsedListingStarButton } from "@/components/used/used-listing-star-button";
 
 type Listing = {
   id: string;
@@ -38,6 +36,7 @@ type Listing = {
   viewCount?: number;
   favoriteCount?: number;
   favorited?: boolean;
+  starred?: boolean;
   _count?: { favorites?: number };
 };
 
@@ -75,52 +74,52 @@ export function UsedListingCard({
   const region = displayUsedRegion(listing.region) || "지역 미정";
 
   return (
-    <article className="relative flex gap-3 px-1 py-3.5">
-      <Link href={`/market/${listing.id}`} prefetch={false} className="flex min-w-0 flex-1 gap-3">
-        <div className="relative h-[108px] w-[108px] shrink-0 overflow-hidden rounded-lg bg-muted">
+    <article className="group relative bg-card ring-1 ring-inset ring-border/50">
+      <Link href={`/market/${listing.id}`} prefetch={false} className="block">
+        <div className="relative aspect-square overflow-hidden bg-muted">
           <UsedListingThumb
             thumb={thumb ?? null}
-            dense
             isNsfw={listing.isNsfw}
             isOwner={isOwner}
             viewerShowNsfw={viewerShowNsfw}
           />
+          {auction ? (
+            <span className="absolute left-1.5 top-1.5 rounded bg-zinc-950/80 px-1.5 py-0.5 text-[10px] font-extrabold text-orange-400">
+              {live ? "경매중" : "경매"}
+            </span>
+          ) : null}
+          {auction && listing.auctionEndsAt && listing.status === "SELLING" ? (
+            <div className="absolute bottom-1.5 left-1.5">
+              <UsedAuctionCountdown
+                endsAt={
+                  listing.auctionEndsAt instanceof Date
+                    ? listing.auctionEndsAt.toISOString()
+                    : String(listing.auctionEndsAt)
+                }
+                variant="compact"
+              />
+            </div>
+          ) : null}
         </div>
-        <div className="min-w-0 flex-1 pr-7">
-          <p className="line-clamp-2 text-[15px] font-bold leading-5">{listing.title}</p>
-          <p className="mt-1 truncate text-xs font-semibold text-muted-foreground">
-            {region}
-            {auction && listing.auctionEndsAt && listing.status === "SELLING" ? null : (
-              <> · {formatUsedTimeAgo(listing.createdAt)}</>
-            )}
-          </p>
-          <p className="mt-1.5 text-base font-extrabold text-folk-terracotta">
+        <div className="space-y-0.5 p-2">
+          <p className="line-clamp-2 text-[13px] font-bold leading-4">{listing.title}</p>
+          <p className="text-sm font-extrabold text-folk-terracotta">
             {auction && (listing.bidCount ?? 0) > 0 ? "현재 " : ""}
             {formatUsedPrice(showPrice, listing.currency)}
           </p>
-          <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-muted-foreground tabular-nums">
-            <Eye className="h-3.5 w-3.5" />
-            {listing.viewCount ?? 0}
-            <Heart className="ml-2 h-3.5 w-3.5" />
-            {listing.favoriteCount ?? listing._count?.favorites ?? 0}
-          </p>
-          {auction && listing.auctionEndsAt && listing.status === "SELLING" ? (
-            <UsedAuctionCountdown endsAt={listing.auctionEndsAt} variant="compact" />
-          ) : null}
+          <p className="truncate text-[11px] font-semibold text-muted-foreground">{region}</p>
           {live && (listing.bidCount ?? 0) > 0 ? (
-            <p className="mt-1 text-xs font-semibold text-muted-foreground">입찰 {listing.bidCount}</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">입찰 {listing.bidCount}</p>
           ) : null}
         </div>
       </Link>
-      {!isOwner ? (
-        <div className="absolute bottom-3 right-0">
-          <UsedListingHeartButton
-            listingId={listing.id}
-            initialFavorited={!!listing.favorited}
-            size="sm"
-          />
-        </div>
-      ) : null}
+      <div className="absolute right-1.5 top-1.5 z-10">
+        <UsedListingStarButton
+          listingId={listing.id}
+          initialStarred={!!listing.starred}
+          variant="overlay"
+        />
+      </div>
     </article>
   );
 }

@@ -211,12 +211,9 @@ export function UsedAuctionBidSheet({
 
   const usdBid = (currency ?? "").toLowerCase() === "usd";
   const step = usdBid ? 100 : 1000;
-  const presets = quickBids ?? [
-    minBid,
-    minBid + step,
-    minBid + step * 5,
-    minBid + step * 10,
-  ].filter((v, i, a) => a.indexOf(v) === i);
+  const presets = quickBids ?? [0, 1, 2, 4]
+    .map((n) => minBid + n * step)
+    .filter((v, i, a) => a.indexOf(v) === i);
 
   const bidAmountNum = parseUsedAmountInput(amount, currency) || minBid;
 

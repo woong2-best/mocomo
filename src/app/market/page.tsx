@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Package } from "lucide-react";
-import { getUsedListings, isUsedDbReady } from "@/actions/used-market";
+import { getUsedListings, getViewerUsedListingStarIds, isUsedDbReady } from "@/actions/used-market";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resolveUsedMarketScope } from "@/lib/used-market-locale-scope";
@@ -86,9 +86,17 @@ async function UsedFeed({
     );
   }
 
+  const starredIds = session?.user?.id
+    ? await getViewerUsedListingStarIds(
+        session.user.id,
+        listings.map((listing) => listing.id)
+      )
+    : [];
+  const starredSet = new Set(starredIds);
+
   return (
     <UsedListingGrid
-      listings={listings}
+      listings={listings.map((listing) => ({ ...listing, starred: starredSet.has(listing.id) }))}
       viewerUserId={session?.user?.id ?? null}
       viewerShowNsfw={viewerShowNsfw}
     />

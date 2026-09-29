@@ -6,16 +6,19 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, MoreHorizontal, Trash2 } from "lucide-react";
 import { deleteUsedListing } from "@/actions/used-market";
 import { UsedListingHeartButton } from "@/components/used/used-listing-heart-button";
+import { UsedListingStarButton } from "@/components/used/used-listing-star-button";
 
 export function UsedDetailHeader({
   listingId,
   isSeller,
   initialFavorited = false,
+  initialStarred = false,
   heading = "상품",
 }: {
   listingId: string;
   isSeller: boolean;
   initialFavorited?: boolean;
+  initialStarred?: boolean;
   heading?: string;
 }) {
   const router = useRouter();
@@ -37,6 +40,7 @@ export function UsedDetailHeader({
         </Link>
         <p className="min-w-0 flex-1 truncate text-xl font-extrabold">{heading}</p>
         <div className="flex items-center">
+          <UsedListingStarButton listingId={listingId} initialStarred={initialStarred} />
           {!isSeller ? (
             <UsedListingHeartButton listingId={listingId} initialFavorited={initialFavorited} />
           ) : null}

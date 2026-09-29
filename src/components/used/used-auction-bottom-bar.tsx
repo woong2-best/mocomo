@@ -30,6 +30,7 @@ export function UsedAuctionBottomBar({
   auctionLive,
   auctionState,
   minBid,
+  bidIncrement,
   buyNowPrice,
   isWinningBidder,
   restrictedKind = "NONE",
@@ -47,6 +48,7 @@ export function UsedAuctionBottomBar({
   auctionLive: boolean;
   auctionState?: string | null;
   minBid: number;
+  bidIncrement?: number | null;
   buyNowPrice?: number | null;
   isWinningBidder?: boolean;
   restrictedKind?: UsedRestrictedKind | string;
@@ -258,6 +260,9 @@ export function UsedAuctionBottomBar({
           listingId={listingId}
           minBid={minBid}
           buyNowPrice={buyNowPrice}
+          quickBids={[0, 1, 2, 4].map(
+            (n) => minBid + n * (bidIncrement && bidIncrement > 0 ? bidIncrement : currency === "usd" ? 100 : 1000)
+          )}
           restrictedKind={restrictedKind}
           currency={currency}
           availableMocoBalance={availableMocoBalance}

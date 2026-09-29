@@ -1,47 +1,88 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from "maplibre-gl";
+import type { Map as MapLibreMap, Marker as MapLibreMarker, Popup as MapLibrePopup, StyleSpecification } from "maplibre-gl";
 import { loadMapLibre } from "@/lib/maps/maplibre-loader";
 import type { MeetCoords } from "@/lib/maps/types";
 import { cn } from "@/lib/utils";
+
+type MarkerPopup = {
+  title: string;
+  searchUrl: string;
+  mapUrl: string;
+};
 
 type Props = {
   mode: "view" | "pick";
   center: MeetCoords;
   zoom: number;
   marker: MeetCoords | null;
+  markerPopup?: MarkerPopup | null;
   onPick?: (coords: MeetCoords) => void;
   onError?: (message: string) => void;
   onReady?: () => void;
   className?: string;
 };
 
-const OSM_STYLE = {
+const ESRI_SATELLITE_STYLE = {
   version: 8 as const,
   sources: {
-    osm: {
+    "satellite-tiles": {
       type: "raster" as const,
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tiles: [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      ],
       tileSize: 256,
-      attribution: "&copy; OpenStreetMap contributors",
+      attribution: "Tiles © Esri",
     },
   },
   layers: [
     {
-      id: "osm",
+      id: "satellite-layer",
       type: "raster" as const,
-      source: "osm",
+      source: "satellite-tiles",
       minzoom: 0,
-      maxzoom: 19,
+      maxzoom: 22,
     },
   ],
 } satisfies StyleSpecification;
 
-export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onError, onReady, className }: Props) {
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function popupHtml(popup: MarkerPopup) {
+  const links = [
+    popup.searchUrl
+      ? `<a href="${escapeHtml(popup.searchUrl)}" target="_blank" rel="noopener noreferrer">Google 검색</a>`
+      : "",
+    popup.mapUrl
+      ? `<a href="${escapeHtml(popup.mapUrl)}" target="_blank" rel="noopener noreferrer">Google 지도</a>`
+      : "",
+  ].filter(Boolean);
+  const linkBlock = links.length ? `<div class="meet-map-popup-links">${links.join("")}</div>` : "";
+  return `<strong class="meet-map-popup-title">${escapeHtml(popup.title)}</strong>${linkBlock}`;
+}
+
+export function MapLibreMeetMapCanvas({
+  mode,
+  center,
+  zoom,
+  marker,
+  markerPopup,
+  onPick,
+  onError,
+  onReady,
+  className,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<MapLibreMarker | null>(null);
+  const popupRef = useRef<MapLibrePopup | null>(null);
   const onPickRef = useRef(onPick);
   const onErrorRef = useRef(onError);
   const onReadyRef = useRef(onReady);
@@ -60,7 +101,7 @@ export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onEr
 
         const map = new maplibregl.Map({
           container: containerRef.current,
-          style: OSM_STYLE,
+          style: ESRI_SATELLITE_STYLE,
           center: [center.lng, center.lat],
           zoom,
           attributionControl: {},
@@ -105,6 +146,8 @@ export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onEr
     return () => {
       cancelled = true;
       resizeObserver?.disconnect();
+      popupRef.current?.remove();
+      popupRef.current = null;
       markerRef.current?.remove();
       markerRef.current = null;
       mapRef.current?.remove();
@@ -121,11 +164,15 @@ export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onEr
     const map = mapRef.current;
     if (!map) return;
     void loadMapLibre().then((maplibregl) => {
+      popupRef.current?.remove();
+      popupRef.current = null;
+
       if (!marker) {
         markerRef.current?.remove();
         markerRef.current = null;
         return;
       }
+
       if (markerRef.current) {
         markerRef.current.setLngLat([marker.lng, marker.lat]);
       } else {
@@ -133,8 +180,31 @@ export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onEr
           .setLngLat([marker.lng, marker.lat])
           .addTo(map);
       }
-    });
-  }, [marker?.lat, marker?.lng]);
 
-  return <div ref={containerRef} className={cn("absolute inset-0", className)} />;
+      if (mode === "view" && markerPopup) {
+        const el = markerRef.current.getElement();
+        el.style.cursor = "pointer";
+        const openPopup = () => {
+          popupRef.current?.remove();
+          popupRef.current = new maplibregl.Popup({
+            className: "meet-map-popup",
+            closeButton: true,
+            closeOnClick: true,
+            maxWidth: "240px",
+            offset: 14,
+          })
+            .setLngLat([marker.lng, marker.lat])
+            .setHTML(popupHtml(markerPopup))
+            .addTo(map);
+        };
+        el.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          openPopup();
+        };
+      }
+    });
+  }, [marker?.lat, marker?.lng, mode, markerPopup]);
+
+  return <div ref={containerRef} className={cn("absolute inset-0 meet-map-canvas", className)} />;
 }

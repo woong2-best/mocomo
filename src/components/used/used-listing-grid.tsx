@@ -15,7 +15,7 @@ export function UsedListingGrid({
   viewerShowNsfw?: boolean;
 }) {
   return (
-    <div className="divide-y divide-border/80">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0 -mx-4 border-y border-border/60">
       {listings.map((listing) => (
         <UsedListingCard
           key={listing.id}

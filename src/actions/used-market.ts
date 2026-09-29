@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { getOrCreateDM, sendMessage } from "@/actions/chat";
+import { openMarketListingChat } from "@/lib/market-trade-chat";
 import {
   Prisma,
   type UsedListingCategory,
@@ -199,6 +199,26 @@ export async function getUsedListings(
   }
 }
 
+export async function getViewerUsedListingStarIds(userId: string, listingIds: string[]) {
+  if (listingIds.length === 0) return [] as string[];
+  const rows = await db.usedListingStar.findMany({
+    where: { userId, listingId: { in: listingIds } },
+    select: { listingId: true },
+  });
+  return rows.map((row) => row.listingId);
+}
+
+export async function confirmUsedAuctionTrade(listingId: string) {
+  const user = await requireAuth();
+  const result = await confirmAuctionTradeComplete(user.id, listingId);
+  if (!("error" in result)) {
+    revalidatePath(`/market/${listingId}`);
+    revalidatePath("/market/my");
+    revalidatePath("/market");
+  }
+  return result;
+}
+
 export async function getUsedListing(id: string, viewerId?: string) {
   try {
     let listing;
@@ -241,6 +261,27 @@ export async function getUsedListing(id: string, viewerId?: string) {
       });
     }
     if (!listing) return null;
+
+    if (
+      (listing.meetLat == null || listing.meetLng == null) &&
+      listing.meetPlace?.trim() &&
+      !isUsedShippingRegion(listing.region) &&
+      !listing.region.includes("Shipping")
+    ) {
+      void geocodeMeetQuery({
+        country: listing.meetCountry ?? "KR",
+        region: listing.region,
+        place: listing.meetPlace.trim(),
+      })
+        .then(async (geo) => {
+          if (!geo) return;
+          await db.usedListing.update({
+            where: { id },
+            data: { meetLat: geo.lat, meetLng: geo.lng },
+          });
+        })
+        .catch(() => undefined);
+    }
 
     const visibilityErr = await assertUsedMarketListingVisible({
       userId: viewerId,
@@ -295,6 +336,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
       : Promise.resolve([]);
 
     let favorited = false;
+    let starred = false;
     let buyerChatRoomId: string | null = null;
     let myHighestBid: number | null = null;
     let isWinningBidder = false;
@@ -309,6 +351,9 @@ export async function getUsedListing(id: string, viewerId?: string) {
             })
             .catch(() => null),
           db.usedFavorite.findUnique({
+            where: { userId_listingId: { userId: viewerId, listingId: id } },
+          }),
+          db.usedListingStar.findUnique({
             where: { userId_listingId: { userId: viewerId, listingId: id } },
           }),
           db.usedListingChat
@@ -375,9 +420,10 @@ export async function getUsedListing(id: string, viewerId?: string) {
     }
 
     if (viewerResult) {
-      const [viewer, fav, tradeChat, myBid] = viewerResult;
+      const [viewer, fav, starRow, tradeChat, myBid] = viewerResult;
       viewerAdultVerified = isUsedAdultVerified(viewer ?? { birthDate: null });
       favorited = !!fav;
+      starred = !!starRow;
       buyerChatRoomId = tradeChat?.roomId ?? null;
       if (isAuction) {
         isWinningBidder =
@@ -390,6 +436,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
     return {
       listing,
       favorited,
+      starred,
       favoriteCount,
       chatCount,
       buyerChatRoomId,
@@ -669,6 +716,36 @@ export async function deleteUsedListing(listingId: string) {
   return { success: true };
 }
 
+export async function toggleUsedListingStar(listingId: string) {
+  const user = await requireAuth();
+  const listing = await db.usedListing.findUnique({
+    where: { id: listingId },
+    select: { id: true, sellerId: true, meetCountry: true, region: true },
+  });
+  if (!listing) return { error: "게시글을 찾을 수 없습니다." };
+  const visibleErr = await assertUsedMarketListingVisible({
+    userId: user.id,
+    listing,
+  });
+  if (visibleErr) return { error: visibleErr };
+
+  const existing = await db.usedListingStar.findUnique({
+    where: { userId_listingId: { userId: user.id, listingId } },
+  });
+  if (existing) {
+    await db.usedListingStar.delete({ where: { id: existing.id } });
+    revalidatePath("/market");
+    revalidatePath(`/market/${listingId}`);
+    revalidatePath("/star");
+    return { starred: false as const };
+  }
+  await db.usedListingStar.create({ data: { userId: user.id, listingId } });
+  revalidatePath("/market");
+  revalidatePath(`/market/${listingId}`);
+  revalidatePath("/star");
+  return { starred: true as const };
+}
+
 export async function toggleUsedFavorite(listingId: string) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({
@@ -744,21 +821,13 @@ export async function startUsedTradeChat(listingId: string) {
     include: { seller: { select: { id: true, username: true } } },
   });
   if (!listing) return { error: "게시글을 찾을 수 없습니다." };
-  if (listing.sellerId === user.id) return { error: "본인 글에는 채팅할 수 없습니다." };
-  const tradeErr = await assertUsedMarketTradeAccess({
-    userId: user.id,
-    buyerCountry: user.countryCode,
-    listing,
-  });
-  if (tradeErr) return { error: tradeErr };
-  if (listing.status === "SOLD") return { error: "이미 거래 완료된 상품입니다." };
-  if (
-    listing.saleType === "AUCTION" &&
-    listing.auctionEndsAt &&
-    listing.auctionEndsAt.getTime() > Date.now() &&
-    listing.auctionState !== "ENDED"
-  ) {
-    return { error: "경매 진행 중에는 채팅 대신 입찰을 이용해 주세요." };
+  if (listing.sellerId !== user.id) {
+    const tradeErr = await assertUsedMarketTradeAccess({
+      userId: user.id,
+      buyerCountry: user.countryCode,
+      listing,
+    });
+    if (tradeErr) return { error: tradeErr };
   }
 
   const adultErr = assertUsedAdultForRestricted(
@@ -767,30 +836,9 @@ export async function startUsedTradeChat(listingId: string) {
   );
   if (adultErr) return { error: adultErr, needsAdultVerify: true as const };
 
-  const dm = await getOrCreateDM(listing.sellerId);
-  if ("error" in dm && dm.error) return { error: dm.error };
-  if (!("room" in dm) || !dm.room) return { error: "채팅방을 열 수 없습니다." };
-
-  try {
-    await db.usedListingChat.upsert({
-      where: { listingId_buyerId: { listingId, buyerId: user.id } },
-      create: { listingId, roomId: dm.room.id, buyerId: user.id },
-      update: { roomId: dm.room.id },
-    });
-  } catch {
-    /* DB 미적용 시에도 채팅은 진행 */
-  }
-
-  const priceText = formatUsedPrice(listing.price, listing.currency);
-  const intro = `안녕하세요! 중고거래 문의합니다.\n\n상품: ${listing.title}\n가격: ${priceText}\n링크: /used/${listing.id}`;
-  try {
-    await sendMessage({ roomId: dm.room.id, content: intro });
-  } catch {
-    /* 메시지 실패해도 방으로 이동 */
-  }
-
-  revalidatePath(`/market/${listingId}`);
-  return { roomId: dm.room.id };
+  const opened = await openMarketListingChat(user.id, listingId);
+  if ("roomId" in opened && opened.roomId) revalidatePath(`/market/${listingId}`);
+  return opened;
 }
 
 /** 판매자 — 이 글에 연결된 채팅방 목록 */

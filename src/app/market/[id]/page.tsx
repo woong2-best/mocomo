@@ -30,25 +30,19 @@ import { ContentModerationBar } from "@/components/moderation/content-moderation
 import {
 
   displayAuctionPrice,
-
+  displayUsedRegion,
   formatUsedPrice,
-
-  formatUsedTimeAgo,
-
   listingImages,
-
-  usedCategoryLabel,
-
   usedStatusLabel,
-
 } from "@/lib/used-market";
+import { UsedAuctionCountdown } from "@/components/used/used-auction-countdown";
+import { UsedAuctionTradeComplete } from "@/components/used/used-auction-trade-complete";
 import {
   SubcultureMetaBadges,
   SubcultureMetaDetail,
   parseSubcultureMetaFromDb,
 } from "@/components/used/subculture-meta-badges";
 import { UsedSaleStatsPanel } from "@/components/used/used-sale-stats-panel";
-import { UsedWtbAlertPanel } from "@/components/used/used-wtb-alert-panel";
 
 import { isAuctionListing, minNextBidAmount } from "@/lib/used-auction";
 import { getMocoBalanceSnapshot } from "@/lib/auction-deposit";
@@ -77,8 +71,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
     listing,
 
     favorited,
-
-    favoriteCount,
+    starred,
 
     chatCount,
 
@@ -171,6 +164,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
         listingId={listing.id}
         isSeller={!!isSeller}
         initialFavorited={favorited}
+        initialStarred={starred}
         heading={isAuction ? "경매" : "상품"}
       />
 
@@ -232,28 +226,43 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
               시작가 {formatUsedPrice(listing.price, listing.currency)}
             </p>
           )}
+          {isAuction && listing.auctionEndsAt && listing.status === "SELLING" ? (
+            <UsedAuctionCountdown
+              endsAt={
+                listing.auctionEndsAt instanceof Date
+                  ? listing.auctionEndsAt.toISOString()
+                  : String(listing.auctionEndsAt)
+              }
+            />
+          ) : null}
           {listing.description ? (
             <p className="whitespace-pre-wrap pt-2 text-sm leading-6 text-foreground">{listing.description}</p>
           ) : null}
-          <SubcultureMetaBadges
-            productType={listing.productType}
-            characterName={listing.characterName}
-            conditionGrade={listing.conditionGrade}
-            limitedKind={listing.limitedKind}
-            listingFormat={listing.listingFormat}
-            tradeMode={listing.tradeMode}
-            itemOrigin={listing.itemOrigin}
-            packagingState={listing.packagingState}
-            subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
-            className="pt-1"
-            max={8}
-            tone="cobalt"
-          />
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {listing.workTitle ? (
+              <span className="inline-flex items-center rounded-[10px] bg-folk-cobalt/10 px-2 py-1 text-[11px] font-bold leading-tight text-folk-cobalt">
+                {listing.workTitle}
+              </span>
+            ) : null}
+            <SubcultureMetaBadges
+              productType={listing.productType}
+              characterName={listing.characterName}
+              conditionGrade={listing.conditionGrade}
+              limitedKind={listing.limitedKind}
+              listingFormat={listing.listingFormat}
+              tradeMode={listing.tradeMode}
+              itemOrigin={listing.itemOrigin}
+              packagingState={listing.packagingState}
+              subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
+              max={8}
+              tone="cobalt"
+            />
+          </div>
           <SubcultureMetaDetail
             subcultureMeta={parseSubcultureMetaFromDb(listing.subcultureMeta)}
           />
           <p className="text-sm text-muted-foreground">
-            {usedCategoryLabel(listing.category)} · {formatUsedTimeAgo(listing.createdAt)}
+            {displayUsedRegion(listing.region) || "지역 미정"}
             {listing.seller?.username ? (
               <>
                 {" · "}
@@ -263,6 +272,11 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
               </>
             ) : null}
           </p>
+          {listing.meetPlace?.trim() ? (
+            <p className="text-sm font-semibold text-foreground">
+              거래 희망 장소 · {listing.meetPlace.trim()}
+            </p>
+          ) : null}
         </div>
 
 
@@ -357,17 +371,6 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           characterName={listing.characterName}
         />
 
-        {!isSeller && status === "SELLING" && (
-          <UsedWtbAlertPanel
-            workTitle={listing.workTitle}
-            animeSlug={listing.animeSlug}
-            productType={listing.productType}
-            characterName={listing.characterName}
-            currency={listing.currency}
-            loggedIn={!!session?.user?.id}
-          />
-        )}
-
         <UsedMeetLocation
           region={listing.region}
           meetPlace={listing.meetPlace}
@@ -376,10 +379,17 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           meetCountry={listing.meetCountry}
         />
 
-        <p className="text-xs font-semibold text-muted-foreground tabular-nums">
-          {isAuction ? `입찰 ${listing.bidCount}` : `채팅 ${chatCount}`} · 관심 {favoriteCount} · 조회{" "}
-          {listing.viewCount}
-        </p>
+        {isAuction && !auctionLive && listing.winningBidderId && status !== "SOLD" ? (
+          <UsedAuctionTradeComplete
+            listingId={listing.id}
+            isSeller={!!isSeller}
+            isWinningBidder={!!isWinningBidder}
+            sellerConfirmed={!!listing.sellerTradeConfirmedAt}
+            buyerConfirmed={!!listing.buyerTradeConfirmedAt}
+            hasMeetPin={listing.meetLat != null && listing.meetLng != null}
+            sold={status === "SOLD"}
+          />
+        ) : null}
 
       </div>
 
@@ -408,6 +418,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           auctionState={listing.auctionState}
 
           minBid={minNextBidAmount(listing)}
+          bidIncrement={listing.bidIncrement}
 
           buyNowPrice={listing.buyNowPrice}
 
