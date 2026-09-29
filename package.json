@@ -11,6 +11,7 @@
     "start:socket": "npx tsx server/socket.ts",
     "build": "prisma generate && node scripts/next-build.cjs",
     "vercel-build": "node scripts/vercel-db-sync-if-needed.cjs && node scripts/next-build.cjs",
+    "deploy:web": "node scripts/deploy-web-from-main.cjs",
     "db:deploy": "node scripts/vercel-db-sync.cjs",
     "start": "next start",
     "lint": "next lint",
