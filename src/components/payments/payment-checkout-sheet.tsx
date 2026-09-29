@@ -34,7 +34,6 @@ import { CreditCard, Loader2, Plus } from "lucide-react";
 import { StripeOverseasPaymentNotice } from "@/components/payments/stripe-overseas-payment-notice";
 import { PurchaseChargebackTermsNotice } from "@/components/payments/purchase-chargeback-terms-notice";
 import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
-import { startCreatorSubscriptionCheckout } from "@/actions/subscriptions";
 import { RecurringDonationTermsNotice } from "@/components/payments/recurring-donation-terms-notice";
 
 type Props = {
@@ -122,34 +121,12 @@ export function PaymentCheckoutSheet({
   }, [open, type, amount, orderName, metadata, isRecurringSubscription]);
 
   function startRecurringSubscription() {
-    if (!purchaseTermsAccepted) {
-      setError("결제 전 이용약관에 동의해 주세요.");
-      return;
-    }
-    if (!recurringDonationTermsAccepted) {
-      setError("정기 후원 약관에 동의해 주세요.");
-      return;
-    }
-    setError("");
-    startTransition(async () => {
-      const creatorId = String(metadata.creatorId ?? "");
-      const username = String(metadata.username ?? "");
-      const res = await startCreatorSubscriptionCheckout({
-        creatorId,
-        username,
-        amount,
-        returnPath: resumePath,
-        purchaseTermsAccepted: true,
-        recurringDonationTermsAccepted: true,
-      });
-      if ("error" in res && res.error) {
-        setError(res.error);
-        return;
-      }
-      if ("checkoutUrl" in res && res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
-      }
-    });
+    void purchaseTermsAccepted;
+    void recurringDonationTermsAccepted;
+    void resumePath;
+    void metadata;
+    void amount;
+    setError("크리에이터 정기 후원 기능은 종료되었습니다.");
   }
 
   const handle3ds = useCallback(
