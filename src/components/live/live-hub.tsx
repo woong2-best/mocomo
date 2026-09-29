@@ -30,9 +30,7 @@ export function LiveHub({
     <LivePageChrome>
       <LiveSidebarHubSync />
       <LiveR18DeepLinkGuard />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{channelFeed}</div>
-      </div>
+      <div className="min-w-0 w-full">{channelFeed}</div>
     </LivePageChrome>
   );
 }

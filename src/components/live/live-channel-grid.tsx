@@ -160,13 +160,13 @@ export function LiveChannelGrid({
   const isEmpty = visible.length === 0;
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
-      <LiveHubHeroRail channels={channels} hosts={hosts} className="min-h-[min(42vh,360px)] max-h-[min(52vh,480px)]" />
+    <div className="flex w-full flex-1 flex-col">
+      <LiveHubHeroRail channels={channels} hosts={hosts} className="h-[min(48vh,420px)] shrink-0" />
       <LiveHubNeonDivider />
       <div className="shrink-0 px-0.5 pb-2">
         <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
       </div>
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto scrollbar-thin pr-0.5">
+      <div className="relative min-w-0">
         <div className={cn("grid gap-3 sm:gap-4 pb-4 pt-0.5", "grid-cols-3")}>
           {isEmpty
             ? Array.from({ length: GRAY_PLACEHOLDER_COUNT }, (_, i) => (

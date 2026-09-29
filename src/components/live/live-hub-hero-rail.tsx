@@ -45,14 +45,13 @@ function buildHeroRailSlots(channels: LiveHubChannel[]): LiveHeroRailSlot[] {
   return slots;
 }
 
-/** Card size + gap scale with the stage so wide screens keep a wide aisle. */
+/** Large center TV; neighbors tuck behind it and peek at the sides. */
 function measureHeroRail(width: number): { cardWidth: number; spacing: number; visibleRadius: number } {
   const w = Math.max(width, 1);
-  const cardWidth = Math.round(Math.min(Math.max(w * 0.38, 240), 560));
-  const gap = Math.round(Math.min(Math.max(w * 0.14, 72), 220));
+  const cardWidth = Math.round(Math.min(Math.max(w * 0.52, 340), 760));
   return {
     cardWidth,
-    spacing: cardWidth + gap,
+    spacing: Math.round(cardWidth * 0.68),
     visibleRadius: (VISIBLE_COUNT - 1) / 2 + 0.2,
   };
 }
@@ -136,10 +135,10 @@ export function LiveHubHeroRail({ channels, hosts, className }: Props) {
     const el = stageRef.current;
     if (!el) return;
     const onWheelNative = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
       e.preventDefault();
-      const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      indexRef.current += dx / spacing;
-      velocityRef.current = dx / spacing;
+      indexRef.current += e.deltaX / spacing;
+      velocityRef.current = e.deltaX / spacing;
       setIndex(indexRef.current);
       ensureRaf();
     };
@@ -293,7 +292,7 @@ function OffAirHeroCard({ focused }: { focused: boolean }) {
         fill
         priority={focused}
         className="object-contain object-center"
-        sizes="560px"
+        sizes="760px"
       />
     </div>
   );

@@ -12,17 +12,7 @@ import {
   isFirstPartyLiveEnabled,
   isLiveFeatureEnabled,
 } from "@/lib/live-feature";
-import { cn } from "@/lib/utils";
-
-const TABS: { id: LiveFolderFilter; label: string }[] = [
-  { id: "ALL", label: "ALL" },
-  { id: "FOLLOWING", label: "FOLLOW" },
-  { id: "GAME", label: "GAME" },
-  { id: "JUST_CHATTING", label: "CHAT" },
-  { id: "IRL", label: "FESTIVAL" },
-  { id: "MUSIC", label: "MUSIC" },
-  { id: "LIVE", label: "R-18" },
-];
+import { LiveHubSlantTabs } from "@/components/live/live-hub-slant-tabs";
 
 function LiveHubQuickActions() {
   const sessionState = useSession();
@@ -79,22 +69,8 @@ export function LiveHubTabBar({
   return (
     <>
       <div className="live-hub-toolbar live-hub-toolbar-split">
-        <div className="live-hub-tab-bar live-hub-tab-bar-left" role="tablist" aria-label="라이브 카테고리">
-          {TABS.map((tab) => {
-            const on = tab.id === active;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                className={cn("live-hub-tab", on && "active")}
-                onClick={() => void select(tab.id)}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="live-hub-tab-bar live-hub-tab-bar-left">
+          <LiveHubSlantTabs active={active} onSelect={(id) => void select(id)} disabled={checking} />
         </div>
         <LiveHubQuickActions />
       </div>
