@@ -85,7 +85,7 @@ async function participantSnapshot(userId: string): Promise<TradeLegalParticipan
     userId,
     username: user?.username ?? null,
     accountCreatedAt: user?.createdAt.toISOString() ?? new Date(0).toISOString(),
-    phoneVerified: user?.phoneVerified ?? false,
+    phoneVerified: user?.phoneVerified != null,
     countryCode: user?.countryCode ?? null,
     priorReportCount: reportCount,
     priorDisputesOpened: disputesOpened,
