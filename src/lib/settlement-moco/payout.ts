@@ -1,19 +1,17 @@
 import { db } from "@/lib/db";
-import { getStripe } from "@/lib/stripe";
 import { createNotification } from "@/lib/notifications";
-import {
-  MIN_REWARD_PAYOUT_KRW,
-  MIN_REWARD_PAYOUT_USD_CENTS,
-} from "@/lib/settlement-moco/constants";
-import { debitSettlementMocoForReward } from "@/lib/settlement-moco/economy";
-import { achievedSettlementRewardTier } from "@/lib/settlement-moco/tier-config";
-import { calcTierRewardAmount } from "@/lib/settlement-moco/tax";
 import { checkCreatorRewardPayoutGate } from "@/lib/settlement-moco/payout-gate";
 import {
   MAX_REWARD_TRANSFER_RETRIES,
   REWARD_BATCH_STATUS,
   REWARD_RETRYABLE_STATUSES,
 } from "@/lib/settlement-moco/payout-status";
+import { lockAllCreatorSettlementCycles } from "@/lib/settlement-moco/cycle-lock";
+import { isMocoSettlementLockDay } from "@/lib/settlement-moco/cycle-period";
+import { processLockedSettlementCycles } from "@/lib/settlement-moco/cycle-run";
+import { executeRewardTransfer } from "@/lib/settlement-moco/reward-transfer";
+
+export { executeRewardTransfer } from "@/lib/settlement-moco/reward-transfer";
 
 export type MonthlySettlementResult = {
   processed: number;
@@ -21,21 +19,13 @@ export type MonthlySettlementResult = {
   failed: number;
   tierSkipped: number;
   retried: number;
+  locked: number;
+  lockSkippedDuplicate: number;
+  lockSkippedZero: number;
+  lockFailed: number;
 };
 
-type RewardAmountBreakdown = ReturnType<typeof calcTierRewardAmount>;
-
-function currentMonthPeriod(now = new Date()) {
-  return { year: now.getUTCFullYear(), month: now.getUTCMonth() + 1 };
-}
-
-function meetsMinimum(amount: RewardAmountBreakdown): boolean {
-  if (amount.currency === "krw") return amount.netMinor >= MIN_REWARD_PAYOUT_KRW;
-  if (amount.currency === "usd") return amount.netMinor >= MIN_REWARD_PAYOUT_USD_CENTS;
-  return amount.netMinor >= 100;
-}
-
-async function notifyRewardGateSkip(userId: string, skipReason: string) {
+export async function notifyRewardGateSkip(userId: string, skipReason: string) {
   await createNotification({
     userId,
     type: "system",
@@ -45,69 +35,9 @@ async function notifyRewardGateSkip(userId: string, skipReason: string) {
   }).catch(() => null);
 }
 
-async function executeRewardTransfer(input: {
-  batchId: string;
-  userId: string;
-  accountId: string;
-  netMinor: number;
-  currency: string;
-  year: number;
-  month: number;
-  achievedTier: string;
-  deductedMoco: number;
-  rolloverMoco: number;
-  isRetry?: boolean;
-}): Promise<"processed" | "failed"> {
-  const stripe = getStripe();
-  try {
-    const transfer = await stripe.transfers.create({
-      amount: input.netMinor,
-      currency: input.currency,
-      destination: input.accountId,
-      metadata: {
-        mocomoUserId: input.userId,
-        rewardBatchId: input.batchId,
-        period: `${input.year}-${String(input.month).padStart(2, "0")}`,
-        type: "creator_reward",
-        achievedTier: input.achievedTier,
-        deductedMoco: String(input.deductedMoco),
-        rolloverMoco: String(input.rolloverMoco),
-      },
-    });
-
-    await db.creatorRewardPayoutBatch.update({
-      where: { id: input.batchId },
-      data: {
-        status: REWARD_BATCH_STATUS.COMPLETED,
-        stripeTransferId: transfer.id,
-        completedAt: new Date(),
-        errorMessage: null,
-        skipReason: null,
-        ...(input.isRetry
-          ? { retryCount: { increment: 1 }, lastRetryAt: new Date() }
-          : {}),
-      },
-    });
-    return "processed";
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Transfer failed";
-    await db.creatorRewardPayoutBatch.update({
-      where: { id: input.batchId },
-      data: {
-        status: REWARD_BATCH_STATUS.FAILED,
-        errorMessage: msg,
-        ...(input.isRetry
-          ? { retryCount: { increment: 1 }, lastRetryAt: new Date() }
-          : {}),
-      },
-    });
-    return "failed";
-  }
-}
-
 /**
  * 온보딩/세무 미비·Transfer 실패로 보류된 배치를 Transfer만 재시도
- * (earned MOCO는 최초 배치 생성 시 이미 차감됨)
+ * (Lock 주기는 PROCESSING 유지 — 성공 시 Paid + 이월)
  */
 export async function reprocessHeldRewardBatches(opts?: {
   userId?: string;
@@ -167,20 +97,32 @@ export async function reprocessHeldRewardBatchesForUser(userId: string) {
   return reprocessHeldRewardBatches({ userId, limit: 24 });
 }
 
+export type RunMocoSettlementOptions = {
+  now?: Date;
+  /** 관리자 — 25일이 아니어도 Lock 실행 */
+  forceLock?: boolean;
+  /** Lock 생략, PROCESSING 건만 지급 */
+  payoutOnly?: boolean;
+};
+
 /**
- * MonthlySettlementCron — 매월 1일 실행
- * 1) 보류 배치 재처리 → 2) earnedMoco 등급 산정 → requiredMoco 차감 → Reward Transfer
+ * 매월 25일(KST) — 전월 earned MOCO Lock → Reward Transfer.
+ * Lock 이후 적립분은 settlementMocoPoints(Available)에만 쌓여 다음 25일 주기에 포함.
  */
 export async function processMonthlySettlementCron(
-  now = new Date()
+  now = new Date(),
+  opts?: RunMocoSettlementOptions,
 ): Promise<MonthlySettlementResult> {
-  const { year, month } = currentMonthPeriod(now);
   const result: MonthlySettlementResult = {
     processed: 0,
     skipped: 0,
     failed: 0,
     tierSkipped: 0,
     retried: 0,
+    locked: 0,
+    lockSkippedDuplicate: 0,
+    lockSkippedZero: 0,
+    lockFailed: 0,
   };
 
   const held = await reprocessHeldRewardBatches();
@@ -189,137 +131,19 @@ export async function processMonthlySettlementCron(
   result.failed += held.failed;
   result.skipped += held.skipped;
 
-  const wallets = await db.platformWallet.findMany({
-    where: { settlementMocoPoints: { gt: 0 } },
-    select: {
-      userId: true,
-      settlementMocoPoints: true,
-      user: {
-        select: {
-          countryCode: true,
-          creatorSettlementProfile: {
-            select: { countryCode: true },
-          },
-        },
-      },
-    },
-  });
-
-  for (const wallet of wallets) {
-    const existing = await db.creatorRewardPayoutBatch.findUnique({
-      where: {
-        userId_periodYear_periodMonth: {
-          userId: wallet.userId,
-          periodYear: year,
-          periodMonth: month,
-        },
-      },
-    });
-    if (existing) {
-      result.skipped++;
-      continue;
-    }
-
-    const earnedBefore = wallet.settlementMocoPoints;
-    const achieved = achievedSettlementRewardTier(earnedBefore);
-
-    if (achieved.requiredMoco <= 0 || achieved.rewardUsd <= 0) {
-      result.tierSkipped++;
-      continue;
-    }
-
-    const profile = wallet.user.creatorSettlementProfile;
-    const countryCode = profile?.countryCode ?? wallet.user.countryCode ?? "US";
-    const amount = calcTierRewardAmount({
-      rewardUsd: achieved.rewardUsd,
-      countryCode,
-    });
-    const rolloverMoco = earnedBefore - achieved.requiredMoco;
-
-    if (!meetsMinimum(amount) || amount.netMinor <= 0) {
-      const batch = await db.creatorRewardPayoutBatch.create({
-        data: {
-          userId: wallet.userId,
-          periodYear: year,
-          periodMonth: month,
-          settlementMocoBefore: earnedBefore,
-          achievedRewardTier: achieved.label,
-          deductedMoco: achieved.requiredMoco,
-          rolloverMoco,
-          rewardUsd: achieved.rewardUsd,
-          grossAmountMinor: amount.grossMinor,
-          withholdingMinor: amount.withholdingMinor,
-          netAmountMinor: amount.netMinor,
-          currency: amount.currency,
-          status: REWARD_BATCH_STATUS.SKIPPED_BELOW_MINIMUM,
-          skipReason: "최소 지급 금액 미달",
-          errorMessage: "최소 지급 금액 미달",
-        },
-      });
-      await debitSettlementMocoForReward({
-        userId: wallet.userId,
-        deductAmount: achieved.requiredMoco,
-        batchId: batch.id,
-      });
-      result.skipped++;
-      continue;
-    }
-
-    const gate = await checkCreatorRewardPayoutGate(wallet.userId);
-    const initialStatus = gate.ok
-      ? REWARD_BATCH_STATUS.PENDING
-      : (gate.skipStatus ?? REWARD_BATCH_STATUS.SKIPPED_UNONBOARDED);
-
-    const batch = await db.creatorRewardPayoutBatch.create({
-      data: {
-        userId: wallet.userId,
-        periodYear: year,
-        periodMonth: month,
-        settlementMocoBefore: earnedBefore,
-        achievedRewardTier: achieved.label,
-        deductedMoco: achieved.requiredMoco,
-        rolloverMoco,
-        rewardUsd: achieved.rewardUsd,
-        grossAmountMinor: amount.grossMinor,
-        withholdingMinor: amount.withholdingMinor,
-        netAmountMinor: amount.netMinor,
-        currency: amount.currency,
-        status: initialStatus,
-        skipReason: gate.ok ? null : gate.skipReason,
-        errorMessage: gate.ok ? null : gate.skipReason,
-      },
-    });
-
-    await debitSettlementMocoForReward({
-      userId: wallet.userId,
-      deductAmount: achieved.requiredMoco,
-      batchId: batch.id,
-    });
-
-    if (!gate.ok || !gate.accountId) {
-      result.skipped++;
-      await notifyRewardGateSkip(
-        wallet.userId,
-        gate.skipReason ?? "정산 등록이 완료되지 않아 Reward 지급이 보류되었습니다."
-      );
-      continue;
-    }
-
-    const outcome = await executeRewardTransfer({
-      batchId: batch.id,
-      userId: wallet.userId,
-      accountId: gate.accountId,
-      netMinor: amount.netMinor,
-      currency: amount.currency,
-      year,
-      month,
-      achievedTier: achieved.label,
-      deductedMoco: achieved.requiredMoco,
-      rolloverMoco,
-    });
-    if (outcome === "processed") result.processed++;
-    else result.failed++;
+  if (!opts?.payoutOnly && isMocoSettlementLockDay(now, opts?.forceLock)) {
+    const lockSummary = await lockAllCreatorSettlementCycles(now);
+    result.locked = lockSummary.locked;
+    result.lockSkippedDuplicate = lockSummary.skippedDuplicate;
+    result.lockSkippedZero = lockSummary.skippedZero;
+    result.lockFailed = lockSummary.failed;
   }
+
+  const payout = await processLockedSettlementCycles();
+  result.processed += payout.processed;
+  result.skipped += payout.skipped;
+  result.failed += payout.failed;
+  result.tierSkipped += payout.tierSkipped;
 
   return result;
 }

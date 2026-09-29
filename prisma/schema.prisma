@@ -329,6 +329,7 @@ model User {
   creatorSettlementProfile CreatorSettlementProfile?
   creatorTaxAttestations CreatorTaxAttestation[]
   creatorRewardPayoutBatches CreatorRewardPayoutBatch[]
+  creatorMocoSettlementCycles CreatorMocoSettlementCycle[]
   profile       Profile?
   cosplayerProfile CosplayerProfile?
   streamerProfile  StreamerProfile?
@@ -4760,6 +4761,46 @@ model CreatorTaxAttestation {
   @@index([acceptedAt])
 }
 
+/** earned MOCO 월간 Lock 정산 주기 (Available → Processing → Paid / Failed·반환) */
+enum MocoSettlementCycleStatus {
+  PROCESSING
+  PAID
+  FAILED
+  RETURNED
+}
+
+model CreatorMocoSettlementCycle {
+  id                 String                    @id @default(cuid())
+  userId             String
+  /** 정산 대상 적립 월 (KST 달력 — 전월 1일~말일) */
+  periodYear         Int
+  periodMonth        Int
+  periodStart        DateTime
+  periodEnd          DateTime
+  /** Lock 시점에 격리된 earned MOCO (당시 settlementMocoPoints 전량) */
+  lockedMoco         Int
+  deductedMoco       Int                       @default(0)
+  rolloverMoco       Int                       @default(0)
+  status             MocoSettlementCycleStatus @default(PROCESSING)
+  /** 해당 주기의 지급 예정일 (익월 25일 KST) */
+  scheduledPayAt     DateTime
+  lockedAt           DateTime                  @default(now())
+  paidAt             DateTime?
+  failedAt           DateTime?
+  returnedAt         DateTime?
+  errorMessage       String?                   @db.Text
+  rewardPayoutBatchId String?                  @unique
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewardPayoutBatch CreatorRewardPayoutBatch? @relation(fields: [rewardPayoutBatchId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, periodYear, periodMonth])
+  @@index([status, scheduledPayAt])
+  @@index([periodYear, periodMonth])
+}
+
 /** 월말 정산 MOCO → Reward(현금) 지급 배치 */
 model CreatorRewardPayoutBatch {
   id                   String    @id @default(cuid())
@@ -4793,6 +4834,7 @@ model CreatorRewardPayoutBatch {
   completedAt          DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mocoSettlementCycle  CreatorMocoSettlementCycle?
 
   @@unique([userId, periodYear, periodMonth])
   @@index([status, createdAt])

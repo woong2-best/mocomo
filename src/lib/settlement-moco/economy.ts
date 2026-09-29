@@ -42,8 +42,9 @@ export type CreditSettlementMocoInput = {
 };
 
 /**
- * 받은 MOCO는 settlementMocoPoints에만 넣는다.
+ * 받은 MOCO는 settlementMocoPoints(Available)에만 넣는다.
  * gemBalance · mocoPoints(보유)는 절대 올리지 않는다.
+ * 매월 25일 Lock 시점 이후 적립분은 다음 정산 주기에만 포함된다.
  */
 export async function creditSettlementMocoInTx(
   tx: Prisma.TransactionClient,
