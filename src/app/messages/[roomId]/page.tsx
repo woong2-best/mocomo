@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { ChatRoomShellAsync } from "@/components/messages/chat-room-shell-async";
 import { UsedAuctionChatNegotiation } from "@/components/used/used-auction-chat-negotiation";
+import { UsedDirectTradeChat } from "@/components/used/used-direct-trade-chat";
 import { ChatHeaderSkeleton, ChatMessagesSkeleton } from "@/components/ui/content-skeletons";
 
 export default async function ChatRoomPage({
@@ -17,6 +18,7 @@ export default async function ChatRoomPage({
     <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-background">
       <Suspense fallback={null}>
         <UsedAuctionChatNegotiation roomId={roomId} listingId={usedListing} />
+        <UsedDirectTradeChat roomId={roomId} />
       </Suspense>
       <Suspense
         fallback={

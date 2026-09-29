@@ -14,6 +14,7 @@ import { resolveStreamerTarget } from "@/lib/moco-donation/resolve-streamer";
 import { toMocoDonationPayload } from "@/lib/moco-donation/payload";
 import { prepareMocoVideoDonation } from "@/lib/moco-donation/prepare-video-donation";
 import { isValidDonationSfxKey, resolveDonationSfx } from "@/lib/moco-donation/sfx-catalog";
+import { assertCreatorPayoutsEnabled } from "@/lib/creator-payout-ready";
 
 export type CreateMocoDonationInput = {
   userId: string;
@@ -68,6 +69,11 @@ export async function createMocoDonation(
 
   if (input.userId === target.streamerId) {
     return { success: false, error: "자기 방송에는 도네이션할 수 없습니다." };
+  }
+
+  const payout = await assertCreatorPayoutsEnabled(target.streamerId);
+  if (!payout.ok) {
+    return { success: false, error: payout.error, code: payout.code };
   }
 
   let mediaUrl: string | null = null;

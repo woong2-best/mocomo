@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { finalizeAllExpiredAuctions } from "@/actions/used-auction";
 import { reauthorizeExpiringBidHoldsBatch } from "@/lib/used-auction-bid-hold";
+import { sweepDirectTrades } from "@/lib/direct-trade/service";
 import { isProduction, verifyInternalSecret } from "@/lib/api-security";
 
 export const dynamic = "force-dynamic";
@@ -14,5 +15,6 @@ export async function GET(req: NextRequest) {
 
   const result = await finalizeAllExpiredAuctions(100);
   const holdReauth = await reauthorizeExpiringBidHoldsBatch(50);
-  return NextResponse.json({ ok: true, ...result, holdReauth });
+  const directTrades = await sweepDirectTrades();
+  return NextResponse.json({ ok: true, ...result, holdReauth, directTrades });
 }

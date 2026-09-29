@@ -87,6 +87,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
     setRecurringDonationTermsAccepted(false);
     setError("");
     if (isRecurringSubscription) {
+      setError("크리에이터 정기 후원 기능은 종료되었습니다.");
       setLoading(false);
       return;
     }

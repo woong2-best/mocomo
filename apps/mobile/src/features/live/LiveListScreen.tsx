@@ -127,7 +127,8 @@ export function LiveListScreen() {
         </View>
 
         {query.isError && !hasHubPages ? (
-          <View style={[styles.fill, { paddingTop: insets.top + 56 }]}>
+          <View style={[styles.fill, { paddingTop: insets.top }]}>
+            <LiveEmptyTestPattern />
             <LiveSlantTabs active={category} onSelect={selectCategory} />
             <View style={styles.center}>
               <Text style={styles.error}>라이브를 불러오지 못했습니다.</Text>
@@ -140,17 +141,18 @@ export function LiveListScreen() {
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             ListHeaderComponent={
-              <View>
+              <View style={{ paddingTop: insets.top }}>
                 {hero ? (
                   <LiveBrowseHero item={hero} onPress={() => openLive(hero.id)} />
                 ) : showPattern ? (
-                  <LiveEmptyTestPattern width={width} message="방송중인 방송이 없습니다" />
-                ) : null}
+                  <LiveEmptyTestPattern />
+                ) : (
+                  <View style={{ width, height: Math.round(width * (9 / 16)), backgroundColor: "#000" }} />
+                )}
                 <LiveSlantTabs active={category} onSelect={selectCategory} />
               </View>
             }
             contentContainerStyle={{
-              paddingTop: hero || showPattern ? 0 : insets.top + 56,
               paddingBottom: insets.bottom + 28,
             }}
             onEndReachedThreshold={0.5}

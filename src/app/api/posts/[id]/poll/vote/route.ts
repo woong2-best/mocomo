@@ -1,36 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import {
-  isPostPollClosed,
-  mapPostPollRow,
-  postPollSelect,
-  type PostPollView,
-} from "@/lib/post-poll";
-
-async function loadPollView(pollId: string, userId?: string): Promise<PostPollView | null> {
-  const poll = await db.postPoll.findUnique({
-    where: { id: pollId },
-    select: postPollSelect,
-  });
-  if (!poll) return null;
-
-  let myVoteOptionId: string | null = null;
-  if (userId) {
-    const vote = await db.postPollVote.findUnique({
-      where: { pollId_userId: { pollId, userId } },
-      select: { optionId: true },
-    });
-    myVoteOptionId = vote?.optionId ?? null;
-  }
-
-  return mapPostPollRow(poll, myVoteOptionId);
-}
+import { rateLimitPublicApi } from "@/lib/api-security";
+import { castPostPollVote } from "@/lib/post-poll";
 
 export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
+  const limited = await rateLimitPublicApi(req, "post-poll-vote", 40);
+  if (limited) return limited;
+
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
@@ -50,43 +29,9 @@ export async function POST(
     return NextResponse.json({ error: "선택지를 지정해 주세요." }, { status: 400 });
   }
 
-  const post = await db.post.findUnique({
-    where: { id: postId },
-    select: {
-      id: true,
-      poll: {
-        select: {
-          id: true,
-          closesAt: true,
-          closed: true,
-          options: { select: { id: true } },
-        },
-      },
-    },
-  });
-
-  if (!post?.poll) {
-    return NextResponse.json({ error: "투표를 찾을 수 없습니다." }, { status: 404 });
+  const result = await castPostPollVote(postId, userId, optionId);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
-
-  const poll = post.poll;
-  if (poll.closed || isPostPollClosed(poll)) {
-    if (!poll.closed) {
-      await db.postPoll.update({ where: { id: poll.id }, data: { closed: true } });
-    }
-    return NextResponse.json({ error: "투표가 종료되었습니다." }, { status: 400 });
-  }
-
-  if (!poll.options.some((o) => o.id === optionId)) {
-    return NextResponse.json({ error: "선택지가 올바르지 않습니다." }, { status: 400 });
-  }
-
-  await db.postPollVote.upsert({
-    where: { pollId_userId: { pollId: poll.id, userId } },
-    create: { pollId: poll.id, optionId, userId },
-    update: { optionId, votedAt: new Date() },
-  });
-
-  const view = await loadPollView(poll.id, userId);
-  return NextResponse.json({ poll: view });
+  return NextResponse.json({ poll: result.poll });
 }

@@ -94,7 +94,7 @@ export function AnimeWikiArticle({
             </section>
           ) : (
             <section className="rounded-2xl border border-dashed border-border/70 p-8 text-center text-sm text-muted-foreground">
-              아직 본문이 없습니다. 로그인 후 <strong>편집</strong>으로 나무위키처럼 내용을 채워 주세요.
+              아직 본문이 없습니다. 로그인 후 <strong>편집</strong>으로 내용을 채워 주세요.
             </section>
           )}
 

@@ -33,6 +33,8 @@ type Props = {
   mode: "view" | "pick";
   country: string;
   region: string;
+  /** 시·군·구 (KR). 지도 검색을 선택 지역 안으로 제한 */
+  district?: string;
   meetPlace?: string;
   coords?: MeetCoords | null;
   onCoordsChange?: (coords: MeetCoords | null) => void;
@@ -40,17 +42,22 @@ type Props = {
   onMeetPlaceChange?: (text: string) => void;
   height?: number;
   pinTitle?: string;
+  pinSearchUrl?: string;
+  pinMapUrl?: string;
 };
 
 export function MeetMap({
   mode,
   country,
   region,
+  district = "",
   meetPlace = "",
   coords,
   onCoordsChange,
   height = 220,
   pinTitle = "거래 장소",
+  pinSearchUrl,
+  pinMapUrl,
 }: Props) {
   const { colors, isDark } = useTheme();
   const mapChrome = isDark ? "#0F1524" : "#1B2838";
@@ -79,10 +86,12 @@ export function MeetMap({
         lng: active.lng,
         color: "#F97316",
         title: pinTitle,
-        place: pinPlace || "주소를 검색해 주세요",
+        place: mode === "pick" ? pinPlace || "주소를 검색해 주세요" : undefined,
+        searchUrl: mode === "view" ? pinSearchUrl : undefined,
+        mapUrl: mode === "view" ? pinMapUrl : undefined,
       },
     ];
-  }, [active, pinPlace, pinTitle]);
+  }, [active, mode, pinPlace, pinTitle, pinSearchUrl, pinMapUrl]);
 
   useEffect(() => {
     setDisplayCoords(coords ?? null);
@@ -116,6 +125,8 @@ export function MeetMap({
     setError("");
     try {
       const params = new URLSearchParams({ q, country, region });
+      const districtTrim = district.trim();
+      if (districtTrim) params.set("place", districtTrim);
       const res = await fetch(`${API_BASE_URL}/api/used/geocode?${params}`);
       const body = (await res.json()) as {
         lat?: number;

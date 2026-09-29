@@ -81,16 +81,20 @@ export function MessagesNewScreen() {
           renderItem={({ item }) => {
             const label = item.name?.trim() || item.username;
             const busy = openingId === item.id;
+            const blocked = item.canMessage === false;
             return (
               <Pressable
                 style={styles.row}
-                disabled={busy}
+                disabled={busy || blocked}
                 onPress={() => void startDm(item.id, label)}
               >
                 <FolkAvatar uri={item.image} name={label} size={44} />
                 <View style={styles.meta}>
                   <Text style={styles.name}>{label}</Text>
-                  <Text style={styles.username}>@{item.username}</Text>
+                  <Text style={styles.username}>
+                    @{item.username}
+                    {blocked ? " · 메시지 요청을 받지 않음" : ""}
+                  </Text>
                 </View>
                 {busy ? <ActivityIndicator color={colors.terracotta} /> : null}
               </Pressable>

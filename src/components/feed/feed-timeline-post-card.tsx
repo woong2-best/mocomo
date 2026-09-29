@@ -23,6 +23,8 @@ import { FeedPostMediaCarousel } from "@/components/feed/feed-post-media-carouse
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { postHasVisualMedia } from "@/lib/format-feed";
+import { RepostBanner } from "@/components/post/repost-banner";
+import { QuotedPostCard } from "@/components/post/quoted-post-card";
 import { useLocale } from "@/components/providers/locale-provider";
 import { dateFnsLocale } from "@/lib/i18n/date-locale";
 
@@ -88,6 +90,11 @@ export function FeedTimelinePostCard({
       onMouseLeave={prefetchPost.onMouseLeave}
       onTouchStart={prefetchPost.onTouchStart}
     >
+      {post.repostBy ? (
+        <div className="px-4 pt-3">
+          <RepostBanner user={post.repostBy.user} />
+        </div>
+      ) : null}
       <div className="flex gap-3 p-4 pb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
@@ -134,6 +141,13 @@ export function FeedTimelinePostCard({
                   />
                 </div>
               )}
+              {post.quotedPost ? (
+                <QuotedPostCard
+                  post={post.quotedPost}
+                  isOwner={isOwner}
+                  viewerShowNsfw={false}
+                />
+              ) : null}
               {hasMedia && post.media && (
                 <FeedPostMediaCarousel
                   media={post.media as ProfilePostMediaItem[]}
@@ -152,7 +166,11 @@ export function FeedTimelinePostCard({
                   }}
                 />
               )}
-              {post.poll && <div className="mt-3"><PostPollCard postId={post.id} poll={post.poll} compact /></div>}
+              {post.poll && (
+                <div className="mt-3">
+                  <PostPollCard postId={post.id} poll={post.poll} isAuthor={isOwner} compact />
+                </div>
+              )}
             </div>
             <PostOwnerMenu
               postId={post.id}

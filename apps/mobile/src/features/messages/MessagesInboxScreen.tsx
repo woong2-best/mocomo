@@ -32,6 +32,7 @@ import {
 } from "@/api/dm-bootstrap-cache";
 import { dmRoomIsUnread } from "@/features/messages/useHasUnreadDms";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
+import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { FolkButton } from "@/ui/FolkButton";
@@ -57,7 +58,12 @@ function relativeTime(iso: string | null) {
 }
 
 function previewText(raw: string) {
-  return chatPostShareListPreview(raw) || raw || "대화를 시작해 보세요";
+  return (
+    chatPostShareListPreview(raw) ||
+    chatUsedListingListPreview(raw) ||
+    raw ||
+    "대화를 시작해 보세요"
+  );
 }
 
 function matchScore(user: MessageUserHit, q: string) {
@@ -104,7 +110,8 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
   const query = useQuery({
     queryKey: ["mobile-dm-inbox"],
     queryFn: fetchDmInbox,
-    staleTime: 90_000,
+    staleTime: 10_000,
+    refetchOnMount: "always",
     gcTime: 30 * 60_000,
     placeholderData: (previous) => previous ?? getDmInboxMemory() ?? undefined,
   });
@@ -208,10 +215,11 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
     ({ item }: { item: MessageUserHit }) => {
       const label = item.name?.trim() || item.username;
       const busy = openingId === item.id;
+      const blocked = item.canMessage === false;
       return (
         <Pressable
-          style={({ pressed }) => [styles.pickerRow, pressed && styles.rowPressed]}
-          disabled={busy}
+          style={({ pressed }) => [styles.pickerRow, pressed && styles.rowPressed, blocked && { opacity: 0.45 }]}
+          disabled={busy || blocked}
           onPress={() => void startDm(item)}
         >
           <FolkAvatar uri={item.image} name={label} size={44} />
@@ -221,6 +229,7 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
             </Text>
             <Text style={styles.pickerUsername} numberOfLines={1}>
               @{item.username}
+              {blocked ? " · 요청을 받지 않음" : ""}
             </Text>
           </View>
           {busy ? <ActivityIndicator color={colors.terracotta} /> : null}

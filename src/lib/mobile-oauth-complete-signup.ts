@@ -90,6 +90,9 @@ export async function completeMobileOAuthSignup(input: {
   birthDay?: number;
   termsAccepted?: boolean;
   privacyAccepted?: boolean;
+  username?: string;
+  name?: string;
+  password?: string;
 }) {
   const opened = openMobileOAuthHandoff(input.handoff);
   if (!opened || opened.kind !== "needsSignup") {
@@ -170,6 +173,9 @@ export async function completeMobileOAuthSignup(input: {
   const user = await createOAuthUserWithConsent({
     profile: ticket.profile,
     birthDate: consent.birthDate,
+    username: input.username,
+    name: input.name,
+    password: input.password,
   });
 
   await linkOAuthSignupAccount({

@@ -38,24 +38,18 @@ export function LegalEntityFooterNotice({ className = "" }: { className?: string
   );
 }
 
-/** Checkout / event registration disclosure (full sections) */
-export function PaymentLegalNotice({
-  className = "",
+/** Full payment / ad registration legal copy (entity + policy sections). */
+export function PaymentLegalNoticeContent({
   compact = false,
+  className,
 }: {
-  className?: string;
   compact?: boolean;
+  className?: string;
 }) {
   const d = LEGAL_ENTITY_DISCLOSURE;
 
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-border/80 bg-muted/30 p-3 space-y-2",
-        className
-      )}
-    >
-      <p className="text-[11px] font-semibold text-foreground">사업자·약관 고지</p>
+    <div className={cn("space-y-2", className)}>
       <div className="text-[10px] leading-relaxed text-muted-foreground space-y-1">
         <p>
           <span className="font-medium text-foreground/80">Legal Entity:</span> {d.entity}
@@ -107,6 +101,27 @@ export function PaymentLegalNotice({
       <p className="text-[9px] text-muted-foreground/90 pt-1">
         결제·등록 시 위 약관에 동의한 것으로 간주됩니다.
       </p>
+    </div>
+  );
+}
+
+/** Checkout / event registration disclosure (full sections) */
+export function PaymentLegalNotice({
+  className = "",
+  compact = false,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border/80 bg-muted/30 p-3 space-y-2",
+        className
+      )}
+    >
+      <p className="text-[11px] font-semibold text-foreground">사업자·약관 고지</p>
+      <PaymentLegalNoticeContent compact={compact} />
     </div>
   );
 }

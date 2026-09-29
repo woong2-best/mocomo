@@ -1,29 +1,23 @@
 import { memo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { Image } from "expo-image";
 
-/** Full-height bars from the empty-broadcast card. */
-const BARS = ["#E7A9C4", "#E39A3C", "#2436C4", "#3CB44B", "#A63CB0", "#9A2430", "#4EC8C8"] as const;
+const OFF_AIR_TV = require("../../../assets/live/off-air-tv.png");
 
-type Props = {
-  width: number;
-  message: string;
-  rounded?: boolean;
-};
+/** Off-air hero. The TV artwork is shown unchanged inside the 16:9 stage. */
+function LiveEmptyTestPatternInner() {
+  const { width } = useWindowDimensions();
+  const height = Math.round(width * (9 / 16));
 
-/** Empty live hero: color bars with the no-broadcast notice in the center. */
-function LiveEmptyTestPatternInner({ width, message, rounded = false }: Props) {
   return (
-    <View style={[styles.wrap, { width }, rounded && styles.rounded]}>
-      <View style={styles.bars}>
-        {BARS.map((color) => (
-          <View key={color} style={[styles.bar, { backgroundColor: color }]} />
-        ))}
-      </View>
-      <View style={styles.overlay} pointerEvents="none">
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>{message}</Text>
-        </View>
-      </View>
+    <View style={[styles.stage, { width, height }]}>
+      <Image
+        source={OFF_AIR_TV}
+        style={styles.photo}
+        contentFit="contain"
+        contentPosition="center"
+        accessibilityLabel="방송중인 방송이 없습니다"
+      />
     </View>
   );
 }
@@ -31,39 +25,13 @@ function LiveEmptyTestPatternInner({ width, message, rounded = false }: Props) {
 export const LiveEmptyTestPattern = memo(LiveEmptyTestPatternInner);
 
 const styles = StyleSheet.create({
-  wrap: {
-    aspectRatio: 16 / 9,
-    overflow: "hidden",
-    backgroundColor: "#111",
-  },
-  rounded: {
-    borderRadius: 22,
-    alignSelf: "center",
-  },
-  bars: {
-    flex: 1,
-    flexDirection: "row",
-  },
-  bar: {
-    flex: 1,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFill,
+  stage: {
+    backgroundColor: "#000",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 18,
   },
-  pill: {
-    maxWidth: "92%",
-    paddingHorizontal: 22,
-    paddingVertical: 12,
-    borderRadius: 999,
-    backgroundColor: "rgba(8,8,8,0.92)",
-  },
-  pillText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "center",
+  photo: {
+    width: "100%",
+    height: "100%",
   },
 });

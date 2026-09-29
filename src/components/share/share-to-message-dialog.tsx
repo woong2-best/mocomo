@@ -257,11 +257,12 @@ export function ShareToMessageDialog({
             <ul>
               {list.map((user) => {
                 const isSelected = selected.has(user.id);
+                const blocked = user.canMessage === false;
                 return (
                   <li key={user.id}>
                     <button
                       type="button"
-                      disabled={sending}
+                      disabled={sending || blocked}
                       onClick={() => toggleUser(user)}
                       className={cn(
                         "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors disabled:opacity-60",
@@ -283,6 +284,7 @@ export function ShareToMessageDialog({
                         />
                         <span className="block truncate text-sm text-muted-foreground">
                           @{user.username}
+                          {blocked ? " · 메시지 요청을 받지 않음" : ""}
                         </span>
                       </span>
                       <span

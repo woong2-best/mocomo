@@ -75,6 +75,7 @@ export async function createExpressConnectAccount(input: {
   const { ensureExpressConnectAccount } = await import("@/lib/settlement-express-connect");
   return ensureExpressConnectAccount(input.userId, {
     requestCardPayments: input.requestCardPayments,
+    payoutCountry: input.countryCode,
   });
 }
 
@@ -93,6 +94,7 @@ export async function startSellerConnectOnboarding(input: {
   const { startExpressConnectOnboarding } = await import("@/lib/settlement-express-connect");
   const result = await startExpressConnectOnboarding(input.userId, {
     requestCardPayments: input.requestCardPayments,
+    payoutCountry: input.countryCode,
   });
   if ("error" in result) return result;
   return { accountId: result.accountId, url: result.url };

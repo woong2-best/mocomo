@@ -17,6 +17,16 @@ import {
 } from "@/lib/used-market-mobile";
 import { filterNsfwItems, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { coerceSubcultureListingFields } from "@/lib/subculture-commerce/types";
+import { db } from "@/lib/db";
+
+async function listingFavoriteIds(viewerId: string | null, listingIds: string[]) {
+  if (!viewerId || listingIds.length === 0) return new Set<string>();
+  const rows = await db.usedFavorite.findMany({
+    where: { userId: viewerId, listingId: { in: listingIds } },
+    select: { listingId: true },
+  });
+  return new Set(rows.map((row) => row.listingId));
+}
 
 export async function GET(req: NextRequest) {
   const rateLimited = await rateLimitPublicApi(req, "mobile-marketplace-list", 60);
@@ -123,6 +133,10 @@ export async function GET(req: NextRequest) {
       }),
       canViewNsfw
     );
+    const favoriteIds = await listingFavoriteIds(
+      viewerId,
+      listings.map((l) => l.id)
+    );
     const items = listings.map((l) => {
       const images = listingImages(l.images);
       return {
@@ -136,6 +150,8 @@ export async function GET(req: NextRequest) {
         saleType: l.saleType,
         createdAt: l.createdAt.toISOString(),
         favoriteCount: l._count?.favorites ?? 0,
+        viewCount: l.viewCount ?? 0,
+        favorited: viewerId ? favoriteIds.has(l.id) : false,
         auctionEndsAt: l.auctionEndsAt?.toISOString() ?? null,
         currentBidAmount: l.currentBidAmount ?? null,
         bidCount: l.bidCount ?? null,
@@ -187,6 +203,10 @@ export async function GET(req: NextRequest) {
         ),
         canViewNsfw
       );
+      const favoriteIds = await listingFavoriteIds(
+        viewerId,
+        listings.map((l) => l.id)
+      );
       const items = listings.map((l) => {
         const images = listingImages(l.images);
         return {
@@ -200,6 +220,8 @@ export async function GET(req: NextRequest) {
           saleType: l.saleType,
           createdAt: l.createdAt.toISOString(),
           favoriteCount: l._count?.favorites ?? 0,
+          viewCount: l.viewCount ?? 0,
+          favorited: viewerId ? favoriteIds.has(l.id) : false,
           auctionEndsAt: l.auctionEndsAt?.toISOString() ?? null,
           currentBidAmount: l.currentBidAmount ?? null,
           bidCount: l.bidCount ?? null,

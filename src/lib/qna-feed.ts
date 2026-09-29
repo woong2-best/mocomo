@@ -5,6 +5,7 @@ import {
   feedPostListSelectNoPoll,
   feedPostListSelectNoReposts,
   mapFeedPost,
+  mapMobileFeedPost,
   mobileFeedPostSelect,
   trimFeedPostContent,
 } from "@/lib/feed-query";
@@ -26,11 +27,13 @@ export async function fetchQnaFeedPage(opts: {
   category?: QnaCategoryFilter;
   canViewNsfw: boolean;
   variant: QnaFeedVariant;
+  ownerId?: string | null;
 }) {
   const where = qnaFeedWhere({
     category: opts.category ?? null,
     q: opts.q ?? "",
     canViewNsfw: opts.canViewNsfw,
+    ownerId: opts.ownerId,
   });
   const query = {
     where,
@@ -45,7 +48,7 @@ export async function fetchQnaFeedPage(opts: {
         ...query,
         select: { ...mobileFeedPostSelect, community: { select: qnaCommunitySelect } },
       });
-      return posts.map(trimFeedPostContent);
+      return posts.map((p) => mapMobileFeedPost(p));
     } catch (e) {
       console.error("[qna-feed] mobile", e);
       const posts = await db.post.findMany({
@@ -57,7 +60,7 @@ export async function fetchQnaFeedPage(opts: {
         },
       });
       return posts.map((p) =>
-        trimFeedPostContent({
+        mapMobileFeedPost({
           ...p,
           _count: { ...p._count, reposts: 0 },
         })
@@ -84,6 +87,7 @@ export async function fetchQnaFeedPage(opts: {
       return posts.map((p) =>
         mapFeedPost({
           ...p,
+          quotedPost: null,
           poll: null,
           _count: { ...p._count, reposts: 0 },
         })
@@ -97,7 +101,7 @@ export async function fetchQnaFeedPage(opts: {
           community: { select: qnaCommunitySelect },
         },
       });
-      return posts.map((p) => trimFeedPostContent({ ...p, poll: null }));
+      return posts.map((p) => trimFeedPostContent({ ...p, quotedPost: null, poll: null }));
     }
   }
 }

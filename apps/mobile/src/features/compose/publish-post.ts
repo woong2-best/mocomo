@@ -38,13 +38,14 @@ export async function publishComposePost(input: {
   poll: PollDraft | null;
   collaborators: CollaboratorDraft[];
   isNsfw?: boolean;
+  quotedPostId?: string;
 }) {
   const content = input.content.trim();
   if (input.poll) {
     const pollErr = validatePollDraft(input.poll);
     if (pollErr) throw new Error(pollErr);
     if (!content) throw new Error("투표 질문을 본문에 적어 주세요.");
-  } else if (!content && input.media.length === 0) {
+  } else if (!content && input.media.length === 0 && !input.quotedPostId) {
     throw new Error("글 또는 사진을 추가해 주세요.");
   }
 
@@ -66,5 +67,6 @@ export async function publishComposePost(input: {
     poll,
     collaboratorUserIds: input.collaborators.map((c) => c.id),
     isNsfw: input.isNsfw ?? false,
+    quotedPostId: input.quotedPostId,
   });
 }

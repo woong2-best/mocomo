@@ -38,7 +38,14 @@ export async function GET(
 
   const serialized = items.map((item) => {
     if (item.type === "post") {
-      return { type: "post" as const, post: serializePost(item.post) };
+      return {
+        type: "post" as const,
+        activityKey:
+          "activityKey" in item && typeof item.activityKey === "string"
+            ? item.activityKey
+            : undefined,
+        post: serializePost(item.post),
+      };
     }
     if (item.type === "reply") {
       return {

@@ -6,6 +6,8 @@ import { getOrCreateDM, sendMessage } from "@/actions/chat";
 import { encodePostShareMessage } from "@/lib/chat-post-share";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
 import type { DmUserSearchHit } from "@/lib/dm-user-search";
+import { annotateCanMessage } from "@/lib/contact-audience";
+import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
 
 const MAX_RECIPIENTS = 10;
 const MAX_NOTE_LEN = 1000;
@@ -58,7 +60,7 @@ export async function listRecentDmPartners(): Promise<DmUserSearchHit[]> {
   );
 
   const seen = new Set<string>();
-  const hits: DmUserSearchHit[] = [];
+  const hits: Omit<DmUserSearchHit, "canMessage">[] = [];
   for (const room of rooms) {
     const other = room.members[0]?.user;
     if (!other || seen.has(other.id) || other.id === user.id) continue;
@@ -72,7 +74,7 @@ export async function listRecentDmPartners(): Promise<DmUserSearchHit[]> {
       isFollowing: followingIds.has(other.id),
     });
   }
-  return hits;
+  return annotateCanMessage(user.id, hits);
 }
 
 /**
@@ -137,8 +139,9 @@ export async function shareContentViaDm(data: {
       await sendMessage({ roomId: dm.room.id, content });
       sentCount += 1;
       if (!firstRoomId) firstRoomId = dm.room.id;
-    } catch {
-      errors.push("메시지 전송에 실패했습니다.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      errors.push(msg === MESSAGE_REQUEST_BLOCKED ? msg : "메시지 전송에 실패했습니다.");
     }
   }
 

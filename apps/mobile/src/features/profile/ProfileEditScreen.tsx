@@ -23,6 +23,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { probeVideo } from "@/lib/apply-video-watermark";
 import { transcodeBannerVideoToH264 } from "@/lib/transcode-banner-video";
 import {
+  isRemoteMediaUrl,
   prepareProfileAvatar,
   prepareProfileBannerImage,
 } from "@/lib/prepare-profile-media";
@@ -39,6 +40,10 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
+
+function birthDigitsOnly(value: string, maxLen: number) {
+  return value.replace(/\D/g, "").slice(0, maxLen);
+}
 
 function apiErrorMessage(err: unknown, fallback: string) {
   if (
@@ -162,9 +167,17 @@ export function ProfileEditScreen() {
       await patchProfile({
         name: name.trim() || undefined,
         bio,
-        image,
-        bannerUrl: bannerVideoUrl ? null : bannerUrl,
-        bannerVideoUrl,
+        ...(image === null || image === ""
+          ? { image: null }
+          : isRemoteMediaUrl(image)
+            ? { image }
+            : {}),
+        bannerUrl: bannerVideoUrl ? null : isRemoteMediaUrl(bannerUrl) ? bannerUrl : undefined,
+        bannerVideoUrl: bannerVideoUrl
+          ? isRemoteMediaUrl(bannerVideoUrl)
+            ? bannerVideoUrl
+            : undefined
+          : null,
         ...(usernameChanged ? { username: usernameNorm } : {}),
         mainCharacter,
         favoriteTags: tags,
@@ -439,7 +452,7 @@ export function ProfileEditScreen() {
               <Text style={styles.atPrefix}>@</Text>
               <TextInput
                 ref={usernameRef}
-                style={[styles.input, styles.atInput, usernameLocked && styles.inputDisabled]}
+                style={[styles.input, styles.atInput, styles.atField, usernameLocked && styles.inputDisabled]}
                 value={username}
                 onChangeText={setUsername}
                 autoCapitalize="none"
@@ -475,7 +488,7 @@ export function ProfileEditScreen() {
                 ref={birthYearRef}
                 style={[styles.input, styles.birthInput]}
                 value={birthYear}
-                onChangeText={setBirthYear}
+                onChangeText={(t) => setBirthYear(birthDigitsOnly(t, 4))}
                 keyboardType="number-pad"
                 placeholder="연"
                 placeholderTextColor={colors.textMuted}
@@ -485,7 +498,7 @@ export function ProfileEditScreen() {
                 ref={birthMonthRef}
                 style={[styles.input, styles.birthInput]}
                 value={birthMonth}
-                onChangeText={setBirthMonth}
+                onChangeText={(t) => setBirthMonth(birthDigitsOnly(t, 2))}
                 keyboardType="number-pad"
                 placeholder="월"
                 placeholderTextColor={colors.textMuted}
@@ -495,7 +508,7 @@ export function ProfileEditScreen() {
                 ref={birthDayRef}
                 style={[styles.input, styles.birthInput]}
                 value={birthDay}
-                onChangeText={setBirthDay}
+                onChangeText={(t) => setBirthDay(birthDigitsOnly(t, 2))}
                 keyboardType="number-pad"
                 placeholder="일"
                 placeholderTextColor={colors.textMuted}
@@ -630,9 +643,23 @@ function createStyles(colors: ThemeColors) {
       fontWeight: "600",
     },
     inputDisabled: { opacity: 0.55 },
-    atRow: { flexDirection: "row", alignItems: "center" },
-    atPrefix: { fontWeight: "800", color: colors.textMuted, marginRight: 4, fontSize: 16 },
+    atRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 2,
+      borderColor: "rgba(27, 74, 140, 0.22)",
+      borderRadius: radii.md,
+      backgroundColor: colors.surfaceRaised,
+      paddingLeft: spacing.sm,
+      overflow: "hidden",
+    },
+    atPrefix: { fontWeight: "800", color: colors.textMuted, fontSize: 16 },
     atInput: { flex: 1 },
+    atField: {
+      borderWidth: 0,
+      backgroundColor: "transparent",
+      paddingLeft: 4,
+    },
     hint: { fontSize: 12, color: colors.textMuted, marginTop: 6, lineHeight: 16 },
     bioInput: { minHeight: 88, textAlignVertical: "top" },
     birthRow: { flexDirection: "row", gap: 8 },

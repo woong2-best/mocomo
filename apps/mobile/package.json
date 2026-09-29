@@ -68,8 +68,15 @@
     "eas-cli": "^16.28.0",
     "typescript": "~6.0.3"
   },
+  "expo": {
+    "autolinking": {
+      "android": {
+        "exclude": ["ffmpeg-kit-react-native"]
+      }
+    }
+  },
   "scripts": {
-    "postinstall": "node scripts/patch-ffmpeg-kit.cjs && node scripts/patch-expo-notifications-actions.cjs && node scripts/generate-notification-icons.cjs",
+    "postinstall": "node scripts/patch-ffmpeg-kit.cjs && node scripts/patch-webrtc-lazy.cjs && node scripts/patch-expo-notifications-actions.cjs && node scripts/generate-notification-icons.cjs",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",

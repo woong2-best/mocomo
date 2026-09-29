@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SupportTierLevel } from "@prisma/client";
@@ -61,6 +61,13 @@ export function ConversationList({
     >
       <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between gap-2 shrink-0">
         <h1 className="font-bold text-lg tracking-tight flex-1 min-w-0">메세지</h1>
+        <Link
+          href="/settings/messages"
+          className="p-2 rounded-full hover:bg-muted/80 shrink-0"
+          aria-label="메시지 설정"
+        >
+          <Settings className="h-5 w-5" />
+        </Link>
       </div>
 
       <div className={cn("flex-1 overflow-y-auto min-h-0", isNativeApp && "pb-native-fab")}>

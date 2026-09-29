@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Ban, Check, Flag, Link2, MoreHorizontal, VolumeX, Volume2, X } from "lucide-react";
@@ -61,6 +61,10 @@ export function ProfileActionMenu({
   const [reportError, setReportError] = useState("");
   const [pending, startTransition] = useTransition();
   const [reportPending, startReportTransition] = useTransition();
+
+  useEffect(() => {
+    if (menuOpen) setMuted(initialMuted);
+  }, [initialMuted, menuOpen]);
 
   const profileUrl =
     typeof window !== "undefined"
@@ -156,8 +160,8 @@ export function ProfileActionMenu({
     },
     {
       key: "mute",
-      label: muted ? "뮤트 해제" : "뮤트",
-      icon: muted ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />,
+      label: muted ? "Unquiet" : "Quiet",
+      icon: muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />,
       run: toggleMute,
     },
     {

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
+import { getCreatorPayoutDashboard } from "@/lib/settlement-moco/payout-gate";
 
 /** @deprecated Custom Connect 제거 — Express 온보딩 사용 */
 export const registerSchema = z.object({
@@ -57,9 +59,24 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
     earnedMocoPoints: 0,
     earnedMocoTier: "SEED" as const,
     purchasedMocoPoints: 0,
+    rewardProgress: rewardTierProgress(0),
     recentRewards: [] as Awaited<
       ReturnType<typeof db.creatorRewardPayoutBatch.findMany>
     >,
+    payoutDashboard: {
+      payoutsEnabled: false,
+      detailsSubmitted: false,
+      readyForDonations: false,
+      disabledReason: null as string | null,
+      currentlyDue: [] as string[],
+      pastDue: [] as string[],
+      reasons: [
+        {
+          code: "NO_CONNECT_ACCOUNT",
+          message: "Stripe Connect 계정이 없습니다. 정산 계좌 연동을 시작해 주세요.",
+        },
+      ],
+    },
   };
 
   try {
@@ -92,10 +109,11 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
       orderBy: { createdAt: "desc" },
       take: 6,
     });
+    const payoutDashboard = await getCreatorPayoutDashboard(userId);
 
     return {
       registered: !!profile?.registeredAt || !!userRow?.stripeConnectAccountId,
-      payoutsEnabled: profile?.payoutsEnabled ?? userRow?.stripeOnboardingCompleted ?? false,
+      payoutsEnabled: payoutDashboard.payoutsEnabled,
       hasConnectAccount: !!userRow?.stripeConnectAccountId,
       needsExpressMigration: profile?.needsExpressMigration ?? false,
       taxReportingReady: profile?.taxReportingReady ?? false,
@@ -122,7 +140,9 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
       /** purchasedMoco — 충전만으로는 정산 등급·출금 불가 */
       purchasedMocoPoints:
         (userGems?.gemBalance ?? 0) + (settlementMoco?.mocoPoints ?? 0),
+      rewardProgress: rewardTierProgress(settlementMoco?.settlementMocoPoints ?? 0),
       recentRewards,
+      payoutDashboard,
     };
   } catch (e) {
     console.error("[getCreatorSettlementStatusForUser]", e);

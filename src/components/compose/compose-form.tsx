@@ -38,6 +38,7 @@ import { NsfwToggleButton } from "@/components/forms/nsfw-toggle-button";
 import { ComposeRichTextarea } from "@/components/compose/compose-rich-textarea";
 import { QnaIdentityToggle } from "@/components/compose/qna-identity-toggle";
 import type { ContentRating } from "@prisma/client";
+import { ComposeQuotedPostPreview } from "@/components/compose/compose-quoted-post-preview";
 
 function friendlyPostError(err: unknown, apiError?: string): string {
   if (apiError) return apiError;
@@ -55,6 +56,9 @@ export function ComposeForm({
   variant = "page",
   initialContent,
   initialTitle,
+  quotedPostId,
+  quotedAuthorUsername,
+  quotedPreview,
   onPosted,
   onNeedSignIn,
 }: {
@@ -62,6 +66,9 @@ export function ComposeForm({
   variant?: "page" | "sheet" | "inline";
   initialContent?: string;
   initialTitle?: string;
+  quotedPostId?: string;
+  quotedAuthorUsername?: string;
+  quotedPreview?: string;
   onPosted?: (postId: string) => void;
   onNeedSignIn?: () => void;
 }) {
@@ -98,7 +105,9 @@ export function ComposeForm({
         (m.url.startsWith("http") || m.url.startsWith("/"))
     );
   const submitBusy = loading || mediaUploading || !mediaReady;
-  const canSubmit = content.trim().length > 0 || media.length > 0;
+  const isQuoteCompose = Boolean(quotedPostId);
+  const canSubmit =
+    content.trim().length > 0 || media.length > 0 || (isQuoteCompose && !submitBusy);
   const instantPriceCents = parseUsdDollarsToCents(instantPriceUsd);
   const showInstantPurchase = visibility !== "PUBLIC" && contentRating !== "ADULT";
   const adultBlocksPaid = contentRating === "ADULT";
@@ -201,7 +210,7 @@ export function ComposeForm({
     const contentText =
       content.trim() || String(form.get("content") ?? "").trim();
 
-    if (!contentText && media.length === 0) return;
+    if (!contentText && media.length === 0 && !quotedPostId) return;
 
     if (poll) {
       const pollErr = validatePostPollInput(poll);
@@ -236,6 +245,7 @@ export function ComposeForm({
       poll: poll ?? undefined,
       collaboratorUserIds: isAnonymous ? [] : collaborators.map((c) => c.id),
       isAnonymous: Boolean(communityId) && isAnonymous,
+      quotedPostId,
     };
 
     setLoading(true);
@@ -356,6 +366,7 @@ export function ComposeForm({
               variant="inline"
               disabled={submitBusy}
             />
+            {quotedPostId ? <ComposeQuotedPostPreview postId={quotedPostId} /> : null}
 
             <PostMediaComposer
               ref={mediaComposerRef}
@@ -368,38 +379,40 @@ export function ComposeForm({
               watermarkCreditLabel={watermarkCreditLabel}
               onUploadingChange={setMediaUploading}
               toolbarFooterStart={
-                <>
-                  {!poll && (
-                    <ComposePollEditor
-                      value={poll}
-                      onChange={setPoll}
-                      disabled={submitBusy}
-                      compact
-                    />
-                  )}
-                  {!isAnonymous && (
-                    <ComposeCollaboratorPicker
-                      compact
-                      selected={collaborators}
-                      onChange={setCollaborators}
-                      disabled={submitBusy}
-                      labels={{
-                        add: t("compose.collabAdd"),
-                        search: t("compose.collabSearch"),
-                        following: t("compose.collabFollowing"),
-                        maxReached: t("compose.collabMax"),
-                      }}
-                    />
-                  )}
-                  {communityId ? (
-                    <QnaIdentityToggle
-                      anonymous={isAnonymous}
-                      onChange={setIsAnonymous}
-                      disabled={submitBusy}
-                    />
-                  ) : null}
-                  {nsfwToggle}
-                </>
+                isQuoteCompose ? null : (
+                  <>
+                    {!poll && (
+                      <ComposePollEditor
+                        value={poll}
+                        onChange={setPoll}
+                        disabled={submitBusy}
+                        compact
+                      />
+                    )}
+                    {!isAnonymous && (
+                      <ComposeCollaboratorPicker
+                        compact
+                        selected={collaborators}
+                        onChange={setCollaborators}
+                        disabled={submitBusy}
+                        labels={{
+                          add: t("compose.collabAdd"),
+                          search: t("compose.collabSearch"),
+                          following: t("compose.collabFollowing"),
+                          maxReached: t("compose.collabMax"),
+                        }}
+                      />
+                    )}
+                    {communityId ? (
+                      <QnaIdentityToggle
+                        anonymous={isAnonymous}
+                        onChange={setIsAnonymous}
+                        disabled={submitBusy}
+                      />
+                    ) : null}
+                    {nsfwToggle}
+                  </>
+                )
               }
               toolbarFooter={
                 <Button
@@ -438,61 +451,87 @@ export function ComposeForm({
 
   const formBody = (
     <form onSubmit={handleSubmit} onPasteCapture={handleComposePaste} className="space-y-4">
-      {variant === "sheet" && (
+      {variant === "sheet" && !isQuoteCompose && (
         <p className="text-sm text-muted-foreground -mt-1">
           사진·영상을 고른 뒤 바로 올릴 수 있습니다.
         </p>
       )}
-      <PostMediaComposer
-        ref={mediaComposerRef}
-        items={media}
-        onChange={setMedia}
-        watermarkCreditLabel={watermarkCreditLabel}
-        maxImages={100}
-        maxVideos={10}
-        allowVideoCapture={false}
-        onUploadingChange={setMediaUploading}
-        afterVideoButton={nsfwToggle}
-      />
-      <input
-        name="title"
-        defaultValue={defaultTitle}
-        placeholder="제목 (선택)"
-        className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm"
-      />
-      <ComposeRichTextarea
-        name="content"
-        value={content}
-        onChange={setContent}
-        placeholder="내용을 입력하세요... @멘션 #해시태그"
-        variant="default"
-        disabled={submitBusy}
-      />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <ContentVisibilitySelect
-          value={visibility}
-          onChange={setVisibility}
-          disabled={submitBusy}
-        />
-        {showInstantPurchase ? (
-          <div className="space-y-1.5">
-            <label htmlFor="compose-instant-price" className="text-xs font-medium text-muted-foreground">
-              즉시 구매 (등급 미달 시)
-            </label>
-            <Input
-              id="compose-instant-price"
-              inputMode="decimal"
-              placeholder="예: 80.00"
-              value={instantPriceUsd}
-              onChange={(e) => setInstantPriceUsd(sanitizeUsdDollarInput(e.target.value))}
+      {isQuoteCompose ? (
+        <>
+          <ComposeRichTextarea
+            name="content"
+            value={content}
+            onChange={setContent}
+            placeholder={t("compose.placeholder")}
+            variant="default"
+            disabled={submitBusy}
+          />
+          {quotedPostId ? <ComposeQuotedPostPreview postId={quotedPostId} /> : null}
+          <PostMediaComposer
+            ref={mediaComposerRef}
+            items={media}
+            onChange={setMedia}
+            watermarkCreditLabel={watermarkCreditLabel}
+            maxImages={100}
+            maxVideos={10}
+            allowVideoCapture={false}
+            onUploadingChange={setMediaUploading}
+          />
+        </>
+      ) : (
+        <>
+          <PostMediaComposer
+            ref={mediaComposerRef}
+            items={media}
+            onChange={setMedia}
+            watermarkCreditLabel={watermarkCreditLabel}
+            maxImages={100}
+            maxVideos={10}
+            allowVideoCapture={false}
+            onUploadingChange={setMediaUploading}
+            afterVideoButton={nsfwToggle}
+          />
+          <input
+            name="title"
+            defaultValue={defaultTitle}
+            placeholder="제목 (선택)"
+            className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm"
+          />
+          <ComposeRichTextarea
+            name="content"
+            value={content}
+            onChange={setContent}
+            placeholder="내용을 입력하세요... @멘션 #해시태그"
+            variant="default"
+            disabled={submitBusy}
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ContentVisibilitySelect
+              value={visibility}
+              onChange={setVisibility}
               disabled={submitBusy}
-              className="rounded-xl"
             />
+            {showInstantPurchase ? (
+              <div className="space-y-1.5">
+                <label htmlFor="compose-instant-price" className="text-xs font-medium text-muted-foreground">
+                  즉시 구매 (등급 미달 시)
+                </label>
+                <Input
+                  id="compose-instant-price"
+                  inputMode="decimal"
+                  placeholder="예: 80.00"
+                  value={instantPriceUsd}
+                  onChange={(e) => setInstantPriceUsd(sanitizeUsdDollarInput(e.target.value))}
+                  disabled={submitBusy}
+                  className="rounded-xl"
+                />
+              </div>
+            ) : null}
           </div>
-        ) : null}
-      </div>
-      <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
-      {!isAnonymous && (
+          <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
+        </>
+      )}
+      {!isQuoteCompose && !isAnonymous && (
         <ComposeCollaboratorPicker
           selected={collaborators}
           onChange={setCollaborators}
@@ -505,7 +544,7 @@ export function ComposeForm({
           }}
         />
       )}
-      {communityId ? (
+      {!isQuoteCompose && communityId ? (
         <QnaIdentityToggle
           anonymous={isAnonymous}
           onChange={setIsAnonymous}

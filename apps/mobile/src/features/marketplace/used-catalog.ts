@@ -276,3 +276,20 @@ export function productTypeForSellKind(kind: string): string | undefined {
   if (id === "GOODS" || id === "DIGITAL") return "OTHER";
   return undefined;
 }
+
+export type UsedListingMediaKind = "image" | "video";
+
+export function usedListingMediaKind(url: string): UsedListingMediaKind {
+  const path = url.split("?")[0]?.toLowerCase() ?? "";
+  if (/\.(mp4|mov|webm|m4v|mkv)$/.test(path)) return "video";
+  if (path.includes("/video/") || path.includes("video%2F")) return "video";
+  return "image";
+}
+
+export function usedListingMediaItems(urls: string[]) {
+  return urls.map((url, index) => ({
+    id: `used-media-${index}`,
+    url,
+    kind: usedListingMediaKind(url),
+  }));
+}

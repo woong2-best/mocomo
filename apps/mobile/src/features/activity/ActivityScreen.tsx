@@ -27,8 +27,8 @@ import type { RootStackParamList } from "@/navigation/types";
 const QUERY_KEY = ["mobile-notifications"] as const;
 
 export function ActivityScreen() {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createThemedStyles(colors), [colors]);
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const query = useQuery({
@@ -136,9 +136,14 @@ function AlarmRow({
   colors: ThemeColors;
   onPress: () => void;
 }) {
+  const { isDark } = useTheme();
   const visual = alarmVisual(item.type);
   return (
-    <Pressable style={[styles.row, !item.read && styles.rowUnread]} onPress={onPress}>
+    <Pressable
+      style={[styles.row, !item.read && styles.rowUnread]}
+      android_ripple={{ color: isDark ? "rgba(245, 240, 232, 0.12)" : "rgba(27, 74, 140, 0.12)" }}
+      onPress={onPress}
+    >
       <View style={[styles.iconBubble, { backgroundColor: visual.wash }]}>
         <Ionicons name={visual.icon} size={18} color={visual.ink} />
       </View>
@@ -222,7 +227,8 @@ function formatAlarmTime(iso: string) {
   return new Date(iso).toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
 }
 
-function createThemedStyles(colors: ThemeColors) {
+function createThemedStyles(colors: ThemeColors, isDark: boolean) {
+  const unreadWash = isDark ? colors.muted : "rgba(197, 82, 42, 0.07)";
   return StyleSheet.create({
     list: { padding: spacing.md, paddingBottom: 48, flexGrow: 1 },
     center: { padding: spacing.lg, alignItems: "center", gap: 12 },
@@ -241,7 +247,8 @@ function createThemedStyles(colors: ThemeColors) {
     },
     rowUnread: {
       borderColor: "rgba(197, 82, 42, 0.45)",
-      backgroundColor: "rgba(197, 82, 42, 0.06)",
+      // Opaque wash — transparent rgba showed list background as a black patch in dark mode.
+      backgroundColor: unreadWash,
     },
     iconBubble: {
       width: 36,

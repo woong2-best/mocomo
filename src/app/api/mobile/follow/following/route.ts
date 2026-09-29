@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { db } from "@/lib/db";
+import { annotateCanMessage } from "@/lib/contact-audience";
 
 const TAKE = 80;
 
@@ -59,5 +60,6 @@ export async function GET(req: NextRequest) {
       .map((x) => x.u);
   }
 
-  return NextResponse.json({ users });
+  const annotated = await annotateCanMessage(authResult.user.id, users);
+  return NextResponse.json({ users: annotated });
 }

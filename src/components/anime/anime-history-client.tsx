@@ -3,20 +3,28 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { restoreAnimeRevision } from "@/actions/anime";
+import type { AnimeHistoryEntry } from "@/lib/anime-history";
 import { Button } from "@/components/ui/button";
 import { InlineConfirm } from "@/components/ui/inline-confirm";
 
+function formatStamp(iso: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(iso));
+}
+
 export function AnimeHistoryClient({
   slug,
-  revisions,
+  entries,
 }: {
   slug: string;
-  revisions: {
-    id: string;
-    summary: string | null;
-    createdAt: Date | string;
-    editor: { username: string; name: string | null };
-  }[];
+  entries: AnimeHistoryEntry[];
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -35,48 +43,50 @@ export function AnimeHistoryClient({
     router.refresh();
   }
 
-  if (revisions.length === 0) {
+  if (entries.length === 0) {
     return <p className="text-sm text-muted-foreground">수정 기록이 없습니다.</p>;
   }
 
   return (
     <div className="space-y-2">
-      {revisions.map((r) => (
-        <div
-          key={r.id}
-          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/70 px-3 py-2 text-sm"
-        >
-          <div>
-            <p className="font-medium">
-              {r.summary || "내용 수정"}{" "}
-              <span className="text-muted-foreground font-normal">
-                · @{r.editor.username}
-              </span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {new Date(r.createdAt).toLocaleString("ko-KR")}
-            </p>
-          </div>
-          <InlineConfirm
-            message="이 버전으로 문서를 복구할까요?"
-            confirmLabel="복구"
-            pending={busy === r.id}
-            onConfirm={() => restore(r.id)}
-            renderTrigger={(open) => (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="rounded-lg"
-                disabled={busy === r.id}
-                onClick={open}
-              >
-                {busy === r.id ? "복구 중…" : "이 버전으로 복구"}
-              </Button>
-            )}
-          />
-        </div>
-      ))}
+      <p className="text-xs text-muted-foreground">시간 순 · 유저 아이디 · 날짜</p>
+      <ol className="space-y-2">
+        {entries.map((r, index) => (
+          <li
+            key={r.id}
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/70 px-3 py-2.5 text-sm"
+          >
+            <div className="min-w-0 space-y-0.5">
+              <p className="font-medium">
+                <span className="text-muted-foreground font-normal mr-2">{index + 1}.</span>
+                <span className="font-mono">@{r.username}</span>
+              </p>
+              <p className="text-xs text-muted-foreground tabular-nums">{formatStamp(r.createdAt)}</p>
+              <p className="text-xs text-muted-foreground">{r.summary || "내용 수정"}</p>
+            </div>
+            {r.restorable ? (
+              <InlineConfirm
+                message="이 버전으로 문서를 복구할까요?"
+                confirmLabel="복구"
+                pending={busy === r.id}
+                onConfirm={() => restore(r.id)}
+                renderTrigger={(open) => (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="rounded-lg"
+                    disabled={busy === r.id}
+                    onClick={open}
+                  >
+                    {busy === r.id ? "복구 중…" : "이 버전으로 복구"}
+                  </Button>
+                )}
+              />
+            ) : null}
+          </li>
+        ))}
+      </ol>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );

@@ -238,6 +238,8 @@ export function useRoomMessages(roomId: string) {
         if (res.contentFiltered) {
           showIslandError("안내", "외부 결제·연락처 유도는 이용약관상 금지됩니다. 해당 내용이 자동으로 가려졌습니다.");
         }
+      } catch (e) {
+        showIslandError("메시지", e instanceof Error ? e.message : "보내지 못했습니다.");
       } finally {
         setSending(false);
       }

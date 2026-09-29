@@ -135,7 +135,7 @@ export function ProfileHeaderChrome({
                     {following ? "팔로잉" : "팔로우"}
                   </Text>
                 </Pressable>
-                {onOpenChat ? (
+                {onOpenChat && user.canMessage !== false ? (
                   <Pressable
                     style={styles.chatBtn}
                     onPress={() => void startChat()}

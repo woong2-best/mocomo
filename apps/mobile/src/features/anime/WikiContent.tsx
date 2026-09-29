@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { WebView } from "react-native-webview";
 import { WikiInline, type FootnoteMap } from "@/features/anime/WikiInline";
+import { extractYoutubeId } from "@/features/anime/wiki-youtube";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -70,6 +73,33 @@ export function WikiContent({ source }: { source: string }) {
     const collapse = trimmed.match(/^\{\{collapse\|([^|]+)\|([\s\S]+)\}\}$/);
     if (collapse) {
       rendered.push(<CollapseBlock key={`c-${bi}`} title={collapse[1]} body={collapse[2]} />);
+      return;
+    }
+
+    const yt = extractYoutubeId(trimmed);
+    if (yt) {
+      rendered.push(
+        <View key={`yt-${bi}`} style={styles.video}>
+          <WebView
+            source={{ uri: `https://www.youtube.com/embed/${yt}` }}
+            style={styles.videoInner}
+            allowsFullscreenVideo
+          />
+        </View>
+      );
+      return;
+    }
+
+    const imageOnly = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (imageOnly) {
+      rendered.push(
+        <Image
+          key={`img-${bi}`}
+          source={{ uri: imageOnly[2] }}
+          style={styles.inlineImage}
+          contentFit="cover"
+        />
+      );
       return;
     }
 
@@ -205,5 +235,21 @@ function createStyles(colors: ThemeColors) {
       gap: 4,
     },
     fnItem: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+    video: {
+      marginVertical: 6,
+      width: "100%",
+      aspectRatio: 16 / 9,
+      minHeight: 180,
+      borderRadius: radii.md,
+      overflow: "hidden",
+      backgroundColor: "#000",
+    },
+    videoInner: { flex: 1, backgroundColor: "#000" },
+    inlineImage: {
+      width: "100%",
+      aspectRatio: 16 / 10,
+      borderRadius: radii.md,
+      marginVertical: 6,
+    },
   });
 }

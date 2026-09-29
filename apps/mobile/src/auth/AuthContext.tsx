@@ -36,7 +36,14 @@ import {
   type SavedMobileAccountPublic,
 } from "@/auth/account-store";
 import { prefetchImageUrls } from "@/perf/image";
-import { clearTokens, getAccessToken, logoutCurrentAccount, setTokens } from "@/auth/token-store";
+import {
+  clearTokens,
+  currentAuthEpoch,
+  getAccessToken,
+  invalidateAuthSession,
+  logoutCurrentAccount,
+  setTokens,
+} from "@/auth/token-store";
 import type { MobileAuthUser } from "@/auth/types";
 import { patchMe } from "@/api/discovery";
 import { detectDeviceTimeZone } from "@/lib/device-timezone";
@@ -163,8 +170,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const applySignedInUser = useCallback(
-    async (nextUser: MobileAuthUser) => {
+    async (nextUser: MobileAuthUser, epoch = currentAuthEpoch()) => {
+      if (epoch !== currentAuthEpoch()) return;
       await hydrateStarHubQuery(queryClient, nextUser.id);
+      if (epoch !== currentAuthEpoch()) return;
       setUser(nextUser);
       setStatus("signedIn");
       await patchActiveAccountProfile(nextUser);
@@ -177,7 +186,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshMe = useCallback(async () => {
+    const epoch = currentAuthEpoch();
     const token = await getAccessToken();
+    if (epoch !== currentAuthEpoch()) return;
     if (!token) {
       setUser(null);
       setStatus("signedOut");
@@ -188,10 +199,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await apiRequest<{ user: MobileAuthUser }>(MobileApi.me, { auth: true });
       const active = await getActiveAccount();
       if (active && (active.userId === "legacy" || active.username === "user")) {
-        await saveAccountSession(data.user, active.accessToken, active.refreshToken);
+        await saveAccountSession(
+          data.user,
+          active.accessToken,
+          active.refreshToken,
+          () => epoch === currentAuthEpoch()
+        );
       }
-      await applySignedInUser(data.user);
+      if (epoch !== currentAuthEpoch()) return;
+      await applySignedInUser(data.user, epoch);
     } catch (e) {
+      if (epoch !== currentAuthEpoch()) return;
       const statusCode = e instanceof ApiError ? e.status : 0;
       // Only a confirmed unauthorized session may wipe tokens. 403/404/408/network
       // after a successful login used to kick the user straight back to Login.
@@ -211,9 +229,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const epoch = currentAuthEpoch();
       await migrateLegacySingleToken();
       const token = await getAccessToken();
-      if (cancelled) return;
+      if (cancelled || epoch !== currentAuthEpoch()) return;
       if (!token) {
         setUser(null);
         setStatus("signedOut");
@@ -254,7 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         queryClient.setQueryData(["mobile-gems-wallet"], cachedWallet.gems);
       }
 
-      if (cancelled) return;
+      if (cancelled || epoch !== currentAuthEpoch()) return;
       if (cachedUser) {
         setUser(cachedUser);
         if (cachedUser.image) {
@@ -269,16 +288,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         const data = await apiRequest<{ user: MobileAuthUser }>(MobileApi.me, { auth: true });
-        if (cancelled) return;
+        if (cancelled || epoch !== currentAuthEpoch()) return;
         const active = await getActiveAccount();
         if (active && (active.userId === "legacy" || active.username === "user")) {
-          await saveAccountSession(data.user, active.accessToken, active.refreshToken);
+          await saveAccountSession(
+            data.user,
+            active.accessToken,
+            active.refreshToken,
+            () => epoch === currentAuthEpoch()
+          );
         }
+        if (cancelled || epoch !== currentAuthEpoch()) return;
         setUser(data.user);
         setStatus("signedIn");
         await refreshSavedAccounts();
       } catch (e) {
-        if (cancelled) return;
+        if (cancelled || epoch !== currentAuthEpoch()) return;
         const statusCode = e instanceof ApiError ? e.status : 0;
         if (statusCode === 401) {
           await clearTokens();
@@ -340,8 +365,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       birthDay?: number;
       termsAccepted?: boolean;
       privacyAccepted?: boolean;
+      username?: string;
+      name?: string;
+      password?: string;
     }) => {
-      const { authenticateWithGoogleNative } = await import("@/auth/google-native");
+      const epoch = currentAuthEpoch();
+      const { authenticateWithGoogleNative, GoogleNativeCancelledError } = await import(
+        "@/auth/google-native"
+      );
       const result = await authenticateWithGoogleNative({
         flow: opts?.flow ?? "signin",
         idToken: opts?.idToken,
@@ -351,6 +382,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         birthDay: opts?.birthDay,
         termsAccepted: opts?.termsAccepted,
         privacyAccepted: opts?.privacyAccepted,
+        username: opts?.username,
+        name: opts?.name,
+        password: opts?.password,
       });
 
       if (result.status === "needsSignup") {
@@ -361,8 +395,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      await setTokens(result.accessToken, result.refreshToken, result.user);
-      await applySignedInUser(result.user);
+      if (epoch !== currentAuthEpoch()) {
+        throw new GoogleNativeCancelledError();
+      }
+
+      await setTokens(result.accessToken, result.refreshToken, result.user, epoch);
+      await applySignedInUser(result.user, epoch);
       void refreshMe();
       return { status: "signedIn" as const };
     },
@@ -378,6 +416,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       birthDay?: number;
       termsAccepted?: boolean;
       privacyAccepted?: boolean;
+      username?: string;
+      name?: string;
+      password?: string;
     }) => {
       const { authenticateWithNaverNative } = await import("@/auth/naver-line-native");
       const result = await authenticateWithNaverNative({
@@ -413,6 +454,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       birthDay?: number;
       termsAccepted?: boolean;
       privacyAccepted?: boolean;
+      username?: string;
+      name?: string;
+      password?: string;
     }) => {
       const { authenticateWithLineNative } = await import("@/auth/naver-line-native");
       const result = await authenticateWithLineNative({
@@ -502,6 +546,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    invalidateAuthSession();
     try {
       const { getRefreshToken } = await import("@/auth/token-store");
       const refreshToken = await getRefreshToken();
@@ -518,7 +563,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         /* SDK unavailable */
       }
-      const fallback = await logoutCurrentAccount();
+      await logoutCurrentAccount();
       await Promise.all([
         clearFeedBootstrap(),
         clearDmBootstrap(),
@@ -527,19 +572,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearStarHubBootstrap(),
       ]);
       queryClient.clear();
-      if (fallback) {
-        await hydrateStarHubQuery(queryClient, fallback.userId);
-        setStatus("signedIn");
-        prefetchHomeFeed(queryClient);
-        scheduleTabWarmup(queryClient);
-        await refreshMe();
-      } else {
-        setUser(null);
-        setStatus("signedOut");
-        await refreshSavedAccounts();
-      }
+      setUser(null);
+      setStatus("signedOut");
+      await refreshSavedAccounts();
     }
-  }, [queryClient, refreshMe, refreshSavedAccounts]);
+  }, [queryClient, refreshSavedAccounts]);
 
   useEffect(() => {
     if (status !== "signedIn" || !user) return;

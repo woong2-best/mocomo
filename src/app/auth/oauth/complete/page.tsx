@@ -66,7 +66,11 @@ export default async function OAuthCompletePage({
         redirect(`/auth/complete-birth-date?dest=${encodeURIComponent(dest)}`);
       }
       if (isSignup && !isMobileHandoffDest(dest)) {
-        redirect(`/auth/complete-role?dest=${encodeURIComponent(dest)}`);
+        const { markSignupNeedsIdentity, signupIdentityEntryPath } = await import(
+          "@/lib/signup-identity-onboarding"
+        );
+        await markSignupNeedsIdentity();
+        redirect(signupIdentityEntryPath(dest));
       }
       redirect(dest);
     }

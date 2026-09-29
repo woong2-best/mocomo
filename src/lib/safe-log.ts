@@ -29,7 +29,15 @@ export function redactToken(value: string | null | undefined): string {
 
 function sanitizeValue(key: string, value: unknown): unknown {
   const lower = key.toLowerCase();
-  if (TOKEN_KEYS.has(key) || TOKEN_KEYS.has(lower)) {
+  if (
+    TOKEN_KEYS.has(key) ||
+    TOKEN_KEYS.has(lower) ||
+    lower.includes("pin") ||
+    lower.includes("latitude") ||
+    lower.includes("longitude") ||
+    lower === "lat" ||
+    lower === "lng"
+  ) {
     return typeof value === "string" ? redactToken(value) : "[redacted]";
   }
   if (lower.includes("email") && typeof value === "string") {

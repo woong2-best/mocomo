@@ -32,13 +32,10 @@ export default async function SettingsPage() {
         countryCode: true,
         timeZone: true,
         postsLocked: true,
-        twoFactorEnabled: true,
-        showNsfw: true,
         watermarkInsertEnabled: true,
         watermarkPlacement: true,
         profile: true,
         otakuProfile: true,
-        cosplayerProfile: { select: { id: true } },
       },
     }),
     getServerTranslator(),
@@ -134,19 +131,9 @@ export default async function SettingsPage() {
                 {t("settings.editProfile")}
               </Button>
             </Link>
-            <Link href="/settings/subscriptions">
-              <Button variant="outline" size="sm">
-                정기 후원 관리
-              </Button>
-            </Link>
             <Link href="/coupons">
               <Button variant="outline" size="sm">
                 내 쿠폰
-              </Button>
-            </Link>
-            <Link href="/support">
-              <Button variant="ghost" size="sm">
-                {t("settings.supportTier")}
               </Button>
             </Link>
           </div>
@@ -178,33 +165,6 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("settings.cosplayTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {user?.cosplayerProfile ? (
-            <>
-              <p className="text-sm text-muted-foreground">{t("settings.cosplayRegistered")}</p>
-              <Link href={`/cosplay/${user.username}`}>
-                <Button variant="outline" size="sm">
-                  {t("settings.cosplayProfile")}
-                </Button>
-              </Link>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-muted-foreground">{t("settings.cosplayApplyDesc")}</p>
-              <Link href="/cosplay/apply">
-                <Button size="sm" className="rounded-xl">
-                  {t("settings.cosplayApply")}
-                </Button>
-              </Link>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>{t("settings.otakuTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
@@ -213,26 +173,6 @@ export default async function SettingsPage() {
               chars: user?.otakuProfile?.favoriteChars?.join(", ") || t("settings.none"),
             })}
           </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.security")}</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-3">
-          <p>
-            {t("settings.twoFactor")}:{" "}
-            {user?.twoFactorEnabled ? t("settings.twoFactorOn") : t("settings.twoFactorOff")}
-          </p>
-          <p>
-            {t("settings.nsfw")}: {user?.showNsfw ? t("settings.nsfwOn") : t("settings.nsfwOff")}
-          </p>
-          <Link href="/settings/bank">
-            <Button variant="outline" size="sm" className="rounded-xl">
-              국내 계좌 인증
-            </Button>
-          </Link>
         </CardContent>
       </Card>
 

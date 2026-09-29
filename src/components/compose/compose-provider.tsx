@@ -39,6 +39,9 @@ type ComposeOptions = {
   initialTitle?: string;
   /** APT 우편함 상호작용 — 확장형 시트 UI */
   viaMailbox?: boolean;
+  quotedPostId?: string;
+  quotedAuthorUsername?: string;
+  quotedPreview?: string;
 };
 
 type ComposeContextValue = {
@@ -71,6 +74,9 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const [initialContent, setInitialContent] = useState<string | undefined>();
   const [initialTitle, setInitialTitle] = useState<string | undefined>();
   const [viaMailbox, setViaMailbox] = useState(false);
+  const [quotedPostId, setQuotedPostId] = useState<string | undefined>();
+  const [quotedAuthorUsername, setQuotedAuthorUsername] = useState<string | undefined>();
+  const [quotedPreview, setQuotedPreview] = useState<string | undefined>();
   const [formKey, setFormKey] = useState(0);
   const [pendingOpen, setPendingOpen] = useState<ComposeOptions | null>(null);
 
@@ -79,6 +85,9 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     setInitialContent(opts?.initialContent);
     setInitialTitle(opts?.initialTitle);
     setViaMailbox(Boolean(opts?.viaMailbox));
+    setQuotedPostId(opts?.quotedPostId);
+    setQuotedAuthorUsername(opts?.quotedAuthorUsername);
+    setQuotedPreview(opts?.quotedPreview);
     setFormKey((k) => k + 1);
     setOpen(true);
   }, []);
@@ -196,6 +205,9 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
                         communityId={communityId}
                         initialContent={initialContent}
                         initialTitle={initialTitle}
+                        quotedPostId={quotedPostId}
+                        quotedAuthorUsername={quotedAuthorUsername}
+                        quotedPreview={quotedPreview}
                         variant="inline"
                         onPosted={handlePosted}
                         onNeedSignIn={() => {
@@ -237,6 +249,9 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
                           communityId={communityId}
                           initialContent={initialContent}
                           initialTitle={initialTitle}
+                          quotedPostId={quotedPostId}
+                          quotedAuthorUsername={quotedAuthorUsername}
+                          quotedPreview={quotedPreview}
                           variant="sheet"
                           onPosted={handlePosted}
                           onNeedSignIn={() => {

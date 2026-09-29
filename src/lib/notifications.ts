@@ -165,11 +165,16 @@ export async function notifyQuotedPosts(params: {
   content: string;
   actorId: string;
   quotePostId: string;
+  quotedPostId?: string | null;
 }) {
   const ids = extractQuotedPostIds(params.content, params.quotePostId);
-  if (ids.length === 0) return;
+  if (params.quotedPostId && params.quotedPostId !== params.quotePostId) {
+    ids.unshift(params.quotedPostId);
+  }
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return;
   const posts = await db.post.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: unique } },
     select: { id: true, authorId: true },
   });
   const actor = await getActor(params.actorId);

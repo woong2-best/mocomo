@@ -3,6 +3,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { getUserGemBalance } from "@/lib/gems/balance";
 import { spendMocoOnLetterDonation } from "@/lib/gems/letter-donation";
+import { stripeAccountNotReadyPayload } from "@/lib/creator-payout-ready";
 import { LETTER_DONATION_MIN_MOCO } from "@/lib/chat-letter-donation";
 
 /** POST /api/mobile/letter-donations — spend MOCO, deliver sealed letter in DM */
@@ -55,6 +56,9 @@ export async function POST(req: NextRequest) {
         { error: "MOCO 잔액이 부족합니다. 지갑에서 충전해 주세요.", balance },
         { status: 400 }
       );
+    }
+    if ("code" in result && result.code === "STRIPE_ACCOUNT_NOT_READY") {
+      return NextResponse.json(stripeAccountNotReadyPayload(), { status: 422 });
     }
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

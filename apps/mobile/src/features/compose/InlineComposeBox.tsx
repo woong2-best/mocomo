@@ -25,6 +25,7 @@ import {
   type PollDraft,
 } from "@/features/compose/compose-types";
 import { publishComposePost } from "@/features/compose/publish-post";
+import { resetFeedPostOffset } from "@/features/feed/feed-post-offset";
 import type {
   TextOverlayCaptureJob,
   WatermarkCaptureJob,
@@ -40,6 +41,7 @@ import {
 import { prepareImageForUpload } from "@/lib/prepare-image-upload";
 import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import type { MenuAnchor } from "@/features/feed/FeedPostOverflowMenu";
+import { ComposeQuotePreview } from "@/features/compose/ComposeQuotePreview";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { NsfwToggleButton } from "@/ui/NsfwToggleButton";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
@@ -53,9 +55,12 @@ type Props = {
   avatarLetter?: string;
   /** Prefill body (e.g. quote repost draft). */
   initialContent?: string;
+  quotedPostId?: string;
+  quotedAuthorUsername?: string;
+  quotedPreview?: string;
   autoFocus?: boolean;
   /** Called after a successful publish (modal can close). */
-  onPosted?: (postId: string) => void;
+  onPosted?: (postId: string) => void | Promise<void>;
 };
 
 type PickerAsset = {
@@ -120,6 +125,9 @@ export function InlineComposeBox({
   avatarUrl,
   avatarLetter = "?",
   initialContent,
+  quotedPostId,
+  quotedAuthorUsername,
+  quotedPreview,
   autoFocus = false,
   onPosted,
 }: Props) {
@@ -139,6 +147,8 @@ export function InlineComposeBox({
   const [collabOpen, setCollabOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [isNsfw, setIsNsfw] = useState(false);
+  const [quotedSourceNsfw, setQuotedSourceNsfw] = useState(false);
+  const isQuoteCompose = Boolean(quotedPostId);
   const [watermarkOptions, setWatermarkOptions] = useState<WatermarkOptions>(
     EMPTY_WATERMARK_OPTIONS
   );
@@ -178,7 +188,7 @@ export function InlineComposeBox({
     );
   }, [user?.preferences?.watermarkInsertEnabled, user?.preferences?.watermarkPlacement]);
   const canPost =
-    !busy && (content.trim().length > 0 || media.length > 0 || !!poll);
+    !busy && (content.trim().length > 0 || media.length > 0 || !!poll || !!quotedPostId);
 
   const composeLightboxImages = useMemo(
     () =>
@@ -195,13 +205,22 @@ export function InlineComposeBox({
   }, []);
 
   useEffect(() => {
+    if (quotedPostId) {
+      setContent("");
+      setQuotedSourceNsfw(false);
+      if (autoFocus) {
+        const t = setTimeout(() => focusInput(), 120);
+        return () => clearTimeout(t);
+      }
+      return;
+    }
     if (!initialContent?.length) return;
     setContent(initialContent);
     if (autoFocus) {
       const t = setTimeout(() => focusInput(), 120);
       return () => clearTimeout(t);
     }
-  }, [autoFocus, focusInput, initialContent]);
+  }, [autoFocus, focusInput, initialContent, quotedPostId]);
 
   const appendAssets = useCallback((assets: PickerAsset[]) => {
     if (!assets.length) return;
@@ -348,12 +367,18 @@ export function InlineComposeBox({
         media: preparedMedia,
         poll,
         collaborators,
-        isNsfw,
+        isNsfw: isNsfw || quotedSourceNsfw,
+        quotedPostId,
       });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       reset();
-      await queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
-      onPosted?.(res.postId);
+      if (onPosted) {
+        await onPosted(res.postId);
+      } else {
+        resetFeedPostOffset();
+        await queryClient.resetQueries({ queryKey: ["mobile-feed"] });
+      }
+      await queryClient.invalidateQueries({ queryKey: ["mobile-user"] });
       if (res.warning) {
         showIslandToast("Posted", res.warning);
       }
@@ -368,7 +393,20 @@ export function InlineComposeBox({
     } finally {
       setBusy(false);
     }
-  }, [canPost, collaborators, content, isNsfw, media, onPosted, poll, processMediaForUpload, queryClient, reset]);
+  }, [
+    canPost,
+    collaborators,
+    content,
+    isNsfw,
+    media,
+    onPosted,
+    poll,
+    processMediaForUpload,
+    queryClient,
+    quotedPostId,
+    quotedSourceNsfw,
+    reset,
+  ]);
 
   return (
     <View style={styles.wrap}>
@@ -405,6 +443,7 @@ export function InlineComposeBox({
         >
           <FolkAvatar uri={avatarUrl} name={avatarLetter} size={40} framed={false} />
         </Pressable>
+        <View style={styles.inputColumn}>
         <Pressable style={styles.inputHit} onPress={focusInput}>
           <TextInput
             ref={inputRef}
@@ -417,6 +456,13 @@ export function InlineComposeBox({
             editable={!busy}
           />
         </Pressable>
+        {quotedPostId ? (
+          <ComposeQuotePreview
+            postId={quotedPostId}
+            onLoaded={(p) => setQuotedSourceNsfw(!!p.isNsfw)}
+          />
+        ) : null}
+        </View>
       </View>
 
       {media.length > 0 ? (
@@ -480,30 +526,34 @@ export function InlineComposeBox({
           <ToolIcon name="image-outline" onPress={() => void pickGallery()} disabled={busy} color={colors.terracotta} />
           <ToolIcon name="camera-outline" onPress={() => void takePhoto()} disabled={busy} color={colors.terracotta} />
           <ToolIcon name="videocam-outline" onPress={() => void recordVideo()} disabled={busy} color={colors.terracotta} />
-          <ToolIcon
-            name="stats-chart-outline"
-            onPress={togglePoll}
-            disabled={busy}
-            color={poll ? colors.brand : colors.terracotta}
-          />
-          <View ref={collabAnchorRef} collapsable={false}>
-            <ToolIcon
-              name="people-outline"
-              onPress={() => {
-                collabAnchorRef.current?.measureInWindow((x, y, width, height) => {
-                  setCollabAnchor({ x, y, width, height });
-                  setCollabOpen(true);
-                });
-              }}
-              disabled={busy}
-              color={collaborators.length ? colors.brand : colors.terracotta}
-            />
-          </View>
-          <NsfwToggleButton
-            active={isNsfw}
-            onToggle={() => setIsNsfw((v) => !v)}
-            disabled={busy}
-          />
+          {!isQuoteCompose ? (
+            <>
+              <ToolIcon
+                name="stats-chart-outline"
+                onPress={togglePoll}
+                disabled={busy}
+                color={poll ? colors.brand : colors.terracotta}
+              />
+              <View ref={collabAnchorRef} collapsable={false}>
+                <ToolIcon
+                  name="people-outline"
+                  onPress={() => {
+                    collabAnchorRef.current?.measureInWindow((x, y, width, height) => {
+                      setCollabAnchor({ x, y, width, height });
+                      setCollabOpen(true);
+                    });
+                  }}
+                  disabled={busy}
+                  color={collaborators.length ? colors.brand : colors.terracotta}
+                />
+              </View>
+              <NsfwToggleButton
+                active={isNsfw}
+                onToggle={() => setIsNsfw((v) => !v)}
+                disabled={busy}
+              />
+            </>
+          ) : null}
         </View>
         <Pressable
           style={[styles.postBtn, (!canPost || busy) && styles.postBtnDisabled]}
@@ -918,7 +968,18 @@ function createStyles(colors: ThemeColors) {
     topRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
     avatarHit: { alignSelf: "flex-start" },
     avatarHitPressed: { opacity: 0.82 },
+    inputColumn: { flex: 1, minWidth: 0 },
     inputHit: { flex: 1, paddingTop: 8 },
+    quoteChip: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      borderRadius: radii.md,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      marginTop: 4,
+    },
+    quoteChipTitle: { fontSize: 13, fontWeight: "700", color: colors.text },
+    quoteChipBody: { marginTop: 2, fontSize: 13, color: colors.textMuted },
     input: {
       minHeight: 44,
       maxHeight: 140,

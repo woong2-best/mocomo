@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ChevronLeft, ChevronRight, Flag, X } from "lucide-react";
+import { ChevronLeft, Flag, X } from "lucide-react";
 import type { ReportTargetType } from "@prisma/client";
 import { submitContentReport } from "@/actions/report";
 import {
@@ -20,6 +20,19 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type Phase = "browse" | "review" | "done";
+
+function ReportCategoryGrip({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn("flex shrink-0 flex-col justify-center gap-[3px]", className)}
+      aria-hidden
+    >
+      <span className="h-0.5 w-4 rounded-full bg-current opacity-40" />
+      <span className="h-0.5 w-4 rounded-full bg-current opacity-40" />
+      <span className="h-0.5 w-4 rounded-full bg-current opacity-40" />
+    </span>
+  );
+}
 
 type Props = {
   open: boolean;
@@ -185,18 +198,18 @@ export function ContentReportFlow({
           />
           <div
             className={cn(
-              "relative z-10 flex w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[#1c1c1e] text-white shadow-2xl sm:rounded-2xl",
+              "relative z-10 flex w-full max-w-md flex-col overflow-hidden rounded-t-[1.35rem] border border-border bg-card text-card-foreground shadow-folk sm:rounded-[1.35rem]",
               "max-h-[min(92vh,40rem)]"
             )}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-white/25 sm:hidden" />
+            <div className="mx-auto mt-3 h-1 w-11 shrink-0 rounded-full bg-muted-foreground/25 sm:hidden" />
 
-            <div className="relative flex items-center justify-center px-12 py-3">
+            <div className="relative flex items-center justify-center px-14 py-4">
               {phase !== "done" ? (
                 <button
                   type="button"
-                  className="absolute left-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/10"
+                  className="absolute left-4 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground transition-colors hover:bg-secondary active:bg-[hsl(var(--folk-cobalt))] active:text-[hsl(var(--folk-cream))]"
                   aria-label="뒤로"
                   onClick={goBack}
                 >
@@ -205,37 +218,39 @@ export function ContentReportFlow({
               ) : (
                 <button
                   type="button"
-                  className="absolute right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/10"
+                  className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground transition-colors hover:bg-secondary"
                   aria-label="닫기"
                   onClick={() => handleOpenChange(false)}
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
-              <h2 className="text-[15px] font-semibold tracking-tight">
+              <h2 className="text-base font-bold tracking-tight text-foreground">
                 {phase === "done" ? "완료" : "신고하기"}
               </h2>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-5">
               {phase === "browse" ? (
                 <>
-                  <p className="mb-4 text-xl font-bold leading-snug">{currentQuestion}</p>
+                  <p className="mb-3 text-xl font-bold leading-snug text-foreground">
+                    {currentQuestion}
+                  </p>
                   {path.length === 0 ? (
-                    <p className="mb-5 text-sm leading-relaxed text-white/55">
+                    <p className="mb-6 rounded-xl bg-muted/80 px-4 py-3.5 text-sm leading-relaxed text-muted-foreground">
                       {POST_REPORT_DISCLAIMER}
                     </p>
                   ) : null}
-                  <ul className="divide-y divide-white/10">
+                  <ul className="space-y-2">
                     {currentNodes.map((node) => (
                       <li key={node.id}>
                         <button
                           type="button"
-                          className="flex w-full items-center justify-between gap-3 py-3.5 text-left text-[15px] font-medium transition-colors hover:bg-white/5"
+                          className="flex w-full items-center justify-between gap-3 rounded-xl border border-border/80 bg-background/60 px-4 py-3.5 text-left text-[15px] font-semibold text-foreground transition-colors hover:border-[hsl(var(--folk-cobalt))]/35 hover:bg-muted/50 active:border-[hsl(var(--folk-cobalt))] active:bg-[hsl(var(--folk-cobalt))]/10"
                           onClick={() => selectNode(node)}
                         >
-                          <span>{node.label}</span>
-                          <ChevronRight className="h-4 w-4 shrink-0 text-white/40" />
+                          <span className="leading-snug">{node.label}</span>
+                          <ReportCategoryGrip className="text-[hsl(var(--folk-cobalt))]" />
                         </button>
                       </li>
                     ))}
@@ -245,32 +260,32 @@ export function ContentReportFlow({
 
               {phase === "review" ? (
                 <>
-                  <p className="mb-2 text-2xl font-bold">신고를 제출합니다</p>
-                  <p className="mb-6 text-sm leading-relaxed text-sky-300/90">
+                  <p className="mb-2 text-2xl font-bold text-foreground">신고를 제출합니다</p>
+                  <p className="mb-6 text-sm leading-relaxed text-[hsl(var(--folk-cobalt))]">
                     {POST_REPORT_REVIEW_HINT}
                   </p>
-                  <h3 className="mb-3 text-base font-bold">신고 상세 정보</h3>
-                  <div className="space-y-4">
+                  <h3 className="mb-3 text-base font-bold text-foreground">신고 상세 정보</h3>
+                  <div className="space-y-3">
                     {reviewSteps.map((step, i) => (
                       <button
                         key={`${step.node.id}-${i}`}
                         type="button"
-                        className="block w-full rounded-lg text-left transition-colors hover:bg-white/5"
+                        className="block w-full rounded-xl border border-border/80 bg-muted/40 px-4 py-3 text-left transition-colors hover:border-[hsl(var(--folk-cobalt))]/40 active:bg-[hsl(var(--folk-cobalt))]/10"
                         onClick={() => jumpToStep(i)}
                       >
-                        <p className="text-sm font-semibold text-white">{step.question}</p>
-                        <p className="mt-0.5 text-sm text-white/50">{step.node.label}</p>
+                        <p className="text-sm font-semibold text-foreground">{step.question}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{step.node.label}</p>
                       </button>
                     ))}
                   </div>
-                  {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}
+                  {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
                 </>
               ) : null}
 
               {phase === "done" ? (
                 <>
-                  <p className="mb-3 text-2xl font-bold">소중한 의견 감사합니다</p>
-                  <p className="text-sm leading-relaxed text-white/60">
+                  <p className="mb-3 text-2xl font-bold text-foreground">소중한 의견 감사합니다</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
                     회원님의 신고는 콘텐츠 검토에 반영되며, 비슷한 게시물이 덜 보일 수 있습니다.
                   </p>
                 </>
@@ -278,23 +293,23 @@ export function ContentReportFlow({
             </div>
 
             {phase === "review" ? (
-              <div className="shrink-0 border-t border-white/10 px-5 py-4">
+              <div className="shrink-0 border-t border-border px-6 py-5">
                 <Button
                   type="button"
-                  className="h-12 w-full rounded-xl bg-[#0A84FF] text-base font-semibold text-white hover:bg-[#0A84FF]/90"
+                  className="h-12 w-full rounded-xl bg-[hsl(var(--folk-cobalt))] text-base font-bold text-[hsl(var(--folk-cream))] hover:bg-[hsl(var(--folk-cobalt))]/90"
                   disabled={pending}
                   onClick={submit}
                 >
-                  {pending ? "제출 중…" : "제출"}
+                  {pending ? "제출 중…" : "신고 제출"}
                 </Button>
               </div>
             ) : null}
 
             {phase === "done" ? (
-              <div className="shrink-0 border-t border-white/10 px-5 py-4">
+              <div className="shrink-0 border-t border-border px-6 py-5">
                 <Button
                   type="button"
-                  className="h-12 w-full rounded-xl bg-[#0A84FF] text-base font-semibold text-white hover:bg-[#0A84FF]/90"
+                  className="h-12 w-full rounded-xl bg-[hsl(var(--folk-cobalt))] text-base font-bold text-[hsl(var(--folk-cream))] hover:bg-[hsl(var(--folk-cobalt))]/90"
                   onClick={() => handleOpenChange(false)}
                 >
                   완료

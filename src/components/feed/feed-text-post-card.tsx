@@ -148,7 +148,7 @@ export function FeedTextPostCard({
         </div>
 
         {post.poll && (
-          <PostPollCard postId={post.id} poll={post.poll} compact />
+          <PostPollCard postId={post.id} poll={post.poll} isAuthor={isOwner} compact />
         )}
 
         {post.anime && (

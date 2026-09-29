@@ -134,7 +134,7 @@ export function EventsNativeMap({
     [usablePins, selectedId]
   );
 
-  if (usablePins.length === 0 || !MLRN?.Map) {
+  if (!MLRN?.Map) {
     return <MapFallback style={style} />;
   }
 

@@ -3,6 +3,7 @@ import { consumeGemsFifo, InsufficientGemsBalanceError } from "@/lib/gems/fifo";
 import { syncUserGemBalance } from "@/lib/gems/balance";
 import type { GiftEventSource } from "@/lib/gems/constants";
 import { creditSettlementMoco } from "@/lib/settlement-moco/economy";
+import { assertCreatorPayoutsEnabled } from "@/lib/creator-payout-ready";
 
 export type SpendGemsInput = {
   fanId: string;
@@ -25,6 +26,9 @@ export async function spendGemsOnGift(input: SpendGemsInput) {
     select: { id: true },
   });
   if (!creator) return { error: "크리에이터를 찾을 수 없습니다." as const };
+
+  const payout = await assertCreatorPayoutsEnabled(input.creatorId);
+  if (!payout.ok) return { error: payout.error, code: payout.code };
 
   try {
     const giftEvent = await db.$transaction(async (tx) => {

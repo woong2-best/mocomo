@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ACCOUNT_SUSPENDED_SIGNUP_MESSAGE } from "@/lib/account-status";
@@ -11,6 +12,14 @@ import {
 } from "@/lib/forbidden-admin-sequence";
 import { generateUniqueUsername } from "@/lib/oauth-username";
 import { persistEncryptedOAuthAccount } from "@/lib/oauth-vault";
+import { findUserByUsernameInsensitive } from "@/lib/signup-user-resolve";
+import {
+  RESERVED_USERNAMES,
+  isValidUsername,
+  normalizeUsername,
+} from "@/lib/username-policy";
+
+const OAUTH_SIGNUP_BCRYPT_ROUNDS = 10;
 
 export type OAuthSignupProvider = "google" | "discord" | "twitter" | "line" | "naver";
 
@@ -99,6 +108,9 @@ export type CreatedOAuthUser = {
 export async function createOAuthUserWithConsent(opts: {
   profile: OAuthSignupProfile;
   birthDate: Date;
+  username?: string;
+  name?: string;
+  password?: string;
 }): Promise<CreatedOAuthUser> {
   if (opts.profile.email) {
     const restricted = await findRestrictedIdentityUser({ email: opts.profile.email });
@@ -107,13 +119,36 @@ export async function createOAuthUserWithConsent(opts: {
     }
   }
 
-  const username = await generateUniqueUsername(
-    opts.profile.email ?? opts.profile.name ?? "user"
-  );
-  const displayName = opts.profile.name?.trim() || username;
+  let username: string;
+  if (opts.username?.trim()) {
+    const normalized = normalizeUsername(opts.username);
+    if (!isValidUsername(normalized)) {
+      throw new Error("아이디는 영문·숫자·_ 3~20자입니다.");
+    }
+    if (RESERVED_USERNAMES.has(normalized)) {
+      throw new Error("사용할 수 없는 아이디입니다.");
+    }
+    const taken = await findUserByUsernameInsensitive(normalized);
+    if (taken) {
+      throw new Error(`@${normalized} 아이디는 이미 사용 중입니다.`);
+    }
+    username = normalized;
+  } else {
+    username = await generateUniqueUsername(opts.profile.email ?? opts.profile.name ?? "user");
+  }
+
+  const displayName = opts.name?.trim() || opts.profile.name?.trim() || username;
   if (!validateUsernameAndName(username, displayName).ok) {
     throw new Error(FORBIDDEN_ADMIN_SEQUENCE_MESSAGE);
   }
+
+  const password = opts.password?.trim() ?? "";
+  if (password && password.length < 8) {
+    throw new Error("비밀번호는 8자 이상이어야 합니다.");
+  }
+  const passwordHash = password
+    ? await bcrypt.hash(password, OAUTH_SIGNUP_BCRYPT_ROUNDS)
+    : undefined;
 
   return db.user.create({
     data: {
@@ -122,6 +157,7 @@ export async function createOAuthUserWithConsent(opts: {
       name: displayName,
       image: opts.profile.image,
       username,
+      ...(passwordHash ? { passwordHash } : {}),
       birthDate: opts.birthDate,
       ...birthDateCollectionMeta("OAUTH_COMPLETE"),
       profile: { create: {} },

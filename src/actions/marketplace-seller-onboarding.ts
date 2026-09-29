@@ -432,6 +432,7 @@ export async function submitSellerKycPrep(_mode: "defer" | "start") {
 export type StartStripeConnectInput = {
   fromApp?: boolean;
   returnTo?: string | null;
+  payoutCountry?: string;
 };
 
 /** Stripe Express 계정 생성 + Hosted Onboarding URL */
@@ -443,15 +444,11 @@ export async function startSellerStripeConnectOnboarding(input: StartStripeConne
       return { error: "판매자 정보를 먼저 입력해 주세요." };
     }
 
-    const country = normalizeSellerCountry(
-      dbUser.marketplaceSeller.sellingMarket || dbUser.countryCode
-    );
-
     const result = await startSellerConnectOnboarding({
       userId: user.id,
       email: dbUser.email,
       stripeConnectAccountId: dbUser.stripeConnectAccountId,
-      countryCode: country,
+      countryCode: input.payoutCountry ?? "",
     });
 
     if ("error" in result) return { error: result.error };

@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { Platform, TurboModuleRegistry } from "react-native";
 import { ApiError, apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
 import { GOOGLE_WEB_CLIENT_ID } from "@/config/env";
@@ -59,8 +59,47 @@ type GoogleSigninModule =
   typeof import("@react-native-google-signin/google-signin");
 
 let modulePromise: Promise<GoogleSigninModule> | null = null;
-let configuredFor: string | null = null;
 let configPromise: Promise<GoogleConfig> | null = null;
+
+type GoogleClientOptions = {
+  webClientId: string;
+  iosClientId?: string;
+  scopes: string[];
+  offlineAccess: false;
+};
+
+type RNGoogleSigninNative = {
+  configure: (params: GoogleClientOptions) => Promise<unknown>;
+};
+
+function googleClientOptions(config: GoogleConfig): GoogleClientOptions | null {
+  if (!config.webClientId) return null;
+  return {
+    webClientId: config.webClientId,
+    ...(config.iosClientId ? { iosClientId: config.iosClientId } : {}),
+    scopes: ["profile", "email"],
+    offlineAccess: false,
+  };
+}
+
+/**
+ * `GoogleSignin.configure()` does not return its promise, and `signOut()`
+ * does not wait for it. A sign-out that runs first is a no-op, then Android
+ * `getSignInIntent()` returns the last account and never shows the chooser.
+ */
+async function applyGoogleClient(options: GoogleClientOptions): Promise<void> {
+  try {
+    const native = TurboModuleRegistry.getEnforcing(
+      "RNGoogleSignin"
+    ) as RNGoogleSigninNative;
+    await native.configure(options);
+  } catch (e) {
+    if (e instanceof GoogleNativeUnavailableError) throw e;
+    throw new GoogleNativeUnavailableError(
+      e instanceof Error ? e.message : undefined
+    );
+  }
+}
 
 async function loadModule(): Promise<GoogleSigninModule> {
   try {
@@ -113,35 +152,20 @@ export function prefetchGoogleNativeConfig(): void {
   void loadConfig().catch(() => undefined);
 }
 
-async function ensureConfigured(): Promise<GoogleSigninModule> {
+async function ensureConfigured(): Promise<{
+  mod: GoogleSigninModule;
+  options: GoogleClientOptions;
+}> {
   const config = await loadConfig();
-  if (!config.enabled || !config.webClientId) {
+  const options = googleClientOptions(config);
+  if (!config.enabled || !options) {
     throw new GoogleNativeUnavailableError(
       "Google 로그인이 서버에 설정되지 않았습니다."
     );
   }
 
   const mod = await loadModule();
-  if (configuredFor !== config.webClientId) {
-    try {
-      mod.GoogleSignin.configure({
-        webClientId: config.webClientId,
-        ...(config.iosClientId ? { iosClientId: config.iosClientId } : {}),
-        scopes: ["profile", "email"],
-        offlineAccess: false,
-      });
-    } catch (e) {
-      throw new GoogleNativeUnavailableError(
-        e instanceof Error ? e.message : undefined
-      );
-    }
-    configuredFor = config.webClientId;
-  }
-  return mod;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return { mod, options };
 }
 
 function isInProgressError(e: unknown): boolean {
@@ -154,12 +178,29 @@ function isInProgressError(e: unknown): boolean {
   return msg.includes("IN_PROGRESS") || msg.includes("previous promise did not settle");
 }
 
+let googleChooser: Promise<string> | null = null;
+
 /**
  * Open the system Google account chooser and return a fresh ID token.
- * `forcePicker` signs the SDK out first so add-account can pick a different Google user.
+ * Always signs the SDK out first. Android `getSignInIntent()` otherwise
+ * returns the last account immediately and the account list never appears.
+ * `forcePicker` is kept for callers; every interactive sign-in shows the chooser.
  */
-async function requestGoogleIdToken(forcePicker: boolean): Promise<string> {
-  const mod = await ensureConfigured();
+async function requestGoogleIdToken(_forcePicker: boolean): Promise<string> {
+  if (googleChooser) {
+    throw new GoogleNativeCancelledError();
+  }
+  const run = openGoogleAccountChooser();
+  googleChooser = run;
+  try {
+    return await run;
+  } finally {
+    if (googleChooser === run) googleChooser = null;
+  }
+}
+
+async function openGoogleAccountChooser(): Promise<string> {
+  const { mod, options } = await ensureConfigured();
   const { GoogleSignin, isErrorWithCode, statusCodes } = mod;
 
   if (Platform.OS === "android") {
@@ -178,16 +219,17 @@ async function requestGoogleIdToken(forcePicker: boolean): Promise<string> {
     }
   }
 
-  if (forcePicker) {
-    try {
-      await GoogleSignin.signOut();
-    } catch {
-      /* nothing cached */
-    }
-    await sleep(180);
+  await applyGoogleClient(options);
+  try {
+    await GoogleSignin.signOut();
+  } catch {
+    /* nothing cached — still show the chooser */
   }
+  // New client after sign-out. getSignInIntent() on the client that just
+  // signed out can still return the previous account and skip the chooser.
+  await applyGoogleClient(options);
 
-  const attemptSignIn = async (): Promise<string> => {
+  try {
     const result = await GoogleSignin.signIn();
     if (result.type !== "success") throw new GoogleNativeCancelledError();
 
@@ -199,12 +241,13 @@ async function requestGoogleIdToken(forcePicker: boolean): Promise<string> {
       );
     }
     return idToken;
-  };
-
-  const mapNativeError = (e: unknown): never => {
+  } catch (e) {
     if (e instanceof GoogleNativeCancelledError) throw e;
     if (e instanceof GoogleNativeUnavailableError) throw e;
     if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED) {
+      throw new GoogleNativeCancelledError();
+    }
+    if (isInProgressError(e)) {
       throw new GoogleNativeCancelledError();
     }
     if (isErrorWithCode(e) && e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
@@ -216,20 +259,6 @@ async function requestGoogleIdToken(forcePicker: boolean): Promise<string> {
       throw new GoogleNativeUnavailableError(googleNativeFailureMessage(e));
     }
     throw e instanceof Error ? e : new Error(googleNativeFailureMessage(e));
-  };
-
-  try {
-    return await attemptSignIn();
-  } catch (e) {
-    if (isInProgressError(e)) {
-      await sleep(450);
-      try {
-        return await attemptSignIn();
-      } catch (retryErr) {
-        return mapNativeError(retryErr);
-      }
-    }
-    return mapNativeError(e);
   }
 }
 
@@ -243,6 +272,9 @@ export async function authenticateWithGoogleNative(opts: {
   birthDay?: number;
   termsAccepted?: boolean;
   privacyAccepted?: boolean;
+  username?: string;
+  name?: string;
+  password?: string;
 }): Promise<GoogleNativeAuthResult & { idToken: string }> {
   const idToken = opts.idToken ?? (await requestGoogleIdToken(opts.forcePicker === true));
   const platform = Platform.OS === "ios" ? "ios" : "android";
@@ -260,6 +292,9 @@ export async function authenticateWithGoogleNative(opts: {
         birthDay: opts.birthDay,
         termsAccepted: opts.termsAccepted,
         privacyAccepted: opts.privacyAccepted,
+        username: opts.username,
+        name: opts.name,
+        password: opts.password,
       },
     });
     return { ...data, idToken };
@@ -275,7 +310,8 @@ export async function authenticateWithGoogleNative(opts: {
 /** Drop the cached Google session so the next sign-in shows the picker. */
 export async function clearGoogleNativeSession(): Promise<void> {
   try {
-    const mod = await loadModule();
+    const { mod, options } = await ensureConfigured();
+    await applyGoogleClient(options);
     await mod.GoogleSignin.signOut();
   } catch {
     /* SDK unavailable — nothing to clear */

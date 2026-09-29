@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Check, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,8 @@ import { SellerSettlementInvoices } from "@/components/market/seller-settlement-
 import type { SellerSettlementInvoiceRow } from "@/actions/marketplace-settlement-invoices";
 import { resumeSellerConnectFromOnboarding } from "@/actions/marketplace-seller-onboarding";
 import { openStripeConnectOnboardingUrl } from "@/lib/marketplace/open-stripe-connect-url";
+import { DEFAULT_EXPRESS_PAYOUT_COUNTRY } from "@/lib/marketplace/stripe-supported-countries";
+import { PayoutCountryField } from "@/components/wallet/payout-country-field";
 
 export type SellerPrepState = {
   sellerInfoDone: boolean;
@@ -41,10 +43,17 @@ export function SellerCenterHome({
   const progressPct = (doneCount / total) * 100;
   const showPrep = doneCount < total || prep.welcome;
   const [stripePending, startStripe] = useTransition();
+  const [payoutCountry, setPayoutCountry] = useState(DEFAULT_EXPRESS_PAYOUT_COUNTRY);
+  const [stripeError, setStripeError] = useState("");
 
   function resumeStripe() {
+    setStripeError("");
     startStripe(async () => {
-      const res = await resumeSellerConnectFromOnboarding();
+      const res = await resumeSellerConnectFromOnboarding({ payoutCountry });
+      if ("error" in res && res.error) {
+        setStripeError(res.error);
+        return;
+      }
       if ("url" in res && res.url) openStripeConnectOnboardingUrl(res.url, false);
     });
   }
@@ -55,9 +64,11 @@ export function SellerCenterHome({
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 space-y-2">
           <p className="font-semibold">Stripe 온보딩</p>
           <p>{prep.connectMessage}</p>
+          <PayoutCountryField value={payoutCountry} onChange={setPayoutCountry} id="seller-payout-country" />
           <Button type="button" size="sm" disabled={stripePending} onClick={resumeStripe}>
             Stripe 온보딩 이어서 하기
           </Button>
+          {stripeError ? <p className="text-sm text-destructive">{stripeError}</p> : null}
         </div>
       )}
 

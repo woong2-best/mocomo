@@ -128,7 +128,15 @@ export function ProfileImageField({ kind, name, value, onChange, previewClassNam
           >
             {value ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={value} alt="" className="h-full w-full object-cover" />
+              <img
+                src={value}
+                alt=""
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+                className="h-full w-full object-cover"
+              />
             ) : (
               <span className="text-2xl text-muted-foreground">?</span>
             )}

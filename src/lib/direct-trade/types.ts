@@ -1,0 +1,37 @@
+export type DirectTradeView = {
+  id: string;
+  listingId: string;
+  roomId: string;
+  listingTitle: string;
+  sellerUsername: string;
+  counterpartUsername: string;
+  priceLabel: string;
+  meetPlace: string | null;
+  meetAt: string | null;
+  proposedMeetAt: string | null;
+  proposedByMe: boolean;
+  tradeStatus: string;
+  tradeStatusLabel: string;
+  myArrivalStatus: string;
+  myArrivalLabel: string;
+  counterpartArrivalStatus: string;
+  counterpartArrivalLabel: string;
+  disputeStatus: string;
+  disputeStatusLabel: string;
+  depositStatus: string;
+  depositStatusLabel: string;
+  penaltyStatus: string;
+  penaltyStatusLabel: string;
+  guidance: string | null;
+  myPin: string | null;
+  pinWarning: string | null;
+  canVerifyArrival: boolean;
+  canReportNoShow: boolean;
+  canSubmitPin: boolean;
+  canProposeMeet: boolean;
+  canAcceptMeet: boolean;
+  canAdjustMeet: boolean;
+  role: "buyer" | "seller";
+};
+
+export type DirectTradeResult = { view: DirectTradeView; error?: string };

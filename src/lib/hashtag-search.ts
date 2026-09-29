@@ -69,6 +69,7 @@ export async function fetchHashtagPosts(tag: string, sort: HashtagSort, limit = 
       return posts.map((p) =>
         mapFeedPost({
           ...p,
+          quotedPost: null,
           poll: null,
           _count: { ...p._count, reposts: 0 },
         })
@@ -81,7 +82,7 @@ export async function fetchHashtagPosts(tag: string, sort: HashtagSort, limit = 
         orderBy: { createdAt: "desc" },
         select: feedPostListSelectNoPoll,
       });
-      return posts.map((p) => trimFeedPostContent({ ...p, poll: null }));
+      return posts.map((p) => trimFeedPostContent({ ...p, quotedPost: null, poll: null }));
     }
   }
 }

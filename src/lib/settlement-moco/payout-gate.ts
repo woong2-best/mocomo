@@ -234,6 +234,127 @@ export async function checkCreatorRewardPayoutGate(userId: string): Promise<Payo
   }
 }
 
+export type CreatorPayoutDashboard = {
+  /** Stripe Account.payouts_enabled — donation eligibility */
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  readyForDonations: boolean;
+  disabledReason: string | null;
+  currentlyDue: string[];
+  pastDue: string[];
+  /** Creator-only. Donors never receive these strings. */
+  reasons: { code: string; message: string }[];
+};
+
+/** Authenticated creator settlement dashboard — live Stripe requirements, not the donor error. */
+export async function getCreatorPayoutDashboard(userId: string): Promise<CreatorPayoutDashboard> {
+  const [profile, user] = await Promise.all([
+    db.creatorSettlementProfile.findUnique({
+      where: { userId },
+      select: {
+        payoutsEnabled: true,
+        needsExpressMigration: true,
+        stripeConnectAccountId: true,
+      },
+    }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { stripeConnectAccountId: true },
+    }),
+  ]);
+  const accountId = user?.stripeConnectAccountId ?? profile?.stripeConnectAccountId ?? null;
+
+  if (!accountId || !isStripeConfigured()) {
+    return {
+      payoutsEnabled: false,
+      detailsSubmitted: false,
+      readyForDonations: false,
+      disabledReason: null,
+      currentlyDue: [],
+      pastDue: [],
+      reasons: [
+        {
+          code: "NO_CONNECT_ACCOUNT",
+          message: "Stripe Connect 계정이 없습니다. 정산 계좌 연동을 시작해 주세요.",
+        },
+      ],
+    };
+  }
+
+  try {
+    const account = await getStripe().accounts.retrieve(accountId);
+    const currentlyDue = [...(account.requirements?.currently_due ?? [])];
+    const pastDue = [...(account.requirements?.past_due ?? [])];
+    const disabledReason = account.requirements?.disabled_reason ?? null;
+    const reasons: { code: string; message: string }[] = [];
+
+    if (account.type === "custom" || profile?.needsExpressMigration) {
+      reasons.push({
+        code: "EXPRESS_MIGRATION",
+        message: "이전 Custom 계정입니다. Stripe Express로 다시 연동해 주세요.",
+      });
+    }
+    if (!account.details_submitted) {
+      reasons.push({
+        code: "DETAILS_NOT_SUBMITTED",
+        message: "본인 확인·계좌·세무 정보 제출이 완료되지 않았습니다.",
+      });
+    }
+    if (!account.payouts_enabled) {
+      reasons.push({
+        code: "PAYOUTS_DISABLED",
+        message: "Stripe가 아직 정산 지급(payouts_enabled)을 허용하지 않습니다.",
+      });
+    }
+    if (disabledReason) {
+      reasons.push({
+        code: "ACCOUNT_DISABLED",
+        message: `Stripe 계정 제한: ${disabledReason}`,
+      });
+    }
+    if (pastDue.length > 0) {
+      reasons.push({
+        code: "PAST_DUE",
+        message: `기한이 지난 제출 항목: ${pastDue.join(", ")}`,
+      });
+    }
+    if (currentlyDue.length > 0) {
+      reasons.push({
+        code: "CURRENTLY_DUE",
+        message: `추가 제출이 필요합니다: ${currentlyDue.join(", ")}`,
+      });
+    }
+
+    return {
+      payoutsEnabled: !!account.payouts_enabled,
+      detailsSubmitted: !!account.details_submitted,
+      readyForDonations: !!account.payouts_enabled,
+      disabledReason,
+      currentlyDue,
+      pastDue,
+      reasons,
+    };
+  } catch {
+    const enabled = !!profile?.payoutsEnabled;
+    return {
+      payoutsEnabled: enabled,
+      detailsSubmitted: false,
+      readyForDonations: enabled,
+      disabledReason: null,
+      currentlyDue: [],
+      pastDue: [],
+      reasons: enabled
+        ? []
+        : [
+            {
+              code: "STRIPE_STATUS_UNAVAILABLE",
+              message: "Stripe 계정 상태를 확인하지 못했습니다. 잠시 후 다시 열어 주세요.",
+            },
+          ],
+    };
+  }
+}
+
 async function persistTaxGateSnapshot(
   userId: string,
   gate: PayoutGateResult,

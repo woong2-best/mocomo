@@ -10,6 +10,7 @@ import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chr
 import { getCreatorSettlementStatus } from "@/actions/settlement-register";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import { MIN_MOCO_TOPUP_COUNT } from "@/lib/gems/constants";
+import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
 
 const EMPTY_EARNINGS = (): WalletEarningsAnalytics => {
   const year = new Date().getFullYear();
@@ -103,7 +104,22 @@ export default async function WalletPage({
           earnedMocoPoints: 0,
           earnedMocoTier: "SEED" as const,
           purchasedMocoPoints: 0,
+          rewardProgress: rewardTierProgress(0),
           recentRewards: [],
+          payoutDashboard: {
+            payoutsEnabled: false,
+            detailsSubmitted: false,
+            readyForDonations: false,
+            disabledReason: null,
+            currentlyDue: [],
+            pastDue: [],
+            reasons: [
+              {
+                code: "NO_CONNECT_ACCOUNT",
+                message: "Stripe Connect 계정이 없습니다. 정산 계좌 연동을 시작해 주세요.",
+              },
+            ],
+          },
         };
 
   if (!tipHistory) redirect("/auth/signin?callbackUrl=/wallet");

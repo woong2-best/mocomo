@@ -5,8 +5,10 @@ import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { isQnaMyCategoryId } from "@/lib/qna-my-category";
 import { fetchQnaFeedPage, parseQnaCategoryParam } from "@/lib/qna-feed";
 import { redactAnonymousPostAuthors } from "@/lib/anonymous-post";
+import { hydrateViewerPollVotes } from "@/lib/post-poll";
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,9 +30,13 @@ export async function GET(req: NextRequest) {
       category,
       canViewNsfw,
       variant: "web",
+      ownerId: isQnaMyCategoryId(category) ? viewerUserId : null,
     });
-    const visible = await filterPostsByAudienceLock(
-      posts.map((p) => ({ ...p, authorId: p.author.id })),
+    const visible = await hydrateViewerPollVotes(
+      await filterPostsByAudienceLock(
+        posts.map((p) => ({ ...p, authorId: p.author.id })),
+        viewerUserId ?? null
+      ),
       viewerUserId ?? null
     );
     const postIds = visible.map((p) => p.id);

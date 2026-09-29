@@ -4,15 +4,16 @@ import {
   Linking,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { API_BASE_URL } from "@/config/env";
-import { FolkAvatar } from "@/ui/FolkAvatar";
+import { SIGNUP_PRIVACY_PATH, SIGNUP_TERMS_PATH } from "@/lib/signup-legal-links";
+import type { SignupOnboardingBirth } from "@/features/auth/SignupOnboardingSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 import { radii } from "@/theme/tokens";
@@ -31,23 +32,34 @@ type Props = {
   busy?: boolean;
   error?: string;
   onClose: () => void;
-  onAgree: (opts: { marketing: boolean }) => void;
+  onAgree: (birth: SignupOnboardingBirth) => void;
 };
+
+function sanitizeDigits(value: string, maxLength: number) {
+  return value.replace(/\D/g, "").slice(0, maxLength);
+}
+
+function birthValid(year: string, month: string, day: string) {
+  if (year.trim().length !== 4) return false;
+  const m = Number(month);
+  const d = Number(day);
+  if (month.length < 1 || month.length > 2 || m < 1 || m > 12) return false;
+  if (day.length < 1 || day.length > 2 || d < 1 || d > 31) return false;
+  return true;
+}
 
 function Checkbox({
   colors,
   checked,
   onPress,
   label,
-  required,
   linkPath,
 }: {
   colors: ThemeColors;
   checked: boolean;
   onPress: () => void;
   label: string;
-  required?: boolean;
-  linkPath?: string;
+  linkPath: string;
 }) {
   return (
     <View style={styles.checkRow}>
@@ -64,20 +76,55 @@ function Checkbox({
           ) : null}
         </View>
         <Text style={[styles.checkLabel, { color: colors.text }]}>
-          {required ? "(필수) " : "(선택) "}
-          {label}
+          (필수) {label}
         </Text>
       </Pressable>
-      {linkPath ? (
-        <Pressable onPress={() => void Linking.openURL(`${WEB}${linkPath}`)} hitSlop={8}>
-          <Text style={[styles.viewLink, { color: colors.textMuted }]}>보기 ›</Text>
-        </Pressable>
-      ) : null}
+      <Pressable onPress={() => void Linking.openURL(`${WEB}${linkPath}`)} hitSlop={8}>
+        <Text style={[styles.viewLink, { color: colors.textMuted }]}>보기 ›</Text>
+      </Pressable>
     </View>
   );
 }
 
-/** Terms gate shown before a brand-new account is created. */
+function BirthField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  maxLength,
+  colors,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder: string;
+  maxLength: number;
+  colors: ThemeColors;
+}) {
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={(t) => onChangeText(sanitizeDigits(t, maxLength))}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textMuted}
+        keyboardType="number-pad"
+        maxLength={maxLength}
+        style={[
+          styles.birthInput,
+          {
+            color: colors.text,
+            borderColor: colors.border,
+            backgroundColor: colors.surfaceRaised,
+          },
+        ]}
+      />
+    </View>
+  );
+}
+
+/** Birth + terms before account creation (OAuth signup). */
 export function TermsConsentSheet({
   visible,
   account,
@@ -90,26 +137,24 @@ export function TermsConsentSheet({
   const insets = useSafeAreaInsets();
   const [terms, setTerms] = useState(false);
   const [privacy, setPrivacy] = useState(false);
-  const [marketing, setMarketing] = useState(false);
+  const [birthYear, setBirthYear] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
+  const [localError, setLocalError] = useState("");
 
   useEffect(() => {
     if (!visible) {
       setTerms(false);
       setPrivacy(false);
-      setMarketing(false);
+      setBirthYear("");
+      setBirthMonth("");
+      setBirthDay("");
+      setLocalError("");
     }
   }, [visible]);
 
-  const allChecked = terms && privacy && marketing;
-  const requiredOk = terms && privacy;
-  const canSubmit = requiredOk && !busy;
-
-  function toggleAll() {
-    const next = !allChecked;
-    setTerms(next);
-    setPrivacy(next);
-    setMarketing(next);
-  }
+  const birthOk = birthValid(birthYear, birthMonth, birthDay);
+  const canSubmit = terms && privacy && birthOk && !busy;
 
   return (
     <Modal
@@ -139,88 +184,79 @@ export function TermsConsentSheet({
         >
           <View style={[styles.grabber, { backgroundColor: colors.border }]} />
 
-          <Text style={[styles.title, { color: colors.text }]}>
-            MoCoMo 시작하기
-          </Text>
+          <View style={styles.brandWrap}>
+            <Text style={styles.brandMark}>MoCoMo</Text>
+          </View>
+          <Text style={[styles.title, { color: colors.text }]}>회원가입</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            처음 오셨네요. 약관에 동의하면 계정이 만들어집니다.
+            생년월일과 필수 약관에 동의해 주세요.
           </Text>
 
           {account ? (
-            <View
-              style={[
-                styles.accountCard,
-                { backgroundColor: colors.surfaceRaised, borderColor: colors.hairline },
-              ]}
-            >
-              <FolkAvatar
-                uri={account.image}
-                name={account.name || account.email || "MoCoMo"}
-                size={40}
-              />
-              <View style={styles.accountText}>
-                <Text
-                  style={[styles.accountName, { color: colors.text }]}
-                  numberOfLines={1}
-                >
-                  {account.name || account.email || "새 계정"}
+            <View style={styles.accountLine}>
+              <Text style={[styles.accountName, { color: colors.text }]} numberOfLines={1}>
+                {account.name || account.email || "새 계정"}
+              </Text>
+              {account.email ? (
+                <Text style={[styles.accountEmail, { color: colors.textMuted }]} numberOfLines={1}>
+                  {account.email}
                 </Text>
-                {account.email ? (
-                  <Text
-                    style={[styles.accountEmail, { color: colors.textMuted }]}
-                    numberOfLines={1}
-                  >
-                    {account.email}
-                  </Text>
-                ) : null}
-              </View>
+              ) : null}
             </View>
           ) : null}
 
-          <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-            <Checkbox
+          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>생년월일 *</Text>
+          <View style={styles.birthRow}>
+            <BirthField
+              label="년"
+              value={birthYear}
+              onChangeText={setBirthYear}
+              placeholder="YYYY"
+              maxLength={4}
               colors={colors}
-              checked={allChecked}
-              onPress={toggleAll}
-              label="전체 동의"
             />
-            <View style={[styles.divider, { backgroundColor: colors.hairline }]} />
+            <BirthField
+              label="월"
+              value={birthMonth}
+              onChangeText={setBirthMonth}
+              placeholder="MM"
+              maxLength={2}
+              colors={colors}
+            />
+            <BirthField
+              label="일"
+              value={birthDay}
+              onChangeText={setBirthDay}
+              placeholder="DD"
+              maxLength={2}
+              colors={colors}
+            />
+          </View>
+          <Text style={[styles.birthHint, { color: colors.textMuted }]}>
+            허위 생년월일 기재 시 약관에 따라 계정이 제한될 수 있습니다.
+          </Text>
 
+          <View style={styles.consentBlock}>
             <Checkbox
               colors={colors}
               checked={terms}
               onPress={() => setTerms((v) => !v)}
               label="이용약관 동의"
-              required
-              linkPath="/legal/terms"
+              linkPath={SIGNUP_TERMS_PATH}
             />
             <Checkbox
               colors={colors}
               checked={privacy}
               onPress={() => setPrivacy((v) => !v)}
-              label="개인정보 수집 및 이용 동의"
-              required
-              linkPath="/legal/privacy"
+              label="개인정보 처리방침 동의"
+              linkPath={SIGNUP_PRIVACY_PATH}
             />
-            <Checkbox
-              colors={colors}
-              checked={marketing}
-              onPress={() => setMarketing((v) => !v)}
-              label="마케팅 정보 수신 동의"
-              linkPath="/legal/policy"
-            />
-            <Text style={[styles.marketingHint, { color: colors.textMuted }]}>
-              다양한 혜택과 프로그램 참여 기회를 약관에 따라 알려드릴게요!
-            </Text>
+          </View>
 
-            <Text style={[styles.disclaimer, { color: colors.textMuted }]}>
-              MoCoMo는 크리에이터·팬 커뮤니티 서비스입니다. 운영 정책을 위반하는
-              콘텐츠 게시·유포 시 이용 제한 또는 법적 조치를 받을 수 있습니다.
+          {localError || error ? (
+            <Text style={[styles.error, { color: colors.danger }]}>
+              {localError || error}
             </Text>
-          </ScrollView>
-
-          {error ? (
-            <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>
           ) : null}
 
           <Pressable
@@ -229,7 +265,18 @@ export function TermsConsentSheet({
               { backgroundColor: canSubmit ? colors.brand : colors.muted },
             ]}
             disabled={!canSubmit}
-            onPress={() => onAgree({ marketing })}
+            onPress={() => {
+              if (!birthOk) {
+                setLocalError("생년월일을 확인해 주세요. (연 4자리, 월·일 각 2자리)");
+                return;
+              }
+              setLocalError("");
+              onAgree({
+                birthYear: Number(birthYear),
+                birthMonth: Number(birthMonth),
+                birthDay: Number(birthDay),
+              });
+            }}
           >
             {busy ? (
               <ActivityIndicator color={colors.textOnAccent} />
@@ -237,10 +284,10 @@ export function TermsConsentSheet({
               <Text
                 style={[
                   styles.agreeText,
-                  { color: requiredOk ? colors.textOnAccent : colors.textMuted },
+                  { color: canSubmit ? colors.textOnAccent : colors.textMuted },
                 ]}
               >
-                동의하고 시작하기
+                동의하고 계속
               </Text>
             )}
           </Pressable>
@@ -259,31 +306,46 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 20,
     paddingTop: 10,
-    maxHeight: "84%",
   },
   grabber: {
     width: 40,
     height: 4,
     borderRadius: 2,
     alignSelf: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  title: { fontSize: 20, fontWeight: "800", letterSpacing: -0.3 },
-  subtitle: { fontSize: 14, marginTop: 6, marginBottom: 16, lineHeight: 20 },
-  accountCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radii.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 8,
+  brandWrap: {
+    backgroundColor: "#0f1a33",
+    borderRadius: radii.lg,
+    paddingVertical: 18,
+    marginBottom: 12,
   },
-  accountText: { flex: 1 },
+  brandMark: {
+    fontSize: 36,
+    fontWeight: "900",
+    letterSpacing: -1,
+    color: "#FFFFFF",
+    textAlign: "center",
+  },
+  title: { fontSize: 20, fontWeight: "800", letterSpacing: -0.3, textAlign: "center" },
+  subtitle: { fontSize: 14, marginTop: 6, marginBottom: 14, lineHeight: 20, textAlign: "center" },
+  accountLine: { marginBottom: 12, alignItems: "center" },
   accountName: { fontSize: 15, fontWeight: "700" },
   accountEmail: { fontSize: 13, marginTop: 2 },
-  scroll: { flexGrow: 0, marginBottom: 12 },
+  sectionLabel: { fontSize: 12, fontWeight: "700", marginBottom: 6 },
+  birthRow: { flexDirection: "row", gap: 10, marginBottom: 6 },
+  fieldLabel: { fontSize: 12, fontWeight: "700", marginBottom: 6 },
+  birthInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.md,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  birthHint: { fontSize: 11, lineHeight: 16, marginBottom: 12 },
+  consentBlock: { marginBottom: 16 },
   checkRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -301,14 +363,6 @@ const styles = StyleSheet.create({
   },
   checkLabel: { fontSize: 15, fontWeight: "600", flex: 1 },
   viewLink: { fontSize: 14, fontWeight: "600" },
-  divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
-  marketingHint: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginLeft: 34,
-    marginBottom: 16,
-  },
-  disclaimer: { fontSize: 12, lineHeight: 18, marginTop: 8, marginBottom: 8 },
   error: { fontSize: 13, fontWeight: "600", textAlign: "center", marginBottom: 10 },
   agreeBtn: {
     borderRadius: radii.pill,

@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type ElementRef,
+} from "react";
 import {
   ActivityIndicator,
   InteractionManager,
@@ -26,6 +34,11 @@ import { useAuth } from "@/auth/AuthContext";
 import { InlineComposeBox } from "@/features/compose/InlineComposeBox";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
 import { FeedAdCard } from "@/features/feed/FeedAdCard";
+import {
+  addFeedPostOffset,
+  getFeedPostOffset,
+  resetFeedPostOffset,
+} from "@/features/feed/feed-post-offset";
 import { warmDrawerBundles, warmTabBundles } from "@/navigation/tab-warmup";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { PerformanceBudgets } from "@/perf/budgets";
@@ -148,15 +161,15 @@ export function FeedScreen() {
   const bottomPad = floatingTabClearance(insets.bottom);
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
-  const postOffsetRef = useRef(0);
+  const feedListRef = useRef<ElementRef<typeof FlashList>>(null);
 
   const query = useInfiniteQuery({
     queryKey: ["mobile-feed"],
     queryFn: ({ pageParam }) => {
-      const offset = postOffsetRef.current;
+      const offset = getFeedPostOffset();
       return fetchFeedPage(pageParam ?? null, 20, offset).then((page) => {
         const addedPosts = page.items.filter((i) => i.type === "post").length;
-        postOffsetRef.current += addedPosts;
+        addFeedPostOffset(addedPosts);
         return page;
       });
     },
@@ -217,9 +230,15 @@ export function FeedScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    postOffsetRef.current = 0;
+    resetFeedPostOffset();
     await queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
     setRefreshing(false);
+  }, [queryClient]);
+
+  const onComposePosted = useCallback(async () => {
+    resetFeedPostOffset();
+    feedListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    await queryClient.resetQueries({ queryKey: ["mobile-feed"] });
   }, [queryClient]);
 
   const onDrawerNavigate = useCallback(
@@ -471,6 +490,7 @@ export function FeedScreen() {
       <InlineComposeBox
         avatarUrl={user?.image}
         avatarLetter={user?.name || user?.username || "?"}
+        onPosted={() => void onComposePosted()}
       />
 
       {query.isLoading && posts.length === 0 ? (
@@ -484,9 +504,12 @@ export function FeedScreen() {
         </View>
       ) : (
         <FlashList
+          ref={feedListRef}
           data={feedItems}
           renderItem={renderItem}
-          keyExtractor={(item) => (item.type === "ad" ? `ad-${item.data.id}` : item.data.id)}
+          keyExtractor={(item) =>
+            item.type === "ad" ? `ad-${item.data.id}` : (item.data.activityKey ?? item.data.id)
+          }
           getItemType={getItemType}
           extraData={`${activePreviewId}:${isFocused ? 1 : 0}:${previewArmed ? 1 : 0}:${isFeedScrolling ? 1 : 0}:${visiblePostIds.join(",")}`}
           drawDistance={PerformanceBudgets.feedDrawDistance}

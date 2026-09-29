@@ -70,14 +70,18 @@ function sortPosts(posts: FeedPost[], sort: ProfileSortId): FeedPost[] {
   const list = [...posts];
   if (sort === "oldest") {
     return list.sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      (a, b) =>
+        new Date(a.activityAt ?? a.createdAt).getTime() -
+        new Date(b.activityAt ?? b.createdAt).getTime()
     );
   }
   if (sort === "popular") {
     return list.sort((a, b) => (b._count?.likes ?? 0) - (a._count?.likes ?? 0));
   }
   return list.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    (a, b) =>
+      new Date(b.activityAt ?? b.createdAt).getTime() -
+      new Date(a.activityAt ?? a.createdAt).getTime()
   );
 }
 
@@ -163,10 +167,17 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
   const headerUser = user ?? seedProfileUser(handle, preview, knownSelf);
   const following = followingLocal ?? user?.following ?? false;
 
+  const pinnedPost = query.data?.pinnedPost ?? null;
+
   const feed = useMemo(() => {
     const raw = query.data?.posts ?? [];
-    return sortPosts(filterByTab(raw, tab), sort);
-  }, [query.data?.posts, sort, tab]);
+    const filtered = filterByTab(raw, tab);
+    const withoutPinned =
+      tab === "posts" && pinnedPost
+        ? filtered.filter((p) => p.id !== pinnedPost.id)
+        : filtered;
+    return sortPosts(withoutPinned, sort);
+  }, [pinnedPost, query.data?.posts, sort, tab]);
 
   const emptyMessage = useMemo(() => {
     if (tab === "replies") return "답글 탭은 곧 지원됩니다.";
@@ -202,7 +213,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
     <Screen safeTop={false}>
       <FlatList
         data={user ? feed : []}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.activityKey ?? item.id}
         renderItem={renderItem}
         stickyHeaderIndices={undefined}
         ListHeaderComponent={
@@ -271,6 +282,26 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
               </View>
             </View>
 
+            {user && tab === "posts" && pinnedPost ? (
+              <View style={styles.pinnedWrap}>
+                <FeedPostCard
+                  post={{
+                    ...pinnedPost,
+                    subscribedToAuthor: user?.subscribed ?? pinnedPost.subscribedToAuthor,
+                    paymentsEnabled: user?.paymentsEnabled ?? pinnedPost.paymentsEnabled,
+                  }}
+                  pinnedHighlight
+                  paymentsEnabled={user?.paymentsEnabled}
+                  onPurchaseSuccess={() => void query.refetch()}
+                  onPressPost={(id) => navigation.navigate("PostDetail", { id })}
+                  onPressAuthor={(author) => open(author)}
+                  onPressVideo={(postId, mediaId, mediaIndex) =>
+                    navigation.navigate("Reels", { postId, mediaId, mediaIndex })
+                  }
+                />
+              </View>
+            ) : null}
+
             {user ? (
               <ProfileFollowListSheet
                 visible={followListTab !== null}
@@ -293,6 +324,13 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                 onClose={() => setOptionsOpen(false)}
                 userId={user.id}
                 username={user.username}
+                initialMuted={user.mutedByViewer ?? false}
+                onMuted={(muted) => {
+                  queryClient.setQueryData(userProfileQueryKey(handle), (prev) => {
+                    if (!prev) return prev;
+                    return { ...prev, user: { ...prev.user, mutedByViewer: muted } };
+                  });
+                }}
                 onBlocked={() => {
                   setOptionsOpen(false);
                   navigation.goBack();
@@ -374,6 +412,10 @@ function createStyles(colors: ThemeColors) {
       padding: spacing.lg,
       fontWeight: "600",
       textAlign: "center",
+    },
+    pinnedWrap: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.hairline,
     },
     compactBar: {
       position: "absolute",

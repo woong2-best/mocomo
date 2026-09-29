@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -23,6 +23,7 @@ import {
   type MobileAnimeGenreId,
 } from "@/features/anime/anime-genres";
 import { WikiCoverImage } from "@/features/anime/WikiCoverImage";
+import { useAuth } from "@/auth/AuthContext";
 import { Screen } from "@/ui/Screen";
 import type { RootStackParamList } from "@/navigation/types";
 
@@ -41,6 +42,8 @@ const WIKI = {
   categoryIdleBorder: "#5C4030",
   categoryActive: "#8B1A1A",
   categoryActiveBorder: "#A52828",
+  addBtn: "#2E7D32",
+  addBtnBorder: "#1B5E20",
   text: "#F5F0E8",
   textMuted: "#A89888",
 } as const;
@@ -54,6 +57,7 @@ const GRID_GAP = 14;
  */
 export function AnimeListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
   const [q, setQ] = useState("");
@@ -83,6 +87,14 @@ export function AnimeListScreen() {
   );
 
   const onSearch = () => setSubmitted(q.trim());
+
+  const onRegisterWork = useCallback(() => {
+    if (!user) {
+      navigation.navigate("Login", { intent: "signin" });
+      return;
+    }
+    navigation.navigate("AnimeCreate", genre ? { genre } : undefined);
+  }, [genre, navigation, user]);
 
   return (
     <Screen safeTop={false} style={styles.screen}>
@@ -125,6 +137,14 @@ export function AnimeListScreen() {
           contentContainerStyle={styles.categoryRow}
         >
           <CategoryPlaque label="전체" active={genre === null} onPress={() => setGenre(null)} />
+          <Pressable
+            onPress={onRegisterWork}
+            style={({ pressed }) => [styles.addPlaque, pressed && { opacity: 0.88 }]}
+            accessibilityRole="button"
+            accessibilityLabel="작품 등록"
+          >
+            <Ionicons name="add" size={20} color="#fff" />
+          </Pressable>
           {MOBILE_ANIME_GENRES.map((g) => (
             <CategoryPlaque
               key={g.id}
@@ -348,6 +368,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 4,
     borderWidth: 1,
+  },
+  addPlaque: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+    borderWidth: 1,
+    backgroundColor: WIKI.addBtn,
+    borderColor: WIKI.addBtnBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 36,
+    minHeight: 34,
   },
   categoryIdle: {
     backgroundColor: WIKI.categoryIdle,

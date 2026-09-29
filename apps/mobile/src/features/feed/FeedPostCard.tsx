@@ -9,9 +9,12 @@ import * as Haptics from "expo-haptics";
 import type { FeedPost } from "@/api/feed";
 import { togglePostLike } from "@/api/feed";
 import { runOptimisticStarToggle } from "@/api/star-hub-cache";
-import { togglePostRepost } from "@/api/social";
+import { FeedPostRepostMenu } from "@/features/feed/FeedPostRepostMenu";
 import { useAuth } from "@/auth/AuthContext";
+import { Image } from "expo-image";
 import { FeedPostMediaCarousel } from "@/features/feed/FeedPostMediaCarousel";
+import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
+import { FeedPostPoll } from "@/features/feed/FeedPostPoll";
 import {
   FeedPostOverflowMenu,
   type MenuAnchor,
@@ -28,10 +31,12 @@ import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { SupportTierBadge } from "@/ui/SupportTierBadge";
 import { profileDisplayTier } from "@/lib/support-tier-display";
-import { useUserProfileNav, type UserProfileSeed } from "@/features/profile/user-profile-nav";
+import { useUserProfileNav, type UserProfileSeed, userProfileQueryKey } from "@/features/profile/user-profile-nav";
 
 type Props = {
   post: FeedPost;
+  /** Profile pinned slot — show pin label and accent. */
+  pinnedHighlight?: boolean;
   /** Visible in viewport — muted autoplay when true (Twitter-style). */
   previewActive?: boolean;
   /** Feed card scrolled into view — record view once per app session. */
@@ -51,8 +56,16 @@ function formatCount(n: number) {
   return formatViewCount(n);
 }
 
+function formatQuoteDuration(sec: number) {
+  const total = Math.floor(sec);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 function FeedPostCardInner({
   post,
+  pinnedHighlight = false,
   previewActive = false,
   viewTrackActive = false,
   paymentsEnabled = false,
@@ -88,6 +101,10 @@ function FeedPostCardInner({
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const menuAnchorRef = useRef<View>(null);
+  const [repostMenuOpen, setRepostMenuOpen] = useState(false);
+  const [repostMenuAnchor, setRepostMenuAnchor] = useState<MenuAnchor | null>(null);
+  const [repostBusy, setRepostBusy] = useState(false);
+  const repostAnchorRef = useRef<View>(null);
   const [viewCount, setViewCount] = useState(post.viewCount ?? 0);
 
   const isQna = Boolean(post.community?.slug);
@@ -179,23 +196,19 @@ function FeedPostCardInner({
       });
   }, [post, queryClient, requireLogin, starred]);
 
-  const onRepost = useCallback(() => {
+  const openRepostMenu = useCallback(() => {
     if (!requireLogin()) return;
-    const prevReposted = reposted;
-    const prevCount = repostCount;
-    setReposted(!prevReposted);
-    setRepostCount(Math.max(0, prevCount + (prevReposted ? -1 : 1)));
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    void togglePostRepost(post.id)
-      .then((res) => {
-        setReposted(res.reposted);
-        setRepostCount(res.repostCount);
-      })
-      .catch(() => {
-        setReposted(prevReposted);
-        setRepostCount(prevCount);
-      });
-  }, [post.id, repostCount, reposted, requireLogin]);
+    repostAnchorRef.current?.measureInWindow((x, y, width, height) => {
+      setRepostMenuAnchor({ x, y, width, height });
+      setRepostMenuOpen(true);
+    });
+  }, [requireLogin]);
+
+  const onRepostChange = useCallback((nextReposted: boolean, nextCount: number) => {
+    setReposted(nextReposted);
+    setRepostCount(nextCount);
+  }, []);
 
   const onShare = useCallback(() => {
     void Share.share({
@@ -246,10 +259,44 @@ function FeedPostCardInner({
     }
   }, [navigation, onDeletedPost, post.id, queryClient, route.name, user?.username]);
 
+  const onProfilePinChange = useCallback(() => {
+    if (user?.username) {
+      void queryClient.invalidateQueries({ queryKey: userProfileQueryKey(user.username) });
+    }
+  }, [queryClient, user?.username]);
+
   if (!post?.id || !post.author?.id) return null;
 
+  const repostName = post.repostBy
+    ? post.repostBy.user.name || post.repostBy.user.username
+    : null;
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, pinnedHighlight && styles.cardPinned]}>
+      {pinnedHighlight ? (
+        <View style={styles.pinnedLabel}>
+          <Ionicons name="pin" size={14} color={colors.textMuted} />
+          <Text style={styles.pinnedLabelText}>고정된 게시물</Text>
+        </View>
+      ) : null}
+      {post.repostBy && repostName ? (
+        <Pressable
+          style={styles.repostBanner}
+          onPress={() =>
+            onPressAuthor?.({
+              username: post.repostBy!.user.username,
+              name: post.repostBy!.user.name,
+              image: post.repostBy!.user.image,
+            })
+          }
+          disabled={!onPressAuthor}
+        >
+          <Ionicons name="repeat-outline" size={14} color={colors.textMuted} />
+          <Text style={styles.repostBannerText} numberOfLines={1}>
+            {repostName} 님이 재게시함
+          </Text>
+        </Pressable>
+      ) : null}
       <View style={styles.header}>
         <Pressable
           style={styles.headerMain}
@@ -378,6 +425,47 @@ function FeedPostCardInner({
         </Pressable>
       ) : null}
 
+      {post.quotedPost ? (
+        <Pressable
+          style={styles.quoteCardOuter}
+          onPress={() => onPressPost?.(post.quotedPost!.id)}
+          disabled={!onPressPost}
+        >
+          <View style={styles.quoteCard}>
+            <Text style={styles.quoteName} numberOfLines={1}>
+              {post.quotedPost.author.name || post.quotedPost.author.username}
+              <Text style={styles.quoteHandle}> @{post.quotedPost.author.username}</Text>
+            </Text>
+            {post.quotedPost.content ? (
+              <Text style={styles.quoteBody} numberOfLines={3}>
+                {post.quotedPost.content}
+              </Text>
+            ) : null}
+          </View>
+          {post.quotedPost.media?.[0]?.url ? (
+            <SensitiveContentGate enabled={!!post.quotedPost.isNsfw} style={styles.quoteMediaWrap}>
+              <Image
+                source={{
+                  uri:
+                    post.quotedPost.media[0].posterUrl || post.quotedPost.media[0].url,
+                }}
+                style={styles.quoteMedia}
+                contentFit="cover"
+              />
+              {post.quotedPost.media[0].type === "VIDEO" &&
+              post.quotedPost.media[0].duration != null &&
+              post.quotedPost.media[0].duration > 0 ? (
+                <View style={styles.quoteDuration} pointerEvents="none">
+                  <Text style={styles.quoteDurationText}>
+                    {formatQuoteDuration(post.quotedPost.media[0].duration)}
+                  </Text>
+                </View>
+              ) : null}
+            </SensitiveContentGate>
+          ) : null}
+        </Pressable>
+      ) : null}
+
       <FeedPostMediaCarousel
         post={post}
         layoutWidth={mediaLayout}
@@ -387,6 +475,16 @@ function FeedPostCardInner({
         onPurchaseSuccess={onPurchaseSuccess}
         onPressVideo={isQna ? undefined : onPressVideo}
       />
+
+      {post.poll ? (
+        <FeedPostPoll
+          postId={post.id}
+          poll={post.poll}
+          isAuthor={isSelf}
+          signedIn={status === "signedIn"}
+          onNeedLogin={requireLogin}
+        />
+      ) : null}
 
       <View style={styles.actions}>
         <View style={styles.actionsLeft}>
@@ -407,14 +505,16 @@ function FeedPostCardInner({
             <Text style={styles.actionText}>{post._count?.comments ?? 0}</Text>
           </Pressable>
           {isQna ? null : (
-          <Pressable onPress={onRepost} hitSlop={10} style={styles.actionBtn}>
-            <Ionicons
-              name="repeat-outline"
-              size={20}
-              color={reposted ? colors.cobalt : colors.textMuted}
-            />
-            <Text style={[styles.actionText, reposted && styles.reposted]}>{repostCount}</Text>
-          </Pressable>
+          <View ref={repostAnchorRef} collapsable={false}>
+            <Pressable onPress={openRepostMenu} hitSlop={10} style={styles.actionBtn}>
+              <Ionicons
+                name="repeat-outline"
+                size={20}
+                color={reposted ? colors.cobalt : colors.textMuted}
+              />
+              <Text style={[styles.actionText, reposted && styles.reposted]}>{repostCount}</Text>
+            </Pressable>
+          </View>
           )}
           <Pressable onPress={onShare} hitSlop={10} style={styles.actionBtn}>
             <ShareGlobeIcon size={19} color={colors.textMuted} />
@@ -435,6 +535,27 @@ function FeedPostCardInner({
         </View>
       </View>
 
+      {isQna ? null : (
+        <FeedPostRepostMenu
+          visible={repostMenuOpen}
+          anchor={repostMenuAnchor}
+          onClose={() => {
+            setRepostMenuOpen(false);
+            setRepostMenuAnchor(null);
+          }}
+          postId={post.id}
+          authorUsername={post.author.username}
+          title={post.title}
+          content={post.content}
+          reposted={reposted}
+          repostCount={repostCount}
+          busy={repostBusy}
+          onBusyChange={setRepostBusy}
+          onRepostChange={onRepostChange}
+          requireLogin={requireLogin}
+        />
+      )}
+
       {canShowMenu ? (
         <FeedPostOverflowMenu
           visible={menuOpen}
@@ -448,6 +569,9 @@ function FeedPostCardInner({
           authorUsername={post.author.username}
           isOwner={isSelf}
           hideProfilePin={hideIdentity && isSelf}
+          featuredOnProfile={!!post.profilePinned}
+          ownerPinLabels={isSelf}
+          onFeaturedChange={onProfilePinChange}
           onBlocked={() => onBlockedAuthor?.(post.author.id)}
           onDeleted={handleDeleted}
         />
@@ -469,6 +593,10 @@ function propsEqual(a: Props, b: Props) {
     a.post._count?.comments === b.post._count?.comments &&
     a.post._count?.reposts === b.post._count?.reposts &&
     a.post.content === b.post.content &&
+    a.post.poll?.id === b.post.poll?.id &&
+    a.post.poll?.totalVotes === b.post.poll?.totalVotes &&
+    a.post.poll?.myVoteOptionId === b.post.poll?.myVoteOptionId &&
+    a.post.poll?.closed === b.post.poll?.closed &&
     (a.post.media?.length ?? 0) === (b.post.media?.length ?? 0) &&
     a.post.media?.[0]?.posterUrl === b.post.media?.[0]?.posterUrl &&
     a.post.media?.[0]?.url === b.post.media?.[0]?.url &&
@@ -476,7 +604,11 @@ function propsEqual(a: Props, b: Props) {
     a.post.author.name === b.post.author.name &&
     a.post.author.image === b.post.author.image &&
     a.post.isAnonymous === b.post.isAnonymous &&
+    a.post.repostBy?.id === b.post.repostBy?.id &&
+    a.post.quotedPost?.id === b.post.quotedPost?.id &&
     a.paymentsEnabled === b.paymentsEnabled &&
+    a.pinnedHighlight === b.pinnedHighlight &&
+    a.post.profilePinned === b.post.profilePinned &&
     a.onPressAuthor === b.onPressAuthor &&
     a.onPressCommunity === b.onPressCommunity &&
     a.onPressVideo === b.onPressVideo
@@ -496,6 +628,72 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       paddingTop: 12,
       paddingBottom: 12,
     },
+    cardPinned: {
+      backgroundColor: isDark ? colors.muted : "rgba(197, 82, 42, 0.06)",
+      borderLeftWidth: 3,
+      borderLeftColor: colors.cobalt,
+    },
+    pinnedLabel: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 8,
+    },
+    pinnedLabelText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.textMuted,
+    },
+    repostBanner: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 8,
+      paddingLeft: 50,
+    },
+    repostBannerText: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.textMuted,
+    },
+    quoteCardOuter: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.hairline,
+      borderRadius: 16,
+      overflow: "hidden",
+      marginBottom: 10,
+      backgroundColor: colors.muted,
+    },
+    quoteCard: {
+      paddingHorizontal: 12,
+      paddingTop: 10,
+      paddingBottom: 8,
+    },
+    quoteMediaWrap: {
+      width: "100%",
+      aspectRatio: 16 / 10,
+      maxHeight: 220,
+    },
+    quoteMedia: { width: "100%", height: "100%" },
+    quoteDuration: {
+      position: "absolute",
+      left: 8,
+      bottom: 8,
+      backgroundColor: "rgba(0,0,0,0.75)",
+      borderRadius: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    quoteDurationText: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: "#fff",
+      fontVariant: ["tabular-nums"],
+    },
+    quoteName: { fontSize: 13, fontWeight: "700", color: colors.text },
+    quoteHandle: { fontSize: 13, fontWeight: "400", color: colors.textMuted },
+    quoteBody: { marginTop: 4, fontSize: 14, lineHeight: 19, color: colors.textMuted },
     header: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
     headerMain: { flex: 1, alignSelf: "stretch", justifyContent: "center" },
     headerRow: {

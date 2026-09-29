@@ -45,6 +45,7 @@ export function SignupNaverForm() {
   const [localPart, setLocalPart] = useState("");
   const [detectedOnce, setDetectedOnce] = useState(false);
   const [prefilledOnce, setPrefilledOnce] = useState(false);
+  const [birth, setBirth] = useState({ birthYear: "", birthMonth: "", birthDay: "" });
 
   const needsSignupNotice = searchParams.get("reason") === "not_registered";
   const addAccount = searchParams.get("addAccount") === "1";
@@ -104,9 +105,9 @@ export function SignupNaverForm() {
     const password = form.get("password") as string;
     const username = ((form.get("username") as string) || "").trim().toLowerCase();
     const displayName = ((form.get("name") as string) || "").trim();
-    const birthYear = Number(form.get("birthYear"));
-    const birthMonth = Number(form.get("birthMonth"));
-    const birthDay = Number(form.get("birthDay"));
+    const birthYear = Number(birth.birthYear);
+    const birthMonth = Number(birth.birthMonth);
+    const birthDay = Number(birth.birthDay);
 
     if (
       containsForbiddenAdminSequence(username) ||
@@ -256,7 +257,7 @@ export function SignupNaverForm() {
               autoComplete="new-password"
               className="rounded-xl"
             />
-            <SignupBirthDateFields locale={locale} />
+            <SignupBirthDateFields locale={locale} values={birth} onChange={setBirth} />
             <p className="text-xs text-muted-foreground rounded-xl bg-muted/50 px-3 py-2 leading-relaxed">
               {locale === "ko"
                 ? "이메일 인증 후 프로필 아이콘 사진을 반드시 설정합니다. 배너는 나중에 해도 됩니다."

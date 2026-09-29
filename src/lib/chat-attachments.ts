@@ -1,8 +1,9 @@
 import type { MessageAttachmentType } from "@prisma/client";
+import { atmLetterListPreview } from "@/lib/chat-atm-letter";
+import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
 import { chatGameShareListPreview } from "@/lib/chat-game-share";
-import { validateSaleMediaPricing } from "@/lib/money";
-
+import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
 export type ChatAttachmentInput = {
   url: string;
   type: MessageAttachmentType;
@@ -64,21 +65,25 @@ export function sanitizeChatAttachments(
     const type = typeof o.type === "string" ? parseChatAttachmentType(o.type) : null;
     if (!url || !type) continue;
     const priceRaw = typeof o.priceKrw === "number" ? o.priceKrw : 0;
-    const priceKrw = Math.max(0, Math.round(priceRaw));
-    if (priceKrw > 0) {
-      // Only types the forensic watermark pipeline can carry may be sold.
-      if (!isForensicMessageAttachmentType(type)) continue;
-      const err = validateSaleMediaPricing(priceKrw);
-      if (err) continue;
-    }
+    if (Math.max(0, Math.round(priceRaw)) > 0) continue;
     out.push({
       url,
       type,
       name: typeof o.name === "string" ? o.name.slice(0, 200) : undefined,
-      ...(priceKrw > 0 ? { priceKrw } : {}),
     });
   }
   return out;
+}
+
+/** True when the client tried to attach DM paid / fan-art sale media (feature disabled). */
+export function dmPaidSaleAttachmentRequested(raw: unknown): boolean {
+  if (!Array.isArray(raw)) return false;
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const priceRaw = (item as Record<string, unknown>).priceKrw;
+    if (typeof priceRaw === "number" && Math.max(0, Math.round(priceRaw)) > 0) return true;
+  }
+  return false;
 }
 
 export function lastMessagePreview(
@@ -87,8 +92,13 @@ export function lastMessagePreview(
 ): string {
   const sharePreview = chatPostShareListPreview(content);
   if (sharePreview) return sharePreview;
+  const listingPreview = chatUsedListingListPreview(content);
+  if (listingPreview) return listingPreview;
   const gamePreview = chatGameShareListPreview(content);
   if (gamePreview) return gamePreview;
+  const letterPreview = atmLetterListPreview(content);
+  if (letterPreview) return letterPreview;
+  if (parseLetterDonationMarker(content)) return "편지가 도착했습니다";
   if (content?.trim()) return content.trim();
   if (!attachments?.length) return "대화를 시작해 보세요";
   const hasImage = attachments.some((a) => a.type === "IMAGE" || a.type === "GIF");

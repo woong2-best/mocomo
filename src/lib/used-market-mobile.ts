@@ -32,7 +32,9 @@ import { normalizeMeetCountry } from "@/lib/maps/select-engine";
 import { finalizeExpiredAuctionIfNeeded } from "@/actions/used-auction";
 import { notifyAuctionWatchers, sendUsedAuctionNotification } from "@/lib/used-auction-notify";
 import { executeUsedAuctionBid } from "@/lib/used-auction-bid-core";
-import { getOrCreateDmForUser, sendMobileDmMessage } from "@/lib/chat-dm-service";
+import { sendMobileDmMessage } from "@/lib/chat-dm-service";
+import { openMarketListingChat } from "@/lib/market-trade-chat";
+import { getDirectTradeView } from "@/lib/direct-trade/service";
 import {
   AUCTION_SELLER_DEPOSIT_ERROR,
   canParticipateInAuction,
@@ -288,6 +290,30 @@ export async function listMobileMyUsedListings(
   });
 }
 
+export async function toggleMobileUsedListingStar(userId: string, listingId: string) {
+  const user = await loadUsedMarketUser(userId);
+  if (!user) return { error: "로그인이 필요합니다." as const };
+
+  const listing = await db.usedListing.findUnique({
+    where: { id: listingId },
+    select: { id: true, sellerId: true, meetCountry: true, region: true },
+  });
+  if (!listing) return { error: "게시글을 찾을 수 없습니다." as const };
+  const { assertUsedMarketListingVisible } = await import("@/lib/used-market-locale-scope");
+  const visibleErr = await assertUsedMarketListingVisible({ userId, listing });
+  if (visibleErr) return { error: visibleErr };
+
+  const existing = await db.usedListingStar.findUnique({
+    where: { userId_listingId: { userId, listingId } },
+  });
+  if (existing) {
+    await db.usedListingStar.delete({ where: { id: existing.id } });
+    return { starred: false as const };
+  }
+  await db.usedListingStar.create({ data: { userId, listingId } });
+  return { starred: true as const };
+}
+
 export async function toggleMobileUsedFavorite(userId: string, listingId: string) {
   const user = await loadUsedMarketUser(userId);
   if (!user) return { error: "로그인이 필요합니다." as const };
@@ -334,47 +360,19 @@ export async function startMobileUsedTradeChat(userId: string, listingId: string
     include: { seller: { select: { id: true, username: true } } },
   });
   if (!listing) return { error: "게시글을 찾을 수 없습니다." as const };
-  if (listing.sellerId === userId) return { error: "본인 글에는 채팅할 수 없습니다." as const };
-  const tradeErr = await assertUsedMarketTradeAccess({
-    userId,
-    buyerCountry: user.countryCode,
-    listing,
-  });
-  if (tradeErr) return { error: tradeErr };
-  if (listing.status === "SOLD") return { error: "이미 거래 완료된 상품입니다." as const };
-  if (
-    listing.saleType === "AUCTION" &&
-    listing.auctionEndsAt &&
-    listing.auctionEndsAt.getTime() > Date.now() &&
-    listing.auctionState !== "ENDED"
-  ) {
-    return { error: "경매 진행 중에는 채팅 대신 입찰을 이용해 주세요." as const };
+  if (listing.sellerId !== userId) {
+    const tradeErr = await assertUsedMarketTradeAccess({
+      userId,
+      buyerCountry: user.countryCode,
+      listing,
+    });
+    if (tradeErr) return { error: tradeErr };
   }
 
   const adultErr = assertUsedAdultForRestricted(user, listing.restrictedKind ?? "NONE");
   if (adultErr) return { error: adultErr, needsAdultVerify: true as const };
 
-  const dm = await getOrCreateDmForUser(userId, listing.sellerId);
-  if ("error" in dm && dm.error) {
-    return { error: dm.error, requiredTier: "requiredTier" in dm ? dm.requiredTier : undefined };
-  }
-  if (!("roomId" in dm) || !dm.roomId) return { error: "채팅방을 열 수 없습니다." as const };
-
-  try {
-    await db.usedListingChat.upsert({
-      where: { listingId_buyerId: { listingId, buyerId: userId } },
-      create: { listingId, roomId: dm.roomId, buyerId: userId },
-      update: { roomId: dm.roomId },
-    });
-  } catch {
-    /* optional table */
-  }
-
-  const priceText = formatUsedPrice(listing.price, listing.currency);
-  const intro = `안녕하세요! 중고거래 문의합니다.\n\n상품: ${listing.title}\n가격: ${priceText}\n링크: /used/${listing.id}`;
-  await sendMobileDmMessage(userId, { roomId: dm.roomId, content: intro }).catch(() => undefined);
-
-  return { roomId: dm.roomId };
+  return openMarketListingChat(userId, listingId);
 }
 
 export async function placeMobileUsedAuctionBid(
@@ -486,6 +484,7 @@ const hubListingSelect = {
   tradeMode: true,
   subcultureMeta: true,
   isNsfw: true,
+  viewCount: true,
   sellerId: true,
   auctionEndsAt: true,
   currentBidAmount: true,
@@ -495,7 +494,8 @@ const hubListingSelect = {
 } as const;
 
 function mapHubListing(
-  l: Prisma.UsedListingGetPayload<{ select: typeof hubListingSelect }>
+  l: Prisma.UsedListingGetPayload<{ select: typeof hubListingSelect }>,
+  opts?: { favorited?: boolean }
 ) {
   const images = listingImages(l.images);
   return {
@@ -509,6 +509,8 @@ function mapHubListing(
     saleType: l.saleType,
     createdAt: l.createdAt.toISOString(),
     favoriteCount: l._count?.favorites ?? 0,
+    viewCount: l.viewCount ?? 0,
+    favorited: opts?.favorited ?? false,
     auctionEndsAt: l.auctionEndsAt?.toISOString() ?? null,
     currentBidAmount: l.currentBidAmount ?? null,
     bidCount: l.bidCount ?? null,
@@ -546,7 +548,7 @@ export async function listMobileUsedFavorites(userId: string, take = 48) {
     take: Math.min(take, 48),
     select: { listing: { select: hubListingSelect } },
   });
-  return rows.map((row) => mapHubListing(row.listing));
+  return rows.map((row) => mapHubListing(row.listing, { favorited: true }));
 }
 
 export async function listMobileUsedPurchases(userId: string, take = 48) {
@@ -562,7 +564,7 @@ export async function listMobileUsedPurchases(userId: string, take = 48) {
     take: Math.min(take, 48),
     select: hubListingSelect,
   });
-  return listings.map(mapHubListing);
+  return listings.map((l) => mapHubListing(l));
 }
 
 export async function listMobileLiveAuctions(userId: string, take = 48) {
@@ -581,14 +583,14 @@ export async function listMobileLiveAuctions(userId: string, take = 48) {
     take: Math.min(take, 48),
     select: hubListingSelect,
   });
-  if (mine.length > 0) return mine.map(mapHubListing);
+  if (mine.length > 0) return mine.map((l) => mapHubListing(l));
   const open = await db.usedListing.findMany({
     where: { saleType: "AUCTION", status: "SELLING" },
     orderBy: { createdAt: "desc" },
     take: Math.min(take, 48),
     select: hubListingSelect,
   });
-  return open.map(mapHubListing);
+  return open.map((l) => mapHubListing(l));
 }
 
 export async function listMobileUsedDisputes(userId: string, take = 48) {
@@ -633,6 +635,7 @@ export async function listMobileUsedDisputes(userId: string, take = 48) {
             saleType: "FIXED",
             createdAt: row.createdAt.toISOString(),
             favoriteCount: 0,
+            viewCount: 0,
             auctionEndsAt: null,
             currentBidAmount: null,
             bidCount: null,
@@ -703,7 +706,14 @@ export async function listMobileRecommendedUsed(userId: string | null, take = 24
       return { listing, overlap };
     })
     .sort((a, b) => b.overlap - a.overlap || +b.listing.createdAt - +a.listing.createdAt);
-  return scored.slice(0, limit).map((row) => mapHubListing(row.listing));
+  const items = scored.slice(0, limit).map((row) => mapHubListing(row.listing));
+  if (!userId || items.length === 0) return items;
+  const favRows = await db.usedFavorite.findMany({
+    where: { userId, listingId: { in: items.map((item) => item.id) } },
+    select: { listingId: true },
+  });
+  const favIds = new Set(favRows.map((row) => row.listingId));
+  return items.map((item) => ({ ...item, favorited: favIds.has(item.id) }));
 }
 
 function startOfUtcDay(d = new Date()) {
@@ -862,6 +872,10 @@ export async function getMobileUsedTradeRoomContext(userId: string, roomId: stri
           status: true,
           sellerId: true,
           saleType: true,
+          price: true,
+          currency: true,
+          currentBidAmount: true,
+          seller: { select: { username: true } },
         },
       },
     },
@@ -888,10 +902,20 @@ export async function getMobileUsedTradeRoomContext(userId: string, roomId: stri
     pendingRequestId = null;
   }
 
+  let directTrade = null;
+  try {
+    directTrade = await getDirectTradeView(userId, { roomId });
+  } catch {
+    directTrade = null;
+  }
+
   return {
     listingId: listing.id,
     listingTitle: listing.title,
     listingStatus: listing.status,
+    saleType: listing.saleType,
+    priceLabel: formatUsedPrice(listing.currentBidAmount ?? listing.price, listing.currency),
+    sellerUsername: listing.seller.username,
     sellerId: listing.sellerId,
     buyerId: link.buyerId,
     isBuyer,
@@ -903,6 +927,7 @@ export async function getMobileUsedTradeRoomContext(userId: string, roomId: stri
       !pendingRequestId,
     editLocked: !isUsedListingEditable(listing.status),
     pendingRequestId,
+    directTrade,
   };
 }
 

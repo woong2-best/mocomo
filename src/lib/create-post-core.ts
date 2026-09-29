@@ -53,6 +53,8 @@ export type CreatePostInput = {
   isAnonymous?: boolean;
   /** User IDs to invite as PENDING collaborators on create */
   collaboratorUserIds?: string[];
+  /** 인용하기 — 원본 게시물 id */
+  quotedPostId?: string | null;
 };
 
 function isPersistableMediaUrl(url: string): boolean {
@@ -75,11 +77,22 @@ export async function createPostForUser(
     (m) => m.url && isPersistableMediaUrl(String(m.url))
   );
 
+  const quotedPostId = data.quotedPostId?.trim() || null;
+  let quotedIsNsfw = false;
+  if (quotedPostId) {
+    const quoted = await db.post.findUnique({
+      where: { id: quotedPostId },
+      select: { id: true, isNsfw: true, contentRating: true },
+    });
+    if (!quoted) return { error: "인용할 게시물을 찾을 수 없습니다." };
+    quotedIsNsfw = quoted.isNsfw || quoted.contentRating === "ADULT";
+  }
+
   if (data.poll) {
     const pollErr = validatePostPollInput(data.poll);
     if (pollErr) return { error: pollErr };
     if (!content) return { error: "투표 질문을 본문에 적어 주세요." };
-  } else if (!content && !hasMediaInput) {
+  } else if (!content && !hasMediaInput && !quotedPostId) {
     return { error: "내용을 입력해 주세요." };
   }
 
@@ -98,8 +111,9 @@ export async function createPostForUser(
     .map((m) => Math.max(0, Math.floor(m.priceKrw ?? 0)));
   const maxMediaPrice = mediaPrices.length > 0 ? Math.max(...mediaPrices) : 0;
 
-  const contentRating =
+  let contentRating =
     data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL");
+  if (quotedIsNsfw) contentRating = "ADULT";
   const adultMonetizationErr = assertAdultContentNotMonetized(contentRating, {
     hasInstantPurchase: instantPrice > 0,
     hasPaidMedia: mediaPrices.some((p) => p > 0),
@@ -176,8 +190,9 @@ export async function createPostForUser(
       ? data.poll.options.map((o) => o.trim()).filter(Boolean)
       : [];
 
-    const contentRating =
+    let contentRating =
       data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL");
+    if (quotedIsNsfw) contentRating = "ADULT";
 
     const post = await db.post.create({
       data: {
@@ -190,6 +205,7 @@ export async function createPostForUser(
         isNsfw: contentRating === "ADULT",
         isAnonymous,
         visibility: data.visibility ?? "PUBLIC",
+        quotedPostId,
         instantPurchasePriceKrw: communityId
           ? 0
           : Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0)),
@@ -256,6 +272,7 @@ export async function createPostForUser(
       content,
       actorId: user.id,
       quotePostId: post.id,
+      quotedPostId,
     });
 
     const videoMedia = post.media

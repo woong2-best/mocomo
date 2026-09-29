@@ -50,15 +50,56 @@ export function pollClosesAtFromDuration(minutes: number): Date {
 }
 
 export function formatPollTimeLeft(closesAt: Date | string, closed: boolean): string {
-  if (closed || isPostPollClosed({ closesAt, closed })) return "투표 종료";
+  if (closed || isPostPollClosed({ closesAt, closed })) return "종료됨";
   const ms = new Date(closesAt).getTime() - Date.now();
-  if (ms <= 0) return "투표 종료";
-  const mins = Math.ceil(ms / 60000);
-  if (mins < 60) return `${mins}분 남음`;
-  const hours = Math.ceil(mins / 60);
-  if (hours < 48) return `${hours}시간 남음`;
-  const days = Math.ceil(hours / 24);
-  return `${days}일 남음`;
+  if (ms <= 0) return "종료됨";
+  const totalMins = Math.max(1, Math.ceil(ms / 60000));
+  const days = Math.floor(totalMins / (60 * 24));
+  const hours = Math.floor((totalMins % (60 * 24)) / 60);
+  const mins = totalMins % 60;
+  if (days >= 1) {
+    return hours > 0 ? `${days}일 ${hours}시간 남음` : `${days}일 남음`;
+  }
+  if (hours >= 1) {
+    return mins > 0 ? `${hours}시간 ${mins}분 남음` : `${hours}시간 남음`;
+  }
+  return `${mins}분 남음`;
+}
+
+export function formatPollMeta(totalVotes: number, closesAt: Date | string, closed: boolean): string {
+  return `${totalVotes.toLocaleString()}표 · ${formatPollTimeLeft(closesAt, closed)}`;
+}
+
+/** 표시용 % (합 100) + 막대 너비용 % (반올림 없이 비율, 단독 100%는 끝까지 채움) */
+export function pollOptionPercents(
+  options: { id: string; count: number }[],
+  totalVotes: number
+): Map<string, { labelPct: number; barPct: number }> {
+  const out = new Map<string, { labelPct: number; barPct: number }>();
+  if (totalVotes <= 0) {
+    for (const o of options) out.set(o.id, { labelPct: 0, barPct: 0 });
+    return out;
+  }
+
+  const raw = options.map((o) => (o.count / totalVotes) * 100);
+  const floored = raw.map((r) => Math.floor(r));
+  let remainder = 100 - floored.reduce((a, b) => a + b, 0);
+  const byFrac = raw
+    .map((r, i) => ({ i, frac: r - Math.floor(r) }))
+    .sort((a, b) => b.frac - a.frac || a.i - b.i);
+  const label = [...floored];
+  for (let k = 0; k < remainder; k++) {
+    label[byFrac[k % byFrac.length]!.i] += 1;
+  }
+
+  options.forEach((o, i) => {
+    let barPct = raw[i]!;
+    if (o.count <= 0) barPct = 0;
+    else if (o.count === totalVotes) barPct = 100;
+    else barPct = Math.min(100, Math.max(0, barPct));
+    out.set(o.id, { labelPct: label[i]!, barPct });
+  });
+  return out;
 }
 
 export const postPollSelect = {
@@ -109,4 +150,75 @@ export async function getPostPollVotesForUser(userId: string | undefined, pollId
     select: { pollId: true, optionId: true },
   });
   return new Map(rows.map((r) => [r.pollId, r.optionId]));
+}
+
+export async function hydrateViewerPollVotes<T extends { poll?: PostPollView | null }>(
+  posts: T[],
+  viewerId?: string | null
+): Promise<T[]> {
+  if (!viewerId || posts.length === 0) return posts;
+  const pollIds = posts.flatMap((p) => (p.poll?.id ? [p.poll.id] : []));
+  if (pollIds.length === 0) return posts;
+  const votes = await getPostPollVotesForUser(viewerId, pollIds);
+  if (votes.size === 0) return posts;
+  return posts.map((post) => {
+    if (!post.poll) return post;
+    const optionId = votes.get(post.poll.id);
+    if (!optionId) return post;
+    return { ...post, poll: { ...post.poll, myVoteOptionId: optionId } };
+  });
+}
+
+export async function castPostPollVote(
+  postId: string,
+  userId: string,
+  optionId: string
+): Promise<{ ok: true; poll: PostPollView } | { ok: false; status: number; error: string }> {
+  const { db } = await import("@/lib/db");
+  const post = await db.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      authorId: true,
+      poll: {
+        select: {
+          id: true,
+          closesAt: true,
+          closed: true,
+          options: { select: { id: true } },
+        },
+      },
+    },
+  });
+
+  if (!post?.poll) {
+    return { ok: false, status: 404, error: "투표를 찾을 수 없습니다." };
+  }
+  if (post.authorId === userId) {
+    return { ok: false, status: 403, error: "작성자는 자신의 투표에 참여할 수 없습니다." };
+  }
+
+  const poll = post.poll;
+  if (poll.closed || isPostPollClosed(poll)) {
+    if (!poll.closed) {
+      await db.postPoll.update({ where: { id: poll.id }, data: { closed: true } });
+    }
+    return { ok: false, status: 400, error: "투표가 종료되었습니다." };
+  }
+  if (!poll.options.some((o) => o.id === optionId)) {
+    return { ok: false, status: 400, error: "선택지가 올바르지 않습니다." };
+  }
+
+  await db.postPollVote.upsert({
+    where: { pollId_userId: { pollId: poll.id, userId } },
+    create: { pollId: poll.id, optionId, userId },
+    update: { optionId, votedAt: new Date() },
+  });
+
+  const fresh = await db.postPoll.findUnique({
+    where: { id: poll.id },
+    select: postPollSelect,
+  });
+  if (!fresh) return { ok: false, status: 404, error: "투표를 찾을 수 없습니다." };
+  return { ok: true, poll: mapPostPollRow(fresh, optionId) };
 }

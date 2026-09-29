@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import Animated, {
   Easing,
@@ -129,6 +129,12 @@ function useScreenSlotSupersedesHost() {
   return supersedes;
 }
 
+/** Clear the status bar, then a small gap so the pill does not sit on system icons. */
+function toastTopInset(safeTop: number) {
+  const androidBar = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
+  return Math.max(safeTop, androidBar, 12) + 12;
+}
+
 const SPRING = { damping: 16, stiffness: 280, mass: 0.8 };
 const PILL_BG = "#1E2B5A";
 const ICON_DISK = "rgba(126, 140, 200, 0.35)";
@@ -149,7 +155,7 @@ export function IslandToastScreenSlot() {
   );
 
   if (!focused) return null;
-  return <IslandToastPresenter placement="screen" />;
+  return <IslandToastPresenter />;
 }
 
 /**
@@ -159,12 +165,10 @@ export function IslandToastScreenSlot() {
 export function IslandToastHost() {
   const supersedes = useScreenSlotSupersedesHost();
   if (supersedes) return null;
-  return <IslandToastPresenter placement="app" />;
+  return <IslandToastPresenter />;
 }
 
-type PresenterPlacement = "app" | "screen";
-
-function IslandToastPresenter({ placement }: { placement: PresenterPlacement }) {
+function IslandToastPresenter() {
   const insets = useSafeAreaInsets();
   const [toast, setToast] = useState<IslandPayload | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -242,7 +246,7 @@ function IslandToastPresenter({ placement }: { placement: PresenterPlacement }) 
   if (!mounted || !toast) return null;
 
   const a11y = toast.message ? `${toast.title}. ${toast.message}` : toast.title;
-  const topInset = placement === "app" ? Math.max(insets.top, 12) + 4 : 4;
+  const topInset = toastTopInset(insets.top);
 
   const pill = (
     <View pointerEvents="box-none" style={[styles.host, { paddingTop: topInset }]}>

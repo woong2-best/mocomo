@@ -1,7 +1,10 @@
 import type { SupportTierLevel } from "@prisma/client";
 import type { ChatAttachmentView } from "@/lib/chat-attachments";
 import { parseChatAttachmentType } from "@/lib/chat-attachments";
+import { atmLetterListPreview } from "@/lib/chat-atm-letter";
+import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
+import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
 
 export type ChatMessageView = {
   id: string;
@@ -32,6 +35,11 @@ export function getChatMessageReplyPreview(
 ): string {
   const sharePreview = chatPostShareListPreview(m.content);
   if (sharePreview) return sharePreview;
+  const listingPreview = chatUsedListingListPreview(m.content);
+  if (listingPreview) return listingPreview;
+  const letterPreview = atmLetterListPreview(m.content);
+  if (letterPreview) return letterPreview;
+  if (parseLetterDonationMarker(m.content)) return "편지가 도착했습니다";
   const text = m.content?.trim();
   if (text) return text.length > 100 ? `${text.slice(0, 100)}…` : text;
   const att = m.attachments?.[0];

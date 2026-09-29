@@ -104,6 +104,10 @@ export async function ProfileTimelineAsync({
     if (item.type === "post") {
       return {
         type: "post" as const,
+        activityKey:
+          "activityKey" in item && typeof item.activityKey === "string"
+            ? item.activityKey
+            : undefined,
         post: { ...item.post, createdAt: item.post.createdAt.toISOString() },
       };
     }

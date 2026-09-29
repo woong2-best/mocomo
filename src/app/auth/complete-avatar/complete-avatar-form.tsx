@@ -6,7 +6,7 @@ import { completeAvatarOnboarding } from "@/actions/avatar-onboarding";
 import { ProfileImageField } from "@/components/profile/profile-image-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import { AuthBrandWordmark } from "@/components/auth/auth-brand-wordmark";
 import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -63,9 +63,7 @@ export function CompleteAvatarForm({
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
-            <BrandLogo size={48} priority />
-          </div>
+          <AuthBrandWordmark className="mx-auto !text-foreground" />
           <CardTitle className="text-xl font-semibold">{title}</CardTitle>
           <p className="text-sm text-muted-foreground">{desc}</p>
         </CardHeader>

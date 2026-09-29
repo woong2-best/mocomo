@@ -10,6 +10,9 @@ import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
 import { PostEngagementBar } from "@/components/post/post-engagement-bar";
+import { PostPollCard } from "@/components/post/post-poll-card";
+import { RepostBanner } from "@/components/post/repost-banner";
+import { QuotedPostCard } from "@/components/post/quoted-post-card";
 
 export function ProfilePostCard({
   post,
@@ -39,6 +42,7 @@ export function ProfilePostCard({
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
   const showPinned = pinnedHighlight || post.isPinned;
   const canOwnMenu = isSelf && (!authorId || post.author.id === authorId);
+  const isPollAuthor = Boolean(isSelf && authorId && post.author.id === authorId);
 
   return (
     <article
@@ -47,10 +51,11 @@ export function ProfilePostCard({
         pinnedHighlight && "bg-muted/15 border-l-4 border-l-primary/70"
       )}
     >
+      {post.repostBy ? <RepostBanner user={post.repostBy.user} /> : null}
       {showPinned && (
         <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5 font-medium">
           <Pin className="h-3.5 w-3.5" />
-          고정됨
+          고정된 게시물
         </p>
       )}
       {meta && (
@@ -90,6 +95,12 @@ export function ProfilePostCard({
                   className="text-[15px] whitespace-pre-wrap break-words line-clamp-6"
                 />
               </div>
+              {post.quotedPost ? <QuotedPostCard post={post.quotedPost} /> : null}
+              {post.poll ? (
+                <div className="mt-3">
+                  <PostPollCard postId={post.id} poll={post.poll} isAuthor={isPollAuthor} />
+                </div>
+              ) : null}
               {post.media && post.media.length > 0 && (
                 <PaidPostMediaGrid
                   media={post.media as ProfilePostMediaItem[]}

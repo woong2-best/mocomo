@@ -29,6 +29,7 @@ export function ChatHeader({
   members = [],
   memberCount,
   showBackOnMobile = true,
+  canCall = true,
 }: {
   displayName: string;
   displayImage: string | null;
@@ -42,6 +43,7 @@ export function ChatHeader({
   members?: ChatMemberPreview[];
   memberCount?: number;
   showBackOnMobile?: boolean;
+  canCall?: boolean;
 }) {
   const { isNativeApp } = useClientPlatform();
   const profileHref = profileUsername ? `/u/${profileUsername}` : undefined;
@@ -152,7 +154,7 @@ export function ChatHeader({
 
       {canAddMembers ? <AddChatMemberDialog roomId={roomId} members={members} /> : null}
 
-      {roomType === "DM" && otherUserId && (
+      {roomType === "DM" && otherUserId && canCall ? (
         <DmCallButtons
           calleeId={otherUserId}
           chatRoomId={roomId}
@@ -162,7 +164,7 @@ export function ChatHeader({
             image: displayImage,
           }}
         />
-      )}
+      ) : null}
     </header>
   );
 }

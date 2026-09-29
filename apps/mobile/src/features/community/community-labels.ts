@@ -18,10 +18,13 @@ export const COMMUNITY_CATEGORY_OPTIONS = [
   { id: "INFO", shortLabel: "정보·질문", emoji: "❓", label: "정보 / 질문" },
 ] as const;
 
-/** QnA list tabs — includes NSFW (age-gated in UI). */
+/** QnA list tabs — includes NSFW (age-gated) and My (own questions only). */
+export const QNA_MY_CATEGORY_ID = "MY" as const;
+
 export const QNA_FEED_CATEGORY_TABS = [
   ...COMMUNITY_CATEGORY_OPTIONS,
   { id: "NSFW" as const, shortLabel: "NSFW", emoji: "🔞", label: "NSFW" },
+  { id: QNA_MY_CATEGORY_ID, shortLabel: "My", emoji: "👤", label: "My" },
 ] as const;
 
 export type QnaFeedTabId = (typeof QNA_FEED_CATEGORY_TABS)[number]["id"];

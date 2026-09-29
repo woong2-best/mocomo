@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame, Clock, Shuffle, Sparkles, Megaphone } from "lucide-react";
+import { Flame, Clock, Megaphone } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { CultureWikiHubList } from "@/components/anime/culture-wiki-hub-list";
@@ -50,32 +50,6 @@ export function AnimeHubWidgets({
           ) : (
             <CultureWikiHubList items={recent} className="space-y-1.5" />
           )}
-        </CardContent>
-      </Card>
-
-      <Card className="rounded-2xl">
-        <CardContent className="p-4 space-y-2">
-          <Link
-            href="/anime/random"
-            className="flex items-center gap-2 text-sm font-medium hover:text-folk-cobalt"
-          >
-            <Shuffle className="h-4 w-4" />
-            {t("anime.randomArticle")}
-          </Link>
-          <Link
-            href="/anime/newest"
-            className="flex items-center gap-2 text-sm font-medium hover:text-folk-cobalt"
-          >
-            <Sparkles className="h-4 w-4" />
-            {t("anime.newArticles")}
-          </Link>
-          <Link
-            href="/anime/delete-requests"
-            className="flex items-center gap-2 text-sm font-medium hover:text-folk-cobalt"
-          >
-            <Megaphone className="h-4 w-4" />
-            {t("anime.deleteRequests")}
-          </Link>
         </CardContent>
       </Card>
 

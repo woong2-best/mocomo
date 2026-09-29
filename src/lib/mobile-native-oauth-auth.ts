@@ -219,6 +219,9 @@ export async function resolveMobileNativeOAuthAuth(input: {
   birthDay?: number;
   termsAccepted?: boolean;
   privacyAccepted?: boolean;
+  username?: string;
+  name?: string;
+  password?: string;
 }): Promise<MobileNativeOAuthResult> {
   if (input.provider === "line" && !isOAuthEncryptionConfigured()) {
     throw new MobileNativeOAuthError(
@@ -280,6 +283,9 @@ export async function resolveMobileNativeOAuthAuth(input: {
           image: profile.image,
         },
         birthDate: consent.birthDate,
+        username: input.username,
+        name: input.name,
+        password: input.password,
       });
       user = await loadUser(createdUser.id);
       if (!user) {

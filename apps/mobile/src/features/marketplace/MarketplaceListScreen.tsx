@@ -18,6 +18,7 @@ import { fetchMarketplaceList, toggleMarketplaceFavorite, type MarketplaceListIt
 import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
 import { displayUsedRegion, formatUsedPrice, formatUsedTimeAgo } from "@/features/marketplace/used-catalog";
 import { floatingTabClearance } from "@/navigation/tab-layout";
+import { showIslandError } from "@/ui/IslandToast";
 import { Screen } from "@/ui/Screen";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
@@ -63,13 +64,12 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const isCombined = !isAuction && hubLane !== "purchased" && hubLane !== "favorites" && hubLane !== "disputes";
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, status: authStatus } = useAuth();
 
   const [q, setQ] = useState(routeParams.q ?? "");
   const [category, setCategory] = useState<string | "ALL">("ALL");
   const [hubOpen, setHubOpen] = useState(false);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
-  const [likeBump, setLikeBump] = useState<Record<string, number>>({});
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [menuItem, setMenuItem] = useState<MarketplaceListItem | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
@@ -105,10 +105,36 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     mutationFn: (id: string) => toggleMarketplaceFavorite(id),
     onSuccess: (res, id) => {
       setLiked((prev) => ({ ...prev, [id]: res.favorited }));
-      setLikeBump((prev) => ({ ...prev, [id]: res.favorited ? 1 : -1 }));
       void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
     },
   });
+
+  useEffect(() => {
+    const rows = query.data?.items;
+    if (!rows?.length) return;
+    setLiked((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const row of rows) {
+        if (row.favorited != null && next[row.id] === undefined) {
+          next[row.id] = row.favorited;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [query.data?.items]);
+
+  const toggleFavorite = useCallback(
+    (id: string) => {
+      if (authStatus !== "signedIn") {
+        showIslandError("로그인 필요", "관심 등록은 로그인 후 이용할 수 있습니다.");
+        return;
+      }
+      favorite.mutate(id);
+    },
+    [authStatus, favorite]
+  );
 
   const items = (query.data?.items ?? []).filter(
     (item) =>
@@ -150,11 +176,11 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           : item.price
         : item.price;
       const nsfwGate = !!item.isNsfw && item.sellerId !== user?.id;
-      const hearts = Math.max(0, (item.favoriteCount ?? 0) + (likeBump[item.id] ?? 0));
-      const on = !!liked[item.id];
+      const on = liked[item.id] ?? item.favorited ?? false;
+      const isOwner = !!user?.id && item.sellerId === user.id;
       return (
-        <Pressable style={styles.row} onPress={() => openItem(item)}>
-          <View style={styles.thumbWrap}>
+        <View style={styles.row}>
+          <Pressable style={styles.thumbWrap} onPress={() => openItem(item)}>
             <SensitiveContentGate enabled={nsfwGate} style={styles.thumb}>
               {item.thumbnailUrl ? (
                 <Image
@@ -167,64 +193,64 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
                 <View style={[StyleSheet.absoluteFill, styles.thumbFallback]} />
               )}
             </SensitiveContentGate>
-          </View>
+          </Pressable>
           <View style={styles.body}>
-            <View style={styles.titleRow}>
+            <Pressable
+              style={styles.menuBtn}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="더보기"
+              onPress={(e) => {
+                e.currentTarget.measureInWindow((x, y, width, height) => {
+                  setMenuAnchor({ x, y, width, height });
+                  setMenuItem(item);
+                });
+              }}
+            >
+              <Ionicons name="ellipsis-vertical" size={18} color={muted} />
+            </Pressable>
+            <Pressable style={styles.bodyTap} onPress={() => openItem(item)}>
               <Text style={styles.title} numberOfLines={2}>
                 {item.title || "상품"}
               </Text>
-              <Pressable
-                hitSlop={8}
-                onPress={(e) => {
-                  e.stopPropagation?.();
-                  const target = e.currentTarget;
-                  target.measureInWindow((x, y, width, height) => {
-                    setMenuAnchor({ x, y, width, height });
-                    setMenuItem(item);
-                  });
-                }}
-              >
-                <Ionicons name="ellipsis-vertical" size={16} color={muted} />
-              </Pressable>
-            </View>
-            <Text style={styles.meta} numberOfLines={1}>
-              {[displayUsedRegion(item.region || "") || "지역 미정", formatUsedTimeAgo(item.createdAt)].join(" · ")}
-            </Text>
-            <Text style={styles.price}>
-              {auction ? `현재 ${formatUsedPrice(price, item.currency)}` : formatUsedPrice(price, item.currency)}
-            </Text>
-            {auction && item.auctionEndsAt && item.status === "SELLING" ? (
-              <AuctionCountdown endsAt={item.auctionEndsAt} />
-            ) : null}
-            <View style={styles.foot}>
-              <View style={styles.stats}>
-                {auction && item.bidCount != null ? (
-                  <View style={styles.stat}>
-                    <Ionicons name="chatbubble-outline" size={14} color={muted} />
-                    <Text style={styles.statText}>{item.bidCount}</Text>
-                  </View>
-                ) : null}
-                <Pressable style={styles.stat} onPress={() => favorite.mutate(item.id)}>
-                  <Ionicons name={on ? "heart" : "heart-outline"} size={16} color={on ? colors.like : muted} />
-                  {hearts > 0 ? <Text style={styles.statText}>{hearts}</Text> : null}
-                </Pressable>
+              <Text style={styles.meta} numberOfLines={1}>
+                {[displayUsedRegion(item.region || "") || "지역 미정", formatUsedTimeAgo(item.createdAt)].join(" · ")}
+              </Text>
+              <Text style={styles.price}>
+                {auction ? `현재 ${formatUsedPrice(price, item.currency)}` : formatUsedPrice(price, item.currency)}
+              </Text>
+              <View style={styles.stat}>
+                <Ionicons name="eye-outline" size={14} color={muted} />
+                <Text style={styles.statText}>{item.viewCount ?? 0}</Text>
+                <Ionicons name="heart-outline" size={14} color={muted} style={styles.statIconGap} />
+                <Text style={styles.statText}>{item.favoriteCount ?? 0}</Text>
               </View>
-            </View>
+              {auction && item.auctionEndsAt && item.status === "SELLING" ? (
+                <AuctionCountdown endsAt={item.auctionEndsAt} />
+              ) : null}
+              {auction && item.bidCount != null ? (
+                <View style={styles.stat}>
+                  <Ionicons name="chatbubble-outline" size={14} color={muted} />
+                  <Text style={styles.statText}>{item.bidCount}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+            {!isOwner ? (
+              <Pressable
+                style={styles.heartBtn}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={on ? "관심 해제" : "관심 등록"}
+                onPress={() => toggleFavorite(item.id)}
+              >
+                <Ionicons name={on ? "heart" : "heart-outline"} size={22} color={on ? colors.like : muted} />
+              </Pressable>
+            ) : null}
           </View>
-        </Pressable>
+        </View>
       );
     },
-    [
-      colors.like,
-      favorite,
-      likeBump,
-      liked,
-      menuItem?.id,
-      muted,
-      openItem,
-      styles,
-      user?.id,
-    ]
+    [colors.like, liked, muted, openItem, styles, toggleFavorite, user?.id]
   );
 
   const listHeader = (
@@ -396,19 +422,27 @@ function createStyles(colors: ThemeColors) {
     },
     thumb: { width: "100%", height: "100%" },
     thumbFallback: { backgroundColor: colors.muted },
-    body: { flex: 1, minHeight: 108 },
-    titleRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-    title: { flex: 1, fontWeight: "700", color: colors.text, fontSize: 15, lineHeight: 20 },
+    body: { flex: 1, minHeight: 108, position: "relative" },
+    bodyTap: { flex: 1, paddingRight: 28 },
+    menuBtn: {
+      position: "absolute",
+      top: 0,
+      right: 0,
+      zIndex: 2,
+      padding: 2,
+    },
+    heartBtn: {
+      position: "absolute",
+      right: 0,
+      bottom: 0,
+      zIndex: 2,
+      padding: 4,
+    },
+    title: { fontWeight: "700", color: colors.text, fontSize: 15, lineHeight: 20, paddingRight: 8 },
     meta: { color: colors.textMuted, fontSize: 12, fontWeight: "600", marginTop: 4 },
     price: { color: colors.terracotta, fontWeight: "800", fontSize: 16, marginTop: 6 },
-    foot: {
-      marginTop: "auto",
-      flexDirection: "row",
-      alignItems: "flex-end",
-      justifyContent: "flex-end",
-    },
-    stats: { flexDirection: "row", alignItems: "center", gap: 10 },
-    stat: { flexDirection: "row", alignItems: "center", gap: 3 },
+    stat: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 6 },
+    statIconGap: { marginLeft: 8 },
     statText: { color: colors.textMuted, fontSize: 12, fontWeight: "600" },
     sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.hairline, marginLeft: 134 },
     empty: { color: colors.textMuted, padding: 24, fontWeight: "600", textAlign: "center" },

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Dimensions,
   FlatList,
@@ -15,11 +15,46 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
+import { useVideoPlayer, VideoView } from "expo-video";
 
 export type FeedLightboxImage = {
   id: string;
   url: string;
+  kind?: "image" | "video";
 };
+
+function LightboxVideoSlide({
+  url,
+  width,
+  height,
+  active,
+}: {
+  url: string;
+  width: number;
+  height: number;
+  active: boolean;
+}) {
+  const player = useVideoPlayer(active ? url : null, (p) => {
+    p.loop = false;
+  });
+
+  useEffect(() => {
+    if (!active) {
+      player.pause();
+      return;
+    }
+    player.play();
+  }, [active, player]);
+
+  return (
+    <VideoView
+      player={player}
+      style={{ width, height: height * 0.78 }}
+      contentFit="contain"
+      nativeControls
+    />
+  );
+}
 
 type Props = {
   visible: boolean;
@@ -62,19 +97,35 @@ export function FeedImageLightbox({
   );
 
   const renderItem: ListRenderItem<FeedLightboxImage> = useCallback(
-    ({ item }) => (
-      <View style={{ width, height, alignItems: "center", justifyContent: "center" }}>
-        <Image
-          source={cachedImageSource(item.url, decode)}
-          style={{ width, height: height * 0.78 }}
-          contentFit="contain"
-          cachePolicy={IMAGE_CACHE_POLICY}
-          recyclingKey={item.url}
-          transition={0}
-        />
-      </View>
-    ),
-    [decode, height, width]
+    ({ item, index: slideIndex }) => {
+      const slideHeight = height * 0.78;
+      let body: ReactNode;
+      if (item.kind === "video") {
+        body = (
+          <LightboxVideoSlide
+            url={item.url}
+            width={width}
+            height={height}
+            active={visible && slideIndex === index}
+          />
+        );
+      } else {
+        body = (
+          <Image
+            source={cachedImageSource(item.url, decode)}
+            style={{ width, height: slideHeight }}
+            contentFit="contain"
+            cachePolicy={IMAGE_CACHE_POLICY}
+            recyclingKey={item.url}
+            transition={0}
+          />
+        );
+      }
+      return (
+        <View style={{ width, height, alignItems: "center", justifyContent: "center" }}>{body}</View>
+      );
+    },
+    [decode, height, index, visible, width]
   );
 
   const keyExtractor = useCallback((item: FeedLightboxImage) => item.id, []);

@@ -9,6 +9,7 @@ import { UserRole } from "@prisma/client";
 import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
 import { Pencil, Shield } from "lucide-react";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { AnimeStarButton } from "@/components/anime/anime-star-button";
 
 export const revalidate = 120;
 
@@ -106,6 +107,14 @@ export default async function AnimeDetailPage({
         : false));
   const canEdit = isLoggedIn && (!anime.isProtected || canEditProtected);
   const characterNames = parseCharacterNames(anime.characters);
+  const starred = session?.user?.id
+    ? Boolean(
+        await db.animeStar.findUnique({
+          where: { userId_animeId: { userId: session.user.id, animeId: anime.id } },
+          select: { id: true },
+        })
+      )
+    : false;
 
   const cosplayers: AnimeDetailTabsProps["cosplayers"] =
     activeTab === "cosplayers" ? (tabExtras as AnimeDetailTabsProps["cosplayers"]) : [];
@@ -144,6 +153,12 @@ export default async function AnimeDetailPage({
             </p>
           )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
+            <AnimeStarButton animeId={anime.id} initialStarred={starred} />
+            <Link href={`/anime/${slug}/history`}>
+              <Button size="sm" variant="outline" className="gap-1">
+                수정 기록
+              </Button>
+            </Link>
             {canEdit ? (
               <Link href={`/anime/${slug}/edit`}>
                 <Button size="sm" variant="outline" className="gap-1">

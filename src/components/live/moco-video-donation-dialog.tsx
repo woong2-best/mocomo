@@ -17,6 +17,8 @@ import { MocoEarthTransferHero } from "@/components/moco/moco-earth-transfer-her
 import { formatMocoDisplay } from "@/lib/gems/display";
 import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
 import { formatSecLabel, youtubeEmbedUrl } from "@/lib/video-donation";
+import { CREATOR_PAYOUT_BLOCKED_KO } from "@/lib/creator-payout-ready";
+import { toastIfStripeAccountNotReady, useCreatorPayoutReady } from "@/components/support/use-creator-payout-ready";
 
 type PreviewQuote = {
   videoId: string;
@@ -55,6 +57,8 @@ export function MocoVideoDonationDialog({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const payoutsEnabled = useCreatorPayoutReady(streamerId);
+  const payoutBlocked = payoutsEnabled === false;
 
   const resetForm = useCallback(() => {
     setStep(1);
@@ -159,6 +163,10 @@ export function MocoVideoDonationDialog({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.success) {
+        if (toastIfStripeAccountNotReady(body)) {
+          setError(CREATOR_PAYOUT_BLOCKED_KO);
+          return;
+        }
         setError(typeof body.error === "string" ? body.error : "후원에 실패했습니다.");
         return;
       }
@@ -173,6 +181,8 @@ export function MocoVideoDonationDialog({
     <Button
       size="sm"
       type="button"
+      disabled={payoutBlocked}
+      title={payoutBlocked ? CREATOR_PAYOUT_BLOCKED_KO : undefined}
       className="h-8 text-xs bg-[#0d4d2c] text-white hover:bg-[#0d4d2c]/90 gap-1.5"
     >
       <Film className="h-3.5 w-3.5" />
@@ -300,6 +310,7 @@ export function MocoVideoDonationDialog({
                 <span className="text-[11px] leading-relaxed text-muted-foreground">{MOCO_PURCHASE_TERMS_COPY}</span>
               </label>
 
+              {payoutBlocked ? <p className="text-xs text-amber-700">{CREATOR_PAYOUT_BLOCKED_KO}</p> : null}
               {error ? <p className="text-xs text-destructive">{error}</p> : null}
               {quoteError ? <p className="text-xs text-destructive">{quoteError}</p> : null}
 
@@ -309,7 +320,8 @@ export function MocoVideoDonationDialog({
                 </Button>
                 <Button
                   className="flex-1 bg-[#0d4d2c] hover:bg-[#0a3d23]"
-                  disabled={pending || !quote || quoteLoading}
+                  disabled={pending || !quote || quoteLoading || payoutBlocked}
+                  title={payoutBlocked ? CREATOR_PAYOUT_BLOCKED_KO : undefined}
                   onClick={() => void submit()}
                 >
                   {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : "후원하기"}

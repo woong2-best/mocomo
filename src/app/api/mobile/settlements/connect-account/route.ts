@@ -12,8 +12,12 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const requestCardPayments = body?.requestCardPayments === true;
+  const payoutCountry = typeof body?.payoutCountry === "string" ? body.payoutCountry : undefined;
 
-  const result = await startExpressConnectOnboarding(auth.user.id, { requestCardPayments });
+  const result = await startExpressConnectOnboarding(auth.user.id, {
+    requestCardPayments,
+    payoutCountry,
+  });
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: 422 });
   }

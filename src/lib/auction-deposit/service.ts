@@ -127,25 +127,68 @@ async function appendDepositLedger(
 }
 
 /** 트랜잭션 내부 환원 — 동일 listing 재입찰 시 이중 동결 방지 */
-async function refundLockedDepositInTransaction(tx: Tx, depositId: string, note: string) {
+export async function refundLockedDepositInTransaction(
+  tx: Tx,
+  depositId: string,
+  note: string,
+  opts?: { strict?: boolean }
+) {
   const deposit = await tx.auctionDeposit.findUnique({ where: { id: depositId } });
-  if (!deposit || deposit.status !== "LOCKED") return;
+  if (!deposit || deposit.status !== "LOCKED") {
+    if (opts?.strict) throw new Error("DEPOSIT_NOT_LOCKED");
+    return;
+  }
 
   const statusUpdated = await tx.auctionDeposit.updateMany({
     where: { id: depositId, status: "LOCKED" },
     data: { status: "REFUNDED", resolvedAt: new Date(), resolutionNote: note },
   });
-  if (statusUpdated.count === 0) return;
+  if (statusUpdated.count === 0) {
+    if (opts?.strict) throw new Error("DEPOSIT_NOT_LOCKED");
+    return;
+  }
 
   const wallet = await tx.platformWallet.findUnique({ where: { userId: deposit.userId } });
-  if (!wallet) return;
+  if (!wallet) {
+    if (opts?.strict) throw new Error("REFUND_BALANCE_MISMATCH");
+    return;
+  }
 
-  await tx.platformWallet.updateMany({
+  const balanceUpdated = await tx.platformWallet.updateMany({
     where: { id: wallet.id, lockedMocoBalance: { gte: deposit.amountMoco } },
     data: {
       lockedMocoBalance: { decrement: deposit.amountMoco },
       mocoPoints: { increment: deposit.amountMoco },
     },
+  });
+  if (balanceUpdated.count === 0) {
+    if (opts?.strict) throw new Error("REFUND_BALANCE_MISMATCH");
+    return;
+  }
+
+  if (!opts?.strict) return;
+
+  const updated = await tx.platformWallet.findUniqueOrThrow({ where: { id: wallet.id } });
+  const refundRef = `auction_deposit_refund:${depositId}`;
+  await appendDepositLedger(tx, {
+    walletId: wallet.id,
+    bucket: "MOCO_LOCKED",
+    delta: -deposit.amountMoco,
+    balanceAfter: updated.lockedMocoBalance,
+    reason: "경매 보증금 환원",
+    referenceType: "auction_deposit_refund",
+    referenceId: refundRef,
+    metadata: { listingId: deposit.listingId, depositId },
+  });
+  await appendDepositLedger(tx, {
+    walletId: wallet.id,
+    bucket: "MOCO_POINTS",
+    delta: deposit.amountMoco,
+    balanceAfter: updated.mocoPoints,
+    reason: "경매 보증금 환원",
+    referenceType: "auction_deposit_refund",
+    referenceId: refundRef,
+    metadata: { listingId: deposit.listingId, depositId },
   });
 }
 
@@ -514,6 +557,69 @@ export async function forfeitWinnerDeposit(input: {
 
     return { forfeited: true };
   });
+}
+
+/**
+ * 직거래 노쇼 확정 — 호출한 트랜잭션 안에서 LOCKED 2 MOCO만 몰수.
+ * 이미 처리된 보증금은 다시 차감하지 않는다.
+ */
+export async function forfeitLockedDepositInTransaction(
+  tx: Tx,
+  input: { depositId: string; sellerId: string; listingId: string; note: string }
+): Promise<{ forfeited: boolean }> {
+  const deposit = await tx.auctionDeposit.findUnique({ where: { id: input.depositId } });
+  if (!deposit || deposit.status !== "LOCKED") return { forfeited: false };
+  if (deposit.amountMoco !== AUCTION_BID_DEPOSIT_MOCO) {
+    throw new Error("DEPOSIT_AMOUNT_MISMATCH");
+  }
+
+  const statusUpdated = await tx.auctionDeposit.updateMany({
+    where: { id: deposit.id, status: "LOCKED" },
+    data: {
+      status: "FORFEITED",
+      resolvedAt: new Date(),
+      resolutionNote: input.note,
+    },
+  });
+  if (statusUpdated.count === 0) return { forfeited: false };
+
+  await burnLockedMocoWithHistory(tx, {
+    userId: deposit.userId,
+    amountMoco: deposit.amountMoco,
+    type: "AUCTION_PENALTY",
+    reason: "직거래 노쇼 보증금 차감",
+    referenceId: `direct_trade_noshow:${deposit.id}`,
+    metadata: {
+      listingId: input.listingId,
+      depositId: deposit.id,
+      note: input.note,
+    },
+  });
+
+  if (deposit.role === "BIDDER" && deposit.userId !== input.sellerId) {
+    const harmKey = {
+      sourceType: AUCTION_DEPOSIT_SOURCE_FORFEIT,
+      sourceId: deposit.id,
+      sellerId: input.sellerId,
+    };
+    const existingHarm = await tx.sellerHarmScore.findUnique({
+      where: { sourceType_sourceId_sellerId: harmKey },
+    });
+    if (!existingHarm) {
+      await tx.sellerHarmScore.create({
+        data: {
+          sellerId: input.sellerId,
+          amountMoco: deposit.amountMoco,
+          sourceType: AUCTION_DEPOSIT_SOURCE_FORFEIT,
+          sourceId: deposit.id,
+          listingId: input.listingId,
+          buyerId: deposit.userId,
+        },
+      });
+    }
+  }
+
+  return { forfeited: true };
 }
 
 export async function getSellerHarmScoreTotal(sellerId: string): Promise<number> {

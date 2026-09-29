@@ -3,7 +3,7 @@ import { canAccessDm } from "@/lib/tiers";
 import { SupportTierLevel } from "@prisma/client";
 import { chatMemberUserSelect } from "@/lib/user-public-select";
 import { chatMessageInclude, serializeChatMessage, serializeChatMessages, serializeChatMessageForRelay } from "@/lib/chat-message-serialize";
-import { sanitizeChatAttachments } from "@/lib/chat-attachments";
+import { dmPaidSaleAttachmentRequested, sanitizeChatAttachments } from "@/lib/chat-attachments";
 import { notifyChatMessage } from "@/lib/notifications";
 import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
 import { getConversationMeta } from "@/lib/chat-display";
@@ -16,7 +16,8 @@ import {
   collectPaidAttachmentIds,
   getPurchasedMessageAttachmentIds,
 } from "@/lib/message-paid-media";
-import { assertAdultVerifiedForPaidDm } from "@/lib/adult-verification/paid-dm-guard";
+import { contactPermissions, dmSendBlockReason, incomingContactDecision } from "@/lib/contact-audience";
+import { presentMobileUsedListingMessages } from "@/lib/used-listing-share-card";
 
 async function assertRoomMember(roomId: string, userId: string) {
   const member = await db.chatMember.findUnique({
@@ -34,7 +35,7 @@ async function assertMobileChatAccess(roomId: string, userId: string) {
   });
   if (!room) return { error: "NOT_FOUND" as const };
 
-  if (room.type === "DM" || room.type === "GROUP") {
+  if (room.type === "DM" || room.type === "GROUP" || room.type === "MARKET") {
     if (!(await assertRoomMember(roomId, userId))) {
       return { error: "FORBIDDEN" as const };
     }
@@ -164,6 +165,9 @@ export async function getOrCreateDmForUser(actorId: string, otherUserId: string)
   });
   if (existing) return { roomId: existing.id };
 
+  const decision = await incomingContactDecision(actorId, otherUserId, "message");
+  if (!decision.allowed) return { error: decision.error };
+
   const room = await db.chatRoom.create({
     data: {
       type: "DM",
@@ -234,7 +238,9 @@ export async function getMobileRoomMessages(
   const chronological = after ? rows : [...rows].reverse();
   const paidIds = collectPaidAttachmentIds(chronological);
   const purchasedIds = await getPurchasedMessageAttachmentIds(userId, paidIds);
-  const messages = serializeChatMessages(chronological, userId, purchasedIds);
+  const messages = await presentMobileUsedListingMessages(
+    serializeChatMessages(chronological, userId, purchasedIds)
+  );
   const nextBefore =
     !after && rows.length === limit ? rows[rows.length - 1]?.createdAt.toISOString() ?? null : null;
 
@@ -245,15 +251,27 @@ export async function getMobileRoomMessages(
     });
   }
 
-  let usedTrade: Awaited<
-    ReturnType<typeof import("@/lib/used-market-mobile").getMobileUsedTradeRoomContext>
-  > = null;
-  try {
-    const { getMobileUsedTradeRoomContext } = await import("@/lib/used-market-mobile");
-    usedTrade = await getMobileUsedTradeRoomContext(userId, roomId);
-  } catch {
-    usedTrade = null;
-  }
+  const isMarket = room.type === "MARKET";
+  const otherId =
+    room.type === "DM" || isMarket
+      ? room.members.find((member) => member.user.id !== userId)?.user.id
+      : undefined;
+
+  const [usedTrade, perms] = await Promise.all([
+    (async () => {
+      try {
+        const { getMobileUsedTradeRoomContext } = await import("@/lib/used-market-mobile");
+        return await getMobileUsedTradeRoomContext(userId, roomId);
+      } catch {
+        return null;
+      }
+    })(),
+    isMarket
+      ? Promise.resolve({ canMessage: true, canCall: false })
+      : otherId
+        ? contactPermissions(userId, otherId)
+        : Promise.resolve({ canMessage: true, canCall: true }),
+  ]);
 
   return {
     room: {
@@ -273,6 +291,8 @@ export async function getMobileRoomMessages(
       })),
       otherTimeZone: meta.otherTimeZone ?? null,
       usedTrade,
+      canMessage: perms.canMessage,
+      canCall: perms.canCall,
     },
     messages,
     nextBefore,
@@ -303,14 +323,17 @@ export async function sendMobileDmMessage(
 
   const room = access.room;
 
+  if (room.type === "DM") {
+    const block = await dmSendBlockReason(userId, data.roomId);
+    if (block) return { error: "MESSAGE_NOT_ALLOWED" as const };
+  }
+
+  if (dmPaidSaleAttachmentRequested(data.attachments)) {
+    return { error: "PAID_DM_DISABLED" as const };
+  }
   const rawAttachmentCount = Array.isArray(data.attachments) ? data.attachments.length : 0;
   const attachments = sanitizeChatAttachments(data.attachments);
   const hasAttachments = attachments.length > 0;
-  const hasPaidAttachment = attachments.some((a) => (a.priceKrw ?? 0) > 0);
-  if (hasPaidAttachment) {
-    const block = await assertAdultVerifiedForPaidDm(userId);
-    if (block) return { error: "ADULT_VERIFICATION_REQUIRED" as const };
-  }
   const rawText = (data.content ?? "").trim();
   const filtered = rawText ? filterDmMessageContent(rawText) : { text: "", wasFiltered: false, matchedRuleIds: [] };
   const text = filtered.text;
@@ -396,5 +419,28 @@ export async function syncMobileRoomMessages(
 
   const paidIds = collectPaidAttachmentIds(messages);
   const purchasedIds = await getPurchasedMessageAttachmentIds(userId, paidIds);
-  return { messages: serializeChatMessages(messages, userId, purchasedIds) };
+  return {
+    messages: await presentMobileUsedListingMessages(
+      serializeChatMessages(messages, userId, purchasedIds)
+    ),
+  };
+}
+
+/** True when any inbox thread (DM, group, used market) changed after `since`. */
+export async function hasInboxUpdateSince(userId: string, since: Date, mobile = false) {
+  const communityLinkedRoomIds = await getCommunityLinkedChatRoomIds();
+  const hit = await db.chatRoom.findFirst({
+    where: {
+      AND: [
+        buildMessagesInboxWhere(userId, {
+          mobile,
+          excludeCommunityRoomIds: communityLinkedRoomIds,
+        }),
+        { updatedAt: { gt: since } },
+        { messages: { some: {} } },
+      ],
+    },
+    select: { id: true },
+  });
+  return !!hit;
 }

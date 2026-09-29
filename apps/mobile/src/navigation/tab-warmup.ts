@@ -63,16 +63,13 @@ export function warmTabBundles(): void {
 export function warmDrawerBundles(): void {
   if (drawerBundlesWarmed) return;
   drawerBundlesWarmed = true;
-  void import("@/features/live/LiveListScreen");
   void import("@/features/star/StarListScreen");
   void import("@/features/community/CommunityListScreen");
   void import("@/features/anime/AnimeListScreen");
   void import("@/features/events/EventsListScreen");
   void import("@/features/events/EventsMapScreen");
-  void import("@/features/wallet/WalletScreen");
   void import("@/features/settings/SettingsScreen");
   void import("@/features/legal/LegalPoliciesScreen");
-  void import("@/features/profile/ProfileEditScreen");
 }
 
 export function prefetchTabQueries(queryClient: QueryClient): void {

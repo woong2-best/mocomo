@@ -75,6 +75,10 @@ function resetMemory() {
   hubEpoch += 1;
 }
 
+function isQnaPost(post: FeedPost): boolean {
+  return Boolean(post.community?.slug || post.communityId);
+}
+
 function isHub(value: unknown): value is StarHubResponse {
   if (!value || typeof value !== "object") return false;
   const hub = value as StarHubResponse;
@@ -249,6 +253,7 @@ function overlay(hub: StarHubResponse): StarHubResponse {
   if (clearing) return { items: [], creators: [], total: 0 };
   let next = hub;
   for (const intent of pending.values()) {
+    if (isQnaPost(intent.post)) continue;
     next = projectToggle(next, intent.post, intent.starred);
   }
   const now = Date.now();
@@ -257,6 +262,7 @@ function overlay(hub: StarHubResponse): StarHubResponse {
       holds.delete(id);
       continue;
     }
+    if (isQnaPost(hold.post)) continue;
     const has = next.items.some((item) => item.id === id);
     if (hold.starred === has) continue;
     next = projectToggle(next, hold.post, hold.starred);
@@ -274,6 +280,9 @@ function publishHub(queryClient: QueryClient, hub: StarHubResponse) {
   const cached = queryClient.getQueriesData<StarHubResponse>({ queryKey: ["mobile-star-hub"] });
   for (const [key] of cached) {
     const creatorId = key[1];
+    if (creatorId === "qna" || creatorId === "wiki" || creatorId === "posts" || creatorId === "market") {
+      continue;
+    }
     if (typeof creatorId === "string" && creatorId.length > 0) {
       const view = viewFor(creatorId);
       if (view) queryClient.setQueryData(key, view);
@@ -377,6 +386,8 @@ function capture(queryClient: QueryClient): Snapshot {
     savedAt: memory.savedAt,
     queries: [
       ...queryClient.getQueriesData({ queryKey: ["mobile-star-hub"] }),
+      ...queryClient.getQueriesData({ queryKey: ["mobile-star-qna"] }),
+      ...queryClient.getQueriesData({ queryKey: ["mobile-star-wiki"] }),
       ...queryClient.getQueriesData({ queryKey: ["mobile-feed"] }),
       ...queryClient.getQueriesData({ queryKey: ["mobile-qna-feed"] }),
       ...queryClient.getQueriesData({ queryKey: ["mobile-post"] }),
@@ -431,6 +442,13 @@ export function starHubQueryOptions(queryClient: QueryClient, creatorId: string 
   };
 }
 
+function patchQnaHub(queryClient: QueryClient, post: FeedPost, starred: boolean) {
+  queryClient.setQueriesData({ queryKey: ["mobile-star-qna"] }, (old) => {
+    if (!isHub(old)) return old;
+    return projectToggle(old, post, starred);
+  });
+}
+
 /** Flip the icon's cache immediately. Rolls back only when the POST fails. */
 export function runOptimisticStarToggle(
   queryClient: QueryClient,
@@ -443,7 +461,15 @@ export function runOptimisticStarToggle(
   pending.set(post.id, { post: intentPost, starred: nextStarred });
   holds.delete(post.id);
   const base = memory.data ?? { items: [], creators: [], total: 0 };
-  publishHub(queryClient, projectToggle(base, intentPost, nextStarred));
+  if (isQnaPost(post)) {
+    patchQnaHub(queryClient, intentPost, nextStarred);
+    if (base.items.some((item) => item.id === post.id)) {
+      publishHub(queryClient, projectToggle(base, intentPost, false));
+    }
+  } else {
+    publishHub(queryClient, projectToggle(base, intentPost, nextStarred));
+    patchQnaHub(queryClient, intentPost, false);
+  }
   patchFlags(queryClient, new Set([post.id]), nextStarred);
 
   return togglePostStar(post.id)
@@ -456,8 +482,13 @@ export function runOptimisticStarToggle(
         until: Date.now() + HOLD_MS,
       });
       if (res.starred !== nextStarred) {
-        const current = memory.data ?? { items: [], creators: [], total: 0 };
-        publishHub(queryClient, projectToggle(current, intentPost, res.starred));
+        const corrected = { ...intentPost, starred: res.starred };
+        if (isQnaPost(post)) {
+          patchQnaHub(queryClient, corrected, res.starred);
+        } else {
+          const current = memory.data ?? { items: [], creators: [], total: 0 };
+          publishHub(queryClient, projectToggle(current, corrected, res.starred));
+        }
         patchFlags(queryClient, new Set([post.id]), res.starred);
       }
       return res;
@@ -482,7 +513,7 @@ export async function commitClearStarHub(queryClient: QueryClient): Promise<void
   publishHub(queryClient, { items: [], creators: [], total: 0 });
   patchFlags(queryClient, removedIds, false);
   try {
-    await clearAllStarBookmarks();
+    await clearAllStarBookmarks("posts");
     if (boundUserId === userAtStart) clearing = false;
   } catch (err) {
     if (boundUserId === userAtStart) {

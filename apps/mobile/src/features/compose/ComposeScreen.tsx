@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { resetFeedPostOffset } from "@/features/feed/feed-post-offset";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,7 +10,8 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import type { RootStackParamList } from "@/navigation/types";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
 import { InlineComposeBox } from "@/features/compose/InlineComposeBox";
@@ -22,7 +25,14 @@ export function ComposeScreen() {
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<RootStackParamList, "ComposeModal">>();
+  const initialContent = route.params?.initialContent;
+  const quotedPostId = route.params?.quotedPostId;
+  const quotedAuthorUsername = route.params?.quotedAuthorUsername;
+  const quotedPreview = route.params?.quotedPreview;
+  const screenTitle = route.params?.initialTitle?.trim() || "새 게시물";
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   return (
     <View style={styles.flex}>
@@ -45,13 +55,22 @@ export function ComposeScreen() {
         ) : (
           <View style={styles.backHit} />
         )}
-        <Text style={styles.title}>새 게시물</Text>
+        <Text style={styles.title} numberOfLines={1}>
+          {screenTitle}
+        </Text>
         <View style={styles.backHit} />
       </View>
       <InlineComposeBox
         avatarUrl={user?.image}
         avatarLetter={(user?.name || user?.username || "?").slice(0, 1).toUpperCase()}
-        onPosted={() => {
+        initialContent={initialContent}
+        quotedPostId={quotedPostId}
+        quotedAuthorUsername={quotedAuthorUsername}
+        quotedPreview={quotedPreview}
+        autoFocus={!!initialContent || !!quotedPostId}
+        onPosted={async () => {
+          resetFeedPostOffset();
+          await queryClient.resetQueries({ queryKey: ["mobile-feed"] });
           showIslandToast("Posted", "게시물이 업로드되었습니다.");
           if (navigation.canGoBack()) navigation.goBack();
         }}

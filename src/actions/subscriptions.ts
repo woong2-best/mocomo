@@ -3,10 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import {
-  createCreatorSubscriptionCheckoutForUser,
-  confirmCreatorSubscriptionCheckout,
-} from "@/lib/creator-subscription-checkout";
+import { confirmCreatorSubscriptionCheckout } from "@/lib/creator-subscription-checkout";
 import { cancelCreatorStripeSubscription } from "@/lib/creator-subscription-stripe";
 import { isSubscriptionActive } from "@/lib/creator-subscription";
 
@@ -18,21 +15,8 @@ export async function startCreatorSubscriptionCheckout(input: {
   purchaseTermsAccepted?: boolean;
   recurringDonationTermsAccepted?: boolean;
 }) {
-  const user = await requireAuth();
-  return createCreatorSubscriptionCheckoutForUser({
-    userId: user.id,
-    email: user.email,
-    amount: input.amount,
-    orderName: `@${input.username} 월 정기 후원`,
-    metadata: {
-      creatorId: input.creatorId,
-      username: input.username,
-      returnPath: input.returnPath,
-    },
-    platform: "web",
-    purchaseTermsAccepted: input.purchaseTermsAccepted,
-    recurringDonationTermsAccepted: input.recurringDonationTermsAccepted,
-  });
+  void input;
+  return { error: "크리에이터 정기 후원 기능은 종료되었습니다." };
 }
 
 export async function confirmCreatorSubscription(sessionId: string) {

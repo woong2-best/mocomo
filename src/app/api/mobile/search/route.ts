@@ -4,6 +4,7 @@ import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { runFastSearch } from "@/lib/search-fast";
 import { recordSearchEvent } from "@/lib/search/record";
 import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { annotateCanMessage } from "@/lib/contact-audience";
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-search", 60);
@@ -31,13 +32,16 @@ export async function GET(req: NextRequest) {
     userId: viewerId,
   }).catch(() => undefined);
 
+  const userHits = result.users.slice(0, 20).map((u) => ({
+    id: u.id,
+    username: u.username,
+    name: u.name,
+    image: u.image,
+  }));
+  const users = viewerId ? await annotateCanMessage(viewerId, userHits) : userHits.map((u) => ({ ...u, canMessage: true }));
+
   return NextResponse.json({
-    users: result.users.slice(0, 20).map((u) => ({
-      id: u.id,
-      username: u.username,
-      name: u.name,
-      image: u.image,
-    })),
+    users,
     posts: result.posts.slice(0, 20).map((p) => ({
       id: p.id,
       title: p.title,

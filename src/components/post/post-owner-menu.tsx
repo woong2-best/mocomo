@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -67,6 +67,10 @@ export function PostOwnerMenu({
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(isPinned);
   const [featured, setFeatured] = useState(false);
+
+  useEffect(() => {
+    setPinned(isPinned);
+  }, [isPinned]);
   const [muted, setMuted] = useState(false);
   const [busy, setBusy] = useState<"pin" | "delete" | "feature" | "mute" | null>(null);
   const [error, setError] = useState("");
@@ -293,12 +297,12 @@ export function PostOwnerMenu({
               >
                 {muted ? (
                   <>
-                    <Volume2 className="h-4 w-4" />
+                    <VolumeX className="h-4 w-4" />
                     {t("post.menu.unmute")}
                   </>
                 ) : (
                   <>
-                    <VolumeX className="h-4 w-4" />
+                    <Volume2 className="h-4 w-4" />
                     {t("post.menu.mute")}
                   </>
                 )}

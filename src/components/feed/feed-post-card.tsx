@@ -61,6 +61,7 @@ export type GridPost = {
   poll?: PostPollView | null;
   viewCount?: number;
   isAnonymous?: boolean;
+  communityId?: string | null;
   community?: {
     slug: string;
     name: string;
@@ -68,6 +69,22 @@ export type GridPost = {
     customCategoryLabel?: string | null;
   } | null;
   _count?: { likes: number; comments: number; votes: number; reposts?: number; media?: number };
+  repostBy?: {
+    id: string;
+    createdAt: string;
+    user: { id: string; username: string; name?: string | null; image: string | null };
+  } | null;
+  quotedPost?: {
+    id: string;
+    title?: string | null;
+    content: string;
+    createdAt: string | Date;
+    isNsfw?: boolean;
+    author: { id: string; username: string; name?: string | null; image: string | null };
+    media?: { url: string; type: string; posterUrl?: string | null; duration?: number | null }[];
+  } | null;
+  activityKey?: string;
+  activityAt?: string;
 };
 
 const typeLabels: Record<string, string> = {

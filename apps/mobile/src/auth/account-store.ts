@@ -27,6 +27,18 @@ export type SavedMobileAccountPublic = Omit<
 let accountsCache: SavedMobileAccount[] | undefined;
 let activeUserIdCache: string | null | undefined;
 
+/** One account mutation at a time so logout cannot be overwritten by a token refresh. */
+let mutationChain: Promise<void> = Promise.resolve();
+
+function enqueueMutation(task: () => Promise<void>): Promise<void> {
+  const run = mutationChain.then(task, task);
+  mutationChain = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
+
 function stripTokens(account: SavedMobileAccount): SavedMobileAccountPublic {
   const { accessToken: _a, refreshToken: _r, ...rest } = account;
   return rest;
@@ -71,24 +83,27 @@ async function writeActiveUserIdRaw(userId: string | null): Promise<void> {
 
 /** One-time migration from single-token storage. */
 export async function migrateLegacySingleToken(): Promise<void> {
-  const existing = await readAccountsRaw();
-  if (existing.length > 0) return;
+  if (accountsCache !== undefined && accountsCache.length > 0) return;
+  await enqueueMutation(async () => {
+    const existing = await readAccountsRaw();
+    if (existing.length > 0) return;
 
-  const access = await SecureStore.getItemAsync(LEGACY_ACCESS_KEY);
-  const refresh = await SecureStore.getItemAsync(LEGACY_REFRESH_KEY);
-  if (!access || !refresh) return;
+    const access = await SecureStore.getItemAsync(LEGACY_ACCESS_KEY);
+    const refresh = await SecureStore.getItemAsync(LEGACY_REFRESH_KEY);
+    if (!access || !refresh) return;
 
-  const account: SavedMobileAccount = {
-    userId: "legacy",
-    username: "user",
-    name: null,
-    image: null,
-    accessToken: access,
-    refreshToken: refresh,
-    savedAt: Date.now(),
-  };
-  await writeAccountsRaw([account]);
-  await writeActiveUserIdRaw("legacy");
+    const account: SavedMobileAccount = {
+      userId: "legacy",
+      username: "user",
+      name: null,
+      image: null,
+      accessToken: access,
+      refreshToken: refresh,
+      savedAt: Date.now(),
+    };
+    await writeAccountsRaw([account]);
+    await writeActiveUserIdRaw("legacy");
+  });
 }
 
 export async function listSavedAccountsPublic(): Promise<SavedMobileAccountPublic[]> {
@@ -104,92 +119,103 @@ export async function getActiveAccount(): Promise<SavedMobileAccount | null> {
   if (accounts.length === 0) return null;
 
   const activeId = await readActiveUserIdRaw();
-  if (activeId) {
-    const hit = accounts.find((a) => a.userId === activeId);
-    if (hit) return hit;
-  }
-  return accounts[0] ?? null;
+  if (!activeId) return null;
+  return accounts.find((a) => a.userId === activeId) ?? null;
 }
 
 export async function saveAccountSession(
   user: Pick<MobileAuthUser, "id" | "username" | "name" | "image"> &
     Partial<Pick<MobileAuthUser, "bannerUrl" | "bannerVideoUrl">>,
   accessToken: string,
-  refreshToken: string
+  refreshToken: string,
+  allow: () => boolean = () => true
 ): Promise<void> {
-  const accounts = await readAccountsRaw();
-  const prev = accounts.find((a) => a.userId === user.id);
-  const next: SavedMobileAccount = {
-    userId: user.id,
-    username: user.username,
-    name: user.name,
-    image: user.image,
-    bannerUrl: user.bannerUrl !== undefined ? user.bannerUrl : prev?.bannerUrl ?? null,
-    bannerVideoUrl:
-      user.bannerVideoUrl !== undefined ? user.bannerVideoUrl : prev?.bannerVideoUrl ?? null,
-    accessToken,
-    refreshToken,
-    savedAt: Date.now(),
-  };
-  const rest = accounts.filter((a) => a.userId !== user.id);
-  const merged = [next, ...rest].slice(0, MAX_SAVED_ACCOUNTS);
-  await writeAccountsRaw(merged);
-  await writeActiveUserIdRaw(user.id);
+  await enqueueMutation(async () => {
+    if (!allow()) return;
+    const accounts = await readAccountsRaw();
+    if (!allow()) return;
+    const prev = accounts.find((a) => a.userId === user.id);
+    const next: SavedMobileAccount = {
+      userId: user.id,
+      username: user.username,
+      name: user.name,
+      image: user.image,
+      bannerUrl: user.bannerUrl !== undefined ? user.bannerUrl : prev?.bannerUrl ?? null,
+      bannerVideoUrl:
+        user.bannerVideoUrl !== undefined ? user.bannerVideoUrl : prev?.bannerVideoUrl ?? null,
+      accessToken,
+      refreshToken,
+      savedAt: Date.now(),
+    };
+    const rest = accounts.filter((a) => a.userId !== user.id);
+    const merged = [next, ...rest].slice(0, MAX_SAVED_ACCOUNTS);
+    if (!allow()) return;
+    await writeAccountsRaw(merged);
+    if (!allow()) return;
+    await writeActiveUserIdRaw(user.id);
 
-  await SecureStore.deleteItemAsync(LEGACY_ACCESS_KEY).catch(() => undefined);
-  await SecureStore.deleteItemAsync(LEGACY_REFRESH_KEY).catch(() => undefined);
+    await SecureStore.deleteItemAsync(LEGACY_ACCESS_KEY).catch(() => undefined);
+    await SecureStore.deleteItemAsync(LEGACY_REFRESH_KEY).catch(() => undefined);
+  });
 }
 
 export async function activateAccount(userId: string): Promise<SavedMobileAccount | null> {
-  const accounts = await readAccountsRaw();
-  const hit = accounts.find((a) => a.userId === userId);
-  if (!hit) return null;
-  await writeActiveUserIdRaw(userId);
-  // Keep cartridge grid order stable — only flip the active pointer.
-  await writeAccountsRaw(accounts);
+  let hit: SavedMobileAccount | null = null;
+  await enqueueMutation(async () => {
+    const accounts = await readAccountsRaw();
+    const found = accounts.find((a) => a.userId === userId);
+    if (!found) return;
+    hit = found;
+    await writeActiveUserIdRaw(userId);
+    // Keep cartridge grid order stable — only flip the active pointer.
+    await writeAccountsRaw(accounts);
+  });
   return hit;
 }
 
 /** Persist visual grid order (left→right, top→bottom). Higher savedAt = earlier. */
 export async function reorderSavedAccounts(orderedUserIds: string[]): Promise<void> {
-  const accounts = await readAccountsRaw();
-  if (accounts.length === 0 || orderedUserIds.length === 0) return;
+  await enqueueMutation(async () => {
+    const accounts = await readAccountsRaw();
+    if (accounts.length === 0 || orderedUserIds.length === 0) return;
 
-  const byId = new Map(accounts.map((a) => [a.userId, a]));
-  const now = Date.now();
-  const next: SavedMobileAccount[] = [];
+    const byId = new Map(accounts.map((a) => [a.userId, a]));
+    const now = Date.now();
+    const next: SavedMobileAccount[] = [];
 
-  orderedUserIds.forEach((id, index) => {
-    const hit = byId.get(id);
-    if (!hit) return;
-    next.push({ ...hit, savedAt: now - index });
-    byId.delete(id);
+    orderedUserIds.forEach((id, index) => {
+      const hit = byId.get(id);
+      if (!hit) return;
+      next.push({ ...hit, savedAt: now - index });
+      byId.delete(id);
+    });
+    for (const leftover of byId.values()) next.push(leftover);
+    await writeAccountsRaw(next);
   });
-  for (const leftover of byId.values()) next.push(leftover);
-  await writeAccountsRaw(next);
 }
 
-export async function removeAccount(userId: string): Promise<SavedMobileAccount | null> {
-  const accounts = await readAccountsRaw();
-  const activeId = await readActiveUserIdRaw();
-  const next = accounts.filter((a) => a.userId !== userId);
-  await writeAccountsRaw(next);
-
-  if (activeId === userId) {
-    const fallback = next[0]?.userId ?? null;
-    await writeActiveUserIdRaw(fallback);
-    return next[0] ?? null;
-  }
-  return (await getActiveAccount()) ?? null;
+/** Drop one saved account. Does not sign another account in. */
+export async function removeAccount(userId: string): Promise<void> {
+  await enqueueMutation(async () => {
+    const accounts = await readAccountsRaw();
+    const activeId = await readActiveUserIdRaw();
+    const next = accounts.filter((a) => a.userId !== userId);
+    await writeAccountsRaw(next);
+    if (!activeId || activeId === userId || !next.some((a) => a.userId === activeId)) {
+      await writeActiveUserIdRaw(null);
+    }
+  });
 }
 
 export async function clearAllAccounts(): Promise<void> {
-  accountsCache = [];
-  activeUserIdCache = null;
-  await SecureStore.deleteItemAsync(ACCOUNTS_KEY);
-  await SecureStore.deleteItemAsync(ACTIVE_USER_KEY);
-  await SecureStore.deleteItemAsync(LEGACY_ACCESS_KEY).catch(() => undefined);
-  await SecureStore.deleteItemAsync(LEGACY_REFRESH_KEY).catch(() => undefined);
+  await enqueueMutation(async () => {
+    accountsCache = [];
+    activeUserIdCache = null;
+    await SecureStore.deleteItemAsync(ACCOUNTS_KEY);
+    await SecureStore.deleteItemAsync(ACTIVE_USER_KEY);
+    await SecureStore.deleteItemAsync(LEGACY_ACCESS_KEY).catch(() => undefined);
+    await SecureStore.deleteItemAsync(LEGACY_REFRESH_KEY).catch(() => undefined);
+  });
 }
 
 /** Instant avatar on cold start — full profile arrives from /me shortly after. */
@@ -216,19 +242,22 @@ export async function patchActiveAccountProfile(
   user: Pick<MobileAuthUser, "id" | "username" | "name" | "image"> &
     Partial<Pick<MobileAuthUser, "bannerUrl" | "bannerVideoUrl">>
 ): Promise<void> {
-  const accounts = await readAccountsRaw();
-  const idx = accounts.findIndex((a) => a.userId === user.id);
-  if (idx < 0) return;
-  const prev = accounts[idx]!;
-  accounts[idx] = {
-    ...prev,
-    username: user.username,
-    name: user.name,
-    image: user.image,
-    bannerUrl: user.bannerUrl !== undefined ? user.bannerUrl : prev.bannerUrl ?? null,
-    bannerVideoUrl:
-      user.bannerVideoUrl !== undefined ? user.bannerVideoUrl : prev.bannerVideoUrl ?? null,
-    savedAt: Date.now(),
-  };
-  await writeAccountsRaw(accounts);
+  await enqueueMutation(async () => {
+    const accounts = await readAccountsRaw();
+    const idx = accounts.findIndex((a) => a.userId === user.id);
+    if (idx < 0) return;
+    const prev = accounts[idx]!;
+    const next = accounts.slice();
+    next[idx] = {
+      ...prev,
+      username: user.username,
+      name: user.name,
+      image: user.image,
+      bannerUrl: user.bannerUrl !== undefined ? user.bannerUrl : prev.bannerUrl ?? null,
+      bannerVideoUrl:
+        user.bannerVideoUrl !== undefined ? user.bannerVideoUrl : prev.bannerVideoUrl ?? null,
+      savedAt: Date.now(),
+    };
+    await writeAccountsRaw(next);
+  });
 }

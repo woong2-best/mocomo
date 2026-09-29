@@ -35,6 +35,8 @@ export function ChatRoomShell({
   header,
   groupMeta,
   readOnly = false,
+  readOnlyHint,
+  canCall = true,
   guestMode = false,
   vipEmoji = false,
   communityId,
@@ -65,6 +67,8 @@ export function ChatRoomShell({
   };
   groupMeta: GroupMeta | null;
   readOnly?: boolean;
+  readOnlyHint?: string;
+  canCall?: boolean;
   guestMode?: boolean;
   vipEmoji?: boolean;
   communityId?: string;
@@ -83,6 +87,7 @@ export function ChatRoomShell({
         roomType={header.roomType}
         otherUserId={header.otherUserId}
         otherTimeZone={header.otherTimeZone}
+        canCall={canCall}
         viewerUserId={userId}
         members={header.members}
         memberCount={header.memberCount}
@@ -109,6 +114,7 @@ export function ChatRoomShell({
           userSupportTier={userSupportTier}
           initialMessages={initialMessages}
           readOnly={readOnly}
+          readOnlyHint={readOnlyHint}
           communityId={communityId}
           vipEmoji={vipEmoji}
           canDeleteMessages={canDeleteMessages}

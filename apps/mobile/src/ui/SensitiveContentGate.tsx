@@ -27,10 +27,8 @@ export function SensitiveContentGate({ enabled, children, style }: Props) {
       <View style={styles.overlay}>
         <View style={styles.card}>
           <Ionicons name="eye-off-outline" size={28} color="rgba(255,255,255,0.85)" />
-          <Text style={styles.title}>콘텐츠 경고: 민감한 콘텐츠</Text>
-          <Text style={styles.description}>
-            작성자가 이 게시물에 민감한 콘텐츠가 포함되어 있다고 표시했습니다.
-          </Text>
+          <Text style={styles.title}>콘텐츠 경고: 성인 콘텐츠</Text>
+          <Text style={styles.description}>성인 콘텐츠가 포함되어 있습니다.</Text>
           <View style={styles.actions}>
             <Pressable
               style={styles.viewBtn}
@@ -38,7 +36,7 @@ export function SensitiveContentGate({ enabled, children, style }: Props) {
               accessibilityRole="button"
               accessibilityLabel="민감한 콘텐츠 보기"
             >
-              <Text style={styles.viewBtnText}>보기</Text>
+              <Text style={styles.viewBtnText}>표시</Text>
             </Pressable>
           </View>
         </View>

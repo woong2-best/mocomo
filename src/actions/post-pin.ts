@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { clearProfileMainPost } from "@/lib/post-profile-pin";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 
 async function assertOwnPost(postId: string, userId: string) {
@@ -103,11 +104,13 @@ export async function featurePostOnMyProfile(
 
   const me = await db.user.findUnique({
     where: { id: userId },
-    select: { username: true },
+    select: { username: true, profileMainPostId: true },
   });
   if (!me) return { error: "사용자를 찾을 수 없습니다." };
 
-  // 본인 글이면 isPinned도 동기화, 타인 글이면 profileMainPostId만
+  const prevMainId = me.profileMainPostId;
+
+  // 프로필 메인 슬롯은 1개 — 기존 고정/대표 글 플래그를 모두 해제한 뒤 교체
   if (post.authorId === userId) {
     await db.$transaction([
       db.post.updateMany({
@@ -129,6 +132,14 @@ export async function featurePostOnMyProfile(
         where: { authorId: userId, isPinned: true },
         data: { isPinned: false },
       }),
+      ...(prevMainId
+        ? [
+            db.post.updateMany({
+              where: { id: prevMainId, authorId: userId, isPinned: true },
+              data: { isPinned: false },
+            }),
+          ]
+        : []),
       db.user.update({
         where: { id: userId },
         data: { profileMainPostId: postId },
@@ -155,10 +166,7 @@ export async function unfeaturePostFromMyProfile(
     return { error: "프로필 메인에 올린 게시물이 아닙니다." };
   }
 
-  await db.user.update({
-    where: { id: userId },
-    data: { profileMainPostId: null },
-  });
+  await clearProfileMainPost(userId, postId);
 
   revalidateProfile(me.username, postId);
   return { ok: true };

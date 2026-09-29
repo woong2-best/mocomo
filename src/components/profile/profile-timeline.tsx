@@ -10,7 +10,11 @@ import { Button } from "@/components/ui/button";
 import { subscribePostDeleted } from "@/lib/post-deleted-sync";
 
 export type TimelineItem =
-  | { type: "post"; post: GridPost & { createdAt: string | Date; isPinned?: boolean } }
+  | {
+      type: "post";
+      activityKey?: string;
+      post: GridPost & { createdAt: string | Date; isPinned?: boolean };
+    }
   | {
       type: "reply";
       comment: { id: string; content: string; createdAt: string | Date };
@@ -183,7 +187,7 @@ export function ProfileTimeline({
         if (item.type === "post") {
           return (
             <ProfilePostCard
-              key={`post-${item.post.id}`}
+              key={item.activityKey ?? `post-${item.post.id}`}
               post={item.post}
               isSelf={isSelf}
               paymentsEnabled={paymentsEnabled}

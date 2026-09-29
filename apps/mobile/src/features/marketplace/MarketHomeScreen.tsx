@@ -24,6 +24,7 @@ import {
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import type { RootStackParamList } from "@/navigation/types";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
+import { DirectTradeDisputeSheet } from "@/features/marketplace/DirectTradeDisputeSheet";
 import { MarketDisputeScaleIcon } from "@/ui/icons/MarketDisputeScaleIcon";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
@@ -63,6 +64,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
   const [recentQ, setRecentQ] = useState<string[]>([]);
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [clearOpen, setClearOpen] = useState(false);
+  const [disputeOpen, setDisputeOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -161,6 +163,10 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
               key={item.label}
               style={styles.shortcut}
               onPress={() => {
+                if (item.lane === "disputes") {
+                  setDisputeOpen(true);
+                  return;
+                }
                 if (item.my) {
                   if (embedded) onClose?.();
                   navigation.navigate("UsedMy");
@@ -235,6 +241,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
         </ScrollView>
       )}
 
+      <DirectTradeDisputeSheet visible={disputeOpen} onClose={() => setDisputeOpen(false)} />
       <Modal visible={clearOpen} transparent animationType="fade" onRequestClose={() => setClearOpen(false)}>
         <Pressable style={styles.popupScrim} onPress={() => setClearOpen(false)}>
           <Pressable style={styles.popup} onPress={() => undefined}>

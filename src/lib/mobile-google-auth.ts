@@ -130,6 +130,9 @@ export async function resolveMobileGoogleAuth(input: {
   birthDay?: number;
   termsAccepted?: boolean;
   privacyAccepted?: boolean;
+  username?: string;
+  name?: string;
+  password?: string;
 }): Promise<MobileGoogleResult> {
   if (!isOAuthEncryptionConfigured()) {
     throw new MobileGoogleAuthError(
@@ -198,6 +201,9 @@ export async function resolveMobileGoogleAuth(input: {
           image: claims.picture,
         },
         birthDate: consent.birthDate,
+        username: input.username,
+        name: input.name,
+        password: input.password,
       });
       user = await loadUser(createdUser.id);
       if (!user) {

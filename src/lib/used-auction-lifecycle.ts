@@ -12,6 +12,18 @@ import { voidActiveHoldForBidder } from "@/lib/used-auction-bid-hold";
 import { USED_MARKET_BAN_MESSAGE } from "@/lib/used-market-access";
 import { recordAuctionPaymentTimeoutSanction } from "@/lib/used-market-sanction-log";
 import { USED_MARKET_APPEAL_PATH } from "@/lib/used-auction-legal";
+import { normalizeChatAttachmentUrl } from "@/lib/chat-attachments";
+import {
+  encodeUsedListingMessage,
+  usedListingAttachmentName,
+} from "@/lib/chat-used-listing-share";
+import {
+  chatMessageInclude,
+  serializeChatMessageForRelay,
+} from "@/lib/chat-message-serialize";
+import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
+import { listingImages } from "@/lib/used-market";
+import { notifyChatMessage } from "@/lib/notifications";
 
 export async function getUsedAuctionConfig(): Promise<UsedAuctionConfigSlice> {
   try {
@@ -115,7 +127,14 @@ export async function setupWinnerTradeChat(
 ) {
   const listing = await db.usedListing.findUnique({
     where: { id: listingId },
-    select: { id: true, title: true, sellerId: true, currentBidAmount: true, price: true },
+    select: {
+      id: true,
+      title: true,
+      sellerId: true,
+      currentBidAmount: true,
+      price: true,
+      images: true,
+    },
   });
   if (!listing) return null;
 
@@ -130,20 +149,38 @@ export async function setupWinnerTradeChat(
     /* optional */
   }
 
-  const amount = listing.currentBidAmount ?? listing.price;
-  const priceText = amount === 0 ? "나눔" : `${amount.toLocaleString()}원`;
-  const intro = [
-    ...introLines,
-    "",
-    `상품: ${listing.title}`,
-    `낙찰가: ${priceText}`,
-    `링크: /used/${listing.id}`,
-  ].join("\n");
+  const photoUrl = normalizeChatAttachmentUrl(listingImages(listing.images)[0] ?? "");
+  const intro = [...introLines.filter((line) => line.trim()), "", encodeUsedListingMessage(listing.id)]
+    .join("\n")
+    .trim();
 
-  await db.message.create({
-    data: { roomId, senderId: listing.sellerId, content: intro },
+  const created = await db.message.create({
+    data: {
+      roomId,
+      senderId: listing.sellerId,
+      content: intro,
+      attachments: photoUrl
+        ? {
+            create: [
+              {
+                url: photoUrl,
+                type: "IMAGE",
+                name: usedListingAttachmentName(listing.id),
+              },
+            ],
+          }
+        : undefined,
+    },
+    include: chatMessageInclude,
   });
   await db.chatRoom.update({ where: { id: roomId }, data: { updatedAt: new Date() } });
+  void notifyChatMessage({
+    roomId,
+    senderId: listing.sellerId,
+    content: listing.title,
+    roomType: "DM",
+  });
+  void relayChatMessageToSocket(roomId, serializeChatMessageForRelay(created));
   return roomId;
 }
 

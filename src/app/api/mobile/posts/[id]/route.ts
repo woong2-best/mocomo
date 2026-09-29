@@ -14,6 +14,7 @@ import { isSubscriptionActive } from "@/lib/creator-subscription";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { canViewNsfwResource } from "@/lib/nsfw-viewer-access";
 import { redactQnaPublicPost } from "@/lib/anonymous-post";
+import { hydrateViewerPollVotes, mapPostPollRow, postPollSelect } from "@/lib/post-poll";
 
 export async function GET(
   req: NextRequest,
@@ -50,6 +51,7 @@ export async function GET(
       },
       community: { select: { slug: true, name: true } },
       media: postMediaGallery,
+      poll: { select: postPollSelect },
       _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
     },
   });
@@ -69,9 +71,17 @@ export async function GET(
     return NextResponse.json({ error: "성인 콘텐츠는 열람할 수 없습니다." }, { status: 403 });
   }
 
-  const engagement = viewerId
-    ? await getPostEngagementForUser(viewerId, [post.id])
-    : { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
+  const [engagement, viewerPin] = await Promise.all([
+    viewerId
+      ? getPostEngagementForUser(viewerId, [post.id])
+      : Promise.resolve({ likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] }),
+    viewerId
+      ? db.user.findUnique({
+          where: { id: viewerId },
+          select: { profileMainPostId: true },
+        })
+      : Promise.resolve(null),
+  ]);
 
   const [gated] = await attachWebPaidMediaPlayback(
     [{ ...post, authorId: post.author.id }],
@@ -82,8 +92,17 @@ export async function GET(
   const sub = subscriptions.get(post.author.id);
 
   const payload = gated ?? post;
+  const [withPoll] = await hydrateViewerPollVotes(
+    [
+      {
+        ...payload,
+        poll: payload.poll ? mapPostPollRow(payload.poll) : null,
+      },
+    ],
+    viewerId
+  );
   const publicPost = redactQnaPublicPost(
-    { ...payload, isAnonymous: post.isAnonymous, communityId: post.communityId },
+    { ...withPoll, isAnonymous: post.isAnonymous, communityId: post.communityId },
     viewerId
   );
 
@@ -95,6 +114,10 @@ export async function GET(
       starred: engagement.starredIds.includes(post.id),
       subscribedToAuthor: sub ? isSubscriptionActive(sub) : false,
       paymentsEnabled: isPaymentsConfigured(),
+      profilePinned:
+        !!viewerPin?.profileMainPostId &&
+        viewerId === post.author.id &&
+        post.id === viewerPin.profileMainPostId,
     },
   });
 }

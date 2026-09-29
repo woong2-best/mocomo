@@ -22,9 +22,12 @@ import { FeedPostCard } from "@/features/feed/FeedPostCard";
 import { useUserProfileNav, type UserProfileSeed } from "@/features/profile/user-profile-nav";
 import {
   QNA_FEED_CATEGORY_TABS,
+  QNA_MY_CATEGORY_ID,
   type QnaFeedTabId,
 } from "@/features/community/community-labels";
 import { ensureQnaNsfwAccess } from "@/features/community/ensure-qna-nsfw-access";
+import { useAuth } from "@/auth/AuthContext";
+import { showIslandError } from "@/ui/IslandToast";
 import { SearchField } from "@/ui/SearchField";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
@@ -38,6 +41,7 @@ export function CommunityListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { open: openUserProfile } = useUserProfileNav();
   const queryClient = useQueryClient();
+  const { status: authStatus } = useAuth();
   const searchRef = useRef<TextInput>(null);
   const [tab, setTab] = useState<QnaFeedTabId>("ALL");
   const [searchQ, setSearchQ] = useState("");
@@ -95,13 +99,20 @@ export function CommunityListScreen() {
     navigation.navigate("CommunityCreate");
   }, [navigation]);
 
-  const selectTab = useCallback((next: QnaFeedTabId) => {
-    void (async () => {
-      const ok = await ensureQnaNsfwAccess(next);
-      if (!ok) return;
-      setTab(next);
-    })();
-  }, []);
+  const selectTab = useCallback(
+    (next: QnaFeedTabId) => {
+      void (async () => {
+        if (next === QNA_MY_CATEGORY_ID && authStatus !== "signedIn") {
+          showIslandError("로그인 필요", "내 QnA를 보려면 로그인해 주세요.");
+          return;
+        }
+        const ok = await ensureQnaNsfwAccess(next);
+        if (!ok) return;
+        setTab(next);
+      })();
+    },
+    [authStatus]
+  );
 
   const onPressPost = useCallback(
     (id: string) => navigation.navigate("PostDetail", { id }),
@@ -237,9 +248,11 @@ export function CommunityListScreen() {
               <Text style={styles.muted}>
                 {searchSubmitted
                   ? `"${searchSubmitted}"에 맞는 QnA가 없습니다.`
-                  : tab === "ALL"
-                    ? "아직 QnA가 없습니다. 첫 글을 남겨보세요!"
-                    : "이 카테고리에 QnA가 없습니다."}
+                  : tab === QNA_MY_CATEGORY_ID
+                    ? "아직 작성한 QnA가 없습니다."
+                    : tab === "ALL"
+                      ? "아직 QnA가 없습니다. 첫 글을 남겨보세요!"
+                      : "이 카테고리에 QnA가 없습니다."}
               </Text>
               <Pressable style={styles.emptyBtn} onPress={openCreate}>
                 <Text style={styles.emptyBtnText}>QnA 만들기</Text>

@@ -11,6 +11,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "@/theme/ThemeContext";
+import type { ThemeColors } from "@/theme/tokens";
 import { removeFollowingDmUser } from "@/api/following-dm-cache";
 import { submitUsedListingReport } from "@/api/marketplace";
 import { blockAndReportUser, submitPostReport } from "@/api/social";
@@ -26,6 +28,17 @@ import {
 import { radii, spacing } from "@/theme/tokens";
 
 type Phase = "browse" | "review" | "done";
+
+function CategoryGrip({ color }: { color: string }) {
+  const line = { width: 16, height: 2, borderRadius: 1, backgroundColor: color, opacity: 0.45 };
+  return (
+    <View style={{ gap: 3 }}>
+      <View style={line} />
+      <View style={line} />
+      <View style={line} />
+    </View>
+  );
+}
 
 type Props = {
   visible: boolean;
@@ -51,7 +64,8 @@ export function PostReportSheet({
   listingId,
   onSubmitted,
 }: Props) {
-  const styles = useMemo(() => createStyles(), []);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [phase, setPhase] = useState<Phase>("browse");
@@ -191,7 +205,7 @@ export function PostReportSheet({
                 accessibilityRole="button"
                 accessibilityLabel="뒤로"
               >
-                <Ionicons name="chevron-back" size={22} color="#fff" />
+                <Ionicons name="chevron-back" size={22} color={colors.text} />
               </Pressable>
             ) : (
               <View style={styles.backBtn} />
@@ -214,12 +228,12 @@ export function PostReportSheet({
                 {currentNodes.map((node) => (
                   <Pressable
                     key={node.id}
-                    style={styles.row}
+                    style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
                     onPress={() => selectNode(node)}
                     accessibilityRole="button"
                   >
                     <Text style={styles.rowLabel}>{node.label}</Text>
-                    <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
+                    <CategoryGrip color={colors.cobalt} />
                   </Pressable>
                 ))}
               </>
@@ -236,7 +250,7 @@ export function PostReportSheet({
                 {path.map((step, i) => (
                   <Pressable
                     key={`${step.node.id}-${i}`}
-                    style={styles.reviewStep}
+                    style={({ pressed }) => [styles.reviewStep, pressed && styles.reviewStepPressed]}
                     onPress={() => jumpToStep(i)}
                   >
                     <Text style={styles.reviewQ}>{step.question}</Text>
@@ -267,7 +281,7 @@ export function PostReportSheet({
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.submitText}>
-                  {mode === "block-report" ? "차단 및 신고 제출" : "제출"}
+                  {mode === "block-report" ? "차단 및 신고 제출" : "신고 제출"}
                 </Text>
               )}
             </Pressable>
@@ -284,71 +298,108 @@ export function PostReportSheet({
   );
 }
 
-function createStyles() {
+function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: { flex: 1, justifyContent: "flex-end" },
-    scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
+    scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(20, 40, 72, 0.45)" },
     sheet: {
-      backgroundColor: "#1c1c1e",
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      backgroundColor: colors.surfaceRaised,
+      borderTopLeftRadius: radii.xl,
+      borderTopRightRadius: radii.xl,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
       maxHeight: "92%",
       paddingHorizontal: spacing.lg,
     },
     handle: {
       alignSelf: "center",
-      width: 40,
+      width: 44,
       height: 4,
       borderRadius: 2,
-      backgroundColor: "rgba(255,255,255,0.25)",
-      marginTop: 8,
-      marginBottom: 4,
+      backgroundColor: colors.textMuted,
+      opacity: 0.35,
+      marginTop: 10,
+      marginBottom: 6,
     },
     header: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingVertical: 10,
+      paddingVertical: 12,
     },
     backBtn: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: "rgba(255,255,255,0.1)",
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.muted,
       alignItems: "center",
       justifyContent: "center",
     },
-    title: { color: "#fff", fontSize: 15, fontWeight: "700" },
+    title: { color: colors.text, fontSize: 16, fontWeight: "800" },
     body: { flexGrow: 0 },
     bodyContent: { paddingBottom: spacing.md },
-    question: { color: "#fff", fontSize: 22, fontWeight: "800", marginBottom: 12, lineHeight: 28 },
-    disclaimer: { color: "rgba(255,255,255,0.55)", fontSize: 13, lineHeight: 19, marginBottom: 16 },
+    question: {
+      color: colors.text,
+      fontSize: 22,
+      fontWeight: "800",
+      marginBottom: 12,
+      lineHeight: 28,
+    },
+    disclaimer: {
+      color: colors.textMuted,
+      fontSize: 13,
+      lineHeight: 20,
+      marginBottom: 18,
+      backgroundColor: colors.muted,
+      borderRadius: radii.md,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
     row: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       paddingVertical: 14,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: "rgba(255,255,255,0.12)",
+      paddingHorizontal: 14,
+      marginBottom: 8,
+      borderRadius: radii.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.hairline,
+      backgroundColor: colors.surface,
     },
-    rowLabel: { color: "#fff", fontSize: 15, fontWeight: "600", flex: 1, paddingRight: 12 },
-    reviewTitle: { color: "#fff", fontSize: 24, fontWeight: "800", marginBottom: 8 },
-    hint: { color: "rgba(10,132,255,0.95)", fontSize: 13, lineHeight: 19, marginBottom: 20 },
-    sectionTitle: { color: "#fff", fontSize: 16, fontWeight: "800", marginBottom: 12 },
-    reviewStep: { marginBottom: 16 },
-    reviewQ: { color: "#fff", fontSize: 14, fontWeight: "700" },
-    reviewA: { color: "rgba(255,255,255,0.5)", fontSize: 14, marginTop: 2 },
-    error: { color: "#ff6b6b", fontSize: 13, marginTop: 8 },
-    doneBody: { color: "rgba(255,255,255,0.6)", fontSize: 14, lineHeight: 20 },
+    rowPressed: {
+      borderColor: colors.cobalt,
+      backgroundColor: `${colors.cobalt}14`,
+    },
+    rowLabel: { color: colors.text, fontSize: 15, fontWeight: "700", flex: 1, paddingRight: 12 },
+    reviewTitle: { color: colors.text, fontSize: 24, fontWeight: "800", marginBottom: 8 },
+    hint: { color: colors.cobalt, fontSize: 13, lineHeight: 20, marginBottom: 20, fontWeight: "600" },
+    sectionTitle: { color: colors.text, fontSize: 16, fontWeight: "800", marginBottom: 12 },
+    reviewStep: {
+      marginBottom: 10,
+      padding: 14,
+      borderRadius: radii.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.hairline,
+      backgroundColor: colors.muted,
+    },
+    reviewStepPressed: {
+      borderColor: colors.cobalt,
+      backgroundColor: `${colors.cobalt}12`,
+    },
+    reviewQ: { color: colors.text, fontSize: 14, fontWeight: "700" },
+    reviewA: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
+    error: { color: colors.danger, fontSize: 13, marginTop: 8 },
+    doneBody: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
     submit: {
-      marginTop: 8,
-      backgroundColor: "#0A84FF",
+      marginTop: 10,
+      backgroundColor: colors.cobalt,
       borderRadius: radii.lg,
-      height: 48,
+      height: 50,
       alignItems: "center",
       justifyContent: "center",
     },
     submitDisabled: { opacity: 0.7 },
-    submitText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+    submitText: { color: colors.textOnAccent, fontSize: 16, fontWeight: "800" },
   });
 }

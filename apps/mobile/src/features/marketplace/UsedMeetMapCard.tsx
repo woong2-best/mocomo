@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { MeetMap } from "@/maps/MeetMap";
+import {
+  googleSearchUrlForMeet,
+  marketplaceMeetLocationQuery,
+  marketplaceMeetMapUrl,
+} from "@/maps/google-external-url";
 import { normalizeMeetCountry } from "@/maps/select-engine";
 import type { MeetMapPayload } from "@/maps/types";
 import { useTheme } from "@/theme/ThemeContext";
@@ -13,7 +17,15 @@ export type UsedMeetMapInfo = Omit<MeetMapPayload, "country" | "externalMapUrl">
 };
 
 /** Buyer meet-location card — 2D Esri satellite, seller-entered address. */
-export function UsedMeetMapCard({ map, title }: { map: UsedMeetMapInfo; title?: string }) {
+export function UsedMeetMapCard({
+  map,
+  region,
+  meetPlace,
+}: {
+  map: UsedMeetMapInfo;
+  region?: string | null;
+  meetPlace?: string | null;
+}) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -22,26 +34,27 @@ export function UsedMeetMapCard({ map, title }: { map: UsedMeetMapInfo; title?: 
   }
 
   const country = normalizeMeetCountry(map.country);
+  const regionLabel = region?.trim() || "";
+  const placeLabel = meetPlace?.trim() || "";
+  const locationQuery = marketplaceMeetLocationQuery({ region: regionLabel, place: placeLabel });
+  const coords = { lat: map.lat, lng: map.lng };
+  const searchUrl = locationQuery
+    ? googleSearchUrlForMeet({ place: placeLabel, region: regionLabel })
+    : undefined;
+  const mapUrl = marketplaceMeetMapUrl({ place: placeLabel, region: regionLabel, coords });
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Ionicons name="location" size={16} color={colors.brand} />
-          <Text style={styles.title} numberOfLines={2}>
-            거래 희망 장소 · {map.label}
-          </Text>
-        </View>
-      </View>
-
       <MeetMap
         mode="view"
         country={country}
-        region={map.label}
-        meetPlace={map.label}
-        coords={{ lat: map.lat, lng: map.lng }}
+        region={regionLabel || map.label}
+        meetPlace={placeLabel || undefined}
+        coords={coords}
         height={220}
-        pinTitle={title || "거래 장소"}
+        pinTitle={locationQuery || "거래 장소"}
+        pinSearchUrl={searchUrl}
+        pinMapUrl={mapUrl}
       />
 
       <Text style={styles.caption}>{map.caption}</Text>
@@ -52,15 +65,6 @@ export function UsedMeetMapCard({ map, title }: { map: UsedMeetMapInfo; title?: 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     wrap: { marginTop: spacing.md },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 8,
-      marginBottom: 8,
-    },
-    titleRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4, minWidth: 0 },
-    title: { flex: 1, fontSize: 13, fontWeight: "700", color: colors.text },
     caption: {
       marginTop: 8,
       fontSize: 11,

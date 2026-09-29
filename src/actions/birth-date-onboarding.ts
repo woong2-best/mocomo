@@ -34,10 +34,9 @@ export async function completeBirthDateOnboarding(input: {
   const safeDest =
     dest && dest.startsWith("/") && !dest.startsWith("//") ? dest : "/";
 
-  // Birth → role (fan follow / coser register) → avatar.
-  const { markSignupNeedsRole, signupRoleEntryPath } = await import(
-    "@/lib/signup-role-onboarding"
+  const { markSignupNeedsIdentity, signupIdentityEntryPath } = await import(
+    "@/lib/signup-identity-onboarding"
   );
-  await markSignupNeedsRole();
-  redirect(signupRoleEntryPath(safeDest));
+  await markSignupNeedsIdentity();
+  redirect(signupIdentityEntryPath(safeDest));
 }

@@ -49,6 +49,7 @@ export type FeedPost = {
   reposted?: boolean;
   viewCount?: number;
   anime?: { title: string; slug: string } | null;
+  communityId?: string | null;
   community?: {
     slug: string;
     name: string;
@@ -56,6 +57,35 @@ export type FeedPost = {
     customCategoryLabel?: string | null;
   } | null;
   isAnonymous?: boolean;
+  poll?: FeedPoll | null;
+  repostBy?: {
+    id: string;
+    createdAt: string;
+    user: { id: string; username: string; name?: string | null; image: string | null };
+  } | null;
+  quotedPost?: {
+    id: string;
+    title?: string | null;
+    content: string;
+    createdAt: string;
+    isNsfw?: boolean;
+    author: { id: string; username: string; name?: string | null; image: string | null };
+    media?: { url: string; type: string; posterUrl?: string | null; duration?: number | null }[];
+  } | null;
+  activityKey?: string;
+  activityAt?: string;
+  /** Viewer’s profile-main slot (own posts only). */
+  profilePinned?: boolean;
+  isPinned?: boolean;
+};
+
+export type FeedPoll = {
+  id: string;
+  closesAt: string;
+  closed: boolean;
+  options: { id: string; label: string; count: number }[];
+  totalVotes: number;
+  myVoteOptionId?: string | null;
 };
 
 export type FeedAd = {

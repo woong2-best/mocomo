@@ -10,7 +10,7 @@ import { getAnimeCountByGenre } from "@/actions/anime";
 import { getHighlightPeriodKey } from "@/lib/highlight-period";
 import { getWeeklyHighlights } from "@/lib/weekly-highlights";
 import { getSubcultureMapPins } from "@/lib/subculture-events";
-import { feedPostListSelect, mapFeedPost } from "@/lib/feed-query";
+import { feedPostListSelect, feedPostListSelectNoReposts, mapFeedPost } from "@/lib/feed-query";
 import { platformPostWhere } from "@/lib/post-scope";
 
 export const getCachedWeeklyHighlights = unstable_cache(
@@ -35,21 +35,19 @@ export const getCachedFeedPosts = unstable_cache(
         where: platformPostWhere,
         take: 12,
         orderBy: { createdAt: "desc" },
-        select: {
-          ...feedPostListSelect,
-          _count: { select: { likes: true, comments: true, votes: true, media: true } },
-        },
+        select: feedPostListSelectNoReposts,
       });
       return posts.map((p) =>
         mapFeedPost({
           ...p,
+          quotedPost: null,
           poll: null,
           _count: { ...p._count, reposts: 0 },
         })
       );
     }
   },
-  ["home-feed-posts-v9-platform-only", "2026-08-28"],
+  ["home-feed-posts-v10-quotes", "2026-09-28"],
   { revalidate: 30, tags: [FEED_POSTS_CACHE_TAG] }
 );
 

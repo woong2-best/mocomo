@@ -80,7 +80,7 @@ export function AnimeForm({
       setError(result.error);
       return;
     }
-    if (result.anime) router.push(`/anime/${result.anime.slug}`);
+    if ("anime" in result && result.anime) router.push(`/anime/${result.anime.slug}`);
   }
 
   return (
@@ -88,7 +88,7 @@ export function AnimeForm({
       <CardHeader>
         <CardTitle>{mode === "create" ? "새 애니 글" : "글 편집"}</CardTitle>
         <p className="text-sm text-muted-foreground">
-          나무위키처럼 로그인한 누구나 내용을 추가·수정할 수 있어요. 저장하면 모든 이용자에게 바로 반영됩니다.
+          로그인한 누구나 내용을 추가·수정할 수 있어요. 저장하면 모든 이용자에게 바로 반영됩니다.
         </p>
       </CardHeader>
       <CardContent>
@@ -118,19 +118,17 @@ export function AnimeForm({
           </div>
           <AnimeImageUrlField
             name="coverUrl"
-            label="표지 이미지 URL"
+            label="표지 이미지"
             defaultValue={initial?.coverUrl ?? ""}
-            placeholder="https://... 또는 아래에서 업로드"
             previewAspect="square"
-            uploadLabel="표지 이미지 업로드"
+            uploadLabel="표지 사진 업로드"
           />
           <AnimeImageUrlField
             name="bannerUrl"
-            label="배너 이미지 URL"
+            label="배너 이미지"
             defaultValue={initial?.bannerUrl ?? ""}
-            placeholder="https://... 또는 아래에서 업로드"
             previewAspect="banner"
-            uploadLabel="배너 이미지 업로드"
+            uploadLabel="배너 사진 업로드"
           />
           <div>
             <label className="text-sm font-medium">제작사</label>
@@ -138,14 +136,14 @@ export function AnimeForm({
           </div>
           <AnimeInfoboxField
             name="infobox"
-            label="작품 정보표 (나무위키 스타일)"
+            label="작품 정보표"
             defaultValue={initial?.infobox ?? ""}
           />
           <AnimeWikiField
             name="synopsis"
             label="줄거리 / 설명"
             defaultValue={initial?.synopsis ?? ""}
-            placeholder="[[다른 문서]] 링크, 표, 유튜브, 접기, 각주 사용 가능"
+            placeholder="줄거리. 사진은 업로드, 영상은 유튜브 링크를 붙여넣으세요."
           />
           <AnimeWikiField
             name="worldInfo"

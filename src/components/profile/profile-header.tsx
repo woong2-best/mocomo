@@ -285,7 +285,7 @@ export function ProfileHeader({
               <span className="text-muted-foreground">팔로워</span>
             </Link>
           </div>
-          <ProfileHeaderFeedActions isSelf={isSelf} />
+          <ProfileHeaderFeedActions />
         </div>
 
         {user.profile?.favoriteTags && user.profile.favoriteTags.length > 0 && (

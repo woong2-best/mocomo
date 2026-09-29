@@ -1,7 +1,8 @@
 import type { CommunityCategory } from "@prisma/client";
+import { QNA_MY_CATEGORY_ID, type QnaMyCategoryId } from "@/lib/qna-my-category";
 import { QNA_NSFW_CATEGORY_ID, type QnaNsfwCategoryId } from "@/lib/qna-nsfw-category";
 
-export { QNA_NSFW_CATEGORY_ID, type QnaNsfwCategoryId };
+export { QNA_MY_CATEGORY_ID, type QnaMyCategoryId, QNA_NSFW_CATEGORY_ID, type QnaNsfwCategoryId };
 
 export const COMMUNITY_CATEGORY_OPTIONS: {
   id: CommunityCategory;
@@ -42,12 +43,14 @@ export const QNA_FEED_CATEGORY_TABS = [
   { id: "ALL" as const, label: "전체", shortLabel: "전체", emoji: "" },
   ...COMMUNITY_CATEGORY_OPTIONS,
   { id: QNA_NSFW_CATEGORY_ID, label: "NSFW", shortLabel: "NSFW", emoji: "🔞" },
+  { id: QNA_MY_CATEGORY_ID, label: "My", shortLabel: "My", emoji: "👤" },
 ];
 
 export type QnaFeedTabId =
   | "ALL"
   | CommunityCategory
-  | typeof QNA_NSFW_CATEGORY_ID;
+  | typeof QNA_NSFW_CATEGORY_ID
+  | typeof QNA_MY_CATEGORY_ID;
 
 export type QnaCreateCategorySelection = CommunityCategory | typeof QNA_NSFW_CATEGORY_ID;
 

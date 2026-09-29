@@ -11,7 +11,7 @@ const SORT_OPTIONS: { id: ProfileSort; label: string }[] = [
   { id: "oldest", label: "오래된 순" },
 ];
 
-/** Compact sort links — sits with Create on the following/followers row. */
+/** Compact sort links on the following/followers row. */
 export function ProfileSortControls({ className }: { className?: string }) {
   const { tab, sort, navigate, prefetchQuery } = useProfileTab();
 

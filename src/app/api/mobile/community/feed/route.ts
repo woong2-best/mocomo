@@ -8,8 +8,10 @@ import { getSubscriptionsForViewer } from "@/lib/content-access";
 import { isSubscriptionActive } from "@/lib/creator-subscription";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { isQnaMyCategoryId } from "@/lib/qna-my-category";
 import { fetchQnaFeedPage, parseQnaCategoryParam } from "@/lib/qna-feed";
 import { redactAnonymousPostAuthors } from "@/lib/anonymous-post";
+import { hydrateViewerPollVotes } from "@/lib/post-poll";
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,10 +32,14 @@ export async function GET(req: NextRequest) {
       category,
       canViewNsfw,
       variant: "mobile",
+      ownerId: isQnaMyCategoryId(category) ? viewerId : null,
     });
 
-    const visible = await filterPostsByAudienceLock(
-      posts.map((p) => ({ ...p, authorId: p.author.id })),
+    const visible = await hydrateViewerPollVotes(
+      await filterPostsByAudienceLock(
+        posts.map((p) => ({ ...p, authorId: p.author.id })),
+        viewerId
+      ),
       viewerId
     );
     const postIds = visible.map((p) => p.id);

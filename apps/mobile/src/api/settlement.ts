@@ -13,6 +13,24 @@ export type SettlementStatus = {
   earnedMocoPoints: number;
   earnedMocoTier: string;
   purchasedMocoPoints: number;
+  rewardProgress?: {
+    currentLabel: string;
+    currentRewardUsd: number;
+    nextLabel: string | null;
+    nextRequiredMoco: number | null;
+    nextRewardUsd: number | null;
+    mocoRemaining: number;
+    atMaxTier: boolean;
+  };
+  payoutDashboard?: {
+    payoutsEnabled: boolean;
+    detailsSubmitted: boolean;
+    readyForDonations: boolean;
+    disabledReason: string | null;
+    currentlyDue: string[];
+    pastDue: string[];
+    reasons: { code: string; message: string }[];
+  };
   profile: {
     countryCode: string;
     legalName: string;

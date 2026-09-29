@@ -1,5 +1,11 @@
 import { API_BASE_URL } from "@/config/env";
-import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "@/auth/token-store";
+import {
+  clearTokens,
+  currentAuthEpoch,
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+} from "@/auth/token-store";
 
 export class ApiError extends Error {
   constructor(
@@ -53,8 +59,9 @@ function mergeAbortSignals(timeoutMs: number, external?: AbortSignal): {
 }
 
 async function refreshAccessToken(): Promise<boolean> {
+  const epoch = currentAuthEpoch();
   const refresh = await getRefreshToken();
-  if (!refresh) return false;
+  if (!refresh || epoch !== currentAuthEpoch()) return false;
 
   const { signal, cleanup } = mergeAbortSignals(12_000);
   try {
@@ -76,8 +83,9 @@ async function refreshAccessToken(): Promise<boolean> {
       return false;
     }
 
-    await setTokens(data.accessToken, data.refreshToken);
-    return true;
+    if (epoch !== currentAuthEpoch()) return false;
+    await setTokens(data.accessToken, data.refreshToken, undefined, epoch);
+    return epoch === currentAuthEpoch();
   } catch {
     return false;
   } finally {
@@ -161,14 +169,16 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     } catch {
       parsed = undefined;
     }
-    const serverMessage =
-      parsed &&
-      typeof parsed === "object" &&
-      parsed !== null &&
-      "error" in parsed &&
-      typeof (parsed as { error?: unknown }).error === "string"
-        ? (parsed as { error: string }).error
+    const record =
+      parsed && typeof parsed === "object" && parsed !== null
+        ? (parsed as { message?: unknown; error?: unknown })
         : null;
+    const serverMessage =
+      typeof record?.message === "string"
+        ? record.message
+        : typeof record?.error === "string"
+          ? record.error
+          : null;
     throw new ApiError(serverMessage ?? `API ${method} ${path} failed`, res.status, parsed);
   }
 

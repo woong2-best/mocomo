@@ -31,7 +31,7 @@ export function characterNames(raw: unknown): string[] {
 }
 
 /**
- * Split wiki markdown into numbered namu-style sections.
+ * Split wiki markdown into numbered sections.
  * `#` = 1. 개요, `##` = 1.1 하위.
  */
 export function parseWikiArticle(

@@ -1,9 +1,9 @@
 import type { ChatRoomType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 
-/** Private messaging inbox — 1:1 DM plus add-by-username group threads. */
-export const WEB_MESSAGES_INBOX_TYPES: ChatRoomType[] = ["DM", "GROUP"];
-export const MOBILE_MESSAGES_INBOX_TYPES: ChatRoomType[] = ["DM", "GROUP"];
+/** Private messaging inbox — 1:1 DM, groups, and used-market threads. */
+export const WEB_MESSAGES_INBOX_TYPES: ChatRoomType[] = ["DM", "GROUP", "MARKET"];
+export const MOBILE_MESSAGES_INBOX_TYPES: ChatRoomType[] = ["DM", "GROUP", "MARKET"];
 
 let communityLinkedRoomIdsCache: { ids: string[]; expiresAt: number } | null = null;
 const COMMUNITY_ROOM_IDS_TTL_MS = 60_000;

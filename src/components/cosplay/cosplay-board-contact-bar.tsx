@@ -11,11 +11,13 @@ export function CosplayBoardContactBar({
   authorUsername,
   postTitle,
   isSignedIn,
+  canMessage = true,
 }: {
   authorId: string;
   authorUsername: string;
   postTitle: string;
   isSignedIn: boolean;
+  canMessage?: boolean;
 }) {
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -39,7 +41,7 @@ export function CosplayBoardContactBar({
       <p className="text-xs text-muted-foreground flex-1 min-w-[12rem]">
         「{postTitle}」 문의 — @{authorUsername}
       </p>
-      {isSignedIn ? (
+      {isSignedIn && canMessage ? (
         <Button
           type="button"
           size="sm"

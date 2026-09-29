@@ -9,6 +9,7 @@ import {
   LETTER_DONATION_MIN_MOCO,
 } from "@/lib/chat-letter-donation";
 import { notifyTip } from "@/lib/notifications";
+import { assertCreatorPayoutsEnabled } from "@/lib/creator-payout-ready";
 import { tierFromAmount } from "@/lib/tiers";
 
 export const LETTER_DONATION_GIFT_SOURCE = "letter_donation";
@@ -97,6 +98,9 @@ export async function spendMocoOnLetterDonation(input: {
   ]);
   if (!member) return { error: "메시지 방에 참여 중일 때만 편지를 보낼 수 있습니다." as const };
   if (!creator) return { error: "받는 사람을 찾을 수 없습니다." as const };
+
+  const payout = await assertCreatorPayoutsEnabled(input.creatorId);
+  if (!payout.ok) return { error: payout.error, code: payout.code };
 
   const receiverMember = await db.chatMember.findUnique({
     where: { roomId_userId: { roomId, userId: input.creatorId } },

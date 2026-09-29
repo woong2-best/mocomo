@@ -43,6 +43,7 @@ export function groupMemberDisplayNames(
 export function getConversationMeta(room: RoomPreview, currentUserId: string) {
   const other = room.members.find((m) => m.userId !== currentUserId);
   const isDm = room.type === "DM";
+  const isMarket = room.type === "MARKET";
   const isGroup = room.type === "GROUP";
   const typeLabel =
     room.type === "COSPLAYER_GROUP"
@@ -53,15 +54,16 @@ export function getConversationMeta(room: RoomPreview, currentUserId: string) {
           ? "팬덤방"
           : room.type;
   const displayName =
+    (isMarket && room.name) ||
     room.name ||
-    (isDm && other
+    ((isDm || isMarket) && other
       ? other.user.name || other.user.username
       : isGroup
         ? groupMemberDisplayNames(room.members, currentUserId)
         : typeLabel);
   const displayImage =
-    (isDm || isGroup) && other ? other.user.image : null;
-  const otherUserId = isDm && other ? other.user.id : undefined;
+    (isDm || isGroup || isMarket) && other ? other.user.image : null;
+  const otherUserId = (isDm || isMarket) && other ? other.user.id : undefined;
   const last = room.messages[0];
 
   return {
@@ -69,7 +71,7 @@ export function getConversationMeta(room: RoomPreview, currentUserId: string) {
     displayImage,
     otherUserId,
     supportTierSent: isDm && other ? other.user.supportTierSent : undefined,
-    profileUsername: isDm && other ? other.user.username : undefined,
+    profileUsername: (isDm || isMarket) && other ? other.user.username : undefined,
     otherTimeZone: isDm && other ? other.user.timeZone ?? null : null,
     memberClocks: room.members
       .filter((m) => m.userId !== currentUserId && m.user.timeZone)

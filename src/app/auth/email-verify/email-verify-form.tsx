@@ -199,9 +199,8 @@ export function EmailVerifyFormInner() {
           router.replace(`/auth/mobile/oauth/complete?platform=${platform}`);
           return;
         }
-        // New email signup → role (fan/coser) then profile icon before home.
         router.replace(
-          `/auth/complete-role?dest=${encodeURIComponent(DEFAULT_LANDING_PATH)}`
+          `/auth/complete-avatar?dest=${encodeURIComponent(DEFAULT_LANDING_PATH)}`
         );
         return;
       }

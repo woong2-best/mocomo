@@ -1,11 +1,14 @@
 import type { ChatAttachment, ChatMessage, ChatReplyTo } from "@/api/messages";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
+import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
 
 export function getChatReplyPreview(
   m: Pick<ChatMessage | ChatReplyTo, "content" | "attachments">
 ): string {
   const sharePreview = chatPostShareListPreview(m.content);
   if (sharePreview) return sharePreview;
+  const listingPreview = chatUsedListingListPreview(m.content);
+  if (listingPreview) return listingPreview;
   const text = m.content?.trim();
   if (text) return text.length > 100 ? `${text.slice(0, 100)}…` : text;
   const att = (m.attachments as ChatAttachment[] | undefined)?.[0];

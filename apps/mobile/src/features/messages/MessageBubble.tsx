@@ -15,9 +15,15 @@ import {
   parseLetterDonationMarker,
   stripLetterDonationMarker,
 } from "@/lib/chat-letter-donation";
-import { CallBookingCard } from "@/features/messages/CallBookingCard";
+import { parseAtmLetter } from "@/lib/chat-atm-letter";
 import { LetterDonationCard } from "@/features/messages/LetterDonationCard";
+import { TransferLetterCard } from "@/features/messages/TransferLetterCard";
 import { UsedTradeRequestCard } from "@/features/messages/UsedTradeRequestCard";
+import { ChatUsedListingCard } from "@/features/messages/ChatUsedListingCard";
+import {
+  isUsedListingAttachment,
+  parseChatUsedListing,
+} from "@/lib/chat-used-listing-share";
 import {
   parseUsedTradeRequestMarker,
   stripUsedTradeRequestMarker,
@@ -57,11 +63,9 @@ type Props = {
   selfUserId?: string;
   showTime?: boolean;
   roomId?: string;
-  peerId?: string | null;
-  peerName?: string;
-  peerImage?: string | null;
   onMessagesRefresh?: () => void;
   onReply?: (message: ChatMessage) => void;
+  onOpenImage?: (payload: DmOpenImagePayload) => void;
   /** Show @username above others' bubbles in group chats */
   showSenderName?: boolean;
 };
@@ -265,9 +269,6 @@ function MessageBubbleInner({
   selfUserId,
   showTime = true,
   roomId,
-  peerId,
-  peerName,
-  peerImage,
   onMessagesRefresh,
   onReply,
   onOpenImage,
@@ -275,23 +276,39 @@ function MessageBubbleInner({
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
-  const images = (message.attachments ?? []).filter((a) => a.type === "IMAGE" || a.type === "GIF");
-  const videos = (message.attachments ?? []).filter((a) => a.type === "VIDEO");
-  const audios = (message.attachments ?? []).filter((a) => a.type === "AUDIO");
-  const share = parseChatPostShare(message.content);
+  const listingCard = message.usedListing ?? null;
+  const parsedListing = listingCard ? null : parseChatUsedListing(message.content);
+  const listingId = listingCard?.id ?? parsedListing?.listingId ?? null;
+  const visibleAttachments = (message.attachments ?? []).filter(
+    (attachment) => !listingId || !isUsedListingAttachment(attachment)
+  );
+  const images = visibleAttachments.filter((a) => a.type === "IMAGE" || a.type === "GIF");
+  const videos = visibleAttachments.filter((a) => a.type === "VIDEO");
+  const audios = visibleAttachments.filter((a) => a.type === "AUDIO");
+  const share = listingId ? null : parseChatPostShare(message.content);
   const bookingId = parseCallBookingMarker(message.content);
-  const letterTipId = parseLetterDonationMarker(message.content);
+  const atmLetter = parseAtmLetter(message.content);
+  const letterTipId = atmLetter ? null : parseLetterDonationMarker(message.content);
   const tradeRequestId = parseUsedTradeRequestMarker(message.content);
   const bookingCaption = bookingId ? stripCallBookingMarker(message.content) : null;
   const letterCaption = letterTipId ? stripLetterDonationMarker(message.content) : null;
   const tradeCaption = tradeRequestId ? stripUsedTradeRequestMarker(message.content) : null;
-  const visibleText = share
+  const listingNote = listingCard
+    ? message.content && message.content !== listingCard.title
+      ? message.content
+      : null
+    : parsedListing?.note ?? null;
+  const visibleText = listingId
+    ? listingNote
+    : share
     ? share.note
     : bookingId
       ? bookingCaption
-      : letterTipId
-        ? letterCaption
-        : tradeRequestId
+      : atmLetter
+        ? null
+        : letterTipId
+          ? letterCaption
+          : tradeRequestId
           ? tradeCaption
           : message.content;
   const mediaOnly =
@@ -299,8 +316,10 @@ function MessageBubbleInner({
     !visibleText &&
     !message.replyTo &&
     !share &&
+    !listingId &&
     !bookingId &&
     !letterTipId &&
+    !atmLetter &&
     !tradeRequestId;
   const imageOnly = images.length > 0 && videos.length === 0 && mediaOnly;
   const hasTextBubble = !!(visibleText || message.replyTo) && !mediaOnly;
@@ -445,6 +464,14 @@ function MessageBubbleInner({
         </Pressable>
       ))}
 
+      {listingId ? (
+        <ChatUsedListingCard
+          listingId={listingId}
+          card={listingCard}
+          onLongPress={onReply ? () => onReply(message) : undefined}
+        />
+      ) : null}
+
       {share ? (
         <ChatSharedPostCard
           postId={share.postId}
@@ -454,24 +481,21 @@ function MessageBubbleInner({
         />
       ) : null}
 
-      {bookingId && roomId && selfUserId ? (
-        <CallBookingCard
-          bookingId={bookingId}
-          selfUserId={selfUserId}
-          peerId={peerId ?? null}
-          peerName={peerName ?? "상대"}
-          peerImage={peerImage}
-          roomId={roomId}
-          onRefresh={onMessagesRefresh}
-        />
-      ) : null}
-
       {tradeRequestId && roomId && selfUserId ? (
         <UsedTradeRequestCard
           requestId={tradeRequestId}
           selfUserId={selfUserId}
           roomId={roomId}
           onRefresh={onMessagesRefresh}
+        />
+      ) : null}
+
+      {atmLetter ? (
+        <TransferLetterCard
+          amount={atmLetter.amount}
+          message={atmLetter.message}
+          senderName={message.sender.username}
+          createdAt={message.createdAt}
         />
       ) : null}
 

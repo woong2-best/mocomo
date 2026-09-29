@@ -13,9 +13,11 @@ import {
 import { FeedVideoViewerProvider } from "@/components/feed/feed-video-viewer-provider";
 import {
   QNA_FEED_CATEGORY_TABS,
+  QNA_MY_CATEGORY_ID,
   QNA_NSFW_CATEGORY_ID,
   type QnaFeedTabId,
 } from "@/lib/community-labels";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { useQnaNsfwGate } from "@/hooks/use-qna-nsfw-gate";
 import { QnaNsfwBlockedDialog } from "@/components/communities/qna-nsfw-blocked-dialog";
@@ -50,6 +52,8 @@ export function QnaHubClient() {
     : "ALL";
 
   const { blockedOpen, setBlockedOpen, guardCategoryNav, checking } = useQnaNsfwGate();
+  const sessionState = useSession();
+  const sessionUserId = sessionState?.data?.user?.id;
 
   const [qInput, setQInput] = useState(qFromUrl);
   const [items, setItems] = useState<FeedLayoutItem[]>([]);
@@ -85,6 +89,10 @@ export function QnaHubClient() {
   const setTab = useCallback(
     (next: QnaFeedTabId) => {
       void (async () => {
+        if (next === QNA_MY_CATEGORY_ID && !sessionUserId) {
+          router.push("/auth/signin?callbackUrl=/communities?category=MY");
+          return;
+        }
         const ok = await guardCategoryNav(next === "ALL" ? null : next);
         if (!ok) return;
         const sp = new URLSearchParams(searchParams.toString());
@@ -94,7 +102,7 @@ export function QnaHubClient() {
         router.replace(qs ? `/communities?${qs}` : "/communities", { scroll: false });
       })();
     },
-    [guardCategoryNav, router, searchParams]
+    [guardCategoryNav, router, searchParams, sessionUserId]
   );
 
   const fetchPage = useCallback(
@@ -258,9 +266,11 @@ export function QnaHubClient() {
           <p className="text-sm text-muted-foreground">
             {qFromUrl
               ? `"${qFromUrl}"에 맞는 QnA가 없습니다.`
-              : tab === "ALL"
-                ? "아직 QnA가 없습니다. 첫 글을 남겨보세요!"
-                : "이 카테고리에 QnA가 없습니다."}
+              : tab === QNA_MY_CATEGORY_ID
+                ? "아직 작성한 QnA가 없습니다."
+                : tab === "ALL"
+                  ? "아직 QnA가 없습니다. 첫 글을 남겨보세요!"
+                  : "이 카테고리에 QnA가 없습니다."}
           </p>
           <Link
             href="/communities/new"

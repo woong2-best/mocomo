@@ -1,8 +1,41 @@
 import { normalizeMeetCountry } from "@/lib/maps/select-engine";
-import { googleMapsExternalUrl } from "@/lib/maps/google-external-url";
 import type { MeetCoords } from "@/lib/maps/types";
 
-/** Country-aware external map deep link (same for web + mobile clients). */
+/**
+ * Marketplace meet query: selected region, then the address detail the seller typed.
+ * Listing titles stay out of this string.
+ */
+export function marketplaceMeetLocationQuery(opts: {
+  region?: string | null;
+  place?: string | null;
+}): string {
+  const region = opts.region?.trim() ?? "";
+  const place = opts.place?.trim() ?? "";
+  if (!region) return place;
+  if (!place || place === region) return region;
+  if (place.startsWith(region)) return place;
+  return `${region} ${place}`;
+}
+
+/** Google Maps search for a marketplace meet pin. Same text as web search, no product name or raw coordinates. */
+export function marketplaceMeetMapUrl(opts: {
+  region?: string | null;
+  place?: string | null;
+  coords?: MeetCoords | null;
+}): string {
+  const query = marketplaceMeetLocationQuery(opts);
+  if (query) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }
+  if (opts.coords && Number.isFinite(opts.coords.lat) && Number.isFinite(opts.coords.lng)) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      `${opts.coords.lat},${opts.coords.lng}`
+    )}`;
+  }
+  return "https://www.google.com/maps/search/?api=1&query=world";
+}
+
+/** Country-aware external map deep link for marketplace meet pins. */
 export function meetExternalMapUrl(opts: {
   country?: string | null;
   region?: string | null;
@@ -10,12 +43,14 @@ export function meetExternalMapUrl(opts: {
   coords?: MeetCoords | null;
 }): string {
   normalizeMeetCountry(opts.country);
-  return googleMapsExternalUrl({
-    place: opts.place,
-    region: opts.region,
-    coords: opts.coords,
-    fallbackQuery: opts.region?.trim() || undefined,
-  });
+  return marketplaceMeetMapUrl(opts);
+}
+
+export function googleSearchUrlForMeet(opts: {
+  place?: string | null;
+  region?: string | null;
+}): string {
+  return `https://www.google.com/search?q=${encodeURIComponent(marketplaceMeetLocationQuery(opts))}`;
 }
 
 export function meetMapCaption(opts: {

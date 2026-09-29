@@ -9,9 +9,11 @@ import {
 export async function startWalletStripeConnectOnboarding(input: {
   userId: string;
   requestCardPayments?: boolean;
+  payoutCountry?: string;
 }) {
   return startExpressConnectOnboarding(input.userId, {
     requestCardPayments: input.requestCardPayments,
+    payoutCountry: input.payoutCountry,
   });
 }
 

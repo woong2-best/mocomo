@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { spacing, type ThemeColors } from "@/theme/tokens";
-import { formatUsd } from "@/lib/money";
+import { formatMocoDisplay, formatMocoNetFromCents, ledgerCentsToMoco } from "@/lib/wallet-moco-display";
 
 type Month = {
   month: number;
@@ -108,7 +108,7 @@ export function WalletEarningsExport({ months, transactions, year, yearNet, colo
             </Text>
           </View>
           <Text style={[styles.trend, { color: trendUp ? colors.success : colors.danger }]}>
-            {trendUp ? "▲" : "▼"} {formatUsd(Math.abs(yearNet ?? 0))}
+            {trendUp ? "▲" : "▼"} {formatMocoDisplay(ledgerCentsToMoco(yearNet ?? 0))}
           </Text>
         </View>
 
@@ -177,10 +177,9 @@ export function WalletEarningsExport({ months, transactions, year, yearNet, colo
             );
           })}
         </View>
-      </View>
 
-      {selectedMonth != null ? (
-        <View style={[styles.panel, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
+        {selectedMonth != null ? (
+        <View style={styles.monthDetailPanel}>
           <View style={styles.detailHeader}>
             <Text style={[styles.panelTitle, { color: colors.text }]}>
               {year}년 {selectedMonth}월 ({monthTx.length}건)
@@ -207,14 +206,14 @@ export function WalletEarningsExport({ months, transactions, year, yearNet, colo
                     color: tx.net >= 0 ? colors.success : colors.danger,
                   }}
                 >
-                  {tx.net >= 0 ? "+" : "-"}
-                  {formatUsd(Math.abs(tx.net))}
+                  {formatMocoNetFromCents(tx.net)}
                 </Text>
               </View>
             ))
           )}
         </View>
-      ) : null}
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -252,6 +251,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryBtnText: { fontSize: 13, fontWeight: "700" },
+  monthDetailPanel: {
+    marginTop: 0,
+  },
   monthGrid: {
     flexDirection: "row",
     flexWrap: "wrap",

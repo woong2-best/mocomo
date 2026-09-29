@@ -16,25 +16,31 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { fetchWallet, fetchWalletEarnings } from "@/api/discovery";
 import { saveWalletBootstrap } from "@/api/wallet-bootstrap-cache";
 import { fetchStripeConnectStatus } from "@/api/stripe-connect";
-import { WalletCardStack } from "@/features/wallet/WalletCardStack";
+import { fetchSettlementStatus } from "@/api/settlement";
+import { WalletTransferPanel } from "@/features/wallet/WalletTransferPanel";
 import { GemBalancePanel } from "@/features/wallet/GemBalancePanel";
 import { WalletMembershipStrip } from "@/features/wallet/WalletMembershipStrip";
 import { SupportTiersPanel } from "@/features/support/SupportTiersPanel";
 import { WalletEarningsExport } from "@/features/wallet/WalletEarningsExport";
 import { StripeConnectPanel } from "@/features/wallet/StripeConnectPanel";
 import { RevenuePayoutPanel } from "@/features/wallet/RevenuePayoutPanel";
-import { buildRevenueCards } from "@/features/wallet/wallet-card-builders";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
-import { formatUsd } from "@/lib/money";
+import {
+  formatMocoDisplay,
+  formatMocoSignedFromCents,
+  ledgerCentsToMoco,
+} from "@/lib/wallet-moco-display";
+import { ReceivedTipsPanel } from "@/features/wallet/ReceivedTipsPanel";
 
-type Tab = "wallet" | "earnings" | "tier";
+type Tab = "wallet" | "earnings" | "transfer" | "tier";
 
 const TAB_ITEMS: { id: Tab; label: string }[] = [
   { id: "wallet", label: "지갑" },
   { id: "earnings", label: "수익" },
+  { id: "transfer", label: "전달" },
   { id: "tier", label: "등급" },
 ];
 
@@ -43,10 +49,6 @@ const LEDGER_LABELS: Record<string, string> = {
   PAYOUT_REQUEST: "출금",
   PAYOUT_REJECTED: "출금 반려 환급",
 };
-
-function fmtUsd(n: number) {
-  return formatUsd(n);
-}
 
 export function WalletScreen() {
   const { colors } = useTheme();
@@ -82,6 +84,11 @@ export function WalletScreen() {
     queryFn: fetchStripeConnectStatus,
     enabled: tab === "earnings",
   });
+  const settlementQuery = useQuery({
+    queryKey: ["mobile-settlement-status"],
+    queryFn: fetchSettlementStatus,
+    enabled: tab === "earnings",
+  });
 
   useEffect(() => {
     if (walletQuery.data) {
@@ -92,22 +99,6 @@ export function WalletScreen() {
   const data = walletQuery.data;
   const earnings = earningsQuery.data;
   const withdrawable = data ? Math.max(0, data.availableBalance - data.pendingPayout) : 0;
-  const bankLabel = stripeConnectQuery.data?.stripeOnboardingCompleted ? "Stripe Connect" : null;
-
-  const revenueCards = useMemo(
-    () =>
-      data
-        ? buildRevenueCards({
-            withdrawable,
-            totalEarned: data.totalEarned,
-            totalWithdrawn: data.totalWithdrawn,
-            pendingPayout: data.pendingPayout,
-            bankLabel,
-            colors,
-          })
-        : [],
-    [bankLabel, colors, data, withdrawable]
-  );
 
   const earningsLoading = tab === "earnings" && earningsQuery.isLoading && !earningsQuery.data;
 
@@ -141,6 +132,10 @@ export function WalletScreen() {
             <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
               <GemBalancePanel />
             </ScrollView>
+        ) : tab === "transfer" ? (
+            <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
+              <WalletTransferPanel />
+            </ScrollView>
         ) : tab === "tier" ? (
           <SupportTiersPanel />
         ) : earningsLoading ? (
@@ -168,32 +163,12 @@ export function WalletScreen() {
                 </Text>
               </View>
             ) : null}
-            <WalletCardStack cards={revenueCards} colors={colors} />
-
-            <View style={styles.section}>
-              {data.recent.slice(0, 8).map((item) => (
-                <WalletMembershipStrip
-                  key={item.id}
-                  title={LEDGER_LABELS[item.type] ?? item.type}
-                  subtitle={item.memo ?? undefined}
-                  right={`${item.type === "PAYOUT_REQUEST" ? "-" : "+"}${fmtUsd(item.amount)}`}
-                  backgroundColor={
-                    item.type === "SELLER_EARNING"
-                      ? colors.cobalt
-                      : item.type === "PAYOUT_REQUEST"
-                        ? colors.terracotta
-                        : "#4b5563"
-                  }
-                />
-              ))}
-              {data.recent.length === 0 ? (
-                <WalletMembershipStrip
-                  title="아직 정산 내역이 없습니다"
-                  subtitle="후원·판매 수익이 여기에 표시됩니다"
-                  backgroundColor="#4b5563"
-                />
-              ) : null}
-            </View>
+            <SettlementProgressCard
+              settlementMoco={settlementQuery.data?.settlementMocoPoints ?? 0}
+              purchasedMoco={settlementQuery.data?.purchasedMocoPoints ?? 0}
+              progress={settlementQuery.data?.rewardProgress}
+              colors={colors}
+            />
 
             <StripeConnectPanel onConnected={handleStripeConnected} />
             <RevenuePayoutPanel
@@ -228,11 +203,11 @@ export function WalletScreen() {
               </ScrollView>
 
               <View style={styles.statRow}>
-                <StatCard label="수익" value={earnings.yearEarned ?? 0} tone="up" colors={colors} />
-                <StatCard label="지출" value={earnings.yearWithdrawn ?? 0} tone="down" colors={colors} />
+                <StatCard label="수익" cents={earnings.yearEarned ?? 0} tone="up" colors={colors} />
+                <StatCard label="지출" cents={earnings.yearWithdrawn ?? 0} tone="down" colors={colors} />
                 <StatCard
                   label="순수익"
-                  value={earnings.yearNet ?? 0}
+                  cents={earnings.yearNet ?? 0}
                   tone={(earnings.yearNet ?? 0) >= 0 ? "up" : "down"}
                   colors={colors}
                 />
@@ -250,11 +225,36 @@ export function WalletScreen() {
                 <WalletMembershipStrip
                   key={s.key}
                   title={s.label}
-                  right={fmtUsd(s.amount)}
+                  right={formatMocoDisplay(ledgerCentsToMoco(s.amount))}
                   backgroundColor={colors.forest}
                 />
               ))}
+
+              {data.recent.slice(0, 8).map((item) => (
+                <WalletMembershipStrip
+                  key={item.id}
+                  title={LEDGER_LABELS[item.type] ?? item.type}
+                  subtitle={item.memo ?? undefined}
+                  right={formatMocoSignedFromCents(item.amount, item.type !== "PAYOUT_REQUEST")}
+                  backgroundColor={
+                    item.type === "SELLER_EARNING"
+                      ? colors.cobalt
+                      : item.type === "PAYOUT_REQUEST"
+                        ? colors.terracotta
+                        : "#4b5563"
+                  }
+                />
+              ))}
+              {data.recent.length === 0 ? (
+                <WalletMembershipStrip
+                  title="아직 활동 보상 내역이 없습니다"
+                  subtitle="후원·판매·구독 수익이 정산 MOCO로 적립됩니다"
+                  backgroundColor="#4b5563"
+                />
+              ) : null}
             </View>
+
+            <ReceivedTipsPanel />
           </ScrollView>
         )}
       </View>
@@ -262,23 +262,90 @@ export function WalletScreen() {
   );
 }
 
+function SettlementProgressCard({
+  settlementMoco,
+  purchasedMoco,
+  progress,
+  colors,
+}: {
+  settlementMoco: number;
+  purchasedMoco: number;
+  progress?: {
+    currentLabel: string;
+    currentRewardUsd: number;
+    nextLabel: string | null;
+    nextRequiredMoco: number | null;
+    mocoRemaining: number;
+    nextRewardUsd: number | null;
+    atMaxTier: boolean;
+  };
+  colors: ThemeColors;
+}) {
+  const nextRequired = progress?.nextRequiredMoco ?? 0;
+  const ratio = !progress
+    ? 0
+    : progress.atMaxTier || nextRequired <= 0
+      ? 1
+      : Math.min(1, Math.max(0, settlementMoco / nextRequired));
+  return (
+    <View style={[stylesCard.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
+      <Text style={[stylesCard.kicker, { color: colors.textMuted }]}>정산 MOCO · 다른 사용자에게 받은 수량</Text>
+      <Text style={[stylesCard.amount, { color: colors.text }]}>{settlementMoco.toLocaleString()} MOCO</Text>
+      <Text style={[stylesCard.line, { color: colors.text }]}>
+        정산 등급 {progress?.currentLabel ?? "Novice"}
+      </Text>
+      <View style={[stylesCard.track, { backgroundColor: colors.hairline }]}>
+        <View style={[stylesCard.fill, { width: `${Math.round(ratio * 100)}%`, backgroundColor: colors.cobalt }]} />
+      </View>
+      <Text style={[stylesCard.note, { color: colors.textMuted }]}>
+        {progress?.atMaxTier
+          ? "최고 정산 등급입니다."
+          : progress?.nextLabel
+            ? `${progress.nextLabel}까지 정산 MOCO ${progress.mocoRemaining.toLocaleString()}를 더 받아야 합니다.`
+            : "정산 등급을 불러오는 중…"}
+      </Text>
+      <Text style={[stylesCard.note, { color: colors.textMuted }]}>
+        보유 MOCO {purchasedMoco.toLocaleString()}는 결제로 충전한 수량이라 정산 등급에 포함되지 않습니다.
+      </Text>
+    </View>
+  );
+}
+
+const stylesCard = StyleSheet.create({
+  box: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: spacing.md,
+    gap: 6,
+  },
+  kicker: { fontSize: 13, fontWeight: "700" },
+  amount: { fontSize: 28, fontWeight: "900" },
+  line: { fontSize: 15, fontWeight: "800" },
+  track: { height: 8, borderRadius: 99, overflow: "hidden", marginVertical: 4 },
+  fill: { height: 8, borderRadius: 99 },
+  note: { fontSize: 12, lineHeight: 17 },
+});
+
 function StatCard({
   label,
-  value,
+  cents,
   tone,
   colors,
 }: {
   label: string;
-  value: number;
+  cents: number;
   tone: "up" | "down";
   colors: ThemeColors;
 }) {
+  const moco = ledgerCentsToMoco(cents);
   return (
     <View style={[statStyles.card, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
       <Text style={[statStyles.label, { color: colors.textMuted }]}>{label}</Text>
       <Text style={[statStyles.value, { color: tone === "up" ? colors.success : colors.danger }]}>
-        {tone === "down" && value > 0 ? "-" : ""}
-        {formatUsd(Math.abs(value))}
+        {tone === "down" && moco > 0 ? "-" : tone === "up" && moco > 0 ? "+" : ""}
+        {formatMocoDisplay(moco)}
       </Text>
     </View>
   );
@@ -313,12 +380,12 @@ function createThemedStyles(colors: ThemeColors) {
     tabs: {
       flex: 1,
       flexDirection: "row",
-      flexWrap: "wrap",
+      flexWrap: "nowrap",
       alignItems: "flex-end",
-      gap: spacing.md,
+      gap: spacing.sm,
     },
     tabLabel: {
-      fontSize: 26,
+      fontSize: 20,
       fontWeight: "900",
       color: colors.textMuted,
       opacity: 0.45,

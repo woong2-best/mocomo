@@ -87,11 +87,14 @@ export async function startOAuthProviderSignin(opts: StartOAuthProviderSigninOpt
     await clearSessionTokenCookies();
   }
 
-  const selectAccount = opts.selectAccount !== false;
-  await signIn(opts.provider, {
-    redirectTo,
-    ...(opts.provider === "google" && selectAccount
-      ? { authorizationParams: { prompt: "select_account" } }
-      : {}),
-  });
+  // Auth.js signIn(provider, options, authorizationParams) — the third argument
+  // is appended to the provider authorize URL. Putting `authorizationParams`
+  // inside options never reaches Google, so the browser session is reused and
+  // the account chooser is skipped.
+  const selectAccount = opts.provider === "google" && opts.selectAccount !== false;
+  await signIn(
+    opts.provider,
+    { redirectTo },
+    selectAccount ? { prompt: "select_account" } : undefined
+  );
 }

@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
+import { clearProfileMainPost } from "@/lib/post-profile-pin";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 
 function revalidateProfile(username: string, postId: string) {
@@ -35,10 +36,7 @@ export async function POST(
   }
 
   if (me.profileMainPostId === postId) {
-    await db.user.update({
-      where: { id: auth.user.id },
-      data: { profileMainPostId: null },
-    });
+    await clearProfileMainPost(auth.user.id, postId);
     revalidateProfile(me.username, postId);
     return NextResponse.json({ featured: false });
   }
@@ -72,6 +70,18 @@ export async function POST(
         where: { authorId: auth.user.id, isPinned: true },
         data: { isPinned: false },
       }),
+      ...(me.profileMainPostId
+        ? [
+            db.post.updateMany({
+              where: {
+                id: me.profileMainPostId,
+                authorId: auth.user.id,
+                isPinned: true,
+              },
+              data: { isPinned: false },
+            }),
+          ]
+        : []),
       db.user.update({
         where: { id: auth.user.id },
         data: { profileMainPostId: postId },

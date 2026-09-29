@@ -11,6 +11,7 @@ import { LinkifiedText } from "@/components/ui/linkified-text";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { userDisplayName } from "@/lib/user-public-select";
 import { notFound } from "next/navigation";
+import { contactPermissions } from "@/lib/contact-audience";
 
 export default async function CosplayBoardPostPage({
   params,
@@ -24,6 +25,9 @@ export default async function CosplayBoardPostPage({
 
   const modeLabel = post.mode === "rental" ? "코스프레 대여" : "구매";
   const isAuthor = session?.user?.id === post.author.id;
+  const canMessage = session?.user?.id
+    ? (await contactPermissions(session.user.id, post.author.id)).canMessage
+    : true;
 
   return (
     <AppPageChrome maxWidth="3xl" spacing="sm">
@@ -90,6 +94,7 @@ export default async function CosplayBoardPostPage({
             authorUsername={post.author.username}
             postTitle={post.title}
             isSignedIn={!!session?.user}
+            canMessage={canMessage}
           />
         )}
 

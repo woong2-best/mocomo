@@ -62,6 +62,7 @@ type LocalListingImage = {
   uri: string;
   mime: string;
   filename: string;
+  kind: "image" | "video";
 };
 
 export function UsedCreateScreen() {
@@ -201,7 +202,7 @@ export function UsedCreateScreen() {
     }
     const remaining = MAX_LISTING_IMAGES - imageCount;
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ["images", "videos"],
       allowsMultipleSelection: remaining > 1,
       selectionLimit: remaining,
       quality: 0.85,
@@ -213,12 +214,16 @@ export function UsedCreateScreen() {
     }
     setLocalImages((prev) => [
       ...prev,
-      ...batch.map((asset, i) => ({
-        id: `local-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
-        uri: asset.uri,
-        mime: asset.mimeType || "image/jpeg",
-        filename: asset.fileName || `used-${Date.now()}-${i}.jpg`,
-      })),
+      ...batch.map((asset, i) => {
+        const isVideo = asset.type === "video" || (asset.mimeType?.startsWith("video/") ?? false);
+        return {
+          id: `local-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
+          uri: asset.uri,
+          mime: asset.mimeType || (isVideo ? "video/mp4" : "image/jpeg"),
+          filename: asset.fileName || `used-${Date.now()}-${i}.${isVideo ? "mp4" : "jpg"}`,
+          kind: isVideo ? ("video" as const) : ("image" as const),
+        };
+      }),
     ]);
   }
 
@@ -257,7 +262,7 @@ export function UsedCreateScreen() {
           uri: img.uri,
           filename: img.filename,
           contentType: img.mime,
-          category: "image",
+          category: img.kind === "video" ? "video" : "image",
         });
         uploaded.push(publicUrl);
       }
@@ -450,7 +455,7 @@ export function UsedCreateScreen() {
                 value={description}
                 onChangeText={setDescription}
                 multiline
-                placeholder="올릴 물건의 내용을 작성해 주세요. 신뢰할 수 있는 거래를 위해 자세히 적어 주세요."
+                placeholder="올릴 물건의 내용을 작성해 주세요. 원활하고 안전한 트레이드를 위해 상세한 정보를 입력해 주세요."
                 placeholderTextColor={muted}
               />
             </View>
@@ -663,6 +668,7 @@ export function UsedCreateScreen() {
                 mode="pick"
                 country={countryCode}
                 region={region}
+                district={countryCode.toUpperCase() === "KR" && sidoId !== "__shipping__" ? sigungu : undefined}
                 coords={meetCoords}
                 onCoordsChange={setMeetCoords}
                 height={220}

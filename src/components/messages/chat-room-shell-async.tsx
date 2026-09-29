@@ -9,6 +9,8 @@ import {
   getPurchasedMessageAttachmentIds,
 } from "@/lib/message-paid-media";
 import { ChatRoomShell } from "@/components/messages/chat-room-shell";
+import { contactPermissions } from "@/lib/contact-audience";
+import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
 
 export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   const session = await getCachedSession();
@@ -41,8 +43,16 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   ]);
 
   const meta = getConversationMeta(room, session.user.id);
+  const isMarket = room.type === "MARKET";
   const otherMember =
-    room.type === "DM" ? room.members.find((m) => m.userId !== session.user.id)?.user : undefined;
+    room.type === "DM" || isMarket
+      ? room.members.find((m) => m.userId !== session.user.id)?.user
+      : undefined;
+  const perms = isMarket
+    ? { canMessage: true, canCall: false }
+    : otherMember
+      ? await contactPermissions(session.user.id, otherMember.id)
+      : { canMessage: true, canCall: true };
 
   const paidIds = collectPaidAttachmentIds(messages);
   const purchasedIds = await getPurchasedMessageAttachmentIds(session.user.id, paidIds);
@@ -74,6 +84,9 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
         })),
       }}
       groupMeta={null}
+      readOnly={!perms.canMessage}
+      readOnlyHint={perms.canMessage ? undefined : MESSAGE_REQUEST_BLOCKED}
+      canCall={perms.canCall}
     />
   );
 }

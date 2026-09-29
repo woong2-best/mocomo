@@ -3,10 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { completeBirthDateOnboarding } from "@/actions/birth-date-onboarding";
-import { SignupBirthDateFields } from "@/components/auth/signup-birth-date-fields";
+import {
+  SignupBirthDateFields,
+  birthDateFieldsValid,
+} from "@/components/auth/signup-birth-date-fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import { AuthBrandWordmark } from "@/components/auth/auth-brand-wordmark";
 import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -14,15 +17,23 @@ export function CompleteBirthDateForm({ dest }: { dest?: string }) {
   const { locale, t } = useLocale();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [birth, setBirth] = useState({ birthYear: "", birthMonth: "", birthDay: "" });
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!birthDateFieldsValid(birth)) {
+      setError(
+        locale === "ko"
+          ? "생년월일을 확인해 주세요. (연 4자리, 월·일 각 2자리)"
+          : "Check your date of birth (4-digit year, 2-digit month and day)."
+      );
+      return;
+    }
     setLoading(true);
     setError("");
-    const form = new FormData(e.currentTarget);
-    const birthYear = Number(form.get("birthYear"));
-    const birthMonth = Number(form.get("birthMonth"));
-    const birthDay = Number(form.get("birthDay"));
+    const birthYear = Number(birth.birthYear);
+    const birthMonth = Number(birth.birthMonth);
+    const birthDay = Number(birth.birthDay);
 
     try {
       const result = await completeBirthDateOnboarding({
@@ -57,15 +68,13 @@ export function CompleteBirthDateForm({ dest }: { dest?: string }) {
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
-            <BrandLogo size={48} priority />
-          </div>
+          <AuthBrandWordmark className="mx-auto" />
           <CardTitle className="text-xl font-semibold">{title}</CardTitle>
           <p className="text-sm text-muted-foreground">{desc}</p>
         </CardHeader>
         <CardContent className="space-y-4 pt-2">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <SignupBirthDateFields locale={locale} />
+            <SignupBirthDateFields locale={locale} values={birth} onChange={setBirth} />
             {error ? (
               <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">
                 {error}

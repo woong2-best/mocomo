@@ -24,7 +24,6 @@ import {
   startSellerConnectOnboarding,
   syncStripeConnectOnboardedAt,
 } from "@/lib/stripe-connect";
-import { normalizeSellerCountry } from "@/lib/marketplace/seller-region-policy";
 import { isValidProductType, normalizeWorkTitle, compactWorkKey } from "@/lib/used-catalog";
 import { normalizeSubcultureListingInput } from "@/lib/subculture-commerce/normalize";
 import { resolveAnimeSlugFromWorkTitle } from "@/lib/subculture-commerce/anime-suggest";
@@ -146,7 +145,7 @@ export async function getMarketplaceSellItemGate(userId: string): Promise<Market
   return { allowed: true };
 }
 
-export async function startMarketplaceConnectOnboarding() {
+export async function startMarketplaceConnectOnboarding(payoutCountry?: string) {
   const { user } = await requireMarketplaceSeller();
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
@@ -160,29 +159,25 @@ export async function startMarketplaceConnectOnboarding() {
   });
   if (!dbUser) return { error: "사용자를 찾을 수 없습니다." };
 
-  const country = normalizeSellerCountry(
-    dbUser.marketplaceSeller?.sellingMarket || dbUser.countryCode
-  );
-
   const result = await startSellerConnectOnboarding({
     userId: dbUser.id,
     email: dbUser.email,
     stripeConnectAccountId: dbUser.stripeConnectAccountId,
-    countryCode: country,
+    countryCode: payoutCountry ?? "",
   });
   if ("error" in result) return result;
 
   return { url: result.url };
 }
 
-export async function resumeMarketplaceConnectOnboarding() {
+export async function resumeMarketplaceConnectOnboarding(payoutCountry?: string) {
   const user = await requireAuth();
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
     select: { stripeConnectAccountId: true },
   });
   if (!dbUser?.stripeConnectAccountId) {
-    return startMarketplaceConnectOnboarding();
+    return startMarketplaceConnectOnboarding(payoutCountry);
   }
   const result = await refreshSellerConnectLink(dbUser.stripeConnectAccountId);
   if ("error" in result) return result;

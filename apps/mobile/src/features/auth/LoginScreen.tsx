@@ -26,11 +26,10 @@ import { hasSeenNotificationPrompt } from "@/lib/onboarding-store";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { NotificationPermissionSheet } from "@/features/auth/NotificationPermissionSheet";
 import { TermsConsentSheet } from "@/features/auth/TermsConsentSheet";
-import { SignupOnboardingSheet } from "@/features/auth/SignupOnboardingSheet";
 import {
-  SignupRoleFollowUpSheet,
-  type SignupRole,
-} from "@/features/auth/SignupRoleFollowUpSheet";
+  SignupOnboardingSheet,
+  type SignupOnboardingBirth,
+} from "@/features/auth/SignupOnboardingSheet";
 import { SignupCompleteCelebration } from "@/features/auth/SignupCompleteCelebration";
 import { WelcomeSocialAuthRow } from "@/features/auth/WelcomeSocialAuthRow";
 import { NativeCredentialsForm } from "@/features/auth/NativeCredentialsForm";
@@ -101,8 +100,7 @@ export function LoginScreen({ navigation, route }: Props) {
   const [signupBusy, setSignupBusy] = useState(false);
   const [signupError, setSignupError] = useState("");
   const [showSignupOnboarding, setShowSignupOnboarding] = useState(false);
-  const [showRoleFollowUp, setShowRoleFollowUp] = useState(false);
-  const [pendingRole, setPendingRole] = useState<SignupRole | null>(null);
+  const [pendingBirth, setPendingBirth] = useState<SignupOnboardingBirth | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
 
   const authLocked = credentialsBusy || busyProvider !== null;
@@ -222,7 +220,8 @@ export function LoginScreen({ navigation, route }: Props) {
     [addAccountMode, finishAddAccountIfNeeded, openWebAuth, runGoogleNative]
   );
 
-  const confirmSignupTerms = useCallback(() => {
+  const confirmSignupTerms = useCallback((birth: SignupOnboardingBirth) => {
+    setPendingBirth(birth);
     setShowSignupOnboarding(true);
   }, []);
 
@@ -230,14 +229,15 @@ export function LoginScreen({ navigation, route }: Props) {
     async (payload: {
       birth: { birthYear: number; birthMonth: number; birthDay: number };
       localAvatarUri: string | null;
-      role: SignupRole;
+      username: string;
+      name: string;
+      password: string;
     }) => {
       if (!pendingSignup || !payload.localAvatarUri) return;
       setSignupBusy(true);
       setSignupError("");
       setShowSignupOnboarding(false);
       const snapshot = pendingSignup;
-      const chosenRole = payload.role;
       try {
         const consent = {
           birthYear: payload.birth.birthYear,
@@ -245,6 +245,9 @@ export function LoginScreen({ navigation, route }: Props) {
           birthDay: payload.birth.birthDay,
           termsAccepted: true as const,
           privacyAccepted: true as const,
+          username: payload.username,
+          name: payload.name,
+          password: payload.password,
         };
         if (snapshot.kind === "google") {
           await signInWithGoogleNative({
@@ -273,8 +276,8 @@ export function LoginScreen({ navigation, route }: Props) {
           birthDay: payload.birth.birthDay,
         });
         setPendingSignup(null);
-        setPendingRole(chosenRole);
-        setShowRoleFollowUp(true);
+        setPendingBirth(null);
+        setShowCelebration(true);
       } catch (e) {
         setSignupError(credentialsErrorMessage(e, "계정을 만들지 못했습니다."));
         setPendingSignup(snapshot);
@@ -353,39 +356,30 @@ export function LoginScreen({ navigation, route }: Props) {
       </View>
 
       <TermsConsentSheet
-        visible={pendingSignup !== null && !showSignupOnboarding && !showRoleFollowUp && !showCelebration}
+        visible={pendingSignup !== null && !showSignupOnboarding && !showCelebration}
         account={pendingSignup?.profile ?? null}
         busy={signupBusy}
         error={signupError}
         onClose={() => setPendingSignup(null)}
-        onAgree={() => void confirmSignupTerms()}
+        onAgree={(birth) => confirmSignupTerms(birth)}
       />
 
       <SignupOnboardingSheet
         visible={showSignupOnboarding}
         mode="collectOnly"
-        onClose={() => setShowSignupOnboarding(false)}
+        confirmedBirth={pendingBirth}
+        onClose={() => {
+          setShowSignupOnboarding(false);
+          setPendingBirth(null);
+        }}
         onFinished={(payload) => {
           void finishSignupOnboarding({
             birth: payload.birth,
             localAvatarUri: payload.localAvatarUri,
-            role: payload.role,
+            username: payload.username,
+            name: payload.name,
+            password: payload.password,
           });
-        }}
-      />
-
-      <SignupRoleFollowUpSheet
-        visible={showRoleFollowUp}
-        role={pendingRole}
-        onClose={() => {
-          setShowRoleFollowUp(false);
-          setPendingRole(null);
-          setShowCelebration(true);
-        }}
-        onFinished={() => {
-          setShowRoleFollowUp(false);
-          setPendingRole(null);
-          setShowCelebration(true);
         }}
       />
 
@@ -398,7 +392,7 @@ export function LoginScreen({ navigation, route }: Props) {
       />
 
       <NotificationPermissionSheet
-        visible={showNotification && !addAccountMode}
+        visible={showNotification && !addAccountMode && pendingSignup === null}
         onComplete={() => setShowNotification(false)}
       />
 

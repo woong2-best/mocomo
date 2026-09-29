@@ -96,6 +96,7 @@ export function PostRepostMenu({
       const data = await postEngage(postId, "repost");
       setReposted(!!data.reposted);
       if (typeof data.repostCount === "number") setRepostCount(data.repostCount);
+      router.refresh();
     } catch (err) {
       setReposted(prevReposted);
       setRepostCount(prevCount);
@@ -108,24 +109,24 @@ export function PostRepostMenu({
   function quotePost() {
     if (!requireLogin()) return;
     setOpen(false);
-    const quoteBlock = buildPostRepostQuoteDraft({
-      postId,
-      authorUsername,
-      title,
-      content,
-    });
-    const preview = title?.trim() || content?.trim().slice(0, 40) || "게시물";
+    const preview = title?.trim() || content?.trim().replace(/\s+/g, " ").slice(0, 80) || "게시물";
     if (compose) {
       compose.openCompose({
-        initialContent: quoteBlock,
-        initialTitle: `@${authorUsername} 인용`,
+        quotedPostId: postId,
+        quotedAuthorUsername: authorUsername,
+        quotedPreview: preview,
       });
       return;
     }
     if (isAptPublicEnabled()) {
       router.push(
         buildAptMailboxUrl({
-          initialContent: quoteBlock,
+          initialContent: buildPostRepostQuoteDraft({
+            postId,
+            authorUsername,
+            title,
+            content,
+          }),
           initialTitle: `@${authorUsername} 인용`,
         })
       );

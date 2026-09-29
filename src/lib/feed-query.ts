@@ -3,10 +3,11 @@ import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { postMediaPreview } from "@/lib/post-media-select";
-import { postPollSelect, mapPostPollRow } from "@/lib/post-poll";
+import { postPollSelect, mapPostPollRow, type PostPollView } from "@/lib/post-poll";
 import { postCollaboratorsHeaderInclude } from "@/lib/post-collaborator-select";
 import { platformPostWhere } from "@/lib/post-scope";
 import { nsfwPostWhere } from "@/lib/nsfw-viewer-access";
+import { quotedPostPreviewSelect } from "@/lib/quoted-post";
 
 const FEED_POST_MAX_CONTENT = 520;
 
@@ -28,6 +29,7 @@ export const feedPostListSelect = {
   media: postMediaPreview,
   poll: { select: postPollSelect },
   _count: { select: { likes: true, comments: true, votes: true, reposts: true, media: true } },
+  quotedPost: { select: quotedPostPreviewSelect },
 } as const;
 
 export type FeedPostRow = {
@@ -42,6 +44,7 @@ export type FeedPostRow = {
   author: { id: string; username: string; image: string | null; supportTierSent: string };
   anime: { title: string; slug: string } | null;
   media: { id?: string; url: string; type: string; priceKrw?: number | null }[];
+  poll?: PostPollView | null;
   _count: { likes: number; comments: number; votes: number; reposts: number; media?: number };
 };
 
@@ -61,8 +64,10 @@ function mapFeedPost<T extends { poll: Parameters<typeof mapPostPollRow>[0] | nu
 
 export { mapFeedPost };
 
+const { quotedPost: _feedQuotedPost, ...feedPostListSelectWithoutQuote } = feedPostListSelect;
+
 export const feedPostListSelectNoReposts = {
-  ...feedPostListSelect,
+  ...feedPostListSelectWithoutQuote,
   _count: { select: { likes: true, comments: true, votes: true, media: true } },
 } as const;
 
@@ -107,6 +112,7 @@ export async function fetchFeedPostsPage(
       return posts.map((p) =>
         mapFeedPost({
           ...p,
+          quotedPost: null,
           poll: null,
           _count: { ...p._count, reposts: 0 },
         })
@@ -114,14 +120,14 @@ export async function fetchFeedPostsPage(
     } catch (e2) {
       console.error("[feed] fallback", e2);
       const posts = await db.post.findMany({ ...query, select: feedPostListSelectNoPoll });
-      return posts.map((p) => trimFeedPostContent({ ...p, poll: null }));
+      return posts.map((p) => trimFeedPostContent({ ...p, quotedPost: null, poll: null }));
     }
   }
 }
 
 /**
- * Mobile Home list — Twitter/IG-class first paint.
- * Skip collaborators + poll; cap media URLs (card shows 1; lightbox uses post detail if needed).
+ * Mobile Home list — cap media URLs (card shows a carousel; detail uses the gallery).
+ * Poll is included so vote posts render in the home feed.
  */
 const mobileFeedMediaPreview = {
   take: 8,
@@ -158,11 +164,25 @@ export const mobileFeedPostSelect = {
   },
   anime: { select: { title: true, slug: true } },
   media: mobileFeedMediaPreview,
+  poll: { select: postPollSelect },
   _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
+  quotedPost: { select: quotedPostPreviewSelect },
 } as const;
 
+export function mapMobileFeedPost<
+  T extends { content: string; poll?: Parameters<typeof mapPostPollRow>[0] | null },
+>(post: T): Omit<T, "poll"> & { poll: PostPollView | null } {
+  const trimmed = trimFeedPostContent(post);
+  return {
+    ...trimmed,
+    poll: post.poll ? mapPostPollRow(post.poll) : null,
+  };
+}
+
+const { quotedPost: _mobileQuotedPost, ...mobileFeedPostSelectWithoutQuote } = mobileFeedPostSelect;
+
 const mobileFeedPostSelectNoReposts = {
-  ...mobileFeedPostSelect,
+  ...mobileFeedPostSelectWithoutQuote,
   _count: { select: { likes: true, comments: true, votes: true } },
 } as const;
 
@@ -180,13 +200,14 @@ export async function fetchMobileFeedPostsPage(
 
   try {
     const posts = await db.post.findMany({ ...query, select: mobileFeedPostSelect });
-    return posts.map((p) => trimFeedPostContent(p));
+    return posts.map((p) => mapMobileFeedPost(p));
   } catch (e) {
     console.error("[mobile-feed] reposts", e);
     const posts = await db.post.findMany({ ...query, select: mobileFeedPostSelectNoReposts });
     return posts.map((p) =>
-      trimFeedPostContent({
+      mapMobileFeedPost({
         ...p,
+        quotedPost: null,
         _count: { ...p._count, reposts: 0 },
       })
     );
@@ -250,7 +271,7 @@ export async function fetchMobileFeedPostsByIds(
   return postIds
     .map((id) => byId.get(id))
     .filter((p): p is NonNullable<typeof p> => p != null)
-    .map((p) => trimFeedPostContent(p));
+    .map((p) => mapMobileFeedPost(p));
 }
 
 /** @deprecated fetchWebFeedPostsByIds / fetchMobileFeedPostsByIds 사용 */

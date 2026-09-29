@@ -38,6 +38,8 @@ type Props = {
   /** Hide pin for anonymous QnA own posts */
   hideProfilePin?: boolean;
   featuredOnProfile?: boolean;
+  /** Owner pin labels (vs “profile main” for others’ posts). */
+  ownerPinLabels?: boolean;
   onFeaturedChange?: (featured: boolean) => void;
   onMuted?: (muted: boolean) => void;
   onBlocked?: () => void;
@@ -56,6 +58,7 @@ export function FeedPostOverflowMenu({
   isOwner = false,
   hideProfilePin = false,
   featuredOnProfile = false,
+  ownerPinLabels = false,
   onFeaturedChange,
   onMuted,
   onBlocked,
@@ -68,7 +71,7 @@ export function FeedPostOverflowMenu({
   const [muted, setMuted] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
-  const [confirm, setConfirm] = useState<"delete" | "block" | null>(null);
+  const [confirm, setConfirm] = useState<"block" | null>(null);
 
   useEffect(() => {
     if (visible) setFeatured(featuredOnProfile);
@@ -94,7 +97,13 @@ export function FeedPostOverflowMenu({
       onFeaturedChange?.(res.featured);
       closeAll();
       showIslandSuccess(
-        res.featured ? "프로필 메인에 올렸습니다" : "프로필 메인에서 내렸습니다"
+        res.featured
+          ? ownerPinLabels
+            ? "프로필에 고정했습니다"
+            : "프로필 메인에 올렸습니다"
+          : ownerPinLabels
+            ? "프로필 고정을 해제했습니다"
+            : "프로필 메인에서 내렸습니다"
       );
     } catch (e) {
       showIslandError("오류", e instanceof Error ? e.message : "처리에 실패했습니다.");
@@ -119,11 +128,6 @@ export function FeedPostOverflowMenu({
       }
     })();
   }, [busy, closeAll, onDeleted, postId]);
-
-  const onDelete = useCallback(() => {
-    if (busy) return;
-    setConfirm("delete");
-  }, [busy]);
 
   const onQuiet = useCallback(async () => {
     if (busy) return;
@@ -176,22 +180,7 @@ export function FeedPostOverflowMenu({
               style={[styles.menu, { top: menuTop, left: menuLeft, width: MENU_WIDTH }]}
               onStartShouldSetResponder={() => true}
             >
-              {confirm === "delete" ? (
-                <>
-                  <Text style={styles.confirmTitle}>게시물 삭제</Text>
-                  <Text style={styles.confirmBody}>이 게시물을 삭제할까요?</Text>
-                  <Pressable style={styles.row} onPress={runDelete} disabled={!!busy}>
-                    <Ionicons name="trash-outline" size={18} color={colors.terracotta} />
-                    <Text style={[styles.rowText, styles.dangerText]}>삭제하기</Text>
-                    {busy === "delete" ? (
-                      <ActivityIndicator size="small" color={colors.terracotta} />
-                    ) : null}
-                  </Pressable>
-                  <Pressable style={styles.row} onPress={() => setConfirm(null)}>
-                    <Text style={styles.rowText}>취소</Text>
-                  </Pressable>
-                </>
-              ) : confirm === "block" ? (
+              {confirm === "block" ? (
                 <>
                   <Text style={styles.confirmTitle}>차단하기</Text>
                   <Text style={styles.confirmBody}>@{authorUsername} 님을 차단할까요?</Text>
@@ -208,7 +197,7 @@ export function FeedPostOverflowMenu({
                 </>
               ) : isOwner ? (
                 <>
-                  <Pressable style={styles.row} onPress={onDelete} disabled={!!busy}>
+                  <Pressable style={styles.row} onPress={runDelete} disabled={!!busy}>
                     <Ionicons name="trash-outline" size={18} color={colors.terracotta} />
                     <Text style={[styles.rowText, styles.dangerText]}>삭제하기</Text>
                     {busy === "delete" ? (
@@ -221,7 +210,13 @@ export function FeedPostOverflowMenu({
                       <Pressable style={styles.row} onPress={() => void onFeature()} disabled={!!busy}>
                         <Ionicons name={featured ? "pin-outline" : "pin"} size={18} color={colors.text} />
                         <Text style={styles.rowText}>
-                          {featured ? "프로필 메인에서 내리기" : "내 프로필 메인에 올리기"}
+                          {featured
+                            ? ownerPinLabels
+                              ? "프로필 고정 해제"
+                              : "프로필 메인에서 내리기"
+                            : ownerPinLabels
+                              ? "프로필에 고정"
+                              : "내 프로필 메인에 올리기"}
                         </Text>
                         {busy === "feature" ? (
                           <ActivityIndicator size="small" color={colors.cobalt} />
@@ -244,7 +239,7 @@ export function FeedPostOverflowMenu({
                   <View style={styles.sep} />
                   <Pressable style={styles.row} onPress={() => void onQuiet()} disabled={!!busy}>
                     <Ionicons
-                      name={muted ? "volume-high-outline" : "volume-mute-outline"}
+                      name={muted ? "volume-mute-outline" : "volume-high-outline"}
                       size={18}
                       color={colors.text}
                     />

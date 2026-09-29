@@ -1,4 +1,4 @@
-/** 나무위키 스타일 작품 정보표 — 텍스트 파서 */
+/** 작품 정보표 — 텍스트 파서 */
 
 export type WikiInfoboxRow = {
   label: string;
@@ -52,10 +52,8 @@ export function parseWikiInfobox(source: string | null | undefined): WikiInfobox
 
 export const WIKI_INFOBOX_HELP = `=== 섹션 제목 ===
 라벨 | 값
-방송국 | 🇯🇵 후지 TV — 금 24:55~
-| 🇰🇷 2016. 7. ~ 9.  (| 로 같은 칸 줄바꿈)
-스트리밍 | [LAFTEL](https://laftel.net) · [TVING](https://tving.com)
-[[다른 위키 글]] · **굵게** · [링크](URL) · {{방송사}} 뱃지 지원`;
+방송국 | 후지 TV — 금 24:55
+스트리밍 | LAFTEL · TVING`;
 
 export const KABANERI_INFOBOX = `=== 작품 정보 ===
 장르 | 좀비 아포칼립스, 스팀펑크, 액션

@@ -5,6 +5,7 @@ import { unstable_cache } from "next/cache";
 import { Prisma, type MediaType } from "@prisma/client";
 import { db } from "@/lib/db";
 import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
+import { displayableImageUrl } from "@/lib/displayable-image-url";
 import { getAuthUserId } from "@/lib/auth";
 import { profileUserCacheTag } from "@/lib/cache-tags";
 import {
@@ -35,10 +36,13 @@ import {
   type ProfileSort,
 } from "@/lib/profile-queries";
 import { profilePostsOwnedOrCollabWhere } from "@/lib/post-collaborator-select";
+import { platformPostWhere } from "@/lib/post-scope";
 import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
 import { canViewLockedAccountContent } from "@/lib/posts-lock";
+import { hydrateViewerPollVotes, mapPostPollRow } from "@/lib/post-poll";
 import type { UserPublicFields } from "@/lib/user-public-select";
 import { nsfwPostWhere, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { loadProfilePostActivities } from "@/lib/repost-timeline";
 
 const PAGE_SIZE = 10;
 const MEDIA_GRID_PAGE_SIZE = 30;
@@ -137,7 +141,7 @@ async function enrichPostsWithMediaAccess(
     getPurchasedPostMediaIds(viewerId, mediaIds),
     getSubscriptionsForViewer(viewerId, authorIds),
   ]);
-  return withAuthor.map((p) =>
+  const withAccess = withAuthor.map((p) =>
     attachPostContentAccess(
       p,
       viewerId,
@@ -145,6 +149,11 @@ async function enrichPostsWithMediaAccess(
       subscriptions.get(p.authorId)
     )
   );
+  const withPoll = withAccess.map((p) => ({
+    ...p,
+    poll: p.poll ? mapPostPollRow(p.poll) : null,
+  }));
+  return hydrateViewerPollVotes(withPoll, viewerId);
 }
 
 function mediaTypesForKind(kind: ProfileMediaKind): MediaType | MediaType[] {
@@ -225,8 +234,8 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     hasPayoutAccount = !!payout?.stripeOnboardingCompleted;
   }
 
-  let shownUser = user;
-  if (!user.image) {
+  let shownUser = { ...user, image: displayableImageUrl(user.image) };
+  if (!shownUser.image) {
     const row = await db.user.findUnique({
       where: { id: user.id },
       select: { passwordHash: true, email: true, name: true },
@@ -239,7 +248,7 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
         email: row.email,
         passwordHash: null,
       });
-      if (hydrated.image) shownUser = { ...user, image: hydrated.image };
+      if (hydrated.image) shownUser = { ...shownUser, image: hydrated.image };
     }
   }
 
@@ -362,17 +371,50 @@ export async function getProfileTimeline(
   const mediaSome = postMediaSomeFilter(mediaKind);
 
   if (tab === "posts") {
-    const posts = await db.post.findMany({
-      where: { ...profilePostsOwnedOrCollabWhere(userId), isPinned: false },
-      take: PAGE_SIZE,
-      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-      orderBy: profilePostsOrderBy(sort),
+    const pinOwner = await db.user.findUnique({
+      where: { id: userId },
+      select: { profileMainPostId: true },
+    });
+    const excludePinnedId = pinOwner?.profileMainPostId ?? null;
+
+    const { rows, nextCursor } = await loadProfilePostActivities({
+      userId,
+      cursor,
+      limit: PAGE_SIZE,
+      sort,
+      where: {
+        ...profilePostsOwnedOrCollabWhere(userId),
+        isPinned: false,
+        ...(excludePinnedId ? { id: { not: excludePinnedId } } : {}),
+      },
+      repostPostWhere: {
+        ...platformPostWhere,
+        ...(viewerId === userId ? {} : nsfwPostWhere(await resolveCanViewNsfw(viewerId))),
+      },
       include: profilePostIncludeLight,
     });
-    const enriched = await enrichPostsWithMediaAccess(posts, viewerId, author);
+    const timelineRows = excludePinnedId
+      ? rows.filter((row) => row.post.id !== excludePinnedId)
+      : rows;
+    const enriched = await enrichPostsWithMediaAccess(
+      timelineRows.map((row) => row.post),
+      viewerId,
+      author
+    );
     return {
-      items: enriched.map((p) => ({ type: "post" as const, post: p })),
-      nextCursor: posts.length === PAGE_SIZE ? posts[posts.length - 1]?.id : null,
+      items: enriched.map((post, index) => {
+        const row = timelineRows[index]!;
+        return {
+          type: "post" as const,
+          activityKey: row.activityKey,
+          post: {
+            ...post,
+            repostBy: row.repostBy,
+            activityAt: row.activityAt,
+          },
+        };
+      }),
+      nextCursor,
     };
   }
 
@@ -390,11 +432,17 @@ export async function getProfileTimeline(
     const enrichedPosts = await enrichPostsWithMediaAccess(posts, viewerId, author);
     const postById = new Map(enrichedPosts.map((p) => [p.id, p]));
     return {
-      items: comments.map((c) => ({
-        type: "reply" as const,
-        comment: c,
-        post: postById.get(c.post.id) ?? attachProfilePostAuthor([c.post], author)[0],
-      })),
+      items: comments.map((c) => {
+        const fallback = attachProfilePostAuthor([c.post], author)[0];
+        return {
+          type: "reply" as const,
+          comment: c,
+          post: postById.get(c.post.id) ?? {
+            ...fallback,
+            poll: fallback.poll ? mapPostPollRow(fallback.poll) : null,
+          },
+        };
+      }),
       nextCursor: comments.length === PAGE_SIZE ? comments[comments.length - 1]?.id : null,
     };
   }
@@ -437,10 +485,16 @@ export async function getProfileTimeline(
   const enrichedPosts = await enrichPostsWithMediaAccess(posts, viewerId, author);
   const postById = new Map(enrichedPosts.map((p) => [p.id, p]));
   return {
-    items: likes.map((l) => ({
-      type: "like" as const,
-      post: postById.get(l.post.id) ?? attachProfilePostAuthor([l.post], author)[0],
-    })),
+    items: likes.map((l) => {
+      const fallback = attachProfilePostAuthor([l.post], author)[0];
+      return {
+        type: "like" as const,
+        post: postById.get(l.post.id) ?? {
+          ...fallback,
+          poll: fallback.poll ? mapPostPollRow(fallback.poll) : null,
+        },
+      };
+    }),
     nextCursor: likes.length === PAGE_SIZE ? likes[likes.length - 1]?.id : null,
   };
 }
@@ -752,6 +806,10 @@ export const getProfileTabInitialPayload = cache(async function getProfileTabIni
     if (item.type === "post") {
       return {
         type: "post" as const,
+        activityKey:
+          "activityKey" in item && typeof item.activityKey === "string"
+            ? item.activityKey
+            : undefined,
         post: { ...item.post, createdAt: item.post.createdAt.toISOString() },
       };
     }

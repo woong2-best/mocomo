@@ -14,6 +14,7 @@ import { ChatMessageAttachments } from "@/components/chat/chat-message-attachmen
 import { ChatMessageReplyQuote } from "@/components/chat/chat-message-reply-quote";
 import { ChatReplyComposerBar } from "@/components/chat/chat-reply-composer-bar";
 import { ChatSharedPostCard } from "@/components/chat/chat-shared-post-card";
+import { ChatUsedListingCard } from "@/components/chat/chat-used-listing-card";
 import { ChatGameShareCard } from "@/components/chat/chat-game-share-card";
 import { ActivityPanel } from "@/components/activities/activity-panel";
 import { PresenceAvatar } from "@/components/user/presence-avatar";
@@ -30,7 +31,15 @@ import {
   type ChatMessageView,
 } from "@/lib/chat-message-normalize";
 import { parseChatPostShare } from "@/lib/chat-post-share";
+import {
+  isUsedListingAttachment,
+  parseChatUsedListing,
+} from "@/lib/chat-used-listing-share";
 import { parseChatGameShare } from "@/lib/chat-game-share";
+import { parseAtmLetter } from "@/lib/chat-atm-letter";
+import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
+import { TransferLetterCard } from "@/components/messages/transfer-letter-stage";
+import { LetterDonationCard } from "@/components/donations/letter-donation-card";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { UserProfileLink } from "@/components/user/user-profile-link";
 import { cn } from "@/lib/utils";
@@ -38,6 +47,7 @@ import {
   DM_CONTENT_FILTER_WARNING_KO,
   filterDmMessageContent,
 } from "@/lib/chat-content-filter";
+import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
 
 type Message = ChatMessageView;
 
@@ -49,6 +59,7 @@ export function ChatRoomClient({
   userSupportTier = "SEED",
   initialMessages = [],
   readOnly = false,
+  readOnlyHint,
   communityId,
   vipEmoji = false,
   canDeleteMessages = false,
@@ -61,6 +72,7 @@ export function ChatRoomClient({
   userSupportTier?: SupportTierLevel;
   initialMessages?: Message[];
   readOnly?: boolean;
+  readOnlyHint?: string;
   communityId?: string;
   vipEmoji?: boolean;
   canDeleteMessages?: boolean;
@@ -323,7 +335,11 @@ export function ChatRoomClient({
             ? "채널이 잠겨 있어 메시지를 보낼 수 없습니다."
             : msg === "ATTACHMENT_INVALID"
               ? "첨부 파일을 저장하지 못했습니다. 다시 보내 주세요."
-              : "메시지 전송에 실패했습니다."
+              : msg === "PAID_DM_DISABLED"
+                ? "메시지에서 유료 팬아트 판매는 더 이상 지원하지 않습니다."
+                : msg === MESSAGE_REQUEST_BLOCKED
+                ? msg
+                : "메시지 전송에 실패했습니다."
       );
     }
   }
@@ -438,14 +454,24 @@ export function ChatRoomClient({
           const prev = messages[i - 1];
           const isMine = m.sender.id === userId;
           const pending = isPendingMessageId(m.id);
-          const hasAttachments = !!m.attachments?.length;
-          const postShare = parseChatPostShare(m.content);
+          const usedShare = parseChatUsedListing(m.content);
+          const visibleAttachments = (m.attachments ?? []).filter(
+            (attachment) => !isUsedListingAttachment(attachment)
+          );
+          const hasAttachments = visibleAttachments.length > 0;
+          const postShare = usedShare ? null : parseChatPostShare(m.content);
           const gameShare = parseChatGameShare(m.content);
-          const hasText = postShare
-            ? !!postShare.note
-            : gameShare
-              ? !!gameShare.note
-              : !!m.content?.trim();
+          const atmLetter = parseAtmLetter(m.content);
+          const letterTipId = atmLetter ? null : parseLetterDonationMarker(m.content);
+          const hasText = usedShare
+            ? !!usedShare.note
+            : postShare
+              ? !!postShare.note
+              : gameShare
+                ? !!gameShare.note
+                : atmLetter || letterTipId
+                  ? false
+                  : !!m.content?.trim();
           const showDate = shouldShowDateDivider(prev?.createdAt ?? null, m.createdAt);
           const showAvatar = shouldShowAvatar(
             prev ? { senderId: prev.sender.id } : null,
@@ -508,7 +534,7 @@ export function ChatRoomClient({
                     />
                   )}
                   <div className="space-y-1.5">
-                    {hasAttachments && m.attachments && (
+                    {hasAttachments && (
                       <div
                         className={cn(
                           "overflow-hidden",
@@ -528,14 +554,14 @@ export function ChatRoomClient({
                           </div>
                         )}
                         <ChatMessageAttachments
-                          attachments={m.attachments}
+                          attachments={visibleAttachments}
                           isMine={isMine}
                           sellerUsername={m.sender.username}
                           onPurchaseSuccess={() => void refreshPurchasedMedia()}
                         />
                       </div>
                     )}
-                    {!hasAttachments && !hasText && !postShare && !gameShare && (
+                    {!hasAttachments && !hasText && !postShare && !gameShare && !atmLetter && !letterTipId && !usedShare && (
                       <div
                         className={cn(
                           "px-3.5 py-2 text-xs italic rounded-2xl",
@@ -563,7 +589,7 @@ export function ChatRoomClient({
                             selfUserId={userId}
                           />
                         )}
-                        {postShare?.note ?? gameShare?.note ?? m.content}
+                        {usedShare?.note ?? postShare?.note ?? gameShare?.note ?? m.content}
                       </div>
                     )}
                     {gameShare && (
@@ -586,6 +612,20 @@ export function ChatRoomClient({
                         )}
                         <ChatGameShareCard share={gameShare} isMine={isMine} />
                       </div>
+                    )}
+                    {atmLetter ? (
+                      <TransferLetterCard
+                        amount={atmLetter.amount}
+                        message={atmLetter.message}
+                        senderName={m.sender.username}
+                        createdAt={m.createdAt}
+                      />
+                    ) : null}
+                    {letterTipId ? (
+                      <LetterDonationCard tipId={letterTipId} interactive={!isMine} />
+                    ) : null}
+                    {usedShare && (
+                      <ChatUsedListingCard listingId={usedShare.listingId} />
                     )}
                     {postShare && (
                       <div className={cn(hasText && "mt-1")}>
@@ -674,9 +714,11 @@ export function ChatRoomClient({
       )}
       {readOnly && (
         <div className="shrink-0 border-t border-border/60 bg-muted/30 px-4 py-3 text-center text-xs text-muted-foreground">
-          {userId === "guest"
-            ? "게스트 읽기 전용입니다. 로그인 후 커뮤니티에 참여하면 채팅을 보낼 수 있습니다."
-            : "읽기 전용 모드입니다. 상단에서 커뮤니티에 참여하면 채팅을 보낼 수 있습니다."}
+          {readOnlyHint
+            ? readOnlyHint
+            : userId === "guest"
+              ? "게스트 읽기 전용입니다. 로그인 후 커뮤니티에 참여하면 채팅을 보낼 수 있습니다."
+              : "읽기 전용 모드입니다. 상단에서 커뮤니티에 참여하면 채팅을 보낼 수 있습니다."}
         </div>
       )}
     </div>

@@ -6,7 +6,10 @@ import { canAccessDm } from "@/lib/tiers";
 import { ChatRoomType, SupportTierLevel } from "@prisma/client";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
 import { chatMessageInclude, serializeChatMessage, serializeChatMessageForRelay } from "@/lib/chat-message-serialize";
-import { sanitizeChatAttachments } from "@/lib/chat-attachments";
+import {
+  dmPaidSaleAttachmentRequested,
+  sanitizeChatAttachments,
+} from "@/lib/chat-attachments";
 import { notifyChatMessage } from "@/lib/notifications";
 import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
 import { resolveChannelPermission } from "@/lib/community-server/access-resolver";
@@ -15,13 +18,13 @@ import {
   collectPaidAttachmentIds,
   getPurchasedMessageAttachmentIds,
 } from "@/lib/message-paid-media";
-import { isPaidMedia } from "@/lib/post-paid-media";
-import { assertAdultVerified } from "@/lib/adult-verification/is-verified";
 import {
   buildMessagesInboxWhere,
   getCommunityLinkedChatRoomIds,
 } from "@/lib/chat-inbox-eligibility";
 import { addChatMemberByUsername } from "@/lib/chat-group-invite";
+import { dmSendBlockReason, incomingContactDecision } from "@/lib/contact-audience";
+import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -84,6 +87,10 @@ export async function getOrCreateDM(otherUserId: string) {
     },
   });
   if (existing) return { room: existing };
+
+  const decision = await incomingContactDecision(user.id, otherUserId, "message");
+  if (!decision.allowed) return { error: decision.error };
+
   return createChatRoom({ type: "DM", memberIds: [otherUserId] });
 }
 
@@ -133,14 +140,12 @@ export async function sendMessage(data: {
   });
   if (!member) throw new Error("NOT_MEMBER");
 
+  if (dmPaidSaleAttachmentRequested(data.attachments)) {
+    throw new Error("PAID_DM_DISABLED");
+  }
   const rawAttachmentCount = Array.isArray(data.attachments) ? data.attachments.length : 0;
   const attachments = sanitizeChatAttachments(data.attachments);
   const hasAttachments = attachments.length > 0;
-  const hasPaidAttachment = attachments.some((a) => isPaidMedia(a.priceKrw ?? 0));
-  if (hasPaidAttachment) {
-    const block = assertAdultVerified(user);
-    if (block) throw new Error("ADULT_VERIFICATION_REQUIRED");
-  }
   const rawText = (data.content ?? "").trim();
   const filtered = rawText ? filterDmMessageContent(rawText) : { text: "", wasFiltered: false, matchedRuleIds: [] };
   const text = filtered.text;
@@ -154,6 +159,11 @@ export async function sendMessage(data: {
     select: { type: true, communityId: true },
   });
   if (!room) throw new Error("ROOM_NOT_FOUND");
+
+  if (room.type === "DM") {
+    const block = await dmSendBlockReason(user.id, data.roomId);
+    if (block) throw new Error(block === "MESSAGE_NOT_ALLOWED" ? MESSAGE_REQUEST_BLOCKED : block);
+  }
 
   const communityChannel = await db.communityChannel.findFirst({
     where: { chatRoomId: data.roomId },

@@ -33,6 +33,15 @@ export type ChatReplyTo = {
   attachments?: ChatAttachment[];
 };
 
+export type UsedListingChatCard = {
+  id: string;
+  title: string;
+  imageUrl: string | null;
+  priceLabel: string;
+  saleType: string;
+  href: string;
+};
+
 export type ChatMessage = {
   id: string;
   content: string | null;
@@ -44,6 +53,8 @@ export type ChatMessage = {
   };
   attachments: ChatAttachment[];
   replyTo?: ChatReplyTo;
+  /** Present when the message is a used-listing inquiry card. */
+  usedListing?: UsedListingChatCard | null;
 };
 
 export type ChatRoomMember = {
@@ -54,10 +65,49 @@ export type ChatRoomMember = {
   timeZone?: string | null;
 };
 
+export type DirectTradeView = {
+  id: string;
+  listingId: string;
+  roomId: string;
+  listingTitle: string;
+  sellerUsername: string;
+  counterpartUsername: string;
+  priceLabel: string;
+  meetPlace: string | null;
+  meetAt: string | null;
+  proposedMeetAt: string | null;
+  proposedByMe: boolean;
+  tradeStatus: string;
+  tradeStatusLabel: string;
+  myArrivalStatus: string;
+  myArrivalLabel: string;
+  counterpartArrivalStatus: string;
+  counterpartArrivalLabel: string;
+  disputeStatus: string;
+  disputeStatusLabel: string;
+  depositStatus: string;
+  depositStatusLabel: string;
+  penaltyStatus: string;
+  penaltyStatusLabel: string;
+  guidance: string | null;
+  myPin: string | null;
+  pinWarning: string | null;
+  canVerifyArrival: boolean;
+  canReportNoShow: boolean;
+  canSubmitPin: boolean;
+  canProposeMeet: boolean;
+  canAcceptMeet: boolean;
+  canAdjustMeet: boolean;
+  role: "buyer" | "seller";
+};
+
 export type UsedTradeRoomContext = {
   listingId: string;
   listingTitle: string;
   listingStatus: string;
+  saleType?: string;
+  priceLabel?: string;
+  sellerUsername?: string;
   sellerId: string;
   buyerId: string;
   isBuyer: boolean;
@@ -65,6 +115,7 @@ export type UsedTradeRoomContext = {
   canRequestTrade: boolean;
   editLocked: boolean;
   pendingRequestId: string | null;
+  directTrade?: DirectTradeView | null;
 };
 
 export type DmRoomPayload = {
@@ -79,6 +130,8 @@ export type DmRoomPayload = {
     members?: ChatRoomMember[];
     otherTimeZone?: string | null;
     usedTrade?: UsedTradeRoomContext | null;
+    canMessage?: boolean;
+    canCall?: boolean;
   };
   messages: ChatMessage[];
   nextBefore: string | null;
@@ -149,6 +202,7 @@ export type MessageUserHit = {
   username: string;
   name: string | null;
   image: string | null;
+  canMessage?: boolean;
 };
 
 export async function addRoomMember(roomId: string, username: string) {
@@ -186,6 +240,14 @@ export async function syncRoomMessages(roomId: string, after?: string | null) {
   return apiRequest<{ messages: ChatMessage[] }>(
     `${MobileApi.messages}/${roomId}/sync${suffix}`,
     { auth: true }
+  );
+}
+
+export async function waitDmInbox(since: string, signal?: AbortSignal) {
+  const q = new URLSearchParams({ since });
+  return apiRequest<{ changed: boolean; rooms?: DmInboxRoom[]; serverTime: string }>(
+    `${MobileApi.messages}/wait?${q}`,
+    { auth: true, signal, timeoutMs: 12_000 }
   );
 }
 

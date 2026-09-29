@@ -40,5 +40,7 @@ export const FeedPostCardInteractive = memo(
     prev.initialLiked === next.initialLiked &&
     prev.initialStarred === next.initialStarred &&
     prev.initialReposted === next.initialReposted &&
-    prev.paymentsEnabled === next.paymentsEnabled
+    prev.paymentsEnabled === next.paymentsEnabled &&
+    prev.post.repostBy?.id === next.post.repostBy?.id &&
+    prev.post.quotedPost?.id === next.post.quotedPost?.id
 );

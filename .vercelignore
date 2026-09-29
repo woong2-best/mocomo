@@ -54,6 +54,8 @@ public/mediapipe/
 
 # Local scratch / compare / native module build junk
 .tmp-card-compare/
+.tmp-build/
+.build-tmp/
 .tmp/
 tmp/
 **/android/build/

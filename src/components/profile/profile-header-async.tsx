@@ -15,6 +15,7 @@ import { ProfilePinnedPostVisibility } from "@/components/profile/profile-pinned
 import { ProfilePostCard } from "@/components/profile/profile-post-card";
 import { ProfileVisitTracker } from "@/components/profile/profile-visit-tracker";
 import { getAuthUserId } from "@/lib/auth";
+import { contactPermissions } from "@/lib/contact-audience";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { getProfileLiveBroadcast } from "@/lib/profile-live-broadcast";
 import type { UserPublicFields } from "@/lib/user-public-select";
@@ -40,6 +41,8 @@ async function ProfileHeaderActionBarAsync({
   followRequested: boolean;
   postsLocked: boolean;
 }) {
+  const viewerId = await getAuthUserId();
+  const canMessage = viewerId ? (await contactPermissions(viewerId, userId)).canMessage : true;
   return (
     <ProfileHeaderActionBar
       userId={userId}
@@ -47,6 +50,7 @@ async function ProfileHeaderActionBarAsync({
       initialFollowing={isFollowing}
       initialRequested={followRequested}
       postsLocked={postsLocked}
+      canMessage={canMessage}
     />
   );
 }

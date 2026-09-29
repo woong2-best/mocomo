@@ -18,7 +18,6 @@ import { uploadLocalFile } from "@/api/upload-file";
 import { patchProfile } from "@/api/profile";
 import { patchMe } from "@/api/discovery";
 import { prepareProfileAvatar } from "@/lib/prepare-profile-media";
-import type { SignupRole } from "@/features/auth/SignupRoleFollowUpSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing } from "@/theme/tokens";
 import { SignupCompleteCelebration } from "@/features/auth/SignupCompleteCelebration";
@@ -31,28 +30,34 @@ export type SignupOnboardingBirth = {
   birthDay: number;
 };
 
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
+
 type Props = {
   visible: boolean;
   /** When true, birth/avatar are patched after account already exists. */
   mode: "postAuth" | "collectOnly";
+  confirmedBirth: SignupOnboardingBirth | null;
   onClose: () => void;
   /** Called after celebration (postAuth) or when collectOnly finishes picking. */
   onFinished: (payload: {
     birth: SignupOnboardingBirth;
     imageUrl: string | null;
     localAvatarUri: string | null;
-    role: SignupRole;
+    username: string;
+    name: string;
+    password: string;
   }) => void;
 };
 
-type Step = "locale" | "birth" | "role" | "avatar" | "done";
+type Step = "locale" | "identity" | "password" | "avatar" | "done";
 
 /**
- * Mobile signup tail: country/TZ → birth → role → gallery avatar → fireworks.
+ * Mobile signup tail: country/TZ → username/nickname → password → gallery avatar.
  */
 export function SignupOnboardingSheet({
   visible,
   mode,
+  confirmedBirth,
   onClose,
   onFinished,
 }: Props) {
@@ -64,10 +69,10 @@ export function SignupOnboardingSheet({
   const [countryCode, setCountryCode] = useState("KR");
   const [timeZone, setTimeZone] = useState(() => detectDeviceTimeZone());
   const [countryQuery, setCountryQuery] = useState("");
-  const [birthYear, setBirthYear] = useState("");
-  const [birthMonth, setBirthMonth] = useState("");
-  const [birthDay, setBirthDay] = useState("");
-  const [role, setRole] = useState<SignupRole | null>(null);
+  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
@@ -79,21 +84,19 @@ export function SignupOnboardingSheet({
       setCountryCode("KR");
       setTimeZone(detectDeviceTimeZone());
       setCountryQuery("");
-      setBirthYear("");
-      setBirthMonth("");
-      setBirthDay("");
-      setRole(null);
+      setUsername("");
+      setDisplayName("");
+      setPassword("");
+      setPasswordConfirm("");
       setLocalUri(null);
       setImageUrl(null);
     }
   }, [visible]);
 
-  const birthOk =
-    birthYear.trim().length === 4 &&
-    Number(birthMonth) >= 1 &&
-    Number(birthMonth) <= 12 &&
-    Number(birthDay) >= 1 &&
-    Number(birthDay) <= 31;
+  const birthOk = confirmedBirth !== null;
+  const usernameOk = USERNAME_RE.test(username.trim().toLowerCase());
+  const identityOk = usernameOk && displayName.trim().length >= 1;
+  const passwordOk = password.length >= 8 && password === passwordConfirm;
 
   const pickAvatar = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -119,7 +122,7 @@ export function SignupOnboardingSheet({
       if (mode === "postAuth") {
         await patchMe({ countryCode, timeZone: detectDeviceTimeZone() });
       }
-      setStep("birth");
+      setStep("identity");
     } catch (e) {
       setError(e instanceof Error ? e.message : "국가·시간대 저장에 실패했습니다.");
     } finally {
@@ -132,25 +135,29 @@ export function SignupOnboardingSheet({
       setError("프로필 사진을 선택해 주세요.");
       return;
     }
-    if (!birthOk) {
+    if (!birthOk || !confirmedBirth) {
       setError("생년월일을 확인해 주세요.");
-      setStep("birth");
+      onClose();
       return;
     }
-    if (!role) {
-      setError("역할을 선택해 주세요.");
-      setStep("role");
+    if (!identityOk || !passwordOk) {
+      setError("아이디·닉네임·비밀번호를 확인해 주세요.");
+      setStep("identity");
       return;
     }
 
-    const birth: SignupOnboardingBirth = {
-      birthYear: Number(birthYear),
-      birthMonth: Number(birthMonth),
-      birthDay: Number(birthDay),
-    };
+    const birth = confirmedBirth;
+    const usernameNorm = username.trim().toLowerCase();
 
     if (mode === "collectOnly") {
-      onFinished({ birth, imageUrl: null, localAvatarUri: localUri, role });
+      onFinished({
+        birth,
+        imageUrl: null,
+        localAvatarUri: localUri,
+        username: usernameNorm,
+        name: displayName.trim(),
+        password,
+      });
       return;
     }
 
@@ -270,111 +277,71 @@ export function SignupOnboardingSheet({
                   )}
                 </Pressable>
               </>
-            ) : step === "birth" ? (
+            ) : step === "identity" ? (
               <>
-                <Text style={[styles.title, { color: colors.text }]}>생년월일</Text>
+                <Text style={[styles.title, { color: colors.text }]}>아이디 · 닉네임</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
-                  연령 확인을 위해 생년월일이 필요합니다.
+                  MoCoMo에서 쓸 아이디와 닉네임을 정해 주세요.
                 </Text>
-                <View style={styles.birthRow}>
-                  <Field
-                    label="년"
-                    value={birthYear}
-                    onChangeText={setBirthYear}
-                    placeholder="1990"
-                    maxLength={4}
-                    colors={colors}
-                  />
-                  <Field
-                    label="월"
-                    value={birthMonth}
-                    onChangeText={setBirthMonth}
-                    placeholder="1"
-                    maxLength={2}
-                    colors={colors}
-                  />
-                  <Field
-                    label="일"
-                    value={birthDay}
-                    onChangeText={setBirthDay}
-                    placeholder="1"
-                    maxLength={2}
-                    colors={colors}
-                  />
-                </View>
+                <Field
+                  label="아이디"
+                  value={username}
+                  onChangeText={(v) =>
+                    setUsername(v.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20))
+                  }
+                  placeholder="mocomo_user"
+                  maxLength={20}
+                  colors={colors}
+                  autoCapitalize="none"
+                />
+                <Field
+                  label="닉네임"
+                  value={displayName}
+                  onChangeText={(v) => setDisplayName(v.slice(0, 40))}
+                  placeholder="표시 이름"
+                  maxLength={40}
+                  colors={colors}
+                />
                 {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
                 <Pressable
-                  style={[styles.primary, { backgroundColor: birthOk ? colors.brand : colors.muted }]}
-                  disabled={!birthOk || busy}
+                  style={[styles.primary, { backgroundColor: identityOk ? colors.brand : colors.muted }]}
+                  disabled={!identityOk || busy}
                   onPress={() => {
                     setError("");
-                    setStep("role");
+                    setStep("password");
                   }}
                 >
                   <Text style={styles.primaryText}>다음</Text>
                 </Pressable>
               </>
-            ) : step === "role" ? (
+            ) : step === "password" ? (
               <>
-                <Text style={[styles.title, { color: colors.text }]}>어떤 방식으로 즐기시나요?</Text>
+                <Text style={[styles.title, { color: colors.text }]}>비밀번호</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
-                  팬으로 응원할지, 코스어로 활동할지 골라 주세요.
+                  아이디 로그인에 사용할 비밀번호를 만드세요. (8자 이상)
                 </Text>
-
-                <Pressable
-                  style={[
-                    styles.roleCard,
-                    {
-                      borderColor: role === "coser" ? colors.brand : colors.border,
-                      backgroundColor: colors.surfaceRaised,
-                    },
-                  ]}
-                  onPress={() => setRole("coser")}
-                >
-                  <Ionicons
-                    name="sparkles"
-                    size={22}
-                    color={role === "coser" ? colors.brand : colors.textMuted}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.roleTitle, { color: colors.text }]}>
-                      코스어 / 크리에이터
-                    </Text>
-                    <Text style={[styles.roleSub, { color: colors.textMuted }]}>
-                      컬쳐위키에 코스어 프로필을 등록하고 활동을 시작해요
-                    </Text>
-                  </View>
-                </Pressable>
-
-                <Pressable
-                  style={[
-                    styles.roleCard,
-                    {
-                      borderColor: role === "fan" ? colors.brand : colors.border,
-                      backgroundColor: colors.surfaceRaised,
-                      marginTop: 10,
-                    },
-                  ]}
-                  onPress={() => setRole("fan")}
-                >
-                  <Ionicons
-                    name="heart"
-                    size={22}
-                    color={role === "fan" ? colors.brand : colors.textMuted}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.roleTitle, { color: colors.text }]}>팬</Text>
-                    <Text style={[styles.roleSub, { color: colors.textMuted }]}>
-                      좋아하는 코스어를 팔로우하며 즐겨요
-                    </Text>
-                  </View>
-                </Pressable>
-
+                <Field
+                  label="비밀번호"
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="••••••••"
+                  maxLength={128}
+                  colors={colors}
+                  secure
+                />
+                <Field
+                  label="비밀번호 확인"
+                  value={passwordConfirm}
+                  onChangeText={setPasswordConfirm}
+                  placeholder="••••••••"
+                  maxLength={128}
+                  colors={colors}
+                  secure
+                />
                 {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
-
                 <Pressable
-                  style={[styles.primary, { backgroundColor: role ? colors.brand : colors.muted }]}
-                  disabled={!role || busy}
+                  style={[styles.primary, { backgroundColor: passwordOk ? colors.brand : colors.muted }]}
+                  disabled={!passwordOk || busy}
                   onPress={() => {
                     setError("");
                     setStep("avatar");
@@ -429,14 +396,16 @@ export function SignupOnboardingSheet({
         visible={visible && step === "done"}
         onDone={() =>
           onFinished({
-            birth: {
-              birthYear: Number(birthYear),
-              birthMonth: Number(birthMonth),
-              birthDay: Number(birthDay),
+            birth: confirmedBirth ?? {
+              birthYear: 2000,
+              birthMonth: 1,
+              birthDay: 1,
             },
             imageUrl,
             localAvatarUri: localUri,
-            role: role ?? "fan",
+            username: username.trim().toLowerCase(),
+            name: displayName.trim(),
+            password,
           })
         }
       />
@@ -451,6 +420,8 @@ function Field({
   placeholder,
   maxLength,
   colors,
+  secure,
+  autoCapitalize,
 }: {
   label: string;
   value: string;
@@ -458,16 +429,20 @@ function Field({
   placeholder: string;
   maxLength: number;
   colors: { text: string; textMuted: string; border: string; surfaceRaised: string };
+  secure?: boolean;
+  autoCapitalize?: "none" | "sentences";
 }) {
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, marginBottom: 10 }}>
       <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.textMuted}
-        keyboardType="number-pad"
+        keyboardType={secure ? "default" : "default"}
+        secureTextEntry={secure}
+        autoCapitalize={autoCapitalize ?? "sentences"}
         maxLength={maxLength}
         style={[
           styles.input,
@@ -484,7 +459,7 @@ function Field({
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: "flex-end" },
-  scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(9,16,30,0.55)" },
+  scrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(9,16,30,0.55)" },
   sheet: {
     borderTopLeftRadius: radii.xl,
     borderTopRightRadius: radii.xl,

@@ -12,23 +12,56 @@ function parseCoord(lat: unknown, lon: unknown, label: string): NominatimCoord |
   return { lat: la, lng: ln, label: label.trim() || `${la.toFixed(5)}, ${ln.toFixed(5)}` };
 }
 
-export async function nominatimSearchPlace(query: string): Promise<NominatimCoord | null> {
+type NominatimSearchOpts = {
+  limit?: number;
+  /** ISO 3166-1 alpha-2, e.g. kr */
+  countryCodes?: string;
+};
+
+async function nominatimSearchRaw(
+  query: string,
+  opts?: NominatimSearchOpts
+): Promise<NominatimCoord[]> {
   const q = query.trim();
-  if (!q) return null;
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`;
+  if (!q) return [];
+  const limit = Math.min(Math.max(opts?.limit ?? 1, 1), 10);
+  const params = new URLSearchParams({
+    format: "jsonv2",
+    limit: String(limit),
+    q,
+  });
+  const cc = opts?.countryCodes?.trim().toLowerCase();
+  if (cc) params.set("countrycodes", cc);
+  const url = `https://nominatim.openstreetmap.org/search?${params}`;
   const res = await fetch(url, {
     headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
     cache: "no-store",
   });
-  if (!res.ok) return null;
+  if (!res.ok) return [];
   const rows = (await res.json()) as Array<{
     lat?: string;
     lon?: string;
     display_name?: string;
   }>;
-  const first = rows[0];
-  if (!first) return null;
-  return parseCoord(first.lat, first.lon, first.display_name ?? q);
+  const out: NominatimCoord[] = [];
+  for (const row of rows) {
+    const parsed = parseCoord(row.lat, row.lon, row.display_name ?? q);
+    if (parsed) out.push(parsed);
+  }
+  return out;
+}
+
+export async function nominatimSearchPlaces(
+  query: string,
+  limit = 5,
+  opts?: Omit<NominatimSearchOpts, "limit">
+): Promise<NominatimCoord[]> {
+  return nominatimSearchRaw(query, { ...opts, limit });
+}
+
+export async function nominatimSearchPlace(query: string): Promise<NominatimCoord | null> {
+  const rows = await nominatimSearchRaw(query, { limit: 1 });
+  return rows[0] ?? null;
 }
 
 export async function nominatimReverse(lat: number, lng: number): Promise<NominatimCoord | null> {

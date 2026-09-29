@@ -1,6 +1,6 @@
 import { ActivityIndicator, View } from "react-native";
 import type { ComponentType } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -65,10 +65,24 @@ export function RootNavigator() {
   const { colors, isDark } = useTheme();
   const theme = isDark ? folkDarkNavigationTheme : folkLightNavigationTheme;
   const { status } = useAuth();
+  const prevStatusRef = useRef(status);
 
   useEffect(() => {
     if (status !== "signedIn") return;
     return subscribeMobileDeepLinks();
+  }, [status]);
+
+  useEffect(() => {
+    const previous = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if (status !== "signedIn" || previous === "signedIn") return;
+    if (!navigationRef.isReady()) return;
+    const names = navigationRef.getRootState()?.routeNames ?? [];
+    if (!names.includes("Main")) return;
+    const name = navigationRef.getCurrentRoute()?.name;
+    if (name === "Login" || name === "Signup" || name === "PasswordReset") {
+      navigationRef.reset({ index: 0, routes: [{ name: "Main" }] });
+    }
   }, [status]);
 
   if (status === "loading") {
@@ -92,6 +106,7 @@ export function RootNavigator() {
       <PushNotificationHandler />
       {status === "signedIn" ? <SignedInCallListener /> : null}
       <Stack.Navigator
+        key={status === "signedIn" ? "member" : "guest"}
         screenOptions={{
           headerShown: false,
           animation: "slide_from_right",
@@ -356,6 +371,18 @@ export function RootNavigator() {
             <Stack.Screen
               name="AnimeDetail"
               getComponent={() => require("@/features/anime/AnimeDetailScreen").AnimeDetailScreen}
+            />
+            <Stack.Screen
+              name="AnimeCreate"
+              getComponent={() => require("@/features/anime/AnimeCreateScreen").AnimeCreateScreen}
+            />
+            <Stack.Screen
+              name="AnimeEdit"
+              getComponent={() => require("@/features/anime/AnimeEditScreen").AnimeEditScreen}
+            />
+            <Stack.Screen
+              name="AnimeHistory"
+              getComponent={() => require("@/features/anime/AnimeHistoryScreen").AnimeHistoryScreen}
             />
             <Stack.Screen
               name="Settings"

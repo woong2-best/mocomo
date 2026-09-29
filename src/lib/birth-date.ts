@@ -4,6 +4,11 @@ import { parseBirthDateInput } from "@/lib/used-youth-protection";
 
 export { parseBirthDateInput };
 
+/** 연·월·일 입력 — 숫자만 허용 */
+export function sanitizeBirthDigitInput(value: string, maxLength: number): string {
+  return value.replace(/\D/g, "").slice(0, maxLength);
+}
+
 export function splitStoredBirthDate(birth: Date | null | undefined): {
   year: string;
   month: string;

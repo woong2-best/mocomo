@@ -15,7 +15,10 @@ import {
 } from "@/lib/web-oauth-pending-signup";
 import { findOAuthAccountBySub } from "@/lib/oauth-vault";
 import { db } from "@/lib/db";
-import { markSignupNeedsRole, signupRoleEntryPath } from "@/lib/signup-role-onboarding";
+import {
+  markSignupNeedsIdentity,
+  signupIdentityEntryPath,
+} from "@/lib/signup-identity-onboarding";
 
 export async function completeWebOAuthSignup(input: {
   birthYear: number;
@@ -76,8 +79,8 @@ export async function completeWebOAuthSignup(input: {
         const sessionOk = await establishWebSessionForUser(existing);
         await clearWebOAuthPendingSignupCookie();
         if (!sessionOk) return { error: "세션을 만들지 못했습니다. 다시 시도해 주세요." };
-        await markSignupNeedsRole();
-        redirect(signupRoleEntryPath(safeDest));
+        await markSignupNeedsIdentity();
+        redirect(signupIdentityEntryPath(safeDest));
       }
     }
 
@@ -97,8 +100,8 @@ export async function completeWebOAuthSignup(input: {
     if (!sessionOk) return { error: "세션을 만들지 못했습니다. 다시 시도해 주세요." };
 
     revalidatePath("/");
-    await markSignupNeedsRole();
-    redirect(signupRoleEntryPath(safeDest));
+    await markSignupNeedsIdentity();
+    redirect(signupIdentityEntryPath(safeDest));
   } catch (e) {
     if (e && typeof e === "object" && "digest" in e) throw e;
     return { error: e instanceof Error ? e.message : "가입에 실패했습니다." };

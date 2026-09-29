@@ -9,6 +9,12 @@ import {
   View,
 } from "react-native";
 import { showIslandError } from "@/ui/IslandToast";
+import {
+  CREATOR_PAYOUT_BLOCKED_KO,
+  CREATOR_PAYOUT_BLOCKED_TOAST_KO,
+  fetchCreatorPayoutReady,
+  isStripeAccountNotReady,
+} from "@/lib/creator-payout";
 import { useQuery } from "@tanstack/react-query";
 import { postLiveMocoDonation } from "@/api/live-donate";
 import { ApiError } from "@/api/client";
@@ -47,6 +53,12 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const payout = useQuery({
+    queryKey: ["payout-ready", channelId],
+    queryFn: () => fetchCreatorPayoutReady(channelId),
+    enabled: visible && !!channelId,
+  });
+  const payoutBlocked = payout.data?.payoutsEnabled === false;
 
   const wallet = useQuery({
     queryKey: ["gems-wallet"],
@@ -95,7 +107,10 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
       onSuccess?.();
       onClose();
     } catch (e) {
-      if (e instanceof ApiError && e.status === 402) {
+      if (isStripeAccountNotReady(e)) {
+        showIslandError("후원 불가", CREATOR_PAYOUT_BLOCKED_TOAST_KO);
+        setError(CREATOR_PAYOUT_BLOCKED_KO);
+      } else if (e instanceof ApiError && e.status === 402) {
         showIslandError("MOCO 부족", "mocomo.net 웹사이트에서 MOCO를 충전한 뒤 다시 시도해 주세요.");
       } else {
         setError(apiErrorMessage(e, "후원에 실패했습니다."));
@@ -157,9 +172,14 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
           <Text style={styles.termsText}>{MOCO_PURCHASE_TERMS_COPY}</Text>
         </Pressable>
 
+        {payoutBlocked ? <Text style={styles.error}>{CREATOR_PAYOUT_BLOCKED_KO}</Text> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Pressable style={[styles.submit, busy && styles.submitDisabled]} disabled={busy} onPress={() => void submit()}>
+        <Pressable
+          style={[styles.submit, (busy || payoutBlocked) && styles.submitDisabled]}
+          disabled={busy || payoutBlocked}
+          onPress={() => void submit()}
+        >
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>후원하기</Text>}
         </Pressable>
       </ScrollView>

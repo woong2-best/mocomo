@@ -10,7 +10,7 @@ export type StarHubCreator = {
   count: number;
 };
 
-export type StarHubKind = "posts" | "qna" | "market";
+export type StarHubKind = "posts" | "qna" | "market" | "wiki";
 
 export type StarMarketItem = {
   id: string;
@@ -34,13 +34,35 @@ export type StarHubResponse = {
 export async function fetchStarHub(creatorId?: string | null, kind: "posts" | "qna" = "posts") {
   const params = new URLSearchParams();
   if (creatorId) params.set("creatorId", creatorId);
-  if (kind === "qna") params.set("kind", "qna");
+  params.set("kind", kind);
   const q = params.toString() ? `?${params}` : "";
   return apiRequest<StarHubResponse>(`${MobileApi.star}${q}`, { auth: true });
 }
 
 export async function fetchStarMarket() {
   return apiRequest<{ items: StarMarketItem[]; total: number }>(`${MobileApi.star}?kind=market`, {
+    auth: true,
+  });
+}
+
+export type StarWikiItem = {
+  id: string;
+  slug: string;
+  title: string;
+  titleEn: string | null;
+  coverUrl: string | null;
+  genre: string;
+};
+
+export async function fetchStarWiki() {
+  return apiRequest<{ items: StarWikiItem[]; total: number }>(`${MobileApi.star}?kind=wiki`, {
+    auth: true,
+  });
+}
+
+export async function toggleAnimeStar(slug: string) {
+  return apiRequest<{ starred: boolean }>(MobileApi.animeStar(slug), {
+    method: "POST",
     auth: true,
   });
 }
@@ -77,18 +99,78 @@ export async function fetchAnimeList(opts?: { q?: string; genre?: string }) {
   });
 }
 
+export type AnimeCreatePayload = {
+  title: string;
+  titleEn?: string;
+  genre: string;
+  synopsis?: string;
+  studio?: string;
+  worldInfo?: string;
+  infobox?: string;
+  coverUrl?: string;
+  bannerUrl?: string;
+  charactersText?: string;
+  tags?: string;
+  editSummary?: string;
+};
+
+export async function createAnimeWork(body: AnimeCreatePayload) {
+  return apiRequest<{ anime: { slug: string; title: string } }>(MobileApi.anime, {
+    method: "POST",
+    body,
+    auth: true,
+  });
+}
+
+export async function updateAnimeWork(slug: string, body: AnimeCreatePayload) {
+  return apiRequest<{ anime: { slug: string; title: string } }>(MobileApi.animeSlug(slug), {
+    method: "PATCH",
+    body,
+    auth: true,
+  });
+}
+
+export type AnimeDetailItem = AnimeListItem & {
+  id?: string;
+  bannerUrl: string | null;
+  synopsis: string | null;
+  studio: string | null;
+  tags: string[];
+  characters: unknown[];
+  worldInfo: string | null;
+  infobox: string | null;
+  isProtected?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  creator?: { username: string };
+  starred?: boolean;
+};
+
 export async function fetchAnimeDetail(slug: string) {
+  return apiRequest<{ item: AnimeDetailItem }>(MobileApi.animeSlug(slug), { auth: true });
+}
+
+export type AnimeHistoryEntry = {
+  id: string;
+  username: string;
+  createdAt: string;
+  summary: string | null;
+  restorable: boolean;
+};
+
+export async function fetchAnimeHistory(slug: string) {
   return apiRequest<{
-    item: AnimeListItem & {
-      bannerUrl: string | null;
-      synopsis: string | null;
-      studio: string | null;
-      tags: string[];
-      characters: unknown[];
-      worldInfo: string | null;
-      infobox: string | null;
-    };
-  }>(MobileApi.animeSlug(slug), { auth: true });
+    anime: { title: string; slug: string };
+    entries: AnimeHistoryEntry[];
+  }>(MobileApi.animeHistory(slug), { auth: true });
+}
+
+export async function restoreAnimeHistory(slug: string, revisionId: string) {
+  return apiRequest<{ anime: { slug: string; title: string } }>(MobileApi.animeHistory(slug), {
+    method: "POST",
+    body: { revisionId },
+    auth: true,
+  });
 }
 
 export async function patchMe(body: {

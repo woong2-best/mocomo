@@ -27,6 +27,13 @@ import {
 } from "@/components/profile/cosplay-gallery-settings";
 import Link from "next/link";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import { sanitizeBirthDigitInput } from "@/lib/birth-date";
+
+function clampBirthDigits(e: React.FormEvent<HTMLInputElement>, maxLength: number) {
+  const el = e.currentTarget;
+  const next = sanitizeBirthDigitInput(el.value, maxLength);
+  if (el.value !== next) el.value = next;
+}
 
 type Initial = {
   name: string;
@@ -221,14 +228,17 @@ export function ProfileSettingsForm({
 
             <div>
               <label className="text-sm font-medium">아이디</label>
-              <div className="mt-1 flex rounded-xl border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-                <span className="flex items-center pl-3 text-sm text-muted-foreground">@</span>
+              <div className="mt-1 flex items-stretch overflow-hidden rounded-xl border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                <span className="flex shrink-0 items-center pl-3 pr-1 text-sm text-muted-foreground select-none">
+                  @
+                </span>
                 <Input
                   name="username"
                   defaultValue={initial.username}
                   disabled={usernameLocked}
                   pattern="[A-Za-z0-9_]{3,20}"
-                  className="border-0 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0"
+                  autoComplete="username"
+                  className="h-10 min-w-0 flex-1 border-0 bg-transparent pl-0 pr-3 shadow-none rounded-none rounded-r-xl focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -255,40 +265,49 @@ export function ProfileSettingsForm({
                   중고거래 성인 인증에도 사용됩니다. 프로필에는 월·일만 공개할 수 있어요.
                 </p>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="text-xs text-muted-foreground">연도</label>
+              <div className="grid grid-cols-3 gap-x-2 gap-y-2 pt-1">
+                <div className="min-w-0">
+                  <label className="block text-xs leading-normal text-muted-foreground">연도</label>
                   <Input
                     name="birthYear"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="bday-year"
                     defaultValue={initial.birthYear}
                     placeholder="1998"
-                    min={1900}
-                    max={new Date().getFullYear()}
+                    maxLength={4}
+                    onInput={(e) => clampBirthDigits(e, 4)}
                     className="mt-1 rounded-xl"
                   />
                 </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">월</label>
+                <div className="min-w-0">
+                  <label className="block text-xs leading-normal text-muted-foreground">월</label>
                   <Input
                     name="birthMonth"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="bday-month"
                     defaultValue={initial.birthMonth}
                     placeholder="3"
-                    min={1}
-                    max={12}
+                    maxLength={2}
+                    onInput={(e) => clampBirthDigits(e, 2)}
                     className="mt-1 rounded-xl"
                   />
                 </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">일</label>
+                <div className="min-w-0">
+                  <label className="block text-xs leading-normal text-muted-foreground">일</label>
                   <Input
                     name="birthDay"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="bday-day"
                     defaultValue={initial.birthDay}
                     placeholder="15"
-                    min={1}
-                    max={31}
+                    maxLength={2}
+                    onInput={(e) => clampBirthDigits(e, 2)}
                     className="mt-1 rounded-xl"
                   />
                 </div>

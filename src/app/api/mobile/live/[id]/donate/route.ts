@@ -4,6 +4,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { createMocoDonation } from "@/lib/moco-donation/service";
+import { stripeAccountNotReadyPayload } from "@/lib/creator-payout-ready";
 
 const VALID_TYPES = new Set<MocoDonationType>(["VIDEO", "SFX"]);
 
@@ -72,6 +73,9 @@ export async function POST(
   });
 
   if (!result.success) {
+    if (result.code === "STRIPE_ACCOUNT_NOT_READY") {
+      return NextResponse.json({ success: false, ...stripeAccountNotReadyPayload() }, { status: 422 });
+    }
     const status = result.code === "INSUFFICIENT_MOCO" ? 402 : 400;
     return NextResponse.json({ success: false, error: result.error, code: result.code }, { status });
   }

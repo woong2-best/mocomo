@@ -9,6 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { openStripeConnectOnboardingUrl } from "@/lib/marketplace/open-stripe-connect-url";
+import { DEFAULT_EXPRESS_PAYOUT_COUNTRY } from "@/lib/marketplace/stripe-supported-countries";
+import { PayoutCountryField } from "@/components/wallet/payout-country-field";
 
 export function MarketplaceSellerApplyForm({
   initialName,
@@ -25,6 +27,7 @@ export function MarketplaceSellerApplyForm({
   const [sns, setSns] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [payoutCountry, setPayoutCountry] = useState(DEFAULT_EXPRESS_PAYOUT_COUNTRY);
 
   function apply() {
     setError("");
@@ -51,7 +54,7 @@ export function MarketplaceSellerApplyForm({
   function connect() {
     setError("");
     startTransition(async () => {
-      const res = await startMarketplaceConnectOnboarding();
+      const res = await startMarketplaceConnectOnboarding(payoutCountry);
       if ("error" in res && res.error) {
         setError(res.error);
         return;
@@ -90,6 +93,7 @@ export function MarketplaceSellerApplyForm({
       />
       {error && <p className="text-sm text-destructive">{error}</p>}
       {message && <p className="text-sm text-emerald-600">{message}</p>}
+      <PayoutCountryField value={payoutCountry} onChange={setPayoutCountry} id="apply-payout-country" />
       <div className="flex flex-wrap gap-2">
         <Button type="button" disabled={pending} onClick={apply}>
           판매자 등록

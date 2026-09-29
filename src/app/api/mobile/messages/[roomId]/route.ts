@@ -3,6 +3,7 @@ import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { getMobileRoomMessages, sendMobileDmMessage } from "@/lib/chat-dm-service";
+import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
 
 export async function GET(
   req: NextRequest,
@@ -83,11 +84,14 @@ export async function POST(
   });
 
   if ("error" in result) {
-    const status = result.error === "NOT_MEMBER" ? 403 : 400;
+    const status =
+      result.error === "NOT_MEMBER" || result.error === "MESSAGE_NOT_ALLOWED" ? 403 : 400;
     const message =
-      result.error === "ADULT_VERIFICATION_REQUIRED"
-        ? "미성년자 보호 및 안전한 거래를 위해 최초 1회 본인인증이 필요합니다."
-        : result.error;
+      result.error === "PAID_DM_DISABLED"
+        ? "메시지에서 유료 팬아트 판매는 더 이상 지원하지 않습니다."
+        : result.error === "MESSAGE_NOT_ALLOWED"
+          ? MESSAGE_REQUEST_BLOCKED
+          : result.error;
     return NextResponse.json({ error: message, code: result.error }, { status });
   }
   return NextResponse.json(result);

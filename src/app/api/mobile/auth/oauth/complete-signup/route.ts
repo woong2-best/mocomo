@@ -17,6 +17,9 @@ const bodySchema = z.object({
   birthDay: z.coerce.number().int().min(1).max(31),
   termsAccepted: z.literal(true),
   privacyAccepted: z.literal(true),
+  username: z.string().min(3).max(20).optional(),
+  name: z.string().min(1).max(40).optional(),
+  password: z.string().min(8).max(128).optional(),
 });
 
 /** In-app terms accepted → create account from sealed Discord/X/Naver/LINE handoff. */
@@ -48,6 +51,9 @@ export async function POST(req: NextRequest) {
       birthDay: parsed.data.birthDay,
       termsAccepted: parsed.data.termsAccepted,
       privacyAccepted: parsed.data.privacyAccepted,
+      username: parsed.data.username,
+      name: parsed.data.name,
+      password: parsed.data.password,
     });
 
     void recordUserAccessLog({

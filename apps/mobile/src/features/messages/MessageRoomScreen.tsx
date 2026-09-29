@@ -13,10 +13,11 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
+import { DirectTradeCard } from "@/features/marketplace/DirectTradeCard";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
-import { useRoute, useNavigation, useFocusEffect, type RouteProp } from "@react-navigation/native";
+import { useRoute, useNavigation, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,19 +33,7 @@ import {
 } from "@/features/messages/MessageBubble";
 import { MessageVoiceSession } from "@/features/messages/MessageVoiceSession";
 import { useRoomMessages } from "@/features/messages/useRoomMessages";
-import { CreatorCallBookingSheet } from "@/features/messages/CreatorCallBookingSheet";
-import { FanArtSellSheet } from "@/features/messages/FanArtSellSheet";
-import { FanArtSellComposerButton } from "@/features/messages/FanArtSellComposerButton";
-import { SellButtonTrashOverlay } from "@/features/messages/SellButtonTrashOverlay";
 import { AddChatMemberSheet } from "@/features/messages/AddChatMemberSheet";
-import Animated, { FadeIn, FadeOut, Layout } from "react-native-reanimated";
-import { LetterDonationSheet } from "@/payments/LetterDonationSheet";
-import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
-import {
-  loadMessageComposerPrefs,
-  setFanArtSellHidden,
-} from "@/lib/message-composer-prefs";
-import { fetchCreatorCallSettings } from "@/api/call-bookings";
 import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { PeerLocalClock, PeerMemberClocks } from "@/features/messages/PeerLocalClock";
@@ -92,16 +81,7 @@ export function MessageRoomScreen() {
   const { roomId } = route.params;
   const { room, messages, loading, error, sending, nextBefore, loadOlder, send, refresh } =
     useRoomMessages(roomId);
-  const [bookingSheet, setBookingSheet] = useState<{
-    callType: "AUDIO" | "VIDEO";
-  } | null>(null);
-  const [letterSheet, setLetterSheet] = useState(false);
-  const [fanArtSheet, setFanArtSheet] = useState(false);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
-  const [fanArtSellHidden, setFanArtSellHiddenState] = useState(false);
-  const [sellTrashOverlay, setSellTrashOverlay] = useState(false);
-  const adultGate = useAdultVerificationGate("DM_PAID");
-  const [peerBookable, setPeerBookable] = useState(false);
   const [draft, setDraft] = useState("");
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -155,45 +135,6 @@ export function MessageRoomScreen() {
       setTradeRequestBusy(false);
     }
   }, [meetDayOffset, meetHour, refresh, roomId, tradeRequestBusy, usedTrade]);
-
-  useEffect(() => {
-    if (!peerId) {
-      setPeerBookable(false);
-      return;
-    }
-    void fetchCreatorCallSettings(peerId)
-      .then((s) => setPeerBookable(s.bookable))
-      .catch(() => setPeerBookable(false));
-  }, [peerId]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    void loadMessageComposerPrefs(user.id).then((prefs) => {
-      setFanArtSellHiddenState(prefs.fanArtSellHidden);
-    });
-  }, [user?.id]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!user?.id) return;
-      void loadMessageComposerPrefs(user.id).then((prefs) => {
-        setFanArtSellHiddenState(prefs.fanArtSellHidden);
-      });
-    }, [user?.id])
-  );
-
-  const onFanArtSellPress = useCallback(() => {
-    void adultGate.ensureAdult().then((ok) => {
-      if (ok) setFanArtSheet(true);
-    });
-  }, [adultGate]);
-
-  const hideFanArtSellButton = useCallback(async () => {
-    if (!user?.id) return;
-    setSellTrashOverlay(false);
-    setFanArtSellHiddenState(true);
-    await setFanArtSellHidden(user.id, true);
-  }, [user?.id]);
 
   const rows = useMemo<MessageRow[]>(
     () =>
@@ -304,13 +245,8 @@ export function MessageRoomScreen() {
     });
   }, [navigation, peerId, peerImage, roomId, title]);
 
-  const openBooking = useCallback((callType: "AUDIO" | "VIDEO") => {
-    if (!peerId) {
-      showIslandError("예약 불가", "상대 정보를 아직 불러오지 못했습니다.");
-      return;
-    }
-    setBookingSheet({ callType });
-  }, [peerId]);
+  const canSend = room?.type !== "DM" || room.canMessage !== false;
+  const canCallPeer = room?.type !== "DM" || room.canCall !== false;
 
   const peerProfileSeed = useMemo(
     () =>
@@ -356,9 +292,6 @@ export function MessageRoomScreen() {
           selfUserId={user?.id}
           showTime={item.showTime}
           roomId={roomId}
-          peerId={peerId}
-          peerName={title}
-          peerImage={peerImage}
           onMessagesRefresh={() => void refresh()}
           onReply={setReplyTo}
           onOpenImage={onOpenImage}
@@ -366,7 +299,7 @@ export function MessageRoomScreen() {
         />
       );
     },
-    [isGroup, onOpenImage, peerId, peerImage, refresh, roomId, rows, title, user?.id]
+    [isGroup, onOpenImage, refresh, roomId, rows, user?.id]
   );
 
   return (
@@ -439,38 +372,35 @@ export function MessageRoomScreen() {
           >
             <Ionicons name="person-add-outline" size={18} color={colors.cobalt} />
           </Pressable>
-          {!isGroup ? (
-            <>
-          <Pressable
-            style={styles.callBtn}
-            onPress={startCall}
-            onLongPress={peerBookable ? () => openBooking("AUDIO") : undefined}
-            accessibilityLabel={peerBookable ? "음성 통화 (길게 누르면 예약)" : "음성 통화"}
-          >
-            <Ionicons name="call-outline" size={18} color={colors.cobalt} />
-          </Pressable>
-          {peerId ? (
+          {!isGroup && canCallPeer ? (
             <Pressable
               style={styles.callBtn}
-              onPress={() => setLetterSheet(true)}
-              accessibilityLabel="편지 후원"
+              onPress={startCall}
+              accessibilityLabel="음성 통화"
             >
-              <Ionicons name="mail-outline" size={18} color={colors.terracotta} />
+              <Ionicons name="call-outline" size={18} color={colors.cobalt} />
             </Pressable>
-          ) : null}
-          {peerBookable ? (
-            <Pressable
-              style={styles.callBtn}
-              onPress={() => openBooking("AUDIO")}
-              accessibilityLabel="통화 예약"
-            >
-              <Ionicons name="calendar-outline" size={18} color={colors.terracotta} />
-            </Pressable>
-          ) : null}
-            </>
           ) : null}
         </View>
       </View>
+
+      {usedTrade?.directTrade ? (
+        <DirectTradeCard view={usedTrade.directTrade} onUpdated={() => void refresh()} />
+      ) : usedTrade ? (
+        <Pressable
+          style={styles.usedTradeSchedule}
+          onPress={() =>
+            navigation.navigate("MarketplaceDetail", { id: usedTrade.listingId })
+          }
+          accessibilityRole="button"
+          accessibilityLabel={`${usedTrade.listingTitle} 상품 페이지`}
+        >
+          <Text style={styles.usedTradeScheduleLabel}>상품 · {usedTrade.listingTitle}</Text>
+          <Text style={styles.usedTradeScheduleLabel}>
+            판매자 @{usedTrade.sellerUsername ?? ""} · {usedTrade.priceLabel ?? ""}
+          </Text>
+        </Pressable>
+      ) : null}
 
       {error ? (
         <Text style={styles.error}>{error}</Text>
@@ -527,7 +457,13 @@ export function MessageRoomScreen() {
           },
         ]}
       >
-        {usedTrade?.canRequestTrade ? (
+        {!canSend ? (
+          <Text style={styles.lockedNote}>
+            이 사용자는 자신이 팔로우한 사람에게만 메시지를 받습니다.
+          </Text>
+        ) : null}
+
+        {canSend && usedTrade?.canRequestTrade ? (
           <View style={styles.usedTradeSchedule}>
             <Text style={styles.usedTradeScheduleLabel}>거래 날짜</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
@@ -571,7 +507,7 @@ export function MessageRoomScreen() {
           </View>
         ) : null}
 
-        {replyTo ? (
+        {canSend && replyTo ? (
           <ChatReplyComposerBar
             target={replyTo}
             selfUserId={user?.id}
@@ -579,7 +515,7 @@ export function MessageRoomScreen() {
           />
         ) : null}
 
-        {recording ? (
+        {canSend && recording ? (
           <View style={styles.recordingBar}>
             <View style={styles.recDot} />
             <Text style={styles.recordingText}>
@@ -591,21 +527,8 @@ export function MessageRoomScreen() {
           </View>
         ) : null}
 
-        <View style={styles.composer}>
+        {canSend ? <View style={styles.composer}>
           <View style={styles.leftBtns}>
-            {!fanArtSellHidden && !isGroup ? (
-              <Animated.View
-                entering={FadeIn.duration(240)}
-                exiting={FadeOut.duration(200)}
-                layout={Layout.springify().damping(16).stiffness(180)}
-              >
-                <FanArtSellComposerButton
-                  disabled={busy || recording || adultGate.busy}
-                  onPress={onFanArtSellPress}
-                  onHoldComplete={() => setSellTrashOverlay(true)}
-                />
-              </Animated.View>
-            ) : null}
             <Pressable
               style={styles.cameraBtn}
               disabled={busy || recording}
@@ -679,7 +602,7 @@ export function MessageRoomScreen() {
               </Pressable>
             )}
           </View>
-        </View>
+        </View> : null}
       </View>
 
       <AddChatMemberSheet
@@ -701,52 +624,6 @@ export function MessageRoomScreen() {
         onClose={() => setLightbox(null)}
       />
 
-      {bookingSheet && peerId ? (
-        <CreatorCallBookingSheet
-          visible
-          onClose={() => setBookingSheet(null)}
-          creatorId={peerId}
-          roomId={roomId}
-          callType={bookingSheet.callType}
-          displayName={title}
-          onSuccess={() => void refresh()}
-        />
-      ) : null}
-
-      {letterSheet && peerId ? (
-        <LetterDonationSheet
-          visible
-          onClose={() => setLetterSheet(false)}
-          creatorId={peerId}
-          username={peerUsername ?? peerId}
-          displayName={title}
-          roomId={roomId}
-          onSuccess={() => void refresh()}
-        />
-      ) : null}
-
-      <FanArtSellSheet
-        visible={fanArtSheet}
-        onClose={() => setFanArtSheet(false)}
-        onSend={async (payload) => {
-          setUploading(true);
-          try {
-            const replyId = replyTo?.id;
-            setReplyTo(null);
-            nearBottomRef.current = true;
-            await send("", [payload], replyId);
-            scrollEnd();
-          } finally {
-            setUploading(false);
-          }
-        }}
-      />
-
-      <SellButtonTrashOverlay
-        visible={sellTrashOverlay}
-        onDismiss={() => setSellTrashOverlay(false)}
-        onConfirmHide={() => void hideFanArtSellButton()}
-      />
     </View>
   );
 }
@@ -841,6 +718,13 @@ function createThemedStyles(colors: ThemeColors) {
     cancelRec: { paddingHorizontal: 8, paddingVertical: 4 },
     cancelRecText: { color: colors.textMuted, fontWeight: "700", fontSize: 13 },
     composer: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
+    lockedNote: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.textMuted,
+      textAlign: "center",
+      paddingVertical: spacing.sm,
+    },
     leftBtns: { gap: 6, marginBottom: 2 },
     cameraBtn: {
       width: 40,

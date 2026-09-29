@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { RTCView } from "@livekit/react-native-webrtc";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { endDmCall, fetchMobileCallSync } from "@/api/calls";
 import { useAuth } from "@/auth/AuthContext";
@@ -36,6 +35,18 @@ type SessionValue = {
 };
 
 const MobileCallSessionContext = createContext<SessionValue | null>(null);
+
+function HiddenCallAudio({ streamURL }: { streamURL: string }) {
+  const { RTCView } = require("@livekit/react-native-webrtc") as typeof import("@livekit/react-native-webrtc");
+  return (
+    <RTCView
+      streamURL={streamURL}
+      style={styles.hiddenAudio}
+      objectFit="cover"
+      pointerEvents="none"
+    />
+  );
+}
 
 export function useMobileCallSession(): SessionValue {
   const ctx = useContext(MobileCallSessionContext);
@@ -164,12 +175,7 @@ export function MobileCallSessionProvider({ children }: { children: ReactNode })
       <View style={styles.host}>
       {children}
       {live && peer.remoteStream ? (
-        <RTCView
-          streamURL={peer.remoteStream.toURL()}
-          style={styles.hiddenAudio}
-          objectFit="cover"
-          pointerEvents="none"
-        />
+        <HiddenCallAudio streamURL={peer.remoteStream.toURL()} />
       ) : null}
       {live && collapsed ? (
         <View style={[styles.bar, { bottom: Math.max(insets.bottom, 12) + 64 }]}>

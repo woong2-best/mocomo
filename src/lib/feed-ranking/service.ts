@@ -7,7 +7,7 @@ import {
   feedPostListSelect,
   mobileFeedPostSelect,
   mapFeedPost,
-  trimFeedPostContent,
+  mapMobileFeedPost,
   type FeedPostRow,
 } from "@/lib/feed-query";
 import { platformPostWhere } from "@/lib/post-scope";
@@ -219,7 +219,7 @@ export async function fetchFollowingMobileFeedPage(
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
   });
-  const mapped = posts.map((p) => trimFeedPostContent(p));
+  const mapped = posts.map((p) => mapMobileFeedPost(p));
   if (mapped.length >= limit) return mapped;
 
   const paddedIds = await padPostIdsToPageSize(

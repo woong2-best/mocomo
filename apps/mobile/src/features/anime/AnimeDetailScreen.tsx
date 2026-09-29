@@ -8,10 +8,12 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { fetchAnimeDetail } from "@/api/discovery";
+import { fetchAnimeDetail, toggleAnimeStar } from "@/api/discovery";
+import { useAuth } from "@/auth/AuthContext";
+import { showIslandError } from "@/ui/IslandToast";
 import { genreLabel } from "@/features/anime/anime-genres";
 import {
   characterNames,
@@ -77,12 +79,28 @@ export function AnimeDetailScreen() {
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "AnimeDetail">>();
+  const queryClient = useQueryClient();
+  const { status: authStatus } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const yMap = useRef<Record<string, number>>({});
 
   const query = useQuery({
     queryKey: ["mobile-anime-detail", route.params.slug],
     queryFn: () => fetchAnimeDetail(route.params.slug),
+  });
+  const star = useMutation({
+    mutationFn: () => toggleAnimeStar(route.params.slug),
+    onSuccess: (res) => {
+      queryClient.setQueryData(["mobile-anime-detail", route.params.slug], (old: unknown) => {
+        if (!old || typeof old !== "object" || !("item" in old)) return old;
+        const row = old as { item: { starred?: boolean } };
+        return { ...row, item: { ...row.item, starred: res.starred } };
+      });
+      void queryClient.invalidateQueries({ queryKey: ["mobile-star-wiki"] });
+    },
+    onError: () => {
+      showIslandError("STAR", "STAR 저장에 실패했습니다.");
+    },
   });
   const item = query.data?.item;
   const photoUrl = item?.coverUrl || item?.bannerUrl || null;
@@ -142,6 +160,53 @@ export function AnimeDetailScreen() {
         title={item?.title ?? "작품"}
         leftLabel="뒤로"
         onLeftPress={() => navigation.goBack()}
+        rightSlot={
+          item ? (
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={() => navigation.navigate("AnimeHistory", { slug: item.slug })}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="수정 기록"
+              >
+                <Ionicons name="time-outline" size={22} color={colors.textMuted} />
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (authStatus !== "signedIn") {
+                    showIslandError("로그인 필요", "편집은 로그인 후 이용할 수 있습니다.");
+                    return;
+                  }
+                  navigation.navigate("AnimeEdit", { slug: item.slug });
+                }}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="문서 편집"
+              >
+                <Ionicons name="create-outline" size={22} color={colors.textMuted} />
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (authStatus !== "signedIn") {
+                    showIslandError("로그인 필요", "STAR 저장은 로그인 후 이용할 수 있습니다.");
+                    return;
+                  }
+                  star.mutate();
+                }}
+                disabled={star.isPending}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={item.starred ? "STAR 해제" : "STAR 저장"}
+              >
+                <Ionicons
+                  name={item.starred ? "star" : "star-outline"}
+                  size={22}
+                  color={item.starred ? colors.gold : colors.textMuted}
+                />
+              </Pressable>
+            </View>
+          ) : null
+        }
       />
 
       {query.isLoading ? (
@@ -167,6 +232,43 @@ export function AnimeDetailScreen() {
                 infobox={item.infobox}
                 fallbackRows={fallbackRows}
               />
+              {item.creator?.username || item.createdAt || item.updatedAt ? (
+                <View style={styles.metaBox}>
+                  {item.creator?.username ? (
+                    <Text style={styles.metaText}>작성자 @{item.creator.username}</Text>
+                  ) : null}
+                  {item.createdAt ? (
+                    <Text style={styles.metaText}>
+                      최초 등록 {new Date(item.createdAt).toLocaleString("ko-KR")}
+                    </Text>
+                  ) : null}
+                  {item.updatedAt ? (
+                    <Text style={styles.metaText}>
+                      마지막 수정 {new Date(item.updatedAt).toLocaleString("ko-KR")}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
+              <View style={styles.actionRow}>
+                <FolkButton
+                  label="편집"
+                  variant="secondary"
+                  style={styles.actionBtn}
+                  onPress={() => {
+                    if (authStatus !== "signedIn") {
+                      showIslandError("로그인 필요", "편집은 로그인 후 이용할 수 있습니다.");
+                      return;
+                    }
+                    navigation.navigate("AnimeEdit", { slug: item.slug });
+                  }}
+                />
+                <FolkButton
+                  label="수정 기록"
+                  variant="secondary"
+                  style={styles.actionBtn}
+                  onPress={() => navigation.navigate("AnimeHistory", { slug: item.slug })}
+                />
+              </View>
             </View>
 
             {article.sections.length > 0 ? (
@@ -316,5 +418,10 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
     emptyHint: { color: colors.textMuted, fontWeight: "600", marginTop: spacing.md },
     center: { padding: spacing.lg, alignItems: "center", gap: spacing.sm },
     error: { color: colors.danger, fontWeight: "700" },
+    headerActions: { flexDirection: "row", alignItems: "center", gap: 12 },
+    metaBox: { marginTop: spacing.sm, gap: 2 },
+    metaText: { color: colors.textMuted, fontSize: 12, fontWeight: "600" },
+    actionRow: { flexDirection: "row", gap: 8, marginTop: spacing.sm },
+    actionBtn: { flex: 1 },
   });
 }

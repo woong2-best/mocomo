@@ -49,7 +49,7 @@ export function AnimeInfoboxField({
             {value.trim() ? (
               <AnimeWikiInfobox source={value} />
             ) : (
-              <p className="text-xs text-muted-foreground">위 형식으로 입력하면 나무위키 스타일 표가 표시됩니다.</p>
+              <p className="text-xs text-muted-foreground">위 형식으로 입력하면 작품 정보표가 표시됩니다.</p>
             )}
           </div>
         )}

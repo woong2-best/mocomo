@@ -1,37 +1,25 @@
 import { memo, useMemo } from "react";
-import { Platform, StyleSheet, View, useWindowDimensions } from "react-native";
-import Svg, {
-  ClipPath,
-  Defs,
-  G,
-  LinearGradient,
-  Polygon,
-  Stop,
-  Text as SvgText,
-} from "react-native-svg";
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import Svg, { Polygon } from "react-native-svg";
 import type { MobileLiveCategoryId } from "@/features/live/live-categories";
 
-/**
- * Photo comparison (tab crop):
- * The flat bar stood the words up at 62°, parallel to a steep cut.
- * The target plates lean less: word axis ~40°, and each cut shows a
- * gray thickness instead of a hairline.
- */
-const EDGE_DEG = 20;
-const TEXT_DEG = 40;
-const BAR_H = 108;
-const DEPTH = 8;
+const BAR_H = 46;
+const GLOW_PAD = 8;
+const SLANT = (22 * Math.PI) / 180;
+const SHIFT = BAR_H * Math.tan(SLANT);
 
-const TAB_FONT = Platform.OS === "android" ? "sans-serif" : undefined;
-
-const TABS: { id: MobileLiveCategoryId; label: string; weight: number }[] = [
-  { id: "ALL", label: "ALL", weight: 3.4 },
-  { id: "VIRTUAL", label: "FOLLOW", weight: 4.6 },
-  { id: "GAME", label: "GAME", weight: 3.6 },
-  { id: "JUST_CHATTING", label: "Chat", weight: 3.6 },
-  { id: "IRL", label: "FESTIVAL", weight: 5.4 },
-  { id: "MUSIC", label: "MUSIC", weight: 4.8 },
-  { id: "LIVE", label: "R-18", weight: 5.2 },
+const TABS: {
+  id: MobileLiveCategoryId;
+  full: string;
+  short: string;
+}[] = [
+  { id: "ALL", full: "ALL", short: "ALL" },
+  { id: "VIRTUAL", full: "FOLLOW", short: "FOL" },
+  { id: "GAME", full: "GAME", short: "GAME" },
+  { id: "JUST_CHATTING", full: "CHAT", short: "CHAT" },
+  { id: "IRL", full: "FESTIVAL", short: "FES" },
+  { id: "MUSIC", full: "MUSIC", short: "MUS" },
+  { id: "LIVE", full: "R-18", short: "R-18" },
 ];
 
 type Props = {
@@ -41,168 +29,142 @@ type Props = {
 
 type Slot = {
   id: MobileLiveCategoryId;
-  label: string;
-  face: string;
-  side: string;
-  cx: number;
-  cy: number;
+  full: string;
+  short: string;
+  points: string;
   left: number;
-  faceRight: number;
+  topW: number;
+  labelShift: number;
 };
 
-function buildSlots(screenW: number, slant: number): Slot[] {
-  const sum = TABS.reduce((n, tab) => n + tab.weight, 0);
+function buildSlots(screenW: number, active: MobileLiveCategoryId): Slot[] {
+  const width = Math.max(0, screenW);
+  if (width <= 0) return [];
   const last = TABS.length - 1;
-  let left = 0;
+  const weights = TABS.map((tab) => (tab.id === active ? 1.45 : 1));
+  const weightSum = weights.reduce((sum, n) => sum + n, 0);
+  const minTop = width / weightSum;
+  const shift = Math.min(SHIFT, minTop * 0.42);
+  let x = 0;
+
   return TABS.map((tab, index) => {
-    const width = (screenW * tab.weight) / sum;
-    const right = index === last ? screenW : left + width;
-    const faceRight = index === last ? right : right - DEPTH;
-    const topL = left + slant;
-    const topFaceR = faceRight + slant;
-    const topSideR = right + slant;
-    let cx = (left + faceRight) / 2 + slant / 2;
-    if (index === 0) cx = Math.max(cx, 16);
-    if (index === last) cx = Math.min(cx, screenW - 18);
-    const slot: Slot = {
+    const topW = index === last ? width - x : (width * weights[index]) / weightSum;
+    const left = x;
+    const right = left + topW;
+    x = right;
+    const bottomLeft = index === 0 ? 0 : left - shift;
+    const bottomRight = index === last ? width : right - shift;
+    const top = GLOW_PAD;
+    const bottom = GLOW_PAD + BAR_H;
+    const points = `${left},${top} ${right},${top} ${bottomRight},${bottom} ${bottomLeft},${bottom}`;
+    const labelShift = index === 0 || index === last ? -shift / 4 : -shift / 2;
+    return {
       id: tab.id,
-      label: tab.label,
-      face: `${topL},0 ${topFaceR},0 ${faceRight},${BAR_H} ${left},${BAR_H}`,
-      side: `${topFaceR},0 ${topSideR},0 ${right},${BAR_H} ${faceRight},${BAR_H}`,
-      cx,
-      cy: BAR_H / 2,
+      full: tab.full,
+      short: tab.short,
+      points,
       left,
-      faceRight,
+      topW,
+      labelShift,
     };
-    left = right;
-    return slot;
   });
 }
-
-function glyphsInside(slots: Slot[], fontSize: number, slant: number, screenW: number): boolean {
-  const cos = Math.cos((TEXT_DEG * Math.PI) / 180);
-  const sin = Math.sin((TEXT_DEG * Math.PI) / 180);
-  return slots.every((slot) => {
-    const halfW = (fontSize * 0.66 * slot.label.length) / 2;
-    const halfH = fontSize * 0.36;
-    for (const sx of [-halfW, halfW]) {
-      for (const sy of [-halfH, halfH]) {
-        const px = slot.cx + sx * cos + sy * sin;
-        const py = slot.cy - sx * sin + sy * cos;
-        const along = (BAR_H - py) / BAR_H;
-        const boundL = slot.left + slant * along;
-        const boundR = slot.faceRight + slant * along;
-        if (py < 2 || py > BAR_H - 2 || px < boundL + 2 || px > boundR - 2 || px < 0 || px > screenW) {
-          return false;
-        }
-      }
-    }
-    return true;
-  });
-}
-
-function fitFont(slots: Slot[], slant: number, screenW: number): number {
-  let size = 16;
-  while (size > 13 && !glyphsInside(slots, size, slant, screenW)) size -= 1;
-  return size;
-}
-
-const TabLabels = memo(function TabLabels({
-  slots,
-  fontSize,
-  screenW,
-}: {
-  slots: Slot[];
-  fontSize: number;
-  screenW: number;
-}) {
-  return (
-    <Svg width={screenW} height={BAR_H} style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Defs>
-        {slots.map((slot) => (
-          <ClipPath key={`clip-${slot.id}`} id={`liveTabClip-${slot.id}`}>
-            <Polygon points={slot.face} />
-          </ClipPath>
-        ))}
-      </Defs>
-      {slots.map((slot) => (
-        <G key={`label-${slot.id}`} clipPath={`url(#liveTabClip-${slot.id})`}>
-          <G transform={`rotate(-${TEXT_DEG}, ${slot.cx}, ${slot.cy})`}>
-            <SvgText
-              x={slot.cx}
-              y={slot.cy}
-              dy={fontSize * 0.34}
-              fill="#FFFFFF"
-              fontSize={fontSize}
-              fontFamily={TAB_FONT}
-              fontWeight="bold"
-              textAnchor="middle"
-            >
-              {slot.label}
-            </SvgText>
-          </G>
-        </G>
-      ))}
-    </Svg>
-  );
-});
 
 export const LiveSlantTabs = memo(function LiveSlantTabs({ active, onSelect }: Props) {
   const { width } = useWindowDimensions();
-  const slant = Math.round(BAR_H * Math.tan((EDGE_DEG * Math.PI) / 180));
-  const slots = useMemo(() => (width > 0 ? buildSlots(width, slant) : []), [width, slant]);
-  const fontSize = useMemo(
-    () => (slots.length > 0 ? fitFont(slots, slant, width) : 14),
-    [slots, slant, width]
-  );
+  const slots = useMemo(() => buildSlots(width, active), [width, active]);
+  const ordered = useMemo(() => {
+    const idle = slots.filter((slot) => slot.id !== active);
+    const on = slots.find((slot) => slot.id === active);
+    return on ? [...idle, on] : slots;
+  }, [slots, active]);
+
+  if (width <= 0 || slots.length === 0) return null;
 
   return (
     <View style={styles.bar}>
-      <Svg width={width} height={BAR_H}>
-        <Defs>
-          <LinearGradient id="liveFaceBlue" x1="0" y1="1" x2="1" y2="0">
-            <Stop offset="0" stopColor="#071433" />
-            <Stop offset="0.48" stopColor="#1436C4" />
-            <Stop offset="1" stopColor="#3C82FF" />
-          </LinearGradient>
-          <LinearGradient id="liveBevelIdle" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor="#F2F2F2" />
-            <Stop offset="0.28" stopColor="#8A8A8A" />
-            <Stop offset="1" stopColor="#1A1A1A" />
-          </LinearGradient>
-          <LinearGradient id="liveBevelOn" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor="#F4F8FF" />
-            <Stop offset="0.35" stopColor="#5C92FF" />
-            <Stop offset="1" stopColor="#10245F" />
-          </LinearGradient>
-        </Defs>
-        {slots.map((slot) => {
+      <Svg width={width} height={BAR_H + GLOW_PAD * 2} pointerEvents="none">
+        {slots
+          .filter((slot) => slot.id === active)
+          .map((slot) => (
+            <Polygon
+              key={`${slot.id}-glow`}
+              points={slot.points}
+              fill="#1a6aff"
+              fillOpacity={0.28}
+              stroke="#1a6aff"
+              strokeWidth={10}
+              strokeOpacity={0.95}
+              strokeLinejoin="round"
+            />
+          ))}
+        {ordered.map((slot) => {
           const on = slot.id === active;
           return (
-            <G key={`plate-${slot.id}`}>
-              <Polygon
-                points={slot.side}
-                fill={on ? "url(#liveBevelOn)" : "url(#liveBevelIdle)"}
-                onPress={() => onSelect(slot.id)}
-              />
-              <Polygon
-                points={slot.face}
-                fill={on ? "url(#liveFaceBlue)" : "#070708"}
-                onPress={() => onSelect(slot.id)}
-              />
-            </G>
+            <Polygon
+              key={slot.id}
+              points={slot.points}
+              fill={on ? "#000000" : "#0a0a0a"}
+              stroke={on ? "#4da3ff" : "#8A8A8A"}
+              strokeWidth={on ? 2.6 : 1.25}
+              strokeLinejoin="miter"
+            />
           );
         })}
       </Svg>
-      <TabLabels slots={slots} fontSize={fontSize} screenW={width} />
+      {slots.map((slot) => {
+        const on = slot.id === active;
+        return (
+          <Pressable
+            key={slot.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            onPress={() => onSelect(slot.id)}
+            style={[styles.hit, { left: slot.left, width: slot.topW }]}
+          >
+            <Text
+              style={[
+                styles.label,
+                on && styles.labelOn,
+                { transform: [{ translateX: slot.labelShift }] },
+              ]}
+              numberOfLines={1}
+            >
+              {on ? slot.full : slot.short}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 });
 
 const styles = StyleSheet.create({
   bar: {
-    height: BAR_H,
+    height: BAR_H + GLOW_PAD * 2,
+    width: "100%",
     backgroundColor: "#000",
-    overflow: "hidden",
+  },
+  hit: {
+    position: "absolute",
+    top: GLOW_PAD,
+    height: BAR_H,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  label: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 12,
+    letterSpacing: 0.3,
+    textAlign: "center",
+    fontFamily: Platform.OS === "android" ? "sans-serif" : undefined,
+    includeFontPadding: false,
+  },
+  labelOn: {
+    color: "#FFFFFF",
+    textShadowColor: "#1a6aff",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
 });

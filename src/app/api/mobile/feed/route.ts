@@ -10,6 +10,8 @@ import { isSubscriptionActive } from "@/lib/creator-subscription";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { db } from "@/lib/db";
 import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { hydrateViewerPollVotes } from "@/lib/post-poll";
+import { withRepostActivities } from "@/lib/repost-timeline";
 
 export async function GET(req: NextRequest) {
   try {
@@ -47,22 +49,39 @@ export async function GET(req: NextRequest) {
       variant: "mobile",
       canViewNsfw,
     });
+    const merged = await withRepostActivities(posts, {
+      viewerId,
+      cursor,
+      mode: effectiveMode,
+      variant: "mobile",
+      canViewNsfw,
+    });
 
-    const visible = await filterPostsByAudienceLock(
-      posts.map((p) => ({ ...p, authorId: p.author.id })),
+    const visible = await hydrateViewerPollVotes(
+      await filterPostsByAudienceLock(
+        merged.map((p) => ({ ...p, authorId: p.author.id })),
+        viewerId
+      ),
       viewerId
     );
     const postIds = visible.map((p) => p.id);
     const authorIds = [...new Set(visible.map((p) => p.author.id))];
 
     // Mobile: no in-feed ads — Instagram-style placement is Reels-only.
-    const [gated, subscriptions, engagement] = await Promise.all([
+    const [gated, subscriptions, engagement, viewerPin] = await Promise.all([
       attachWebPaidMediaPlayback(visible, viewerId),
       getSubscriptionsForViewer(viewerId, authorIds),
       viewerId && postIds.length > 0
         ? getPostEngagementForUser(viewerId, postIds)
         : Promise.resolve({ likedIds: [], starredIds: [], repostedIds: [] }),
+      viewerId
+        ? db.user.findUnique({
+            where: { id: viewerId },
+            select: { profileMainPostId: true },
+          })
+        : Promise.resolve(null),
     ]);
+    const viewerProfileMainPostId = viewerPin?.profileMainPostId ?? null;
     const paymentsEnabled = isPaymentsConfigured();
 
     const serialized = gated.map((data) => {
@@ -70,6 +89,10 @@ export async function GET(req: NextRequest) {
       return {
         ...data,
         subscribedToAuthor: sub ? isSubscriptionActive(sub) : false,
+        profilePinned:
+          !!viewerProfileMainPostId &&
+          data.author.id === viewerId &&
+          data.id === viewerProfileMainPostId,
         createdAt:
           data.createdAt instanceof Date
             ? data.createdAt.toISOString()

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { MessagesLayoutShell } from "@/components/messages/messages-layout-shell";
 import { MessagesInboxAsync } from "@/components/messages/messages-inbox-async";
+import { MessagesInboxLive } from "@/components/messages/messages-inbox-live";
 
 function InboxSkeleton() {
   return (
@@ -25,6 +26,7 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
       }
     >
       {children}
+      <MessagesInboxLive />
     </MessagesLayoutShell>
   );
 }

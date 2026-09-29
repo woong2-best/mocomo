@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -40,6 +40,7 @@ type Props = {
   onClose: () => void;
   userId: string;
   username: string;
+  initialMuted?: boolean;
   onMuted?: (muted: boolean) => void;
   onBlocked?: () => void;
 };
@@ -49,6 +50,7 @@ export function ProfileOptionsSheet({
   onClose,
   userId,
   username,
+  initialMuted = false,
   onMuted,
   onBlocked,
 }: Props) {
@@ -56,7 +58,7 @@ export function ProfileOptionsSheet({
   const queryClient = useQueryClient();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(initialMuted);
   const [busy, setBusy] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<ReportReasonId>("SPAM");
@@ -65,6 +67,10 @@ export function ProfileOptionsSheet({
   const [blockConfirm, setBlockConfirm] = useState(false);
 
   const profileUrl = `${API_BASE_URL.replace(/\/$/, "")}/u/${username}`;
+
+  useEffect(() => {
+    if (visible) setMuted(initialMuted);
+  }, [initialMuted, visible]);
 
   const closeAll = useCallback(() => {
     setReportOpen(false);
@@ -82,17 +88,17 @@ export function ProfileOptionsSheet({
     }
   }, [closeAll, profileUrl]);
 
-  const onMute = useCallback(async () => {
+  const onQuiet = useCallback(async () => {
     if (busy) return;
-    setBusy("mute");
+    setBusy("quiet");
     try {
       const res = await toggleMuteUser(userId, username);
       setMuted(res.muted);
       onMuted?.(res.muted);
       closeAll();
-      showIslandSuccess(res.muted ? "뮤트했습니다" : "뮤트를 해제했습니다");
+      showIslandSuccess(res.muted ? "Quiet로 설정했습니다" : "Quiet을 해제했습니다");
     } catch (e) {
-      showIslandError("오류", e instanceof Error ? e.message : "뮤트 처리에 실패했습니다.");
+      showIslandError("오류", e instanceof Error ? e.message : "Quiet 처리에 실패했습니다.");
     } finally {
       setBusy(null);
     }
@@ -206,16 +212,16 @@ export function ProfileOptionsSheet({
               <Text style={styles.rowText}>프로필 링크 복사하기</Text>
             </Pressable>
 
-            <Pressable style={styles.row} onPress={() => void onMute()} disabled={!!busy || blockConfirm}>
+            <Pressable style={styles.row} onPress={() => void onQuiet()} disabled={!!busy || blockConfirm}>
               <View style={styles.iconCircle}>
                 <Ionicons
-                  name={muted ? "volume-high-outline" : "volume-mute-outline"}
+                  name={muted ? "volume-mute-outline" : "volume-high-outline"}
                   size={18}
                   color={colors.text}
                 />
               </View>
-              <Text style={styles.rowText}>{muted ? "뮤트 해제" : "뮤트"}</Text>
-              {busy === "mute" ? (
+              <Text style={styles.rowText}>{muted ? "Unquiet" : "Quiet"}</Text>
+              {busy === "quiet" ? (
                 <ActivityIndicator size="small" color={colors.cobalt} />
               ) : null}
             </Pressable>

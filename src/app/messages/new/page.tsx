@@ -202,7 +202,7 @@ function NewMessagePageInner() {
                       <UserSearchRow
                         key={u.id}
                         user={u}
-                        disabled={loading}
+                        disabled={loading || u.canMessage === false}
                         onSelect={() => void openDm(u.id)}
                       />
                     ))}
@@ -220,7 +220,7 @@ function NewMessagePageInner() {
                       <UserSearchRow
                         key={u.id}
                         user={u}
-                        disabled={loading}
+                        disabled={loading || u.canMessage === false}
                         onSelect={() => void openDm(u.id)}
                       />
                     ))}
@@ -280,7 +280,10 @@ function UserSearchRow({
           nameClassName="text-[15px] font-semibold truncate block"
           compact
         />
-        <span className="block truncate text-sm text-muted-foreground">@{user.username}</span>
+        <span className="block truncate text-sm text-muted-foreground">
+          @{user.username}
+          {user.canMessage === false ? " · 메시지 요청을 받지 않음" : ""}
+        </span>
       </span>
     </button>
   );

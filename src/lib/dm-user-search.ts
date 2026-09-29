@@ -1,5 +1,6 @@
 import type { SupportTierLevel } from "@prisma/client";
 import { db } from "@/lib/db";
+import { annotateCanMessage } from "@/lib/contact-audience";
 
 export type DmUserSearchHit = {
   id: string;
@@ -8,6 +9,7 @@ export type DmUserSearchHit = {
   image: string | null;
   supportTierSent: SupportTierLevel;
   isFollowing: boolean;
+  canMessage: boolean;
 };
 
 const userSelect = {
@@ -72,10 +74,11 @@ export async function searchUsersForDm(
     }),
   ]);
 
-  return [
+  const hits = [
     ...followingRows.map((u) => ({ ...u, isFollowing: true })),
     ...otherRows.map((u) => ({ ...u, isFollowing: false })),
   ];
+  return annotateCanMessage(viewerId, hits);
 }
 
 /**
@@ -107,10 +110,9 @@ export async function searchUsersForCollab(
     },
     select: { id: true },
   });
-  const hit: DmUserSearchHit = {
-    ...exactById,
-    isFollowing: !!following,
-  };
-  if (prefixHits.some((u) => u.id === hit.id)) return prefixHits;
-  return [hit, ...prefixHits];
+  if (prefixHits.some((u) => u.id === exactById.id)) return prefixHits;
+  const [hit] = await annotateCanMessage(viewerId, [
+    { ...exactById, isFollowing: !!following },
+  ]);
+  return hit ? [hit, ...prefixHits] : prefixHits;
 }

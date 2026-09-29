@@ -12,6 +12,8 @@ export type MarketplaceListItem = {
   saleType: string;
   createdAt: string;
   favoriteCount: number;
+  viewCount?: number;
+  favorited?: boolean;
   auctionEndsAt: string | null;
   currentBidAmount: number | null;
   bidCount: number | null;
@@ -37,6 +39,8 @@ export type MarketplaceDetail = Omit<MarketplaceListItem, "thumbnailUrl"> & {
   description: string;
   images: string[];
   favorited: boolean;
+  starred?: boolean;
+  viewCount?: number;
   buyerChatRoomId: string | null;
   bidIncrement: number | null;
   buyNowPrice: number | null;
@@ -190,6 +194,12 @@ export async function fetchMarketplaceDetail(id: string) {
 
 export async function toggleMarketplaceFavorite(id: string) {
   return apiRequest<{ favorited: boolean }>(`${MobileApi.marketplace}/${id}/favorite`, {
+    method: "POST",
+  });
+}
+
+export async function toggleMarketplaceStar(id: string) {
+  return apiRequest<{ starred: boolean }>(`${MobileApi.marketplace}/${id}/star`, {
     method: "POST",
   });
 }

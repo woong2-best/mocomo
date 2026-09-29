@@ -6,6 +6,8 @@ import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { isPaymentsConfigured } from "@/lib/payments";
+import { withRepostActivities } from "@/lib/repost-timeline";
+import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): T[] {
   return rows.map((row) => ({
@@ -23,8 +25,16 @@ export async function HomeFeedAsync() {
       getCachedSession(),
     ]);
     const viewerId = session?.user?.id ?? null;
+    const canViewNsfw = await resolveCanViewNsfw(viewerId);
+    const merged = await withRepostActivities(rawPosts, {
+      viewerId,
+      cursor: null,
+      mode: "latest",
+      variant: "web",
+      canViewNsfw,
+    });
     const visible = await filterPostsByAudienceLock(
-      rawPosts.map((p) => ({ ...p, authorId: p.author.id })),
+      merged.map((p) => ({ ...p, authorId: p.author.id })),
       viewerId
     );
     const postIds = visible.map((p) => p.id);

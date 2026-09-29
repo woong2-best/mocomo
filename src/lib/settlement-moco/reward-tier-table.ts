@@ -46,6 +46,48 @@ export function achievedCreatorRewardTier(earnedMoco: number): CreatorRewardTier
   return CREATOR_REWARD_TIER_TABLE[0]!;
 }
 
+export type RewardTierProgress = {
+  currentLabel: string;
+  currentRequiredMoco: number;
+  currentRewardUsd: number;
+  nextLabel: string | null;
+  nextRequiredMoco: number | null;
+  nextRewardUsd: number | null;
+  /** 다음 정산 등급까지 더 받아야 하는 MOCO. 최고 등급이면 0 */
+  mocoRemaining: number;
+  atMaxTier: boolean;
+};
+
+/** 정산 MOCO(다른 사용자에게 받은 분) 기준 현재 등급과 다음 등급까지 남은 수량 */
+export function rewardTierProgress(earnedMoco: number): RewardTierProgress {
+  const earned = Math.max(0, Math.floor(earnedMoco));
+  const current = achievedCreatorRewardTier(earned);
+  const index = CREATOR_REWARD_TIER_TABLE.findIndex((row) => row.label === current.label);
+  const next = index >= 0 ? CREATOR_REWARD_TIER_TABLE[index + 1] : undefined;
+  if (!next) {
+    return {
+      currentLabel: current.label,
+      currentRequiredMoco: current.requiredMoco,
+      currentRewardUsd: current.rewardUsd,
+      nextLabel: null,
+      nextRequiredMoco: null,
+      nextRewardUsd: null,
+      mocoRemaining: 0,
+      atMaxTier: true,
+    };
+  }
+  return {
+    currentLabel: current.label,
+    currentRequiredMoco: current.requiredMoco,
+    currentRewardUsd: current.rewardUsd,
+    nextLabel: next.label,
+    nextRequiredMoco: next.requiredMoco,
+    nextRewardUsd: next.rewardUsd,
+    mocoRemaining: Math.max(0, next.requiredMoco - earned),
+    atMaxTier: false,
+  };
+}
+
 export function formatRewardUsd(usd: number): string {
   return usd.toLocaleString("en-US", {
     style: "currency",

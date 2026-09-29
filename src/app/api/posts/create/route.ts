@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       ? body.collaboratorUserIds.map(String)
       : undefined,
     isAnonymous: Boolean(body.isAnonymous),
+    quotedPostId: body.quotedPostId ? String(body.quotedPostId) : undefined,
   });
 
   if (result.error && !result.postId) {

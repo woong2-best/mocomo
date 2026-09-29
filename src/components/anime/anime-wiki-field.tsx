@@ -1,11 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Eye, EyeOff, ImagePlus, Loader2 } from "lucide-react";
+import { Eye, EyeOff, ImagePlus, Link2, Loader2 } from "lucide-react";
 import { WikiContent, WIKI_EDITOR_HELP } from "@/components/anime/wiki-content";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { prepareGalleryImageForUpload } from "@/lib/gallery-image-upload";
 import { uploadImageBlob } from "@/lib/client-upload";
+import { extractYoutubeId } from "@/lib/anime-revision";
 
 export function AnimeWikiField({
   name,
@@ -21,6 +23,7 @@ export function AnimeWikiField({
   placeholder?: string;
 }) {
   const [value, setValue] = useState(defaultValue);
+  const [videoUrl, setVideoUrl] = useState("");
   const [preview, setPreview] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -39,6 +42,21 @@ export function AnimeWikiField({
     } finally {
       setUploading(false);
     }
+  }
+
+  function insertVideoLink() {
+    const trimmed = videoUrl.trim();
+    if (!trimmed) {
+      setUploadError("영상 링크를 붙여넣어 주세요.");
+      return;
+    }
+    if (!extractYoutubeId(trimmed)) {
+      setUploadError("유튜브 링크를 붙여넣어 주세요.");
+      return;
+    }
+    setValue((v) => `${v.trim() ? `${v.trim()}\n\n` : ""}${trimmed}\n\n`);
+    setVideoUrl("");
+    setUploadError("");
   }
 
   return (
@@ -61,7 +79,7 @@ export function AnimeWikiField({
             <Button type="button" variant="outline" size="sm" className="h-8 gap-1 rounded-lg" asChild>
               <span>
                 {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
-                이미지
+                사진 업로드
               </span>
             </Button>
           </label>
@@ -77,6 +95,28 @@ export function AnimeWikiField({
           </Button>
         </div>
       </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          type="url"
+          value={videoUrl}
+          onChange={(e) => {
+            setVideoUrl(e.target.value);
+            setUploadError("");
+          }}
+          placeholder="영상 링크 붙여넣기 (유튜브)"
+          className="rounded-xl h-8 max-w-md text-sm"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1 rounded-lg"
+          onClick={insertVideoLink}
+        >
+          <Link2 className="h-3.5 w-3.5" />
+          본문에 넣기
+        </Button>
+      </div>
       {uploadError ? (
         <p className="text-xs text-destructive" role="alert">
           {uploadError}
@@ -91,7 +131,7 @@ export function AnimeWikiField({
           onChange={(e) => setValue(e.target.value)}
           rows={rows}
           placeholder={placeholder}
-          className="w-full rounded-xl border border-border bg-background p-3 text-sm font-mono leading-relaxed resize-y min-h-[160px]"
+          className="w-full rounded-xl border border-border bg-background p-3 text-sm leading-relaxed resize-y min-h-[160px]"
         />
         {preview && (
           <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-3 min-h-[160px] overflow-y-auto">

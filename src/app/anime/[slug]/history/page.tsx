@@ -10,7 +10,7 @@ export default async function AnimeHistoryPage({ params }: { params: Promise<{ s
   const data = await getAnimeRevisions(slug);
   if ("error" in data && data.error) notFound();
 
-  const { anime, revisions } = data as Exclude<Awaited<ReturnType<typeof getAnimeRevisions>>, { error: string }>;
+  const { anime, entries } = data as Exclude<Awaited<ReturnType<typeof getAnimeRevisions>>, { error: string }>;
 
   return (
     <AppPageChrome maxWidth="2xl" spacing="sm">
@@ -27,7 +27,7 @@ export default async function AnimeHistoryPage({ params }: { params: Promise<{ s
           </Button>
         </Link>
       </div>
-      <AnimeHistoryClient slug={slug} revisions={revisions} />
+      <AnimeHistoryClient slug={slug} entries={entries} />
     </AppPageChrome>
   );
 }

@@ -1,5 +1,11 @@
 import * as FileSystem from "expo-file-system/legacy";
-import { FFmpegKit, FFprobeKit, ReturnCode } from "ffmpeg-kit-react-native";
+async function loadFfmpeg() {
+  try {
+    return await import("ffmpeg-kit-react-native");
+  } catch {
+    throw new Error("이 기기에서는 영상 변환을 사용할 수 없습니다.");
+  }
+}
 import type { LocalMediaDraft, VideoEditDraft } from "@/features/compose/compose-types";
 import { DEFAULT_VIDEO_EDIT } from "@/features/compose/compose-types";
 import { hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
@@ -17,6 +23,7 @@ function stripFileUri(uri: string): string {
 
 export async function probeVideo(uri: string): Promise<VideoProbe> {
   const path = stripFileUri(uri);
+  const { FFprobeKit } = await loadFfmpeg();
   const session = await FFprobeKit.getMediaInformation(path);
   const info = session.getMediaInformation();
   if (!info) {
@@ -170,6 +177,7 @@ export async function processVideoForUpload(
     outputPath
   );
 
+  const { FFmpegKit, ReturnCode } = await loadFfmpeg();
   const session = await FFmpegKit.executeWithArguments(args);
   const code = await session.getReturnCode();
   if (!ReturnCode.isSuccess(code)) {

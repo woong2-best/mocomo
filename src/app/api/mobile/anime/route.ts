@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { AnimeGenre } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
+import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { genreFromParam } from "@/lib/anime-genres";
+import { createAnimeForUser, type AnimeCreateInput } from "@/lib/anime-create-for-user";
 import { getCachedMobileAnimeList } from "@/lib/mobile-public-lists";
 
 export async function GET(req: NextRequest) {
@@ -26,4 +28,28 @@ export async function GET(req: NextRequest) {
       },
     }
   );
+}
+
+export async function POST(req: NextRequest) {
+  const limited = await rateLimitPublicApi(req, "mobile-anime-create", 12);
+  if (limited) return limited;
+
+  const userId = await getMobileUserId(req);
+  if (!userId) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
+
+  let body: AnimeCreateInput;
+  try {
+    body = (await req.json()) as AnimeCreateInput;
+  } catch {
+    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+  }
+
+  const result = await createAnimeForUser(userId, body);
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  return NextResponse.json({ anime: result.anime }, { status: 201 });
 }

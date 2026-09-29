@@ -15,9 +15,11 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const requestCardPayments = body?.requestCardPayments === true;
+  const payoutCountry = typeof body?.payoutCountry === "string" ? body.payoutCountry : undefined;
 
   const result = await startExpressConnectOnboarding(session.user.id, {
     requestCardPayments,
+    payoutCountry,
   });
 
   if ("error" in result) {

@@ -4,14 +4,12 @@ import { BlurView } from "expo-blur";
 import type { FeedMedia } from "@/api/feed";
 import { LockedMediaPaywallOverlay } from "@/components/media/LockedMediaPaywallOverlay";
 import { PurchasePostMediaButton } from "@/components/media/PurchasePostMediaButton";
-import { PayButton } from "@/payments/PayButton";
 import {
   normalizeLockReason,
   resolvePurchasePriceKrw,
   type PaidMediaMonetization,
 } from "@/components/media/paid-media-types";
 import { useTheme } from "@/theme/ThemeContext";
-import { formatUsd } from "@/lib/money";
 
 type Props = {
   media: FeedMedia;
@@ -34,26 +32,8 @@ export function LockedMediaTile({ media, monetization, style }: Props) {
         return <LockedMediaPaywallOverlay label="구독 중" />;
       }
       return (
-        <LockedMediaPaywallOverlay label="구독하기">
-          <View style={styles.ctaStack}>
-            <Text style={styles.ctaTitle}>구독하기</Text>
-            {monetization.paymentsEnabled ? (
-              <PayButton
-                type="CREATOR_SUBSCRIPTION"
-                amount={subscriptionPrice}
-                orderName={`@${monetization.authorUsername} 구독`}
-                metadata={{
-                  creatorId: monetization.authorId,
-                  username: monetization.authorUsername,
-                }}
-                label={`${formatUsd(subscriptionPrice)}/월 구독`}
-                variant="secondary"
-                onSuccess={monetization.onPurchaseSuccess}
-              />
-            ) : (
-              <Text style={styles.ctaHint}>결제 연동 후 구독할 수 있습니다.</Text>
-            )}
-          </View>
+        <LockedMediaPaywallOverlay label="구독 전용">
+          <Text style={styles.ctaHint}>정기 후원 기능이 종료되어 열람할 수 없습니다.</Text>
         </LockedMediaPaywallOverlay>
       );
     }

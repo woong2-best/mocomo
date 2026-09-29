@@ -110,6 +110,9 @@ export type OAuthSignupConsent = {
   birthDay: number;
   termsAccepted: true;
   privacyAccepted: true;
+  username?: string;
+  name?: string;
+  password?: string;
 };
 
 export async function completeWebOAuthSignup(

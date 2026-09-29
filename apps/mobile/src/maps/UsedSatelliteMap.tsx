@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { StyleSheet, View } from "react-native";
+import { Linking, StyleSheet, View } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import * as Haptics from "expo-haptics";
 
@@ -16,9 +16,11 @@ export type UsedMapPin = {
   lng: number;
   color: string;
   title: string;
-  place: string;
+  place?: string;
   when?: string;
   price?: string;
+  searchUrl?: string;
+  mapUrl?: string;
 };
 
 type Props = {
@@ -79,6 +81,8 @@ function mapHtml(
   .maplibregl-popup-close-button { font-size: 16px; padding: 2px 6px; color: #94A3B8; }
   .popup-title { display: block; font-weight: 800; color: #F1F5F9; }
   .popup-meta { display: block; margin-top: 3px; color: #94A3B8; }
+  .popup-links { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+  .popup-links a { color: #93C5FD; font-weight: 700; text-decoration: none; font-size: 11px; }
 </style>
 </head>
 <body>
@@ -136,14 +140,32 @@ if (!maplibregl) {
   const markers = new Map();
   let popup = null;
   const esc = (value) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const bindPopupLinks = (root) => {
+    if (!root) return;
+    root.querySelectorAll("a[data-url]").forEach((anchor) => {
+      anchor.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        post({ type: "openUrl", url: anchor.getAttribute("data-url") });
+      });
+    });
+  };
   const showPin = (pin) => {
-    const lines = [pin.place, pin.when, pin.price].filter(Boolean).map((line) => '<span class="popup-meta">' + esc(line) + "</span>").join("");
-    const html = '<strong class="popup-title">' + esc(pin.title || "거래 장소") + "</strong>" + lines;
+    const meta = [pin.when, pin.price].filter(Boolean).map((line) => '<span class="popup-meta">' + esc(line) + "</span>").join("");
+    const links = [];
+    if (pin.searchUrl) links.push('<a href="#" data-url="' + esc(pin.searchUrl) + '">Google 검색</a>');
+    if (pin.mapUrl) links.push('<a href="#" data-url="' + esc(pin.mapUrl) + '">Google 지도</a>');
+    const linkBlock = links.length ? '<div class="popup-links">' + links.join("") + "</div>" : "";
+    const placeLine = pin.place && !pin.searchUrl
+      ? '<span class="popup-meta">' + esc(pin.place) + "</span>"
+      : "";
+    const html = '<strong class="popup-title">' + esc(pin.title || "거래 장소") + "</strong>" + placeLine + meta + linkBlock;
     if (popup) popup.remove();
     popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 16 })
       .setLngLat([pin.lng, pin.lat])
       .setHTML(html)
       .addTo(map);
+    bindPopupLinks(popup.getElement());
     post({ type: "pin" });
   };
   window.__setPins = (pins) => {
@@ -236,6 +258,7 @@ export function UsedSatelliteMap({
         type?: string;
         lat?: number;
         lng?: number;
+        url?: string;
       };
       if (data.type === "ready") {
         pushPins(payloadRef.current);
@@ -246,6 +269,8 @@ export function UsedSatelliteMap({
         onPickRef.current?.({ lat: data.lat!, lng: data.lng! });
       } else if (data.type === "pin") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else if (data.type === "openUrl" && typeof data.url === "string" && /^https:\/\//i.test(data.url)) {
+        void Linking.openURL(data.url);
       }
     } catch {
       /* ignore malformed bridge messages */

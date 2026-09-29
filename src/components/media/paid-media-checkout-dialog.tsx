@@ -9,11 +9,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
-import {
-  SubscribeCreatorButton,
-  SubscribeCreatorHint,
-} from "@/components/monetization/subscribe-creator-button";
-
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,12 +35,13 @@ export function PaidMediaCheckoutDialog({
   postId,
   lockReason,
   authorId,
-  subscriptionPriceKrw,
-  subscribed = false,
+  subscriptionPriceKrw: _subscriptionPriceKrw,
+  subscribed: _subscribed = false,
   variant = "preview-ended",
   onPurchaseSuccess,
 }: Props) {
-  const isSub = lockReason === "subscription" && authorId && (subscriptionPriceKrw ?? 0) > 0;
+  const isSub =
+    lockReason === "subscription" && authorId && (_subscriptionPriceKrw ?? 0) > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -54,10 +50,10 @@ export function PaidMediaCheckoutDialog({
           <div className="mb-1 flex h-14 w-14 items-center justify-center rounded-full bg-folk-cobalt/10">
             <Lock className="h-7 w-7 text-folk-cobalt" strokeWidth={2.25} />
           </div>
-          <DialogTitle>{isSub ? "구독이 필요합니다" : "결제가 필요합니다"}</DialogTitle>
+          <DialogTitle>{isSub ? "열람 불가" : "결제가 필요합니다"}</DialogTitle>
           <DialogDescription>
             {isSub
-              ? "이 콘텐츠는 구독자만 볼 수 있습니다."
+              ? "구독 전용 콘텐츠입니다. 정기 후원 기능은 종료되어 새로 구독할 수 없습니다."
               : variant === "photo"
                 ? "전체 사진을 보려면 결제해 주세요."
                 : "미리보기가 끝났습니다. 이어서 보려면 결제해 주세요."}
@@ -65,16 +61,7 @@ export function PaidMediaCheckoutDialog({
         </DialogHeader>
         <div className="flex flex-col items-center gap-3 pt-1">
           {isSub ? (
-            <>
-              <SubscribeCreatorButton
-                creatorId={authorId!}
-                username={username ?? ""}
-                priceKrw={subscriptionPriceKrw!}
-                paymentsEnabled={paymentsEnabled}
-                subscribed={subscribed}
-              />
-              <SubscribeCreatorHint priceKrw={subscriptionPriceKrw!} />
-            </>
+            <p className="text-sm text-muted-foreground">열람 권한이 없습니다.</p>
           ) : mediaId && priceKrw > 0 ? (
             <PurchasePostMediaButton
               mediaId={mediaId}

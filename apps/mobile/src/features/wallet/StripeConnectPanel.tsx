@@ -1,16 +1,30 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Linking, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Linking,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchSettlementStatus } from "@/api/settlement";
 import { apiRequest } from "@/api/client";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import {
+  DEFAULT_EXPRESS_PAYOUT_COUNTRY,
+  STRIPE_EXPRESS_SUPPORTED_COUNTRIES,
+} from "@/lib/stripe-express-countries";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-async function startExpressConnect(requestCardPayments = false) {
+async function startExpressConnect(payoutCountry: string, requestCardPayments = false) {
   return apiRequest<{ url: string }>("/api/mobile/settlements/connect-account", {
     method: "POST",
-    body: { requestCardPayments },
+    body: { requestCardPayments, payoutCountry },
     auth: true,
   });
 }
@@ -24,24 +38,28 @@ async function openExpressDashboard() {
 
 export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
   const statusQuery = useQuery({ queryKey: ["mobile-settlement"], queryFn: fetchSettlementStatus });
 
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [payoutCountry, setPayoutCountry] = useState(DEFAULT_EXPRESS_PAYOUT_COUNTRY);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const data = statusQuery.data;
   const linked =
     (!!data?.registered || !!data?.payoutsEnabled || !!data?.hasConnectAccount) &&
     !data?.needsExpressMigration;
+  const detailsSubmitted = !!data?.payoutDashboard?.detailsSubmitted && !data?.needsExpressMigration;
   const connected = !!data?.payoutsEnabled && !data?.needsExpressMigration && !data?.taxRequirementsDue;
 
   async function openOnboarding() {
     setBusy(true);
     setError("");
     try {
-      const res = await startExpressConnect(false);
+      const res = await startExpressConnect(payoutCountry, false);
       await Linking.openURL(res.url);
       onConnected?.();
     } catch (e: unknown) {
@@ -74,6 +92,25 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
       <Text style={[styles.body, { color: colors.textMuted }]}>
         Stripe Express 온보딩에서 본인 확인·계좌·세무 정보(W-9/W-8BEN)를 등록합니다.
       </Text>
+      <Text style={[styles.body, { color: colors.textMuted }]}>
+        • 해외 Stripe 지원 국가의 은행 계좌를 보유하고 계신 경우 정산 계좌 연동이 가능합니다.
+      </Text>
+      <Text style={[styles.body, { color: colors.textMuted }]}>
+        • 정산 계좌(Stripe)를 연동하셔야 팬들로부터 MOCO 후원을 수령할 수 있습니다.
+      </Text>
+      <Pressable onPress={() => void Linking.openURL("https://stripe.com/global")}>
+        <Text style={[styles.link, { color: colors.cobalt }]}>Stripe 정산 지원 국가 및 계좌 조건 확인하기</Text>
+      </Pressable>
+      <Text style={[styles.body, { color: data?.payoutsEnabled ? colors.success : colors.cobalt }]}>
+        정산 수령: {data?.payoutsEnabled ? "가능 (payouts_enabled)" : "불가 — Stripe 연동 미완료"}
+      </Text>
+      {!data?.payoutsEnabled
+        ? data?.payoutDashboard?.reasons.map((reason) => (
+            <Text key={reason.code} style={[styles.body, { color: colors.cobalt }]}>
+              • {reason.message}
+            </Text>
+          ))
+        : null}
 
       {data?.needsExpressMigration ? (
         <Text style={[styles.body, { color: colors.danger }]}>
@@ -85,6 +122,24 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
         <Text style={[styles.body, { color: colors.cobalt }]}>
           세무 정보가 미비합니다. Stripe에서 W-9/W-8BEN을 완료해 주세요.
         </Text>
+      ) : null}
+
+      {!data?.hasConnectAccount || data?.needsExpressMigration ? (
+        <View style={{ gap: 6 }}>
+          <Text style={[styles.body, { color: colors.text }]}>정산받을 계좌 국가</Text>
+          <Pressable
+            onPress={() => setPickerOpen(true)}
+            style={[styles.picker, { borderColor: colors.hairline, backgroundColor: colors.surface }]}
+          >
+            <Text style={[styles.body, { color: colors.text }]}>
+              {STRIPE_EXPRESS_SUPPORTED_COUNTRIES.find((country) => country.code === payoutCountry)?.name ??
+                payoutCountry}
+            </Text>
+          </Pressable>
+          <Text style={[styles.body, { color: colors.textMuted }]}>
+            은행 계좌가 있는 국가를 선택하세요. 한국에 거주해도 미국(US) 등 해외 계좌로 정산받을 수 있습니다.
+          </Text>
+        </View>
       ) : null}
 
       {connected && data?.profile && !data.needsExpressMigration && !data.taxRequirementsDue ? (
@@ -106,21 +161,50 @@ export function StripeConnectPanel({ onConnected }: { onConnected?: () => void }
             ? "Stripe 열기…"
             : data?.needsExpressMigration
               ? "Express로 다시 연동하기"
-              : linked && !data?.taxRequirementsDue
-                ? "연동 완료 · 계좌 정보 수정하기"
-                : "Stripe Express 정산 계좌 연동하기"
+              : !linked
+                ? "Stripe Express 정산 계좌 연동하기"
+                : detailsSubmitted
+                  ? "연동 완료 · 계좌 정보 수정하기"
+                  : "Stripe 온보딩 이어서 진행하기"
         }
-        onPress={() =>
-          void (
-            linked && !data?.needsExpressMigration && !data?.taxRequirementsDue
-              ? openDashboard()
-              : openOnboarding()
-          )
-        }
+        onPress={() => void (detailsSubmitted ? openDashboard() : openOnboarding())}
         loading={busy}
       />
 
       {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+
+      <Modal visible={pickerOpen} animationType="slide" onRequestClose={() => setPickerOpen(false)}>
+        <View
+          style={[
+            styles.modal,
+            {
+              backgroundColor: colors.surface,
+              paddingTop: insets.top + spacing.md,
+              paddingBottom: insets.bottom + spacing.md,
+            },
+          ]}
+        >
+          <Text style={[styles.heading, { color: colors.text }]}>정산받을 계좌 국가</Text>
+          <FlatList
+            data={STRIPE_EXPRESS_SUPPORTED_COUNTRIES}
+            keyExtractor={(item) => item.code}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => {
+                  setPayoutCountry(item.code);
+                  setPickerOpen(false);
+                }}
+                style={[styles.countryRow, { borderColor: colors.hairline }]}
+              >
+                <Text style={[styles.body, { color: item.code === payoutCountry ? colors.cobalt : colors.text }]}>
+                  {item.name}
+                </Text>
+              </Pressable>
+            )}
+          />
+          <FolkButton label="닫기" variant="secondary" onPress={() => setPickerOpen(false)} />
+        </View>
+      </Modal>
 
       <FolkButton
         label="상태 새로고침"
@@ -142,8 +226,12 @@ function createStyles(colors: ThemeColors) {
     },
     heading: { fontSize: 16, fontWeight: "900" },
     body: { fontSize: 13, lineHeight: 18, fontWeight: "600" },
+    link: { fontSize: 13, fontWeight: "800", textDecorationLine: "underline" },
     okBox: { borderWidth: 1, borderRadius: 12, padding: spacing.sm, gap: 4 },
     okText: { fontWeight: "800", fontSize: 14 },
     error: { fontSize: 13, fontWeight: "600" },
+    picker: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+    modal: { flex: 1, padding: spacing.md, paddingTop: spacing.lg, gap: spacing.sm },
+    countryRow: { borderBottomWidth: 1, paddingVertical: 12 },
   });
 }

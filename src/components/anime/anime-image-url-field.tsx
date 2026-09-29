@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { prepareGalleryImageForUpload } from "@/lib/gallery-image-upload";
 import { uploadImageBlob } from "@/lib/client-upload";
@@ -12,9 +11,8 @@ export function AnimeImageUrlField({
   name,
   label,
   defaultValue = "",
-  placeholder = "https://...",
   previewAspect = "square",
-  uploadLabel = "갤러리·사진에서 업로드",
+  uploadLabel = "사진 업로드",
 }: {
   name: string;
   label: string;
@@ -44,17 +42,7 @@ export function AnimeImageUrlField({
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">{label}</label>
-      <Input
-        name={name}
-        type="url"
-        value={url}
-        onChange={(e) => {
-          setUrl(e.target.value);
-          setUploadError("");
-        }}
-        placeholder={placeholder}
-        className="rounded-xl"
-      />
+      <input type="hidden" name={name} value={url} />
 
       <div className="flex flex-wrap items-center gap-2">
         <label className="cursor-pointer">
@@ -107,7 +95,7 @@ export function AnimeImageUrlField({
         <div
           className={cn(
             "relative overflow-hidden rounded-xl border border-border/70 bg-muted/30",
-            previewAspect === "banner" ? "aspect-[3/1] max-h-28" : "aspect-square max-w-[120px]"
+            previewAspect === "banner" ? "aspect-[3/1] max-h-28" : "aspect-[2/3] max-w-[120px]"
           )}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}

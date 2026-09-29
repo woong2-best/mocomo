@@ -1,12 +1,9 @@
 ﻿"use client";
 
 import { useId, useRef, useState, useEffect, useCallback } from "react";
-import { Camera, Gamepad2, ImagePlus, Loader2, Mic, Send, Square, X, Banknote } from "lucide-react";
+import { Camera, Gamepad2, ImagePlus, Loader2, Mic, Send, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CameraCaptureDialog } from "@/components/media/camera-capture-dialog";
-import { FanArtSellDialog } from "@/components/chat/fan-art-sell-dialog";
-import { AdultVerificationDialog } from "@/components/adult-verification/adult-verification-dialog";
-import { useAdultVerificationGate } from "@/hooks/use-adult-verification-gate";
 import { toAbsoluteUploadUrl, uploadAudioBlob, uploadImageBlob } from "@/lib/client-upload";
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import type { ChatAttachmentInput } from "@/lib/chat-attachments";
@@ -50,8 +47,6 @@ export function ChatMediaComposer({
   const sendVoiceRef = useRef(true);
 
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [fanArtOpen, setFanArtOpen] = useState(false);
-  const adultGate = useAdultVerificationGate("DM_PAID");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [recording, setRecording] = useState(false);
@@ -245,21 +240,6 @@ export function ChatMediaComposer({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-10 w-10 rounded-full text-folk-terracotta hover:bg-folk-terracotta/10"
-            disabled={disabled || uploading || recording}
-            onClick={async () => {
-              const ok = await adultGate.ensureAdult();
-              if (ok) setFanArtOpen(true);
-            }}
-            aria-label="팬아트 판매"
-            title="당신의 팬 아트를 팔아보세요!"
-          >
-            <Banknote className="h-5 w-5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
             className="h-10 w-10 rounded-full text-muted-foreground"
             disabled={disabled || uploading || recording}
             onClick={() => setCameraOpen(true)}
@@ -369,24 +349,6 @@ export function ChatMediaComposer({
         mode="photo"
         enableFaceFilter={false}
         onCapture={onCameraCapture}
-      />
-
-      <FanArtSellDialog
-        open={fanArtOpen}
-        onOpenChange={setFanArtOpen}
-        onSend={onSendAttachments}
-      />
-
-      <AdultVerificationDialog
-        open={adultGate.promptOpen}
-        onOpenChange={adultGate.setPromptOpen}
-        onVerify={() =>
-          adultGate.verifyNow(() => {
-            setFanArtOpen(true);
-          })
-        }
-        busy={adultGate.pending}
-        error={adultGate.error}
       />
 
     </div>

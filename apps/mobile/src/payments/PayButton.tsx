@@ -74,6 +74,10 @@ export function PayButton({
   );
 
   async function openCheckout() {
+    if (type === "CREATOR_SUBSCRIPTION") {
+      showIslandError("이용 불가", "크리에이터 정기 후원 기능은 종료되었습니다.");
+      return;
+    }
     const token = await getAccessToken();
     if (!token) {
       showIslandError("로그인 필요", "결제하려면 먼저 로그인해 주세요.");

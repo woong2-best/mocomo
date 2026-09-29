@@ -176,23 +176,23 @@ test("the sender also streams through the gate so the origin url never renders",
   assert.equal(out.attachments![0].url, paidMessageAttachmentPlaybackPath("a_img"));
 });
 
-test("only media types the forensic pipeline can carry may be priced", async () => {
-  const { sanitizeChatAttachments } = await import("@/lib/chat-attachments");
+test("priced DM attachments are rejected (fan-art sale disabled)", async () => {
+  const { sanitizeChatAttachments, dmPaidSaleAttachmentRequested } = await import(
+    "@/lib/chat-attachments"
+  );
 
-  const out = sanitizeChatAttachments([
+  const raw = [
     { url: "https://cdn.example/a.jpg", type: "IMAGE", priceKrw: 1000 },
     { url: "https://cdn.example/a.mp4", type: "VIDEO", priceKrw: 1000 },
     { url: "https://cdn.example/a.gif", type: "GIF", priceKrw: 1000 },
     { url: "https://cdn.example/a.m4a", type: "AUDIO", priceKrw: 1000 },
     { url: "https://cdn.example/a.zip", type: "FILE", priceKrw: 1000 },
     { url: "https://cdn.example/free.gif", type: "GIF" },
-  ]);
+  ];
 
-  assert.deepEqual(
-    out.map((a) => a.type),
-    ["IMAGE", "VIDEO", "GIF"]
-  );
-  assert.equal(out[2].priceKrw, undefined, "free GIF stays free rather than becoming sellable");
+  assert.equal(dmPaidSaleAttachmentRequested(raw), true);
+  const out = sanitizeChatAttachments(raw);
+  assert.deepEqual(out.map((a) => a.type), ["GIF"]);
 });
 
 test("a relayed message never carries a paid attachment url", async () => {

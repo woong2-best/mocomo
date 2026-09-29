@@ -22,7 +22,7 @@ import {
 import { EventAdEditPanel } from "@/components/events/event-ad-edit-panel";
 import { SponsorAdPreviewFrame } from "@/components/events/sponsor-ad-preview-frame";
 import { SponsoredAdSchedulePicker } from "@/components/events/sponsored-ad-schedule-picker";
-import { PaymentLegalNotice } from "@/components/legal/legal-entity-notice";
+import { PaymentLegalConsentModal } from "@/components/legal/payment-legal-consent-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageCropDialog } from "@/components/media/image-crop-dialog";
@@ -312,7 +312,7 @@ export function EventCreateForm({
             isOperator ? "광고 등록 (운영자)" : `${mocoCost} MOCO로 광고 등록`
           )}
         </Button>
-        <PaymentLegalNotice compact className="mt-2" />
+        <PaymentLegalConsentModal className="mt-3 px-1" />
       </form>
 
       <aside className="hidden lg:block">

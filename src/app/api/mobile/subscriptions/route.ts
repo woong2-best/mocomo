@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { getMyCreatorSubscriptions, cancelMyCreatorSubscription } from "@/actions/subscriptions";
-import { createCreatorSubscriptionCheckoutForUser } from "@/lib/creator-subscription-checkout";
-import { db } from "@/lib/db";
 import { z } from "zod";
 
 export async function GET(req: NextRequest) {
@@ -52,6 +50,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
   }
 
+  if (parsed.data.action === "checkout") {
+    return NextResponse.json(
+      { error: "크리에이터 정기 후원 기능은 종료되었습니다." },
+      { status: 410 }
+    );
+  }
+
   if (parsed.data.action === "cancel") {
     const result = await cancelMyCreatorSubscription(parsed.data.creatorId);
     if ("error" in result && result.error) {
@@ -60,25 +65,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
-  const dbUser = await db.user.findUnique({
-    where: { id: auth.user.id },
-    select: { email: true },
-  });
-
-  const result = await createCreatorSubscriptionCheckoutForUser({
-    userId: auth.user.id,
-    email: dbUser?.email,
-    amount: parsed.data.amount,
-    orderName: `@${parsed.data.username} 월 정기 후원`,
-    metadata: { creatorId: parsed.data.creatorId, username: parsed.data.username },
-    platform: "mobile",
-    purchaseTermsAccepted: true,
-    recurringDonationTermsAccepted: true,
-  });
-
-  if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
-  }
-
-  return NextResponse.json(result);
+  return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
 }

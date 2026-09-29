@@ -1,6 +1,6 @@
 "use client";
 
-import { wikiHeadingId } from "@/lib/anime-revision";
+import { extractYoutubeId, wikiHeadingId } from "@/lib/anime-revision";
 import { WikiInline } from "@/components/anime/wiki-inline";
 
 type FootnoteMap = Map<string, string>;
@@ -36,15 +36,6 @@ function YoutubeEmbed({ id }: { id: string }) {
       />
     </div>
   );
-}
-
-function extractYoutubeId(line: string): string | null {
-  const tag = line.match(/^\[youtube:([a-zA-Z0-9_-]{6,})\]\s*$/);
-  if (tag) return tag[1];
-  const url = line.match(
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{6,})/
-  );
-  return url?.[1] ?? null;
 }
 
 function parseTableBlock(lines: string[]): string[][] | null {
@@ -179,4 +170,4 @@ export function WikiContent({
 }
 
 export const WIKI_EDITOR_HELP =
-  "[[글 제목]] · [텍스트](URL) · {{뱃지}} · [youtube:ID] · ![설명](URL) · | 표 | · {{collapse|제목|내용}} · [^1] 각주";
+  "사진은 업로드로 넣고, 영상은 유튜브 링크를 붙여넣으면 됩니다. 제목은 # 또는 ## 로 구분하세요.";

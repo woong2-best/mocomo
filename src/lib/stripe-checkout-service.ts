@@ -78,14 +78,18 @@ export async function createStripeCheckoutForUser(input: {
   const urls = stripeCheckoutReturnUrls(input.platform ?? "web");
   const stripe = getStripe();
   const currency = checkoutCurrencyForType(input.type);
-  const customerId = await getOrCreateStripeCustomer(input.userId, input.email);
+  let customerId: string;
+  try {
+    customerId = await getOrCreateStripeCustomer(input.userId, input.email);
+  } catch (err) {
+    console.error("[stripe-checkout] customer", err instanceof Error ? err.message : "error");
+    return { error: "결제 페이지를 열지 못했습니다. 잠시 후 다시 시도해 주세요." };
+  }
 
-  const session = await stripe.checkout.sessions.create({
+  const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
     mode: "payment",
     customer: customerId,
     payment_method_types: ["card"],
-    automatic_tax: { enabled: true },
-    customer_update: { address: "auto" },
     line_items: [
       {
         price_data: {
@@ -111,7 +115,32 @@ export async function createStripeCheckoutForUser(input: {
     },
     success_url: urls.successUrl,
     cancel_url: urls.cancelUrl,
-  });
+  };
+
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      ...sessionParams,
+      automatic_tax: { enabled: true },
+      customer_update: { address: "auto" },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+    const taxAddressMissing = /head office address|automatic tax/i.test(message);
+    if (!taxAddressMissing) {
+      console.error("[stripe-checkout] session", message || "error");
+      return { error: "결제 페이지를 열지 못했습니다. 잠시 후 다시 시도해 주세요." };
+    }
+    try {
+      session = await stripe.checkout.sessions.create(sessionParams);
+    } catch (retryErr) {
+      console.error(
+        "[stripe-checkout] session retry",
+        retryErr instanceof Error ? retryErr.message : "error"
+      );
+      return { error: "결제 페이지를 열지 못했습니다. 잠시 후 다시 시도해 주세요." };
+    }
+  }
 
   if (!session.url) return { error: "결제 페이지를 만들 수 없습니다." };
 

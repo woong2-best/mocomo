@@ -151,10 +151,12 @@ export function FeedInfinite({
       setRepostedIds((prev) => mergeIds(prev, json.repostedIds));
       setItems((prev) => {
         const seen = new Set(
-          prev.filter((i) => i.type === "post").map((i) => i.data.id)
+          prev
+            .filter((i) => i.type === "post")
+            .map((i) => i.data.activityKey ?? i.data.id)
         );
         const fresh = added.filter(
-          (i) => i.type !== "post" || !seen.has(i.data.id)
+          (i) => i.type !== "post" || !seen.has(i.data.activityKey ?? i.data.id)
         );
         return [...prev, ...fresh];
       });

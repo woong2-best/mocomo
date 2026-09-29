@@ -7,12 +7,14 @@ export function ProfileHeaderActionBar({
   initialFollowing,
   initialRequested = false,
   postsLocked = false,
+  canMessage = true,
 }: {
   userId: string;
   username: string;
   initialFollowing: boolean;
   initialRequested?: boolean;
   postsLocked?: boolean;
+  canMessage?: boolean;
 }) {
   return (
     <div className="flex gap-2 flex-wrap">
@@ -25,7 +27,7 @@ export function ProfileHeaderActionBar({
         followingLabel="팔로잉"
         syncFollowingOnMount
       />
-      <StartDmButton userId={userId} variant="profile" />
+      {canMessage ? <StartDmButton userId={userId} variant="profile" /> : null}
     </div>
   );
 }

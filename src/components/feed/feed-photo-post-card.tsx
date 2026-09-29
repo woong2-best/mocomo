@@ -246,7 +246,7 @@ export function FeedPhotoPostCard({
         </div>
       )}
 
-      {post.poll && <PostPollCard postId={post.id} poll={post.poll} compact />}
+      {post.poll && <PostPollCard postId={post.id} poll={post.poll} isAuthor={isOwner} compact />}
 
       {displayError && <p className="px-3 pb-2 text-xs text-destructive">{displayError}</p>}
     </article>

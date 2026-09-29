@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  mediaDevices,
-  MediaStream,
-  RTCIceCandidate,
-  RTCPeerConnection,
-  RTCSessionDescription,
-} from "@livekit/react-native-webrtc";
+import type { MediaStream, RTCPeerConnection } from "@livekit/react-native-webrtc";
 import { fetchMobileWebRtcIceConfiguration } from "@/lib/webrtc-ice-config";
 import { ensureLiveKitGlobals } from "@/native/livekit-bootstrap";
+
+type IceInit = {
+  candidate?: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+};
+
+async function loadWebrtc() {
+  return import("@livekit/react-native-webrtc");
+}
 
 async function startCallAudio() {
   await ensureLiveKitGlobals();
@@ -72,7 +76,7 @@ export function useMobilePeerCall({
   const rtcConfigRef = useRef<object | null>(null);
   const makingOfferRef = useRef(false);
   const politeRef = useRef(!isCaller);
-  const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
+  const pendingIceRef = useRef<IceInit[]>([]);
   const sessionSendRef = useRef<(signal: VoiceWireSignal) => void>(() => undefined);
   const onFailedRef = useRef(onFailed);
   const onConnectionLostRef = useRef(onConnectionLost);
@@ -118,6 +122,7 @@ export function useMobilePeerCall({
       autoGainControl: true,
       channelCount: 1,
     };
+    const { mediaDevices } = await loadWebrtc();
     const stream = (await mediaDevices.getUserMedia({
       audio: audioConstraints as never,
       video: false,
@@ -128,6 +133,7 @@ export function useMobilePeerCall({
   }, []);
 
   const flushIce = useCallback(async (pc: RTCPeerConnection) => {
+    const { RTCIceCandidate } = await loadWebrtc();
     const queued = pendingIceRef.current.splice(0);
     for (const candidate of queued) {
       try {
@@ -148,11 +154,12 @@ export function useMobilePeerCall({
       (await fetchMobileWebRtcIceConfiguration());
     rtcConfigRef.current = cfg;
 
-    const pc = new RTCPeerConnection(cfg);
+    const rtc = await loadWebrtc();
+    const pc = new rtc.RTCPeerConnection(cfg);
     pcRef.current = pc;
 
     pc.onicecandidate = (ev) => {
-      const candidate = (ev as { candidate?: RTCIceCandidate | null }).candidate;
+      const candidate = (ev as { candidate?: { toJSON(): IceInit } | null }).candidate;
       if (candidate) {
         sessionSendRef.current({ type: "ice", candidate: candidate.toJSON() });
       }
@@ -170,7 +177,7 @@ export function useMobilePeerCall({
         return;
       }
       if (!event.track) return;
-      const merged = new MediaStream();
+      const merged = new rtc.MediaStream();
       for (const existing of remoteStreamRef.current?.getTracks() ?? []) {
         if (existing.id !== event.track.id) merged.addTrack(existing);
       }
@@ -202,6 +209,7 @@ export function useMobilePeerCall({
       if (payload.type === "hello" || payload.type === "ready") return;
       const pc = pcRef.current ?? (await createPeerConnection());
       const polite = politeRef.current;
+      const rtc = await loadWebrtc();
 
       if (payload.type === "hangup") {
         onRemoteHangupRef.current?.();
@@ -213,7 +221,7 @@ export function useMobilePeerCall({
         const offerCollision = makingOfferRef.current || pc.signalingState !== "stable";
         if (!polite && offerCollision) return;
         await pc.setRemoteDescription(
-          new RTCSessionDescription({ type: "offer", sdp: payload.sdp.sdp ?? "" })
+          new rtc.RTCSessionDescription({ type: "offer", sdp: payload.sdp.sdp ?? "" })
         );
         await flushIce(pc);
         const answer = await pc.createAnswer();
@@ -228,7 +236,7 @@ export function useMobilePeerCall({
 
       if (payload.type === "answer" && pc.signalingState === "have-local-offer") {
         await pc.setRemoteDescription(
-          new RTCSessionDescription({ type: "answer", sdp: payload.sdp.sdp ?? "" })
+          new rtc.RTCSessionDescription({ type: "answer", sdp: payload.sdp.sdp ?? "" })
         );
         await flushIce(pc);
         return;
@@ -240,7 +248,7 @@ export function useMobilePeerCall({
           return;
         }
         try {
-          await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+          await pc.addIceCandidate(new rtc.RTCIceCandidate(payload.candidate));
         } catch {
           /* ignore */
         }

@@ -29,6 +29,9 @@ export async function createCreatorSubscriptionCheckoutForUser(input: {
   purchaseTermsAccepted?: boolean;
   recurringDonationTermsAccepted?: boolean;
 }) {
+  void input;
+  return { error: "크리에이터 정기 후원 기능은 종료되었습니다." };
+
   if (!isStripeConfigured()) {
     return { error: "결제가 설정되지 않았습니다." };
   }

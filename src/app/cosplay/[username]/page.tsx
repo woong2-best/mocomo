@@ -9,6 +9,8 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { getAuthUserId } from "@/lib/auth";
+import { contactPermissions } from "@/lib/contact-audience";
 
 export default async function CosplayProfilePage({
   params,
@@ -36,6 +38,8 @@ export default async function CosplayProfilePage({
   if (!user?.cosplayerProfile) notFound();
   const cp = user.cosplayerProfile;
   const displayName = userDisplayName(user);
+  const viewerId = await getAuthUserId();
+  const canMessage = viewerId ? (await contactPermissions(viewerId, user.id)).canMessage : true;
 
   return (
     <AppPageChrome maxWidth="4xl">
@@ -55,7 +59,7 @@ export default async function CosplayProfilePage({
             <Link href={`/u/${username}`}>
               <span className="text-sm text-primary">전체 프로필 →</span>
             </Link>
-            <StartDmButton userId={user.id} />
+            {canMessage ? <StartDmButton userId={user.id} /> : null}
           </div>
         </div>
       </div>

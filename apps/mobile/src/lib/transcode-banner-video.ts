@@ -1,5 +1,11 @@
 import * as FileSystem from "expo-file-system/legacy";
-import { FFmpegKit, ReturnCode } from "ffmpeg-kit-react-native";
+async function loadFfmpeg() {
+  try {
+    return await import("ffmpeg-kit-react-native");
+  } catch {
+    throw new Error("이 기기에서는 영상 변환을 사용할 수 없습니다.");
+  }
+}
 
 function stripFileUri(uri: string): string {
   return uri.startsWith("file://") ? uri.slice(7) : uri;
@@ -36,6 +42,7 @@ export async function transcodeBannerVideoToH264(inputUri: string): Promise<{
     outputPath,
   ];
 
+  const { FFmpegKit, ReturnCode } = await loadFfmpeg();
   const session = await FFmpegKit.executeWithArguments(args);
   const code = await session.getReturnCode();
   if (!ReturnCode.isSuccess(code)) {

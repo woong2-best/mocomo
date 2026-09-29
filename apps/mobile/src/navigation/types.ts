@@ -35,7 +35,13 @@ export type RootStackParamList = {
   Login: { addAccount?: boolean; intent?: "signin" | "signup" } | undefined;
   Signup: { addAccount?: boolean } | undefined;
   PasswordReset: undefined;
-  ComposeModal: undefined;
+  ComposeModal: {
+    initialContent?: string;
+    initialTitle?: string;
+    quotedPostId?: string;
+    quotedAuthorUsername?: string;
+    quotedPreview?: string;
+  } | undefined;
   MessageRoom: { roomId: string; title?: string };
   MessagesNew: undefined;
   ChatSettings: undefined;
@@ -45,7 +51,6 @@ export type RootStackParamList = {
     callType: "AUDIO" | "VIDEO";
     displayName: string;
     displayImage?: string | null;
-    bookingId?: string;
   };
   IncomingCall: { callId: string };
   Discover: undefined;
@@ -100,10 +105,13 @@ export type RootStackParamList = {
   Activity: undefined;
   StarList: undefined;
   AnimeList: undefined;
+  AnimeCreate: { genre?: string } | undefined;
+  AnimeEdit: { slug: string };
+  AnimeHistory: { slug: string };
   AnimeDetail: { slug: string };
   Settings: undefined;
   LegalPolicies: undefined;
-  Wallet: { initialTab?: "wallet" | "earnings" | "tier"; returnScreen?: "UsedCreate" | "AuctionCreate" | "MarketplaceList" | "AuctionList" | "MarketSellItem" } | undefined;
+  Wallet: { initialTab?: "wallet" | "earnings" | "transfer" | "tier"; returnScreen?: "UsedCreate" | "AuctionCreate" | "MarketplaceList" | "AuctionList" | "MarketSellItem" } | undefined;
   GamesHub: undefined;
   Support: undefined;
 };

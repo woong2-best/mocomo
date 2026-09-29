@@ -2,6 +2,8 @@ import { Prisma } from "@prisma/client";
 import { postMediaProfileTimeline } from "@/lib/post-media-select";
 import { userPublicSelect, type UserPublicFields } from "@/lib/user-public-select";
 import { postCollaboratorsInclude } from "@/lib/post-collaborator-select";
+import { postPollSelect } from "@/lib/post-poll";
+import { quotedPostPreviewSelect } from "@/lib/quoted-post";
 
 /** 프로필 타임라인 — 실제 author + ACCEPTED collaborators 포함 */
 export const profilePostIncludeLight = {
@@ -10,6 +12,8 @@ export const profilePostIncludeLight = {
   community: { select: { name: true, slug: true } },
   anime: { select: { title: true, slug: true } },
   media: postMediaProfileTimeline,
+  poll: { select: postPollSelect },
+  quotedPost: { select: quotedPostPreviewSelect },
   _count: { select: { likes: true, comments: true, votes: true, reposts: true, media: true } },
 } satisfies Prisma.PostInclude;
 

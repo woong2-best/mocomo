@@ -19,6 +19,9 @@ const bodySchema = z.object({
   birthDay: z.coerce.number().int().min(1).max(31).optional(),
   termsAccepted: z.boolean().optional(),
   privacyAccepted: z.boolean().optional(),
+  username: z.string().min(3).max(20).optional(),
+  name: z.string().min(1).max(40).optional(),
+  password: z.string().min(8).max(128).optional(),
 });
 
 /** Native LINE Login SDK → mobile bearer tokens. */
@@ -50,6 +53,9 @@ export async function POST(req: NextRequest) {
       birthDay: parsed.data.birthDay,
       termsAccepted: parsed.data.termsAccepted,
       privacyAccepted: parsed.data.privacyAccepted,
+      username: parsed.data.username,
+      name: parsed.data.name,
+      password: parsed.data.password,
     });
 
     if (result.status === "needsSignup") {

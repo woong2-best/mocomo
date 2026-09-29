@@ -31,6 +31,9 @@ export async function confirmAuctionTradeComplete(userId: string, listingId: str
   if (!isSeller && !isWinner) {
     return { error: "판매자와 낙찰자만 거래 완료를 누를 수 있습니다." as const };
   }
+  if (listing.meetLat != null && listing.meetLng != null) {
+    return { error: "직거래는 현장 도착 인증 후 암호코드로 완료됩니다." as const };
+  }
 
   const now = new Date();
   const updated = await db.usedListing.update({

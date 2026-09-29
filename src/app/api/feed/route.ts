@@ -6,6 +6,8 @@ import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { hydrateViewerPollVotes } from "@/lib/post-poll";
+import { withRepostActivities } from "@/lib/repost-timeline";
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,9 +36,19 @@ export async function GET(req: NextRequest) {
       variant: "web",
       canViewNsfw,
     });
-    const visible = await filterPostsByAudienceLock(
-      posts.map((p) => ({ ...p, authorId: p.author.id })),
-      session?.user?.id ?? null
+    const merged = await withRepostActivities(posts, {
+      viewerId: viewerUserId ?? null,
+      cursor,
+      mode,
+      variant: "web",
+      canViewNsfw,
+    });
+    const visible = await hydrateViewerPollVotes(
+      await filterPostsByAudienceLock(
+        merged.map((p) => ({ ...p, authorId: p.author.id })),
+        session?.user?.id ?? null
+      ),
+      viewerUserId ?? null
     );
     const postIds = visible.map((p) => p.id);
 

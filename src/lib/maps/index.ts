@@ -8,5 +8,11 @@ export type {
   MapProviderCapabilities,
 } from "@/lib/maps/types";
 export { normalizeMeetCountry, selectMapEngine } from "@/lib/maps/select-engine";
-export { meetExternalMapUrl, meetMapCaption } from "@/lib/maps/external-url";
+export {
+  googleSearchUrlForMeet,
+  marketplaceMeetLocationQuery,
+  marketplaceMeetMapUrl,
+  meetExternalMapUrl,
+  meetMapCaption,
+} from "@/lib/maps/external-url";
 export { geocodeMeetQuery, reverseGeocodeMeet } from "@/lib/maps/geocode";
