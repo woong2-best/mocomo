@@ -88,6 +88,22 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
         </div>
       </div>
 
+      {"tradeEvidenceSnapshot" in dispute && dispute.tradeEvidenceSnapshot ? (
+        <div className="text-xs">
+          <p className="font-medium mb-1">거래·채팅 타임라인 스냅샷</p>
+          <pre className="whitespace-pre-wrap rounded-lg border p-2 max-h-40 overflow-auto">
+            {JSON.stringify(dispute.tradeEvidenceSnapshot, null, 2)}
+          </pre>
+        </div>
+      ) : null}
+
+      <a
+        href={`/api/admin/marketplace/disputes/${dispute.id}/export`}
+        className="inline-flex text-xs font-semibold text-primary hover:underline"
+      >
+        법적 증거 자료 내보내기 (.txt)
+      </a>
+
       {o.sellerProfile && (
         <p className="text-xs text-muted-foreground">
           판매자 신뢰도 {o.sellerProfile.trustScore} ({o.sellerProfile.trustTier}) · 제재{" "}

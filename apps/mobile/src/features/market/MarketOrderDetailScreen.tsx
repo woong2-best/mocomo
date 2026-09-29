@@ -1,10 +1,19 @@
-import { useMemo } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { fetchMarketOrderDetail } from "@/api/commerce-market";
+import { fetchMarketOrderDetail, submitMarketOrderDispute } from "@/api/commerce-market";
+import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
@@ -46,6 +55,89 @@ function orderStatusLabel(status: string, u: UsedUiText): string {
   }
 }
 
+const DISPUTE_REASONS = [
+  { code: "NOT_RECEIVED", ko: "물품 미발송·미도착", en: "Not shipped / not received" },
+  { code: "COUNTERFEIT", ko: "가품·위조품", en: "Counterfeit" },
+  { code: "SELLER_NO_RESPONSE", ko: "연락 두절", en: "No response" },
+  { code: "SCAM_FRAUD_ACCOUNT", ko: "사기 계좌·허위 입금", en: "Fraud account" },
+  { code: "OTHER", ko: "기타 사기·피해", en: "Other fraud" },
+] as const;
+
+function MarketOrderDisputePanel({ orderId, u }: { orderId: string; u: UsedUiText }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const client = useQueryClient();
+  const [reasonCode, setReasonCode] = useState<string>("NOT_RECEIVED");
+  const [detail, setDetail] = useState("");
+  const [evidence, setEvidence] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      submitMarketOrderDispute(orderId, {
+        reason: detail.trim(),
+        reasonCode,
+        evidenceUrls: evidence
+          .split(/[,\n]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .slice(0, 12),
+      }),
+    onSuccess: async () => {
+      showIslandSuccess(u("분쟁이 접수되었습니다.", "Dispute submitted."));
+      await client.invalidateQueries({ queryKey: ["mobile-market-order", orderId] });
+    },
+    onError: () => showIslandError(u("오류", "Error"), u("접수에 실패했습니다.", "Could not submit.")),
+  });
+
+  return (
+    <View style={styles.disputeBox}>
+      <Text style={styles.sectionTitle}>{u("분쟁 신청 / 사기 신고", "Dispute / fraud report")}</Text>
+      <Text style={styles.disputeHint}>
+        {u(
+          "거래·채팅 기록이 자동 저장됩니다.",
+          "Trade and chat logs are saved automatically."
+        )}
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        {DISPUTE_REASONS.map((r) => {
+          const active = reasonCode === r.code;
+          return (
+            <Pressable
+              key={r.code}
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => setReasonCode(r.code)}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{u(r.ko, r.en)}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      <TextInput
+        style={styles.input}
+        multiline
+        value={detail}
+        onChangeText={setDetail}
+        placeholder={u("피해 경위를 입력하세요", "Describe what happened")}
+        placeholderTextColor={colors.textMuted}
+      />
+      <TextInput
+        style={styles.input}
+        value={evidence}
+        onChangeText={setEvidence}
+        placeholder={u("증거 URL (쉼표·줄바꿈)", "Evidence URLs")}
+        placeholderTextColor={colors.textMuted}
+      />
+      <Pressable
+        style={[styles.submitBtn, mutation.isPending && { opacity: 0.6 }]}
+        disabled={mutation.isPending || !detail.trim()}
+        onPress={() => mutation.mutate()}
+      >
+        <Text style={styles.submitText}>{u("분쟁 접수", "Submit")}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export function MarketOrderDetailScreen() {
   const { u, t } = useI18n();
   const { colors } = useTheme();
@@ -60,6 +152,10 @@ export function MarketOrderDetailScreen() {
   });
 
   const order = query.data?.order;
+  const openDispute =
+    order?.isBuyer &&
+    ["PAID", "PREPARING", "SHIPPED", "DELIVERED", "CONFIRMED"].includes(order.status) &&
+    !(order.disputes ?? []).some((d) => ["OPEN", "EVIDENCE", "REVIEWING"].includes(d.status));
 
   return (
     <Screen>
@@ -132,6 +228,8 @@ export function MarketOrderDetailScreen() {
               ))}
             </View>
           ) : null}
+
+          {openDispute ? <MarketOrderDisputePanel orderId={order.id} u={u} /> : null}
         </ScrollView>
       )}
     </Screen>
@@ -156,5 +254,42 @@ function createStyles(colors: ThemeColors) {
     lineTitle: { fontWeight: "800", color: colors.text },
     lineMeta: { marginTop: 4, fontSize: 12, color: colors.textMuted, fontWeight: "600" },
     bodyText: { fontSize: 14, lineHeight: 20, color: colors.text },
+    disputeBox: {
+      gap: 8,
+      padding: spacing.md,
+      borderRadius: radii.lg,
+      borderWidth: 1,
+      borderColor: colors.terracotta,
+      backgroundColor: `${colors.terracotta}12`,
+    },
+    disputeHint: { fontSize: 11, color: colors.textMuted, fontWeight: "600" },
+    chipRow: { flexDirection: "row", gap: 8, paddingVertical: 4 },
+    chip: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: radii.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceRaised,
+    },
+    chipActive: { borderColor: colors.terracotta, backgroundColor: colors.background },
+    chipText: { fontSize: 11, fontWeight: "700", color: colors.textMuted },
+    chipTextActive: { color: colors.text },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radii.md,
+      padding: spacing.sm,
+      minHeight: 44,
+      color: colors.text,
+      fontSize: 14,
+    },
+    submitBtn: {
+      alignItems: "center",
+      paddingVertical: 12,
+      borderRadius: radii.md,
+      backgroundColor: colors.terracotta,
+    },
+    submitText: { color: "#fff", fontWeight: "800", fontSize: 14 },
   });
 }

@@ -12,6 +12,7 @@ import {
 import { syncMarketplaceOrderAuthHoldExpiry } from "@/lib/marketplace/auth-hold-sync";
 import { MARKETPLACE_DISPUTE_WINDOW_HOURS } from "@/lib/marketplace/protection-config";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
+import { refreshTradeLegalRecord } from "@/lib/marketplace/trade-legal-record";
 
 /** 결제 승인( auth hold ) 후 주문 활성화 — 재고 원자성. 판매자 정산은 구매확정 후 capture. */
 export async function fulfillMarketplaceOrder(params: {
@@ -210,6 +211,8 @@ export async function fulfillMarketplaceOrder(params: {
   } catch {
     /* ignore */
   }
+
+  void refreshTradeLegalRecord(order.id);
 
   return { ok: true as const, orderId: order.id };
 }

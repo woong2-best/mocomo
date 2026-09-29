@@ -20,6 +20,10 @@ import { applyMarketplaceSanction, clearMarketplaceSanction } from "@/lib/market
 import { MARKETPLACE_REPORT_ESCALATE_COUNT } from "@/lib/marketplace/protection-config";
 import { executeMarketplaceDisputeResolution } from "@/lib/marketplace/dispute-resolution";
 import { markMarketplaceOrderDelivered } from "@/lib/marketplace/delivery-pipeline";
+import {
+  formatTradeLegalRecordExport,
+  refreshTradeLegalRecord,
+} from "@/lib/marketplace/trade-legal-record";
 
 export async function resolveMarketplaceDispute(
   disputeId: string,
@@ -468,6 +472,54 @@ export async function rejectMarketplaceSeller(profileId: string, reason: string)
   revalidatePath("/admin/market");
   revalidatePath("/market/seller");
   return { success: true as const };
+}
+
+/** Law-enforcement / victim evidence package (text). */
+export async function exportMarketplaceDisputeLegalBundle(disputeId: string) {
+  await requireAdmin({
+    action: "MARKETPLACE_DISPUTE_EXPORT",
+    targetType: "marketplace_dispute",
+    targetId: disputeId,
+  });
+
+  const dispute = await db.marketplaceDispute.findUnique({
+    where: { id: disputeId },
+    include: { order: { select: { id: true, tradeLegalRecord: true } } },
+  });
+  if (!dispute) return { error: "분쟁을 찾을 수 없습니다." };
+
+  if (!dispute.tradeEvidenceSnapshot) {
+    await refreshTradeLegalRecord(dispute.orderId);
+    const legalRecord = dispute.order.tradeLegalRecord;
+    const snapshot = {
+      legalRecord,
+      note: "Snapshot backfilled at export time",
+      disputeOpenedAt: dispute.createdAt.toISOString(),
+    };
+    await db.marketplaceDispute.update({
+      where: { id: disputeId },
+      data: { tradeEvidenceSnapshot: snapshot },
+    });
+    dispute.tradeEvidenceSnapshot = snapshot;
+  }
+
+  const body = formatTradeLegalRecordExport(
+    {
+      id: dispute.id,
+      reasonCode: dispute.reasonCode,
+      reason: dispute.reason,
+      createdAt: dispute.createdAt,
+      status: dispute.status,
+      tradeEvidenceSnapshot: dispute.tradeEvidenceSnapshot,
+    },
+    dispute.orderId
+  );
+
+  return {
+    success: true as const,
+    filename: `mocomo-dispute-${dispute.orderId}-${dispute.id}.txt`,
+    body,
+  };
 }
 
 /** unused export keep type available for forms */

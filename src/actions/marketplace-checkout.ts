@@ -53,6 +53,7 @@ import {
   assertTrackingNumberNotReused,
   validateTrackingAfterRegister,
 } from "@/lib/marketplace/tracking-register-validation";
+import { buildTradeLegalRecord, refreshTradeLegalRecord } from "@/lib/marketplace/trade-legal-record";
 
 /** How long an unpaid order stays reusable for the same buyer + listing. */
 const ORDER_REUSE_WINDOW_MS = 60 * 60 * 1000;
@@ -821,6 +822,8 @@ export async function sellerUpdateShipment(input: {
     actorId: user.id,
   });
 
+  void refreshTradeLegalRecord(order.id);
+
   revalidatePath(`/market/orders/${order.id}`);
   revalidatePath("/market/orders");
   return { success: true };
@@ -895,6 +898,7 @@ export async function confirmMarketplaceOrder(orderId: string) {
   if ("error" in guard) return { error: guard.error };
 
   await confirmAndMaybeSettle(orderId, { actorId: user.id });
+  void refreshTradeLegalRecord(orderId);
 
   await createNotification({
     userId: order.sellerId,
@@ -1070,6 +1074,16 @@ export async function openMarketplaceDispute(
 
   const isBuyer = order.buyerId === user.id;
 
+  await refreshTradeLegalRecord(orderId);
+  const legalRecord = (await buildTradeLegalRecord(orderId)) ?? undefined;
+  const tradeEvidenceSnapshot = {
+    legalRecord,
+    userEvidence: evidence,
+    disputeOpenedAt: new Date().toISOString(),
+    openerId: user.id,
+    reasonCode: code,
+  };
+
   const created = await db.marketplaceDispute.create({
     data: {
       orderId,
@@ -1080,6 +1094,7 @@ export async function openMarketplaceDispute(
       buyerEvidence: isBuyer ? evidence : undefined,
       sellerEvidence: !isBuyer ? evidence : undefined,
       evidence,
+      tradeEvidenceSnapshot,
     },
   });
   await db.marketplaceOrder.update({

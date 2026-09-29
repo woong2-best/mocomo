@@ -25,7 +25,10 @@ function photoCount(evidence: unknown): number {
   return Array.isArray(urls) ? urls.filter((u) => typeof u === "string" && u.trim()).length : 0;
 }
 
-const ADMIN_ONLY_REASONS = new Set<MarketplaceDisputeReason>(["COUNTERFEIT"]);
+const ADMIN_ONLY_REASONS = new Set<MarketplaceDisputeReason>([
+  "COUNTERFEIT",
+  "SCAM_FRAUD_ACCOUNT",
+]);
 
 const EVIDENCE_REASONS = new Set<MarketplaceDisputeReason>([
   "DAMAGED",

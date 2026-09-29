@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   cancelMarketplaceOrder,
   confirmMarketplaceOrder,
-  openMarketplaceDispute,
   requestMarketplaceRefund,
   sellerRespondMarketplaceRefund,
   sellerSetOrderStatus,
@@ -17,8 +16,7 @@ import { confirmDirectTradePayment } from "@/actions/marketplace-direct-checkout
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCarriersForShipment } from "@/lib/marketplace/shipping-config";
-import { MARKETPLACE_DISPUTE_REASONS } from "@/lib/marketplace/protection-config";
-import type { MarketplaceDisputeReason } from "@prisma/client";
+import { MarketplaceDisputeForm } from "@/components/market/markplace-dispute-form";
 
 type OrderDetail = NonNullable<
   Awaited<ReturnType<typeof import("@/actions/marketplace-checkout").getMarketplaceOrderDetail>>
@@ -36,7 +34,6 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
   const [tracking, setTracking] = useState(order.shipment?.trackingNumber ?? "");
   const [proofUrls, setProofUrls] = useState("");
   const [reason, setReason] = useState("");
-  const [disputeCode, setDisputeCode] = useState<MarketplaceDisputeReason>("NOT_RECEIVED");
   const [evidenceUrls, setEvidenceUrls] = useState("");
   const [rating, setRating] = useState(5);
   const [reviewBody, setReviewBody] = useState("");
@@ -211,6 +208,12 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
           </section>
         )}
 
+      {order.isBuyer &&
+        !order.disputes.some((d) => ["OPEN", "EVIDENCE", "REVIEWING"].includes(d.status)) &&
+        ["PAID", "PREPARING", "SHIPPED", "DELIVERED", "CONFIRMED"].includes(order.status) && (
+          <MarketplaceDisputeForm orderId={order.id} />
+        )}
+
       {order.isBuyer && (
         <section className="rounded-xl border border-border/60 p-3 space-y-2">
           <p className="text-sm font-semibold">구매자 액션</p>
@@ -264,26 +267,10 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
               </Button>
             )}
           </div>
-          <select
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-            value={disputeCode}
-            onChange={(e) => setDisputeCode(e.target.value as MarketplaceDisputeReason)}
-          >
-            {MARKETPLACE_DISPUTE_REASONS.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
-            ))}
-          </select>
           <Input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="환불/분쟁 상세 사유"
-          />
-          <Input
-            value={evidenceUrls}
-            onChange={(e) => setEvidenceUrls(e.target.value)}
-            placeholder="증빙 사진 URL (쉼표, 선택)"
+            placeholder="환불 요청 사유"
           />
           <div className="flex flex-wrap gap-2">
             <Button
@@ -294,24 +281,6 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
               onClick={() => run(() => requestMarketplaceRefund(order.id, reason))}
             >
               환불 요청
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="destructive"
-              disabled={pending || !reason.trim()}
-              onClick={() =>
-                run(() =>
-                  openMarketplaceDispute(
-                    order.id,
-                    reason,
-                    disputeCode,
-                    evidenceUrls.split(/[,\s]+/).map((u) => u.trim()).filter(Boolean)
-                  )
-                )
-              }
-            >
-              분쟁 신고 (정산 즉시 보류)
             </Button>
           </div>
         </section>

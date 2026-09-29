@@ -70,13 +70,14 @@ export const MARKETPLACE_PAYOUT_DELAY_DAYS = 2;
 export const MARKETPLACE_SETTLEMENT_BLOCKED_GRACE_DAYS = 5;
 
 export const MARKETPLACE_DISPUTE_REASONS = [
-  { id: "NOT_RECEIVED", label: "상품 미도착" },
-  { id: "COUNTERFEIT", label: "가품 의심" },
+  { id: "NOT_RECEIVED", label: "물품 미발송·미도착" },
+  { id: "COUNTERFEIT", label: "가품·위조품" },
   { id: "NOT_AS_DESCRIBED", label: "설명과 다른 상품" },
-  { id: "DAMAGED", label: "파손" },
-  { id: "MISSING_PARTS", label: "일부 구성품 누락" },
-  { id: "SELLER_NO_RESPONSE", label: "판매자 연락 두절" },
-  { id: "OTHER", label: "기타" },
+  { id: "DAMAGED", label: "파손·훼손" },
+  { id: "MISSING_PARTS", label: "구성품 누락" },
+  { id: "SELLER_NO_RESPONSE", label: "연락 두절" },
+  { id: "SCAM_FRAUD_ACCOUNT", label: "사기 계좌·허위 입금" },
+  { id: "OTHER", label: "기타 사기·피해" },
 ] as const;
 
 export const MARKETPLACE_REPORT_REASONS = [

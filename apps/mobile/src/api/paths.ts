@@ -78,6 +78,7 @@ export const MobileApi = {
   marketSellAccess: "/api/mobile/market/sell-access",
   marketOrders: "/api/mobile/market/orders",
   marketOrderDetail: (id: string) => `/api/mobile/market/orders/${id}`,
+  marketOrderDispute: (id: string) => `/api/mobile/market/orders/${id}/dispute`,
   marketCartSummary: "/api/mobile/market/cart/summary",
   marketCartCheckout: "/api/mobile/market/cart/checkout",
   marketListings: "/api/mobile/market/listings",

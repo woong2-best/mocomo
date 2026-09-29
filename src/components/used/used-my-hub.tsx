@@ -46,9 +46,22 @@ function toCard(item: HubItem) {
   };
 }
 
-export function UsedMyHub({ userId }: { userId: string }) {
+function parseInitialLane(raw?: string | null): UsedHubLane {
+  if (raw === "purchased" || raw === "selling" || raw === "favorites" || raw === "disputes") {
+    return raw;
+  }
+  return "selling";
+}
+
+export function UsedMyHub({
+  userId,
+  initialLane = "selling",
+}: {
+  userId: string;
+  initialLane?: UsedHubLane;
+}) {
   const { locale } = useLocale();
-  const [lane, setLane] = useState<UsedHubLane>("selling");
+  const [lane, setLane] = useState<UsedHubLane>(() => parseInitialLane(initialLane));
   const [items, setItems] = useState<HubItem[]>([]);
   const [loading, setLoading] = useState(true);
 

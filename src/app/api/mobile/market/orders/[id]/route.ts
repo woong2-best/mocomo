@@ -65,6 +65,12 @@ export async function GET(
         fileUrl: d.fileUrl,
         downloadToken: d.downloadToken,
       })),
+      disputes: order.disputes.map((d) => ({
+        id: d.id,
+        status: d.status,
+        reasonCode: d.reasonCode,
+        createdAt: d.createdAt.toISOString(),
+      })),
     },
   });
 }

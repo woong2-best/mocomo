@@ -6563,6 +6563,7 @@ enum MarketplaceDisputeReason {
   DAMAGED
   MISSING_PARTS
   SELLER_NO_RESPONSE
+  SCAM_FRAUD_ACCOUNT
   OTHER
 }
 
@@ -6857,6 +6858,8 @@ model MarketplaceOrder {
   purchaseTermsPlatform    String?
   /** 중고 경매 낙찰 주문 — UsedListing.id */
   usedListingId      String?                @unique
+  /** 거래 성사~분쟁 대비 타임라인·채팅·참여자 스냅샷 (append/refresh) */
+  tradeLegalRecord   Json?
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
 
@@ -6951,6 +6954,8 @@ model MarketplaceDispute {
   evidence    Json?
   buyerEvidence Json?
   sellerEvidence Json?
+  /** 분쟁 접수 시점의 tradeLegalRecord + 첨부 증거 고정본 */
+  tradeEvidenceSnapshot Json?
   status      MarketplaceDisputeStatus @default(OPEN)
   resolution  String?                  @db.Text
   resolvedAt  DateTime?

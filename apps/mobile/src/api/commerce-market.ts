@@ -113,6 +113,7 @@ export type MarketOrderDetail = {
     updatedAt: string;
   } | null;
   downloads: { id: string; fileUrl: string; downloadToken: string }[];
+  disputes?: { id: string; status: string; reasonCode: string; createdAt: string }[];
 };
 
 export type CartCheckoutGroup = {
@@ -159,6 +160,17 @@ export async function prepareCartCheckout(
 
 export async function fetchMarketOrderDetail(orderId: string) {
   return apiRequest<{ order: MarketOrderDetail }>(MobileApi.marketOrderDetail(orderId), {
+    auth: true,
+  });
+}
+
+export async function submitMarketOrderDispute(
+  orderId: string,
+  body: { reason: string; reasonCode?: string; evidenceUrls?: string[] }
+) {
+  return apiRequest<{ ok: true }>(MobileApi.marketOrderDispute(orderId), {
+    method: "POST",
+    body,
     auth: true,
   });
 }
