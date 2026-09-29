@@ -60,8 +60,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const [hubLaneLocal, setHubLaneLocal] = useState<HubLane | undefined>(undefined);
   const isTab = mode === "tab" || route.name === "Used";
   const hubLane = isTab ? hubLaneLocal : routeParams.lane;
-  const isAuction = lane === "auction" || route.name === "AuctionList" || hubLane === "live-auctions";
-  const isCombined = !isAuction && hubLane !== "purchased" && hubLane !== "favorites" && hubLane !== "disputes";
+  const isCombined = hubLane !== "purchased" && hubLane !== "favorites" && hubLane !== "disputes";
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const { user, status: authStatus } = useAuth();
@@ -81,21 +80,20 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     return {
       q: q || undefined,
       category: category !== "ALL" ? category : undefined,
-      mode: isAuction ? ("auction" as const) : isCombined ? undefined : ("fixed" as const),
+      mode: isCombined ? undefined : ("fixed" as const),
       lane:
         hubLane === "recommend" ||
         hubLane === "purchased" ||
         hubLane === "favorites" ||
-        hubLane === "live-auctions" ||
         hubLane === "disputes"
           ? hubLane
           : undefined,
       take: 48,
     };
-  }, [q, category, isAuction, isCombined, hubLane]);
+  }, [q, category, isCombined, hubLane]);
 
   const query = useQuery({
-    queryKey: ["mobile-marketplace", hubLane ?? (isAuction ? "auction" : "used"), listQuery],
+    queryKey: ["mobile-marketplace", hubLane ?? "used", listQuery],
     queryFn: () => fetchMarketplaceList(listQuery),
     staleTime: 90_000,
     placeholderData: (previous) => previous,
@@ -137,8 +135,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   );
 
   const items = (query.data?.items ?? []).filter(
-    (item) =>
-      (isAuction ? item.saleType === "AUCTION" : true) && !dismissedIds.has(item.id)
+    (item) => item.saleType !== "AUCTION" && !dismissedIds.has(item.id)
   );
 
   const applyHubLane = useCallback(
@@ -159,9 +156,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
 
   const openItem = useCallback(
     (item: MarketplaceListItem) => {
-      navigation.navigate(item.saleType === "AUCTION" ? "AuctionDetail" : "MarketplaceDetail", {
-        id: item.id,
-      });
+      navigation.navigate("MarketplaceDetail", { id: item.id });
     },
     [navigation]
   );

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { enqueueCreatorBulkDm, processCreatorBulkDmJob } from "@/lib/creator-dm-marketing";
+import { CREATOR_BULK_DM_RETIRED, CREATOR_BULK_DM_RETIRED_MSG } from "@/lib/retired-product-features";
 
 const bulkSchema = z.object({
   text: z.string().max(4000).optional(),
@@ -17,6 +18,10 @@ const bulkSchema = z.object({
 export async function POST(req: NextRequest) {
   const auth = await requireMobileApiUser(req, { writeKind: "default" });
   if ("error" in auth) return auth.error;
+
+  if (CREATOR_BULK_DM_RETIRED) {
+    return NextResponse.json({ error: CREATOR_BULK_DM_RETIRED_MSG }, { status: 410 });
+  }
 
   const limited = await rateLimitPublicApi(req, `creator-dm-bulk:${auth.user.id}`, 5);
   if (limited) return limited;

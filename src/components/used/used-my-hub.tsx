@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Clock, Heart, Scale, ShoppingBag, DollarSign } from "lucide-react";
+import { Heart, Scale, ShoppingBag, DollarSign } from "lucide-react";
 import { getMyUsedHubLane, type UsedHubLane } from "@/actions/used-market";
 import { UsedListingGrid } from "@/components/used/used-listing-grid";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 const SHORTCUTS: { lane: UsedHubLane; label: string; icon: typeof ShoppingBag }[] = [
   { lane: "purchased", label: "구매내역", icon: ShoppingBag },
   { lane: "selling", label: "판매내역", icon: DollarSign },
-  { lane: "live-auctions", label: "진행중인경매", icon: Clock },
   { lane: "favorites", label: "찜리스트", icon: Heart },
   { lane: "disputes", label: "분쟁", icon: Scale },
 ];

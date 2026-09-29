@@ -46,6 +46,8 @@ import {
 import { UsedSaleStatsPanel } from "@/components/used/used-sale-stats-panel";
 
 import { isAuctionListing, minNextBidAmount } from "@/lib/used-auction";
+import { USED_AUCTION_RETIRED } from "@/lib/retired-product-features";
+import { UsedAuctionRetiredNotice } from "@/components/used/used-auction-retired-notice";
 import { getMocoBalanceSnapshot } from "@/lib/auction-deposit";
 import { UsedRestrictedBanner } from "@/components/used/used-restricted-banner";
 import { UsedAuctionLegalNotice } from "@/components/used/used-auction-legal-notice";
@@ -115,6 +117,17 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
   const status = listing.status as UsedListingStatus;
 
   const isAuction = isAuctionListing(listing);
+  const auctionWindDown =
+    isAuction &&
+    (listing.auctionState === "PAYMENT_PENDING" ||
+      listing.auctionState === "PAYMENT_COMPLETED" ||
+      listing.auctionState === "PRICE_NEGOTIATION" ||
+      listing.auctionState === "NEGOTIATION_COMPLETED" ||
+      listing.auctionState === "NEGOTIATION_FAILED" ||
+      listing.auctionState === "PAYMENT_TIMEOUT" ||
+      listing.auctionState === "TRANSFERRED_TO_NEXT_BIDDER" ||
+      (!auctionLive && !!listing.winningBidderId));
+  const showLiveAuctionUi = isAuction && !USED_AUCTION_RETIRED;
 
   const auctionWalletMoco =
     session?.user?.id && isAuction
@@ -176,7 +189,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
         isSeller={!!isSeller}
         initialFavorited={favorited}
         initialStarred={starred}
-        heading={isAuction ? "경매" : "상품"}
+        heading={showLiveAuctionUi ? "경매" : "상품"}
       />
 
 
@@ -192,6 +205,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
 
       <div className="p-4 space-y-4 flex-1 pb-action-bar">
+
+        {isAuction && USED_AUCTION_RETIRED ? <UsedAuctionRetiredNotice /> : null}
 
         {isUsedRestrictedKind(listing.restrictedKind ?? "NONE") && (
           <UsedRestrictedBanner
@@ -292,7 +307,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
 
 
-        {isAuction && (
+        {showLiveAuctionUi && (
 
           <>
 
@@ -373,6 +388,52 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
         )}
 
+        {isAuction && USED_AUCTION_RETIRED && auctionWindDown ? (
+          <>
+            {(listing.auctionState === "PAYMENT_PENDING" ||
+              listing.auctionState === "PAYMENT_COMPLETED") &&
+              (listing.paymentDueAt || listing.marketplaceOrderId) && (
+                <UsedAuctionPaymentPanel
+                  listingId={listing.id}
+                  paymentDueAt={listing.paymentDueAt ?? new Date()}
+                  amount={displayPrice}
+                  currency={listing.currency}
+                  isWinner={!!isWinningBidder}
+                  paymentCompleted={!!listing.paymentCompletedAt}
+                  marketplaceOrderId={listing.marketplaceOrderId}
+                />
+              )}
+
+            {listing.auctionState === "PRICE_NEGOTIATION" &&
+              listing.activeNegotiationRoomId &&
+              session?.user?.id && (
+                <UsedPriceNegotiationPanel
+                  listingId={listing.id}
+                  roomId={listing.activeNegotiationRoomId}
+                  viewerId={session.user.id}
+                  sellerId={listing.sellerId}
+                  negotiationBuyerId={listing.negotiationBuyerId}
+                  negotiationDueAt={listing.negotiationDueAt}
+                  auctionState={listing.auctionState}
+                  currentTopBid={listing.currentBidAmount ?? listing.price}
+                  currency={listing.currency}
+                  secondBidAmount={
+                    listing.negotiationBuyerId
+                      ? auctionBids.find((b) => b.bidderId === listing.negotiationBuyerId)?.amount
+                      : null
+                  }
+                  offers={priceOffers.map((o) => ({
+                    id: o.id,
+                    amount: o.amount,
+                    status: o.status,
+                    proposerId: o.proposerId,
+                    proposer: o.proposer,
+                  }))}
+                />
+              )}
+          </>
+        ) : null}
+
 
 
         <UsedSaleStatsPanel
@@ -404,7 +465,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
 
 
-      {isAuction ? (
+      {showLiveAuctionUi ? (
 
         <UsedAuctionBottomBar
 

@@ -28,6 +28,7 @@ import {
   isAuctionLive,
   standardAuctionEndsAt,
 } from "@/lib/used-auction";
+import { USED_AUCTION_RETIRED, USED_AUCTION_RETIRED_MSG } from "@/lib/retired-product-features";
 import {
   maxUsedListingPrice,
   maxUsedListingPriceLabel,
@@ -108,6 +109,13 @@ export async function getUsedListings(
   options?: { viewerId?: string | null; sessionCountry?: string | null }
 ) {
   const status = params?.status ?? "SELLING";
+  if (
+    USED_AUCTION_RETIRED &&
+    !params?.sellerId &&
+    (params?.liveAuctionOnly || params?.saleType === "AUCTION")
+  ) {
+    return [];
+  }
   const locality = await resolveUsedMarketScope({
     userId: options?.viewerId,
     sessionCountry: options?.sessionCountry ?? params?.viewerCountryCode ?? null,
@@ -121,6 +129,7 @@ export async function getUsedListings(
   ];
 
   if (params?.saleType) andFilters.push({ saleType: params.saleType });
+  else if (USED_AUCTION_RETIRED && !params?.sellerId) andFilters.push({ saleType: "FIXED" });
 
   if (params?.liveAuctionOnly) {
     andFilters.push({
@@ -506,6 +515,7 @@ export async function createUsedListing(data: {
   if ("error" in parsedCats) return parsedCats;
 
   const isAuction = data.saleType === "AUCTION";
+  if (USED_AUCTION_RETIRED && isAuction) return { error: USED_AUCTION_RETIRED_MSG };
   if (isAuction && price <= 0) return { error: "경매 시작가를 입력해 주세요." };
   if (isAuction) {
     const balance = await getMocoBalanceSnapshot(user.id);
@@ -825,7 +835,7 @@ export async function getMyUsedHubLane(lane: UsedHubLane) {
   try {
     if (lane === "purchased") return { items: await listMobileUsedPurchases(user.id) };
     if (lane === "selling") return { items: await listMobileMyUsedListings(user.id) };
-    if (lane === "live-auctions") return { items: await listMobileLiveAuctions(user.id) };
+    if (lane === "live-auctions") return { items: USED_AUCTION_RETIRED ? [] : await listMobileLiveAuctions(user.id) };
     if (lane === "favorites") return { items: await listMobileUsedFavorites(user.id) };
     return { items: await listMobileUsedDisputes(user.id) };
   } catch (e) {

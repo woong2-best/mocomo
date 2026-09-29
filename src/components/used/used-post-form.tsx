@@ -103,7 +103,6 @@ export function UsedPostForm({
   const [currency, setCurrency] = useState<UsedCurrency>(
     korea ? DEFAULT_USED_CURRENCY : "usd"
   );
-  const [saleKind, setSaleKind] = useState<"FIXED" | "AUCTION">("FIXED");
   const [giveaway, setGiveaway] = useState(false);
   const [tradeMode, setTradeMode] = useState<"SELL" | "TRADE">("SELL");
   const [workTitle, setWorkTitle] = useState("");
@@ -130,8 +129,7 @@ export function UsedPostForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const isAuction = saleKind === "AUCTION";
-  const isTrade = !isAuction && !giveaway && tradeMode === "TRADE";
+  const isTrade = !giveaway && tradeMode === "TRADE";
   const numericPrice = parseFormPrice(price, currency);
   const priceMax = maxUsedListingPrice(currency);
   const priceOverLimit =
@@ -172,11 +170,7 @@ export function UsedPostForm({
       return;
     }
     const submitPrice = giveaway || isTrade ? 0 : numericPrice;
-    if (isAuction && submitPrice <= 0) {
-      setError("경매 시작가를 입력해 주세요.");
-      return;
-    }
-    if (!isAuction && !giveaway && !isTrade && submitPrice <= 0) {
+    if (!giveaway && !isTrade && submitPrice <= 0) {
       setError("가격을 입력해 주세요.");
       return;
     }
@@ -211,10 +205,10 @@ export function UsedPostForm({
       productType: productTypeForSellKind(sellKind),
       ...coerceSubcultureListingFields({
         conditionGrade,
-        tradeMode: isAuction ? "SELL" : isTrade ? "TRADE" : "SELL",
+        tradeMode: isTrade ? "TRADE" : "SELL",
       }),
       isNsfw,
-      saleType: isAuction ? "AUCTION" : "FIXED",
+      saleType: "FIXED",
     });
     setLoading(false);
     if ("error" in res && res.error) {
@@ -263,37 +257,25 @@ export function UsedPostForm({
         <div className="flex flex-wrap">
           <MarketCheckOption
             label="판매하기"
-            checked={!isAuction && !giveaway && !isTrade}
+            checked={!giveaway && !isTrade}
             onPress={() => {
-              setSaleKind("FIXED");
               setGiveaway(false);
               setTradeMode("SELL");
             }}
           />
           <MarketCheckOption
             label="나눔하기"
-            checked={!isAuction && giveaway}
+            checked={giveaway}
             onPress={() => {
-              setSaleKind("FIXED");
               setGiveaway(true);
               setTradeMode("SELL");
               setPrice("0");
             }}
           />
           <MarketCheckOption
-            label="경매"
-            checked={isAuction}
-            onPress={() => {
-              setSaleKind("AUCTION");
-              setGiveaway(false);
-              setTradeMode("SELL");
-            }}
-          />
-          <MarketCheckOption
             label="교환"
             checked={isTrade}
             onPress={() => {
-              setSaleKind("FIXED");
               setGiveaway(false);
               setTradeMode("TRADE");
               setPrice("0");
@@ -324,7 +306,7 @@ export function UsedPostForm({
                   setPrice(currency === "usd" ? sanitizeUsdDollarInput(e.target.value) : e.target.value)
                 }
                 inputMode={currency === "usd" ? "decimal" : "numeric"}
-                placeholder={isAuction ? "시작가를 입력해 주세요." : "가격을 입력해 주세요."}
+                placeholder="가격을 입력해 주세요."
                 className={cn(
                   "h-12 flex-1 rounded-xl border border-border bg-background px-3.5 text-[15px]",
                   priceOverLimit && "border-destructive"
@@ -335,12 +317,6 @@ export function UsedPostForm({
               <p className="text-sm text-destructive">{PRICE_OVER_LIMIT_MSG(currency)}</p>
             ) : null}
           </div>
-        ) : null}
-        {isAuction ? (
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            경매는 등록하는 순간부터 3일 동안 진행됩니다. 남은 시간은 일:시:분:초로 실시간 표시됩니다.
-            정산 계좌 없이 올릴 수 있습니다. 노쇼 방지로 2 MOCO가 잠기고, 거래 완료를 누르면 돌려받습니다.
-          </p>
         ) : null}
       </div>
 

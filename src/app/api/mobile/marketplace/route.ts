@@ -18,6 +18,7 @@ import {
 import { filterNsfwItems, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { coerceSubcultureListingFields } from "@/lib/subculture-commerce/types";
 import { db } from "@/lib/db";
+import { USED_AUCTION_RETIRED } from "@/lib/retired-product-features";
 
 async function listingFavoriteIds(viewerId: string | null, listingIds: string[]) {
   if (!viewerId || listingIds.length === 0) return new Set<string>();
@@ -49,6 +50,9 @@ export async function GET(req: NextRequest) {
 
   const lane = req.nextUrl.searchParams.get("lane")?.trim() || undefined;
   const idsParam = req.nextUrl.searchParams.get("ids")?.trim() || undefined;
+  if (lane === "live-auctions" && USED_AUCTION_RETIRED) {
+    return NextResponse.json({ items: [], lane: "live-auctions" });
+  }
   if (lane === "favorites" || lane === "purchased" || lane === "live-auctions" || lane === "disputes") {
     const auth = await requireMobileApiUser(req);
     if ("error" in auth) return auth.error;
@@ -128,8 +132,13 @@ export async function GET(req: NextRequest) {
         condition: condition || undefined,
         limited: limitedKind || undefined,
         trade: trade || undefined,
-        saleType: mode === "auction" ? "AUCTION" : mode === "fixed" ? "FIXED" : undefined,
-        liveAuctionOnly: mode === "auction",
+        saleType:
+          mode === "auction" && !USED_AUCTION_RETIRED
+            ? "AUCTION"
+            : mode === "fixed" || (USED_AUCTION_RETIRED && mode === "auction")
+              ? "FIXED"
+              : undefined,
+        liveAuctionOnly: mode === "auction" && !USED_AUCTION_RETIRED,
       }),
       canViewNsfw
     );
@@ -196,8 +205,13 @@ export async function GET(req: NextRequest) {
             limited: limitedKind || undefined,
             trade: trade || undefined,
             anime: anime || undefined,
-            saleType: mode === "auction" ? "AUCTION" : mode === "fixed" ? "FIXED" : undefined,
-            liveAuctionOnly: mode === "auction",
+            saleType:
+              mode === "auction" && !USED_AUCTION_RETIRED
+                ? "AUCTION"
+                : mode === "fixed" || (USED_AUCTION_RETIRED && mode === "auction")
+                  ? "FIXED"
+                  : undefined,
+            liveAuctionOnly: mode === "auction" && !USED_AUCTION_RETIRED,
           },
           { viewerId, sessionCountry: viewerCountryCode }
         ),

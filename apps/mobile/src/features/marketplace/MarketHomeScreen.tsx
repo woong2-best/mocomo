@@ -30,7 +30,7 @@ import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
-export type MarketHubLane = "all" | "recommend" | "purchased" | "favorites" | "live-auctions" | "disputes";
+export type MarketHubLane = "all" | "recommend" | "purchased" | "favorites" | "disputes";
 
 type HubLane = MarketHubLane;
 
@@ -49,7 +49,6 @@ const SHORTCUTS: {
 }[] = [
   { lane: "purchased", label: "구매내역", icon: "bag-handle-outline" },
   { my: true, label: "판매내역", icon: "logo-usd" },
-  { lane: "live-auctions", label: "진행중인경매", icon: "time-outline" },
   { lane: "favorites", label: "찜리스트", icon: "heart-outline" },
   { lane: "disputes", label: "분쟁" },
 ];
@@ -85,11 +84,8 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
     queryFn: async () => {
       const rec = await fetchMarketplaceList({ lane: "recommend", take: 8 });
       if (rec.items.length > 0) return rec;
-      const [fixed, auction] = await Promise.all([
-        fetchMarketplaceList({ take: 24, mode: "fixed" }),
-        fetchMarketplaceList({ take: 24, mode: "auction" }),
-      ]);
-      return { items: [...auction.items, ...fixed.items].slice(0, 8) };
+      const fixed = await fetchMarketplaceList({ take: 24, mode: "fixed" });
+      return { items: fixed.items.slice(0, 8) };
     },
     staleTime: 60_000,
   });

@@ -22,6 +22,7 @@ import {
   validateWinningBidCapturable,
 } from "@/lib/used-auction-bid-hold";
 import { finalizeUsedAuctionWinner, activateUsedAuctionStripeOrder } from "@/lib/used-auction-marketplace-order";
+import { USED_AUCTION_RETIRED, USED_AUCTION_RETIRED_MSG } from "@/lib/retired-product-features";
 
 /** 만료된 경매 마감 처리 (조회 시 호출) */
 export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
@@ -152,6 +153,7 @@ export async function placeUsedAuctionBid(
   termsAccepted?: boolean,
   opts?: { paymentIntentDbId?: string | null }
 ) {
+  if (USED_AUCTION_RETIRED) return { error: USED_AUCTION_RETIRED_MSG };
   const user = await requireAuth();
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };

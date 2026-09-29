@@ -58,27 +58,15 @@ export function UsedSearchHeader({
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
         <button
           type="button"
-          onClick={() => apply({ category: null, mode: null })}
+          onClick={() => apply({ category: null })}
           className={cn(
             "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold",
-            !searchParams.get("category") && searchParams.get("mode") !== "auction"
+            !searchParams.get("category")
               ? "border-folk-cobalt bg-folk-cobalt text-white"
               : "border-border bg-card text-folk-cobalt"
           )}
         >
           전체
-        </button>
-        <button
-          type="button"
-          onClick={() => apply({ mode: "auction", category: null })}
-          className={cn(
-            "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
-            searchParams.get("mode") === "auction"
-              ? "border-folk-terracotta bg-folk-terracotta text-white"
-              : "border-border bg-card text-folk-cobalt"
-          )}
-        >
-          경매
         </button>
         {USED_MARKET_BROWSE_CATEGORIES.map((c) => (
           <button

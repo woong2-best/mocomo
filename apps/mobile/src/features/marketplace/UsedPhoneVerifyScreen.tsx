@@ -28,7 +28,7 @@ import type { RootStackParamList } from "@/navigation/types";
 export function UsedPhoneVerifyScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "UsedPhoneVerify">>();
-  const next = route.params?.next === "AuctionCreate" ? "AuctionCreate" : "UsedCreate";
+  const next = "UsedCreate" as const;
   const { colors } = useTheme();
   const [countryCode, setCountryCode] = useState("US");
   const [phone, setPhone] = useState("");

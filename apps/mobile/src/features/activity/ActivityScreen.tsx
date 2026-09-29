@@ -104,7 +104,7 @@ export function ActivityScreen() {
               </View>
               <Text style={styles.emptyTitle}>새 알림이 없습니다</Text>
               <Text style={styles.emptyBody}>
-                댓글, QnA 답변, 맘찍, 인용, 재게시, 팔로우 라이브, 상품 맘찍, 경매 소식이 여기에 모입니다.
+                댓글, QnA 답변, 맘찍, 인용, 재게시, 팔로우 라이브, 상품 맘찍 등이 여기에 모입니다.
               </Text>
             </View>
           }
@@ -178,7 +178,7 @@ function openAlarm(
   }
   const marketId = link.match(/\/market\/([^/?#]+)/)?.[1];
   if (marketId && marketId !== "orders" && marketId !== "my" && marketId !== "verify") {
-    navigation.navigate(item.type?.startsWith("used_auction") ? "AuctionDetail" : "MarketplaceDetail", {
+    navigation.navigate("MarketplaceDetail", {
       id: marketId,
     });
     return;

@@ -7,11 +7,15 @@ import {
   payUsedAuctionBidHoldWithSavedCard,
   prepareUsedAuctionBidHoldWithMethods,
 } from "@/lib/used-auction-bid-hold";
+import { USED_AUCTION_RETIRED, USED_AUCTION_RETIRED_MSG } from "@/lib/retired-product-features";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
 /** POST: 입찰 | prepare(홀드 PI) | confirm(홀드 검증) | pay(저장 카드 hold) */
 export async function POST(req: NextRequest, ctx: RouteCtx) {
+  if (USED_AUCTION_RETIRED) {
+    return NextResponse.json({ error: USED_AUCTION_RETIRED_MSG }, { status: 410 });
+  }
   const limited = await rateLimitPublicApi(req, "mobile-marketplace-bid", 30);
   if (limited) return limited;
 

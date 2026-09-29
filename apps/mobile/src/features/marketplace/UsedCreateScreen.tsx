@@ -76,10 +76,7 @@ export function UsedCreateScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "UsedCreate">>();
   const editId = route.params?.editId;
-  const routeIsAuction = route.name === "AuctionCreate";
-  const [saleKind, setSaleKind] = useState<"FIXED" | "AUCTION">(routeIsAuction ? "AUCTION" : "FIXED");
   const [giveaway, setGiveaway] = useState(false);
-  const isAuction = saleKind === "AUCTION";
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -96,8 +93,7 @@ export function UsedCreateScreen() {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [isNsfw, setIsNsfw] = useState(false);
   const [subculture, setSubculture] = useState<MobileSubcultureFormState>(EMPTY_MOBILE_SUBCULTURE);
-  const isTrade =
-    !isAuction && !giveaway && subculture.tradeMode === "TRADE";
+  const isTrade = !giveaway && subculture.tradeMode === "TRADE";
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
   const insets = useSafeAreaInsets();
@@ -172,9 +168,7 @@ export function UsedCreateScreen() {
           setRegion("Shipping");
         }
         if (!status.eligible && status.countryCode?.toUpperCase() !== "KR") {
-          navigation.replace("UsedPhoneVerify", {
-            next: routeIsAuction ? "AuctionCreate" : "UsedCreate",
-          });
+          navigation.replace("UsedPhoneVerify", { next: "UsedCreate" });
           return;
         }
       } catch {
@@ -186,7 +180,7 @@ export function UsedCreateScreen() {
     return () => {
       alive = false;
     };
-  }, [navigation, routeIsAuction]);
+  }, [navigation]);
 
   const imageCount = existingImages.length + localImages.length;
 
@@ -246,11 +240,11 @@ export function UsedCreateScreen() {
     }
     const priceNum =
       giveaway || isTrade ? 0 : parseListingPriceInput(price, currency);
-    if (priceNum < 0 || (isAuction && priceNum <= 0)) {
-      showIslandError("가격", isAuction ? "경매 시작가를 입력해 주세요." : "가격이 올바르지 않습니다.");
+    if (priceNum < 0) {
+      showIslandError("가격", "가격이 올바르지 않습니다.");
       return;
     }
-    if (!isAuction && !giveaway && !isTrade && priceNum <= 0) {
+    if (!giveaway && !isTrade && priceNum <= 0) {
       showIslandError("가격", "가격을 입력해 주세요.");
       return;
     }
@@ -298,17 +292,13 @@ export function UsedCreateScreen() {
         meetLng: meetCoords?.lng,
         meetCountry: countryCode,
         images,
-        saleType: isAuction ? "AUCTION" : "FIXED",
+        saleType: "FIXED" as const,
         isNsfw,
         workTitle: subculture.workTitle.trim() || undefined,
         animeSlug: subculture.animeSlug ?? undefined,
         productType: productTypeForSellKind(subculture.productType),
         conditionGrade: subculture.conditionGrade || undefined,
-        tradeMode: isAuction
-          ? "SELL"
-          : subculture.tradeMode === "TRADE"
-            ? "TRADE"
-            : "SELL",
+        tradeMode: subculture.tradeMode === "TRADE" ? "TRADE" : "SELL",
       } as const;
 
       const listingId = editId
@@ -318,15 +308,9 @@ export function UsedCreateScreen() {
       await queryClient.invalidateQueries({ queryKey: ["mobile-marketplace-mine"] });
       showIslandSuccess(
         editId ? "수정됨" : "등록됨",
-        editId
-          ? "글이 수정되었습니다."
-          : isAuction
-            ? "경매가 올라갔습니다. 보증금 2 MOCO가 잠겼습니다."
-            : "글이 올라갔습니다."
+        editId ? "글이 수정되었습니다." : "글이 올라갔습니다."
       );
-      navigation.replace(isAuction ? "AuctionDetail" : "MarketplaceDetail", {
-        id: listingId,
-      });
+      navigation.replace("MarketplaceDetail", { id: listingId });
     } catch (e) {
       const msg =
         e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body
@@ -341,9 +325,7 @@ export function UsedCreateScreen() {
         showIslandPrompt("본인 확인 필요", msg, {
           label: "휴대폰 인증",
           onPress: () =>
-            navigation.replace("UsedPhoneVerify", {
-              next: isAuction ? "AuctionCreate" : "UsedCreate",
-            }),
+            navigation.replace("UsedPhoneVerify", { next: "UsedCreate" }),
         });
       } else {
         showIslandError("오류", msg);
@@ -465,9 +447,8 @@ export function UsedCreateScreen() {
               <View style={styles.checkWrap}>
                 <MarketCheckOption
                   label="판매하기"
-                  checked={!isAuction && !giveaway && !isTrade}
+                  checked={!giveaway && !isTrade}
                   onPress={() => {
-                    setSaleKind("FIXED");
                     setGiveaway(false);
                     setSubculture((s) => ({ ...s, tradeMode: "SELL" }));
                   }}
@@ -477,23 +458,10 @@ export function UsedCreateScreen() {
                 />
                 <MarketCheckOption
                   label="나눔하기"
-                  checked={!isAuction && giveaway}
+                  checked={giveaway}
                   onPress={() => {
-                    setSaleKind("FIXED");
                     setGiveaway(true);
                     setPrice("0");
-                    setSubculture((s) => ({ ...s, tradeMode: "SELL" }));
-                  }}
-                  ink={ink}
-                  paper={paper}
-                  line={line}
-                />
-                <MarketCheckOption
-                  label="경매"
-                  checked={isAuction}
-                  onPress={() => {
-                    setSaleKind("AUCTION");
-                    setGiveaway(false);
                     setSubculture((s) => ({ ...s, tradeMode: "SELL" }));
                   }}
                   ink={ink}
@@ -504,7 +472,6 @@ export function UsedCreateScreen() {
                   label="교환"
                   checked={isTrade}
                   onPress={() => {
-                    setSaleKind("FIXED");
                     setGiveaway(false);
                     setPrice("0");
                     setSubculture((s) => ({ ...s, tradeMode: "TRADE" }));
@@ -542,19 +509,11 @@ export function UsedCreateScreen() {
                       value={price}
                       onChangeText={setPrice}
                       keyboardType={currency === "usd" ? "decimal-pad" : "number-pad"}
-                      placeholder={isAuction ? "시작가를 입력해 주세요." : "가격을 입력해 주세요."}
+                      placeholder="가격을 입력해 주세요."
                       placeholderTextColor={muted}
                     />
                   </View>
                 </>
-              ) : null}
-              {isAuction ? (
-                <View style={{ marginTop: 10 }}>
-                  <Text style={styles.hint}>
-                    경매는 등록하는 순간부터 3일 동안 진행됩니다. 남은 시간은 일:시:분:초로 실시간 표시됩니다.
-                    정산 계좌 없이 올릴 수 있습니다. 노쇼 방지로 2 MOCO가 잠기고, 거래 완료를 누르면 돌려받습니다.
-                  </Text>
-                </View>
               ) : null}
             </View>
 

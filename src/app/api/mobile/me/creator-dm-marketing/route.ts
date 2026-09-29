@@ -7,6 +7,7 @@ import {
   getCreatorMarketingSettings,
   saveCreatorWelcomeMessage,
 } from "@/lib/creator-dm-marketing";
+import { CREATOR_BULK_DM_RETIRED, CREATOR_BULK_DM_RETIRED_MSG } from "@/lib/retired-product-features";
 
 const welcomeSchema = z.object({
   enabled: z.boolean(),
@@ -22,6 +23,10 @@ export async function GET(req: NextRequest) {
   const auth = await requireMobileApiUser(req);
   if ("error" in auth) return auth.error;
 
+  if (CREATOR_BULK_DM_RETIRED) {
+    return NextResponse.json({ error: CREATOR_BULK_DM_RETIRED_MSG }, { status: 410 });
+  }
+
   const settings = await getCreatorMarketingSettings(auth.user.id);
   return NextResponse.json(settings);
 }
@@ -29,6 +34,10 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const auth = await requireMobileApiUser(req, { writeKind: "default" });
   if ("error" in auth) return auth.error;
+
+  if (CREATOR_BULK_DM_RETIRED) {
+    return NextResponse.json({ error: CREATOR_BULK_DM_RETIRED_MSG }, { status: 410 });
+  }
 
   const limited = await rateLimitPublicApi(req, `creator-dm-marketing:${auth.user.id}`, 30);
   if (limited) return limited;

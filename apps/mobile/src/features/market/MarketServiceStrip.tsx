@@ -55,7 +55,7 @@ const SERVICES: ServiceItem[] = [
   },
   {
     key: "used",
-    label: "중고·경매",
+    label: "중고거래",
     icon: "pricetag-outline",
     colorKey: "gold",
     action: "navigate",

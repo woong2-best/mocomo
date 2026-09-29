@@ -12,7 +12,6 @@ export type DrawerRoute =
   | "GamesHub"
   | "AnimeList"
   | "MarketplaceList"
-  | "AuctionList"
   | "SellerListings"
   | "LiveList"
   | "Discover"
@@ -59,7 +58,7 @@ export type RootStackParamList = {
   LiveGoLive: undefined;
   MarketplaceList:
     | {
-        lane?: "all" | "recommend" | "purchased" | "favorites" | "live-auctions" | "disputes";
+        lane?: "all" | "recommend" | "purchased" | "favorites" | "disputes";
         q?: string;
       }
     | undefined;

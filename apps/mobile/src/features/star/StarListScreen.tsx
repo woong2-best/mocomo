@@ -336,7 +336,7 @@ export function StarListScreen() {
       <Pressable
         style={{ width: cellSize, height: cellSize, marginBottom: GRID_GAP }}
         onPress={() =>
-          navigation.navigate(item.saleType === "AUCTION" ? "AuctionDetail" : "MarketplaceDetail", {
+          navigation.navigate("MarketplaceDetail", {
             id: item.id,
           })
         }

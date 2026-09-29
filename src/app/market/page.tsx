@@ -48,7 +48,7 @@ async function UsedFeed({
         trade,
         anime,
         status: "SELLING",
-        liveAuctionOnly: mode === "auction",
+        liveAuctionOnly: false,
       },
       {
         viewerId: session?.user?.id ?? null,

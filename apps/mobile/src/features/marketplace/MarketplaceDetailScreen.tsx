@@ -43,6 +43,7 @@ import {
   UsedSaleStatsCard,
 } from "@/features/marketplace/UsedSubcultureDetailCards";
 import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
+import { USED_AUCTION_RETIRED, USED_AUCTION_RETIRED_MSG } from "@/lib/retired-product-features";
 import {
   displayUsedRegion,
   formatUsedPrice,
@@ -302,6 +303,10 @@ export function MarketplaceDetailScreen() {
   });
 
   const onBid = async () => {
+    if (USED_AUCTION_RETIRED) {
+      showIslandError("경매 종료", USED_AUCTION_RETIRED_MSG);
+      return;
+    }
     try {
       const deposit =
         depositQuery.data ?? (await fetchAuctionDepositStatus(route.params.id));
@@ -327,7 +332,9 @@ export function MarketplaceDetailScreen() {
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
           <Text style={styles.back}>뒤로</Text>
         </Pressable>
-        <Text style={styles.heading}>{item?.saleType === "AUCTION" ? "경매" : "상품"}</Text>
+        <Text style={styles.heading}>
+          {item?.saleType === "AUCTION" && !USED_AUCTION_RETIRED ? "경매" : "상품"}
+        </Text>
         <View style={styles.topActions}>
           {item ? (
             <Pressable
@@ -418,6 +425,11 @@ export function MarketplaceDetailScreen() {
             )}
           </SensitiveContentGate>
           <View style={styles.body}>
+            {item.saleType === "AUCTION" && USED_AUCTION_RETIRED ? (
+              <View style={styles.retiredBanner}>
+                <Text style={styles.retiredBannerText}>{USED_AUCTION_RETIRED_MSG}</Text>
+              </View>
+            ) : null}
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.price}>
               {item.saleType === "AUCTION"
@@ -428,7 +440,7 @@ export function MarketplaceDetailScreen() {
                   }${item.bidCount != null ? ` · 입찰 ${item.bidCount}회` : ""}`
                 : formatUsedPrice(Number(item.price ?? 0), item.currency)}
             </Text>
-            {item.saleType === "AUCTION" && item.auctionEndsAt ? (
+            {item.saleType === "AUCTION" && item.auctionEndsAt && !USED_AUCTION_RETIRED ? (
               <View style={styles.timer}>
                 <AuctionCountdown endsAt={item.auctionEndsAt} variant="clock" />
               </View>
@@ -530,7 +542,7 @@ export function MarketplaceDetailScreen() {
             ) : null}
           </View>
         </ScrollView>
-        {item.auctionLive && !item.isOwner ? (
+        {item.auctionLive && !item.isOwner && !USED_AUCTION_RETIRED ? (
           <View
             style={[
               styles.bidDock,
@@ -639,6 +651,15 @@ function createThemedStyles(colors: ThemeColors) {
   },
   heroFallback: {},
   body: { padding: spacing.md, backgroundColor: colors.surface },
+  retiredBanner: {
+    marginBottom: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: 12,
+    backgroundColor: colors.gold + "22",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.gold + "66",
+  },
+  retiredBannerText: { fontSize: 13, lineHeight: 18, color: colors.text },
   price: { marginTop: 8, fontSize: 22, fontWeight: "800", color: colors.text },
   title: { fontSize: 18, fontWeight: "700", color: colors.text },
   timer: { marginTop: spacing.sm },
