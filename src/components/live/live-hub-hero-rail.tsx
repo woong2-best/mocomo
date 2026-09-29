@@ -47,10 +47,10 @@ function buildHeroRailSlots(channels: LiveHubChannel[]): LiveHeroRailSlot[] {
 /** Large center TV; neighbors tuck behind it and peek at the sides. */
 function measureHeroRail(width: number): { cardWidth: number; spacing: number; visibleRadius: number } {
   const w = Math.max(width, 1);
-  const cardWidth = Math.round(Math.min(Math.max(w * 0.52, 340), 760));
+  const cardWidth = Math.round(Math.min(Math.max(w * 0.38, 300), 560));
   return {
     cardWidth,
-    spacing: Math.round(cardWidth * 0.68),
+    spacing: Math.round(cardWidth * 0.76),
     visibleRadius: (VISIBLE_COUNT - 1) / 2 + 0.35,
   };
 }
@@ -298,13 +298,39 @@ function OffAirHeroCard({ focused }: { focused: boolean }) {
 }
 
 function EmptyHeroCard({ tone }: { tone: number }) {
-  const shade = 22 + (tone % 5) * 4;
+  const shade = 20 + (tone % 5) * 3;
+  const panel = `rgb(${shade},${shade},${shade + 2})`;
+
   return (
-    <div
-      className="w-full aspect-[16/10] rounded-xl"
-      style={{ backgroundColor: `rgb(${shade},${shade},${shade + 2})` }}
-      aria-hidden
-    />
+    <div className="relative w-full aspect-[16/10]" aria-hidden>
+      <div className="absolute inset-[14%_26%] rounded-md bg-black/80" />
+      {[0, 1, 2].map((step) => (
+        <div
+          key={`l-${step}`}
+          className="absolute rounded-sm"
+          style={{
+            left: `${6 + step * 5}%`,
+            top: `${18 + step * 6}%`,
+            width: `${14 - step * 2}%`,
+            height: `${64 - step * 10}%`,
+            backgroundColor: panel,
+          }}
+        />
+      ))}
+      {[0, 1, 2].map((step) => (
+        <div
+          key={`r-${step}`}
+          className="absolute rounded-sm"
+          style={{
+            right: `${6 + step * 5}%`,
+            top: `${18 + step * 6}%`,
+            width: `${14 - step * 2}%`,
+            height: `${64 - step * 10}%`,
+            backgroundColor: panel,
+          }}
+        />
+      ))}
+    </div>
   );
 }
 

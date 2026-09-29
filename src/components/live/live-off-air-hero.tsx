@@ -3,7 +3,7 @@
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
-export const OFF_AIR_TV_SRC = "/images/live/off-air-tv.png";
+export const OFF_AIR_TV_SRC = "/images/live/off-air-tv.png?v=3";
 
 /** Off-air hero — uses the SMPTE TV artwork as-is (no CSS recreation). */
 export function LiveOffAirHero({ className }: { className?: string }) {
