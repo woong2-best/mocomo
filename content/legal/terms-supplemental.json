@@ -1,6 +1,54 @@
 {
-  "version": "2026-09-v1",
+  "version": "2026-09-v2",
   "sections": {
+    "operational-support-contractors": {
+      "heading": {
+        "default": "제3자 운영 지원 (W-2 인력)",
+        "KR": "제3자 운영 지원 (W-2 인력)",
+        "US": "Third-Party Operational Support (W-2 Personnel)",
+        "JP": "第三者運営支援（W-2人員）"
+      },
+      "paragraphs": {
+        "default": [
+          "회사는 사업 운영, 고객 지원(CS), 마케팅, 콘텐츠 검토·삭제(회사가 정한 가이드라인 및 본 약관에 따름) 등 서비스 운영에 필요한 업무의 일부 또는 전부를, W-2 근로자를 고용하는 제3자 운영 파트너에게 위탁하거나 해당 인력의 지원을 받을 수 있습니다. 이용자는 회원가입 시 본 약관에 동의함으로써, 위 목적 범위 내에서 회사가 해당 제3자와 협력하여 서비스를 운영할 수 있음에 동의합니다."
+        ],
+        "KR": [
+          "회사는 사업 운영, 고객 지원(CS), 마케팅, 콘텐츠 검토·삭제(회사가 정한 가이드라인 및 본 약관에 따름) 등 서비스 운영에 필요한 업무의 일부 또는 전부를, W-2 근로자를 고용하는 제3자 운영 파트너에게 위탁하거나 해당 인력의 지원을 받을 수 있습니다. 이용자는 회원가입 시 본 약관에 동의함으로써, 위 목적 범위 내에서 회사가 해당 제3자와 협력하여 서비스를 운영할 수 있음에 동의합니다."
+        ],
+        "US": [
+          "The Company may delegate some or all business operations, customer support, marketing, and content review or removal (in accordance with Company guidelines and these Terms) to qualified third-party operational partners that employ W-2 personnel, or otherwise receive assistance from such personnel. By creating an account and agreeing to these Terms, you consent to the Company working with such third parties to operate the Service within the scope described above."
+        ],
+        "JP": [
+          "当社は、事業運営、カスタマーサポート、マーケティング、ならびに当社ガイドラインおよび本規約に基づくコンテンツの審査・削除等の業務の全部または一部を、W-2従業員を雇用する第三者運営パートナーに委託し、または当該人員の支援を受けることがあります。利用者は登録時に本規約に同意することにより、上記の範囲内で当社が当該第三者と協力してサービスを運営することに同意したものとみなされます。"
+        ]
+      }
+    },
+    "content-moderation-and-ugc-liability": {
+      "heading": {
+        "default": "콘텐츠 검열·삭제 및 이용자 게시물 면책",
+        "KR": "콘텐츠 검열·삭제 및 이용자 게시물 면책",
+        "US": "Content Moderation and User-Generated Content Disclaimer",
+        "JP": "コンテンツモデレーションおよびユーザー投稿に関する免責"
+      },
+      "paragraphs": {
+        "default": [
+          "회사 및 회사가 승인한 운영·검수 인력(제3자 W-2 인력 포함)은 본 약관, 커뮤니티 정책, 관련 법령 또는 회사 가이드라인을 위반하거나 위반할 우려가 있다고 판단되는 콘텐츠를 사전 통지 없이 검토, 비노출, 이동, 수정 또는 삭제하고, 관련 계정·기능 이용을 제한할 수 있습니다.",
+          "서비스에 포함된 게시물, 댓글, 메시지, 미디어 및 기타 정보는 이용자 또는 제3자가 제공한 사용자 생성 콘텐츠(UGC)를 포함할 수 있습니다. 회사는 UGC의 정확성, 완전성, 적법성 또는 신뢰성을 보증하지 않으며, UGC로 인해 발생하는 손해, 분쟁 또는 제3자 권리 침해에 대해 회사의 고의 또는 중과실이 없는 한 책임을 지지 않습니다. 적용 법률(미국 연방법 포함)이 달리 요구하는 경우는 그에 따릅니다."
+        ],
+        "KR": [
+          "회사 및 회사가 승인한 운영·검수 인력(제3자 W-2 인력 포함)은 본 약관, 커뮤니티 정책, 관련 법령 또는 회사 가이드라인을 위반하거나 위반할 우려가 있다고 판단되는 콘텐츠를 사전 통지 없이 검토, 비노출, 이동, 수정 또는 삭제하고, 관련 계정·기능 이용을 제한할 수 있습니다.",
+          "서비스에 포함된 게시물, 댓글, 메시지, 미디어 및 기타 정보는 이용자 또는 제3자가 제공한 사용자 생성 콘텐츠(UGC)를 포함할 수 있습니다. 회사는 UGC의 정확성, 완전성, 적법성 또는 신뢰성을 보증하지 않으며, UGC로 인해 발생하는 손해, 분쟁 또는 제3자 권리 침해에 대해 회사의 고의 또는 중과실이 없는 한 책임을 지지 않습니다. 적용 법률(미국 연방법 포함)이 달리 요구하는 경우는 그에 따릅니다."
+        ],
+        "US": [
+          "The Company and authorized moderation personnel (including third-party W-2 personnel) may review, remove, disable access to, relocate, or edit content, and restrict accounts or features, without prior notice, when we reasonably believe content violates these Terms, our Community Policies, applicable law, or Company guidelines.",
+          "The Service may contain posts, comments, messages, media, and other materials supplied by users or third parties (“User-Generated Content” or “UGC”). The Company does not endorse UGC and does not warrant its accuracy, completeness, legality, or reliability. To the fullest extent permitted by applicable law (including U.S. federal law where applicable), the Company is not liable for any loss, dispute, or third-party claim arising from UGC, except where liability cannot be excluded due to the Company’s willful misconduct or gross negligence."
+        ],
+        "JP": [
+          "当社および当社が承認した運営・審査担当者（第三者W-2人員を含む）は、本規約、コミュニティポリシー、適用法令または当社ガイドラインに違反し、または違反するおそれがあると合理的に判断したコンテンツについて、事前通知なく審査、非表示、移動、修正、削除を行い、関連アカウントまたは機能の利用を制限できます。",
+          "本サービスには、利用者または第三者が提供するユーザー生成コンテンツ（UGC）が含まれる場合があります。当社はUGCを推奨せず、その正確性、完全性、適法性または信頼性を保証しません。適用法令（米国連邦法を含む）の範囲内で、当社の故意または重過失がない限り、UGCに起因する損害、紛争または第三者の請求について責任を負いません。"
+        ]
+      }
+    },
     "recommendation-and-infinite-scroll": {
       "heading": {
         "default": "추천 알고리즘 및 무한스크롤",

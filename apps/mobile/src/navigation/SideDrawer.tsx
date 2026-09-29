@@ -468,6 +468,11 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
         onClose();
         onAddAccountLogin?.("signin");
       }}
+      onUnregisteredAccount={() => {
+        setAccountSheetOpen(false);
+        onClose();
+        onAddAccountLogin?.("signup");
+      }}
       onLogout={() => {
         setAccountSheetOpen(false);
         onClose();

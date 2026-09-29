@@ -36,6 +36,8 @@ type Props = {
   onClose: () => void;
   onCreateNew?: () => void;
   onAddExisting?: () => void;
+  /** Google sign-in returned an account that is not registered — continue on welcome/sign-up. */
+  onUnregisteredAccount?: () => void;
   onLogout?: () => void;
 };
 
@@ -73,6 +75,7 @@ function authErrorMessage(e: unknown): string {
 export function AccountsBottomSheet({
   visible,
   onClose,
+  onUnregisteredAccount,
   onLogout,
 }: Props) {
   const {
@@ -133,7 +136,8 @@ export function AccountsBottomSheet({
         forcePicker: true,
       });
       if (result.status === "needsSignup") {
-        setError("that google account is not registered");
+        onClose();
+        onUnregisteredAccount?.();
         return;
       }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -144,7 +148,14 @@ export function AccountsBottomSheet({
     } finally {
       setBusy(false);
     }
-  }, [busy, prepareAddAccountSession, refreshSavedAccounts, signInWithGoogleNative]);
+  }, [
+    busy,
+    onClose,
+    onUnregisteredAccount,
+    prepareAddAccountSession,
+    refreshSavedAccounts,
+    signInWithGoogleNative,
+  ]);
 
   const handleCredentials = useCallback(async () => {
     const id = loginId.trim();

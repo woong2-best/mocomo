@@ -1657,7 +1657,7 @@ export const COPYRIGHT_POLICY: LegalDocument = {
 export const PRIVACY_POLICY: LegalDocument = {
   slug: "privacy",
   title: "MoCoMo 개인정보처리방침",
-  updatedAt: "2026년 9월 3일",
+  updatedAt: "2026년 9월 29일",
   intro:
     'MoCoMo LLC(미합중국 와이오밍 주 소재, 이하 "MoCoMo" 또는 "회사")는 이용자의 개인정보를 소중히 다루며, 적용 가능한 미국 연방·주 법 및 서비스를 제공하는 지역의 관련 개인정보 보호 요구사항을 준수하기 위해 노력합니다.',
   blocks: [
@@ -1752,6 +1752,18 @@ export const PRIVACY_POLICY: LegalDocument = {
       type: "p",
       text: "회사는 Google OAuth API를 통해 수집된 Google 사용자 데이터를 계정 인증 및 서비스 제공 목적 외에 타인이나 제3자에게 판매, 공유, 전송 또는 공개하지 않습니다. (단, 법적 의무 이행 또는 서비스 제공을 위해 이용자가 명시적으로 동의한 위탁 처리의 경우는 제외됩니다.)",
     },
+    {
+      type: "h3",
+      text: "제3자 운영 파트너 (W-2 인력) — Customer Support, Marketing & Moderation",
+    },
+    {
+      type: "p",
+      text: "MoCoMo는 고객 지원(CS), 마케팅 커뮤니케이션, 콘텐츠 검수·삭제(회사 가이드라인 및 약관에 따름) 목적을 위해, W-2 근로자를 고용하는 제3자 운영 파트너에게 필요한 범위의 개인정보 처리를 위탁할 수 있습니다. 위탁 대상에는 이용자의 이메일 주소, 계정 식별 정보, 고객 문의·신고·분쟁 관련 기록, 마케팅 수신 동의 범위 내 연락처 등 서비스 제공 및 운영에 필요한 최소한의 정보가 포함될 수 있습니다. 회사는 위탁 시 개인정보 보호·비밀유지·재위탁 제한 등 계약상 보호조치를 요구합니다.",
+    },
+    {
+      type: "p",
+      text: "MoCoMo may entrust limited personal data to qualified third-party operational partners that employ W-2 personnel strictly for customer support, marketing communications (where you have agreed or applicable law permits), and content moderation in line with Company guidelines and our Terms. This may include your email address, account identifiers, support tickets and inquiry content, and related metadata. Processors are bound by confidentiality, security, and purpose-limitation obligations. By agreeing to this Privacy Policy at sign-up, you acknowledge this processing where it is necessary to operate the Service.",
+    },
     { type: "hr" },
     { type: "h2", text: "5. 국제 전송" },
     {
@@ -1765,10 +1777,14 @@ export const PRIVACY_POLICY: LegalDocument = {
       text: "MoCoMo는 로그인 유지 및 서비스 개선을 위해 쿠키·로컬 저장소 등 유사 기술을 사용할 수 있습니다. 사용자는 브라우저·기기 설정을 통해 일부 저장을 거부할 수 있으나 서비스 이용이 제한될 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "7. 사용자 권리" },
+    { type: "h2", text: "7. 사용자 권리 (GDPR / EEA·UK 포함)" },
     {
       type: "p",
-      text: "사용자는 자신의 개인정보 열람, 수정 및 삭제를 요청할 수 있습니다. 계정 전체 삭제 절차는 MoCoMo 계정 및 데이터 삭제 안내(/legal/account-deletion)를 참고해 주세요. 거주 지역 법에 따른 추가 권리가 있는 경우 동일 연락처로 요청할 수 있습니다.",
+      text: "사용자는 자신의 개인정보 열람, 수정 및 삭제를 요청할 수 있습니다. 계정 전체 삭제 절차는 MoCoMo 계정 및 데이터 삭제 안내(/legal/account-deletion)를 참고해 주세요. 유럽경제지역(EEA), 영국 등 GDPR 또는 유사 법률이 적용되는 지역에 거주하는 경우, 법령이 허용하는 범위에서 접근(access), 정정(rectification), 삭제(erasure), 처리 제한(restriction), 데이터 이동(portability), 처리에 대한 이의(objection) 권리를 행사할 수 있습니다. 권리 행사·데이터 처리에 관한 문의는 아래 연락처로 요청해 주시며, 회사는 관련 법령에 따른 기한 내에 응답합니다.",
+    },
+    {
+      type: "p",
+      text: "If you are in the EEA, UK, or another region with similar data-protection laws, you may request access to, correction of, or deletion of your personal data, restrict or object to certain processing, and request portability where applicable. Submit requests to the contact in Section 12; we will respond within the timelines required by law. You may also lodge a complaint with your local supervisory authority.",
     },
     { type: "hr" },
     { type: "h2", text: "8. 아동 안전 및 청소년 보호" },

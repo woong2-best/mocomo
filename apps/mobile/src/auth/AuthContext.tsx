@@ -126,7 +126,9 @@ type AuthState = {
       privacyAccepted: true;
     }
   ) => Promise<void>;
-  addAccount: (mode: WebAuthMode) => Promise<void>;
+  addAccount: (
+    mode: WebAuthMode
+  ) => Promise<{ status: "signedIn" } | { status: "needsSignup" }>;
   /** Save current session before in-app add-account login (no browser). */
   prepareAddAccountSession: () => Promise<void>;
   switchAccount: (userId: string) => Promise<void>;
@@ -514,8 +516,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await prepareAddAccountSession();
       const result = await finishWebAuth(mode, true);
       if (result.status === "needsSignup") {
-        throw new Error("추가 계정은 가입 완료 후 다시 시도해 주세요.");
+        return { status: "needsSignup" as const };
       }
+      return { status: "signedIn" as const };
     },
     [finishWebAuth, prepareAddAccountSession]
   );
