@@ -132,7 +132,7 @@ export function MapLibreMeetMapCanvas({
         }
 
         if (marker) {
-          markerRef.current = new maplibregl.Marker({ color: "#EF4444" })
+          markerRef.current = new maplibregl.Marker({ color: "#F97316" })
             .setLngLat([marker.lng, marker.lat])
             .addTo(map);
         }
@@ -176,7 +176,7 @@ export function MapLibreMeetMapCanvas({
       if (markerRef.current) {
         markerRef.current.setLngLat([marker.lng, marker.lat]);
       } else {
-        markerRef.current = new maplibregl.Marker({ color: "#EF4444" })
+        markerRef.current = new maplibregl.Marker({ color: "#F97316" })
           .setLngLat([marker.lng, marker.lat])
           .addTo(map);
       }

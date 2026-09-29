@@ -10,10 +10,8 @@ import { coerceSubcultureListingFields } from "@/lib/subculture-commerce/types";
 import { z } from "zod";
 import { listingImages } from "@/lib/used-market";
 import { isAuctionLive, minNextBidAmount } from "@/lib/used-auction";
-import { geocodeMeetQuery } from "@/lib/maps/geocode";
-import { meetExternalMapUrl, meetMapCaption } from "@/lib/maps/external-url";
-import { normalizeMeetCountry, selectMapEngine } from "@/lib/maps/select-engine";
-import { getRegionMapCenter, isShippingOnlyRegion } from "@/lib/used-region-coords";
+import { buildListingMeetMapPayload } from "@/lib/maps/meet-map-payload";
+import { selectMapEngine } from "@/lib/maps/select-engine";
 import { canViewNsfwResource } from "@/lib/nsfw-viewer-access";
 
 export async function GET(
@@ -53,34 +51,21 @@ export async function GET(
     typeof listing.meetPlace === "string" && listing.meetPlace.trim()
       ? listing.meetPlace.trim()
       : null;
-  let meetLat =
-    typeof listing.meetLat === "number" && Number.isFinite(listing.meetLat)
-      ? listing.meetLat
-      : null;
-  let meetLng =
-    typeof listing.meetLng === "number" && Number.isFinite(listing.meetLng)
-      ? listing.meetLng
-      : null;
-  const meetCountry = normalizeMeetCountry(
-    listing.meetCountry ??
-      (listing.seller as { countryCode?: string } | null | undefined)?.countryCode
-  );
 
-  if ((meetLat == null || meetLng == null) && meetPlace) {
-    try {
-      const geo = await geocodeMeetQuery({
-        country: meetCountry,
-        region: listing.region,
-        place: meetPlace,
-      });
-      if (geo) {
-        meetLat = geo.lat;
-        meetLng = geo.lng;
-      }
-    } catch {
-      /* keep null */
-    }
-  }
+  const meetMapPayload = await buildListingMeetMapPayload({
+    region: listing.region,
+    meetPlace: listing.meetPlace,
+    meetLat: listing.meetLat,
+    meetLng: listing.meetLng,
+    meetCountry: listing.meetCountry,
+    sellerCountryCode: (listing.seller as { countryCode?: string } | null | undefined)
+      ?.countryCode,
+    resolveGeocode: true,
+  });
+
+  const meetLat = meetMapPayload?.hasPin ? meetMapPayload.lat : null;
+  const meetLng = meetMapPayload?.hasPin ? meetMapPayload.lng : null;
+  const meetCountry = meetMapPayload?.country ?? "KR";
 
   let map: {
     label: string;
@@ -93,39 +78,11 @@ export async function GET(
     caption: string;
   } | null = null;
 
-  try {
-    const shipping = isShippingOnlyRegion(listing.region ?? "");
-    const regionCenter = getRegionMapCenter(listing.region || "서울");
-    const hasPin = meetLat != null && meetLng != null;
-    const showMap = hasPin || (!shipping && !!listing.region);
-    if (showMap) {
-      const mapLat = hasPin ? meetLat! : regionCenter.lat;
-      const mapLng = hasPin ? meetLng! : regionCenter.lng;
-      const mapLabel = meetPlace || listing.region || "거래 장소";
-      const coords = hasPin ? { lat: meetLat!, lng: meetLng! } : null;
-      const externalMapUrl = meetExternalMapUrl({
-        country: meetCountry,
-        region: listing.region || mapLabel,
-        place: meetPlace,
-        coords,
-      });
-      map = {
-        label: mapLabel,
-        lat: mapLat,
-        lng: mapLng,
-        hasPin,
-        country: meetCountry,
-        engine: selectMapEngine(meetCountry),
-        externalMapUrl,
-        caption: meetMapCaption({
-          country: meetCountry,
-          region: listing.region,
-          hasPin,
-        }),
-      };
-    }
-  } catch {
-    map = null;
+  if (meetMapPayload) {
+    map = {
+      ...meetMapPayload,
+      engine: selectMapEngine(meetMapPayload.country),
+    };
   }
 
   return NextResponse.json({

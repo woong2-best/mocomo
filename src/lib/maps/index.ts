@@ -16,3 +16,5 @@ export {
   meetMapCaption,
 } from "@/lib/maps/external-url";
 export { geocodeMeetQuery, reverseGeocodeMeet } from "@/lib/maps/geocode";
+export { buildListingMeetMapPayload } from "@/lib/maps/meet-map-payload";
+export type { ListingMeetMapInput } from "@/lib/maps/meet-map-payload";

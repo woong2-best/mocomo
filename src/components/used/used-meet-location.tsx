@@ -1,49 +1,32 @@
 "use client";
 
-import { MeetMapView } from "@/components/maps/MeetMapView";
-import { parseMeetCoords } from "@/lib/used-market";
-import { isShippingOnlyRegion } from "@/lib/used-region-coords";
-import { meetMapCaption } from "@/lib/maps/external-url";
-import { normalizeMeetCountry } from "@/lib/maps/select-engine";
+import dynamic from "next/dynamic";
+import type { MeetMapPayload } from "@/lib/maps/types";
+
+const UsedMeetMapCard = dynamic(
+  () => import("@/components/used/used-meet-map-card").then((m) => m.UsedMeetMapCard),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[220px] w-full animate-pulse rounded-xl border border-border/60 bg-muted/40" />
+    ),
+  }
+);
 
 export function UsedMeetLocation({
+  map,
   region,
   meetPlace,
-  meetLat,
-  meetLng,
-  meetCountry,
 }: {
-  region: string;
+  map: MeetMapPayload | null;
+  region?: string | null;
   meetPlace?: string | null;
-  meetLat?: number | null;
-  meetLng?: number | null;
-  meetCountry?: string | null;
 }) {
-  const country = normalizeMeetCountry(meetCountry);
-  const coords = parseMeetCoords(meetLat, meetLng);
-  const shipping = isShippingOnlyRegion(region);
-
-  if (shipping) {
-    return (
-      <p className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground">
-        전국 배송 거래는 지도 없이 배송으로 진행해 주세요.
-      </p>
-    );
-  }
+  if (!map) return null;
 
   return (
-    <section className="space-y-2">
-      <MeetMapView
-        mode="view"
-        country={country}
-        region={region}
-        meetPlace={meetPlace ?? undefined}
-        coords={coords}
-        heightClassName="h-56 sm:h-64"
-      />
-      <p className="text-[11px] font-semibold leading-4 text-muted-foreground">
-        {meetMapCaption({ region, hasPin: !!coords })}
-      </p>
+    <section>
+      <UsedMeetMapCard map={map} region={region} meetPlace={meetPlace} />
     </section>
   );
 }

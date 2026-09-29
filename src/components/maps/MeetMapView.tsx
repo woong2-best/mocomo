@@ -22,6 +22,9 @@ export type MeetMapViewProps = {
   onMeetPlaceChange?: (text: string) => void;
   className?: string;
   heightClassName?: string;
+  pinTitle?: string;
+  pinSearchUrl?: string;
+  pinMapUrl?: string;
 };
 
 export function MeetMapView({
@@ -33,6 +36,9 @@ export function MeetMapView({
   onCoordsChange,
   className,
   heightClassName = "h-52",
+  pinTitle,
+  pinSearchUrl,
+  pinMapUrl,
 }: MeetMapViewProps) {
   const shipping = isShippingOnlyRegion(region);
   const interactive = mode === "pick" && !shipping;
@@ -52,17 +58,30 @@ export function MeetMapView({
   const markerPopup = useMemo(() => {
     if (mode !== "view" || !activeCoords) return null;
     const locationQuery = [region, meetPlace].map((v) => v.trim()).filter(Boolean).join(" ");
-    const searchUrl = locationQuery
-      ? `https://www.google.com/search?q=${encodeURIComponent(locationQuery)}`
-      : "";
-    const mapUrl = meetExternalMapUrl({
-      country,
-      region,
-      place: meetPlace,
-      coords: activeCoords,
-    });
-    return { title: locationQuery || "거래 장소", searchUrl, mapUrl };
-  }, [mode, activeCoords, meetPlace, region, country]);
+    const searchUrl =
+      pinSearchUrl ??
+      (locationQuery
+        ? `https://www.google.com/search?q=${encodeURIComponent(locationQuery)}`
+        : "");
+    const mapUrl =
+      pinMapUrl ??
+      meetExternalMapUrl({
+        country,
+        region,
+        place: meetPlace,
+        coords: activeCoords,
+      });
+    return { title: pinTitle || locationQuery || "거래 장소", searchUrl, mapUrl };
+  }, [
+    mode,
+    activeCoords,
+    meetPlace,
+    region,
+    country,
+    pinTitle,
+    pinSearchUrl,
+    pinMapUrl,
+  ]);
 
   useEffect(() => {
     setMapError("");
@@ -223,18 +242,15 @@ export function MeetMapView({
 
       <div
         className={cn(
-          "relative rounded-xl overflow-hidden border border-border bg-muted/20",
+          "meet-map-surface relative overflow-hidden rounded-xl border border-border bg-muted/20",
           heightClassName
         )}
       >
-        {!mapReady ? (
-          <iframe
-            title="거래 장소 지도"
-            src={`https://www.google.com/maps?q=${center.lat},${center.lng}&z=${Math.max(1, Math.round(zoom))}&output=embed`}
-            className="absolute inset-0 h-full w-full border-0"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
+        {!mapReady && !mapError ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <span className="sr-only">지도 불러오는 중</span>
+          </div>
         ) : null}
         <MapLibreMeetMapCanvas
           mode={mode}

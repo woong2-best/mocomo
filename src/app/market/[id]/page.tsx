@@ -22,6 +22,7 @@ import { UsedDetailHeader } from "@/components/used/used-detail-header";
 import { UsedImageGallery } from "@/components/used/used-image-gallery";
 
 import { UsedMeetLocation } from "@/components/used/used-meet-location";
+import { buildListingMeetMapPayload } from "@/lib/maps/meet-map-payload";
 
 import { UsedStatusSheet } from "@/components/used/used-status-sheet";
 
@@ -134,7 +135,17 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
   const displayPrice = isAuction ? displayAuctionPrice(listing) : listing.price;
 
-
+  const meetMap = await buildListingMeetMapPayload({
+    region: listing.region,
+    meetPlace: listing.meetPlace,
+    meetLat: listing.meetLat,
+    meetLng: listing.meetLng,
+    meetCountry: listing.meetCountry,
+    sellerCountryCode:
+      (listing.seller as { countryCode?: string | null } | null | undefined)?.countryCode ??
+      null,
+    resolveGeocode: true,
+  });
 
   return (
 
@@ -372,11 +383,9 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
         />
 
         <UsedMeetLocation
+          map={meetMap}
           region={listing.region}
           meetPlace={listing.meetPlace}
-          meetLat={listing.meetLat}
-          meetLng={listing.meetLng}
-          meetCountry={listing.meetCountry}
         />
 
         {isAuction && !auctionLive && listing.winningBidderId && status !== "SOLD" ? (
