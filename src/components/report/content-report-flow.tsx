@@ -9,6 +9,8 @@ import { submitContentReport } from "@/actions/report";
 import {
   formatReportPathLabel,
   POST_REPORT_DISCLAIMER,
+  POST_REPORT_OTHER_DETAILS_MIN,
+  POST_REPORT_OTHER_DETAILS_PROMPT,
   POST_REPORT_REVIEW_HINT,
   POST_REPORT_ROOT_QUESTION,
   POST_REPORT_TAXONOMY,
@@ -17,9 +19,10 @@ import {
   type ReportTaxonomyNode,
 } from "@/lib/report-reasons";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-type Phase = "browse" | "review" | "done";
+type Phase = "browse" | "details" | "review" | "done";
 
 function ReportCategoryGrip({ className }: { className?: string }) {
   return (
@@ -65,6 +68,7 @@ export function ContentReportFlow({
   const [path, setPath] = useState<ReportPathStep[]>([]);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [details, setDetails] = useState("");
 
   const currentNodes = stack.length > 0 ? stack[stack.length - 1]! : POST_REPORT_TAXONOMY;
   const currentQuestion =
@@ -79,6 +83,7 @@ export function ContentReportFlow({
     setStack([]);
     setPath([]);
     setError("");
+    setDetails("");
   }
 
   function handleOpenChange(next: boolean) {
@@ -98,17 +103,37 @@ export function ContentReportFlow({
       setStack([...stack, node.children]);
       return;
     }
+    if (node.requiresDetails) {
+      setPhase("details");
+      return;
+    }
     setPhase("review");
   }
 
   function goBack() {
-    if (phase === "review") {
+    if (phase === "details") {
       setPhase("browse");
-      if (path.length > 0) {
-        const nextPath = path.slice(0, -1);
-        setPath(nextPath);
-        setStack((prev) => (prev.length > 1 ? prev.slice(0, -1) : []));
+      setPath((prev) => prev.slice(0, -1));
+      setDetails("");
+      setError("");
+      return;
+    }
+    if (phase === "review") {
+      const leaf = path[path.length - 1]?.node;
+      if (leaf?.requiresDetails) {
+        setPhase("details");
+        setError("");
+        return;
       }
+      setPhase("browse");
+      const nextPath = path.slice(0, -1);
+      setPath(nextPath);
+      const nextStack: ReportTaxonomyNode[][] = [];
+      for (let i = 0; i < nextPath.length; i++) {
+        const selected = nextPath[i]!.node;
+        if (selected.children) nextStack.push(selected.children);
+      }
+      setStack(nextStack);
       return;
     }
     if (stack.length === 0) {
@@ -145,6 +170,12 @@ export function ContentReportFlow({
     setError("");
     const reasonId = leaf.node.reasonId as ReportReasonId;
     const reasonPath = formatReportPathLabel(path);
+    const trimmedDetails = details.trim();
+    if (leaf.node.requiresDetails && trimmedDetails.length < POST_REPORT_OTHER_DETAILS_MIN) {
+      setError(`기타 문제는 ${POST_REPORT_OTHER_DETAILS_MIN}자 이상 입력해 주세요.`);
+      if (phase !== "details") setPhase("details");
+      return;
+    }
 
     startTransition(async () => {
       const res = await submitContentReport({
@@ -152,6 +183,7 @@ export function ContentReportFlow({
         targetId,
         reason: reasonId,
         reasonPath,
+        details: trimmedDetails || undefined,
         reportedUserId,
         postId,
         commentId,
@@ -250,11 +282,31 @@ export function ContentReportFlow({
                           onClick={() => selectNode(node)}
                         >
                           <span className="leading-snug">{node.label}</span>
-                          <ReportCategoryGrip className="text-[hsl(var(--folk-cobalt))]" />
+                          {node.children?.length ? (
+                            <ReportCategoryGrip className="text-[hsl(var(--folk-cobalt))]" />
+                          ) : null}
                         </button>
                       </li>
                     ))}
                   </ul>
+                </>
+              ) : null}
+
+              {phase === "details" ? (
+                <>
+                  <p className="mb-2 text-xl font-bold text-foreground">{POST_REPORT_OTHER_DETAILS_PROMPT}</p>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    운영진이 상황을 이해하는 데 도움이 됩니다. 개인정보는 신고 접수 외 용도로 사용하지
+                    않습니다.
+                  </p>
+                  <Textarea
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value)}
+                    placeholder="문제 상황을 설명해 주세요."
+                    className="min-h-[120px] resize-none rounded-xl border-border bg-background text-[15px]"
+                    maxLength={2000}
+                  />
+                  {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
                 </>
               ) : null}
 
@@ -278,6 +330,14 @@ export function ContentReportFlow({
                       </button>
                     ))}
                   </div>
+                  {details.trim() ? (
+                    <div className="mt-4 rounded-xl border border-border/80 bg-muted/40 px-4 py-3">
+                      <p className="text-sm font-semibold text-foreground">추가 설명</p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+                        {details.trim()}
+                      </p>
+                    </div>
+                  ) : null}
                   {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
                 </>
               ) : null}
@@ -291,6 +351,25 @@ export function ContentReportFlow({
                 </>
               ) : null}
             </div>
+
+            {phase === "details" ? (
+              <div className="shrink-0 border-t border-border px-6 py-5">
+                <Button
+                  type="button"
+                  className="h-12 w-full rounded-xl bg-[hsl(var(--folk-cobalt))] text-base font-bold text-[hsl(var(--folk-cream))] hover:bg-[hsl(var(--folk-cobalt))]/90"
+                  onClick={() => {
+                    if (details.trim().length < POST_REPORT_OTHER_DETAILS_MIN) {
+                      setError(`기타 문제는 ${POST_REPORT_OTHER_DETAILS_MIN}자 이상 입력해 주세요.`);
+                      return;
+                    }
+                    setError("");
+                    setPhase("review");
+                  }}
+                >
+                  다음
+                </Button>
+              </div>
+            ) : null}
 
             {phase === "review" ? (
               <div className="shrink-0 border-t border-border px-6 py-5">

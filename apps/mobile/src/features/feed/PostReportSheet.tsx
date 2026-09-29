@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,6 +20,8 @@ import { blockAndReportUser, submitPostReport } from "@/api/social";
 import {
   formatReportPathLabel,
   POST_REPORT_DISCLAIMER,
+  POST_REPORT_OTHER_DETAILS_MIN,
+  POST_REPORT_OTHER_DETAILS_PROMPT,
   POST_REPORT_REVIEW_HINT,
   POST_REPORT_ROOT_QUESTION,
   POST_REPORT_TAXONOMY,
@@ -27,7 +30,7 @@ import {
 } from "@/lib/report-taxonomy";
 import { radii, spacing } from "@/theme/tokens";
 
-type Phase = "browse" | "review" | "done";
+type Phase = "browse" | "details" | "review" | "done";
 
 function CategoryGrip({ color }: { color: string }) {
   const line = { width: 16, height: 2, borderRadius: 1, backgroundColor: color, opacity: 0.45 };
@@ -73,6 +76,7 @@ export function PostReportSheet({
   const [path, setPath] = useState<ReportPathStep[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [details, setDetails] = useState("");
 
   const currentNodes = stack.length > 0 ? stack[stack.length - 1]! : POST_REPORT_TAXONOMY;
   const currentQuestion =
@@ -86,6 +90,7 @@ export function PostReportSheet({
     setPath([]);
     setError("");
     setBusy(false);
+    setDetails("");
   }, []);
 
   const handleClose = useCallback(() => {
@@ -105,16 +110,41 @@ export function PostReportSheet({
         setStack((prev) => [...prev, node.children!]);
         return;
       }
+      if (node.requiresDetails) {
+        setPhase("details");
+        return;
+      }
       setPhase("review");
     },
     [path]
   );
 
   const goBack = useCallback(() => {
-    if (phase === "review") {
+    if (phase === "details") {
       setPhase("browse");
       setPath((prev) => prev.slice(0, -1));
-      setStack((prev) => (prev.length > 0 ? prev.slice(0, -1) : []));
+      setDetails("");
+      setError("");
+      return;
+    }
+    if (phase === "review") {
+      const leaf = path[path.length - 1]?.node;
+      if (leaf?.requiresDetails) {
+        setPhase("details");
+        setError("");
+        return;
+      }
+      setPhase("browse");
+      setPath((prev) => {
+        const nextPath = prev.slice(0, -1);
+        const nextStack: ReportTaxonomyNode[][] = [];
+        for (let i = 0; i < nextPath.length; i++) {
+          const selected = nextPath[i]!.node;
+          if (selected.children) nextStack.push(selected.children);
+        }
+        setStack(nextStack);
+        return nextPath;
+      });
       return;
     }
     if (stack.length === 0) {
@@ -123,7 +153,7 @@ export function PostReportSheet({
     }
     setStack((prev) => prev.slice(0, -1));
     setPath((prev) => prev.slice(0, -1));
-  }, [handleClose, phase, stack.length]);
+  }, [handleClose, path, phase, stack.length]);
 
   const jumpToStep = useCallback(
     (index: number) => {
@@ -142,6 +172,12 @@ export function PostReportSheet({
   const submit = useCallback(async () => {
     const leaf = path[path.length - 1];
     if (!leaf?.node.reasonId || busy) return;
+    const trimmedDetails = details.trim();
+    if (leaf.node.requiresDetails && trimmedDetails.length < POST_REPORT_OTHER_DETAILS_MIN) {
+      setError(`기타 문제는 ${POST_REPORT_OTHER_DETAILS_MIN}자 이상 입력해 주세요.`);
+      setPhase("details");
+      return;
+    }
     setBusy(true);
     setError("");
     const reasonPath = formatReportPathLabel(path);
@@ -153,6 +189,7 @@ export function PostReportSheet({
           postId,
           reason: leaf.node.reasonId,
           reasonPath,
+          details: trimmedDetails || undefined,
         });
         void removeFollowingDmUser(queryClient, authorId);
       } else if (reportTarget === "used_listing" && listingId) {
@@ -161,6 +198,7 @@ export function PostReportSheet({
           reportedUserId: authorId,
           reason: leaf.node.reasonId,
           reasonPath,
+          details: trimmedDetails || undefined,
         });
       } else {
         await submitPostReport({
@@ -168,6 +206,7 @@ export function PostReportSheet({
           reportedUserId: authorId,
           reason: leaf.node.reasonId,
           reasonPath,
+          details: trimmedDetails || undefined,
         });
       }
       onSubmitted?.();
@@ -188,6 +227,7 @@ export function PostReportSheet({
     postId,
     queryClient,
     reportTarget,
+    details,
   ]);
 
   return (
@@ -233,9 +273,30 @@ export function PostReportSheet({
                     accessibilityRole="button"
                   >
                     <Text style={styles.rowLabel}>{node.label}</Text>
-                    <CategoryGrip color={colors.cobalt} />
+                    {node.children?.length ? <CategoryGrip color={colors.cobalt} /> : null}
                   </Pressable>
                 ))}
+              </>
+            ) : null}
+
+            {phase === "details" ? (
+              <>
+                <Text style={styles.question}>{POST_REPORT_OTHER_DETAILS_PROMPT}</Text>
+                <Text style={styles.disclaimer}>
+                  운영진이 상황을 이해하는 데 도움이 됩니다. 개인정보는 신고 접수 외 용도로 사용하지
+                  않습니다.
+                </Text>
+                <TextInput
+                  style={styles.detailsInput}
+                  value={details}
+                  onChangeText={setDetails}
+                  placeholder="문제 상황을 설명해 주세요."
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  maxLength={2000}
+                  textAlignVertical="top"
+                />
+                {error ? <Text style={styles.error}>{error}</Text> : null}
               </>
             ) : null}
 
@@ -257,6 +318,12 @@ export function PostReportSheet({
                     <Text style={styles.reviewA}>{step.node.label}</Text>
                   </Pressable>
                 ))}
+                {details.trim() ? (
+                  <View style={styles.detailsPreview}>
+                    <Text style={styles.reviewQ}>추가 설명</Text>
+                    <Text style={styles.reviewA}>{details.trim()}</Text>
+                  </View>
+                ) : null}
                 {error ? <Text style={styles.error}>{error}</Text> : null}
               </>
             ) : null}
@@ -271,6 +338,22 @@ export function PostReportSheet({
             ) : null}
           </ScrollView>
 
+          {phase === "details" ? (
+            <Pressable
+              style={styles.submit}
+              onPress={() => {
+                if (details.trim().length < POST_REPORT_OTHER_DETAILS_MIN) {
+                  setError(`기타 문제는 ${POST_REPORT_OTHER_DETAILS_MIN}자 이상 입력해 주세요.`);
+                  return;
+                }
+                setError("");
+                setPhase("review");
+              }}
+            >
+              <Text style={styles.submitText}>다음</Text>
+            </Pressable>
+          ) : null}
+
           {phase === "review" ? (
             <Pressable
               style={[styles.submit, busy && styles.submitDisabled]}
@@ -278,7 +361,7 @@ export function PostReportSheet({
               disabled={busy}
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.textOnAccent} />
               ) : (
                 <Text style={styles.submitText}>
                   {mode === "block-report" ? "차단 및 신고 제출" : "신고 제출"}
@@ -390,6 +473,26 @@ function createStyles(colors: ThemeColors) {
     reviewQ: { color: colors.text, fontSize: 14, fontWeight: "700" },
     reviewA: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
     error: { color: colors.danger, fontSize: 13, marginTop: 8 },
+    detailsInput: {
+      minHeight: 120,
+      borderRadius: radii.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: colors.text,
+      fontSize: 15,
+      lineHeight: 22,
+    },
+    detailsPreview: {
+      marginTop: 12,
+      padding: 14,
+      borderRadius: radii.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.hairline,
+      backgroundColor: colors.muted,
+    },
     doneBody: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
     submit: {
       marginTop: 10,
