@@ -21,6 +21,7 @@ import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { useQnaNsfwGate } from "@/hooks/use-qna-nsfw-gate";
 import { QnaNsfwBlockedDialog } from "@/components/communities/qna-nsfw-blocked-dialog";
+import { backfillOwnedEmptyQnaPosts } from "@/actions/community-hub";
 
 type FeedPage = {
   items?: FeedLayoutItem[];
@@ -68,6 +69,7 @@ export function QnaHubClient() {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
   const requestIdRef = useRef(0);
+  const backfillRef = useRef(false);
 
   useEffect(() => {
     setQInput(qFromUrl);
@@ -167,6 +169,19 @@ export function QnaHubClient() {
   useEffect(() => {
     void fetchPage(null, "replace");
   }, [qFromUrl, tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (backfillRef.current || tab !== "ALL" || qFromUrl || !sessionUserId) return;
+    if (loading || items.length === 0) return;
+    backfillRef.current = true;
+    const slugs = items.flatMap((item) =>
+      item.type === "post" && item.data.community?.slug ? [item.data.community.slug] : []
+    );
+    void (async () => {
+      const { created } = await backfillOwnedEmptyQnaPosts(slugs);
+      if (created > 0) void fetchPage(null, "replace");
+    })();
+  }, [fetchPage, items, loading, qFromUrl, sessionUserId, tab]);
 
   useEffect(() => {
     if (tab !== QNA_NSFW_CATEGORY_ID) return;

@@ -1,13 +1,14 @@
 import { fetchCommunityDetail, fetchCommunityList } from "@/api/community";
 import { createPost } from "@/api/posts";
 
-const IMAGE_URL = /https?:\/\/\S+\.(?:jpg|jpeg|png|webp|gif)(?:\?\S*)?/gi;
-
+/** Keep in sync with `src/lib/qna-body-to-post.ts` (web/server). */
 export function qnaBodyToPost(name: string, description?: string | null) {
   const raw = (description ?? "").trim();
   const media: { url: string; type: "IMAGE" }[] = [];
   const seen = new Set<string>();
-  for (const match of raw.match(IMAGE_URL) ?? []) {
+  const imageUrl =
+    /https?:\/\/\S+\.(?:jpg|jpeg|png|webp|gif)(?:\?\S*)?/gi;
+  for (const match of raw.match(imageUrl) ?? []) {
     const url = match.replace(/[),]+$/, "");
     if (seen.has(url)) continue;
     seen.add(url);

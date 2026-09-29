@@ -17,6 +17,22 @@ test("parseQnaCategoryParam accepts NSFW hub tab", () => {
   assert.equal(parseQnaCategoryParam("NSFW"), "NSFW");
 });
 
+test("parseQnaCategoryParam accepts My hub tab", () => {
+  assert.equal(parseQnaCategoryParam("MY"), "MY");
+});
+
+test("qnaFeedWhere My tab scopes to viewer-authored community posts", () => {
+  const denied = qnaFeedWhere({ category: "MY", q: "", canViewNsfw: true, ownerId: null });
+  assert.equal(denied.id, "__qna_my_denied__");
+  const allowed = qnaFeedWhere({
+    category: "MY",
+    q: "",
+    canViewNsfw: true,
+    ownerId: "user-1",
+  });
+  assert.equal(allowed.authorId, "user-1");
+});
+
 test("parseQnaCategoryParam rejects unknown values", () => {
   assert.equal(parseQnaCategoryParam("not-a-category"), null);
 });

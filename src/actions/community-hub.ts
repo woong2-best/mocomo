@@ -17,6 +17,7 @@ import { COMMUNITIES_LIST_CACHE_TAG } from "@/lib/cache-tags";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 import { calcHotScore } from "@/lib/utils";
+import { qnaBodyToPost } from "@/lib/qna-body-to-post";
 
 function revalidateCommunitiesList(slug?: string) {
   after(() => {
@@ -117,19 +118,23 @@ export async function createCommunity(data: {
               presence: "ONLINE",
             },
           });
+          const { content, media } = qnaBodyToPost(name, description);
           const contentRating = isNsfw ? "ADULT" : "GENERAL";
-          const body = description?.trim() || name;
           await tx.post.create({
             data: {
-              title: description?.trim() ? name : null,
-              content: body,
+              title: null,
+              content,
               authorId: user.id,
               communityId: row.id,
               isAnonymous: true,
               visibility: "PUBLIC",
               contentRating,
-              isNsfw: isNsfw,
+              isNsfw,
               hotScore: calcHotScore(0, 0, new Date()),
+              media:
+                media.length > 0
+                  ? { create: media.map((m, order) => ({ ...m, order, priceKrw: 0 })) }
+                  : undefined,
             },
           });
           return row;
@@ -450,5 +455,58 @@ export async function deleteCommunity(communityId: string) {
     return { success: true as const, slug: community.slug };
   } catch (e) {
     return { error: prismaErrorMessage(e) };
+  }
+}
+
+/** Owner boards with no posts yet — opening QnA post (matches mobile backfill). */
+export async function backfillOwnedEmptyQnaPosts(knownSlugs: string[]): Promise<{ created: number }> {
+  try {
+    const user = await requireAuthForAction();
+    const known = new Set(knownSlugs);
+    const communities = await db.community.findMany({
+      where: { creatorId: user.id, memberCount: { lte: 1 } },
+      take: 20,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        description: true,
+        isNsfw: true,
+        _count: { select: { posts: true } },
+      },
+    });
+
+    let created = 0;
+    for (const c of communities) {
+      if (known.has(c.slug) || c._count.posts > 0) continue;
+      const { content, media } = qnaBodyToPost(c.name, c.description);
+      const contentRating = c.isNsfw ? "ADULT" : "GENERAL";
+      await db.post.create({
+        data: {
+          title: null,
+          content,
+          authorId: user.id,
+          communityId: c.id,
+          isAnonymous: true,
+          visibility: "PUBLIC",
+          contentRating,
+          isNsfw: c.isNsfw,
+          hotScore: calcHotScore(0, 0, new Date()),
+          media:
+            media.length > 0
+              ? { create: media.map((m, order) => ({ ...m, order, priceKrw: 0 })) }
+              : undefined,
+        },
+      });
+      created += 1;
+    }
+
+    if (created > 0) {
+      revalidateCommunitiesList();
+    }
+    return { created };
+  } catch {
+    return { created: 0 };
   }
 }
