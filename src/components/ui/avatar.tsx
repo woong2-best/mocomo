@@ -1,4 +1,7 @@
+"use client";
+
 import * as React from "react";
+import { displayableImageUrl } from "@/lib/displayable-image-url";
 import { cn } from "@/lib/utils";
 
 /**
@@ -22,13 +25,24 @@ function Avatar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
 }
 
 function AvatarImage({ className, src, alt }: { className?: string; src?: string | null; alt?: string }) {
-  if (!src) return null;
+  const displaySrc = displayableImageUrl(src);
+  const [failed, setFailed] = React.useState(false);
+  React.useEffect(() => {
+    setFailed(false);
+  }, [displaySrc]);
+  if (!displaySrc || failed) return null;
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={displaySrc}
       alt={alt || ""}
-      className={cn("aspect-square h-full w-full object-cover", avatarShapeClass, className)}
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      className={cn(
+        "absolute inset-0 z-[1] h-full w-full object-cover",
+        avatarShapeClass,
+        className
+      )}
     />
   );
 }
@@ -37,7 +51,7 @@ function AvatarFallback({ className, children }: React.HTMLAttributes<HTMLDivEle
   return (
     <div
       className={cn(
-        "flex h-full w-full items-center justify-center bg-folk-terracotta text-sm font-bold text-white",
+        "absolute inset-0 z-0 flex h-full w-full items-center justify-center bg-folk-terracotta text-sm font-bold text-white",
         avatarShapeClass,
         className
       )}

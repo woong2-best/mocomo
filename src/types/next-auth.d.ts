@@ -59,5 +59,7 @@ declare module "next-auth/jwt" {
     adminSessionStartedAt?: number;
     supportTierSent?: SupportTierLevel;
     earnedMocoTier?: SupportTierLevel;
+    /** Last time name/image were read from DB (ms). */
+    profileSyncedAt?: number;
   }
 }

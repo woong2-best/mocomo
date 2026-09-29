@@ -1,5 +1,6 @@
 import type { User } from "@prisma/client";
 import { isServiceBanned, isSuspendedReadOnly } from "@/lib/account-status";
+import { displayableImageUrl } from "@/lib/displayable-image-url";
 import {
   effectiveRole,
   isOperatorIdentity,
@@ -56,7 +57,7 @@ export function toCredentialsAuthUser(user: CredentialsJwtUser) {
     id: user.id,
     email: user.email,
     name: user.name,
-    image: user.image,
+    image: displayableImageUrl(user.image),
     isBanned: isServiceBanned(user),
     accountStatus: user.accountStatus,
     isSuspendedReadOnly: isSuspendedReadOnly(user),

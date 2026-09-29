@@ -1,5 +1,6 @@
 import type { Account, User } from "@prisma/client";
 import { db } from "@/lib/db";
+import { displayableImageUrl } from "@/lib/displayable-image-url";
 import {
   decryptAes256Gcm,
   encryptAes256Gcm,
@@ -301,12 +302,13 @@ export async function findUserIdByOAuthEmail(email: string): Promise<string | nu
 export async function hydrateUserOAuthProfile<
   T extends Pick<User, "id" | "name" | "image" | "email" | "passwordHash">,
 >(user: T): Promise<T> {
-  if (!isOAuthEncryptionConfigured()) return user;
-  if (user.passwordHash) return user;
+  const sanitized = { ...user, image: displayableImageUrl(user.image) };
+  if (!isOAuthEncryptionConfigured()) return sanitized;
+  if (sanitized.passwordHash) return sanitized;
 
   const accounts = await db.account.findMany({
     where: {
-      userId: user.id,
+      userId: sanitized.id,
       provider: { in: [...OAUTH_VAULT_PROVIDERS] },
     },
     select: {
@@ -318,18 +320,18 @@ export async function hydrateUserOAuthProfile<
     },
   });
 
-  let name = user.name;
-  let image = user.image;
-  let email = user.email;
+  let name = sanitized.name;
+  let image = sanitized.image;
+  let email = sanitized.email;
 
   for (const account of accounts) {
     if (!isOAuthVaultProvider(account.provider)) continue;
     const payload = decryptOAuthPayload(account.provider, account);
     if (!payload) continue;
     name = name ?? payload.name ?? name;
-    image = image ?? payload.image ?? image;
+    image = image ?? displayableImageUrl(payload.image) ?? image;
     email = email ?? payload.email ?? email;
   }
 
-  return { ...user, name, image, email };
+  return { ...sanitized, name, image, email };
 }

@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import { getAuthSecret } from "@/lib/auth-env";
 import { applyAdminWebSessionLifetime } from "@/lib/admin/web-session-ttl";
+import { displayableImageUrl } from "@/lib/displayable-image-url";
 
 /** Edge/middleware 전용 — DB·bcrypt·providers 없음 */
 export const authConfig = {
@@ -82,7 +83,9 @@ export const authConfig = {
         }
         session.user.supportTierSent = token.supportTierSent;
         session.user.earnedMocoTier = token.earnedMocoTier;
-        session.user.image = typeof token.picture === "string" ? token.picture : null;
+        session.user.image = displayableImageUrl(
+          typeof token.picture === "string" ? token.picture : null
+        );
       }
       return session;
     },

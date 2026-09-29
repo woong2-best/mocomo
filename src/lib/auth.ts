@@ -38,6 +38,7 @@ import {
 } from "@/lib/web-oauth-pending-signup";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import { applyAdminWebSessionLifetime } from "@/lib/admin/web-session-ttl";
+import { displayableImageUrl, isPublicHttpUrl } from "@/lib/displayable-image-url";
 import { recordUserAccessLog } from "@/lib/user-access-log";
 import {
   assertAccountCanWrite,
@@ -55,6 +56,16 @@ const useSecureCookies = process.env.NODE_ENV === "production";
  */
 function authCallbackRedirect(path: string): string {
   return path.startsWith("/") ? path : `/${path}`;
+}
+
+/** Re-read name/image from DB so a mobile avatar change shows up on the web. */
+const PROFILE_TOKEN_REFRESH_MS = 15_000;
+
+function isProfileTokenStale(token: { id?: unknown; profileSyncedAt?: unknown }): boolean {
+  if (!token.id) return false;
+  const at = Number(token.profileSyncedAt);
+  if (!Number.isFinite(at) || at <= 0) return true;
+  return Date.now() - at > PROFILE_TOKEN_REFRESH_MS;
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -384,8 +395,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user, trigger }) {
         if (user?.id && credentialsUserHasJwtFields(user)) {
         if ("image" in user) {
-          token.picture = (user as { image?: string | null }).image ?? null;
+          token.picture = displayableImageUrl((user as { image?: string | null }).image);
         }
+        token.profileSyncedAt = Date.now();
         hydrateTokenFromCredentialsUser(
           token,
           user as {
@@ -421,7 +433,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user?.id) {
         token.id = user.id;
       }
-      if (user?.id || trigger === "update") {
+      if (user?.id || trigger === "update" || isProfileTokenStale(token)) {
         const userId = (user?.id ?? token.id) as string;
         if (user?.id) {
           void db.user
@@ -468,7 +480,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: dbUser.email,
             passwordHash: dbUser.passwordHash,
           });
-          token.picture = displayed.image ?? null;
+          token.picture = displayableImageUrl(displayed.image);
+          token.profileSyncedAt = Date.now();
+          if (dbUser.image && !isPublicHttpUrl(dbUser.image)) {
+            void db.user
+              .update({ where: { id: userId }, data: { image: null } })
+              .catch(() => undefined);
+          }
           token.isBanned = isServiceBanned(dbUser);
           token.accountStatus = dbUser.accountStatus;
           token.isSuspendedReadOnly = isSuspendedReadOnly(dbUser);

@@ -25,6 +25,7 @@ import { assertSettingsCountrySelectable } from "@/lib/i18n/settings-excluded-co
 import { isValidUsedRegion } from "@/lib/used-regions-global";
 import { setPostsLockedForUser } from "@/lib/posts-lock-settings";
 import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
+import { isPublicHttpUrl } from "@/lib/displayable-image-url";
 
 const meSelect = {
   id: true,
@@ -82,10 +83,14 @@ export async function GET(req: NextRequest) {
   }
 
   const settings = await getProfileSettingsForUser(userId);
+  const storedImage = user.image;
+  if (storedImage && !isPublicHttpUrl(storedImage)) {
+    void db.user.update({ where: { id: user.id }, data: { image: null } }).catch(() => undefined);
+  }
   const displayed = await hydrateUserOAuthProfile({
     id: user.id,
     name: user.name,
-    image: user.image,
+    image: storedImage && isPublicHttpUrl(storedImage) ? storedImage : null,
     email: null,
     passwordHash: user.passwordHash,
   });

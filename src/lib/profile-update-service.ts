@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { displayableImageUrl, isPublicHttpUrl } from "@/lib/displayable-image-url";
 import { splitStoredBirthDate } from "@/lib/birth-date";
 import { birthDateCollectionMeta } from "@/lib/age-policy";
 import { validateUsernameAndName } from "@/lib/forbidden-admin-sequence";
@@ -86,7 +87,7 @@ export async function getProfileSettingsForUser(
     id: user.id,
     username: user.username,
     name: user.name ?? "",
-    image: user.image ?? "",
+    image: displayableImageUrl(user.image) ?? "",
     bio: user.profile?.bio ?? "",
     bannerUrl: user.profile?.bannerUrl ?? "",
     bannerVideoUrl: user.profile?.bannerVideoUrl ?? "",
@@ -115,7 +116,7 @@ export async function applyProfileUpdateForUser(
 ): Promise<{ success: true } | { error: string }> {
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, username: true },
+    select: { id: true, username: true, image: true },
   });
   if (!user) return { error: "사용자를 찾을 수 없습니다." };
 
@@ -181,12 +182,20 @@ export async function applyProfileUpdateForUser(
 
   const profilePayload: Prisma.ProfileUpdateInput = { ...profileData };
   if (bannerUrl !== undefined) {
-    profilePayload.bannerUrl = bannerUrl || null;
-    if (bannerUrl) profilePayload.bannerVideoUrl = null;
+    if (!bannerUrl) {
+      profilePayload.bannerUrl = null;
+    } else if (isPublicHttpUrl(bannerUrl)) {
+      profilePayload.bannerUrl = bannerUrl;
+      profilePayload.bannerVideoUrl = null;
+    }
   }
   if (bannerVideoUrl !== undefined) {
-    profilePayload.bannerVideoUrl = bannerVideoUrl || null;
-    if (bannerVideoUrl) profilePayload.bannerUrl = null;
+    if (!bannerVideoUrl) {
+      profilePayload.bannerVideoUrl = null;
+    } else if (isPublicHttpUrl(bannerVideoUrl)) {
+      profilePayload.bannerVideoUrl = bannerVideoUrl;
+      profilePayload.bannerUrl = null;
+    }
   }
   if (showBirthdayOnProfile !== undefined) {
     profilePayload.showBirthdayOnProfile = showBirthdayOnProfile;
@@ -204,7 +213,12 @@ export async function applyProfileUpdateForUser(
   if (showNsfw !== undefined) userUpdate.showNsfw = showNsfw;
   if (usernameChanged && nextUsername) userUpdate.username = nextUsername;
   if (name !== undefined) userUpdate.name = name || null;
-  if (image !== undefined) userUpdate.image = image || null;
+  if (image !== undefined) {
+    if (!image) userUpdate.image = null;
+    else if (isPublicHttpUrl(image)) userUpdate.image = image;
+  } else if (user.image && !isPublicHttpUrl(user.image)) {
+    userUpdate.image = null;
+  }
 
   if (clearBirthDate) {
     userUpdate.birthDate = null;

@@ -28,6 +28,7 @@ import { notifyPostDeleted } from "@/lib/post-deleted-sync";
 import { postUrl } from "@/lib/post-share";
 import { DEFAULT_LANDING_PATH, isCommunityFeedPath } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
+import { displayableImageUrl } from "@/lib/displayable-image-url";
 import {
   FLASH_POST_STORAGE_KEY,
   SCROLL_FEED_TOP_KEY,
@@ -59,6 +60,30 @@ function scrollMainToTop() {
     return;
   }
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function ToastAvatarFace({ image, name }: { image?: string | null; name?: string | null }) {
+  const src = displayableImageUrl(image);
+  const [failed, setFailed] = useState(false);
+  const letter = (name ?? "?").slice(0, 1).toUpperCase();
+  if (!src || failed) {
+    return (
+      <span className="flex h-full w-full items-center justify-center bg-white/25 text-xs font-bold">
+        {letter}
+      </span>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      referrerPolicy="no-referrer"
+      className="h-full w-full object-cover"
+      draggable={false}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export function PublishedToastPill({
@@ -269,19 +294,7 @@ export function PublishedToastPill({
                   className="relative -ml-2 first:ml-0 h-9 w-9 overflow-hidden rounded-[28%] ring-2 ring-[#1D9BF0] sm:ring-folk-cobalt"
                   style={{ zIndex: avatars.length - i }}
                 >
-                  {a.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={a.image}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      draggable={false}
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center bg-white/25 text-xs font-bold">
-                      {(a.name ?? "?").slice(0, 1).toUpperCase()}
-                    </span>
-                  )}
+                  <ToastAvatarFace image={a.image} name={a.name} />
                 </span>
               ))}
             </span>
