@@ -12,16 +12,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { Eye, Radio } from "lucide-react";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
-import { emptySlotHint, wrapIndex } from "@/lib/live-bead-slots";
+import { wrapIndex } from "@/lib/live-bead-slots";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
 const OFF_AIR_TV_SRC = "/images/live/off-air-tv.png";
+/** Same spring as the vertical bead feed (`live-bead-feed.tsx`). */
 const SPRING_STIFFNESS = 180;
 const SPRING_DAMPING = 22;
 const HERO_RAIL_MIN_SLOTS = 8;
+/** Always left peek + center + right peek, like the vertical 3-bead stage. */
+const VISIBLE_COUNT = 3;
 
 export type LiveHeroRailSlot =
   | { kind: "off-air"; key: "off-air" }
@@ -42,10 +45,16 @@ function buildHeroRailSlots(channels: LiveHubChannel[]): LiveHeroRailSlot[] {
   return slots;
 }
 
-function visibleRadiusForWidth(w: number): number {
-  if (w < 480) return 0.95;
-  if (w < 768) return 1.1;
-  return 1.25;
+/** Card size + gap scale with the stage so wide screens keep a wide aisle. */
+function measureHeroRail(width: number): { cardWidth: number; spacing: number; visibleRadius: number } {
+  const w = Math.max(width, 1);
+  const cardWidth = Math.round(Math.min(Math.max(w * 0.38, 240), 560));
+  const gap = Math.round(Math.min(Math.max(w * 0.14, 72), 220));
+  return {
+    cardWidth,
+    spacing: cardWidth + gap,
+    visibleRadius: (VISIBLE_COUNT - 1) / 2 + 0.2,
+  };
 }
 
 type Props = {
@@ -54,7 +63,7 @@ type Props = {
   className?: string;
 };
 
-/** Horizontal infinite bead rail — default slide is off-air TV, then live rows. */
+/** Horizontal port of `LiveBeadFeed`: wrap forever, spring snap, drag + wheel. */
 export function LiveHubHeroRail({ channels, hosts, className }: Props) {
   const hostMap = useMemo(
     () => Object.fromEntries(hosts.map((h) => [h.id, h])),
@@ -71,16 +80,18 @@ export function LiveHubHeroRail({ channels, hosts, className }: Props) {
   const rafRef = useRef<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
-  const [spacing, setSpacing] = useState(320);
-  const [visibleRadius, setVisibleRadius] = useState(1.15);
+  const [cardWidth, setCardWidth] = useState(420);
+  const [spacing, setSpacing] = useState(520);
+  const [visibleRadius, setVisibleRadius] = useState(1.2);
 
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
     const measure = () => {
-      const w = Math.max(el.clientWidth, 1);
-      setSpacing(Math.max(240, Math.min(w * 0.78, 520)));
-      setVisibleRadius(visibleRadiusForWidth(w));
+      const next = measureHeroRail(el.clientWidth);
+      setCardWidth(next.cardWidth);
+      setSpacing(next.spacing);
+      setVisibleRadius(next.visibleRadius);
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -187,6 +198,7 @@ export function LiveHubHeroRail({ channels, hosts, className }: Props) {
           length={length}
           index={index}
           spacing={spacing}
+          cardWidth={cardWidth}
           visibleRadius={visibleRadius}
           active={baseIndex === activeIdx}
           host={slot.kind === "live" ? hostMap[slot.channel.createdBy] : undefined}
@@ -202,6 +214,7 @@ function HeroRailLayer({
   length,
   index,
   spacing,
+  cardWidth,
   visibleRadius,
   active,
   host,
@@ -211,6 +224,7 @@ function HeroRailLayer({
   length: number;
   index: number;
   spacing: number;
+  cardWidth: number;
   visibleRadius: number;
   active: boolean;
   host?: LiveHubHost;
@@ -225,20 +239,21 @@ function HeroRailLayer({
   if (abs > visibleRadius) return null;
 
   const scale =
-    abs < 1 ? 1 - abs * 0.08 : abs < 2 ? 0.92 - (abs - 1) * 0.06 : 0.86 - (abs - 2) * 0.05;
+    abs < 1 ? 1 - abs * 0.1 : abs < 2 ? 0.9 - (abs - 1) * 0.08 : 0.82 - (abs - 2) * 0.06;
   const opacity =
     abs < 1
-      ? 1 - abs * 0.12
+      ? 1 - abs * 0.14
       : abs < 2
-        ? 0.88 - (abs - 1) * 0.2
-        : Math.max(0.28, 0.68 - (abs - 2) * 0.32);
+        ? 0.86 - (abs - 1) * 0.22
+        : Math.max(0.25, 0.64 - (abs - 2) * 0.35);
   const translateX = delta * spacing;
 
   return (
     <div
       role="listitem"
-      className="absolute left-1/2 top-1/2 w-[min(92vw,720px)] max-w-[720px] will-change-transform"
+      className="absolute left-1/2 top-1/2 will-change-transform"
       style={{
+        width: cardWidth,
         opacity,
         zIndex: Math.round(100 - abs * 10),
         transform: `translate(calc(-50% + ${translateX}px), -50%) scale(${scale})`,
@@ -263,7 +278,7 @@ function HeroRailCard({
     return <OffAirHeroCard focused={active} />;
   }
   if (slot.kind === "empty") {
-    return <EmptyHeroCard tone={slot.tone} focused={active} />;
+    return <EmptyHeroCard tone={slot.tone} />;
   }
   return <LiveHeroCard channel={slot.channel} host={host} />;
 }
@@ -271,34 +286,27 @@ function HeroRailCard({
 function OffAirHeroCard({ focused }: { focused: boolean }) {
   const { t } = useLocale();
   return (
-    <div
-      className={cn(
-        "relative w-full aspect-[16/10] overflow-hidden rounded-2xl",
-        focused && "ring-1 ring-white/10"
-      )}
-    >
+    <div className="relative w-full aspect-[16/10] overflow-hidden">
       <Image
         src={OFF_AIR_TV_SRC}
         alt={t("live.noBroadcastEmptyHub")}
         fill
-        priority
+        priority={focused}
         className="object-contain object-center"
-        sizes="(max-width: 720px) 92vw, 720px"
+        sizes="560px"
       />
     </div>
   );
 }
 
-function EmptyHeroCard({ tone, focused }: { tone: number; focused: boolean }) {
+function EmptyHeroCard({ tone }: { tone: number }) {
+  const shade = 22 + (tone % 5) * 4;
   return (
     <div
-      className="w-full aspect-[16/10] rounded-2xl border border-white/8 bg-neutral-800/70 flex items-center justify-center px-4"
-      aria-hidden={!focused}
-    >
-      <p className="text-sm font-semibold text-white/35">
-        {focused ? "현재 라이브 방송이 없습니다" : emptySlotHint(tone)}
-      </p>
-    </div>
+      className="w-full aspect-[16/10] rounded-xl"
+      style={{ backgroundColor: `rgb(${shade},${shade},${shade + 2})` }}
+      aria-hidden
+    />
   );
 }
 
@@ -310,7 +318,7 @@ function LiveHeroCard({ channel, host }: { channel: LiveHubChannel; host?: LiveH
     <Link
       href={`/voice/${channel.id}`}
       prefetch={false}
-      className="block w-full rounded-2xl overflow-hidden border border-white/15 bg-black shadow-[0_0_24px_rgba(26,106,255,0.25)]"
+      className="block w-full rounded-xl overflow-hidden border border-white/15 bg-black"
     >
       <div className="relative aspect-[16/10] bg-black overflow-hidden">
         {thumb ? (
