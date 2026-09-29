@@ -194,7 +194,7 @@ export function MeetMapView({
             <Input
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
-              placeholder="장소 검색 (OpenStreetMap)"
+              placeholder="주소 또는 장소 이름 (지도 검색)"
               className="rounded-xl h-10 text-sm"
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), void searchPlace())}
             />

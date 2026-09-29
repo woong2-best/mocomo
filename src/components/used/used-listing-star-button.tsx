@@ -4,6 +4,7 @@ import { useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
 import { toggleUsedListingStar } from "@/actions/used-market";
+import { notifyStarChanged } from "@/lib/post-engage-client";
 import { cn } from "@/lib/utils";
 
 export function UsedListingStarButton({
@@ -28,11 +29,21 @@ export function UsedListingStarButton({
     setBusy(true);
     try {
       const res = await toggleUsedListingStar(listingId);
-      if (!res || "error" in res) {
+      if (!res) {
         router.push(`/auth/signin?callbackUrl=/market/${listingId}`);
         return;
       }
+      if ("error" in res) {
+        const msg = res.error ?? "";
+        if (msg.includes("로그인") || msg.includes("인증")) {
+          router.push(`/auth/signin?callbackUrl=/market/${listingId}`);
+          return;
+        }
+        window.alert(msg || "STAR에 저장하지 못했습니다.");
+        return;
+      }
       setStarred(res.starred);
+      notifyStarChanged(listingId, res.starred);
     } catch {
       router.push(`/auth/signin?callbackUrl=/market/${listingId}`);
     } finally {

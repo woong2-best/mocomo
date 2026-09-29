@@ -14,10 +14,10 @@ export async function postEngage(postId: string, action: "like" | "repost" | "st
   return body as Record<string, unknown>;
 }
 
-export function notifyStarChanged(postId: string, starred: boolean) {
+export function notifyStarChanged(id: string, starred: boolean) {
   if (typeof window === "undefined") return;
   window.dispatchEvent(
-    new CustomEvent(STAR_CHANGED_EVENT, { detail: { postId, starred } })
+    new CustomEvent(STAR_CHANGED_EVENT, { detail: { id, postId: id, starred } })
   );
 }
 

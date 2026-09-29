@@ -66,8 +66,8 @@ export function UsedWorkTitleField({
 
   return (
     <div ref={wrapRef} className="space-y-1 relative">
-      <label htmlFor="used-work-title" className="text-sm font-medium">
-        작품명 (애니/게임/IP)
+      <label htmlFor="used-work-title" className="text-[15px] font-bold">
+        작품명
       </label>
       <input
         id="used-work-title"
@@ -76,7 +76,7 @@ export function UsedWorkTitleField({
         disabled={disabled}
         onChange={(e) => onInputChange(e.target.value)}
         onFocus={() => setOpen(true)}
-        placeholder="블루아카이브 (띄어쓰기 없이)"
+        placeholder="블루아카이브, 원신…"
         className="w-full h-11 rounded-xl border border-border px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
         autoComplete="off"
         spellCheck={false}

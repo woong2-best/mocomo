@@ -9,7 +9,6 @@ import { DbSetupBanner } from "@/components/ui/db-setup-banner";
 import { UsedListingGrid } from "@/components/used/used-listing-grid";
 import { UsedSearchHeader } from "@/components/used/used-search-header";
 import { UsedFeedSkeleton } from "@/components/used/used-loading-skeletons";
-import { UsedWriteFab } from "@/components/used/used-write-fab";
 import { Button } from "@/components/ui/button";
 
 async function UsedFeed({
@@ -132,7 +131,6 @@ export default async function UsedHomePage({
       <Suspense fallback={<UsedFeedSkeleton />}>
         <UsedFeed searchParams={searchParams} />
       </Suspense>
-      <UsedWriteFab />
     </div>
   );
 }

@@ -31,7 +31,9 @@ export function UsedMeetMapPicker({
 }: UsedMeetMapPickerProps) {
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium">거래 희망 장소</label>
+      <p className="text-sm text-muted-foreground">
+        위 칸은 지도 검색용입니다. 건물·출입구 등 상세는 아래 주소 상세에 적어 주세요.
+      </p>
       <MeetMapView
         mode="pick"
         country={country}

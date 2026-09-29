@@ -8,7 +8,7 @@ import { isUsedMarketEligible } from "@/lib/used-bank-auth";
 import { usedMarketVerifyPath } from "@/lib/used-market-verify-path";
 import { isUsedAdultVerified } from "@/lib/used-youth-protection";
 import { getServerTranslator } from "@/lib/i18n/server";
-import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { assertUsedMarketCountryAllowed } from "@/lib/used-regions-global";
 import { usedMarketBlockedRegionMsg } from "@/lib/used-bank-auth";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
@@ -43,16 +43,6 @@ export default async function UsedNewPage() {
         <ChevronLeft className="h-4 w-4" />
         {MARKET_BRAND_NAME}
       </Link>
-      <NativePageTitle>
-        <h1 className="text-xl font-bold">
-          {locale === "en" ? "Sell an item" : "내 물건 팔기"}
-        </h1>
-      </NativePageTitle>
-      <p className="text-sm text-muted-foreground">
-        {locale === "en"
-          ? "Add photos, price, and location."
-          : "사진·가격·거래 지역을 입력해 글을 올려 보세요."}
-      </p>
       <UsedPostForm
         defaultRegion={defaultUsedRegionForCountry(user.countryCode)}
         sellerAdultVerified={isUsedAdultVerified(user)}

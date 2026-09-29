@@ -6,6 +6,35 @@ export {
   isValidSubcultureProductType as isValidProductType,
 } from "@/lib/subculture-commerce/catalog";
 
+/** 글쓰기 상품 종류 — 앱 UsedCreateScreen과 동일. */
+export const USED_SELL_KINDS = [
+  { id: "FIGURE", label: "피규어" },
+  { id: "TCG", label: "TCG" },
+  { id: "GOODS", label: "굿즈" },
+  { id: "BOOK", label: "도서" },
+  { id: "COSPLAY", label: "코스프레" },
+  { id: "DIGITAL", label: "디지털" },
+] as const;
+
+export const USED_CONDITION_OPTIONS = [
+  { id: "NEW", label: "NEW" },
+  { id: "NM", label: "NM" },
+  { id: "LP", label: "LP" },
+  { id: "MP", label: "MP" },
+  { id: "HP", label: "HP" },
+  { id: "POOR", label: "DMG" },
+] as const;
+
+export function productTypeForSellKind(kind: string): string | undefined {
+  const id = kind.toUpperCase();
+  if (id === "FIGURE") return "FIGURE";
+  if (id === "TCG") return "TCG_CARD";
+  if (id === "BOOK") return "BOOK";
+  if (id === "COSPLAY") return "COSPLAY_COSTUME";
+  if (id === "GOODS" || id === "DIGITAL") return "OTHER";
+  return undefined;
+}
+
 /** 띄어쓰기·특수공백 제거 (작품명 검색·저장용) */
 export function compactWorkKey(input: string | null | undefined): string {
   if (!input) return "";

@@ -811,6 +811,29 @@ export async function getMyUsedDashboard(userId: string) {
   }
 }
 
+export type UsedHubLane = "purchased" | "selling" | "live-auctions" | "favorites" | "disputes";
+
+export async function getMyUsedHubLane(lane: UsedHubLane) {
+  const user = await requireAuth();
+  const {
+    listMobileMyUsedListings,
+    listMobileUsedDisputes,
+    listMobileUsedFavorites,
+    listMobileUsedPurchases,
+    listMobileLiveAuctions,
+  } = await import("@/lib/used-market-mobile");
+  try {
+    if (lane === "purchased") return { items: await listMobileUsedPurchases(user.id) };
+    if (lane === "selling") return { items: await listMobileMyUsedListings(user.id) };
+    if (lane === "live-auctions") return { items: await listMobileLiveAuctions(user.id) };
+    if (lane === "favorites") return { items: await listMobileUsedFavorites(user.id) };
+    return { items: await listMobileUsedDisputes(user.id) };
+  } catch (e) {
+    console.error("[used-market] getMyUsedHubLane", e);
+    return { items: [] };
+  }
+}
+
 /** 판매자와 1:1 DM으로 거래 문의 */
 export async function startUsedTradeChat(listingId: string) {
   const user = await requireAuth();
