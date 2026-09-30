@@ -3,13 +3,15 @@ import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { appAlarmNotificationWhere } from "@/lib/app-alarm";
 import { db } from "@/lib/db";
+import { filterOutBlockedUserIds, getBlockedUserIdSet } from "@/lib/user-block";
 
 export async function GET(req: NextRequest) {
   const authResult = await requireMobileApiUser(req);
   if ("error" in authResult) return authResult.error;
 
   const where = appAlarmNotificationWhere(authResult.user.id);
-  const [rows, unread] = await Promise.all([
+  const blocked = await getBlockedUserIdSet(authResult.user.id);
+  const [rows, unreadRaw] = await Promise.all([
     db.notification.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -18,9 +20,13 @@ export async function GET(req: NextRequest) {
     }),
     db.notification.count({ where: { ...where, read: false } }),
   ]);
+  const visibleRows = filterOutBlockedUserIds(rows, blocked, (n) => n.actorId ?? "");
+  const unread = blocked.size
+    ? visibleRows.filter((n) => !n.read).length
+    : unreadRaw;
 
   return NextResponse.json({
-    notifications: rows.map((n) => ({
+    notifications: visibleRows.map((n) => ({
       id: n.id,
       type: n.type,
       title: n.title,

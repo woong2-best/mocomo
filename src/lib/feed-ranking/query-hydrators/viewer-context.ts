@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { loadBidirectionalBlockIds } from "@/lib/user-block";
 import { buildFeedParams } from "@/lib/feed-ranking/params";
 import type { FeedQuery } from "@/lib/feed-ranking/types";
 import { NEW_USER_DAYS } from "@/lib/feed-ranking/types";
@@ -23,7 +24,7 @@ export const viewerContextHydrator: QueryHydrator<FeedQuery> = {
 
     const [
       following,
-      blocks,
+      blockIds,
       mutes,
       communities,
       animes,
@@ -34,11 +35,7 @@ export const viewerContextHydrator: QueryHydrator<FeedQuery> = {
         select: { followingId: true },
         take: 500,
       }),
-      db.userBlock.findMany({
-        where: { blockerId: userId },
-        select: { blockedId: true },
-        take: 500,
-      }),
+      loadBidirectionalBlockIds(userId),
       db.userMute.findMany({
         where: { muterId: userId },
         select: { mutedId: true },
@@ -74,7 +71,7 @@ export const viewerContextHydrator: QueryHydrator<FeedQuery> = {
       countryCode: user.countryCode || "KR",
       params: query.params ?? buildFeedParams(),
       followingIds: new Set(following.map((f) => f.followingId)),
-      blockedIds: new Set(blocks.map((b) => b.blockedId)),
+      blockedIds: new Set(blockIds),
       mutedIds: new Set(mutes.map((m) => m.mutedId)),
       communityIds: new Set(communities.map((c) => c.communityId)),
       animeIds: new Set(animes.map((a) => a.animeId)),

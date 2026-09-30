@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { loadBidirectionalBlockIds } from "@/lib/user-block";
 import { buildStarMarketParams } from "@/lib/market-ranking/params";
 import type { StarMarketQuery } from "@/lib/market-ranking/types";
 import type { QueryHydrator } from "@/lib/feed-ranking/pipeline/types";
@@ -20,7 +21,7 @@ export const starMarketViewerHydrator: QueryHydrator<StarMarketQuery> = {
     if (!query.userId) return base;
 
     const userId = query.userId;
-    const [user, favorites, orders, blocks] = await Promise.all([
+    const [user, favorites, orders, blockIds] = await Promise.all([
       db.user.findUnique({
         where: { id: userId },
         select: { countryCode: true },
@@ -40,11 +41,7 @@ export const starMarketViewerHydrator: QueryHydrator<StarMarketQuery> = {
         take: 50,
         orderBy: { createdAt: "desc" },
       }),
-      db.userBlock.findMany({
-        where: { blockerId: userId },
-        select: { blockedId: true },
-        take: 200,
-      }),
+      loadBidirectionalBlockIds(userId),
     ]);
 
     const favoriteListingIds = new Set(favorites.map((f) => f.listingId));
@@ -65,7 +62,7 @@ export const starMarketViewerHydrator: QueryHydrator<StarMarketQuery> = {
       favoriteListingIds,
       favoriteSellerIds,
       purchasedSellerIds,
-      blockedIds: new Set(blocks.map((b) => b.blockedId)),
+      blockedIds: new Set(blockIds),
       preferredCategories,
     };
   },

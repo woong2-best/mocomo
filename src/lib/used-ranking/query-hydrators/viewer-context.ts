@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { loadBidirectionalBlockIds } from "@/lib/user-block";
 import { resolveUsedMarketLocality } from "@/lib/used-market-locality";
 import { buildUsedMarketParams } from "@/lib/used-ranking/params";
 import type { UsedMarketQuery } from "@/lib/used-ranking/types";
@@ -23,7 +24,7 @@ export const usedMarketViewerHydrator: QueryHydrator<UsedMarketQuery> = {
     if (!query.userId) return base;
 
     const userId = query.userId;
-    const [locality, favorites, blocks, recentListings] = await Promise.all([
+    const [locality, favorites, blockIds, recentListings] = await Promise.all([
       resolveUsedMarketLocality(userId),
       db.usedFavorite.findMany({
         where: { userId },
@@ -34,11 +35,7 @@ export const usedMarketViewerHydrator: QueryHydrator<UsedMarketQuery> = {
         orderBy: { createdAt: "desc" },
         take: 60,
       }),
-      db.userBlock.findMany({
-        where: { blockerId: userId },
-        select: { blockedId: true },
-        take: 200,
-      }),
+      loadBidirectionalBlockIds(userId),
       db.usedListing.findMany({
         where: { sellerId: userId },
         select: { region: true },
@@ -67,7 +64,7 @@ export const usedMarketViewerHydrator: QueryHydrator<UsedMarketQuery> = {
       favoriteListingIds,
       favoriteCategories,
       favoriteWorks,
-      blockedIds: new Set(blocks.map((b) => b.blockedId)),
+      blockedIds: new Set(blockIds),
     };
   },
 };

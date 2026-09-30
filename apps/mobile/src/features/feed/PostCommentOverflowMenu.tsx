@@ -13,6 +13,7 @@ import { blockUser, submitCommentReport } from "@/api/social";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Props = {
   visible: boolean;
@@ -33,6 +34,7 @@ export function PostCommentOverflowMenu({
   authorUsername,
   isOwnComment = false,
 }: Props) {
+  const queryClient = useQueryClient();
   const { u, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -68,6 +70,8 @@ export function PostCommentOverflowMenu({
     setBusy("block");
     try {
       await blockUser(authorId);
+      void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+      void queryClient.invalidateQueries({ queryKey: ["mobile-post", postId] });
       showIslandSuccess(u("차단됨", "Blocked"), u(`@${authorUsername} 님을 차단했습니다.`, `Blocked @${authorUsername}.`));
       closeAll();
     } catch (err) {

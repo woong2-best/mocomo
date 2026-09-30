@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
-import { runFastSearch } from "@/lib/search-fast";
+import { filterFastSearchForViewer, runFastSearch } from "@/lib/search-fast";
 import { recordSearchEvent } from "@/lib/search/record";
 import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { annotateCanMessage } from "@/lib/contact-audience";
@@ -21,7 +21,10 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const result = await runFastSearch(q, await resolveCanViewNsfw(viewerId));
+  const result = await filterFastSearchForViewer(
+    viewerId,
+    await runFastSearch(q, await resolveCanViewNsfw(viewerId))
+  );
   void recordSearchEvent({
     rawQuery: q,
     resultCount:

@@ -6,6 +6,7 @@ import {
   MESSAGE_NOT_ALLOWED,
   MESSAGE_REQUEST_BLOCKED,
 } from "@/lib/contact-audience-copy";
+import { areUsersBlocked, getBlockedUserIdSet, USER_BLOCK_INTERACTION_ERROR } from "@/lib/user-block";
 
 export type ContactAudienceValue = ContactAudience;
 
@@ -71,6 +72,14 @@ export async function incomingContactDecision(
     };
   }
 
+  if (await areUsersBlocked(actorId, recipientId)) {
+    return {
+      allowed: false,
+      code: kind === "call" ? CALL_NOT_ALLOWED : MESSAGE_NOT_ALLOWED,
+      error: USER_BLOCK_INTERACTION_ERROR,
+    };
+  }
+
   const recipient = await db.user.findUnique({
     where: { id: recipientId },
     select: {
@@ -119,6 +128,10 @@ export async function contactPermissions(actorId: string, recipientId: string) {
     return { canMessage: false, canCall: false };
   }
 
+  if (await areUsersBlocked(actorId, recipientId)) {
+    return { canMessage: false, canCall: false };
+  }
+
   const needsFollow =
     recipient.messageRequestAudience === "FOLLOWING_ONLY" ||
     recipient.callRequestAudience === "FOLLOWING_ONLY";
@@ -142,6 +155,8 @@ export async function messageAllowedIds(actorId: string, recipientIds: string[])
   const ids = [...new Set(recipientIds.filter(Boolean))];
   if (ids.length === 0) return new Set();
 
+  const blocked = await getBlockedUserIdSet(actorId);
+
   const [users, follows] = await Promise.all([
     db.user.findMany({
       where: { id: { in: ids }, deletedAt: null },
@@ -156,6 +171,7 @@ export async function messageAllowedIds(actorId: string, recipientIds: string[])
   const allowed = new Set<string>();
   for (const user of users) {
     if (user.id === actorId) continue;
+    if (blocked.has(user.id)) continue;
     if (user.messageRequestAudience !== "FOLLOWING_ONLY" || followedBy.has(user.id)) {
       allowed.add(user.id);
     }

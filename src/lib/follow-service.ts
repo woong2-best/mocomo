@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { notifyFollow, notifyFollowRequest } from "@/lib/notifications";
+import { assertUserBlockInteractionAllowed } from "@/lib/user-block";
 
 export type FollowToggleResult =
   | { following: true; requested?: false }
@@ -31,6 +32,9 @@ export async function toggleFollowForUser(
   opts?: { targetUsername?: string; listOwnerUsername?: string }
 ): Promise<FollowToggleResult> {
   if (actorId === targetUserId) return { error: "자기 자신은 팔로우할 수 없습니다." };
+
+  const blockErr = await assertUserBlockInteractionAllowed(actorId, targetUserId);
+  if (blockErr) return blockErr;
 
   const target = await db.user.findUnique({
     where: { id: targetUserId },

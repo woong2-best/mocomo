@@ -15,6 +15,7 @@ import { isPaymentsConfigured } from "@/lib/payments";
 import { canViewNsfwResource } from "@/lib/nsfw-viewer-access";
 import { redactQnaPublicPost } from "@/lib/anonymous-post";
 import { hydrateViewerPollVotes, mapPostPollRow, postPollSelect } from "@/lib/post-poll";
+import { areUsersBlocked } from "@/lib/user-block";
 
 export async function GET(
   req: NextRequest,
@@ -57,6 +58,10 @@ export async function GET(
   });
 
   if (!post) {
+    return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+  }
+
+  if (viewerId && (await areUsersBlocked(viewerId, post.author.id))) {
     return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
   }
 

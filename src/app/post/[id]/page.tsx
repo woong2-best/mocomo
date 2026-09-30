@@ -6,6 +6,7 @@ import { PostFlashHighlight } from "@/components/post/post-flash-highlight";
 import { PostCommentsSection } from "@/components/post/post-comments-section";
 import { PostCommentsSkeleton } from "@/components/post/post-comments-skeleton";
 import { getPostDetail, isPostDetailAudienceLocked, isPostDetailNsfwBlocked } from "@/lib/post-queries";
+import { areUsersBlocked } from "@/lib/user-block";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { auth, isSiteOperator } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
@@ -27,6 +28,13 @@ export default async function PostPage({
   const detail = await getPostDetail(id, session?.user?.id);
 
   if (!detail) notFound();
+
+  if (
+    session?.user?.id &&
+    (await areUsersBlocked(session.user.id, detail.author.id))
+  ) {
+    notFound();
+  }
 
   if (isPostDetailAudienceLocked(detail)) {
     return (

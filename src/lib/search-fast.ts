@@ -7,6 +7,7 @@ import { suggestSearchQueries } from "@/lib/search/suggest";
 import { platformPostWhere } from "@/lib/post-scope";
 import { nsfwPostWhere } from "@/lib/nsfw-viewer-access";
 import type { SupportTierLevel } from "@prisma/client";
+import { blockedIdList, filterOutBlockedUserIds, getBlockedUserIdSet } from "@/lib/user-block";
 
 export type SearchSuggestion = {
   id: string;
@@ -127,10 +128,51 @@ export async function enrichSearchUsersWithFollowStatus(
   }));
 }
 
+/** 로그인 뷰어의 차단 목록으로 검색 결과 후처리 (공용 검색 캐시와 분리) */
+export async function filterFastSearchForViewer(
+  viewerId: string | null | undefined,
+  result: FastSearchResult
+): Promise<FastSearchResult> {
+  if (!viewerId) return result;
+  const blocked = await getBlockedUserIdSet(viewerId);
+  if (!blocked.size) return result;
+
+  const users = filterOutBlockedUserIds(result.users, blocked, (u) => u.id);
+
+  const postIds = result.posts.map((p) => p.id);
+  let posts = result.posts;
+  if (postIds.length) {
+    const rows = await db.post.findMany({
+      where: { id: { in: postIds } },
+      select: { id: true, authorId: true },
+    });
+    const blockedPosts = new Set(
+      rows.filter((r) => blocked.has(r.authorId)).map((r) => r.id)
+    );
+    posts = posts.filter((p) => !blockedPosts.has(p.id));
+  }
+
+  const liveHostIds = result.liveStreams.map((ch) => ch.id);
+  let liveStreams = result.liveStreams;
+  if (liveHostIds.length) {
+    const channels = await db.voiceChannel.findMany({
+      where: { id: { in: liveHostIds } },
+      select: { id: true, createdBy: true },
+    });
+    const blockedChannels = new Set(
+      channels.filter((c) => blocked.has(c.createdBy)).map((c) => c.id)
+    );
+    liveStreams = result.liveStreams.filter((ch) => !blockedChannels.has(ch.id));
+  }
+
+  return { ...result, users, posts, liveStreams };
+}
+
 /** 헤더·검색 페이지용 — synopsis 등 무거운 필드 제외 */
 export async function runFastSearch(
   query: string,
-  canViewNsfw = false
+  canViewNsfw = false,
+  excludeAuthorIds?: Set<string>
 ): Promise<FastSearchResult> {
   const q = query.trim();
   if (q.length < 1) {
@@ -157,9 +199,11 @@ export async function runFastSearch(
   const compact = q.replace(/\s+/g, "").toLowerCase().replace(/[\\%_]/g, "");
   const likeCompact = `%${compact}%`;
 
+  const excludeAuthors = blockedIdList(excludeAuthorIds ?? new Set());
   const postWhere = {
     ...platformPostWhere,
     ...nsfwPostWhere(canViewNsfw),
+    ...(excludeAuthors.length ? { authorId: { notIn: excludeAuthors } } : {}),
     ...(hashtagTag
       ? {
           OR: [
@@ -193,7 +237,10 @@ export async function runFastSearch(
 
   const [users, animeRows, textPosts, liveStreamsRaw, popular] = await Promise.all([
     db.user.findMany({
-      where: userWhere,
+      where: {
+        ...userWhere,
+        ...(excludeAuthors.length ? { id: { notIn: excludeAuthors } } : {}),
+      },
       take: 6,
       select: { id: true, username: true, name: true, image: true, supportTierSent: true },
       orderBy: [{ username: "asc" }],
@@ -252,7 +299,9 @@ export async function runFastSearch(
   }));
 
   const liveRows = await filterChannelsWithPresentHost(liveStreamsRaw);
-  const liveStreams = liveRows.map(({ id, name, category }) => ({ id, name, category }));
+  const liveStreams = liveRows
+    .filter((ch) => !excludeAuthorIds?.has(ch.createdBy))
+    .map(({ id, name, category }) => ({ id, name, category }));
   const autoSuggest = await suggestSearchQueries(q, 8).catch(() => []);
   const legacySuggestions = buildSuggestions(q, animes, liveStreams, popular);
   const autoAsSuggestions: SearchSuggestion[] = autoSuggest.map((s) => ({

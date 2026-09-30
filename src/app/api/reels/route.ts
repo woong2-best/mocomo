@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCachedSession } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { getCachedReelsPage } from "@/lib/reels/query";
+import { fetchReelsPage, getCachedReelsPage } from "@/lib/reels/query";
+import { getBlockedUserIdSet } from "@/lib/user-block";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { REELS_PAGE_SIZE } from "@/lib/reels/constants";
 
@@ -18,7 +19,9 @@ export async function GET(req: NextRequest) {
       30
     );
 
-    const { items, nextCursor } = await getCachedReelsPage(cursor, limit);
+    const { items, nextCursor } = session?.user?.id
+      ? await fetchReelsPage(cursor, limit, await getBlockedUserIdSet(session.user.id))
+      : await getCachedReelsPage(cursor, limit);
     const postIds = items.map((i) => i.postId);
 
     const engagement =

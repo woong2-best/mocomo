@@ -6,6 +6,7 @@ import type { ReelItem } from "@/lib/reels/types";
 import { REELS_PAGE_SIZE } from "@/lib/reels/constants";
 import { isHlsUrl } from "@/lib/reels/playback-url";
 import { platformPostWhere } from "@/lib/post-scope";
+import { blockedIdList } from "@/lib/user-block";
 
 const reelsMediaSelect = {
   id: true,
@@ -114,11 +115,16 @@ function mapReelRow(post: {
  * Sparse corpus: when the table is exhausted, wrap from the newest posts so
  * infinite scroll never ends (looping).
  */
-export async function fetchReelsPage(cursor: string | null, limit = REELS_PAGE_SIZE) {
+export async function fetchReelsPage(
+  cursor: string | null,
+  limit = REELS_PAGE_SIZE,
+  excludeAuthorIds?: Set<string>
+) {
   const batchSize = Math.min(Math.max(limit * 4, 24), 80);
   const items: ReelItem[] = [];
   const pagePostIds = new Set<string>();
   let scanCursor = cursor;
+  const excludeAuthors = blockedIdList(excludeAuthorIds ?? new Set());
 
   async function pull(fromCursor: string | null, maxGuards: number) {
     let localCursor = fromCursor;
@@ -130,6 +136,7 @@ export async function fetchReelsPage(cursor: string | null, limit = REELS_PAGE_S
         where: {
           ...platformPostWhere,
           isNsfw: false,
+          ...(excludeAuthors.length ? { authorId: { notIn: excludeAuthors } } : {}),
           media: { some: { type: "VIDEO", priceKrw: 0 } },
         },
         select: {

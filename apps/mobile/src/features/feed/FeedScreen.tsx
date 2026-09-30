@@ -324,6 +324,15 @@ export function FeedScreen() {
     void queryClient.invalidateQueries({ queryKey: ["mobile-post"] });
   }, [queryClient]);
 
+  const onBlockedAuthor = useCallback(
+    (_authorId: string) => {
+      void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+      void queryClient.invalidateQueries({ queryKey: ["mobile-post"] });
+      void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
+    },
+    [queryClient]
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: FeedItem }) => {
       if (item.type === "ad") {
@@ -346,12 +355,14 @@ export function FeedScreen() {
           onPressPost={onPressPost}
           onPressAuthor={onPressAuthor}
           onPressVideo={onPressVideo}
+          onBlockedAuthor={onBlockedAuthor}
         />
       );
     },
     [
       isFocused,
       isFeedScrolling,
+      onBlockedAuthor,
       onPressAuthor,
       onPressPost,
       onPressVideo,

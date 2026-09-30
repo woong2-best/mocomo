@@ -7,6 +7,7 @@ import {
   fetchMobileFeedPostsByIds,
   fetchWebFeedPostsByIds,
 } from "@/lib/feed-query";
+import { getBlockedUserIdSet } from "@/lib/user-block";
 
 const ACTIVITY_PREFIX = "act1.";
 
@@ -267,10 +268,15 @@ export async function withRepostActivities<T extends { id: string; createdAt: Da
   if (!opts.viewerId) return stamped;
 
   const canViewNsfw = opts.canViewNsfw ?? false;
-  const actorIds = await followedActorIds(opts.viewerId);
-  if (!actorIds.length) return stamped;
+  const blocked = await getBlockedUserIdSet(opts.viewerId);
+  const visibleStamped = stamped.filter((post) => {
+    const authorId = (post as { author?: { id?: string } }).author?.id;
+    return !authorId || !blocked.has(authorId);
+  });
+  const actorIds = (await followedActorIds(opts.viewerId)).filter((id) => !blocked.has(id));
+  if (!actorIds.length) return visibleStamped;
 
-  const times = stamped
+  const times = visibleStamped
     .map((post) => new Date(post.activityAt).getTime())
     .filter((n) => !Number.isNaN(n));
   const oldest = times.length ? new Date(Math.min(...times)) : null;
@@ -285,7 +291,7 @@ export async function withRepostActivities<T extends { id: string; createdAt: Da
   }
 
   const forYouFirstPage = opts.mode === "for_you" && !opts.cursor;
-  if (opts.mode === "for_you" && opts.cursor) return stamped;
+  if (opts.mode === "for_you" && opts.cursor) return visibleStamped;
 
   const repostRows = await db.repost.findMany({
     where: {
@@ -307,26 +313,33 @@ export async function withRepostActivities<T extends { id: string; createdAt: Da
       user: { select: { id: true, username: true, name: true, image: true } },
     },
   });
-  if (!repostRows.length) return stamped;
+  const filteredRepostRows = repostRows.filter(
+    (row) => !blocked.has(row.user.id)
+  );
+  if (!filteredRepostRows.length) return visibleStamped;
 
   const missingIds = [
     ...new Set(
-      repostRows.map((row) => row.postId).filter((id) => !stamped.some((post) => post.id === id))
+      filteredRepostRows
+        .map((row) => row.postId)
+        .filter((id) => !visibleStamped.some((post) => post.id === id))
     ),
   ];
   const loaded =
     missingIds.length === 0
       ? []
       : opts.variant === "mobile"
-        ? await fetchMobileFeedPostsByIds(missingIds, canViewNsfw)
-        : await fetchWebFeedPostsByIds(missingIds, canViewNsfw);
+        ? await fetchMobileFeedPostsByIds(missingIds, canViewNsfw, blocked)
+        : await fetchWebFeedPostsByIds(missingIds, canViewNsfw, blocked);
   const byId = new Map<string, T>();
-  for (const post of stamped) byId.set(post.id, post);
+  for (const post of visibleStamped) byId.set(post.id, post);
   for (const post of loaded) byId.set(post.id, post as unknown as T);
 
-  const repostItems = repostRows.flatMap((row) => {
+  const repostItems = filteredRepostRows.flatMap((row) => {
     const post = byId.get(row.postId);
     if (!post) return [];
+    const authorId = (post as { author?: { id?: string } }).author?.id;
+    if (authorId && blocked.has(authorId)) return [];
     return [
       {
         ...post,
@@ -339,11 +352,11 @@ export async function withRepostActivities<T extends { id: string; createdAt: Da
   });
 
   if (forYouFirstPage) {
-    return [...repostItems, ...stamped];
+    return [...repostItems, ...visibleStamped];
   }
 
   const combined = [
-    ...stamped.map((post) => ({ sortAt: new Date(post.activityAt).getTime(), post })),
+    ...visibleStamped.map((post) => ({ sortAt: new Date(post.activityAt).getTime(), post })),
     ...repostItems.map((post) => ({ sortAt: new Date(post.activityAt).getTime(), post })),
   ];
   combined.sort((a, b) => b.sortAt - a.sortAt);

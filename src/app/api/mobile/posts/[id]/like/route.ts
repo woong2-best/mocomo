@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { notifyPostLike } from "@/lib/notifications";
 import { qnaEngagementError } from "@/lib/post-scope";
+import { assertUserBlockInteractionAllowed } from "@/lib/user-block";
 
 export async function POST(
   req: NextRequest,
@@ -32,6 +33,10 @@ export async function POST(
     const blocked = qnaEngagementError(post.communityId);
     if (blocked) {
       return NextResponse.json({ error: blocked }, { status: 403 });
+    }
+    const blockErr = await assertUserBlockInteractionAllowed(user.id, post.authorId);
+    if (blockErr) {
+      return NextResponse.json({ error: blockErr.error }, { status: 403 });
     }
     const existing = await db.like.findUnique({
       where: { userId_postId: { userId: user.id, postId } },

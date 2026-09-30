@@ -7,6 +7,7 @@ import { notifyPostComment } from "@/lib/notifications";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { getPostCommentsPage } from "@/lib/comment-service";
 import type { PostCommentSort } from "@/lib/post-queries";
+import { assertUserBlockInteractionAllowed } from "@/lib/user-block";
 
 function parseSort(raw: string | null): PostCommentSort {
   if (raw === "newest" || raw === "popular" || raw === "oldest") return raw;
@@ -105,6 +106,11 @@ export async function POST(
       return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
     }
 
+    const blockErr = await assertUserBlockInteractionAllowed(user.id, post.authorId);
+    if (blockErr) {
+      return NextResponse.json({ error: blockErr.error }, { status: 403 });
+    }
+
     let parentCommentAuthorId: string | undefined;
     if (parentId) {
       const parent = await db.comment.findFirst({
@@ -113,6 +119,10 @@ export async function POST(
       });
       if (!parent) {
         return NextResponse.json({ error: "원 댓글을 찾을 수 없습니다." }, { status: 400 });
+      }
+      const parentBlockErr = await assertUserBlockInteractionAllowed(user.id, parent.authorId);
+      if (parentBlockErr) {
+        return NextResponse.json({ error: parentBlockErr.error }, { status: 403 });
       }
       parentCommentAuthorId = parent.authorId;
     }

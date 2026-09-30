@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 import { getAuthUserId } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { enrichSearchUsersWithFollowStatus, runFastSearch } from "@/lib/search-fast";
+import {
+  enrichSearchUsersWithFollowStatus,
+  filterFastSearchForViewer,
+  runFastSearch,
+} from "@/lib/search-fast";
 import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 
 function normalizeSearchKey(q: string) {
@@ -33,7 +37,10 @@ export async function GET(req: NextRequest) {
     const key = normalizeSearchKey(q);
     const viewerId = await getAuthUserId();
     const canViewNsfw = await resolveCanViewNsfw(viewerId);
-    const data = await cachedSearch(key, q, canViewNsfw);
+    const data = await filterFastSearchForViewer(
+      viewerId,
+      await cachedSearch(key, q, canViewNsfw)
+    );
     const users = await enrichSearchUsersWithFollowStatus(viewerId, data.users);
     // 미리보기(/api/search)는 집계하지 않음 — /search 페이지 진입 시 recordSearchEvent
 

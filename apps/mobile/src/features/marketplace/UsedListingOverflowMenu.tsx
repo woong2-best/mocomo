@@ -142,6 +142,8 @@ export function UsedListingOverflowMenu({
     void (async () => {
       try {
         await blockUser(sellerId);
+        void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+        void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
         closeAll();
         onDismissed?.(item.id);
         showIslandSuccess(u("차단했습니다", "User blocked"));
@@ -151,7 +153,7 @@ export function UsedListingOverflowMenu({
         setBusy(null);
       }
     })();
-  }, [busy, closeAll, item.id, onDismissed, sellerId]);
+  }, [busy, closeAll, item.id, onDismissed, queryClient, sellerId]);
 
   const onBlock = useCallback(() => {
     if (busy || !sellerId) return;

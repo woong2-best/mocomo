@@ -3,6 +3,7 @@ import { userPublicSelect } from "@/lib/user-public-select";
 import { isOperatorIdentity } from "@/lib/operator-config";
 import { publicQnaCommentAuthor } from "@/lib/anonymous-post";
 import type { PostCommentSort } from "@/lib/post-queries";
+import { blockedIdList, getBlockedUserIdSet } from "@/lib/user-block";
 
 export const MAX_PINNED_COMMENTS = 3;
 export const COMMENT_PAGE_SIZE = 20;
@@ -259,10 +260,20 @@ export async function getPostCommentsPage(params: {
   );
   const cursor = decodeCursor(params.cursor ?? null);
   const includePinned = params.includePinned !== false && !cursor;
+  const blockedAuthors = params.viewerId
+    ? blockedIdList(await getBlockedUserIdSet(params.viewerId))
+    : [];
+  const authorVisibleWhere =
+    blockedAuthors.length > 0
+      ? {
+          ...visibleWhere,
+          authorId: { notIn: blockedAuthors },
+        }
+      : visibleWhere;
 
   const replyInclude = {
     take: 3,
-    where: { ...visibleWhere },
+    where: { ...authorVisibleWhere },
     orderBy: { createdAt: "asc" as const },
     select: {
       id: true,
@@ -282,7 +293,7 @@ export async function getPostCommentsPage(params: {
         postId: params.postId,
         parentId: null,
         pinnedAt: { not: null },
-        ...visibleWhere,
+        ...authorVisibleWhere,
       },
       orderBy: [{ pinnedAt: "asc" }, { createdAt: "asc" }],
       take: MAX_PINNED_COMMENTS,
@@ -305,7 +316,7 @@ export async function getPostCommentsPage(params: {
     postId: params.postId,
     parentId: null,
     pinnedAt: null,
-    ...visibleWhere,
+    ...authorVisibleWhere,
     ...(pinnedIds.length ? { id: { notIn: pinnedIds } } : {}),
   };
 
@@ -385,7 +396,7 @@ export async function getPostCommentsPage(params: {
       : null;
 
   const total = await db.comment.count({
-    where: { postId: params.postId, ...visibleWhere },
+    where: { postId: params.postId, ...authorVisibleWhere },
   });
 
   return {
@@ -411,6 +422,16 @@ export async function getCommentRepliesPage(params: {
     Math.max(1, params.limit ?? COMMENT_REPLY_PAGE_SIZE)
   );
   const cursor = decodeCursor(params.cursor ?? null);
+  const blockedAuthors = params.viewerId
+    ? blockedIdList(await getBlockedUserIdSet(params.viewerId))
+    : [];
+  const authorVisibleWhere =
+    blockedAuthors.length > 0
+      ? {
+          ...visibleWhere,
+          authorId: { notIn: blockedAuthors },
+        }
+      : visibleWhere;
 
   const cursorWhere =
     cursor && cursor.sort === "oldest"
@@ -429,7 +450,7 @@ export async function getCommentRepliesPage(params: {
     where: {
       parentId: params.parentId,
       postId: params.postId,
-      ...visibleWhere,
+      ...authorVisibleWhere,
       ...(cursorWhere ?? {}),
     },
     take: limit + 1,

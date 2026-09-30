@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { z } from "zod";
 import type { ReportTargetType } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -136,6 +137,8 @@ export async function POST(req: NextRequest) {
     select: { username: true },
   });
   if (target?.username) revalidatePath(`/u/${target.username}`);
+  revalidatePath("/");
+  revalidateTag(FEED_POSTS_CACHE_TAG);
   return NextResponse.json({
     ok: true,
     blocked: true,

@@ -1,7 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAuthMinimal } from "@/lib/auth";
+import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { db } from "@/lib/db";
 
 export async function blockUserAction(targetUserId: string, username: string) {
@@ -29,6 +30,8 @@ export async function blockUserAction(targetUserId: string, username: string) {
   ]);
 
   revalidatePath(`/u/${username}`);
+  revalidatePath("/");
+  revalidateTag(FEED_POSTS_CACHE_TAG);
   return { success: true as const, blocked: true as const };
 }
 
@@ -40,6 +43,8 @@ export async function unblockUserAction(targetUserId: string, username: string) 
   });
 
   revalidatePath(`/u/${username}`);
+  revalidatePath("/");
+  revalidateTag(FEED_POSTS_CACHE_TAG);
   return { success: true as const, blocked: false as const };
 }
 

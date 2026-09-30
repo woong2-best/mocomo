@@ -12,7 +12,7 @@ import { nsfwPostWhere, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
 import { hydrateViewerPollVotes, mapPostPollRow, postPollSelect } from "@/lib/post-poll";
 import { contactPermissions } from "@/lib/contact-audience";
-import { getUserRelationship } from "@/lib/user-relationship";
+import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
 import { quotedPostPreviewSelect } from "@/lib/quoted-post";
 
 const profileTimelinePostSelect = {
@@ -124,20 +124,26 @@ export async function GET(
         ? pinnedPostId
         : null;
 
-  const posts = await db.post.findMany({
-    where: {
-      authorId: user.id,
-      isPinned: false,
-      ...(pinnedPostId ? { id: { not: pinnedPostId } } : {}),
-      ...platformPostWhere,
-      ...(isSelf ? {} : nsfwPostWhere(canViewNsfw)),
-    },
-    orderBy: { createdAt: "desc" },
-    take: 40,
-    select: profileTimelinePostSelect,
-  });
+  const profileBlocked = !isSelf && isProfileBlocked(relationship);
 
-  const reposts = await db.repost.findMany({
+  const posts = profileBlocked
+    ? []
+    : await db.post.findMany({
+        where: {
+          authorId: user.id,
+          isPinned: false,
+          ...(pinnedPostId ? { id: { not: pinnedPostId } } : {}),
+          ...platformPostWhere,
+          ...(isSelf ? {} : nsfwPostWhere(canViewNsfw)),
+        },
+        orderBy: { createdAt: "desc" },
+        take: 40,
+        select: profileTimelinePostSelect,
+      });
+
+  const reposts = profileBlocked
+    ? []
+    : await db.repost.findMany({
     where: {
       userId: user.id,
       post: {
@@ -153,7 +159,7 @@ export async function GET(
       user: { select: { id: true, username: true, name: true, image: true } },
       post: { select: profileTimelinePostSelect },
     },
-  });
+      });
 
   type ProfileActivity = (typeof posts)[number] & {
     activityKey: string;
@@ -187,16 +193,17 @@ export async function GET(
     .filter((row) => !pinnedPostId || row.id !== pinnedPostId)
     .slice(0, 40);
 
-  const pinnedRaw = pinnedPostId
-    ? await db.post.findFirst({
-        where: {
-          id: pinnedPostId,
-          ...platformPostWhere,
-          ...(isSelf ? {} : nsfwPostWhere(canViewNsfw)),
-        },
-        select: profileTimelinePostSelect,
-      })
-    : null;
+  const pinnedRaw =
+    profileBlocked || !pinnedPostId
+      ? null
+      : await db.post.findFirst({
+          where: {
+            id: pinnedPostId,
+            ...platformPostWhere,
+            ...(isSelf ? {} : nsfwPostWhere(canViewNsfw)),
+          },
+          select: profileTimelinePostSelect,
+        });
 
   const gatePosts = async (
     rows: (ProfileActivity | (typeof pinnedRaw & { authorId: string }))[]
@@ -259,6 +266,9 @@ export async function GET(
       paymentsEnabled: isPaymentsConfigured(),
       creatorSubscriptionPriceKrw: user.creatorSubscriptionPriceKrw,
       mutedByViewer: relationship.mutedByViewer,
+      blockedByViewer: relationship.blockedByViewer,
+      blockedViewer: relationship.blockedViewer,
+      profileBlocked,
     },
     pinnedPost: gatedPinned ? mapPostResponse(gatedPinned) : null,
     posts: gatedPosts.map(mapPostResponse),

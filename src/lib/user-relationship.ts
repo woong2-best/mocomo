@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { db } from "@/lib/db";
+import { loadBidirectionalBlockIds } from "@/lib/user-block";
 
 export type UserRelationshipState = {
   blockedByViewer: boolean;
@@ -53,16 +54,5 @@ export function isProfileBlocked(relationship: UserRelationshipState) {
 
 /** 차단 관계(양방향)에 있는 사용자 ID 목록 */
 export async function getBlockedUserIds(viewerId: string): Promise<string[]> {
-  const [blocked, blockedBy] = await Promise.all([
-    db.userBlock.findMany({
-      where: { blockerId: viewerId },
-      select: { blockedId: true },
-    }),
-    db.userBlock.findMany({
-      where: { blockedId: viewerId },
-      select: { blockerId: true },
-    }),
-  ]);
-
-  return [...new Set([...blocked.map((b) => b.blockedId), ...blockedBy.map((b) => b.blockerId)])];
+  return loadBidirectionalBlockIds(viewerId);
 }

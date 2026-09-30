@@ -12,6 +12,7 @@ import {
   toggleFollowForUser,
   type FollowToggleResult,
 } from "@/lib/follow-service";
+import { assertUserBlockInteractionAllowed, getBlockedUserIdSet } from "@/lib/user-block";
 import {
   approveFollowRequestForUser,
   listIncomingFollowRequestsForUser,
@@ -56,6 +57,8 @@ export async function toggleLike(postId: string) {
   if (!post) return { error: "게시물을 찾을 수 없습니다." };
   const blocked = qnaEngagementError(post.communityId);
   if (blocked) return { error: blocked };
+  const blockErr = await assertUserBlockInteractionAllowed(user.id, post.authorId);
+  if (blockErr) return blockErr;
   const existing = await db.like.findUnique({
     where: { userId_postId: { userId: user.id, postId } },
   });
@@ -74,11 +77,13 @@ export async function repost(postId: string) {
   const user = await requireAuthMinimal();
   const post = await db.post.findUnique({
     where: { id: postId },
-    select: { communityId: true },
+    select: { communityId: true, authorId: true },
   });
   if (!post) return { error: "게시물을 찾을 수 없습니다." };
   const blocked = qnaEngagementError(post.communityId);
   if (blocked) return { error: blocked };
+  const blockErr = await assertUserBlockInteractionAllowed(user.id, post.authorId);
+  if (blockErr) return blockErr;
   const existing = await db.repost.findUnique({
     where: { userId_postId: { userId: user.id, postId } },
   });
@@ -92,6 +97,7 @@ export async function repost(postId: string) {
 
 export async function getFeed(cursor?: string, limit = 20) {
   const user = await getCachedCurrentUser().catch(() => null);
+  const blockedSet = user ? await getBlockedUserIdSet(user.id) : new Set<string>();
   const followingIds = user
     ? (
         await db.follow.findMany({
@@ -99,13 +105,17 @@ export async function getFeed(cursor?: string, limit = 20) {
           take: 500,
           select: { followingId: true },
         })
-      ).map((f) => f.followingId)
+      )
+        .map((f) => f.followingId)
+        .filter((id) => !blockedSet.has(id))
     : [];
 
   const authorFilter =
     followingIds.length > 0
       ? { authorId: { in: [...followingIds, ...(user ? [user.id] : [])] } }
-      : {};
+      : user && blockedSet.size
+        ? { authorId: { notIn: [...blockedSet].slice(0, 500) } }
+        : {};
 
   const posts = await db.post.findMany({
     where: user

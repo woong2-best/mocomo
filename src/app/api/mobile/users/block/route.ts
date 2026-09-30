@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
@@ -60,5 +61,7 @@ export async function POST(req: NextRequest) {
   ]);
 
   revalidatePath(`/u/${target.username}`);
+  revalidatePath("/");
+  revalidateTag(FEED_POSTS_CACHE_TAG);
   return NextResponse.json({ ok: true, blocked: true });
 }

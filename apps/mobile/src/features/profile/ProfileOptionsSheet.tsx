@@ -141,6 +141,9 @@ export function ProfileOptionsSheet({
           details: u("프로필에서 차단", "Blocked from profile"),
         });
         void removeFollowingDmUser(queryClient, userId);
+        void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+        void queryClient.invalidateQueries({ queryKey: ["mobile-post"] });
+        void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
         closeAll();
         onBlocked?.();
         showIslandSuccess(u("완료", "Done"), u(`@${username} 님을 차단했습니다.`, `@${username} was blocked.`));

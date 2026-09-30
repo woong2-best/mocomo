@@ -7,6 +7,7 @@ import { postPollSelect, mapPostPollRow, type PostPollView } from "@/lib/post-po
 import { postCollaboratorsHeaderInclude } from "@/lib/post-collaborator-select";
 import { platformPostWhere } from "@/lib/post-scope";
 import { nsfwPostWhere } from "@/lib/nsfw-viewer-access";
+import { blockedIdList, filterOutBlockedUserIds } from "@/lib/user-block";
 import { quotedPostPreviewSelect } from "@/lib/quoted-post";
 
 const FEED_POST_MAX_CONTENT = 520;
@@ -90,13 +91,29 @@ export const feedPostListSelectNoPoll = {
   _count: { select: { likes: true, comments: true, votes: true, reposts: true, media: true } },
 } as const;
 
+type FeedPageOpts = {
+  canViewNsfw?: boolean;
+  excludeAuthorIds?: Set<string>;
+};
+
+function feedPageWhere(opts: FeedPageOpts) {
+  const canViewNsfw = opts.canViewNsfw ?? false;
+  const exclude = blockedIdList(opts.excludeAuthorIds ?? new Set());
+  return {
+    ...platformPostWhere,
+    ...nsfwPostWhere(canViewNsfw),
+    ...(exclude.length ? { authorId: { notIn: exclude } } : {}),
+  };
+}
+
 export async function fetchFeedPostsPage(
   cursor: string | null,
   limit: number,
-  canViewNsfw = false
+  canViewNsfw = false,
+  excludeAuthorIds?: Set<string>
 ) {
   const query = {
-    where: { ...platformPostWhere, ...nsfwPostWhere(canViewNsfw) },
+    where: feedPageWhere({ canViewNsfw, excludeAuthorIds }),
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     orderBy: { createdAt: "desc" as const },
@@ -189,10 +206,11 @@ const mobileFeedPostSelectNoReposts = {
 export async function fetchMobileFeedPostsPage(
   cursor: string | null,
   limit: number,
-  canViewNsfw = false
+  canViewNsfw = false,
+  excludeAuthorIds?: Set<string>
 ) {
   const query = {
-    where: { ...platformPostWhere, ...nsfwPostWhere(canViewNsfw) },
+    where: feedPageWhere({ canViewNsfw, excludeAuthorIds }),
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     orderBy: { createdAt: "desc" as const },
@@ -244,14 +262,18 @@ export function getCachedMobileFeedPostsPage(
 
 export async function fetchWebFeedPostsByIds(
   postIds: string[],
-  canViewNsfw = false
+  canViewNsfw = false,
+  excludeAuthorIds?: Set<string>
 ): Promise<FeedPostRow[]> {
   if (!postIds.length) return [];
   const posts = await db.post.findMany({
     where: { id: { in: postIds }, ...platformPostWhere, ...nsfwPostWhere(canViewNsfw) },
     select: feedPostListSelect,
   });
-  const byId = new Map(posts.map((p) => [p.id, p]));
+  const visible = excludeAuthorIds?.size
+    ? filterOutBlockedUserIds(posts, excludeAuthorIds, (p) => p.author.id)
+    : posts;
+  const byId = new Map(visible.map((p) => [p.id, p]));
   return postIds
     .map((id) => byId.get(id))
     .filter((p): p is NonNullable<typeof p> => p != null)
@@ -260,14 +282,18 @@ export async function fetchWebFeedPostsByIds(
 
 export async function fetchMobileFeedPostsByIds(
   postIds: string[],
-  canViewNsfw = false
+  canViewNsfw = false,
+  excludeAuthorIds?: Set<string>
 ): Promise<Awaited<ReturnType<typeof fetchMobileFeedPostsPage>>> {
   if (!postIds.length) return [];
   const posts = await db.post.findMany({
     where: { id: { in: postIds }, ...platformPostWhere, ...nsfwPostWhere(canViewNsfw) },
     select: mobileFeedPostSelect,
   });
-  const byId = new Map(posts.map((p) => [p.id, p]));
+  const visible = excludeAuthorIds?.size
+    ? filterOutBlockedUserIds(posts, excludeAuthorIds, (p) => p.author.id)
+    : posts;
+  const byId = new Map(visible.map((p) => [p.id, p]));
   return postIds
     .map((id) => byId.get(id))
     .filter((p): p is NonNullable<typeof p> => p != null)
