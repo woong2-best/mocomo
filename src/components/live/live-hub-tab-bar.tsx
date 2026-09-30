@@ -13,7 +13,7 @@ import {
   isLiveFeatureEnabled,
 } from "@/lib/live-feature";
 import { LiveHubSlantTabs } from "@/components/live/live-hub-slant-tabs";
-import { LiveHubNeonDivider } from "@/components/live/live-off-air-hero";
+import { LiveHubNeonDivider } from "@/components/live/live-hub-neon-divider";
 import { useLocale } from "@/components/providers/locale-provider";
 
 function LiveHubQuickActions() {

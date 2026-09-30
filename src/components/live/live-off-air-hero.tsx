@@ -33,12 +33,4 @@ export function LiveOffAirHero({ className }: { className?: string }) {
   );
 }
 
-export function LiveHubNeonDivider() {
-  return (
-    <div
-      className="live-hub-neon-green-line shrink-0"
-      role="presentation"
-      aria-hidden
-    />
-  );
-}
+export { LiveHubNeonDivider } from "@/components/live/live-hub-neon-divider";
