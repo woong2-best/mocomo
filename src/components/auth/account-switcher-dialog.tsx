@@ -16,8 +16,6 @@ import {
   type SavedAccount,
 } from "@/lib/account-switch/client";
 import { beginCreateAccountFlow, beginAddExistingAccountFlow } from "@/lib/account-switch/add-account-flow";
-import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
-import { clearLocalHomeData } from "@/lib/apt/local-home-store";
 import { cn } from "@/lib/utils";
 
 export function AccountSwitcherDialog({
@@ -31,7 +29,6 @@ export function AccountSwitcherDialog({
   const { t } = useLocale();
   const [accounts, setAccounts] = useState<SavedAccount[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState("");
 
   const refreshList = useCallback(() => {
@@ -81,17 +78,6 @@ export function AccountSwitcherDialog({
     e.stopPropagation();
     removeSavedAccount(account.userId);
     refreshList();
-  }
-
-  function handleLogoutCurrent() {
-    const userId = session?.user?.id;
-    if (!userId || loggingOut || busyId !== null) return;
-    setError("");
-    setLoggingOut(true);
-    onOpenChange(false);
-    void clearLocalHomeData(userId).finally(() => {
-      void performWebSignOut({ userId });
-    });
   }
 
   const activeId = session?.user?.id;
@@ -180,19 +166,9 @@ export function AccountSwitcherDialog({
               type="button"
               variant="outline"
               className="w-full rounded-xl h-11 font-semibold"
-              disabled={loggingOut || busyId !== null}
               onClick={() => void handleAddExisting()}
             >
               {t("accountSwitch.addExisting")}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full rounded-xl h-11 font-semibold"
-              disabled={loggingOut || busyId !== null || !session?.user?.id}
-              onClick={handleLogoutCurrent}
-            >
-              {t("accountSwitch.logoutCurrent")}
             </Button>
           </div>
         </DialogPrimitive.Content>
