@@ -49,7 +49,6 @@ export function ProfileActionMenu({
 }: Props) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [blocked, setBlocked] = useState(initialBlocked);
   const [muted, setMuted] = useState(initialMuted);
@@ -100,7 +99,7 @@ export function ProfileActionMenu({
     });
   }
 
-  function confirmBlock() {
+  function runBlock() {
     setError("");
     startTransition(async () => {
       const res = await blockUserAction(userId, username);
@@ -109,7 +108,6 @@ export function ProfileActionMenu({
         return;
       }
       setBlocked(true);
-      setBlockDialogOpen(false);
       setMenuOpen(false);
       router.refresh();
     });
@@ -170,12 +168,12 @@ export function ProfileActionMenu({
       icon: <Ban className="h-4 w-4" />,
       destructive: !blocked,
       run: () => {
-        setMenuOpen(false);
         if (blocked) {
+          setMenuOpen(false);
           void confirmUnblock();
           return;
         }
-        setBlockDialogOpen(true);
+        void runBlock();
       },
     },
     {
@@ -256,39 +254,6 @@ export function ProfileActionMenu({
             {error && <p className="px-4 pb-3 text-sm text-destructive">{error}</p>}
           </DialogPrimitive.Content>
         </DialogPortal>
-      </Dialog>
-
-      <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>@{username} 님을 차단할까요?</DialogTitle>
-            <DialogDescription>
-              차단하면 서로 팔로우할 수 없고, 상대방의 게시물과 알림이 표시되지 않습니다. 언제든
-              차단을 해제할 수 있습니다.
-            </DialogDescription>
-          </DialogHeader>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <div className="flex gap-2 justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-full"
-              disabled={pending}
-              onClick={() => setBlockDialogOpen(false)}
-            >
-              취소
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              className="rounded-full"
-              disabled={pending}
-              onClick={confirmBlock}
-            >
-              {pending ? "처리 중…" : "차단하기"}
-            </Button>
-          </div>
-        </DialogContent>
       </Dialog>
 
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>

@@ -130,14 +130,12 @@ export function PostCommentRow({
   }
 
   async function block() {
-    if (
-      !window.confirm(
-        uiText(locale, `@${comment.author.username} 님을 차단할까요?`, `Block @${comment.author.username}?`)
-      )
-    )
-      return;
     const res = await blockUserAction(comment.author.id, comment.author.username);
-    window.alert(res.error ?? uiText(locale, "차단되었습니다.", "User blocked."));
+    if (res.error) {
+      window.alert(res.error);
+      return;
+    }
+    window.alert(uiText(locale, "차단되었습니다.", "User blocked."));
   }
 
   return (

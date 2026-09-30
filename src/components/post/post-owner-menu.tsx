@@ -155,7 +155,6 @@ export function PostOwnerMenu({
 
   async function handleBlock() {
     if (busy || !authorId || !authorUsername) return;
-    if (!window.confirm(t("post.menu.blockConfirm"))) return;
     setBusy("block");
     setError("");
     setOpen(false);

@@ -29,10 +29,8 @@ export default async function PostPage({
 
   if (!detail) notFound();
 
-  if (
-    session?.user?.id &&
-    (await areUsersBlocked(session.user.id, detail.author.id))
-  ) {
+  const authorId = detail.author?.id;
+  if (session?.user?.id && authorId && (await areUsersBlocked(session.user.id, authorId))) {
     notFound();
   }
 

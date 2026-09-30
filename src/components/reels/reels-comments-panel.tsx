@@ -204,7 +204,6 @@ function CommentMenu({
   }
 
   async function block() {
-    if (!window.confirm(`@${comment.author.username} 님을 차단할까요?`)) return;
     const res = await blockUserAction(comment.author.id, comment.author.username);
     window.alert(res.error ?? "차단되었습니다.");
   }
