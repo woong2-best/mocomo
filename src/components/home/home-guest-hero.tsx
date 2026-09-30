@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Radio, Users, Gem, Camera, Tv, PenSquare } from "lucide-react";
+import { Radio, Users, Store, User, Tv, PenSquare } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { FolkSectionTitle } from "@/components/brand/folk-decor";
@@ -12,8 +12,8 @@ import type { MessageKey } from "@/lib/i18n/messages";
 const features: { icon: typeof PenSquare; labelKey: MessageKey; href: string }[] = [
   { icon: PenSquare, labelKey: "home.featureFeed", href: "/explore" },
   { icon: Tv, labelKey: "home.featureAnime", href: "/anime" },
-  { icon: Camera, labelKey: "home.featureCosplay", href: "/cosplay" },
-  { icon: Gem, labelKey: "home.featureSupport", href: "/support" },
+  { icon: Store, labelKey: "nav.market", href: "/market" },
+  { icon: User, labelKey: "nav.myPage", href: "/my-page" },
   { icon: Radio, labelKey: "home.featureLive", href: "/live" },
   { icon: Users, labelKey: "home.featureCommunities", href: "/communities" },
 ];
