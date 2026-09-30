@@ -132,6 +132,10 @@ export async function getPostDetail(id: string, viewerId?: string) {
 
 export type PostDetailResult = Awaited<ReturnType<typeof getPostDetail>>;
 export type PostDetailLocked = Extract<NonNullable<PostDetailResult>, { audienceLocked: true }>;
+export type PostDetailOk = Exclude<
+  NonNullable<PostDetailResult>,
+  PostDetailLocked | PostNsfwBlocked
+>;
 
 export function isPostDetailAudienceLocked(post: PostDetailResult): post is PostDetailLocked {
   return !!post && "audienceLocked" in post && post.audienceLocked === true;

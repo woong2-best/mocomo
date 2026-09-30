@@ -4,8 +4,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Locale } from "@/lib/i18n/config";
 import { dateFnsLocale } from "@/lib/i18n/date-locale";
-import type { getPostDetail, PostDetailLocked } from "@/lib/post-queries";
-import type { PostNsfwBlocked } from "@/lib/nsfw-viewer-access";
+import type { PostDetailOk } from "@/lib/post-queries";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
@@ -17,11 +16,6 @@ import { QuotePostPreviewCard } from "@/components/post/quote-post-preview-card"
 import { BlockedQuotedPostCard } from "@/components/post/blocked-quoted-post-card";
 import { readQuotedPost } from "@/lib/quoted-post";
 import { uiText } from "@/lib/i18n/ui-text";
-
-type PostDetailOk = Exclude<
-  NonNullable<Awaited<ReturnType<typeof getPostDetail>>>,
-  PostDetailLocked | PostNsfwBlocked
->;
 
 export function PostDetailCard({
   post,

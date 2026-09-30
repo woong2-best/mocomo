@@ -5,7 +5,12 @@ import { PostDetailActions } from "@/components/post/post-detail-actions";
 import { PostFlashHighlight } from "@/components/post/post-flash-highlight";
 import { PostCommentsSection } from "@/components/post/post-comments-section";
 import { PostCommentsSkeleton } from "@/components/post/post-comments-skeleton";
-import { getPostDetail, isPostDetailAudienceLocked, isPostDetailNsfwBlocked } from "@/lib/post-queries";
+import {
+  getPostDetail,
+  isPostDetailAudienceLocked,
+  isPostDetailNsfwBlocked,
+  type PostDetailOk,
+} from "@/lib/post-queries";
 import { applyViewerBlockPolicyToPosts, areUsersBlocked } from "@/lib/user-block";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { auth, isSiteOperator } from "@/lib/auth";
@@ -73,12 +78,13 @@ export default async function PostPage({
     );
   }
 
-  const post = detail;
+  const post = detail as PostDetailOk;
   const realAuthorId = post.author.id;
   const displayPost = redactQnaPublicPost(post, session?.user?.id);
   const [blockPolicyPost] = await applyViewerBlockPolicyToPosts(session?.user?.id ?? null, [
     displayPost,
   ]);
+  const cardPost = blockPolicyPost as PostDetailOk;
   const quotedPostBlocked = Boolean(
     (blockPolicyPost as { quotedPostBlocked?: boolean }).quotedPostBlocked
   );
@@ -149,7 +155,7 @@ export default async function PostPage({
       />
       <PostFlashHighlight postId={post.id}>
         <PostDetailCard
-          post={displayPost}
+          post={cardPost}
           quotedPostBlocked={quotedPostBlocked}
           locale={locale}
           isOwner={session?.user?.id === realAuthorId}
