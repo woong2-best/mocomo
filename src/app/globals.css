@@ -486,11 +486,11 @@ html[data-client="app"] .native-live-pad {
   .live-hub-side-on-line {
     position: absolute;
     z-index: 3;
-    bottom: 27.5%;
+    bottom: 34%;
     display: flex;
     align-items: flex-end;
     pointer-events: none;
-    max-width: min(18%, 200px);
+    max-width: min(14%, 140px);
   }
 
   .live-hub-side-on-line > * {
@@ -517,6 +517,12 @@ html[data-client="app"] .native-live-pad {
     position: relative;
     width: 100%;
     max-width: 100%;
+    transition: filter 0.45s ease;
+  }
+
+  .live-hub-neon-tabs-strip--themed {
+    filter: drop-shadow(0 0 10px var(--live-hub-neon-bloom, rgba(226, 66, 138, 0.45)))
+      drop-shadow(0 0 22px var(--live-hub-neon-bloom, rgba(226, 66, 138, 0.28)));
   }
 
   .live-hub-neon-tabs-art {
@@ -524,6 +530,14 @@ html[data-client="app"] .native-live-pad {
     width: 100%;
     height: auto;
     max-width: 100%;
+  }
+
+  .live-hub-neon-tabs-art--animated path,
+  .live-hub-neon-tabs-art--animated rect {
+    transition:
+      stroke 0.45s ease,
+      fill 0.45s ease,
+      stop-color 0.45s ease;
   }
 
   .live-hub-neon-tab-hit {
@@ -537,27 +551,29 @@ html[data-client="app"] .native-live-pad {
     cursor: pointer;
     border-radius: 6px;
     appearance: none;
+    outline: none;
+    box-shadow: none;
   }
 
-  .live-hub-neon-tab-hit--active {
-    box-shadow:
-      inset 0 0 0 2px rgba(255, 255, 255, 0.55),
-      0 0 14px rgba(226, 66, 138, 0.55);
+  .live-hub-neon-tab-hit:focus,
+  .live-hub-neon-tab-hit:focus-visible {
+    outline: none;
+    box-shadow: none;
   }
 
   .live-hub-studio-neon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: clamp(4px, 1.2cqi, 8px);
-    height: clamp(34px, 9cqi, 52px);
-    padding: 0 clamp(8px, 2.4cqi, 16px);
-    border-radius: clamp(6px, 1.2cqi, 8px);
+    gap: clamp(3px, 0.9cqi, 6px);
+    height: clamp(26px, 6.5cqi, 38px);
+    padding: 0 clamp(6px, 1.8cqi, 12px);
+    border-radius: clamp(5px, 1cqi, 7px);
     border: 2px solid rgba(255, 255, 255, 0.88);
     background: #0c0c10;
     color: #fff;
     font-family: Roboto, Inter, "Helvetica Neue", Arial, sans-serif;
-    font-size: clamp(11px, 2.8cqi, 15px);
+    font-size: clamp(9px, 2.2cqi, 12px);
     font-weight: 700;
     text-decoration: none;
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
@@ -578,9 +594,9 @@ html[data-client="app"] .native-live-pad {
 
   .live-hub-live-neon__img {
     display: block;
-    height: clamp(36px, 10cqi, 56px);
+    height: clamp(26px, 7cqi, 40px);
     width: auto;
-    max-width: min(200px, 100%);
+    max-width: min(120px, 100%);
     object-fit: contain;
     background: transparent;
   }

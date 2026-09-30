@@ -1,6 +1,8 @@
 "use client";
 
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
+import { LiveHubNeonTabsGraphic } from "@/components/live/live-hub-neon-tabs-graphic";
+import { LIVE_HUB_NEON_THEME } from "@/components/live/live-hub-neon-theme";
 import { cn } from "@/lib/utils";
 
 /** Design reference width — strip scales to fit the content column (no horizontal scroll). */
@@ -38,6 +40,8 @@ export function LiveHubNeonTabStrip({
   onSelect: (id: LiveFolderFilter) => void;
   disabled?: boolean;
 }) {
+  const bloom = (LIVE_HUB_NEON_THEME[active] ?? LIVE_HUB_NEON_THEME.ALL).cssBloom;
+
   return (
     <div
       className={cn(
@@ -45,16 +49,13 @@ export function LiveHubNeonTabStrip({
         disabled && "pointer-events-none opacity-70"
       )}
     >
-      <div className="live-hub-neon-tabs-strip w-full" role="tablist" aria-label="라이브 카테고리">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/live/live-hub-neon-tabs.svg?v=2"
-          alt=""
-          className="live-hub-neon-tabs-art pointer-events-none select-none"
-          width={LIVE_NEON_TABS_DESIGN_WIDTH}
-          height={234}
-          draggable={false}
-        />
+      <div
+        className="live-hub-neon-tabs-strip w-full live-hub-neon-tabs-strip--themed"
+        role="tablist"
+        aria-label="라이브 카테고리"
+        style={{ ["--live-hub-neon-bloom" as string]: bloom }}
+      >
+        <LiveHubNeonTabsGraphic active={active} />
         {TABS.map((tab) => {
           const on = tab.id === active;
           const pos = tabStyle(tab.x, tab.w);
@@ -66,7 +67,7 @@ export function LiveHubNeonTabStrip({
               aria-selected={on}
               aria-label={tab.label}
               disabled={disabled}
-              className={cn("live-hub-neon-tab-hit", on && "live-hub-neon-tab-hit--active")}
+              className="live-hub-neon-tab-hit"
               style={pos}
               onClick={() => onSelect(tab.id)}
             />
