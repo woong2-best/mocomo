@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import { BrandLogoLockup } from "@/components/brand/brand-logo-lockup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { waitForClientSession } from "@/lib/auth-session-retry";
 import {
@@ -71,9 +71,7 @@ export function OAuthCompleteClient({
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
-            <BrandLogo size={48} priority />
-          </div>
+          <BrandLogoLockup size={72} priority className="mx-auto" />
           <CardTitle className="text-xl font-semibold">잠시만 기다려 주세요</CardTitle>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground">

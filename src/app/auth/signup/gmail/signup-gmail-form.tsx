@@ -14,7 +14,7 @@ import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import { BrandLogoLockup } from "@/components/brand/brand-logo-lockup";
 import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { EmailAddressField } from "@/components/auth/email-address-field";
 import { BRAND } from "@/lib/brand";
@@ -216,9 +216,7 @@ export function SignupGmailForm() {
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
-            <BrandLogo size={48} priority />
-          </div>
+          <BrandLogoLockup size={72} priority className="mx-auto" />
           <SignupStepIndicator step={1} locale={locale} />
           <div className="space-y-1">
             <CardTitle className="text-xl font-semibold">
@@ -263,10 +261,10 @@ export function SignupGmailForm() {
             <SignupBirthDateFields locale={locale} values={birth} onChange={setBirth} />
             <p className="text-xs text-muted-foreground rounded-xl bg-muted/50 px-3 py-2 leading-relaxed">
               {locale === "ko"
-                ? "이메일 인증 후 프로필 아이콘 사진을 반드시 설정합니다. 배너는 나중에 해도 됩니다."
+                ? "??? ?? ? ??? ??? ??? ??? ?????. ??? ??? ?? ???."
                 : locale === "ja"
-                  ? "メール認証のあと、プロフィール写真の設定が必須です。"
-                  : "After email verification you’ll set a required profile icon. Banner is optional."}
+                  ? "??????????????????????????"
+                  : "After email verification you?ll set a required profile icon. Banner is optional."}
             </p>
             <div className="grid grid-cols-1 gap-2">
               <label className="space-y-1">
@@ -325,7 +323,7 @@ export function SignupGmailForm() {
             <p className="text-[11px] text-muted-foreground leading-relaxed">
               {locale === "ko" ? (
                 <>
-                  회원가입 시{" "}
+                  ???? ?{" "}
                   <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
                     {t("legal.terms")}
                   </Link>
@@ -333,7 +331,7 @@ export function SignupGmailForm() {
                   <Link href="/legal/privacy" className="text-primary hover:underline" target="_blank">
                     {t("legal.privacy")}
                   </Link>
-                  에 동의한 것으로 간주됩니다.
+                  ? ??? ??? ?????.
                 </>
               ) : (
                 t("auth.termsAgreement")

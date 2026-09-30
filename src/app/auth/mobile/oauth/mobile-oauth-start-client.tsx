@@ -10,7 +10,7 @@ import {
   sanitizeMobileRedirectUri,
 } from "@/lib/mobile-oauth-shared";
 import { OAUTH_FLOW_COOKIE, persistOAuthFlowIntent } from "@/lib/oauth-flow-cookie";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import { BrandLogoLockup } from "@/components/brand/brand-logo-lockup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
@@ -76,9 +76,7 @@ export function MobileOAuthStartClient({ googleOAuth }: { googleOAuth: boolean }
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
-            <BrandLogo size={48} priority />
-          </div>
+          <BrandLogoLockup size={72} priority className="mx-auto" />
           <CardTitle className="text-xl font-semibold">
             {error ? "로그인 오류" : "MoCoMo 앱 로그인"}
           </CardTitle>

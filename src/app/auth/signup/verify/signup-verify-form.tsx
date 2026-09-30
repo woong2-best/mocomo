@@ -19,7 +19,7 @@ import { saveSignupLocaleStorage, syncSignupLocaleClient } from "@/lib/signup-lo
 import type { HumanChallengeQuestion } from "@/lib/human-challenge-types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import { BrandLogoLockup } from "@/components/brand/brand-logo-lockup";
 
 export function SignupVerifyForm() {
   const router = useRouter();
@@ -165,9 +165,7 @@ export function SignupVerifyForm() {
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-md rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-2">
-          <div className="mx-auto h-16 w-16 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
-            <BrandLogo size={56} priority />
-          </div>
+          <BrandLogoLockup size={80} priority className="mx-auto" />
           <SignupStepIndicator step={2} locale={signupLocale ?? undefined} />
           <CardTitle className="text-2xl">{t("auth.humanCheckTitle")}</CardTitle>
           <p className="text-sm text-muted-foreground">{t("auth.humanCheckDesc", { email })}</p>

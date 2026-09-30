@@ -11,7 +11,7 @@ import {
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import { BrandLogoLockup } from "@/components/brand/brand-logo-lockup";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BRAND } from "@/lib/brand";
 import { isNextNavigationError } from "@/lib/next-navigation-error";
@@ -138,9 +138,7 @@ export function CompleteRoleOnboardingForm({
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-md rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
-            <BrandLogo size={48} priority />
-          </div>
+          <BrandLogoLockup size={72} priority className="mx-auto" />
           <CardTitle className="text-xl font-semibold">
             {step === "role"
               ? "어떤 방식으로 즐기시나요?"

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { BRAND } from "@/lib/brand";
+import { BrandLogoLockup } from "@/components/brand/brand-logo-lockup";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { mobileAuthCompletePath } from "@/lib/mobile-oauth-shared";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -21,8 +22,9 @@ function AuthLayoutHeaderInner() {
 
   return (
     <header className="auth-layout-marketing-header flex items-center justify-between px-4 py-3 border-b border-border bg-background/95">
-      <Link href={DEFAULT_LANDING_PATH} className="font-black text-lg">
-        {BRAND.name}
+      <Link href={DEFAULT_LANDING_PATH} className="inline-flex items-center gap-2" aria-label={BRAND.name}>
+        <BrandLogoLockup size={36} />
+        <span className="font-black text-lg">{BRAND.name}</span>
       </Link>
       <Link href={signinHref} className="text-sm font-semibold text-primary hover:underline">
         {t("nav.signin")}
@@ -36,7 +38,10 @@ export function AuthLayoutHeader() {
     <Suspense
       fallback={
         <header className="auth-layout-marketing-header flex items-center justify-between px-4 py-3 border-b border-border bg-background/95">
-          <span className="font-black text-lg">{BRAND.name}</span>
+          <span className="inline-flex items-center gap-2 font-black text-lg">
+            <BrandLogoLockup size={36} />
+            {BRAND.name}
+          </span>
         </header>
       }
     >

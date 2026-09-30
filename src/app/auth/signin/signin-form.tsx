@@ -9,7 +9,8 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import { BrandLogoLockup } from "@/components/brand/brand-logo-lockup";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { BRAND } from "@/lib/brand";
 import { loginErrorMessage } from "@/lib/auth-login-errors";
@@ -78,6 +79,7 @@ export function SignInForm({
   loggedOutUserId?: string | null;
 }) {
   const router = useRouter();
+  const { isNativeApp } = useClientPlatform();
   const { t, locale } = useLocale();
   const { data: session } = useSession();
   const callbackUrl = safeCallbackUrl(callbackUrlProp);
@@ -253,7 +255,12 @@ export function SignInForm({
           : "";
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4">
+    <div className="flex-1 flex flex-col items-center justify-center p-4">
+      {isNativeApp && showLoginForm ? (
+        <div className="mb-6 flex justify-center pt-2">
+          <BrandLogoLockup size={44} priority />
+        </div>
+      ) : null}
       {!showLoginForm ? (
         <SignInAccountPicker
           loggedOutUserId={loggedOutUserId}
@@ -262,9 +269,7 @@ export function SignInForm({
       ) : (
         <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
           <CardHeader className="text-center space-y-3 pb-2">
-            <div className="mx-auto h-14 w-14 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
-              <BrandLogo size={48} priority />
-            </div>
+            <BrandLogoLockup size={80} priority className="mx-auto" />
             <div className="space-y-1">
               <CardTitle className="text-xl font-semibold">
                 {t("auth.welcomeTitle", { brand: BRAND.name })}

@@ -15,7 +15,7 @@ export function BrandLogo({ size = 44, className, priority }: BrandLogoProps) {
       alt={`${BRAND.name} 로고`}
       width={size}
       height={size}
-      className={cn("object-contain shrink-0", className)}
+      className={cn("shrink-0 object-contain", className)}
       priority={priority}
     />
   );

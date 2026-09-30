@@ -14,7 +14,7 @@ import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import { BrandLogoLockup } from "@/components/brand/brand-logo-lockup";
 import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { NaverLocalPartField } from "@/components/auth/naver-local-part-field";
 import { BRAND } from "@/lib/brand";
@@ -218,9 +218,7 @@ export function SignupNaverForm() {
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
-            <BrandLogo size={48} priority />
-          </div>
+          <BrandLogoLockup size={72} priority className="mx-auto" />
           <SignupStepIndicator step={1} locale={locale} />
           <div className="space-y-1">
             <CardTitle className="text-xl font-semibold">
