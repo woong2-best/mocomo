@@ -11,7 +11,7 @@ export default async function AuthErrorPage({
 
   const messages: Record<string, string> = {
     Configuration:
-      "Vercel Production 환경 변수가 빠졌거나 잘못됐습니다. AUTH_SECRET(32자 이상), DATABASE_URL, AUTH_URL을 확인한 뒤 Redeploy 하세요.",
+      "로그인 처리 중 서버 오류가 났습니다. 미가입 Google 계정은 생년월일 가입으로 보내야 하는데, OAuth 설정 문제나 서버 예외가 나면 이 화면으로 올 수 있습니다. Vercel 로그에서 [auth][error] 또는 OAUTH_SIGNUP을 확인하고, 아래 환경 변수를 점검한 뒤 Redeploy 하세요.",
     AccessDenied:
       "접근이 거부되었습니다. 이메일 인증이 완료되지 않았거나, 계정 이용이 제한된 상태일 수 있습니다.",
     Verification: "인증 링크가 만료되었습니다.",
@@ -52,6 +52,9 @@ export default async function AuthErrorPage({
                 </li>
                 <li>
                   <code>DATABASE_URL</code>, <code>DIRECT_URL</code> — Supabase 연결
+                </li>
+                <li>
+                  <code>OAUTH_ENCRYPTION_KEY</code> — Google OAuth 필수 (32바이트 base64/hex)
                 </li>
                 <li>Google: <code>AUTH_GOOGLE_ID</code>, <code>AUTH_GOOGLE_SECRET</code></li>
                 <li>Discord: <code>AUTH_DISCORD_ID</code>, <code>AUTH_DISCORD_SECRET</code></li>

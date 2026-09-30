@@ -203,6 +203,84 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return mobileOptsFromAuthCallbackUrl(callbackUrl);
       }
 
+      type OAuthSignupProvider = "discord" | "twitter" | "line" | "naver" | "google";
+
+      function isOAuthSignupProvider(
+        provider: string | undefined
+      ): provider is OAuthSignupProvider {
+        return (
+          provider === "discord" ||
+          provider === "twitter" ||
+          provider === "line" ||
+          provider === "naver" ||
+          provider === "google"
+        );
+      }
+
+      /** Unregistered OAuth → birth-date signup (web) or mobile pending-signup. */
+      async function redirectUnregisteredOAuthToSignup(): Promise<string | false> {
+        if (!oauthProviderEmailVerified()) return false;
+
+        const mobile = await readMobileSignupRedirectOpts();
+        if (
+          !account?.providerAccountId ||
+          !isOAuthSignupProvider(account.provider)
+        ) {
+          return authCallbackRedirect(
+            signupRedirectForUnregistered(addingAccount, "not_registered", mobile)
+          );
+        }
+
+        const provider = account.provider;
+        const profile = {
+          email: user.email?.trim().toLowerCase() || null,
+          name: user.name ?? null,
+          image: user.image ?? null,
+        };
+
+        if (mobile) {
+          const handoff = sealMobileOAuthNeedsSignup({
+            provider,
+            sub: account.providerAccountId,
+            profile,
+          });
+          try {
+            const { cookies: cookieStore } = await import("next/headers");
+            const jar = await cookieStore();
+            const secure = process.env.NODE_ENV === "production";
+            jar.set(MOBILE_SIGNUP_HANDOFF_COOKIE, handoff, {
+              path: "/",
+              maxAge: 1800,
+              sameSite: "lax",
+              secure,
+              httpOnly: true,
+            });
+          } catch (e) {
+            console.error("[auth][signup-handoff] mobile cookie failed", e);
+          }
+          const platform = mobile.platform === "ios" ? "ios" : "android";
+          return authCallbackRedirect(
+            `/auth/mobile/oauth/pending-signup?platform=${platform}&from=mobile`
+          );
+        }
+
+        try {
+          const handoff = sealWebOAuthPendingSignup({
+            provider,
+            sub: account.providerAccountId,
+            profile,
+          });
+          await setWebOAuthPendingSignupCookie(handoff);
+          const addQs = addingAccount ? "?addAccount=1" : "";
+          return authCallbackRedirect(`/auth/complete-oauth-signup${addQs}`);
+        } catch (e) {
+          console.error("[auth][signup-handoff] web pending cookie failed", e);
+          return authCallbackRedirect(
+            signupRedirectForUnregistered(addingAccount, "not_registered", mobile)
+          );
+        }
+      }
+
       if (isOAuth && (oauthFlow === "signin" || oauthFlow === null)) {
         let existing: SignInUserRow | null = null;
 
@@ -217,49 +295,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (!existing) {
-          const mobile = await readMobileSignupRedirectOpts();
-          if (mobile && account?.provider && account.providerAccountId) {
-            const provider = account.provider as
-              | "discord"
-              | "twitter"
-              | "line"
-              | "naver"
-              | "google";
-            if (
-              provider === "discord" ||
-              provider === "twitter" ||
-              provider === "line" ||
-              provider === "naver" ||
-              provider === "google"
-            ) {
-              const handoff = sealMobileOAuthNeedsSignup({
-                provider,
-                sub: account.providerAccountId,
-                profile: {
-                  email: user.email?.trim().toLowerCase() || null,
-                  name: user.name ?? null,
-                  image: user.image ?? null,
-                },
-              });
-              const { cookies: cookieStore } = await import("next/headers");
-              const jar = await cookieStore();
-              const secure = process.env.NODE_ENV === "production";
-              jar.set(MOBILE_SIGNUP_HANDOFF_COOKIE, handoff, {
-                path: "/",
-                maxAge: 1800,
-                sameSite: "lax",
-                secure,
-                httpOnly: true,
-              });
-              const platform = mobile.platform === "ios" ? "ios" : "android";
-              return authCallbackRedirect(
-                `/auth/mobile/oauth/pending-signup?platform=${platform}&from=mobile`
-              );
-            }
-          }
-          return authCallbackRedirect(
-            signupRedirectForUnregistered(addingAccount, "not_registered", mobile)
-          );
+          const signupRedirect = await redirectUnregisteredOAuthToSignup();
+          if (signupRedirect) return signupRedirect;
+          return false;
         }
         if (!oauthProviderEmailVerified()) {
           return false;
@@ -279,59 +317,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           : await resolveUserByEmail(user.email);
 
         if (!existing) {
-          if (!oauthProviderEmailVerified()) return false;
-          const provider = account?.provider as
-            | "discord"
-            | "twitter"
-            | "line"
-            | "naver"
-            | "google"
-            | undefined;
-          if (
-            !account?.providerAccountId ||
-            (provider !== "discord" &&
-              provider !== "twitter" &&
-              provider !== "line" &&
-              provider !== "naver" &&
-              provider !== "google")
-          ) {
-            return false;
-          }
-          const profile = {
-            email: user.email?.trim().toLowerCase() || null,
-            name: user.name ?? null,
-            image: user.image ?? null,
-          };
-          const mobile = await readMobileSignupRedirectOpts();
-          if (mobile) {
-            const handoff = sealMobileOAuthNeedsSignup({
-              provider,
-              sub: account.providerAccountId,
-              profile,
-            });
-            const { cookies: cookieStore } = await import("next/headers");
-            const jar = await cookieStore();
-            const secure = process.env.NODE_ENV === "production";
-            jar.set(MOBILE_SIGNUP_HANDOFF_COOKIE, handoff, {
-              path: "/",
-              maxAge: 1800,
-              sameSite: "lax",
-              secure,
-              httpOnly: true,
-            });
-            const platform = mobile.platform === "ios" ? "ios" : "android";
-            return authCallbackRedirect(
-              `/auth/mobile/oauth/pending-signup?platform=${platform}&from=mobile`
-            );
-          }
-          const handoff = sealWebOAuthPendingSignup({
-            provider,
-            sub: account.providerAccountId,
-            profile,
-          });
-          await setWebOAuthPendingSignupCookie(handoff);
-          const addQs = addingAccount ? "?addAccount=1" : "";
-          return authCallbackRedirect(`/auth/complete-oauth-signup${addQs}`);
+          const signupRedirect = await redirectUnregisteredOAuthToSignup();
+          if (signupRedirect) return signupRedirect;
+          return false;
         }
         if (existing.emailVerified && addingAccount) {
           const mobile = await readMobileSignupRedirectOpts();

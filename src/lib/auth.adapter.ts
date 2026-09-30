@@ -48,13 +48,12 @@ export function createPrismaAuthAdapter(): Adapter {
           oauthFlow = "signup";
         }
       }
-      if (oauthFlow !== "signup") {
-        throw new Error("OAUTH_SIGNUP_REQUIRED");
-      }
-
       // Accounts are created only after birth date + terms on
       // /auth/complete-oauth-signup or mobile complete-signup APIs.
-      throw new Error("OAUTH_SIGNUP_INCOMPLETE");
+      // signIn should redirect before createUser runs; this is a safety net only.
+      throw new Error(
+        oauthFlow !== "signup" ? "OAUTH_SIGNUP_REQUIRED" : "OAUTH_SIGNUP_INCOMPLETE"
+      );
     },
 
     getUserByEmail: async (email) => {
@@ -71,7 +70,9 @@ export function createPrismaAuthAdapter(): Adapter {
 
     getUserByAccount: async ({ provider, providerAccountId }) => {
       if (isOAuthVaultProvider(provider)) {
-        assertOAuthEncryptionReady();
+        // Must not throw before the signIn callback — Auth.js maps adapter errors to
+        // error=Configuration. Let signIn redirect unregistered users to signup.
+        if (!isOAuthEncryptionConfigured()) return null;
         const match = await findOAuthAccountBySub(provider, providerAccountId);
         return match ? toAdapterUser(match.user) : null;
       }
