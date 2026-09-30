@@ -61,6 +61,7 @@ export function PostCard({ post, paymentsEnabled = false }: PostCardProps) {
             supportTierSent: post.author.supportTierSent ?? "SEED",
           }}
           collaborators={post.collaborators}
+          qna={Boolean(post.community?.slug)}
           trailing={
             <>
               {post.community && (

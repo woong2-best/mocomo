@@ -71,6 +71,7 @@ export function ProfilePostCard({
               <PostCollaboratorsHeader
                 author={post.author}
                 collaborators={post.collaborators}
+                qna={Boolean(post.community?.slug)}
                 trailing={
                   <Link href={`/post/${post.id}`} className="hover:underline">
                     <time dateTime={createdAt.toISOString()}>

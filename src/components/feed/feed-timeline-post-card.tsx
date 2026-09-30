@@ -108,20 +108,27 @@ export function FeedTimelinePostCard({
                     </time>
                   </PrefetchLink>
                 }
-                showIdHandle={Boolean(post.community)}
+                qna={qna}
                 anonymous={!!post.isAnonymous}
               />
               {post.community?.slug ? (
                 <PrefetchLink
                   href={`/c/${post.community.slug}`}
-                  className="inline-flex max-w-full items-center text-[12px] font-semibold text-primary hover:underline"
+                  className="inline-flex max-w-full items-center text-[12px] font-bold text-folk-cobalt hover:underline"
                 >
                   <span className="truncate">{post.community.name}</span>
                 </PrefetchLink>
               ) : null}
               {post.title && (
                 <PrefetchLink href={postHref} className="block">
-                  <p className="font-semibold text-[15px] mb-1">{post.title}</p>
+                  <p
+                    className={cn(
+                      "font-semibold text-[15px] mb-1",
+                      qna ? "text-folk-cobalt hover:underline" : undefined
+                    )}
+                  >
+                    {post.title}
+                  </p>
                 </PrefetchLink>
               )}
               {post.content && (

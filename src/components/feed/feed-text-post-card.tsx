@@ -23,6 +23,7 @@ import { PostPollCard } from "@/components/post/post-poll-card";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engage";
+import { QnaQuestionMark } from "@/components/post/qna-question-mark";
 
 function postTypeLabel(type: string, locale: string): string | undefined {
   const labels: Record<string, [string, string]> = {
@@ -91,32 +92,40 @@ export function FeedTextPostCard({
     <Card className="folk-post-card group w-full">
       <CardContent className="p-0 flex flex-col">
         <div className="flex items-center gap-2 p-3 pb-2">
-          <Link href={`/u/${post.author.username}`} onClick={(e) => e.stopPropagation()}>
-            <Avatar className="h-8 w-8 ring-2 ring-folk-gold/50 group-hover:ring-folk-terracotta/60 transition-all border-2 border-folk-cobalt/20">
-              <AvatarImage src={post.author.image ?? undefined} />
-              <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
-            </Avatar>
-          </Link>
-          <div className="flex-1 min-w-0">
-            <Link
-              href={`/u/${post.author.username}`}
-              className="hover:text-primary block min-w-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <DisplayNameWithSupportTier
-                name={displayName}
-                tier={post.author.supportTierSent ?? "SEED"}
-                nameClassName="font-semibold text-sm"
-                compact
-              />
+          {qna ? (
+            <QnaQuestionMark className="scale-[0.85] origin-left" />
+          ) : (
+            <Link href={`/u/${post.author.username}`} onClick={(e) => e.stopPropagation()}>
+              <Avatar className="h-8 w-8 ring-2 ring-folk-gold/50 group-hover:ring-folk-terracotta/60 transition-all border-2 border-folk-cobalt/20">
+                <AvatarImage src={post.author.image ?? undefined} />
+                <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
+              </Avatar>
             </Link>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {post.postType && post.postType !== "GENERAL" && (
-                <span className="folk-tag">
-                  {postTypeLabel(post.postType, locale) || post.postType}
-                </span>
-              )}
-            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            {qna ? null : (
+              <>
+                <Link
+                  href={`/u/${post.author.username}`}
+                  className="hover:text-primary block min-w-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <DisplayNameWithSupportTier
+                    name={displayName}
+                    tier={post.author.supportTierSent ?? "SEED"}
+                    nameClassName="font-semibold text-sm"
+                    compact
+                  />
+                </Link>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {post.postType && post.postType !== "GENERAL" && (
+                    <span className="folk-tag">
+                      {postTypeLabel(post.postType, locale) || post.postType}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <span className="text-[10px] text-muted-foreground">

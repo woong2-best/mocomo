@@ -8,6 +8,7 @@ import type { SupportTierLevel } from "@prisma/client";
 import { useLocale } from "@/components/providers/locale-provider";
 import { ANONYMOUS_AUTHOR_USERNAME, ANONYMOUS_DISPLAY_NAME } from "@/lib/anonymous-post";
 import { cn } from "@/lib/utils";
+import { QnaQuestionMark } from "@/components/post/qna-question-mark";
 
 export type CollabHeaderUser = {
   id: string;
@@ -34,6 +35,8 @@ type Props = {
   /** 커뮤니티 갤러리 — 닉네임 옆에 (아이디) */
   showIdHandle?: boolean;
   anonymous?: boolean;
+  /** QnA/community post — cobalt Q mark instead of avatar; hide author row */
+  qna?: boolean;
 };
 
 /**
@@ -48,8 +51,21 @@ export function PostCollaboratorsHeader({
   className,
   showIdHandle = false,
   anonymous = false,
+  qna = false,
 }: Props) {
   const { t } = useLocale();
+
+  if (qna) {
+    return (
+      <div className={cn("flex items-start gap-2.5 min-w-0", className)}>
+        <QnaQuestionMark size={size} />
+        {trailing ? (
+          <div className="min-w-0 flex-1 text-xs text-muted-foreground pt-0.5">{trailing}</div>
+        ) : null}
+      </div>
+    );
+  }
+
   const displayAnonymous = anonymous || author.username === ANONYMOUS_AUTHOR_USERNAME;
   const others = displayAnonymous
     ? []

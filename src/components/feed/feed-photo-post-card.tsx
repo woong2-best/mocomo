@@ -22,6 +22,7 @@ import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engag
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { FeedPostMediaCarousel } from "@/components/feed/feed-post-media-carousel";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
+import { QnaQuestionMark } from "@/components/post/qna-question-mark";
 
 const CAPTION_PREVIEW_LEN = 80;
 
@@ -84,17 +85,25 @@ export function FeedPhotoPostCard({
   return (
     <article className="border-b border-border bg-background">
       <header className="flex items-center gap-2.5 px-3 py-2.5">
-        <Link href={`/u/${username}`} className="shrink-0">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={post.author.image ?? undefined} />
-            <AvatarFallback className="text-xs">{username[0]?.toUpperCase()}</AvatarFallback>
-          </Avatar>
-        </Link>
-        <div className="flex-1 min-w-0 flex items-center gap-1 text-sm">
-          <Link href={`/u/${username}`} className="font-semibold truncate hover:opacity-80">
-            {username}
+        {qna ? (
+          <QnaQuestionMark className="scale-[0.85] origin-left" />
+        ) : (
+          <Link href={`/u/${username}`} className="shrink-0">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={post.author.image ?? undefined} />
+              <AvatarFallback className="text-xs">{username[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
           </Link>
-          <span className="text-muted-foreground shrink-0">·</span>
+        )}
+        <div className="flex-1 min-w-0 flex items-center gap-1 text-sm">
+          {qna ? null : (
+            <>
+              <Link href={`/u/${username}`} className="font-semibold truncate hover:opacity-80">
+                {username}
+              </Link>
+              <span className="text-muted-foreground shrink-0">·</span>
+            </>
+          )}
           <time className="text-muted-foreground shrink-0" dateTime={createdAt.toISOString()}>
             {formatFeedRelativeTime(createdAt)}
           </time>

@@ -71,7 +71,7 @@ export function PostDetailCard({
               author={post.author}
               collaborators={collaborators}
               size="md"
-              showIdHandle={!post.isAnonymous}
+              qna={Boolean(post.community)}
               anonymous={!!post.isAnonymous}
               trailing={
                 <span>
@@ -102,7 +102,11 @@ export function PostDetailCard({
           status={viewerCollabStatus}
           isAuthor={isOwner}
         />
-        {post.title && <h1 className="text-xl font-bold">{post.title}</h1>}
+        {post.title && (
+          <h1 className={post.community ? "text-xl font-bold text-folk-cobalt" : "text-xl font-bold"}>
+            {post.title}
+          </h1>
+        )}
         {post.content ? (
           <TranslatableText text={post.content} as="p" className="whitespace-pre-wrap" />
         ) : null}
