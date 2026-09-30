@@ -555,10 +555,15 @@ html[data-client="app"] .native-live-pad {
 
   .live-hub-live-neon__img {
     display: block;
-    height: 52px;
+    height: 56px;
     width: auto;
     max-width: none;
     object-fit: contain;
+    background: transparent;
+  }
+
+  .live-hub-chrome {
+    background: transparent;
   }
 
   .live-hub-toolbar {

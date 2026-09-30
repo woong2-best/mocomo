@@ -53,7 +53,7 @@ export function LiveHubNeonTabStrip({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/live/live-hub-neon-tabs.svg?v=1"
+          src="/images/live/live-hub-neon-tabs.svg?v=2"
           alt=""
           className="live-hub-neon-tabs-art pointer-events-none select-none"
           width={LIVE_NEON_TABS_STRIP_WIDTH}
