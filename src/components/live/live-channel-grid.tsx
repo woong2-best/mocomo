@@ -158,8 +158,8 @@ export function LiveChannelGrid({
   const isEmpty = visible.length === 0;
 
   return (
-    <div className="flex w-full flex-1 flex-col">
-      <div className="shrink-0 px-0.5 pb-2">
+    <div className="flex w-full min-w-0 max-w-full flex-1 flex-col overflow-x-clip">
+      <div className="shrink-0 min-w-0 max-w-full px-0.5 pb-2">
         <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
       </div>
       <div className="relative min-w-0">

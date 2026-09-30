@@ -56,10 +56,18 @@ export function LiveHubTabBar({
   return (
     <>
       <div className="live-hub-chrome">
-        <div className="live-hub-toolbar-row">
-          {showActions ? <LiveHubStudioButton href={studioHref} /> : null}
+        <div className="live-hub-neon-frame">
+          {showActions ? (
+            <div className="live-hub-side-on-line live-hub-side-on-line--left">
+              <LiveHubStudioButton href={studioHref} />
+            </div>
+          ) : null}
           <LiveHubNeonTabStrip active={active} onSelect={(id) => void select(id)} disabled={checking} />
-          {showActions ? <LiveHubLiveButton href={liveHref} /> : null}
+          {showActions ? (
+            <div className="live-hub-side-on-line live-hub-side-on-line--right">
+              <LiveHubLiveButton href={liveHref} />
+            </div>
+          ) : null}
         </div>
       </div>
       <LiveR18BlockedDialog open={blockedOpen} onOpenChange={setBlockedOpen} />

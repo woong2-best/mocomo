@@ -3,8 +3,8 @@
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
 import { cn } from "@/lib/utils";
 
-/** Fixed strip width — tabs never shrink; scroll horizontally on narrow viewports. */
-export const LIVE_NEON_TABS_STRIP_WIDTH = 1680;
+/** Design reference width — strip scales to fit the content column (no horizontal scroll). */
+export const LIVE_NEON_TABS_DESIGN_WIDTH = 1680;
 const VIEWBOX_WIDTH = 2576;
 const VIEWBOX_X0 = 32;
 
@@ -41,22 +41,17 @@ export function LiveHubNeonTabStrip({
   return (
     <div
       className={cn(
-        "live-hub-neon-tabs-scroll min-w-0 flex-1",
+        "live-hub-neon-tabs-scroll min-w-0 w-full",
         disabled && "pointer-events-none opacity-70"
       )}
     >
-      <div
-        className="live-hub-neon-tabs-strip"
-        style={{ width: LIVE_NEON_TABS_STRIP_WIDTH, minWidth: LIVE_NEON_TABS_STRIP_WIDTH }}
-        role="tablist"
-        aria-label="라이브 카테고리"
-      >
+      <div className="live-hub-neon-tabs-strip w-full" role="tablist" aria-label="라이브 카테고리">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/live/live-hub-neon-tabs.svg?v=2"
           alt=""
           className="live-hub-neon-tabs-art pointer-events-none select-none"
-          width={LIVE_NEON_TABS_STRIP_WIDTH}
+          width={LIVE_NEON_TABS_DESIGN_WIDTH}
           height={234}
           draggable={false}
         />
