@@ -15,7 +15,7 @@ import { isPaymentsConfigured } from "@/lib/payments";
 import { canViewNsfwResource } from "@/lib/nsfw-viewer-access";
 import { redactQnaPublicPost } from "@/lib/anonymous-post";
 import { hydrateViewerPollVotes, mapPostPollRow, postPollSelect } from "@/lib/post-poll";
-import { areUsersBlocked } from "@/lib/user-block";
+import { applyViewerBlockPolicyToPosts, areUsersBlocked } from "@/lib/user-block";
 
 export async function GET(
   req: NextRequest,
@@ -110,10 +110,13 @@ export async function GET(
     { ...withPoll, isAnonymous: post.isAnonymous, communityId: post.communityId },
     viewerId
   );
+  const [policyPost] = await applyViewerBlockPolicyToPosts(viewerId, [
+    { ...publicPost, author: post.author, id: post.id, _count: post._count },
+  ]);
 
   return NextResponse.json({
     post: {
-      ...publicPost,
+      ...policyPost,
       createdAt: post.createdAt.toISOString(),
       liked: engagement.likedIds.includes(post.id),
       starred: engagement.starredIds.includes(post.id),

@@ -17,6 +17,7 @@ import {
   getPurchasedMessageAttachmentIds,
 } from "@/lib/message-paid-media";
 import { contactPermissions, dmSendBlockReason, incomingContactDecision } from "@/lib/contact-audience";
+import { areUsersBlocked, filterDmInboxByBlock, getBlockedUserIdSet } from "@/lib/user-block";
 import { presentMobileUsedListingMessages } from "@/lib/used-listing-share-card";
 
 async function assertRoomMember(roomId: string, userId: string) {
@@ -96,7 +97,8 @@ export async function listMobileDmInbox(userId: string) {
     orderBy: { updatedAt: "desc" },
   });
 
-  return rooms.map((room) => {
+  const blocked = await getBlockedUserIdSet(userId);
+  const mapped = rooms.map((room) => {
     const meta = getConversationMeta(room, userId);
     const me = room.members.find((m) => m.userId === userId);
     const last = room.messages[0];
@@ -117,6 +119,7 @@ export async function listMobileDmInbox(userId: string) {
       unread,
     };
   });
+  return filterDmInboxByBlock(mapped, blocked);
 }
 
 export async function getOrCreateDmForUser(actorId: string, otherUserId: string) {
@@ -211,6 +214,45 @@ export async function getMobileRoomMessages(
   });
   if (!room) {
     return { error: "NOT_FOUND" as const };
+  }
+
+  const dmPeerId =
+    room.type === "DM"
+      ? room.members.find((member) => member.userId !== userId)?.userId
+      : undefined;
+  if (dmPeerId && (await areUsersBlocked(userId, dmPeerId))) {
+    const meta = getConversationMeta(
+      {
+        id: room.id,
+        type: room.type,
+        name: room.name,
+        members: room.members,
+        messages: [],
+      },
+      userId
+    );
+    return {
+      messagingBlocked: true as const,
+      blockMessage: "차단된 사용자와는 메시지를 주고받을 수 없습니다.",
+      room: {
+        id: room.id,
+        type: room.type,
+        displayName: meta.displayName,
+        displayImage: meta.displayImage,
+        otherUserId: meta.otherUserId ?? null,
+        profileUsername: meta.profileUsername ?? null,
+        memberCount: room.members.length,
+        members: room.members.map((m) => ({
+          userId: m.userId,
+          role: m.role,
+          user: m.user,
+        })),
+      },
+      messages: [],
+      nextBefore: null,
+      canMessage: false,
+      canCall: false,
+    };
   }
 
   const meta = getConversationMeta(

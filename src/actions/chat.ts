@@ -22,6 +22,7 @@ import {
   buildMessagesInboxWhere,
   getCommunityLinkedChatRoomIds,
 } from "@/lib/chat-inbox-eligibility";
+import { filterDmInboxByBlock, getBlockedUserIdSet } from "@/lib/user-block";
 import { addChatMemberByUsername } from "@/lib/chat-group-invite";
 import { dmSendBlockReason, incomingContactDecision } from "@/lib/contact-audience";
 import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
@@ -123,7 +124,17 @@ export async function getChatRooms(forUserId?: string) {
     },
     orderBy: { updatedAt: "desc" },
   });
-  return rooms;
+  const blocked = await getBlockedUserIdSet(userId);
+  return filterDmInboxByBlock(
+    rooms.map((room) => ({
+      ...room,
+      otherUserId:
+        room.type === "DM"
+          ? room.members.find((m) => m.userId !== userId)?.userId ?? null
+          : null,
+    })),
+    blocked
+  );
 }
 
 export async function sendMessage(data: {

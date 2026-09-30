@@ -1,6 +1,7 @@
 import type { SupportTierLevel } from "@prisma/client";
 import { db } from "@/lib/db";
 import { annotateCanMessage } from "@/lib/contact-audience";
+import { blockedIdList, getBlockedUserIdSet } from "@/lib/user-block";
 
 export type DmUserSearchHit = {
   id: string;
@@ -48,11 +49,13 @@ export async function searchUsersForDm(
   if (q.length < 1) return [];
 
   const match = usernamePrefixWhere(q);
+  const excludeIds = blockedIdList(await getBlockedUserIdSet(viewerId));
+  const idNotIn = [viewerId, ...excludeIds];
 
   const [followingRows, otherRows] = await Promise.all([
     db.user.findMany({
       where: {
-        id: { not: viewerId },
+        id: { notIn: idNotIn },
         deletedAt: null,
         followers: { some: { followerId: viewerId } },
         ...match,
@@ -63,7 +66,7 @@ export async function searchUsersForDm(
     }),
     db.user.findMany({
       where: {
-        id: { not: viewerId },
+        id: { notIn: idNotIn },
         deletedAt: null,
         NOT: { followers: { some: { followerId: viewerId } } },
         ...match,
@@ -91,11 +94,16 @@ export async function searchUsersForCollab(
   const q = normalizeDmSearchQuery(rawQuery);
   if (q.length < 1) return [];
 
+  const excludeIds = blockedIdList(await getBlockedUserIdSet(viewerId));
+  const blockedLookup = new Set([viewerId, ...excludeIds]);
+
   const [exactById, prefixHits] = await Promise.all([
-    db.user.findFirst({
-      where: { id: q, deletedAt: null, NOT: { id: viewerId } },
-      select: userSelect,
-    }),
+    blockedLookup.has(q)
+      ? Promise.resolve(null)
+      : db.user.findFirst({
+          where: { id: q, deletedAt: null },
+          select: userSelect,
+        }),
     searchUsersForDm(viewerId, q),
   ]);
 

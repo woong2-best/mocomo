@@ -43,6 +43,7 @@ import { hydrateViewerPollVotes, mapPostPollRow } from "@/lib/post-poll";
 import type { UserPublicFields } from "@/lib/user-public-select";
 import { nsfwPostWhere, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { loadProfilePostActivities } from "@/lib/repost-timeline";
+import { applyViewerBlockPolicyToPosts } from "@/lib/user-block";
 
 const PAGE_SIZE = 10;
 const MEDIA_GRID_PAGE_SIZE = 30;
@@ -153,7 +154,8 @@ async function enrichPostsWithMediaAccess(
     ...p,
     poll: p.poll ? mapPostPollRow(p.poll) : null,
   }));
-  return hydrateViewerPollVotes(withPoll, viewerId);
+  const hydrated = await hydrateViewerPollVotes(withPoll, viewerId);
+  return applyViewerBlockPolicyToPosts(viewerId, hydrated);
 }
 
 function mediaTypesForKind(kind: ProfileMediaKind): MediaType | MediaType[] {
@@ -218,6 +220,9 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     followsYou = !!followIn;
     followRequested = !!pendingRequest;
     relationship = rel;
+    if (relationship.blockedViewer) {
+      return null;
+    }
   }
 
   const canViewPosts =
@@ -286,12 +291,8 @@ export const getProfileTabContentMeta = cache(async function getProfileTabConten
   const subscriptionPriceKrw = creatorSubscriptionPriceForUser(
     header.user.creatorSubscriptionPriceKrw
   );
-  const profileBlocked =
-    !header.isSelf &&
-    (header.relationship.blockedByViewer || header.relationship.blockedViewer);
-  const blockedEmptyMessage = header.relationship.blockedByViewer
-    ? `@${header.user.username} 님을 차단했습니다. 게시물을 볼 수 없습니다.`
-    : `@${header.user.username} 님이 회원님을 차단했습니다.`;
+  const profileBlocked = !header.isSelf && header.relationship.blockedByViewer;
+  const blockedEmptyMessage = `@${header.user.username} 님을 차단했습니다. 게시물을 볼 수 없습니다.`;
 
   const viewerSub = header.isSelf
     ? { subscribed: false as const }
@@ -379,6 +380,7 @@ export async function getProfileTimeline(
 
     const { rows, nextCursor } = await loadProfilePostActivities({
       userId,
+      viewerId,
       cursor,
       limit: PAGE_SIZE,
       sort,
@@ -741,9 +743,7 @@ export const getProfileTabInitialPayload = cache(async function getProfileTabIni
     effectiveTab === "media" ? mediaKind : "all"
   );
 
-  const profileBlocked =
-    !header.isSelf &&
-    (header.relationship.blockedByViewer || header.relationship.blockedViewer);
+  const profileBlocked = !header.isSelf && header.relationship.blockedByViewer;
   const postsLockedFromViewer = !header.isSelf && !header.canViewPosts;
 
   if (effectiveTab === "wiki") {

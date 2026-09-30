@@ -72,6 +72,7 @@ export type FeedPost = {
     author: { id: string; username: string; name?: string | null; image: string | null };
     media?: { url: string; type: string; posterUrl?: string | null; duration?: number | null }[];
   } | null;
+  quotedPostBlocked?: boolean;
   activityKey?: string;
   activityAt?: string;
   /** Viewer’s profile-main slot (own posts only). */

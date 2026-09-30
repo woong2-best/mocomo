@@ -427,7 +427,15 @@ function FeedPostCardInner({
         </Pressable>
       ) : null}
 
-      {post.quotedPost ? (
+      {post.quotedPostBlocked ? (
+        <View style={styles.quoteCardOuter}>
+          <View style={[styles.quoteCard, styles.quoteBlocked]}>
+            <Text style={styles.quoteBlockedText}>
+              {u("차단된 사용자의 게시물입니다", "This post is from a blocked user.")}
+            </Text>
+          </View>
+        </View>
+      ) : post.quotedPost ? (
         <Pressable
           style={styles.quoteCardOuter}
           onPress={() => onPressPost?.(post.quotedPost!.id)}
@@ -671,6 +679,14 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       paddingHorizontal: 12,
       paddingTop: 10,
       paddingBottom: 8,
+    },
+    quoteBlocked: {
+      paddingVertical: 14,
+    },
+    quoteBlockedText: {
+      fontSize: 13,
+      color: colors.textMuted,
+      textAlign: "center",
     },
     quoteMediaWrap: {
       width: "100%",

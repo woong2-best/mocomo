@@ -7,7 +7,7 @@ import {
   fetchMobileFeedPostsByIds,
   fetchWebFeedPostsByIds,
 } from "@/lib/feed-query";
-import { getBlockedUserIdSet } from "@/lib/user-block";
+import { blockedIdList, getBlockedUserIdSet } from "@/lib/user-block";
 
 const ACTIVITY_PREFIX = "act1.";
 
@@ -109,6 +109,7 @@ type ProfileActivityPost = Prisma.PostGetPayload<{ include: typeof profilePostIn
 
 export async function loadProfilePostActivities(opts: {
   userId: string;
+  viewerId?: string | null;
   cursor?: string | null;
   limit: number;
   sort: "new" | "oldest" | "popular";
@@ -117,6 +118,12 @@ export async function loadProfilePostActivities(opts: {
   repostPostWhere?: Prisma.PostWhereInput;
   include: typeof profilePostIncludeLight;
 }) {
+  const blocked =
+    opts.viewerId && opts.viewerId !== opts.userId
+      ? await getBlockedUserIdSet(opts.viewerId)
+      : new Set<string>();
+  const excludeRepostAuthors = blockedIdList(blocked);
+
   const decoded = decodeCursor(opts.cursor);
   const popular = opts.sort === "popular";
   const oldest = opts.sort === "oldest";
@@ -162,6 +169,9 @@ export async function loadProfilePostActivities(opts: {
             ...(timeWhere ? { createdAt: timeWhere } : {}),
             post: {
               ...(opts.repostPostWhere ?? platformPostWhere),
+              ...(excludeRepostAuthors.length
+                ? { authorId: { notIn: excludeRepostAuthors } }
+                : {}),
               ...(popular && cursor ? { hotScore: { lte: cursor.score ?? 0 } } : {}),
             },
           },
@@ -210,6 +220,9 @@ export async function loadProfilePostActivities(opts: {
     });
 
   let merged = [...authored, ...reposted];
+  if (blocked.size) {
+    merged = merged.filter((row) => !blocked.has(row.post.authorId));
+  }
   merged = keepAfterCursor(merged, legacyPostCursor ? null : cursor, popular, oldest);
   merged.sort((a, b) => {
     if (popular) {

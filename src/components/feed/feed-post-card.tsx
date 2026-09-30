@@ -83,6 +83,7 @@ export type GridPost = {
     author: { id: string; username: string; name?: string | null; image: string | null };
     media?: { url: string; type: string; posterUrl?: string | null; duration?: number | null }[];
   } | null;
+  quotedPostBlocked?: boolean;
   activityKey?: string;
   activityAt?: string;
 };

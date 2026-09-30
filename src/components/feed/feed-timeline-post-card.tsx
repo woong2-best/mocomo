@@ -147,9 +147,10 @@ export function FeedTimelinePostCard({
                   />
                 </div>
               )}
-              {post.quotedPost ? (
+              {post.quotedPost || (post as { quotedPostBlocked?: boolean }).quotedPostBlocked ? (
                 <QuotedPostCard
                   post={post.quotedPost}
+                  quotedPostBlocked={(post as { quotedPostBlocked?: boolean }).quotedPostBlocked}
                   isOwner={isOwner}
                   viewerShowNsfw={false}
                 />

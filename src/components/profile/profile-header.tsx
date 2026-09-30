@@ -213,13 +213,12 @@ export function ProfileHeader({
           )}
         </div>
 
-        {!isSelf && isBlocked && (
-          <div className="mt-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm">
-            {blockedByViewer ? (
-              <p>@{user.username} 님을 차단했습니다. 게시물과 알림이 표시되지 않습니다.</p>
-            ) : (
-              <p>@{user.username} 님이 회원님을 차단했습니다.</p>
-            )}
+        {!isSelf && blockedByViewer && (
+          <div className="mt-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm space-y-1">
+            <p>@{user.username} 님을 차단했습니다. 게시물과 알림이 표시되지 않습니다.</p>
+            <p className="text-xs text-muted-foreground">
+              차단을 해제하려면 프로필 메뉴(···)에서 「차단 해제」를 선택하세요.
+            </p>
           </div>
         )}
 

@@ -3,7 +3,11 @@ import { userPublicSelect } from "@/lib/user-public-select";
 import { isOperatorIdentity } from "@/lib/operator-config";
 import { publicQnaCommentAuthor } from "@/lib/anonymous-post";
 import type { PostCommentSort } from "@/lib/post-queries";
-import { blockedIdList, getBlockedUserIdSet } from "@/lib/user-block";
+import {
+  blockedIdList,
+  countVisibleCommentsForPost,
+  getBlockedUserIdSet,
+} from "@/lib/user-block";
 
 export const MAX_PINNED_COMMENTS = 3;
 export const COMMENT_PAGE_SIZE = 20;
@@ -205,9 +209,15 @@ async function mapComments(
   }>,
   postAuthorId: string,
   viewerId: string | null,
-  anonymous = false
+  anonymous = false,
+  blockedAuthors: string[] = [],
+  hiddenRepliesByParent: Map<string, number> = new Map()
 ): Promise<SerializedComment[]> {
-  const replyIds = rows.flatMap((r) => (r.replies ?? []).map((x) => x.id));
+  const replyIds = rows.flatMap((r) =>
+    (r.replies ?? [])
+      .filter((x) => !blockedAuthors.includes(x.authorId))
+      .map((x) => x.id)
+  );
   const allIds = [...rows.map((r) => r.id), ...replyIds];
   const { likedByMe, likedByAuthor } = await loadLikeFlags(
     allIds,
@@ -215,7 +225,16 @@ async function mapComments(
     postAuthorId
   );
 
-  return rows.map((c) => ({
+  return rows
+    .filter((c) => !blockedAuthors.includes(c.authorId))
+    .map((c) => {
+    const visibleReplies = (c.replies ?? []).filter(
+      (r) => !blockedAuthors.includes(r.authorId)
+    );
+    const hiddenReplies = hiddenRepliesByParent.get(c.id) ?? 0;
+    const replyCount = Math.max(0, c._count.replies - hiddenReplies);
+
+    return {
     id: c.id,
     content: c.content,
     createdAt: c.createdAt.toISOString(),
@@ -227,9 +246,9 @@ async function mapComments(
     isPinned: !!c.pinnedAt,
     pinnedAt: c.pinnedAt ? c.pinnedAt.toISOString() : null,
     isEdited: isEdited(c.createdAt, c.updatedAt),
-    replyCount: Math.max(c._count.replies, c.replies?.length ?? 0),
+    replyCount,
     author: serializeAuthor(c.author, { anonymous, viewerId }),
-    replies: (c.replies ?? []).map((r) => ({
+    replies: visibleReplies.map((r) => ({
       id: r.id,
       content: r.content,
       createdAt: r.createdAt.toISOString(),
@@ -241,7 +260,8 @@ async function mapComments(
       isEdited: isEdited(r.createdAt, r.updatedAt),
       author: serializeAuthor(r.author, { anonymous, viewerId }),
     })),
-  }));
+  };
+  });
 }
 
 export async function getPostCommentsPage(params: {
@@ -260,9 +280,10 @@ export async function getPostCommentsPage(params: {
   );
   const cursor = decodeCursor(params.cursor ?? null);
   const includePinned = params.includePinned !== false && !cursor;
-  const blockedAuthors = params.viewerId
-    ? blockedIdList(await getBlockedUserIdSet(params.viewerId))
-    : [];
+  const blockedSet = params.viewerId
+    ? await getBlockedUserIdSet(params.viewerId)
+    : new Set<string>();
+  const blockedAuthors = blockedIdList(blockedSet);
   const authorVisibleWhere =
     blockedAuthors.length > 0
       ? {
@@ -306,7 +327,8 @@ export async function getPostCommentsPage(params: {
       pinnedRows,
       params.postAuthorId,
       params.viewerId ?? null,
-      params.anonymous
+      params.anonymous,
+      blockedAuthors
     );
   }
 
@@ -377,11 +399,31 @@ export async function getPostCommentsPage(params: {
 
   const hasMore = rows.length > limit;
   const pageRows = hasMore ? rows.slice(0, limit) : rows;
+  const parentIds = pageRows.map((r) => r.id);
+  const hiddenRepliesByParent = new Map<string, number>();
+  if (blockedAuthors.length && parentIds.length) {
+    const grouped = await db.comment.groupBy({
+      by: ["parentId"],
+      where: {
+        parentId: { in: parentIds },
+        authorId: { in: blockedAuthors },
+        deletedAt: null,
+        hiddenAt: null,
+      },
+      _count: { _all: true },
+    });
+    for (const row of grouped) {
+      if (row.parentId) hiddenRepliesByParent.set(row.parentId, row._count._all);
+    }
+  }
+
   const page = await mapComments(
     pageRows,
     params.postAuthorId,
     params.viewerId ?? null,
-    params.anonymous
+    params.anonymous,
+    blockedAuthors,
+    hiddenRepliesByParent
   );
 
   const last = pageRows[pageRows.length - 1];
@@ -395,9 +437,11 @@ export async function getPostCommentsPage(params: {
         })
       : null;
 
-  const total = await db.comment.count({
-    where: { postId: params.postId, ...authorVisibleWhere },
-  });
+  const total = await countVisibleCommentsForPost(
+    params.postId,
+    params.viewerId ?? null,
+    blockedSet
+  );
 
   return {
     pinned,

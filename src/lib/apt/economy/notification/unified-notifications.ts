@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { blockedIdList, filterOutBlockedUserIds, getBlockedUserIdSet } from "@/lib/user-block";
 import {
   aptNotificationCategory,
   type AptNotificationType,
@@ -43,8 +44,16 @@ function aptToRow(n: {
 }
 
 export async function getUnifiedUnreadCount(userId: string): Promise<number> {
+  const blocked = blockedIdList(await getBlockedUserIdSet(userId));
+  const socialWhere = {
+    userId,
+    read: false,
+    ...(blocked.length
+      ? { OR: [{ actorId: null }, { actorId: { notIn: blocked } }] }
+      : {}),
+  };
   const [social, apt] = await Promise.all([
-    db.notification.count({ where: { userId, read: false } }),
+    db.notification.count({ where: socialWhere }),
     countAptUnread(userId),
   ]);
   return social + apt;
@@ -55,10 +64,18 @@ export async function listUnifiedNotifications(
   options?: { category?: string | null; limit?: number }
 ): Promise<NotificationRow[]> {
   const limit = options?.limit ?? 80;
+  const blocked = await getBlockedUserIdSet(userId);
+  const excludeActors = blockedIdList(blocked);
 
   const [social, apt] = await Promise.all([
     db.notification.findMany({
-      where: { userId, createdAt: { gte: socialRetentionSince() } },
+      where: {
+        userId,
+        createdAt: { gte: socialRetentionSince() },
+        ...(excludeActors.length
+          ? { OR: [{ actorId: null }, { actorId: { notIn: excludeActors } }] }
+          : {}),
+      },
       orderBy: { createdAt: "desc" },
       take: limit,
       include: { actor: { select: { id: true, username: true, image: true } } },
@@ -66,8 +83,10 @@ export async function listUnifiedNotifications(
     listAptNotifications(userId, { limit }),
   ]);
 
+  const socialVisible = filterOutBlockedUserIds(social, blocked, (n) => n.actorId ?? "");
+
   let rows: NotificationRow[] = [
-    ...social.map((n) => ({
+    ...socialVisible.map((n) => ({
       id: n.id,
       source: "social" as const,
       type: n.type,

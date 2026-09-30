@@ -106,6 +106,9 @@ export async function GET(
   const canViewNsfw = await resolveCanViewNsfw(viewerId);
   const isSelf = viewerId === user.id;
   const relationship = await getUserRelationship(viewerId, user.id);
+  if (!isSelf && relationship.blockedViewer) {
+    return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+  }
   const perms =
     viewerId && !isSelf
       ? await contactPermissions(viewerId, user.id)

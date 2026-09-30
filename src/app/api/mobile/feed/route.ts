@@ -12,6 +12,7 @@ import { db } from "@/lib/db";
 import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { hydrateViewerPollVotes } from "@/lib/post-poll";
 import { withRepostActivities } from "@/lib/repost-timeline";
+import { applyViewerBlockPolicyToPosts } from "@/lib/user-block";
 
 export async function GET(req: NextRequest) {
   try {
@@ -68,8 +69,10 @@ export async function GET(req: NextRequest) {
     const authorIds = [...new Set(visible.map((p) => p.author.id))];
 
     // Mobile: no in-feed ads — Instagram-style placement is Reels-only.
+    const blockPolicyPosts = await applyViewerBlockPolicyToPosts(viewerId, visible);
+
     const [gated, subscriptions, engagement, viewerPin] = await Promise.all([
-      attachWebPaidMediaPlayback(visible, viewerId),
+      attachWebPaidMediaPlayback(blockPolicyPosts, viewerId),
       getSubscriptionsForViewer(viewerId, authorIds),
       viewerId && postIds.length > 0
         ? getPostEngagementForUser(viewerId, postIds)

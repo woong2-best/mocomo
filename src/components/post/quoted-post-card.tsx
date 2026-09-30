@@ -1,16 +1,22 @@
 import type { GridPost } from "@/components/feed/feed-post-card";
+import { BlockedQuotedPostCard } from "@/components/post/blocked-quoted-post-card";
 import { QuotePostPreviewCard } from "@/components/post/quote-post-preview-card";
 import { toQuotedPostPreview } from "@/lib/quoted-post";
 
 export function QuotedPostCard({
   post,
+  quotedPostBlocked = false,
   isOwner = false,
   viewerShowNsfw = false,
 }: {
-  post: NonNullable<GridPost["quotedPost"]>;
+  post?: NonNullable<GridPost["quotedPost"]> | null;
+  quotedPostBlocked?: boolean;
   isOwner?: boolean;
   viewerShowNsfw?: boolean;
 }) {
+  if (quotedPostBlocked || !post) {
+    return <BlockedQuotedPostCard className="mt-3" />;
+  }
   const preview = toQuotedPostPreview({
     id: post.id,
     title: post.title ?? null,
