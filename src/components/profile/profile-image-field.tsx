@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageEditorDialog } from "@/components/media/editor/image-editor-dialog";
 import { readFileAsObjectUrl } from "@/lib/crop-image";
+import { uploadImageBlob } from "@/lib/client-upload";
 import { avatarShapeClass } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
@@ -60,27 +61,48 @@ type ProfileImageFieldProps = {
   value: string;
   onChange: (url: string) => void;
   previewClassName?: string;
+  /** Signup: file upload only — no crop editor or URL field. */
+  uploadOnly?: boolean;
 };
 
-export function ProfileImageField({ kind, name, value, onChange, previewClassName }: ProfileImageFieldProps) {
+export function ProfileImageField({
+  kind,
+  name,
+  value,
+  onChange,
+  previewClassName,
+  uploadOnly = false,
+}: ProfileImageFieldProps) {
   const cfg = CONFIG[kind];
   const fileRef = useRef<HTMLInputElement>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [cropOpen, setCropOpen] = useState(false);
   const [picking, setPicking] = useState(false);
   const [showUrl, setShowUrl] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     const allowed = ACCEPT.split(",");
-    if (!allowed.includes(file.type)) return;
+    if (!allowed.includes(file.type)) {
+      setUploadError("JPEG, PNG, WebP, GIF 이미지만 업로드할 수 있습니다.");
+      return;
+    }
     setPicking(true);
+    setUploadError("");
     try {
+      if (uploadOnly) {
+        const url = await uploadImageBlob(file, cfg.uploadFilename);
+        onChange(url);
+        return;
+      }
       const src = await readFileAsObjectUrl(file);
       setCropSrc(src);
       setCropOpen(true);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "업로드에 실패했습니다.");
     } finally {
       setPicking(false);
     }
@@ -92,16 +114,18 @@ export function ProfileImageField({ kind, name, value, onChange, previewClassNam
 
       <div className="flex items-center justify-between gap-2">
         <label className="text-sm font-medium">{cfg.label}</label>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-xs h-8 rounded-lg"
-          onClick={() => setShowUrl((v) => !v)}
-        >
-          <Link2 className="h-3.5 w-3.5 mr-1" />
-          {showUrl ? "URL 숨기기" : "URL로 입력"}
-        </Button>
+        {!uploadOnly ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-xs h-8 rounded-lg"
+            onClick={() => setShowUrl((v) => !v)}
+          >
+            <Link2 className="h-3.5 w-3.5 mr-1" />
+            {showUrl ? "URL 숨기기" : "URL로 입력"}
+          </Button>
+        ) : null}
       </div>
 
       {kind === "banner" || kind === "cover" ? (
@@ -154,7 +178,7 @@ export function ProfileImageField({ kind, name, value, onChange, previewClassNam
           onClick={() => fileRef.current?.click()}
         >
           {picking ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-          사진 올리기
+          {uploadOnly ? "파일 업로드" : "사진 올리기"}
         </Button>
         {value && (
           <Button type="button" variant="ghost" size="sm" className="rounded-xl text-muted-foreground" onClick={() => onChange("")}>
@@ -165,7 +189,7 @@ export function ProfileImageField({ kind, name, value, onChange, previewClassNam
 
       <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={onFileChange} />
 
-      {showUrl && (
+      {showUrl && !uploadOnly ? (
         <Input
           type="url"
           value={value}
@@ -173,9 +197,13 @@ export function ProfileImageField({ kind, name, value, onChange, previewClassNam
           placeholder="https://... 또는 /uploads/..."
           className="rounded-xl text-sm"
         />
-      )}
+      ) : null}
 
-      {cropSrc && (
+      {uploadError ? (
+        <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-2 py-1.5">{uploadError}</p>
+      ) : null}
+
+      {!uploadOnly && cropSrc ? (
         <ImageEditorDialog
           open={cropOpen}
           onOpenChange={(o) => {
@@ -195,7 +223,7 @@ export function ProfileImageField({ kind, name, value, onChange, previewClassNam
             setCropSrc(null);
           }}
         />
-      )}
+      ) : null}
     </div>
   );
 }

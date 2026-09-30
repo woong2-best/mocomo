@@ -10,15 +10,9 @@ import { AuthBrandWordmark } from "@/components/auth/auth-brand-wordmark";
 import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/components/providers/locale-provider";
 
-export function CompleteAvatarForm({
-  dest,
-  initialImage = "",
-}: {
-  dest?: string;
-  initialImage?: string;
-}) {
+export function CompleteAvatarForm({ dest }: { dest?: string }) {
   const { locale, t } = useLocale();
-  const [image, setImage] = useState(initialImage || "");
+  const [image, setImage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -54,10 +48,10 @@ export function CompleteAvatarForm({
     locale === "ko" ? "프로필 사진 설정" : locale === "ja" ? "プロフィール写真" : "Profile photo";
   const desc =
     locale === "ko"
-      ? `${BRAND.name} 가입을 마치려면 프로필 아이콘 사진을 반드시 설정해야 합니다. (배너는 선택)`
+      ? `${BRAND.name} 가입을 마치려면 기기에서 프로필 사진 파일을 업로드해 주세요.`
       : locale === "ja"
-        ? `${BRAND.name} の登録完了にはプロフィール写真が必要です。`
-        : `Set a profile icon to finish joining ${BRAND.name}. Banner is optional.`;
+        ? `${BRAND.name} の登録完了にはプロフィール写真のアップロードが必要です。`
+        : `Upload a profile photo from your device to finish joining ${BRAND.name}.`;
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">
@@ -69,7 +63,13 @@ export function CompleteAvatarForm({
         </CardHeader>
         <CardContent className="space-y-4 pt-2">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <ProfileImageField kind="avatar" name="image" value={image} onChange={setImage} />
+            <ProfileImageField
+              kind="avatar"
+              name="image"
+              value={image}
+              onChange={setImage}
+              uploadOnly
+            />
             {error ? (
               <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">
                 {error}
