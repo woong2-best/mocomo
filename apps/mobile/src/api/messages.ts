@@ -119,6 +119,8 @@ export type UsedTradeRoomContext = {
 };
 
 export type DmRoomPayload = {
+  messagingBlocked?: boolean;
+  blockMessage?: string;
   room: {
     id: string;
     type: string;

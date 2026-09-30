@@ -120,6 +120,8 @@ export function useRoomMessages(roomId: string) {
     );
   }, [baseMessages, liveMessages]);
   const nextBefore = query.data?.nextBefore ?? diskSeed?.nextBefore ?? null;
+  const messagingBlocked = query.data?.messagingBlocked === true;
+  const blockMessage = query.data?.blockMessage;
   const loading = !query.data && !diskSeed && query.isLoading;
   const error =
     query.isError && !query.data && !diskSeed ? "대화를 불러오지 못했습니다." : null;
@@ -161,7 +163,7 @@ export function useRoomMessages(roomId: string) {
   }, [roomId]);
 
   useEffect(() => {
-    if (loading || error) return;
+    if (loading || error || messagingBlocked) return;
 
     let cancelled = false;
     const startTimer = setTimeout(() => {
@@ -188,7 +190,7 @@ export function useRoomMessages(roomId: string) {
       clearTimeout(startTimer);
       abortRef.current?.abort();
     };
-  }, [roomId, loading, error, mergeMessages]);
+  }, [roomId, loading, error, messagingBlocked, mergeMessages]);
 
   const loadOlder = useCallback(async () => {
     if (!nextBefore) return;
@@ -268,5 +270,7 @@ export function useRoomMessages(roomId: string) {
     loadOlder,
     send,
     refresh,
+    messagingBlocked,
+    blockMessage,
   };
 }

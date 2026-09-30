@@ -12,6 +12,7 @@ import {
 import { ChatRoomShell } from "@/components/messages/chat-room-shell";
 import { contactPermissions } from "@/lib/contact-audience";
 import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
+import { areUsersBlocked } from "@/lib/user-block";
 
 export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   const session = await getCachedSession();
@@ -33,16 +34,6 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   const isMember = room.members.some((m) => m.userId === session.user.id);
   if (!isMember) notFound();
 
-  const [me, messages] = await Promise.all([
-    getCachedAuthUserMinimal(),
-    db.message.findMany({
-      where: { roomId },
-      take: 50,
-      orderBy: { createdAt: "asc" },
-      include: chatMessageInclude,
-    }),
-  ]);
-
   const locale = await getRequestLocale();
   const meta = getConversationMeta(room, session.user.id, locale);
   const isMarket = room.type === "MARKET";
@@ -50,15 +41,40 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
     room.type === "DM" || isMarket
       ? room.members.find((m) => m.userId !== session.user.id)?.user
       : undefined;
-  const perms = isMarket
-    ? { canMessage: true, canCall: false }
-    : otherMember
-      ? await contactPermissions(session.user.id, otherMember.id)
-      : { canMessage: true, canCall: true };
+
+  const dmBlocked =
+    otherMember != null &&
+    room.type === "DM" &&
+    (await areUsersBlocked(session.user.id, otherMember.id));
+
+  const [me, messages] = await Promise.all([
+    getCachedAuthUserMinimal(),
+    dmBlocked
+      ? Promise.resolve([])
+      : db.message.findMany({
+          where: { roomId },
+          take: 50,
+          orderBy: { createdAt: "asc" },
+          include: chatMessageInclude,
+        }),
+  ]);
+
+  const perms = dmBlocked
+    ? { canMessage: false, canCall: false }
+    : isMarket
+      ? { canMessage: true, canCall: false }
+      : otherMember
+        ? await contactPermissions(session.user.id, otherMember.id)
+        : { canMessage: true, canCall: true };
 
   const paidIds = collectPaidAttachmentIds(messages);
   const purchasedIds = await getPurchasedMessageAttachmentIds(session.user.id, paidIds);
   const initialMessages = serializeChatMessages(messages, session.user.id, purchasedIds);
+  const readOnlyHint = dmBlocked
+    ? "차단된 사용자와는 메시지를 주고받을 수 없습니다."
+    : perms.canMessage
+      ? undefined
+      : MESSAGE_REQUEST_BLOCKED;
 
   return (
     <ChatRoomShell
@@ -87,7 +103,7 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
       }}
       groupMeta={null}
       readOnly={!perms.canMessage}
-      readOnlyHint={perms.canMessage ? undefined : MESSAGE_REQUEST_BLOCKED}
+      readOnlyHint={readOnlyHint}
       canCall={perms.canCall}
     />
   );

@@ -14,6 +14,7 @@ import { PostCollabActions } from "@/components/post/post-collab-actions";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostDetailMedia } from "@/components/post/post-detail-media";
 import { QuotePostPreviewCard } from "@/components/post/quote-post-preview-card";
+import { BlockedQuotedPostCard } from "@/components/post/blocked-quoted-post-card";
 import { readQuotedPost } from "@/lib/quoted-post";
 import { uiText } from "@/lib/i18n/ui-text";
 
@@ -31,8 +32,10 @@ export function PostDetailCard({
   subscribed = false,
   viewerCollabStatus = null,
   viewerShowNsfw = false,
+  quotedPostBlocked = false,
 }: {
   post: PostDetailOk;
+  quotedPostBlocked?: boolean;
   locale: Locale;
   isOwner?: boolean;
   paymentsEnabled?: boolean;
@@ -110,19 +113,23 @@ export function PostDetailCard({
         {post.content ? (
           <TranslatableText text={post.content} as="p" className="whitespace-pre-wrap" />
         ) : null}
-        {(() => {
-          const quoted = readQuotedPost(post);
-          if (!quoted) return null;
-          return (
-            <QuotePostPreviewCard
-              post={quoted}
-              href={`/post/${quoted.id}`}
-              className="mt-3"
-              isOwner={isOwner}
-              viewerShowNsfw={viewerShowNsfw}
-            />
-          );
-        })()}
+        {quotedPostBlocked ? (
+          <BlockedQuotedPostCard className="mt-3" />
+        ) : (
+          (() => {
+            const quoted = readQuotedPost(post);
+            if (!quoted) return null;
+            return (
+              <QuotePostPreviewCard
+                post={quoted}
+                href={`/post/${quoted.id}`}
+                className="mt-3"
+                isOwner={isOwner}
+                viewerShowNsfw={viewerShowNsfw}
+              />
+            );
+          })()
+        )}
         {post.poll && <PostPollCard postId={post.id} poll={post.poll} isAuthor={isOwner} />}
         <PostDetailMedia
           media={(post.media ?? []).map((m) => ({

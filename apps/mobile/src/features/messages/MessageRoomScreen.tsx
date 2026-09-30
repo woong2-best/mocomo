@@ -82,8 +82,19 @@ export function MessageRoomScreen() {
   const keyboardOpen = keyboardHeight > 0;
   const { user } = useAuth();
   const { roomId } = route.params;
-  const { room, messages, loading, error, sending, nextBefore, loadOlder, send, refresh } =
-    useRoomMessages(roomId);
+  const {
+    room,
+    messages,
+    loading,
+    error,
+    sending,
+    nextBefore,
+    loadOlder,
+    send,
+    refresh,
+    messagingBlocked,
+    blockMessage,
+  } = useRoomMessages(roomId);
   const [draft, setDraft] = useState("");
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -249,7 +260,15 @@ export function MessageRoomScreen() {
     });
   }, [navigation, peerId, peerImage, roomId, title, u]);
 
-  const canSend = room?.type !== "DM" || room.canMessage !== false;
+  const canSend =
+    !messagingBlocked && (room?.type !== "DM" || room.canMessage !== false);
+  const composerLockNote = messagingBlocked
+    ? (blockMessage ??
+      u("차단된 사용자와는 메시지를 주고받을 수 없습니다.", "You cannot message this user because of a block."))
+    : u(
+        "이 사용자는 자신이 팔로우한 사람에게만 메시지를 받습니다.",
+        "This user only accepts messages from people they follow."
+      );
   const canCallPeer = room?.type !== "DM" || room.canCall !== false;
 
   const peerProfileSeed = useMemo(
@@ -421,6 +440,10 @@ export function MessageRoomScreen() {
                 <ActivityIndicator color={colors.terracotta} />
                 <Text style={styles.emptySub}>{t("common.loading")}</Text>
               </View>
+            ) : messagingBlocked ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyTitle}>{composerLockNote}</Text>
+              </View>
             ) : (
               <View style={styles.empty}>
                 <Text style={styles.emptyTitle}>{u("아직 메시지가 없어요", "No messages yet")}</Text>
@@ -458,14 +481,7 @@ export function MessageRoomScreen() {
           },
         ]}
       >
-        {!canSend ? (
-          <Text style={styles.lockedNote}>
-            {u(
-              "이 사용자는 자신이 팔로우한 사람에게만 메시지를 받습니다.",
-              "This user only accepts messages from people they follow."
-            )}
-          </Text>
-        ) : null}
+        {!canSend ? <Text style={styles.lockedNote}>{composerLockNote}</Text> : null}
 
         {canSend && usedTrade?.canRequestTrade ? (
           <View style={styles.usedTradeSchedule}>

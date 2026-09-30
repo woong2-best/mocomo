@@ -6,7 +6,7 @@ import { PostFlashHighlight } from "@/components/post/post-flash-highlight";
 import { PostCommentsSection } from "@/components/post/post-comments-section";
 import { PostCommentsSkeleton } from "@/components/post/post-comments-skeleton";
 import { getPostDetail, isPostDetailAudienceLocked, isPostDetailNsfwBlocked } from "@/lib/post-queries";
-import { areUsersBlocked } from "@/lib/user-block";
+import { applyViewerBlockPolicyToPosts, areUsersBlocked } from "@/lib/user-block";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { auth, isSiteOperator } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
@@ -76,6 +76,13 @@ export default async function PostPage({
   const post = detail;
   const realAuthorId = post.author.id;
   const displayPost = redactQnaPublicPost(post, session?.user?.id);
+  const [blockPolicyPost] = await applyViewerBlockPolicyToPosts(session?.user?.id ?? null, [
+    displayPost,
+  ]);
+  const quotedPostBlocked = Boolean(
+    (blockPolicyPost as { quotedPostBlocked?: boolean }).quotedPostBlocked
+  );
+  const visibleCounts = blockPolicyPost._count ?? post._count;
 
   const [engagement, creator, viewerSub, viewerCollab, viewerPrefs] = await Promise.all([
     session?.user?.id
@@ -142,7 +149,12 @@ export default async function PostPage({
       />
       <PostFlashHighlight postId={post.id}>
         <PostDetailCard
-          post={displayPost}
+          post={
+            quotedPostBlocked
+              ? { ...displayPost, quotedPost: null }
+              : displayPost
+          }
+          quotedPostBlocked={quotedPostBlocked}
           locale={locale}
           isOwner={session?.user?.id === realAuthorId}
           paymentsEnabled={isPaymentsConfigured()}
@@ -158,8 +170,8 @@ export default async function PostPage({
         title={post.title}
         content={post.content}
         hasVideo={post.media?.some((m) => m.type === "VIDEO")}
-        likeCount={post._count.likes}
-        commentCount={post._count.comments}
+        likeCount={visibleCounts.likes}
+        commentCount={visibleCounts.comments}
         repostCount={repostCount}
         viewCount={post.viewCount}
         initialLiked={engagement.likedIds.includes(post.id)}
