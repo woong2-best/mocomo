@@ -136,6 +136,7 @@ export function ProfilePostCard({
               isOwner={canOwnMenu}
               authorId={post.author.id}
               authorUsername={post.author.username}
+              qna={Boolean(post.community?.slug)}
               size="md"
             />
           </div>

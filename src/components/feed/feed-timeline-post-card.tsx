@@ -178,6 +178,7 @@ export function FeedTimelinePostCard({
               authorId={post.isAnonymous ? undefined : post.author.id}
               authorUsername={post.isAnonymous ? undefined : post.author.username}
               anonymous={!!post.isAnonymous}
+              qna={qna}
             />
           </div>
         </div>

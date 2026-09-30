@@ -10,6 +10,8 @@ import {
   Pin,
   PinOff,
   Trash2,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -19,8 +21,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteOwnPost } from "@/actions/post-delete";
-import { pinPostToProfile, unpinPostFromProfile } from "@/actions/post-pin";
-import { blockUserAction } from "@/actions/user-relationship";
+import {
+  featurePostOnMyProfile,
+  pinPostToProfile,
+  unfeaturePostFromMyProfile,
+  unpinPostFromProfile,
+} from "@/actions/post-pin";
+import { blockUserAction, toggleMuteUserAction } from "@/actions/user-relationship";
 import { ContentReportFlow } from "@/components/report/content-report-flow";
 import { useLocale } from "@/components/providers/locale-provider";
 import { usePublishedToastOptional } from "@/components/providers/published-toast-provider";
@@ -37,6 +44,8 @@ type Props = {
   authorId?: string;
   authorUsername?: string;
   anonymous?: boolean;
+  /** QnA/community posts: hide pin-on-profile & Quiet for other users' posts */
+  qna?: boolean;
   size?: "sm" | "md";
   className?: string;
 };
@@ -48,6 +57,7 @@ export function PostOwnerMenu({
   authorId,
   authorUsername,
   anonymous = false,
+  qna = false,
   size = "sm",
   className,
 }: Props) {
@@ -58,10 +68,12 @@ export function PostOwnerMenu({
   const publishedToast = usePublishedToastOptional();
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(isPinned);
+  const [featured, setFeatured] = useState(false);
+  const [muted, setMuted] = useState(false);
   useEffect(() => {
     setPinned(isPinned);
   }, [isPinned]);
-  const [busy, setBusy] = useState<"pin" | "delete" | "block" | null>(null);
+  const [busy, setBusy] = useState<"pin" | "delete" | "block" | "feature" | "mute" | null>(null);
   const [error, setError] = useState("");
   const [reportOnlyOpen, setReportOnlyOpen] = useState(false);
 
@@ -86,6 +98,50 @@ export function PostOwnerMenu({
       }
       setPinned(!pinned);
       setOpen(false);
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function toggleFeatureOnMyProfile() {
+    if (busy) return;
+    setBusy("feature");
+    setError("");
+    try {
+      const res = featured
+        ? await unfeaturePostFromMyProfile(postId)
+        : await featurePostOnMyProfile(postId);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setFeatured(!featured);
+      setOpen(false);
+      publishedToast?.showInfoToast({
+        message: featured ? t("post.menu.unfeaturedToast") : t("post.menu.featuredToast"),
+      });
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleMute() {
+    if (busy || !authorId || !authorUsername) return;
+    setBusy("mute");
+    setError("");
+    try {
+      const res = await toggleMuteUserAction(authorId, authorUsername);
+      if ("error" in res && res.error) {
+        setError(res.error);
+        return;
+      }
+      setMuted(!!res.muted);
+      setOpen(false);
+      publishedToast?.showInfoToast({
+        message: res.muted ? t("post.menu.mutedToast") : t("post.menu.unmutedToast"),
+      });
       router.refresh();
     } finally {
       setBusy(null);
@@ -222,6 +278,50 @@ export function PostOwnerMenu({
 
           {canShowOtherMenu && (
             <>
+              {!qna ? (
+                <>
+                  <DropdownMenuItem
+                    disabled={busy !== null}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      void toggleFeatureOnMyProfile();
+                    }}
+                  >
+                    {featured ? (
+                      <>
+                        <PinOff className="h-4 w-4" />
+                        {t("post.menu.unpinFromProfile")}
+                      </>
+                    ) : (
+                      <>
+                        <Pin className="h-4 w-4" />
+                        {t("post.menu.pinToProfile")}
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    disabled={busy !== null}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      void handleMute();
+                    }}
+                  >
+                    {muted ? (
+                      <>
+                        <VolumeX className="h-4 w-4" />
+                        {t("post.menu.unmute")}
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="h-4 w-4" />
+                        {t("post.menu.mute")}
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
               <DropdownMenuItem
                 disabled={busy !== null}
                 onSelect={(e) => {

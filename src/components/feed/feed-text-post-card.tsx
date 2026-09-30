@@ -131,6 +131,7 @@ export function FeedTextPostCard({
               isOwner={isOwner}
               authorId={post.author.id}
               authorUsername={post.author.username}
+              qna={qna}
             />
           </div>
         </div>
