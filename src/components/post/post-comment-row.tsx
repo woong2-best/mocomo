@@ -162,7 +162,7 @@ export function PostCommentRow({
           </p>
         ) : null}
       </div>
-      <div className="flex shrink-0 flex-col items-center gap-0.5">
+      <div className="flex shrink-0 flex-col items-end gap-1">
         {viewerId ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -193,7 +193,7 @@ export function PostCommentRow({
         <button
           type="button"
           className={cn(
-            "inline-flex min-h-8 flex-col items-center justify-center gap-0.5 px-1 text-muted-foreground",
+            "inline-flex min-h-8 items-center justify-center gap-1 rounded-lg px-2 text-sm text-muted-foreground hover:text-folk-terracotta hover:bg-muted/50",
             liked && "text-folk-terracotta",
             !viewerId && "opacity-50"
           )}
@@ -207,7 +207,7 @@ export function PostCommentRow({
           onClick={() => void toggleLike()}
         >
           <Heart className={cn("h-4 w-4", liked && "fill-current")} />
-          <span className="text-[11px] tabular-nums leading-none">{formatNumber(likeCount)}</span>
+          <span className="tabular-nums">{formatNumber(likeCount)}</span>
         </button>
       </div>
     </div>

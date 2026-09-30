@@ -55,22 +55,30 @@ export function ContentModerationBar({
     });
   }
 
+  const showPublicReport = targetType !== "POST";
+
+  if (!showPublicReport && !isStaff) {
+    return null;
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-border/60">
       <div className="flex items-center gap-2">
-        {isLoggedIn ? (
-          <ReportButton
-            targetType={targetType}
-            targetId={targetId}
-            reportedUserId={reportedUserId}
-            postId={postId}
-          />
-        ) : (
-          <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-            <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}>신고</Link>
-          </Button>
-        )}
+        {showPublicReport ? (
+          isLoggedIn ? (
+            <ReportButton
+              targetType={targetType}
+              targetId={targetId}
+              reportedUserId={reportedUserId}
+              postId={postId}
+            />
+          ) : (
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
+              <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}>신고</Link>
+            </Button>
+          )
+        ) : null}
         {isStaff && (
           <Button variant="outline" size="sm" asChild className="gap-1.5">
             <Link href="/admin">

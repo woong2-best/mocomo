@@ -10,8 +10,6 @@ import {
   Pin,
   PinOff,
   Trash2,
-  VolumeX,
-  Volume2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -20,15 +18,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { deleteOwnPost } from "@/actions/post-delete";
-import {
-  featurePostOnMyProfile,
-  pinPostToProfile,
-  unfeaturePostFromMyProfile,
-  unpinPostFromProfile,
-} from "@/actions/post-pin";
-import { blockUserAction, toggleMuteUserAction } from "@/actions/user-relationship";
+import { pinPostToProfile, unpinPostFromProfile } from "@/actions/post-pin";
+import { blockUserAction } from "@/actions/user-relationship";
 import { ContentReportFlow } from "@/components/report/content-report-flow";
 import { useLocale } from "@/components/providers/locale-provider";
 import { usePublishedToastOptional } from "@/components/providers/published-toast-provider";
@@ -66,16 +58,12 @@ export function PostOwnerMenu({
   const publishedToast = usePublishedToastOptional();
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(isPinned);
-  const [featured, setFeatured] = useState(false);
-
   useEffect(() => {
     setPinned(isPinned);
   }, [isPinned]);
-  const [muted, setMuted] = useState(false);
-  const [busy, setBusy] = useState<"pin" | "delete" | "feature" | "mute" | null>(null);
+  const [busy, setBusy] = useState<"pin" | "delete" | "block" | null>(null);
   const [error, setError] = useState("");
   const [reportOnlyOpen, setReportOnlyOpen] = useState(false);
-  const [blockReportOpen, setBlockReportOpen] = useState(false);
 
   const loggedIn = !!session?.data?.user;
   const canShowOtherMenu = !isOwner && loggedIn && !!authorId && !!authorUsername;
@@ -104,63 +92,29 @@ export function PostOwnerMenu({
     }
   }
 
-  async function toggleFeatureOnMyProfile() {
-    if (busy) return;
-    setBusy("feature");
-    setError("");
-    try {
-      const res = featured
-        ? await unfeaturePostFromMyProfile(postId)
-        : await featurePostOnMyProfile(postId);
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
-      setFeatured(!featured);
-      setOpen(false);
-      publishedToast?.showInfoToast({
-        message: featured ? t("post.menu.unfeaturedToast") : t("post.menu.featuredToast"),
-      });
-      router.refresh();
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleMute() {
-    if (busy || !authorId || !authorUsername) return;
-    setBusy("mute");
-    setError("");
-    try {
-      const res = await toggleMuteUserAction(authorId, authorUsername);
-      if ("error" in res && res.error) {
-        setError(res.error);
-        return;
-      }
-      setMuted(!!res.muted);
-      setOpen(false);
-      publishedToast?.showInfoToast({
-        message: res.muted ? t("post.menu.mutedToast") : t("post.menu.unmutedToast"),
-      });
-      router.refresh();
-    } finally {
-      setBusy(null);
-    }
-  }
-
   function openReportOnly() {
     setOpen(false);
     setReportOnlyOpen(true);
   }
 
-  function openBlockAndReport() {
+  async function handleBlock() {
+    if (busy || !authorId || !authorUsername) return;
+    if (!window.confirm(t("post.menu.blockConfirm"))) return;
+    setBusy("block");
+    setError("");
     setOpen(false);
-    setBlockReportOpen(true);
-  }
-
-  async function afterBlockReportSubmitted() {
-    if (!authorId || !authorUsername) return;
-    await blockUserAction(authorId, authorUsername);
+    try {
+      const res = await blockUserAction(authorId, authorUsername);
+      if (res.error) {
+        setError(res.error);
+        publishedToast?.showErrorToast({ message: res.error });
+        return;
+      }
+      publishedToast?.showInfoToast({ message: t("post.menu.blockDone") });
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function handleDelete() {
@@ -272,46 +226,6 @@ export function PostOwnerMenu({
                 disabled={busy !== null}
                 onSelect={(e) => {
                   e.preventDefault();
-                  void toggleFeatureOnMyProfile();
-                }}
-              >
-                {featured ? (
-                  <>
-                    <PinOff className="h-4 w-4" />
-                    {t("post.menu.unpinFromProfile")}
-                  </>
-                ) : (
-                  <>
-                    <Pin className="h-4 w-4" />
-                    {t("post.menu.pinToProfile")}
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                disabled={busy !== null}
-                onSelect={(e) => {
-                  e.preventDefault();
-                  void handleMute();
-                }}
-              >
-                {muted ? (
-                  <>
-                    <VolumeX className="h-4 w-4" />
-                    {t("post.menu.unmute")}
-                  </>
-                ) : (
-                  <>
-                    <Volume2 className="h-4 w-4" />
-                    {t("post.menu.mute")}
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                disabled={busy !== null}
-                onSelect={(e) => {
-                  e.preventDefault();
                   openReportOnly();
                 }}
               >
@@ -323,11 +237,11 @@ export function PostOwnerMenu({
                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 onSelect={(e) => {
                   e.preventDefault();
-                  openBlockAndReport();
+                  void handleBlock();
                 }}
               >
                 <Ban className="h-4 w-4" />
-                {t("post.menu.blockAndReport")}
+                {t("post.menu.block")}
               </DropdownMenuItem>
             </>
           )}
@@ -349,17 +263,6 @@ export function PostOwnerMenu({
             postId={postId}
             reportedUserId={authorId}
           />
-          {canShowOtherMenu ? (
-            <ContentReportFlow
-              open={blockReportOpen}
-              onOpenChange={setBlockReportOpen}
-              targetType="POST"
-              targetId={postId}
-              postId={postId}
-              reportedUserId={authorId}
-              onSubmitted={afterBlockReportSubmitted}
-            />
-          ) : null}
         </>
       ) : null}
     </div>
