@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Megaphone } from "lucide-react";
+import { Megaphone, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale } from "@/components/providers/locale-provider";
 import { SponsorAdClickLink } from "@/components/events/sponsor-ad-click-link";
@@ -57,8 +57,16 @@ export function SponsoredSidebarCard({
     <Card className="w-full shrink-0 grow-0 overflow-hidden border-folk-gold/40 bg-folk-gold/5">
       <CardHeader className="shrink-0 px-3 py-2.5 pb-2">
         <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-terracotta">
-          <Megaphone className="h-4 w-4" />
-          {t("sidebar.sponsored")}
+          <Megaphone className="h-4 w-4 shrink-0" />
+          <span className="flex-1">Ad</span>
+          <Link
+            href="https://mocomo.net/events/new"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-folk-gold/50 bg-background/60 text-folk-terracotta transition-colors hover:bg-folk-gold/15"
+            aria-label="New event"
+            title="New event"
+          >
+            <Plus className="h-4 w-4" />
+          </Link>
         </CardTitle>
       </CardHeader>
       <CardContent className="shrink-0 grow-0 p-0">
@@ -82,7 +90,7 @@ export function SponsoredSidebarCard({
             className="flex h-[7.5rem] w-full shrink-0 flex-col items-center justify-center gap-2 bg-muted/25 px-4 text-center text-xs text-muted-foreground transition-colors hover:bg-muted/40"
           >
             <Megaphone className="h-8 w-8 opacity-40" strokeWidth={1.5} />
-            <span>{t("sidebar.sponsored")}</span>
+            <span>Ad</span>
           </Link>
         )}
       </CardContent>

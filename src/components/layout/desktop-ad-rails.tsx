@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Plus } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { shouldShowDesktopAdRails } from "@/lib/desktop-ad-rails";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
@@ -31,9 +33,16 @@ function AdRailColumn({
       )}
       aria-label={side === "left" ? "좌측 광고" : "우측 광고"}
     >
-      <p className="text-[9px] uppercase tracking-widest text-muted-foreground/80 text-center">
-        Sponsored
-      </p>
+      <div className="flex items-center justify-center gap-1.5">
+        <p className="text-[9px] uppercase tracking-widest text-muted-foreground/80">Ad</p>
+        <Link
+          href="https://mocomo.net/events/new"
+          className="inline-flex h-5 w-5 items-center justify-center rounded border border-muted-foreground/30 text-muted-foreground/90 hover:bg-muted/40"
+          aria-label="New event"
+        >
+          <Plus className="h-3 w-3" />
+        </Link>
+      </div>
       {ads.map((ad) => (
         <AdRailUnit key={ad.id} ad={ad} />
       ))}

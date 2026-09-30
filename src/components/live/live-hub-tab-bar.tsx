@@ -14,12 +14,11 @@ import {
 } from "@/lib/live-feature";
 import { LiveHubSlantTabs } from "@/components/live/live-hub-slant-tabs";
 import { LiveHubNeonDivider } from "@/components/live/live-hub-neon-divider";
-import { useLocale } from "@/components/providers/locale-provider";
+import { LiveHubCrtMini } from "@/components/live/live-hub-crt-mini";
 
 function LiveHubQuickActions() {
   const sessionState = useSession();
   const session = sessionState?.data;
-  const { t } = useLocale();
 
   if (!isLiveFeatureEnabled()) return null;
 
@@ -41,11 +40,11 @@ function LiveHubQuickActions() {
     <div className="live-hub-quick-actions flex shrink-0 items-center gap-2">
       <Link href={liveHref} className="live-hub-action-live">
         <Video className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        {t("nav.live")}
+        Live
       </Link>
       <Link href={studioHref} className="live-hub-action-studio">
         <MonitorPlay className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        {t("nav.liveStudio")}
+        Studio
       </Link>
     </div>
   );
@@ -71,13 +70,20 @@ export function LiveHubTabBar({
 
   return (
     <>
-      <div className="live-hub-toolbar live-hub-toolbar-split">
-        <div className="live-hub-tab-bar live-hub-tab-bar-left">
-          <LiveHubSlantTabs active={active} onSelect={(id) => void select(id)} disabled={checking} />
+      <div className="live-hub-chrome">
+        <div className="live-hub-toolbar live-hub-toolbar-split">
+          <div className="live-hub-tab-bar live-hub-tab-bar-left live-hub-tab-bar-inset">
+            <LiveHubSlantTabs active={active} onSelect={(id) => void select(id)} disabled={checking} />
+          </div>
+          <LiveHubQuickActions />
         </div>
-        <LiveHubQuickActions />
+        <div className="live-hub-rail-block">
+          <div className="live-hub-rail-crt-slot">
+            <LiveHubCrtMini />
+          </div>
+          <LiveHubNeonDivider />
+        </div>
       </div>
-      <LiveHubNeonDivider />
       <LiveR18BlockedDialog open={blockedOpen} onOpenChange={setBlockedOpen} />
     </>
   );
