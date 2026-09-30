@@ -15,6 +15,7 @@ import {
 import { LiveHubSlantTabs } from "@/components/live/live-hub-slant-tabs";
 import { LiveHubNeonDivider } from "@/components/live/live-hub-neon-divider";
 import { LiveHubCrtMini } from "@/components/live/live-hub-crt-mini";
+import { LiveHubNeonHeartButton } from "@/components/live/live-hub-neon-heart-button";
 
 function LiveHubQuickActions() {
   const sessionState = useSession();
@@ -37,7 +38,7 @@ function LiveHubQuickActions() {
   const studioHref = loggedIn ? "/live/studio" : "/auth/signin?callbackUrl=/live/studio";
 
   return (
-    <div className="live-hub-quick-actions flex shrink-0 items-center gap-2">
+    <div className="live-hub-quick-actions flex shrink-0 items-center">
       <Link href={liveHref} className="live-hub-action-live">
         <Video className="h-3.5 w-3.5 shrink-0" aria-hidden />
         Live
@@ -46,6 +47,7 @@ function LiveHubQuickActions() {
         <MonitorPlay className="h-3.5 w-3.5 shrink-0" aria-hidden />
         Studio
       </Link>
+      <LiveHubNeonHeartButton />
     </div>
   );
 }
@@ -78,7 +80,7 @@ export function LiveHubTabBar({
           <LiveHubQuickActions />
         </div>
         <div className="live-hub-rail-block">
-          <div className="live-hub-rail-crt-slot">
+          <div className="live-hub-rail-crt-slot live-hub-rail-crt-slot--above-live">
             <LiveHubCrtMini />
           </div>
           <LiveHubNeonDivider />

@@ -496,18 +496,19 @@ html[data-client="app"] .native-live-pad {
     position: relative;
     width: 100%;
   }
-  .live-hub-rail-crt-slot {
+  .live-hub-rail-crt-slot--above-live {
     position: absolute;
-    right: 0;
+    left: 0;
+    right: auto;
     bottom: calc(100% + 4px);
     z-index: 2;
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     pointer-events: none;
   }
   .live-hub-crt-mini {
-    width: 52px;
-    height: 34px;
+    width: clamp(44px, 5.5vw, 52px);
+    height: clamp(28px, 3.6vw, 34px);
     pointer-events: auto;
   }
   .live-hub-crt-mini__bezel {
@@ -592,6 +593,38 @@ html[data-client="app"] .native-live-pad {
   }
   .live-hub-quick-actions {
     margin-left: auto;
+    flex-shrink: 0;
+    gap: 8px;
+  }
+  .live-hub-neon-heart-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-left: 4px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .live-hub-neon-heart-btn__svg {
+    display: block;
+    width: 22px;
+    height: 19px;
+  }
+  .live-hub-neon-heart-btn__path {
+    fill: none;
+    stroke: #ff1493;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 8px #ff1493) drop-shadow(0 0 15px #ff69b4);
+  }
+  .live-hub-neon-heart-btn:hover .live-hub-neon-heart-btn__path {
+    filter: drop-shadow(0 0 10px #ff1493) drop-shadow(0 0 20px #ff69b4);
   }
   .live-hub-tab {
     flex: 0 0 auto;
@@ -715,40 +748,28 @@ html[data-client="app"] .native-live-pad {
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
-    gap: 7px;
+    gap: clamp(4px, 0.8vw, 7px);
     width: 100%;
     min-width: 0;
     overflow-x: auto;
     padding: 2px 0 4px;
     scrollbar-width: none;
-    container-type: inline-size;
-  }
-  .live-hub-neon-tabs--responsive .live-neon-tab__short {
-    display: none;
-  }
-  @container (max-width: 720px) {
-    .live-hub-neon-tabs--responsive .live-neon-tab__full {
-      display: none;
-    }
-    .live-hub-neon-tabs--responsive .live-neon-tab__short {
-      display: inline;
-    }
   }
   .live-hub-neon-tabs::-webkit-scrollbar {
     display: none;
   }
   .live-neon-tab {
     flex: 0 0 auto;
-    min-height: 34px;
-    padding: 0 12px;
+    min-height: clamp(28px, 3.6vw, 34px);
+    padding: 0 clamp(6px, 1.1vw, 12px);
     border-radius: 6px;
     border: 1.5px solid transparent;
     background: rgba(0, 0, 0, 0.55);
     color: #fff;
     font-family: "Arial Black", "Helvetica Neue", "Noto Sans KR", sans-serif;
-    font-size: 11px;
+    font-size: clamp(8px, 0.95vw, 11px);
     font-weight: 800;
-    letter-spacing: 0.35px;
+    letter-spacing: clamp(0.1px, 0.04vw, 0.35px);
     text-transform: uppercase;
     white-space: nowrap;
     cursor: pointer;
