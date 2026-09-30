@@ -149,11 +149,7 @@ export default async function PostPage({
       />
       <PostFlashHighlight postId={post.id}>
         <PostDetailCard
-          post={
-            quotedPostBlocked
-              ? { ...displayPost, quotedPost: null }
-              : displayPost
-          }
+          post={displayPost}
           quotedPostBlocked={quotedPostBlocked}
           locale={locale}
           isOwner={session?.user?.id === realAuthorId}
