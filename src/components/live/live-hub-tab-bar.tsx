@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { MonitorPlay, Video } from "lucide-react";
 import { useLiveR18Gate } from "@/hooks/use-live-r18-gate";
 import { LiveR18BlockedDialog } from "@/components/live/live-r18-blocked-dialog";
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
@@ -12,17 +10,13 @@ import {
   isFirstPartyLiveEnabled,
   isLiveFeatureEnabled,
 } from "@/lib/live-feature";
-import { LiveHubSlantTabs } from "@/components/live/live-hub-slant-tabs";
-import { LiveHubNeonDivider } from "@/components/live/live-hub-neon-divider";
-import { LiveHubCrtMini } from "@/components/live/live-hub-crt-mini";
-import { LiveHubNeonHeartButton } from "@/components/live/live-hub-neon-heart-button";
+import { LiveHubNeonTabStrip } from "@/components/live/live-hub-neon-tab-strip";
+import { LiveHubStudioButton } from "@/components/live/live-hub-studio-button";
+import { LiveHubLiveButton } from "@/components/live/live-hub-live-button";
 
-function LiveHubQuickActions() {
+function useLiveHubActionHrefs() {
   const sessionState = useSession();
   const session = sessionState?.data;
-
-  if (!isLiveFeatureEnabled()) return null;
-
   const externalOn = isExternalLiveEnabled();
   const firstPartyOn = isFirstPartyLiveEnabled();
   const loggedIn = !!session?.user;
@@ -37,19 +31,7 @@ function LiveHubQuickActions() {
 
   const studioHref = loggedIn ? "/live/studio" : "/auth/signin?callbackUrl=/live/studio";
 
-  return (
-    <div className="live-hub-quick-actions flex shrink-0 items-center">
-      <Link href={liveHref} className="live-hub-action-live">
-        <Video className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        Live
-      </Link>
-      <Link href={studioHref} className="live-hub-action-studio">
-        <MonitorPlay className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        Studio
-      </Link>
-      <LiveHubNeonHeartButton />
-    </div>
-  );
+  return { liveHref, studioHref, showActions: isLiveFeatureEnabled() };
 }
 
 export function LiveHubTabBar({
@@ -60,6 +42,7 @@ export function LiveHubTabBar({
   onChange: (id: LiveFolderFilter) => void;
 }) {
   const { blockedOpen, setBlockedOpen, guardCategoryNav, checking } = useLiveR18Gate();
+  const { liveHref, studioHref, showActions } = useLiveHubActionHrefs();
 
   async function select(id: LiveFolderFilter) {
     if (checking) return;
@@ -73,17 +56,10 @@ export function LiveHubTabBar({
   return (
     <>
       <div className="live-hub-chrome">
-        <div className="live-hub-toolbar live-hub-toolbar-split">
-          <div className="live-hub-tab-bar live-hub-tab-bar-left live-hub-tab-bar-inset">
-            <LiveHubSlantTabs active={active} onSelect={(id) => void select(id)} disabled={checking} />
-          </div>
-          <LiveHubQuickActions />
-        </div>
-        <div className="live-hub-rail-block">
-          <div className="live-hub-rail-crt-slot live-hub-rail-crt-slot--above-live">
-            <LiveHubCrtMini />
-          </div>
-          <LiveHubNeonDivider />
+        <div className="live-hub-toolbar-row">
+          {showActions ? <LiveHubStudioButton href={studioHref} /> : null}
+          <LiveHubNeonTabStrip active={active} onSelect={(id) => void select(id)} disabled={checking} />
+          {showActions ? <LiveHubLiveButton href={liveHref} /> : null}
         </div>
       </div>
       <LiveR18BlockedDialog open={blockedOpen} onOpenChange={setBlockedOpen} />
