@@ -259,6 +259,7 @@
   "accountSwitch.remove": "삭제",
   "accountSwitch.createNew": "새 계정 만들기",
   "accountSwitch.addExisting": "기존 계정 추가하기",
+  "accountSwitch.logoutCurrent": "현재 계정에서 로그아웃",
   "accountSwitch.switchFailed": "계정을 전환할 수 없습니다. 다시 로그인해 주세요.",
   "accountSwitch.loggedOut": "로그아웃됨",
   "accountSwitch.pickPrompt": "전환할 계정을 선택하세요",

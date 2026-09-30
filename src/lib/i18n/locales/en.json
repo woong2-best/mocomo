@@ -259,6 +259,7 @@
   "accountSwitch.remove": "Remove",
   "accountSwitch.createNew": "Create new account",
   "accountSwitch.addExisting": "Add existing account",
+  "accountSwitch.logoutCurrent": "Log out of current account",
   "accountSwitch.switchFailed": "Could not switch accounts. Please sign in again.",
   "accountSwitch.loggedOut": "Logged out",
   "accountSwitch.pickPrompt": "Choose an account to switch to",
