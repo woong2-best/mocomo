@@ -107,6 +107,7 @@ export async function GET(
       favorited: result.favorited ?? false,
       starred: result.starred ?? false,
       buyerChatRoomId: result.buyerChatRoomId ?? null,
+      reservedTradeParticipant: result.reservedTradeParticipant ?? false,
       auctionEndsAt: listing.auctionEndsAt?.toISOString() ?? null,
       currentBidAmount: listing.currentBidAmount ?? null,
       bidCount: listing.bidCount ?? null,

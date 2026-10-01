@@ -510,28 +510,41 @@ export function MarketplaceDetailScreen() {
             ) : null}
 
             {!item.auctionLive &&
-            item.status !== "SOLD" &&
             (item.saleType === "AUCTION"
               ? !!item.winningBidderId && (item.isOwner || item.isWinningBidder)
               : !item.isOwner) ? (
-              <View style={styles.actions}>
-                <Pressable
-                  style={styles.btn}
-                  disabled={trade.isPending}
-                  onPress={() => {
-                    if (item.buyerChatRoomId) {
-                      navigation.navigate("MessageRoom", {
-                        roomId: item.buyerChatRoomId,
-                        title: item.title,
-                      });
-                    } else {
-                      trade.mutate();
-                    }
-                  }}
-                >
-                  <Text style={styles.btnText}>{u("메시지 보내기", "Message")}</Text>
-                </Pressable>
-              </View>
+              item.status === "SOLD" ? (
+                <View style={styles.actions}>
+                  <Pressable style={[styles.btn, styles.btnDisabled]} disabled>
+                    <Text style={styles.btnTextMuted}>{u("거래완료", "Trade completed")}</Text>
+                  </Pressable>
+                </View>
+              ) : item.status === "RESERVED" && !item.reservedTradeParticipant ? (
+                <View style={styles.actions}>
+                  <Pressable style={[styles.btn, styles.btnDisabled]} disabled>
+                    <Text style={styles.btnTextMuted}>{u("예약됨", "Reserved")}</Text>
+                  </Pressable>
+                </View>
+              ) : item.status !== "SOLD" ? (
+                <View style={styles.actions}>
+                  <Pressable
+                    style={styles.btn}
+                    disabled={trade.isPending}
+                    onPress={() => {
+                      if (item.buyerChatRoomId) {
+                        navigation.navigate("MessageRoom", {
+                          roomId: item.buyerChatRoomId,
+                          title: item.title,
+                        });
+                      } else {
+                        trade.mutate();
+                      }
+                    }}
+                  >
+                    <Text style={styles.btnText}>{u("메시지 보내기", "Message")}</Text>
+                  </Pressable>
+                </View>
+              ) : null
             ) : null}
 
             {item.saleType === "AUCTION" &&
@@ -726,6 +739,8 @@ function createThemedStyles(colors: ThemeColors) {
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: "#fff", fontWeight: "700" },
+  btnDisabled: { backgroundColor: "#9ca3af", opacity: 1 },
+  btnTextMuted: { color: "#f3f4f6", fontWeight: "700" },
   btnSecondary: {
     flex: 1,
     borderRadius: 10,
