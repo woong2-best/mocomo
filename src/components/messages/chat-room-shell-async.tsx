@@ -47,7 +47,14 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
     room.type === "DM" &&
     (await areUsersBlocked(session.user.id, otherMember.id));
 
-  const [me, messages] = await Promise.all([
+  const usedTradePromise =
+    room.type === "DM" || isMarket
+      ? import("@/lib/used-market-mobile").then((m) =>
+          m.getMobileUsedTradeRoomContext(session.user.id, roomId)
+        )
+      : Promise.resolve(null);
+
+  const [me, messages, usedTrade] = await Promise.all([
     getCachedAuthUserMinimal(),
     dmBlocked
       ? Promise.resolve([])
@@ -57,12 +64,13 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
           orderBy: { createdAt: "asc" },
           include: chatMessageInclude,
         }),
+    usedTradePromise,
   ]);
 
   const perms = dmBlocked
     ? { canMessage: false, canCall: false }
     : isMarket
-      ? { canMessage: true, canCall: false }
+      ? { canMessage: true, canCall: true }
       : otherMember
         ? await contactPermissions(session.user.id, otherMember.id)
         : { canMessage: true, canCall: true };
@@ -105,6 +113,8 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
       readOnly={!perms.canMessage}
       readOnlyHint={readOnlyHint}
       canCall={perms.canCall}
+      disputeListingId={usedTrade?.listingId}
+      disputeSellerId={usedTrade?.sellerId}
     />
   );
 }

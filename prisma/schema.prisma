@@ -3303,6 +3303,9 @@ model UsedTradeRequest {
   status        UsedTradeRequestStatus @default(PENDING)
   /** 만나기로 한 시각 */
   meetAt        DateTime?
+  buyerMeetConfirmedAt  DateTime?
+  sellerMeetConfirmedAt DateTime?
+  meetCompletionDeclinedAt DateTime?
   createdAt     DateTime               @default(now())
   respondedAt   DateTime?
   listing     UsedListing            @relation(fields: [listingId], references: [id], onDelete: Cascade)

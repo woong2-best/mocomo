@@ -87,9 +87,9 @@ function createStyles(colors: ThemeColors) {
       width: CARD_W,
       borderRadius: radii.lg,
       overflow: "hidden",
-      backgroundColor: colors.surface,
+      backgroundColor: colors.terracotta,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
+      borderColor: colors.terracotta,
     },
     photo: {
       width: CARD_W,
@@ -97,7 +97,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.muted,
     },
     name: {
-      color: colors.text,
+      color: colors.textOnAccent,
       fontSize: 15,
       fontWeight: "700",
       lineHeight: 20,

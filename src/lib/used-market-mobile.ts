@@ -889,6 +889,14 @@ export async function getMobileUsedTradeRoomContext(userId: string, roomId: stri
   if (!isBuyer && !isSeller) return null;
 
   let pendingRequestId: string | null = null;
+  let approvedMeet: {
+    requestId: string;
+    meetAt: string;
+    buyerMeetConfirmedAt: string | null;
+    sellerMeetConfirmedAt: string | null;
+    meetCompletionDeclinedAt: string | null;
+    showCompletionPrompt: boolean;
+  } | null = null;
   try {
     const pending = await db.usedTradeRequest.findFirst({
       where: {
@@ -900,8 +908,40 @@ export async function getMobileUsedTradeRoomContext(userId: string, roomId: stri
       select: { id: true },
     });
     pendingRequestId = pending?.id ?? null;
+
+    const approved = await db.usedTradeRequest.findFirst({
+      where: {
+        roomId,
+        listingId: listing.id,
+        status: "APPROVED",
+      },
+      orderBy: { respondedAt: "desc" },
+      select: {
+        id: true,
+        meetAt: true,
+        buyerMeetConfirmedAt: true,
+        sellerMeetConfirmedAt: true,
+        meetCompletionDeclinedAt: true,
+      },
+    });
+    if (approved?.meetAt) {
+      const { isUsedTradeMeetCompletionDue } = await import("@/lib/used-trade-meet");
+      approvedMeet = {
+        requestId: approved.id,
+        meetAt: approved.meetAt.toISOString(),
+        buyerMeetConfirmedAt: approved.buyerMeetConfirmedAt?.toISOString() ?? null,
+        sellerMeetConfirmedAt: approved.sellerMeetConfirmedAt?.toISOString() ?? null,
+        meetCompletionDeclinedAt: approved.meetCompletionDeclinedAt?.toISOString() ?? null,
+        showCompletionPrompt:
+          listing.status === "RESERVED" &&
+          !approved.meetCompletionDeclinedAt &&
+          isUsedTradeMeetCompletionDue(approved.meetAt) &&
+          !(approved.buyerMeetConfirmedAt && approved.sellerMeetConfirmedAt),
+      };
+    }
   } catch {
     pendingRequestId = null;
+    approvedMeet = null;
   }
 
   let directTrade = null;
@@ -929,6 +969,7 @@ export async function getMobileUsedTradeRoomContext(userId: string, roomId: stri
       !pendingRequestId,
     editLocked: !isUsedListingEditable(listing.status),
     pendingRequestId,
+    approvedMeet,
     directTrade,
   };
 }
@@ -1088,6 +1129,78 @@ export async function respondMobileUsedTradeRequest(
   }).catch(() => undefined);
 
   return { status: "APPROVED" as const, listingStatus: "RESERVED" as const };
+}
+
+export async function respondMobileUsedTradeMeetCompletion(
+  userId: string,
+  requestId: string,
+  action: "confirm" | "decline"
+) {
+  const row = await db.usedTradeRequest.findUnique({
+    where: { id: requestId },
+    include: { listing: true },
+  });
+  if (!row) return { error: "요청을 찾을 수 없습니다." as const };
+  if (row.buyerId !== userId && row.sellerId !== userId) {
+    return { error: "권한이 없습니다." as const };
+  }
+  if (row.status !== "APPROVED") return { error: "승인된 거래만 완료 확인할 수 있습니다." as const };
+  if (!row.meetAt) return { error: "거래 일정이 없습니다." as const };
+
+  const { isUsedTradeMeetCompletionDue } = await import("@/lib/used-trade-meet");
+  if (!isUsedTradeMeetCompletionDue(row.meetAt)) {
+    return { error: "아직 거래 완료 확인 기간이 아닙니다." as const };
+  }
+  if (row.meetCompletionDeclinedAt) {
+    return { error: "이미 거래 미완료로 처리되었습니다." as const };
+  }
+
+  const now = new Date();
+  const isBuyer = row.buyerId === userId;
+  const alreadyConfirmed = isBuyer ? row.buyerMeetConfirmedAt : row.sellerMeetConfirmedAt;
+  if (alreadyConfirmed && action === "confirm") {
+    return { status: "ALREADY" as const };
+  }
+
+  if (action === "decline") {
+    await db.$transaction([
+      db.usedTradeRequest.update({
+        where: { id: requestId },
+        data: { meetCompletionDeclinedAt: now },
+      }),
+      db.usedListing.update({
+        where: { id: row.listingId },
+        data: { status: "SELLING" },
+      }),
+    ]);
+    await sendMobileDmMessage(userId, {
+      roomId: row.roomId,
+      content: "거래가 완료되지 않아 다시 판매 중으로 변경했습니다.",
+    }).catch(() => undefined);
+    return { status: "DECLINED" as const, listingStatus: "SELLING" as const };
+  }
+
+  const buyerMeetConfirmedAt = isBuyer ? now : row.buyerMeetConfirmedAt;
+  const sellerMeetConfirmedAt = isBuyer ? row.sellerMeetConfirmedAt : now;
+
+  await db.usedTradeRequest.update({
+    where: { id: requestId },
+    data: isBuyer ? { buyerMeetConfirmedAt: now } : { sellerMeetConfirmedAt: now },
+  });
+
+  if (buyerMeetConfirmedAt && sellerMeetConfirmedAt) {
+    await db.usedListing.update({
+      where: { id: row.listingId },
+      data: { status: "SOLD" },
+    });
+    await sendMobileDmMessage(userId, {
+      roomId: row.roomId,
+      content: "거래가 완료되었습니다.",
+    }).catch(() => undefined);
+    return { status: "COMPLETED" as const, listingStatus: "SOLD" as const };
+  }
+
+  return { status: "CONFIRMED_PARTIAL" as const };
 }
 
 export async function listMobileUsedMeetPins(userId: string) {

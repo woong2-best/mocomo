@@ -309,7 +309,7 @@ export async function getMobileRoomMessages(
       }
     })(),
     isMarket
-      ? Promise.resolve({ canMessage: true, canCall: false })
+      ? Promise.resolve({ canMessage: true, canCall: true })
       : otherId
         ? contactPermissions(userId, otherId)
         : Promise.resolve({ canMessage: true, canCall: true }),

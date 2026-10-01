@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUsedListing } from "@/actions/used-market";
 import { UsedImageComposer } from "@/components/media/post-media-composer";
@@ -22,6 +22,7 @@ import {
   getSidoById,
   KOREA_SIDO,
   KOREA_SIGUNGU_BY_SIDO,
+  inferUsedRegionFromGeocodeLabel,
   parseUsedRegion,
   USED_SHIPPING_REGION,
 } from "@/lib/korea-regions";
@@ -155,6 +156,18 @@ export function UsedPostForm({
   const priceMax = maxUsedListingPrice(currency);
   const priceOverLimit =
     !giveaway && !isTrade && price.trim() !== "" && Number.isFinite(numericPrice) && numericPrice > priceMax;
+
+  const syncRegionFromMapLabel = useCallback(
+    (label: string) => {
+      if (!korea) return;
+      const inferred = inferUsedRegionFromGeocodeLabel(label);
+      if (!inferred) return;
+      setSidoId(inferred.sidoId);
+      setSigungu(inferred.sigungu);
+      setRegion(formatUsedRegion(getSidoById(inferred.sidoId)?.short ?? "", inferred.sigungu));
+    },
+    [korea]
+  );
 
   function setSido(nextId: string) {
     if (nextId === "__shipping__") {
@@ -460,6 +473,7 @@ export function UsedPostForm({
           onMeetPlaceChange={setMeetPlace}
           coords={meetCoords}
           onCoordsChange={setMeetCoords}
+          onGeocodeLabel={syncRegionFromMapLabel}
         />
       </div>
 

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   fetchUsedTradeRequest,
@@ -10,9 +12,9 @@ import {
 } from "@/api/marketplace";
 import type { Locale } from "@/i18n";
 import { useI18n } from "@/i18n/I18nProvider";
-import { uiText } from "@/i18n/ui-text";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import type { RootStackParamList } from "@/navigation/types";
 
 type Props = {
   requestId: string;
@@ -25,6 +27,7 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
   const { locale, u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const [request, setRequest] = useState<UsedTradeRequestDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,11 +48,10 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
     void load();
   }, [load]);
 
-  const isSeller = request?.sellerId === selfUserId;
   const sentByMe = request?.requestedById
     ? request.requestedById === selfUserId
     : request?.buyerId === selfUserId;
-  const canRespond = request?.canRespond ?? (request?.status === "PENDING" && isSeller && !sentByMe);
+  const canRespond = request?.canRespond ?? false;
 
   async function respond(action: "approve" | "reject") {
     if (!request || busy) return;
@@ -70,6 +72,11 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
     }
   }
 
+  const openListing = useCallback(() => {
+    if (!request?.listingId) return;
+    navigation.navigate("MarketplaceDetail", { id: request.listingId });
+  }, [navigation, request?.listingId]);
+
   if (loading) {
     return (
       <View style={styles.card}>
@@ -84,13 +91,18 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
     request.status === "PENDING"
       ? u("대기 중", "Pending")
       : request.status === "APPROVED"
-        ? u("승인됨", "Approved")
+        ? u("예약됨", "Reserved")
         : request.status === "REJECTED"
           ? u("거절됨", "Declined")
           : u("취소됨", "Cancelled");
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      onPress={openListing}
+      style={styles.card}
+      accessibilityRole="button"
+      accessibilityLabel={u("중고 상품 상세 보기", "View listing details")}
+    >
       <View style={styles.head}>
         <Ionicons name="bag-handle-outline" size={20} color={colors.cobalt} />
         <Text style={styles.title}>{u("중고 거래 요청", "Used trade request")}</Text>
@@ -100,34 +112,43 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
           ? u("거래 일정을 보냈습니다.", "You sent a trade schedule.")
           : u("거래 일정이 도착했습니다.", "A trade schedule arrived.")}
       </Text>
-      <Text style={styles.meta} numberOfLines={1}>
-        {request.listingTitle}
-      </Text>
       {request.meetAt ? <Text style={styles.meta}>{formatMeetAt(request.meetAt, locale)}</Text> : null}
       <Text style={styles.status}>{statusLabel}</Text>
       {request.status === "PENDING" && canRespond ? (
-        <View style={styles.actions}>
+        <View style={styles.actions} onStartShouldSetResponder={() => true}>
           <Pressable
-            style={[styles.btn, styles.rejectBtn]}
+            style={[styles.circle, styles.rejectCircle]}
             disabled={busy}
-            onPress={() => void respond("reject")}
-          >
-            <Text style={styles.rejectText}>{u("거절", "Decline")}</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.btn, styles.approveBtn]}
-            disabled={busy}
-            onPress={() => void respond("approve")}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              void respond("reject");
+            }}
+            accessibilityLabel={u("거절", "Decline")}
           >
             {busy ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.approveText}>{u("승인", "Approve")}</Text>
+              <Ionicons name="close" size={22} color="#fff" />
+            )}
+          </Pressable>
+          <Pressable
+            style={[styles.circle, styles.approveCircle]}
+            disabled={busy}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              void respond("approve");
+            }}
+            accessibilityLabel={u("승인", "Approve")}
+          >
+            {busy ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Ionicons name="checkmark" size={22} color="#fff" />
             )}
           </Pressable>
         </View>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -158,17 +179,15 @@ function createStyles(colors: ThemeColors) {
     body: { color: colors.text, fontWeight: "600", fontSize: 13 },
     meta: { color: colors.textMuted, fontSize: 12, fontWeight: "600" },
     status: { color: colors.cobalt, fontSize: 12, fontWeight: "700", marginTop: 2 },
-    actions: { flexDirection: "row", gap: 8, marginTop: 8 },
-    btn: {
-      flex: 1,
-      height: 40,
-      borderRadius: radii.md,
+    actions: { flexDirection: "row", gap: 16, justifyContent: "center", marginTop: 8 },
+    circle: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       alignItems: "center",
       justifyContent: "center",
     },
-    rejectBtn: { borderWidth: 1, borderColor: colors.border },
-    rejectText: { color: colors.text, fontWeight: "700" },
-    approveBtn: { backgroundColor: colors.cobalt },
-    approveText: { color: colors.textOnAccent, fontWeight: "800" },
+    rejectCircle: { backgroundColor: "#dc2626" },
+    approveCircle: { backgroundColor: "#16a34a" },
   });
 }

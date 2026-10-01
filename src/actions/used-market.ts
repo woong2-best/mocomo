@@ -347,6 +347,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
     let favorited = false;
     let starred = false;
     let buyerChatRoomId: string | null = null;
+    let reservedTradeParticipant = false;
     let myHighestBid: number | null = null;
     let isWinningBidder = false;
     let viewerAdultVerified = false;
@@ -383,7 +384,21 @@ export async function getUsedListing(id: string, viewerId?: string) {
         ])
       : Promise.resolve(null);
 
-    const [viewerResult, auctionBids] = await Promise.all([viewerPromise, bidsPromise]);
+    const approvedTradePromise =
+      listing.status === "RESERVED" && viewerId
+        ? db.usedTradeRequest
+            .findFirst({
+              where: { listingId: id, status: "APPROVED" },
+              select: { buyerId: true, sellerId: true },
+            })
+            .catch(() => null)
+        : Promise.resolve(null);
+
+    const [viewerResult, auctionBids, approvedTrade] = await Promise.all([
+      viewerPromise,
+      bidsPromise,
+      approvedTradePromise,
+    ]);
 
     const favoriteCount = listing._count.favorites;
     const chatCount =
@@ -440,6 +455,10 @@ export async function getUsedListing(id: string, viewerId?: string) {
           (auctionLive && listing.currentBidderId === viewerId);
         myHighestBid = myBid?.amount ?? null;
       }
+      if (approvedTrade && viewerId) {
+        reservedTradeParticipant =
+          approvedTrade.buyerId === viewerId || approvedTrade.sellerId === viewerId;
+      }
     }
 
     return {
@@ -449,6 +468,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
       favoriteCount,
       chatCount,
       buyerChatRoomId,
+      reservedTradeParticipant,
       auctionLive,
       myHighestBid,
       isWinningBidder,

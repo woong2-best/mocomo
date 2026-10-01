@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image as RNImage,
   KeyboardAvoidingView,
@@ -46,6 +46,7 @@ import {
 } from "@/features/marketplace/UsedSubcultureFormSection";
 import {
   formatUsedRegion,
+  inferUsedRegionFromGeocodeLabel,
   homeCurrencyForCountry,
   KOREA_SIDO,
   KOREA_SIGUNGU_BY_SIDO,
@@ -350,6 +351,19 @@ export function UsedCreateScreen() {
     }
   }
 
+  const syncRegionFromMapLabel = useCallback(
+    (label: string) => {
+      if (countryCode.toUpperCase() !== "KR") return;
+      const inferred = inferUsedRegionFromGeocodeLabel(label);
+      if (!inferred) return;
+      setSidoId(inferred.sidoId);
+      setSigungu(inferred.sigungu);
+      const short = KOREA_SIDO.find((s) => s.id === inferred.sidoId)?.short ?? "";
+      setRegion(formatUsedRegion(short, inferred.sigungu));
+    },
+    [countryCode]
+  );
+
   const locationLabel =
     countryCode.toUpperCase() === "KR"
       ? sidoId === "__shipping__"
@@ -648,6 +662,7 @@ export function UsedCreateScreen() {
                 district={countryCode.toUpperCase() === "KR" && sidoId !== "__shipping__" ? sigungu : undefined}
                 coords={meetCoords}
                 onCoordsChange={setMeetCoords}
+                onGeocodeLabel={syncRegionFromMapLabel}
                 height={220}
               />
               <TextInput

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -36,17 +37,27 @@ import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { PeerLocalClock, PeerMemberClocks } from "@/features/messages/PeerLocalClock";
 import { useTheme } from "@/theme/ThemeContext";
-import { spacing, type ThemeColors } from "@/theme/tokens";
+import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { requestUsedTrade } from "@/api/marketplace";
+import { UsedTradeMeetCompletionCard } from "@/features/messages/UsedTradeMeetCompletionCard";
 import type { Locale } from "@/i18n";
 import { useI18n } from "@/i18n/I18nProvider";
 import { uiText } from "@/i18n/ui-text";
 
 const MAX_VOICE_SEC = 120;
 const MEET_DAY_OFFSETS = [0, 1, 2, 3, 4, 5, 6];
-const MEET_HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+
+function parseMeetTimeInput(text: string): { hours: number; minutes: number } | null {
+  const m = text.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const hours = Number(m[1]);
+  const minutes = Number(m[2]);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+  return { hours, minutes };
+}
 
 function meetDayLabel(offset: number, locale: Locale) {
   const date = new Date();
@@ -123,13 +134,20 @@ export function MessageRoomScreen() {
   const usedTrade = room?.usedTrade ?? null;
   const [tradeRequestBusy, setTradeRequestBusy] = useState(false);
   const [meetDayOffset, setMeetDayOffset] = useState(1);
-  const [meetHour, setMeetHour] = useState(15);
+  const [meetCustomDate, setMeetCustomDate] = useState<Date | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [meetTimeText, setMeetTimeText] = useState("15:00");
 
   const onRequestUsedTrade = useCallback(async () => {
     if (!usedTrade?.canRequestTrade || tradeRequestBusy) return;
-    const meetAt = new Date();
-    meetAt.setDate(meetAt.getDate() + meetDayOffset);
-    meetAt.setHours(meetHour, 0, 0, 0);
+    const parsedTime = parseMeetTimeInput(meetTimeText);
+    if (!parsedTime) {
+      showIslandError(u("시간", "Time"), u("거래 시간을 HH:MM 형식으로 입력해 주세요.", "Enter trade time as HH:MM."));
+      return;
+    }
+    const meetAt = meetCustomDate ? new Date(meetCustomDate) : new Date();
+    if (!meetCustomDate) meetAt.setDate(meetAt.getDate() + meetDayOffset);
+    meetAt.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
     if (meetAt.getTime() < Date.now()) {
       showIslandError(u("일정", "Schedule"), u("지금보다 이후 시간을 선택해 주세요.", "Pick a time later than now."));
       return;
@@ -149,7 +167,7 @@ export function MessageRoomScreen() {
     } finally {
       setTradeRequestBusy(false);
     }
-  }, [meetDayOffset, meetHour, refresh, roomId, tradeRequestBusy, u, usedTrade]);
+  }, [meetCustomDate, meetDayOffset, meetTimeText, refresh, roomId, tradeRequestBusy, u, usedTrade]);
 
   const rows = useMemo<MessageRow[]>(
     () =>
@@ -269,7 +287,7 @@ export function MessageRoomScreen() {
         "이 사용자는 자신이 팔로우한 사람에게만 메시지를 받습니다.",
         "This user only accepts messages from people they follow."
       );
-  const canCallPeer = room?.type !== "DM" || room.canCall !== false;
+  const canCallPeer = room?.canCall !== false;
 
   const peerProfileSeed = useMemo(
     () =>
@@ -404,22 +422,6 @@ export function MessageRoomScreen() {
 
       {usedTrade?.directTrade ? (
         <DirectTradeCard view={usedTrade.directTrade} onUpdated={() => void refresh()} />
-      ) : usedTrade ? (
-        <Pressable
-          style={styles.usedTradeSchedule}
-          onPress={() =>
-            navigation.navigate("MarketplaceDetail", { id: usedTrade.listingId })
-          }
-          accessibilityRole="button"
-          accessibilityLabel={u(`${usedTrade.listingTitle} 상품 페이지`, `${usedTrade.listingTitle} listing`)}
-        >
-          <Text style={styles.usedTradeScheduleLabel}>
-            {u("상품", "Listing")} · {usedTrade.listingTitle}
-          </Text>
-          <Text style={styles.usedTradeScheduleLabel}>
-            {u("판매자", "Seller")} @{usedTrade.sellerUsername ?? ""} · {usedTrade.priceLabel ?? ""}
-          </Text>
-        </Pressable>
       ) : null}
 
       {error ? (
@@ -483,36 +485,58 @@ export function MessageRoomScreen() {
       >
         {!canSend ? <Text style={styles.lockedNote}>{composerLockNote}</Text> : null}
 
+        {canSend && usedTrade?.approvedMeet?.showCompletionPrompt ? (
+          <UsedTradeMeetCompletionCard
+            requestId={usedTrade.approvedMeet.requestId}
+            selfUserId={user?.id ?? ""}
+            isBuyer={usedTrade.isBuyer}
+            buyerMeetConfirmedAt={usedTrade.approvedMeet.buyerMeetConfirmedAt}
+            sellerMeetConfirmedAt={usedTrade.approvedMeet.sellerMeetConfirmedAt}
+            onRefresh={() => void refresh()}
+          />
+        ) : null}
+
         {canSend && usedTrade?.canRequestTrade ? (
           <View style={styles.usedTradeSchedule}>
             <Text style={styles.usedTradeScheduleLabel}>{u("거래 날짜", "Trade date")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-              {MEET_DAY_OFFSETS.map((offset) => (
-                <Pressable
-                  key={offset}
-                  style={[styles.chip, meetDayOffset === offset && styles.chipOn]}
-                  onPress={() => setMeetDayOffset(offset)}
-                >
-                  <Text style={[styles.chipText, meetDayOffset === offset && styles.chipTextOn]}>
-                    {meetDayLabel(offset, locale)}
-                  </Text>
-                </Pressable>
-              ))}
+              {MEET_DAY_OFFSETS.map((offset) => {
+                const isCalendarSlot = offset === 6;
+                const selected = isCalendarSlot
+                  ? meetCustomDate != null
+                  : meetCustomDate == null && meetDayOffset === offset;
+                const label = isCalendarSlot
+                  ? meetCustomDate
+                    ? `${meetCustomDate.getMonth() + 1}/${meetCustomDate.getDate()}`
+                    : u("날짜 선택", "Pick date")
+                  : meetDayLabel(offset, locale);
+                return (
+                  <Pressable
+                    key={offset}
+                    style={[styles.chip, selected && styles.chipOn]}
+                    onPress={() => {
+                      if (isCalendarSlot) {
+                        setCalendarOpen(true);
+                        return;
+                      }
+                      setMeetCustomDate(null);
+                      setMeetDayOffset(offset);
+                    }}
+                  >
+                    <Text style={[styles.chipText, selected && styles.chipTextOn]}>{label}</Text>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
             <Text style={styles.usedTradeScheduleLabel}>{u("거래 시간", "Trade time")}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-              {MEET_HOURS.map((hour) => (
-                <Pressable
-                  key={hour}
-                  style={[styles.chip, meetHour === hour && styles.chipOn]}
-                  onPress={() => setMeetHour(hour)}
-                >
-                  <Text style={[styles.chipText, meetHour === hour && styles.chipTextOn]}>
-                    {String(hour).padStart(2, "0")}:00
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
+            <TextInput
+              style={styles.timeInput}
+              value={meetTimeText}
+              onChangeText={setMeetTimeText}
+              placeholder="15:00"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numbers-and-punctuation"
+            />
             <Pressable
               style={styles.usedTradeBar}
               disabled={tradeRequestBusy}
@@ -635,6 +659,34 @@ export function MessageRoomScreen() {
         onClose={() => setLightbox(null)}
       />
 
+      <Modal visible={calendarOpen} transparent animationType="fade" onRequestClose={() => setCalendarOpen(false)}>
+        <Pressable style={styles.calBackdrop} onPress={() => setCalendarOpen(false)}>
+          <Pressable style={styles.calSheet} onPress={() => undefined}>
+            <Text style={styles.calTitle}>{u("거래 날짜 선택", "Pick trade date")}</Text>
+            <ScrollView style={styles.calScroll} keyboardShouldPersistTaps="handled">
+              {Array.from({ length: 60 }, (_, i) => {
+                const d = new Date();
+                d.setHours(0, 0, 0, 0);
+                d.setDate(d.getDate() + i);
+                const label = meetDayLabel(i, locale);
+                return (
+                  <Pressable
+                    key={i}
+                    style={styles.calRow}
+                    onPress={() => {
+                      setMeetCustomDate(d);
+                      setCalendarOpen(false);
+                    }}
+                  >
+                    <Text style={styles.calRowText}>{label}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
     </View>
   );
 }
@@ -694,6 +746,33 @@ function createThemedStyles(colors: ThemeColors) {
     chipOn: { backgroundColor: colors.cobalt, borderColor: colors.cobalt },
     chipText: { color: colors.text, fontWeight: "700", fontSize: 12 },
     chipTextOn: { color: colors.textOnAccent },
+    timeInput: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radii.md,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 15,
+      fontWeight: "700",
+      color: colors.text,
+      backgroundColor: colors.surfaceRaised,
+    },
+    calBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      justifyContent: "flex-end",
+    },
+    calSheet: {
+      maxHeight: "70%",
+      backgroundColor: colors.surfaceRaised,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      padding: spacing.md,
+    },
+    calTitle: { fontWeight: "800", fontSize: 16, color: colors.text, marginBottom: 8 },
+    calScroll: { maxHeight: 360 },
+    calRow: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+    calRowText: { fontSize: 15, fontWeight: "600", color: colors.text },
     usedTradeBar: {
       marginBottom: 8,
       height: 44,

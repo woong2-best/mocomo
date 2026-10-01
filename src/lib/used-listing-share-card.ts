@@ -107,23 +107,10 @@ export async function presentMobileUsedListingMessages<T extends PresentableMess
     const card = listingId ? cards.get(listingId) : undefined;
     if (!card) return message;
 
-    const attachments: PresentableAttachment[] = [...(message.attachments ?? [])];
-    const hasPhoto = attachments.some(
-      (attachment) => isUsedListingAttachment(attachment) || attachment.url === card.imageUrl
-    );
-    if (!hasPhoto && card.imageUrl) {
-      attachments.push({
-        id: `used-card-${message.id}`,
-        url: card.imageUrl,
-        type: "IMAGE",
-        name: usedListingAttachmentName(card.id),
-      });
-    }
-
     return {
       ...message,
       content: parsed?.note ?? card.title,
-      attachments: attachments as T["attachments"],
+      attachments: message.attachments as T["attachments"],
       usedListing: card,
     };
   });

@@ -115,6 +115,14 @@ export type UsedTradeRoomContext = {
   canRequestTrade: boolean;
   editLocked: boolean;
   pendingRequestId: string | null;
+  approvedMeet?: {
+    requestId: string;
+    meetAt: string;
+    buyerMeetConfirmedAt: string | null;
+    sellerMeetConfirmedAt: string | null;
+    meetCompletionDeclinedAt: string | null;
+    showCompletionPrompt: boolean;
+  } | null;
   directTrade?: DirectTradeView | null;
 };
 

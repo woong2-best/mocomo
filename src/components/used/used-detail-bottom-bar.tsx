@@ -28,6 +28,7 @@ export function UsedDetailBottomBar({
   status,
   chatCount,
   initialBuyerRoomId,
+  reservedTradeParticipant = false,
   restrictedKind = "NONE",
   viewerAdultVerified = false,
 }: {
@@ -38,6 +39,8 @@ export function UsedDetailBottomBar({
   status: UsedListingStatus;
   chatCount: number;
   initialBuyerRoomId?: string | null;
+  /** RESERVED 상태에서 승인된 거래 당사자(구매자·판매자) */
+  reservedTradeParticipant?: boolean;
   restrictedKind?: UsedRestrictedKind | string;
   viewerAdultVerified?: boolean;
 }) {
@@ -138,12 +141,32 @@ export function UsedDetailBottomBar({
     );
   }
 
-  if (status !== "SELLING") {
+  if (status === "SOLD") {
     return (
-      <div className="used-action-bar border-t bg-muted/40 p-4 text-center text-sm text-muted-foreground pb-safe">
-        {status === "RESERVED"
-          ? uiText(locale, "다른 분과 예약 중이에요", "Reserved for another buyer")
-          : uiText(locale, "거래가 완료된 상품이에요", "This listing is sold")}
+      <div className="used-action-bar border-t bg-muted/40 p-3 pb-safe z-20">
+        <Button
+          type="button"
+          size="lg"
+          disabled
+          className="h-12 w-full rounded-[10px] bg-muted font-bold text-muted-foreground"
+        >
+          {uiText(locale, "거래완료", "Trade completed")}
+        </Button>
+      </div>
+    );
+  }
+
+  if (status === "RESERVED" && !isSeller && !reservedTradeParticipant) {
+    return (
+      <div className="used-action-bar border-t bg-muted/40 p-3 pb-safe z-20">
+        <Button
+          type="button"
+          size="lg"
+          disabled
+          className="h-12 w-full rounded-[10px] bg-muted font-bold text-muted-foreground"
+        >
+          {uiText(locale, "예약됨", "Reserved")}
+        </Button>
       </div>
     );
   }

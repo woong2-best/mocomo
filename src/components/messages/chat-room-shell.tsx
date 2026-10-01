@@ -37,6 +37,8 @@ export function ChatRoomShell({
   readOnly = false,
   readOnlyHint,
   canCall = true,
+  disputeListingId,
+  disputeSellerId,
   guestMode = false,
   vipEmoji = false,
   communityId,
@@ -69,6 +71,8 @@ export function ChatRoomShell({
   readOnly?: boolean;
   readOnlyHint?: string;
   canCall?: boolean;
+  disputeListingId?: string;
+  disputeSellerId?: string;
   guestMode?: boolean;
   vipEmoji?: boolean;
   communityId?: string;
@@ -88,6 +92,8 @@ export function ChatRoomShell({
         otherUserId={header.otherUserId}
         otherTimeZone={header.otherTimeZone}
         canCall={canCall}
+        disputeListingId={disputeListingId}
+        disputeSellerId={disputeSellerId}
         viewerUserId={userId}
         members={header.members}
         memberCount={header.memberCount}

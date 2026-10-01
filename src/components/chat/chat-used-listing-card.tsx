@@ -48,7 +48,7 @@ export function ChatUsedListingCard({ listingId, className }: Props) {
     <Link
       href={href}
       className={cn(
-        "block w-[240px] max-w-full overflow-hidden rounded-2xl border border-border/70 bg-background shadow-sm",
+        "block w-[248px] max-w-full overflow-hidden rounded-2xl border border-orange-500/40 bg-[#fff7ed] dark:bg-[#1a1208] shadow-sm",
         className
       )}
     >

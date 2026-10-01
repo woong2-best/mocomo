@@ -154,3 +154,26 @@ export function getSidoRegionPrefix(sidoId: string): string | null {
   const sido = getSidoById(sidoId);
   return sido ? `${sido.short} ` : null;
 }
+
+/** Reverse-geocode label → 시/도·시군구 (KR used-market region picker sync). */
+export function inferUsedRegionFromGeocodeLabel(label: string): { sidoId: string; sigungu: string } | null {
+  const hay = label.trim();
+  if (!hay) return null;
+
+  for (const sido of KOREA_SIDO) {
+    if (!hay.includes(sido.short) && !hay.includes(sido.label)) continue;
+    const units = [...(KOREA_SIGUNGU_BY_SIDO[sido.id] ?? [])];
+    let best: string | null = null;
+    let bestLen = 0;
+    for (const unit of units) {
+      if (hay.includes(unit) && unit.length > bestLen) {
+        best = unit;
+        bestLen = unit.length;
+      }
+    }
+    if (best) return { sidoId: sido.id, sigungu: best };
+    const fallback = units[0];
+    if (fallback) return { sidoId: sido.id, sigungu: fallback };
+  }
+  return null;
+}

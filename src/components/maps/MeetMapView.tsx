@@ -19,6 +19,7 @@ export type MeetMapViewProps = {
   meetPlace?: string;
   coords?: MeetCoords | null;
   onCoordsChange?: (coords: MeetCoords | null) => void;
+  onGeocodeLabel?: (label: string) => void;
   onMeetPlaceChange?: (text: string) => void;
   className?: string;
   heightClassName?: string;
@@ -34,6 +35,7 @@ export function MeetMapView({
   meetPlace = "",
   coords,
   onCoordsChange,
+  onGeocodeLabel,
   className,
   heightClassName = "h-52",
   pinTitle,
@@ -100,13 +102,14 @@ export function MeetMapView({
         const body = (await res.json()) as { label?: string; error?: string };
         if (res.ok && body.label) {
           setSearchQ(detail?.trim() ? `${body.label} · ${detail.trim()}` : body.label);
+          onGeocodeLabel?.(body.label);
           setResolveError("");
         }
       } catch {
         /* keep coords */
       }
     },
-    [country]
+    [country, onGeocodeLabel]
   );
 
   const handlePick = useCallback(
@@ -174,7 +177,9 @@ export function MeetMapView({
       }
       const next = { lat: body.lat, lng: body.lng };
       onCoordsChange?.(next);
-      setSearchQ(body.label?.trim() || q);
+      const label = body.label?.trim() || q;
+      setSearchQ(label);
+      if (label) onGeocodeLabel?.(label);
       setDisplayCoords(next);
       setResolveError("");
     } catch {

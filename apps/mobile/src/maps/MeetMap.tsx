@@ -38,6 +38,8 @@ type Props = {
   meetPlace?: string;
   coords?: MeetCoords | null;
   onCoordsChange?: (coords: MeetCoords | null) => void;
+  /** 역지오코딩 라벨 (현 위치·핀) — 상단 시/도·구 선택 동기화용 */
+  onGeocodeLabel?: (label: string) => void;
   /** @deprecated 지도 검색과 주소 상세는 분리됨. pick 모드에서는 사용하지 않음 */
   onMeetPlaceChange?: (text: string) => void;
   height?: number;
@@ -54,6 +56,7 @@ export function MeetMap({
   meetPlace = "",
   coords,
   onCoordsChange,
+  onGeocodeLabel,
   height = 220,
   pinTitle = "거래 장소",
   pinSearchUrl,
@@ -102,11 +105,14 @@ export function MeetMap({
       const url = `${API_BASE_URL}/api/used/reverse-geocode?lat=${lat}&lng=${lng}&country=${encodeURIComponent(country)}`;
       const res = await fetch(url);
       const body = (await res.json()) as { label?: string };
-      if (res.ok && body.label) setSearchQ(body.label);
+      if (res.ok && body.label) {
+        setSearchQ(body.label);
+        onGeocodeLabel?.(body.label);
+      }
     } catch {
       /* ignore */
     }
-  }, [country]);
+  }, [country, onGeocodeLabel]);
 
   const handlePick = useCallback(
     (next: MeetCoords) => {
@@ -141,7 +147,9 @@ export function MeetMap({
       }
       const next = { lat: body.lat, lng: body.lng };
       onCoordsChange?.(next);
-      setSearchQ(body.label?.trim() || q);
+      const label = body.label?.trim() || q;
+      setSearchQ(label);
+      if (label) onGeocodeLabel?.(label);
       setDisplayCoords(next);
       setError("");
     } catch {

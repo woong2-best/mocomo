@@ -298,9 +298,7 @@ function MessageBubbleInner({
   const letterCaption = letterTipId ? stripLetterDonationMarker(message.content) : null;
   const tradeCaption = tradeRequestId ? stripUsedTradeRequestMarker(message.content) : null;
   const listingNote = listingCard
-    ? message.content && message.content !== listingCard.title
-      ? message.content
-      : null
+    ? parsedListing?.note?.trim() || null
     : parsedListing?.note ?? null;
   const visibleText = listingId
     ? listingNote

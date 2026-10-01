@@ -93,7 +93,10 @@ export async function initiateCall(data: {
   if (blocked) return { error: "차단된 사용자와는 통화할 수 없습니다." };
 
   if (data.chatRoomId) {
-    if (!room || room.type !== "DM") return { error: "DM 방에서만 통화할 수 있습니다." };
+    const { isCallEligibleChatRoomType } = await import("@/lib/chat-call-room");
+    if (!room || !isCallEligibleChatRoomType(room.type)) {
+      return { error: "DM 방에서만 통화할 수 있습니다." };
+    }
     const memberIds = room.members.map((m) => m.userId);
     if (!memberIds.includes(user.id) || !memberIds.includes(data.calleeId)) {
       return { error: "이 대화방에 참여 중이 아닙니다." };

@@ -88,6 +88,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
     buyerChatRoomId,
 
+    reservedTradeParticipant,
+
     auctionLive,
 
     myHighestBid,
@@ -540,6 +542,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           chatCount={chatCount}
 
           initialBuyerRoomId={buyerChatRoomId}
+
+          reservedTradeParticipant={reservedTradeParticipant}
 
           restrictedKind={listing.restrictedKind}
 

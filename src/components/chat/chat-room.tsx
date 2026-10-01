@@ -15,6 +15,12 @@ import { ChatMessageReplyQuote } from "@/components/chat/chat-message-reply-quot
 import { ChatReplyComposerBar } from "@/components/chat/chat-reply-composer-bar";
 import { ChatSharedPostCard } from "@/components/chat/chat-shared-post-card";
 import { ChatUsedListingCard } from "@/components/chat/chat-used-listing-card";
+import { ChatUsedTradeRequestCard } from "@/components/chat/chat-used-trade-request-card";
+import { ChatUsedTradePanel } from "@/components/chat/chat-used-trade-panel";
+import {
+  parseUsedTradeRequestMarker,
+  stripUsedTradeRequestMarker,
+} from "@/lib/chat-used-trade-request-marker";
 import { ChatGameShareCard } from "@/components/chat/chat-game-share-card";
 import { ActivityPanel } from "@/components/activities/activity-panel";
 import { PresenceAvatar } from "@/components/user/presence-avatar";
@@ -476,23 +482,27 @@ export function ChatRoomClient({
           const isMine = m.sender.id === userId;
           const pending = isPendingMessageId(m.id);
           const usedShare = parseChatUsedListing(m.content);
+          const tradeRequestId = parseUsedTradeRequestMarker(m.content);
+          const tradeCaption = tradeRequestId ? stripUsedTradeRequestMarker(m.content) : null;
           const visibleAttachments = (m.attachments ?? []).filter(
             (attachment) => !isUsedListingAttachment(attachment)
           );
           const hasAttachments = visibleAttachments.length > 0;
-          const postShare = usedShare ? null : parseChatPostShare(m.content);
+          const postShare = usedShare || tradeRequestId ? null : parseChatPostShare(m.content);
           const gameShare = parseChatGameShare(m.content);
           const atmLetter = parseAtmLetter(m.content);
           const letterTipId = atmLetter ? null : parseLetterDonationMarker(m.content);
           const hasText = usedShare
             ? !!usedShare.note
-            : postShare
-              ? !!postShare.note
-              : gameShare
-                ? !!gameShare.note
-                : atmLetter || letterTipId
-                  ? false
-                  : !!m.content?.trim();
+            : tradeRequestId
+              ? !!tradeCaption
+              : postShare
+                ? !!postShare.note
+                : gameShare
+                  ? !!gameShare.note
+                  : atmLetter || letterTipId
+                    ? false
+                    : !!m.content?.trim();
           const showDate = shouldShowDateDivider(prev?.createdAt ?? null, m.createdAt);
           const showAvatar = shouldShowAvatar(
             prev ? { senderId: prev.sender.id } : null,
@@ -610,7 +620,11 @@ export function ChatRoomClient({
                             selfUserId={userId}
                           />
                         )}
-                        {usedShare?.note ?? postShare?.note ?? gameShare?.note ?? m.content}
+                        {usedShare?.note ??
+                          tradeCaption ??
+                          postShare?.note ??
+                          gameShare?.note ??
+                          m.content}
                       </div>
                     )}
                     {gameShare && (
@@ -648,6 +662,9 @@ export function ChatRoomClient({
                     {usedShare && (
                       <ChatUsedListingCard listingId={usedShare.listingId} />
                     )}
+                    {tradeRequestId ? (
+                      <ChatUsedTradeRequestCard requestId={tradeRequestId} selfUserId={userId} />
+                    ) : null}
                     {postShare && (
                       <div className={cn(hasText && "mt-1")}>
                         {m.replyTo && !hasAttachments && !hasText && (
@@ -715,6 +732,7 @@ export function ChatRoomClient({
       )}
       {error && <p className="text-xs text-destructive px-4 pb-1 text-center">{error}</p>}
       <ActivityPanel />
+      {!readOnly ? <ChatUsedTradePanel roomId={roomId} readOnly={readOnly} /> : null}
       {!readOnly && (
         <div className="shrink-0 border-t border-border/60 bg-background">
           {replyTarget && (

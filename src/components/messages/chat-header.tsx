@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { PeerLocalClock, PeerMemberClocks } from "@/components/messages/peer-local-clock";
 import { useLocale } from "@/components/providers/locale-provider";
 import { uiText } from "@/lib/i18n/ui-text";
+import { ReportButton } from "@/components/report/report-button";
 
 export function ChatHeader({
   displayName,
@@ -29,6 +30,8 @@ export function ChatHeader({
   memberCount,
   showBackOnMobile = true,
   canCall = true,
+  disputeListingId,
+  disputeSellerId,
 }: {
   displayName: string;
   displayImage: string | null;
@@ -43,6 +46,8 @@ export function ChatHeader({
   memberCount?: number;
   showBackOnMobile?: boolean;
   canCall?: boolean;
+  disputeListingId?: string;
+  disputeSellerId?: string;
 }) {
   const { locale } = useLocale();
   const { isNativeApp } = useClientPlatform();
@@ -151,7 +156,18 @@ export function ChatHeader({
         </div>
       )}
 
-      {roomType === "DM" && otherUserId && canCall ? (
+      {disputeListingId ? (
+        <ReportButton
+          targetType="USED_LISTING"
+          targetId={disputeListingId}
+          reportedUserId={disputeSellerId}
+          label={uiText(locale, "분쟁하기", "Report issue")}
+          variant="outline"
+          size="sm"
+        />
+      ) : null}
+
+      {(roomType === "DM" || roomType === "MARKET") && otherUserId && canCall ? (
         <DmCallButtons
           calleeId={otherUserId}
           chatRoomId={roomId}

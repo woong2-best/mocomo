@@ -19,6 +19,7 @@ type UsedMeetMapPickerProps = {
   onMeetPlaceChange: (value: string) => void;
   coords: MeetCoords | null;
   onCoordsChange: (coords: MeetCoords | null) => void;
+  onGeocodeLabel?: (label: string) => void;
 };
 
 export function UsedMeetMapPicker({
@@ -28,6 +29,7 @@ export function UsedMeetMapPicker({
   onMeetPlaceChange,
   coords,
   onCoordsChange,
+  onGeocodeLabel,
 }: UsedMeetMapPickerProps) {
   return (
     <div className="space-y-2">
@@ -40,6 +42,7 @@ export function UsedMeetMapPicker({
         region={region}
         coords={coords}
         onCoordsChange={onCoordsChange}
+        onGeocodeLabel={onGeocodeLabel}
         heightClassName="h-56"
       />
       <Input

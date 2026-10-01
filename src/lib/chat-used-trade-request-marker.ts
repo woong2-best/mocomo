@@ -18,3 +18,9 @@ export function parseUsedTradeRequestMarker(content: string | null | undefined):
 export function buildUsedTradeRequestMessageBody(requestId: string): string {
   return `${usedTradeRequestMarker(requestId)}\n상대방이 거래를 요청했습니다.`;
 }
+
+export function stripUsedTradeRequestMarker(content: string | null | undefined): string | null {
+  if (!content?.trim()) return null;
+  const stripped = content.replace(MARKER_RE, "").trim();
+  return stripped || null;
+}

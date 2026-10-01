@@ -292,6 +292,16 @@ export async function respondUsedTradeRequest(
   );
 }
 
+export async function respondUsedTradeMeetCompletion(
+  requestId: string,
+  action: "confirm" | "decline"
+) {
+  return apiRequest<{ status: string; listingStatus?: string }>(
+    `/api/used/trade-requests/${encodeURIComponent(requestId)}/meet-completion`,
+    { method: "POST", body: { action }, auth: true }
+  );
+}
+
 export async function submitUsedListingReport(params: {
   listingId: string;
   reportedUserId: string;

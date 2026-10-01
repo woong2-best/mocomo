@@ -7,6 +7,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { notifyIncomingCall } from "@/lib/notifications";
 import { db } from "@/lib/db";
 import { peerBusyWithSomeoneElse, releaseCallerActiveCalls } from "@/lib/call-sync";
+import { isCallEligibleChatRoomType } from "@/lib/chat-call-room";
 
 const bodySchema = z.object({
   calleeId: z.string().min(1).max(64),
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (chatRoomId) {
-    if (!room || room.type !== "DM") {
+    if (!room || !isCallEligibleChatRoomType(room.type)) {
       return NextResponse.json({ error: "DM 방에서만 통화할 수 있습니다." }, { status: 400 });
     }
     const memberIds = room.members.map((m) => m.userId);
