@@ -23,6 +23,9 @@ export const REPORT_REASONS_EN: { id: ReportReasonId; label: string }[] = [
 export const POST_REPORT_ROOT_QUESTION_EN =
   "Why are you reporting this post?";
 
+export const CHAT_REPORT_ROOT_QUESTION_EN =
+  "Why are you reporting this chat?";
+
 export const POST_REPORT_DISCLAIMER_EN =
   "Reports are reviewed by the MoCoMo team. Your identity is kept confidential.";
 

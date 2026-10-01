@@ -2,6 +2,10 @@ import type { ChatAttachment, ChatMessage, ChatReplyTo } from "@/api/messages";
 import { uiText } from "@/i18n/ui-text";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
 import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
+import { parseUsedTradeRequestMarker } from "@/lib/chat-used-trade-request";
+import { parseCallBookingMarker } from "@/lib/chat-call-booking";
+import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
+import { parseAtmLetter } from "@/lib/chat-atm-letter";
 
 export function getReplyToHeading(
   replyTo: Pick<ChatReplyTo, "sender">,
@@ -69,11 +73,30 @@ export function getChatReplyPreview(
   m: Pick<ChatMessage | ChatReplyTo, "content" | "attachments">,
   locale = "ko"
 ): string {
+  if (parseUsedTradeRequestMarker(m.content)) {
+    return uiText(locale, "거래 요청", "Trade request");
+  }
+  if (parseCallBookingMarker(m.content)) {
+    return uiText(locale, "통화 예약", "Call booking");
+  }
+  if (parseAtmLetter(m.content)) {
+    return uiText(locale, "송금 편지", "Transfer letter");
+  }
+  if (parseLetterDonationMarker(m.content)) {
+    return uiText(locale, "편지 후원", "Letter tip");
+  }
   const sharePreview = chatPostShareListPreview(m.content);
   if (sharePreview) return sharePreview;
   const listingPreview = chatUsedListingListPreview(m.content);
   if (listingPreview) return listingPreview;
   const text = m.content?.trim();
+  if (text && /\[\[mocomo:[^\]]+\]\]/i.test(text)) {
+    const stripped = text.replace(/\[\[mocomo:[^\]]+\]\]/gi, "").trim();
+    if (!stripped) {
+      return uiText(locale, "시스템 메시지", "System message");
+    }
+    return stripped.length > 100 ? `${stripped.slice(0, 100)}…` : stripped;
+  }
   if (text) return text.length > 100 ? `${text.slice(0, 100)}…` : text;
   const att = (m.attachments as ChatAttachment[] | undefined)?.[0];
   if (!att) return uiText(locale, "메시지", "Message");

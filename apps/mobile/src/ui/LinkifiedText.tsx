@@ -18,6 +18,7 @@ type Props = {
   text: string;
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
+  ellipsizeMode?: "head" | "middle" | "tail" | "clip";
   linkStyle?: StyleProp<TextStyle>;
   mentionStyle?: StyleProp<TextStyle>;
   /** Reels / video overlay captions */
@@ -36,6 +37,7 @@ export function LinkifiedText({
   lightLinks = false,
   onBackgroundPress,
   onTextLayout,
+  ellipsizeMode,
 }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
@@ -49,6 +51,7 @@ export function LinkifiedText({
     <Text
       style={style}
       numberOfLines={numberOfLines}
+      ellipsizeMode={ellipsizeMode}
       onPress={onBackgroundPress}
       onTextLayout={onTextLayout}
     >

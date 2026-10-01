@@ -31,8 +31,7 @@ import {
   dmRoomQueryKey,
 } from "@/api/dm-bootstrap-cache";
 import { dmRoomIsUnread } from "@/features/messages/useHasUnreadDms";
-import { chatPostShareListPreview } from "@/lib/chat-post-share";
-import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
+import { getChatReplyPreview } from "@/features/messages/chat-display";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { FolkButton } from "@/ui/FolkButton";
@@ -61,12 +60,11 @@ function relativeTime(iso: string | null, locale: Locale) {
 }
 
 function previewText(raw: string, locale: Locale) {
-  return (
-    chatPostShareListPreview(raw) ||
-    chatUsedListingListPreview(raw) ||
-    raw ||
-    uiText(locale, "대화를 시작해 보세요", "Start a conversation")
-  );
+  const trimmed = raw?.trim();
+  if (!trimmed) {
+    return uiText(locale, "대화를 시작해 보세요", "Start a conversation");
+  }
+  return getChatReplyPreview({ content: trimmed, attachments: [] }, locale);
 }
 
 function matchScore(user: MessageUserHit, q: string) {

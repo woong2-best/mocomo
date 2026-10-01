@@ -71,7 +71,14 @@ export function PostReportSheet({
 }: Props) {
   const { colors } = useTheme();
   const { locale, t, u } = useI18n();
-  const reportCopy = useMemo(() => getPostReportCopy(locale), [locale]);
+  const reportCopy = useMemo(
+    () => getPostReportCopy(locale, reportTarget === "chat_room" ? "chat" : "post"),
+    [locale, reportTarget]
+  );
+  const sheetTitle =
+    reportTarget === "chat_room"
+      ? u("채팅 신고", "Report chat")
+      : t("report.title");
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -267,7 +274,7 @@ export function PostReportSheet({
             ) : (
               <View style={styles.backBtn} />
             )}
-            <Text style={styles.title}>{phase === "done" ? t("common.done") : t("report.title")}</Text>
+            <Text style={styles.title}>{phase === "done" ? t("common.done") : sheetTitle}</Text>
             <View style={styles.backBtn} />
           </View>
 

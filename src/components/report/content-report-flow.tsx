@@ -16,6 +16,7 @@ import {
   type ReportTaxonomyNode,
 } from "@/lib/report-reasons";
 import { useLocale } from "@/components/providers/locale-provider";
+import { uiText } from "@/lib/i18n/ui-text";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -67,13 +68,23 @@ export function ContentReportFlow({
 }: Props) {
   const router = useRouter();
   const { locale, t } = useLocale();
-  const reportCopy = useMemo(() => getPostReportCopy(locale), [locale]);
+  const reportCopy = useMemo(
+    () => getPostReportCopy(locale, chatRoomId ? "chat" : "post"),
+    [locale, chatRoomId]
+  );
   const [phase, setPhase] = useState<Phase>("browse");
   const [stack, setStack] = useState<ReportTaxonomyNode[][]>([]);
   const [path, setPath] = useState<ReportPathStep[]>([]);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [details, setDetails] = useState("");
+
+  const sheetTitle =
+    phase === "done"
+      ? t("common.done")
+      : chatRoomId
+        ? uiText(locale, "채팅 신고", "Report chat")
+        : t("report.title");
 
   const currentNodes = stack.length > 0 ? stack[stack.length - 1]! : reportCopy.taxonomy;
   const currentQuestion =
@@ -272,7 +283,7 @@ export function ContentReportFlow({
                 </button>
               )}
               <h2 className="text-base font-bold tracking-tight text-foreground">
-                {phase === "done" ? t("common.done") : t("report.title")}
+                {sheetTitle}
               </h2>
             </div>
 

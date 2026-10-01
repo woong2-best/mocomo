@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import {
   PanResponder,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -37,7 +38,7 @@ import {
   parseUsedTradeRequestMarker,
   stripUsedTradeRequestMarker,
 } from "@/lib/chat-used-trade-request";
-import { TranslatableText } from "@/ui/TranslatableText";
+import { LinkifiedText } from "@/ui/LinkifiedText";
 import { LockedMessageMediaTile } from "@/components/media/LockedMessageMediaTile";
 import { ForensicPaidVideoEmbed } from "@/components/media/ForensicPaidVideoEmbed";
 import { resolveAbsolutePlaybackUrl } from "@/api/watermark";
@@ -242,6 +243,10 @@ function ChatMessageVideo({
   );
 }
 
+function isTechnicalDmText(text: string): boolean {
+  return /\[\[mocomo:[^\]]+\]\]/i.test(text) || (text.length > 96 && !/\s/.test(text.slice(0, 48)));
+}
+
 function MessageText({
   text,
   mine,
@@ -251,12 +256,15 @@ function MessageText({
   mine: boolean;
   styles: ReturnType<typeof createThemedStyles>;
 }) {
+  const technical = isTechnicalDmText(text);
   return (
-    <TranslatableText
+    <LinkifiedText
       text={text}
-      style={[styles.text, mine && styles.textMine]}
+      style={[styles.text, mine && styles.textMine, technical && styles.textTechnical]}
       linkStyle={[styles.link, mine && styles.linkMine]}
       mentionStyle={[styles.link, mine && styles.linkMine]}
+      numberOfLines={technical ? 3 : undefined}
+      ellipsizeMode={technical ? "tail" : undefined}
     />
   );
 }
@@ -395,7 +403,7 @@ function MessageBubbleInner({
   const longPressReply = onReply ? triggerReply : undefined;
 
   const bubbleBody = (
-    <View style={styles.stack}>
+    <>
       {showSenderName && !mine ? (
         <Text style={styles.senderName}>@{message.sender.username}</Text>
       ) : null}
@@ -541,7 +549,7 @@ function MessageBubbleInner({
       {showTime ? (
         <Text style={[styles.time, mine ? styles.timeMine : styles.timeOther]}>{timeLabel}</Text>
       ) : null}
-    </View>
+    </>
   );
 
   return (
@@ -551,7 +559,7 @@ function MessageBubbleInner({
     >
       <MessageBubbleHighlight
         highlighted={highlighted}
-        style={styles.stack}
+        style={[styles.stack, mine ? styles.stackMine : styles.stackOther]}
       >
         {bubbleBody}
       </MessageBubbleHighlight>
@@ -579,42 +587,67 @@ const styles = StyleSheet.create({
   },
 });
 
+/** Same inset on both sides — DM list alignment */
+const CHAT_ROW_INSET = spacing.md;
+const BUBBLE_MAX_WIDTH = "72%";
+
 function createThemedStyles(colors: ThemeColors) {
   return StyleSheet.create({
     row: {
-      paddingHorizontal: spacing.md,
-      marginBottom: 4,
+      paddingHorizontal: CHAT_ROW_INSET,
+      marginBottom: 6,
       flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
+      width: "100%",
     },
     rowMine: { justifyContent: "flex-end" },
     rowOther: { justifyContent: "flex-start" },
-    stack: { maxWidth: "72%", gap: 4 },
+    stack: {
+      maxWidth: BUBBLE_MAX_WIDTH,
+      flexGrow: 0,
+      flexShrink: 0,
+      gap: 4,
+    },
+    stackMine: { alignSelf: "flex-end", alignItems: "flex-end" },
+    stackOther: { alignSelf: "flex-start", alignItems: "flex-start" },
     senderName: {
       fontSize: 11,
       fontWeight: "700",
       color: colors.textMuted,
-      marginLeft: 4,
       marginBottom: 2,
+      alignSelf: "flex-start",
     },
     bubble: {
       borderRadius: 18,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
       overflow: "hidden",
+      flexGrow: 0,
+      flexShrink: 0,
+      maxWidth: "100%",
+      minWidth: 36,
     },
     bubbleMine: {
       backgroundColor: colors.terracotta,
       borderBottomRightRadius: 5,
+      alignSelf: "flex-end",
     },
     bubbleOther: {
+      alignSelf: "flex-start",
       backgroundColor: colors.surfaceRaised,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
       borderBottomLeftRadius: 5,
     },
-    text: { fontSize: 15, lineHeight: 21, color: colors.text },
+    text: {
+      fontSize: 15,
+      lineHeight: 21,
+      color: colors.text,
+      ...(Platform.OS === "android" ? { textBreakStrategy: "highQuality" as const } : {}),
+      ...(Platform.OS === "ios" ? { lineBreakStrategyIOS: "hangul-word" as const } : {}),
+    },
+    textTechnical: {
+      ...(Platform.OS === "ios" ? { lineBreakStrategyIOS: "push-out" as const } : {}),
+    },
     textMine: { color: colors.textOnAccent },
     link: { color: colors.brand, textDecorationLine: "underline" },
     linkMine: { color: colors.textOnAccent },

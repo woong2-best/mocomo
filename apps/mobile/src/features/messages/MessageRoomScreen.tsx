@@ -771,7 +771,7 @@ function createThemedStyles(colors: ThemeColors) {
     header: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 8,
+      paddingHorizontal: spacing.md,
       paddingBottom: 8,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.hairline,
@@ -804,7 +804,7 @@ function createThemedStyles(colors: ThemeColors) {
       borderTopColor: colors.hairline,
       backgroundColor: colors.background,
       paddingTop: 8,
-      paddingHorizontal: 10,
+      paddingHorizontal: spacing.md,
     },
     usedTradeSchedule: { marginBottom: 8, gap: 6 },
     usedTradeScheduleLabel: { color: colors.textMuted, fontSize: 12, fontWeight: "700" },

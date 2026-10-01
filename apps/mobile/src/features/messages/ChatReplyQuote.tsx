@@ -39,7 +39,7 @@ export function ChatReplyQuote({
         {heading}
       </Text>
       {body.kind === "text" ? (
-        <Text style={styles.previewText} numberOfLines={2}>
+        <Text style={styles.previewText} numberOfLines={2} ellipsizeMode="tail">
           {body.text}
         </Text>
       ) : (
@@ -100,6 +100,8 @@ function createStyles(colors: ThemeColors, mine: boolean) {
       fontSize: 12,
       lineHeight: 16,
       color: mine ? "rgba(255,255,255,0.88)" : colors.text,
+      flexShrink: 1,
+      width: "100%",
     },
     mediaRow: {
       flexDirection: "row",

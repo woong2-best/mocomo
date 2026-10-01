@@ -4,6 +4,7 @@ import {
   POST_REPORT_OTHER_DETAILS_PROMPT_EN,
   POST_REPORT_REVIEW_HINT_EN,
   POST_REPORT_ROOT_QUESTION_EN,
+  CHAT_REPORT_ROOT_QUESTION_EN,
   POST_REPORT_TAXONOMY_EN,
   REPORT_REASONS_EN,
 } from "@/lib/report-reasons-en";
@@ -51,6 +52,9 @@ export type ReportTaxonomyNode = {
 
 export const POST_REPORT_ROOT_QUESTION =
   "이 게시물을 신고하는 이유는 무엇인가요?";
+
+export const CHAT_REPORT_ROOT_QUESTION =
+  "이 대화를 신고하는 이유는 무엇인가요?";
 
 export const POST_REPORT_DISCLAIMER =
   "신고된 내용은 모코모 관리팀 검토 후 신속하게 조치됩니다. 신고자의 개인정보는 안전하게 보호됩니다.";
@@ -275,12 +279,15 @@ export type PostReportCopy = {
   otherDetailsPrompt: string;
 };
 
-export function getPostReportCopy(locale: Locale | string | undefined): PostReportCopy {
+export function getPostReportCopy(
+  locale: Locale | string | undefined,
+  kind: "post" | "chat" = "post"
+): PostReportCopy {
   if (locale === "ko") {
     return {
       reasons: REPORT_REASONS,
       taxonomy: POST_REPORT_TAXONOMY,
-      rootQuestion: POST_REPORT_ROOT_QUESTION,
+      rootQuestion: kind === "chat" ? CHAT_REPORT_ROOT_QUESTION : POST_REPORT_ROOT_QUESTION,
       disclaimer: POST_REPORT_DISCLAIMER,
       reviewHint: POST_REPORT_REVIEW_HINT,
       otherDetailsPrompt: POST_REPORT_OTHER_DETAILS_PROMPT,
@@ -289,7 +296,8 @@ export function getPostReportCopy(locale: Locale | string | undefined): PostRepo
   return {
     reasons: REPORT_REASONS_EN,
     taxonomy: POST_REPORT_TAXONOMY_EN,
-    rootQuestion: POST_REPORT_ROOT_QUESTION_EN,
+    rootQuestion:
+      kind === "chat" ? CHAT_REPORT_ROOT_QUESTION_EN : POST_REPORT_ROOT_QUESTION_EN,
     disclaimer: POST_REPORT_DISCLAIMER_EN,
     reviewHint: POST_REPORT_REVIEW_HINT_EN,
     otherDetailsPrompt: POST_REPORT_OTHER_DETAILS_PROMPT_EN,
