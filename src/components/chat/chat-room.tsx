@@ -509,7 +509,7 @@ export function ChatRoomClient({
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="flex-1 overflow-y-auto min-h-0 px-3 sm:px-4 py-4 space-y-1"
+        className="chat-messages-container flex-1 overflow-y-auto min-h-0 px-5 sm:px-6 py-5"
       >
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -575,36 +575,26 @@ export function ChatRoomClient({
           };
 
           return (
-            <div
-              key={m.id}
-              ref={registerMessageRef}
-              className="flex items-stretch w-full gap-0"
-            >
-              <button
-                type="button"
-                tabIndex={-1}
-                aria-hidden
-                className="flex-1 min-w-[12px] shrink cursor-default border-0 bg-transparent p-0"
-                onDoubleClick={() => {
-                  if (!readOnly) startReply(m);
-                }}
-              />
-              <div className="shrink min-w-0 max-w-full">
+            <div key={m.id} className="w-full">
               {showDate && (
-                <div className="flex justify-center my-4">
+                <div className="date-separator-row">
                   <span className="text-[11px] font-medium text-muted-foreground bg-background/80 border border-border/50 px-3 py-1 rounded-full">
                     {formatDateDivider(m.createdAt, locale)}
                   </span>
                 </div>
               )}
               <div
+                ref={registerMessageRef}
                 className={cn(
-                  "flex gap-1.5 mb-0.5 group",
-                  isMine ? "justify-end" : "justify-start",
+                  "message-row group",
+                  isMine ? "my-message" : "other-message",
                   showAvatar ? "mt-3" : "mt-0.5",
                   pending && isMine && "opacity-80"
                 )}
                 onContextMenu={(e) => openMessageContextMenu(e, m)}
+                onDoubleClick={() => {
+                  if (!readOnly) startReply(m);
+                }}
                 {...bubbleTouch}
               >
                 {!isMine && (
@@ -628,8 +618,8 @@ export function ChatRoomClient({
                     )}
                   </div>
                 )}
-                <div className={cn("flex items-end gap-1 max-w-[78%] sm:max-w-[70%]", isMine && "flex-row-reverse")}>
-                  <div className={cn("flex flex-col min-w-0", isMine && "items-end")}>
+                <div className={cn("flex items-end gap-1 min-w-0", isMine && "flex-row-reverse")}>
+                  <div className={cn("chat-bubble flex flex-col min-w-0", isMine && "items-end")}>
                   {!isMine && showAvatar && (
                     <DisplayNameWithSupportTier
                       name={m.sender.username}
@@ -800,16 +790,6 @@ export function ChatRoomClient({
                   )}
                 </div>
               </div>
-              </div>
-              <button
-                type="button"
-                tabIndex={-1}
-                aria-hidden
-                className="flex-1 min-w-[12px] shrink cursor-default border-0 bg-transparent p-0"
-                onDoubleClick={() => {
-                  if (!readOnly) startReply(m);
-                }}
-              />
             </div>
           );
         })}

@@ -2354,3 +2354,47 @@ html.mocomo-hide-root-scrollbar::-webkit-scrollbar {
     chat-message-shake 0.45s ease-in-out,
     chat-message-highlight-fade 1.4s ease-out;
 }
+
+/* DM / group chat — full-width rows, edge-aligned bubbles */
+.chat-messages-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  align-items: stretch;
+  box-sizing: border-box;
+}
+
+.message-row {
+  display: flex;
+  width: 100%;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.message-row.my-message {
+  justify-content: flex-end;
+}
+
+.message-row.other-message {
+  justify-content: flex-start;
+}
+
+.date-separator-row {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.chat-bubble {
+  width: fit-content;
+  max-width: 60%;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 640px) {
+  .chat-bubble {
+    max-width: 78%;
+  }
+}
