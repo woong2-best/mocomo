@@ -8,7 +8,6 @@ import type { SupportTierLevel } from "@prisma/client";
 import { sendMessage } from "@/actions/chat";
 import { deleteCommunityChatMessage } from "@/actions/community-content";
 import { useChatSocket } from "@/components/messages/chat-socket-context";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatMediaComposer } from "@/components/chat/chat-media-composer";
 import { ChatMessageAttachments } from "@/components/chat/chat-message-attachments";
 import { ChatMessageReplyQuote } from "@/components/chat/chat-message-reply-quote";
@@ -23,11 +22,9 @@ import {
 } from "@/lib/chat-used-trade-request-marker";
 import { ChatGameShareCard } from "@/components/chat/chat-game-share-card";
 import { ActivityPanel } from "@/components/activities/activity-panel";
-import { PresenceAvatar } from "@/components/user/presence-avatar";
 import {
   formatBubbleTime,
   formatDateDivider,
-  shouldShowAvatar,
   shouldShowDateDivider,
 } from "@/lib/chat-display";
 import type { ChatAttachmentInput } from "@/lib/chat-attachments";
@@ -46,8 +43,6 @@ import { parseAtmLetter } from "@/lib/chat-atm-letter";
 import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
 import { TransferLetterCard } from "@/components/messages/transfer-letter-stage";
 import { LetterDonationCard } from "@/components/donations/letter-donation-card";
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import { UserProfileLink } from "@/components/user/user-profile-link";
 import { cn } from "@/lib/utils";
 import {
   DM_CONTENT_FILTER_WARNING_EN,
@@ -95,7 +90,7 @@ export function ChatRoomClient({
   const [replyTarget, setReplyTarget] = useState<Message | null>(null);
   const [error, setError] = useState("");
   const [filterWarning, setFilterWarning] = useState("");
-  const { socket, socketReady, realtimeOff, isUserOnline, subscribeMessages } = useChatSocket();
+  const { socket, socketReady, realtimeOff, subscribeMessages } = useChatSocket();
   const router = useRouter();
   const searchParams = useSearchParams();
   const autoSendRef = useRef(false);
@@ -558,11 +553,6 @@ export function ChatRoomClient({
                     ? false
                     : !!m.content?.trim();
           const showDate = shouldShowDateDivider(prev?.createdAt ?? null, m.createdAt);
-          const showAvatar = shouldShowAvatar(
-            prev ? { senderId: prev.sender.id } : null,
-            { senderId: m.sender.id },
-            isMine
-          );
           const showTime =
             !messages[i + 1] ||
             messages[i + 1].sender.id !== m.sender.id ||
@@ -586,9 +576,8 @@ export function ChatRoomClient({
               <div
                 ref={registerMessageRef}
                 className={cn(
-                  "message-row group",
+                  "message-row group mt-0.5",
                   isMine ? "my-message" : "other-message",
-                  showAvatar ? "mt-3" : "mt-0.5",
                   pending && isMine && "opacity-80"
                 )}
                 onContextMenu={(e) => openMessageContextMenu(e, m)}
@@ -597,39 +586,8 @@ export function ChatRoomClient({
                 }}
                 {...bubbleTouch}
               >
-                {!isMine && (
-                  <div className="w-8 shrink-0 flex justify-center">
-                    {showAvatar ? (
-                      <UserProfileLink username={m.sender.username} className="rounded-full">
-                        <PresenceAvatar
-                          online={!isMine && isUserOnline(m.sender.id)}
-                          size="sm"
-                        >
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={m.sender.image ?? undefined} />
-                            <AvatarFallback className="text-[10px]">
-                              {m.sender.username[0]?.toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        </PresenceAvatar>
-                      </UserProfileLink>
-                    ) : (
-                      <span className="w-8" />
-                    )}
-                  </div>
-                )}
                 <div className={cn("flex items-end gap-1 min-w-0", isMine && "flex-row-reverse")}>
                   <div className={cn("chat-bubble flex flex-col min-w-0", isMine && "items-end")}>
-                  {!isMine && showAvatar && (
-                    <DisplayNameWithSupportTier
-                      name={m.sender.username}
-                      profileUsername={m.sender.username}
-                      tier={m.sender.supportTierSent ?? "SEED"}
-                      nameClassName="text-[11px] font-medium text-muted-foreground"
-                      compact
-                      className="mb-1 ml-1"
-                    />
-                  )}
                   <div className="space-y-1.5">
                     {hasAttachments && (
                       <div
