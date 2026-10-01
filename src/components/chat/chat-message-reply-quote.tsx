@@ -1,80 +1,89 @@
 "use client";
 
 import type { ChatMessageView } from "@/lib/chat-message-normalize";
-import { getChatMessageReplyPreview } from "@/lib/chat-message-normalize";
+import { getQuotedMessageBody, getReplyToHeading } from "@/lib/chat-reply-ui";
+import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
 export function ChatMessageReplyQuote({
   replyTo,
   isMine,
   selfUserId,
-  compact,
+  selfUsername,
+  onJumpToOriginal,
 }: {
   replyTo: NonNullable<ChatMessageView["replyTo"]>;
   isMine: boolean;
   selfUserId: string;
-  compact?: boolean;
+  selfUsername: string;
+  onJumpToOriginal?: (messageId: string) => void;
 }) {
-  const isReplyToSelf = replyTo.sender.id === selfUserId;
-  const preview = getChatMessageReplyPreview(replyTo);
-  // Paid media never renders outside the forensic canvas, not even as a
-  // reply thumbnail.
-  const thumb = replyTo.attachments?.find(
-    (a) => (a.type === "IMAGE" || a.type === "GIF") && !(a.priceKrw ?? 0) && Boolean(a.url)
-  );
+  const { locale } = useLocale();
+  const heading = getReplyToHeading(replyTo, {
+    selfUserId,
+    selfUsername,
+    bubbleIsMine: isMine,
+    locale,
+  });
+  const body = getQuotedMessageBody(replyTo, locale);
+  const clickable = Boolean(onJumpToOriginal && replyTo.id);
 
   return (
-    <div
+    <button
+      type="button"
+      disabled={!clickable}
+      onClick={() => onJumpToOriginal?.(replyTo.id)}
       className={cn(
-        "flex gap-2 mb-1.5 pb-1.5 border-b",
-        isMine ? "border-primary-foreground/20" : "border-border/50"
+        "w-full text-left pb-2 mb-2 border-b",
+        isMine ? "border-primary-foreground/25" : "border-border/50",
+        clickable && "cursor-pointer rounded-md -mx-1 px-1 hover:bg-black/5 dark:hover:bg-white/5 transition-colors",
+        !clickable && "cursor-default"
       )}
     >
-      <div
+      <p
         className={cn(
-          "w-0.5 shrink-0 rounded-full self-stretch min-h-[2rem]",
-          isReplyToSelf
-            ? isMine
-              ? "bg-primary-foreground/50"
-              : "bg-muted-foreground/40"
-            : isMine
-              ? "bg-primary-foreground/70"
-              : "bg-primary"
+          "text-[11px] leading-tight mb-1",
+          isMine ? "text-primary-foreground/65" : "text-muted-foreground/90"
         )}
-      />
-      <div className="min-w-0 flex-1">
+      >
+        {heading}
+      </p>
+      {body.kind === "text" ? (
         <p
           className={cn(
-            "text-[11px] font-semibold leading-tight truncate",
-            isReplyToSelf
-              ? isMine
-                ? "text-primary-foreground/80"
-                : "text-muted-foreground"
-              : isMine
-                ? "text-primary-foreground"
-                : "text-primary"
+            "text-[12px] leading-snug line-clamp-2",
+            isMine ? "text-primary-foreground/85" : "text-foreground/80"
           )}
         >
-          {isReplyToSelf ? "나" : replyTo.sender.username}
+          {body.text}
         </p>
-        <p
-          className={cn(
-            "text-[12px] leading-snug truncate",
-            compact ? "max-w-[10rem]" : "max-w-[14rem]",
-            isMine ? "text-primary-foreground/75" : "text-muted-foreground"
+      ) : (
+        <div className="flex items-center gap-2 min-w-0">
+          {body.thumbUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={body.thumbUrl}
+              alt=""
+              className="h-9 w-9 shrink-0 rounded-md object-cover"
+            />
+          ) : (
+            <div
+              className={cn(
+                "h-9 w-9 shrink-0 rounded-md",
+                isMine ? "bg-primary-foreground/20" : "bg-muted"
+              )}
+            />
           )}
-        >
-          {preview}
-        </p>
-      </div>
-      {thumb && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={thumb.url}
-          alt=""
-          className="h-9 w-9 shrink-0 rounded-md object-cover"
-        />
+          <p
+            className={cn(
+              "text-[12px] font-medium truncate",
+              isMine ? "text-primary-foreground/85" : "text-foreground/80"
+            )}
+          >
+            {body.label}
+          </p>
+        </div>
       )}
-    </div>
+    </button>
   );
 }

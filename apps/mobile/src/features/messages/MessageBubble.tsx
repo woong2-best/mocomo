@@ -1,8 +1,16 @@
 import { memo, useMemo } from "react";
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import {
+  PanResponder,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { ReplyBubbleIcon } from "@/ui/icons/ReplyBubbleIcon";
+import { MessageBubbleHighlight } from "@/features/messages/MessageBubbleHighlight";
+import { showMessageReplyMenu } from "@/features/messages/message-reply-menu";
 import type { ChatMessage } from "@/api/messages";
 import { ChatReplyQuote } from "@/features/messages/ChatReplyQuote";
 import { ChatSharedPostCard } from "@/features/messages/ChatSharedPostCard";
@@ -66,6 +74,9 @@ type Props = {
   roomId?: string;
   onMessagesRefresh?: () => void;
   onReply?: (message: ChatMessage) => void;
+  onJumpToQuoted?: (messageId: string) => void;
+  selfUsername?: string;
+  highlighted?: boolean;
   onOpenImage?: (payload: DmOpenImagePayload) => void;
   /** Show @username above others' bubbles in group chats */
   showSenderName?: boolean;
@@ -250,22 +261,6 @@ function MessageText({
   );
 }
 
-function ReplyButton({
-  onPress,
-  styles,
-}: {
-  onPress: () => void;
-  styles: ReturnType<typeof createThemedStyles>;
-}) {
-  const { colors } = useTheme();
-  const { u } = useI18n();
-  return (
-    <Pressable onPress={onPress} hitSlop={10} style={styles.replyBtn} accessibilityLabel={u("답장", "Reply")}>
-      <ReplyBubbleIcon size={16} color={colors.text} />
-    </Pressable>
-  );
-}
-
 function MessageBubbleInner({
   message,
   mine,
@@ -274,6 +269,9 @@ function MessageBubbleInner({
   roomId,
   onMessagesRefresh,
   onReply,
+  onJumpToQuoted,
+  selfUsername = "",
+  highlighted = false,
   onOpenImage,
   showSenderName = false,
 }: Props) {
@@ -365,21 +363,47 @@ function MessageBubbleInner({
     });
   };
 
-  const reply = onReply ? <ReplyButton onPress={() => onReply(message)} styles={styles} /> : null;
+  const triggerReply = () => {
+    if (!onReply) return;
+    showMessageReplyMenu(() => onReply(message), {
+      reply: u("답장", "Reply"),
+      cancel: u("취소", "Cancel"),
+    });
+  };
 
-  const content = (
+  const swipeReply = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, g) =>
+          Boolean(onReply) && g.dx < -12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.1,
+        onPanResponderRelease: (_, g) => {
+          if (g.dx < -48) onReply?.(message);
+        },
+      }),
+    [message, onReply]
+  );
+
+  const longPressReply = onReply ? triggerReply : undefined;
+
+  const bubbleBody = (
     <View style={styles.stack}>
       {showSenderName && !mine ? (
         <Text style={styles.senderName}>@{message.sender.username}</Text>
       ) : null}
       {hasTextBubble || ((images.length > 0 || videos.length > 0) && !mediaOnly) ? (
         <Pressable
-          onLongPress={onReply ? () => onReply(message) : undefined}
+          onLongPress={longPressReply}
           delayLongPress={280}
           style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}
         >
           {message.replyTo ? (
-            <ChatReplyQuote replyTo={message.replyTo} mine={mine} selfUserId={selfUserId} />
+            <ChatReplyQuote
+              replyTo={message.replyTo}
+              mine={mine}
+              selfUserId={selfUserId}
+              selfUsername={selfUsername}
+              onJumpToOriginal={onJumpToQuoted}
+            />
           ) : null}
           {!mediaOnly &&
             images.map((image, imageIndex) => (
@@ -398,7 +422,7 @@ function MessageBubbleInner({
                   const idx = lightboxImages.findIndex((i) => i.id === image.id);
                   if (idx >= 0) openImageAt(idx);
                 }}
-                onLongPress={onReply ? () => onReply(message) : undefined}
+                onLongPress={longPressReply}
               />
             ))}
           {!mediaOnly &&
@@ -437,7 +461,7 @@ function MessageBubbleInner({
                   const idx = lightboxImages.findIndex((i) => i.id === image.id);
                   if (idx >= 0) openImageAt(idx);
                 }}
-                onLongPress={onReply ? () => onReply(message) : undefined}
+                onLongPress={longPressReply}
               />
             ))}
             {videos.map((video) => (
@@ -459,7 +483,7 @@ function MessageBubbleInner({
       {audios.map((audio) => (
         <Pressable
           key={audio.id}
-          onLongPress={onReply ? () => onReply(message) : undefined}
+          onLongPress={longPressReply}
           delayLongPress={280}
         >
           <ChatVoiceMessage url={audio.url} mine={mine} />
@@ -470,7 +494,7 @@ function MessageBubbleInner({
         <ChatUsedListingCard
           listingId={listingId}
           card={listingCard}
-          onLongPress={onReply ? () => onReply(message) : undefined}
+          onLongPress={longPressReply}
         />
       ) : null}
 
@@ -478,7 +502,7 @@ function MessageBubbleInner({
         <ChatSharedPostCard
           postId={share.postId}
           mine={mine}
-          onLongPress={onReply ? () => onReply(message) : undefined}
+          onLongPress={longPressReply}
           onOpenImage={onOpenImage ? openSharedImage : undefined}
         />
       ) : null}
@@ -512,18 +536,16 @@ function MessageBubbleInner({
   );
 
   return (
-    <View style={[styles.row, mine ? styles.rowMine : styles.rowOther]}>
-      {mine ? (
-        <>
-          {reply}
-          {content}
-        </>
-      ) : (
-        <>
-          {content}
-          {reply}
-        </>
-      )}
+    <View
+      style={[styles.row, mine ? styles.rowMine : styles.rowOther]}
+      {...(onReply ? swipeReply.panHandlers : undefined)}
+    >
+      <MessageBubbleHighlight
+        highlighted={highlighted}
+        style={styles.stack}
+      >
+        {bubbleBody}
+      </MessageBubbleHighlight>
     </View>
   );
 }
@@ -566,13 +588,6 @@ function createThemedStyles(colors: ThemeColors) {
       color: colors.textMuted,
       marginLeft: 4,
       marginBottom: 2,
-    },
-    replyBtn: {
-      width: 28,
-      height: 28,
-      alignItems: "center",
-      justifyContent: "center",
-      opacity: 0.85,
     },
     bubble: {
       borderRadius: 18,

@@ -112,6 +112,7 @@ export function MessageRoomScreen() {
   const [recordSec, setRecordSec] = useState(0);
   const [voiceArmed, setVoiceArmed] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [highlightMessageId, setHighlightMessageId] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{
     images: DmOpenImagePayload["images"];
     index: number;
@@ -307,6 +308,18 @@ export function MessageRoomScreen() {
     openUserProfile(peerProfileSeed);
   }, [isGroup, openUserProfile, peerProfileSeed]);
 
+  const jumpToQuotedMessage = useCallback(
+    (messageId: string) => {
+      const index = rows.findIndex((row) => row.message.id === messageId);
+      if (index < 0) return;
+      nearBottomRef.current = false;
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+      setHighlightMessageId(messageId);
+      setTimeout(() => setHighlightMessageId(null), 1500);
+    },
+    [rows]
+  );
+
   const onOpenImage = useCallback((payload: DmOpenImagePayload) => {
     setLightbox({
       images: payload.images,
@@ -331,16 +344,29 @@ export function MessageRoomScreen() {
           message={item.message}
           mine={mine}
           selfUserId={user?.id}
+          selfUsername={user?.username ?? ""}
           showTime={item.showTime}
           roomId={roomId}
           onMessagesRefresh={() => void refresh()}
           onReply={setReplyTo}
+          onJumpToQuoted={jumpToQuotedMessage}
+          highlighted={highlightMessageId === item.message.id}
           onOpenImage={onOpenImage}
           showSenderName={showSenderName}
         />
       );
     },
-    [isGroup, onOpenImage, refresh, roomId, rows, user?.id]
+    [
+      highlightMessageId,
+      isGroup,
+      jumpToQuotedMessage,
+      onOpenImage,
+      refresh,
+      roomId,
+      rows,
+      user?.id,
+      user?.username,
+    ]
   );
 
   return (
@@ -431,8 +457,18 @@ export function MessageRoomScreen() {
           ref={listRef}
           style={styles.list}
           data={rows}
+          extraData={highlightMessageId}
           keyExtractor={(item) => item.message.id}
           renderItem={renderItem}
+          onScrollToIndexFailed={(info) => {
+            setTimeout(() => {
+              listRef.current?.scrollToIndex({
+                index: info.index,
+                animated: true,
+                viewPosition: 0.5,
+              });
+            }, 120);
+          }}
           contentContainerStyle={
             rows.length === 0 ? styles.emptyList : { paddingTop: spacing.sm, paddingBottom: 8 }
           }

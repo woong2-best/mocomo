@@ -3,6 +3,68 @@ import { uiText } from "@/i18n/ui-text";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
 import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
 
+export function getReplyToHeading(
+  replyTo: Pick<ChatReplyTo, "sender">,
+  opts: {
+    selfUserId?: string;
+    selfUsername: string;
+    bubbleIsMine: boolean;
+    locale?: string;
+  }
+): string {
+  const locale = opts.locale ?? "ko";
+  const selfUserId = opts.selfUserId;
+  const quotedIsSelf = !!selfUserId && replyTo.sender.id === selfUserId;
+  if (quotedIsSelf) {
+    if (opts.bubbleIsMine) {
+      return uiText(locale, "나에게 답장", "Reply to yourself");
+    }
+    return uiText(locale, `${opts.selfUsername}에게 답장`, `Reply to ${opts.selfUsername}`);
+  }
+  return uiText(
+    locale,
+    `${replyTo.sender.username}에게 답장`,
+    `Reply to ${replyTo.sender.username}`
+  );
+}
+
+export type QuotedMessageBody =
+  | { kind: "text"; text: string }
+  | { kind: "photo"; thumbUrl: string | null; label: string }
+  | { kind: "video"; thumbUrl: string | null; label: string };
+
+export function getQuotedMessageBody(
+  m: Pick<ChatMessage | ChatReplyTo, "content" | "attachments">,
+  locale = "ko"
+): QuotedMessageBody {
+  const preview = getChatReplyPreview(m, locale);
+  const attachments = (m.attachments as ChatAttachment[] | undefined) ?? [];
+  const unpaidVisual = attachments.find(
+    (a) =>
+      (a.type === "IMAGE" || a.type === "GIF" || a.type === "VIDEO") &&
+      !(a.priceKrw ?? 0) &&
+      Boolean(a.url)
+  );
+  const textOnly = m.content?.trim();
+  const photoLabel = uiText(locale, "사진", "Photo");
+  const videoLabel = uiText(locale, "동영상", "Video");
+  if (
+    textOnly &&
+    preview !== photoLabel &&
+    preview !== videoLabel &&
+    preview !== uiText(locale, "음성 메시지", "Voice message")
+  ) {
+    return { kind: "text", text: preview };
+  }
+  if (unpaidVisual?.type === "VIDEO") {
+    return { kind: "video", thumbUrl: unpaidVisual.url || null, label: videoLabel };
+  }
+  if (unpaidVisual && (unpaidVisual.type === "IMAGE" || unpaidVisual.type === "GIF")) {
+    return { kind: "photo", thumbUrl: unpaidVisual.url || null, label: photoLabel };
+  }
+  return { kind: "text", text: preview };
+}
+
 export function getChatReplyPreview(
   m: Pick<ChatMessage | ChatReplyTo, "content" | "attachments">,
   locale = "ko"

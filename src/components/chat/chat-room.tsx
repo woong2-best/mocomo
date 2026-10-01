@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
+import { ChatMessageContextMenu } from "@/components/chat/chat-message-context-menu";
 import type { SupportTierLevel } from "@prisma/client";
 import { sendMessage } from "@/actions/chat";
 import { deleteCommunityChatMessage } from "@/actions/community-content";
@@ -103,6 +103,14 @@ export function ChatRoomClient({
   const stickToBottomRef = useRef(true);
   const sendLockRef = useRef(false);
   const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const touchSwipeRef = useRef<{ x: number; id: string } | null>(null);
+  const [highlightMessageId, setHighlightMessageId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    message: Message;
+  } | null>(null);
   const lastSyncedAtRef = useRef<string | null>(
     initialMessages.length
       ? initialMessages[initialMessages.length - 1]?.createdAt ?? null
@@ -250,6 +258,43 @@ export function ChatRoomClient({
     if (isPendingMessageId(message.id)) return;
     setReplyTarget(message);
     queueMicrotask(() => composerInputRef.current?.focus());
+  }
+
+  const jumpToQuotedMessage = useCallback((messageId: string) => {
+    const el = messageRefs.current.get(messageId);
+    if (!el) return;
+    stickToBottomRef.current = false;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightMessageId(messageId);
+    window.setTimeout(() => setHighlightMessageId(null), 1500);
+  }, []);
+
+  function openMessageContextMenu(e: React.MouseEvent, message: Message) {
+    if (isPendingMessageId(message.id) || readOnly) return;
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, message });
+  }
+
+  function bindBubbleTouchSwipe(message: Message) {
+    return {
+      onTouchStart: (e: React.TouchEvent) => {
+        touchSwipeRef.current = {
+          x: e.touches[0]?.clientX ?? 0,
+          id: message.id,
+        };
+      },
+      onTouchEnd: (e: React.TouchEvent) => {
+        const start = touchSwipeRef.current;
+        touchSwipeRef.current = null;
+        if (!start || start.id !== message.id) return;
+        const endX = e.changedTouches[0]?.clientX ?? start.x;
+        if (endX - start.x < -48) startReply(message);
+      },
+    };
+  }
+
+  function bubbleHighlightClass(messageId: string) {
+    return highlightMessageId === messageId ? "chat-message-shake-highlight" : "";
   }
 
   function clearReply() {
@@ -514,8 +559,28 @@ export function ChatRoomClient({
             messages[i + 1].sender.id !== m.sender.id ||
             shouldShowDateDivider(m.createdAt, messages[i + 1].createdAt);
 
+          const bubbleTouch = bindBubbleTouchSwipe(m);
+          const registerMessageRef = (el: HTMLDivElement | null) => {
+            if (el) messageRefs.current.set(m.id, el);
+            else messageRefs.current.delete(m.id);
+          };
+
           return (
-            <div key={m.id}>
+            <div
+              key={m.id}
+              ref={registerMessageRef}
+              className="flex items-stretch w-full gap-0"
+            >
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-hidden
+                className="flex-1 min-w-[12px] shrink cursor-default border-0 bg-transparent p-0"
+                onDoubleClick={() => {
+                  if (!readOnly) startReply(m);
+                }}
+              />
+              <div className="shrink min-w-0 max-w-full">
               {showDate && (
                 <div className="flex justify-center my-4">
                   <span className="text-[11px] font-medium text-muted-foreground bg-background/80 border border-border/50 px-3 py-1 rounded-full">
@@ -530,6 +595,8 @@ export function ChatRoomClient({
                   showAvatar ? "mt-3" : "mt-0.5",
                   pending && isMine && "opacity-80"
                 )}
+                onContextMenu={(e) => openMessageContextMenu(e, m)}
+                {...bubbleTouch}
               >
                 {!isMine && (
                   <div className="w-8 shrink-0 flex justify-center">
@@ -569,6 +636,7 @@ export function ChatRoomClient({
                       <div
                         className={cn(
                           "overflow-hidden",
+                          bubbleHighlightClass(m.id),
                           m.replyTo &&
                             (isMine
                               ? "rounded-2xl rounded-br-md bg-primary text-primary-foreground"
@@ -581,6 +649,8 @@ export function ChatRoomClient({
                               replyTo={m.replyTo}
                               isMine={isMine}
                               selfUserId={userId}
+                              selfUsername={username}
+                              onJumpToOriginal={jumpToQuotedMessage}
                             />
                           </div>
                         )}
@@ -608,6 +678,7 @@ export function ChatRoomClient({
                       <div
                         className={cn(
                           "px-3.5 py-2 text-[15px] leading-snug break-words shadow-sm",
+                          bubbleHighlightClass(m.id),
                           isMine
                             ? "rounded-2xl rounded-br-md bg-primary text-primary-foreground"
                             : "rounded-2xl rounded-bl-md bg-background border border-border/60"
@@ -618,6 +689,8 @@ export function ChatRoomClient({
                             replyTo={m.replyTo}
                             isMine={isMine}
                             selfUserId={userId}
+                            selfUsername={username}
+                            onJumpToOriginal={jumpToQuotedMessage}
                           />
                         )}
                         {usedShare?.note ??
@@ -633,6 +706,7 @@ export function ChatRoomClient({
                           <div
                             className={cn(
                               "mb-1.5 px-3 pt-2 pb-1 rounded-2xl",
+                              bubbleHighlightClass(m.id),
                               isMine
                                 ? "rounded-br-md bg-primary text-primary-foreground"
                                 : "rounded-bl-md bg-background border border-border/60"
@@ -642,6 +716,8 @@ export function ChatRoomClient({
                               replyTo={m.replyTo}
                               isMine={isMine}
                               selfUserId={userId}
+                              selfUsername={username}
+                              onJumpToOriginal={jumpToQuotedMessage}
                             />
                           </div>
                         )}
@@ -671,6 +747,7 @@ export function ChatRoomClient({
                           <div
                             className={cn(
                               "mb-1.5 px-3 pt-2 pb-1 rounded-2xl",
+                              bubbleHighlightClass(m.id),
                               isMine
                                 ? "rounded-br-md bg-primary text-primary-foreground"
                                 : "rounded-bl-md bg-background border border-border/60"
@@ -680,6 +757,8 @@ export function ChatRoomClient({
                               replyTo={m.replyTo}
                               isMine={isMine}
                               selfUserId={userId}
+                              selfUsername={username}
+                              onJumpToOriginal={jumpToQuotedMessage}
                             />
                           </div>
                         )}
@@ -698,35 +777,45 @@ export function ChatRoomClient({
                     </span>
                   )}
                   </div>
-                  {!pending && (
+                  {!pending && canDeleteMessages && communityId && (
                     <div className="flex flex-col gap-1 self-end mb-5 shrink-0">
                       <button
                         type="button"
-                        onClick={() => startReply(m)}
-                        className="h-7 w-7 rounded-md bg-muted/70 hover:bg-muted border border-border/40 flex items-center justify-center text-muted-foreground opacity-80 hover:opacity-100 transition-opacity"
-                        aria-label={uiText(locale, "답장", "Reply")}
+                        onClick={() => removeMessage(m.id)}
+                        className="h-7 w-7 rounded-md bg-muted/70 hover:bg-destructive/20 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-destructive opacity-80 hover:opacity-100 transition-opacity"
+                        aria-label={uiText(locale, "삭제", "Delete")}
                       >
-                        <ReplyBubbleIcon className="h-3.5 w-3.5" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
-                      {canDeleteMessages && communityId && (
-                        <button
-                          type="button"
-                          onClick={() => removeMessage(m.id)}
-                          className="h-7 w-7 rounded-md bg-muted/70 hover:bg-destructive/20 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-destructive opacity-80 hover:opacity-100 transition-opacity"
-                          aria-label={uiText(locale, "삭제", "Delete")}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
                     </div>
                   )}
                 </div>
               </div>
+              </div>
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-hidden
+                className="flex-1 min-w-[12px] shrink cursor-default border-0 bg-transparent p-0"
+                onDoubleClick={() => {
+                  if (!readOnly) startReply(m);
+                }}
+              />
             </div>
           );
         })}
       </div>
 
+      <ChatMessageContextMenu
+        open={Boolean(contextMenu)}
+        x={contextMenu?.x ?? 0}
+        y={contextMenu?.y ?? 0}
+        label={uiText(locale, "답장", "Reply")}
+        onReply={() => {
+          if (contextMenu) startReply(contextMenu.message);
+        }}
+        onClose={() => setContextMenu(null)}
+      />
       {filterWarning && (
         <p className="text-xs text-amber-700 dark:text-amber-400 px-4 pb-1 text-center">{filterWarning}</p>
       )}

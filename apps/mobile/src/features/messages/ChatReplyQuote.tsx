@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import type { ChatReplyTo } from "@/api/messages";
-import { getChatReplyPreview } from "@/features/messages/chat-display";
+import { getQuotedMessageBody, getReplyToHeading } from "@/features/messages/chat-display";
 import { useI18n } from "@/i18n/I18nProvider";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
@@ -12,69 +12,110 @@ export function ChatReplyQuote({
   replyTo,
   mine,
   selfUserId,
+  selfUsername,
+  onJumpToOriginal,
 }: {
   replyTo: ChatReplyTo;
   mine: boolean;
   selfUserId?: string;
+  selfUsername: string;
+  onJumpToOriginal?: (messageId: string) => void;
 }) {
-  const { locale, u } = useI18n();
+  const { locale } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors, mine), [colors, mine]);
-  const isSelf = !!selfUserId && replyTo.sender.id === selfUserId;
-  const preview = getChatReplyPreview(replyTo, locale);
-  // Paid media never renders outside the forensic canvas, not even as a
-  // reply thumbnail.
-  const thumb = replyTo.attachments?.find(
-    (a) => (a.type === "IMAGE" || a.type === "GIF") && !(a.priceKrw ?? 0) && Boolean(a.url)
+  const heading = getReplyToHeading(replyTo, {
+    selfUserId,
+    selfUsername,
+    bubbleIsMine: mine,
+    locale,
+  });
+  const body = getQuotedMessageBody(replyTo, locale);
+  const clickable = Boolean(onJumpToOriginal && replyTo.id);
+
+  const content = (
+    <>
+      <Text style={styles.heading} numberOfLines={1}>
+        {heading}
+      </Text>
+      {body.kind === "text" ? (
+        <Text style={styles.previewText} numberOfLines={2}>
+          {body.text}
+        </Text>
+      ) : (
+        <View style={styles.mediaRow}>
+          {body.thumbUrl ? (
+            <Image
+              source={{ uri: body.thumbUrl }}
+              style={styles.thumb}
+              contentFit="cover"
+              cachePolicy={IMAGE_CACHE_POLICY}
+              transition={0}
+            />
+          ) : (
+            <View style={[styles.thumb, styles.thumbPlaceholder]} />
+          )}
+          <Text style={styles.mediaLabel} numberOfLines={1}>
+            {body.label}
+          </Text>
+        </View>
+      )}
+    </>
   );
 
-  return (
-    <View style={styles.wrap}>
-      <View style={[styles.bar, isSelf ? styles.barSelf : styles.barOther]} />
-      <View style={styles.body}>
-        <Text style={[styles.author, isSelf ? styles.authorSelf : styles.authorOther]} numberOfLines={1}>
-          {isSelf ? u("나", "You") : replyTo.sender.username}
-        </Text>
-        <Text style={styles.preview} numberOfLines={1}>
-          {preview}
-        </Text>
-      </View>
-      {thumb?.url ? (
-        <Image
-          source={{ uri: thumb.url }}
-          style={styles.thumb}
-          contentFit="cover"
-          cachePolicy={IMAGE_CACHE_POLICY}
-          transition={0}
-        />
-      ) : null}
-    </View>
-  );
+  if (clickable) {
+    return (
+      <Pressable
+        onPress={() => onJumpToOriginal?.(replyTo.id)}
+        style={({ pressed }) => [styles.wrap, pressed && styles.wrapPressed]}
+        accessibilityRole="button"
+        accessibilityLabel={heading}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return <View style={styles.wrap}>{content}</View>;
 }
 
 function createStyles(colors: ThemeColors, mine: boolean) {
   return StyleSheet.create({
     wrap: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 6,
-      paddingBottom: 6,
+      paddingBottom: 8,
+      marginBottom: 8,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: mine ? "rgba(255,255,255,0.28)" : colors.hairline,
     },
-    bar: { width: 2, alignSelf: "stretch", minHeight: 28, borderRadius: 1 },
-    barSelf: { backgroundColor: mine ? "rgba(255,255,255,0.55)" : "rgba(90,106,130,0.45)" },
-    barOther: { backgroundColor: mine ? "rgba(255,255,255,0.75)" : colors.brand },
-    body: { flex: 1, minWidth: 0 },
-    author: { fontSize: 11, fontWeight: "700" },
-    authorSelf: { color: mine ? "rgba(255,255,255,0.85)" : colors.textSecondary },
-    authorOther: { color: mine ? colors.textOnAccent : colors.brand },
-    preview: {
+    wrapPressed: {
+      opacity: 0.92,
+    },
+    heading: {
+      fontSize: 11,
+      lineHeight: 14,
+      marginBottom: 4,
+      color: mine ? "rgba(255,255,255,0.62)" : colors.textMuted,
+    },
+    previewText: {
       fontSize: 12,
       lineHeight: 16,
-      color: mine ? "rgba(255,255,255,0.9)" : colors.text,
+      color: mine ? "rgba(255,255,255,0.88)" : colors.text,
+    },
+    mediaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      minWidth: 0,
     },
     thumb: { width: 36, height: 36, borderRadius: 6 },
+    thumbPlaceholder: {
+      backgroundColor: mine ? "rgba(255,255,255,0.2)" : colors.muted,
+    },
+    mediaLabel: {
+      flex: 1,
+      fontSize: 12,
+      fontWeight: "600",
+      color: mine ? "rgba(255,255,255,0.88)" : colors.text,
+    },
   });
 }
