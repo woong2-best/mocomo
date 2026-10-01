@@ -46,6 +46,7 @@ export type ChatMessage = {
   id: string;
   content: string | null;
   createdAt: string;
+  isSystemMessage?: boolean;
   sender: {
     id: string;
     username: string;
@@ -142,6 +143,8 @@ export type DmRoomPayload = {
     usedTrade?: UsedTradeRoomContext | null;
     canMessage?: boolean;
     canCall?: boolean;
+    isLocked?: boolean;
+    status?: string;
   };
   messages: ChatMessage[];
   nextBefore: string | null;
@@ -164,6 +167,25 @@ export async function fetchRoomMessages(roomId: string, before?: string | null) 
   q.set("limit", "40");
   const suffix = q.toString() ? `?${q}` : "";
   return apiRequest<DmRoomPayload>(`${MobileApi.messages}/${roomId}${suffix}`, { auth: true });
+}
+
+export async function submitChatRoomReport(body: {
+  roomId: string;
+  reason: string;
+  reasonPath?: string;
+  details?: string;
+  reportedUserId?: string;
+  productId?: string;
+}) {
+  return apiRequest<{
+    success: boolean;
+    reportId: string;
+    systemMessage?: ChatMessage;
+    message?: string;
+  }>("/api/reports/chat", {
+    method: "POST",
+    body,
+  });
 }
 
 export async function sendRoomMessage(

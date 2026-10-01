@@ -269,6 +269,9 @@ model User {
   birthDate       DateTime? @db.Date
   birthDateSource BirthDateSource @default(SIGNUP)
   birthDateCollectedAt DateTime?
+  /** OAuth/가입 완료 시점 접속 IP (Cloudflare·프록시 헤더 기준) */
+  signupIp       String?
+  signupIpAt     DateTime?
   /** 경매 낙찰 미결제 등으로 중고거래 영구 제한 */
   usedMarketBannedAt         DateTime?
   usedMarketBanReason        String?
@@ -594,6 +597,7 @@ model User {
   adminLoginAttempts       AdminLoginAttempt[]
   adminAuthLockout         AdminAuthLockout?
   userAccessLogs           UserAccessLog[]
+  signupIpLogs             UserSignupIpLog[]
 
   searchLogs SearchLog[] @relation("SearchLogUser")
 
@@ -1401,10 +1405,16 @@ enum ChatRoomType {
   MARKET
 }
 
+enum ChatRoomStatus {
+  ACTIVE
+  READ_ONLY
+}
+
 model ChatRoom {
   id          String   @id @default(cuid())
   name        String?
   type        ChatRoomType
+  status      ChatRoomStatus @default(ACTIVE)
   communityId String?
   isPublic    Boolean  @default(true)
   createdById String?
@@ -1430,6 +1440,7 @@ model ChatRoom {
   polls     ChatPoll[]
   communityChannel CommunityChannel?
   marketDirectTrade UsedDirectTrade?
+  reports     Report[]
 }
 
 model ChatPoll {
@@ -1498,6 +1509,7 @@ model Message {
   roomId    String
   senderId  String
   content   String?  @db.Text
+  isSystemMessage Boolean @default(false)
   replyToId String?
   mentions  String[]
   createdAt DateTime @default(now())
@@ -3909,6 +3921,7 @@ enum ReportTargetType {
   POST
   COMMENT
   MESSAGE
+  CHAT_ROOM
   USED_LISTING
   LIVE_CHANNEL
   LIVE_CHAT
@@ -3934,6 +3947,10 @@ model Report {
   status     ReportStatus @default(PENDING)
   moderationCaseId String?
   createdAt  DateTime @default(now())
+  reporterIp String?
+  reportedUserIp String?
+  chatRoomId String?
+  productId  String?
   reporter   User @relation("Reporter", fields: [reporterId], references: [id])
   reportedUserId String?
   reportedUser User? @relation("ReportedUser", fields: [reportedUserId], references: [id])
@@ -3942,6 +3959,9 @@ model Report {
   post       Post? @relation(fields: [postId], references: [id])
   commentId  String?
   comment    Comment? @relation(fields: [commentId], references: [id])
+  chatRoom   ChatRoom? @relation(fields: [chatRoomId], references: [id], onDelete: SetNull)
+
+  @@index([chatRoomId, createdAt])
 }
 
 model ModLog {
@@ -4247,6 +4267,21 @@ model AdminLoginAttempt {
   @@index([userId, createdAt])
   @@index([createdAt])
   @@index([success, createdAt])
+}
+
+/** 회원가입 시 수집한 IP 이력 (동의 시점 감사) */
+model UserSignupIpLog {
+  id        String   @id @default(cuid())
+  userId    String
+  ip        String
+  userAgent String?
+  channel   String   @default("web")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([ip, createdAt])
 }
 
 /** 회원 접속(로그인) 기록 — IP·지역·기기 (관리자 조회용, 최대 90일 보관 권장) */

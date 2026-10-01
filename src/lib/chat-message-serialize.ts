@@ -81,6 +81,7 @@ export function serializeChatMessage(m: MessageRow, opts?: SerializeChatMessageO
     id: m.id,
     content: m.content,
     createdAt: m.createdAt.toISOString(),
+    isSystemMessage: m.isSystemMessage,
     sender: publicSender(m.sender),
     attachments: serializeAttachments(m.attachments, m.sender.id, opts),
     replyTo: serializeReplyTo(m.replyTo, opts),

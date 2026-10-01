@@ -24,8 +24,6 @@ import {
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import type { RootStackParamList } from "@/navigation/types";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
-import { DirectTradeDisputeSheet } from "@/features/marketplace/DirectTradeDisputeSheet";
-import { MarketDisputeScaleIcon } from "@/ui/icons/MarketDisputeScaleIcon";
 import { Screen } from "@/ui/Screen";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
@@ -51,7 +49,6 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
         { lane: "purchased" as const, label: u("구매내역", "Purchases"), icon: "bag-handle-outline" as const },
         { my: true, label: u("판매내역", "Sales"), icon: "logo-usd" as const },
         { lane: "favorites" as const, label: u("찜리스트", "Favorites"), icon: "heart-outline" as const },
-        { lane: "disputes" as const, label: u("분쟁", "Disputes") },
       ] satisfies {
         lane?: HubLane;
         my?: boolean;
@@ -68,8 +65,6 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
   const [recentQ, setRecentQ] = useState<string[]>([]);
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [clearOpen, setClearOpen] = useState(false);
-  const [disputeOpen, setDisputeOpen] = useState(false);
-
   useFocusEffect(
     useCallback(() => {
       let alive = true;
@@ -164,19 +159,13 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
               key={item.label}
               style={styles.shortcut}
               onPress={() => {
-                if (item.lane === "disputes") {
-                  setDisputeOpen(true);
-                  return;
-                }
                 if (item.my) {
                   if (embedded) onClose?.();
                   navigation.navigate("UsedMy");
                 } else if (item.lane) openLane(item.lane);
               }}
             >
-              {item.lane === "disputes" ? (
-                <MarketDisputeScaleIcon size={26} color={icon} />
-              ) : item.icon ? (
+              {item.icon ? (
                 <Ionicons name={item.icon} size={26} color={icon} />
               ) : null}
               <Text style={styles.shortcutLabel}>{item.label}</Text>
@@ -242,7 +231,6 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
         </ScrollView>
       )}
 
-      <DirectTradeDisputeSheet visible={disputeOpen} onClose={() => setDisputeOpen(false)} />
       <Modal visible={clearOpen} transparent animationType="fade" onRequestClose={() => setClearOpen(false)}>
         <Pressable style={styles.popupScrim} onPress={() => setClearOpen(false)}>
           <Pressable style={styles.popup} onPress={() => undefined}>

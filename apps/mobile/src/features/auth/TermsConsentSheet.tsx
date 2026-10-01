@@ -256,10 +256,16 @@ export function TermsConsentSheet({
               colors={colors}
               checked={privacy}
               onPress={() => setPrivacy((v) => !v)}
-              label={t("auth.privacyPolicy")}
+              label={u("개인정보 처리방침 (접속 IP·기기 정보 수집 포함)", "Privacy policy (includes IP & device data)")}
               linkPath={SIGNUP_PRIVACY_PATH}
             />
           </View>
+          <Text style={[styles.ipNote, { color: colors.textMuted }]}>
+            {u(
+              "가입 시 서비스 보안·부정 이용 방지를 위해 접속 IP 주소가 자동 수집·보관됩니다.",
+              "Your IP address is collected automatically at signup for security and abuse prevention."
+            )}
+          </Text>
 
           {localError || error ? (
             <Text style={[styles.error, { color: colors.danger }]}>
@@ -376,6 +382,7 @@ const styles = StyleSheet.create({
   },
   checkLabel: { fontSize: 15, fontWeight: "600", flex: 1 },
   viewLink: { fontSize: 14, fontWeight: "600" },
+  ipNote: { fontSize: 11, lineHeight: 16, marginBottom: 12, paddingHorizontal: 2 },
   error: { fontSize: 13, fontWeight: "600", textAlign: "center", marginBottom: 10 },
   agreeBtn: {
     borderRadius: radii.pill,

@@ -278,6 +278,15 @@ function MessageBubbleInner({
   const { locale, u } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
+
+  if (message.isSystemMessage) {
+    return (
+      <View style={styles.systemWrap}>
+        <Text style={styles.systemText}>{message.content}</Text>
+      </View>
+    );
+  }
+
   const listingCard = message.usedListing ?? null;
   const parsedListing = listingCard ? null : parseChatUsedListing(message.content);
   const listingId = listingCard?.id ?? parsedListing?.listingId ?? null;
@@ -619,6 +628,24 @@ function createThemedStyles(colors: ThemeColors) {
       height: STANDALONE_H,
       borderRadius: 14,
       backgroundColor: colors.muted,
+    },
+    systemWrap: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: 8,
+      alignItems: "center",
+    },
+    systemText: {
+      fontSize: 12,
+      lineHeight: 18,
+      textAlign: "center",
+      color: colors.textMuted,
+      backgroundColor: colors.surfaceRaised,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      overflow: "hidden",
     },
   });
 }

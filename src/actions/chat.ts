@@ -167,9 +167,10 @@ export async function sendMessage(data: {
 
   const room = await db.chatRoom.findUnique({
     where: { id: data.roomId },
-    select: { type: true, communityId: true },
+    select: { type: true, communityId: true, status: true },
   });
   if (!room) throw new Error("ROOM_NOT_FOUND");
+  if (room.status === "READ_ONLY") throw new Error("ROOM_LOCKED");
 
   if (room.type === "DM") {
     const block = await dmSendBlockReason(user.id, data.roomId);

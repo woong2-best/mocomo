@@ -64,9 +64,12 @@ export function SignupTermsConsentFields({
       <ConsentRow
         checked={privacyAccepted}
         onChange={onPrivacyChange}
-        label="개인정보 처리방침 동의"
+        label="개인정보 처리방침 동의 (접속 IP·기기 정보 수집 포함)"
         href={SIGNUP_PRIVACY_PATH}
       />
+      <p className="px-1 pb-2 text-[12px] leading-relaxed text-muted-foreground">
+        가입 시 서비스 보안·부정 이용 방지를 위해 접속 IP 주소가 자동 수집·보관됩니다.
+      </p>
     </div>
   );
 }

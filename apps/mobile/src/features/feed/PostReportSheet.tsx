@@ -16,6 +16,7 @@ import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 import { removeFollowingDmUser } from "@/api/following-dm-cache";
 import { submitUsedListingReport } from "@/api/marketplace";
+import { submitChatRoomReport } from "@/api/messages";
 import { blockAndReportUser, submitPostReport } from "@/api/social";
 import {
   formatReportPathLabel,
@@ -48,8 +49,10 @@ type Props = {
   authorUsername?: string;
   /** report = report only; block-report = report + block user */
   mode?: "report" | "block-report";
-  reportTarget?: "post" | "used_listing";
+  reportTarget?: "post" | "used_listing" | "chat_room";
   listingId?: string;
+  roomId?: string;
+  productId?: string;
   onSubmitted?: () => void;
 };
 
@@ -62,6 +65,8 @@ export function PostReportSheet({
   mode = "report",
   reportTarget = "post",
   listingId,
+  roomId,
+  productId,
   onSubmitted,
 }: Props) {
   const { colors } = useTheme();
@@ -191,6 +196,15 @@ export function PostReportSheet({
           details: trimmedDetails || undefined,
         });
         void removeFollowingDmUser(queryClient, authorId);
+      } else if (reportTarget === "chat_room" && roomId) {
+        await submitChatRoomReport({
+          roomId,
+          reportedUserId: authorId,
+          productId,
+          reason: leaf.node.reasonId,
+          reasonPath,
+          details: trimmedDetails || undefined,
+        });
       } else if (reportTarget === "used_listing" && listingId) {
         await submitUsedListingReport({
           listingId,
@@ -220,6 +234,8 @@ export function PostReportSheet({
     authorUsername,
     busy,
     listingId,
+    roomId,
+    productId,
     mode,
     onSubmitted,
     path,
@@ -227,6 +243,8 @@ export function PostReportSheet({
     queryClient,
     reportTarget,
     details,
+    t,
+    u,
   ]);
 
   return (

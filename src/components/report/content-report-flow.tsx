@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { ChevronLeft, Flag, X } from "lucide-react";
 import type { ReportTargetType } from "@prisma/client";
 import { submitContentReport } from "@/actions/report";
+import { submitChatRoomReportAction } from "@/actions/report-chat";
 import {
   formatReportPathLabel,
   getPostReportCopy,
@@ -42,6 +43,9 @@ type Props = {
   reportedUserId?: string;
   postId?: string;
   commentId?: string;
+  /** When set, submits a chat-room report (freezes room) instead of a generic content report. */
+  chatRoomId?: string;
+  productId?: string;
   /** Called after a successful submit (before the thank-you auto-close). */
   onSubmitted?: () => void | Promise<void>;
   /** Icon-only rail trigger when used as controlled+triggerless from parent */
@@ -56,6 +60,8 @@ export function ContentReportFlow({
   reportedUserId,
   postId,
   commentId,
+  chatRoomId,
+  productId,
   onSubmitted,
   trigger,
 }: Props) {
@@ -177,16 +183,25 @@ export function ContentReportFlow({
     }
 
     startTransition(async () => {
-      const res = await submitContentReport({
-        targetType,
-        targetId,
-        reason: reasonId,
-        reasonPath,
-        details: trimmedDetails || undefined,
-        reportedUserId,
-        postId,
-        commentId,
-      });
+      const res = chatRoomId
+        ? await submitChatRoomReportAction({
+            roomId: chatRoomId,
+            reason: reasonId,
+            reasonPath,
+            details: trimmedDetails || undefined,
+            reportedUserId,
+            productId,
+          })
+        : await submitContentReport({
+            targetType,
+            targetId,
+            reason: reasonId,
+            reasonPath,
+            details: trimmedDetails || undefined,
+            reportedUserId,
+            postId,
+            commentId,
+          });
       if (res.error) {
         setError(res.error);
         return;

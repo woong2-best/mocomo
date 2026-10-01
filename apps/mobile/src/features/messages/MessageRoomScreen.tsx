@@ -45,6 +45,7 @@ import { UsedTradeMeetCompletionCard } from "@/features/messages/UsedTradeMeetCo
 import type { Locale } from "@/i18n";
 import { useI18n } from "@/i18n/I18nProvider";
 import { uiText } from "@/i18n/ui-text";
+import { PostReportSheet } from "@/features/feed/PostReportSheet";
 
 const MAX_VOICE_SEC = 120;
 const MEET_DAY_OFFSETS = [0, 1, 2, 3, 4, 5, 6];
@@ -138,6 +139,8 @@ export function MessageRoomScreen() {
   const [meetCustomDate, setMeetCustomDate] = useState<Date | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [meetTimeText, setMeetTimeText] = useState("15:00");
+  const [reportOpen, setReportOpen] = useState(false);
+  const [roomLockedLocal, setRoomLockedLocal] = useState(false);
 
   const onRequestUsedTrade = useCallback(async () => {
     if (!usedTrade?.canRequestTrade || tradeRequestBusy) return;
@@ -279,15 +282,24 @@ export function MessageRoomScreen() {
     });
   }, [navigation, peerId, peerImage, roomId, title, u]);
 
+  const serverLocked = room?.isLocked === true;
+  const roomLocked = roomLockedLocal || serverLocked;
   const canSend =
-    !messagingBlocked && (room?.type !== "DM" || room.canMessage !== false);
-  const composerLockNote = messagingBlocked
-    ? (blockMessage ??
-      u("차단된 사용자와는 메시지를 주고받을 수 없습니다.", "You cannot message this user because of a block."))
-    : u(
-        "이 사용자는 자신이 팔로우한 사람에게만 메시지를 받습니다.",
-        "This user only accepts messages from people they follow."
-      );
+    !roomLocked &&
+    !messagingBlocked &&
+    (room?.type !== "DM" || room.canMessage !== false);
+  const composerLockNote = roomLocked
+    ? u(
+        "신고가 접수되어 대화가 잠겼습니다.",
+        "This conversation was locked after a report was filed."
+      )
+    : messagingBlocked
+      ? (blockMessage ??
+        u("차단된 사용자와는 메시지를 주고받을 수 없습니다.", "You cannot message this user because of a block."))
+      : u(
+          "이 사용자는 자신이 팔로우한 사람에게만 메시지를 받습니다.",
+          "This user only accepts messages from people they follow."
+        );
   const canCallPeer = room?.canCall !== false;
 
   const peerProfileSeed = useMemo(
@@ -434,6 +446,15 @@ export function MessageRoomScreen() {
         </Pressable>
 
         <View style={styles.headerActions}>
+          {!isGroup && peerId && !roomLocked ? (
+            <Pressable
+              style={styles.headerBtn}
+              onPress={() => setReportOpen(true)}
+              accessibilityLabel={u("신고하기", "Report")}
+            >
+              <Ionicons name="ellipsis-vertical" size={20} color={colors.cobalt} />
+            </Pressable>
+          ) : null}
           {!isGroup && canCallPeer ? (
             <Pressable
               style={styles.callBtn}
@@ -445,6 +466,23 @@ export function MessageRoomScreen() {
           ) : null}
         </View>
       </View>
+
+      {!isGroup && peerId ? (
+        <PostReportSheet
+          visible={reportOpen}
+          onClose={() => setReportOpen(false)}
+          postId={roomId}
+          authorId={peerId}
+          authorUsername={peerUsername ?? undefined}
+          reportTarget="chat_room"
+          roomId={roomId}
+          productId={usedTrade?.listingId}
+          onSubmitted={() => {
+            setRoomLockedLocal(true);
+            void refresh();
+          }}
+        />
+      ) : null}
 
       {usedTrade?.directTrade ? (
         <DirectTradeCard view={usedTrade.directTrade} onUpdated={() => void refresh()} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import type { SupportTierLevel } from "@prisma/client";
 import { ChatSocketProvider } from "@/components/messages/chat-socket-context";
 import { ChatHeader } from "@/components/messages/chat-header";
@@ -8,6 +8,8 @@ import { ChatRoomClient } from "@/components/chat/chat-room";
 import { GroupRoomPanel } from "@/components/chat/group-room-panel";
 import { ActivityRoom } from "@/components/activities/activity-room";
 import type { ChatMessageView } from "@/lib/chat-message-normalize";
+import { useLocale } from "@/components/providers/locale-provider";
+import { CHAT_REPORT_LOCK_MESSAGE_EN, CHAT_REPORT_LOCK_MESSAGE_KO } from "@/lib/chat-report-copy";
 
 type GroupMeta = {
   roomType: string;
@@ -37,8 +39,7 @@ export function ChatRoomShell({
   readOnly = false,
   readOnlyHint,
   canCall = true,
-  disputeListingId,
-  disputeSellerId,
+  productId,
   guestMode = false,
   vipEmoji = false,
   communityId,
@@ -71,14 +72,24 @@ export function ChatRoomShell({
   readOnly?: boolean;
   readOnlyHint?: string;
   canCall?: boolean;
-  disputeListingId?: string;
-  disputeSellerId?: string;
+  productId?: string;
   guestMode?: boolean;
   vipEmoji?: boolean;
   communityId?: string;
   canDeleteMessages?: boolean;
 }) {
+  const { locale } = useLocale();
   const isDm = header.roomType === "DM" && !!header.otherUserId;
+  const [roomLocked, setRoomLocked] = useState(readOnly);
+  useEffect(() => {
+    setRoomLocked(readOnly);
+  }, [readOnly]);
+  const onReportSubmitted = useCallback(() => {
+    setRoomLocked(true);
+  }, []);
+  const lockHint =
+    locale === "ko" ? CHAT_REPORT_LOCK_MESSAGE_KO : CHAT_REPORT_LOCK_MESSAGE_EN;
+  const effectiveReadOnlyHint = roomLocked ? readOnlyHint ?? lockHint : readOnlyHint;
 
   const chatColumn = (
     <>
@@ -92,8 +103,9 @@ export function ChatRoomShell({
         otherUserId={header.otherUserId}
         otherTimeZone={header.otherTimeZone}
         canCall={canCall}
-        disputeListingId={disputeListingId}
-        disputeSellerId={disputeSellerId}
+        readOnly={roomLocked}
+        productId={productId}
+        onReportSubmitted={onReportSubmitted}
         viewerUserId={userId}
         members={header.members}
         memberCount={header.memberCount}
@@ -119,8 +131,8 @@ export function ChatRoomShell({
           userImage={userImage}
           userSupportTier={userSupportTier}
           initialMessages={initialMessages}
-          readOnly={readOnly}
-          readOnlyHint={readOnlyHint}
+          readOnly={roomLocked}
+          readOnlyHint={effectiveReadOnlyHint}
           communityId={communityId}
           vipEmoji={vipEmoji}
           canDeleteMessages={canDeleteMessages}

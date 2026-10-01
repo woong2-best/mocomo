@@ -10,6 +10,7 @@ export type ChatMessageView = {
   id: string;
   content: string | null;
   createdAt: string;
+  isSystemMessage?: boolean;
   sender: {
     id: string;
     username: string;

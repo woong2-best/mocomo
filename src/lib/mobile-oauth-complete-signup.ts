@@ -93,6 +93,8 @@ export async function completeMobileOAuthSignup(input: {
   username?: string;
   name?: string;
   password?: string;
+  signupIp?: string | null;
+  signupChannel?: string;
 }) {
   const opened = openMobileOAuthHandoff(input.handoff);
   if (!opened || opened.kind !== "needsSignup") {
@@ -176,6 +178,8 @@ export async function completeMobileOAuthSignup(input: {
     username: input.username,
     name: input.name,
     password: input.password,
+    signupIp: input.signupIp ?? null,
+    signupChannel: input.signupChannel ?? "mobile",
   });
 
   await linkOAuthSignupAccount({

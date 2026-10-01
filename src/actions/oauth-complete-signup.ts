@@ -19,6 +19,8 @@ import {
   markSignupNeedsIdentity,
   signupIdentityEntryPath,
 } from "@/lib/signup-identity-onboarding";
+import { getRequestIp } from "@/lib/request-ip";
+import { recordUserAccessLog } from "@/lib/user-access-log";
 
 export async function completeWebOAuthSignup(input: {
   birthYear: number;
@@ -84,9 +86,21 @@ export async function completeWebOAuthSignup(input: {
       }
     }
 
+    const signupIp = await getRequestIp();
     const user = await createOAuthUserWithConsent({
       profile: ticket.profile,
       birthDate: parsed.birthDate,
+      signupIp,
+      signupChannel: "web",
+    });
+    void recordUserAccessLog({
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+      success: true,
+      channel: "web",
+      provider: "oauth_signup",
+      ip: signupIp,
     });
     await linkOAuthSignupAccount({
       provider: ticket.provider,

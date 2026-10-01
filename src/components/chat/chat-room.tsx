@@ -524,6 +524,15 @@ export function ChatRoomClient({
 
         {messages.map((m, i) => {
           const prev = messages[i - 1];
+          if (m.isSystemMessage) {
+            return (
+              <div key={m.id} className="flex justify-center my-3 px-4">
+                <p className="text-xs text-center text-muted-foreground bg-muted/80 border border-border/50 px-3 py-2 rounded-xl max-w-md leading-relaxed">
+                  {m.content}
+                </p>
+              </div>
+            );
+          }
           const isMine = m.sender.id === userId;
           const pending = isPendingMessageId(m.id);
           const usedShare = parseChatUsedListing(m.content);

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { PeerLocalClock, PeerMemberClocks } from "@/components/messages/peer-local-clock";
 import { useLocale } from "@/components/providers/locale-provider";
 import { uiText } from "@/lib/i18n/ui-text";
-import { ReportButton } from "@/components/report/report-button";
+import { ChatRoomMenu } from "@/components/messages/chat-room-menu";
 
 export function ChatHeader({
   displayName,
@@ -30,8 +30,9 @@ export function ChatHeader({
   memberCount,
   showBackOnMobile = true,
   canCall = true,
-  disputeListingId,
-  disputeSellerId,
+  readOnly = false,
+  productId,
+  onReportSubmitted,
 }: {
   displayName: string;
   displayImage: string | null;
@@ -46,8 +47,9 @@ export function ChatHeader({
   memberCount?: number;
   showBackOnMobile?: boolean;
   canCall?: boolean;
-  disputeListingId?: string;
-  disputeSellerId?: string;
+  readOnly?: boolean;
+  productId?: string;
+  onReportSubmitted?: () => void;
 }) {
   const { locale } = useLocale();
   const { isNativeApp } = useClientPlatform();
@@ -156,14 +158,13 @@ export function ChatHeader({
         </div>
       )}
 
-      {disputeListingId ? (
-        <ReportButton
-          targetType="USED_LISTING"
-          targetId={disputeListingId}
-          reportedUserId={disputeSellerId}
-          label={uiText(locale, "분쟁하기", "Report issue")}
-          variant="outline"
-          size="sm"
+      {(roomType === "DM" || roomType === "MARKET") && otherUserId ? (
+        <ChatRoomMenu
+          roomId={roomId}
+          otherUserId={otherUserId}
+          productId={productId}
+          readOnly={readOnly}
+          onReportSubmitted={onReportSubmitted}
         />
       ) : null}
 

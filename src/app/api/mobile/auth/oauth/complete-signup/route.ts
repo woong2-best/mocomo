@@ -54,6 +54,8 @@ export async function POST(req: NextRequest) {
       username: parsed.data.username,
       name: parsed.data.name,
       password: parsed.data.password,
+      signupIp: ip,
+      signupChannel: "mobile",
     });
 
     void recordUserAccessLog({

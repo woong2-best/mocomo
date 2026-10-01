@@ -212,12 +212,6 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
           </section>
         )}
 
-      {order.isBuyer &&
-        !order.disputes.some((d) => ["OPEN", "EVIDENCE", "REVIEWING"].includes(d.status)) &&
-        ["PAID", "PREPARING", "SHIPPED", "DELIVERED", "CONFIRMED"].includes(order.status) && (
-          <MarketplaceDisputeForm orderId={order.id} />
-        )}
-
       {order.isBuyer && (
         <section className="rounded-xl border border-border/60 p-3 space-y-2">
           <p className="text-sm font-semibold">구매자 액션</p>

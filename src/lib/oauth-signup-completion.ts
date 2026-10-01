@@ -111,6 +111,8 @@ export async function createOAuthUserWithConsent(opts: {
   username?: string;
   name?: string;
   password?: string;
+  signupIp?: string | null;
+  signupChannel?: string;
 }): Promise<CreatedOAuthUser> {
   if (opts.profile.email) {
     const restricted = await findRestrictedIdentityUser({ email: opts.profile.email });
@@ -150,7 +152,8 @@ export async function createOAuthUserWithConsent(opts: {
     ? await bcrypt.hash(password, OAUTH_SIGNUP_BCRYPT_ROUNDS)
     : undefined;
 
-  return db.user.create({
+  const signupIp = opts.signupIp?.trim() || null;
+  const user = (await db.user.create({
     data: {
       email: opts.profile.email,
       emailVerified: opts.profile.email ? new Date() : null,
@@ -160,11 +163,25 @@ export async function createOAuthUserWithConsent(opts: {
       ...(passwordHash ? { passwordHash } : {}),
       birthDate: opts.birthDate,
       ...birthDateCollectionMeta("OAUTH_COMPLETE"),
+      signupIp,
+      signupIpAt: signupIp ? new Date() : null,
       profile: { create: {} },
       otakuProfile: { create: {} },
     },
     select: CREATED_USER_SELECT,
-  }) as Promise<CreatedOAuthUser>;
+  })) as CreatedOAuthUser;
+
+  if (signupIp) {
+    await db.userSignupIpLog.create({
+      data: {
+        userId: user.id,
+        ip: signupIp,
+        channel: opts.signupChannel ?? "web",
+      },
+    });
+  }
+
+  return user;
 }
 
 export async function applyBirthDateIfMissing(userId: string, birthDate: Date): Promise<void> {

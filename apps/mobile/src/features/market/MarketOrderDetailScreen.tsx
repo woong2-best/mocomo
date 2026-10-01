@@ -152,11 +152,6 @@ export function MarketOrderDetailScreen() {
   });
 
   const order = query.data?.order;
-  const openDispute =
-    order?.isBuyer &&
-    ["PAID", "PREPARING", "SHIPPED", "DELIVERED", "CONFIRMED"].includes(order.status) &&
-    !(order.disputes ?? []).some((d) => ["OPEN", "EVIDENCE", "REVIEWING"].includes(d.status));
-
   return (
     <Screen>
       <AppHeader title={u("주문 상세", "Order details")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
@@ -229,7 +224,6 @@ export function MarketOrderDetailScreen() {
             </View>
           ) : null}
 
-          {openDispute ? <MarketOrderDisputePanel orderId={order.id} u={u} /> : null}
         </ScrollView>
       )}
     </Screen>

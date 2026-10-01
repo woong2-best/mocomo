@@ -2,13 +2,12 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { checkRateLimit, apiLimiter } from "@/lib/ratelimit";
 import { verifyApiOrigin } from "@/lib/api-origin";
+import { extractClientIp } from "@/lib/client-ip";
 
 export { verifyApiOrigin, shouldGuardMutatingApiOrigin, MUTATING_API_ORIGIN_EXEMPT_PREFIXES } from "@/lib/api-origin";
 
 export function getClientIpFromRequest(req: NextRequest): string {
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]?.trim() || "unknown";
-  return req.headers.get("x-real-ip")?.trim() || "unknown";
+  return extractClientIp(req.headers);
 }
 
 /** 공개 API 남용 방지 — Upstash 우선, 없으면 프로세스 메모리 (DB 절대 사용 금지). */

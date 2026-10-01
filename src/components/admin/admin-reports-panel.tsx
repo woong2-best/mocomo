@@ -31,6 +31,7 @@ const TARGET_LABELS: Record<ReportTargetType, string> = {
   POST: "게시물",
   COMMENT: "댓글",
   MESSAGE: "메시지",
+  CHAT_ROOM: "채팅방",
   USED_LISTING: "중고 매물",
   LIVE_CHANNEL: "라이브 채널",
   LIVE_CHAT: "라이브 채팅",

@@ -89,9 +89,11 @@ export async function POST(
     const message =
       result.error === "PAID_DM_DISABLED"
         ? "메시지에서 유료 팬아트 판매는 더 이상 지원하지 않습니다."
-        : result.error === "MESSAGE_NOT_ALLOWED"
-          ? MESSAGE_REQUEST_BLOCKED
-          : result.error;
+        : result.error === "ROOM_LOCKED"
+          ? "신고가 접수되어 대화가 잠겼습니다."
+          : result.error === "MESSAGE_NOT_ALLOWED"
+            ? MESSAGE_REQUEST_BLOCKED
+            : result.error;
     return NextResponse.json({ error: message, code: result.error }, { status });
   }
   return NextResponse.json(result);

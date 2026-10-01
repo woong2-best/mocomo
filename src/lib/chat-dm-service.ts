@@ -215,6 +215,7 @@ export async function getMobileRoomMessages(
   if (!room) {
     return { error: "NOT_FOUND" as const };
   }
+  const roomLocked = room.status === "READ_ONLY";
 
   const dmPeerId =
     room.type === "DM"
@@ -237,6 +238,8 @@ export async function getMobileRoomMessages(
       room: {
         id: room.id,
         type: room.type,
+        status: room.status,
+        isLocked: roomLocked,
         displayName: meta.displayName,
         displayImage: meta.displayImage,
         otherUserId: meta.otherUserId ?? null,
@@ -308,17 +311,21 @@ export async function getMobileRoomMessages(
         return null;
       }
     })(),
-    isMarket
-      ? Promise.resolve({ canMessage: true, canCall: true })
-      : otherId
-        ? contactPermissions(userId, otherId)
-        : Promise.resolve({ canMessage: true, canCall: true }),
+    roomLocked
+      ? Promise.resolve({ canMessage: false, canCall: false })
+      : isMarket
+        ? Promise.resolve({ canMessage: true, canCall: true })
+        : otherId
+          ? contactPermissions(userId, otherId)
+          : Promise.resolve({ canMessage: true, canCall: true }),
   ]);
 
   return {
     room: {
       id: room.id,
       type: room.type,
+      status: room.status,
+      isLocked: roomLocked,
       displayName: meta.displayName,
       displayImage: meta.displayImage,
       otherUserId: meta.otherUserId ?? null,
@@ -361,6 +368,14 @@ export async function sendMobileDmMessage(
       error:
         access.error === "FORBIDDEN" ? ("NOT_MEMBER" as const) : ("ROOM_NOT_FOUND" as const),
     };
+  }
+
+  const roomRow = await db.chatRoom.findUnique({
+    where: { id: data.roomId },
+    select: { status: true },
+  });
+  if (roomRow?.status === "READ_ONLY") {
+    return { error: "ROOM_LOCKED" as const };
   }
 
   const room = access.room;

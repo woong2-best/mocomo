@@ -11,11 +11,13 @@ import { ExternalLink, Trash2 } from "lucide-react";
 function targetHref(
   targetType: ReportTargetType,
   targetId: string,
-  reportedUsername?: string | null
+  reportedUsername?: string | null,
+  reportId?: string
 ): string | null {
   if (targetType === "POST") return `/post/${targetId}`;
   if (targetType === "USED_LISTING") return `/market/${targetId}`;
   if (targetType === "USER" && reportedUsername) return `/u/${reportedUsername}`;
+  if (targetType === "CHAT_ROOM" && reportId) return `/admin/reports/chat/${reportId}`;
   return null;
 }
 
@@ -33,7 +35,7 @@ export function AdminReportActions({
   reportedUsername?: string | null;
 }) {
   const [pending, startTransition] = useTransition();
-  const href = targetHref(targetType, targetId, reportedUsername);
+  const href = targetHref(targetType, targetId, reportedUsername, reportId);
   const canDelete = targetType === "POST" || targetType === "USED_LISTING";
 
   function resolve(status: ReportStatus) {
