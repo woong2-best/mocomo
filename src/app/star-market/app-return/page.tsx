@@ -24,7 +24,7 @@ function MarketAppReturnInner() {
     <main className="flex min-h-[100dvh] items-center justify-center bg-[#f5f6f8] p-6 text-center">
       <div className="space-y-2">
         <p className="text-sm font-semibold text-[#1a1a1a]">Returning to the app…</p>
-        <p className="text-xs text-muted-foreground">잠시만 기다려 주세요.</p>
+        <p className="text-xs text-muted-foreground">Please wait a moment.</p>
       </div>
     </main>
   );
