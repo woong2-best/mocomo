@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { submitUsedMarketAppeal } from "@/actions/used-market-appeal";
 import {
   USED_MARKET_APPEAL_WINDOW_DAYS,
-  USED_AUCTION_BID_CONSENT_LABEL,
+  USED_AUCTION_BID_CONSENT_LABEL_KEY,
 } from "@/lib/used-auction-legal";
 import { USED_MARKET_BAN_APPEAL_HINT, USED_MARKET_BAN_MESSAGE } from "@/lib/used-market-access";
 import { LEGAL_CONTACT_EMAIL } from "@/lib/legal-content";
@@ -65,10 +65,12 @@ export function UsedMarketAppealForm({
           <div className="space-y-2 text-sm">
             <p className="font-semibold">{t("used.sjvbd8o")}</p>
             <p className="text-muted-foreground leading-relaxed">
-              「{openAppeal.title}」 접수 건이 검토 중입니다. 중복 제출은 불가합니다.
+              {t("used.appealOpenReview", { title: openAppeal.title })}
             </p>
             <p className="text-xs text-muted-foreground">
-              접수일: {new Date(openAppeal.createdAt).toLocaleString("ko-KR")}
+              {t("used.appealSubmittedAt", {
+                date: new Date(openAppeal.createdAt).toLocaleString("en-US"),
+              })}
             </p>
           </div>
         </div>
@@ -103,7 +105,9 @@ export function UsedMarketAppealForm({
         </p>
         <p className="text-sm text-muted-foreground leading-relaxed">{USED_MARKET_BAN_MESSAGE}</p>
         <p className="text-xs text-muted-foreground">
-          제재 적용: {new Date(banInfo.bannedAt).toLocaleString("ko-KR")}
+          {t("used.sanctionAppliedAt", {
+            date: new Date(banInfo.bannedAt).toLocaleString("en-US"),
+          })}
           {banInfo.listingTitle ? t("used.sgce31g", { v0: banInfo.listingTitle }) : ""}
         </p>
         <p className="text-xs text-muted-foreground leading-relaxed">{USED_MARKET_BAN_APPEAL_HINT}</p>
@@ -157,7 +161,9 @@ export function UsedMarketAppealForm({
             placeholder={t("used.s1t0zpoa")}
             maxLength={5000}
           />
-          <p className="text-xs text-muted-foreground">{content.trim().length} / 5000자</p>
+          <p className="text-xs text-muted-foreground">
+            {t("used.appealCharCount", { count: String(content.trim().length) })}
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -174,8 +180,9 @@ export function UsedMarketAppealForm({
         </div>
 
         <p className="text-[11px] text-muted-foreground leading-relaxed">
-          제출하신 내용은 이의 신청 검토 목적으로만 사용됩니다. 허위 사실 기재 시 기각될 수
-          있습니다. {USED_MARKET_APPEAL_WINDOW_DAYS}일 이내 접수를 권장합니다.
+          {t("used.appealPrivacyNotice", {
+            days: String(USED_MARKET_APPEAL_WINDOW_DAYS),
+          })}
         </p>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -187,13 +194,13 @@ export function UsedMarketAppealForm({
 
       <div className="text-xs text-muted-foreground space-y-1 border-t pt-4">
         <p>
-          이메일 문의:{" "}
+          {t("used.emailInquiryLabel")}{" "}
           <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="text-primary hover:underline">
             {LEGAL_CONTACT_EMAIL}
           </a>
         </p>
         <p>
-          입찰 시 동의 문구: {USED_AUCTION_BID_CONSENT_LABEL}{" "}
+          {t("used.bidConsentIntro")} {t(USED_AUCTION_BID_CONSENT_LABEL_KEY)}{" "}
           <Link href="/legal/terms" className="text-primary hover:underline">
             {t("used.s19498lo")}
           </Link>

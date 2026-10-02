@@ -47,7 +47,7 @@ export function UsedAdultVerifyForm({
             {restrictedLabel
               ? t("used.s19u613u", { v0: restrictedLabel })
               : t("used.s1xa36bf")}
-            만 {ADULT_MIN_AGE}세 이상만 이용할 수 있습니다. 휴대폰 본인인증으로 연령을 확인합니다.
+            {t("used.adultAgeGate", { age: String(ADULT_MIN_AGE) })}
           </p>
         </div>
       </div>

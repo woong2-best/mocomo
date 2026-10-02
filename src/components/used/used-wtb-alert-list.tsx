@@ -77,14 +77,16 @@ export function UsedWtbAlertList({ alerts: initial }: { alerts: WtbAlertRow[] })
             </Link>
             {a.maxPrice != null && a.maxPrice > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
-                희망 최대 {formatUsedPrice(a.maxPrice, a.currency)}
+                {t("used.wtbMaxPrice", { price: formatUsedPrice(a.maxPrice, a.currency) })}
               </p>
             )}
             {a.note && (
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.note}</p>
             )}
             <p className="text-[10px] text-muted-foreground mt-1">
-              {new Date(a.createdAt).toLocaleDateString("ko-KR")} 등록
+              {t("used.wtbRegisteredOn", {
+                date: new Date(a.createdAt).toLocaleDateString("en-US"),
+              })}
             </p>
           </div>
           <Button

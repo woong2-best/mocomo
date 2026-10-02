@@ -129,7 +129,23 @@ export function UsedPostForm({
   const [giveaway, setGiveaway] = useState(false);
   const [tradeMode, setTradeMode] = useState<"SELL" | "TRADE">("SELL");
   const [workTitle, setWorkTitle] = useState("");
-  const [animeSlug, setAnimeSlug] = useState<string | null>{t("used.null_const_sellkind_setsellkind_usestate")}<MeetCoords | null>(null);
+  const [animeSlug, setAnimeSlug] = useState<string | null>(null);
+  const [sellKind, setSellKind] = useState("");
+  const [conditionGrade, setConditionGrade] = useState("NEW");
+  const [sidoId, setSidoId] = useState(parsedDefault?.sidoId ?? KOREA_SIDO[0]?.id ?? "seoul");
+  const [sigungu, setSigungu] = useState(
+    parsedDefault?.sigungu ?? KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? "종로구"
+  );
+  const [region, setRegion] = useState(
+    parsedDefault
+      ? defaultRegion ?? formatUsedRegion(KOREA_SIDO[0]?.short ?? "서울", "종로구")
+      : korea
+        ? formatUsedRegion(KOREA_SIDO[0]?.short ?? "서울", KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? "종로구")
+        : defaultUsedRegionForCountry(sellerCountry)
+  );
+  const [regionText, setRegionText] = useState("");
+  const [meetPlace, setMeetPlace] = useState("");
+  const [meetCoords, setMeetCoords] = useState<MeetCoords | null>(null);
   const [isNsfw, setIsNsfw] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [mediaUploading, setMediaUploading] = useState(false);

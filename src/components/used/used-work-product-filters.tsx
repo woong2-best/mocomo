@@ -138,7 +138,7 @@ export function UsedWorkProductFilters({ onNavigate, isPending }: UsedWorkProduc
 
       {hasDetailed && (
         <p className="text-[10px] text-muted-foreground">
-          적용 중:{" "}
+          {t("used.filtersActiveLabel")}{" "}
           {workParam ? t("used.sz40n", { v0: workParam }) : null}
           {workParam && productParam ? " · " : null}
           {productParam

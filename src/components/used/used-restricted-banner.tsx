@@ -25,7 +25,7 @@ export function UsedRestrictedBanner({
       <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
       <div className="text-sm space-y-2 min-w-0">
         <p className="font-semibold text-amber-900 dark:text-amber-100">
-          청소년 보호 · {label}
+          {t("used.youthProtectionLabel", { label })}
         </p>
         <p className="text-muted-foreground leading-relaxed">
           {t("used.ss5fkpr")}

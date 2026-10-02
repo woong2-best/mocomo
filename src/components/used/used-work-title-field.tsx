@@ -119,7 +119,7 @@ export function UsedWorkTitleField({
       )}
       {animeSlug ? (
         <p className="text-[10px] text-primary">
-          위키 연결:{" "}
+          {t("used.wikiLinkLabel")}{" "}
           <Link href={`/anime/${animeSlug}`} className="underline">
             {animeSlug}
           </Link>

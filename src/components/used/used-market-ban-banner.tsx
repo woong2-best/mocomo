@@ -27,7 +27,9 @@ export function UsedMarketBanBanner({
           <p className="text-muted-foreground leading-relaxed">{USED_MARKET_BAN_MESSAGE}</p>
           {bannedAt && (
             <p className="text-xs text-muted-foreground">
-              제재 적용: {new Date(bannedAt).toLocaleString("ko-KR")}
+              {t("used.sanctionAppliedAt", {
+                date: new Date(bannedAt).toLocaleString("en-US"),
+              })}
               {listingTitle ? ` · ${listingTitle}` : ""}
             </p>
           )}

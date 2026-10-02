@@ -69,7 +69,9 @@ export function UsedWtbAlertPanel({
   return (
     <section className="space-y-2 rounded-[14px] border-2 border-dashed border-folk-cobalt/25 p-3">
       <h2 className="text-sm font-extrabold text-folk-cobalt">{t("used.wtb_4")}</h2>
-      <p className="text-xs leading-[18px] text-muted-foreground">{summary} 조건의 새 글이 올라오면 알려 드려요.</p>
+      <p className="text-xs leading-[18px] text-muted-foreground">
+        {t("used.wtbNotifyWhenMatch", { summary })}
+      </p>
       {!loggedIn ? (
         <p className="text-xs text-muted-foreground">
           <a href="/auth/signin" className="font-bold text-folk-cobalt underline">

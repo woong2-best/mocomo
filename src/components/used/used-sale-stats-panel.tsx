@@ -67,7 +67,7 @@ export function UsedSaleStatsPanel({
         <h2 className="text-sm font-extrabold text-folk-cobalt">{t("used.s1ctl20")}</h2>
         {median != null && records[0] && (
           <p className="text-xs text-muted-foreground">
-            중앙값{" "}
+            {t("used.medianLabel")}{" "}
             <span className="font-semibold text-foreground">
               {formatUsedPrice(median, records[0].currency)}
             </span>

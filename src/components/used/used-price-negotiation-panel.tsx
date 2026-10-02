@@ -111,7 +111,7 @@ export function UsedPriceNegotiationPanel({
         <div>
           <h3 className="text-sm font-bold">{t("used.s1j1lx2f")}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            최고 입찰 {formatUsedPrice(currentTopBid, currency)} (미결제)
+            {t("used.topBidUnpaid", { price: formatUsedPrice(currentTopBid, currency) })}
             {secondBidAmount != null && t("used.s3o1ehz", { v0: formatUsedPrice(secondBidAmount, currency) })}
           </p>
         </div>
