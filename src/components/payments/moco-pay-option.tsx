@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useTransition } from "react";
 import { Coins, Loader2 } from "lucide-react";
@@ -36,7 +39,7 @@ export function MocoPayOption({
   function handlePay() {
     if (!orderId || !canPay) return;
     if (!purchaseTermsAccepted) {
-      onError?.("결제 전 이용약관에 동의해 주세요.");
+      onError?.(t("payments.szkp449"));
       return;
     }
     startTransition(async () => {
@@ -61,7 +64,7 @@ export function MocoPayOption({
       <div className="flex items-center gap-2">
         <Coins className="h-5 w-5 text-amber-600 shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="font-bold text-sm">MOCO 잔액으로 결제</p>
+          <p className="font-bold text-sm">{t("payments.moco")}</p>
           <p className="text-xs text-muted-foreground">
             보유 {formatMocoDisplay(mocoBalance)} · 필요 {formatMocoDisplay(mocoRequired)}
           </p>
@@ -83,7 +86,7 @@ export function MocoPayOption({
         ) : canPay ? (
           `${formatMocoDisplay(mocoRequired)}로 결제`
         ) : (
-          "MOCO 잔액 부족"
+          t("payments.moco_5")
         )}
       </Button>
     </div>

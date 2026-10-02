@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { cn } from "@/lib/utils";
 import {
   RECURRING_DONATION_CHECKBOX_LABEL_KO,
@@ -21,7 +24,7 @@ export function RecurringDonationTermsNotice({ checked, onCheckedChange, classNa
         className
       )}
     >
-      <p className="text-sm font-bold text-violet-900 dark:text-violet-100">정기 후원 안내</p>
+      <p className="text-sm font-bold text-violet-900 dark:text-violet-100">{t("payments.sgi6guz")}</p>
       <p className="text-xs text-muted-foreground leading-relaxed">
         {RECURRING_DONATION_CHECKOUT_NOTICE_KO}
       </p>

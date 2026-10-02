@@ -1,6 +1,9 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 /** Stripe 해외 결제망 안내 — 현금영수증 미지원 */
 export const STRIPE_OVERSEAS_PAYMENT_NOTICE =
-  "본 결제는 해외 결제망(Stripe)을 이용하므로 한국 현금영수증 발급이 불가하며 신용/체크카드 결제를 권장합니다.";
+  t("payments.stripe_4");
 
 export function StripeOverseasPaymentNotice({ className }: { className?: string }) {
   return (
