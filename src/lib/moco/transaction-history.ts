@@ -139,7 +139,7 @@ export function adPurchaseReason(days: number): string {
   return `MoCoMo 광고 ${days}일 차감`;
 }
 
-export const AUCTION_PENALTY_REASON = "경매 낙찰 미결제 페널티 차감";
+export const AUCTION_PENALTY_REASON = "Auction win non-payment penalty deduction";
 
 export async function listMocoTransactionHistory(userId: string, take = 50) {
   return db.mocoTransactionHistory.findMany({

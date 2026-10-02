@@ -62,7 +62,7 @@ export async function deliverPeerTransferLetter(input: {
   void notifyChatMessage({
     roomId,
     senderId: input.senderId,
-    content: "편지가 도착했습니다",
+    content: "A letter has arrived",
     roomType: "DM",
   });
   void relayChatMessageToSocket(roomId, serializeChatMessageForRelay(message));

@@ -12,10 +12,10 @@
 export const MOCO_KRW_PER_UNIT = 10;
 
 export const MOCO_TOPUP_PACKAGES = [
-  { moco: 500, krw: 5_000, label: "500 모코" },
-  { moco: 2_000, krw: 20_000, label: "2,000 모코" },
-  { moco: 5_000, krw: 50_000, label: "5,000 모코" },
-  { moco: 10_000, krw: 100_000, label: "10,000 모코" },
+  { moco: 500, krw: 5_000, label: "500 MOCO" },
+  { moco: 2_000, krw: 20_000, label: "2,000 MOCO" },
+  { moco: 5_000, krw: 50_000, label: "5,000 MOCO" },
+  { moco: 10_000, krw: 100_000, label: "10,000 MOCO" },
 ] as const;
 
 export function mocoToKrw(moco: number): number {

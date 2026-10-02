@@ -19,7 +19,7 @@ export function parsePeerTransferUsername(raw: string): string | null {
 
 export async function lookupPeerTransferRecipient(senderId: string, rawUsername: string) {
   const username = parsePeerTransferUsername(rawUsername);
-  if (!username) return { error: "아이디는 3–20자의 영문, 숫자, _ 만 사용할 수 있습니다." as const };
+  if (!username) return { error: "Usernames must be 3–20 characters and use letters, numbers, and _ only." as const };
 
   const recipient = await db.user.findFirst({
     where: { username: { equals: username, mode: "insensitive" } },
@@ -32,10 +32,10 @@ export async function lookupPeerTransferRecipient(senderId: string, rawUsername:
     },
   });
   if (!recipient || recipient.deletedAt || recipient.isBanned) {
-    return { error: "해당 아이디의 사용자를 찾을 수 없습니다." as const };
+    return { error: "No user found with that username." as const };
   }
   if (recipient.id === senderId) {
-    return { error: "나에게는 보낼 수 없습니다." as const };
+    return { error: "You cannot send to yourself." as const };
   }
   return {
     recipient: {
@@ -59,10 +59,10 @@ export async function transferPurchasedMocoToUser(input: {
   message?: string | null;
 }) {
   if (!Number.isInteger(input.amount) || input.amount < 1) {
-    return { error: "보낼 MOCO는 1 이상의 정수여야 합니다." as const };
+    return { error: "MOCO to send must be an integer of 1 or more." as const };
   }
   if (input.amount > MAX_PEER_TRANSFER_MOCO) {
-    return { error: "한 번에 보낼 수 있는 수량을 초과했습니다." as const };
+    return { error: "Amount exceeds the maximum you can send at once." as const };
   }
 
   const letter = normalizeAtmLetterMessage(input.message);
@@ -77,7 +77,7 @@ export async function transferPurchasedMocoToUser(input: {
 
   const before = await getMocoBalanceSnapshot(input.senderId);
   if (before.availableMocoBalance < input.amount) {
-    return { error: "보유 MOCO가 부족합니다. 결제로 충전한 MOCO만 보낼 수 있습니다." as const };
+    return { error: "Insufficient MOCO balance. Only MOCO purchased via payment can be sent." as const };
   }
 
   const referenceId = randomUUID();
@@ -129,9 +129,9 @@ export async function transferPurchasedMocoToUser(input: {
   } catch (err) {
     const message = err instanceof Error ? err.message : "";
     if (message === "INSUFFICIENT_MOCO" || message === "INVALID_MOCO_AMOUNT") {
-      return { error: "보유 MOCO가 부족합니다. 결제로 충전한 MOCO만 보낼 수 있습니다." as const };
+      return { error: "Insufficient MOCO balance. Only MOCO purchased via payment can be sent." as const };
     }
     console.error("[transferPurchasedMocoToUser]", err instanceof Error ? err.name : "error");
-    return { error: "전달에 실패했습니다. 잠시 후 다시 시도해 주세요." as const };
+    return { error: "Transfer failed. Please try again later." as const };
   }
 }
