@@ -88,7 +88,7 @@ export async function debitPlatformWallet(input: {
   referenceId?: string;
   metadata?: Record<string, unknown>;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (input.amount <= 0) return { ok: false, error: "차감 금액이 올바르지 않습니다." };
+  if (input.amount <= 0) return { ok: false, error: "Deduction amount is invalid." };
   const wallet = await getOrCreatePlatformWallet(input.userId);
   const field = bucketField(input.bucket);
 
@@ -133,7 +133,7 @@ export async function debitPlatformWallet(input: {
     return { ok: true };
   } catch (e) {
     if (e instanceof Error && e.message === "INSUFFICIENT") {
-      return { ok: false, error: "모코 잔액이 부족합니다." };
+      return { ok: false, error: "Insufficient MOCO balance." };
     }
     throw e;
   }

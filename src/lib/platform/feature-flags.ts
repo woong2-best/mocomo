@@ -1,16 +1,16 @@
 import { db } from "@/lib/db";
 
 export const DEFAULT_FEATURE_FLAGS: Record<string, { enabled: boolean; description: string }> = {
-  promotion: { enabled: true, description: "Promotion 자동 혜택" },
-  coupon: { enabled: true, description: "쿠폰 코드 혜택" },
-  auction: { enabled: true, description: "중고 경매" },
-  live: { enabled: true, description: "라이브 방송" },
-  marketplace: { enabled: true, description: "마켓플레이스" },
-  wallet: { enabled: true, description: "플랫폼 Wallet" },
-  settlement: { enabled: true, description: "정산 원장" },
+  promotion: { enabled: true, description: "Promotion auto benefits" },
+  coupon: { enabled: true, description: "Coupon code benefits" },
+  auction: { enabled: true, description: "Used-goods auction" },
+  live: { enabled: true, description: "Live streaming" },
+  marketplace: { enabled: true, description: "Marketplace" },
+  wallet: { enabled: true, description: "Platform Wallet" },
+  settlement: { enabled: true, description: "Settlement ledger" },
   visa_extended_auth: {
     enabled: false,
-    description: "Visa Extended Authorization (Stripe US merchant approval 후 ON)",
+    description: "Visa Extended Authorization (Stripe US merchant approval required to enable)",
   },
 };
 

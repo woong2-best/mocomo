@@ -13,7 +13,7 @@ export function registerPlatformEventHandlers() {
 
   onPlatformEvent("CronFailed", async (e) => {
     await notifyAdmins({
-      title: "Cron 작업 실패",
+      title: "Cron job failed",
       body: `${String(e.payload.jobName ?? e.payload.jobType)}: ${String(e.payload.error ?? "")}`,
       link: "/admin/audit",
       type: "ADMIN_CRON",
@@ -22,7 +22,7 @@ export function registerPlatformEventHandlers() {
 
   onPlatformEvent("PaymentFailed", async (e) => {
     await notifyAdmins({
-      title: "결제 실패",
+      title: "Payment failed",
       body: String(e.payload.message ?? e.payload.reason ?? "payment failed"),
       link: "/admin/finance",
       type: "ADMIN_PAYMENT",
@@ -31,7 +31,7 @@ export function registerPlatformEventHandlers() {
 
   onPlatformEvent("StripeWebhookError", async (e) => {
     await notifyAdmins({
-      title: "Stripe Webhook 오류",
+      title: "Stripe Webhook error",
       body: String(e.payload.message ?? "webhook error"),
       link: "/admin/finance",
       type: "ADMIN_STRIPE",
@@ -44,7 +44,7 @@ export function registerPlatformEventHandlers() {
 
   onPlatformEvent("PromotionExpired", async (e) => {
     await notifyAdmins({
-      title: "Promotion 만료",
+      title: "Promotion expired",
       body: String(e.payload.name ?? "promotion"),
       link: "/admin/promotions",
       type: "ADMIN_PROMOTION",
