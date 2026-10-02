@@ -10,7 +10,7 @@ export default async function StudioLibraryPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-display text-2xl font-semibold">내 보관함</h1>
-      <p className="text-sm text-muted-foreground">무료 획득·구매한 Studio 자산</p>
+      <p className="text-sm text-muted-foreground">Free and purchased Studio assets</p>
       {items.length ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {items.map(({ asset }) => (

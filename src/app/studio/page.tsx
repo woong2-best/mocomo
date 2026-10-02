@@ -33,7 +33,7 @@ export default async function StudioHomePage() {
             </>
           ) : (
             <Button asChild>
-              <a href={getMocomoSignInUrl(getStudioBaseUrl())}>MoCoMo 계정으로 시작</a>
+              <a href={getMocomoSignInUrl(getStudioBaseUrl())}>Get started with your MoCoMo account</a>
             </Button>
           )}
         </div>
@@ -41,7 +41,7 @@ export default async function StudioHomePage() {
 
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-xl font-semibold">최신 배포 자산</h2>
+          <h2 className="font-display text-xl font-semibold">Latest published assets</h2>
           <Link href="/studio/market" className="text-sm text-pink-600 hover:underline">
             전체 보기
           </Link>
@@ -61,9 +61,9 @@ export default async function StudioHomePage() {
 
       <section className="grid gap-4 md:grid-cols-3">
         {[
-          { title: "Asset Creator", desc: "GLB/GLTF 업로드 · 3D 미리보기 · 자동 검사" },
-          { title: "Marketplace", desc: "무료·유료 배포 · 카테고리·태그" },
-          { title: "Creator Hub", desc: "전용 페이지 · 팔로워 · 수익 출금" },
+          { title: "Asset Creator", desc: "GLB/GLTF upload · 3D preview · automated checks" },
+          { title: "Marketplace", desc: "Free & paid releases · categories & tags" },
+          { title: "Creator Hub", desc: "Dedicated page · followers · payouts" },
         ].map((f) => (
           <div key={f.title} className="rounded-2xl border border-pink-100 bg-white p-5">
             <h3 className="font-semibold text-pink-700">{f.title}</h3>

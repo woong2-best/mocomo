@@ -11,9 +11,9 @@ export default async function StudioAssetsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-semibold">내 자산</h1>
+        <h1 className="font-display text-2xl font-semibold">My assets</h1>
         <Button asChild>
-          <Link href="/studio/create">+ 새 자산</Link>
+          <Link href="/studio/create">+ New asset</Link>
         </Button>
       </div>
       {assets.length ? (
@@ -23,7 +23,7 @@ export default async function StudioAssetsPage() {
           ))}
         </div>
       ) : (
-        <p className="text-muted-foreground">아직 자산이 없습니다.</p>
+        <p className="text-muted-foreground">No assets yet.</p>
       )}
     </div>
   );
