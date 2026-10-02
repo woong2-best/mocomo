@@ -76,11 +76,12 @@
     }
   },
   "scripts": {
-    "postinstall": "node scripts/patch-ffmpeg-kit.cjs && node scripts/patch-webrtc-lazy.cjs && node scripts/patch-expo-notifications-actions.cjs && node scripts/generate-notification-icons.cjs",
+    "postinstall": "node scripts/patch-ffmpeg-kit.cjs && node scripts/patch-webrtc-lazy.cjs && node scripts/patch-expo-notifications-actions.cjs && node scripts/patch-ml-kit-translate-wifi.cjs && node scripts/generate-notification-icons.cjs",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
+    "check:i18n": "node scripts/check-no-hangul.cjs",
     "web": "expo start --web",
     "build:internal:android": "eas build --profile internal --platform android",
     "build:internal:ios": "eas build --profile internal --platform ios",
