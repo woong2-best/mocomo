@@ -122,7 +122,7 @@ function mergeSharedMeta(
 
   if (!sharedLabel) {
     if (sharedTags.length) sharedLabel = sharedTags.slice(0, 2).join(" · ");
-    else if (sharedFollowCount > 0) sharedLabel = `공통 팔로우 ${sharedFollowCount}`;
+    else if (sharedFollowCount > 0) sharedLabel = `Mutual follows ${sharedFollowCount}`;
   }
 
   return { sharedLabel, sharedFollowCount, sharedTags };
