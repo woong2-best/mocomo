@@ -24,6 +24,8 @@ import { SupportTiersPanel } from "@/features/support/SupportTiersPanel";
 import { WalletEarningsExport } from "@/features/wallet/WalletEarningsExport";
 import { StripeConnectPanel } from "@/features/wallet/StripeConnectPanel";
 import { RevenuePayoutPanel } from "@/features/wallet/RevenuePayoutPanel";
+import { SettlementOnDemandWithdrawPanel } from "@/features/wallet/SettlementOnDemandWithdrawPanel";
+import { UnifiedSettlementHistoryPanel } from "@/features/wallet/UnifiedSettlementHistoryPanel";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
@@ -39,30 +41,30 @@ import type { UsedUiText } from "@/features/marketplace/used-catalog";
 
 type Tab = "wallet" | "earnings" | "transfer" | "tier";
 
-function ledgerLabel(type: string, u: UsedUiText): string {
+function ledgerLabel(type: string, t: UsedUiText): string {
   switch (type) {
     case "SELLER_EARNING":
-      return u("수익 적립", "Earnings");
+      return t("m.wallet.earnings");
     case "PAYOUT_REQUEST":
-      return u("출금", "Payout");
+      return t("m.wallet.payout");
     case "PAYOUT_REJECTED":
-      return u("출금 반려 환급", "Payout reversal");
+      return t("m.wallet.payout_reversal");
     default:
       return type;
   }
 }
 
 export function WalletScreen() {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const tabItems = useMemo(
     (): { id: Tab; label: string }[] => [
-      { id: "wallet", label: u("지갑", "Wallet") },
-      { id: "earnings", label: u("수익", "Earnings") },
-      { id: "transfer", label: u("전달", "Send") },
-      { id: "tier", label: u("등급", "Tier") },
+      { id: "wallet", label: t("m.common.wallet") },
+      { id: "earnings", label: t("m.wallet.earnings") },
+      { id: "transfer", label: t("m.common.send") },
+      { id: "tier", label: t("m.wallet.tier") },
     ],
-    [u]
+    [t]
   );
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -137,7 +139,7 @@ export function WalletScreen() {
       <View style={styles.root}>
         {walletQuery.isError && !data && tab !== "tier" ? (
           <View style={styles.center}>
-            <Text style={styles.error}>{u("지갑을 불러오지 못했습니다.", "Could not load wallet.")}</Text>
+            <Text style={styles.error}>{t("m.wallet.could_not_load_wallet")}</Text>
             <FolkButton label={t("toast.retry")} onPress={() => void walletQuery.refetch()} />
           </View>
         ) : tab === "wallet" ? (
@@ -154,7 +156,7 @@ export function WalletScreen() {
           <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
         ) : earningsQuery.isError || !earnings || !data ? (
           <View style={styles.center}>
-            <Text style={styles.error}>{u("수익 데이터를 불러오지 못했습니다.", "Could not load earnings.")}</Text>
+            <Text style={styles.error}>{t("m.wallet.could_not_load_earnings")}</Text>
             <FolkButton label={t("toast.retry")} onPress={() => void earningsQuery.refetch()} />
           </View>
         ) : (
@@ -167,13 +169,10 @@ export function WalletScreen() {
                 ]}
               >
                 <Text style={[styles.returnBannerTitle, { color: colors.text }]}>
-                  {u("수익 정산 계좌 연동", "Link payout account")}
+                  {t("m.wallet.link_payout_account")}
                 </Text>
                 <Text style={[styles.returnBannerBody, { color: colors.textMuted }]}>
-                  {u(
-                    "Star Market·크리에이터 Reward 등 수익 정산을 받으려면 아래에서 Stripe Connect로 정산 계좌를 연동해 주세요. (중고 직거래·경매 보증금과는 별개입니다.)",
-                    "Link a Stripe Connect payout account below to receive Star Market and creator rewards. (Separate from used-market deposits.)"
-                  )}
+                  {t("m.wallet.link_a_stripe_connect_payout_account")}
                 </Text>
               </View>
             ) : null}
@@ -185,10 +184,19 @@ export function WalletScreen() {
             />
 
             <StripeConnectPanel onConnected={handleStripeConnected} />
-            <RevenuePayoutPanel
-              withdrawable={withdrawable}
-              bankReady={!!stripeConnectQuery.data?.stripeOnboardingCompleted}
-            />
+            {settlementQuery.data?.onDemandPayoutEnabled ? (
+              <SettlementOnDemandWithdrawPanel
+                settlementMoco={settlementQuery.data.settlementMocoPoints ?? 0}
+                bankReady={!!stripeConnectQuery.data?.stripeOnboardingCompleted}
+              />
+            ) : (
+              <RevenuePayoutPanel
+                withdrawable={withdrawable}
+                bankReady={!!stripeConnectQuery.data?.stripeOnboardingCompleted}
+              />
+            )}
+
+            <UnifiedSettlementHistoryPanel />
 
             <View style={styles.section}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.yearRow}>
@@ -210,17 +218,17 @@ export function WalletScreen() {
                         { color: year === y ? colors.textOnAccent : colors.textMuted },
                       ]}
                     >
-                      {u(`${y}년`, String(y))}
+                      {t(`${y}년`, String(y))}
                     </Text>
                   </Pressable>
                 ))}
               </ScrollView>
 
               <View style={styles.statRow}>
-                <StatCard label={u("수익", "Earned")} cents={earnings.yearEarned ?? 0} tone="up" colors={colors} />
-                <StatCard label={u("지출", "Withdrawn")} cents={earnings.yearWithdrawn ?? 0} tone="down" colors={colors} />
+                <StatCard label={t("m.wallet.earned")} cents={earnings.yearEarned ?? 0} tone="up" colors={colors} />
+                <StatCard label={t("m.wallet.withdrawn")} cents={earnings.yearWithdrawn ?? 0} tone="down" colors={colors} />
                 <StatCard
-                  label={u("순수익", "Net")}
+                  label={t("m.wallet.net")}
                   cents={earnings.yearNet ?? 0}
                   tone={(earnings.yearNet ?? 0) >= 0 ? "up" : "down"}
                   colors={colors}
@@ -247,7 +255,7 @@ export function WalletScreen() {
               {data.recent.slice(0, 8).map((item) => (
                 <WalletMembershipStrip
                   key={item.id}
-                  title={ledgerLabel(item.type, u)}
+                  title={ledgerLabel(item.type, t)}
                   subtitle={item.memo ?? undefined}
                   right={formatMocoSignedFromCents(item.amount, item.type !== "PAYOUT_REQUEST")}
                   backgroundColor={
@@ -261,8 +269,8 @@ export function WalletScreen() {
               ))}
               {data.recent.length === 0 ? (
                 <WalletMembershipStrip
-                  title={u("아직 활동 보상 내역이 없습니다", "No reward activity yet")}
-                  subtitle={u("후원·판매·구독 수익이 정산 MOCO로 적립됩니다", "Tips, sales, and subs settle as settlement MOCO.")}
+                  title={t("m.wallet.no_reward_activity_yet")}
+                  subtitle={t("m.wallet.tips_sales_and_subs_settle_as")}
                   backgroundColor="#4b5563"
                 />
               ) : null}
@@ -295,7 +303,7 @@ function SettlementProgressCard({
   };
   colors: ThemeColors;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const nextRequired = progress?.nextRequiredMoco ?? 0;
   const ratio = !progress
     ? 0
@@ -305,30 +313,24 @@ function SettlementProgressCard({
   return (
     <View style={[stylesCard.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
       <Text style={[stylesCard.kicker, { color: colors.textMuted }]}>
-        {u("정산 MOCO · 다른 사용자에게 받은 수량", "Settlement MOCO · received from others")}
+        {t("m.wallet.settlement_moco_received_from_others")}
       </Text>
       <Text style={[stylesCard.amount, { color: colors.text }]}>{settlementMoco.toLocaleString()} MOCO</Text>
       <Text style={[stylesCard.line, { color: colors.text }]}>
-        {u("정산 등급", "Settlement tier")} {progress?.currentLabel ?? "Novice"}
+        {t("m.wallet.settlement_tier")} {progress?.currentLabel ?? "Novice"}
       </Text>
       <View style={[stylesCard.track, { backgroundColor: colors.hairline }]}>
         <View style={[stylesCard.fill, { width: `${Math.round(ratio * 100)}%`, backgroundColor: colors.cobalt }]} />
       </View>
       <Text style={[stylesCard.note, { color: colors.textMuted }]}>
         {progress?.atMaxTier
-          ? u("최고 정산 등급입니다.", "You're at the top settlement tier.")
+          ? t("m.wallet.you_re_at_the_top_settlement")
           : progress?.nextLabel
-            ? u(
-                `${progress.nextLabel}까지 정산 MOCO ${progress.mocoRemaining.toLocaleString()}를 더 받아야 합니다.`,
-                `${progress.mocoRemaining.toLocaleString()} more settlement MOCO needed for ${progress.nextLabel}.`
-              )
-            : u("정산 등급을 불러오는 중…", "Loading settlement tier…")}
+            ? t("m.wallet.mocoremaining_more_settlement_moco_neede", { mocoRemaining: String(progress.mocoRemaining.toLocaleString()), nextLabel: String(progress.nextLabel) })
+            : t("m.wallet.loading_settlement_tier")}
       </Text>
       <Text style={[stylesCard.note, { color: colors.textMuted }]}>
-        {u(
-          `보유 MOCO ${purchasedMoco.toLocaleString()}는 결제로 충전한 수량이라 정산 등급에 포함되지 않습니다.`,
-          `Purchased MOCO (${purchasedMoco.toLocaleString()}) from checkout does not count toward settlement tier.`
-        )}
+        {t("m.wallet.purchased_moco_purchasedmoco_from_checko", { purchasedMoco: String(purchasedMoco.toLocaleString()) })}
       </Text>
     </View>
   );

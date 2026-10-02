@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/config/env";
+import { errorCodeOfBody, localizeErrorBody } from "@/api/error-code";
 import {
   clearTokens,
   currentAuthEpoch,
@@ -16,6 +17,16 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+
+  /** Server error code (catalog key), when the response carried one. */
+  get code(): string | null {
+    return errorCodeOfBody(this.body);
+  }
+}
+
+/** True when `e` is an API error carrying exactly this server error code. */
+export function isApiErrorCode(e: unknown, code: string): boolean {
+  return e instanceof ApiError && e.code === code;
 }
 
 type RequestOptions = {
@@ -25,6 +36,7 @@ type RequestOptions = {
   signal?: AbortSignal;
   /** Default 15s. Long-poll wait should pass ~12s. */
   timeoutMs?: number;
+  headers?: Record<string, string>;
 };
 
 let refreshInFlight: Promise<boolean> | null = null;
@@ -101,10 +113,12 @@ async function refreshAccessToken(): Promise<boolean> {
  * - hard timeouts so hung network never freezes the UI for minutes
  */
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, auth = true, signal, timeoutMs = 15_000 } = options;
+  const { method = "GET", body, auth = true, signal, timeoutMs = 15_000, headers: extraHeaders } =
+    options;
 
   const headers: Record<string, string> = {
     Accept: "application/json",
+    ...extraHeaders,
   };
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
@@ -169,17 +183,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     } catch {
       parsed = undefined;
     }
-    const record =
-      parsed && typeof parsed === "object" && parsed !== null
-        ? (parsed as { message?: unknown; error?: unknown })
-        : null;
-    const serverMessage =
-      typeof record?.message === "string"
-        ? record.message
-        : typeof record?.error === "string"
-          ? record.error
-          : null;
-    throw new ApiError(serverMessage ?? `API ${method} ${path} failed`, res.status, parsed);
+    const localized = localizeErrorBody(parsed);
+    throw new ApiError(
+      localized.message ?? `API ${method} ${path} failed`,
+      res.status,
+      localized.body
+    );
   }
 
   if (res.status === 204) return undefined as T;

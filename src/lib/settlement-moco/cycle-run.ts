@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { createNotification } from "@/lib/notifications";
+import { isOnDemandPayoutEnabled } from "@/lib/settlement-moco/feature-flags";
 import { achievedSettlementRewardTier } from "@/lib/settlement-moco/tier-config";
 import { checkCreatorRewardPayoutGate } from "@/lib/settlement-moco/payout-gate";
 import { REWARD_BATCH_STATUS } from "@/lib/settlement-moco/payout-status";
@@ -157,6 +158,9 @@ export async function processLockedSettlementCycles(): Promise<{
   tierSkipped: number;
 }> {
   const result = { processed: 0, skipped: 0, failed: 0, tierSkipped: 0 };
+  if (isOnDemandPayoutEnabled()) {
+    return result;
+  }
   const cycles = await listProcessingSettlementCycles();
   for (const { id } of cycles) {
     try {

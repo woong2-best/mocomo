@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
 import { WalletEarningsExportPanel } from "@/components/wallet/wallet-earnings-export-panel";
 import { SettlementRegistrationPanel } from "@/components/wallet/settlement-registration-panel";
@@ -8,6 +9,8 @@ import { LEDGER_LABELS } from "@/lib/wallet-labels";
 import { REWARD_TERMS_LABEL } from "@/lib/settlement-moco/constants";
 import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
 import { CreatorRewardTierTable } from "@/components/wallet/creator-reward-tier-table";
+import { OnDemandWithdrawalPanel } from "@/components/wallet/on-demand-withdrawal-panel";
+import { UnifiedSettlementHistoryPanel } from "@/components/wallet/unified-settlement-history-panel";
 import { ReceivedTipsPanel } from "@/components/wallet/received-tips-panel";
 import {
   formatMocoDisplay,
@@ -40,6 +43,8 @@ export function RevenueSettlementPanel({
   const [earnings, setEarnings] = useState(initialEarnings);
   const [year, setYear] = useState(initialEarnings.year);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   const earned = settlement.settlementMocoPoints;
   const progress = rewardTierProgress(earned);
@@ -93,11 +98,26 @@ export function RevenueSettlementPanel({
           후원 광석 뱃지 {settlement.earnedMocoTier ?? "SEED"} (정산 등급과 별개)
         </p>
         <p className="text-xs text-muted-foreground">
-          매월 1일 등급만큼 정산 MOCO를 차감한 뒤 {REWARD_TERMS_LABEL}을 지급하고, 남은 수량은 다음 달로 넘어갑니다.
+          {settlement.onDemandPayoutEnabled
+            ? `${REWARD_TERMS_LABEL}은 온디맨드 출금으로 Connect 계정에 지급됩니다. 등급은 남은 정산 MOCO 잔액 기준으로 즉시 재산정됩니다.`
+            : `매월 1일 등급만큼 정산 MOCO를 차감한 뒤 ${REWARD_TERMS_LABEL}을 지급하고, 남은 수량은 다음 달로 넘어갑니다.`}{" "}
           보유 MOCO {settlement.purchasedMocoPoints.toLocaleString()}는 결제로 충전한 수량이라 정산 등급에 포함되지
           않습니다.
         </p>
       </div>
+
+      {settlement.onDemandPayoutEnabled ? (
+        <OnDemandWithdrawalPanel
+          settlementMoco={earned}
+          payoutsEnabled={settlement.payoutsEnabled}
+          onSuccess={() => {
+            router.refresh();
+            setHistoryRefreshKey((k) => k + 1);
+          }}
+        />
+      ) : null}
+
+      <UnifiedSettlementHistoryPanel refreshKey={historyRefreshKey} />
 
       <div className="space-y-2">
         {data.recent.slice(0, 6).map((e) => (
@@ -130,21 +150,6 @@ export function RevenueSettlementPanel({
         detailsSubmitted={settlement.payoutDashboard?.detailsSubmitted}
         notReadyReasons={settlement.payoutDashboard?.reasons}
       />
-
-      {settlement.recentRewards.length > 0 ? (
-        <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-2">
-          <p className="font-bold">Reward 지급 내역</p>
-          {settlement.recentRewards.map((batch) => (
-            <WalletMembershipStrip
-              key={batch.id}
-              title={`${batch.periodYear}.${String(batch.periodMonth).padStart(2, "0")} ${REWARD_TERMS_LABEL}`}
-              subtitle={batch.status}
-              right={`${batch.deductedMoco.toLocaleString()} MOCO`}
-              tone={batch.status === "COMPLETED" ? "forest" : "muted"}
-            />
-          ))}
-        </div>
-      ) : null}
 
       <div className={cn("space-y-4 pt-2 border-t border-border/50", pending && "opacity-70 pointer-events-none")}>
         <p className="text-sm font-bold px-1">연간 활동 분석</p>

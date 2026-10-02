@@ -3,6 +3,7 @@ import { MocoSettlementCycleStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { syncEarnedMocoDisplayTier } from "@/lib/settlement-moco/balance";
 import { previousMonthEarnedPeriod, type MocoEarnedPeriod } from "@/lib/settlement-moco/cycle-period";
+import { isOnDemandPayoutEnabled } from "@/lib/settlement-moco/feature-flags";
 
 const BLOCKING_STATUSES: MocoSettlementCycleStatus[] = [
   MocoSettlementCycleStatus.PROCESSING,
@@ -102,6 +103,16 @@ export async function lockAllCreatorSettlementCycles(
   asOf = new Date(),
   period = previousMonthEarnedPeriod(asOf),
 ): Promise<LockAllCyclesSummary> {
+  if (isOnDemandPayoutEnabled()) {
+    return {
+      locked: 0,
+      skippedDuplicate: 0,
+      skippedZero: 0,
+      failed: 0,
+      period,
+    };
+  }
+
   const summary: LockAllCyclesSummary = {
     locked: 0,
     skippedDuplicate: 0,

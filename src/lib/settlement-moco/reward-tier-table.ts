@@ -58,7 +58,7 @@ export type RewardTierProgress = {
   atMaxTier: boolean;
 };
 
-/** 정산 MOCO(다른 사용자에게 받은 분) 기준 현재 등급과 다음 등급까지 남은 수량 */
+/** 남은 정산 MOCO 잔액 기준 현재 등급과 다음 등급까지 남은 수량 (온디맨드·UI) */
 export function rewardTierProgress(earnedMoco: number): RewardTierProgress {
   const earned = Math.max(0, Math.floor(earnedMoco));
   const current = achievedCreatorRewardTier(earned);
