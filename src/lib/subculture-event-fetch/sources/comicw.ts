@@ -50,7 +50,7 @@ export async function fetchComicWorldEvents(): Promise<FetchedSubcultureEvent[]>
         country: "kr",
         externalKey: `auto-comicw-${id}`,
         title,
-        description: "comicw.net 공식 행사 페이지에서 자동 수집",
+        description: "Auto-fetched from official comicw.net event pages",
         category: "comic",
         venueName: venue.venueName,
         address: venue.address,
