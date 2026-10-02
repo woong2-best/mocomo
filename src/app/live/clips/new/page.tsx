@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 
 import { errorText } from "@/lib/i18n/error-text";
@@ -31,7 +34,7 @@ export default function NewClipPage() {
       const url = await uploadVideoBlob(file, file.name);
       setVideoUrl(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "업로드 실패");
+      setError(err instanceof Error ? err.message : i18n("webtoon-studio.s1vgkz0f"));
     }
     setLoading(false);
   }
@@ -43,7 +46,7 @@ export default function NewClipPage() {
       const url = await uploadImageBlob(file, file.name);
       setThumbUrl(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "썸네일 업로드 실패");
+      setError(err instanceof Error ? err.message : i18n("app.live.s11ypn9r"));
     }
   }
 
@@ -82,7 +85,7 @@ export default function NewClipPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="클립 제목" required />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={i18n("app.live.s1l5t7t0")} required />
             <label className="block text-xs text-muted-foreground">
               영상 파일 (R2) 또는 URL
               <input type="file" accept="video/*" className="mt-1 block w-full text-sm" onChange={onVideoFile} />
@@ -90,7 +93,7 @@ export default function NewClipPage() {
             <Input
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="영상 URL"
+              placeholder={i18n("app.live.url")}
               required
             />
             <label className="block text-xs text-muted-foreground">
@@ -104,7 +107,7 @@ export default function NewClipPage() {
             {error && <p className="text-xs text-destructive">{error}</p>}
             <Button type="submit" className="w-full rounded-xl gap-2" disabled={loading || !videoUrl}>
               <Upload className="h-4 w-4" />
-              {loading ? "처리 중…" : "클립 등록"}
+              {loading ? i18n("post.menu.blockReportSubmitting") : i18n("app.live.s1l5pxz7")}
             </Button>
           </form>
         </CardContent>
