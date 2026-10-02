@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useRef } from "react";
 import { AvatarCanvasView } from "@/components/avatar/avatar-canvas-view";
 import { AvatarLeftPanel } from "@/components/avatar/avatar-left-panel";
@@ -17,10 +20,10 @@ import { cn } from "@/lib/utils";
 import type { AvatarStyle } from "@/lib/virtual-avatar/types";
 
 const STYLE_TABS: { id: AvatarStyle; label: string }[] = [
-  { id: "anime", label: "애니메이션" },
-  { id: "realistic", label: "리얼리스틱" },
-  { id: "cartoon", label: "카툰" },
-  { id: "cyberpunk", label: "사이버펑크" },
+  { id: "anime", label: t("avatar.sdq593k") },
+  { id: "realistic", label: t("avatar.s15dvn55") },
+  { id: "cartoon", label: t("avatar.s109q4") },
+  { id: "cyberpunk", label: t("lib.virtual-avatar.s1wzhrnb") },
 ];
 
 export function VirtualAvatarStudio() {
@@ -44,7 +47,7 @@ export function VirtualAvatarStudio() {
   if (!studio.loaded) {
     return (
       <div className="live-page-shell flex items-center justify-center min-h-[50vh] text-muted-foreground text-sm">
-        스튜디오 불러오는 중…
+        {t("avatar.s1luvx49")}
       </div>
     );
   }
@@ -60,10 +63,10 @@ export function VirtualAvatarStudio() {
         <div className="min-w-0 flex-1">
           <p className="folk-tag mb-1.5 w-fit">3D · VRM</p>
           <h1 className="text-xl sm:text-2xl font-display font-bold text-folk-cobalt folk-chunky-text">
-            3D 아바타 스튜디오
+            {t("avatar.s1h52hdz")}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            3D VRM · 체형·얼굴·기본 의상 색상 · UV 페인트 · 라이브 VTuber 연동
+            {t("avatar.3d_vrm_uv_vtuber")}
           </p>
         </div>
         <div className="flex flex-wrap gap-1 rounded-xl bg-muted/50 border border-[hsl(var(--folk-cobalt)/0.12)] p-1 w-full sm:w-auto">
@@ -86,13 +89,13 @@ export function VirtualAvatarStudio() {
         <Button asChild variant="outline" size="sm" className="rounded-xl gap-1.5 border-2 shrink-0">
           <Link href="/avatar/broadcast" target="_blank">
             <Radio className="h-4 w-4" />
-            OBS 방송
+            {t("avatar.obs")}
           </Link>
         </Button>
         <Button asChild variant="outline" size="sm" className="rounded-xl gap-1.5 border-2 shrink-0 ml-auto sm:ml-0">
           <Link href="/live">
             <Radio className="h-4 w-4" />
-            라이브 홈
+            {t("avatar.sx1ht4s")}
           </Link>
         </Button>
       </header>

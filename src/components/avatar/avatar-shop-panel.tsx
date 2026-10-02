@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useMemo, useState } from "react";
 import {
   StudioPanel,
@@ -97,13 +100,13 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
 
   return (
     <StudioPanel
-      title="옷장"
+      title={t("avatar.syt72")}
       className="lg:col-span-3 border-pink-200/40 dark:border-pink-900/30 bg-gradient-to-b from-pink-50/40 to-card dark:from-pink-950/20"
     >
       <div className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 text-white px-3 py-2 shadow-sm">
         <ShoppingBag className="h-4 w-4 shrink-0" />
         <p className="text-[11px] font-semibold leading-snug flex-1">
-          탭하면 즉시 착용 · 전 아이템 무료 · 스튜디오 저장 시 라이브 VTuber에 자동 반영
+          {t("avatar.vtuber")}
         </p>
       </div>
 
@@ -134,7 +137,7 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
             type="button"
             className="absolute top-3 right-3 z-10 h-7 w-7 rounded-full bg-black/20 text-white flex items-center justify-center"
             onClick={() => setPreviewId(null)}
-            aria-label="미리보기 닫기"
+            aria-label={t("avatar.s1wwi8gl")}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -143,7 +146,7 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
             <div className="min-w-0 space-y-2">
               <p className="text-sm font-bold leading-tight line-clamp-2">{previewItem.name}</p>
               <p className="text-[10px] text-muted-foreground">
-                {SHOP_CATEGORY_LABELS.find((c) => c.id === previewItem.category)?.label ?? "아이템"}
+                {SHOP_CATEGORY_LABELS.find((c) => c.id === previewItem.category)?.label ?? t("avatar.stv92k")}
               </p>
               <button
                 type="button"
@@ -155,7 +158,7 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
                     : "bg-foreground text-background hover:opacity-90"
                 )}
               >
-                {isItemEquipped(previewItem) ? "착용 중 ✓" : "착용하기"}
+                {isItemEquipped(previewItem) ? t("avatar.snlr138") : t("avatar.sql59bs")}
               </button>
               <button
                 type="button"
@@ -168,7 +171,7 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
                 )}
               >
                 <Heart className={cn("h-3 w-3", wishlist.includes(previewItem.id) && "fill-pink-500 text-pink-500")} />
-                위시리스트
+                {t("avatar.sm5ytpk")}
               </button>
             </div>
           </div>
@@ -215,7 +218,7 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
         ))}
       </div>
 
-      <StudioSection title={`${items.length}개 · 탭 = 착용`}>
+      <StudioSection title={t("avatar.s1yeh8sj", { v0: items.length })}>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[min(48vh,480px)] overflow-y-auto pr-0.5">
           {items.map((item) => {
             const equipped = isItemEquipped(item);
@@ -242,7 +245,7 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
                   </p>
                   {equipped && (
                     <span className="mt-1 inline-block text-[9px] font-bold text-pink-600 bg-pink-50 dark:bg-pink-950/50 px-1.5 py-0.5 rounded-full">
-                      착용중
+                      {t("avatar.suvfch")}
                     </span>
                   )}
                 </button>
@@ -257,7 +260,7 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
                   onClick={() => toggleWishlist(item.id)}
                 >
                   <Heart className={cn("h-3 w-3", wished && "fill-pink-500 text-pink-500")} />
-                  위시
+                  {t("avatar.syx5k")}
                 </button>
               </div>
             );

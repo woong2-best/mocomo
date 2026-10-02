@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import {
   ExternalLink,
@@ -31,29 +34,29 @@ function buildQuickLinks(firstPartyOn: boolean): QuickLink[] {
     {
       href: firstPartyOn ? "/voice/new" : "/live/external/new",
       icon: Video,
-      title: "방송 만들기",
+      title: t("avatar.s1hesk5s"),
       description: firstPartyOn
-        ? "제목·카테고리 설정 후 브라우저에서 바로 송출"
-        : "유튜브·트위치 방송을 MoCoMo에 연결",
+        ? t("avatar.ssqlpnc")
+        : t("avatar.mocomo"),
     },
     {
       href: "/avatar/broadcast",
       icon: Monitor,
-      title: "OBS 브라우저 소스",
-      description: "투명/크로마키 VTuber 아바타 URL",
+      title: t("avatar.obs_5"),
+      description: t("avatar.vtuber_url"),
       external: true,
     },
     {
       href: "/live",
       icon: Radio,
-      title: "라이브 홈",
-      description: "시청 중인 방송·팔로우 스트리머",
+      title: t("avatar.sx1ht4s"),
+      description: t("avatar.s79xaq5"),
     },
     {
       href: "/settings/streamer",
       icon: Settings2,
-      title: "스트리머 설정",
-      description: "파트너·추가 프로필 (레거시 경로)",
+      title: t("avatar.syrc8oh"),
+      description: t("avatar.stgtlsz"),
     },
   ];
 }
@@ -77,18 +80,18 @@ export function BroadcastStudioPanel({
             <Radio className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="folk-tag mb-1.5 w-fit">방송</p>
+            <p className="folk-tag mb-1.5 w-fit">{t("avatar.sx2fs")}</p>
             <h1 className="text-xl sm:text-2xl font-display font-bold text-folk-cobalt folk-chunky-text">
-              방송 스튜디오
+              {t("avatar.sn9kols")}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              유튜브·트위치처럼 방송 정보·송출·OBS를 한곳에서 준비합니다
+              {t("avatar.obs_3")}
             </p>
           </div>
           <Button asChild className="rounded-xl gap-2 shrink-0">
             <Link href={goLiveHref}>
               <Video className="h-4 w-4" />
-              방송 시작
+              {t("avatar.s1dub35p")}
             </Link>
           </Button>
         </header>
@@ -121,10 +124,10 @@ export function BroadcastStudioPanel({
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-display flex items-center gap-2">
                 <Settings2 className="h-4 w-4 text-folk-cobalt" />
-                스트리머 프로필
+                {t("avatar.sc5py3w")}
               </CardTitle>
               <p className="text-xs text-muted-foreground">
-                채널 소개·공지·방송 일정 — 시청자 프로필·라이브 허브에 표시됩니다
+                {t("avatar.s12rprmd")}
               </p>
             </CardHeader>
             <CardContent>
@@ -138,17 +141,16 @@ export function BroadcastStudioPanel({
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base font-display flex items-center gap-2">
                     <Monitor className="h-4 w-4 text-violet-600" />
-                    OBS · RTMP 송출
+                    {t("avatar.obs_rtmp")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <LiveObsStandardGuide />
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    방송을 만든 뒤 해당 방의 스튜디오 화면에서 서버·방송 키를 확인하세요. OBS 「방송
-                    시작」만 누르면 MoCoMo 시청 화면에 WebRTC로 표시됩니다.
+                    {t("avatar.obs_mocomo_webrtc_2")}
                   </p>
                   <Button asChild variant="outline" size="sm" className="rounded-xl w-full">
-                    <Link href="/voice/new">방송 만들고 OBS 키 받기</Link>
+                    <Link href="/voice/new">{t("avatar.obs_4")}</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -157,16 +159,15 @@ export function BroadcastStudioPanel({
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base font-display flex items-center gap-2">
                     <Monitor className="h-4 w-4 text-violet-600" />
-                    외부 플랫폼 방송
+                    {t("avatar.sijcooj")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    유튜브·트위치에서 송출한 뒤 MoCoMo에 방송 URL을 연결하면 시청·채팅·후원이
-                    여기서 이어집니다.
+                    {t("avatar.mocomo_url")}
                   </p>
                   <Button asChild variant="outline" size="sm" className="rounded-xl w-full">
-                    <Link href="/live/external/new">외부 방송 연결하기</Link>
+                    <Link href="/live/external/new">{t("avatar.sk9lxqg")}</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -176,15 +177,15 @@ export function BroadcastStudioPanel({
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-display flex items-center gap-2">
                   <Shield className="h-4 w-4 text-folk-cobalt" />
-                  채팅·운영
+                  {t("avatar.s17z98f7")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-xs text-muted-foreground">
                 <p className="flex items-start gap-2">
                   <MessageSquare className="h-4 w-4 shrink-0 mt-0.5" />
-                  방송 중 슬로우 모드·금칙어·시청자 관리는 각 방 스튜디오 설정에서 변경합니다
+                  {t("avatar.s18u2m5q")}
                 </p>
-                <p>브라우저 송출 시 웹캠·화면 공유·마이크는 방송 스튜디오 화면에서 선택합니다</p>
+                <p>{t("avatar.skiu325")}</p>
               </CardContent>
             </Card>
           </div>

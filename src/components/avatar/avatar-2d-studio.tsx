@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, ExternalLink, Layers, Loader2, Radio, Upload } from "lucide-react";
@@ -17,10 +20,10 @@ import { cn } from "@/lib/utils";
 type Tab = "draw" | "upload";
 
 const ROADMAP = [
-  "레이어 · PSD · 클라우드 동기화",
-  "만화 컷 · 스크린톤 · 말풍선",
-  "브러시 상점 · 프리미엄 브러시",
-  "협업 · 그룹 프로젝트",
+  t("avatar.psd"),
+  t("avatar.s7050bk"),
+  t("avatar.sxsouva"),
+  t("avatar.s1w88pwd"),
 ];
 
 export function Avatar2dStudio() {
@@ -37,7 +40,7 @@ export function Avatar2dStudio() {
   async function registerFromDraw() {
     const canvas = canvasRef.current;
     if (!canvas) {
-      setErr("캔버스가 준비되지 않았습니다.");
+      setErr(t("avatar.sdj5vxn"));
       return;
     }
     setRegistering(true);
@@ -50,9 +53,9 @@ export function Avatar2dStudio() {
         height: AVATAR_2D_SIZE,
         source: "draw",
       });
-      setMsg(`${MOCOMO_2D_LIBRARY_NAME}에 저장되었습니다. 라방에서 더블클릭해 방송에 붙이세요.`);
+      setMsg(t("avatar.s1291noh", { v0: MOCOMO_2D_LIBRARY_NAME }));
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "등록 실패");
+      setErr(e instanceof Error ? e.message : t("coupon.skg4s7s"));
     } finally {
       setRegistering(false);
     }
@@ -69,16 +72,16 @@ export function Avatar2dStudio() {
         <div className="min-w-0 flex-1">
           <p className="folk-tag mb-1.5 w-fit">2D</p>
           <h1 className="text-xl sm:text-2xl font-display font-bold text-folk-cobalt folk-chunky-text">
-            2D 아바타
+            {t("avatar.spk0uxu")}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            사이트에서 그리거나 PNG 업로드 → 투명 PNG로 방송·OBS에 사용
+            {t("avatar.png_png_obs")}
           </p>
         </div>
         <Button asChild variant="outline" size="sm" className="rounded-xl gap-1.5 border-2 shrink-0">
           <Link href="/avatar/broadcast" target="_blank" rel="noopener noreferrer">
             <Radio className="h-4 w-4" />
-            OBS 방송
+            {t("avatar.obs")}
             <ExternalLink className="h-3 w-3 opacity-60" />
           </Link>
         </Button>
@@ -95,7 +98,7 @@ export function Avatar2dStudio() {
             tab === "draw" ? "bg-card shadow-folk-sm text-folk-cobalt" : "text-muted-foreground"
           )}
         >
-          그리기
+          {t("media.sqdvcs")}
         </button>
         <button
           type="button"
@@ -106,7 +109,7 @@ export function Avatar2dStudio() {
           )}
         >
           <Upload className="h-3.5 w-3.5" />
-          파일 업로드
+          {t("lib.community-server.s979e1h")}
         </button>
       </div>
 
@@ -128,7 +131,7 @@ export function Avatar2dStudio() {
           ) : (
             <Avatar2dUploadPanel
               onRegistered={() =>
-                setMsg(`${MOCOMO_2D_LIBRARY_NAME}에 저장되었습니다. 라방에서 더블클릭해 방송에 붙이세요.`)
+                setMsg(t("avatar.s1291noh", { v0: MOCOMO_2D_LIBRARY_NAME }))
               }
             />
           )}
@@ -143,17 +146,17 @@ export function Avatar2dStudio() {
           </div>
 
           <div className="folk-card p-4 space-y-2">
-            <h2 className="text-sm font-bold text-folk-cobalt">지금 사용 가능</h2>
+            <h2 className="text-sm font-bold text-folk-cobalt">{t("avatar.s1aoy1c")}</h2>
             <ul className="text-[11px] text-muted-foreground space-y-1 list-disc list-inside">
-              <li>연필 · 펜 · G펜 · 에어브러시 · 지우개 · 채우기 · 스포이드</li>
-              <li>실행 취소 · 다시 실행 (Ctrl+Z / Ctrl+Y)</li>
-              <li>PNG/JPG 업로드 → 투명 PNG 저장</li>
+              <li>{t("avatar.s3sat5h")}</li>
+              <li>{t("avatar.ctrl_z_ctrl_y")}</li>
+              <li>{t("avatar.png_jpg_png")}</li>
               <li>라이브에서 {MOCOMO_2D_LIBRARY_NAME} 더블클릭으로 방송 적용</li>
             </ul>
           </div>
 
           <div className="folk-card p-4 space-y-2 opacity-80">
-            <h2 className="text-sm font-bold text-muted-foreground">추가 예정</h2>
+            <h2 className="text-sm font-bold text-muted-foreground">{t("avatar.s186qo5d")}</h2>
             <ul className="text-[11px] text-muted-foreground space-y-1 list-disc list-inside">
               {ROADMAP.map((item) => (
                 <li key={item}>{item}</li>
