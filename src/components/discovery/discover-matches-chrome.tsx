@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
@@ -19,7 +22,7 @@ export function DiscoverMatchesChrome({ children }: { children: React.ReactNode 
         <header className="sticky top-0 z-20 border-b border-border/60 bg-background/90 backdrop-blur-md">
           <div className="max-w-lg mx-auto flex items-center gap-3 px-4 py-3">
             <Link href="/discover" className="text-sm text-primary hover:underline">
-              ← 매칭
+              {t("discovery.s49bm3d")}
             </Link>
             <h1 className="font-display font-bold text-lg flex items-center gap-1.5">
               <Search className="h-4 w-4 text-folk-terracotta" />

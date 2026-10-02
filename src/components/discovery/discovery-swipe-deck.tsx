@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -74,7 +77,7 @@ export function DiscoverySwipeDeck() {
         setMatchingMode(res.matchingMode);
       }
     } catch {
-      setLoadError("추천을 불러오지 못했습니다.");
+      setLoadError(t("discovery.s1d3q012"));
       setCards([]);
     } finally {
       setLoading(false);
@@ -215,7 +218,7 @@ export function DiscoverySwipeDeck() {
           className="rounded-full"
           onClick={() => void load()}
         >
-          <RotateCcw className="h-4 w-4 mr-1" /> 다시 시도
+          <RotateCcw className="h-4 w-4 mr-1" /> {t("toast.retry")}
         </Button>
       </div>
     );
@@ -226,7 +229,7 @@ export function DiscoverySwipeDeck() {
       <div className="flex flex-col items-center justify-center min-h-[70dvh] gap-3">
         <div className="h-11 w-11 rounded-full border-2 border-folk-terracotta border-t-transparent animate-spin" />
         <p className="text-sm text-muted-foreground">
-          {matchingMode === "RANDOM" ? "랜덤으로 찾는 중…" : "취향 맞는 사람 찾는 중…"}
+          {matchingMode === "RANDOM" ? t("discovery.s1j7h6pz") : t("discovery.scgnr5y")}
         </p>
       </div>
     );
@@ -239,15 +242,15 @@ export function DiscoverySwipeDeck() {
           <Search className="h-12 w-12 text-white" strokeWidth={2.25} />
         </div>
         <div className="space-y-2">
-          <h2 className="text-3xl font-display font-black tracking-tight">MoCoMo 매칭</h2>
+          <h2 className="text-3xl font-display font-black tracking-tight">{t("discovery.mocomo")}</h2>
           <p className="text-sm text-muted-foreground">{reason}</p>
-          <p className="text-xs text-muted-foreground">스와이프로 만나고 · 서로 좋아요하면 매칭</p>
+          <p className="text-xs text-muted-foreground">{t("discovery.sk79yvh")}</p>
         </div>
         <Button
           asChild
           className="rounded-full px-8 h-12 bg-folk-terracotta text-white hover:bg-folk-terracotta/90 font-bold text-base shadow-lg shadow-folk-terracotta/20"
         >
-          <Link href="/discover/settings">매칭 시작하기</Link>
+          <Link href="/discover/settings">{t("discovery.s7n7u6c")}</Link>
         </Button>
       </div>
     );
@@ -260,12 +263,12 @@ export function DiscoverySwipeDeck() {
           <Heart className="h-9 w-9 text-muted-foreground/50" />
         </div>
         <p className="font-semibold text-lg">
-          {matchingMode === "RANDOM" ? "오늘 랜덤 카드를 다 봤어요" : "오늘 추천을 다 봤어요"}
+          {matchingMode === "RANDOM" ? t("discovery.s1ce7o28") : t("discovery.s1jtuwmw")}
         </p>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto">
           {matchingMode === "RANDOM"
-            ? "새로고침하면 다른 사람이 나올 수 있어요."
-            : "필터를 넓히거나 내일 다시 와 보세요."}
+            ? t("discovery.sqk7vvu")
+            : t("discovery.scqq6wx")}
         </p>
         <div className="flex flex-wrap justify-center gap-2 pt-2">
           <Button
@@ -273,10 +276,10 @@ export function DiscoverySwipeDeck() {
             className="rounded-full"
             onClick={() => void load()}
           >
-            <RotateCcw className="h-4 w-4 mr-1" /> 새로고침
+            <RotateCcw className="h-4 w-4 mr-1" /> {t("auth.reload")}
           </Button>
           <Button asChild className="rounded-full bg-folk-terracotta text-white hover:bg-folk-terracotta/90">
-            <Link href="/discover/settings">필터 설정</Link>
+            <Link href="/discover/settings">{t("discovery.s7wjn39")}</Link>
           </Button>
         </div>
       </div>
@@ -365,7 +368,7 @@ export function DiscoverySwipeDeck() {
                   disabled={openingMatchChat}
                   onClick={() => void openMatchChat()}
                 >
-                  {openingMatchChat ? "연결 중…" : "메시지 보내기"}
+                  {openingMatchChat ? t("discovery.seed2mt") : t("discovery.siwajyg")}
                 </Button>
                 <Button
                   asChild
@@ -373,7 +376,7 @@ export function DiscoverySwipeDeck() {
                   className="rounded-full h-11 bg-white/10 text-white hover:bg-white/15 border-0"
                 >
                   <Link href="/discover/matches" onClick={dismissMatchFlash}>
-                    매칭 목록
+                    {t("discovery.s16kwy8b")}
                   </Link>
                 </Button>
                 <Button
@@ -381,7 +384,7 @@ export function DiscoverySwipeDeck() {
                   className="rounded-full text-white/55 hover:text-white hover:bg-transparent"
                   onClick={dismissMatchFlash}
                 >
-                  계속 스와이프
+                  {t("discovery.s1n61v37")}
                 </Button>
               </div>
             </motion.div>
@@ -451,7 +454,7 @@ export function DiscoverySwipeDeck() {
             "border-amber-500/50 bg-background/90",
             lastPassed ? "opacity-100 hover:bg-amber-500/15" : "opacity-35 cursor-not-allowed"
           )}
-          aria-label="되돌리기"
+          aria-label={t("discovery.sngz4xk")}
         >
           <RotateCcw className="h-5 w-5 text-amber-400" />
         </motion.button>
@@ -463,7 +466,7 @@ export function DiscoverySwipeDeck() {
           whileTap={pressTap}
           whileHover={{ scale: 1.06 }}
           className="h-[3.75rem] w-[3.75rem] rounded-full border-[3px] border-rose-400/70 bg-background/90 flex items-center justify-center shadow-lg hover:bg-rose-500/15 discover-action-btn discover-action-pass"
-          aria-label="패스"
+          aria-label={t("discovery.s10zgc")}
         >
           <X className="h-8 w-8 text-rose-400 stroke-[2.5]" />
         </motion.button>
@@ -475,7 +478,7 @@ export function DiscoverySwipeDeck() {
           whileTap={pressTap}
           whileHover={{ scale: 1.08 }}
           className="h-12 w-12 rounded-full border-[3px] border-sky-400/70 bg-background/90 flex items-center justify-center shadow-lg hover:bg-sky-500/15 discover-action-btn discover-action-cheer"
-          aria-label="슈퍼 라이크"
+          aria-label={t("discovery.s173079k")}
         >
           <Star className="h-6 w-6 text-sky-400 fill-sky-400/40" />
         </motion.button>
@@ -487,14 +490,14 @@ export function DiscoverySwipeDeck() {
           whileTap={pressTap}
           whileHover={{ scale: 1.06 }}
           className="h-[3.75rem] w-[3.75rem] rounded-full border-[3px] border-emerald-400/70 bg-background/90 flex items-center justify-center shadow-lg hover:bg-emerald-500/15 discover-action-btn discover-action-like"
-          aria-label="좋아요"
+          aria-label={t("lib.notifications.s224a288614")}
         >
           <Heart className="h-8 w-8 text-emerald-400 fill-emerald-400/50" />
         </motion.button>
       </div>
 
       <p className="text-center text-[11px] text-muted-foreground mt-4">
-        ← 패스 · → 좋아요 · ↑ 슈퍼 · 버튼으로도 가능
+        {t("discovery.s12q0v2e")}
       </p>
     </div>
   );

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Search, Settings, MessageCircleHeart } from "lucide-react";
@@ -21,14 +24,14 @@ export function DiscoverPageHeader() {
           <Search className="h-4 w-4 text-white" strokeWidth={2.5} />
         </div>
         <h1 className="font-display font-black text-xl tracking-tight truncate text-foreground">
-          매칭
+          {t("nav.discover")}
         </h1>
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
         <Link
           href="/discover/matches"
           className="relative p-2.5 rounded-full hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="매칭 목록"
+          aria-label={t("discovery.s16kwy8b")}
         >
           <MessageCircleHeart className="h-5 w-5" />
           <DiscoveryMatchBadge />
@@ -36,7 +39,7 @@ export function DiscoverPageHeader() {
         <Link
           href="/discover/settings"
           className="p-2.5 rounded-full hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="설정"
+          aria-label={t("settings.title")}
         >
           <Settings className="h-5 w-5" />
         </Link>
