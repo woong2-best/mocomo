@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
@@ -32,7 +35,7 @@ export default async function AdminReportsPage() {
   }
 
   return (
-    <AdminPageChrome maxWidth="4xl" title="신고 관리">
+    <AdminPageChrome maxWidth="4xl" title={t("lib.admin.s2g139o")}>
       <p className="mb-4 text-sm text-muted-foreground">
         이용자 신고 대기열입니다. 신고를 검토하고 콘텐츠 삭제·해결·기각·제재를 적용하세요.
       </p>

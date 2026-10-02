@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import {
@@ -33,43 +36,43 @@ export default async function AdminDashboardPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">대시보드</h1>
-        <p className="mt-1 text-sm text-muted-foreground">실시간 DB 집계</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("app.admin.s143xy01")}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="총 회원수" value={stats.totalUsers.toLocaleString()} icon={Users} />
-        <StatCard label="오늘 가입자" value={stats.todaySignups.toLocaleString()} icon={UserPlus} />
-        <StatCard label="프리미엄 회원" value={stats.premiumUsers.toLocaleString()} icon={Crown} />
-        <StatCard label="크리에이터 수" value={stats.creators.toLocaleString()} icon={Drama} />
+        <StatCard label={t("app.admin.slkate9")} value={stats.totalUsers.toLocaleString()} icon={Users} />
+        <StatCard label={t("app.admin.s1vsui67")} value={stats.todaySignups.toLocaleString()} icon={UserPlus} />
+        <StatCard label={t("app.admin.s1tf2jcg")} value={stats.premiumUsers.toLocaleString()} icon={Crown} />
+        <StatCard label={t("app.admin.sxgl4jo")} value={stats.creators.toLocaleString()} icon={Drama} />
         <StatCard
-          label="오늘 매출"
+          label={t("app.admin.sfxq6zo")}
           value={formatUsd(stats.todayRevenue)}
           hint={`${stats.todayPaymentCount}건`}
           icon={TrendingUp}
         />
         <StatCard
-          label="이번달 매출"
+          label={t("app.admin.s3gxv28")}
           value={formatUsd(stats.monthRevenue)}
           hint={`${stats.monthPaymentCount}건`}
           icon={TrendingUp}
         />
-        <StatCard label="정산 대기" value={`${stats.pendingPayouts}건`} icon={CreditCard} />
-        <StatCard label="신고 대기" value={`${stats.pendingReports}건`} icon={AlertTriangle} />
+        <StatCard label={t("app.admin.spaye5x")} value={`${stats.pendingPayouts}건`} icon={CreditCard} />
+        <StatCard label={t("app.admin.s2g21qo")} value={`${stats.pendingReports}건`} icon={AlertTriangle} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartPlaceholder
-          title="최근 7일 가입자"
+          title={t("app.admin.sy3are8")}
           bars={signupSeries.map((s) => s.count)}
         />
         <ChartPlaceholder
-          title="최근 7일 매출"
+          title={t("app.admin.s1qytgr7")}
           bars={revenueSeries.map((s) => Math.max(1, Math.round(s.amount / 1000)))}
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <DashboardCard title="최근 가입 회원">
+        <DashboardCard title={t("app.admin.socboe7")}>
           <ul className="space-y-2 text-sm">
             {recentUsers.map((u) => (
               <li key={u.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">
@@ -84,7 +87,7 @@ export default async function AdminDashboardPage() {
           </ul>
         </DashboardCard>
 
-        <DashboardCard title="최근 결제">
+        <DashboardCard title={t("admin.s17ku92k")}>
           <ul className="space-y-2 text-sm">
             {recentPayments.length === 0 ? (
               <li className="text-muted-foreground">결제 없음</li>
@@ -101,10 +104,10 @@ export default async function AdminDashboardPage() {
           </ul>
         </DashboardCard>
 
-        <DashboardCard title="최근 신고">
+        <DashboardCard title={t("app.admin.s17kxvk0")}>
           <ul className="space-y-2 text-sm">
             {recentReports.length === 0 ? (
-              <li className="text-muted-foreground">대기 신고 없음</li>
+              <li className="text-muted-foreground">{t("app.admin.s706zxy")}</li>
             ) : (
               recentReports.map((r) => (
                 <li key={r.id} className="border-b border-border/40 pb-2">
@@ -118,10 +121,10 @@ export default async function AdminDashboardPage() {
           </ul>
         </DashboardCard>
 
-        <DashboardCard title="최근 정산">
+        <DashboardCard title={t("app.admin.s17kyvcr")}>
           <ul className="space-y-2 text-sm">
             {recentPayouts.length === 0 ? (
-              <li className="text-muted-foreground">정산 요청 없음</li>
+              <li className="text-muted-foreground">{t("app.admin.s1yacyyw")}</li>
             ) : (
               recentPayouts.map((p) => (
                 <li key={p.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">
@@ -135,7 +138,7 @@ export default async function AdminDashboardPage() {
           </ul>
         </DashboardCard>
 
-        <DashboardCard title="최근 관리자 활동">
+        <DashboardCard title={t("app.admin.s1smfhvd")}>
           <ul className="space-y-2 text-sm">
             {recentAudit.map((a) => (
               <li key={a.id} className="border-b border-border/40 pb-2 text-xs">
@@ -149,7 +152,7 @@ export default async function AdminDashboardPage() {
           </ul>
         </DashboardCard>
 
-        <DashboardCard title="최근 로그인">
+        <DashboardCard title={t("admin.s1eiyn0")}>
           <ul className="space-y-2 text-sm">
             {recentLogins.length === 0 ? (
               <li className="text-muted-foreground">기록 없음 (로그인 후 집계)</li>

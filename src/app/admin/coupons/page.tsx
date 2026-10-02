@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -35,7 +38,7 @@ export default async function AdminCouponsPage({
           과 병행 · 실DB CRUD
         </p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted-foreground">로딩…</p>}>
+      <Suspense fallback={<p className="text-sm text-muted-foreground">{t("app.admin.srv43d")}</p>}>
         <AdminCouponsTable
           items={res.data.items}
           total={res.data.total}

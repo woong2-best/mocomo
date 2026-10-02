@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { getAdminEventMapRecommendations } from "@/actions/admin";
 import { AdminEventsMapPanel } from "@/components/admin/admin-events-map-panel";
@@ -31,7 +34,7 @@ export default async function AdminEventsMapPage() {
   }
 
   return (
-    <AdminPageChrome maxWidth="4xl" title="행사 지도 · 유저 추천 핀">
+    <AdminPageChrome maxWidth="4xl" title={t("app.admin.sxlz5eo")}>
       <p className="mb-4 text-sm text-muted-foreground">
         유저가 행사 지도에 등록한 초록 핀(추천 장소) 목록입니다. 부적절한 장소는 강제 삭제할 수
         있습니다.

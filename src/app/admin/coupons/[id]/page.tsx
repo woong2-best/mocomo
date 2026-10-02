@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { adminGetCouponAction } from "@/actions/admin-coupons";
@@ -37,18 +40,18 @@ export default async function AdminCouponDetailPage({
         </div>
       </div>
 
-      <DashboardCard title="혜택 · 조건">
+      <DashboardCard title={t("app.admin.s1b6c68c")}>
         <ul className="space-y-1 text-sm">
           <li>{c.benefitLabel}</li>
           <li>적용 대상: {c.audience}{c.targetTier ? ` (${c.targetTier})` : ""}</li>
           <li>
             사용 횟수:{" "}
-            {c.maxUsesPerUser == null ? "무제한" : `유저당 ${c.maxUsesPerUser}회`}
+            {c.maxUsesPerUser == null ? t("app.admin.ssebqs") : `유저당 ${c.maxUsesPerUser}회`}
             {c.maxTotalUses != null ? ` · 전체 ${c.maxTotalUses}회` : ""}
           </li>
           <li>
             기간: {c.startsAt.toISOString().slice(0, 16)} ~{" "}
-            {c.endsAt ? c.endsAt.toISOString().slice(0, 16) : "무기한"}
+            {c.endsAt ? c.endsAt.toISOString().slice(0, 16) : t("app.admin.ss9x0g")}
           </li>
           <li>
             생성: @{c.createdBy.username} · {c.createdAt.toISOString()}
@@ -66,10 +69,10 @@ export default async function AdminCouponDetailPage({
         canDelete={actor.permissions.includes("coupons.delete")}
       />
 
-      <DashboardCard title="지급된 유저">
+      <DashboardCard title={t("app.admin.sc93ay5")}>
         <ul className="space-y-1 text-sm">
           {c.assignments.length === 0 ? (
-            <li className="text-muted-foreground">아직 지급 없음</li>
+            <li className="text-muted-foreground">{t("app.admin.samcexm")}</li>
           ) : (
             c.assignments.map((a) => (
               <li key={a.id} className="flex justify-between gap-2 border-b border-border/40 py-1">
@@ -86,10 +89,10 @@ export default async function AdminCouponDetailPage({
         </ul>
       </DashboardCard>
 
-      <DashboardCard title="사용 내역">
+      <DashboardCard title={t("app.coupons.s1w44s3g")}>
         <ul className="space-y-2 text-sm">
           {c.usages.length === 0 ? (
-            <li className="text-muted-foreground">사용 기록 없음</li>
+            <li className="text-muted-foreground">{t("app.admin.s1kklfau")}</li>
           ) : (
             c.usages.map((u) => (
               <li key={u.id} className="border-b border-border/40 pb-2">

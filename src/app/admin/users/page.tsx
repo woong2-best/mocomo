@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { Suspense } from "react";
 import { adminLoadUsers } from "@/actions/admin-cms";
@@ -36,7 +39,7 @@ export default async function AdminUsersPage({
         <h1 className="text-2xl font-bold tracking-tight">회원 관리</h1>
         <p className="text-sm text-muted-foreground">검색 · 정렬 · 페이지네이션 · CSV</p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted-foreground">로딩…</p>}>
+      <Suspense fallback={<p className="text-sm text-muted-foreground">{t("app.admin.srv43d")}</p>}>
         <AdminUsersTable
           items={res.data.items}
           total={res.data.total}

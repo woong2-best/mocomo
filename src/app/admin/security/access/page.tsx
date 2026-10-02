@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { adminUserAccessLogsAction } from "@/actions/admin-security";
 
@@ -44,7 +47,7 @@ export default async function AdminUserAccessLogsPage({
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">접속기록</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("lib.admin.sq1mjex")}</h1>
         <p className="text-sm text-muted-foreground">
           회원 로그인·접속 IP, 지역, 기기 정보 · 총 {total}건
         </p>
@@ -54,13 +57,13 @@ export default async function AdminUserAccessLogsPage({
         <input
           name="q"
           defaultValue={sp.q}
-          placeholder="아이디 · 이메일 · IP · 지역"
+          placeholder={t("app.admin.s1njjge5")}
           className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
         />
         <input
           name="ip"
           defaultValue={sp.ip}
-          placeholder="IP 필터"
+          placeholder={t("app.admin.s16m58l")}
           className="w-36 rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono"
         />
         <select
@@ -68,9 +71,9 @@ export default async function AdminUserAccessLogsPage({
           defaultValue={sp.channel ?? ""}
           className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
         >
-          <option value="">전체 채널</option>
-          <option value="web">웹</option>
-          <option value="mobile">앱</option>
+          <option value="">{t("app.admin.sqkab0c")}</option>
+          <option value="web">{t("app.admin.s13ax")}</option>
+          <option value="mobile">{t("app.admin.s1301")}</option>
         </select>
         <select
           name="success"
@@ -78,8 +81,8 @@ export default async function AdminUserAccessLogsPage({
           className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
         >
           <option value="">전체 결과</option>
-          <option value="true">성공</option>
-          <option value="false">실패</option>
+          <option value="true">{t("app.admin.sxt5w")}</option>
+          <option value="false">{t("reels.syb44")}</option>
         </select>
         <button type="submit" className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">
           검색
@@ -90,17 +93,17 @@ export default async function AdminUserAccessLogsPage({
         <table className="w-full min-w-[1100px] text-left text-sm">
           <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
             <tr>
-              <th className="p-2">시간</th>
+              <th className="p-2">{t("reels.sy36w")}</th>
               <th className="p-2">회원</th>
               <th className="p-2">IP</th>
-              <th className="p-2">접속 지역</th>
+              <th className="p-2">{t("app.admin.spcsbw1")}</th>
               <th className="p-2">채널</th>
-              <th className="p-2">방식</th>
+              <th className="p-2">{t("app.admin.sx2ok")}</th>
               <th className="p-2">브라우저</th>
               <th className="p-2">OS</th>
-              <th className="p-2">기기</th>
-              <th className="p-2">결과</th>
-              <th className="p-2">실패 사유</th>
+              <th className="p-2">{t("app.admin.sul1c")}</th>
+              <th className="p-2">{t("app.admin.subm4")}</th>
+              <th className="p-2">{t("app.admin.s7c587k")}</th>
             </tr>
           </thead>
           <tbody>
@@ -120,14 +123,14 @@ export default async function AdminUserAccessLogsPage({
                 </td>
                 <td className="p-2 font-mono text-xs">{row.ip ?? "—"}</td>
                 <td className="p-2">{formatLocation(row)}</td>
-                <td className="p-2">{row.channel === "mobile" ? "앱" : "웹"}</td>
+                <td className="p-2">{row.channel === "mobile" ? t("app.admin.s1301") : t("app.admin.s13ax")}</td>
                 <td className="p-2">{row.provider ?? "—"}</td>
                 <td className="p-2">{row.browser ?? "—"}</td>
                 <td className="p-2">{row.os ?? "—"}</td>
                 <td className="p-2">{row.device ?? "—"}</td>
                 <td className="p-2">
                   <span className={row.success ? "text-emerald-600" : "text-destructive"}>
-                    {row.success ? "성공" : "실패"}
+                    {row.success ? t("app.admin.sxt5w") : t("reels.syb44")}
                   </span>
                 </td>
                 <td className="p-2 text-xs text-muted-foreground">

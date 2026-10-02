@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { adminGetPromotionAction } from "@/actions/admin-promotions";
@@ -37,16 +40,16 @@ export default async function AdminPromotionDetailPage({
             <p>{p.benefitLabel}</p>
             <p>Priority: {p.priority}</p>
             <p>Trigger: {p.trigger}</p>
-            <p>상태: {p.active ? "활성" : "비활성"}</p>
+            <p>상태: {p.active ? t("settings.twoFactorOn") : t("settings.twoFactorOff")}</p>
             <p>
               기간: {p.startsAt.toISOString().slice(0, 10)} ~{" "}
-              {p.endsAt ? p.endsAt.toISOString().slice(0, 10) : "무기한"}
+              {p.endsAt ? p.endsAt.toISOString().slice(0, 10) : t("app.admin.ss9x0g")}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">통계</CardTitle>
+            <CardTitle className="text-base">{t("lib.admin.s10m9b")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
             <p>발급: {p._count.assignments.toLocaleString()}</p>
@@ -60,7 +63,7 @@ export default async function AdminPromotionDetailPage({
       {p.rules.length > 0 ? (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">지급 조건</CardTitle>
+            <CardTitle className="text-base">{t("app.admin.sth583f")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-1 text-sm font-mono">
@@ -83,7 +86,7 @@ export default async function AdminPromotionDetailPage({
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">최근 지급</CardTitle>
+          <CardTitle className="text-base">{t("app.admin.s17kz1vt")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-1 text-sm">
@@ -94,7 +97,7 @@ export default async function AdminPromotionDetailPage({
               </li>
             ))}
             {p.assignments.length === 0 ? (
-              <li className="text-muted-foreground">아직 없음</li>
+              <li className="text-muted-foreground">{t("app.admin.sffs2tl")}</li>
             ) : null}
           </ul>
         </CardContent>
@@ -102,7 +105,7 @@ export default async function AdminPromotionDetailPage({
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">히스토리</CardTitle>
+          <CardTitle className="text-base">{t("app.admin.ss068mg")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-1 text-xs text-muted-foreground">

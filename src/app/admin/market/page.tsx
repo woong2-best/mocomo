@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
@@ -55,25 +58,25 @@ export default async function AdminMarketPage() {
       </div>
 
       <section className="mb-8 space-y-3">
-        <h2 className="font-semibold">수동 검수 대기 (Stripe 온보딩 완료 · 승인 대기)</h2>
+        <h2 className="font-semibold">{t("app.admin.stripe_2")}</h2>
         <AdminSellerApprovalList sellers={pendingSellers} />
       </section>
 
       <div className="grid gap-3 sm:grid-cols-3 mb-8">
         <div className="rounded-2xl border border-border/60 p-4">
-          <p className="text-xs text-muted-foreground">거래액(상품)</p>
+          <p className="text-xs text-muted-foreground">{t("app.admin.s1yt0nn7")}</p>
           <p className="text-xl font-bold">
             {(feeSum._sum.subtotalAmount ?? 0).toLocaleString()}원
           </p>
         </div>
         <div className="rounded-2xl border border-border/60 p-4">
-          <p className="text-xs text-muted-foreground">플랫폼 수수료</p>
+          <p className="text-xs text-muted-foreground">{t("lib.platform.s9pg92h")}</p>
           <p className="text-xl font-bold">
             {(feeSum._sum.platformFeeAmount ?? 0).toLocaleString()}원
           </p>
         </div>
         <div className="rounded-2xl border border-border/60 p-4">
-          <p className="text-xs text-muted-foreground">판매자 정산 예정/완료</p>
+          <p className="text-xs text-muted-foreground">{t("app.admin.s1i9qfm1")}</p>
           <p className="text-xl font-bold">
             {(feeSum._sum.sellerEarnAmount ?? 0).toLocaleString()}원
           </p>
@@ -81,7 +84,7 @@ export default async function AdminMarketPage() {
       </div>
 
       <section className="mb-8 space-y-3">
-        <h2 className="font-semibold">열린 분쟁</h2>
+        <h2 className="font-semibold">{t("app.admin.sg3k7q9")}</h2>
         {center.disputes.length === 0 ? (
           <p className="text-sm text-muted-foreground">열린 분쟁이 없습니다.</p>
         ) : (
@@ -90,18 +93,18 @@ export default async function AdminMarketPage() {
       </section>
 
       <section className="mb-8 space-y-3">
-        <h2 className="font-semibold">위험 · 정산 보류 주문</h2>
+        <h2 className="font-semibold">{t("app.admin.s5b2ei0")}</h2>
         {center.reviewOrders.length === 0 ? (
-          <p className="text-sm text-muted-foreground">검토 대기 주문이 없습니다.</p>
+          <p className="text-sm text-muted-foreground">{t("app.admin.s118gey3")}</p>
         ) : (
           center.reviewOrders.map((o) => <AdminReviewOrderCard key={o.id} order={o} />)
         )}
       </section>
 
       <section className="mb-8 space-y-2">
-        <h2 className="font-semibold">대기 신고</h2>
+        <h2 className="font-semibold">{t("community-server.sbkngts")}</h2>
         {center.reports.length === 0 ? (
-          <p className="text-sm text-muted-foreground">대기 중인 신고가 없습니다.</p>
+          <p className="text-sm text-muted-foreground">{t("community-server.sopnlru")}</p>
         ) : (
           <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 text-sm">
             {center.reports.map((r) => (
@@ -117,7 +120,7 @@ export default async function AdminMarketPage() {
       </section>
 
       <section className="mb-8 space-y-2">
-        <h2 className="font-semibold">감사 로그 (최근)</h2>
+        <h2 className="font-semibold">{t("app.admin.s1svghy9")}</h2>
         <ul className="text-xs space-y-1 max-h-64 overflow-auto rounded-xl border border-border/60 p-3">
           {center.recentAudit.map((a) => (
             <li key={a.id} className="text-muted-foreground">
@@ -129,7 +132,7 @@ export default async function AdminMarketPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="font-semibold">최근 주문</h2>
+        <h2 className="font-semibold">{t("app.admin.s17kyzss")}</h2>
         <ul className="divide-y divide-border/60 rounded-2xl border border-border/60">
           {orders.map((o) => (
             <li key={o.id} className="p-3 text-sm flex justify-between gap-3">

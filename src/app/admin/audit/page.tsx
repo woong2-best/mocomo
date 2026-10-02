@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { adminLoadAudit } from "@/actions/admin-cms";
@@ -19,7 +22,7 @@ export default async function AdminAuditPage({
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">감사 로그</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("lib.admin.s1lt4mqo")}</h1>
         <p className="text-sm text-muted-foreground">관리자 작업 기록 · 검색 가능 · 총 {total}건</p>
       </div>
 
@@ -27,7 +30,7 @@ export default async function AdminAuditPage({
         <input
           name="q"
           defaultValue={sp.q}
-          placeholder="액션 · 대상 · 관리자"
+          placeholder={t("app.admin.s1lnhxla")}
           className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
         />
         <input

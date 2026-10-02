@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { adminLoadSettings } from "@/actions/admin-cms";
 import { adminListFeatureFlagsAction } from "@/actions/admin-feature-flags";
@@ -16,8 +19,8 @@ export default async function AdminSettingsPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">시스템 설정</h1>
-        <p className="text-sm text-muted-foreground">DB에 저장되며 새로고침 후에도 유지됩니다.</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("lib.admin.s16n1kal")}</h1>
+        <p className="text-sm text-muted-foreground">{t("app.admin.snkixc0")}</p>
       </div>
       <AdminSettingsForm initial={res.data} />
       {flags.ok ? <FeatureFlagsPanel flags={flags.data} /> : null}

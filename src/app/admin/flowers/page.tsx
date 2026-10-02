@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
@@ -17,7 +20,7 @@ export default async function AdminFlowersPage() {
   const data = await getAdminFlowerDashboard();
 
   return (
-    <AdminPageChrome maxWidth="4xl" title="Flower Gift 관리">
+    <AdminPageChrome maxWidth="4xl" title={t("app.admin.flower_gift")}>
       <div className="mb-4">
         <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
           ← 관리자 홈
@@ -26,7 +29,7 @@ export default async function AdminFlowersPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 mb-8">
         <div className="rounded-2xl border p-4">
-          <p className="text-xs text-muted-foreground">유통 중 액면가 (HELD)</p>
+          <p className="text-xs text-muted-foreground">{t("app.admin.held")}</p>
           <p className="text-xl font-bold">
             {(data.heldSum._sum.faceValueKrw ?? 0).toLocaleString()}원
           </p>
@@ -38,15 +41,15 @@ export default async function AdminFlowersPage() {
           </p>
         </div>
         <div className="rounded-2xl border p-4">
-          <p className="text-xs text-muted-foreground">대기 환전</p>
+          <p className="text-xs text-muted-foreground">{t("app.admin.sbkqxek")}</p>
           <p className="text-xl font-bold">{data.redeems.length}건</p>
         </div>
       </div>
 
       <section className="mb-8 space-y-3">
-        <h2 className="font-semibold">환전 요청</h2>
+        <h2 className="font-semibold">{t("flower.sayojv1")}</h2>
         {data.redeems.length === 0 ? (
-          <p className="text-sm text-muted-foreground">대기 중인 환전이 없습니다.</p>
+          <p className="text-sm text-muted-foreground">{t("app.admin.s123zk1u")}</p>
         ) : (
           data.redeems.map((r) => (
             <div key={r.id} className="rounded-xl border p-3 text-sm space-y-1">
@@ -65,7 +68,7 @@ export default async function AdminFlowersPage() {
       </section>
 
       <section className="mb-8 space-y-2">
-        <h2 className="font-semibold">원장 (최근)</h2>
+        <h2 className="font-semibold">{t("app.admin.s1h7is0c")}</h2>
         <ul className="text-xs space-y-1 max-h-64 overflow-auto rounded-xl border p-3 font-mono">
           {data.recentLedger.map((e) => (
             <li key={e.id}>
@@ -76,7 +79,7 @@ export default async function AdminFlowersPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="font-semibold">감사 로그</h2>
+        <h2 className="font-semibold">{t("lib.admin.s1lt4mqo")}</h2>
         <ul className="text-xs space-y-1 max-h-48 overflow-auto rounded-xl border p-3">
           {data.recentAudit.map((a) => (
             <li key={a.id} className="text-muted-foreground">
