@@ -6,7 +6,7 @@ function loadImage(src: string | Blob): Promise<HTMLImageElement> {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("이미지를 불러올 수 없습니다."));
+    img.onerror = () => reject(new Error("Could not load the image."));
     if (typeof src === "string") img.src = src;
     else img.src = URL.createObjectURL(src);
   });
@@ -51,7 +51,7 @@ export async function normalizeFaceImage(
 
   const first = detect(probe);
   const bounds = faceBounds(first, probe.width, probe.height);
-  if (!bounds) throw new Error("얼굴을 찾을 수 없습니다. 정면 얼굴이 보이는 사진을 올려 주세요.");
+  if (!bounds) throw new Error("No face detected. Upload a photo with a visible front-facing face.");
 
   const out = document.createElement("canvas");
   out.width = PHOTO_AVATAR_SIZE;
@@ -72,7 +72,7 @@ export async function normalizeFaceImage(
   );
 
   const blob = await new Promise<Blob>((resolve, reject) => {
-    out.toBlob((b) => (b ? resolve(b) : reject(new Error("변환 실패"))), "image/webp", 0.92);
+    out.toBlob((b) => (b ? resolve(b) : reject(new Error("Conversion failed"))), "image/webp", 0.92);
   });
 
   return { blob, dataUrl: out.toDataURL("image/webp", 0.92), canvas: out };

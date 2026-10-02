@@ -47,7 +47,7 @@ export class PhotoAvatarRenderer {
         this.imageLoaded = true;
         resolve();
       };
-      img.onerror = () => reject(new Error("사진 아바타 이미지 로드 실패"));
+      img.onerror = () => reject(new Error("Failed to load photo avatar image"));
       img.src = url;
     });
   }

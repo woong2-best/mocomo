@@ -11,7 +11,7 @@ import { uploadImageBlob } from "@/lib/client-upload";
 export async function createPhotoAvatarFromFile(file: File): Promise<PhotoAvatarRig> {
   const prepared = await prepareGalleryImageForUpload(file);
   const landmarker = await getImageFaceLandmarker();
-  if (!landmarker) throw new Error("얼굴 인식 모듈을 불러오지 못했습니다.");
+  if (!landmarker) throw new Error("Could not load the face detection module.");
 
   const detect = (source: HTMLImageElement | HTMLCanvasElement) => {
     const result = landmarker.detect(source);
@@ -24,14 +24,14 @@ export async function createPhotoAvatarFromFile(file: File): Promise<PhotoAvatar
     normalized = await normalizeFaceImage(prepared, detect);
   } catch (e) {
     if (e instanceof Error && e.message === "FACE_NOT_FOUND") {
-      throw new Error("얼굴을 찾을 수 없습니다. 정면 얼굴 사진을 올려 주세요.");
+      throw new Error("No face detected. Upload a front-facing face photo.");
     }
     throw e;
   }
 
   const result = landmarker.detect(normalized.canvas);
   if (!result.faceLandmarks?.length) {
-    throw new Error("크롭 후 얼굴 인식에 실패했습니다.");
+    throw new Error("Face detection failed after crop.");
   }
 
   let cloudUrl: string | null = null;

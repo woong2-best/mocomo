@@ -53,7 +53,7 @@ export function buildPhotoAvatarRig(
   const lowerLip = lm(result, 14, w, h);
 
   if (leftPts.length < 3 || rightPts.length < 3 || mouthPts.length < 4 || !nose) {
-    throw new Error("얼굴 눈·입 영역을 찾지 못했습니다. 정면 얼굴 사진을 사용해 주세요.");
+    throw new Error("Could not detect eye and mouth regions. Use a front-facing face photo.");
   }
 
   const faceCenter = {
