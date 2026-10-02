@@ -63,10 +63,10 @@ export async function buildListingMeetMapPayload(
   const hasPin = meetLat != null && meetLng != null;
   if (!hasPin && !region.trim()) return null;
 
-  const regionCenter = getRegionMapCenter(region || "서울", meetCountry);
+  const regionCenter = getRegionMapCenter(region || "Seoul", meetCountry);
   const mapLat = hasPin ? meetLat! : regionCenter.lat;
   const mapLng = hasPin ? meetLng! : regionCenter.lng;
-  const mapLabel = meetPlace || region || "거래 장소";
+  const mapLabel = meetPlace || region || "Meetup location";
   const coords = hasPin ? { lat: meetLat!, lng: meetLng! } : null;
 
   return {
