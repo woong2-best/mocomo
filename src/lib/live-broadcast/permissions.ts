@@ -1,5 +1,8 @@
 import type { BroadcastRole } from "@prisma/client";
 import { db } from "@/lib/db";
+import type { Locale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
+import type { MessageKey } from "@/lib/i18n/message-keys";
 
 /** Effective broadcast role including implicit owner */
 export type EffectiveBroadcastRole = "OWNER" | BroadcastRole | "VIEWER";
@@ -206,17 +209,19 @@ export function listPermissionsForRole(role: EffectiveBroadcastRole): BroadcastP
 /** Manager chat username color — matches manager badge triangle */
 export const MANAGER_CHAT_COLOR = "#5CE1E6";
 
+const BROADCAST_ROLE_KEYS: Record<EffectiveBroadcastRole, MessageKey> = {
+  OWNER: "live.role.owner",
+  MANAGER: "live.role.manager",
+  MODERATOR: "live.role.moderator",
+  VIP: "live.role.vip",
+  VIEWER: "live.role.viewer",
+};
+
+export function broadcastRoleLabel(locale: Locale, role: EffectiveBroadcastRole): string {
+  return translate(locale, BROADCAST_ROLE_KEYS[role] ?? "live.role.viewer");
+}
+
+/** @deprecated Use broadcastRoleLabel(locale, role) */
 export function broadcastRoleLabelKo(role: EffectiveBroadcastRole): string {
-  switch (role) {
-    case "OWNER":
-      return "방송 소유자";
-    case "MANAGER":
-      return "관리자";
-    case "MODERATOR":
-      return "모더레이터";
-    case "VIP":
-      return "VIP";
-    default:
-      return "시청자";
-  }
+  return broadcastRoleLabel("ko", role);
 }

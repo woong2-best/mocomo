@@ -408,8 +408,7 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
     }
 
     return {
-      error:
-        "YouTube에서 진행 중인 라이브를 찾을 수 없습니다. YouTube에서 방송을 시작한 뒤 다시 시도해 주세요.",
+      errorKey: "live.error.youtubeNoLive" as const,
     };
   },
 };

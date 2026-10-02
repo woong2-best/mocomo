@@ -108,7 +108,7 @@ export interface StreamingPlatformProvider {
   resolveLiveSource(
     account: ConnectedAccountRow,
     tokens: StreamingTokenPayload | null
-  ): Promise<ParsedExternalLiveSource | { error: string }>;
+  ): Promise<ParsedExternalLiveSource | { error: string } | { errorKey: import("@/lib/i18n/messages").MessageKey }>;
 }
 
 export type StreamingAccountPublic = {

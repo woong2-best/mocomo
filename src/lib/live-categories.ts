@@ -1,4 +1,7 @@
 import type { LiveStreamCategory } from "@prisma/client";
+import type { Locale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
+import type { MessageKey } from "@/lib/i18n/message-keys";
 
 /** DB enum stays `LIVE`; display label is R-18 (age-gated). */
 export const R18_LIVE_CATEGORY: LiveStreamCategory = "LIVE";
@@ -79,9 +82,26 @@ export function isBroadcastPickCategory(
   return BROADCAST_PICK_CATEGORIES.some((c) => c.value === cat);
 }
 
-export function liveCategoryLabel(cat: LiveStreamCategory | string | null | undefined) {
-  const found = LIVE_CATEGORIES.find((c) => c.value === cat);
-  return found?.label ?? "라이브";
+const CATEGORY_LABEL_KEYS: Partial<Record<LiveStreamCategory | "ALL", MessageKey>> = {
+  ALL: "live.category.all",
+  JUST_CHATTING: "live.category.chatting",
+  GAME: "live.category.gaming",
+  MUSIC: "live.category.music",
+  IRL: "live.category.festival",
+  LIVE: "live.category.r18",
+  VIRTUAL: "live.category.all",
+};
+
+export function liveCategoryLabel(
+  cat: LiveStreamCategory | string | null | undefined,
+  locale: Locale = "en"
+) {
+  const key =
+    cat != null && cat in CATEGORY_LABEL_KEYS
+      ? CATEGORY_LABEL_KEYS[cat as LiveStreamCategory | "ALL"]
+      : undefined;
+  if (key) return translate(locale, key);
+  return translate(locale, "live.studio.tag");
 }
 
 export function parseLiveCategoryParam(raw?: string | null): LiveStreamCategory | undefined {
