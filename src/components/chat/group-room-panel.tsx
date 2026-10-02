@@ -186,7 +186,7 @@ export function GroupRoomPanel({
             {pollOpts.map((v, i) => (
               <Input
                 key={i}
-                placeholder={`선택지 ${i + 1}`}
+                placeholder={`Options ${i + 1}`}
                 value={v}
                 onChange={(e) => {
                   const next = [...pollOpts];
