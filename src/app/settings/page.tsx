@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -48,14 +51,14 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>메시지</CardTitle>
+          <CardTitle>{t("settings.ss8r7c")}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm">
           <p className="text-muted-foreground mb-3">
-            메시지 요청 허용 범위와 통화 On/Off를 설정합니다.
+            {t("settings.on_off_2")}
           </p>
           <Link href="/settings/messages" className="text-primary hover:underline font-semibold">
-            메시지 설정
+            {t("settings.s2wgdll")}
           </Link>
         </CardContent>
       </Card>
@@ -67,7 +70,7 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>워터마크</CardTitle>
+          <CardTitle>{t("settings.spy7kp4")}</CardTitle>
         </CardHeader>
         <CardContent>
           <WatermarkSettingsForm
@@ -132,7 +135,7 @@ export default async function SettingsPage() {
             </Link>
             <Link href="/coupons">
               <Button variant="outline" size="sm">
-                내 쿠폰
+                {t("settings.smbdh4s")}
               </Button>
             </Link>
           </div>

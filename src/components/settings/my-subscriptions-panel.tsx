@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -39,7 +42,7 @@ export function MySubscriptionsPanel({ subscriptions }: { subscriptions: Subscri
   if (subscriptions.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        활성 정기 후원이 없습니다. 크리에이터 프로필에서 월 구독을 시작할 수 있습니다.
+        {t("settings.ss4scu4")}
       </p>
     );
   }
@@ -56,12 +59,13 @@ export function MySubscriptionsPanel({ subscriptions }: { subscriptions: Subscri
               @{s.creatorUsername}
             </Link>
             <p className="text-sm text-muted-foreground">
-              {formatUsd(s.amount)}/월 ·{" "}
+              {formatUsd(s.amount)}
+              {t("settings.perMonth")} ·{" "}
               {s.active
                 ? s.cancelAtPeriodEnd
-                  ? `해지 예정 (${new Date(s.currentPeriodEnd).toLocaleDateString("ko-KR")}까지 이용)`
-                  : `다음 결제 ${new Date(s.currentPeriodEnd).toLocaleDateString("ko-KR")}`
-                : "만료됨"}
+                  ? t("settings.s1lmrs9d", { v0: new Date(s.currentPeriodEnd).toLocaleDateString("ko-KR") })
+                  : t("settings.seb61es", { v0: new Date(s.currentPeriodEnd).toLocaleDateString("ko-KR") })
+                : t("settings.ss44h4")}
             </p>
           </div>
           {s.active && !s.cancelAtPeriodEnd ? (
@@ -72,7 +76,7 @@ export function MySubscriptionsPanel({ subscriptions }: { subscriptions: Subscri
               disabled={pending}
               onClick={() => cancel(s.creatorId)}
             >
-              다음 달 결제 취소
+              {t("settings.s1hnxsoc")}
             </Button>
           ) : null}
         </li>

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useSession } from "next-auth/react";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +23,7 @@ export function SignOutButton({ className }: { className?: string }) {
       }}
     >
       <LogOut className="h-4 w-4" />
-      로그아웃
+      {t("menu.signOut")}
     </Button>
   );
 }
