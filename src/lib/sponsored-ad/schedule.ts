@@ -14,9 +14,9 @@ export function calcSponsoredAdEndTime(startTime: Date, days: number): Date {
 }
 
 export function validateSponsoredAdStartTime(startTime: Date, now = new Date()): string | null {
-  if (Number.isNaN(startTime.getTime())) return "날짜가 올바르지 않습니다.";
+  if (Number.isNaN(startTime.getTime())) return "Invalid date.";
   if (startTime.getTime() < now.getTime()) {
-    return "시작 일시는 현재 시각 이후여야 합니다.";
+    return "Start date and time must be after the current time.";
   }
   return null;
 }
@@ -26,7 +26,7 @@ export function validateSponsoredAdDays(
   maxDays = SPONSORED_AD_MAX_DAYS
 ): string | null {
   if (!Number.isInteger(days) || days < 1) {
-    return "게재 기간은 1일 이상 선택해 주세요.";
+    return "Select a run period of at least 1 day.";
   }
   if (days > maxDays) {
     return `광고 기간은 최대 ${maxDays}일까지 가능합니다.`;
@@ -87,7 +87,7 @@ export function sponsoredAdScheduleSummary(
   if (options?.unlimited) {
     return {
       startLabel: formatSponsoredAdDateTime(startTime),
-      endLabel: "제한 없음 (삭제할 때까지)",
+      endLabel: "No limit (until removed)",
       moco: 0,
       endTime: null as Date | null,
     };

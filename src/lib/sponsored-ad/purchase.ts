@@ -22,7 +22,7 @@ import {
 
 type Tx = Prisma.TransactionClient;
 
-const INSUFFICIENT_MOCO = "구매 MOCO 잔액이 부족합니다.";
+const INSUFFICIENT_MOCO = "Insufficient purchased MOCO balance.";
 
 async function validateTarget(
   tx: Tx,
@@ -33,14 +33,14 @@ async function validateTarget(
   if (targetType === SPONSORED_AD_TARGET_EVENT) {
     const event = await tx.event.findUnique({ where: { id: targetId } });
     if (!event || event.createdById !== userId) {
-      return { ok: false, error: "이벤트를 찾을 수 없습니다." };
+      return { ok: false, error: "Event not found." };
     }
     if (event.registrationFeePaid) {
-      return { ok: false, error: "이미 등록·광고가 활성화된 이벤트입니다." };
+      return { ok: false, error: "This event is already registered with an active ad." };
     }
     return { ok: true };
   }
-  return { ok: false, error: "지원하지 않는 광고 대상입니다." };
+  return { ok: false, error: "Unsupported ad target." };
 }
 
 async function activateTarget(
@@ -107,7 +107,7 @@ export async function purchaseSponsoredAd(
     select: { id: true },
   });
   if (activeCampaign) {
-    return { ok: false, error: "이미 활성화된 스폰서드 광고가 있습니다." };
+    return { ok: false, error: "An active sponsored ad already exists." };
   }
 
   try {
@@ -193,7 +193,7 @@ export async function activateSponsoredAdComplimentary(
     select: { id: true },
   });
   if (activeCampaign) {
-    return { ok: false, error: "이미 활성화된 스폰서드 광고가 있습니다." };
+    return { ok: false, error: "An active sponsored ad already exists." };
   }
 
   try {
