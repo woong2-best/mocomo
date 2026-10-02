@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FaceFilterPipeline } from "@/lib/face-filters/pipeline";
@@ -73,13 +76,13 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
 
   const waitForBroadcastReady = useCallback(async () => {
     const pipeline = pipelineRef.current;
-    if (!pipeline) throw new Error("카메라가 준비되지 않았습니다.");
+    if (!pipeline) throw new Error(i18n("media.s17cqigz"));
     await pipeline.waitForBroadcastReady();
   }, []);
 
   const waitForPreviewReady = useCallback(async () => {
     const pipeline = pipelineRef.current;
-    if (!pipeline) throw new Error("카메라가 준비되지 않았습니다.");
+    if (!pipeline) throw new Error(i18n("media.s17cqigz"));
     await pipeline.waitForPreviewReady();
     setPreviewReady(true);
   }, []);
@@ -94,7 +97,7 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
 
   const capturePhoto = useCallback(async () => {
     const pipeline = pipelineRef.current;
-    if (!pipeline) throw new Error("카메라가 준비되지 않았습니다.");
+    if (!pipeline) throw new Error(i18n("media.s17cqigz"));
     return pipeline.capturePhotoBlob();
   }, []);
 

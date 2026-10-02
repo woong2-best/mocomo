@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import type { Socket } from "socket.io-client";
 import type {
@@ -21,11 +24,11 @@ export function sendLiveSupport(
 ): Promise<{ ok: boolean; error?: string; event?: LiveSupportEventPayload }> {
   return new Promise((resolve) => {
     if (!socket?.connected) {
-      resolve({ ok: false, error: "실시간 서버에 연결되지 않았습니다." });
+      resolve({ ok: false, error: i18n("hooks.s16xin07") });
       return;
     }
     socket.emit("live_support_send", payload, (res: { ok: boolean; error?: string; event?: LiveSupportEventPayload }) => {
-      resolve(res ?? { ok: false, error: "응답 없음" });
+      resolve(res ?? { ok: false, error: i18n("hooks.skkxmw2") });
     });
   });
 }
@@ -41,11 +44,11 @@ export function createLiveMission(
 ): Promise<{ ok: boolean; error?: string; mission?: LiveSupportMissionPayload }> {
   return new Promise((resolve) => {
     if (!socket?.connected) {
-      resolve({ ok: false, error: "실시간 서버에 연결되지 않았습니다." });
+      resolve({ ok: false, error: i18n("hooks.s16xin07") });
       return;
     }
     socket.emit("live_mission_create", payload, (res: { ok: boolean; error?: string; mission?: LiveSupportMissionPayload }) => {
-      resolve(res ?? { ok: false, error: "응답 없음" });
+      resolve(res ?? { ok: false, error: i18n("hooks.skkxmw2") });
     });
   });
 }
@@ -57,11 +60,11 @@ export function resolveLiveMission(
 ): Promise<{ ok: boolean; error?: string; mission?: LiveSupportMissionPayload }> {
   return new Promise((resolve) => {
     if (!socket?.connected) {
-      resolve({ ok: false, error: "실시간 서버에 연결되지 않았습니다." });
+      resolve({ ok: false, error: i18n("hooks.s16xin07") });
       return;
     }
     socket.emit("live_mission_resolve", { missionId, status }, (res: { ok: boolean; error?: string; mission?: LiveSupportMissionPayload }) => {
-      resolve(res ?? { ok: false, error: "응답 없음" });
+      resolve(res ?? { ok: false, error: i18n("hooks.skkxmw2") });
     });
   });
 }
@@ -78,11 +81,11 @@ export function createLivePoll(
 ): Promise<{ ok: boolean; error?: string; poll?: LiveSupportPollPayload }> {
   return new Promise((resolve) => {
     if (!socket?.connected) {
-      resolve({ ok: false, error: "실시간 서버에 연결되지 않았습니다." });
+      resolve({ ok: false, error: i18n("hooks.s16xin07") });
       return;
     }
     socket.emit("live_poll_create", payload, (res: { ok: boolean; error?: string; poll?: LiveSupportPollPayload }) => {
-      resolve(res ?? { ok: false, error: "응답 없음" });
+      resolve(res ?? { ok: false, error: i18n("hooks.skkxmw2") });
     });
   });
 }
@@ -93,11 +96,11 @@ export function voteLivePoll(
 ): Promise<{ ok: boolean; error?: string; poll?: LiveSupportPollPayload; event?: LiveSupportEventPayload }> {
   return new Promise((resolve) => {
     if (!socket?.connected) {
-      resolve({ ok: false, error: "실시간 서버에 연결되지 않았습니다." });
+      resolve({ ok: false, error: i18n("hooks.s16xin07") });
       return;
     }
     socket.emit("live_poll_vote", payload, (res: { ok: boolean; error?: string; poll?: LiveSupportPollPayload; event?: LiveSupportEventPayload }) => {
-      resolve(res ?? { ok: false, error: "응답 없음" });
+      resolve(res ?? { ok: false, error: i18n("hooks.skkxmw2") });
     });
   });
 }

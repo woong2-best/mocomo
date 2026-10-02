@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useCallback, useRef, useState } from "react";
 import {
@@ -274,7 +277,7 @@ export function useImageEditor(initialProject: EditorProject | null) {
   const addTextLayer = useCallback(() => {
     if (!project) return;
     const { x, y } = cropSpawnPoint(project.crop, 280, 48);
-    commit(addLayer(project, createTextLayer("텍스트", x, y)));
+    commit(addLayer(project, createTextLayer(i18n("lib.webtoon-studio.svlwgx"), x, y)));
   }, [project, commit]);
 
   const addEmojiLayer = useCallback(

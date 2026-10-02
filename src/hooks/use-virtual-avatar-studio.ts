@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -90,7 +93,7 @@ export function useVirtualAvatarStudio() {
         void fetch("/api/avatar/preset", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "기본", config }),
+          body: JSON.stringify({ name: i18n("lib.virtual-avatar.sunyg"), config }),
         }).catch(() => undefined);
       }
     }, 600);
@@ -201,7 +204,7 @@ export function useVirtualAvatarStudio() {
     void fetch("/api/avatar/preset", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "기본", config }),
+      body: JSON.stringify({ name: i18n("lib.virtual-avatar.sunyg"), config }),
     }).catch(() => undefined);
     return true;
   }, [config]);

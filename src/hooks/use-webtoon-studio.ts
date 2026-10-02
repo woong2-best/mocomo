@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { floodFillCanvas } from "@/lib/avatar-2d/flood-fill";
@@ -463,7 +466,7 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
       }
 
       if (tool === "text") {
-        const text = window.prompt("텍스트 입력", "대사");
+        const text = window.prompt(i18n("hooks.shh05y7"), i18n("webtoon-studio.svi5o"));
         if (text) drawPageText(ctx, text, x, y, 28);
         syncActiveLayerFromCanvas();
         return;
@@ -633,7 +636,7 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
   }, []);
 
   const createCustomBrush = useCallback(() => {
-    const name = window.prompt("브러시 이름", "내 브러시");
+    const name = window.prompt(i18n("hooks.s1iuz0l0"), i18n("hooks.s1gfvk0g"));
     if (!name) return;
     setCustomBrushes((b) => [
       ...b,

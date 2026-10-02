@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 
 import { errorText } from "@/lib/i18n/error-text";
@@ -75,7 +78,7 @@ export function useObsChatFeed(channelId: string, token: string) {
         }
         if (!res.ok) {
           const body = (await res.json().catch(() => null)) as { error?: string } | null;
-          setError(errorText(body?.error ?? "채팅을 불러올 수 없습니다."));
+          setError(errorText(body?.error ?? i18n("hooks.s1u5ixy")));
           setState("error");
           return;
         }
@@ -115,7 +118,7 @@ export function useObsChatFeed(channelId: string, token: string) {
         }
       } catch {
         if (!cancelled) {
-          setError("네트워크 오류");
+          setError(i18n("support.s10f9nog"));
           setState("error");
         }
       }
