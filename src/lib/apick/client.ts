@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { normalizeBankAccountNum } from "@/lib/apick/bank-codes";
 
 const APICK_BASE = "https://apick.app/rest";
@@ -18,7 +21,7 @@ type ApickResponse<T> = {
 function apickPayloadError(json: ApickResponse<unknown>): string | null {
   const resultErr = json.result?.error;
   if (typeof resultErr === "string" && resultErr.trim()) return resultErr.trim();
-  if (json.api?.success === false) return "Apick API 호출에 실패했습니다.";
+  if (json.api?.success === false) return t("lib.apick.apick_api");
   return null;
 }
 
@@ -37,7 +40,7 @@ function apickSuccessData(json: ApickResponse<Record<string, unknown>>) {
   const dataErr = apickDataError(data);
   if (dataErr) return { ok: false as const, error: dataErr };
   if (!data || data.success !== 1) {
-    return { ok: false as const, error: "Apick 응답을 처리할 수 없습니다." };
+    return { ok: false as const, error: t("lib.apick.apick") };
   }
   return { ok: true as const, data };
 }
@@ -112,16 +115,16 @@ export async function apickAccountRealname(input: {
   accountNum: string;
 }): Promise<ApickRealnameResult> {
   const accountNum = normalizeBankAccountNum(input.accountNum);
-  if (!accountNum) return { ok: false, error: "계좌번호를 입력해 주세요." };
+  if (!accountNum) return { ok: false, error: t("lib.apick.s1f33m8u") };
 
   if (isApickDevMode()) {
     console.info(`[Apick dev] account_realname ${input.bankCode} ${accountNum}`);
     return {
       ok: true,
       bankCode: input.bankCode,
-      bankName: "개발",
+      bankName: t("lib.apick.sub28"),
       accountNum,
-      holderName: "개발테스트",
+      holderName: t("lib.apick.s1m9p9wg"),
       dev: true,
     };
   }
@@ -136,26 +139,26 @@ export async function apickAccountRealname(input: {
     if (!parsed.ok) return { ok: false, error: parsed.error };
 
     const data = parsed.data;
-    const holderName = String(data["계좌실명"] ?? data.account_name ?? "").trim();
+    const holderName = String(data[t("lib.apick.smmsbc9")] ?? data.account_name ?? "").trim();
     if (!holderName) {
-      return { ok: false, error: "예금주명을 확인할 수 없습니다." };
+      return { ok: false, error: t("lib.apick.shkod8z") };
     }
 
     return {
       ok: true,
-      bankCode: String(data["은행코드"] ?? input.bankCode),
-      bankName: String(data["은행명"] ?? ""),
-      accountNum: String(data["계좌번호"] ?? accountNum),
+      bankCode: String(data[t("lib.apick.sq102z5")] ?? input.bankCode),
+      bankName: String(data[t("lib.apick.su7zh8")] ?? ""),
+      accountNum: String(data[t("lib.apick.smmrdvc")] ?? accountNum),
       holderName,
     };
   } catch (e) {
     if (e instanceof Error && e.message === "APICK_NOT_CONFIGURED") {
       return {
         ok: false,
-        error: "계좌 인증 설정이 없습니다. APICK_API_KEY를 설정해 주세요.",
+        error: t("lib.apick.apick_api_key"),
       };
     }
-    return { ok: false, error: e instanceof Error ? e.message : "예금주 조회 오류" };
+    return { ok: false, error: e instanceof Error ? e.message : t("lib.apick.suawl5g") };
   }
 }
 
@@ -167,15 +170,15 @@ export async function apickTransfer1Won(input: {
 }): Promise<ApickTransfer1WonResult> {
   const accountNum = normalizeBankAccountNum(input.accountNum);
   const memo = input.memo.trim().slice(0, 14);
-  if (!accountNum) return { ok: false, error: "계좌번호를 입력해 주세요." };
-  if (!memo) return { ok: false, error: "인증 메모가 없습니다." };
+  if (!accountNum) return { ok: false, error: t("lib.apick.s1f33m8u") };
+  if (!memo) return { ok: false, error: t("lib.apick.sshw6vo") };
 
   if (isApickDevMode()) {
     console.info(`[Apick dev] transfer_1won ${input.bankCode} ${accountNum} memo=${memo}`);
     return {
       ok: true,
       bankCode: input.bankCode,
-      bankName: "개발",
+      bankName: t("lib.apick.sub28"),
       accountNum,
       memo,
       dev: true,
@@ -195,19 +198,19 @@ export async function apickTransfer1Won(input: {
     const data = parsed.data;
     return {
       ok: true,
-      bankCode: String(data["은행코드"] ?? input.bankCode),
-      bankName: String(data["은행명"] ?? ""),
-      accountNum: String(data["계좌번호"] ?? accountNum),
-      memo: String(data["입금통장메모"] ?? memo),
+      bankCode: String(data[t("lib.apick.sq102z5")] ?? input.bankCode),
+      bankName: String(data[t("lib.apick.su7zh8")] ?? ""),
+      accountNum: String(data[t("lib.apick.smmrdvc")] ?? accountNum),
+      memo: String(data[t("lib.apick.sujtfyf")] ?? memo),
     };
   } catch (e) {
     if (e instanceof Error && e.message === "APICK_NOT_CONFIGURED") {
       return {
         ok: false,
-        error: "계좌 인증 설정이 없습니다. APICK_API_KEY를 설정해 주세요.",
+        error: t("lib.apick.apick_api_key"),
       };
     }
-    return { ok: false, error: e instanceof Error ? e.message : "1원 송금 오류" };
+    return { ok: false, error: e instanceof Error ? e.message : t("lib.apick.s85k098") };
   }
 }
 
