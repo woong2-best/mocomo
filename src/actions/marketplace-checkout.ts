@@ -815,7 +815,7 @@ export async function sellerUpdateShipment(input: {
     type: "SYSTEM",
     title:
       status === "PREPARING"
-        ? "상품을 준비 중입니다"
+        ? "We're preparing your order"
         : "Your order has shipped",
     body: carrierLabel ? `${carrierLabel} ${trackingNumber}` : trackingNumber,
     link: `/market/orders/${order.id}`,
@@ -872,7 +872,7 @@ export async function sellerSetOrderStatus(
   await createNotification({
     userId: order.buyerId,
     type: "SYSTEM",
-    title: "주문 상태가 변경되었습니다",
+    title: "Order status updated",
     body: status,
     link: `/market/orders/${orderId}`,
     actorId: user.id,
@@ -903,8 +903,8 @@ export async function confirmMarketplaceOrder(orderId: string) {
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: "구매가 확정되었습니다",
-    body: "에스크로 정책에 따라 정산이 진행됩니다.",
+    title: "Purchase confirmed",
+    body: "Payout will proceed per escrow policy.",
     link: `/market/orders/${orderId}`,
     actorId: user.id,
   });
@@ -949,7 +949,7 @@ export async function requestMarketplaceRefund(
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: "환불 요청",
+    title: "Refund requested",
     body: text.slice(0, 120),
     link: `/market/orders/${orderId}`,
     actorId: user.id,
@@ -984,7 +984,7 @@ export async function sellerRespondMarketplaceRefund(
     await createNotification({
       userId: refund.order.buyerId,
       type: "SYSTEM",
-      title: "환불이 거절되었습니다",
+      title: "Refund declined",
       link: `/market/orders/${refund.orderId}`,
       actorId: user.id,
     });
@@ -1040,7 +1040,7 @@ export async function sellerRespondMarketplaceRefund(
   await createNotification({
     userId: refund.order.buyerId,
     type: "SYSTEM",
-    title: "환불이 승인되었습니다",
+    title: "Refund approved",
     link: `/market/orders/${refund.orderId}`,
     actorId: user.id,
   });
@@ -1119,7 +1119,7 @@ export async function openMarketplaceDispute(
   await createNotification({
     userId: otherId,
     type: "SYSTEM",
-    title: "분쟁이 접수되었습니다 — 정산이 보류됩니다",
+    title: "Dispute opened — payout on hold",
     body: text.slice(0, 120),
     link: `/market/orders/${orderId}`,
     actorId: user.id,
@@ -1247,7 +1247,7 @@ export async function submitMarketplaceReview(input: {
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: "새 리뷰가 등록되었습니다",
+    title: "New review posted",
     body: `★${rating}`,
     link: `/market/i/${listingId}`,
     actorId: user.id,
