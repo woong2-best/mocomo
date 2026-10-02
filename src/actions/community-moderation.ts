@@ -128,7 +128,7 @@ export async function timeoutCommunityMember(memberId: string, minutes: number) 
     if (!member) return { error: "actions.sun5u5h" };
     const gate = await assertModPermission(member.communityId, user.id, "timeoutMembers");
     if ("error" in gate) return gate;
-    return banCommunityMember(memberId, { reason: t("actions.sr61fpf"), minutes, skipPermCheck: true });
+    return banCommunityMember(memberId, { reason: "actions.sr61fpf", minutes, skipPermCheck: true });
   } catch (e) {
     return { error: prismaErrorMessage(e) };
   }

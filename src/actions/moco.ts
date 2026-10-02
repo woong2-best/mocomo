@@ -1,7 +1,7 @@
 "use server";
 
 const RETIRED =
-  t("actions.stripe_7");
+  "actions.stripe_7";
 
 export async function listMocoTopupPackages() {
   return [] as const;

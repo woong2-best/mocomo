@@ -37,7 +37,7 @@ export async function submitContentReport(data: {
   targetType: ReportTargetType;
   targetId: string;
   reason: ReportReasonId;
-  /** Hierarchical path label for admin review (e.g. t("actions.s1b277zv")) */
+  /** Hierarchical path label for admin review (e.g. "actions.s1b277zv") */
   reasonPath?: string;
   details?: string;
   reportedUserId?: string;
@@ -105,5 +105,5 @@ export async function submitContentReport(data: {
     },
   });
 
-  return { success: true, message: t("actions.so53py5") };
+  return { success: true, message: "actions.so53py5" };
 }

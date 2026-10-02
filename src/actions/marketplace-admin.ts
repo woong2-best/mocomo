@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import type {
   MarketplaceDisputeReason,
@@ -123,14 +126,14 @@ export async function adminSetMarketplaceOrderStatus(
   await createNotification({
     userId: order.buyerId,
     type: "SYSTEM",
-    title: t("actions.s159g2it"),
+    title: "actions.s159g2it",
     body: status,
     link: `/market/orders/${orderId}`,
   });
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: t("actions.s159g2it"),
+    title: "actions.s159g2it",
     body: status,
     link: `/market/orders/${orderId}`,
   });
@@ -209,7 +212,7 @@ export async function adminHoldMarketplaceSettlement(orderId: string, reason: st
   await holdSettlementForDispute(orderId, admin.id);
   await db.marketplaceOrder.update({
     where: { id: orderId },
-    data: { settlementHeldReason: reason.trim() || t("actions.s46vrjh") },
+    data: { settlementHeldReason: reason.trim() || "actions.s46vrjh" },
   });
   await logMarketplaceAudit({
     orderId,
@@ -411,7 +414,7 @@ export async function approveMarketplaceSeller(profileId: string) {
   await createNotification({
     userId: profile.userId,
     type: "system",
-    title: t("actions.s1to4sud"),
+    title: "actions.s1to4sud",
     body: t("actions.s1woj4y6", { v0: MARKET_BRAND_FULL }),
     link: "/market/seller",
   }).catch(() => null);
@@ -457,7 +460,7 @@ export async function rejectMarketplaceSeller(profileId: string, reason: string)
   await createNotification({
     userId: profile.userId,
     type: "system",
-    title: t("actions.s1to0hp1"),
+    title: "actions.s1to0hp1",
     body: t("actions.s9fi288", { v0: note }),
     link: "/market/seller/register",
   }).catch(() => null);

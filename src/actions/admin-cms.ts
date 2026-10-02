@@ -38,9 +38,9 @@ function errMsg(e: unknown) {
     if (e.message === "ADMIN_STEPUP_REQUIRED") {
       return "ADMIN_STEPUP_REQUIRED";
     }
-    return e.message === "UNAUTHORIZED" ? t("actions.s1mzxopt") : t("actions.st3onev");
+    return e.message === "UNAUTHORIZED" ? "actions.s1mzxopt" : "actions.st3onev";
   }
-  return e instanceof Error ? e.message : t("actions.s1su4v2o");
+  return e instanceof Error ? e.message : "actions.s1su4v2o";
 }
 
 export async function adminLoadDashboard() {

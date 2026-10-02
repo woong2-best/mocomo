@@ -2241,5 +2241,7 @@
   "actions.moco_reward": "[TODO translate] 수동 출금은 지원하지 않습니다. 정산 MOCO는 매월 말 크리에이터 활동 성과 보수(Reward)로 자동 지급됩니다.",
   "actions.s10ev00o": "[TODO translate] 프로젝트를 찾을 수 없습니다.",
   "actions.s1aqsoms": "[TODO translate] 웹툰 시리즈를 찾을 수 없습니다.",
-  "actions.s1crylb1": "[TODO translate] 표지가 필요합니다."
+  "actions.s1crylb1": "[TODO translate] 표지가 필요합니다.",
+  "live.cloudflareConnecting": "Connecting to Cloudflare Stream…",
+  "wallet.transferStatusEnterRecipient": "Enter the recipient username and the MOCO amount to send."
 }

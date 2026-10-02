@@ -13,7 +13,7 @@ import {
 } from "@/lib/cosplay-board-data";
 
 const DB_SETUP_MSG =
-  t("actions.db_supabase_sql_editor_scripts");
+  "actions.db_supabase_sql_editor_scripts";
 
 function toPrismaMode(mode: CosplayBoardMode): PrismaMode {
   return mode === "purchase" ? "PURCHASE" : "RENTAL";
@@ -191,7 +191,7 @@ export async function createCosplayBoardPost(data: {
   const priceLabel =
     data.priceLabel?.trim() ||
     formatCosplayBoardPriceLabel(data.mode, price) ||
-    (price == null ? t("actions.s11i7b") : undefined);
+    (price == null ? "actions.s11i7b" : undefined);
 
   try {
     const post = await db.cosplayBoardPost.create({

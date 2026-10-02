@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import type { AccountStatus, UserRole } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -228,7 +231,7 @@ export async function applyModerationSanction(
     await createNotification({
       userId: targetUserId,
       type: "SYSTEM",
-      title: t("actions.s1kewsat"),
+      title: "actions.s1kewsat",
       body: reason.trim(),
     });
     const warningCount = (await countUserWarnings(targetUserId)) + 1;
@@ -239,7 +242,7 @@ export async function applyModerationSanction(
       await createNotification({
         userId: targetUserId,
         type: "SYSTEM",
-        title: t("actions.s3uz7uk"),
+        title: "actions.s3uz7uk",
         body: escalationReason,
         link: "/appeal",
       });
@@ -324,7 +327,7 @@ export async function applyModerationSanction(
     await createNotification({
       userId: targetUserId,
       type: "SYSTEM",
-      title: t("actions.s17l7uct"),
+      title: "actions.s17l7uct",
       body: reason.trim(),
       link: "/appeal",
     });
@@ -422,7 +425,7 @@ export async function recordAiModerationResult(params: {
       riskDelta: totalDelta,
       confidence: params.confidence ?? 0.8,
       recommendedAction: totalDelta >= 80 ? "read_only" : totalDelta >= 40 ? "limited" : "warning",
-      recommendedReason: top ? t("actions.sudgw", { v0: top.reason }) : t("actions.s161jx88"),
+      recommendedReason: top ? t("actions.sudgw", { v0: top.reason }) : "actions.s161jx88",
       rawResult: params.categories as object,
     },
   });

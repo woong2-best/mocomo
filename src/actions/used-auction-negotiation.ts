@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -74,7 +77,7 @@ export async function proposeUsedAuctionPrice(listingId: string, amount: number)
   await sendUsedAuctionNotification({
     userId: otherId,
     type: "price_offer",
-    title: t("actions.sxwvteq"),
+    title: "actions.sxwvteq",
     body: `${listing.title} · ${formatUsedPrice(price, listing.currency)}`,
     link,
     actorId: user.id,
@@ -141,7 +144,7 @@ export async function acceptUsedAuctionPrice(offerId: string) {
   await sendUsedAuctionNotification({
     userId: offer.proposerId,
     type: "price_accept",
-    title: t("actions.s1j1igxo"),
+    title: "actions.s1j1igxo",
     body: `${listing.title} · ${formatUsedPrice(offer.amount, listing.currency)}`,
     link,
     actorId: user.id,
@@ -179,7 +182,7 @@ export async function rejectUsedAuctionPrice(offerId: string) {
   await sendUsedAuctionNotification({
     userId: offer.proposerId,
     type: "price_reject",
-    title: t("actions.sxwujpx"),
+    title: "actions.sxwujpx",
     body: offer.listing.title,
     link: `/messages/${offer.roomId}?usedListing=${offer.listingId}`,
     actorId: user.id,

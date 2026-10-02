@@ -11,22 +11,22 @@ import {
 } from "@/lib/stripe-payment-methods";
 
 function actionAuthError(e: unknown): string {
-  if (!(e instanceof Error)) return t("actions.se2gpcp");
+  if (!(e instanceof Error)) return "actions.se2gpcp";
   switch (e.message) {
     case "UNAUTHORIZED":
-      return t("actions.s1mzxopt");
+      return "actions.s1mzxopt";
     case "BANNED":
-      return t("actions.s12qpsrn");
+      return "actions.s12qpsrn";
     case "ACCOUNT_DELETED":
-      return t("actions.so0m8y9");
+      return "actions.so0m8y9";
     case "USER_NOT_FOUND":
-      return t("actions.s1mr2r81");
+      return "actions.s1mr2r81";
     case "ACCOUNT_SUSPENDED":
-      return t("actions.s1mcwspz");
+      return "actions.s1mcwspz";
     case "ACCOUNT_LIMITED":
-      return t("actions.s1mocqj6");
+      return "actions.s1mocqj6";
     default:
-      return t("actions.se2gpcp");
+      return "actions.se2gpcp";
   }
 }
 

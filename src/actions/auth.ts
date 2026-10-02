@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { after } from "next/server";
@@ -190,7 +193,7 @@ export async function sendEmailAuthCode(
     }
     return {
       success: true,
-      message: t("actions.s1txdvz8"),
+      message: "actions.s1txdvz8",
     };
   }
 
@@ -217,7 +220,7 @@ export async function sendEmailAuthCode(
   const sent = await sendAuthCodeEmail(normalized, code, mode);
   if (!sent.ok) {
     await db.verificationToken.deleteMany({ where: { identifier: authId } });
-    return { error: sent.error ?? t("actions.s1yyw7k2") };
+    return { error: sent.error ?? "actions.s1yyw7k2" };
   }
 
   await recordEmailSendRateLimit(normalized, ip);
@@ -226,8 +229,8 @@ export async function sendEmailAuthCode(
     success: true,
     message:
       mode === "reset"
-        ? t("actions.s14suv9m")
-        : t("actions.s668d1e"),
+        ? "actions.s14suv9m"
+        : "actions.s668d1e",
   };
 }
 
@@ -337,7 +340,7 @@ export async function checkUsernameAvailable(username: string) {
       error: "actions.sorrhbr",
     };
   }
-  if (!isEmailVerified(existing)) return { available: true, note: t("actions.sa2gtco") };
+  if (!isEmailVerified(existing)) return { available: true, note: "actions.sa2gtco" };
   return { available: false, error: "actions.s14wxcis" };
 }
 
@@ -389,7 +392,7 @@ export async function checkSignupAvailability(email: string, username: string, n
   return {
     ok: true,
     canResume: !!user && !isEmailVerified(user),
-    message: user && !isEmailVerified(user) ? t("actions.s77navn") : undefined,
+    message: user && !isEmailVerified(user) ? "actions.s77navn" : undefined,
   };
 }
 
@@ -651,7 +654,7 @@ export async function registerUser(
           db.aptProfile.delete({ where: { userId } }).catch(() => undefined),
         ]);
       }
-      return { error: sent.error ?? t("actions.s1j9c1k2") };
+      return { error: sent.error ?? "actions.s1j9c1k2" };
     }
 
     await recordEmailSendRateLimit(email, ip);
@@ -671,7 +674,7 @@ export async function registerUser(
       email,
       resumed: isResume,
       message: isResume
-        ? t("actions.s17x6b0p")
+        ? "actions.s17x6b0p"
         : undefined,
     };
   } catch (e) {

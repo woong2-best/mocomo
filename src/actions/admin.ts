@@ -153,7 +153,7 @@ export async function restoreUserAccount(targetId: string, note?: string) {
     actorId: admin.id,
     previousStatus: target.accountStatus,
     newStatus: "ACTIVE",
-    reason: note ?? t("actions.s1jy8ok3"),
+    reason: note ?? "actions.s1jy8ok3",
   });
 
   revalidatePath("/admin");
@@ -198,7 +198,7 @@ export async function banUser(targetId: string, reason: string, until?: Date) {
 }
 
 export async function unbanUser(targetId: string) {
-  return restoreUserAccount(targetId, t("actions.shwyfl1"));
+  return restoreUserAccount(targetId, "actions.shwyfl1");
 }
 
 export async function resolveReport(reportId: string, status: ReportStatus) {
@@ -341,7 +341,7 @@ export async function adminForceDeleteEventMapRecommendation(
       actorId: admin.id,
       targetId: rec.userId,
       action: "force_delete_event_map_recommendation",
-      reason: modReason ?? t("actions.s11pkj1o"),
+      reason: modReason ?? "actions.s11pkj1o",
       metadata: {
         recommendationId: rec.id,
         title: rec.title,
@@ -378,7 +378,7 @@ export async function adminForceDeletePost(postId: string, modReason?: string) {
       actorId: admin.id,
       targetId: post.authorId,
       action: "force_delete_post",
-      reason: modReason ?? t("actions.s11pkj1o"),
+      reason: modReason ?? "actions.s11pkj1o",
       metadata: { postId, title: post.title },
     },
   });
@@ -403,7 +403,7 @@ export async function adminForceDeleteUsedListing(listingId: string, modReason?:
       actorId: admin.id,
       targetId: listing.sellerId,
       action: "force_delete_used_listing",
-      reason: modReason ?? t("actions.s11pkj1o"),
+      reason: modReason ?? "actions.s11pkj1o",
       metadata: { listingId, title: listing.title },
     },
   });
@@ -423,9 +423,9 @@ export async function adminForceDeleteByReport(
   let result: { error?: string; success?: boolean };
 
   if (targetType === "POST") {
-    result = await adminForceDeletePost(targetId, t("actions.sb8mzp7"));
+    result = await adminForceDeletePost(targetId, "actions.sb8mzp7");
   } else if (targetType === "USED_LISTING") {
-    result = await adminForceDeleteUsedListing(targetId, t("actions.s3rw2iw"));
+    result = await adminForceDeleteUsedListing(targetId, "actions.s3rw2iw");
   } else if (targetType === "LIVE_CHAT") {
     await db.liveChatMessage.deleteMany({ where: { id: targetId } });
     result = { success: true };

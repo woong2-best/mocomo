@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { after } from "next/server";
 import type {
   ContentRating,
@@ -125,7 +128,7 @@ export async function createLiveStream(data: {
     const title =
       data.name?.trim() ||
       profileDefaults?.defaultTitle?.trim() ||
-      t("actions.stunxr8");
+      "actions.stunxr8";
     const joinPassword = generateLiveJoinPassword();
     const joinPasswordHash = await hashLiveJoinPassword(joinPassword);
 
@@ -462,8 +465,8 @@ export async function enterLiveAsViewer(channelId: string) {
     return {
       error:
         channel.liveStatus === "ENDED"
-          ? t("actions.s2g95v4")
-          : t("actions.sgtdjdz"),
+          ? "actions.s2g95v4"
+          : "actions.sgtdjdz",
     };
   }
 
@@ -547,8 +550,8 @@ export async function joinLiveStreamWithPassword(channelId: string, password: st
     return {
       error:
         channel.liveStatus === "ENDED"
-          ? t("actions.s2g95v4")
-          : t("actions.swx97rb"),
+          ? "actions.s2g95v4"
+          : "actions.swx97rb",
     };
   }
   if (!password.trim()) {

@@ -103,7 +103,12 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
   const [balance, setBalance] = useState(purchasedMoco);
   const [username, setUsername] = useState("");
   const [recipientLabel, setRecipientLabel] = useState("");
-  const [recipientPayoutsEnabled, setRecipientPayoutsEnabled] = useState<boolean | null>{t("wallet.null_const_amount_setamount_usestate")}<AtmOverlay>(null);
+  const [recipientPayoutsEnabled, setRecipientPayoutsEnabled] = useState<boolean | null>(null);
+  const [amount, setAmount] = useState("");
+  const [letter, setLetter] = useState("");
+  const [error, setError] = useState("");
+  const [statusLine, setStatusLine] = useState(t("wallet.transferStatusEnterRecipient"));
+  const [atmOverlay, setAtmOverlay] = useState<AtmOverlay>(null);
   const [pending, startTransition] = useTransition();
 
   const parsed = /^\d+$/.test(amount) ? Number(amount) : null;

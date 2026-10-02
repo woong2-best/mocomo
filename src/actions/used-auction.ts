@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -59,7 +62,7 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
         await sendUsedAuctionNotification({
           userId: listing.sellerId,
           type: "ended",
-          title: t("actions.s9b5b2l"),
+          title: "actions.s9b5b2l",
           body: captureCheck.error,
           link: `/market/${listingId}`,
         });
@@ -67,7 +70,7 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
           listingId,
           sellerId: listing.sellerId,
           winnerId: null,
-          title: t("actions.s1nlj8jt"),
+          title: "actions.s1nlj8jt",
           body: t("actions.s3i00dq", { v0: listing.title }),
         });
         revalidatePath(`/market/${listingId}`);
@@ -87,7 +90,7 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
         listingId,
         sellerId: listing.sellerId,
         winnerId,
-        title: t("actions.s1nlj8jt"),
+        title: "actions.s1nlj8jt",
         body: t("actions.s1ttal0p", { v0: listing.title }),
       });
     } else {
@@ -102,7 +105,7 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
       await sendUsedAuctionNotification({
         userId: listing.sellerId,
         type: "ended",
-        title: listing.bidCount > 0 ? t("actions.s1nlj8jt") : t("actions.s13pvn06"),
+        title: listing.bidCount > 0 ? "actions.s1nlj8jt" : "actions.s13pvn06",
         body: listing.title,
         link: `/market/${listingId}`,
       });
@@ -111,7 +114,7 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
           listingId,
           sellerId: listing.sellerId,
           winnerId: null,
-          title: t("actions.s1nlj8jt"),
+          title: "actions.s1nlj8jt",
           body: t("actions.s1g82v1c", { v0: listing.title }),
         });
       }
@@ -194,7 +197,7 @@ export async function placeUsedAuctionBid(
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "bid",
-      title: t("actions.socc6g3"),
+      title: "actions.socc6g3",
       body: `${listing.title} · ${priceLabel}`,
       link,
       actorId: user.id,
@@ -205,7 +208,7 @@ export async function placeUsedAuctionBid(
       await sendUsedAuctionNotification({
         userId: prevBidderId,
         type: "outbid",
-        title: t("actions.s1cfgi5t"),
+        title: "actions.s1cfgi5t",
         body: t("actions.s1sx1i50", { v0: listing.title, v1: priceLabel }),
         link,
         actorId: user.id,
@@ -217,7 +220,7 @@ export async function placeUsedAuctionBid(
         listingId,
         sellerId: listing.sellerId,
         type: "extended",
-        title: t("actions.sfl40z8"),
+        title: "actions.sfl40z8",
         body: t("actions.sg6zl9o", { v0: listing.title }),
       });
     }
@@ -323,7 +326,7 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
       listingId,
       sellerId: listing.sellerId,
       winnerId: user.id,
-      title: t("actions.stggiz5"),
+      title: "actions.stggiz5",
       body: t("actions.sselpvu", { v0: listing.title }),
     });
     revalidatePath(`/market/${listingId}`);

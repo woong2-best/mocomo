@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { MarketplaceSellerOnboardingStep, MarketplaceSellerType } from "@prisma/client";
@@ -557,7 +560,7 @@ export async function completeSellerOnboarding() {
     await createNotification({
       userId: user.id,
       type: "system",
-      title: t("actions.s9vph6g"),
+      title: "actions.s9vph6g",
       body: t("actions.stripe_6", { v0: MARKET_BRAND_FULL }),
       link: "/market/seller",
     }).catch(() => null);

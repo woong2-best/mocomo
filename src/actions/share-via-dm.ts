@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { getOrCreateDM, sendMessage } from "@/actions/chat";
@@ -132,7 +135,7 @@ export async function shareContentViaDm(data: {
       continue;
     }
     if (!("room" in dm) || !dm.room) {
-      errors.push(t("actions.strs82f"));
+      errors.push("actions.strs82f");
       continue;
     }
     try {
@@ -141,14 +144,14 @@ export async function shareContentViaDm(data: {
       if (!firstRoomId) firstRoomId = dm.room.id;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
-      errors.push(msg === MESSAGE_REQUEST_BLOCKED ? msg : t("actions.s1ubqmdo"));
+      errors.push(msg === MESSAGE_REQUEST_BLOCKED ? msg : "actions.s1ubqmdo");
     }
   }
 
   if (sentCount === 0 || !firstRoomId) {
     return {
       ok: false,
-      error: errors[0] ?? t("actions.s1ubqmdo"),
+      error: errors[0] ?? "actions.s1ubqmdo",
     };
   }
 

@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { getCachedCurrentUser } from "@/lib/auth";
@@ -105,7 +108,7 @@ export async function purchaseAptShopItem(itemId: string): Promise<
     await assertShopEnabled();
     await assertFraudAllowed(ownerId, "shop");
   } catch (e) {
-    return { error: e instanceof Error ? e.message : t("actions.stnso8z") };
+    return { error: e instanceof Error ? e.message : "actions.stnso8z" };
   }
   try {
     await purchaseShopItemAtomic(
@@ -118,7 +121,7 @@ export async function purchaseAptShopItem(itemId: string): Promise<
     );
   } catch (e) {
     return {
-      error: e instanceof Error ? e.message : t("actions.s9vs8mx"),
+      error: e instanceof Error ? e.message : "actions.s9vs8mx",
     };
   }
 
@@ -180,7 +183,7 @@ export async function grantAptWalletRewards(delta: {
   const user = await getCachedCurrentUser();
   if (!user) return null;
   const ownerId = await resolveAptHomeOwnerId(user.id);
-  await adjustWallet(ownerId, delta, { type: "mission", memo: t("actions.s1d21ij1") });
+  await adjustWallet(ownerId, delta, { type: "mission", memo: "actions.s1d21ij1" });
   const economy = await loadEconomySnapshot(user.id);
   revalidateAptHub();
   return { ok: true, economy };

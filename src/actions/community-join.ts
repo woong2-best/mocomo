@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath, revalidateTag } from "next/cache";
 import { after } from "next/server";
 import { randomBytes } from "crypto";
@@ -155,7 +158,7 @@ export async function joinCommunityServer(
       return {
         success: true,
         pending: true,
-        message: t("actions.si3hw63"),
+        message: "actions.si3hw63",
       };
     }
 

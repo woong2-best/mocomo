@@ -111,7 +111,7 @@ async function initMarketplacePurchase(
 
   if (routing.mode === "BLOCKED") {
     return {
-      error: routing.blockedReason ?? t("actions.stripe_3"),
+      error: routing.blockedReason ?? "actions.stripe_3",
     };
   }
 
@@ -376,7 +376,7 @@ async function createMarketplaceCheckoutSession(
               price_data: {
                 currency: init.currency,
                 unit_amount: init.shippingAmount,
-                product_data: { name: t("actions.ssiacz") },
+                product_data: { name: "actions.ssiacz" },
               },
               quantity: 1,
             },

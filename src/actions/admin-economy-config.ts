@@ -52,7 +52,7 @@ export async function adminSetEmergencyMode(enabled: boolean, reason: string) {
   const config = await setEmergencyMode(
     admin.id,
     enabled,
-    reason.trim() || (enabled ? t("actions.s1xkpcq") : t("actions.s1xnvbh")),
+    reason.trim() || (enabled ? "actions.s1xkpcq" : "actions.s1xnvbh"),
     ip
   );
   revalidate();

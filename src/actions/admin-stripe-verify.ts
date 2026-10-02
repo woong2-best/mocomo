@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
@@ -23,7 +26,7 @@ export type StripeVerifyDashboard = {
 };
 
 const STRIPE_TEST_CARD =
-  t("actions.4242_4242_4242_4242_cvc");
+  "actions.4242_4242_4242_4242_cvc";
 
 export async function getStripeVerifyDashboard(): Promise<StripeVerifyDashboard> {
   await requireAdmin({ action: "ADMIN_SECURITY_CHANGE", targetType: "stripe_verify", metadata: { view: true } });
@@ -65,7 +68,7 @@ export async function startStripePremiumSmokeCheckout(purchaseTermsAccepted?: bo
     email: admin.email,
     type: "PREMIUM",
     amount: PREMIUM_USD_CENTS,
-    orderName: t("actions.mocomo_premium_stripe"),
+    orderName: "actions.mocomo_premium_stripe",
     metadata: { stripeVerify: true, scenario: "premium" },
     platform: "web",
     purchaseTermsAccepted: purchaseTermsAccepted === true,
@@ -110,7 +113,7 @@ export async function startStripeTipSmokeCheckout(input: {
       ...tipMetadataForCheckout({
         receiverId: receiver.id,
         username: receiver.username,
-        message: input.message?.trim() || t("actions.stripe_2"),
+        message: input.message?.trim() || "actions.stripe_2",
         returnPath: "/admin/finance/stripe-verify",
       }),
       stripeVerify: true,

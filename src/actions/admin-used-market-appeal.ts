@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import type { AppealStatus } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -132,24 +135,24 @@ export async function getUsedMarketAppealDetail(appealId: string) {
 
 const APPEAL_STATUS_MESSAGES: Partial<Record<AppealStatus, { title: string; body: string }>> = {
   UNDER_REVIEW: {
-    title: t("actions.s1f30pbl"),
-    body: t("actions.spxp91j"),
+    title: "actions.s1f30pbl",
+    body: "actions.spxp91j",
   },
   INFO_REQUESTED: {
-    title: t("actions.s1sloj1x"),
-    body: t("actions.s1fhlh87"),
+    title: "actions.s1sloj1x",
+    body: "actions.s1fhlh87",
   },
   APPROVED: {
-    title: t("actions.shcnxfj"),
-    body: t("actions.s13e0y7n"),
+    title: "actions.shcnxfj",
+    body: "actions.s13e0y7n",
   },
   REJECTED: {
-    title: t("actions.shcka9d"),
-    body: t("actions.sw6240p"),
+    title: "actions.shcka9d",
+    body: "actions.sw6240p",
   },
   CLOSED: {
-    title: t("actions.shcou13"),
-    body: t("actions.s12oocmp"),
+    title: "actions.shcou13",
+    body: "actions.s12oocmp",
   },
 };
 

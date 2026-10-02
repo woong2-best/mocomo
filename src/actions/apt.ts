@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { APT_GAME_PATH } from "@/lib/site-routes";

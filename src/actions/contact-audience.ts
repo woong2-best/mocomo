@@ -12,7 +12,7 @@ const schema = z
     callRequestAudience: audience.optional(),
   })
   .refine((value) => value.messageRequestAudience || value.callRequestAudience, {
-    message: t("actions.s59uesp"),
+    message: "actions.s59uesp",
   });
 
 export async function updateContactAudience(data: {

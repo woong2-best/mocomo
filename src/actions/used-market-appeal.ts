@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { AppealStatus } from "@prisma/client";
@@ -125,8 +128,8 @@ export async function submitUsedMarketAppeal(data: z.infer<typeof appealSchema>)
   await createNotification({
     userId: user.id,
     type: "SYSTEM",
-    title: t("actions.shcot3b"),
-    body: t("actions.s1f6t8vl"),
+    title: "actions.shcot3b",
+    body: "actions.s1f6t8vl",
     link: "/market/appeal",
   });
 

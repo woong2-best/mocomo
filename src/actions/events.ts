@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -54,7 +57,7 @@ export async function createEventDraft(data: {
   const cover = data.imageUrl?.trim() || null;
   if (!cover) return { error: "actions.1_1" };
   const links = (data.links ?? [])
-    .map((l) => ({ label: l.label?.trim() || t("actions.swqmj"), url: l.url?.trim() }))
+    .map((l) => ({ label: l.label?.trim() || "actions.swqmj", url: l.url?.trim() }))
     .filter((l) => l.url.length > 0)
     .slice(0, 6);
 
@@ -144,9 +147,9 @@ export async function updateEventAdCreative(
 function adTitleFromLink(linkUrl: string): string {
   try {
     const href = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
-    return new URL(href).hostname.replace(/^www\./, "") || t("actions.sudwv");
+    return new URL(href).hostname.replace(/^www\./, "") || "actions.sudwv";
   } catch {
-    return t("actions.sudwv");
+    return "actions.sudwv";
   }
 }
 

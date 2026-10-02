@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -23,7 +26,7 @@ function isPersistablePhotoUrl(url: string) {
 
 const applySchema = z.object({
   bio: z.string().min(1).max(BIO_MAX),
-  photoUrl: z.string().min(1).refine(isPersistablePhotoUrl, { message: t("actions.s19yn70z") }),
+  photoUrl: z.string().min(1).refine(isPersistablePhotoUrl, { message: "actions.s19yn70z" }),
 });
 
 export async function getCosplayerApplyContext() {

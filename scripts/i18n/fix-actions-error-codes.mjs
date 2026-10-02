@@ -14,6 +14,7 @@ for (const name of files) {
   out = out.replace(/return\s*\{\s*error:\s*t\("([^"]+)"\)\s*\}/g, 'return { error: "$1" }');
   out = out.replace(/error:\s*t\("([^"]+)"\)/g, 'error: "$1"');
   out = out.replace(/throw new Error\(t\("([^"]+)"\)\)/g, 'throw new Error("$1")');
+  out = out.replace(/\bt\("([^"]+)"\)/g, '"$1"');
 
   if (out.includes('"use server"')) {
     out = out.replace(/^import \{ createTranslator \}[^\n]+\nconst t = createTranslator\("en"\);\n\n?/m, "");

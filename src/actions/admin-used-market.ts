@@ -89,7 +89,7 @@ export async function adminUnbanUsedMarket(targetId: string) {
       actorId: admin.id,
       targetId,
       action: "used_market_unban",
-      reason: t("actions.sidwpn0"),
+      reason: "actions.sidwpn0",
     },
   });
   revalidatePath("/admin/used-market");

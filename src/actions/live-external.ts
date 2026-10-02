@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import type { LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuthMinimal } from "@/lib/auth";

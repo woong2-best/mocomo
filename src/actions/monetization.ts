@@ -38,7 +38,7 @@ export async function createPaymentIntent(input: {
   return createStripeCheckout({
     type: input.type,
     amount: input.amount,
-    orderName: t("actions.mocomo"),
+    orderName: "actions.mocomo",
     metadata: input.metadata,
   });
 }

@@ -133,8 +133,8 @@ export async function requestGemRefund(gemPurchaseId: string) {
   if ("error" in result && result.error) {
     const code = result.error;
     const messages: Record<string, string> = {
-      UNAUTHORIZED: t("actions.s2gakd3"),
-      REFUND_NOT_ALLOWED: t("actions.moco_2"),
+      UNAUTHORIZED: "actions.s2gakd3",
+      REFUND_NOT_ALLOWED: "actions.moco_2",
     };
     return { error: messages[code] ?? code };
   }

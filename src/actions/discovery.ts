@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import type { DiscoveryGender, DiscoveryLookingFor, DiscoveryMatchingMode, DiscoverySwipeAction } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -200,7 +203,7 @@ export async function getDiscoveryDeck(): Promise<
     });
 
     if (!me?.enabled) {
-      return { enabled: false, reason: t("actions.s5n41ig") };
+      return { enabled: false, reason: "actions.s5n41ig" };
     }
 
     const [swipes, blocks, myAnime] = await Promise.all([

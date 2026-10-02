@@ -16,7 +16,9 @@ export function LiveCloudflarePlayer({
   const { t } = useLocale();
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsType | null>(null);
-  const [status, setStatus] = useState<"loading" | "playing" | "waiting">{t("live.loading_const_hint_sethint_usestate")}<string | null>(initialHlsUrl ?? null);
+  const [status, setStatus] = useState<"loading" | "playing" | "waiting">("loading");
+  const [hint, setHint] = useState(t("live.cloudflareConnecting"));
+  const [, setHlsUrl] = useState<string | null>(initialHlsUrl ?? null);
 
   const attachHls = useCallback((url: string) => {
     const video = videoRef.current;

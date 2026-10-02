@@ -131,8 +131,8 @@ export async function payWithGems(orderId: string, purchaseTermsAccepted?: boole
 
   if ("error" in result && result.error) {
     const messages: Record<string, string> = {
-      INSUFFICIENT_GEMS_BALANCE: t("actions.moco"),
-      INSUFFICIENT_MOCO_BALANCE: t("actions.moco"),
+      INSUFFICIENT_GEMS_BALANCE: "actions.moco",
+      INSUFFICIENT_MOCO_BALANCE: "actions.moco",
     };
     return { error: messages[result.error] ?? result.error };
   }

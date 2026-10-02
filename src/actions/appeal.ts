@@ -108,8 +108,8 @@ export async function submitAccountAppeal(data: z.infer<typeof appealSchema>) {
   await createNotification({
     userId: user.id,
     type: "SYSTEM",
-    title: t("actions.s1kuqu7r"),
-    body: t("actions.sn86lin"),
+    title: "actions.s1kuqu7r",
+    body: "actions.sn86lin",
     link: `/appeal/${appeal.id}`,
   });
 
@@ -192,22 +192,22 @@ export async function updateAppealStatus(
 
   if (status === "APPROVED") {
     const { restoreUserAccount } = await import("@/actions/admin");
-    await restoreUserAccount(appeal.userId, note ?? t("actions.s1kupyjz"));
+    await restoreUserAccount(appeal.userId, note ?? "actions.s1kupyjz");
   }
 
   const messages: Partial<Record<AppealStatus, string>> = {
-    RECEIVED: t("actions.sn86lin"),
-    UNDER_REVIEW: t("actions.s1jwg26u"),
-    INFO_REQUESTED: t("actions.s1i8dco9"),
-    APPROVED: t("actions.s2u0np8"),
-    REJECTED: t("actions.s1xwhhta"),
+    RECEIVED: "actions.sn86lin",
+    UNDER_REVIEW: "actions.s1jwg26u",
+    INFO_REQUESTED: "actions.s1i8dco9",
+    APPROVED: "actions.s2u0np8",
+    REJECTED: "actions.s1xwhhta",
   };
   const body = messages[status];
   if (body) {
     await createNotification({
       userId: appeal.userId,
       type: "SYSTEM",
-      title: t("actions.s1kuq9q4"),
+      title: "actions.s1kuq9q4",
       body,
       link: `/appeal/${appeal.id}`,
     });

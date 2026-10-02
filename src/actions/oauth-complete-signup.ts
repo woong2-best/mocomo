@@ -118,6 +118,6 @@ export async function completeWebOAuthSignup(input: {
     redirect(signupIdentityEntryPath(safeDest));
   } catch (e) {
     if (e && typeof e === "object" && "digest" in e) throw e;
-    return { error: e instanceof Error ? e.message : t("actions.s1kfewgc") };
+    return { error: e instanceof Error ? e.message : "actions.s1kfewgc" };
   }
 }

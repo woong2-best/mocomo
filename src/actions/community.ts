@@ -12,13 +12,13 @@ import { notifyPostComment, notifyPostVote } from "@/lib/notifications";
 function createPostErrorMessage(code: string): string {
   switch (code) {
     case "UNAUTHORIZED":
-      return t("actions.s1jdik8t");
+      return "actions.s1jdik8t";
     case "BANNED":
-      return t("actions.s12qpsrn");
+      return "actions.s12qpsrn";
     case "USER_NOT_FOUND":
-      return t("actions.s17a9bk3");
+      return "actions.s17a9bk3";
     default:
-      return t("actions.sgqdqup");
+      return "actions.sgqdqup";
   }
 }
 

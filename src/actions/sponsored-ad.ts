@@ -32,9 +32,9 @@ export async function purchaseEventSponsoredAd(eventId: string, days: number) {
 function adTitleFromLink(linkUrl: string): string {
   try {
     const href = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
-    return new URL(href).hostname.replace(/^www\./, "") || t("actions.sudwv");
+    return new URL(href).hostname.replace(/^www\./, "") || "actions.sudwv";
   } catch {
-    return t("actions.sudwv");
+    return "actions.sudwv";
   }
 }
 
