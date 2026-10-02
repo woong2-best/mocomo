@@ -93,7 +93,7 @@ export function EventAdEditPanel({
       )}
 
       <div className="space-y-2">
-        <label className="text-xs font-medium text-muted-foreground">광고 이미지</label>
+        <label className="text-xs font-medium text-muted-foreground">Ad image</label>
         <div className="flex flex-wrap gap-2">
           {imageUrl ? (
             <div className="relative">
