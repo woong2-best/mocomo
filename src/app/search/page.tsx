@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Suspense } from "react";
 import { SearchResultsAsync } from "@/components/search/search-results-async";
 import { HashtagSearchResults } from "@/components/search/hashtag-search-results";
@@ -39,7 +42,7 @@ export default async function SearchPage({
           </>
         )
       ) : (
-        <p className="text-sm text-muted-foreground">사람, 애니, 게시물을 검색해 보세요.</p>
+        <p className="text-sm text-muted-foreground">{t("app.search.s1wbrezv")}</p>
       )}
     </SearchPageChrome>
   );
