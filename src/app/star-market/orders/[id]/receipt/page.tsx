@@ -44,8 +44,8 @@ export default async function MarketReceiptPage({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left">
-            <th className="py-2">항목</th>
-            <th className="py-2 text-right">금액</th>
+            <th className="py-2">Items</th>
+            <th className="py-2 text-right">Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -60,11 +60,11 @@ export default async function MarketReceiptPage({
             </tr>
           ))}
           <tr className="border-b border-border/50">
-            <td className="py-2">배송비</td>
+            <td className="py-2">Shipping</td>
             <td className="py-2 text-right">{formatUsd(order.shippingAmount)}</td>
           </tr>
           <tr>
-            <td className="py-2 font-bold">합계</td>
+            <td className="py-2 font-bold">Total</td>
             <td className="py-2 text-right font-bold">{formatUsd(total)}</td>
           </tr>
           <tr>

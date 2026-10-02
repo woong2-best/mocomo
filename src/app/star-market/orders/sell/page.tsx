@@ -6,10 +6,10 @@ import { SellerOrderActions } from "@/components/market/seller-order-actions";
 import { formatUsd } from "@/lib/money";
 
 const STATUS_LABEL: Record<string, string> = {
-  PAID: "결제 완료 · 발송 준비",
-  PREPARING: "준비 중",
-  SHIPPED: "배송 중",
-  DELIVERED: "완료",
+  PAID: "Paid · preparing shipment",
+  PREPARING: "Getting ready",
+  SHIPPED: "In transit",
+  DELIVERED: "Done.",
 };
 
 export default async function SellOrdersPage() {
@@ -24,11 +24,11 @@ export default async function SellOrdersPage() {
         <Link href="/market/orders" className="text-muted-foreground hover:text-primary">
           ← 구매 내역
         </Link>
-        <span className="font-semibold text-primary">판매 · 배송 관리</span>
+        <span className="font-semibold text-primary">Sales & shipping</span>
       </div>
-      <p className="text-xs text-muted-foreground">판매 금액의 90%가 적립됩니다 (수수료 10%).</p>
+      <p className="text-xs text-muted-foreground">You receive 90% of the sale (10% platform fee).</p>
       {orders.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12 text-sm">주문이 없습니다.</p>
+        <p className="text-center text-muted-foreground py-12 text-sm">No orders yet.</p>
       ) : (
         <ul className="space-y-4">
           {orders.map((o) => (

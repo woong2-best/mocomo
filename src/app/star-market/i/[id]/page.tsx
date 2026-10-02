@@ -114,7 +114,7 @@ export default async function MarketplaceListingPage({
                     ? listing.shipToCountries.map((c) => shipCountryLabel(c)).join(" · ")
                     : listing.shipsWorldwide
                       ? "지원 국가 전체"
-                      : "미설정"}
+                      : "Not configured"}
                 </p>
               </>
             )}
@@ -125,7 +125,7 @@ export default async function MarketplaceListingPage({
 
           {options.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-semibold">옵션</p>
+              <p className="text-sm font-semibold">Options</p>
               {options.map((o) => (
                 <div key={o.name ?? "opt"} className="text-sm">
                   <span className="font-medium">{o.name}</span>
@@ -136,7 +136,7 @@ export default async function MarketplaceListingPage({
           )}
 
           {isOwner ? (
-            <p className="text-sm text-muted-foreground">본인 상품입니다.</p>
+            <p className="text-sm text-muted-foreground">This is your own listing.</p>
           ) : (
             <MarketplaceBuyPanel
               listingId={listing.id}
@@ -154,13 +154,13 @@ export default async function MarketplaceListingPage({
           )}
 
           <Button type="button" variant="secondary" asChild>
-            <Link href={`/messages?user=${listing.seller.username}`}>판매자 문의</Link>
+            <Link href={`/messages?user=${listing.seller.username}`}>Contact seller</Link>
           </Button>
 
           {!isOwner && <MarketplaceReportButton listingId={listing.id} />}
 
           <div>
-            <h2 className="text-sm font-semibold mb-2">설명</h2>
+            <h2 className="text-sm font-semibold mb-2">Description</h2>
             <p className="text-sm whitespace-pre-wrap leading-relaxed">{listing.description}</p>
           </div>
 

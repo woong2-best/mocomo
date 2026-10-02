@@ -23,7 +23,7 @@ export default async function MarketOrdersPage({
       <MarketPageTitle>
         <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <div>
-            <h1 className="text-2xl font-bold">주문</h1>
+            <h1 className="text-2xl font-bold">Order</h1>
             <p className="text-sm text-muted-foreground">구매 · 판매 주문 관리</p>
           </div>
           <div className="flex gap-2 text-sm">
@@ -44,7 +44,7 @@ export default async function MarketOrdersPage({
       </MarketPageTitle>
 
       {orders.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-10 text-center">주문이 없습니다.</p>
+        <p className="text-sm text-muted-foreground py-10 text-center">No orders yet.</p>
       ) : (
         <ul className="divide-y divide-border/60 rounded-2xl border border-border/60">
           {orders.map((o) => (
@@ -53,7 +53,7 @@ export default async function MarketOrdersPage({
                 <div className="flex justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-sm truncate">
-                      {o.items[0]?.titleSnapshot ?? "주문"}
+                      {o.items[0]?.titleSnapshot ?? "Order"}
                       {o.items.length > 1 ? ` 외 ${o.items.length - 1}` : ""}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">

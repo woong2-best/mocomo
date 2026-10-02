@@ -23,7 +23,7 @@ function MarketAppReturnInner() {
   return (
     <main className="flex min-h-[100dvh] items-center justify-center bg-[#f5f6f8] p-6 text-center">
       <div className="space-y-2">
-        <p className="text-sm font-semibold text-[#1a1a1a]">앱으로 돌아가는 중…</p>
+        <p className="text-sm font-semibold text-[#1a1a1a]">Returning to the app…</p>
         <p className="text-xs text-muted-foreground">잠시만 기다려 주세요.</p>
       </div>
     </main>
@@ -36,7 +36,7 @@ export default function MarketAppReturnPage() {
     <Suspense
       fallback={
         <main className="flex min-h-[100dvh] items-center justify-center p-6 text-center">
-          <p className="text-sm text-muted-foreground">앱으로 돌아가는 중…</p>
+          <p className="text-sm text-muted-foreground">Returning to the app…</p>
         </main>
       }
     >

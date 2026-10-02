@@ -12,10 +12,10 @@ import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chr
 import { formatUsd } from "@/lib/money";
 
 const typeLabels: Record<string, string> = {
-  ART: "그림",
-  EMOTICON: "이모티콘",
-  BACKGROUND: "배경",
-  PROFILE_ITEM: "프로필 아이템",
+  ART: "Art",
+  EMOTICON: "Emoticons",
+  BACKGROUND: "Background",
+  PROFILE_ITEM: "Profile items",
 };
 
 export default async function MarketProductPage({ params }: { params: Promise<{ id: string }> }) {

@@ -46,7 +46,7 @@ export default async function MarketSellerPage({
   const sellerInfoDone = !!profile.sellerType && !!profile.displayName;
   const firstProductDone = listings.length > 0;
   const displayName =
-    profile.displayName || session.user.name || session.user.username || "판매자";
+    profile.displayName || session.user.name || session.user.username || "Seller";
 
   return (
     <SellerCenterShell displayName={displayName} sellerCode={formatSellerCode(profile.id)}>
@@ -60,7 +60,7 @@ export default async function MarketSellerPage({
               ? "사업자 판매자"
               : profile.sellerType === "INDIVIDUAL"
                 ? "개인 판매자"
-                : "판매자",
+                : "Seller",
           connectReady: connectStatus.ready,
           connectMessage: connectStatus.message,
           listingsCount: listings.length,
