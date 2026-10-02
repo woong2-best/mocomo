@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { getCommunityStats, getCommunityAuditLogs } from "@/actions/community-content";
@@ -33,7 +36,7 @@ export function CommunityStatsAuditPanel({ communityId }: { communityId: string 
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
-        통계 로딩…
+        {t("community-server.sqecfig")}
       </div>
     );
   }
@@ -42,17 +45,17 @@ export function CommunityStatsAuditPanel({ communityId }: { communityId: string 
     <section className="space-y-6">
       {stats && (
         <div className="rounded-xl border border-border p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <Stat label="멤버" value={stats.memberCount} />
-          <Stat label="게시글" value={stats.postCount} />
-          <Stat label="채널" value={stats.channelCount} />
-          <Stat label="대기 신고" value={stats.pendingReports} />
-          <Stat label="가입 요청" value={stats.pendingJoins} />
+          <Stat label={t("lib.community-server.swqlc")} value={stats.memberCount} />
+          <Stat label={t("lib.flower.sq7xo0")} value={stats.postCount} />
+          <Stat label={t("community-server.szpsc")} value={stats.channelCount} />
+          <Stat label={t("community-server.sbkngts")} value={stats.pendingReports} />
+          <Stat label={t("lib.notifications.s3e55ce56df")} value={stats.pendingJoins} />
         </div>
       )}
       <div className="rounded-xl border border-border p-4 space-y-3">
-        <h2 className="font-semibold">활동 로그</h2>
+        <h2 className="font-semibold">{t("lib.community-server.s8h8ftr")}</h2>
         {logs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">기록이 없습니다.</p>
+          <p className="text-sm text-muted-foreground">{t("community-server.skoe8ei")}</p>
         ) : (
           <ul className="space-y-2 max-h-64 overflow-y-auto text-sm">
             {logs.map((l) => (

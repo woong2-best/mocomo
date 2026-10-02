@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
@@ -63,7 +66,7 @@ function OverrideEditor({
                 checked={allow[key] === true}
                 onChange={(e) => onAllowChange(key, e.target.checked)}
               />
-              허용
+              {t("community-server.s11gbl")}
             </label>
             <label className="flex items-center gap-1 text-xs text-red-600">
               <input
@@ -71,7 +74,7 @@ function OverrideEditor({
                 checked={deny[key] === true}
                 onChange={(e) => onDenyChange(key, e.target.checked)}
               />
-              거부
+              {t("community-server.sudcg")}
             </label>
           </div>
         </div>
@@ -218,20 +221,20 @@ export function ChannelPermissionOverridesDialog({
           <DialogTitle>채널 권한 — #{channelName}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground -mt-2">
-          역할별 allow/deny 덮어쓰기. 오너·관리자(administrator)는 항상 우회됩니다.
+          {t("community-server.allow_deny_administrator")}
         </p>
 
         {loading ? (
           <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
-            불러오는 중…
+            {t("common.loading")}
           </div>
         ) : (
           <div className="space-y-4">
             {overrides.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase text-muted-foreground">
-                  적용 중인 덮어쓰기
+                  {t("community-server.s8mzuqv")}
                 </p>
                 <ul className="space-y-1">
                   {overrides.map((o) => (
@@ -240,7 +243,7 @@ export function ChannelPermissionOverridesDialog({
                       className="flex items-center justify-between gap-2 rounded-md border border-border px-2 py-1.5 text-sm"
                     >
                       <span className="truncate">
-                        {o.targetType === "ROLE" ? roleLabel(o.targetId) : `유저 ${o.targetId}`}
+                        {o.targetType === "ROLE" ? roleLabel(o.targetId) : t("community-server.syyu8", { v0: o.targetId })}
                       </span>
                       <Button
                         type="button"
@@ -259,7 +262,7 @@ export function ChannelPermissionOverridesDialog({
             )}
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">역할 선택</label>
+              <label className="text-sm font-medium">{t("community-server.sjhg6i2")}</label>
               <select
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={selectedRoleId}
@@ -281,7 +284,7 @@ export function ChannelPermissionOverridesDialog({
             />
 
             <Button type="button" disabled={saving || !selectedRoleId} onClick={() => void saveRoleOverride()}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "저장"}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("settings.save")}
             </Button>
 
             {rolesWithoutOverride.length > 0 && (

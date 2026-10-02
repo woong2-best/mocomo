@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import type { CommunityChannelType } from "@prisma/client";
@@ -38,11 +41,11 @@ type ChannelRow = {
 };
 
 const CREATE_TYPES: { value: CommunityChannelType; label: string }[] = [
-  { value: "TEXT", label: "텍스트" },
-  { value: "ANNOUNCEMENT", label: "공지" },
+  { value: "TEXT", label: t("lib.webtoon-studio.svlwgx") },
+  { value: "ANNOUNCEMENT", label: t("lib.community-server.suiy3") },
   { value: "QA", label: "Q&A" },
-  { value: "GALLERY", label: "갤러리" },
-  { value: "EVENT", label: "이벤트" },
+  { value: "GALLERY", label: t("lib.community-server.sq3zvo") },
+  { value: "EVENT", label: t("lib.payment.history.sbff20dc3bb") },
 ];
 
 export function CommunityChannelsPanel({
@@ -112,7 +115,7 @@ export function CommunityChannelsPanel({
   }
 
   async function remove(id: string) {
-    if (!confirm("이 채널을 삭제할까요?")) return;
+    if (!confirm(t("community-server.s184aire"))) return;
     const res = await deleteCommunityChannel(id);
     if ("error" in res && res.error) setError(errorText(res.error));
     else await load();
@@ -135,20 +138,20 @@ export function CommunityChannelsPanel({
     <section className="space-y-4 rounded-xl border border-border p-4">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h2 className="font-semibold">채널 관리</h2>
+          <h2 className="font-semibold">{t("lib.community-server.s13ouznk")}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            채널 생성·이름 변경·슬로우 모드·잠금·권한 덮어쓰기·삭제
+            {t("community-server.svv3gvp")}
           </p>
         </div>
         <Button type="button" size="sm" onClick={() => setCreateOpen(true)}>
-          채널 추가
+          {t("community-server.s13p0gg0")}
         </Button>
       </div>
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          불러오는 중…
+          {t("common.loading")}
         </div>
       ) : (
         <ul className="space-y-2">
@@ -166,7 +169,7 @@ export function CommunityChannelsPanel({
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {ch.type}
-                  {ch.slowModeSec > 0 ? ` · 슬로우 ${ch.slowModeSec}초` : ""}
+                  {ch.slowModeSec > 0 ? t("community-server.s5vmjzz", { v0: ch.slowModeSec }) : ""}
                 </p>
               </div>
               <div className="flex gap-1 shrink-0">
@@ -180,7 +183,7 @@ export function CommunityChannelsPanel({
                   type="button"
                   size="icon"
                   variant="ghost"
-                  title="채널 권한"
+                  title={t("community-server.s13ov8h0")}
                   onClick={() => setPermChannel(ch)}
                 >
                   <Shield className="h-4 w-4" />
@@ -202,12 +205,12 @@ export function CommunityChannelsPanel({
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>채널 설정</DialogTitle>
+            <DialogTitle>{t("community-server.s13oyhtx")}</DialogTitle>
           </DialogHeader>
           {edit && (
             <div className="space-y-3">
               <label className="block text-sm">
-                이름
+                {t("market.name")}
                 <Input
                   value={edit.name}
                   onChange={(e) => setEdit({ ...edit, name: e.target.value })}
@@ -215,7 +218,7 @@ export function CommunityChannelsPanel({
                 />
               </label>
               <label className="block text-sm">
-                주제
+                {t("community-server.sza8w")}
                 <Input
                   value={edit.topic ?? ""}
                   onChange={(e) => setEdit({ ...edit, topic: e.target.value })}
@@ -223,7 +226,7 @@ export function CommunityChannelsPanel({
                 />
               </label>
               <label className="block text-sm">
-                슬로우 모드 (초)
+                {t("community-server.s1t3cfst")}
                 <Input
                   type="number"
                   min={0}
@@ -241,7 +244,7 @@ export function CommunityChannelsPanel({
                   checked={edit.vipOnly}
                   onChange={(e) => setEdit({ ...edit, vipOnly: e.target.checked })}
                 />
-                VIP 전용 채널
+                {t("community-server.vip")}
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -253,7 +256,7 @@ export function CommunityChannelsPanel({
                 채널 잠금 (관리자만 채팅)
               </label>
               <Button type="button" disabled={saving} onClick={() => void saveEdit()}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "저장"}
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("settings.save")}
               </Button>
             </div>
           )}
@@ -263,15 +266,15 @@ export function CommunityChannelsPanel({
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>채널 만들기</DialogTitle>
+            <DialogTitle>{t("community-server.smxne10")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <label className="block text-sm">
-              이름
+              {t("market.name")}
               <Input value={newName} onChange={(e) => setNewName(e.target.value)} className="mt-1" />
             </label>
             <label className="block text-sm">
-              유형
+              {t("community-server.sz1md")}
               <select
                 className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={newType}
@@ -285,7 +288,7 @@ export function CommunityChannelsPanel({
               </select>
             </label>
             <Button type="button" disabled={saving || !newName.trim()} onClick={() => void create()}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "생성"}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("community-server.sxv5g")}
             </Button>
           </div>
         </DialogContent>

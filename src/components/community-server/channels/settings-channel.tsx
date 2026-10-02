@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { notFound } from "next/navigation";
 import { CommunitySettingsForm } from "@/components/communities/community-settings-form";
 import { CommunityRolesPanel } from "@/components/community-server/channels/settings-roles-panel";
@@ -70,7 +73,7 @@ export async function SettingsChannelView({
   return (
     <div className="flex flex-col">
       <header className="px-1 pb-3">
-        <h1 className="font-semibold">갤러리 관리</h1>
+        <h1 className="font-semibold">{t("community-server.se7ytbc")}</h1>
       </header>
       <div className="space-y-8 max-w-2xl">
         {canEditServer && (
@@ -100,7 +103,7 @@ export async function SettingsChannelView({
           />
         )}
         {canJoinMode && (
-          <SettingsLazySection title="가입 방식" defaultOpen>
+          <SettingsLazySection title={t("community-server.s1mfg0nj")} defaultOpen>
             <CommunityJoinModeSettings
               communityId={communityId}
               initialJoinMode={community.joinMode}
@@ -109,27 +112,27 @@ export async function SettingsChannelView({
           </SettingsLazySection>
         )}
         {canJoinRequests && community.joinMode === "APPROVE" && (
-          <SettingsLazySection title="가입 요청">
+          <SettingsLazySection title={t("lib.notifications.s3e55ce56df")}>
             <CommunityJoinRequestsPanel communityId={communityId} />
           </SettingsLazySection>
         )}
         {canBans && (
-          <SettingsLazySection title="차단 목록">
+          <SettingsLazySection title={t("community-server.s13hwg8k")}>
             <CommunityBansPanel communityId={communityId} />
           </SettingsLazySection>
         )}
         {canReports && (
-          <SettingsLazySection title="신고">
+          <SettingsLazySection title={t("report.sy3gg")}>
             <CommunityReportsPanel communityId={communityId} />
           </SettingsLazySection>
         )}
         {canStats && (
-          <SettingsLazySection title="통계 · 활동 로그">
+          <SettingsLazySection title={t("community-server.slok1l1")}>
             <CommunityStatsAuditPanel communityId={communityId} />
           </SettingsLazySection>
         )}
         {canRoles && (
-          <SettingsLazySection title="역할">
+          <SettingsLazySection title={t("community-server.syu4z")}>
             <CommunityRolesPanel communityId={communityId} communitySlug={communitySlug} />
           </SettingsLazySection>
         )}

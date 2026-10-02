@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { Settings, Users } from "lucide-react";
 import { CommunityComposeButton } from "@/components/compose/community-compose-button";
@@ -54,7 +57,7 @@ export function CommunityGalleryHeader({
               <Link
                 href={`/c/${slug}/settings`}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-muted"
-                aria-label="갤러리 관리"
+                aria-label={t("community-server.se7ytbc")}
               >
                 <Settings className="h-4 w-4" />
               </Link>

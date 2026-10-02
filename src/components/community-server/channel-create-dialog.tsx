@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import type { CommunityChannelType } from "@prisma/client";
@@ -17,8 +20,8 @@ import {
 import { useRouter } from "next/navigation";
 
 const TYPES: { value: CommunityChannelType; label: string }[] = [
-  { value: "TEXT", label: "텍스트" },
-  { value: "ANNOUNCEMENT", label: "공지" },
+  { value: "TEXT", label: t("lib.webtoon-studio.svlwgx") },
+  { value: "ANNOUNCEMENT", label: t("lib.community-server.suiy3") },
 ];
 
 export function ChannelCreateDialog({
@@ -65,10 +68,10 @@ export function ChannelCreateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>채널 만들기</DialogTitle>
+          <DialogTitle>{t("community-server.smxne10")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <Input placeholder="채널 이름" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input placeholder={t("community-server.s13ozhlw")} value={name} onChange={(e) => setName(e.target.value)} />
           <select
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={type}
@@ -82,7 +85,7 @@ export function ChannelCreateDialog({
           </select>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="button" disabled={loading || !name.trim()} onClick={() => void submit()}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "생성"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("community-server.sxv5g")}
           </Button>
         </div>
       </DialogContent>

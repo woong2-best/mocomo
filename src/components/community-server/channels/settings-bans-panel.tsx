@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { getCommunityBans, unbanCommunityMember } from "@/actions/community-moderation";
@@ -32,11 +35,11 @@ export function CommunityBansPanel({ communityId }: { communityId: string }) {
 
   return (
     <section className="space-y-4 rounded-xl border border-border p-4">
-      <h2 className="font-semibold">차단 목록</h2>
+      <h2 className="font-semibold">{t("community-server.s13hwg8k")}</h2>
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : bans.length === 0 ? (
-        <p className="text-sm text-muted-foreground">차단된 사용자가 없습니다.</p>
+        <p className="text-sm text-muted-foreground">{t("community-server.sjrqq38")}</p>
       ) : (
         <ul className="space-y-2">
           {bans.map((b) => (
@@ -49,8 +52,8 @@ export function CommunityBansPanel({ communityId }: { communityId: string }) {
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">@{b.username}</p>
                   <p className="text-xs text-muted-foreground">
-                    {b.reason ?? "차단"}
-                    {b.expiresAt ? ` · ${new Date(b.expiresAt).toLocaleString()}까지` : " · 영구"}
+                    {b.reason ?? t("reels.szphc")}
+                    {b.expiresAt ? t("community-server.s449h9", { v0: new Date(b.expiresAt).toLocaleString() }) : t("community-server.sltk1g")}
                   </p>
                 </div>
               </div>
@@ -62,7 +65,7 @@ export function CommunityBansPanel({ communityId }: { communityId: string }) {
                   void unbanCommunityMember(communityId, b.userId).then(() => load())
                 }
               >
-                해제
+                {t("community-server.s11elk")}
               </Button>
             </li>
           ))}

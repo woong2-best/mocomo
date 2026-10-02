@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { FileText, ExternalLink } from "lucide-react";
 import { getCommunityFiles } from "@/actions/community-content";
@@ -18,13 +21,13 @@ export function FileChannelView({ communityId }: { communityId: string }) {
       <header className="shrink-0 px-4 py-3 border-b border-border/50">
         <h1 className="font-semibold flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          파일
+          {t("lib.community-server.s10zqo")}
         </h1>
       </header>
       <div className="flex-1 min-h-0 overflow-y-auto p-4">
         {files.length === 0 ? (
           <div className="rounded-xl border border-dashed py-12 text-center text-sm text-muted-foreground">
-            업로드된 파일이 없습니다. 채팅 채널에서 파일을 공유해 보세요.
+            {t("community-server.sb1wics")}
           </div>
         ) : (
           <ul className="space-y-2">

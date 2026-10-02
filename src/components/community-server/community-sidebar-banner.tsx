@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useRef, useState } from "react";
 import { Film, ImagePlus, Loader2, Plus, X } from "lucide-react";
@@ -97,7 +100,7 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
     e.target.value = "";
     if (!raw) return;
     if (!isGalleryVideoFile(raw)) {
-      setError("지원하지 않는 영상 형식입니다.");
+      setError(t("profile.s3hqp0n"));
       return;
     }
     setUploadingVideo(true);
@@ -111,18 +114,18 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
       }
       const duration = await probeVideoDurationSec(file);
       if (duration <= 0) {
-        setError("영상 길이를 확인할 수 없습니다.");
+        setError(t("lib.profile.banner.sc3e2d98af1"));
         return;
       }
       if (duration > MAX_PROFILE_BANNER_VIDEO_DURATION_SEC + 0.25) {
-        setError(`배너 동영상은 ${MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초 이하여야 합니다.`);
+        setError(t("profile.sddxt7w", { v0: MAX_PROFILE_BANNER_VIDEO_DURATION_SEC }));
         return;
       }
       const prepared = await prepareBannerVideoForUpload(file);
       const url = await uploadVideoBlob(prepared, prepared.name);
       await persist({ bannerVideoUrl: url, bannerUrl: "" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "영상 업로드에 실패했습니다.");
+      setError(err instanceof Error ? err.message : t("profile.s1eazbik"));
     } finally {
       setUploadingVideo(false);
     }
@@ -162,10 +165,10 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
               "rounded-md border border-dashed border-muted-foreground/35 bg-muted/20",
               "text-muted-foreground transition-colors hover:border-muted-foreground/55 hover:bg-muted/35"
             )}
-            aria-label="배너 추가"
+            aria-label={t("community-server.s1buu88k")}
           >
             <Plus className="h-5 w-5 text-muted-foreground/70" strokeWidth={2} />
-            <span className="text-[11px] font-medium text-muted-foreground/80">배너 추가</span>
+            <span className="text-[11px] font-medium text-muted-foreground/80">{t("community-server.s1buu88k")}</span>
           </button>
         )}
 
@@ -174,11 +177,11 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
             type="button"
             onClick={openEditor}
             className="absolute inset-0 flex items-end justify-end bg-black/0 p-1.5 opacity-0 transition-opacity hover:bg-black/25 hover:opacity-100 focus-visible:opacity-100"
-            aria-label="배너 편집"
+            aria-label={t("community-server.s1buvfq9")}
           >
             <span className="inline-flex items-center gap-1 rounded-md bg-background/90 px-2 py-1 text-[10px] font-medium shadow-sm">
               <ImagePlus className="h-3 w-3" />
-              편집
+              {t("lib.media-editor.s114bd")}
             </span>
           </button>
         )}
@@ -199,7 +202,7 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
                 ) : (
                   <>
                     <ImagePlus className="mr-1 h-3 w-3" />
-                    사진
+                    {t("lib.creator.work.labels.s2f826f3ee6")}
                   </>
                 )}
               </Button>
@@ -216,7 +219,7 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
                 ) : (
                   <>
                     <Film className="mr-1 h-3 w-3" />
-                    영상
+                    {t("lib.web.push.se9d6e13c5d")}
                   </>
                 )}
               </Button>
@@ -229,13 +232,13 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
                   disabled={saving}
                   onClick={() => void removeBanner()}
                 >
-                  제거
+                  {t("collab.remove")}
                 </Button>
               ) : null}
             </div>
             <p className="text-[10px] leading-snug text-muted-foreground">
               {BANNER_VIDEO_FORMAT_HINT} · 최대 {MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초
-              {uploadingVideo ? " · H.265는 호환 형식으로 변환 중…" : ""}
+              {uploadingVideo ? t("community-server.h_265") : ""}
             </p>
             <Button
               type="button"
@@ -243,7 +246,7 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
               size="sm"
               className="absolute right-1 top-1 h-6 w-6 rounded-md p-0"
               onClick={() => setEditing(false)}
-              aria-label="닫기"
+              aria-label={t("common.close")}
             >
               <X className="h-3.5 w-3.5" />
             </Button>
@@ -278,8 +281,8 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
           imageSrc={cropSrc}
           aspect={2}
           lockAspect
-          title="사이드바 배너 자르기"
-          description="2:1 비율에 맞게 조정한 뒤 적용하세요."
+          title={t("community-server.s1oq8vqc")}
+          description={t("community-server.2_1")}
           maxWidth={800}
           maxHeight={400}
           uploadFilename="community-sidebar-banner.jpg"

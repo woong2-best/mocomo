@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { Loader2, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -51,14 +54,14 @@ export function CommunityJoinBanner({ className }: { className?: string }) {
           <Users className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0">
-          <p className="font-semibold text-sm">커뮤니티 둘러보기 중</p>
+          <p className="font-semibold text-sm">{t("community-server.s8y91q1")}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {joinMode === "APPROVE"
-              ? "게시글과 채팅은 읽기 전용입니다. 참여하려면 가입 요청을 보내세요."
+              ? t("community-server.s5q05z8")
               : joinMode === "INVITE_ONLY"
-                ? "초대 링크가 있는 멤버만 참여할 수 있습니다."
-                : "게시글과 채팅은 읽기 전용입니다. 참여하면 글 작성·댓글·음성 채널을 이용할 수 있어요."}
-            {hasJoinPassword ? " 가입 시 4자리 비밀번호가 필요합니다." : ""}
+                ? t("community-server.s19wt3v8")
+                : t("community-server.spapvi1")}
+            {hasJoinPassword ? t("community-server.s7eelw4") : ""}
           </p>
           {hasJoinPassword && (
             <Input
@@ -67,11 +70,11 @@ export function CommunityJoinBanner({ className }: { className?: string }) {
               autoComplete="off"
               maxLength={4}
               pattern="\d{4}"
-              placeholder="비밀번호 4자리"
+              placeholder={t("community-server.sl9v02k")}
               value={joinPassword}
               onChange={(e) => setJoinPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
               className="mt-2 h-8 w-36 font-mono tracking-[0.2em] text-sm"
-              aria-label="가입 비밀번호"
+              aria-label={t("community-server.s1053bfr")}
             />
           )}
           {joinError && <p className="text-xs text-destructive mt-1">{joinError}</p>}
@@ -93,13 +96,13 @@ export function CommunityJoinBanner({ className }: { className?: string }) {
         {joinLoading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : sessionStatus === "loading" ? (
-          "확인 중…"
+          t("community-server.sauj92q")
         ) : joinMode === "APPROVE" ? (
-          "가입 요청하기"
+          t("community-server.s119e12k")
         ) : joinMode === "INVITE_ONLY" ? (
-          "초대 필요"
+          t("community-server.s16xmak8")
         ) : (
-          "커뮤니티 참여하기"
+          t("community-server.s1rbj4uc")
         )}
       </Button>
     </div>

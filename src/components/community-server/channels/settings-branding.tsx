@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -48,16 +51,16 @@ export function CommunityBrandingSettings({
     });
     if ("error" in res && res.error) setError(errorText(res.error));
     else {
-      setOk("저장되었습니다.");
+      setOk(t("profile.s12la3bm"));
       router.refresh();
     }
     setLoading(false);
   }
 
   async function removeCommunity() {
-    const typed = prompt('삭제하려면 커뮤니티 슬러그를 입력하세요:');
+    const typed = prompt(t("community-server.sl9fj3l"));
     if (typed !== slug) return;
-    if (!confirm("정말 이 커뮤니티를 삭제할까요? 되돌릴 수 없습니다.")) return;
+    if (!confirm(t("community-server.sogxsse"))) return;
     setDeleteLoading(true);
     const res = await deleteCommunity(communityId);
     if ("error" in res && res.error) {
@@ -70,7 +73,7 @@ export function CommunityBrandingSettings({
 
   return (
     <section className="space-y-4 rounded-xl border border-border p-4">
-      <h2 className="font-semibold">브랜딩 & 공개 설정</h2>
+      <h2 className="font-semibold">{t("community-server.s63mwvd")}</h2>
 
       <ProfileImageField
         kind="avatar"
@@ -88,7 +91,7 @@ export function CommunityBrandingSettings({
         previewClassName="rounded-xl"
       />
       <p className="text-xs text-muted-foreground -mt-2">
-        커뮤니티 목록의 큰 카드 배경에 표시됩니다. 사이드바 배너와 별도입니다.
+        {t("community-server.s1a9gu4f")}
       </p>
 
       <ProfileBannerField
@@ -98,19 +101,19 @@ export function CommunityBrandingSettings({
         onBannerVideoUrlChange={setBannerVideoUrl}
       />
       <p className="text-xs text-muted-foreground -mt-2">
-        커뮤니티 서버 사이드바(이름 아래)에 표시됩니다.
+        {t("community-server.s7vxts6")}
       </p>
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
-        공개 커뮤니티 (검색·목록에 표시, 비회원 읽기 전용 허용)
+        {t("community-server.s540kat")}
       </label>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" disabled={loading} onClick={() => void save()}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "저장"}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("settings.save")}
         </Button>
         <Button type="button" size="sm" variant="destructive" disabled={deleteLoading} onClick={() => void removeCommunity()}>
-          {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "커뮤니티 삭제"}
+          {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("lib.community-server.s1k39ozr")}
         </Button>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}

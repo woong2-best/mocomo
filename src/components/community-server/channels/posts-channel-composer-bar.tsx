@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -97,7 +100,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
       if (caption) setDraft("");
       await publishPost(caption ?? null, [{ url, type: "IMAGE" }]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "사진 게시에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("community-server.sopgy1l"));
     } finally {
       setUploading(false);
     }
@@ -114,7 +117,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
     if (!file) return;
     const video = file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name);
     if (!video && !isGalleryImageFile(file, true)) {
-      setError("사진 또는 영상 파일을 선택해 주세요.");
+      setError(t("community-server.s17v6uv"));
       return;
     }
     setUploading(true);
@@ -131,7 +134,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
         await publishPost(caption ?? null, [{ url, type: "IMAGE" }]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "파일 게시에 실패했습니다.");
+      setError(err instanceof Error ? err.message : t("community-server.s125dinl"));
     } finally {
       setUploading(false);
     }
@@ -177,7 +180,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
         chunksRef.current = [];
         if (!sendVoiceRef.current) return;
         if (blob.size < 800) {
-          setError("녹음이 너무 짧습니다.");
+          setError(t("community-server.sl3c1an"));
           return;
         }
         setUploading(true);
@@ -188,7 +191,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
           if (caption) setDraft("");
           await publishPost(caption ?? null, [{ url, type: "AUDIO" }]);
         } catch (err) {
-          setError(err instanceof Error ? err.message : "음성 게시에 실패했습니다.");
+          setError(err instanceof Error ? err.message : t("community-server.s1avlb52"));
         } finally {
           setUploading(false);
         }
@@ -208,9 +211,9 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
     } catch (e) {
       const name = e instanceof Error ? e.name : "";
       if (name === "NotAllowedError") {
-        setError("마이크 권한을 허용해 주세요.");
+        setError(t("community-server.s1rvd5m7"));
       } else {
-        setError("음성 녹음을 시작할 수 없습니다.");
+        setError(t("community-server.ss0wews"));
       }
       stopMicStream();
     }
@@ -235,8 +238,8 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
     return (
       <div className="px-4 py-3 text-center text-xs text-muted-foreground">
         {isMember || isOwner
-          ? "게시글 작성 권한이 없습니다."
-          : "읽기 전용입니다. 커뮤니티에 참여하면 글을 작성할 수 있습니다."}
+          ? t("lib.create.post.core.s5edb081be3")
+          : t("community-server.s18nuw7s")}
       </div>
     );
   }
@@ -257,7 +260,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
             onClick={() => stopRecording(false)}
           >
             <X className="h-3.5 w-3.5 mr-1" />
-            취소
+            {t("toast.cancel")}
           </Button>
           <Button
             type="button"
@@ -265,7 +268,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
             className="h-8 rounded-lg text-xs bg-folk-terracotta hover:bg-red-700"
             onClick={() => stopRecording(true)}
           >
-            보내기
+            {t("share.ssjcvk")}
           </Button>
         </div>
       )}
@@ -283,13 +286,13 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
             className="h-10 w-10 rounded-full text-muted-foreground"
             disabled={uploading || recording}
             onClick={() => setCameraOpen(true)}
-            aria-label="사진 찍기"
+            aria-label={t("media.s1wicxfv")}
           >
             <Camera className="h-5 w-5" />
           </Button>
           <label
             htmlFor={galleryInputId}
-            aria-label="사진 또는 영상"
+            aria-label={t("community-server.szanpf8")}
             className={cn(
               "inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground cursor-pointer hover:bg-muted/60 transition-colors",
               (uploading || recording) && "pointer-events-none opacity-50"
@@ -307,7 +310,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
             )}
             disabled={uploading}
             onClick={toggleRecording}
-            aria-label={recording ? "녹음 종료" : "음성 메시지"}
+            aria-label={recording ? t("community-server.s8rpdf8") : t("lib.chat.message.normalize.s9ea73fc88b")}
           >
             {recording ? <Square className="h-5 w-5 fill-current" /> : <Mic className="h-5 w-5" />}
           </Button>
@@ -317,13 +320,13 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
           {uploading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
               <Loader2 className="h-4 w-4 animate-spin" />
-              게시 중…
+              {t("lib.published.toast.store.sfaa0601b2e")}
             </div>
           ) : (
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="메시지를 입력하세요"
+              placeholder={t("community-server.s2pusd4")}
               rows={1}
               disabled={recording}
               className="flex-1 resize-none bg-transparent text-sm leading-snug outline-none placeholder:text-muted-foreground max-h-28 min-h-[24px] py-0.5"
@@ -353,7 +356,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
           )}
           onClick={sendText}
           disabled={!canSend}
-          aria-label="보내기"
+          aria-label={t("share.ssjcvk")}
         >
           <Send className="h-5 w-5" />
         </Button>

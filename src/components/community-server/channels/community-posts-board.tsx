@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo } from "react";
@@ -17,8 +20,8 @@ import {
 } from "@/lib/community-posts-board";
 
 const TABS: { id: CommunityPostsBoardTab; label: string }[] = [
-  { id: "all", label: "전체글" },
-  { id: "notice", label: "공지" },
+  { id: "all", label: t("community-server.suag9c") },
+  { id: "notice", label: t("lib.community-server.suiy3") },
 ];
 
 function BoardRow({
@@ -40,7 +43,7 @@ function BoardRow({
     >
       <td className="py-2 px-2 text-center text-[11px] text-muted-foreground tabular-nums w-14">
         {post.isPinned ? (
-          <span className="font-bold text-[#c0392b] dark:text-red-400">공지</span>
+          <span className="font-bold text-[#c0392b] dark:text-red-400">{t("lib.community-server.suiy3")}</span>
         ) : (
           displayNo
         )}
@@ -131,18 +134,18 @@ export function CommunityPostsBoard({
           <table className="w-full min-w-[320px] border-collapse">
             <thead>
               <tr className="bg-[#3b4890] text-white text-[11px]">
-                <th className="py-2 px-2 font-semibold">번호</th>
-                <th className="py-2 px-2 text-left font-semibold">제목</th>
-                <th className="py-2 px-2 font-semibold hidden sm:table-cell">글쓴이</th>
-                <th className="py-2 px-2 font-semibold hidden md:table-cell">작성일</th>
-                <th className="py-2 px-2 font-semibold hidden md:table-cell">조회</th>
+                <th className="py-2 px-2 font-semibold">{t("cosplay.sx8s0")}</th>
+                <th className="py-2 px-2 text-left font-semibold">{t("cosplay.sz28d")}</th>
+                <th className="py-2 px-2 font-semibold hidden sm:table-cell">{t("cosplay.sqg3cw")}</th>
+                <th className="py-2 px-2 font-semibold hidden md:table-cell">{t("community-server.su69j0")}</th>
+                <th className="py-2 px-2 font-semibold hidden md:table-cell">{t("home.views")}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-16 text-center text-sm text-muted-foreground">
-                    등록된 글이 없습니다.
+                    {t("community-server.s1vo571j")}
                   </td>
                 </tr>
               ) : (

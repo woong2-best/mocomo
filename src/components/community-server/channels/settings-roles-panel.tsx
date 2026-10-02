@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { getCommunityRoles, updateRolePermissions, createCommunityRole } from "@/actions/community-roles";
 import { PERMISSION_LABELS, ALL_PERMISSION_KEYS } from "@/lib/community-server/permissions";
@@ -64,17 +67,16 @@ export function CommunityRolesPanel({
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
-        역할 로딩...
+        {t("community-server.s11ly3zo")}
       </div>
     );
   }
 
   return (
     <section className="space-y-4">
-      <h2 className="text-lg font-semibold">역할 & 권한</h2>
+      <h2 className="text-lg font-semibold">{t("community-server.siicr5j")}</h2>
       <p className="text-sm text-muted-foreground">
-        역할별 권한을 DB에 저장합니다. Moderator·VIP 등급에 <strong>채널 생성</strong>을 켜면
-        사이드바 카테고리 옆 + 버튼이 표시됩니다. Owner 역할은 수정할 수 없습니다.
+        {t("community-server.db_moderator_vip")} <strong>{t("lib.community-server.s13oyers")}</strong>{t("community-server.owner_2")}
       </p>
       <ul className="space-y-2">
         {roles.map((role) => (
@@ -92,7 +94,7 @@ export function CommunityRolesPanel({
             {expanded === role.id && (
               <div className="px-4 pb-4 space-y-4 border-t border-border pt-3">
                 <div>
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">채널</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">{t("community-server.szpsc")}</p>
                   <div className="grid sm:grid-cols-2 gap-2">
                     {CHANNEL_PERMISSION_KEYS.map((key) => (
                       <label key={key} className="flex items-center gap-2 text-sm">
@@ -109,7 +111,7 @@ export function CommunityRolesPanel({
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">기타</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">{t("lib.webtoon.surv4")}</p>
                   <div className="grid sm:grid-cols-2 gap-2">
                     {OTHER_PERMISSION_KEYS.map((key: CommunityPermissionKey) => (
                       <label key={key} className="flex items-center gap-2 text-sm">
@@ -135,11 +137,11 @@ export function CommunityRolesPanel({
         size="sm"
         onClick={() => setCreateOpen(true)}
       >
-        역할 추가
+        {t("community-server.sjhi3h5")}
       </Button>
       {createOpen && (
         <div className="rounded-lg border p-3 space-y-2">
-          <Input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="역할 이름" />
+          <Input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder={t("community-server.sjhh4n1")} />
           <select
             className="w-full rounded-md border px-3 py-2 text-sm"
             value={newRoleType}
@@ -169,12 +171,12 @@ export function CommunityRolesPanel({
               })
             }
           >
-            생성
+            {t("community-server.sxv5g")}
           </Button>
         </div>
       )}
       <Button variant="outline" size="sm" disabled className="hidden">
-        역할 추가 (준비 중)
+        {t("community-server.s14j1cnn")}
       </Button>
     </section>
   );

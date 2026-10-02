@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Crown, MoreHorizontal, Plus } from "lucide-react";
@@ -79,7 +82,7 @@ function MemberRow({
           <button
             type="button"
             className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-muted"
-            aria-label="멤버 관리"
+            aria-label={t("community-server.s169wnxo")}
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
@@ -156,14 +159,14 @@ export function MemberListContent({
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
           멤버 — {count}
           {welcomePending && (
-            <span className="inline-flex h-2 w-2 rounded-full bg-red-500" aria-label="환영 알림" />
+            <span className="inline-flex h-2 w-2 rounded-full bg-red-500" aria-label={t("community-server.sapje13")} />
           )}
         </h2>
       </button>
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-2 space-y-4">
           {count > 0 && members.length === 0 ? (
-            <p className="px-2 text-xs text-muted-foreground">멤버 목록을 불러오는 중…</p>
+            <p className="px-2 text-xs text-muted-foreground">{t("community-server.sh930lt")}</p>
           ) : (
             grouped.map((group) => {
               const canAdd =
@@ -200,10 +203,10 @@ export function MemberListContent({
                         });
                       }}
                       className="mt-1 flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
-                      aria-label={`${group.label}에 멤버 추가`}
+                      aria-label={t("community-server.s1w5o84c", { v0: group.label })}
                     >
                       <Plus className="h-3.5 w-3.5 shrink-0" />
-                      <span>멤버 추가</span>
+                      <span>{t("community-server.s16a24q4")}</span>
                     </button>
                   ) : null}
                 </div>

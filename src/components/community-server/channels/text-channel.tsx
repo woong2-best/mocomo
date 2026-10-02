@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { after } from "next/server";
 import { redirect, notFound } from "next/navigation";
 import { getCachedSession, getCachedAuthUserMinimal } from "@/lib/auth";
@@ -84,8 +87,8 @@ export async function TextChannelView({
         {effectiveReadOnly && (
           <p className="text-xs text-muted-foreground mt-0.5">
             {guestMode
-              ? "게스트 읽기 전용 · 로그인 후 참여하면 채팅 가능"
-              : "읽기 전용 · 참여 후 채팅 가능"}
+              ? t("community-server.s1xnmh57")
+              : t("community-server.s19d1do3")}
           </p>
         )}
       </header>
@@ -96,7 +99,7 @@ export async function TextChannelView({
           guestMode={guestMode}
           roomId={roomId}
           userId={session?.user?.id ?? "guest"}
-          username={session?.user?.username || "게스트"}
+          username={session?.user?.username || t("community-server.sq83kw")}
           userImage={me?.image ?? session?.user?.image ?? null}
           userSupportTier={me?.supportTierSent ?? "SEED"}
           initialMessages={initialMessages}
