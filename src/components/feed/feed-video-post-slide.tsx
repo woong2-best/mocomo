@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   useCallback,
   useEffect,
@@ -284,7 +287,7 @@ export function FeedVideoPostSlide({
               : undefined
           }
           role="list"
-          aria-label="같은 게시물 영상"
+          aria-label={t("feed.s1508wel")}
         >
           {group.videos.map((reel, vi) => {
             const d = isActive ? Math.abs(vi - videoIndex) : distance + 1;
@@ -408,7 +411,7 @@ export function FeedVideoPostSlide({
               onClick={() => goH(videoIndex - 1)}
               className={sideNavBtnClass}
               style={{ left: arrowOffset }}
-              aria-label="이전 영상"
+              aria-label={t("feed.snrsq28")}
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -418,7 +421,7 @@ export function FeedVideoPostSlide({
               onClick={() => goH(videoIndex + 1)}
               className={sideNavBtnClass}
               style={{ right: arrowOffset }}
-              aria-label="다음 영상"
+              aria-label={t("feed.sebaazc")}
             >
               <ChevronRight className="h-5 w-5" />
             </button>

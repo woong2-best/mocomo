@@ -350,7 +350,7 @@ export function FeedVideoViewer({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="피드 영상 보기"
+      aria-label={t("feed.szady4c")}
       className="fixed inset-0 z-[200] flex overflow-hidden bg-black"
     >
       <div
@@ -369,12 +369,12 @@ export function FeedVideoViewer({
           type="button"
           onClick={close}
           className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          aria-label="뒤로"
+          aria-label={t("common.back")}
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
         <p className="pointer-events-none font-display text-sm font-bold tracking-wide text-white/90 drop-shadow">
-          영상
+          {t("live.modeVideo")}
         </p>
         <span className="w-10" aria-hidden />
       </header>
@@ -387,7 +387,7 @@ export function FeedVideoViewer({
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
         role="feed"
-        aria-label="피드 영상"
+        aria-label={t("feed.s47jhsw")}
         tabIndex={0}
       >
         {groups.map((group, index) => (
@@ -449,7 +449,7 @@ export function FeedVideoViewer({
             "hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
             "disabled:pointer-events-none disabled:opacity-30"
           )}
-          aria-label="이전 게시물 영상"
+          aria-label={t("feed.s2a5jqc")}
         >
           <ChevronUp className="h-6 w-6" />
         </button>
@@ -462,7 +462,7 @@ export function FeedVideoViewer({
             "hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
             "disabled:pointer-events-none disabled:opacity-30"
           )}
-          aria-label="다음 게시물 영상"
+          aria-label={t("feed.s186cci4")}
         >
           <ChevronDown className="h-6 w-6" />
         </button>

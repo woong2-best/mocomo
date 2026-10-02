@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   useCallback,
   useEffect,
@@ -100,14 +103,14 @@ export function FeedVideoExpandLightbox({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="영상 확대"
+      aria-label={t("feed.sh6wqkr")}
       className="fixed inset-0 z-[220] flex bg-black text-white"
     >
       <button
         type="button"
         onClick={onClose}
         className="absolute top-3 left-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 hover:bg-black/70"
-        aria-label="확대 닫기"
+        aria-label={t("feed.s89ie8q")}
       >
         <X className="h-5 w-5" />
       </button>
@@ -119,7 +122,7 @@ export function FeedVideoExpandLightbox({
             onClick={goPrev}
             disabled={index <= 0}
             className="absolute left-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/45 hover:bg-black/65 disabled:opacity-30 md:left-4"
-            aria-label="이전 영상"
+            aria-label={t("feed.snrsq28")}
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
@@ -156,7 +159,7 @@ export function FeedVideoExpandLightbox({
             onClick={goNext}
             disabled={index >= videos.length - 1}
             className="absolute right-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/45 hover:bg-black/65 disabled:opacity-30 md:right-4"
-            aria-label="다음 영상"
+            aria-label={t("feed.sebaazc")}
           >
             <ChevronRight className="h-6 w-6" />
           </button>

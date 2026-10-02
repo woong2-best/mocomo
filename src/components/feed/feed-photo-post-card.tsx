@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -109,7 +112,7 @@ export function FeedPhotoPostCard({
           </time>
           {post.isNsfw && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/20 text-destructive shrink-0 font-bold">
-              성인 콘텐츠
+              {t("feed.s1aw4bu7")}
             </span>
           )}
         </div>
@@ -166,7 +169,7 @@ export function FeedPhotoPostCard({
                 "flex items-center gap-1.5 min-h-9 transition-colors",
                 liked ? "text-[#ff3040]" : "hover:opacity-70"
               )}
-              aria-label="좋아요"
+              aria-label={t("home.likes")}
             >
               <MotionPop trigger={liked}>
                 <Heart className={cn("h-6 w-6", liked && "fill-current")} strokeWidth={1.5} />
@@ -219,7 +222,7 @@ export function FeedPhotoPostCard({
             type="button"
             onClick={handleStar}
             className="min-h-9 hover:opacity-70"
-            aria-label={starred ? "STAR에서 제거" : "STAR에 저장"}
+            aria-label={starred ? t("feed.star") : t("feed.star_2")}
           >
             <MotionPop trigger={starred}>
               <Bookmark
@@ -249,7 +252,7 @@ export function FeedPhotoPostCard({
                 className="text-muted-foreground ml-1 hover:text-foreground"
                 onClick={() => setCaptionExpanded(true)}
               >
-                더 보기
+                {t("feed.smn74zs")}
               </button>
             )}
           </p>

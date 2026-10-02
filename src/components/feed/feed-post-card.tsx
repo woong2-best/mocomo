@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -89,13 +92,13 @@ export type GridPost = {
 };
 
 const typeLabels: Record<string, string> = {
-  COSPLAY: "코스프레",
-  FANART: "팬아트",
-  REVIEW: "리뷰",
-  MEME: "밈",
-  NEWS: "뉴스",
-  PHOTO: "사진",
-  VIDEO: "영상",
+  COSPLAY: t("home.featureCosplay"),
+  FANART: t("feed.svw7q8"),
+  REVIEW: t("feed.swmh0"),
+  MEME: t("feed.s1154"),
+  NEWS: t("feed.svf74"),
+  PHOTO: t("feed.sxvo8"),
+  VIDEO: t("live.modeVideo"),
 };
 
 export function FeedPostCard({

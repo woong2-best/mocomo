@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -132,17 +135,17 @@ export function FeedInfinite({
         json = await res.json();
       } catch {
         autoLoadBlockedRef.current = true;
-        setLoadError("응답을 해석하지 못했습니다.");
+        setLoadError(t("feed.sln9rzt"));
         return;
       }
       if (!res.ok) {
         autoLoadBlockedRef.current = true;
-        setLoadError(errorText(json.error ?? "피드를 더 불러오지 못했습니다."));
+        setLoadError(errorText(json.error ?? t("feed.slsth16")));
         return;
       }
       if (!Array.isArray(json.items)) {
         autoLoadBlockedRef.current = true;
-        setLoadError("피드 형식이 올바르지 않습니다.");
+        setLoadError(t("feed.sz1yf1r"));
         return;
       }
       const added = json.items;
@@ -166,7 +169,7 @@ export function FeedInfinite({
       if (!json.nextCursor) setDone(true);
     } catch {
       autoLoadBlockedRef.current = true;
-      setLoadError("네트워크 오류가 발생했습니다.");
+      setLoadError(t("feed.s18n7wbo"));
     } finally {
       loadingRef.current = false;
       setLoading(false);
@@ -212,12 +215,12 @@ export function FeedInfinite({
           <>
             <p className="text-sm text-destructive">{loadError}</p>
             <Button type="button" variant="secondary" size="sm" onClick={() => loadMore({ manual: true })}>
-              다시 시도
+              {t("toast.retry")}
             </Button>
           </>
         )}
         {done && items.length > 0 && !loadError && (
-          <p className="text-sm text-muted-foreground">피드 끝</p>
+          <p className="text-sm text-muted-foreground">{t("feed.srmqfkt")}</p>
         )}
       </div>
     </FeedVideoViewerProvider>
