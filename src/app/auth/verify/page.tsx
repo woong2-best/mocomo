@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
@@ -19,7 +22,7 @@ function VerifyInner() {
     const email = searchParams.get("email");
     if (!token || !email) {
       setStatus("error");
-      setError("잘못된 인증 링크입니다.");
+      setError(t("auth.st9b7nw"));
       return;
     }
 
@@ -34,7 +37,7 @@ function VerifyInner() {
       })
       .catch(() => {
         setStatus("error");
-        setError("인증 처리 중 오류가 발생했습니다.");
+        setError(t("auth.s1vqicls"));
       });
   }, [searchParams]);
 
@@ -42,18 +45,18 @@ function VerifyInner() {
     <Card className="w-full max-w-md rounded-2xl">
       <CardHeader className="text-center">
         <CardTitle>
-          {status === "loading" && "인증 확인 중..."}
-          {status === "ok" && "이메일 인증 완료"}
-          {status === "error" && "인증 실패"}
+          {status === "loading" && t("auth.stah33")}
+          {status === "ok" && t("auth.emailVerifyDone")}
+          {status === "error" && t("auth.so18mn3")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-center text-sm">
-        {status === "loading" && <p className="text-muted-foreground">잠시만 기다려 주세요.</p>}
+        {status === "loading" && <p className="text-muted-foreground">{t("auth.s1hzbod2")}</p>}
         {status === "ok" && (
           <>
-            <p className="text-muted-foreground">이제 로그인할 수 있습니다.</p>
+            <p className="text-muted-foreground">{t("auth.stcywbd")}</p>
             <Button asChild className="w-full rounded-xl">
-              <Link href="/auth/signin">로그인하기</Link>
+              <Link href="/auth/signin">{t("auth.loginAction")}</Link>
             </Button>
           </>
         )}
@@ -61,7 +64,7 @@ function VerifyInner() {
           <>
             <p className="text-destructive">{error}</p>
             <Button asChild variant="outline" className="w-full rounded-xl">
-              <Link href="/auth/email-verify">인증 코드 입력</Link>
+              <Link href="/auth/email-verify">{t("auth.s1r6f9ul")}</Link>
             </Button>
           </>
         )}
@@ -77,7 +80,7 @@ export default function VerifyPage() {
         fallback={
           <Card className="w-full max-w-md rounded-2xl">
             <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              인증 확인 중...
+              {t("auth.stah33")}
             </CardContent>
           </Card>
         }

@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -44,10 +47,10 @@ export default async function MobileOAuthCompletePage({
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-sm rounded-2xl">
           <CardHeader className="text-center">
-            <CardTitle>앱 연동 실패</CardTitle>
+            <CardTitle>{t("auth.s1vf1muk")}</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground text-center">
-            토큰을 발급하지 못했습니다. 앱에서 다시 시도해 주세요.
+            {t("auth.s1hjzaw")}
           </CardContent>
         </Card>
       </div>
@@ -66,7 +69,7 @@ export default async function MobileOAuthCompletePage({
       <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-3 pb-2">
           <BrandLogoLockup size={72} priority className="mx-auto" />
-          <CardTitle className="text-xl font-semibold">앱으로 돌아가는 중</CardTitle>
+          <CardTitle className="text-xl font-semibold">{t("auth.s4pg14c")}</CardTitle>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground">
           <MobileDeepLinkRedirect url={redirectUrl} />

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -33,7 +36,7 @@ export function MobileOAuthStartClient({ googleOAuth }: { googleOAuth: boolean }
 
   useEffect(() => {
     if (provider !== "gmail" && provider !== "google") {
-      setError("Google 로그인만 지원합니다.");
+      setError(t("auth.google"));
       return;
     }
 
@@ -49,7 +52,7 @@ export function MobileOAuthStartClient({ googleOAuth }: { googleOAuth: boolean }
 
     if (mode === "signin") {
       if (!googleOAuth) {
-        setError("Google 로그인이 서버에 설정되지 않았습니다.");
+        setError(t("auth.google_2"));
         return;
       }
       const qs = new URLSearchParams({
@@ -78,14 +81,14 @@ export function MobileOAuthStartClient({ googleOAuth }: { googleOAuth: boolean }
         <CardHeader className="text-center space-y-3 pb-2">
           <BrandLogoLockup size={72} priority className="mx-auto" />
           <CardTitle className="text-xl font-semibold">
-            {error ? "로그인 오류" : "MoCoMo 앱 로그인"}
+            {error ? t("auth.s11gfat4") : t("auth.mocomo_2")}
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground space-y-2">
           {error ? (
             <p className="text-destructive">{error}</p>
           ) : (
-            <p>브라우저에서 인증을 계속합니다…</p>
+            <p>{t("auth.szh0elb")}</p>
           )}
         </CardContent>
       </Card>

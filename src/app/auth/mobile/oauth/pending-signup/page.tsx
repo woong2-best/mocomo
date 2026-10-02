@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { cookies } from "next/headers";
 import {
   MOBILE_OAUTH_REDIRECT_COOKIE,
@@ -32,10 +35,10 @@ export default async function MobileOAuthPendingSignupPage() {
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-sm rounded-2xl">
           <CardHeader className="text-center">
-            <CardTitle>앱으로 돌아가 주세요</CardTitle>
+            <CardTitle>{t("auth.s1h6tfqp")}</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground text-center">
-            가입 인증이 만료되었습니다. MoCoMo 앱에서 다시 로그인해 주세요.
+            {t("auth.mocomo_3")}
           </CardContent>
         </Card>
       </div>
@@ -69,7 +72,7 @@ export default async function MobileOAuthPendingSignupPage() {
       <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-3 pb-2">
           <BrandLogoLockup size={72} priority className="mx-auto" />
-          <CardTitle className="text-xl font-semibold">앱으로 돌아가는 중</CardTitle>
+          <CardTitle className="text-xl font-semibold">{t("auth.s4pg14c")}</CardTitle>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground">
           <MobileDeepLinkRedirect url={redirectUrl} />

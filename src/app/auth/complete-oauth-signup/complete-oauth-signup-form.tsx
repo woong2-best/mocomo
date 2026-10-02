@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { completeWebOAuthSignup } from "@/actions/oauth-complete-signup";
@@ -38,7 +41,7 @@ export function CompleteOAuthSignupForm({ dest, account }: Props) {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!signupTermsConsentComplete(termsAccepted, privacyAccepted)) {
-      setError("필수 약관에 모두 동의해 주세요.");
+      setError(t("auth.s1tf9a4a"));
       return;
     }
     if (!birthDateFieldsValid(birth)) {
@@ -60,7 +63,7 @@ export function CompleteOAuthSignupForm({ dest, account }: Props) {
       });
       if (result?.error) setError(errorText(result.error));
     } catch {
-      setError("가입에 실패했습니다. 다시 시도해 주세요.");
+      setError(t("auth.sgkru7y"));
     } finally {
       setLoading(false);
     }

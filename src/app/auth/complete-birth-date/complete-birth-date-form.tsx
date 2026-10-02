@@ -47,7 +47,7 @@ export function CompleteBirthDateForm({ dest }: { dest?: string }) {
       });
       if (result?.error) setError(errorText(result.error));
     } catch {
-      setError("저장에 실패했습니다. 다시 시도해 주세요.");
+      setError(t("auth.sxmv1y6"));
     } finally {
       setLoading(false);
     }

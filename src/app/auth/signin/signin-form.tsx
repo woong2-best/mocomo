@@ -237,22 +237,22 @@ export function SignInForm({
 
   const bannedNotice =
     errorParam === "banned"
-      ? "이 계정은 이용이 제한되어 있습니다. 문의가 필요하면 운영자에게 연락해 주세요."
+      ? t("auth.s1a6zc77")
       : errorParam === "account_deleted"
-        ? "탈퇴한 계정입니다. 복구 기간이 지났거나 영구 삭제되었습니다."
+        ? t("auth.s1860pb0")
         : errorParam === "SessionExpired"
-          ? "관리자 로그인 1시간이 지나 자동으로 로그아웃되었습니다. 다시 로그인해 주세요."
+          ? t("auth.s1i0kvcq")
           : "";
 
   const callbackErrorMessage =
     errorParam === "Configuration"
       ? googleOAuth
-        ? "서버 OAuth 설정 오류입니다. Vercel 환경 변수를 확인한 뒤 Redeploy 하세요."
-        : "Google 로그인이 아직 설정되지 않았습니다. Vercel에 AUTH_GOOGLE_ID·AUTH_GOOGLE_SECRET을 추가하세요."
+        ? t("auth.oauth_vercel_redeploy")
+        : t("auth.google_vercel_auth_google_id")
       : errorParam === "OAuthAccountNotLinked"
-        ? "이 이메일은 다른 로그인 방식으로 가입되어 있습니다."
+        ? t("auth.s422qgi")
         : errorParam
-          ? "로그인에 실패했습니다. 다시 시도해 주세요."
+          ? t("auth.sb21p6v")
           : "";
 
   return (
