@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -29,7 +32,7 @@ export function SidebarToggleButton() {
           "group/home relative inline-flex items-center min-h-10 rounded-lg px-2 py-1 transition-colors",
           "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-folk-terracotta/50"
         )}
-        aria-label={isHome ? `${BRAND.name} 새로고침` : "Home으로 이동"}
+        aria-label={isHome ? t("auth.reload", { v0: BRAND.name }) : t("layout.home")}
       >
         <span
           className={cn(

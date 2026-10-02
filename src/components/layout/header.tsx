@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Suspense, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -70,7 +73,7 @@ export function Header() {
             href={DEFAULT_LANDING_PATH}
             onClick={onBrandClick}
             className="flex items-center gap-2 text-foreground min-w-0"
-            aria-label={isHome ? `${BRAND.name} 새로고침` : BRAND.name}
+            aria-label={isHome ? t("auth.reload", { v0: BRAND.name }) : BRAND.name}
           >
             <span className="font-display font-bold text-base truncate folk-chunky-text text-folk-cobalt">
               {BRAND.name}
@@ -94,7 +97,7 @@ export function Header() {
               className={cn(
                 "lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/60 text-foreground"
               )}
-              aria-label="검색"
+              aria-label={t("lib.search.fast.s4f5a3f69b7")}
             >
               <Search className="h-5 w-5" />
             </Link>

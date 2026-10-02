@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Image from "next/image";
 import { X } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -82,7 +85,7 @@ export function StickyMemoDialog({
             <DialogPrimitive.Close
               type="button"
               className="absolute right-[8%] top-[8%] z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[#3d3214]/85 text-white shadow-md hover:bg-[#3d3214]"
-              aria-label="닫기"
+              aria-label={t("common.close")}
             >
               <X className="h-4 w-4" strokeWidth={2.5} />
             </DialogPrimitive.Close>

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
 import type { RailAdData } from "@/lib/default-ads";
@@ -13,7 +16,7 @@ export function AdRailUnit({ ad }: { ad: RailAdData }) {
       href={href}
       {...(external ? { target: "_blank", rel: "noopener noreferrer sponsored" } : {})}
       className="group block overflow-hidden rounded-xl border border-border/50 bg-card/80 shadow-sm hover:border-primary/40 hover:shadow-md transition-all"
-      aria-label={`광고: ${ad.title}`}
+      aria-label={t("layout.sq5zcb", { v0: ad.title })}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
