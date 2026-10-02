@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import {
   useCallback,
@@ -270,7 +273,7 @@ export function ReelsSlide({
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
                 showExitChrome ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
-              aria-label="전체화면 닫기"
+              aria-label={i18n("reels.s9ngb1x")}
             >
               <X className="h-5 w-5" />
             </button>

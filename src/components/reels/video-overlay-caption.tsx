@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import {
   useCallback,
@@ -84,7 +87,7 @@ export function VideoOverlayCaption({
         <button
           type="button"
           className="pointer-events-auto absolute inset-0 z-[9] bg-black/35"
-          aria-label="설명 닫기"
+          aria-label={i18n("reels.s1wezsxw")}
           onClick={collapse}
         />
       ) : null}
@@ -120,7 +123,7 @@ export function VideoOverlayCaption({
                 type="button"
                 id={captionId}
                 aria-expanded={expanded}
-                aria-label={expanded ? "설명 접기" : "설명 펼치기"}
+                aria-label={expanded ? i18n("reels.s1wf3efy") : i18n("reels.s1p5jsnp")}
                 onClick={toggle}
                 className="block w-full rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               >
@@ -137,7 +140,7 @@ export function VideoOverlayCaption({
                   <LinkifiedText text={captionText} as="span" stopPropagation />
                 </div>
                 {!expanded && truncatable ? (
-                  <span className="sr-only">… 더 보기</span>
+                  <span className="sr-only">{i18n("reels.sd4f4ci")}</span>
                 ) : null}
               </button>
             ) : null}
