@@ -13,6 +13,7 @@ import type {
   SidebarSearchRankingScope,
 } from "@/lib/scoped-search-rank-shared";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type PanelRect = { top: number; left: number; width: number };
 
@@ -31,7 +32,9 @@ export function HeaderSearch({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { t } = useLocale();
   const searchContext = getHeaderSearchContext(pathname ?? "");
+  const placeholder = t(searchContext.placeholderKey);
   const isOnSearchPage = pathname === "/search";
   const urlScope = searchParams.get("scope");
   const isSocialScope = searchContext.scope === "social" || urlScope === "social";
@@ -331,8 +334,8 @@ export function HeaderSearch({
                 e.preventDefault();
                 goFullSearch();
               }}
-              aria-label={searchContext.placeholder}
-              placeholder={searchContext.placeholder}
+              aria-label={placeholder}
+              placeholder={placeholder}
               autoComplete="off"
               enterKeyHint="search"
               className="h-11 w-full bg-transparent px-3 pr-9 text-sm outline-none placeholder:text-muted-foreground/70"
@@ -345,7 +348,7 @@ export function HeaderSearch({
                 type="button"
                 onClick={clearQuery}
                 className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/60"
-                aria-label="검색어 지우기"
+                aria-label={t("search.clearAria")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -357,7 +360,7 @@ export function HeaderSearch({
           <button
             type="submit"
             className="inline-flex h-11 shrink-0 items-center justify-center bg-folk-terracotta px-3.5 text-white transition-colors hover:brightness-110"
-            aria-label={searchContext.placeholder}
+            aria-label={placeholder}
           >
             <Search className="h-4 w-4" strokeWidth={2.5} />
           </button>

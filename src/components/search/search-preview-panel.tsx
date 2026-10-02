@@ -27,9 +27,9 @@ function SuggestionIcon({ kind }: { kind: SearchSuggestion["kind"] }) {
 }
 
 function followLabel(user: FastSearchResult["users"][number]) {
-  if (user.isFollowing && user.followsYou) return "서로 팔로우합니다";
-  if (user.isFollowing) return "팔로우 중";
-  if (user.followsYou) return "나를 팔로우 중";
+  if (user.isFollowing && user.followsYou) return t("search.slg0ed9");
+  if (user.isFollowing) return t("search.s1w16mzd");
+  if (user.followsYou) return t("search.s1asyh7h");
   return null;
 }
 
@@ -74,13 +74,13 @@ export function SearchPreviewPanel({
       )}
     >
       {!hasHits && !pending && (
-        <p className="px-4 py-6 text-sm text-muted-foreground text-center">검색 결과가 없습니다</p>
+        <p className="px-4 py-6 text-sm text-muted-foreground text-center">{t("search.s1pc32b2")}</p>
       )}
 
       {pending && !results && (
         <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-          검색 중…
+          {t("search.s1nja63w")}
         </div>
       )}
 
@@ -113,7 +113,7 @@ export function SearchPreviewPanel({
           <section>
             <p className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5" />
-              사람
+              {t("search.sxs2o")}
             </p>
             {users.map((u) => {
               const relation = followLabel(u);
@@ -182,7 +182,7 @@ export function SearchPreviewPanel({
           <div className="border-t border-border/60" />
           <section>
             <p className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              라이브
+              {t("home.featureLive")}
             </p>
             {results!.liveStreams.map((ch) => (
               <Link
@@ -209,7 +209,7 @@ export function SearchPreviewPanel({
           <div className="border-t border-border/60" />
           <section>
             <p className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              게시물
+              {t("search.sq80a4")}
             </p>
             {results!.posts.slice(0, 3).map((p) => (
               <Link

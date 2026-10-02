@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useState } from "react";
 import { FeedTimelinePostCard } from "@/components/feed/feed-timeline-post-card";
 import type { HashtagFeedPost, HashtagSort } from "@/lib/hashtag-search";
@@ -11,7 +14,7 @@ function formatPostCount(n: number, locale: string) {
   if (locale === "en") return `${n.toLocaleString()} post${n === 1 ? "" : "s"}`;
   if (locale === "ja") return `${n.toLocaleString()}件の投稿`;
   if (locale === "zh") return `${n.toLocaleString()} 条帖子`;
-  return `게시물 ${n.toLocaleString()}개`;
+  return t("search.s1opryw8", { v0: n.toLocaleString() });
 }
 
 function parseSortFromUrl(): HashtagSort {
@@ -81,8 +84,8 @@ export function HashtagSearchFeed({
               { id: "latest", label: "最新" },
             ]
           : [
-              { id: "top", label: "인기" },
-              { id: "latest", label: "최신" },
+              { id: "top", label: t("search.syvug") },
+              { id: "latest", label: t("search.s10004") },
             ];
 
   const posts = sort === "top" ? postsTop : postsLatest;
@@ -98,7 +101,7 @@ export function HashtagSearchFeed({
           "sticky z-40 flex border-b border-border/80 bg-background/95 backdrop-blur-md -mx-4 px-4",
           isNativeApp ? "top-[calc(3.25rem+env(safe-area-inset-top,0px))]" : "top-14"
         )}
-        aria-label={locale === "en" ? "Hashtag filters" : "해시태그 필터"}
+        aria-label={locale === "en" ? "Hashtag filters" : t("search.s1odgw3s")}
       >
         {tabs.map((tab) => {
           const active = sort === tab.id;

@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { HashtagSearchFeed } from "@/components/search/hashtag-search-feed";
 import {
   getCachedHashtagPostCount,
@@ -35,7 +38,7 @@ export async function HashtagSearchResults({
         ? "このハッシュタグの投稿はまだありません。"
         : locale === "zh"
           ? "暂无带此话题标签的帖子。"
-          : "이 해시태그가 포함된 게시물이 없습니다.";
+          : t("search.smwrs57");
 
   return (
     <HashtagSearchFeed

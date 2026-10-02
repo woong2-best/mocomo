@@ -8,6 +8,7 @@ import {
   type SidebarSearchRankingScope,
 } from "@/lib/scoped-search-rank-shared";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
 
 const RANK_COLORS = [
   "text-[#e85d4a]",
@@ -63,6 +64,7 @@ export function SearchRankingFocusPanel({
   onPick?: () => void;
   className?: string;
 }) {
+  const { t } = useLocale();
   const needle = filter?.trim().toLowerCase() ?? "";
   const visible = (needle
     ? items.filter(
@@ -84,7 +86,7 @@ export function SearchRankingFocusPanel({
   if (visible.length === 0) {
     return (
       <p className={cn("px-4 py-8 text-center text-sm text-muted-foreground", className)}>
-        {needle ? "일치하는 검색어가 없습니다." : "아직 집계된 검색어가 없습니다."}
+        {needle ? t("search.rankingNoMatch") : t("sidebar.searchRankingEmpty")}
       </p>
     );
   }
