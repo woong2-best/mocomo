@@ -82,7 +82,7 @@ export async function validateYoutubeForDonation(input: {
   if (!isYoutubeDataApiConfigured()) {
     return {
       ok: false,
-      error: "영상 검증 서비스가 설정되지 않았습니다. 잠시 후 다시 시도해 주세요.",
+      error: "Video verification service is not configured. Please try again later.",
       code: "YOUTUBE_API_NOT_CONFIGURED",
     };
   }
@@ -91,7 +91,7 @@ export async function validateYoutubeForDonation(input: {
   if (!meta) {
     return {
       ok: false,
-      error: "영상을 찾을 수 없거나 삭제·비공개 상태입니다.",
+      error: "Video not found or deleted/private.",
       code: "YOUTUBE_NOT_FOUND",
     };
   }
@@ -99,7 +99,7 @@ export async function validateYoutubeForDonation(input: {
   if (meta.privacyStatus !== "public") {
     return {
       ok: false,
-      error: "공개(Public) 영상만 후원할 수 있습니다.",
+      error: "Only public videos can be sponsored.",
       code: "YOUTUBE_NOT_PUBLIC",
     };
   }
@@ -107,7 +107,7 @@ export async function validateYoutubeForDonation(input: {
   if (!meta.embeddable) {
     return {
       ok: false,
-      error: "외부 재생(퍼가기)이 허용되지 않은 영상입니다.",
+      error: "Embedding is not allowed for this video.",
       code: "YOUTUBE_NOT_EMBEDDABLE",
     };
   }
@@ -115,7 +115,7 @@ export async function validateYoutubeForDonation(input: {
   if (meta.ageRestricted) {
     return {
       ok: false,
-      error: "연령 제한 영상은 후원할 수 없습니다.",
+      error: "Age-restricted videos cannot be sponsored.",
       code: "YOUTUBE_AGE_RESTRICTED",
     };
   }
@@ -124,7 +124,7 @@ export async function validateYoutubeForDonation(input: {
   if (totalDur > 0 && input.segmentSec > totalDur) {
     return {
       ok: false,
-      error: "선택한 구간이 영상 길이보다 깁니다.",
+      error: "Selected segment is longer than the video.",
       code: "YOUTUBE_SEGMENT_TOO_LONG",
     };
   }
