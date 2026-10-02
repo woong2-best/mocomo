@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useMemo, useState, useTransition } from "react";
 import { PayButton } from "@/components/payments/pay-button";
@@ -177,14 +180,14 @@ export function FlowerSendForm({
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="space-y-3 rounded-2xl border border-border/60 p-4">
         <div>
-          <p className="text-sm font-semibold">꽃과 편지 보내기</p>
+          <p className="text-sm font-semibold">{t("flower.sa7z0lb")}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             꽃과 함께 편지가 전달됩니다. 받는 사람이 같이 볼 수 있어요.
           </p>
         </div>
 
         <label className="block space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">꽃 선택</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("flower.sm4rc1m")}</span>
           <select
             className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
             value={assetId}
@@ -207,16 +210,16 @@ export function FlowerSendForm({
         </label>
 
         <label className="block space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">받는 사람</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("flower.s1bq99tz")}</span>
           <Input
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            placeholder="유저네임"
+            placeholder={t("flower.spyb8w0")}
           />
         </label>
 
         <label className="block space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">전달 위치</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("flower.snb7b7w")}</span>
           <select
             className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
             value={context}
@@ -231,7 +234,7 @@ export function FlowerSendForm({
         </label>
 
         <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">편지</p>
+          <p className="text-xs font-medium text-muted-foreground">{t("flower.s114aw")}</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -275,8 +278,8 @@ export function FlowerSendForm({
                 maxLength={LETTER_MAX}
                 placeholder={
                   selected
-                    ? `예: ${selected.flowerType.defaultMessage}`
-                    : "받고 싶은 마음을 편지에 적어 주세요"
+                    ? t("flower.sxooi", { v0: selected.flowerType.defaultMessage })
+                    : t("flower.sej8tpa")
                 }
                 className="w-full rounded-xl border border-amber-900/15 bg-[#fffdf8] px-3 py-3 text-sm leading-relaxed font-serif dark:bg-amber-950/20 dark:border-amber-100/10"
               />
@@ -300,7 +303,7 @@ export function FlowerSendForm({
                   ? selected?.flowerType.defaultMessage
                   : letter.trim();
               if (!body) {
-                setMsg("편지를 작성해 주세요.");
+                setMsg(t("flower.slydjam"));
                 return;
               }
               const res = await sendFlowerGift({
@@ -315,25 +318,25 @@ export function FlowerSendForm({
                     ? `gift_${crypto.randomUUID()}`
                     : undefined,
               });
-              setMsg(errorText(res.error ?? "꽃과 편지를 보냈습니다."));
+              setMsg(errorText(res.error ?? t("flower.s1hiz9gk")));
               if (!res.error) window.location.reload();
             })
           }
         >
-          {pending ? "전달 중…" : "꽃과 편지 보내기"}
+          {pending ? t("flower.snb6pd9") : t("flower.sa7z0lb")}
         </Button>
       </div>
 
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground px-1">미리보기 · 받는 이에게 이렇게 보여요</p>
+        <p className="text-xs font-medium text-muted-foreground px-1">{t("flower.s1axpj2v")}</p>
         {selected ? (
           <FlowerLetterCard
             emoji={selected.flowerType.emoji}
             nameKo={selected.flowerType.nameKo}
             faceValueKrw={selected.faceValueKrw}
             letter={previewLetter}
-            toLabel={to.trim() ? `@${to.replace(/^@/, "")}` : "받는 분"}
-            fromLabel="나"
+            toLabel={to.trim() ? `@${to.replace(/^@/, "")}` : t("flower.sogauil")}
+            fromLabel={t("flower.syvs")}
           />
         ) : null}
       </div>
@@ -372,8 +375,8 @@ export function FlowerRedeemButton({
             else
               setMsg(
                 res.heldForReview
-                  ? "위험 검토로 환전이 대기 중입니다."
-                  : `환전 요청 완료 · 예상 수령 ${net.toLocaleString()}원 (수수료 ${FLOWER_REDEEM_FEE_BPS / 100}%)`
+                  ? t("flower.sszwcnq")
+                  : t("flower.s17grqdm", { v0: net.toLocaleString(), v1: FLOWER_REDEEM_FEE_BPS / 100 })
               );
             if (!res.error) setTimeout(() => window.location.reload(), 800);
           })

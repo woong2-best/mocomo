@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useTransition } from "react";
 import {
   adminApproveFlowerRedeem,
@@ -34,7 +37,7 @@ export function AdminFlowerRedeemActions({ redeem }: { redeem: Redeem }) {
         disabled={pending}
         onClick={() =>
           start(async () => {
-            await adminRejectFlowerRedeem(redeem.id, "관리자 거절");
+            await adminRejectFlowerRedeem(redeem.id, t("flower.s1jy60no"));
             window.location.reload();
           })
         }
