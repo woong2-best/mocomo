@@ -28,7 +28,7 @@ export default async function WebtoonSeriesPage({ params }: { params: Promise<{ 
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={series.coverUrl} alt="" className="w-32 aspect-square rounded-xl object-cover border shrink-0" />
         <div>
-          <p className="text-xs text-[#0096fa] font-semibold">포트폴리오</p>
+          <p className="text-xs text-[#0096fa] font-semibold">Portfolio</p>
           <h1 className="text-xl font-bold mt-1">{series.title}</h1>
           <Link href={`/u/${series.author.username}`} className="text-sm text-muted-foreground mt-1 hover:text-[#0096fa]">
             @{series.author.username}
