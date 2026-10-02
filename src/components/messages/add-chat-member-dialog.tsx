@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
@@ -53,15 +56,15 @@ export function AddChatMemberDialog({
     try {
       const result = await addChatMemberByHandle(roomId, next);
       if ("error" in result) {
-        setError(result.error === "NOT_MEMBER" ? "대화 멤버만 추가할 수 있습니다." : result.error);
+        setError(result.error === "NOT_MEMBER" ? t("messages.slm6ssx") : result.error);
         return;
       }
       setList((prev) => (prev.some((m) => m.id === result.added.id) ? prev : [...prev, result.added]));
       setHandle("");
-      setOkNote(`@${result.added.username} 님을 추가했습니다.`);
+      setOkNote(t("messages.s1o3eebp", { v0: result.added.username }));
       router.refresh();
     } catch {
-      setError("추가하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      setError(t("messages.sqtzbp8"));
     } finally {
       setBusy(false);
     }
@@ -85,15 +88,15 @@ export function AddChatMemberDialog({
           variant="ghost"
           size="icon"
           className="h-9 w-9 rounded-full shrink-0"
-          aria-label="대화에 사람 추가"
+          aria-label={t("messages.swzrnuw")}
         >
           <UserPlus className="h-5 w-5" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>사람 추가</DialogTitle>
-          <DialogDescription>아이디를 한 명씩 입력해 이 대화에 추가합니다.</DialogDescription>
+          <DialogTitle>{t("messages.s1u7n3jg")}</DialogTitle>
+          <DialogDescription>{t("messages.s6rt8ld")}</DialogDescription>
         </DialogHeader>
         <ul className="max-h-40 overflow-y-auto space-y-2">
           {list.map((m) => {
@@ -117,15 +120,15 @@ export function AddChatMemberDialog({
             className="flex-1"
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
-            placeholder="아이디 입력"
+            placeholder={t("messages.s1tfd56k")}
             autoComplete="off"
             autoCapitalize="none"
             spellCheck={false}
             disabled={busy}
-            aria-label="추가할 아이디"
+            aria-label={t("messages.sez7c54")}
           />
           <Button type="submit" disabled={busy || !handle.trim()} className="shrink-0">
-            {busy ? "…" : "추가"}
+            {busy ? "…" : t("messages.szwto")}
           </Button>
         </form>
         {okNote ? <p className="text-xs font-medium text-folk-cobalt">{okNote}</p> : null}
