@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Check, Info } from "lucide-react";
@@ -51,7 +53,7 @@ export function SellerCenterHome({
     startStripe(async () => {
       const res = await resumeSellerConnectFromOnboarding({ payoutCountry });
       if ("error" in res && res.error) {
-        setStripeError(res.error);
+        setStripeError(errorText(res.error));
         return;
       }
       if ("url" in res && res.url) openStripeConnectOnboardingUrl(res.url, false);

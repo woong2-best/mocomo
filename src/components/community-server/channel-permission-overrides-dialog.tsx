@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import {
@@ -116,7 +118,7 @@ export function ChannelPermissionOverridesDialog({
     setError("");
     const res = await getChannelPermissionManageBundle(channelId);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       setLoading(false);
       return;
     }
@@ -164,7 +166,7 @@ export function ChannelPermissionOverridesDialog({
       allow: draftAllow,
       deny: draftDeny,
     });
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else await load();
     setSaving(false);
   }
@@ -172,7 +174,7 @@ export function ChannelPermissionOverridesDialog({
   async function removeOverride(id: string) {
     setSaving(true);
     const res = await deleteChannelPermissionOverride(id);
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else await load();
     setSaving(false);
   }

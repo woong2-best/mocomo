@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -73,7 +75,7 @@ export function ProfileSettingsForm({
   async function publishMedia(patch: { image?: string | null; bannerUrl?: string | null; bannerVideoUrl?: string | null }) {
     const result = await updateProfile(patch);
     if (result && "error" in result && result.error) {
-      setMsg(result.error);
+      setMsg(errorText(result.error));
       return;
     }
     await sessionState?.update?.();
@@ -142,7 +144,7 @@ export function ProfileSettingsForm({
       ) as Record<string, string>,
     });
     if (result && "error" in result && result.error) {
-      setMsg(result.error);
+      setMsg(errorText(result.error));
     } else {
       await sessionState?.update?.();
       router.refresh();

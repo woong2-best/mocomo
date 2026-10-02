@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -49,7 +51,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
     setMsg("");
     startTransition(async () => {
       const res = await fn();
-      if (res.error) setMsg(res.error);
+      if (res.error) setMsg(errorText(res.error));
       else setMsg("처리되었습니다.");
       window.location.reload();
     });
@@ -376,7 +378,7 @@ function MarketplaceDisputeForm({
       .slice(0, 12);
     startTransition(async () => {
       const res = await openMarketplaceDispute(orderId, text, disputeCode, urls);
-      if (res.error) setMsg(res.error);
+      if (res.error) setMsg(errorText(res.error));
       else {
         setMsg(
           t("ui.dispute_filed_trade_records_are_preserved")

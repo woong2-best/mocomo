@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FeedDualColumnLayout,
@@ -135,7 +137,7 @@ export function FeedInfinite({
       }
       if (!res.ok) {
         autoLoadBlockedRef.current = true;
-        setLoadError(json.error ?? "피드를 더 불러오지 못했습니다.");
+        setLoadError(errorText(json.error ?? "피드를 더 불러오지 못했습니다."));
         return;
       }
       if (!Array.isArray(json.items)) {

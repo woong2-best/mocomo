@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Socket } from "socket.io-client";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
@@ -100,7 +102,7 @@ export function useMinigameRoom(
       );
       if (!result.ok) {
         if (result.error.includes("비밀번호")) setNeedsPassword(true);
-        setError(result.error);
+        setError(errorText(result.error));
         setConnecting(false);
         return false;
       }
@@ -185,7 +187,7 @@ export function useMinigameRoom(
           active
         );
         if (!result.ok) {
-          setError(result.error);
+          setError(errorText(result.error));
           setConnecting(false);
           return;
         }
@@ -304,7 +306,7 @@ export function useMinigameRoom(
   const setReady = useCallback(
     async (ready: boolean) => {
       const result = await emitAck("minigame_ready", { gameId, roomId: roomCode, ready });
-      if (!result.ok) setError(result.error);
+      if (!result.ok) setError(errorText(result.error));
     },
     [emitAck, gameId, roomCode]
   );
@@ -312,7 +314,7 @@ export function useMinigameRoom(
   const startGame = useCallback(async () => {
     const result = await emitAck("minigame_start", { gameId, roomId: roomCode });
     if (!result.ok) {
-      setError(result.error);
+      setError(errorText(result.error));
       return false;
     }
     if (result.state) setState(result.state);
@@ -323,7 +325,7 @@ export function useMinigameRoom(
     async (move: unknown) => {
       const result = await emitAck("minigame_move", { gameId, roomId: roomCode, move });
       if (!result.ok) {
-        setError(result.error);
+        setError(errorText(result.error));
         return false;
       }
       if (result.state) setState(result.state);
@@ -343,7 +345,7 @@ export function useMinigameRoom(
   const requestRematch = useCallback(async () => {
     const result = await emitAck("minigame_rematch", { gameId, roomId: roomCode });
     if (!result.ok) {
-      setError(result.error);
+      setError(errorText(result.error));
       return false;
     }
     if (result.state) setState(result.state);
@@ -361,7 +363,7 @@ export function useMinigameRoom(
   const closeRoom = useCallback(async () => {
     const result = await emitAck("minigame_close", { gameId, roomId: roomCode });
     if (!result.ok) {
-      setError(result.error);
+      setError(errorText(result.error));
       return false;
     }
     joinedRef.current = false;

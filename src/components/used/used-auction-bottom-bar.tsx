@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -82,7 +84,7 @@ export function UsedAuctionBottomBar({
         router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
         return;
       }
-      setBarError(res.error);
+      setBarError(errorText(res.error));
       return;
     }
     if ("roomId" in res && res.roomId) router.push(`/messages/${res.roomId}`);
@@ -101,7 +103,7 @@ export function UsedAuctionBottomBar({
     const res = await getUsedListingChatRooms(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      setBarError(res.error);
+      setBarError(errorText(res.error));
       return;
     }
     const rooms = res.rooms ?? [];
@@ -122,7 +124,7 @@ export function UsedAuctionBottomBar({
     setConfirmCancel(false);
     const res = await cancelUsedAuction(listingId);
     setLoading(false);
-    if ("error" in res && res.error) setBarError(res.error);
+    if ("error" in res && res.error) setBarError(errorText(res.error));
     else router.refresh();
   }
 

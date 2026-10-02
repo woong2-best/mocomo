@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { adminLoadUserDetail } from "@/actions/admin-cms";
 import { AdminUserActions } from "@/components/admin/cms/admin-user-actions";
@@ -13,7 +14,7 @@ export default async function AdminUserDetailPage({
   const { id } = await params;
   const res = await adminLoadUserDetail(id);
   if (!res.ok) {
-    return <p className="text-sm text-destructive">{res.error}</p>;
+    return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
   }
 
   const { user, tipsSent, tipsReceived, payments, reportsAbout, postsCount, ordersBought, ordersSold } =

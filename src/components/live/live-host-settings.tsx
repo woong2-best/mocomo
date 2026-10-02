@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useLocale } from "@/components/providers/locale-provider";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
@@ -60,7 +62,7 @@ function ChatSettingsForm({
         chatSubscribersOnly: subscribersOnly,
         chatMinTierExempt: tierExempt ? (tierExempt as SupportTierLevel) : null,
       });
-      if ("error" in res && res.error) setMsg(res.error);
+      if ("error" in res && res.error) setMsg(errorText(res.error));
       else setMsg(t("live.s12la3bm"));
     });
   }
@@ -164,7 +166,7 @@ function HostSettingsForm({
         isNsfw,
         contentRating: isNsfw ? "ADULT" : "GENERAL",
       });
-      if ("error" in res && res.error) setMsg(res.error);
+      if ("error" in res && res.error) setMsg(errorText(res.error));
       else setMsg(t("live.s12la3bm"));
     });
   }

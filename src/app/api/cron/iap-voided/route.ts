@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { handleIapVoidOrRefund } from "@/lib/apt/economy/iap/iap-refund-service";
 import { listVoidedGooglePurchases } from "@/lib/apt/economy/iap/google-play-verifier";
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
     startTimeMs: Date.now() - 24 * 60 * 60 * 1000,
   });
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 502 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 502 });
   }
 
   let handled = 0;

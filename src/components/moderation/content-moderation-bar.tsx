@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useTransition, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -45,7 +47,7 @@ export function ContentModerationBar({
             : { error: "지원하지 않는 유형입니다." };
 
       if (res.error) {
-        setActionError(res.error);
+        setActionError(errorText(res.error));
         setConfirmDelete(false);
         return;
       }

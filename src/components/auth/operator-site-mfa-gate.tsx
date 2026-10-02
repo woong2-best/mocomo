@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -85,7 +87,7 @@ export function OperatorSiteMfaGate() {
       armedRef.current = true;
       const res = await adminMfaAfterPasswordAction();
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         setOpen(true);
         return;
       }
@@ -104,7 +106,7 @@ export function OperatorSiteMfaGate() {
     try {
       const opts = await adminPasskeyAuthOptionsAction();
       if ("error" in opts && opts.error) {
-        setError(opts.error);
+        setError(errorText(opts.error));
         return;
       }
       if (!("options" in opts) || !opts.options) {
@@ -114,7 +116,7 @@ export function OperatorSiteMfaGate() {
       const assertion = await startAuthentication(opts.options);
       const verified = await adminPasskeyAuthVerifyAction(assertion);
       if ("error" in verified && verified.error) {
-        setError(verified.error);
+        setError(errorText(verified.error));
         return;
       }
       setStep("totp");
@@ -132,7 +134,7 @@ export function OperatorSiteMfaGate() {
     const res = await adminTotpAuthVerifyAction(code.trim(), { useRecovery });
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     setOpen(false);

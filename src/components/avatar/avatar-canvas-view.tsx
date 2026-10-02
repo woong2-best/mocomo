@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VirtualAvatar3DScene } from "@/lib/virtual-avatar/avatar-3d-scene";
 import { PhotoAvatarScene } from "@/lib/photo-avatar/photo-avatar-scene";
@@ -242,7 +244,7 @@ export function AvatarCanvasView({
 
         {syncEnabled && faceTracking.error && (
           <div className="absolute top-3 left-3 right-3 z-10 rounded-xl border-2 border-folk-terracotta/30 bg-background/95 px-3 py-2 text-[11px] text-muted-foreground shadow-folk-sm">
-            {faceTracking.error}
+            {errorText(faceTracking.error)}
           </div>
         )}
 

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -168,7 +170,7 @@ export function WalletZeroPaymentCards({
     const res = await startAddPaymentMethod("/wallet");
     setAdding(false);
     if ("error" in res && res.error) {
-      setMsg(res.error);
+      setMsg(errorText(res.error));
       return;
     }
     if ("checkoutUrl" in res && res.checkoutUrl) {

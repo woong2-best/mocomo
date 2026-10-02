@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -182,7 +184,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
     const res = await banLiveStudioViewerAction(userId);
     setBusy(false);
     if ("error" in res && res.error) {
-      setActionError(res.error);
+      setActionError(errorText(res.error));
       return;
     }
     setActionMsg(t("live.studio.viewerBanned"));
@@ -197,7 +199,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
     const res = await unbanLiveStudioViewerAction(userId);
     setBusy(false);
     if ("error" in res && res.error) {
-      setActionError(res.error);
+      setActionError(errorText(res.error));
       return;
     }
     void reloadLists();
@@ -210,7 +212,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
     const res = await assignLiveStudioStaffAction(userId, "MANAGER");
     setBusy(false);
     if ("error" in res && res.error) {
-      setActionError(res.error);
+      setActionError(errorText(res.error));
       return;
     }
     setActionMsg(t("live.studio.staffAssigned"));
@@ -225,7 +227,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
     const res = await removeLiveStudioStaffAction(userId);
     setBusy(false);
     if ("error" in res && res.error) {
-      setActionError(res.error);
+      setActionError(errorText(res.error));
       return;
     }
     void reloadLists();

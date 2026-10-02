@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -25,7 +27,7 @@ export function AdminUserActions({ userId, username }: { userId: string; usernam
   function run(fn: () => Promise<{ error?: string; success?: boolean }>) {
     start(async () => {
       const res = await fn();
-      setMsg(res.error ?? "완료되었습니다.");
+      setMsg(errorText(res.error ?? "완료되었습니다."));
       if (!res.error) router.refresh();
     });
   }

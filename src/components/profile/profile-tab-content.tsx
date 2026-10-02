@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ProfileGridMediaItem, ProfileTabContentMeta, ProfileTabInitialPayload } from "@/actions/profile-page";
@@ -171,7 +173,7 @@ export function ProfileTabContent({
     fetch(url)
       .then(async (res) => {
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "불러오기에 실패했습니다.");
+        if (!res.ok) throw new Error(errorText(json.error ?? "불러오기에 실패했습니다."));
         if (cancelled) return;
 
         let next: TabPayload;

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Mail } from "lucide-react";
@@ -27,7 +29,7 @@ export function CosplayBoardContactBar({
     startTransition(async () => {
       const res = await getOrCreateDM(authorId);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("roomId" in res && res.roomId) {

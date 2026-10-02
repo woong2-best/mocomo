@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { createPhysicalOrderDraft } from "@/actions/goods-shop";
 import { PayButton } from "@/components/payments/pay-button";
@@ -48,7 +50,7 @@ export function PhysicalPurchaseForm({
     });
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("orderId" in res && res.orderId) {

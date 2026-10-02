@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -67,7 +69,7 @@ export function LiveSupportPollBar({
     });
     setLoading(false);
     if (!res.ok) {
-      setError(res.error ?? t("live.syb44"));
+      setError(errorText(res.error ?? t("live.syb44")));
       return;
     }
     if (res.poll) onPoll(res.poll);
@@ -83,7 +85,7 @@ export function LiveSupportPollBar({
     const res = await voteLivePoll(socket, { pollId: poll.id, optionId });
     setLoading(false);
     if (!res.ok) {
-      setError(res.error ?? t("live.syb44"));
+      setError(errorText(res.error ?? t("live.syb44")));
       return;
     }
     if (res.poll) onPoll(res.poll);

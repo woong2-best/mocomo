@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VirtualAvatar3DScene } from "@/lib/virtual-avatar/avatar-3d-scene";
 import { Flat2dAvatarScene } from "@/lib/avatar-2d/flat-2d-scene";
@@ -188,7 +190,7 @@ export function AvatarBroadcastView({ bgMode = "transparent" }: { bgMode?: Broad
 
       {faceTracking.error && (
         <p className="absolute bottom-10 left-3 right-3 text-center text-xs text-red-300 z-10">
-          {faceTracking.error}
+          {errorText(faceTracking.error)}
         </p>
       )}
 

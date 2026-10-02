@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
   if (data.action === "topupSavedCard") {
     const quote = quoteGemTopup(data.moco);
     if (!quote.ok) {
-      return NextResponse.json({ error: quote.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(quote.error) }, { status: 422 });
     }
     const dbUser = await db.user.findUnique({
       where: { id: auth.user.id },
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
       metadata: gemTopupStripeMetadata(quote),
     });
     if ("error" in prepared && prepared.error) {
-      return NextResponse.json({ error: prepared.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(prepared.error) }, { status: 422 });
     }
     if (!("orderId" in prepared) || !prepared.orderId) {
       return NextResponse.json({ error: "결제 준비에 실패했습니다." }, { status: 422 });
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
       { purchaseTermsAccepted: true, platform: "mobile" }
     );
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
     if ("requiresAction" in result && result.requiresAction && result.clientSecret) {
       const authenticateUrl = stripePaymentAuthenticateUrl(
@@ -160,7 +161,7 @@ export async function POST(req: NextRequest) {
   if (data.action === "topup") {
     const quote = quoteGemTopup(data.moco);
     if (!quote.ok) {
-      return NextResponse.json({ error: quote.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(quote.error) }, { status: 422 });
     }
     const dbUser = await db.user.findUnique({
       where: { id: auth.user.id },
@@ -177,7 +178,7 @@ export async function POST(req: NextRequest) {
       purchaseTermsAccepted: true,
     });
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
     return NextResponse.json(result);
   }

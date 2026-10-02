@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -135,7 +137,7 @@ export function MarketplaceListingForm() {
           router.push(String(res.redirectTo));
           return;
         }
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("listingId" in res) {

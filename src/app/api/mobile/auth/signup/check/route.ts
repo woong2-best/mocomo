@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -41,13 +42,13 @@ export async function POST(req: NextRequest) {
     parsed.data.name
   );
   if (!availability.ok) {
-    return NextResponse.json({ ok: false, error: availability.error }, { status: 409 });
+    return NextResponse.json({ ok: false, error: errorText(availability.error) }, { status: 409 });
   }
 
   const usernameCheck = await checkUsernameAvailable(parsed.data.username);
   if (!usernameCheck.available) {
     return NextResponse.json(
-      { ok: false, error: usernameCheck.error ?? "사용할 수 없는 닉네임입니다." },
+      { ok: false, error: errorText(usernameCheck.error ?? "사용할 수 없는 닉네임입니다.") },
       { status: 409 }
     );
   }

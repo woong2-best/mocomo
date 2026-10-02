@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 ﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -104,7 +105,7 @@ export function SignupVerifyForm() {
       });
 
       if (result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         const retry =
           result.error.includes("정답") ||
           result.error.includes("만료") ||

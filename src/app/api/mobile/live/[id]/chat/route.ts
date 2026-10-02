@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -125,7 +126,7 @@ export async function POST(
 
   const filtered = filterLiveChatContent(content, ensureStringArray(channel.chatBannedWords));
   if (!filtered.ok) {
-    return NextResponse.json({ error: filtered.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(filtered.error) }, { status: 400 });
   }
 
   const [chatAccess, mod] = await Promise.all([
@@ -138,10 +139,10 @@ export async function POST(
     ensureLiveMember(channelId, authResult.user.id, access.isHost),
   ]);
   if (!chatAccess.ok) {
-    return NextResponse.json({ error: chatAccess.error }, { status: 403 });
+    return NextResponse.json({ error: errorText(chatAccess.error) }, { status: 403 });
   }
   if (!mod.ok) {
-    return NextResponse.json({ error: mod.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(mod.error) }, { status: 400 });
   }
 
   const modExempt = hasBroadcastPermission(chatAccess.role, "chat.delete");

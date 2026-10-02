@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -45,7 +47,7 @@ export function LiveChatUserMenu({
     setError("");
     const res = await action();
     setBusy(false);
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
   }
 
   return (

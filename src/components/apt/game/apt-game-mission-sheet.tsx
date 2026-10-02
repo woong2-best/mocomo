@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { memo, useState } from "react";
 import { Gift, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -116,7 +118,7 @@ function AptGameMissionSheetInner() {
                       type="button"
                       onClick={async () => {
                         const res = await claimMission(m.id);
-                        if (res.error) setToast(res.error);
+                        if (res.error) setToast(errorText(res.error));
                         else setToast(`+${m.goldReward}G 받았어요!`);
                       }}
                       className="rounded-full bg-emerald-500 px-3 py-1 text-[9px] font-black text-white shadow-sm"

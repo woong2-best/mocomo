@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -21,7 +22,7 @@ export async function GET(
   const { channelId } = await params;
   const perm = await requireBroadcastPermission(session.user.id, channelId, "chat.ban");
   if (!perm.ok) {
-    return NextResponse.json({ error: perm.error }, { status: 403 });
+    return NextResponse.json({ error: errorText(perm.error) }, { status: 403 });
   }
 
   const bans = await listLiveChatBans(channelId);
@@ -85,7 +86,7 @@ export async function POST(
   }
 
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 403 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 403 });
   }
   return NextResponse.json({ ok: true, ...result });
 }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -195,7 +197,7 @@ export function AdminGoldShopPanel({ offers: initialOffers, catalogItems }: Prop
     });
     setBusy(null);
     if ("error" in res) {
-      setActionError(res.error ?? "오류가 발생했습니다.");
+      setActionError(errorText(res.error ?? "오류가 발생했습니다."));
       return;
     }
     setCreateOpen(false);

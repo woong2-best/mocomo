@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { CouponAudience, CouponBenefitType } from "@prisma/client";
@@ -211,7 +213,7 @@ export function CouponCreateDialog({
                   adminMemo,
                 });
                 if (res.error) {
-                  setMsg(res.error);
+                  setMsg(errorText(res.error));
                   return;
                 }
                 setMsg("생성됨");

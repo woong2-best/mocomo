@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { reportMarketplaceListing } from "@/actions/marketplace-admin";
 import { MARKETPLACE_REPORT_REASONS } from "@/lib/marketplace/protection-config";
@@ -50,7 +52,7 @@ export function MarketplaceReportButton({ listingId }: { listingId: string }) {
           onClick={() =>
             start(async () => {
               const res = await reportMarketplaceListing({ listingId, reason, details });
-              setMsg(res.error ?? "신고가 접수되었습니다.");
+              setMsg(errorText(res.error ?? "신고가 접수되었습니다."));
               if (!res.error) setOpen(false);
             })
           }

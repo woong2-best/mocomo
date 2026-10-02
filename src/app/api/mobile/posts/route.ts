@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (result.error && !result.postId) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({

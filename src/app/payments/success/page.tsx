@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { confirmStripeCheckout } from "@/actions/monetization";
+import { errorText } from "@/lib/i18n/error-text";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle } from "lucide-react";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
@@ -24,7 +25,7 @@ export default async function PaymentSuccessPage({
   const result = await confirmStripeCheckout(session_id);
 
   if ("error" in result && result.error) {
-    return <Result ok={false} title="결제 실패" message={result.error} />;
+    return <Result ok={false} title="결제 실패" message={errorText(result.error)} />;
   }
 
   const labels: Record<string, string> = {

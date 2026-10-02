@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import type { CommunityChannelType } from "@prisma/client";
 import { Loader2 } from "lucide-react";
@@ -48,7 +50,7 @@ export function ChannelCreateDialog({
       categoryId: categoryId ?? undefined,
     });
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       setLoading(false);
       return;
     }

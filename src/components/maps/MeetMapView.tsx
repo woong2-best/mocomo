@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -172,7 +174,7 @@ export function MeetMapView({
         error?: string;
       };
       if (!res.ok || body.lat == null || body.lng == null) {
-        setResolveError(body.error ?? "장소를 찾지 못했습니다.");
+        setResolveError(errorText(body.error ?? "장소를 찾지 못했습니다."));
         return;
       }
       const next = { lat: body.lat, lng: body.lng };

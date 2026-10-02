@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useState } from "react";
 import { startRegistration } from "@simplewebauthn/browser";
 import QRCode from "qrcode";
@@ -50,7 +52,7 @@ export function AdminSecuritySettingsPanel() {
     const options = await adminPasskeyRegisterOptionsAction();
     if ("error" in options && options.error) {
       setLoading(false);
-      setError(options.error);
+      setError(errorText(options.error));
       return;
     }
     try {
@@ -61,7 +63,7 @@ export function AdminSecuritySettingsPanel() {
       const result = await adminPasskeyRegisterVerifyAction(attestation, name);
       setLoading(false);
       if ("error" in result && result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       await reload();
@@ -76,7 +78,7 @@ export function AdminSecuritySettingsPanel() {
     const begun = await adminTotpBeginAction();
     setLoading(false);
     if ("error" in begun && begun.error) {
-      setError(begun.error);
+      setError(errorText(begun.error));
       return;
     }
     if ("otpauthUrl" in begun && begun.otpauthUrl) {
@@ -145,7 +147,7 @@ export function AdminSecuritySettingsPanel() {
                   variant="destructive"
                   onClick={async () => {
                     const r = await adminPasskeyDeleteAction(pk.id);
-                    if ("error" in r && r.error) setError(r.error);
+                    if ("error" in r && r.error) setError(errorText(r.error));
                     await reload();
                   }}
                 >
@@ -219,7 +221,7 @@ export function AdminSecuritySettingsPanel() {
               <Button
                 onClick={async () => {
                   const r = await adminTotpVerifyAction(totpCode);
-                  if ("error" in r && r.error) setError(r.error);
+                  if ("error" in r && r.error) setError(errorText(r.error));
                   else {
                     setQr(null);
                     setTotpCode("");

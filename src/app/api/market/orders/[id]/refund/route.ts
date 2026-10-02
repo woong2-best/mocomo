@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -61,7 +62,7 @@ export async function POST(
 
   const result = await requestMarketplaceRefund(orderId, parsed.data.reason, quote.refundAmount);
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
   }
 
   return NextResponse.json({ success: true, quote });
@@ -103,7 +104,7 @@ export async function PATCH(
 
   const result = await sellerRespondMarketplaceRefund(parsed.data.refundId, parsed.data.approve);
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
   }
 
   return NextResponse.json({ success: true });

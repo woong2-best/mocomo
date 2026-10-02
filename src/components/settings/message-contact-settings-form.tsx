@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateContactAudience } from "@/actions/contact-audience";
@@ -58,7 +60,7 @@ export function MessageContactSettingsForm({ initial }: { initial: Settings }) {
     const result = await updateContactAudience({ messageRequestAudience: next });
     setLoading(null);
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     if ("settings" in result && result.settings) setSettings(result.settings);
@@ -72,7 +74,7 @@ export function MessageContactSettingsForm({ initial }: { initial: Settings }) {
     const result = await updateContactAudience({ callRequestAudience: next });
     setLoading(null);
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     if ("settings" in result && result.settings) setSettings(result.settings);

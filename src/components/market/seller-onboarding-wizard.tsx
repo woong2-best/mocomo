@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -141,7 +143,7 @@ export function SellerOnboardingWizard({
           router.replace(res.redirectTo);
           return;
         }
-        if ("error" in res && res.error) setError(res.error);
+        if ("error" in res && res.error) setError(errorText(res.error));
         else refreshState();
       });
     } else if (connectParam === "refresh") {
@@ -206,7 +208,7 @@ export function SellerOnboardingWizard({
           refreshState();
           return;
         }
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       try {
@@ -231,7 +233,7 @@ export function SellerOnboardingWizard({
         agreePromo,
       });
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setStep(res.nextStep as SellerOnboardingStepId);
@@ -244,7 +246,7 @@ export function SellerOnboardingWizard({
     startTransition(async () => {
       const res = await verifySellerEmailCode(email, emailCode);
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       const pw = (() => {
@@ -281,7 +283,7 @@ export function SellerOnboardingWizard({
     startTransition(async () => {
       const res = await resendSellerEmailCode(email);
       if (res && "error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setMessage("인증 코드를 다시 보냈습니다.");
@@ -303,7 +305,7 @@ export function SellerOnboardingWizard({
         businessRepresentativeName: businessRepresentativeName || undefined,
       });
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("nextStep" in res && res.nextStep) {

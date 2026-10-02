@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -86,7 +88,7 @@ export function AdminEconomyBackupPanel({ snapshots: initial, restoreLogs }: Pro
     setError(null);
     const result = await adminGetSnapshotDiff(id);
     if ("error" in result) {
-      setError(result.error);
+      setError(errorText(result.error));
     } else {
       setDiff(result.diff);
       setSelectedId(id);
@@ -100,7 +102,7 @@ export function AdminEconomyBackupPanel({ snapshots: initial, restoreLogs }: Pro
     setError(null);
     const result = await adminDryRunRestore(selectedId, scopes, reason);
     if ("error" in result) {
-      setError(result.error);
+      setError(errorText(result.error));
       setBusy(null);
       return;
     }
@@ -119,7 +121,7 @@ export function AdminEconomyBackupPanel({ snapshots: initial, restoreLogs }: Pro
     setError(null);
     const result = await adminPartialRestore(selectedId, scopes, reason);
     if ("error" in result) {
-      setError(result.error);
+      setError(errorText(result.error));
       setBusy(null);
       return;
     }

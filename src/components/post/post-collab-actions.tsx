@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -34,7 +36,7 @@ export function PostCollabActions({ postId, status, isAuthor }: Props) {
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? t("collab.actionFailed"));
+        setError(errorText(data.error ?? t("collab.actionFailed")));
         return;
       }
       setDone(true);

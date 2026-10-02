@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
@@ -261,7 +262,7 @@ export async function PATCH(req: NextRequest) {
   });
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   if (data.locale || data.countryCode || data.timeZone || data.usedServiceRegion) {
@@ -275,7 +276,7 @@ export async function PATCH(req: NextRequest) {
         storedCountry?.countryCode
       );
       if (countryBlock) {
-        return NextResponse.json({ error: countryBlock.error }, { status: 403 });
+        return NextResponse.json({ error: errorText(countryBlock.error) }, { status: 403 });
       }
     }
     const nextCountry = data.countryCode
@@ -310,7 +311,7 @@ export async function PATCH(req: NextRequest) {
   if (data.postsLocked !== undefined) {
     const lockResult = await setPostsLockedForUser(auth.user.id, data.postsLocked);
     if ("error" in lockResult) {
-      return NextResponse.json({ error: lockResult.error }, { status: 400 });
+      return NextResponse.json({ error: errorText(lockResult.error) }, { status: 400 });
     }
   }
 

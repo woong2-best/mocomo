@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import dynamic from "next/dynamic";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -582,7 +584,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
     const result = await acceptCall(callState.call.id);
     if (result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       resetCall();
       return;
     }

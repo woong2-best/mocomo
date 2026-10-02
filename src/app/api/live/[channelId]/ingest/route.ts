@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -70,7 +71,7 @@ export async function GET(
 
   const prov = await provisionObsIngress(channelId, session.user.id);
   if ("error" in prov) {
-    return NextResponse.json({ error: prov.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(prov.error) }, { status: 400 });
   }
 
   const engine = resolveChannelIngestEngine({

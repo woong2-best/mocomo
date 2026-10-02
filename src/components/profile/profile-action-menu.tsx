@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -90,7 +92,7 @@ export function ProfileActionMenu({
     startTransition(async () => {
       const res = await toggleMuteUserAction(userId, username);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setMuted(!!res.muted);
@@ -104,7 +106,7 @@ export function ProfileActionMenu({
     startTransition(async () => {
       const res = await blockUserAction(userId, username);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setBlocked(true);
@@ -135,7 +137,7 @@ export function ProfileActionMenu({
         reportedUserId: userId,
       });
       if (res.error) {
-        setReportError(res.error);
+        setReportError(errorText(res.error));
         return;
       }
       setReportMessage(res.message ?? "신고가 접수되었습니다.");

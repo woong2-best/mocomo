@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -25,7 +27,7 @@ function VerifyInner() {
       .then((result) => {
         if (result.error) {
           setStatus("error");
-          setError(result.error);
+          setError(errorText(result.error));
         } else {
           setStatus("ok");
         }

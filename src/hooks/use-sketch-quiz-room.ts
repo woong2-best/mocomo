@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
 import type {
@@ -104,7 +106,7 @@ export function useSketchQuizRoom(
       });
       if (!result.ok) {
         if (result.error.includes("비밀번호")) setNeedsPassword(true);
-        setError(result.error);
+        setError(errorText(result.error));
         setConnecting(false);
         return false;
       }

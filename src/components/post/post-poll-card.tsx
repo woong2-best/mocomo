@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -52,7 +54,7 @@ export function PostPollCard({ postId, poll: initialPoll, isAuthor = false, comp
         error?: string;
       };
       if (!res.ok || !data.poll) {
-        setError(data.error ?? t("ui.vote_failed"));
+        setError(errorText(data.error ?? t("ui.vote_failed")));
         return;
       }
       setPoll(data.poll);

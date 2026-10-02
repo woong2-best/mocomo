@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -20,7 +22,7 @@ export function AnimeDeleteRequestForm({ slug, title }: { slug: string; title: s
     const res = await requestAnimeDeletion(slug, reason);
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     setDone(true);

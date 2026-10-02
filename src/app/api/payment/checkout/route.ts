@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   const quote = quoteGemTopup(parsed.data.moco);
   if (!quote.ok) {
-    return NextResponse.json({ error: quote.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(quote.error) }, { status: 422 });
   }
 
   const ledger = quoteMocoTopupLedger(quote.moco);
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
   });
 
   if ("error" in checkout && checkout.error) {
-    return NextResponse.json({ error: checkout.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(checkout.error) }, { status: 422 });
   }
 
   return NextResponse.json({

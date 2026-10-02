@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useLocale } from "@/components/providers/locale-provider";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
@@ -101,7 +103,7 @@ export function LiveSupportDialog({
     });
     setLoading(false);
     if (!res.ok) {
-      setError(res.error ?? t("live.syb44"));
+      setError(errorText(res.error ?? t("live.syb44")));
       return;
     }
     setSuccess(t("live.s1ae1nmb"));
@@ -124,7 +126,7 @@ export function LiveSupportDialog({
     });
     setLoading(false);
     if (!res.ok) {
-      setError(res.error ?? t("live.syb44"));
+      setError(errorText(res.error ?? t("live.syb44")));
       return;
     }
     setSuccess(t("live.s1x7mii4"));

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
   });
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 404 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 404 });
   }
 
   return NextResponse.json(result);

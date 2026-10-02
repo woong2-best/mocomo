@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -66,7 +68,7 @@ export function PostCollabManageDialog({
           error?: string;
         };
         if (!res.ok) {
-          setError(data.error ?? t("collab.actionFailed"));
+          setError(errorText(data.error ?? t("collab.actionFailed")));
           return;
         }
         setRows(data.collaborators ?? []);
@@ -116,7 +118,7 @@ export function PostCollabManageDialog({
     });
     const data = (await res.json().catch(() => ({}))) as { error?: string };
     if (!res.ok) {
-      setError(data.error ?? t("collab.actionFailed"));
+      setError(errorText(data.error ?? t("collab.actionFailed")));
       return;
     }
     setQuery("");
@@ -133,7 +135,7 @@ export function PostCollabManageDialog({
     });
     const data = (await res.json().catch(() => ({}))) as { error?: string };
     if (!res.ok) {
-      setError(data.error ?? t("collab.actionFailed"));
+      setError(errorText(data.error ?? t("collab.actionFailed")));
       return;
     }
     reload();

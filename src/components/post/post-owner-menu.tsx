@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -96,7 +98,7 @@ export function PostOwnerMenu({
     try {
       const res = pinned ? await unpinPostFromProfile(postId) : await pinPostToProfile(postId);
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setPinned(!pinned);
@@ -116,7 +118,7 @@ export function PostOwnerMenu({
         ? await unfeaturePostFromMyProfile(postId)
         : await featurePostOnMyProfile(postId);
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setFeatured(!featured);
@@ -137,7 +139,7 @@ export function PostOwnerMenu({
     try {
       const res = await toggleMuteUserAction(authorId, authorUsername);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setMuted(!!res.muted);
@@ -164,8 +166,8 @@ export function PostOwnerMenu({
     try {
       const res = await blockUserAction(authorId, authorUsername);
       if (res.error) {
-        setError(res.error);
-        publishedToast?.showErrorToast({ message: res.error });
+        setError(errorText(res.error));
+        publishedToast?.showErrorToast({ message: errorText(res.error) });
         return;
       }
       publishedToast?.showInfoToast({ message: t("post.menu.blockDone") });
@@ -192,8 +194,8 @@ export function PostOwnerMenu({
     try {
       const res = await deleteOwnPost(postId);
       if (res.error) {
-        publishedToast?.showErrorToast({ message: res.error });
-        setError(res.error);
+        publishedToast?.showErrorToast({ message: errorText(res.error) });
+        setError(errorText(res.error));
         router.refresh();
         return;
       }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { joinCommunity, leaveCommunity } from "@/actions/community-hub";
@@ -49,7 +51,7 @@ export function CommunityJoinButton({
         if ("error" in result && result.error) {
           setMember(!target);
           desiredRef.current = !target;
-          setError(result.error);
+          setError(errorText(result.error));
           break;
         }
         if (desiredRef.current !== target) continue;

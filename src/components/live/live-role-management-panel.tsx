@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -63,7 +65,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
     try {
       const res = await fetch(`/api/live/${channelId}/roles`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? t("live.roles.loadFailed"));
+      if (!res.ok) throw new Error(errorText(data.error ?? t("live.roles.loadFailed")));
       setMembers(data.members ?? []);
       setLogs(data.logs ?? []);
       const perms: string[] = data.permissions ?? [];
@@ -111,7 +113,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
     const res = await assignBroadcastRoleAction(channelId, selectedUserId, selectedRole);
     setSaving(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     setMessage(t("live.roles.saved"));
@@ -126,7 +128,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
     const res = await removeBroadcastRoleAction(channelId, userId);
     setSaving(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     void load();

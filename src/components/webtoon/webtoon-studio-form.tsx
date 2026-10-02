@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import type { WebtoonGenre } from "@prisma/client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -77,7 +79,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
     const res = await createWebtoonSeries({ title, description, coverUrl, genre });
     setLoading(false);
     if ("error" in res && res.error) {
-      setErr(res.error);
+      setErr(errorText(res.error));
       return;
     }
     setSeriesId(res.series!.id);
@@ -104,7 +106,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
     });
     setLoading(false);
     if ("error" in res && res.error) {
-      setErr(res.error);
+      setErr(errorText(res.error));
       return;
     }
     setMsg("작품이 등록되었습니다. 일러스트 마켓에 노출됩니다.");
@@ -119,7 +121,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
     const res = await updateWebtoonGenre(id, nextGenre);
     setLoading(false);
     if ("error" in res && res.error) {
-      setErr(res.error);
+      setErr(errorText(res.error));
       return;
     }
     setMsg("태그(장르)가 변경되었습니다.");

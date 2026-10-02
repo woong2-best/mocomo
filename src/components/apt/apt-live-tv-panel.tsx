@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -58,7 +60,7 @@ export function AptLiveTvPanel({ phase, blend, onPowerOff }: Props) {
             window.dispatchEvent(
               new CustomEvent("apt-game-toast", {
                 detail: {
-                  message: body.error ?? "시청 보상을 받지 못했어요",
+                  message: errorText(body.error ?? "시청 보상을 받지 못했어요"),
                   kind: "default",
                 },
               })

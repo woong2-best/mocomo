@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -42,7 +43,7 @@ export async function POST(
   });
 
   if (!prepared.ok) {
-    return NextResponse.json({ ok: false, error: prepared.error, code: prepared.code }, { status: 422 });
+    return NextResponse.json({ ok: false, error: errorText(prepared.error), code: prepared.code }, { status: 422 });
   }
 
   return NextResponse.json({

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useRef, useState } from "react";
 import { Film, ImagePlus, Loader2, Plus, X } from "lucide-react";
 import { updateCommunity } from "@/actions/community-hub";
@@ -65,7 +67,7 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
     setError("");
     const res = await updateCommunity(communityId, next);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       setSaving(false);
       return false;
     }

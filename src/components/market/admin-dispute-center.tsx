@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import {
   adminClearMarketplaceReview,
@@ -31,7 +33,7 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
     setMsg("");
     start(async () => {
       const res = await fn();
-      setMsg(res.error ?? "처리됨");
+      setMsg(errorText(res.error ?? "처리됨"));
       window.location.reload();
     });
   }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -33,7 +35,7 @@ export function AnimeCommunityPanel({
       });
       const data = (await res.json()) as { postId?: string; error?: string };
       if (!res.ok || !data.postId) {
-        setError(data.error ?? "게시에 실패했습니다.");
+        setError(errorText(data.error ?? "게시에 실패했습니다."));
         return;
       }
       setContent("");

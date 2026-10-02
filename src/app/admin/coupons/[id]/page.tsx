@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { adminGetCouponAction } from "@/actions/admin-coupons";
 import { getAdminActor } from "@/lib/admin/access";
@@ -14,7 +15,7 @@ export default async function AdminCouponDetailPage({
 }) {
   const { id } = await params;
   const [actor, res] = await Promise.all([getAdminActor(), adminGetCouponAction(id)]);
-  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+  if (!res.ok) return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
   const c = res.data;
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import { createTranslator } from "@/lib/i18n/messages";
+import { errorText } from "@/lib/i18n/error-text";
 const t = createTranslator("en");
 
 import { useEffect, useState } from "react";
@@ -72,7 +73,7 @@ export function ExternalLiveNewForm({ accounts }: Props) {
           "existingChannelId" in result && result.existingChannelId
             ? t("live.external.prevBroadcastSuffix", { id: result.existingChannelId })
             : "";
-        setError(`${result.error}${suffix}`);
+        setError(`${errorText(result.error)}${suffix}`);
         return;
       }
       if ("channel" in result && result.channel) {

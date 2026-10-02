@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import type { LiveStreamCategory } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
     const user = authResult.user;
     const hostCheck = await assertLiveHostEligible(user.id);
     if (!hostCheck.ok) {
-      return NextResponse.json({ error: hostCheck.error }, { status: 403 });
+      return NextResponse.json({ error: errorText(hostCheck.error) }, { status: 403 });
     }
 
     const account = await db.connectedStreamingAccount.findUnique({
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: String(resolved.errorKey) }, { status: 400 });
     }
     if ("error" in resolved && resolved.error) {
-      return NextResponse.json({ error: resolved.error }, { status: 400 });
+      return NextResponse.json({ error: errorText(resolved.error) }, { status: 400 });
     }
     if (!("provider" in resolved)) {
       return NextResponse.json({ error: "live.external.resolveFailed" }, { status: 400 });
@@ -116,7 +117,7 @@ export async function POST(req: NextRequest) {
         accessToken: tokens?.accessToken,
       });
       if (!kids.ok) {
-        return NextResponse.json({ error: kids.error }, { status: 400 });
+        return NextResponse.json({ error: errorText(kids.error) }, { status: 400 });
       }
       if (kids.madeForKids) {
         return NextResponse.json(
@@ -138,7 +139,7 @@ export async function POST(req: NextRequest) {
     const prep = await prepareHostForNewBroadcast(user.id);
     if (!prep.ok) {
       return NextResponse.json(
-        { error: prep.error, existingChannelId: prep.blockingChannelId },
+        { error: errorText(prep.error), existingChannelId: prep.blockingChannelId },
         { status: 409 }
       );
     }

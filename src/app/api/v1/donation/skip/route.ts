@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { resolveDonateApiUser } from "@/lib/moco-donation/api-auth";
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!result.ok) {
-    return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+    return NextResponse.json({ success: false, error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({ success: true });

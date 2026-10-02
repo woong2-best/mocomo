@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import type { AnimeGenre } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   const result = await createAnimeForUser(userId, body);
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({ anime: result.anime }, { status: 201 });

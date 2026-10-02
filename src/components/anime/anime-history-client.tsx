@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { restoreAnimeRevision } from "@/actions/anime";
@@ -36,7 +38,7 @@ export function AnimeHistoryClient({
     const res = await restoreAnimeRevision(id);
     setBusy(null);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     router.push(`/anime/${slug}`);

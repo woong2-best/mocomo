@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -40,7 +42,7 @@ export function CosplayGallerySettings({
     const result = await deleteCosplayPhoto(photoId);
     setDeletingId(null);
     if ("error" in result && result.error) {
-      setMsg(result.error);
+      setMsg(errorText(result.error));
       return;
     }
     setPhotos((prev) => prev.filter((p) => p.id !== photoId));
@@ -64,7 +66,7 @@ export function CosplayGallerySettings({
     setUploading(false);
 
     if ("error" in result && result.error) {
-      setMsg(result.error);
+      setMsg(errorText(result.error));
       return;
     }
     if (result.photo) {

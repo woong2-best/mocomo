@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -97,7 +99,7 @@ export default function NewVoicePage() {
     if (res.released?.length) {
       setPrepNotice(t("live.create.sessionsCleaned", { count: String(res.released.length) }));
     }
-    if (!res.ok && res.error) setSubmitError(res.error);
+    if (!res.ok && res.error) setSubmitError(errorText(res.error));
   }
 
   useEffect(() => {
@@ -152,7 +154,7 @@ export default function NewVoicePage() {
       });
 
       if (result.error) {
-        setSubmitError(result.error);
+        setSubmitError(errorText(result.error));
         setBlockingChannelId(
           "existingChannelId" in result && typeof result.existingChannelId === "string"
             ? result.existingChannelId

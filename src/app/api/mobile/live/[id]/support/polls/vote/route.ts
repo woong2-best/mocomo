@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -34,7 +35,7 @@ export async function POST(
   });
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({ ok: true, poll: result.poll, event: result.event });

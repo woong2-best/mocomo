@@ -6,6 +6,7 @@ import { getOrCreateDM } from "@/actions/chat";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 import { getTierInfo } from "@/lib/tiers";
+import { errorText } from "@/lib/i18n/error-text";
 import { SupportTierLevel } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
@@ -29,8 +30,8 @@ export function StartDmButton({
       const tier = result.requiredTier as SupportTierLevel | undefined;
       setError(
         tier
-          ? `${result.error} (필요: ${getTierInfo(tier).labelKo})`
-          : result.error
+          ? `${errorText(result.error)} (Required: ${getTierInfo(tier).label})`
+          : errorText(result.error)
       );
       return;
     }

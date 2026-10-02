@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -43,7 +45,7 @@ export function UsedTradeChatButton({
         router.push(usedMarketVerifyPath(`/market/${listingId}`, countryCode));
         return;
       }
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("roomId" in res && res.roomId) router.push(`/messages/${res.roomId}`);

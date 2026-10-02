@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { Suspense } from "react";
 import { adminListPromotionsAction } from "@/actions/admin-promotions";
 import { getAdminActor } from "@/lib/admin/access";
@@ -26,7 +27,7 @@ export default async function AdminPromotionsPage({
         query.active === "true" ? true : query.active === "false" ? false : undefined,
     }),
   ]);
-  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+  if (!res.ok) return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">

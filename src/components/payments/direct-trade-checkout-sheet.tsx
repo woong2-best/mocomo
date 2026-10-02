@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import type { MarketplaceCheckoutInput } from "@/actions/marketplace-checkout";
 import type { DirectTradeSnapshot } from "@/lib/marketplace/payment-routing";
@@ -82,7 +84,7 @@ export function DirectTradeCheckoutSheet({
       });
       const data = (await res.json()) as { error?: string; ok?: boolean };
       if (!res.ok) {
-        setError(data.error ?? "확인에 실패했습니다.");
+        setError(errorText(data.error ?? "확인에 실패했습니다."));
         return;
       }
       setPaid(true);

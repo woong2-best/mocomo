@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   const res = await pinPostToProfile(postId);
   if (res.error) {
-    return NextResponse.json({ error: res.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(res.error) }, { status: 400 });
   }
   return NextResponse.json({ ok: true, pinnedPostId: postId });
 }
@@ -56,7 +57,7 @@ export async function DELETE(req: NextRequest) {
 
   const res = await unpinPostFromProfile(postId);
   if (res.error) {
-    return NextResponse.json({ error: res.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(res.error) }, { status: 400 });
   }
   return NextResponse.json({ ok: true, pinnedPostId: null });
 }

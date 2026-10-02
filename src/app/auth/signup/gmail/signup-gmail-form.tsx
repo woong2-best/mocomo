@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -184,7 +186,7 @@ export function SignupGmailForm() {
       });
 
       if (result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
 

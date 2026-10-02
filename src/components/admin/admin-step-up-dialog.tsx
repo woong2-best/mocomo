@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { Button } from "@/components/ui/button";
@@ -37,7 +39,7 @@ export function AdminStepUpDialog({
     const opts = await adminPasskeyAuthOptionsAction({ stepUp: true });
     if ("error" in opts && opts.error) {
       setLoading(false);
-      setError(opts.error);
+      setError(errorText(opts.error));
       return;
     }
     if (!("options" in opts) || !opts.options) {
@@ -64,7 +66,7 @@ export function AdminStepUpDialog({
     const result = await adminStepUpCompleteAction(passkeyDone, code);
     setLoading(false);
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     onVerified();

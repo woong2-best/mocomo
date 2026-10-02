@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextResponse } from "next/server";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { grantLiveWatchGold } from "@/lib/apt/economy/live-gold-service";
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
 
   const res = await grantLiveWatchGold(user.id, minutes, channelId);
   if ("error" in res && res.error) {
-    return NextResponse.json({ error: res.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(res.error) }, { status: 400 });
   }
   if ("skipped" in res) {
     return NextResponse.json({ ok: true, granted: 0, skipped: true });

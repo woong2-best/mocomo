@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteCommunity, updateCommunity } from "@/actions/community-hub";
@@ -44,7 +46,7 @@ export function CommunityBrandingSettings({
       bannerVideoUrl: bannerVideoUrl || undefined,
       isPublic,
     });
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else {
       setOk("저장되었습니다.");
       router.refresh();
@@ -59,7 +61,7 @@ export function CommunityBrandingSettings({
     setDeleteLoading(true);
     const res = await deleteCommunity(communityId);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       setDeleteLoading(false);
       return;
     }

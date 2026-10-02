@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { completeWebOAuthSignup } from "@/actions/oauth-complete-signup";
 import {
@@ -58,7 +60,7 @@ export function CompleteOAuthSignupForm({ dest, account }: Props) {
         privacyAccepted,
         dest,
       });
-      if (result?.error) setError(result.error);
+      if (result?.error) setError(errorText(result.error));
     } catch {
       setError("가입에 실패했습니다. 다시 시도해 주세요.");
     } finally {

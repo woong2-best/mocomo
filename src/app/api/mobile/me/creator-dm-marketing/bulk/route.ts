@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { z } from "zod";
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   const result = await enqueueCreatorBulkDm(auth.user.id, parsed.data);
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
   }
 
   after(() => processCreatorBulkDmJob(result.jobId));

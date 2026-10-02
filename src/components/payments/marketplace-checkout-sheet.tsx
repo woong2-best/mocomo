@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import {
@@ -96,7 +98,7 @@ export function MarketplaceCheckoutSheet({
     void prepareMarketplacePayment(checkoutInput)
       .then((res) => {
         if ("error" in res && res.error) {
-          setError(res.error);
+          setError(errorText(res.error));
           return;
         }
         if (!("orderId" in res) || !res.orderId) return;
@@ -143,7 +145,7 @@ export function MarketplaceCheckoutSheet({
       }
       const done = await confirmMarketplacePayment(oid);
       if ("error" in done && done.error) {
-        setError(done.error);
+        setError(errorText(done.error));
         return;
       }
       if ("success" in done && done.success) {
@@ -170,7 +172,7 @@ export function MarketplaceCheckoutSheet({
     startTransition(async () => {
       const res = await payMarketplaceWithSavedCard(orderId, selectedId, true);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("requiresAction" in res && res.requiresAction && res.clientSecret) {
@@ -196,7 +198,7 @@ export function MarketplaceCheckoutSheet({
     setError("");
     const res = await createMarketplaceCheckoutRedirect(orderId, true);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("checkoutUrl" in res && res.checkoutUrl) {

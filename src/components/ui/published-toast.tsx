@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -227,7 +229,7 @@ export function PublishedToastPill({
     try {
       const res = await deleteOwnPost(postId);
       if (res.error) {
-        pushErrorToast({ message: res.error });
+        pushErrorToast({ message: errorText(res.error) });
         router.refresh();
       }
     } catch {

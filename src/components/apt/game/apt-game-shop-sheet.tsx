@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { memo, useCallback, useEffect, useState } from "react";
 import { X, Search, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -326,7 +328,7 @@ function AptGameShopSheetInner() {
                         )}
                         onBuy={async () => {
                           const res = await purchaseSticker(o.itemId);
-                          if (res.error) setMsg(res.error);
+                          if (res.error) setMsg(errorText(res.error));
                           else setMsg(`${o.label} 구매 완료!`);
                         }}
                       />
@@ -363,7 +365,7 @@ function AptGameShopSheetInner() {
                   owned={economy.inventory.some((i) => i.itemId === o.itemId && i.quantity > 0)}
                   onBuy={async () => {
                     const res = await purchaseSticker(o.itemId);
-                    if (res.error) setMsg(res.error);
+                    if (res.error) setMsg(errorText(res.error));
                     else setMsg(`${o.label} 구매 완료!`);
                   }}
                 />
@@ -427,7 +429,7 @@ function AptGameShopSheetInner() {
                               ? await buyAptFleaNpcOffer(npc.id)
                               : await sellAptToFleaNpc(npc.id);
                           if ("error" in res && res.error) {
-                            setMsg(res.error);
+                            setMsg(errorText(res.error));
                             return;
                           }
                           if ("economy" in res) await applyEconomy(res.economy);
@@ -501,7 +503,7 @@ function AptGameShopSheetInner() {
                         flea: mode === "flea",
                       });
                       if ("error" in res && res.error) {
-                        setMsg(res.error);
+                        setMsg(errorText(res.error));
                         return;
                       }
                       if ("economy" in res) await applyEconomy(res.economy);
@@ -527,7 +529,7 @@ function AptGameShopSheetInner() {
                       mine
                       onCancel={async () => {
                         const res = await cancelAptMarketListing(l.id);
-                        if ("error" in res && res.error) setMsg(res.error);
+                        if ("error" in res && res.error) setMsg(errorText(res.error));
                         else {
                           if ("economy" in res) await applyEconomy(res.economy);
                           void refreshMarket();
@@ -553,7 +555,7 @@ function AptGameShopSheetInner() {
                       onBuy={async () => {
                         const res = await buyAptMarketListing(l.id);
                         if ("error" in res && res.error) {
-                          setMsg(res.error);
+                          setMsg(errorText(res.error));
                           return;
                         }
                         if (!("economy" in res)) return;

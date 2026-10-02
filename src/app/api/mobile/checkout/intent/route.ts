@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { PaymentIntentType } from "@prisma/client";
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
     });
 
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
 
     return NextResponse.json(result);
@@ -134,7 +135,7 @@ export async function PATCH(req: NextRequest) {
       purchaseTermsAccepted: true,
     });
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
     return NextResponse.json(result);
   }
@@ -142,7 +143,7 @@ export async function PATCH(req: NextRequest) {
   if (parsed.data.mode === "finalize") {
     const result = await confirmCheckoutPaymentIntent(auth.user.id, parsed.data.orderId);
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
     return NextResponse.json(result);
   }
@@ -173,7 +174,7 @@ export async function PATCH(req: NextRequest) {
   );
 
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
   }
 
   if ("requiresAction" in result && result.requiresAction && result.clientSecret) {

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
@@ -18,12 +19,12 @@ export async function GET(
   const token = req.nextUrl.searchParams.get("token") ?? "";
   const verified = verifyOverlayToken(token, { channelId, kind: "chat" });
   if (!verified.ok) {
-    return NextResponse.json({ error: verified.error }, { status: 401 });
+    return NextResponse.json({ error: errorText(verified.error) }, { status: 401 });
   }
 
   const access = await assertOverlayBroadcastAccess(channelId, verified.payload);
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: errorText(access.error) }, { status: access.status });
   }
 
   const channel = access.channel;
@@ -46,7 +47,7 @@ export async function GET(
   );
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    return NextResponse.json({ error: errorText(result.error) }, { status: result.status });
   }
 
   const { ok: _ok, session, ...body } = result;

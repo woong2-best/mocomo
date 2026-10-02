@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -45,7 +47,7 @@ export function CompleteBirthDateForm({ dest }: { dest?: string }) {
         birthDay,
         dest,
       });
-      if (result?.error) setError(result.error);
+      if (result?.error) setError(errorText(result.error));
     } catch {
       setError("저장에 실패했습니다. 다시 시도해 주세요.");
     } finally {

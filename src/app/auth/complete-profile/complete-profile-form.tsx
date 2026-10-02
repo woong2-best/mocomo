@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { completeSignupProfileOnboarding } from "@/actions/signup-identity-onboarding";
 import { Button } from "@/components/ui/button";
@@ -31,7 +33,7 @@ export function CompleteProfileForm({ dest, initialUsername, initialName }: Prop
         name: name.trim(),
         dest,
       });
-      if (result?.error) setError(result.error);
+      if (result?.error) setError(errorText(result.error));
     } catch {
       setError(
         locale === "ko"

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
   });
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({ community: result.community }, { status: 201 });

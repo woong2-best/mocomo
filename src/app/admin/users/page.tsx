@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { Suspense } from "react";
 import { adminLoadUsers } from "@/actions/admin-cms";
 import { AdminUsersTable } from "@/components/admin/cms/admin-users-table";
@@ -26,7 +27,7 @@ export default async function AdminUsersPage({
 
   const res = await adminLoadUsers(query);
   if (!res.ok) {
-    return <p className="text-sm text-destructive">{res.error}</p>;
+    return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
   }
 
   return (

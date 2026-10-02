@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Gamepad2, ImagePlus, Loader2, Mic, Send, Square, X } from "lucide-react";
@@ -74,7 +76,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
         isAnonymous: true,
       });
       if (result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       setDraft("");

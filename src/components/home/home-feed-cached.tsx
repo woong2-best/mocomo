@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { HomeFeedClient } from "@/components/home/home-feed-client";
@@ -28,7 +30,7 @@ async function fetchHomeFeedPage(): Promise<FeedPage> {
   const res = await fetch("/api/feed?limit=12", { credentials: "include" });
   const json = (await res.json()) as FeedPage & { error?: string };
   if (!res.ok || !Array.isArray(json.items)) {
-    throw new Error(json.error ?? "피드를 불러오지 못했습니다.");
+    throw new Error(errorText(json.error ?? "피드를 불러오지 못했습니다."));
   }
   return {
     items: json.items,

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useTransition } from "react";
 import Link from "next/link";
 import { Gem, Loader2 } from "lucide-react";
@@ -41,7 +43,7 @@ export function GemPayOption({
     startTransition(async () => {
       const res = await payWithGems(orderId, true);
       if ("error" in res && res.error) {
-        onError?.(res.error);
+        onError?.(errorText(res.error));
         return;
       }
       if ("success" in res && res.success) {

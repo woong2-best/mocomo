@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { adminLoadAudit } from "@/actions/admin-cms";
 
@@ -11,7 +12,7 @@ export default async function AdminAuditPage({
   const sp = await searchParams;
   const page = Number(sp.page) || 1;
   const res = await adminLoadAudit({ q: sp.q, action: sp.action, page });
-  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+  if (!res.ok) return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
 
   const { items, total, totalPages } = res.data;
 

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { updatePhysicalProductPrice } from "@/actions/goods-shop";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,7 @@ export function SetProductPriceForm({
     setLoading(true);
     const res = await updatePhysicalProductPrice(productId, Number(price), Number(shipping));
     setLoading(false);
-    if ("error" in res && res.error) setMsg(res.error);
+    if ("error" in res && res.error) setMsg(errorText(res.error));
     else setMsg("판매가가 설정되었습니다. 굿즈 목록에 노출됩니다.");
   }
 

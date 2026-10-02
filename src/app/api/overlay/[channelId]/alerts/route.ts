@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
@@ -29,12 +30,12 @@ export async function GET(
 
   const verified = verifyOverlayToken(token, { channelId, kind: "donation" });
   if (!verified.ok) {
-    return NextResponse.json({ error: verified.error }, { status: 401 });
+    return NextResponse.json({ error: errorText(verified.error) }, { status: 401 });
   }
 
   const broadcastAccess = await assertOverlayBroadcastAccess(channelId, verified.payload);
   if (!broadcastAccess.ok) {
-    return NextResponse.json({ error: broadcastAccess.error }, { status: broadcastAccess.status });
+    return NextResponse.json({ error: errorText(broadcastAccess.error) }, { status: broadcastAccess.status });
   }
 
   const channel = await db.voiceChannel.findUnique({

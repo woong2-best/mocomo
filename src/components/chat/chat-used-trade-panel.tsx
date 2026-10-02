@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
@@ -97,7 +99,7 @@ export function ChatUsedTradePanel({
       });
       const body = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(body.error ?? t("ui.could_not_send_trade_request"));
+        setError(errorText(body.error ?? t("ui.could_not_send_trade_request")));
         return;
       }
       await refresh();

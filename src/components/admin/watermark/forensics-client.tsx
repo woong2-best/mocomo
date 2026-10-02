@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { AdminWatermarkDetectionResponse } from "@/lib/watermark/types";
@@ -153,7 +155,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
         const poll = await fetch(`/api/admin/watermark/detect/${started.jobId}`);
         const body = await poll.json();
         if (!poll.ok) {
-          setError(body.error ?? "Job lookup failed");
+          setError(errorText(body.error ?? "Job lookup failed"));
           return;
         }
         if (body.status === "PENDING") {

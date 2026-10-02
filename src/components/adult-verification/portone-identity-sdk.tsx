@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import Script from "next/script";
 import type { AdultVerificationScope } from "@prisma/client";
 
@@ -73,7 +75,7 @@ export async function requestPortOneIdentityVerification(scope: AdultVerificatio
   });
   const data = (await res.json()) as { error?: string; success?: boolean };
   if (!res.ok) {
-    throw new Error(data.error ?? "인증 확인에 실패했습니다.");
+    throw new Error(errorText(data.error ?? "인증 확인에 실패했습니다."));
   }
 
   return true;

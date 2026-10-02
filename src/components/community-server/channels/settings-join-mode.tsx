@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import type { CommunityJoinMode } from "@prisma/client";
 import { Button } from "@/components/ui/button";
@@ -43,7 +45,7 @@ export function CommunityJoinModeSettings({
     try {
       const result = await updateCommunityJoinMode(communityId, mode);
       if ("error" in result && result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       setJoinMode(mode);
@@ -64,7 +66,7 @@ export function CommunityJoinModeSettings({
     try {
       const result = await updateCommunityJoinPassword(communityId, pin);
       if ("error" in result && result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       setHasJoinPassword(true);
@@ -82,7 +84,7 @@ export function CommunityJoinModeSettings({
     try {
       const result = await updateCommunityJoinPassword(communityId, null);
       if ("error" in result && result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       setHasJoinPassword(false);
@@ -100,7 +102,7 @@ export function CommunityJoinModeSettings({
     try {
       const result = await createCommunityInvite(communityId);
       if ("error" in result && result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       if ("code" in result) {

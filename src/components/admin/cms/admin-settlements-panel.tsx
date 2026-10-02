@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -157,7 +159,7 @@ export function AdminSettlementsPanel({
                 grossAmountKrw: Number(gross),
                 title: "관리자 정산 초안",
               });
-              if (res.error) setMsg(res.error);
+              if (res.error) setMsg(errorText(res.error));
               else {
                 setMsg(`초안 생성: ${res.id}`);
                 router.refresh();

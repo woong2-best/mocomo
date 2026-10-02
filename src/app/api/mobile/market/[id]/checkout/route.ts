@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -81,7 +82,7 @@ export async function POST(
     headers: req.headers,
   });
   if ("error" in eligibility) {
-    return NextResponse.json({ error: eligibility.error }, { status: 404 });
+    return NextResponse.json({ error: errorText(eligibility.error) }, { status: 404 });
   }
   if (eligibility.mode === "BLOCKED" || eligibility.blocked) {
     return NextResponse.json(
@@ -108,7 +109,7 @@ export async function POST(
   );
 
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
   }
 
   return NextResponse.json(result);
@@ -154,7 +155,7 @@ export async function PATCH(
       { purchaseTermsAccepted: true }
     );
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
     return NextResponse.json(result);
   }
@@ -162,7 +163,7 @@ export async function PATCH(
   if (parsed.data.mode === "finalize") {
     const result = await confirmCheckoutPaymentIntent(auth.user.id, parsed.data.orderId);
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
     return NextResponse.json(result);
   }
@@ -175,7 +176,7 @@ export async function PATCH(
   );
 
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
   }
 
   if ("requiresAction" in result && result.requiresAction && result.clientSecret) {

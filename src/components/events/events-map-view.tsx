@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, MapPin, Plus, X } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -127,7 +129,7 @@ function EventsMapSidePanel({
       });
       const body = (await res.json()) as { pin?: MapEventPin; error?: string };
       if (!res.ok || !body.pin) {
-        setFormError(body.error ?? "저장에 실패했습니다.");
+        setFormError(errorText(body.error ?? "저장에 실패했습니다."));
         return;
       }
       onRecommendationCreated(body.pin);

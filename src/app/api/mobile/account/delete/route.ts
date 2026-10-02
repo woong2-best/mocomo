@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   const result = await requestAccountDeletionForUser(full, json as never);
 
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json(result);

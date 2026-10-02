@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition, useEffect } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -107,7 +109,7 @@ export function AdminUsedMarketAppealsPanel({
         decisionNote.trim() || `관리자 처리: ${appealStatusLabel(status)}`
       );
       if ("error" in res && res.error) {
-        setMsg(res.error);
+        setMsg(errorText(res.error));
         return;
       }
       setMsg(`${appealStatusLabel(status)} 처리되었습니다.`);
@@ -182,7 +184,7 @@ export function AdminUsedMarketAppealsPanel({
             ) : detailLoading ? (
               <p className="text-sm text-muted-foreground">상세 불러오는 중…</p>
             ) : detail && "error" in detail ? (
-              <p className="text-sm text-destructive">{detail.error}</p>
+              <p className="text-sm text-destructive">{errorText(detail.error)}</p>
             ) : selectedAppeal ? (
               <>
                 <div className="space-y-2">

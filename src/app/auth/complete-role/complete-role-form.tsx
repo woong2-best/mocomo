@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
 import {
@@ -67,7 +69,7 @@ export function CompleteRoleOnboardingForm({
     try {
       const res = await followOnboardingCosplayer(userId);
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setCosplayers((prev) =>
@@ -112,7 +114,7 @@ export function CompleteRoleOnboardingForm({
         dest,
       });
       if (res?.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         setLoading(false);
       }
     } catch (err) {

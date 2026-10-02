@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
 import {
@@ -73,7 +75,7 @@ export function useObsChatFeed(channelId: string, token: string) {
         }
         if (!res.ok) {
           const body = (await res.json().catch(() => null)) as { error?: string } | null;
-          setError(body?.error ?? "채팅을 불러올 수 없습니다.");
+          setError(errorText(body?.error ?? "채팅을 불러올 수 없습니다."));
           setState("error");
           return;
         }

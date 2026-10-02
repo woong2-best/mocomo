@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -59,7 +61,7 @@ export function AdminEconomyCanaryPanel({ cards, history, recentSnapshots }: Pro
     setBusy(`promote-${canaryId}`);
     setError(null);
     const result = await adminPromoteCanary(canaryId, reason);
-    if ("error" in result) setError(result.error ?? "요청 실패");
+    if ("error" in result) setError(errorText(result.error ?? "요청 실패"));
     else {
       setPromoteId(null);
       setReason("");
@@ -76,7 +78,7 @@ export function AdminEconomyCanaryPanel({ cards, history, recentSnapshots }: Pro
     setBusy(`rollback-${canaryId}`);
     setError(null);
     const result = await adminRollbackCanary(canaryId, reason, restoreSnapshot);
-    if ("error" in result) setError(result.error ?? "요청 실패");
+    if ("error" in result) setError(errorText(result.error ?? "요청 실패"));
     else {
       setRollbackId(null);
       setReason("");
@@ -96,7 +98,7 @@ export function AdminEconomyCanaryPanel({ cards, history, recentSnapshots }: Pro
     if (!previewUserId.trim()) return;
     setBusy("user-preview");
     const result = await adminPreviewCanaryUser(canaryId, previewUserId.trim());
-    if ("error" in result) setError(result.error ?? "요청 실패");
+    if ("error" in result) setError(errorText(result.error ?? "요청 실패"));
     else setPreview(result);
     setBusy(null);
   }

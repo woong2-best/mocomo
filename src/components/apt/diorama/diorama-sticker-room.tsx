@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import Image from "next/image";
 import {
   DndContext,
@@ -369,7 +371,7 @@ function DioramaStickerRoomInner({
       markDirty();
       void game?.onStickerPlaced(typeId, roomId).then((res) => {
         if (res?.error) {
-          setPlaceError(res.error);
+          setPlaceError(errorText(res.error));
           setInstances((prev) => {
             const next = prev.filter((s) => s.id !== id);
             persistInstances(next, true);

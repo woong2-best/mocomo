@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { probeChzzkEmbed } from "@/lib/live-external/chzzk-probe";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
 
   const parsed = parseExternalLiveSource(raw, { providerHint: "CHZZK" });
   if ("error" in parsed) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(parsed.error) }, { status: 400 });
   }
 
   const probe = await probeChzzkEmbed(parsed.externalId);

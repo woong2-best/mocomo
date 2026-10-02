@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -154,7 +156,7 @@ export function AdminFleaPanel({ events: initialEvents, catalogItems }: Props) {
     });
     setBusy(null);
     if ("error" in res) {
-      setActionError(res.error ?? "오류가 발생했습니다.");
+      setActionError(errorText(res.error ?? "오류가 발생했습니다."));
       return;
     }
     setCreateOpen(false);
@@ -200,7 +202,7 @@ export function AdminFleaPanel({ events: initialEvents, catalogItems }: Props) {
     const res = await adminDeleteFleaEvent(focusId);
     setBusy(null);
     if ("error" in res) {
-      setActionError(res.error ?? "오류가 발생했습니다.");
+      setActionError(errorText(res.error ?? "오류가 발생했습니다."));
       return;
     }
     setFocusId(null);
@@ -220,7 +222,7 @@ export function AdminFleaPanel({ events: initialEvents, catalogItems }: Props) {
     });
     setBusy(null);
     if ("error" in res) {
-      setActionError(res.error ?? "오류가 발생했습니다.");
+      setActionError(errorText(res.error ?? "오류가 발생했습니다."));
       return;
     }
     setNpcOpen(false);

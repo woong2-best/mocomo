@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
 
   const link = await createWalletConnectDashboardLink(status.stripeConnectAccountId);
   if ("error" in link) {
-    return NextResponse.json({ error: link.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(link.error) }, { status: 422 });
   }
 
   return NextResponse.json({ url: link.url });

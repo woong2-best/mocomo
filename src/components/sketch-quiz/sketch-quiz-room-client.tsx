@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -72,7 +74,7 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
     if (res.ok) goToHub();
     else {
       setConfirmClose(false);
-      setActionError(res.error ?? "방을 닫지 못했습니다.");
+      setActionError(errorText(res.error ?? "방을 닫지 못했습니다."));
     }
   }
 
@@ -92,7 +94,7 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
     setStarting(true);
     setActionError("");
     const res = await startGame();
-    if (!res.ok) setActionError(res.error ?? "시작 실패");
+    if (!res.ok) setActionError(errorText(res.error ?? "시작 실패"));
     setStarting(false);
   }
 

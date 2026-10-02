@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import type { BroadcastRole } from "@prisma/client";
 import { auth } from "@/lib/auth";
@@ -78,7 +79,7 @@ export async function POST(
   });
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 403 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 403 });
   }
   return NextResponse.json({ ok: true });
 }
@@ -108,7 +109,7 @@ export async function DELETE(
   });
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 403 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 403 });
   }
   return NextResponse.json({ ok: true });
 }

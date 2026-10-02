@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LiveKitRoom,
@@ -43,7 +45,7 @@ function VoiceLiveHostControls({
         await localParticipant.setMicrophoneEnabled(true);
         const res = await startVoiceLiveBroadcast(channelId);
         if ("error" in res && res.error) {
-          setLiveError(res.error);
+          setLiveError(errorText(res.error));
           wentLiveRef.current = false;
           onAirChange?.(false);
           return;

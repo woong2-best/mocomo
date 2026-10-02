@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -481,7 +483,7 @@ export function ChatRoomClient({
     if (!communityId || !canDeleteMessages || isPendingMessageId(messageId)) return;
     if (!confirm(t("ui.delete_this_message"))) return;
     void deleteCommunityChatMessage(messageId, communityId).then((res) => {
-      if ("error" in res && res.error) setError(res.error);
+      if ("error" in res && res.error) setError(errorText(res.error));
       else setMessages((prev) => prev.filter((m) => m.id !== messageId));
     });
   }

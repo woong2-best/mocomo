@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useTransition } from "react";
 import { Coins, Loader2 } from "lucide-react";
 import { payWithMoco } from "@/actions/checkout-payment";
@@ -40,7 +42,7 @@ export function MocoPayOption({
     startTransition(async () => {
       const res = await payWithMoco(orderId, true);
       if ("error" in res && res.error) {
-        onError?.(res.error);
+        onError?.(errorText(res.error));
         return;
       }
       if ("success" in res && res.success) {

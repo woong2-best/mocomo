@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { Suspense } from "react";
 import { adminListCouponsAction } from "@/actions/admin-coupons";
@@ -20,7 +21,7 @@ export default async function AdminCouponsPage({
   };
 
   const [actor, res] = await Promise.all([getAdminActor(), adminListCouponsAction(query)]);
-  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+  if (!res.ok) return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -88,7 +89,7 @@ export async function POST(
   if ("error" in resolved) {
     return NextResponse.json(
       {
-        error: resolved.error,
+        error: errorText(resolved.error),
         publishState: resolved.publishState,
       },
       { status: resolved.status }

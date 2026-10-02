@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { adminPromotionStatsAction } from "@/actions/admin-promotions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPromotionStatsPage() {
   const res = await adminPromotionStatsAction();
-  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+  if (!res.ok) return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
 
   const maxSaved = Math.max(1, ...res.data.map((d) => d.usedBenefitKrw));
 

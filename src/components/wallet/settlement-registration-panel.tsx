@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -42,7 +44,7 @@ async function postSettlementJson(path: string, body?: Record<string, unknown>) 
   });
   const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
   if (!res.ok) {
-    throw new Error(data.error ?? t("wallet.s1e287y0"));
+    throw new Error(errorText(data.error ?? t("wallet.s1e287y0")));
   }
   if (!data.url) {
     throw new Error(t("wallet.stripe_url"));

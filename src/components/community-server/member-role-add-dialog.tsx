@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useMemo, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -54,7 +56,7 @@ export function MemberRoleAddDialog({
     setError("");
     const res = await assignMemberRole(memberId, roleId);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       setAssigningId(null);
       return;
     }

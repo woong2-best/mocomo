@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { adminLoadStaff } from "@/actions/admin-cms";
 import { getAdminActor } from "@/lib/admin/access";
 import { AdminRolesPanel } from "@/components/admin/cms/admin-roles-panel";
@@ -6,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminRolesPage() {
   const [actor, res] = await Promise.all([getAdminActor(), adminLoadStaff()]);
-  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+  if (!res.ok) return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">

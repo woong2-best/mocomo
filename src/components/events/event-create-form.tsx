@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2, Trash2 } from "lucide-react";
@@ -132,7 +134,7 @@ export function EventCreateForm({
         operatorUnlimited: isOperator,
       });
       if (!res.ok) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setRegisteredEventId(res.eventId);

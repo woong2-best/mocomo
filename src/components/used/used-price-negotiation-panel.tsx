@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -68,7 +70,7 @@ export function UsedPriceNegotiationPanel({
     const res = await proposeUsedAuctionPrice(listingId, price);
     setBusy(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     setAmount("");
@@ -79,7 +81,7 @@ export function UsedPriceNegotiationPanel({
     setBusy(true);
     const res = await acceptUsedAuctionPrice(offerId);
     setBusy(false);
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else router.refresh();
   }
 
@@ -87,7 +89,7 @@ export function UsedPriceNegotiationPanel({
     setBusy(true);
     const res = await rejectUsedAuctionPrice(offerId);
     setBusy(false);
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else router.refresh();
   }
 
@@ -96,7 +98,7 @@ export function UsedPriceNegotiationPanel({
     setBusy(true);
     const res = await declineUsedAuctionNegotiation(listingId);
     setBusy(false);
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else router.refresh();
   }
 

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -154,7 +156,7 @@ export function EmailVerifyFormInner() {
         setUnregisteredDialogOpen(true);
         return;
       }
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     setMessage(result.message ?? t("auth.codeSent"));
@@ -170,7 +172,7 @@ export function EmailVerifyFormInner() {
     const result = await completeAuthWithCode(normalized, code, { mode: "signup" });
     if (result.error) {
       setLoading(false);
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
 
@@ -230,7 +232,7 @@ export function EmailVerifyFormInner() {
         setError("");
         return;
       }
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     setStep("reset-password");
@@ -259,7 +261,7 @@ export function EmailVerifyFormInner() {
         setError("");
         return;
       }
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     setStep("reset-done");

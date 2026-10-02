@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { emailCodeSchema, sendMobileEmailAuthCode } from "@/lib/mobile-signup-auth";
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
   const result = await sendMobileEmailAuthCode(parsed.data.email, parsed.data.mode);
   if ("error" in result && result.error) {
     const status = result.code === "EMAIL_NOT_REGISTERED" ? 404 : 400;
-    return NextResponse.json({ error: result.error, code: result.code }, { status });
+    return NextResponse.json({ error: errorText(result.error), code: result.code }, { status });
   }
 
   return NextResponse.json(result);

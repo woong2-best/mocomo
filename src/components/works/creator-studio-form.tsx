@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import type { CreatorWorkKind } from "@prisma/client";
 import { useState } from "react";
 import Link from "next/link";
@@ -82,7 +84,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
     const res = await createCreatorSeries({ title, description, coverUrl, kind });
     setLoading(false);
     if ("error" in res && res.error) {
-      setErr(res.error);
+      setErr(errorText(res.error));
       return;
     }
     setSeriesId(res.series!.id);
@@ -109,7 +111,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
     });
     setLoading(false);
     if ("error" in res && res.error) {
-      setErr(res.error);
+      setErr(errorText(res.error));
       return;
     }
     setMsg(`${episodeNo}화가 등록되었습니다.`);

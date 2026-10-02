@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -38,7 +40,7 @@ export function LiveScheduledCard({
     startTransition(async () => {
       const res = await startScheduledLiveStream(id);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if (res.joinPassword) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { errorText } from "@/lib/i18n/error-text";
 import {
   createContext,
   useCallback,
@@ -66,7 +67,7 @@ export function CommunityMembershipProvider({
       try {
         const result = await joinCommunityServer(initial.communityId, inviteCode, joinPassword);
         if ("error" in result && result.error) {
-          setState((s) => ({ ...s, joinError: result.error }));
+          setState((s) => ({ ...s, joinError: errorText(result.error) }));
           return;
         }
         if ("pending" in result && result.pending) {

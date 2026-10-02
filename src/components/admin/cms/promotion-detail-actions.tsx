@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
@@ -81,7 +83,7 @@ export function PromotionDetailActions({
                 start(async () => {
                   if (!confirm("프로모션을 삭제할까요?")) return;
                   const res = await adminDeletePromotionAction(promotionId);
-                  if (res.error) setMsg(res.error);
+                  if (res.error) setMsg(errorText(res.error));
                   else router.push("/admin/promotions");
                 })
               }
@@ -111,7 +113,7 @@ export function PromotionDetailActions({
                   .map((s) => s.trim())
                   .filter(Boolean);
                 const res = await adminAssignPromotionAction(promotionId, list);
-                if (res.error) setMsg(res.error);
+                if (res.error) setMsg(errorText(res.error));
                 else {
                   setMsg(`지급 ${res.created} · 스킵 ${res.skipped}`);
                   setTargets("");

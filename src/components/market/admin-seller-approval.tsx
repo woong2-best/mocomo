@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -53,7 +55,7 @@ function AdminSellerApprovalCard({ seller }: { seller: PendingSeller }) {
     startTransition(async () => {
       const res = await approveMarketplaceSeller(seller.id);
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       router.refresh();
@@ -65,7 +67,7 @@ function AdminSellerApprovalCard({ seller }: { seller: PendingSeller }) {
     startTransition(async () => {
       const res = await rejectMarketplaceSeller(seller.id, reason);
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       router.refresh();

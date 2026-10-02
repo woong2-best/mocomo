@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { Heart, Home, Sparkles, Star, Trophy, Users } from "lucide-react";
 import type { AptCommunityFeed } from "@/lib/apt/presence-types";
 import type { HomeIdentitySummary } from "@/lib/apt/home-identity";
@@ -133,7 +135,7 @@ export function AptDailyLoopPanel({
     try {
       const result = await requestAptCohabitation(userId);
       if ("error" in result && result.error) {
-        setCohabFeedback({ kind: "error", message: result.error });
+        setCohabFeedback({ kind: "error", message: errorText(result.error) });
         return;
       }
       setCohabFeedback({

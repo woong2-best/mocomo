@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import type { CommunityChannelType } from "@prisma/client";
 import {
@@ -83,7 +85,7 @@ export function CommunityChannelsPanel({
       communityId,
       ordered.map((c) => c.id)
     );
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
   }
 
   async function saveEdit() {
@@ -98,7 +100,7 @@ export function CommunityChannelsPanel({
       vipOnly: edit.vipOnly,
       maxUsers: edit.maxUsers,
     });
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else {
       setEdit(null);
       await load();
@@ -112,7 +114,7 @@ export function CommunityChannelsPanel({
   async function remove(id: string) {
     if (!confirm("이 채널을 삭제할까요?")) return;
     const res = await deleteCommunityChannel(id);
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else await load();
   }
 
@@ -120,7 +122,7 @@ export function CommunityChannelsPanel({
     setSaving(true);
     setError("");
     const res = await createCommunityChannel({ communityId, type: newType, name: newName });
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else {
       setCreateOpen(false);
       setNewName("");

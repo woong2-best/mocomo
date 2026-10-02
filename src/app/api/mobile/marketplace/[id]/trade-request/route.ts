@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -44,7 +45,7 @@ export async function POST(
   );
   if ("error" in result && result.error) {
     return NextResponse.json(
-      { error: result.error, requestId: "requestId" in result ? result.requestId : undefined },
+      { error: errorText(result.error), requestId: "requestId" in result ? result.requestId : undefined },
       { status: 400 }
     );
   }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -31,7 +33,7 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
     const res = await createCosplayerGroupRoom(name);
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     // 단체방 기능 종료 — 성공 분기 없음
@@ -48,7 +50,7 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
     const res = await createSocialGroupRoom({ name, usePassword, customPassword });
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     // 단체방 기능 종료 — 성공 분기 없음

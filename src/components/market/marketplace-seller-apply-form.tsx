@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -43,7 +45,7 @@ export function MarketplaceSellerApplyForm({
         snsLinks,
       });
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setMessage("판매자 프로필이 준비되었습니다. 상품을 등록할 수 있습니다.");
@@ -56,7 +58,7 @@ export function MarketplaceSellerApplyForm({
     startTransition(async () => {
       const res = await startMarketplaceConnectOnboarding(payoutCountry);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("url" in res && res.url) {

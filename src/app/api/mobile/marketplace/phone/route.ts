@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -123,7 +124,7 @@ export async function POST(req: NextRequest) {
         { ip, linkStripeConnect: false }
       );
       if ("error" in result && result.error) {
-        return NextResponse.json({ error: result.error }, { status: 400 });
+        return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
       }
       return NextResponse.json(result);
     }
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
       { ip, linkStripeConnect: false }
     );
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
     }
     return NextResponse.json(result);
   }
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
   if (parsed.data.action === "send") {
     const result = await sendUsedMarketPhoneOtpForUser(userRow, parsed.data.phone);
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
     }
     return NextResponse.json(result);
   }
@@ -160,7 +161,7 @@ export async function POST(req: NextRequest) {
     parsed.data.code
   );
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
   return NextResponse.json(result);
 }

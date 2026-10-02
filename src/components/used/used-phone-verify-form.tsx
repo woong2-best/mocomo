@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -61,7 +63,7 @@ export function UsedPhoneVerifyForm({
     const res = await sendUsedMarketPhoneOtp(phone);
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("alreadyVerified" in res && res.alreadyVerified) {
@@ -80,7 +82,7 @@ export function UsedPhoneVerifyForm({
     const res = await verifyUsedMarketPhoneOtp(phone, code);
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     router.push(callbackUrl);

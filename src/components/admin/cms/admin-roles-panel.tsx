@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { UserRole } from "@prisma/client";
@@ -87,7 +89,7 @@ export function AdminRolesPanel({
             onClick={() =>
               start(async () => {
                 const res = await adminPromoteStaffAction(username.trim(), role);
-                setMsg(res.error ?? "관리자가 추가되었습니다.");
+                setMsg(errorText(res.error ?? "관리자가 추가되었습니다."));
                 if (!res.error) {
                   setUsername("");
                   router.refresh();
@@ -133,7 +135,7 @@ export function AdminRolesPanel({
                               s.id,
                               e.target.value as UserRole
                             );
-                            setMsg(res.error ?? "권한이 변경되었습니다.");
+                            setMsg(errorText(res.error ?? "권한이 변경되었습니다."));
                             router.refresh();
                           })
                         }
@@ -164,10 +166,8 @@ export function AdminRolesPanel({
                                   s.id,
                                   !s.adminDisabledAt
                                 );
-                                setMsg(
-                                  res.error ??
-                                    (s.adminDisabledAt ? "활성화됨" : "비활성화됨")
-                                );
+                                setMsg(errorText(res.error ??
+                                    (s.adminDisabledAt ? "활성화됨" : "비활성화됨")));
                                 router.refresh();
                               })
                             }
@@ -184,7 +184,7 @@ export function AdminRolesPanel({
                                 const res = await adminResetStaffPasswordAction(s.id);
                                 if ("temporaryPassword" in res && res.temporaryPassword) {
                                   setMsg(`임시 비밀번호: ${res.temporaryPassword}`);
-                                } else setMsg(res.error ?? "실패");
+                                } else setMsg(errorText(res.error ?? "실패"));
                               })
                             }
                           >
@@ -205,7 +205,7 @@ export function AdminRolesPanel({
                                   return;
                                 }
                                 const res = await adminDemoteStaffAction(s.id);
-                                setMsg(res.error ?? "관리자 권한이 제거되었습니다.");
+                                setMsg(errorText(res.error ?? "관리자 권한이 제거되었습니다."));
                                 router.refresh();
                               })
                             }

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -108,7 +109,7 @@ export async function POST(
 
     const blockErr = await assertUserBlockInteractionAllowed(user.id, post.authorId);
     if (blockErr) {
-      return NextResponse.json({ error: blockErr.error }, { status: 403 });
+      return NextResponse.json({ error: errorText(blockErr.error) }, { status: 403 });
     }
 
     let parentCommentAuthorId: string | undefined;
@@ -122,7 +123,7 @@ export async function POST(
       }
       const parentBlockErr = await assertUserBlockInteractionAllowed(user.id, parent.authorId);
       if (parentBlockErr) {
-        return NextResponse.json({ error: parentBlockErr.error }, { status: 403 });
+        return NextResponse.json({ error: errorText(parentBlockErr.error) }, { status: 403 });
       }
       parentCommentAuthorId = parent.authorId;
     }

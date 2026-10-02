@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import {
@@ -163,7 +165,7 @@ export function VideoTipWizardDialog({
       const body = await res.json();
       if (!res.ok || !body.ok) {
         setPreview(null);
-        setPreviewError(body.error ?? "영상을 불러올 수 없습니다.");
+        setPreviewError(errorText(body.error ?? "영상을 불러올 수 없습니다."));
         return null;
       }
       const data: PreviewData = {

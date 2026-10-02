@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
@@ -34,7 +36,7 @@ function AuthenticateInner() {
     async function finalizeAndRedirect(oid: string, target: string, paymentIntentId?: string) {
       const done = await confirmCheckoutPayment(oid);
       if ("error" in done && done.error) {
-        setMessage(done.error);
+        setMessage(errorText(done.error));
         return;
       }
 

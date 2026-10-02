@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { CouponBenefitType, PromotionTrigger } from "@prisma/client";
@@ -65,7 +67,7 @@ export function PromotionCreateDialog({
         adminMemo: String(fd.get("adminMemo") || "") || undefined,
       });
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       onOpenChange(false);

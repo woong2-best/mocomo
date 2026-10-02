@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -20,7 +21,7 @@ export default async function AdminDashboardPage() {
   if (!res.ok) {
     return (
       <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
-        {res.error}
+        {errorText(res.error)}
       </div>
     );
   }

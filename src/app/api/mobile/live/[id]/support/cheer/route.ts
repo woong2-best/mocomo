@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import type { LiveSupportEventType } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -47,7 +48,7 @@ export async function POST(
   });
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({ ok: true, event: result.event });

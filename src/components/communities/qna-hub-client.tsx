@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -132,7 +134,7 @@ export function QnaHubClient() {
         const json = (await res.json()) as FeedPage;
         if (id !== requestIdRef.current) return;
         if (!res.ok || !Array.isArray(json.items)) {
-          setLoadError(json.error ?? "QnA를 불러오지 못했습니다.");
+          setLoadError(errorText(json.error ?? "QnA를 불러오지 못했습니다."));
           if (mode === "replace") setItems([]);
           return;
         }

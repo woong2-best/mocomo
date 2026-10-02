@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -98,7 +100,7 @@ export function UsedAuctionBidSheet({
           return;
         }
         if (res.error.includes("중고거래 이용이 제한")) {
-          setError(res.error);
+          setError(errorText(res.error));
           return;
         }
         if ("needsAdultVerify" in res && res.needsAdultVerify) {
@@ -108,7 +110,7 @@ export function UsedAuctionBidSheet({
         if ("needsBidHold" in res && res.needsBidHold) {
           const prepared = await prepareUsedAuctionBidHoldAction(listingId, bidAmount);
           if ("error" in prepared && prepared.error) {
-            setError(prepared.error);
+            setError(errorText(prepared.error));
             return;
           }
           if (!("orderId" in prepared)) return;
@@ -120,7 +122,7 @@ export function UsedAuctionBidSheet({
           setError("");
           return;
         }
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setHoldOrderId(null);
@@ -140,7 +142,7 @@ export function UsedAuctionBidSheet({
     const pay = await payUsedAuctionBidHoldAction(listingId, holdOrderId, selectedPm);
     if ("error" in pay && pay.error) {
       setBusy(false);
-      setError(pay.error);
+      setError(errorText(pay.error));
       return;
     }
     if ("requiresAction" in pay && pay.requiresAction && pay.clientSecret) {
@@ -211,14 +213,14 @@ export function UsedAuctionBidSheet({
         return;
       }
       if (res.error.includes("중고거래 이용이 제한")) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("needsAdultVerify" in res && res.needsAdultVerify) {
         router.push(usedAdultVerifyUrl(listingId, restrictedKind));
         return;
       }
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     setOpen(false);

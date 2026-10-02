@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useCall, useCallBusy } from "@/components/call/call-provider";
 import { Button } from "@/components/ui/button";
@@ -22,7 +24,7 @@ export function CallButton({
     setLoading(true);
     setError("");
     const result = await startCall(calleeId, chatRoomId);
-    if (result.error) setError(result.error);
+    if (result.error) setError(errorText(result.error));
     setLoading(false);
   }
 

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -46,7 +48,7 @@ export function ObsChatUrlCopy({
         : await mintStudioObsChatUrl();
       if (cancelled) return;
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         setLoading(false);
         return;
       }

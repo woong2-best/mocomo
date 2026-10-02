@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
@@ -36,7 +37,7 @@ export async function POST(
     }
     const blockErr = await assertUserBlockInteractionAllowed(user.id, post.authorId);
     if (blockErr) {
-      return NextResponse.json({ error: blockErr.error }, { status: 403 });
+      return NextResponse.json({ error: errorText(blockErr.error) }, { status: 403 });
     }
     const existing = await db.like.findUnique({
       where: { userId_postId: { userId: user.id, postId } },

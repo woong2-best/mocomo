@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -28,7 +29,7 @@ export async function GET(
   if ("error" in result) {
     const status =
       result.error === "FORBIDDEN" ? 403 : result.error === "NOT_FOUND" ? 404 : 400;
-    return NextResponse.json({ error: result.error }, { status });
+    return NextResponse.json({ error: errorText(result.error) }, { status });
   }
   return NextResponse.json(result);
 }

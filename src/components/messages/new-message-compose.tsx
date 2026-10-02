@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -78,7 +80,7 @@ export function NewMessageCompose({ embedded = false }: { embedded?: boolean }) 
     const result = await getOrCreateDM(userId);
     setLoading(false);
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     if ("room" in result && result.room) {

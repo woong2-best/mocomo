@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Loader2, Play } from "lucide-react";
@@ -174,7 +176,7 @@ export function ProfileMediaGrid({
       const res = await fetch(`/api/profile/${username}/media?${params.toString()}`);
       const json = await res.json();
       if (!res.ok) {
-        setLoadError(json.error ?? "불러오기에 실패했습니다.");
+        setLoadError(errorText(json.error ?? "불러오기에 실패했습니다."));
         return;
       }
       setItems((prev) => [...prev, ...(json.items as ProfileGridMediaItem[])]);

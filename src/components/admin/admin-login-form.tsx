@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { signIn, signOut } from "next-auth/react";
@@ -144,7 +146,7 @@ export function AdminLoginForm({
     const advanced = await adminMfaAfterPasswordAction();
     setLoading(false);
     if ("error" in advanced && advanced.error) {
-      setError(advanced.error);
+      setError(errorText(advanced.error));
       try {
         await adminLogoutMfaAction();
         await signOut({ redirect: false });
@@ -171,7 +173,7 @@ export function AdminLoginForm({
     const opts = await adminPasskeyAuthOptionsAction();
     if ("error" in opts && opts.error) {
       setLoading(false);
-      setError(opts.error);
+      setError(errorText(opts.error));
       return;
     }
     if (!("options" in opts) || !opts.options) {
@@ -184,7 +186,7 @@ export function AdminLoginForm({
       const verified = await adminPasskeyAuthVerifyAction(assertion);
       setLoading(false);
       if ("error" in verified && verified.error) {
-        setError(verified.error);
+        setError(errorText(verified.error));
         return;
       }
       setStep("totp");
@@ -205,7 +207,7 @@ export function AdminLoginForm({
     });
     setLoading(false);
     if ("error" in verified && verified.error) {
-      setError(verified.error);
+      setError(errorText(verified.error));
       return;
     }
     router.replace(callbackUrl.startsWith("/") ? callbackUrl : "/admin");

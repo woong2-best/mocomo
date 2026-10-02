@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +18,7 @@ export function HomeInPageSearch({ query }: { query: string }) {
         credentials: "include",
       });
       const json = (await res.json()) as FastSearchResult & { error?: string };
-      if (!res.ok) throw new Error(json.error ?? "검색에 실패했습니다.");
+      if (!res.ok) throw new Error(errorText(json.error ?? "검색에 실패했습니다."));
       return json;
     },
     staleTime: 15_000,

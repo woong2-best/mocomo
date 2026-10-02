@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -51,7 +53,7 @@ export function AdminEnrollForm() {
     const options = await adminPasskeyRegisterOptionsAction();
     if ("error" in options && options.error) {
       setLoading(false);
-      setError(options.error);
+      setError(errorText(options.error));
       return;
     }
     try {
@@ -59,7 +61,7 @@ export function AdminEnrollForm() {
       const result = await adminPasskeyRegisterVerifyAction(attestation, "Primary");
       setLoading(false);
       if ("error" in result && result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       setPhase("totp");
@@ -75,7 +77,7 @@ export function AdminEnrollForm() {
     const begun = await adminTotpBeginAction();
     setLoading(false);
     if ("error" in begun && begun.error) {
-      setError(begun.error);
+      setError(errorText(begun.error));
       return;
     }
     if ("otpauthUrl" in begun && begun.otpauthUrl) {
@@ -92,7 +94,7 @@ export function AdminEnrollForm() {
     const result = await adminTotpVerifyAction(totpCode);
     setLoading(false);
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     setPhase("recovery");
@@ -104,7 +106,7 @@ export function AdminEnrollForm() {
     const result = await adminRecoveryGenerateAction();
     setLoading(false);
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     if ("codes" in result && result.codes) {

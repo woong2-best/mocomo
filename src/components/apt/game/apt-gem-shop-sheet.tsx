@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { X, RefreshCw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -180,7 +182,7 @@ function AptGemShopSheetInner() {
     try {
       const res = await exchangeAptGemsForGold(exchangeGems);
       if ("error" in res && res.error) {
-        setMsg(res.error);
+        setMsg(errorText(res.error));
         return;
       }
       if ("economy" in res && res.economy) {

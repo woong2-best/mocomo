@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       bidAmount: amount,
     });
     if ("error" in result) {
-      return NextResponse.json({ error: result.error, mode: result.mode }, { status: 400 });
+      return NextResponse.json({ error: errorText(result.error), mode: result.mode }, { status: 400 });
     }
     return NextResponse.json(result);
   }
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     }
     const result = await confirmUsedAuctionBidHold(userId, listingId, paymentIntentDbId);
     if ("error" in result) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
     }
     return NextResponse.json(result);
   }
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       paymentMethodId
     );
     if ("error" in result) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
     }
     return NextResponse.json(result);
   }
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   if ("error" in result && result.error) {
     return NextResponse.json(
       {
-        error: result.error,
+        error: errorText(result.error),
         needsAdultVerify: "needsAdultVerify" in result ? result.needsAdultVerify : undefined,
         needsBidHold: "needsBidHold" in result ? result.needsBidHold : undefined,
         holdMode: "holdMode" in result ? result.holdMode : undefined,

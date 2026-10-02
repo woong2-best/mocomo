@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import { LetterDonationEnvelope } from "@/components/donations/letter-donation-envelope";
 
@@ -26,7 +28,7 @@ export function LetterDonationCard({
       .then(async (res) => {
         if (!res.ok) {
           const body = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(body.error ?? "편지를 불러오지 못했습니다.");
+          throw new Error(errorText(body.error ?? "편지를 불러오지 못했습니다."));
         }
         return res.json() as Promise<{ tip: TipPayload }>;
       })

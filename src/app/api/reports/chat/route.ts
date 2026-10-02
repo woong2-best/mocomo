@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi, getClientIpFromRequest } from "@/lib/api-security";
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
   });
 
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json(result);

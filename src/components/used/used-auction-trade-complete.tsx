@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { confirmUsedAuctionTrade } from "@/actions/used-market";
@@ -57,7 +59,7 @@ export function UsedAuctionTradeComplete({
           const res = await confirmUsedAuctionTrade(listingId);
           setBusy(false);
           if ("error" in res && res.error) {
-            setError(res.error);
+            setError(errorText(res.error));
             return;
           }
           router.refresh();

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { cloudflareStreamConfigError } from "@/lib/cloudflare-stream";
@@ -44,7 +45,7 @@ export async function POST(
   const resolved = await resolveWhepPlaybackUrlForViewer(channelId, channel, session.user.id);
   if ("error" in resolved) {
     return NextResponse.json(
-      { error: resolved.error, notReady: resolved.notReady ?? resolved.status === 409 },
+      { error: errorText(resolved.error), notReady: resolved.notReady ?? resolved.status === 409 },
       { status: resolved.status }
     );
   }

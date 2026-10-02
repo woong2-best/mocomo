@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -19,7 +20,7 @@ export async function GET(
 
   const data = await listAnimeHistory(slug);
   if ("error" in data) {
-    return NextResponse.json({ error: data.error }, { status: 404 });
+    return NextResponse.json({ error: errorText(data.error) }, { status: 404 });
   }
   return NextResponse.json(data);
 }
@@ -53,7 +54,7 @@ export async function POST(
 
   const result = await restoreAnimeRevisionForUser(auth.user.id, revisionId);
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
   return NextResponse.json({ anime: result.anime, slug });
 }

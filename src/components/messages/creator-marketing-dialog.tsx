@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useId, useRef, useState } from "react";
 import { Images, Users, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -175,7 +177,7 @@ export function CreatorMarketingDialog({ open, onOpenChange }: Props) {
         mediaPriceKrw: media?.priceKrw ?? null,
       });
       if (!result.ok) {
-        setWelcomeError(result.error);
+        setWelcomeError(errorText(result.error));
         return;
       }
       await queryClient.invalidateQueries({ queryKey: ["creator-dm-marketing"] });
@@ -199,7 +201,7 @@ export function CreatorMarketingDialog({ open, onOpenChange }: Props) {
         mediaPriceKrw: media?.priceKrw ?? null,
       });
       if (!result.ok) {
-        setBulkError(result.error);
+        setBulkError(errorText(result.error));
         return;
       }
       await queryClient.invalidateQueries({ queryKey: ["creator-dm-marketing"] });

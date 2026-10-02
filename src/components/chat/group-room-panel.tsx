@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -61,7 +63,7 @@ export function GroupRoomPanel({
     setError("");
     const res = await setGroupRoomAnnouncement(roomId, annTitle, annBody);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     setAnnTitle("");
@@ -73,7 +75,7 @@ export function GroupRoomPanel({
     setError("");
     const res = await createGroupPoll(roomId, pollQ, pollOpts);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     setPollQ("");
@@ -84,7 +86,7 @@ export function GroupRoomPanel({
   async function handleVote(pollId: string, optionId: string) {
     setError("");
     const res = await voteGroupPoll(pollId, optionId);
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else refresh();
   }
 
@@ -94,7 +96,7 @@ export function GroupRoomPanel({
       ? await joinSocialGroupVoiceCall(roomId)
       : await startSocialGroupVoiceCall(roomId);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("channelId" in res && res.channelId) {

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -199,7 +201,7 @@ export function LiveBrowserStudio({
       return null;
     }
     if (!res.ok) {
-      throw new Error(body.error ?? t("live.s1co8u3z"));
+      throw new Error(errorText(body.error ?? t("live.s1co8u3z")));
     }
     if (body.ingestEngine !== "cloudflare" || !body.whipPublishUrl) {
       throw new Error(
@@ -596,7 +598,7 @@ export function LiveBrowserStudio({
         if ("error" in res && res.error) {
           whipRef.current?.stop();
           setWhipConnected(false);
-          throw new Error(res.error);
+          throw new Error(errorText(res.error));
         }
         setPublishState("live_here");
       }

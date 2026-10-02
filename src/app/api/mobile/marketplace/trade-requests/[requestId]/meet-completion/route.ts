@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -36,7 +37,7 @@ export async function POST(
     parsed.data.action
   );
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
   return NextResponse.json(result);
 }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,7 +44,7 @@ export function SellerKycDocumentUpload({ value, onChange, disabled, idType }: P
     setUploading(false);
 
     if ("error" in res) {
-      setError(res.error);
+      setError(errorText(res.error));
       onChange({ documentKey: null, previewUrl: null });
       URL.revokeObjectURL(previewUrl);
       return;

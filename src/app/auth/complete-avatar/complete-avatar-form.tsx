@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -35,7 +37,7 @@ export function CompleteAvatarForm({ dest }: { dest?: string }) {
     setError("");
     try {
       const result = await completeAvatarOnboarding({ image: image.trim(), dest });
-      if (result?.error) setError(result.error);
+      if (result?.error) setError(errorText(result.error));
     } catch {
       setError(
         locale === "ko"

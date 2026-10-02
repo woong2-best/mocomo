@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -167,7 +169,7 @@ export function LiarGameClient() {
     setEntryError(null);
     const res = await emitAck("liar_create_room", { nickname });
     if (!res.ok) {
-      setEntryError(res.error ?? "방 만들기 실패");
+      setEntryError(errorText(res.error ?? "방 만들기 실패"));
       return;
     }
     setMyId(res.playerId ?? "");
@@ -181,7 +183,7 @@ export function LiarGameClient() {
       code: roomCodeInput.trim().toUpperCase(),
     });
     if (!res.ok) {
-      setEntryError(res.error ?? "입장 실패");
+      setEntryError(errorText(res.error ?? "입장 실패"));
       return;
     }
     setMyId(res.playerId ?? "");

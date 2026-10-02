@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -37,7 +39,7 @@ export function WalletDashboard({ data }: { data: WalletData }) {
     setMsg("");
     const res = await saveBankAccount({ bankName, accountNumber, holderName });
     setLoading(false);
-    if ("error" in res && res.error) setMsg(res.error);
+    if ("error" in res && res.error) setMsg(errorText(res.error));
     else {
       setMsg(t("wallet.s1i8m6ka"));
       router.refresh();
@@ -50,7 +52,7 @@ export function WalletDashboard({ data }: { data: WalletData }) {
     setMsg("");
     const res = await requestPayout(Number(payoutAmount));
     setLoading(false);
-    if ("error" in res && res.error) setMsg(res.error);
+    if ("error" in res && res.error) setMsg(errorText(res.error));
     else {
       setMsg(t("wallet.3_5"));
       setPayoutAmount("");

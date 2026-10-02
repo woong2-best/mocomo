@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import type { MocoDonationType } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, ...stripeAccountNotReadyPayload() }, { status: 422 });
     }
     const status = result.code === "INSUFFICIENT_MOCO" ? 402 : 400;
-    return NextResponse.json({ success: false, error: result.error, code: result.code }, { status });
+    return NextResponse.json({ success: false, error: errorText(result.error), code: result.code }, { status });
   }
 
   return NextResponse.json({

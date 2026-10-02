@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -51,7 +53,7 @@ export function DiscoveryMatchList() {
     const res = await openDiscoveryChat(userId);
     setOpening(null);
     if (res && "error" in res && res.error) {
-      setChatError(res.error);
+      setChatError(errorText(res.error));
       return;
     }
     if (res && "roomId" in res && res.roomId) {

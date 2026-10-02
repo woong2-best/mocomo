@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -124,7 +126,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
       pitch,
     });
     if (result && "error" in result && result.error) {
-      setMsg(result.error);
+      setMsg(errorText(result.error));
     } else {
       setMsg("저장되었습니다.");
       router.refresh();

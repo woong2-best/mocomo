@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
   const result = await getOrCreateDmForUser(authResult.user.id, parsed.data.userId);
   if ("error" in result) {
     return NextResponse.json(
-      { error: result.error, requiredTier: "requiredTier" in result ? result.requiredTier : undefined },
+      { error: errorText(result.error), requiredTier: "requiredTier" in result ? result.requiredTier : undefined },
       { status: 400 }
     );
   }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -45,7 +47,7 @@ export function CouponDetailActions({
             onClick={() =>
               start(async () => {
                 const res = await adminUpdateCouponAction(couponId, { active: !active });
-                setMsg(res.error ?? (active ? "비활성화됨" : "활성화됨"));
+                setMsg(errorText(res.error ?? (active ? "비활성화됨" : "활성화됨")));
                 router.refresh();
               })
             }
@@ -80,7 +82,7 @@ export function CouponDetailActions({
               start(async () => {
                 if (!confirm("쿠폰을 삭제할까요? 사용 내역도 함께 삭제됩니다.")) return;
                 const res = await adminDeleteCouponAction(couponId);
-                if (res.error) setMsg(res.error);
+                if (res.error) setMsg(errorText(res.error));
                 else router.push("/admin/coupons");
               })
             }
@@ -156,7 +158,7 @@ export function CouponDetailActions({
                   .filter(Boolean);
                 const targets = [...new Set([...selected, ...fromBulk])];
                 const res = await adminAssignCouponAction(couponId, targets);
-                if (res.error) setMsg(res.error);
+                if (res.error) setMsg(errorText(res.error));
                 else {
                   setMsg(`지급 ${res.created}명 (중복 스킵 ${res.skipped})`);
                   setSelected([]);

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import { Check, Loader2, X } from "lucide-react";
 import { getCommunityJoinRequests, reviewCommunityJoinRequest } from "@/actions/community-join";
@@ -26,7 +28,7 @@ export function CommunityJoinRequestsPanel({ communityId }: { communityId: strin
     setLoading(true);
     const res = await getCommunityJoinRequests(communityId);
     setRequests(res.requests ?? []);
-    if (res.error) setError(res.error);
+    if (res.error) setError(errorText(res.error));
     setLoading(false);
   }
 
@@ -38,7 +40,7 @@ export function CommunityJoinRequestsPanel({ communityId }: { communityId: strin
     setActing(id);
     setError("");
     const res = await reviewCommunityJoinRequest(id, action);
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else await load();
     setActing(null);
   }

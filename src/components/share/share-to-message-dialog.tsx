@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Check, ChevronLeft, Loader2, Search } from "lucide-react";
@@ -159,8 +161,8 @@ export function ShareToMessageDialog({
     });
     setSending(false);
     if (!result.ok) {
-      setError(result.error);
-      onError?.(result.error);
+      setError(errorText(result.error));
+      onError?.(errorText(result.error));
       return;
     }
     onOpenChange(false);

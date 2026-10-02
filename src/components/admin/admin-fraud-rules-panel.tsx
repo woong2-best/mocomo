@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -133,7 +135,7 @@ export function AdminFraudRulesPanel({ rules: published, meta, changeLogs }: Pro
     const res = await adminPublishFraudRules(patches, publishReason);
     setBusy(null);
     if ("error" in res) {
-      setPublishError(res.error);
+      setPublishError(errorText(res.error));
       return;
     }
     setPublishOpen(false);
@@ -330,7 +332,7 @@ export function AdminFraudRulesPanel({ rules: published, meta, changeLogs }: Pro
               </Button>
 
               {preview && !preview.ok ? (
-                <p className="text-sm text-destructive">{preview.error}</p>
+                <p className="text-sm text-destructive">{errorText(preview.error)}</p>
               ) : null}
 
               {preview && preview.ok ? (

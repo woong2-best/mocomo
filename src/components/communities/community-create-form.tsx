@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -134,7 +136,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
         return;
       }
       if ("error" in result && result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       if ("community" in result && result.community?.slug) {

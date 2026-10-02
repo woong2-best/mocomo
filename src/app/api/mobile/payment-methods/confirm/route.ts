@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   const res = await confirmSetupCheckoutSession(auth.user.id, body.sessionId);
   if ("error" in res && res.error) {
-    return NextResponse.json({ error: res.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(res.error) }, { status: 400 });
   }
   return NextResponse.json({ ok: true, methods: res.methods });
 }

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextResponse } from "next/server";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { fulfillIapPurchase } from "@/lib/apt/economy/iap/iap-fulfillment-pipeline";
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
   });
 
   if ("error" in res) {
-    return NextResponse.json({ error: res.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(res.error) }, { status: 422 });
   }
 
   if ("alreadyFulfilled" in res && res.alreadyFulfilled) {

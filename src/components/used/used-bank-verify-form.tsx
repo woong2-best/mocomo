@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -84,7 +86,7 @@ export function UsedBankVerifyForm({
     const res = await sendBank(bankCode, accountNum);
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("alreadyVerified" in res && res.alreadyVerified) {
@@ -109,7 +111,7 @@ export function UsedBankVerifyForm({
     const res = await verifyBank(bankCode, accountNum, code);
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("displayAccount" in res) {
@@ -191,7 +193,7 @@ export function UsedBankVerifyForm({
               onClick={() => {
                 void clearPending().then((res) => {
                   if ("error" in res && res.error) {
-                    setError(res.error);
+                    setError(errorText(res.error));
                     return;
                   }
                   setSent(false);

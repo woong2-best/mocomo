@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -127,7 +129,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
       if ("error" in res && res.error) {
         setRecipientLabel("");
         setRecipientPayoutsEnabled(null);
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("username" in res && res.username) {
@@ -188,8 +190,8 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
           setError(CREATOR_PAYOUT_BLOCKED_KO);
           setStatusLine(CREATOR_PAYOUT_BLOCKED_KO);
         } else {
-          setError(res.error);
-          setStatusLine(res.error);
+          setError(errorText(res.error));
+          setStatusLine(errorText(res.error));
         }
         setAtmOverlay("failure");
         return;

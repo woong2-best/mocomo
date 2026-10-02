@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
 
   if (!result) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   if (result.error && !result.view.listingId) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
   return NextResponse.json(result);
 }

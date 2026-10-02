@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -157,7 +159,7 @@ export function LiveRoomClient({
     const res = await enterLiveAsHost(channelId);
     setJoining(false);
     if ("error" in res && res.error) {
-      setJoinError(res.error);
+      setJoinError(errorText(res.error));
       return;
     }
     setJoined(true);
@@ -173,8 +175,8 @@ export function LiveRoomClient({
       if ("code" in res && res.code === "ADULT_VERIFICATION_REQUIRED") {
         setAdultVerificationRequired(true);
       }
-      setViewerJoinError(res.error);
-      setJoinError(res.error);
+      setViewerJoinError(errorText(res.error));
+      setJoinError(errorText(res.error));
       return;
     }
     setAdultVerificationRequired(false);
@@ -205,7 +207,7 @@ export function LiveRoomClient({
     const res = await applyLiveCollabPassword(channelId, collabPassword);
     setJoining(false);
     if ("error" in res && res.error) {
-      setJoinError(res.error);
+      setJoinError(errorText(res.error));
       return;
     }
     setCollabOk(true);

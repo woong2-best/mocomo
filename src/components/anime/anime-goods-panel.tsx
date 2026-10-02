@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -50,7 +52,7 @@ export function AnimeGoodsPanel({
     });
     setLoading(false);
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     (e.target as HTMLFormElement).reset();

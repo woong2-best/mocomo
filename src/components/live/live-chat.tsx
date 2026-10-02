@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -196,7 +198,7 @@ function LiveChatInner({
       const body = await res.json();
       if (!res.ok || !body.ok || !body.message) {
         removeFromFeed(tempId);
-        setError(body.error ?? t("live.s9edwdw"));
+        setError(errorText(body.error ?? t("live.s9edwdw")));
         setText(content);
         return;
       }
@@ -215,7 +217,7 @@ function LiveChatInner({
   async function removeMessage(messageId: string) {
     const res = await deleteLiveChatMessage(channelId, messageId);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     removeFromFeed(messageId);

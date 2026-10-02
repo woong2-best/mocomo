@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rejectIfFirstPartyLiveDisabled } from "@/lib/live-first-party-guard";
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
   const result = await prepareHostForNewBroadcast(session.user.id);
   if (!result.ok) {
     return NextResponse.json(
-      { ok: false, error: result.error, blockingChannelId: result.blockingChannelId },
+      { ok: false, error: errorText(result.error), blockingChannelId: result.blockingChannelId },
       { status: 409 }
     );
   }

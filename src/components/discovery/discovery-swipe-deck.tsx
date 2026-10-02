@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from "framer-motion";
@@ -60,7 +62,7 @@ export function DiscoverySwipeDeck() {
     try {
       const res = await getDiscoveryDeck();
       if ("error" in res) {
-        setLoadError(res.error);
+        setLoadError(errorText(res.error));
         setCards([]);
       } else if ("enabled" in res && !res.enabled) {
         setEnabled(false);
@@ -88,7 +90,7 @@ export function DiscoverySwipeDeck() {
     setModeBusy(true);
     const res = await setDiscoveryMatchingMode(mode);
     if ("error" in res) {
-      setActError(res.error);
+      setActError(errorText(res.error));
       setModeBusy(false);
       return;
     }
@@ -120,7 +122,7 @@ export function DiscoverySwipeDeck() {
 
     const res = await discoverySwipe(card.userId, action);
     if ("error" in res) {
-      setActError(res.error);
+      setActError(errorText(res.error));
       setExitDir(null);
       x.set(0);
       y.set(0);
@@ -162,7 +164,7 @@ export function DiscoverySwipeDeck() {
     setActError("");
     const res = await undoDiscoverySwipe(lastPassed.userId);
     if ("error" in res) {
-      setActError(res.error);
+      setActError(errorText(res.error));
       setBusy(false);
       return;
     }
@@ -180,7 +182,7 @@ export function DiscoverySwipeDeck() {
     setMatchFlash(false);
     setMatchedCard(null);
     if (res && "error" in res && res.error) {
-      setActError(res.error);
+      setActError(errorText(res.error));
       return;
     }
     if (res && "roomId" in res && res.roomId) {

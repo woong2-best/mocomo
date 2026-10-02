@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { isProduction, verifyInternalSecret } from "@/lib/api-security";
 import { syncStripeSupportedCountriesFromApi } from "@/lib/marketplace/stripe-supported-countries.server";
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   const result = await syncStripeSupportedCountriesFromApi();
   if (!result.ok) {
-    return NextResponse.json({ ok: false, error: result.error }, { status: 503 });
+    return NextResponse.json({ ok: false, error: errorText(result.error) }, { status: 503 });
   }
   return NextResponse.json(result);
 }

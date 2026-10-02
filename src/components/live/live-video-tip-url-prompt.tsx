@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -54,7 +56,7 @@ export function LiveVideoTipUrlPrompt({
       });
       const body = await res.json();
       if (!res.ok || !body.ok) {
-        setError(body.error ?? t("live.s199o885"));
+        setError(errorText(body.error ?? t("live.s199o885")));
         return;
       }
       setDone(true);

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { sendEmoticonToStreamer } from "@/actions/goods-shop";
@@ -28,7 +30,7 @@ export function SendEmoticonForm({
     const res = await sendEmoticonToStreamer(itemId, username);
     setLoading(false);
     if ("error" in res && res.error) {
-      setMsg(res.error);
+      setMsg(errorText(res.error));
       return;
     }
     setMsg(`전송 완료! 스트리머에게 ${Math.floor(pricePaid * 0.9).toLocaleString()}원이 적립됩니다.`);

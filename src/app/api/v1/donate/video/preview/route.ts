@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { resolveDonateApiUser } from "@/lib/moco-donation/api-auth";
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   const target = await resolveStreamerTarget(streamerId);
   if (!target.ok) {
-    return NextResponse.json({ ok: false, error: target.error }, { status: 400 });
+    return NextResponse.json({ ok: false, error: errorText(target.error) }, { status: 400 });
   }
   if (!target.isLive) {
     return NextResponse.json({ ok: false, error: "방송 중일 때만 미리보기할 수 있습니다." }, { status: 400 });
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!prepared.ok) {
-    return NextResponse.json({ ok: false, error: prepared.error, code: prepared.code }, { status: 422 });
+    return NextResponse.json({ ok: false, error: errorText(prepared.error), code: prepared.code }, { status: 422 });
   }
 
   return NextResponse.json({

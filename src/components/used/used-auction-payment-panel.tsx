@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -88,7 +90,7 @@ export function UsedAuctionPaymentPanel({
               setError("");
               const res = await markAuctionPaymentComplete(listingId);
               setBusy(false);
-              if ("error" in res && res.error) setError(res.error);
+              if ("error" in res && res.error) setError(errorText(res.error));
               else if ("redirectPath" in res && res.redirectPath) router.push(res.redirectPath);
               else router.refresh();
             }}

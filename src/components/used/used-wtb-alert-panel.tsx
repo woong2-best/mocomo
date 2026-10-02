@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { createSubcultureWtbAlert } from "@/actions/subculture-wtb";
 import { Button } from "@/components/ui/button";
@@ -43,7 +45,7 @@ export function UsedWtbAlertPanel({
     });
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     setDone(true);

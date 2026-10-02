@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,7 @@ export function AdminSettingsForm({ initial }: { initial: SiteSettingsShape }) {
         e.preventDefault();
         start(async () => {
           const res = await adminSaveSettingsAction(form);
-          setMsg(res.error ?? "저장되었습니다. 새로고침해도 유지됩니다.");
+          setMsg(errorText(res.error ?? "저장되었습니다. 새로고침해도 유지됩니다."));
           if (!res.error && res.data) {
             setForm(res.data);
             router.refresh();

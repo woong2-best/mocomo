@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -327,7 +329,7 @@ export function ComposeForm({
         onPosted?.(result.postId);
         return;
       }
-      setError(result.error ?? t("toast.publishFailed"));
+      setError(errorText(result.error ?? t("toast.publishFailed")));
       (publishedToast?.showErrorToast ?? pushErrorToast)({
         message: t("toast.publishFailed"),
         detail: t("toast.retry"),

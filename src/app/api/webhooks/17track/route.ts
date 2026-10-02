@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextResponse } from "next/server";
 import { applyMarketplaceTrackingUpdate } from "@/lib/marketplace/delivery-pipeline";
 import {
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
   if (result && "error" in result) {
     safeLogWarn("17track-webhook", {
       tracking: parsed.trackingNumber.slice(0, 6) + "…",
-      error: result.error,
+      error: errorText(result.error),
     });
   } else if (result?.delivered) {
     safeLogInfo("17track-webhook", {

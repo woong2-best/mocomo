@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
     if ("publicUrl" in uploaded) {
       return NextResponse.json({ publicUrl: uploaded.publicUrl });
     }
-    return NextResponse.json({ error: uploaded.error }, { status: 500 });
+    return NextResponse.json({ error: errorText(uploaded.error) }, { status: 500 });
   }
 
   if (process.env.VERCEL) {

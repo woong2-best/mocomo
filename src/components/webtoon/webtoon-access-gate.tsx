@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { HumanChallengeQuestion } from "@/lib/human-challenge-types";
@@ -35,7 +37,7 @@ export function WebtoonAccessGate() {
     const res = await verifyWebtoonHumanAccess(token, choiceId);
     setLoading(false);
     if ("error" in res && res.error) {
-      setErr(res.error);
+      setErr(errorText(res.error));
       void loadChallenge();
       return;
     }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -50,7 +52,7 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
     const res = await startAddPaymentMethod();
     setAdding(false);
     if ("error" in res && res.error) {
-      setMsg(res.error);
+      setMsg(errorText(res.error));
       return;
     }
     if ("checkoutUrl" in res && res.checkoutUrl) window.location.href = res.checkoutUrl;
@@ -60,7 +62,7 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
     startTransition(async () => {
       setMsg("");
       const res = await chooseDefaultPaymentMethod(id);
-      if ("error" in res && res.error) setMsg(res.error);
+      if ("error" in res && res.error) setMsg(errorText(res.error));
       else if ("methods" in res && res.methods) {
         setMethods(res.methods);
         router.refresh();
@@ -72,7 +74,7 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
     startTransition(async () => {
       setMsg("");
       const res = await removePaymentMethod(id);
-      if ("error" in res && res.error) setMsg(res.error);
+      if ("error" in res && res.error) setMsg(errorText(res.error));
       else if ("methods" in res && res.methods) {
         setMethods(res.methods);
         router.refresh();

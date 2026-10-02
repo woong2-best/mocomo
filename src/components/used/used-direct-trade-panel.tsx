@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
@@ -65,7 +67,7 @@ export function UsedDirectTradePanel({ initial }: { initial: DirectTradeView }) 
     try {
       const result = await task();
       if (result.view?.listingId) setView(result.view);
-      if (result.error) setNote(result.error);
+      if (result.error) setNote(errorText(result.error));
       router.refresh();
     } catch {
       setNote(t("ui.request_failed"));

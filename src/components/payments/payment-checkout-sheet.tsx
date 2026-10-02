@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -101,7 +103,7 @@ export function PaymentCheckoutSheet({
     void prepareCheckoutPayment({ type, amount, orderName, metadata })
       .then((res) => {
         if ("error" in res && res.error) {
-          setError(res.error);
+          setError(errorText(res.error));
           return;
         }
         if (!("orderId" in res) || !res.orderId) return;
@@ -151,7 +153,7 @@ export function PaymentCheckoutSheet({
       }
       const done = await confirmCheckoutPayment(oid);
       if ("error" in done && done.error) {
-        setError(done.error);
+        setError(errorText(done.error));
         return;
       }
       if ("success" in done && done.success) {
@@ -175,7 +177,7 @@ export function PaymentCheckoutSheet({
     startTransition(async () => {
       const res = await payWithSavedCard(orderId, selectedId, true);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("requiresAction" in res && res.requiresAction && res.clientSecret) {
@@ -203,7 +205,7 @@ export function PaymentCheckoutSheet({
       purchaseTermsAccepted: true,
     });
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("checkoutUrl" in res && res.checkoutUrl) window.location.href = res.checkoutUrl;
@@ -214,7 +216,7 @@ export function PaymentCheckoutSheet({
     saveCheckoutForResume({ type, amount, orderName, metadata, returnPath: resumePath });
     const res = await startAddPaymentMethod(resumePath);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("checkoutUrl" in res && res.checkoutUrl) window.location.href = res.checkoutUrl;

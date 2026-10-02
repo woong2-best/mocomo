@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -26,7 +28,7 @@ function ResetForm() {
     const result = await resetPasswordConfirm({ email, token, password });
     setLoading(false);
     if (result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     router.push("/auth/signin?reset=1");

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useMemo, useState, useTransition } from "react";
 import { PayButton } from "@/components/payments/pay-button";
 import { Button } from "@/components/ui/button";
@@ -313,7 +315,7 @@ export function FlowerSendForm({
                     ? `gift_${crypto.randomUUID()}`
                     : undefined,
               });
-              setMsg(res.error ?? "꽃과 편지를 보냈습니다.");
+              setMsg(errorText(res.error ?? "꽃과 편지를 보냈습니다."));
               if (!res.error) window.location.reload();
             })
           }
@@ -366,7 +368,7 @@ export function FlowerRedeemButton({
                   ? `redeem_${crypto.randomUUID()}`
                   : undefined,
             });
-            if (res.error) setMsg(res.error);
+            if (res.error) setMsg(errorText(res.error));
             else
               setMsg(
                 res.heldForReview

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -32,7 +33,7 @@ export async function POST(
 
   const result = await castPostPollVote(postId, authResult.user.id, optionId);
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    return NextResponse.json({ error: errorText(result.error) }, { status: result.status });
   }
   return NextResponse.json({ poll: result.poll });
 }

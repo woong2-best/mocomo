@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -216,7 +218,7 @@ export function ContentReportFlow({
             commentId,
           });
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       try {

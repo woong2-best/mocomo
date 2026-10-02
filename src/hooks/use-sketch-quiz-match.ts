@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
@@ -95,7 +97,7 @@ export function useSketchQuizMatch(userId: string | undefined, username: string)
       void emitMatch(socket).then((res) => {
         if (!matchingRef.current) return;
         if (!res.ok) {
-          setError(res.error ?? "매칭 재시도에 실패했습니다.");
+          setError(errorText(res.error ?? "매칭 재시도에 실패했습니다."));
           return;
         }
         if (res.status === "waiting") {
@@ -153,7 +155,7 @@ export function useSketchQuizMatch(userId: string | undefined, username: string)
     if (!res.ok) {
       matchingRef.current = false;
       setMatching(false);
-      setError(res.error ?? "매칭에 실패했습니다.");
+      setError(errorText(res.error ?? "매칭에 실패했습니다."));
       return;
     }
     if (res.status === "waiting") {

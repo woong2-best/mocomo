@@ -30,6 +30,7 @@
     "i18n:audit": "node scripts/i18n/audit-korean-in-src.mjs",
     "i18n:migrate-folder": "node scripts/i18n/migrate-folder-hangul.mjs",
     "i18n:check": "node scripts/ci/check-no-hangul-in-src.mjs",
+    "i18n:keys": "node scripts/ci/check-i18n-keys.mjs",
     "postinstall": "prisma generate && node scripts/copy-mediapipe-assets.cjs && node scripts/copy-avatar-assets.cjs && node scripts/copy-maplibre-worker.cjs",
     "mediapipe:assets": "node scripts/copy-mediapipe-assets.cjs",
     "avatar:assets": "node scripts/copy-avatar-assets.cjs",

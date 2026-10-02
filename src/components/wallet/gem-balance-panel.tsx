@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -204,8 +206,8 @@ export function GemBalancePanel({
       }
       const done = await confirmCheckoutPayment(orderId);
       if ("error" in done && done.error) {
-        setError(done.error);
-        setStatusLine(done.error);
+        setError(errorText(done.error));
+        setStatusLine(errorText(done.error));
         onPaymentResult?.("failure");
         return;
       }
@@ -248,8 +250,8 @@ export function GemBalancePanel({
     startTransition(async () => {
       const res = await payGemTopupWithSavedCard(moco, defaultCard.id, true);
       if ("error" in res && res.error) {
-        setError(res.error);
-        setStatusLine(res.error);
+        setError(errorText(res.error));
+        setStatusLine(errorText(res.error));
         onPaymentResult?.("failure");
         return;
       }

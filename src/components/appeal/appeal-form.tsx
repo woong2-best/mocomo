@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -158,7 +160,7 @@ export function AppealForm({
               allowFollowUpEmail,
             });
             if (res.error) {
-              setError(res.error);
+              setError(errorText(res.error));
               return;
             }
             setDone(true);

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
@@ -40,7 +42,7 @@ export function AdminStripeVerifyPanel({ data }: { data: StripeVerifyDashboard }
     startTransition(async () => {
       const res = await fn();
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if (res.checkoutUrl) window.location.href = res.checkoutUrl;

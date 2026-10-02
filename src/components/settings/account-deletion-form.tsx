@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import { Button } from "@/components/ui/button";
@@ -54,7 +56,7 @@ export function AccountDeletionForm({ username, hasPassword }: Props) {
     setLoading(false);
 
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
 
