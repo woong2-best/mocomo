@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { ADULT_MONETIZATION_BANNED_SHORT } from "@/lib/adult-monetization-ban";
 import { cn } from "@/lib/utils";
@@ -20,11 +23,11 @@ export function AdultMonetizationNotice({ className, compact }: Props) {
     >
       {ADULT_MONETIZATION_BANNED_SHORT}{" "}
       <Link href="/legal/payment" className="font-semibold underline underline-offset-2">
-        결제 정책
+        {t("legal.s1p6yays")}
       </Link>
       {" · "}
       <Link href="/legal/terms" className="font-semibold underline underline-offset-2">
-        이용약관
+        {t("legal.terms")}
       </Link>
     </p>
   );

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { PaymentLegalNoticeContent } from "@/components/legal/legal-entity-notice";
 import {
@@ -12,14 +15,14 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   className?: string;
-  /** Shown before the link, e.g. "광고 등록 시" vs "결제 시" */
+  /** Shown before the link, e.g. t("legal.sv12nkp") vs t("legal.smlg5k8") */
   actionLabel?: string;
 };
 
 /** Muted one-line consent; full disclosure opens in a dialog. */
 export function PaymentLegalConsentModal({
   className,
-  actionLabel = "광고 등록 시",
+  actionLabel = t("legal.sv12nkp"),
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -32,15 +35,15 @@ export function PaymentLegalConsentModal({
           onClick={() => setOpen(true)}
           className="text-primary/90 underline-offset-2 hover:text-primary hover:underline"
         >
-          이용약관 및 고지사항
+          {t("legal.srmlc0q")}
         </button>
-        에 동의하는 것으로 간주됩니다.
+        {t("legal.s1cldh83")}
       </p>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="text-base text-foreground">사업자·약관 고지</DialogTitle>
+            <DialogTitle className="text-base text-foreground">{t("legal.sk4z3b1")}</DialogTitle>
           </DialogHeader>
           <PaymentLegalNoticeContent compact />
         </DialogContent>
