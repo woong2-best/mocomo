@@ -11,22 +11,22 @@ import type {
 import { FACE_SHAPE_LABELS } from "@/lib/virtual-avatar/face-shape-profiles";
 
 export const RENDER_QUALITIES: { id: RenderQuality; label: string; hint: string }[] = [
-  { id: "performance", label: "경량", hint: "방송·저사양" },
-  { id: "studio", label: "스튜디오", hint: "기본 고품질" },
-  { id: "cinematic", label: "시네마", hint: "최고 품질" },
+  { id: "performance", label: "Lightweight", hint: "Streaming · low spec" },
+  { id: "studio", label: "스튜디오", hint: "Default high quality" },
+  { id: "cinematic", label: "Cinema", hint: "Maximum quality" },
 ];
 
 export const SKIN_TONES = [
-  { label: "밝은", hex: "#fde8d8" },
-  { label: "연한", hex: "#f5d0b5" },
-  { label: "자연", hex: "#e8b896" },
-  { label: "중간", hex: "#c68658" },
-  { label: "깊은", hex: "#8d5524" },
-  { label: "진한", hex: "#5c3317" },
-  { label: "라벤더", hex: "#d4b8e8" },
-  { label: "민트", hex: "#b8e8d4" },
-  { label: "블루", hex: "#b8cce8" },
-  { label: "실버", hex: "#c8d0d8" },
+  { label: "Bright", hex: "#fde8d8" },
+  { label: "Light", hex: "#f5d0b5" },
+  { label: "Natural", hex: "#e8b896" },
+  { label: "Medium", hex: "#c68658" },
+  { label: "Deep", hex: "#8d5524" },
+  { label: "Dark", hex: "#5c3317" },
+  { label: "Lavender", hex: "#d4b8e8" },
+  { label: "Mint", hex: "#b8e8d4" },
+  { label: "Blue", hex: "#b8cce8" },
+  { label: "Silver", hex: "#c8d0d8" },
 ] as const;
 
 export const TOP_COLORS = [
@@ -65,40 +65,40 @@ export const SHOE_COLORS = [
 ] as const;
 
 export const HAIR_COLORS = [
-  { label: "검정", hex: "#1a1a1a" },
-  { label: "갈색", hex: "#5c4033" },
-  { label: "금발", hex: "#d4a853" },
-  { label: "적갈", hex: "#8b3a2a" },
-  { label: "은색", hex: "#b0b8c0" },
-  { label: "핑크", hex: "#f472b6" },
-  { label: "보라", hex: "#a855f7" },
-  { label: "청록", hex: "#14b8a6" },
-  { label: "네온", hex: "#22d3ee" },
-  { label: "레인보", hex: "linear" },
+  { label: "Black", hex: "#1a1a1a" },
+  { label: "Brown", hex: "#5c4033" },
+  { label: "Blonde", hex: "#d4a853" },
+  { label: "Auburn", hex: "#8b3a2a" },
+  { label: "Silver hair", hex: "#b0b8c0" },
+  { label: "Pink", hex: "#f472b6" },
+  { label: "Purple", hex: "#a855f7" },
+  { label: "Teal", hex: "#14b8a6" },
+  { label: "Neon", hex: "#22d3ee" },
+  { label: "Rainbow", hex: "linear" },
 ] as const;
 
 export const EYE_COLORS = [
-  { label: "초록", hex: "#4a6741" },
-  { label: "갈색", hex: "#6b4423" },
-  { label: "블루", hex: "#3b82c4" },
-  { label: "그레이", hex: "#94a3b8" },
-  { label: "헤zel", hex: "#a16207" },
-  { label: "보라", hex: "#7c3aed" },
-  { label: "핑크", hex: "#ec4899" },
-  { label: "골드", hex: "#ca8a04" },
-  { label: "레드", hex: "#dc2626" },
-  { label: "사이버", hex: "#22d3ee" },
+  { label: "Green", hex: "#4a6741" },
+  { label: "Brown", hex: "#6b4423" },
+  { label: "Blue", hex: "#3b82c4" },
+  { label: "Gray", hex: "#94a3b8" },
+  { label: "Hazel", hex: "#a16207" },
+  { label: "Purple", hex: "#7c3aed" },
+  { label: "Pink", hex: "#ec4899" },
+  { label: "Gold", hex: "#ca8a04" },
+  { label: "Red", hex: "#dc2626" },
+  { label: "Cyber", hex: "#22d3ee" },
 ] as const;
 
 export const LIP_COLORS = [
-  { label: "로즈", hex: "#e879a0" },
-  { label: "코랄", hex: "#fb7185" },
-  { label: "레드", hex: "#ef4444" },
-  { label: "베리", hex: "#be123c" },
-  { label: "피치", hex: "#fda4af" },
-  { label: "누드", hex: "#d4a574" },
-  { label: "플럼", hex: "#9333ea" },
-  { label: "오렌지", hex: "#f97316" },
+  { label: "Rose", hex: "#e879a0" },
+  { label: "Coral", hex: "#fb7185" },
+  { label: "Red", hex: "#ef4444" },
+  { label: "Berry", hex: "#be123c" },
+  { label: "Peach", hex: "#fda4af" },
+  { label: "Nude", hex: "#d4a574" },
+  { label: "Plum", hex: "#9333ea" },
+  { label: "Orange", hex: "#f97316" },
 ] as const;
 
 export const FACE_SHAPES: { id: FaceShape; label: string }[] = (
@@ -113,7 +113,7 @@ export const FACE_QUICK_PRESETS: {
 }[] = [
   {
     id: "cute",
-    label: "귀여움",
+    label: "Cute",
     patch: {
       faceShape: "round",
       eyeSize: 68,
@@ -126,7 +126,7 @@ export const FACE_QUICK_PRESETS: {
   },
   {
     id: "cool",
-    label: "쿨",
+    label: "Cool",
     patch: {
       faceShape: "diamond",
       eyeSize: 54,
@@ -139,7 +139,7 @@ export const FACE_QUICK_PRESETS: {
   },
   {
     id: "mature",
-    label: "성숙",
+    label: "Mature",
     patch: {
       faceShape: "oval",
       eyeSize: 50,
@@ -151,7 +151,7 @@ export const FACE_QUICK_PRESETS: {
   },
   {
     id: "anime",
-    label: "애니",
+    label: "Anime",
     patch: {
       faceShape: "heart",
       eyeSize: 72,
@@ -165,62 +165,62 @@ export const FACE_QUICK_PRESETS: {
 ];
 
 export const GENDER_OPTIONS: { id: GenderExpression; label: string }[] = [
-  { id: "female", label: "여성형" },
-  { id: "male", label: "남성형" },
-  { id: "neutral", label: "중성" },
+  { id: "female", label: "Feminine" },
+  { id: "male", label: "Masculine" },
+  { id: "neutral", label: "Androgynous" },
 ];
 
 export const OUTFIT_PRESETS: { id: OutfitPreset; label: string; emoji: string }[] = [
-  { id: "casual", label: "케주얼", emoji: "👕" },
-  { id: "dressy", label: "드레시", emoji: "👗" },
-  { id: "office", label: "오피스", emoji: "💼" },
-  { id: "game", label: "게임 캐릭터", emoji: "🎮" },
-  { id: "fantasy", label: "판타지", emoji: "🧙" },
-  { id: "cyberpunk", label: "사이버펑크", emoji: "🤖" },
+  { id: "casual", label: "Casual", emoji: "👕" },
+  { id: "dressy", label: "Dressy", emoji: "👗" },
+  { id: "office", label: "Office", emoji: "💼" },
+  { id: "game", label: "Game character", emoji: "🎮" },
+  { id: "fantasy", label: "Fantasy", emoji: "🧙" },
+  { id: "cyberpunk", label: "Cyberpunk", emoji: "🤖" },
 ];
 
 export const HAIR_STYLES = [
-  "단발",
-  "긴 생머리",
-  "포니테일",
-  "트윈테일",
-  "숏컷",
-  "웨이브",
-  "땋은 머리",
-  "뾰족",
+  "Bob",
+  "Long straight hair",
+  "Ponytail",
+  "Twin tails",
+  "Short cut",
+  "Wavy",
+  "Braids",
+  "Spiky",
 ] as const;
 
 export const MOTIONS: { id: MotionId; label: string }[] = [
-  { id: "idle", label: "기본" },
-  { id: "wave", label: "손흔들기" },
-  { id: "dance", label: "댄스" },
-  { id: "talk", label: "말하기" },
-  { id: "smile", label: "웃음" },
-  { id: "bow", label: "인사" },
+  { id: "idle", label: "Default" },
+  { id: "wave", label: "Wave hello" },
+  { id: "dance", label: "Dance" },
+  { id: "talk", label: "Talk" },
+  { id: "smile", label: "Laugh" },
+  { id: "bow", label: "Greet" },
 ];
 
 export const PARTICLE_EFFECTS = [
-  { id: "none" as const, label: "없음" },
-  { id: "glitter" as const, label: "글리터" },
-  { id: "hearts" as const, label: "하트" },
-  { id: "stars" as const, label: "별" },
-  { id: "fireworks" as const, label: "불꽃" },
+  { id: "none" as const, label: "None" },
+  { id: "glitter" as const, label: "Glitter" },
+  { id: "hearts" as const, label: "Heart" },
+  { id: "stars" as const, label: "Star" },
+  { id: "fireworks" as const, label: "Flame" },
 ];
 
 export const BACKGROUNDS: { id: BackgroundId; label: string }[] = [
-  { id: "space", label: "우주" },
-  { id: "pink", label: "분홍" },
-  { id: "cyber", label: "사이버" },
-  { id: "nature", label: "자연" },
-  { id: "solid", label: "단색" },
+  { id: "space", label: "Space" },
+  { id: "pink", label: "Pink" },
+  { id: "cyber", label: "Cyber" },
+  { id: "nature", label: "Natural" },
+  { id: "solid", label: "Solid" },
 ];
 
 export const OUTFIT_LAYER_LABELS = [
-  { key: "top" as const, label: "상의" },
-  { key: "bottom" as const, label: "하의" },
-  { key: "shoes" as const, label: "신발" },
-  { key: "headwear" as const, label: "헤드웨어" },
-  { key: "accessories" as const, label: "액세서리" },
+  { key: "top" as const, label: "Tops" },
+  { key: "bottom" as const, label: "Bottoms" },
+  { key: "shoes" as const, label: "Shoes" },
+  { key: "headwear" as const, label: "Headwear" },
+  { key: "accessories" as const, label: "Accessories" },
 ];
 
 export function adjustSkinColor(hex: string, brightness: number, saturation: number): string {

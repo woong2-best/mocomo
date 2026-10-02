@@ -49,71 +49,71 @@ export type CatalogItem = {
 };
 
 const HAIR_NAMES = [
-  "실크 롱 웨이브",
-  "청순 단발",
-  "하이 포니테일",
-  "트윈테일 리본",
-  "시크 숏컷",
-  "볼륨 웨이브",
-  "사이드 브레이드",
-  "울프컷 레이어",
-  "허쉬컷",
-  "투블럭",
-  "픽시컷",
-  "롱 스트레이트",
-  "반묶음",
-  "올림머리",
-  "커튼 뱅",
-  "층 레이어",
-  "내추럴 컬",
-  "듀라롱",
-  "사이버 네온",
-  "핑크 그라데이션",
-  "실버 밥",
-  "투톤 하이라이트",
-  "프린세스 컬",
-  "보헤미안 웨이브",
+  "Silky long waves",
+  "Soft short bob",
+  "High ponytail",
+  "Twin tails with ribbons",
+  "Chic pixie cut",
+  "Voluminous waves",
+  "Side braid",
+  "Wolf cut layers",
+  "Hush cut",
+  "Two-block cut",
+  "Pixie cut",
+  "Long straight",
+  "Half updo",
+  "Updo",
+  "Curtain bangs",
+  "Layered cut",
+  "Natural curls",
+  "Durarara-style long",
+  "Cyber neon",
+  "Pink gradient",
+  "Silver bob",
+  "Two-tone highlights",
+  "Princess curls",
+  "Bohemian waves",
 ];
 
 const TOP_NAMES = [
-  "데일리 티셔츠",
-  "오버핏 후드",
-  "크롭 니트",
-  "셔츠 블라우스",
-  "스포츠 재킷",
-  "가디건",
-  "레ather 재킷",
-  "프릴 블라우스",
-  "사이버 재킷",
-  "오프숄더",
+  "Daily tee",
+  "Oversized hoodie",
+  "Crop knit",
+  "Shirt blouse",
+  "Sports jacket",
+  "Cardigan",
+  "Leather jacket",
+  "Frill blouse",
+  "Cyber jacket",
+  "Off-shoulder",
 ];
 
 const BOTTOM_NAMES = [
-  "데님 팬츠",
-  "미니 스커트",
-  "와이드 슬랙",
-  "쇼츠",
-  "플리츠 스커트",
-  "카고 팬츠",
-  "레ggings",
-  "하이웨스트",
+  "Denim pants",
+  "Mini skirt",
+  "Wide slacks",
+  "Shorts",
+  "Pleated skirt",
+  "Cargo pants",
+  "Leggings",
+  "High-waist",
 ];
 
 const FULL_OUTFIT_NAMES = [
-  "핑크 크롭 세트",
-  "데님 원피스",
-  "오피스 수트",
-  "판타지 로브",
-  "사이버 수트",
-  "파티 드레스",
-  "스포츠 세트",
-  "코지 파자마",
+  "Pink crop set",
+  "Denim dress",
+  "Office suit",
+  "Fantasy robe",
+  "Cyber suit",
+  "Party dress",
+  "Sports set",
+  "Cozy pajamas",
 ];
 
-const SHOE_NAMES = ["스니커즈", "하이탑", "로퍼", "부츠", "샌들", "플랫"];
-const HEADWEAR_NAMES = ["캡", "비니", "헤드폰", "왕관", "고양이 귀", "베레모"];
-const ACCESSORY_NAMES = ["목걸이", "안경", "마스크", "날개", "꼬리", "반지"];
-const MAKEUP_NAMES = ["내추럴", "글램", "코랄", "스모키", "페어리", "네온"];
+const SHOE_NAMES = ["Sneakers", "High-tops", "Loafers", "Boots", "Sandals", "Flats"];
+const HEADWEAR_NAMES = ["Cap", "Beanie", "Headphones", "Crown", "Cat ears", "Beret"];
+const ACCESSORY_NAMES = ["Necklace", "Glasses", "Mask", "Wings", "Tail", "Ring"];
+const MAKEUP_NAMES = ["Natural", "Glam", "Coral", "Smoky", "Fairy", "Neon"];
 
 const HAIR_GRADIENTS: [string, string][] = [
   ["#2a1810", "#1a1a1a"],
@@ -381,19 +381,19 @@ export const AVATAR_CATALOG: CatalogItem[] = [
 export const CATALOG_BY_ID = new Map(AVATAR_CATALOG.map((item) => [item.id, item]));
 
 export const SHOP_CATEGORY_LABELS: { id: ShopCategory; label: string; emoji: string }[] = [
-  { id: "all", label: "전체", emoji: "✨" },
-  { id: "hair", label: "헤어", emoji: "💇" },
-  { id: "fullOutfit", label: "한벌", emoji: "👗" },
-  { id: "top", label: "상의", emoji: "👕" },
-  { id: "bottom", label: "하의", emoji: "👖" },
-  { id: "headwear", label: "모자", emoji: "🧢" },
-  { id: "shoes", label: "신발", emoji: "👟" },
-  { id: "accessory", label: "액세", emoji: "💎" },
-  { id: "makeup", label: "메이크업", emoji: "💄" },
+  { id: "all", label: "All", emoji: "✨" },
+  { id: "hair", label: "Hair", emoji: "💇" },
+  { id: "fullOutfit", label: "Outfits", emoji: "👗" },
+  { id: "top", label: "Tops", emoji: "👕" },
+  { id: "bottom", label: "Bottoms", emoji: "👖" },
+  { id: "headwear", label: "Hats", emoji: "🧢" },
+  { id: "shoes", label: "Shoes", emoji: "👟" },
+  { id: "accessory", label: "Acc.", emoji: "💎" },
+  { id: "makeup", label: "Makeup", emoji: "💄" },
 ];
 
 export const SHOP_FILTER_TABS = [
-  { id: "my" as const, label: "착용", emoji: "✓" },
+  { id: "my" as const, label: "Wear", emoji: "✓" },
   { id: "wish" as const, label: "♥", emoji: "♥" },
   { id: "hot" as const, label: "HOT", emoji: "🔥" },
   { id: "new" as const, label: "NEW", emoji: "N" },

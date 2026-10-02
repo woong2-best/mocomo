@@ -32,14 +32,14 @@ export class MocapStreamClient {
           resolve(true);
         };
         ws.onerror = () => {
-          onError?.("모캡 스트림 연결 실패");
+          onError?.("MoCap stream connection failed");
           resolve(false);
         };
         ws.onclose = () => {
           this.playing = false;
         };
       } catch {
-        onError?.("WebSocket을 열 수 없습니다.");
+        onError?.("Unable to open WebSocket.");
         resolve(false);
       }
     });
