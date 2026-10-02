@@ -5,7 +5,12 @@
 const { spawn, execSync } = require("child_process");
 const path = require("path");
 
-const PRISMA_PATHS = ["prisma/schema.prisma", "prisma/migrations"];
+const PRISMA_PATHS = [
+  "prisma/schema.prisma",
+  "prisma/migrations",
+  "scripts/vercel-db-sync.cjs",
+  "scripts/vercel-db-sync-if-needed.cjs",
+];
 
 function shouldRunDbSync() {
   if (process.env.RUN_DB_DEPLOY === "1") {
