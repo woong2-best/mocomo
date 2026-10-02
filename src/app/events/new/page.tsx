@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -65,7 +68,7 @@ export default async function NewEventPage({
               홈
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">광고 등록</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("app.events.s1n8j6u5")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             이미지·링크만 등록 · 24시간(1일)당 {SPONSORED_AD_MOCO_PER_DAY} MOCO · 등록 시 선차감 ·
             클릭 시 설정 링크로 이동
