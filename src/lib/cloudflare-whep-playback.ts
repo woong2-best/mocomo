@@ -89,11 +89,11 @@ export async function attachCloudflareWhepPlayback(
     if (res.status === 409 || data.notReady) {
       throw new WhepNotReadyError();
     }
-    throw new Error(data.error || `WHEP 연결 실패 (${res.status})`);
+    throw new Error(data.error || `WHEP connection failed (${res.status})`);
   }
 
   const answerSdp = data.answerSdp ? normalizeSdp(data.answerSdp) : "";
-  if (!answerSdp) throw new Error("WHEP 응답 SDP 없음");
+  if (!answerSdp) throw new Error("WHEP response missing SDP");
 
   await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
   if (stream.getTracks().length === 0) {
