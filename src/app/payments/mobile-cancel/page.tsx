@@ -10,7 +10,7 @@ export default function MobilePaymentCancelPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6 text-center">
-      <p className="text-sm text-muted-foreground">앱으로 돌아가는 중…</p>
+      <p className="text-sm text-muted-foreground">Returning to the app…</p>
     </main>
   );
 }

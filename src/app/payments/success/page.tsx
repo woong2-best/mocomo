@@ -16,8 +16,8 @@ export default async function PaymentSuccessPage({
     return (
       <Result
         ok={false}
-        title="결제 정보 없음"
-        message="Stripe 결제 세션 ID가 없습니다."
+        title="No payment information"
+        message="Missing Stripe checkout session ID."
       />
     );
   }
@@ -25,19 +25,19 @@ export default async function PaymentSuccessPage({
   const result = await confirmStripeCheckout(session_id);
 
   if ("error" in result && result.error) {
-    return <Result ok={false} title="결제 실패" message={errorText(result.error)} />;
+    return <Result ok={false} title="Payment failed" message={errorText(result.error)} />;
   }
 
   const labels: Record<string, string> = {
-    TIP: "후원",
-    PRODUCT: "상품 구매",
-    PREMIUM: "프리미엄 구독",
-    EMOTICON: "이모티콘 구매",
-    LISTING_FEE: "굿즈 등록비",
-    VENDOR_ONBOARDING_FEE: "판매자 입점비",
-    PHYSICAL_GOODS: "굿즈 주문",
-    EVENT_REGISTRATION: "이벤트 등록",
-    STUDIO_ASSET: "Studio 자산 구매",
+    TIP: "Tip",
+    PRODUCT: "Product purchase",
+    PREMIUM: "Premium subscription",
+    EMOTICON: "Emote purchase",
+    LISTING_FEE: "Merch listing fee",
+    VENDOR_ONBOARDING_FEE: "Seller onboarding fee",
+    PHYSICAL_GOODS: "Merch order",
+    EVENT_REGISTRATION: "Create event",
+    STUDIO_ASSET: "Studio asset purchase",
   };
 
   const redirectPath =
@@ -48,8 +48,8 @@ export default async function PaymentSuccessPage({
   return (
     <Result
       ok
-      title="결제 완료"
-      message={`${labels[result.type ?? ""] ?? "결제"}가 정상 처리되었습니다.`}
+      title="Payment complete"
+      message={`${labels[result.type ?? ""] ?? "Payment"}가 정상 처리되었습니다.`}
       primaryHref={redirectPath}
       primaryLabel={
         result.type === "TIP"
@@ -58,7 +58,7 @@ export default async function PaymentSuccessPage({
             ? "이벤트 보기"
             : result.type === "STUDIO_ASSET"
               ? "Studio 보관함"
-              : "홈으로"
+              : "Home"
       }
       subMessage={
         result.type === "TIP" &&
@@ -77,7 +77,7 @@ function Result({
   message,
   subMessage,
   primaryHref = "/",
-  primaryLabel = "홈으로",
+  primaryLabel = "Home",
 }: {
   ok: boolean;
   title: string;

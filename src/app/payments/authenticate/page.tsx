@@ -25,11 +25,11 @@ function AuthenticateInner() {
   const orderId = params.get("order_id");
   const returnTo = params.get("return_to") ?? "mocomo://payment/success";
   const redirectStatus = params.get("redirect_status");
-  const [message, setMessage] = useState("카드 인증 중…");
+  const [message, setMessage] = useState("Verifying card…");
 
   useEffect(() => {
     if (!orderId) {
-      setMessage("잘못된 인증 요청입니다.");
+      setMessage("Invalid verification request.");
       return;
     }
 
@@ -55,7 +55,7 @@ function AuthenticateInner() {
     }
 
     if (redirectStatus === "failed") {
-      setMessage("카드 인증에 실패했습니다.");
+      setMessage("Card verification failed.");
       return;
     }
 
@@ -65,20 +65,20 @@ function AuthenticateInner() {
     }
 
     if (!clientSecret) {
-      setMessage("잘못된 인증 요청입니다.");
+      setMessage("Invalid verification request.");
       return;
     }
 
     const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
     if (!pk) {
-      setMessage("Stripe 설정이 없습니다.");
+      setMessage("Stripe is not configured.");
       return;
     }
 
     void (async () => {
       const stripe = await loadStripe(pk);
       if (!stripe) {
-        setMessage("Stripe를 불러오지 못했습니다.");
+        setMessage("Couldn't load Stripe.");
         return;
       }
 
@@ -88,11 +88,11 @@ function AuthenticateInner() {
       });
 
       if (error) {
-        setMessage(error.message ?? "인증에 실패했습니다.");
+        setMessage(error.message ?? "Authentication failed.");
         return;
       }
       if (paymentIntent?.status !== "succeeded") {
-        setMessage("결제가 완료되지 않았습니다.");
+        setMessage("Payment not completed.");
         return;
       }
 
@@ -113,7 +113,7 @@ export default function PaymentAuthenticatePage() {
     <Suspense
       fallback={
         <main className="min-h-screen flex items-center justify-center p-6 text-center">
-          <p className="text-sm text-muted-foreground">카드 인증 중…</p>
+          <p className="text-sm text-muted-foreground">Verifying card…</p>
         </main>
       }
     >
