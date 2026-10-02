@@ -254,7 +254,7 @@ export function ContentReportFlow({
           <button
             type="button"
             className="absolute inset-0 bg-black/60"
-            aria-label="닫기"
+            aria-label={t("common.close")}
             onClick={() => handleOpenChange(false)}
           />
           <div
@@ -449,7 +449,7 @@ export function ContentReportRailButton({
           "flex flex-col items-center gap-0.5 min-h-11 min-w-11 text-white",
           className
         )}
-        aria-label="신고"
+        aria-label={t("report.sy3gg")}
         onClick={(e) => {
           e.stopPropagation();
           if (status === "loading") return;
