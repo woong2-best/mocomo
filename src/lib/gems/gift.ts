@@ -15,17 +15,17 @@ export type SpendGemsInput = {
 
 export async function spendGemsOnGift(input: SpendGemsInput) {
   if (input.fanId === input.creatorId) {
-    return { error: "자기 자신에게 후원할 수 없습니다." as const };
+    return { error: "You cannot tip yourself." as const };
   }
   if (!Number.isInteger(input.gems) || input.gems <= 0) {
-    return { error: "유효하지 않은 MOCO 수량입니다." as const };
+    return { error: "Invalid MOCO amount." as const };
   }
 
   const creator = await db.user.findUnique({
     where: { id: input.creatorId },
     select: { id: true },
   });
-  if (!creator) return { error: "크리에이터를 찾을 수 없습니다." as const };
+  if (!creator) return { error: "Creator not found." as const };
 
   const payout = await assertCreatorPayoutsEnabled(input.creatorId);
   if (!payout.ok) return { error: payout.error, code: payout.code };
@@ -49,7 +49,7 @@ export async function spendGemsOnGift(input: SpendGemsInput) {
     await creditSettlementMoco({
       userId: input.creatorId,
       amount: input.gems,
-      reason: "MOCO 후원 · 유료 미디어 (purchased→earned)",
+      reason: "MOCO tip · paid media (purchased→earned)",
       referenceType: "gift_event",
       referenceId: giftEvent.id,
       metadata: { source: input.source, gems: input.gems },

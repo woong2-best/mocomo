@@ -49,10 +49,10 @@ export async function createGemTopupCheckout(moco: number, purchaseTermsAccepted
   const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
   const limited = await checkRateLimit(authLimiter, `gem-topup:${user.id}`);
   if (!limited.success) {
-    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: "actions.s121u7h2" };
   }
   if (!purchaseTermsAccepted) {
-    return { error: "충전 전 약관에 동의해 주세요." };
+    return { error: "actions.stziktx" };
   }
 
   const quote = quoteGemTopup(moco);
@@ -80,10 +80,10 @@ export async function payGemTopupWithSavedCard(
   const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
   const limited = await checkRateLimit(authLimiter, `gem-topup:${user.id}`);
   if (!limited.success) {
-    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: "actions.s121u7h2" };
   }
   if (!purchaseTermsAccepted) {
-    return { error: "충전 전 약관에 동의해 주세요." };
+    return { error: "actions.stziktx" };
   }
 
   const quote = quoteGemTopup(moco);
@@ -101,7 +101,7 @@ export async function payGemTopupWithSavedCard(
     return { error: prepared.error };
   }
   if (!("orderId" in prepared) || !prepared.orderId) {
-    return { error: "결제 준비에 실패했습니다." };
+    return { error: "actions.s1l1916h" };
   }
 
   const pmId =
@@ -109,7 +109,7 @@ export async function payGemTopupWithSavedCard(
     prepared.methods.find((m) => m.isDefault)?.id ??
     prepared.methods[0]?.id;
   if (!pmId) {
-    return { error: "등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요." };
+    return { error: "actions.sog0mf9" };
   }
 
   const result = await payCheckoutWithSavedMethod(user.id, prepared.orderId, pmId, {
@@ -133,8 +133,8 @@ export async function requestGemRefund(gemPurchaseId: string) {
   if ("error" in result && result.error) {
     const code = result.error;
     const messages: Record<string, string> = {
-      UNAUTHORIZED: "환불 권한이 없습니다.",
-      REFUND_NOT_ALLOWED: "구매 MOCO는 환불할 수 없습니다.",
+      UNAUTHORIZED: "actions.s2gakd3",
+      REFUND_NOT_ALLOWED: "actions.moco_2",
     };
     return { error: messages[code] ?? code };
   }
@@ -154,7 +154,7 @@ export async function submitGemUnauthorizedClaim(input: {
     reason: input.reason,
     proofUrl: input.proofUrl,
   });
-  if ("error" in result) return { error: "청구를 접수할 수 없습니다." };
+  if ("error" in result) return { error: "actions.svd7hsh" };
   return { success: true as const, claimId: result.claim.id };
 }
 
@@ -162,7 +162,7 @@ async function gemSpendRateLimit(userId: string) {
   const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
   const limited = await checkRateLimit(authLimiter, `gem-spend:${userId}`);
   if (!limited.success) {
-    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: "actions.s121u7h2" };
   }
   return null;
 }
@@ -192,7 +192,7 @@ export async function tipWithGems(
   });
   if ("error" in result) {
     if (result.error === "INSUFFICIENT_MOCO_BALANCE") {
-      return { error: "MOCO 잔액이 부족합니다. 충전 후 다시 시도해 주세요." };
+      return { error: "actions.moco_3" };
     }
     return { error: result.error };
   }
@@ -230,7 +230,7 @@ export async function liveTipWithGems(input: {
   });
   if ("error" in result) {
     if (result.error === "INSUFFICIENT_MOCO_BALANCE") {
-      return { error: "MOCO 잔액이 부족합니다." };
+      return { error: "actions.moco_4" };
     }
     return { error: result.error };
   }
@@ -249,7 +249,7 @@ export async function purchasePostMediaWithGems(mediaId: string, gems: number) {
     const priceCents = media.priceKrw > 0 ? media.priceKrw : media.post.instantPurchasePriceKrw;
     const { usdCentsToMocoRequired } = await import("@/lib/gems/constants");
     if (gems !== usdCentsToMocoRequired(priceCents)) {
-      return { error: "가격이 변경되었습니다. 다시 시도해 주세요." };
+      return { error: "actions.sedp41d" };
     }
   }
   const result = await spendGemsOnPostMedia({

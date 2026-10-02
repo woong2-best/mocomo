@@ -13,7 +13,7 @@ import {
 } from "@/lib/cosplay-board-data";
 
 const DB_SETUP_MSG =
-  "코스프레 게시판 DB가 준비되지 않았습니다. Supabase SQL Editor에서 scripts/supabase-fix-all.sql 섹션 Z5를 실행해 주세요.";
+  "actions.db_supabase_sql_editor_scripts";
 
 function toPrismaMode(mode: CosplayBoardMode): PrismaMode {
   return mode === "purchase" ? "PURCHASE" : "RENTAL";
@@ -171,9 +171,9 @@ export async function createCosplayBoardPost(data: {
 
   const title = data.title.trim();
   const content = data.content.trim();
-  if (title.length < 2) return { error: "제목은 2자 이상 입력해 주세요." };
-  if (title.length > 200) return { error: "제목은 200자 이하로 입력해 주세요." };
-  if (content.length < 10) return { error: "내용은 10자 이상 입력해 주세요." };
+  if (title.length < 2) return { error: "actions.s1nza8w" };
+  if (title.length > 200) return { error: "actions.200" };
+  if (content.length < 10) return { error: "actions.s3z4sa9" };
 
   const price =
     data.price != null && Number.isFinite(data.price) && data.price > 0
@@ -191,7 +191,7 @@ export async function createCosplayBoardPost(data: {
   const priceLabel =
     data.priceLabel?.trim() ||
     formatCosplayBoardPriceLabel(data.mode, price) ||
-    (price == null ? "협의" : undefined);
+    (price == null ? "Negotiable" : undefined);
 
   try {
     const post = await db.cosplayBoardPost.create({
@@ -222,15 +222,15 @@ export async function createCosplayBoardPost(data: {
 export async function createCosplayBoardComment(postId: string, content: string) {
   const user = await requireAuth();
   const text = content.trim();
-  if (text.length < 1) return { error: "댓글을 입력해 주세요." };
-  if (text.length > 2000) return { error: "댓글은 2000자 이하로 입력해 주세요." };
+  if (text.length < 1) return { error: "actions.syraox7" };
+  if (text.length > 2000) return { error: "actions.2000" };
 
   try {
     const post = await db.cosplayBoardPost.findUnique({
       where: { id: postId, status: "OPEN" },
       select: { id: true },
     });
-    if (!post) return { error: "글을 찾을 수 없습니다." };
+    if (!post) return { error: "actions.s1v13ofx" };
 
     await db.cosplayBoardComment.create({
       data: {

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
@@ -7,7 +10,7 @@ import { USED_MARKET_BROWSE_CATEGORIES } from "@/lib/used-market";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
 import { UsedSubcultureFilters } from "@/components/used/used-subculture-filters";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 type UsedSearchHeaderProps = {
   viewerCountryCode: string;
@@ -18,7 +21,7 @@ export function UsedSearchHeader({
   viewerCountryCode,
   viewerServiceRegion,
 }: UsedSearchHeaderProps) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -46,7 +49,7 @@ export function UsedSearchHeader({
       {activeQ ? (
         <div className="flex items-center justify-between gap-2 pt-0.5">
           <p className="text-[10px] text-muted-foreground">
-            {uiText(locale, "검색:", "Search:")}{" "}
+            {t("ui.search")}{" "}
             <span className="text-foreground font-medium">&quot;{activeQ}&quot;</span>
           </p>
           <button
@@ -54,7 +57,7 @@ export function UsedSearchHeader({
             onClick={() => apply({ q: null })}
             className="text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
           >
-            {uiText(locale, "검색어 지우기", "Clear search")}
+            {t("search.clearAria")}
           </button>
         </div>
       ) : null}
@@ -70,7 +73,7 @@ export function UsedSearchHeader({
               : "border-border bg-card text-folk-cobalt"
           )}
         >
-          {uiText(locale, "전체", "All")}
+          {t("anime.genreAll")}
         </button>
         {USED_MARKET_BROWSE_CATEGORIES.map((c) => (
           <button

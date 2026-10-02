@@ -62,7 +62,7 @@ async function ensureLiveMember(
     where: { id: channelId },
     select: { isLive: true, createdBy: true, chatBannedWords: true },
   });
-  if (!channel?.isLive) return { ok: false as const, error: "방송 중이 아닙니다." };
+  if (!channel?.isLive) return { ok: false as const, error: "The stream is not live." };
 
   await prisma.voiceMember.upsert({
     where: { channelId_userId: { channelId, userId } },
@@ -76,7 +76,7 @@ async function ensureLiveMember(
 function validateAmount(type: LiveSupportEventType, amount: number) {
   const min = SUPPORT_MIN_AMOUNT[type] ?? 100;
   if (!Number.isFinite(amount) || amount < min || amount > 1_000_000) {
-    return { ok: false as const, error: `최소 ${min.toLocaleString()} CP 이상 입력해 주세요.` };
+    return { ok: false as const, error: `Enter at least ${min.toLocaleString()} CP.` };
   }
   return { ok: true as const };
 }
@@ -103,7 +103,7 @@ export function registerLiveSupportHandlers(
       const type = data.type ?? "GENERAL";
       const amount = Math.floor(Number(data.amount) || 0);
       if (!channelId || channelId.length > 64) {
-        ack?.({ ok: false, error: "잘못된 채널입니다." });
+        ack?.({ ok: false, error: "Invalid channel." });
         return;
       }
 
@@ -140,7 +140,7 @@ export function registerLiveSupportHandlers(
         }
 
         if (type === "TTS" && !message) {
-          ack?.({ ok: false, error: "TTS 후원은 메시지가 필요합니다." });
+          ack?.({ ok: false, error: "TTS donations need a message." });
           return;
         }
 
@@ -161,7 +161,7 @@ export function registerLiveSupportHandlers(
           select: { username: true },
         });
         if (!sender) {
-          ack?.({ ok: false, error: "사용자를 찾을 수 없습니다." });
+          ack?.({ ok: false, error: "User not found." });
           return;
         }
 
@@ -176,10 +176,6 @@ export function registerLiveSupportHandlers(
             metadata: Object.keys(metadata).length ? (metadata as object) : undefined,
           },
         });
-
-        void import("@/lib/apt/economy/live-gold-service")
-          .then(({ grantLiveCheerGold }) => grantLiveCheerGold(userId, amount, row.id))
-          .catch(() => undefined);
 
         const event: LiveSupportEventPayload = {
           id: row.id,
@@ -210,7 +206,7 @@ export function registerLiveSupportHandlers(
 
         ack?.({ ok: true, event });
       } catch {
-        ack?.({ ok: false, error: "응원 처리에 실패했습니다." });
+        ack?.({ ok: false, error: "Could not process the cheer." });
       }
     }
   );
@@ -225,11 +221,11 @@ export function registerLiveSupportHandlers(
       const title = data.title?.trim().slice(0, 120);
       const rewardAmount = Math.floor(Number(data.rewardAmount) || 0);
       if (!channelId || !title) {
-        ack?.({ ok: false, error: "미션 내용을 입력해 주세요." });
+        ack?.({ ok: false, error: "Enter the mission details." });
         return;
       }
       if (rewardAmount < 500 || rewardAmount > 500_000) {
-        ack?.({ ok: false, error: "미션 보상은 500~500,000 CP 입니다." });
+        ack?.({ ok: false, error: "Mission rewards must be 500-500,000 CP." });
         return;
       }
 
@@ -254,7 +250,7 @@ export function registerLiveSupportHandlers(
           select: { username: true },
         });
         if (!sender) {
-          ack?.({ ok: false, error: "사용자를 찾을 수 없습니다." });
+          ack?.({ ok: false, error: "User not found." });
           return;
         }
 
@@ -284,7 +280,7 @@ export function registerLiveSupportHandlers(
         io.to(`live:${channelId}`).emit("live_mission_updated", mission);
         ack?.({ ok: true, mission });
       } catch {
-        ack?.({ ok: false, error: "미션 등록에 실패했습니다." });
+        ack?.({ ok: false, error: "Could not create the mission." });
       }
     }
   );
@@ -298,7 +294,7 @@ export function registerLiveSupportHandlers(
       const missionId = data.missionId?.trim();
       const status = data.status;
       if (!missionId || !status) {
-        ack?.({ ok: false, error: "잘못된 요청입니다." });
+        ack?.({ ok: false, error: "Invalid request." });
         return;
       }
 
@@ -308,7 +304,7 @@ export function registerLiveSupportHandlers(
           include: { sender: { select: { username: true } } },
         });
         if (!mission) {
-          ack?.({ ok: false, error: "미션을 찾을 수 없습니다." });
+          ack?.({ ok: false, error: "Mission not found." });
           return;
         }
 
@@ -317,7 +313,7 @@ export function registerLiveSupportHandlers(
           select: { createdBy: true, isLive: true },
         });
         if (!channel?.isLive) {
-          ack?.({ ok: false, error: "방송 중이 아닙니다." });
+          ack?.({ ok: false, error: "The stream is not live." });
           return;
         }
 
@@ -325,23 +321,23 @@ export function registerLiveSupportHandlers(
         const isSender = mission.senderId === userId;
 
         if (status === "ACCEPTED" && !isHost) {
-          ack?.({ ok: false, error: "호스트만 수락할 수 있습니다." });
+          ack?.({ ok: false, error: "Only the host can accept." });
           return;
         }
         if ((status === "COMPLETED" || status === "FAILED") && !isHost) {
-          ack?.({ ok: false, error: "호스트만 결과를 처리할 수 있습니다." });
+          ack?.({ ok: false, error: "Only the host can resolve the result." });
           return;
         }
         if (status === "CANCELLED" && !isSender && !isHost) {
-          ack?.({ ok: false, error: "권한이 없습니다." });
+          ack?.({ ok: false, error: "You don't have permission." });
           return;
         }
         if (mission.status !== "PENDING" && status === "ACCEPTED") {
-          ack?.({ ok: false, error: "이미 처리된 미션입니다." });
+          ack?.({ ok: false, error: "This mission was already handled." });
           return;
         }
         if (mission.status === "COMPLETED" || mission.status === "CANCELLED") {
-          ack?.({ ok: false, error: "종료된 미션입니다." });
+          ack?.({ ok: false, error: "This mission has ended." });
           return;
         }
 
@@ -365,7 +361,7 @@ export function registerLiveSupportHandlers(
         io.to(`live:${mission.channelId}`).emit("live_mission_updated", payload);
         ack?.({ ok: true, mission: payload });
       } catch {
-        ack?.({ ok: false, error: "미션 처리에 실패했습니다." });
+        ack?.({ ok: false, error: "Could not process the mission." });
       }
     }
   );
@@ -386,7 +382,7 @@ export function registerLiveSupportHandlers(
       const question = data.question?.trim().slice(0, 120);
       const labels = (data.options ?? []).map((o) => o.trim().slice(0, 80)).filter(Boolean);
       if (!channelId || !question || labels.length < 2) {
-        ack?.({ ok: false, error: "질문과 선택지 2개 이상이 필요합니다." });
+        ack?.({ ok: false, error: "A question and at least 2 options are required." });
         return;
       }
 
@@ -396,7 +392,7 @@ export function registerLiveSupportHandlers(
           select: { createdBy: true, isLive: true, chatBannedWords: true },
         });
         if (!channel?.isLive || channel.createdBy !== userId) {
-          ack?.({ ok: false, error: "호스트만 투표를 만들 수 있습니다." });
+          ack?.({ ok: false, error: "Only the host can create polls." });
           return;
         }
 
@@ -445,7 +441,7 @@ export function registerLiveSupportHandlers(
         io.to(`live:${channelId}`).emit("live_poll_updated", poll);
         ack?.({ ok: true, poll });
       } catch {
-        ack?.({ ok: false, error: "투표 생성에 실패했습니다." });
+        ack?.({ ok: false, error: "Could not create the poll." });
       }
     }
   );
@@ -459,19 +455,19 @@ export function registerLiveSupportHandlers(
       const pollId = data.pollId?.trim();
       const optionId = data.optionId?.trim();
       if (!pollId || !optionId) {
-        ack?.({ ok: false, error: "선택지를 골라 주세요." });
+        ack?.({ ok: false, error: "Choose an option." });
         return;
       }
 
       try {
         const poll = await prisma.liveSupportPoll.findUnique({ where: { id: pollId } });
         if (!poll || poll.status !== "OPEN") {
-          ack?.({ ok: false, error: "진행 중인 투표가 없습니다." });
+          ack?.({ ok: false, error: "There is no active poll." });
           return;
         }
         if (poll.endsAt && poll.endsAt.getTime() < Date.now()) {
           await prisma.liveSupportPoll.update({ where: { id: pollId }, data: { status: "CLOSED" } });
-          ack?.({ ok: false, error: "투표가 종료되었습니다." });
+          ack?.({ ok: false, error: "The poll has ended." });
           return;
         }
 
@@ -492,14 +488,14 @@ export function registerLiveSupportHandlers(
           where: { pollId_userId: { pollId, userId } },
         });
         if (existing) {
-          ack?.({ ok: false, error: "이미 투표했습니다." });
+          ack?.({ ok: false, error: "You already voted." });
           return;
         }
 
         const options = parsePollOptions(poll.options);
         const target = options.find((o) => o.id === optionId);
         if (!target) {
-          ack?.({ ok: false, error: "잘못된 선택지입니다." });
+          ack?.({ ok: false, error: "Invalid option." });
           return;
         }
 
@@ -510,7 +506,7 @@ export function registerLiveSupportHandlers(
           select: { username: true },
         });
         if (!sender) {
-          ack?.({ ok: false, error: "사용자를 찾을 수 없습니다." });
+          ack?.({ ok: false, error: "User not found." });
           return;
         }
 
@@ -561,7 +557,7 @@ export function registerLiveSupportHandlers(
         io.to(`live:${poll.channelId}`).emit("live_support_event", event);
         ack?.({ ok: true, poll: pollPayload, event });
       } catch {
-        ack?.({ ok: false, error: "투표에 실패했습니다." });
+        ack?.({ ok: false, error: "Could not submit your vote." });
       }
     }
   );

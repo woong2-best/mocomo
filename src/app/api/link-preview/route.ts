@@ -8,16 +8,16 @@ export async function GET(req: NextRequest) {
 
   const raw = req.nextUrl.searchParams.get("url") ?? "";
   if (!raw.trim()) {
-    return NextResponse.json({ error: "url이 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   if (!isSafePreviewUrl(raw)) {
-    return NextResponse.json({ error: "지원하지 않는 URL입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Unsupported URL." }, { status: 400 });
   }
 
   const preview = await buildLinkPreview(raw);
   if (!preview) {
-    return NextResponse.json({ error: "미리보기를 가져올 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   if (!preview.title && !preview.imageUrl && !preview.description) {
     return NextResponse.json(

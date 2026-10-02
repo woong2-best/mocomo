@@ -1,7 +1,7 @@
 import type { Prisma, SupportTierLevel } from "@prisma/client";
 import { profileDisplayTier } from "@/lib/user-display-tier";
 
-export const DELETED_USER_DISPLAY_NAME = "탈퇴한 사용자";
+export const DELETED_USER_DISPLAY_NAME = "Deleted user";
 
 /** 닉네임·아바타와 함께 노출할 공개 사용자 필드 (총 후원 등급 포함) */
 export const userPublicSelect = {

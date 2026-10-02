@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
   const userLimited = await checkRateLimit(apiLimiter, `moco-transfer:${auth.user.id}`);
   if (!userLimited.success) {
     return NextResponse.json(
-      { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." },
+      { error: "Too many requests. Please try again in a moment." },
       { status: 429 },
     );
   }
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
     if ("code" in result && result.code === "STRIPE_ACCOUNT_NOT_READY") {
       return NextResponse.json(stripeAccountNotReadyPayload(), { status: 422 });
     }
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
   return NextResponse.json(result);
 }

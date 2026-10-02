@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -32,15 +37,18 @@ export function CosplayGallerySettings({
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [msgIsError, setMsgIsError] = useState(false);
 
   async function handleDelete(photoId: string) {
-    if (!confirm("이 사진을 갤러리에서 삭제할까요?")) return;
+    if (!confirm(t("profile.sgzmzw6"))) return;
     setDeletingId(photoId);
     setMsg("");
+    setMsgIsError(false);
     const result = await deleteCosplayPhoto(photoId);
     setDeletingId(null);
     if ("error" in result && result.error) {
-      setMsg(result.error);
+      setMsg(errorText(result.error));
+      setMsgIsError(true);
       return;
     }
     setPhotos((prev) => prev.filter((p) => p.id !== photoId));
@@ -50,12 +58,14 @@ export function CosplayGallerySettings({
   async function handleAdd() {
     const url = pending[0]?.url?.trim();
     if (!url || url.startsWith("blob:")) {
-      setMsg("사진을 업로드해 주세요.");
+      setMsg(t("lib.cosplayer.apply.se1e84d6f4b"));
+      setMsgIsError(true);
       return;
     }
 
     setUploading(true);
     setMsg("");
+    setMsgIsError(false);
     const result = await addCosplayPhoto({
       url,
       character: character.trim() || undefined,
@@ -64,7 +74,8 @@ export function CosplayGallerySettings({
     setUploading(false);
 
     if ("error" in result && result.error) {
-      setMsg(result.error);
+      setMsg(errorText(result.error));
+      setMsgIsError(true);
       return;
     }
     if (result.photo) {
@@ -72,7 +83,7 @@ export function CosplayGallerySettings({
       setPending([]);
       setCharacter("");
       setSeries("");
-      setMsg("사진이 추가되었습니다.");
+      setMsg(t("profile.s1rudonx"));
       router.refresh();
     }
   }
@@ -100,7 +111,7 @@ export function CosplayGallerySettings({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={photo.url}
-                  alt={photo.character || "코스프레 사진"}
+                  alt={photo.character || t("profile.s1erwyck")}
                   className="w-full aspect-[3/4] object-cover"
                 />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
@@ -118,7 +129,7 @@ export function CosplayGallerySettings({
                   className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-90"
                   disabled={deletingId === photo.id}
                   onClick={() => handleDelete(photo.id)}
-                  aria-label="사진 삭제"
+                  aria-label={t("profile.s1wib4wn")}
                 >
                   {deletingId === photo.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -154,14 +165,14 @@ export function CosplayGallerySettings({
             <Input
               value={character}
               onChange={(e) => setCharacter(e.target.value)}
-              placeholder="캐릭터 (선택)"
+              placeholder={t("profile.s1gcuey9")}
               className="rounded-xl"
               disabled={uploading}
             />
             <Input
               value={series}
               onChange={(e) => setSeries(e.target.value)}
-              placeholder="작품명 (선택)"
+              placeholder={t("profile.s1uud5yu")}
               className="rounded-xl"
               disabled={uploading}
             />
@@ -172,12 +183,12 @@ export function CosplayGallerySettings({
             disabled={uploading || pending.length === 0}
             onClick={handleAdd}
           >
-            {uploading ? "업로드 중..." : "갤러리에 추가"}
+            {uploading ? t("profile.s1de9myg") : t("profile.s12wq4kg")}
           </Button>
         </div>
 
         {msg && (
-          <p className={`text-sm ${msg.includes("삭제") || msg.includes("없") ? "text-destructive" : "text-primary"}`}>
+          <p className={`text-sm ${msgIsError ? "text-destructive" : "text-primary"}`}>
             {msg}
           </p>
         )}

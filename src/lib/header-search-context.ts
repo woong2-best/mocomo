@@ -1,4 +1,5 @@
 import { isCommunityFeedPath } from "@/lib/site-routes";
+import type { MessageKey } from "@/lib/i18n/message-keys";
 
 export type HeaderSearchScope =
   | "global"
@@ -11,7 +12,7 @@ export type HeaderSearchScope =
 
 export type HeaderSearchContext = {
   scope: HeaderSearchScope;
-  placeholder: string;
+  placeholderKey: MessageKey;
   basePath: string;
   /** Stay on the current section via ?q= instead of /search */
   inPage: boolean;
@@ -28,7 +29,7 @@ export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
   if (matchPath(path, "/market")) {
     return {
       scope: "used",
-      placeholder: "어떤 상품을 찾으세요?",
+      placeholderKey: "search.headerPlaceholder.market",
       basePath: "/market",
       inPage: true,
     };
@@ -36,7 +37,7 @@ export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
   if (matchPath(path, "/market")) {
     return {
       scope: "market",
-      placeholder: "어떤 상품을 찾으세요?",
+      placeholderKey: "search.headerPlaceholder.market",
       basePath: "/market",
       inPage: true,
     };
@@ -44,7 +45,7 @@ export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
   if (matchPath(path, "/live")) {
     return {
       scope: "live",
-      placeholder: "스트리머 검색",
+      placeholderKey: "search.headerPlaceholder.live",
       basePath: "/live",
       inPage: true,
     };
@@ -52,7 +53,7 @@ export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
   if (matchPath(path, "/anime")) {
     return {
       scope: "wiki",
-      placeholder: "컬쳐위키 검색 ( 제목 )",
+      placeholderKey: "search.headerPlaceholder.wiki",
       basePath: "/anime",
       inPage: true,
     };
@@ -60,7 +61,7 @@ export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
   if (path === "/communities" || path.startsWith("/communities/")) {
     return {
       scope: "community",
-      placeholder: "QnA 검색",
+      placeholderKey: "search.headerPlaceholder.community",
       basePath: "/communities",
       inPage: true,
     };
@@ -68,7 +69,7 @@ export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
   if (isCommunityFeedPath(path)) {
     return {
       scope: "social",
-      placeholder: "Search",
+      placeholderKey: "search.headerPlaceholder.global",
       basePath: "/",
       inPage: true,
     };
@@ -80,7 +81,7 @@ export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
   ) {
     return {
       scope: "social",
-      placeholder: "Search",
+      placeholderKey: "search.headerPlaceholder.global",
       basePath: "/search",
       inPage: false,
     };
@@ -88,7 +89,7 @@ export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
 
   return {
     scope: "global",
-    placeholder: "Search",
+    placeholderKey: "search.headerPlaceholder.global",
     basePath: "/search",
     inPage: false,
   };

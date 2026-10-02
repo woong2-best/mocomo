@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +24,7 @@ export function LiveR18BlockedDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useLocale();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -28,7 +33,7 @@ export function LiveR18BlockedDialog({
           <DialogDescription>{R18_LIVE_CATEGORY_BLOCKED_MSG}</DialogDescription>
         </DialogHeader>
         <Button className="w-full rounded-full" onClick={() => onOpenChange(false)}>
-          확인
+          {t("auth.confirmAction")}
         </Button>
       </DialogContent>
     </Dialog>

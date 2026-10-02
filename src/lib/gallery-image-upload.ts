@@ -68,7 +68,7 @@ async function drawToJpegFile(source: CanvasImageSource, outName: string): Promi
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error("JPEG 변환 실패"))),
+      (b) => (b ? resolve(b) : reject(new Error("JPEG conversion failed"))),
       "image/jpeg",
       0.88
     );
@@ -86,7 +86,7 @@ function loadImageElement(file: File): Promise<HTMLImageElement> {
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error("이미지를 불러올 수 없습니다."));
+      reject(new Error("Could not load the image."));
     };
     img.src = url;
   });
@@ -116,7 +116,7 @@ export async function fileToUploadableJpeg(file: File): Promise<File> {
           lastModified: normalized.lastModified,
         });
       }
-      throw new Error("이 사진 형식은 지원되지 않습니다. 다른 사진을 선택해 주세요.");
+      throw new Error("This photo format is not supported. Choose a different photo.");
     }
   }
 }
@@ -128,7 +128,7 @@ export async function prepareGalleryImageForUpload(file: File): Promise<File> {
   } catch {
     const normalized = normalizeGalleryImageFile(file);
     if (normalized.size <= 0) {
-      throw new Error("빈 파일입니다. 다른 사진을 선택해 주세요.");
+      throw new Error("The file is empty. Choose a different photo.");
     }
     return normalized;
   }

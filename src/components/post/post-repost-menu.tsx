@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PenLine, Repeat2 } from "lucide-react";
@@ -11,16 +14,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useComposeOptional } from "@/components/compose/compose-provider";
 import { postEngage } from "@/lib/post-engage-client";
-import { buildPostRepostQuoteDraft } from "@/lib/post-share";
-import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
-import { isAptPublicEnabled } from "@/lib/apt-public-gate";
 import { cn, formatNumber } from "@/lib/utils";
 import {
   FOLK_DROPDOWN_ITEM_CLASS,
   FOLK_DROPDOWN_MENU_CLASS,
 } from "@/lib/folk-dropdown-accent";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 type PostRepostMenuProps = {
   postId: string;
@@ -49,7 +49,7 @@ export function PostRepostMenu({
   onActionError,
   formatCount,
 }: PostRepostMenuProps) {
-  const { locale } = useLocale();
+  const { t } = useLocale();
   const router = useRouter();
   const compose = useComposeOptional();
   const [open, setOpen] = useState(false);
@@ -104,7 +104,7 @@ export function PostRepostMenu({
       setReposted(prevReposted);
       setRepostCount(prevCount);
       onActionError?.(
-        err instanceof Error ? err.message : uiText(locale, "재게시에 실패했습니다.", "Repost failed.")
+        err instanceof Error ? err.message : t("ui.repost_failed")
       );
     } finally {
       setBusy(false);
@@ -117,27 +117,13 @@ export function PostRepostMenu({
     const preview =
       title?.trim() ||
       content?.trim().replace(/\s+/g, " ").slice(0, 80) ||
-      uiText(locale, "게시물", "Post");
+      t("star.badge.post");
     if (compose) {
       compose.openCompose({
         quotedPostId: postId,
         quotedAuthorUsername: authorUsername,
         quotedPreview: preview,
       });
-      return;
-    }
-    if (isAptPublicEnabled()) {
-      router.push(
-        buildAptMailboxUrl({
-          initialContent: buildPostRepostQuoteDraft({
-            postId,
-            authorUsername,
-            title,
-            content,
-          }),
-          initialTitle: uiText(locale, `@${authorUsername} 인용`, `Quote @${authorUsername}`),
-        })
-      );
     }
   }
 
@@ -151,7 +137,7 @@ export function PostRepostMenu({
             buttonClass,
             reposted ? accent.active : accent.hover
           )}
-          aria-label={uiText(locale, "재게시", "Repost")}
+          aria-label={t("ui.repost")}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -188,8 +174,8 @@ export function PostRepostMenu({
         >
           <Repeat2 className={cn("h-4 w-4 shrink-0", accent.icon)} />
           {reposted
-            ? uiText(locale, "재게시 취소", "Undo repost")
-            : uiText(locale, "재게시", "Repost")}
+            ? t("ui.undo_repost")
+            : t("ui.repost")}
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={(e) => {
@@ -199,7 +185,7 @@ export function PostRepostMenu({
           className={cn("gap-3 font-medium cursor-pointer", accent.item)}
         >
           <PenLine className={cn("h-4 w-4 shrink-0", accent.icon)} />
-          {uiText(locale, "인용하세요", "Quote")}
+          {t("ui.quote")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

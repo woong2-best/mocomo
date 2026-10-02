@@ -1,4 +1,4 @@
-/** 갤러리 영상 — 모바일 빈 MIME·MOV/MP4 대응 */
+/** 갤러리 Video — 모바일 빈 MIME·MOV/MP4 대응 */
 
 export function guessVideoMime(filename: string, reportedType?: string): string {
   const t = reportedType?.trim().toLowerCase() ?? "";

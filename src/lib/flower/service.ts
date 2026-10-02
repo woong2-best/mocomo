@@ -31,11 +31,11 @@ export async function fulfillFlowerPurchase(input: {
 
   const qty = Math.max(1, Math.min(20, Math.floor(input.quantity ?? 1)));
   const flowerType = await db.flowerType.findUnique({ where: { id: input.flowerTypeId } });
-  if (!flowerType || !flowerType.active) return { error: "Flower Gift를 찾을 수 없습니다." };
+  if (!flowerType || !flowerType.active) return { error: "Flower Gift not found." };
 
   const expected = flowerType.priceKrw * qty;
   if (expected !== input.amountPaid) {
-    return { error: "결제 금액이 Flower Gift 가격과 일치하지 않습니다." };
+    return { error: "Payment amount does not match the Flower Gift price." };
   }
 
   const risk = await assessFlowerPurchaseRisk(input.buyerId, expected);
@@ -130,15 +130,15 @@ export async function giftFlowerAsset(input: {
       where: { username: input.toUsernameOrId.replace(/^@/, "") },
       select: { id: true, username: true },
     }));
-  if (!toUser) return { error: "받는 사용자를 찾을 수 없습니다." };
-  if (toUser.id === input.fromUserId) return { error: "본인에게는 선물할 수 없습니다." };
+  if (!toUser) return { error: "Recipient not found." };
+  if (toUser.id === input.fromUserId) return { error: "You cannot gift to yourself." };
 
   const asset = await db.flowerAsset.findUnique({
     where: { id: input.assetId },
     include: { flowerType: true },
   });
-  if (!asset || asset.ownerId !== input.fromUserId) return { error: "보유한 Flower Gift가 아닙니다." };
-  if (asset.status !== "HELD") return { error: "선물할 수 없는 상태입니다." };
+  if (!asset || asset.ownerId !== input.fromUserId) return { error: "This is not a Flower Gift you own." };
+  if (asset.status !== "HELD") return { error: "Cannot send a gift in the current state." };
 
   const risk = await assessFlowerGiftRisk(input.fromUserId, asset.faceValueKrw);
   if (risk.hold) {
@@ -150,7 +150,7 @@ export async function giftFlowerAsset(input: {
       detail: `risk=${risk.score}`,
       metadata: { risk },
     });
-    return { error: "이상 거래로 선물이 일시 보류되었습니다. 잠시 후 다시 시도하거나 고객센터에 문의해 주세요." };
+    return { error: "This gift is temporarily held due to unusual activity. Try again later or contact support." };
   }
 
   const msg = input.useDefaultMessage
@@ -239,8 +239,8 @@ export async function requestFlowerRedeem(input: {
     where: { id: input.assetId },
     include: { flowerType: true },
   });
-  if (!asset || asset.ownerId !== input.userId) return { error: "보유한 Flower Gift가 아닙니다." };
-  if (asset.status !== "HELD") return { error: "환전할 수 없는 상태입니다." };
+  if (!asset || asset.ownerId !== input.userId) return { error: "This is not a Flower Gift you own." };
+  if (asset.status !== "HELD") return { error: "Cannot redeem in the current state." };
 
   const risk = await assessFlowerRedeemRisk(input.userId, asset.faceValueKrw);
   const fees = flowerRedeemFee(asset.faceValueKrw);
@@ -316,13 +316,13 @@ export async function payFlowerRedeem(
       asset: true,
     },
   });
-  if (!redeem) return { error: "환전 요청이 없습니다." };
+  if (!redeem) return { error: "No redemption request found." };
   if (redeem.status === "PAID") return { ok: true as const, alreadyPaid: true };
   if (redeem.status === "REJECTED" || redeem.status === "CANCELLED") {
-    return { error: "거절·취소된 요청입니다." };
+    return { error: "This request was declined or canceled." };
   }
   if (redeem.riskScore >= 70 && !opts.force) {
-    return { error: "위험 점수로 관리자 승인이 필요합니다.", needsAdmin: true };
+    return { error: "Admin approval is required due to risk score.", needsAdmin: true };
   }
 
   let transferId: string | undefined;
@@ -343,7 +343,7 @@ export async function payFlowerRedeem(
       transferId = transfer.id;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "transfer failed";
-      return { error: `Stripe 정산 실패: ${msg}` };
+      return { error: `Stripe payout failed: {v0} ${msg}` };
     }
   } else {
     await creditSellerEarning(redeem.userId, redeem.netAmountKrw, {
@@ -396,7 +396,7 @@ export async function payFlowerRedeem(
   await createNotification({
     userId: redeem.userId,
     type: "SYSTEM",
-    title: "Flower Gift 환전이 완료되었습니다",
+    title: "Flower Gift redemption completed",
     body: `${redeem.netAmountKrw.toLocaleString()}원 (수수료 ${redeem.feeAmountKrw.toLocaleString()}원)`,
     link: "/flowers",
   });
@@ -410,8 +410,8 @@ export async function rejectFlowerRedeem(
   note: string
 ) {
   const redeem = await db.flowerRedeemRequest.findUnique({ where: { id: redeemId } });
-  if (!redeem) return { error: "환전 요청이 없습니다." };
-  if (redeem.status === "PAID") return { error: "이미 지급된 요청입니다." };
+  if (!redeem) return { error: "No redemption request found." };
+  if (redeem.status === "PAID") return { error: "This request has already been paid." };
 
   await db.$transaction(async (tx) => {
     await tx.flowerRedeemRequest.update({
@@ -449,8 +449,8 @@ export async function rejectFlowerRedeem(
   await createNotification({
     userId: redeem.userId,
     type: "SYSTEM",
-    title: "Flower Gift 환전이 거절되었습니다",
-    body: note.slice(0, 120) || "자산이 보관함으로 복구되었습니다.",
+    title: "Flower Gift redemption was declined",
+    body: note.slice(0, 120) || "The asset was restored to your inventory.",
     link: "/flowers",
   });
 

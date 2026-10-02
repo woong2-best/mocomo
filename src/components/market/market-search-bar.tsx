@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Search } from "lucide-react";
@@ -37,13 +40,13 @@ export function MarketSearchBar({
     >
       {!compact ? (
         <span className="hidden sm:flex items-center px-3 text-xs font-bold text-folk-cobalt/70 border-r border-folk-cobalt/15 shrink-0">
-          전체
+          {t("live.modeAll")}
         </span>
       ) : null}
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder={compact ? "상품 검색" : "찾고 싶은 상품을 검색해 보세요!"}
+        placeholder={compact ? t("market.s1y6n482") : t("market.sa63zj5")}
         className="min-w-0 flex-1 bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground/70"
         name="q"
         autoComplete="off"
@@ -51,7 +54,7 @@ export function MarketSearchBar({
       <button
         type="submit"
         className="flex items-center justify-center px-3 sm:px-4 bg-folk-terracotta text-white hover:brightness-110 transition-colors shrink-0"
-        aria-label="검색"
+        aria-label={t("search.submit")}
       >
         <Search className={cn(compact ? "h-4 w-4" : "h-5 w-5")} strokeWidth={2.5} />
       </button>

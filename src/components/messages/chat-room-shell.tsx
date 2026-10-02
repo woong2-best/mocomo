@@ -6,7 +6,6 @@ import { ChatSocketProvider } from "@/components/messages/chat-socket-context";
 import { ChatHeader } from "@/components/messages/chat-header";
 import { ChatRoomClient } from "@/components/chat/chat-room";
 import { GroupRoomPanel } from "@/components/chat/group-room-panel";
-import { ActivityRoom } from "@/components/activities/activity-room";
 import type { ChatMessageView } from "@/lib/chat-message-normalize";
 import { useLocale } from "@/components/providers/locale-provider";
 import { CHAT_REPORT_LOCK_MESSAGE_EN, CHAT_REPORT_LOCK_MESSAGE_KO } from "@/lib/chat-report-copy";
@@ -79,7 +78,6 @@ export function ChatRoomShell({
   canDeleteMessages?: boolean;
 }) {
   const { locale } = useLocale();
-  const isDm = header.roomType === "DM" && !!header.otherUserId;
   const [roomLocked, setRoomLocked] = useState(readOnly);
   useEffect(() => {
     setRoomLocked(readOnly);
@@ -88,7 +86,7 @@ export function ChatRoomShell({
     setRoomLocked(true);
   }, []);
   const lockHint =
-    locale === "ko" ? CHAT_REPORT_LOCK_MESSAGE_KO : CHAT_REPORT_LOCK_MESSAGE_EN;
+    CHAT_REPORT_LOCK_MESSAGE_EN;
   const effectiveReadOnlyHint = roomLocked ? readOnlyHint ?? lockHint : readOnlyHint;
 
   const chatColumn = (
@@ -142,23 +140,7 @@ export function ChatRoomShell({
     </>
   );
 
-  const inner = isDm ? (
-    <ActivityRoom
-      contextType="dm"
-      contextId={roomId}
-      roomId={roomId}
-      peerUserId={header.otherUserId}
-      peerHint={{
-        id: header.otherUserId!,
-        username: header.displayName,
-        image: header.displayImage,
-      }}
-    >
-      {chatColumn}
-    </ActivityRoom>
-  ) : (
-    <div className="flex flex-col flex-1 min-h-0">{chatColumn}</div>
-  );
+  const inner = <div className="flex flex-col flex-1 min-h-0">{chatColumn}</div>;
 
   if (guestMode) return inner;
 

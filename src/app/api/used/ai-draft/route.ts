@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -16,7 +17,7 @@ async function checkAiRateLimit(userId: string): Promise<NextResponse | null> {
   });
   if (count >= HOURLY_LIMIT) {
     return NextResponse.json(
-      { error: "AI 글쓰기는 시간당 12회까지 이용할 수 있습니다." },
+      { error: "AI drafting is limited to 12 uses per hour." },
       { status: 429 }
     );
   }
@@ -33,7 +34,7 @@ async function checkAiRateLimit(userId: string): Promise<NextResponse | null> {
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const limited = await checkAiRateLimit(session.user.id);
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (result.error) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({ draft: result.draft });

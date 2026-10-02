@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getMyEmoticonStorage } from "@/actions/goods-shop";
@@ -21,7 +24,7 @@ export async function SupportStoragePanel() {
 
       {items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border py-16 text-center">
-          <p className="text-muted-foreground text-sm">보유 이모티콘이 없습니다.</p>
+          <p className="text-muted-foreground text-sm">{t("support.s15inyf")}</p>
           <Link
             href="/support?tab=emoticons"
             className="text-primary text-sm font-medium mt-2 inline-block"
@@ -55,12 +58,11 @@ export async function SupportStoragePanel() {
                           : "bg-muted text-muted-foreground"
                       )}
                     >
-                      {item.status === "AVAILABLE" ? "사용 가능" : "선물 완료"}
+                      {item.status === "AVAILABLE" ? t("support.s1w43vhk") : t("support.s1wg4tqk")}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formatUsd(item.pricePaid)} 구매
-                    {item.gift && ` · @${item.gift.receiver.username}에게 전송`}
+                    {formatUsd(item.pricePaid)}Buy{item.gift && ` · @${item.gift.receiver.username}에게 전송`}
                   </p>
                 </div>
               </div>

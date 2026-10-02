@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,7 +34,7 @@ function AdRailColumn({
         "pointer-events-auto flex w-[130px] flex-col gap-3",
         className
       )}
-      aria-label={side === "left" ? "좌측 광고" : "우측 광고"}
+      aria-label={side === "left" ? t("layout.sste21m") : t("layout.sljnzlq")}
     >
       <div className="flex items-center justify-center gap-1.5">
         <p className="text-[9px] uppercase tracking-widest text-muted-foreground/80">Ad</p>

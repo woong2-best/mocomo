@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -32,7 +37,7 @@ export function DiscoveryMatchList() {
         setLoading(false);
       })
       .catch(() => {
-        setLoadError("매칭 목록을 불러오지 못했습니다.");
+        setLoadError(t("discovery.s15z7bur"));
         setLoading(false);
       });
   }, []);
@@ -51,7 +56,7 @@ export function DiscoveryMatchList() {
     const res = await openDiscoveryChat(userId);
     setOpening(null);
     if (res && "error" in res && res.error) {
-      setChatError(res.error);
+      setChatError(errorText(res.error));
       return;
     }
     if (res && "roomId" in res && res.roomId) {
@@ -71,11 +76,11 @@ export function DiscoveryMatchList() {
             setLoadError("");
             void getDiscoveryMatches()
               .then((r) => setRows(r))
-              .catch(() => setLoadError("매칭 목록을 불러오지 못했습니다."))
+              .catch(() => setLoadError(t("discovery.s15z7bur")))
               .finally(() => setLoading(false));
           }}
         >
-          다시 시도
+          {t("toast.retry")}
         </Button>
       </div>
     );
@@ -95,12 +100,12 @@ export function DiscoveryMatchList() {
         <div className="mx-auto h-20 w-20 rounded-full bg-muted flex items-center justify-center ring-1 ring-border">
           <Heart className="h-9 w-9 text-muted-foreground/40" />
         </div>
-        <p className="font-semibold text-lg">아직 매칭이 없어요</p>
+        <p className="font-semibold text-lg">{t("discovery.s191mkby")}</p>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-          서로 좋아요하면 여기에 나타나요. 카드를 스와이프해 보세요.
+          {t("discovery.s1fj8ff9")}
         </p>
         <Button asChild className="rounded-full bg-folk-terracotta text-white hover:bg-folk-terracotta/90">
-          <Link href="/discover">스와이프 하러 가기</Link>
+          <Link href="/discover">{t("discovery.s1tts0ug")}</Link>
         </Button>
       </div>
     );

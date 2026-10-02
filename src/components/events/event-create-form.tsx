@@ -1,5 +1,10 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
 
+
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2, Trash2 } from "lucide-react";
@@ -75,7 +80,7 @@ export function EventCreateForm({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !isGalleryImageFile(file, true)) {
-      setError("이미지 파일을 선택해 주세요.");
+      setError(i18n("events.s13qm3zj"));
       return;
     }
     setError("");
@@ -97,11 +102,11 @@ export function EventCreateForm({
     setError("");
 
     if (!mainImageUrl.trim()) {
-      setError("광고 이미지를 등록해 주세요.");
+      setError(i18n("events.s15062kd"));
       return;
     }
     if (!linkUrl.trim()) {
-      setError("클릭 시 이동할 링크를 입력해 주세요.");
+      setError(i18n("events.sxfb8bl"));
       return;
     }
     if (!isOperator) {
@@ -113,11 +118,11 @@ export function EventCreateForm({
         return;
       }
       if (durationTooLong) {
-        setError(`광고 기간은 최대 ${maxScheduleDays}일까지 가능합니다.`);
+        setError(`Ad schedule can be at most ${maxScheduleDays} days.`);
         return;
       }
       if (insufficientMoco) {
-        setError("MOCO를 충전해주세요.");
+        setError(i18n("events.moco_2"));
         return;
       }
     }
@@ -132,14 +137,14 @@ export function EventCreateForm({
         operatorUnlimited: isOperator,
       });
       if (!res.ok) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setRegisteredEventId(res.eventId);
       setSuccessLinkUrl(linkUrl);
       setSuccessImageUrl(mainImageUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "등록에 실패했습니다.");
+      setError(err instanceof Error ? err.message : i18n("events.s199o885"));
     } finally {
       setSubmitting(false);
     }
@@ -149,11 +154,11 @@ export function EventCreateForm({
     return (
       <div className="space-y-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6">
         <div className="space-y-1">
-          <p className="font-semibold text-foreground">광고 등록이 완료되었습니다</p>
+          <p className="font-semibold text-foreground">{i18n("events.scsj9tc")}</p>
           <p className="text-sm text-muted-foreground">
             {isOperator
-              ? "운영자 면제로 등록되었습니다. 직접 삭제할 때까지 피드·이벤트 목록에 노출됩니다."
-              : "MOCO가 차감되었고, 피드·이벤트 목록에 노출됩니다. 광고를 클릭하면 설정한 링크로 이동합니다."}
+              ? i18n("events.s18fk2ov")
+              : i18n("events.moco_3")}
           </p>
         </div>
         {successImageUrl ? (
@@ -171,7 +176,7 @@ export function EventCreateForm({
         />
         <Link href="/">
           <Button className="w-full rounded-xl bg-[#A855F7] hover:bg-[#C084FC]">
-            홈으로
+            Back to home
           </Button>
         </Link>
       </div>
@@ -187,20 +192,20 @@ export function EventCreateForm({
         <p className="text-sm text-muted-foreground">
           {isOperator ? (
             <>
-              <strong className="text-foreground">운영자 계정</strong> — MOCO 차감 없이,{" "}
-              <strong className="text-foreground">삭제할 때까지</strong> 계속 노출됩니다.
+              <strong className="text-foreground">{i18n("events.sn8f9gu")}</strong> — no MOCO charge;{" "}
+              <strong className="text-foreground">stays visible until you delete it</strong>.
             </>
           ) : (
             <>
-              이미지·링크·노출 기간만 등록합니다. 24시간(1일)당{" "}
-              <strong className="text-foreground">{SPONSORED_AD_MOCO_PER_DAY} MOCO</strong> · 등록
-              시 한 번에 차감
+              Register image, link, and schedule only.{" "}
+              <strong className="text-foreground">{SPONSORED_AD_MOCO_PER_DAY} MOCO</strong> per 24h ·
+              charged once at registration
             </>
           )}
         </p>
 
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">광고 이미지</label>
+          <label className="text-xs font-medium text-muted-foreground">{i18n("events.s1onguiz")}</label>
           <div className="flex flex-wrap gap-2">
             {mainImageUrl ? (
               <div className="relative">
@@ -222,7 +227,7 @@ export function EventCreateForm({
               </div>
             ) : (
               <label className="flex w-36 cursor-pointer items-center justify-center rounded-xl border border-dashed border-border aspect-[4/5] hover:border-[#A855F7]/40 hover:bg-[#A855F7]/5 transition-colors">
-                <span className="text-sm text-muted-foreground">이미지 업로드</span>
+                <span className="text-sm text-muted-foreground">{i18n("events.s1lohsbl")}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={onMainImagePick} />
               </label>
             )}
@@ -230,7 +235,7 @@ export function EventCreateForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">클릭 시 이동 링크</label>
+          <label className="text-xs font-medium text-muted-foreground">Link on click</label>
           <Input
             placeholder="https://"
             value={linkUrl}
@@ -253,22 +258,22 @@ export function EventCreateForm({
 
         {durationTooLong ? (
           <p className="text-xs text-destructive">
-            기간은 최대 {EVENT_REGISTRATION_MAX_DAYS}일까지입니다.
+            Schedule can be at most {EVENT_REGISTRATION_MAX_DAYS} days.
           </p>
         ) : startInPast ? (
-          <p className="text-xs text-destructive">시작 일시는 현재 시각 이후여야 합니다.</p>
+          <p className="text-xs text-destructive">{i18n("lib.sponsored-ad.s1digvn3")}</p>
         ) : insufficientMoco ? (
           <p className="text-xs text-amber-600 dark:text-amber-400">
-            {durationDays}일({mocoCost} MOCO) 등록에 보유 {purchasedMoco.toLocaleString()} MOCO — 등록
-            시 충전이 필요합니다
+            {durationDays} days ({mocoCost} MOCO) requires {purchasedMoco.toLocaleString()} MOCO balance —
+            top up to register
           </p>
         ) : isOperator ? (
           <p className="text-xs text-muted-foreground">
-            운영자 등록 · 기간 제한 없음 · MOCO 차감 없음
+            Operator registration · no duration cap · no MOCO charge
           </p>
         ) : (
           <p className="text-xs text-muted-foreground">
-            {durationDays}일(24시간 × {durationDays}) · {mocoCost} MOCO 선차감 · 보유{" "}
+            {durationDays} days (24h × {durationDays}) · {mocoCost} MOCO upfront · balance{" "}
             {purchasedMoco.toLocaleString()} MOCO
           </p>
         )}
@@ -284,8 +289,8 @@ export function EventCreateForm({
             lockAspect
             objectFit="contain"
             showSponsorPreview
-            title="광고 이미지"
-            description="스폰서 슬롯(4:5) 비율로 맞춰 주세요. 전체 이미지가 보이도록 조절한 뒤 원하는 영역을 선택하세요."
+            title={i18n("events.s1onguiz")}
+            description={i18n("events.4_5")}
             maxWidth={SPONSORED_AD_IMAGE_MAX_WIDTH}
             maxHeight={SPONSORED_AD_IMAGE_MAX_HEIGHT}
             uploadFilename="event-ad.jpg"
@@ -306,10 +311,10 @@ export function EventCreateForm({
           {submitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              등록 중…
+              Registering…
             </>
           ) : (
-            isOperator ? "광고 등록 (운영자)" : `${mocoCost} MOCO로 광고 등록`
+            isOperator ? i18n("events.sx7ldxn") : `Register ad for ${mocoCost} MOCO`
           )}
         </Button>
         <PaymentLegalConsentModal className="mt-3 px-1" />
@@ -318,11 +323,11 @@ export function EventCreateForm({
       <aside className="hidden lg:block">
         <div className="sticky top-24 space-y-3">
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            스폰서 노출 미리보기
+            Sponsored preview
           </p>
           <SponsorAdPreviewFrame
             imageUrl={mainImageUrl || null}
-            ctaLabel={linkUrl.trim() ? "참가하기" : undefined}
+            ctaLabel={linkUrl.trim() ? i18n("events.sqhi9b4") : undefined}
             className={cn(mainImageUrl && "ring-1 ring-[#A855F7]/20")}
           />
           {linkUrl.trim() && (

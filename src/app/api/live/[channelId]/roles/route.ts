@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import type { BroadcastRole } from "@prisma/client";
 import { auth } from "@/lib/auth";
@@ -21,7 +22,7 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
@@ -33,7 +34,7 @@ export async function GET(
     perms.includes("roles.assign_vip");
 
   if (!canView) {
-    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Permission denied." }, { status: 403 });
   }
 
   const [members, logs] = await Promise.all([
@@ -53,7 +54,7 @@ export async function POST(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
@@ -61,13 +62,13 @@ export async function POST(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const targetUserId = body.targetUserId?.trim();
   const role = body.role?.trim().toUpperCase() as BroadcastRole;
   if (!targetUserId || !ASSIGNABLE.includes(role)) {
-    return NextResponse.json({ error: "대상 사용자와 역할이 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const result = await assignBroadcastRole({
@@ -78,7 +79,7 @@ export async function POST(
   });
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 403 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 403 });
   }
   return NextResponse.json({ ok: true });
 }
@@ -92,13 +93,13 @@ export async function DELETE(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
   const targetUserId = req.nextUrl.searchParams.get("targetUserId")?.trim();
   if (!targetUserId) {
-    return NextResponse.json({ error: "targetUserId가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const result = await removeBroadcastRole({
@@ -108,7 +109,7 @@ export async function DELETE(
   });
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 403 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 403 });
   }
   return NextResponse.json({ ok: true });
 }

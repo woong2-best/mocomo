@@ -21,19 +21,19 @@ export const MARKETPLACE_SHIP_COUNTRIES: {
   labelKo: string;
   labelEn: string;
 }[] = [
-  { code: "KR", labelKo: "대한민국", labelEn: "South Korea" },
-  { code: "US", labelKo: "미국", labelEn: "United States" },
-  { code: "JP", labelKo: "일본", labelEn: "Japan" },
-  { code: "CN", labelKo: "중국", labelEn: "China" },
+  { code: "KR", labelKo: "South Korea", labelEn: "South Korea" },
+  { code: "US", labelKo: "United States", labelEn: "United States" },
+  { code: "JP", labelKo: "Japan", labelEn: "Japan" },
+  { code: "CN", labelKo: "China", labelEn: "China" },
 ];
 
 /** Domestic carriers by destination/origin country */
 export const MARKETPLACE_DOMESTIC_CARRIERS: Record<MarketplaceShipCountryCode, MarketplaceCarrier[]> = {
   KR: [
-    { id: "KR_POST", label: "우체국", country: "KR", trackingSlug: "korea-post" },
-    { id: "KR_CJ", label: "CJ대한통운", country: "KR", trackingSlug: "cj-korea-thai" },
-    { id: "KR_HANJIN", label: "한진", country: "KR", trackingSlug: "hanjin" },
-    { id: "KR_LOTTE", label: "롯데", country: "KR", trackingSlug: "lotte" },
+    { id: "KR_POST", label: "Postal service", country: "KR", trackingSlug: "korea-post" },
+    { id: "KR_CJ", label: "CJ Logistics", country: "KR", trackingSlug: "cj-korea-thai" },
+    { id: "KR_HANJIN", label: "Hanjin", country: "KR", trackingSlug: "hanjin" },
+    { id: "KR_LOTTE", label: "Lotte", country: "KR", trackingSlug: "lotte" },
   ],
   US: [
     { id: "US_USPS", label: "USPS", country: "US", trackingSlug: "usps" },
@@ -74,7 +74,7 @@ export function normalizeShipCountry(code: string | null | undefined): Marketpla
 export function shipCountryLabel(code: string, locale: "ko" | "en" = "ko"): string {
   const row = MARKETPLACE_SHIP_COUNTRIES.find((c) => c.code === code.toUpperCase());
   if (!row) return code;
-  return locale === "en" ? row.labelEn : row.labelKo;
+  return row.labelEn;
 }
 
 export function listAllMarketplaceCarriers(): MarketplaceCarrier[] {
@@ -119,7 +119,7 @@ export function validateShipToCountries(
   codes: string[] | null | undefined
 ): { ok: true; countries: MarketplaceShipCountryCode[] } | { ok: false; error: string } {
   if (!codes || codes.length === 0) {
-    return { ok: false, error: "배송 가능 국가를 1개 이상 선택해 주세요." };
+    return { ok: false, error: "Select at least one shippable country." };
   }
   const normalized: MarketplaceShipCountryCode[] = [];
   for (const raw of codes) {
@@ -149,7 +149,7 @@ export function listingShipsToCountry(
 }
 
 export const UNSUPPORTED_SHIP_COUNTRY_MESSAGE =
-  "이 상품은 현재 선택하신 국가로 배송할 수 없습니다.";
+  "This product cannot be shipped to the country you selected.";
 
 export const UNSUPPORTED_ADDRESS_COUNTRY_MESSAGE =
-  "현재 배송 주소는 대한민국·미국·일본·중국만 등록할 수 있습니다.";
+  "Shipping addresses can only be registered in South Korea, the United States, Japan, or China for now.";

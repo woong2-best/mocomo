@@ -22,9 +22,9 @@ export async function notifyChatMessageSocket(
       where: { id: params.senderId },
       select: { username: true },
     });
-    const label = sender?.username ? `@${sender.username}` : "새 메시지";
+    const label = sender?.username ? `@${sender.username}` : "New message";
     const preview =
-      (params.content ?? "").trim().slice(0, 80) || "미디어를 보냈습니다.";
+      (params.content ?? "").trim().slice(0, 80) || "Sent media.";
     const link = `/messages/${params.roomId}`;
     const isDm = params.roomType === "DM";
     const type = isDm ? "dm" : "dm_group";
@@ -34,7 +34,7 @@ export async function notifyChatMessageSocket(
         userId: m.userId,
         actorId: params.senderId,
         type,
-        title: isDm ? "쪽지" : "그룹 메시지",
+        title: isDm ? "Direct message" : "Group message",
         body: `${label}: ${preview}`,
         link,
       })),
@@ -47,8 +47,8 @@ export async function notifyChatMessageSocket(
           userId: uid,
           actorId: params.senderId,
           type: "mention",
-          title: "멘션",
-          body: `${label}님이 메시지에서 언급했습니다.`,
+          title: "Mention",
+          body: `${label} mentioned you in a message.`,
           link,
         },
       });

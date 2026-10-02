@@ -106,7 +106,7 @@ export const STICKER_MANIFEST: StickerCategory[] = [
     items: [
       {
         id: "sp1",
-        label: "말풍선",
+        label: "Speech bubble",
         kind: "image",
         src: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120"><rect x="8" y="8" width="184" height="72" rx="16" fill="%23fff" stroke="%23333" stroke-width="4"/><polygon points="40,80 24,112 64,80" fill="%23fff" stroke="%23333" stroke-width="4"/></svg>'),
         width: 200,

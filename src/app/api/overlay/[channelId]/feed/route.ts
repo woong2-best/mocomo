@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -17,7 +18,7 @@ export async function GET(
   const token = req.nextUrl.searchParams.get("token") ?? "";
   const verified = verifyOverlayToken(token, { channelId, kind: "chat" });
   if (!verified.ok) {
-    return NextResponse.json({ error: verified.error }, { status: 401 });
+    return NextResponse.json({ error: errorText(verified.error) }, { status: 401 });
   }
 
   const result = await buildOverlayChatFeed({
@@ -29,7 +30,7 @@ export async function GET(
   });
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    return NextResponse.json({ error: errorText(result.error) }, { status: result.status });
   }
 
   return NextResponse.json(result);

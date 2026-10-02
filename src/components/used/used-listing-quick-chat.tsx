@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { isPhoneVerificationError } from "@/lib/error-codes";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare } from "lucide-react";
@@ -8,9 +12,6 @@ import { usedAdultVerifyUrl } from "@/lib/used-youth-protection";
 import type { UsedRestrictedKind } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
-function needsPhoneVerification(error: string) {
-  return error.includes("휴대폰") || error.includes("phone verification");
-}
 
 /** Listing card overlay — opens seller DM in /messages without navigating to detail. */
 export function UsedListingQuickChat({
@@ -33,7 +34,7 @@ export function UsedListingQuickChat({
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (needsPhoneVerification(res.error)) {
+      if (isPhoneVerificationError(res.error)) {
         router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
         return;
       }
@@ -49,7 +50,7 @@ export function UsedListingQuickChat({
   return (
     <button
       type="button"
-      aria-label="판매자에게 메시지"
+      aria-label={t("used.s1dr7x5c")}
       disabled={loading}
       onClick={(e) => void onChat(e)}
       className={cn(

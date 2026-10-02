@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -517,18 +520,18 @@ export async function createUsedListing(data: {
     const adultErr = assertUsedAdultForRestricted(user, restricted);
     if (adultErr) return { error: USED_ADULT_SELLER_MSG };
   }
-  if (!data.title.trim()) return { error: "제목을 입력해 주세요." };
+  if (!data.title.trim()) return { error: "actions.sojdmy3" };
   const currency = normalizeUsedCurrency(data.currency);
   const price = Math.floor(Number(data.price) || 0);
-  if (data.price < 0 || price < 0) return { error: "가격이 올바르지 않습니다." };
+  if (data.price < 0 || price < 0) return { error: "actions.s1y2yueo" };
   const maxPrice = maxUsedListingPrice(currency);
   if (price > maxPrice) {
-    return { error: `가격은 ${maxUsedListingPriceLabel(currency)} 이하로 입력해 주세요.` };
+    return { error: t("actions.snppf3n", { v0: maxUsedListingPriceLabel(currency) }) };
   }
-  if (!data.region.trim()) return { error: "거래 지역을 선택해 주세요." };
+  if (!data.region.trim()) return { error: "actions.s1qzsrwg" };
   const listingCountry = normalizeMeetCountry(data.meetCountry || user.countryCode);
   if (!validateUsedRegion(data.region, listingCountry)) {
-    return { error: "올바른 거래 지역을 선택해 주세요." };
+    return { error: "actions.sj1ybzk" };
   }
 
   const parsedCats = parseUsedSellCategories(data.categories, data.category);
@@ -536,7 +539,7 @@ export async function createUsedListing(data: {
 
   const isAuction = data.saleType === "AUCTION";
   if (USED_AUCTION_RETIRED && isAuction) return { error: USED_AUCTION_RETIRED_MSG };
-  if (isAuction && price <= 0) return { error: "경매 시작가를 입력해 주세요." };
+  if (isAuction && price <= 0) return { error: "actions.sti0vaw" };
   if (isAuction) {
     const balance = await getMocoBalanceSnapshot(user.id);
     if (!canParticipateInAuction(balance)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
@@ -553,10 +556,10 @@ export async function createUsedListing(data: {
       : null;
 
   if (buyNowPrice != null && buyNowPrice <= price) {
-    return { error: "즉시구매가는 시작가보다 높아야 합니다." };
+    return { error: "actions.sd3luth" };
   }
   if (reservePrice != null && reservePrice > price && reservePrice > (buyNowPrice ?? Infinity)) {
-    return { error: "최저 낙찰가 설정을 확인해 주세요." };
+    return { error: "actions.s123o4yt" };
   }
 
   const listingRating = data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL");
@@ -582,8 +585,7 @@ export async function createUsedListing(data: {
   );
   if (ephemeral.length > 0) {
     return {
-      error:
-        "사진이 영구 저장되지 않았습니다. 사진을 다시 추가한 뒤 「적용」이 끝날 때까지 기다려 주세요.",
+      error: "actions.s6t0t2p",
     };
   }
 
@@ -680,12 +682,11 @@ export async function createUsedListing(data: {
     if (mapDepositError(e)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === "P2021") {
-        return { error: "중고거래 DB가 준비되지 않았습니다. Supabase SQL 섹션 K를 실행해 주세요." };
+        return { error: "actions.db_supabase_sql_k" };
       }
       if (e.code === "P2022") {
         return {
-          error:
-            "중고거래 DB에 meetCountry 컬럼이 없습니다. Supabase에서 ALTER TABLE \"UsedListing\" ADD COLUMN IF NOT EXISTS \"meetCountry\" VARCHAR(2); 를 실행해 주세요.",
+          error: "actions.db_meetcountry_supabase_alter_table",
         };
       }
     }
@@ -693,13 +694,11 @@ export async function createUsedListing(data: {
     const detail = e instanceof Error ? e.message : "";
     if (/meetCountry/i.test(detail) || /column .* does not exist/i.test(detail)) {
       return {
-        error:
-          "중고거래 DB에 meetCountry 컬럼이 없습니다. Supabase SQL로 meetCountry(VARCHAR 2)를 추가해 주세요.",
+        error: "actions.db_meetcountry_supabase_sql_meetcountry",
       };
     }
     return {
-      error:
-        "글 등록에 실패했습니다. 가격·사진·지역을 확인한 뒤 다시 시도해 주세요.",
+      error: "actions.s178nboa",
     };
   }
 }
@@ -707,7 +706,7 @@ export async function createUsedListing(data: {
 export async function updateUsedListingStatus(listingId: string, status: UsedListingStatus) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
-  if (!listing || listing.sellerId !== user.id) return { error: "권한이 없습니다." };
+  if (!listing || listing.sellerId !== user.id) return { error: "actions.st3onev" };
   const accessErr = assertAuctionPostAccess(user);
   if (accessErr) return { error: accessErr };
 
@@ -733,7 +732,7 @@ export async function updateUsedListingStatus(listingId: string, status: UsedLis
 export async function deleteUsedListing(listingId: string) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
-  if (!listing || listing.sellerId !== user.id) return { error: "권한이 없습니다." };
+  if (!listing || listing.sellerId !== user.id) return { error: "actions.st3onev" };
   const accessErr = assertAuctionPostAccess(user);
   if (accessErr) return { error: accessErr };
 
@@ -752,7 +751,7 @@ export async function toggleUsedListingStar(listingId: string) {
     where: { id: listingId },
     select: { id: true, sellerId: true, meetCountry: true, region: true },
   });
-  if (!listing) return { error: "게시글을 찾을 수 없습니다." };
+  if (!listing) return { error: "actions.s1cdkrl9" };
   const visibleErr = await assertUsedMarketListingVisible({
     userId: user.id,
     listing,
@@ -782,7 +781,7 @@ export async function toggleUsedFavorite(listingId: string) {
     where: { id: listingId },
     select: { sellerId: true, title: true, meetCountry: true, region: true },
   });
-  if (!listing) return { error: "게시글을 찾을 수 없습니다." };
+  if (!listing) return { error: "actions.s1cdkrl9" };
   const tradeErr = await assertUsedMarketTradeAccess({
     userId: user.id,
     buyerCountry: user.countryCode,
@@ -873,27 +872,27 @@ export async function startUsedTradeChat(listingId: string) {
     where: { id: listingId },
     include: { seller: { select: { id: true, username: true } } },
   });
-  if (!listing) return { error: "게시글을 찾을 수 없습니다." };
-  if (listing.sellerId === user.id) return { error: "본인 글에는 채팅할 수 없습니다." };
+  if (!listing) return { error: "actions.s1cdkrl9" };
+  if (listing.sellerId === user.id) return { error: "actions.sscry5a" };
   const tradeErr = await assertUsedMarketTradeAccess({
     userId: user.id,
     buyerCountry: user.countryCode,
     listing,
   });
   if (tradeErr) return { error: tradeErr };
-  if (listing.status === "SOLD") return { error: "이미 거래 완료된 상품입니다." };
+  if (listing.status === "SOLD") return { error: "actions.s1mmunw" };
   if (
     listing.saleType === "AUCTION" &&
     listing.auctionEndsAt &&
     listing.auctionEndsAt.getTime() > Date.now() &&
     listing.auctionState !== "ENDED"
   ) {
-    return { error: "경매 진행 중에는 채팅 대신 입찰을 이용해 주세요." };
+    return { error: "actions.socghxo" };
   }
 
   const dm = await getOrCreateDM(listing.sellerId);
   if ("error" in dm && dm.error) return { error: dm.error };
-  if (!("room" in dm) || !dm.room) return { error: "채팅방을 열 수 없습니다." };
+  if (!("room" in dm) || !dm.room) return { error: "actions.s1k5cvor" };
 
   try {
     await db.usedListingChat.upsert({
@@ -906,7 +905,7 @@ export async function startUsedTradeChat(listingId: string) {
   }
 
   const priceText = formatUsedPrice(listing.price, listing.currency);
-  const intro = `안녕하세요. 중고거래 문의입니다.\n\n상품: ${listing.title}\n가격: ${priceText}\n링크: /market/${listing.id}`;
+  const intro = t("actions.n_n_n_n_market", { v0: listing.title, v1: priceText, v2: listing.id });
   try {
     await sendMessage({ roomId: dm.room.id, content: intro });
   } catch {
@@ -924,7 +923,7 @@ export async function getUsedListingChatRooms(listingId: string) {
     where: { id: listingId },
     select: { sellerId: true },
   });
-  if (!listing || listing.sellerId !== user.id) return { error: "권한이 없습니다." };
+  if (!listing || listing.sellerId !== user.id) return { error: "actions.st3onev" };
 
   try {
     const rows = await db.usedListingChat.findMany({

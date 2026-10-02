@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
@@ -30,7 +33,7 @@ export default async function AdminModerationPage() {
   }
 
   return (
-    <AdminPageChrome maxWidth="4xl" title="위험도 · 검토 대기열">
+    <AdminPageChrome maxWidth="4xl" title={t("admin.s1mdc5ml")}>
       <p className="mb-4 text-sm text-muted-foreground">
         Risk Score 기반 자동 탐지·신고·AI 분석 결과를 검토하고 제재를 적용합니다.
       </p>

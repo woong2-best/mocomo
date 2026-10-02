@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { sendEmoticonToStreamer } from "@/actions/goods-shop";
@@ -19,19 +24,22 @@ export function SendEmoticonForm({
   const [username, setUsername] = useState("");
   const router = useRouter();
   const [msg, setMsg] = useState("");
+  const [msgIsError, setMsgIsError] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setMsg("");
+    setMsgIsError(false);
     const res = await sendEmoticonToStreamer(itemId, username);
     setLoading(false);
     if ("error" in res && res.error) {
-      setMsg(res.error);
+      setMsg(errorText(res.error));
+      setMsgIsError(true);
       return;
     }
-    setMsg(`전송 완료! 스트리머에게 ${Math.floor(pricePaid * 0.9).toLocaleString()}원이 적립됩니다.`);
+    setMsg(t("market.s1ujxuef", { v0: Math.floor(pricePaid * 0.9).toLocaleString() }));
     setUsername("");
     router.refresh();
   }
@@ -39,11 +47,11 @@ export function SendEmoticonForm({
   return (
     <form onSubmit={submit} className="space-y-2 rounded-xl border border-border/60 p-3 bg-muted/20">
       <p className="text-xs text-muted-foreground">
-        「{packName}」 · 1회만 전송 가능 · 플랫폼 수수료 10%
+        {t("market.emoticonSendHint", { pack: packName })}
       </p>
       <div className="flex gap-2">
         <Input
-          placeholder="스트리머 @닉네임"
+          placeholder={t("market.s1txujzd")}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           className="rounded-xl"
@@ -51,10 +59,10 @@ export function SendEmoticonForm({
         />
         <Button type="submit" size="sm" className="rounded-xl shrink-0 gap-1" disabled={loading || !username.trim()}>
           <Gift className="h-4 w-4" />
-          보내기
+          {t("market.ssjcvk")}
         </Button>
       </div>
-      {msg && <p className={`text-xs ${msg.includes("완료") ? "text-primary" : "text-destructive"}`}>{msg}</p>}
+      {msg && <p className={`text-xs ${msgIsError ? "text-destructive" : "text-primary"}`}>{msg}</p>}
     </form>
   );
 }

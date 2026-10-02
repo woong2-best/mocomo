@@ -21,11 +21,11 @@ export const EFFECT_SLIDERS: {
   step: number;
   default: number;
 }[] = [
-  { key: "brightness", label: "밝기", min: -0.5, max: 0.5, step: 0.01, default: 0 },
-  { key: "contrast", label: "대비", min: -50, max: 50, step: 1, default: 0 },
-  { key: "saturation", label: "채도", min: -1, max: 1, step: 0.01, default: 0 },
-  { key: "hue", label: "색조", min: -180, max: 180, step: 1, default: 0 },
-  { key: "blur", label: "블러", min: 0, max: 20, step: 0.5, default: 0 },
-  { key: "noise", label: "노이즈", min: 0, max: 1, step: 0.01, default: 0 },
-  { key: "vignette", label: "비네트", min: 0, max: 1, step: 0.01, default: 0 },
+  { key: "brightness", label: "Brightness", min: -0.5, max: 0.5, step: 0.01, default: 0 },
+  { key: "contrast", label: "Contrast", min: -50, max: 50, step: 1, default: 0 },
+  { key: "saturation", label: "Saturation", min: -1, max: 1, step: 0.01, default: 0 },
+  { key: "hue", label: "Hue", min: -180, max: 180, step: 1, default: 0 },
+  { key: "blur", label: "Blur", min: 0, max: 20, step: 0.5, default: 0 },
+  { key: "noise", label: "Noise", min: 0, max: 1, step: 0.01, default: 0 },
+  { key: "vignette", label: "Vignette", min: 0, max: 1, step: 0.01, default: 0 },
 ];

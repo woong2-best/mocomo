@@ -1,12 +1,15 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter, useSearchParams } from "next/navigation";
 import type { IllustrationMarketSort } from "@/lib/webtoon/constants";
 import { cn } from "@/lib/utils";
 
 const SORTS: { id: IllustrationMarketSort; label: string }[] = [
-  { id: "latest", label: "새로 등록" },
-  { id: "popular", label: "인기" },
+  { id: "latest", label: t("webtoon.s1uqm108") },
+  { id: "popular", label: t("webtoon.syvug") },
 ];
 
 export function IllustrationSortBar({ active }: { active: IllustrationMarketSort }) {

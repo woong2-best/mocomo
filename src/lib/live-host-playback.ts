@@ -37,7 +37,7 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
       note:
         channel?.broadcastMode === "BROWSER"
           ? "브라우저 WHIP 송출 · 시청 WHEP (HLS와 병행 불가)"
-          : "Cloudflare Stream Live — OBS 서버는 live.cloudflare.com",
+          : "Cloudflare Stream Live — OBS server is live.cloudflare.com",
     };
   }
 
@@ -59,8 +59,8 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
       message: probe.playable
         ? "LiveKit 방송이 연결되었습니다."
         : probe.onAir
-          ? "영상 준비 중…"
-          : "OBS에서 「방송 시작」을 누르면 화면이 나타납니다.",
+          ? "Video 준비 중…"
+          : "The preview appears after you click 「Go live」 in OBS.",
     };
   }
 
@@ -76,7 +76,7 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
       hlsUrl: null,
       waiting: true,
       tryLoad: false,
-      message: "방송 키를 불러오지 못했습니다. OBS 키를 다시 받으세요.",
+      message: "Couldn't load the stream key. Get a new OBS key.",
     };
   }
 
@@ -99,9 +99,9 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
       ? "VPS 방송 신호 확인. 미리보기 재생 중."
       : probe.live
         ? "VPS 송출 감지. FLV 미리보기 연결 중…"
-        : "다중 송출이 MoCoMo 서버·키로 나가면 화면이 나타납니다.",
+        : "The preview appears when multistream sends to the MoCoMo server and key below.",
     probeError: probe.error,
     probeStatus: probe.status,
-    note: "Vultr VPS — 다중 송출 「새 대상」에 아래와 동일한 서버·키 입력",
+    note: "Vultr VPS — in multistream 「New destination」, enter the same server and key below",
   };
 }

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, type ReactNode } from "react";
 import { EyeOff } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";

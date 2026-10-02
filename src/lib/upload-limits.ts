@@ -1,4 +1,4 @@
-/** 게시 영상 최대 길이 (초) — 30분 */
+/** 게시 Video 최대 길이 (초) — 30분 */
 export const MAX_VIDEO_DURATION_SEC = 1800;
 
 /** 서버·클라이언트 공통 업로드 용량 (bytes) */
@@ -27,7 +27,7 @@ export function uploadSizeExceededMessage(
 ): string {
   const max = formatUploadMaxLabel(premiumTier, category);
   if (category === "video") {
-    return `영상 용량이 ${max} 제한을 초과했습니다. 짧게 자르거나 해상도를 낮춰 주세요. (프리미엄: 최대 100MB)`;
+    return `Video 용량이 ${max} 제한을 초과했습니다. 짧게 자르거나 해상도를 낮춰 주세요. (프리미엄: 최대 100MB)`;
   }
   return `파일 용량이 ${max} 제한을 초과했습니다.`;
 }

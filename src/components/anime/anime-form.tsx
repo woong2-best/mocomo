@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnimeGenre } from "@prisma/client";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type AnimeFormData = {
   title: string;
@@ -45,6 +46,7 @@ export function AnimeForm({
   initial?: Partial<AnimeFormData>;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -77,7 +79,7 @@ export function AnimeForm({
     setLoading(false);
 
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(result.error.includes(".") ? t(result.error) : result.error);
       return;
     }
     if ("anime" in result && result.anime) router.push(`/anime/${result.anime.slug}`);
@@ -86,23 +88,23 @@ export function AnimeForm({
   return (
     <Card className="rounded-2xl shadow-md max-w-3xl mx-auto">
       <CardHeader>
-        <CardTitle>{mode === "create" ? "새 애니 글" : "글 편집"}</CardTitle>
+        <CardTitle>{mode === "create" ? t("anime.sntmi00") : t("anime.slz47qx")}</CardTitle>
         <p className="text-sm text-muted-foreground">
-          로그인한 누구나 내용을 추가·수정할 수 있어요. 저장하면 모든 이용자에게 바로 반영됩니다.
+          {t("anime.s1kbp9gt")}
         </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium">제목 *</label>
+            <label className="text-sm font-medium">{t("anime.spzylzr")}</label>
             <Input name="title" defaultValue={initial?.title} required className="mt-1 rounded-xl" />
           </div>
           <div>
-            <label className="text-sm font-medium">영문 제목</label>
+            <label className="text-sm font-medium">{t("anime.sghpkl2")}</label>
             <Input name="titleEn" defaultValue={initial?.titleEn ?? ""} className="mt-1 rounded-xl" />
           </div>
           <div>
-            <label className="text-sm font-medium">장르 *</label>
+            <label className="text-sm font-medium">{t("anime.spxo9fd")}</label>
             <select
               name="genre"
               defaultValue={initial?.genre ?? "OTHER"}
@@ -118,41 +120,41 @@ export function AnimeForm({
           </div>
           <AnimeImageUrlField
             name="coverUrl"
-            label="표지 이미지"
+            label={t("anime.sz3ckjk")}
             defaultValue={initial?.coverUrl ?? ""}
             previewAspect="square"
-            uploadLabel="표지 사진 업로드"
+            uploadLabel={t("anime.sce7mwp")}
           />
           <AnimeImageUrlField
             name="bannerUrl"
-            label="배너 이미지"
+            label={t("profile.s1qwzit0")}
             defaultValue={initial?.bannerUrl ?? ""}
             previewAspect="banner"
-            uploadLabel="배너 사진 업로드"
+            uploadLabel={t("anime.szn2ekl")}
           />
           <div>
-            <label className="text-sm font-medium">제작사</label>
+            <label className="text-sm font-medium">{t("anime.sua6af")}</label>
             <Input name="studio" defaultValue={initial?.studio ?? ""} className="mt-1 rounded-xl" />
           </div>
           <AnimeInfoboxField
             name="infobox"
-            label="작품 정보표"
+            label={t("anime.si9t5x0")}
             defaultValue={initial?.infobox ?? ""}
           />
           <AnimeWikiField
             name="synopsis"
-            label="줄거리 / 설명"
+            label={t("anime.s6qhlci")}
             defaultValue={initial?.synopsis ?? ""}
-            placeholder="줄거리. 사진은 업로드, 영상은 유튜브 링크를 붙여넣으세요."
+            placeholder={t("anime.sucjpw8")}
           />
           <AnimeWikiField
             name="worldInfo"
-            label="세계관"
+            label={t("anime.st569g")}
             defaultValue={initial?.worldInfo ?? ""}
             rows={5}
           />
           <div>
-            <label className="text-sm font-medium">등장인물 (한 줄에 한 명)</label>
+            <label className="text-sm font-medium">{t("anime.s16cdth4")}</label>
             <textarea
               name="charactersText"
               defaultValue={charactersToText(initial?.characters)}
@@ -161,15 +163,15 @@ export function AnimeForm({
             />
           </div>
           <div>
-            <label className="text-sm font-medium">태그 (쉼표 구분)</label>
+            <label className="text-sm font-medium">{t("anime.sm1dzed")}</label>
             <Input name="tags" defaultValue={initial?.tags?.join(", ") ?? ""} className="mt-1 rounded-xl" />
           </div>
           {mode === "edit" && (
             <div>
-              <label className="text-sm font-medium">수정 요약 (선택)</label>
+              <label className="text-sm font-medium">{t("anime.s1nlgc9k")}</label>
               <Input
                 name="editSummary"
-                placeholder="예: 줄거리 보강, 오타 수정"
+                placeholder={t("anime.s16947su")}
                 className="mt-1 rounded-xl"
               />
             </div>
@@ -177,7 +179,7 @@ export function AnimeForm({
           {error && <p className="text-sm text-destructive">{error}</p>}
           <CultureWikiEditNotice />
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "저장 중..." : mode === "create" ? "등록하기" : "수정 저장"}
+            {loading ? t("auth.saving") : mode === "create" ? t("cosplay.snlmhd0") : t("anime.s2tq8bs")}
           </Button>
         </form>
       </CardContent>

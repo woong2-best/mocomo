@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
     if (!validated.ok) {
       const status =
         validated.error === "BANNED" ? 403 : validated.error === "USER_NOT_FOUND" ? 404 : 401;
-      return NextResponse.json({ ok: false, error: validated.error }, { status });
+      return NextResponse.json({ ok: false, error: errorText(validated.error) }, { status });
     }
 
     const fresh = await dbRefreshTokenPayload(validated.user.id, validated.payload);

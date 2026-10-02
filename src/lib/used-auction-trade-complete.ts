@@ -7,7 +7,7 @@ import { finalizeUsedListingSold } from "@/lib/subculture-commerce/sale-records"
 export async function confirmAuctionTradeComplete(userId: string, listingId: string) {
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.saleType !== "AUCTION") {
-    return { error: "경매 상품이 아닙니다." as const };
+    return { error: "This isn't an auction item." as const };
   }
   if (listing.status === "SOLD" || (listing.sellerTradeConfirmedAt && listing.buyerTradeConfirmedAt)) {
     return {
@@ -18,21 +18,21 @@ export async function confirmAuctionTradeComplete(userId: string, listingId: str
     };
   }
   if (isAuctionLive(listing)) {
-    return { error: "경매가 끝난 뒤에 거래 완료를 누를 수 있습니다." as const };
+    return { error: "You can mark complete only after the auction ends." as const };
   }
 
   const winnerId = listing.winningBidderId ?? listing.currentBidderId;
   if (!winnerId) {
-    return { error: "낙찰자가 없어 거래 완료를 할 수 없습니다." as const };
+    return { error: "No winner; can't mark complete." as const };
   }
 
   const isSeller = listing.sellerId === userId;
   const isWinner = winnerId === userId;
   if (!isSeller && !isWinner) {
-    return { error: "판매자와 낙찰자만 거래 완료를 누를 수 있습니다." as const };
+    return { error: "Only the seller and winner can mark complete." as const };
   }
   if (listing.meetLat != null && listing.meetLng != null) {
-    return { error: "직거래는 현장 도착 인증 후 암호코드로 완료됩니다." as const };
+    return { error: "In-person trades complete with a passcode after on-site arrival verification." as const };
   }
 
   const now = new Date();

@@ -5,116 +5,116 @@ import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 export const SELLER_TERMS: LegalDocument = {
   slug: "seller-terms",
   title: `${MARKET_BRAND_FULL} 판매자 서비스 이용약관`,
-  updatedAt: "2026년 8월 29일",
+  updatedAt: "August 29, 2026",
   intro:
     `본 약관은 미합중국 와이오밍 주 소재 MoCoMo LLC(이하 "회사")가 운영하는 온라인 오픈마켓 플랫폼 "${MARKET_BRAND_FULL}"(이하 "플랫폼")을 통해 상품을 판매하고자 하는 사업자(이하 "판매자")와 회사 간의 권리, 의무 및 책임사항, 서비스 이용 조건과 절차 등을 규정함을 목적으로 합니다. 판매자는 회원가입 시 본 약관에 동의함으로써 본 약관의 적용을 받습니다.`,
   blocks: [
-    { type: "h2", text: "제 1 장 총칙" },
-    { type: "h3", text: "제 1 조 (목적)" },
+    { type: "h2", text: "Chapter 1 General provisions" },
+    { type: "h3", text: "Article 1 (Purpose)" },
     {
       type: "p",
-      text: "본 약관은 회사가 제공하는 플랫폼을 이용하여 판매자가 상품을 등록·판매하는 것과 관련하여, 회사와 판매자 간의 권리·의무 및 책임사항, 서비스 이용조건, 절차, 기타 필요한 사항을 정함을 목적으로 합니다.",
+      text: "Please check your input and try again.",
     },
-    { type: "h3", text: "제 2 조 (정의)" },
+    { type: "h3", text: "Article 2 (Definitions)" },
     {
       type: "p",
-      text: "본 약관에서 사용하는 용어의 정의는 다음과 같으며, 여기서 정하지 않은 용어는 관계 법령 및 일반적인 상관례에 따릅니다.",
+      text: "Terms used in these Terms are defined below; undefined terms follow applicable laws and general commercial practice.",
     },
     {
       type: "ul",
       items: [
-        '"플랫폼"이란 회사가 운영하는 웹사이트 및 모바일 애플리케이션 등 온라인상의 판매·구매 중개 서비스 일체를 의미합니다.',
-        '"판매자"란 본 약관에 동의하고 회사와 이용계약이 체결되어 플랫폼을 통해 상품을 판매하는 사업자를 의미합니다.',
-        '"구매자"란 플랫폼을 통해 판매자가 등록한 상품을 구매하는 회원을 의미합니다.',
-        '"판매자센터"란 판매자가 상품 등록, 주문 관리, 정산 확인 등 플랫폼 이용에 필요한 업무를 처리할 수 있도록 회사가 제공하는 전용 관리 시스템을 의미합니다.',
-        '"이용수수료"란 판매자가 플랫폼을 이용한 대가로 회사에 지급하는 금액을 의미합니다.',
+        '"Platform" means all online buying and selling intermediary services operated by the Company, including its website and mobile applications.',
+        '"Seller" means a business that agrees to these Terms, enters into a service agreement with the Company, and sells products through the Platform.',
+        '"Buyer" means a member who purchases products listed by a Seller through the Platform.',
+        'Please check your input and try again.',
+        '"Service Fee" means amounts Sellers pay the Company as consideration for using the Platform.',
       ],
     },
     { type: "hr" },
 
-    { type: "h2", text: "제 2 장 이용계약" },
-    { type: "h3", text: "제 3 조 (이용계약의 성립)" },
+    { type: "h2", text: "Chapter 2 Service agreement" },
+    { type: "h3", text: "Article 3 (Formation of the service agreement)" },
     {
       type: "p",
-      text: "이용계약은 판매자가 본 약관 및 관련 정책에 동의하고, 회사가 정한 절차에 따라 판매자 가입·인증을 완료한 후 회사가 이를 승낙함으로써 성립합니다.",
+      text: "Please sign in to continue.",
     },
     {
       type: "p",
-      text: "회사는 판매자 자격 확인, 본인·사업자 확인(KYC), 법령 준수 여부 등을 이유로 가입을 거부하거나 보류할 수 있습니다.",
+      text: "The Company may reject or defer registration for Seller eligibility checks, identity or business verification (KYC), legal compliance, or similar reasons.",
     },
-    { type: "h3", text: "제 4 조 (판매자 계정의 관리)" },
+    { type: "h3", text: "Article 4 (Seller account management)" },
     {
       type: "p",
-      text: "판매자 계정은 MoCoMo 회원 계정과 동일하게 운영되며, 판매자는 계정 정보·인증 수단을 제3자에게 양도·대여·공유해서는 안 됩니다.",
+      text: "The Seller account uses the same MoCoMo member account; Sellers must not transfer, lend, or share account credentials or verification methods with third parties.",
     },
     {
       type: "p",
-      text: "판매자는 연락처, 사업자 정보, 정산 정보 등이 변경된 경우 지체 없이 판매자센터에서 갱신해야 합니다.",
+      text: "If contact details, business information, or payout information change, Sellers must update them promptly in Seller Center.",
     },
     { type: "hr" },
 
-    { type: "h2", text: "제 3 장 상품 등록 및 판매" },
-    { type: "h3", text: "제 5 조 (상품 등록)" },
+    { type: "h2", text: "Chapter 3 Product listings and sales" },
+    { type: "h3", text: "Article 5 (Product listings)" },
     {
       type: "p",
-      text: "판매자는 판매자센터를 통해 상품을 등록할 수 있으며, 상품 정보(명칭, 가격, 재고, 배송·제작 조건, 디지털 제공 방식 등)를 정확하고 최신 상태로 유지해야 합니다.",
+      text: "Your order has shipped",
     },
-    { type: "h3", text: "제 6 조 (판매자의 의무)" },
+    { type: "h3", text: "Article 6 (Seller obligations)" },
     {
       type: "ul",
       items: [
-        "관련 법령 및 본 약관, 회사의 운영정책을 준수할 것",
-        "구매자에게 허위·과장 광고를 하지 않을 것",
-        "주문 확인 후 약정된 기한 내에 배송·제작·디지털 제공을 이행할 것",
-        "지식재산권·초상권 등 제3자의 권리를 침해하지 않을 것",
-        "고객 문의·분쟁에 성실히 응대할 것",
+        "Comply with applicable laws, these Terms, and Company operating policies",
+        "Not use false or misleading advertising toward Buyers",
+        "Fulfill shipping, production, or digital delivery within the promised timeframe after order confirmation",
+        "Not infringe third-party intellectual property, portrait rights, or similar rights",
+        "Respond in good faith to customer inquiries and disputes",
       ],
     },
-    { type: "h3", text: "제 7 조 (금지 행위)" },
+    { type: "h3", text: "Article 7 (Prohibited conduct)" },
     {
       type: "ul",
       items: [
-        "불법·유해 상품 또는 서비스의 판매",
-        "성인·NSFW 콘텐츠의 등록·판매·유료 거래 (플랫폼 내 결제·정산 포함)",
-        "결제 우회, 직거래 유도, 허위 거래, 리뷰 조작",
-        "타인의 계정·결제수단·개인정보 도용",
-        "플랫폼의 시스템·보안을 방해하는 행위",
-        "기타 회사 또는 구매자에게 손해를 끼치는 행위",
+        "Selling illegal or harmful products or services",
+        "Listing, selling, or paid transactions involving adult or NSFW content (including in-platform payment and settlement)",
+        "Payment circumvention, off-platform deals, sham transactions, review manipulation",
+        "Misusing another person's account, payment method, or personal information",
+        "Interfering with Platform systems or security",
+        "Other conduct that harms the Company or Buyers",
       ],
     },
     { type: "hr" },
 
-    { type: "h2", text: "제 4 장 수수료 및 정산" },
-    { type: "h3", text: "제 8 조 (이용수수료)" },
+    { type: "h2", text: "Chapter 4 Fees and settlement" },
+    { type: "h3", text: "Article 8 (Service fees)" },
     {
       type: "p",
-      text: "회사는 플랫폼 이용의 대가로 판매자에게 이용수수료를 부과할 수 있으며, 수수료율·부과 기준은 판매자센터 또는 별도 고지로 안내합니다.",
+      text: "The Company may charge Sellers service fees for Platform use; fee rates and billing criteria are announced in Seller Center or separate notices.",
     },
-    { type: "h3", text: "제 9 조 (정산)" },
+    { type: "h3", text: "Article 9 (Settlement)" },
     {
       type: "p",
       text: "판매 대금은 회사가 정한 정산 주기·절차 및 결제 대행(예: Stripe Connect) 정책에 따라 지급됩니다. 판매자는 정확한 정산 계좌·수취 정보를 등록·유지해야 합니다.",
     },
     {
       type: "p",
-      text: "구매자 클레임, 환불, 차지백, 분쟁, 약관 위반 등이 있는 경우 회사는 해당 금액을 보류·상계하거나 정산을 연기할 수 있습니다.",
+      text: "If there are buyer claims, refunds, chargebacks, disputes, or Terms violations, the Company may hold, offset, or delay settlement of the relevant amounts.",
     },
     { type: "hr" },
 
-    { type: "h2", text: "제 5 장 계약 해지 및 책임" },
-    { type: "h3", text: "제 10 조 (이용계약의 해지·제한)" },
+    { type: "h2", text: "Chapter 5 Termination and liability" },
+    { type: "h3", text: "Article 10 (Termination and restrictions)" },
     {
       type: "p",
-      text: "판매자는 언제든지 판매자 자격 해지를 요청할 수 있습니다. 다만 진행 중인 주문·정산·분쟁이 있는 경우 회사는 해지를 보류할 수 있습니다.",
+      text: "Sellers may request termination of Seller status at any time; the Company may defer termination if orders, payouts, or disputes are in progress.",
     },
     {
       type: "p",
-      text: "회사는 약관 위반, 법령 위반, 신뢰 저해 행위 등이 확인되면 판매 제한, 정산 보류, 이용계약 해지 등 필요한 조치를 할 수 있습니다.",
+      text: "If Terms violations, legal violations, or trust-damaging conduct is confirmed, the Company may restrict selling, hold settlement, terminate the agreement, or take other necessary measures.",
     },
-    { type: "h3", text: "제 11 조 (책임의 제한)" },
+    { type: "h3", text: "Article 11 (Limitation of liability)" },
     {
       type: "p",
-      text: "회사는 통신망 장애, 천재지변, 불가항력 등 회사의 합리적 통제 범위를 벗어난 사유로 인한 서비스 중단에 대해 법령이 허용하는 범위에서 책임을 제한합니다.",
+      text: "You don't have permission to do that.",
     },
     {
       type: "p",
@@ -122,21 +122,21 @@ export const SELLER_TERMS: LegalDocument = {
     },
     { type: "hr" },
 
-    { type: "h2", text: "제 6 장 기타" },
-    { type: "h3", text: "제 12 조 (약관의 변경)" },
+    { type: "h2", text: "Chapter 6 Miscellaneous" },
+    { type: "h3", text: "Article 12 (Changes to these Terms)" },
     {
       type: "p",
-      text: "회사는 필요한 경우 본 약관을 변경할 수 있으며, 변경 시 시행일 및 변경 내용을 플랫폼에 공지합니다. 변경 약관 시행 후에도 서비스를 계속 이용하는 경우 변경에 동의한 것으로 봅니다.",
+      text: "Please check your input and try again.",
     },
-    { type: "h3", text: "제 13 조 (준거법 및 관할)" },
+    { type: "h3", text: "Article 13 (Governing law and jurisdiction)" },
     {
       type: "p",
       text: "본 약관 및 플랫폼과 관련된 사항에는 미합중국 와이오밍 주(State of Wyoming, United States of America)의 법률이 적용됩니다(법률 충돌 원칙은 제외). 분쟁에 관하여 소송이 제기되는 경우 와이오밍 주 관할 법원을 전속 관할로 합니다. 다만 판매자 또는 구매자의 거주국 강행법규가 적용되는 범위에서는 해당 법령이 우선할 수 있습니다.",
     },
-    { type: "h3", text: "제 14 조 (문의)" },
+    { type: "h3", text: "Article 14 (Contact)" },
     {
       type: "p",
-      text: "판매자 약관 및 서비스 관련 문의는 MoCoMo LLC 고객지원 채널 또는 support@mocomo.net 으로 연락해 주세요.",
+      text: "For Seller Terms and service inquiries, contact MoCoMo LLC customer support or support@mocomo.net.",
     },
   ],
 };
@@ -148,53 +148,53 @@ export type SellerConsentTableRow = {
 };
 
 export const SELLER_MARKETING_CONSENT = {
-  title: "마케팅 목적의 개인정보 수집 및 이용 동의",
+  title: "Consent to collect and use personal information for marketing",
   intro:
     `MoCoMo LLC가 제공하는 "${MARKET_BRAND_FULL}"에서는 아래의 목적으로 개인정보를 수집 및 이용하며, 회원의 개인정보를 안전하게 취급하는데 최선을 다합니다.`,
   columns: {
-    items: "수집 항목 (Collection item)",
-    purpose: "수집·이용목적 (Collection Purpose)",
-    retention: "보유 기간 (Retention period)",
+    items: "Items collected (Collection item)",
+    purpose: "Purpose of collection and use (Collection Purpose)",
+    retention: "Retention period (Retention period)",
   },
   rows: [
     {
-      items: "이메일, 휴대폰번호, 서비스 이용기록, 음성정보*",
+      items: "Email, mobile phone number, service usage records, voice data*",
       purpose:
-        "인구통계학적 특성과 이용자의 관심 및 성향의 추정을 통한 당사 및 제휴사 상품의 맞춤형 광고, 마케팅 및 프로모션에 활용, 서비스 품질 개선",
-      retention: "동의철회 시 맞춤형 광고 차단, 회원탈퇴 시 파기",
+        "Personalized ads, marketing, and promotions for our and partners' products based on inferred demographics, interests, and preferences; service quality improvement",
+      retention: "Deleted when customized ads are blocked on opt-out; destroyed on account deletion",
     },
   ] satisfies SellerConsentTableRow[],
   footnotes: [
-    "*서비스 이용 과정에서 통화가 필요한 경우 '음성정보'가 수집될 수 있습니다.",
-    "※ 동의를 거부할 수 있으며, 동의를 거부하셔도 서비스를 이용하실 수 있습니다.",
-    "더 자세한 내용에 대해서는 판매자 개인정보 처리방침을 참고하시기 바랍니다.",
+    "*Voice data may be collected when a call is required during service use.",
+    "You may refuse consent; you can still use the service if you refuse.",
+    "See the Seller Privacy Policy for more details.",
   ],
 } as const;
 
 export const SELLER_PRIVACY_GUIDE = {
-  title: "개인정보 수집 및 이용 안내",
+  title: "Notice on collection and use of personal information",
   intro:
     `MoCoMo LLC가 제공하는 "${MARKET_BRAND_FULL}"에서는 아래의 목적으로 개인정보를 수집 및 이용하며, 회원의 개인정보를 안전하게 취급하는데 최선을 다합니다.`,
   columns: {
-    purpose: "수집·이용목적(Collection Purpose)",
-    items: "수집 항목(Collection item)",
-    retention: "보유 기간(Retention period)",
+    purpose: "Purpose of collection and use (Collection Purpose)",
+    items: "Items collected (Collection item)",
+    retention: "Retention period (Retention period)",
   },
   rows: [
     {
       purpose:
-        "회원 가입, 이용자 식별, 회원관리(회원제 서비스 제공, 불만 처리 등 민원처리, 고지사항 전달)",
-      items: "아이디, 이름, 이메일, 휴대폰번호, 비밀번호",
-      retention: "이용계약 종료 시 파기1)",
+        "Membership registration, user identification, member management (membership services, complaint handling, notices)",
+      items: "Username, name, email, mobile phone number, password",
+      retention: "Destroyed when the service agreement ends1)",
     },
     {
-      purpose: "부정행위 방지",
-      items: "부정행위 탐지된 아이디, 이름, 이메일, 휴대폰번호, 서비스 이용기록",
-      retention: "이용계약 종료 시 1년간 보관 후 파기",
+      purpose: "Fraud prevention",
+      items: "Username, name, email, mobile phone number, and service usage records where fraud was detected",
+      retention: "Retained for one year after the service agreement ends, then destroyed",
     },
   ] satisfies SellerConsentTableRow[],
   footnotes: [
-    "1) 법령 또는 회사 정책에 의해 보관이 필요한 경우에는 해당 법령의 보관 기간까지 분리하여 보관 후 지체없이 파기합니다.",
-    "더 자세한 내용에 대해서는 판매자 개인정보 처리방침을 참고하시기 바랍니다.",
+    "1) If retention is required by law or Company policy, data is stored separately for the required period, then destroyed without delay.",
+    "See the Seller Privacy Policy for more details.",
   ],
 } as const;

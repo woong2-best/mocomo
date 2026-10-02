@@ -13,7 +13,6 @@ export const PUBLIC_SITEMAP_PATHS = [
   "/search",
   "/rankings",
   "/discover",
-  "/games",
   "/cosplay",
   "/cosplay/profiles",
   "/works",

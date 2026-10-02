@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Redo2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -287,7 +290,7 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
 
       <div className="flex flex-wrap items-center gap-3 text-xs">
         <label className="flex items-center gap-2">
-          <span className="text-muted-foreground shrink-0">색</span>
+          <span className="text-muted-foreground shrink-0">{t("webtoon-studio.s122x")}</span>
           <input
             type="color"
             value={parseHexColor(color)}
@@ -301,7 +304,7 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
           />
         </label>
         <label className="flex items-center gap-2 min-w-[120px]">
-          <span className="text-muted-foreground shrink-0">크기</span>
+          <span className="text-muted-foreground shrink-0">{t("avatar.s10eo4")}</span>
           <input
             type="range"
             min={1}
@@ -312,7 +315,7 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
           />
         </label>
         <label className="flex items-center gap-2 min-w-[120px]">
-          <span className="text-muted-foreground shrink-0">불투명</span>
+          <span className="text-muted-foreground shrink-0">{t("avatar.sss601")}</span>
           <input
             type="range"
             min={5}
@@ -330,8 +333,8 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
             className="h-8 w-8 rounded-lg"
             disabled={!canUndo}
             onClick={undo}
-            aria-label="실행 취소"
-            title="실행 취소 (Ctrl+Z)"
+            aria-label={t("media.s7n0b5r")}
+            title={t("avatar.ctrl_z")}
           >
             <Undo2 className="h-4 w-4" />
           </Button>
@@ -342,8 +345,8 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
             className="h-8 w-8 rounded-lg"
             disabled={!canRedo}
             onClick={redo}
-            aria-label="다시 실행"
-            title="다시 실행 (Ctrl+Y)"
+            aria-label={t("media.sdr4ix9")}
+            title={t("avatar.ctrl_y")}
           >
             <Redo2 className="h-4 w-4" />
           </Button>
@@ -371,11 +374,11 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
 
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={clearCanvas}>
-          캔버스 비우기
+          {t("avatar.sik7dnc")}
         </Button>
         <label className="inline-flex">
           <Button type="button" variant="outline" size="sm" className="rounded-xl" asChild>
-            <span>PNG 가져오기</span>
+            <span>{t("avatar.png")}</span>
           </Button>
           <input
             type="file"

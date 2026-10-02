@@ -8,12 +8,12 @@ export {
 
 /** 글쓰기 상품 종류 — 앱 UsedCreateScreen과 동일. */
 export const USED_SELL_KINDS = [
-  { id: "FIGURE", label: "피규어" },
+  { id: "FIGURE", label: "Figures" },
   { id: "TCG", label: "TCG" },
-  { id: "GOODS", label: "굿즈" },
-  { id: "BOOK", label: "도서" },
-  { id: "COSPLAY", label: "코스프레" },
-  { id: "DIGITAL", label: "디지털" },
+  { id: "GOODS", label: "Goods" },
+  { id: "BOOK", label: "Books" },
+  { id: "COSPLAY", label: "Cosplay" },
+  { id: "DIGITAL", label: "Digital" },
 ] as const;
 
 export const USED_CONDITION_OPTIONS = [
@@ -44,7 +44,8 @@ export function compactWorkKey(input: string | null | undefined): string {
 /** DB 저장·URL용 — 띄어쓰기 없이, 비어 있으면 null */
 export function normalizeWorkTitle(input: string | null | undefined): string | null {
   const compact = compactWorkKey(input);
-  if (!compact || compact === "전체작품") return null;
+  // Legacy value stored by older clients (Korean "all works"); kept as \u escapes.
+  if (!compact || compact === "\uC804\uCCB4\uC791\uD488") return null;
   return compact.slice(0, 120);
 }
 

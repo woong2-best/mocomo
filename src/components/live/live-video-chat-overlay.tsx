@@ -5,7 +5,7 @@ import { LiveOverlayCommentFeed } from "@/components/live/live-overlay-comment-f
 import { useLiveOverlayDisplayQueue } from "@/hooks/use-live-overlay-display-queue";
 import { cn } from "@/lib/utils";
 
-/** 방송 영상 위 채팅 — VTuber(우측 투명) 또는 인스타(하단) 스타일 */
+/** 방송 Video 위 채팅 — VTuber(우측 투명) 또는 인스타(하단) 스타일 */
 export function LiveVideoChatOverlay({
   className,
   variant = "vtuber",

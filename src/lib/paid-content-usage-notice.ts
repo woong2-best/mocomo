@@ -6,10 +6,10 @@ import type { PaymentIntentType } from "@prisma/client";
  * it is the text a takedown / criminal complaint is argued from.
  */
 export const PAID_CONTENT_USAGE_NOTICE_TITLE =
-  "⚠️ 결제는 콘텐츠의 소유권 또는 유포 권한 이전을 의미하지 않습니다.";
+  "⚠️ Payment does not transfer ownership or distribution rights for the content.";
 
 export const PAID_CONTENT_USAGE_NOTICE_BODY =
-  "본 콘텐츠는 개인적인 시청·열람 목적으로만 제공됩니다. 무단 복제·녹화·캡처·유포 시 관련 법령에 따라 형사처벌 또는 법적 책임이 발생할 수 있습니다.";
+  "This content is for personal viewing only. Unauthorized copying, recording, capture, or distribution may lead to criminal or civil liability under applicable law.";
 
 export const PAID_CONTENT_USAGE_NOTICE_TEXT = `${PAID_CONTENT_USAGE_NOTICE_TITLE}\n${PAID_CONTENT_USAGE_NOTICE_BODY}`;
 

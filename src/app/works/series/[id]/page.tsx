@@ -35,9 +35,9 @@ export default async function WorksSeriesPage({ params }: { params: Promise<{ id
       </div>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-muted-foreground">회차</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground">Episode</h2>
         {series.episodes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">등록된 회차가 없습니다.</p>
+          <p className="text-sm text-muted-foreground">No episodes listed.</p>
         ) : (
           <ul className="divide-y divide-border/60 rounded-xl border border-border/60 overflow-hidden">
             {series.episodes.map((ep) => (

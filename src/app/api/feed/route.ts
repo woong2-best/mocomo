@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     console.error("[api/feed]", e);
     return NextResponse.json(
-      { items: [], nextCursor: null, error: "피드를 불러오지 못했습니다." },
+      { items: [], nextCursor: null, error: "Couldn't load the feed." },
       { status: 503 }
     );
   }

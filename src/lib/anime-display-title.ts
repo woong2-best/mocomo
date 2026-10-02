@@ -6,21 +6,10 @@ export function displayAnimeTitle(anime: AnimeTitleFields, locale: Locale): stri
   const catalog = lookupAnimeTitleCatalog(anime, locale);
   if (catalog) return catalog;
 
-  if (locale === "ko") return anime.title;
+  
 
   const en = anime.titleEn?.trim();
-  if (locale === "en") return en || anime.title;
-
-  if (locale === "ja") {
-    if (en && /[\u3040-\u30ff\u4e00-\u9faf]/.test(en)) return en;
-    return en || anime.title;
-  }
-
-  if (locale === "zh") {
-    return en || anime.title;
-  }
-
-  return anime.title;
+  return en || anime.title;
 }
 
 export function needsAnimeTitleAutoResolve(locale: Locale): boolean {

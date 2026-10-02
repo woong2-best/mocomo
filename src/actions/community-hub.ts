@@ -56,15 +56,15 @@ export async function createCommunity(data: {
     const user = await requireAuthForAction();
     const name = data.name?.trim();
     if (!name || name.length < 2) {
-      return { error: "커뮤니티 이름은 2자 이상 입력해 주세요." };
+      return { error: "actions.sqh0pnf" };
     }
     if (name.length > 80) {
-      return { error: "커뮤니티 이름은 80자 이하로 입력해 주세요." };
+      return { error: "actions.s1v27d0a" };
     }
 
     const category = data.category as CommunityCategory;
     if (!isCommunityCategory(category)) {
-      return { error: "카테고리를 선택해 주세요." };
+      return { error: "actions.s172og7" };
     }
 
     let customCategoryLabel: string | null = null;
@@ -94,7 +94,7 @@ export async function createCommunity(data: {
         attempt === 0 ? generateCommunitySlug(name) : `${generateCommunitySlug(name)}-${attempt}`;
       try {
         // Fast path only — channel/role seed runs after the response.
-        // Full provision in-request was ~12s and timed out on Vercel ("생성 중…" then idle).
+        // Full provision in-request was ~12s and timed out on Vercel ("Creating…" then idle).
         const community = await db.$transaction(async (tx) => {
           const row = await tx.community.create({
             data: {
@@ -164,7 +164,7 @@ export async function createCommunity(data: {
       }
     }
 
-    return { error: "커뮤니티 주소가 겹칩니다. 이름을 바꿔 주세요." };
+    return { error: "actions.s1qn8dms" };
   } catch (e) {
     console.error("[createCommunity]", e);
     return { error: prismaErrorMessage(e) };
@@ -285,7 +285,7 @@ export async function leaveCommunity(communityId: string) {
     });
     if (!member) return { success: true as const };
     if (member.role === "owner" || member.community.creatorId === user.id) {
-      return { error: "개설자는 탈퇴할 수 없습니다. 커뮤니티 설정에서 삭제하세요." };
+      return { error: "actions.sv8feu1" };
     }
 
     await db.$transaction([
@@ -349,43 +349,43 @@ export async function updateCommunity(
   try {
     const user = await requireAuth();
     const community = await db.community.findUnique({ where: { id: communityId } });
-    if (!community) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (!community) return { error: "actions.s1foa8q5" };
 
     const { loadMemberPermissions } = await import("@/lib/community-server/member-permissions");
     const { hasPermission } = await import("@/lib/community-server/permissions");
     const isOwner = community.creatorId === user.id;
     const perms = await loadMemberPermissions(communityId, user.id, isOwner);
     if (!isOwner && !hasPermission(perms, "editServerInfo") && !hasPermission(perms, "manageServer")) {
-      return { error: "수정 권한이 없습니다." };
+      return { error: "actions.scc17hg" };
     }
     if (data.isPublic !== undefined && !isOwner && !hasPermission(perms, "setVisibility")) {
-      return { error: "공개 설정 변경 권한이 없습니다." };
+      return { error: "actions.s1ekg1ei" };
     }
     if (
       (data.iconUrl !== undefined || data.coverUrl !== undefined) &&
       !isOwner &&
       !hasPermission(perms, "editIcon")
     ) {
-      return { error: "대표·커버 이미지 변경 권한이 없습니다." };
+      return { error: "actions.sblsq8d" };
     }
     if (
       (data.bannerUrl !== undefined || data.bannerVideoUrl !== undefined) &&
       !isOwner &&
       !hasPermission(perms, "editBanner")
     ) {
-      return { error: "배너 변경 권한이 없습니다." };
+      return { error: "actions.s1vuyf70" };
     }
 
     const name = data.name?.trim();
     if (name !== undefined && (name.length < 2 || name.length > 80)) {
-      return { error: "이름은 2~80자로 입력해 주세요." };
+      return { error: "actions.2_80" };
     }
 
     let category: CommunityCategory | undefined;
     let customCategoryLabel: string | null | undefined;
     if (data.category) {
       if (!isCommunityCategory(data.category)) {
-        return { error: "카테고리를 확인해 주세요." };
+        return { error: "actions.s24v07h" };
       }
       category = data.category;
       if (category === "CUSTOM") {
@@ -439,14 +439,14 @@ export async function deleteCommunity(communityId: string) {
       where: { id: communityId },
       select: { id: true, slug: true, creatorId: true },
     });
-    if (!community) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (!community) return { error: "actions.s1foa8q5" };
 
     const { loadMemberPermissions } = await import("@/lib/community-server/member-permissions");
     const { hasPermission } = await import("@/lib/community-server/permissions");
     const isOwner = community.creatorId === user.id;
     const perms = await loadMemberPermissions(communityId, user.id, isOwner);
     if (!isOwner && !hasPermission(perms, "deleteServer")) {
-      return { error: "삭제 권한이 없습니다." };
+      return { error: "actions.snt4xx2" };
     }
 
     await db.community.delete({ where: { id: communityId } });

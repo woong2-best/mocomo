@@ -26,7 +26,7 @@ export async function GET(
 
   const { id } = await params;
   if (!id || id.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const viewerId = await getMobileUserId(req);
@@ -58,11 +58,11 @@ export async function GET(
   });
 
   if (!post) {
-    return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
 
   if (viewerId && (await areUsersBlocked(viewerId, post.author.id))) {
-    return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
 
   if (
@@ -73,7 +73,7 @@ export async function GET(
       isNsfw: true,
     }))
   ) {
-    return NextResponse.json({ error: "성인 콘텐츠는 열람할 수 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Not found." }, { status: 403 });
   }
 
   const [engagement, viewerPin] = await Promise.all([
@@ -139,7 +139,7 @@ export async function DELETE(
 
   const { id: postId } = await params;
   if (!postId || postId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const auth = await requireMobileApiUser(req, { writeKind: "default" });
@@ -150,10 +150,10 @@ export async function DELETE(
     select: { id: true, authorId: true, author: { select: { username: true } } },
   });
   if (!post) {
-    return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
   if (post.authorId !== auth.user.id) {
-    return NextResponse.json({ error: "본인 게시물만 삭제할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Deleted." }, { status: 403 });
   }
 
   await db.report.deleteMany({ where: { postId } });

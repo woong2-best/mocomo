@@ -1,5 +1,10 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,7 +18,6 @@ import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import type { PaymentHistoryItem } from "@/lib/payment-history";
 import type { TipHistory } from "@/actions/support";
 import { cn } from "@/lib/utils";
-
 type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWallet>>;
 
 type Props = {
@@ -101,15 +105,15 @@ export function WalletHub({
         const res = await confirmPaymentMethodSetup(sessionId);
         if (cancelled) return;
         if ("error" in res && res.error) {
-          setSetupMsg(res.error);
+          setSetupMsg(errorText(res.error));
         } else {
-          setSetupMsg("결제 수단이 등록되었습니다.");
+          setSetupMsg(t("wallet.hub.paymentMethodRegistered"));
           router.refresh();
         }
       } catch (e) {
         if (!cancelled) {
           console.error("[wallet] confirmPaymentMethodSetup", e);
-          setSetupMsg("카드 등록 확인에 실패했습니다. 다시 시도해 주세요.");
+          setSetupMsg(t("wallet.hub.cardConfirmFailed"));
         }
       } finally {
         if (!cancelled) {
@@ -123,39 +127,36 @@ export function WalletHub({
     };
   }, [params, router]);
 
+  const tabs = [
+    { id: "wallet" as const, label: t("wallet.hub.tabWallet") },
+    { id: "earnings" as const, label: t("wallet.hub.tabEarnings") },
+    { id: "transfer" as const, label: t("wallet.hub.tabTransfer") },
+  ] as const;
+
   return (
     <div className="mx-auto max-w-lg space-y-5 overflow-x-visible pb-8 px-0.5">
       {safeCallbackUrl && !settlement.payoutsEnabled ? (
         <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm space-y-1">
-          <p className="font-bold text-foreground">Reward 정산 등록</p>
-          <p className="text-muted-foreground leading-relaxed">
-            판매·중고거래·크리에이터 활동 보상을 받으려면 아래에서 계좌·본인 정보를 입력해
-            정산을 등록해 주세요.
-          </p>
+          <p className="font-bold text-foreground">{t("wallet.hub.rewardRegistrationTitle")}</p>
+          <p className="text-muted-foreground leading-relaxed">{t("wallet.hub.rewardRegistrationDesc")}</p>
           <Link href={safeCallbackUrl} className="text-primary font-semibold text-xs underline">
-            나중에 — 이전 화면으로
+            {t("wallet.hub.rewardLater")}
           </Link>
         </div>
       ) : null}
 
       <div className="flex flex-wrap items-end gap-x-6 gap-y-1 px-1">
-        {(
-          [
-            { id: "wallet" as const, label: "지갑" },
-            { id: "earnings" as const, label: "수익" },
-            { id: "transfer" as const, label: "전달" },
-          ] as const
-        ).map((t) => (
+        {tabs.map((row) => (
           <button
-            key={t.id}
+            key={row.id}
             type="button"
-            onClick={() => selectTab(t.id)}
+            onClick={() => selectTab(row.id)}
             className={cn(
               "text-2xl font-black tracking-tight transition-colors min-[400px]:text-3xl",
-              tab === t.id ? "text-foreground" : "text-muted-foreground/50 hover:text-muted-foreground"
+              tab === row.id ? "text-foreground" : "text-muted-foreground/50 hover:text-muted-foreground"
             )}
           >
-            {t.label}
+            {row.label}
           </button>
         ))}
       </div>

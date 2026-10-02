@@ -60,8 +60,5 @@ export function phonePlaceholderForCountry(countryCode: string): string {
 
 export function phoneInputHintForCountry(countryCode: string, locale: "ko" | "en" = "ko"): string {
   const cc = countryCode.toUpperCase();
-  if (locale === "en") {
-    return `Enter a mobile number registered in ${cc}. International format (+...) is also accepted.`;
-  }
-  return `${cc} 휴대폰 번호를 입력해 주세요. (+ 국제 형식도 가능)`;
+      return `Enter a mobile number registered in ${cc}. International format (+...) is also accepted.`;
 }

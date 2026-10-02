@@ -1,5 +1,11 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { LiveBroadcastMode, LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
@@ -10,7 +16,7 @@ import {
   endLiveStream,
   leaveLiveStream,
 } from "@/actions/live-stream";
-import { tierLabelKo } from "@/lib/live-viewer-access";
+import { tierLabelEn } from "@/lib/live-viewer-access";
 import { useAdultVerificationGate } from "@/hooks/use-adult-verification-gate";
 import { LiveHostStudioShell } from "@/components/live/live-host-studio-shell";
 import { LiveCollabStudioShell } from "@/components/live/live-collab-studio-shell";
@@ -27,7 +33,6 @@ import { KeyRound, Loader2, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { LiveOverlayProvider } from "@/components/live/overlays/live-overlay-context";
 import { LiveChatProvider } from "@/components/live/live-chat-provider";
-import { LiveOverlayGamesBridge } from "@/components/live/overlays/live-overlay-games-bridge";
 import { LiveSupportProvider } from "@/components/live/live-support-provider";
 import { AdultVerificationDialog } from "@/components/adult-verification/adult-verification-dialog";
 
@@ -82,6 +87,7 @@ export function LiveRoomClient({
   isLiveOnAir?: boolean;
   isNsfw?: boolean;
 }) {
+  const { t } = useLocale();
   const router = useRouter();
   const { data: session } = useSession();
   const adultGate = useAdultVerificationGate("LIVE");
@@ -152,7 +158,7 @@ export function LiveRoomClient({
     const res = await enterLiveAsHost(channelId);
     setJoining(false);
     if ("error" in res && res.error) {
-      setJoinError(res.error);
+      setJoinError(errorText(res.error));
       return;
     }
     setJoined(true);
@@ -168,8 +174,8 @@ export function LiveRoomClient({
       if ("code" in res && res.code === "ADULT_VERIFICATION_REQUIRED") {
         setAdultVerificationRequired(true);
       }
-      setViewerJoinError(res.error);
-      setJoinError(res.error);
+      setViewerJoinError(errorText(res.error));
+      setJoinError(errorText(res.error));
       return;
     }
     setAdultVerificationRequired(false);
@@ -200,7 +206,7 @@ export function LiveRoomClient({
     const res = await applyLiveCollabPassword(channelId, collabPassword);
     setJoining(false);
     if ("error" in res && res.error) {
-      setJoinError(res.error);
+      setJoinError(errorText(res.error));
       return;
     }
     setCollabOk(true);
@@ -268,14 +274,14 @@ export function LiveRoomClient({
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
         ) : (
           <>
-            <p className="text-sm text-destructive">{joinError || "방송에 연결하지 못했습니다."}</p>
+            <p className="text-sm text-destructive">{joinError || t("live.sesg7zu")}</p>
             {liveVisibility === "PRIVATE" && minViewerTier && (
               <p className="text-xs text-muted-foreground">
-                비공개 방송 · 필요 등급: {tierLabelKo(minViewerTier)} 이상 (이 스트리머에게 후원 누적)
+                {t("live.privateStreamTier", { tier: tierLabelEn(minViewerTier) })}
               </p>
             )}
             <Button type="button" className="rounded-xl" onClick={() => void enterStudioAsHost()}>
-              다시 시도
+              {t("toast.retry")}
             </Button>
           </>
         )}
@@ -293,7 +299,6 @@ export function LiveRoomClient({
     >
     <LiveSupportProvider channelId={channelId} isHost={isHost} onAlert={appendSupportAlert}>
     <LiveSideAlertBridge onAlert={appendSupportAlert} />
-    <LiveOverlayGamesBridge />
     <div className={isHost ? "relative" : "space-y-4 relative"}>
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
       {isHost && joined && <LiveHostPresenceSync channelId={channelId} enabled />}
@@ -308,7 +313,7 @@ export function LiveRoomClient({
               disabled={adultGate.pending}
               onClick={() => void adultGate.ensureAdult()}
             >
-              {adultGate.pending ? "인증 중…" : "성인 본인인증"}
+              {adultGate.pending ? t("live.so18p3k") : t("live.suoljni")}
             </Button>
           ) : null}
         </div>
@@ -321,15 +326,15 @@ export function LiveRoomClient({
               <Input
                 value={collabPassword}
                 onChange={(e) => setCollabPassword(e.target.value.toUpperCase())}
-                placeholder="합방 6자리"
+                placeholder={t("live.s11hbwk2")}
                 className="max-w-[140px] font-mono tracking-widest uppercase h-9"
                 maxLength={6}
               />
               <Button type="submit" size="sm" className="rounded-lg" disabled={joining}>
-                신청
+                {t("live.sy9ql")}
               </Button>
               <Button type="button" variant="ghost" size="sm" onClick={() => setShowCollabForm(false)}>
-                취소
+                {t("toast.cancel")}
               </Button>
               {joinError && <p className="text-xs text-destructive w-full">{joinError}</p>}
             </form>
@@ -337,11 +342,11 @@ export function LiveRoomClient({
             <>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Users className="h-3.5 w-3.5" />
-                시청 중 · 합방을 원하면 비밀번호를 입력하세요
+                {t("live.s100b2st")}
               </p>
               <Button type="button" variant="outline" size="sm" className="rounded-lg gap-1" onClick={() => setShowCollabForm(true)}>
                 <KeyRound className="h-3.5 w-3.5" />
-                합방 신청
+                {t("live.s5tf66l")}
               </Button>
             </>
           )}

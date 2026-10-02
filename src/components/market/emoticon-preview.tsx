@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +32,7 @@ export function EmoticonPreview({
     );
   }
 
-  const tierLabel = `${price / 10_000}만원`;
+  const tierLabel = t("market.swozo", { v0: price / 10_000 });
   return (
     <div
       className={cn(
@@ -41,7 +44,7 @@ export function EmoticonPreview({
       <Sparkles className={cn(size === "sm" ? "h-6 w-6" : "h-10 w-10", "text-primary/70")} />
       {size !== "sm" && (
         <>
-          <span className="text-xs font-medium text-muted-foreground">이미지 준비 중</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("market.scq7kwp")}</span>
           <span className="text-[10px] text-muted-foreground/80">{tierLabel}</span>
         </>
       )}

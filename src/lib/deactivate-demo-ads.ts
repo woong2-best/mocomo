@@ -27,7 +27,7 @@ export async function ensureSidebarAdSlot(prisma: PrismaClient) {
       OR: [
         { linkUrl: "/events" },
         { linkUrl: "/events/map" },
-        { title: "진행 중인 이벤트" },
+        { title: "Ongoing events" },
         { imageUrl: "/ads/events.svg" },
       ],
     },

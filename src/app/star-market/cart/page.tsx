@@ -12,7 +12,7 @@ export default function MarketCartPage() {
             ← {MARKET_BRAND_NAME}
           </Link>
           <h1 className="text-2xl font-bold">장바구니</h1>
-          <p className="text-sm text-muted-foreground">담아 둔 상품을 확인하고 결제하세요.</p>
+          <p className="text-sm text-muted-foreground">Review saved items and check out.</p>
         </div>
       </MarketPageTitle>
       <MarketplaceCartView />

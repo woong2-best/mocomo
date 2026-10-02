@@ -34,7 +34,7 @@ export async function checkYoutubeMadeForKids(
       return {
         ok: false,
         error:
-          "YouTube 확인용 API 키 또는 OAuth 토큰이 없습니다. 스트리밍 계정에서 YouTube를 다시 연결하거나, 서버에 YOUTUBE_DATA_API_KEY를 설정해 주세요.",
+          "Not found.",
         videoId,
       };
     }
@@ -63,13 +63,13 @@ export async function checkYoutubeMadeForKids(
         return {
           ok: false,
           error:
-            "GCP에서 YouTube Data API v3를 사용 설정한 뒤 다시 시도해 주세요.",
+            "Enable YouTube Data API v3 in GCP and try again.",
           videoId,
         };
       }
       return {
         ok: false,
-        error: `YouTube API 오류 (${res.status})`,
+        error: `Something went wrong. Please try again.${res.status})`,
         videoId,
       };
     }
@@ -82,7 +82,7 @@ export async function checkYoutubeMadeForKids(
     };
     const item = data.items?.[0];
     if (!item) {
-      return { ok: false, error: "영상을 찾을 수 없습니다.", videoId };
+      return { ok: false, error: "Video not found.", videoId };
     }
     const madeForKids = !!(
       item.status?.madeForKids || item.status?.selfDeclaredMadeForKids
@@ -94,6 +94,6 @@ export async function checkYoutubeMadeForKids(
       title: item.snippet?.title?.trim(),
     };
   } catch {
-    return { ok: false, error: "YouTube API 요청에 실패했습니다.", videoId };
+    return { ok: false, error: "YouTube API request failed.", videoId };
   }
 }

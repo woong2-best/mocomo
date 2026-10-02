@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
   try {
     const res = await redeemCouponCode(session.user.id, code);
     if ("error" in res && res.error) {
-      return NextResponse.json({ error: res.error }, { status: 400 });
+      return NextResponse.json({ error: errorText(res.error) }, { status: 400 });
     }
     return NextResponse.json({ ok: true, assignment: res.assignment });
   } catch (e) {

@@ -6,7 +6,7 @@ import { getAccountTokens } from "./service";
 export type DonationGuardResult = { ok: true } | { ok: false; error: string };
 
 /**
- * 라이브 후원·영상 후원 전 검증:
+ * 라이브 후원·Video 후원 전 검증:
  * - 외부 방송: 인증된 ConnectedStreamingAccount 필수 + 채널 ID 일치
  * - 자체 방송: LIVE 상태면 허용
  */
@@ -29,21 +29,21 @@ export async function assertLiveDonationsAllowed(
   });
 
   if (!channel) {
-    return { ok: false, error: "방송을 찾을 수 없습니다." };
+    return { ok: false, error: "Stream not found." };
   }
 
   if (channel.mediaSourceType === "FIRST_PARTY") {
     if (channel.isLive && channel.liveStatus === "LIVE") {
       return { ok: true };
     }
-    return { ok: false, error: "진행 중인 라이브에서만 후원할 수 있습니다." };
+    return { ok: false, error: "Support is only available during an active live stream." };
   }
 
   if (!channel.connectedStreamingAccountId) {
     return {
       ok: false,
       error:
-        "이 방송은 인증된 스트리밍 계정과 연결되지 않아 후원을 받을 수 없습니다.",
+        "This stream is not linked to a verified streaming account and cannot receive support.",
     };
   }
 
@@ -65,18 +65,18 @@ export async function assertLiveDonationsAllowed(
   });
 
   if (!account) {
-    return { ok: false, error: "연결된 스트리밍 계정을 찾을 수 없습니다." };
+    return { ok: false, error: "Linked streaming account not found." };
   }
 
   if (account.userId !== channel.createdBy) {
-    return { ok: false, error: "방송 호스트와 스트리밍 계정 소유자가 일치하지 않습니다." };
+    return { ok: false, error: "Stream host and streaming account owner do not match." };
   }
 
   if (!account.verified || account.revokedAt) {
     await logDonationBlocked(account.id, channelId, "Account not verified or revoked");
     return {
       ok: false,
-      error: "스트리밍 계정 인증이 만료되었거나 해제되어 후원을 받을 수 없습니다.",
+      error: "Streaming account verification expired or was unlinked; support is unavailable.",
     };
   }
 
@@ -84,7 +84,7 @@ export async function assertLiveDonationsAllowed(
     ? platformToLiveExternal(account.platform)
     : null;
   if (liveProvider && channel.externalProvider !== liveProvider) {
-    return { ok: false, error: "방송 플랫폼과 인증 계정이 일치하지 않습니다." };
+    return { ok: false, error: "Stream platform and verified account do not match." };
   }
 
   const channelMatch = await verifyChannelMatch(channel, account);
@@ -112,7 +112,7 @@ async function verifyChannelMatch(
     if (ext !== acc) {
       return {
         ok: false,
-        error: "방송 채널이 인증된 Twitch 계정과 일치하지 않습니다.",
+        error: "Stream channel does not match the verified Twitch account.",
         detail: `externalId=${ext} account=${acc}`,
       };
     }
@@ -123,7 +123,7 @@ async function verifyChannelMatch(
     if (channel.externalId !== account.channelId) {
       return {
         ok: false,
-        error: "방송 채널이 인증된 치지직 계정과 일치하지 않습니다.",
+        error: "Stream channel does not match the verified CHZZK account.",
         detail: `externalId=${channel.externalId} account=${account.channelId}`,
       };
     }
@@ -173,14 +173,14 @@ async function verifyChannelMatch(
 
     return {
       ok: false,
-      error: "방송이 인증된 YouTube 채널과 일치하지 않습니다.",
+      error: "Stream does not match the verified YouTube channel.",
       detail: `video=${channel.externalId} channel=${account.channelId}`,
     };
   }
 
   return {
     ok: false,
-    error: "이 플랫폼의 외부 방송 후원은 아직 지원하지 않습니다.",
+    error: "External stream support for this platform is not supported yet.",
     detail: platform,
   };
 }

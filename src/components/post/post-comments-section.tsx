@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { auth } from "@/lib/auth";
 import { getPostComments } from "@/lib/post-queries";
 import { getServerTranslator } from "@/lib/i18n/server";
@@ -20,7 +23,7 @@ export async function PostCommentsSection({
     comments = await getPostComments(postId, 40, "oldest", session?.user?.id ?? null);
   } catch (e) {
     console.error("[PostCommentsSection]", e);
-    loadError = "댓글을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.";
+    loadError = t("post.sxwzygv");
   }
 
   return (

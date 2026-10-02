@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -27,12 +28,12 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "장바구니 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const userId = await getMobileUserId(req);
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
   );
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
   }
 
   return NextResponse.json(result);

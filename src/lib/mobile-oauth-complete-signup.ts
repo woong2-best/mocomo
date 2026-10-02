@@ -59,11 +59,11 @@ type UserRow = {
 
 async function assertUsable(user: UserRow): Promise<void> {
   if (isServiceBanned(user)) {
-    throw new MobileOAuthSignupError("banned", "이용이 제한된 계정입니다.", 403);
+    throw new MobileOAuthSignupError("banned", "This account is restricted.", 403);
   }
   if (!user.deletedAt) return;
   if (isAccountPastRecovery(user)) {
-    throw new MobileOAuthSignupError("account_deleted", "삭제된 계정입니다.", 403);
+    throw new MobileOAuthSignupError("account_deleted", "This account has been deleted.", 403);
   }
   if (canRecoverAccount(user)) {
     await recoverDeletedAccount(user.id);
@@ -71,7 +71,7 @@ async function assertUsable(user: UserRow): Promise<void> {
   }
   throw new MobileOAuthSignupError(
     "account_pending_recovery",
-    "탈퇴 처리 중인 계정입니다.",
+    "This account is pending deletion.",
     403
   );
 }
@@ -100,7 +100,7 @@ export async function completeMobileOAuthSignup(input: {
   if (!opened || opened.kind !== "needsSignup") {
     throw new MobileOAuthSignupError(
       "handoff_invalid",
-      "가입 인증이 만료되었습니다. 앱에서 다시 시도해 주세요.",
+      "Sign-up verification expired. Try again in the app.",
       401
     );
   }

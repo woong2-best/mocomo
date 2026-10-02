@@ -1,11 +1,14 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { redirect } from "next/navigation";
 import { getCachedSession } from "@/lib/auth";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { AvatarBroadcastView, type BroadcastBgMode } from "@/components/avatar/avatar-broadcast-view";
 
 export const metadata = {
-  title: "아바타 방송 | MoCoMo",
-  description: "OBS 브라우저 소스용 투명/크로마키 VTuber 아바타",
+  title: t("app.avatar.mocomo"),
+  description: t("app.avatar.obs_vtuber"),
 };
 
 export default async function AvatarBroadcastPage({

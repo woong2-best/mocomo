@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { db } from "@/lib/db";
 import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { canAccessDm } from "@/lib/tiers";
@@ -67,7 +70,7 @@ export async function getOrCreateDM(otherUserId: string) {
     const userTier = (support?.tier ?? "SEED") as SupportTierLevel;
     if (!canAccessDm(userTier, cosplayer.minChatTier)) {
       return {
-        error: `DM은 ${cosplayer.minChatTier} 등급 이상 후원 시 이용 가능합니다.`,
+        error: t("actions.s1nrgget", { v0: cosplayer.minChatTier }),
         requiredTier: cosplayer.minChatTier,
       };
     }

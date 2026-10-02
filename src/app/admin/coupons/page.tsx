@@ -1,3 +1,7 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { Suspense } from "react";
 import { adminListCouponsAction } from "@/actions/admin-coupons";
@@ -20,12 +24,12 @@ export default async function AdminCouponsPage({
   };
 
   const [actor, res] = await Promise.all([getAdminActor(), adminListCouponsAction(query)]);
-  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+  if (!res.ok) return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">쿠폰</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Coupons</h1>
         <p className="text-sm text-muted-foreground">
           코드 입력형 혜택 ·{" "}
           <Link href="/admin/promotions" className="underline">
@@ -34,7 +38,7 @@ export default async function AdminCouponsPage({
           과 병행 · 실DB CRUD
         </p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted-foreground">로딩…</p>}>
+      <Suspense fallback={<p className="text-sm text-muted-foreground">{t("app.admin.srv43d")}</p>}>
         <AdminCouponsTable
           items={res.data.items}
           total={res.data.total}

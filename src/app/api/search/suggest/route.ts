@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, suggestions: [] });
   }
   if (q.length > 80) {
-    return NextResponse.json({ error: "검색어가 너무 깁니다." }, { status: 400 });
+    return NextResponse.json({ error: "Search query is too long." }, { status: 400 });
   }
 
   try {
@@ -22,6 +22,6 @@ export async function GET(req: NextRequest) {
     );
   } catch (e) {
     console.error("[api/search/suggest]", e);
-    return NextResponse.json({ error: "추천 실패" }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

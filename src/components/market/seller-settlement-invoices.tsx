@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { formatUsd } from "@/lib/money";
 import type { SellerSettlementInvoiceRow } from "@/actions/marketplace-settlement-invoices";
 import { MARKET_BRAND_FULL } from "@/lib/market-brand";
@@ -17,7 +20,7 @@ export function SellerSettlementInvoices({
   if (invoices.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        정산 완료된 주문이 없습니다. 구매 확정 후 Stripe Connect로 자동 정산됩니다.
+        {t("market.stripe_connect_3")}
       </p>
     );
   }
@@ -25,8 +28,7 @@ export function SellerSettlementInvoices({
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
-        아래는 {MARKET_BRAND_FULL} 플랫폼 수수료(10%) 차감 내역서입니다. 세무 증빙(W-8BEN 등)은
-        Stripe Connect에서 관리합니다. 한국 세금계산서가 아닌 글로벌 Invoice 형식입니다.
+        {t("market.settlementInvoicesIntro", { brand: MARKET_BRAND_FULL })}
       </p>
       {invoices.map((inv) => (
         <article

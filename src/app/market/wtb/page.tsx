@@ -21,7 +21,7 @@ export default async function UsedWtbPage() {
         내 중고거래
       </Link>
       <NativePageTitle>
-        <h1 className="text-xl font-bold">WTB 알림</h1>
+        <h1 className="text-xl font-bold">WTB alerts</h1>
         <p className="text-sm text-muted-foreground mt-1">
           조건에 맞는 새 글이 올라오면 알림을 보내 드려요.
         </p>

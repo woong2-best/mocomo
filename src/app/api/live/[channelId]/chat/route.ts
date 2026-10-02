@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -34,7 +35,7 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
@@ -77,7 +78,7 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
@@ -86,16 +87,16 @@ export async function POST(
     const body = await req.json();
     content = typeof body.content === "string" ? body.content.trim() : "";
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   if (!content || content.length > 200) {
-    return NextResponse.json({ error: "메시지는 1~200자입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Messages must be 1–200 characters." }, { status: 400 });
   }
 
   const access = await resolveLiveChannelAccess(channelId, session.user.id);
   if (!access.allowed) {
-    return NextResponse.json({ error: "방송에 참여한 뒤 채팅할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Join the stream before chatting." }, { status: 403 });
   }
 
   const channel = await db.voiceChannel.findUnique({
@@ -107,12 +108,12 @@ export async function POST(
     },
   });
   if (!channel) {
-    return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Stream not found." }, { status: 404 });
   }
 
   const filtered = filterLiveChatContent(content, ensureStringArray(channel.chatBannedWords));
   if (!filtered.ok) {
-    return NextResponse.json({ error: filtered.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(filtered.error) }, { status: 400 });
   }
 
   const [_, chatAccess, mod, modRole] = await Promise.all([
@@ -126,10 +127,10 @@ export async function POST(
     getEffectiveBroadcastRole(channelId, session.user.id),
   ]);
   if (!chatAccess.ok) {
-    return NextResponse.json({ error: chatAccess.error }, { status: 403 });
+    return NextResponse.json({ error: errorText(chatAccess.error) }, { status: 403 });
   }
   if (!mod.ok) {
-    return NextResponse.json({ error: mod.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(mod.error) }, { status: 400 });
   }
 
   const modExempt = hasBroadcastPermission(modRole, "chat.delete");
@@ -143,7 +144,7 @@ export async function POST(
     });
 
     if (recentBurst[0] && looksLikeSpamDuplicate(recentBurst[0].content, filtered.text)) {
-      return NextResponse.json({ error: "같은 메시지를 연속으로 보낼 수 없습니다." }, { status: 429 });
+      return NextResponse.json({ error: "Not found." }, { status: 429 });
     }
   }
 
@@ -195,6 +196,6 @@ export async function POST(
         { status: 503 }
       );
     }
-    return NextResponse.json({ error: "채팅 저장에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

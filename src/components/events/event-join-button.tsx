@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useState, useTransition } from "react";
 import { joinEvent } from "@/actions/events";
@@ -27,7 +30,7 @@ export function EventJoinButton({ eventId }: { eventId: string }) {
           참가 완료
         </>
       ) : (
-        "이벤트 참가"
+        i18n("events.s7wsmhs")
       )}
     </Button>
   );

@@ -20,7 +20,7 @@ export async function loadCloudStudioProject(cloudId: string) {
   const row = await db.webtoonStudioProject.findFirst({
     where: { id: cloudId, userId: user.id },
   });
-  if (!row) return { error: "프로젝트를 찾을 수 없습니다." };
+  if (!row) return { error: "actions.s10ev00o" };
   const data = row.data as StudioProject;
   return { project: { ...data, cloudId: row.id, favorite: row.favorite } as StudioProject };
 }

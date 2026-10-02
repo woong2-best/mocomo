@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { after } from "next/server";
@@ -49,12 +52,6 @@ import { canRecoverAccount } from "@/lib/account-deletion";
 import { createHumanChallenge, verifyHumanChallengeAnswer } from "@/lib/human-challenge";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
-import { APT_DEFAULT_FLOOR, APT_LOBBY_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
-import { findCountry } from "@/lib/apt/world/world-countries";
-import {
-  pickAvailableSignupFloor,
-  tryResolvePrecheckedSignupFloor,
-} from "@/actions/apt";
 import { RESERVED_USERNAMES } from "@/lib/username-policy";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
 import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
@@ -75,7 +72,7 @@ function parseSignupBirthDate(data: {
 }): { birthDate: Date } | { error: string } {
   const birthDate = parseBirthDateInput(data.birthYear, data.birthMonth, data.birthDay);
   if (!birthDate) {
-    return { error: "올바른 생년월일을 입력해 주세요." };
+    return { error: "actions.shi8acd" };
   }
   return { birthDate };
 }
@@ -95,7 +92,6 @@ const signupApplicationSchema = z.object({
   locale: localeField,
   countryCode: z.string().min(2).max(8).default("KR"),
   timeZone: z.string().min(1).max(64).default("UTC"),
-  homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS).optional(),
   website: z.string().optional(),
   ...birthDateSignupFields,
 });
@@ -113,7 +109,6 @@ const registerSchema = z.object({
   locale: localeField,
   countryCode: z.string().min(2).max(8).default("KR"),
   timeZone: z.string().min(1).max(64).default("UTC"),
-  homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS).optional(),
   turnstileToken: z.string().optional(),
   /** 클라이언트 Turnstile 위젯 로드 실패 시 true */
   turnstileUnavailable: z.boolean().optional(),
@@ -186,20 +181,20 @@ export async function sendEmailAuthCode(
 
   if (!user) {
     if (mode === "reset") {
-      return { error: "등록되지 않은 이메일입니다.", code: "EMAIL_NOT_REGISTERED" as const };
+      return { error: "auth.unregisteredEmail", code: "EMAIL_NOT_REGISTERED" as const };
     }
     return {
       success: true,
-      message: "등록된 이메일이면 인증 코드를 보냈습니다. (스팸함도 확인해 주세요)",
+      message: "actions.s1txdvz8",
     };
   }
 
   if (mode === "signup" && user.emailVerified) {
-    return { error: "이미 인증된 계정입니다. 로그인하거나 비밀번호 찾기를 이용하세요." };
+    return { error: "actions.s13hrg1m" };
   }
 
   if (!isEmailConfigured()) {
-    return { error: "이메일 발송 설정(RESEND_API_KEY)이 없습니다." };
+    return { error: "actions.resend_api_key" };
   }
 
   const code = generateEmailCode();
@@ -217,7 +212,7 @@ export async function sendEmailAuthCode(
   const sent = await sendAuthCodeEmail(normalized, code, mode);
   if (!sent.ok) {
     await db.verificationToken.deleteMany({ where: { identifier: authId } });
-    return { error: sent.error ?? "인증 코드 발송 실패" };
+    return { error: sent.error ?? "actions.s1yyw7k2" };
   }
 
   await recordEmailSendRateLimit(normalized, ip);
@@ -226,15 +221,15 @@ export async function sendEmailAuthCode(
     success: true,
     message:
       mode === "reset"
-        ? "이메일로 6자리 인증 코드를 보냈습니다. 코드 확인 후 새 비밀번호를 설정하세요."
-        : "이메일로 6자리 인증 코드를 보냈습니다. 코드 확인 후 가입 비밀번호로 로그인하세요.",
+        ? "actions.s14suv9m"
+        : "actions.s668d1e",
   };
 }
 
 export async function verifyAuthCodeOnly(email: string, code: string) {
   const record = await findAuthCodeRecord(email, code);
   if (!record || record.expires < new Date()) {
-    return { error: "인증 코드가 올바르지 않거나 만료되었습니다." };
+    return { error: "actions.su23yec" };
   }
   return { success: true };
 }
@@ -259,12 +254,12 @@ export async function completeAuthWithCode(
   const normalized = email.trim().toLowerCase();
   const record = await findAuthCodeRecord(normalized, code);
   if (!record || record.expires < new Date()) {
-    return { error: "인증 코드가 올바르지 않거나 만료되었습니다." };
+    return { error: "actions.su23yec" };
   }
 
   const user = await findUserIdByEmailFast(normalized);
   if (!user) {
-    return { error: "등록되지 않은 이메일입니다.", code: "EMAIL_NOT_REGISTERED" as const };
+    return { error: "auth.unregisteredEmail", code: "EMAIL_NOT_REGISTERED" as const };
   }
 
   const clearTokens = db.verificationToken.deleteMany({
@@ -282,7 +277,7 @@ export async function completeAuthWithCode(
   if (options.mode === "reset") {
     const password = options.newPassword?.trim() ?? "";
     if (password.length < 8) {
-      return { error: "비밀번호는 8자 이상이어야 합니다." };
+      return { error: "auth.passwordMinLength" };
     }
     const passwordHash = await bcrypt.hash(password, SIGNUP_BCRYPT_ROUNDS);
     await Promise.all([
@@ -321,24 +316,24 @@ export async function completeAuthWithCode(
 export async function checkUsernameAvailable(username: string) {
   const normalized = username.trim().toLowerCase();
   if (normalized.length < 3 || !/^[a-zA-Z0-9_]+$/.test(normalized)) {
-    return { available: false, error: "닉네임은 영문·숫자·_ 3~20자입니다." };
+    return { available: false, error: "actions.3_20" };
   }
   if (!validateUsernameAndName(normalized).ok) {
     return { available: false, error: FORBIDDEN_ADMIN_SEQUENCE_MESSAGE };
   }
   if (RESERVED_USERNAMES.has(normalized)) {
-    return { available: false, error: "예약된 닉네임입니다." };
+    return { available: false, error: "actions.s1rkgykd" };
   }
   const existing = await findUserByUsernameInsensitive(normalized);
   if (!existing) return { available: true };
   if (existing.deletedAt && existing.scheduledPurgeAt && canRecoverAccount(existing)) {
     return {
       available: false,
-      error: "탈퇴한 계정의 닉네임입니다. 복구 기간이 끝날 때까지 사용할 수 없습니다.",
+      error: "actions.sorrhbr",
     };
   }
-  if (!isEmailVerified(existing)) return { available: true, note: "미인증 계정 닉네임 — 가입 시 자동 해제됩니다." };
-  return { available: false, error: "이미 사용 중인 닉네임입니다." };
+  if (!isEmailVerified(existing)) return { available: true, note: "actions.sa2gtco" };
+  return { available: false, error: "actions.s14wxcis" };
 }
 
 export async function checkSignupAvailability(email: string, username: string, name?: string) {
@@ -365,7 +360,7 @@ export async function checkSignupAvailability(email: string, username: string, n
   }
 
   if (RESERVED_USERNAMES.has(normalizedUsername)) {
-    return { ok: false, error: "사용할 수 없는 닉네임입니다.", reason: "username_reserved" as const };
+    return { ok: false, error: "actions.s1wkswy1", reason: "username_reserved" as const };
   }
 
   const taken = await findUserByUsernameInsensitive(normalizedUsername);
@@ -373,14 +368,14 @@ export async function checkSignupAvailability(email: string, username: string, n
     if (taken.deletedAt && taken.scheduledPurgeAt && canRecoverAccount(taken)) {
       return {
         ok: false,
-        error: `닉네임 "${normalizedUsername}"은(는) 탈퇴한 계정에서 사용 중입니다.`,
+        error: t("actions.s1u4zbr6", { v0: normalizedUsername }),
         reason: "username_deleted" as const,
       };
     }
     if (isEmailVerified(taken)) {
       return {
         ok: false,
-        error: `닉네임 "${normalizedUsername}"은(는) 이미 사용 중입니다.`,
+        error: t("actions.s4i34a3", { v0: normalizedUsername }),
         reason: "username_taken" as const,
       };
     }
@@ -389,7 +384,7 @@ export async function checkSignupAvailability(email: string, username: string, n
   return {
     ok: true,
     canResume: !!user && !isEmailVerified(user),
-    message: user && !isEmailVerified(user) ? "인증 미완료 계정 — 가입을 이어서 진행합니다." : undefined,
+    message: user && !isEmailVerified(user) ? "actions.s77navn" : undefined,
   };
 }
 
@@ -409,24 +404,20 @@ export async function prepareSignupVerify(data: z.input<typeof signupApplication
 
 export async function validateSignupApplication(data: z.input<typeof signupApplicationSchema>) {
   const parsed = signupApplicationSchema.safeParse(data);
-  if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
+  if (!parsed.success) return { error: "actions.s15q8461" };
 
-  const { email: rawEmail, username, name, website, countryCode, homeFloor: preferredFloor } = parsed.data;
+  const { email: rawEmail, username, name, website, countryCode } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
 
   const countryBlock = assertCountrySelectable(countryCode);
   if (countryBlock) return { error: countryBlock.error };
 
   if (website?.trim()) {
-    return { error: "요청을 처리할 수 없습니다." };
+    return { error: "actions.swkz782" };
   }
 
-  const floorPick = await pickAvailableSignupFloor(countryCode, preferredFloor ?? APT_DEFAULT_FLOOR);
-  if (!floorPick.ok) return { error: floorPick.error };
-  const homeFloor = floorPick.floor;
-
   if (RESERVED_USERNAMES.has(username)) {
-    return { error: "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해 주세요." };
+    return { error: "actions.stg06cy" };
   }
 
   const forbiddenCheck = validateUsernameAndName(username, name);
@@ -437,15 +428,13 @@ export async function validateSignupApplication(data: z.input<typeof signupAppli
 
   if (!isEmailConfigured()) {
     return {
-      error:
-        "이메일 발송 설정(RESEND_API_KEY)이 없어 회원가입을 완료할 수 없습니다. Vercel 환경 변수를 확인하세요.",
+      error: "actions.resend_api_key_vercel",
     };
   }
 
   return {
     ok: true as const,
     email,
-    homeFloor,
     message: availability.message,
     resumed: availability.canResume,
   };
@@ -457,7 +446,7 @@ export async function registerUser(
   opts?: { channel?: "web" | "mobile" }
 ) {
   const parsed = registerSchema.safeParse(data);
-  if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
+  if (!parsed.success) return { error: "actions.s15q8461" };
   const {
     email: rawEmail,
     username,
@@ -466,7 +455,6 @@ export async function registerUser(
     locale,
     countryCode,
     timeZone: rawTimeZone,
-    homeFloor,
     turnstileToken,
     turnstileUnavailable,
     humanChallengeToken,
@@ -487,7 +475,7 @@ export async function registerUser(
   if (countryBlock) return { error: countryBlock.error };
 
   if (website?.trim()) {
-    return { error: "요청을 처리할 수 없습니다." };
+    return { error: "actions.swkz782" };
   }
 
   if (opts?.channel !== "mobile" && isSignupHumanVerifyRequired()) {
@@ -505,7 +493,7 @@ export async function registerUser(
   }
 
   if (RESERVED_USERNAMES.has(username)) {
-    return { error: "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해 주세요." };
+    return { error: "actions.stg06cy" };
   }
 
   const forbiddenCheck = validateUsernameAndName(username, name);
@@ -513,25 +501,15 @@ export async function registerUser(
 
   if (!isEmailConfigured()) {
     return {
-      error:
-        "이메일 발송 설정(RESEND_API_KEY)이 없어 회원가입을 완료할 수 없습니다. Vercel 환경 변수를 확인하세요.",
+      error: "actions.resend_api_key_vercel",
     };
   }
 
-  const floorPromise =
-    availabilityPrechecked && homeFloor != null
-      ? tryResolvePrecheckedSignupFloor(countryCode, homeFloor)
-      : pickAvailableSignupFloor(countryCode, homeFloor ?? APT_DEFAULT_FLOOR);
-
-  const [userByEmailInitial, passwordHash, ip, floorPick] = await Promise.all([
+  const [userByEmailInitial, passwordHash, ip] = await Promise.all([
     resolveUserByEmail(email),
     bcrypt.hash(password, SIGNUP_BCRYPT_ROUNDS),
     getRequestIp(),
-    floorPromise,
   ]);
-
-  if (!floorPick.ok) return { error: floorPick.error };
-  const aptFloor = floorPick.floor;
 
   let userByEmail = userByEmailInitial;
 
@@ -620,40 +598,13 @@ export async function registerUser(
     const code = generateEmailCode();
     await saveSignupAuthCode(email, code);
 
-    const country = findCountry(countryCode) ?? findCountry("KR")!;
-    const [sent] = await Promise.all([
-      sendAuthCodeEmail(email, code, "signup"),
-      db.aptProfile.upsert({
-        where: { userId },
-        create: {
-          userId,
-          housingType: "apartment",
-          countryCode: countryCode.toUpperCase(),
-          homeFloor: aptFloor,
-          latitude: country.lat,
-          longitude: country.lng,
-          regionLabel: `${country.nameKo} APT`,
-          moveInCompletedAt: new Date(),
-        },
-        update: {
-          countryCode: countryCode.toUpperCase(),
-          homeFloor: aptFloor,
-          latitude: country.lat,
-          longitude: country.lng,
-          regionLabel: `${country.nameKo} APT`,
-          moveInCompletedAt: new Date(),
-        },
-      }),
-    ]);
+    const sent = await sendAuthCodeEmail(email, code, "signup");
 
     if (!sent.ok) {
       if (!isResume) {
-        await Promise.all([
-          db.user.delete({ where: { id: userId } }).catch(() => undefined),
-          db.aptProfile.delete({ where: { userId } }).catch(() => undefined),
-        ]);
+        await db.user.delete({ where: { id: userId } }).catch(() => undefined);
       }
-      return { error: sent.error ?? "인증 메일 발송 실패" };
+      return { error: sent.error ?? "actions.s1j9c1k2" };
     }
 
     await recordEmailSendRateLimit(email, ip);
@@ -673,7 +624,7 @@ export async function registerUser(
       email,
       resumed: isResume,
       message: isResume
-        ? "인증이 완료되지 않은 계정입니다. 인증 코드를 다시 보냈습니다."
+        ? "actions.s17x6b0p"
         : undefined,
     };
   } catch (e) {
@@ -698,7 +649,7 @@ export async function registerUser(
       const takenName = await findUserByUsernameInsensitive(username);
       if (takenName && isEmailVerified(takenName)) {
         return {
-          error: `닉네임 "${username}"은(는) 이미 사용 중입니다. 다른 닉네임을 입력해 주세요.`,
+          error: t("actions.s13hayts", { v0: username }),
         };
       }
       if (takenName && !isEmailVerified(takenName) && !isRetry) {
@@ -708,13 +659,12 @@ export async function registerUser(
 
       if (fields.some((f) => f.includes("email"))) {
         return {
-          error:
-            "이 이메일은 이미 등록되어 있습니다. 로그인하거나 비밀번호 찾기를 이용하세요. (배포 반영 후에도 동일하면 문의해 주세요.)",
+          error: "actions.s1d964i5",
         };
       }
       if (fields.some((f) => f.includes("username"))) {
         return {
-          error: `닉네임 "${username}"은(는) 이미 사용 중입니다. 다른 닉네임을 입력해 주세요.`,
+          error: t("actions.s13hayts", { v0: username }),
         };
       }
       if (!isRetry) {
@@ -726,13 +676,12 @@ export async function registerUser(
       e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "";
     if (prismaCode === "P1001" || prismaCode === "P1017" || /connect|timeout/i.test(msg)) {
       return {
-        error:
-          "데이터베이스에 연결하지 못했습니다. Vercel의 DATABASE_URL·DIRECT_URL을 확인한 뒤 잠시 후 다시 시도해 주세요.",
+        error: "actions.vercel_database_url_direct_url",
       };
     }
 
     return {
-      error: "회원가입 저장에 실패했습니다. 잠시 후 다시 시도해 주세요. 계속되면 다른 닉네임으로 시도해 보세요.",
+      error: "actions.s1c1tzul",
     };
   }
 }
@@ -745,11 +694,11 @@ export async function verifyEmail(data: { email: string; token: string }) {
     where: { identifier: verifyId, token: data.token },
   });
   if (!record || record.expires < new Date()) {
-    return { error: "만료되었거나 유효하지 않은 인증 링크입니다." };
+    return { error: "actions.s1jv9gnl" };
   }
 
   const user = await resolveUserByEmail(email);
-  if (!user) return { error: "계정을 찾을 수 없습니다." };
+  if (!user) return { error: "actions.s1hwfc9a" };
 
   await updateUserByResolvedEmail(email, { emailVerified: new Date() });
   await db.verificationToken.deleteMany({
@@ -810,18 +759,18 @@ export async function resetPasswordConfirm(data: {
   const resetId = resetTokenIdentifier(email);
   const { token, password } = data;
 
-  if (password.length < 8) return { error: "비밀번호는 8자 이상이어야 합니다." };
+  if (password.length < 8) return { error: "auth.passwordMinLength" };
 
   const record = await db.verificationToken.findFirst({
     where: { identifier: resetId, token },
   });
   if (!record || record.expires < new Date()) {
-    return { error: "만료되었거나 유효하지 않은 링크입니다." };
+    return { error: "actions.s8x5m9m" };
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
   const updated = await updateUserByResolvedEmail(email, { passwordHash });
-  if (!updated) return { error: "계정을 찾을 수 없습니다." };
+  if (!updated) return { error: "actions.s1hwfc9a" };
   await db.verificationToken.deleteMany({
     where: {
       identifier: { in: [resetId, resetCodeIdentifier(email)] },

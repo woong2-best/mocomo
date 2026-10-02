@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
 import { AdminAccessError, requireAdminPermission } from "@/lib/admin/access";
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
           ok: false,
           jobId: job.id,
           status: finished?.status ?? "FAILED",
-          error: finished?.error ?? "Analysis failed",
+          error: errorText(finished?.error ?? "Analysis failed"),
         },
         { status: 422 }
       );

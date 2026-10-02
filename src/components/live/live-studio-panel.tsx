@@ -1,5 +1,10 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import type { LiveStreamCategory } from "@prisma/client";
@@ -33,9 +38,12 @@ import {
 } from "@/actions/live-studio";
 import { BROADCAST_PICK_CATEGORIES } from "@/lib/live-categories";
 import {
-  broadcastRoleLabelKo,
+  broadcastRoleLabel,
   type EffectiveBroadcastRole,
 } from "@/lib/live-broadcast/permissions";
+import { broadcastCategoryLabel } from "@/lib/live-category-i18n";
+import { useLocale } from "@/components/providers/locale-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 import {
   isExternalLiveEnabled,
   isFirstPartyLiveEnabled,
@@ -78,7 +86,18 @@ type SearchHit = {
   isBanned: boolean;
 };
 
+const WEEKDAY_KEYS: { d: number; key: MessageKey }[] = [
+  { d: 1, key: "live.weekday.mon" },
+  { d: 2, key: "live.weekday.tue" },
+  { d: 3, key: "live.weekday.wed" },
+  { d: 4, key: "live.weekday.thu" },
+  { d: 5, key: "live.weekday.fri" },
+  { d: 6, key: "live.weekday.sat" },
+  { d: 0, key: "live.weekday.sun" },
+];
+
 export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
+  const { locale, t } = useLocale();
   const firstPartyOn = isFirstPartyLiveEnabled();
   const externalOn = isExternalLiveEnabled();
   const goLiveHref = firstPartyOn ? "/voice/new" : "/live/external/new";
@@ -136,7 +155,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
         scheduleWeekdays,
         scheduleTime,
       });
-      setSettingsMsg("저장되었습니다. 달력 상단 요일이 연두색으로 표시됩니다.");
+      setSettingsMsg(t("live.studio.settingsSaved"));
     });
   }
 
@@ -165,10 +184,10 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
     const res = await banLiveStudioViewerAction(userId);
     setBusy(false);
     if ("error" in res && res.error) {
-      setActionError(res.error);
+      setActionError(errorText(res.error));
       return;
     }
-    setActionMsg("시청자를 차단했습니다.");
+    setActionMsg(t("live.studio.viewerBanned"));
     setBanHits([]);
     setBanQuery("");
     void reloadLists();
@@ -180,7 +199,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
     const res = await unbanLiveStudioViewerAction(userId);
     setBusy(false);
     if ("error" in res && res.error) {
-      setActionError(res.error);
+      setActionError(errorText(res.error));
       return;
     }
     void reloadLists();
@@ -193,10 +212,10 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
     const res = await assignLiveStudioStaffAction(userId, "MANAGER");
     setBusy(false);
     if ("error" in res && res.error) {
-      setActionError(res.error);
+      setActionError(errorText(res.error));
       return;
     }
-    setActionMsg("관리자로 지정했습니다.");
+    setActionMsg(t("live.studio.staffAssigned"));
     setStaffHits([]);
     setStaffQuery("");
     void reloadLists();
@@ -208,7 +227,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
     const res = await removeLiveStudioStaffAction(userId);
     setBusy(false);
     if ("error" in res && res.error) {
-      setActionError(res.error);
+      setActionError(errorText(res.error));
       return;
     }
     void reloadLists();
@@ -222,26 +241,23 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
             <Radio className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="folk-tag mb-1.5 w-fit">라이브</p>
+            <p className="folk-tag mb-1.5 w-fit">{t("live.studio.tag")}</p>
             <h1 className="text-xl sm:text-2xl font-display font-bold text-folk-cobalt folk-chunky-text">
-              라이브 스튜디오
+              {t("live.studio.title")}
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              채팅 공지·카테고리·스태프·차단을 한곳에서 관리합니다. 제목·설명은 YouTube/Twitch에서
-              바꾸면 자동 반영됩니다.
-            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t("live.studio.desc")}</p>
             <Link
               href="/live"
               className="mt-2 inline-flex text-xs font-semibold text-muted-foreground hover:text-folk-cobalt transition-colors"
             >
-              ← 라이브로 돌아가기
+              {t("live.studio.backToLive")}
             </Link>
           </div>
           {(firstPartyOn || externalOn) && (
             <Button asChild className="rounded-xl gap-2 shrink-0">
               <Link href={goLiveHref}>
                 <Video className="h-4 w-4" />
-                방송 시작
+                {t("live.studio.goLive")}
               </Link>
             </Button>
           )}
@@ -265,15 +281,12 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
         <section className="folk-card p-4 sm:p-5 space-y-4">
           <div className="flex items-center gap-2">
             <Type className="h-4 w-4 text-folk-terracotta" />
-            <h2 className="font-display font-bold text-folk-cobalt">방송 기본 설정</h2>
+            <h2 className="font-display font-bold text-folk-cobalt">{t("live.studio.basicSettings")}</h2>
           </div>
-          <p className="text-xs text-muted-foreground -mt-2">
-            기본 카테고리와 채팅 공지입니다. 방송 제목·설명은 YouTube/Twitch 설정을 그대로
-            씁니다.
-          </p>
+          <p className="text-xs text-muted-foreground -mt-2">{t("live.studio.basicSettingsDesc")}</p>
 
           <div>
-            <label className="text-xs text-muted-foreground mb-2 block">카테고리</label>
+            <label className="text-xs text-muted-foreground mb-2 block">{t("live.studio.category")}</label>
             <div className="flex flex-wrap gap-2">
               {BROADCAST_PICK_CATEGORIES.map((c) => (
                 <button
@@ -287,7 +300,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
                       : "border-border/70 text-muted-foreground hover:border-folk-cobalt/40"
                   )}
                 >
-                  {c.label}
+                  {broadcastCategoryLabel(locale, c.value)}
                 </button>
               ))}
             </div>
@@ -296,20 +309,20 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
           <div>
             <label className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Pin className="h-3.5 w-3.5" />
-              채팅 상단 고정 메시지
+              {t("live.studio.pinnedMessage")}
             </label>
             <textarea
               value={announcement}
               onChange={(e) => setAnnouncement(e.target.value)}
               maxLength={500}
               rows={3}
-              placeholder="시청자 채팅 위에 항상 보이는 공지 · 링크·#태그 가능"
+              placeholder={t("live.studio.pinnedPlaceholder")}
               className="rounded-xl mt-1 w-full min-h-[80px] border border-input bg-background px-3 py-2 text-sm"
             />
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground">채널 소개</label>
+            <label className="text-xs text-muted-foreground">{t("live.studio.channelBio")}</label>
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
@@ -320,17 +333,9 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground">매주 방송 요일</label>
+            <label className="text-xs text-muted-foreground">{t("live.studio.weeklyDays")}</label>
             <div className="mt-2 flex flex-wrap gap-2">
-              {[
-                { d: 1, label: "월" },
-                { d: 2, label: "화" },
-                { d: 3, label: "수" },
-                { d: 4, label: "목" },
-                { d: 5, label: "금" },
-                { d: 6, label: "토" },
-                { d: 0, label: "일" },
-              ].map((w) => (
+              {WEEKDAY_KEYS.map((w) => (
                 <button
                   key={w.d}
                   type="button"
@@ -342,14 +347,14 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
                       : "border-border/70 text-muted-foreground hover:border-emerald-500/50"
                   )}
                 >
-                  {w.label}
+                  {t(w.key)}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground">방송 시각 (시:분)</label>
+            <label className="text-xs text-muted-foreground">{t("live.studio.startTime")}</label>
             <Input
               value={scheduleTime}
               onChange={(e) => setScheduleTime(e.target.value)}
@@ -361,19 +366,16 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground">방송 메모 (요일 헤더 클릭 시)</label>
+            <label className="text-xs text-muted-foreground">{t("live.studio.scheduleMemo")}</label>
             <textarea
               value={scheduleNote}
               onChange={(e) => setScheduleNote(e.target.value)}
               maxLength={300}
               rows={4}
-              placeholder={"예: 잡담 · 게임 같이 하기\n줄바꿈도 가능합니다"}
+              placeholder={t("live.studio.scheduleMemoPlaceholder")}
               className="rounded-xl mt-1 w-full min-h-[88px] border border-input bg-background px-3 py-2 text-sm whitespace-pre-wrap"
             />
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              선택한 요일만 달력 상단(월~일)에 연두색으로 표시됩니다. 날짜별 메모는 달력에서
-              각각 따로 작성합니다.
-            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">{t("live.studio.scheduleMemoHint")}</p>
           </div>
 
           <Button
@@ -382,7 +384,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
             disabled={settingsPending}
           >
             {settingsPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            설정 저장
+            {t("live.studio.saveSettings")}
           </Button>
           {settingsMsg ? (
             <p className="text-xs text-muted-foreground">{settingsMsg}</p>
@@ -393,17 +395,15 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
           <section className="folk-card p-4 sm:p-5 space-y-4">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-folk-cobalt" />
-              <h2 className="font-display font-bold text-folk-cobalt">관리자</h2>
+              <h2 className="font-display font-bold text-folk-cobalt">{t("live.studio.staffTitle")}</h2>
             </div>
-            <p className="text-xs text-muted-foreground -mt-2">
-              MoCoMo 유저만 관리자로 지정 · 모든 방송에 적용됩니다
-            </p>
+            <p className="text-xs text-muted-foreground -mt-2">{t("live.studio.staffDesc")}</p>
 
             <div className="flex gap-2">
               <Input
                 value={staffQuery}
                 onChange={(e) => setStaffQuery(e.target.value)}
-                placeholder="@username 검색"
+                placeholder={t("live.studio.staffSearch")}
                 className="rounded-xl"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") void searchStaff();
@@ -433,7 +433,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">@{h.username}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        {broadcastRoleLabelKo(h.currentRole)}
+                        {broadcastRoleLabel(locale, h.currentRole)}
                       </p>
                     </div>
                     <Button
@@ -442,7 +442,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
                       disabled={busy || h.currentRole === "OWNER"}
                       onClick={() => void assignStaff(h.id)}
                     >
-                      지정
+                      {t("live.studio.assign")}
                     </Button>
                   </div>
                 ))}
@@ -475,7 +475,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
                         className="h-8 w-8"
                         disabled={busy}
                         onClick={() => void removeStaff(m.userId)}
-                        aria-label="역할 제거"
+                        aria-label={t("live.studio.removeRole")}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -489,17 +489,15 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
           <section className="folk-card p-4 sm:p-5 space-y-4">
             <div className="flex items-center gap-2">
               <Ban className="h-4 w-4 text-folk-terracotta" />
-              <h2 className="font-display font-bold text-folk-cobalt">시청자 차단</h2>
+              <h2 className="font-display font-bold text-folk-cobalt">{t("live.studio.bansTitle")}</h2>
             </div>
-            <p className="text-xs text-muted-foreground -mt-2">
-              MoCoMo 유저만 차단 · 이후 방송에서도 채팅이 막힙니다
-            </p>
+            <p className="text-xs text-muted-foreground -mt-2">{t("live.studio.bansDesc")}</p>
 
             <div className="flex gap-2">
               <Input
                 value={banQuery}
                 onChange={(e) => setBanQuery(e.target.value)}
-                placeholder="@username 검색 후 차단"
+                placeholder={t("live.studio.banSearch")}
                 className="rounded-xl"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") void searchBans();
@@ -529,7 +527,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">@{h.username}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        {h.isBanned ? "이미 차단됨" : broadcastRoleLabelKo(h.currentRole)}
+                        {h.isBanned ? t("live.studio.alreadyBanned") : broadcastRoleLabel(locale, h.currentRole)}
                       </p>
                     </div>
                     <Button
@@ -539,7 +537,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
                       disabled={busy || h.currentRole === "OWNER" || h.isBanned}
                       onClick={() => void banUser(h.id)}
                     >
-                      차단
+                      {t("live.studio.ban")}
                     </Button>
                   </div>
                 ))}
@@ -553,7 +551,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
             ) : bans.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6 flex items-center justify-center gap-2">
                 <Users className="h-4 w-4" />
-                차단된 시청자가 없습니다
+                {t("live.studio.noBans")}
               </p>
             ) : (
               <div className="space-y-2">
@@ -580,7 +578,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
                       disabled={busy}
                       onClick={() => void unbanUser(b.userId)}
                     >
-                      해제
+                      {t("live.studio.unban")}
                     </Button>
                   </div>
                 ))}

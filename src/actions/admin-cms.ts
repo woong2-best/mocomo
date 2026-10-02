@@ -38,9 +38,9 @@ function errMsg(e: unknown) {
     if (e.message === "ADMIN_STEPUP_REQUIRED") {
       return "ADMIN_STEPUP_REQUIRED";
     }
-    return e.message === "UNAUTHORIZED" ? "로그인이 필요합니다." : "권한이 없습니다.";
+    return e.message === "UNAUTHORIZED" ? "common.error.authRequired" : "actions.st3onev";
   }
-  return e instanceof Error ? e.message : "오류가 발생했습니다.";
+  return e instanceof Error ? e.message : "actions.s1su4v2o";
 }
 
 export async function adminLoadDashboard() {
@@ -69,7 +69,7 @@ export async function adminLoadUserDetail(userId: string) {
       targetId: userId,
     });
     const data = await getAdminUserDetail(userId);
-    if (!data) return { ok: false as const, error: "사용자를 찾을 수 없습니다." };
+    if (!data) return { ok: false as const, error: "actions.svypth4" };
     return { ok: true as const, data };
   } catch (e) {
     return { ok: false as const, error: errMsg(e) };

@@ -13,24 +13,24 @@ export type TierDefinition = {
 
 /** 사이트 전체 누적 · 크리에이터별 개별 후원 공통 등급표 (누적 후원 MOCO) */
 export const SUPPORT_TIERS: TierDefinition[] = [
-  { level: "SEED", label: "Seed", labelKo: "씨앗", minAmount: 0, color: "#84cc16", gradient: ["#d9f99d", "#65a30d"], iconSrc: "/support/tier-art/seed.png" },
-  { level: "STONE", label: "Stone", labelKo: "스톤", minAmount: 10, color: "#78716c", gradient: ["#a8a29e", "#57534e"], iconSrc: "/support/tier-art/stone.png" },
-  { level: "BRASS", label: "Brass", labelKo: "브라스", minAmount: 50, color: "#b5a642", gradient: ["#d4c068", "#8b7a2e"], iconSrc: "/support/tier-art/brass.png" },
-  { level: "BRONZE", label: "Bronze", labelKo: "브론즈", minAmount: 100, color: "#b45309", gradient: ["#d97706", "#92400e"], iconSrc: "/support/tier-art/bronze.png" },
-  { level: "SILVER", label: "Silver", labelKo: "실버", minAmount: 500, color: "#94a3b8", gradient: ["#e2e8f0", "#64748b"], iconSrc: "/support/tier-art/silver.png" },
-  { level: "GOLD", label: "Gold", labelKo: "골드", minAmount: 1_000, color: "#eab308", gradient: ["#fde047", "#ca8a04"], iconSrc: "/support/tier-art/gold.png" },
-  { level: "CRYSTAL", label: "Crystal", labelKo: "크리스탈", minAmount: 1_500, color: "#ec4899", gradient: ["#fbcfe8", "#db2777"], iconSrc: "/support/tier-art/crystal.png" },
-  { level: "EMERALD", label: "Emerald", labelKo: "에메랄드", minAmount: 2_000, color: "#10b981", gradient: ["#6ee7b7", "#047857"], iconSrc: "/support/tier-art/emerald.png" },
-  { level: "SAPPHIRE", label: "Sapphire", labelKo: "사파이어", minAmount: 2_500, color: "#3b82f6", gradient: ["#93c5fd", "#1d4ed8"], iconSrc: "/support/tier-art/sapphire.png" },
-  { level: "RUBY", label: "Ruby", labelKo: "루비", minAmount: 3_000, color: "#ef4444", gradient: ["#fca5a5", "#b91c1c"], iconSrc: "/support/tier-art/ruby.png" },
-  { level: "DIAMOND", label: "Diamond", labelKo: "다이아", minAmount: 3_500, color: "#a855f7", gradient: ["#e9d5ff", "#7c3aed"], iconSrc: "/support/tier-art/diamond.png" },
-  { level: "MYTHRIL", label: "Mythril", labelKo: "미스릴", minAmount: 4_000, color: "#6366f1", gradient: ["#c7d2fe", "#4338ca"], iconSrc: "/support/tier-art/mythril.png" },
-  { level: "ORICHALCUM", label: "Orichalcum", labelKo: "오리하르콘", minAmount: 4_500, color: "#f97316", gradient: ["#fdba74", "#c2410c"], iconSrc: "/support/tier-art/orichalcum.png" },
-  { level: "LUNA", label: "Luna", labelKo: "루나", minAmount: 5_000, color: "#cbd5e1", gradient: ["#f1f5f9", "#64748b"], iconSrc: "/support/tier-art/luna.png" },
-  { level: "TERRA", label: "Terra", labelKo: "테라", minAmount: 5_500, color: "#65a30d", gradient: ["#bef264", "#365314"], iconSrc: "/support/tier-art/terra.png" },
-  { level: "JUPITER", label: "Jupiter", labelKo: "주피터", minAmount: 6_000, color: "#ea580c", gradient: ["#fdba74", "#9a3412"], iconSrc: "/support/tier-art/jupiter.png" },
-  { level: "ASTRAL", label: "Astral", labelKo: "아스트랄", minAmount: 6_500, color: "#8b5cf6", gradient: ["#ddd6fe", "#6d28d9"], iconSrc: "/support/tier-art/astral.png" },
-  { level: "COSMIC", label: "Cosmic", labelKo: "코스믹", minAmount: 7_000, color: "#06b6d4", gradient: ["#67e8f9", "#0e7490"], iconSrc: "/support/tier-art/cosmic.png" },
+  { level: "SEED", label: "Seed", labelKo: "Seed", minAmount: 0, color: "#84cc16", gradient: ["#d9f99d", "#65a30d"], iconSrc: "/support/tier-art/seed.png" },
+  { level: "STONE", label: "Stone", labelKo: "Stone", minAmount: 10, color: "#78716c", gradient: ["#a8a29e", "#57534e"], iconSrc: "/support/tier-art/stone.png" },
+  { level: "BRASS", label: "Brass", labelKo: "Brass", minAmount: 50, color: "#b5a642", gradient: ["#d4c068", "#8b7a2e"], iconSrc: "/support/tier-art/brass.png" },
+  { level: "BRONZE", label: "Bronze", labelKo: "Bronze", minAmount: 100, color: "#b45309", gradient: ["#d97706", "#92400e"], iconSrc: "/support/tier-art/bronze.png" },
+  { level: "SILVER", label: "Silver", labelKo: "Silver", minAmount: 500, color: "#94a3b8", gradient: ["#e2e8f0", "#64748b"], iconSrc: "/support/tier-art/silver.png" },
+  { level: "GOLD", label: "Gold", labelKo: "Gold", minAmount: 1_000, color: "#eab308", gradient: ["#fde047", "#ca8a04"], iconSrc: "/support/tier-art/gold.png" },
+  { level: "CRYSTAL", label: "Crystal", labelKo: "Crystal", minAmount: 1_500, color: "#ec4899", gradient: ["#fbcfe8", "#db2777"], iconSrc: "/support/tier-art/crystal.png" },
+  { level: "EMERALD", label: "Emerald", labelKo: "Emerald", minAmount: 2_000, color: "#10b981", gradient: ["#6ee7b7", "#047857"], iconSrc: "/support/tier-art/emerald.png" },
+  { level: "SAPPHIRE", label: "Sapphire", labelKo: "Sapphire", minAmount: 2_500, color: "#3b82f6", gradient: ["#93c5fd", "#1d4ed8"], iconSrc: "/support/tier-art/sapphire.png" },
+  { level: "RUBY", label: "Ruby", labelKo: "Ruby", minAmount: 3_000, color: "#ef4444", gradient: ["#fca5a5", "#b91c1c"], iconSrc: "/support/tier-art/ruby.png" },
+  { level: "DIAMOND", label: "Diamond", labelKo: "Diamond", minAmount: 3_500, color: "#a855f7", gradient: ["#e9d5ff", "#7c3aed"], iconSrc: "/support/tier-art/diamond.png" },
+  { level: "MYTHRIL", label: "Mythril", labelKo: "Mithril", minAmount: 4_000, color: "#6366f1", gradient: ["#c7d2fe", "#4338ca"], iconSrc: "/support/tier-art/mythril.png" },
+  { level: "ORICHALCUM", label: "Orichalcum", labelKo: "Orichalcum", minAmount: 4_500, color: "#f97316", gradient: ["#fdba74", "#c2410c"], iconSrc: "/support/tier-art/orichalcum.png" },
+  { level: "LUNA", label: "Luna", labelKo: "Luna", minAmount: 5_000, color: "#cbd5e1", gradient: ["#f1f5f9", "#64748b"], iconSrc: "/support/tier-art/luna.png" },
+  { level: "TERRA", label: "Terra", labelKo: "Terra", minAmount: 5_500, color: "#65a30d", gradient: ["#bef264", "#365314"], iconSrc: "/support/tier-art/terra.png" },
+  { level: "JUPITER", label: "Jupiter", labelKo: "Jupiter", minAmount: 6_000, color: "#ea580c", gradient: ["#fdba74", "#9a3412"], iconSrc: "/support/tier-art/jupiter.png" },
+  { level: "ASTRAL", label: "Astral", labelKo: "Astral", minAmount: 6_500, color: "#8b5cf6", gradient: ["#ddd6fe", "#6d28d9"], iconSrc: "/support/tier-art/astral.png" },
+  { level: "COSMIC", label: "Cosmic", labelKo: "Cosmic", minAmount: 7_000, color: "#06b6d4", gradient: ["#67e8f9", "#0e7490"], iconSrc: "/support/tier-art/cosmic.png" },
 ];
 
 export function tierFromAmount(amount: number): SupportTierLevel {
@@ -93,7 +93,7 @@ export function getTierDetailProgress(viewedLevel: SupportTierLevel, userTotal: 
 
   if (!next) {
     return {
-      message: "최고 등급에 도달했습니다",
+      message: "You've reached the top tier",
       progress: 1,
       target: viewed,
     };
@@ -124,6 +124,6 @@ export function canAccessDm(userTier: SupportTierLevel, required: SupportTierLev
 export function formatTierAmount(amount: number): string {
   if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(amount % 1_000_000_000 === 0 ? 0 : 1)}B`;
   if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(amount % 1_000_000 === 0 ? 0 : 1)}M`;
-  if (amount >= 10_000) return `${(amount / 10_000).toFixed(amount % 10_000 === 0 ? 0 : 1)}만`;
+  if (amount >= 10_000) return `${(amount / 1_000).toFixed(amount % 1_000 === 0 ? 0 : 1)}K`;
   return amount.toLocaleString();
 }

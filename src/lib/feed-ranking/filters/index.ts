@@ -60,7 +60,7 @@ export const ageFilter: Filter<FeedQuery, PostCandidate> = {
  * SeenFilter (soft) —
  * - SeenSoftFilter: 최근 SeenReexposeAfterHours(기본 24h) 이내만 hard-exclude
  * - 그 이전 시청분은 재노출 허용
- * - 그래도 FallbackMinCandidates 미달이면 최근 본 영상까지 순환(loop) 투입
+ * - 그래도 FallbackMinCandidates 미달이면 최근 본 Video까지 순환(loop) 투입
  */
 export const seenFilter: Filter<FeedQuery, PostCandidate> = {
   id: "seen",

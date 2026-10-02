@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId, id } = await params;
@@ -21,7 +21,7 @@ export async function POST(
     select: { createdBy: true },
   });
   if (!channel || channel.createdBy !== session.user.id) {
-    return NextResponse.json({ error: "호스트만 처리할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Only the host can perform this action." }, { status: 403 });
   }
 
   const row = await db.liveVideoDonation.findUnique({
@@ -29,7 +29,7 @@ export async function POST(
     include: { sender: { select: { username: true } }, tip: { select: { message: true } } },
   });
   if (!row || row.channelId !== channelId) {
-    return NextResponse.json({ error: "찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
   let data: {
@@ -58,7 +58,7 @@ export async function POST(
   } else if (action === "skip" && row.status === "PLAYING") {
     data = { status: "PLAYED", playedAt: new Date() };
   } else {
-    return NextResponse.json({ error: "처리할 수 없는 상태입니다." }, { status: 400 });
+    return NextResponse.json({ error: "This state cannot be processed." }, { status: 400 });
   }
 
   const updated = await db.liveVideoDonation.update({

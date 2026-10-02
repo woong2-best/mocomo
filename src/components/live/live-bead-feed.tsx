@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   useCallback,
   useEffect,
@@ -41,7 +44,9 @@ type Props = {
 /**
  * Compact vertical bead feed — width shrunk; visible count adapts to stage height (3/4/5).
  */
-export function LiveBeadFeed({ channels, hosts, className }: Props) {
+export function LiveBeadFeed({
+  channels, hosts, className }: Props) {
+  const { t } = useLocale();
   const hostMap = useMemo(
     () => Object.fromEntries(hosts.map((h) => [h.id, h])),
     [hosts]
@@ -276,10 +281,10 @@ function EmptyBead({ tone, focused }: { tone: number; focused: boolean }) {
         {focused ? (
           <>
             <p className="relative text-[11px] font-bold text-white/90 leading-snug">
-              현재 라이브 방송이 없습니다
+              {t("live.noBroadcastEmptyHub")}
             </p>
             <p className="relative text-[9px] font-medium text-white/45 leading-snug">
-              새로운 방송이 시작되면 이곳에 표시됩니다
+              {t("live.svw2tcb")}
             </p>
           </>
         ) : (

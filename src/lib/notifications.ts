@@ -109,7 +109,7 @@ async function getActor(actorId: string): Promise<ActorInfo | null> {
   });
 }
 
-function actorLabel(actor: ActorInfo | null, fallback = "누군가"): string {
+function actorLabel(actor: ActorInfo | null, fallback = "Someone"): string {
   return actor?.username ? `@${actor.username}` : fallback;
 }
 
@@ -124,7 +124,7 @@ export async function notifyPostLike(
     userId: authorId,
     actorId,
     type: "like",
-    title: "좋아요",
+    title: "Like",
     body: `${actorLabel(actor)}님이 회원님의 게시물을 좋아합니다.`,
     link: `/post/${postId}`,
   });
@@ -141,7 +141,7 @@ export async function notifyPostRepost(
     userId: authorId,
     actorId,
     type: "repost",
-    title: "재게시",
+    title: "Repost",
     body: `${actorLabel(actor)}님이 회원님의 게시물을 재게시했습니다.`,
     link: `/post/${postId}`,
   });
@@ -184,7 +184,7 @@ export async function notifyQuotedPosts(params: {
       userId: post.authorId,
       actorId: params.actorId,
       type: "quote",
-      title: "인용",
+      title: "Quote",
       body: `${actorLabel(actor)}님이 회원님의 게시물을 인용했습니다.`,
       link: `/post/${params.quotePostId}`,
     });
@@ -199,12 +199,12 @@ export async function notifyListingLiked(params: {
 }) {
   if (params.sellerId === params.actorId) return;
   const actor = await getActor(params.actorId);
-  const name = params.title.trim().slice(0, 40) || "상품";
+  const name = params.title.trim().slice(0, 40) || "Listing";
   scheduleNotification({
     userId: params.sellerId,
     actorId: params.actorId,
     type: "listing_like",
-    title: "상품 맘찍",
+    title: "Listing favorite",
     body: `${actorLabel(actor)}님이 「${name}」에 맘찍을 남겼습니다.`,
     link: `/market/${params.listingId}`,
   });
@@ -237,7 +237,7 @@ export async function notifyPostComment(params: {
       userId: parentCommentAuthorId,
       actorId: actorForRow,
       type: "comment_reply",
-      title: "댓글 답글",
+      title: "Comment reply",
       body: `${label}님이 회원님의 댓글에 답글을 남겼습니다.`,
       link,
     });
@@ -248,7 +248,7 @@ export async function notifyPostComment(params: {
       userId: postAuthorId,
       actorId: actorForRow,
       type: isQnaAnswer ? "qna_answer" : "comment",
-      title: isQnaAnswer ? "QnA 답변" : "댓글",
+      title: isQnaAnswer ? "QnA 답변" : "Comment",
       body: isQnaAnswer
         ? `${label}님이 회원님의 질문에 답변을 남겼습니다.`
         : `${label}님이 회원님의 게시물에 댓글을 남겼습니다.`,
@@ -261,7 +261,7 @@ export async function notifyPostComment(params: {
       text: content,
       actorId,
       link,
-      context: "댓글",
+      context: "Comment",
     });
   }
 }
@@ -285,7 +285,7 @@ export async function notifyCommentLiked(params: {
     userId: commentAuthorId,
     actorId,
     type: isAuthorLike ? "comment_author_like" : "comment_like",
-    title: isAuthorLike ? "작성자 좋아요" : "댓글 좋아요",
+    title: isAuthorLike ? "작성자 좋아요" : "Comment like",
     body: isAuthorLike
       ? `${label}님(작성자)이 회원님의 댓글을 좋아합니다.`
       : `${label}님이 회원님의 댓글을 좋아합니다.`,
@@ -308,7 +308,7 @@ export async function notifyCommentPinned(params: {
     userId: commentAuthorId,
     actorId,
     type: "comment_pin",
-    title: "댓글 고정",
+    title: "Pinned comment",
     body: `${label}님이 회원님의 댓글을 고정했습니다.`,
     link: `/post/${postId}#comment-${commentId}`,
   });
@@ -334,7 +334,7 @@ export async function notifyMentionsInText(params: {
   const actor = await getActor(params.actorId);
   const label = actorLabel(actor);
   const exclude = new Set([params.actorId, ...(params.excludeUserIds ?? [])]);
-  const ctx = params.context ?? "게시물";
+  const ctx = params.context ?? "Post";
 
   const items: NotificationInput[] = [];
   for (const u of users) {
@@ -343,7 +343,7 @@ export async function notifyMentionsInText(params: {
       userId: u.id,
       actorId: params.actorId,
       type: "mention",
-      title: "멘션",
+      title: "Mention",
       body: `${label}님이 ${ctx}에서 회원님을 언급했습니다.`,
       link: params.link,
     });
@@ -361,7 +361,7 @@ export async function notifyFollow(targetUserId: string, actorId: string) {
     userId: targetUserId,
     actorId,
     type: "follow",
-    title: "새 팔로워",
+    title: "New follower",
     body: `${actorLabel(actor)}님이 회원님을 팔로우하기 시작했습니다.`,
     link: actor?.username ? `/u/${actor.username}` : "/explore",
   });
@@ -373,7 +373,7 @@ export async function notifyFollowRequest(targetUserId: string, actorId: string)
     userId: targetUserId,
     actorId,
     type: "follow_request",
-    title: "팔로우 요청",
+    title: "Follow request",
     body: `${actorLabel(actor)}님이 팔로우를 요청했습니다.`,
     link: "/settings?tab=follow-requests",
   });
@@ -385,7 +385,7 @@ export async function notifyFollowRequestAccepted(requesterId: string, targetId:
     userId: requesterId,
     actorId: targetId,
     type: "follow_accepted",
-    title: "팔로우 수락",
+    title: "Follow accepted",
     body: `${actorLabel(target)}님이 팔로우 요청을 수락했습니다.`,
     link: target?.username ? `/u/${target.username}` : "/explore",
   });
@@ -397,7 +397,7 @@ export async function notifyDiscoveryLike(targetUserId: string, actorId: string)
     userId: targetUserId,
     actorId,
     type: "discovery_like",
-    title: "관심 표현",
+    title: "Interest",
     body: `${actorLabel(actor)}님이 회원님에게 관심을 보냈어요.`,
     link: "/discover/matches",
   });
@@ -409,7 +409,7 @@ export async function notifyDiscoveryCheer(targetUserId: string, actorId: string
     userId: targetUserId,
     actorId,
     type: "discovery_cheer",
-    title: "응원 · 팔로우",
+    title: "Cheer · follow",
     body: `${actorLabel(actor)}님이 ㅊㅊ! · 팔로우했어요.`,
     link: actor?.username ? `/u/${actor.username}` : "/discover",
   });
@@ -421,7 +421,7 @@ export async function notifyDiscoveryMatch(targetUserId: string, actorId: string
     userId: targetUserId,
     actorId,
     type: "discovery_match",
-    title: "매칭 성공!",
+    title: "Match!",
     body: `${actorLabel(actor)}님과 연결됐어요. 메시지를 보내보세요.`,
     link: "/discover/matches",
   });
@@ -439,7 +439,7 @@ export async function notifyPostVote(
     userId: authorId,
     actorId,
     type: "vote",
-    title: "추천",
+    title: "Featured",
     body: `${actorLabel(actor)}님이 회원님의 게시물을 추천했습니다.`,
     link: `/post/${postId}`,
   });
@@ -456,7 +456,7 @@ export async function notifyNewPostMentions(
     text,
     actorId: authorId,
     link: `/post/${postId}`,
-    context: "게시물",
+    context: "Post",
     excludeUserIds: [authorId],
   });
 }
@@ -473,7 +473,7 @@ export async function notifyCommunityJoin(
     userId: creatorId,
     actorId,
     type: "community_join",
-    title: "커뮤니티 가입",
+    title: "Community join",
     body: `${actorLabel(actor)}님이 커뮤니티에 가입했습니다.`,
     link: `/c/${slug}/members`,
   });
@@ -492,7 +492,7 @@ export async function notifyJoinRequestPending(
       userId,
       actorId: requesterId,
       type: "community_join_request",
-      title: "가입 요청",
+      title: "Join request",
       body: `${actorLabel(actor)}님이 가입을 요청했습니다.`,
       link: `/c/${slug}/settings`,
     }));
@@ -503,8 +503,8 @@ export async function notifyJoinApproved(slug: string, userId: string) {
   scheduleNotification({
     userId,
     type: "community_join_approved",
-    title: "가입 승인",
-    body: "커뮤니티 가입이 승인되었습니다. 이제 모든 기능을 이용할 수 있습니다.",
+    title: "Join approved",
+    body: "Your community join request was approved. You can use all features now.",
     link: `/c/${slug}`,
   });
 }
@@ -513,8 +513,8 @@ export async function notifyJoinRejected(slug: string, userId: string) {
   scheduleNotification({
     userId,
     type: "community_join_rejected",
-    title: "가입 거절",
-    body: "커뮤니티 가입 요청이 거절되었습니다.",
+    title: "Join declined",
+    body: "Your community join request was declined.",
     link: `/c/${slug}`,
   });
 }
@@ -530,7 +530,7 @@ export async function notifyClipLike(
     userId: authorId,
     actorId,
     type: "clip_like",
-    title: "클립 좋아요",
+    title: "Clip like",
     body: `${actorLabel(actor)}님이 클립을 좋아합니다.`,
     link: "/live",
   });
@@ -547,7 +547,7 @@ export async function notifyClipComment(
     userId: authorId,
     actorId,
     type: "clip_comment",
-    title: "클립 댓글",
+    title: "Clip comment",
     body: `${actorLabel(actor)}님이 클립에 댓글을 남겼습니다.`,
     link: "/live",
   });
@@ -561,13 +561,13 @@ export async function notifyIncomingCall(
   chatRoomId?: string | null
 ) {
   const caller = await getActor(callerId);
-  const kind = callType === "VIDEO" ? "영상" : "음성";
+  const kind = callType === "VIDEO" ? "Video" : "Voice";
   const label = actorLabel(caller);
   scheduleNotification({
     userId: calleeId,
     actorId: callerId,
     type: "call",
-    title: "수신 통화",
+    title: "Incoming call",
     body: `${label}님의 ${kind} 통화`,
     link: `/?incomingCall=${callId}`,
     pushData: {
@@ -605,8 +605,8 @@ export async function notifyChatMessage(params: {
     where: { id: params.senderId },
     select: userPublicSelectMinimal,
   });
-  const label = sender?.username ? `@${sender.username}` : "새 메시지";
-  const preview = (params.content ?? "").trim().slice(0, 80) || "미디어를 보냈습니다.";
+  const label = sender?.username ? `@${sender.username}` : "New message";
+  const preview = (params.content ?? "").trim().slice(0, 80) || "Sent media.";
   const link = `/messages/${params.roomId}`;
   const isDm = params.roomType === "DM";
   const type = isDm ? "dm" : "dm_group";
@@ -615,7 +615,7 @@ export async function notifyChatMessage(params: {
     userId: m.userId,
     actorId: params.senderId,
     type,
-    title: isDm ? "쪽지" : "그룹 메시지",
+    title: isDm ? "Direct message" : "Group message",
     body: `${label}: ${preview}`,
     link,
   }));
@@ -629,7 +629,7 @@ export async function notifyChatMessage(params: {
         userId: uid,
         actorId: params.senderId,
         type: "mention",
-        title: "멘션",
+        title: "Mention",
         body: `${label}님이 메시지에서 회원님을 언급했습니다.`,
         link,
       });
@@ -659,18 +659,18 @@ export async function notifyTip(
     userId: receiverId,
     actorId: senderId,
     type: "tip",
-    title: "후원",
+    title: "Tip",
     body,
     link,
   });
 }
 
 const LIVE_CHEER_TYPE_LABEL: Record<string, string> = {
-  GENERAL: "응원",
+  GENERAL: "Cheer",
   TTS: "TTS",
-  ROULETTE: "룰렛",
-  SOUND: "효과음",
-  VOTE: "투표",
+  ROULETTE: "Roulette",
+  SOUND: "Sound effect",
+  VOTE: "Poll",
 };
 
 export async function notifyLiveCheer(
@@ -694,7 +694,7 @@ export async function notifyLiveCheer(
     userId: receiverId,
     actorId: senderId,
     type: "live_cheer",
-    title: "라이브 후원",
+    title: "Live tip",
     body,
     link: `/voice/${channelId}`,
   });
@@ -711,7 +711,7 @@ export async function notifyEmoticonGift(
     userId: receiverId,
     actorId: senderId,
     type: "emoticon_gift",
-    title: "이모티콘 선물",
+    title: "Emote gift",
     body: `${actorLabel(sender)}님이 「${packName}」을 보냈습니다. (+${formatUsd(creatorAmount)})`,
     link: "/support?tab=gifts",
   });
@@ -725,7 +725,7 @@ export async function notifyGoodsOrder(
   await createNotification({
     userId: sellerId,
     type: "goods_order",
-    title: "굿즈 주문",
+    title: "Merch order",
     body: `${buyerName}님 주문 · ${formatUsd(total)} 결제 완료`,
     link: "/support",
   });
@@ -746,7 +746,7 @@ export async function notifyLiveStart(
       userId,
       actorId: hostId,
       type: "live",
-      title: "라이브 시작",
+      title: "Start live",
       body,
       link,
     }));
@@ -757,7 +757,7 @@ export async function notifyLiveStart(
         .then(({ deliverMobilePush }) =>
           deliverMobilePush({
             userId: row.userId,
-            title: "라이브 시작",
+            title: "Start live",
             body,
             url: link,
             tag: `live-${channelId}`,
@@ -782,7 +782,7 @@ export async function notifyPostCollabInvite(
     userId: inviteeId,
     actorId: inviterId,
     type: "post_collab_invite",
-    title: "공동작업 초대",
+    title: "Collaboration invite",
     body: `${actorLabel(actor)}님이 회원님을 공동작업자로 초대했습니다.${snippet}`,
     link: `/post/${postId}?collab=1`,
   });
@@ -802,7 +802,7 @@ export async function notifyPostCollabAccepted(
     userId: authorId,
     actorId: collaboratorId,
     type: "post_collab_accepted",
-    title: "공동작업 수락",
+    title: "Collaboration accepted",
     body: `${actorLabel(actor)}님이 공동작업 초대를 수락했습니다.${snippet}`,
     link: `/post/${postId}`,
   });

@@ -1,5 +1,10 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
 
+
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
@@ -42,12 +47,12 @@ export function EventSponsoredAdMocoPay({
     try {
       const res = await purchaseEventSponsoredAd(eventId, days);
       if (!res.ok) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       onSuccess();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "결제에 실패했습니다.");
+      setError(e instanceof Error ? e.message : i18n("lib.stripe.pay.intent.service.s591cd6ca2b"));
     } finally {
       setLoading(false);
     }
@@ -56,7 +61,7 @@ export function EventSponsoredAdMocoPay({
   return (
     <div className="space-y-3 rounded-xl border border-border bg-background/60 p-4">
       <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground">MOCO로 스폰서드 광고</p>
+        <p className="text-sm font-medium text-foreground">{i18n("events.moco_5")}</p>
         <p className="text-xs text-muted-foreground">
           24시간(1일)당 {SPONSORED_AD_MOCO_PER_DAY} MOCO · purchasedMoco에서 즉시 차감 · 피드·배너 노출
         </p>

@@ -32,14 +32,14 @@ export async function upsertChannelPermissionOverride(input: {
       where: { id: input.channelId },
       select: { id: true, communityId: true, community: { select: { slug: true } } },
     });
-    if (!channel) return { error: "채널을 찾을 수 없습니다." };
+    if (!channel) return { error: "actions.s8fxex5" };
 
     const canManage = await resolveCommunityPermission(
       channel.communityId,
       user.id,
       "manageChannels"
     );
-    if (!canManage) return { error: "채널 권한 설정 권한이 없습니다." };
+    if (!canManage) return { error: "actions.s1trvmok" };
 
     await db.communityChannelPermissionOverride.upsert({
       where: {
@@ -76,14 +76,14 @@ export async function deleteChannelPermissionOverride(overrideId: string) {
       where: { id: overrideId },
       include: { channel: { select: { communityId: true, community: { select: { slug: true } } } } },
     });
-    if (!row) return { error: "덮어쓰기를 찾을 수 없습니다." };
+    if (!row) return { error: "actions.s9gr37v" };
 
     const canManage = await resolveCommunityPermission(
       row.channel.communityId,
       user.id,
       "manageChannels"
     );
-    if (!canManage) return { error: "채널 권한 설정 권한이 없습니다." };
+    if (!canManage) return { error: "actions.s1trvmok" };
 
     await db.communityChannelPermissionOverride.delete({ where: { id: overrideId } });
     revalidatePath(`/c/${row.channel.community.slug}`);
@@ -120,14 +120,14 @@ export async function getChannelPermissionManageBundle(channelId: string) {
     where: { id: channelId },
     select: { id: true, name: true, communityId: true },
   });
-  if (!channel) return { error: "채널을 찾을 수 없습니다." as const };
+  if (!channel) return { error: "actions.s8fxex5" as const };
 
   const canManage = await resolveCommunityPermission(
     channel.communityId,
     user.id,
     "manageChannels"
   );
-  if (!canManage) return { error: "채널 권한 설정 권한이 없습니다." as const };
+  if (!canManage) return { error: "actions.s1trvmok" as const };
 
   const [overrides, roles] = await Promise.all([
     db.communityChannelPermissionOverride.findMany({

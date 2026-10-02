@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -15,14 +16,14 @@ export async function GET(
 
   const { roomId } = await params;
   if (!roomId || roomId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const after = req.nextUrl.searchParams.get("after");
   const result = await syncMobileRoomMessages(authResult.user.id, roomId, after);
   if ("error" in result) {
     const status = result.error === "FORBIDDEN" ? 403 : 400;
-    return NextResponse.json({ error: result.error }, { status });
+    return NextResponse.json({ error: errorText(result.error) }, { status });
   }
   return NextResponse.json(result);
 }

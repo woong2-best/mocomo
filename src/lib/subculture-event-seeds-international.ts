@@ -82,7 +82,7 @@ export const INTERNATIONAL_SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   {
     externalKey: "official-gb-mcm-london-2026-oct",
     country: "gb",
-    title: "MCM London Comic Con 2026 (10월)",
+    title: "MCM London Comic Con 2026 (October)",
     description: "UK's largest pop culture show · ExCeL London",
     category: "comic",
     venueName: "ExCeL London",
@@ -158,9 +158,9 @@ export const INTERNATIONAL_SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   {
     externalKey: "official-ca-anime-north-2027",
     country: "ca",
-    title: "Anime North 2027 (예정)",
+    title: "Anime North 2027 (TBD)",
     description:
-      "Canada's largest anime convention · Toronto Congress Centre + Delta Hotels Toronto Airport · 공식 일정 발표 시 갱신",
+      "Canada's largest anime convention · Toronto Congress Centre + Delta Hotels Toronto Airport · Updates when the official schedule is announced",
     category: "anime",
     venueName: "Delta Hotels by Marriott Toronto Airport & Conference Centre",
     address: "655 Dixon Rd, Etobicoke, ON M9W 1J3, Canada",
@@ -219,8 +219,8 @@ export const INTERNATIONAL_SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   {
     externalKey: "official-tw-ff45-2026",
     country: "tw",
-    title: "FF45 開拓動漫祭 (예정)",
-    description: "8월 Taipei · 공식 일정 발표 시 갱신",
+    title: "FF45 Fancy Frontier (TBD)",
+    description: "August · Taipei · Updates when the official schedule is announced",
     category: "comic",
     venueName: "花博公園",
     address: "台北市",
@@ -235,8 +235,8 @@ export const INTERNATIONAL_SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   {
     externalKey: "official-cn-bilibili-world-2026",
     country: "cn",
-    title: "Bilibili World 2026 (예정)",
-    description: "Shanghai ACG expo · 7월 관례 · 공식 일정 발표 시 갱신",
+    title: "Bilibili World 2026 (TBD)",
+    description: "Shanghai ACG expo · typically July · Updates when the official schedule is announced",
     category: "anime",
     venueName: "国家会展中心",
     address: "上海市青浦区崧泽大道333号",
@@ -249,8 +249,8 @@ export const INTERNATIONAL_SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   {
     externalKey: "official-cn-cp30-2026",
     country: "cn",
-    title: "CP30 同人祭 (예정)",
-    description: "Comicup Shanghai · 공식 일정 발표 시 갱신",
+    title: "CP30 doujin event (TBD)",
+    description: "Comicup Shanghai · Updates when the official schedule is announced",
     category: "comic",
     venueName: "国家会展中心",
     address: "上海市",
@@ -281,8 +281,8 @@ export const INTERNATIONAL_SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   {
     externalKey: "official-vn-anime-festival-2026",
     country: "vn",
-    title: "Anime Festival Vietnam 2026 (예정)",
-    description: "Ho Chi Minh City · 공식 일정 발표 시 갱신",
+    title: "Anime Festival Vietnam 2026 (TBD)",
+    description: "Ho Chi Minh City · Updates when the official schedule is announced",
     category: "anime",
     venueName: "SECC",
     address: "799 Nguyễn Văn Linh, Quận 7, TP.HCM",
@@ -297,8 +297,8 @@ export const INTERNATIONAL_SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   {
     externalKey: "official-ph-anime-festival-asia-2026",
     country: "ph",
-    title: "Anime Festival Asia Philippines 2026 (예정)",
-    description: "Manila · 공식 일정 발표 시 갱신",
+    title: "Anime Festival Asia Philippines 2026 (TBD)",
+    description: "Manila · Updates when the official schedule is announced",
     category: "anime",
     venueName: "SMX Convention Center",
     address: "Pasay, Metro Manila",
@@ -313,8 +313,8 @@ export const INTERNATIONAL_SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   {
     externalKey: "official-id-anime-festival-jakarta-2026",
     country: "id",
-    title: "Anime Festival Jakarta 2026 (예정)",
-    description: "Jakarta · 공식 일정 발표 시 갱신",
+    title: "Anime Festival Jakarta 2026 (TBD)",
+    description: "Jakarta · Updates when the official schedule is announced",
     category: "anime",
     venueName: "JIExpo Kemayoran",
     address: "Jakarta Pusat",

@@ -60,7 +60,7 @@ export function validateBookingSchedule(scheduledStartAt: Date): string | null {
   }
   const maxStart = now + 30 * 24 * 60 * 60_000;
   if (scheduledStartAt.getTime() > maxStart) {
-    return "예약은 30일 이내로만 가능합니다.";
+    return "Bookings are only available within 30 days.";
   }
   return null;
 }
@@ -126,14 +126,14 @@ export async function fulfillCallBookingPayment(params: {
       fan: { select: { username: true } },
     },
   });
-  if (!booking) return { error: "예약을 찾을 수 없습니다." };
-  if (booking.fanId !== params.fanId) return { error: "예약 권한이 없습니다." };
+  if (!booking) return { error: "Booking not found." };
+  if (booking.fanId !== params.fanId) return { error: "No permission for this booking." };
   if (booking.status !== "PAYMENT_PENDING" && booking.status !== "PENDING_CREATOR") {
     if (booking.paymentIntentId) return { ok: true as const, alreadyPaid: true };
-    return { error: "이미 처리된 예약입니다." };
+    return { error: "This booking has already been processed." };
   }
   if (booking.amountKrw !== params.amount) {
-    return { error: "결제 금액이 예약과 일치하지 않습니다." };
+    return { error: "Payment amount does not match the booking." };
   }
 
   await db.creatorCallBooking.update({
@@ -146,7 +146,7 @@ export async function fulfillCallBookingPayment(params: {
 
   await recordPaymentGross(params.amount, params.paymentIntentId, `call_booking:${booking.id}`);
 
-  const callTypeLabel = booking.callType === "VIDEO" ? "영상" : "음성";
+  const callTypeLabel = booking.callType === "VIDEO" ? "Video" : "Voice";
   const body = buildCallBookingMessageBody(booking.id, callTypeLabel);
   await sendMobileDmMessage(booking.fanId, {
     roomId: booking.chatRoomId,
@@ -156,7 +156,7 @@ export async function fulfillCallBookingPayment(params: {
   void createNotification({
     userId: booking.creatorId,
     type: "SYSTEM",
-    title: "통화 예약 신청",
+    title: "Call booking request",
     body: `@${booking.fan.username}님이 ${callTypeLabel} 통화 예약을 신청했습니다.`,
     link: `/messages?room=${booking.chatRoomId}`,
     actorId: booking.fanId,
@@ -176,22 +176,22 @@ export async function settleCallBooking(bookingId: string) {
       paymentIntentId: true,
     },
   });
-  if (!booking || !booking.paymentIntentId) return { error: "예약을 찾을 수 없습니다." };
+  if (!booking || !booking.paymentIntentId) return { error: "Booking not found." };
   if (booking.status === "COMPLETED") return { ok: true as const, alreadySettled: true };
-  if (booking.status !== "CONFIRMED") return { error: "정산 가능한 상태가 아닙니다." };
+  if (booking.status !== "CONFIRMED") return { error: "Not in a settleable status." };
 
   const { platformFee, sellerAmount } = splitPlatformFee(booking.amountKrw);
   await recordPlatformFee(platformFee, {
     referenceType: "call_booking",
     referenceId: booking.id,
     paymentIntentId: booking.paymentIntentId,
-    memo: "크리에이터 통화 예약",
+    memo: "Creator call booking",
   });
   await creditSellerEarning(booking.creatorId, sellerAmount, {
     referenceType: "call_booking",
     referenceId: booking.id,
     paymentIntentId: booking.paymentIntentId,
-    memo: "통화 예약 정산",
+    memo: "Call booking settlement",
   });
 
   await db.creatorCallBooking.update({
@@ -226,8 +226,8 @@ export async function processCallBookingRefundApproval(bookingId: string, resolv
       fan: { select: { username: true } },
     },
   });
-  if (!booking?.refund) return { error: "환불 요청을 찾을 수 없습니다." };
-  if (booking.refund.status !== "REQUESTED") return { error: "이미 처리된 환불입니다." };
+  if (!booking?.refund) return { error: "Refund request not found." };
+  if (booking.refund.status !== "REQUESTED") return { error: "This refund has already been processed." };
 
   const intent = booking.paymentIntentId
     ? await db.paymentIntent.findUnique({ where: { id: booking.paymentIntentId } })
@@ -262,8 +262,8 @@ export async function processCallBookingRefundApproval(bookingId: string, resolv
   void createNotification({
     userId: booking.fanId,
     type: "SYSTEM",
-    title: "통화 예약 환불",
-    body: "크리에이터가 환불을 승인했습니다.",
+    title: "Call booking refund",
+    body: "The creator approved the refund.",
     link: `/messages?room=${booking.chatRoomId}`,
     actorId: resolverId,
   });

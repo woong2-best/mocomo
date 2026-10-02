@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { adminLoginLogsAction } from "@/actions/admin-security";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +11,7 @@ export default async function AdminLoginLogsPage() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">관리자 로그인 기록</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("app.admin.sm6jup9")}</h1>
         <p className="text-sm text-muted-foreground">
           Passkey / TOTP 사용 여부와 성공·실패를 포함한 감사 로그입니다.
         </p>
@@ -17,17 +20,17 @@ export default async function AdminLoginLogsPage() {
         <table className="w-full min-w-[960px] text-left text-sm">
           <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
             <tr>
-              <th className="p-2">시간</th>
+              <th className="p-2">{t("reels.sy36w")}</th>
               <th className="p-2">계정</th>
               <th className="p-2">IP</th>
-              <th className="p-2">국가</th>
-              <th className="p-2">브라우저</th>
+              <th className="p-2">{t("settings.country")}</th>
+              <th className="p-2">Browser</th>
               <th className="p-2">OS</th>
-              <th className="p-2">기기</th>
+              <th className="p-2">Device</th>
               <th className="p-2">Passkey</th>
               <th className="p-2">TOTP</th>
-              <th className="p-2">결과</th>
-              <th className="p-2">실패 사유</th>
+              <th className="p-2">Results</th>
+              <th className="p-2">Failure reason</th>
             </tr>
           </thead>
           <tbody>
@@ -48,7 +51,7 @@ export default async function AdminLoginLogsPage() {
                 <td className="p-2">{row.usedTotp ? "Y" : "—"}</td>
                 <td className="p-2">
                   <span className={row.success ? "text-emerald-600" : "text-destructive"}>
-                    {row.success ? "성공" : "실패"}
+                    {row.success ? t("app.admin.sxt5w") : t("reels.syb44")}
                   </span>
                 </td>
                 <td className="p-2 text-xs text-muted-foreground">

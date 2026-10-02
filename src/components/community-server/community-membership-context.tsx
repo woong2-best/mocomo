@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import {
   createContext,
   useCallback,
@@ -66,7 +70,7 @@ export function CommunityMembershipProvider({
       try {
         const result = await joinCommunityServer(initial.communityId, inviteCode, joinPassword);
         if ("error" in result && result.error) {
-          setState((s) => ({ ...s, joinError: result.error }));
+          setState((s) => ({ ...s, joinError: errorText(result.error) }));
           return;
         }
         if ("pending" in result && result.pending) {
@@ -94,8 +98,8 @@ export function CommunityMembershipProvider({
         setState((s) => ({
           ...s,
           joinError: isDigest
-            ? "참여 처리 중 오류가 발생했습니다. 새로고침 후 다시 시도해 주세요."
-            : raw || "참여 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+            ? t("community-server.s9cafm9")
+            : raw || t("community-server.sq3ush2"),
         }));
       } finally {
         setState((s) => ({ ...s, joinLoading: false }));

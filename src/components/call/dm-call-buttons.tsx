@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useCall, useCallBusy } from "@/components/call/call-provider";
 import type { CallParticipant } from "@/lib/call-types";
@@ -37,8 +40,8 @@ function VoiceCallButton({
       className="rounded-xl shrink-0"
       disabled={disabled || busy}
       onClick={handleCall}
-      title="음성 통화"
-      aria-label="음성 통화"
+      title={t("call.smavk62")}
+      aria-label={t("call.smavk62")}
     >
       <Phone className="h-4 w-4" />
     </Button>

@@ -14,7 +14,7 @@ export async function GET(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { token } = await params;
@@ -22,13 +22,13 @@ export async function GET(
     where: { downloadToken: token },
   });
   if (!row || row.buyerId !== session.user.id) {
-    return NextResponse.json({ error: "다운로드 권한이 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "You don't have permission to do that." }, { status: 403 });
   }
   if (row.expiresAt && row.expiresAt.getTime() < Date.now()) {
-    return NextResponse.json({ error: "다운로드 기간이 만료되었습니다." }, { status: 410 });
+    return NextResponse.json({ error: "The download period has expired." }, { status: 410 });
   }
   if (row.downloadCount >= row.maxDownloads) {
-    return NextResponse.json({ error: "다운로드 횟수를 초과했습니다." }, { status: 429 });
+    return NextResponse.json({ error: "Download limit exceeded." }, { status: 429 });
   }
 
   await db.marketplaceDigitalDownload.update({

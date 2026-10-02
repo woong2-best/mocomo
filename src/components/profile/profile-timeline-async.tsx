@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   getProfileHeader,
   getProfileMediaGrid,
@@ -18,11 +21,11 @@ function timelinePostIds(items: { type: string; post: { id: string } }[]) {
 }
 
 const emptyMessages: Record<string, string> = {
-  posts: "아직 게시물이 없습니다.",
-  replies: "아직 남긴 답글이 없습니다.",
-  media: "아직 올린 사진·영상이 없습니다.",
-  likes: "좋아요한 게시물이 없습니다.",
-  wiki: "위키 기여가 없습니다.",
+  posts: t("profile.s10mkyr2"),
+  replies: t("profile.sjm9kzf"),
+  media: t("profile.s4yj3g1"),
+  likes: t("profile.s1fug18q"),
+  wiki: t("profile.svzcahz"),
 };
 
 /** 타임라인 우선 로드 */

@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +21,7 @@ export function HomeInPageSearch({ query }: { query: string }) {
         credentials: "include",
       });
       const json = (await res.json()) as FastSearchResult & { error?: string };
-      if (!res.ok) throw new Error(json.error ?? "검색에 실패했습니다.");
+      if (!res.ok) throw new Error(errorText(json.error ?? t("maps.s8mzv60")));
       return json;
     },
     staleTime: 15_000,
@@ -24,7 +29,7 @@ export function HomeInPageSearch({ query }: { query: string }) {
 
   if (search.isLoading) return <CardRowsSkeleton rows={8} />;
   if (search.isError || !search.data) {
-    return <p className="text-sm text-muted-foreground">검색에 실패했습니다.</p>;
+    return <p className="text-sm text-muted-foreground">{t("maps.s8mzv60")}</p>;
   }
 
   const { users, posts } = search.data;
@@ -32,11 +37,11 @@ export function HomeInPageSearch({ query }: { query: string }) {
   return (
     <>
       <p className="text-sm text-muted-foreground mb-4">
-        「<span className="font-medium text-foreground">{q}</span>」 결과
+        「<span className="font-medium text-foreground">{q}</span>{t("home.s631gzj")}
       </p>
       {users.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">사람</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("home.sxs2o")}</h2>
           <div className="space-y-1">
             {users.map((u) => (
               <PrefetchLink
@@ -52,8 +57,8 @@ export function HomeInPageSearch({ query }: { query: string }) {
         </section>
       )}
       <section>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-2">게시물</h2>
-        {posts.length === 0 && <p className="text-xs text-muted-foreground">없음</p>}
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("lib.post.share.s0131626e0e")}</h2>
+        {posts.length === 0 && <p className="text-xs text-muted-foreground">{t("lib.creator.subscription.sd58fa73adc")}</p>}
         {posts.map((p) => (
           <PrefetchLink key={p.id} href={`/post/${p.id}`}>
             <Card className="mb-2 hover:border-primary/30">
@@ -63,11 +68,11 @@ export function HomeInPageSearch({ query }: { query: string }) {
         ))}
       </section>
       {users.length === 0 && posts.length === 0 && (
-        <p className="text-sm text-muted-foreground">검색 결과가 없습니다.</p>
+        <p className="text-sm text-muted-foreground">{t("home.s1ilpk74")}</p>
       )}
       <p className="mt-4 text-xs text-muted-foreground">
         <Link href={`/search?q=${encodeURIComponent(q)}&scope=social`} className="hover:underline">
-          전체 검색 →
+          {t("home.snhqtez")}
         </Link>
       </p>
     </>

@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import {
@@ -96,7 +101,7 @@ export function MarketplaceCheckoutSheet({
     void prepareMarketplacePayment(checkoutInput)
       .then((res) => {
         if ("error" in res && res.error) {
-          setError(res.error);
+          setError(errorText(res.error));
           return;
         }
         if (!("orderId" in res) || !res.orderId) return;
@@ -123,7 +128,7 @@ export function MarketplaceCheckoutSheet({
       if (!stripePromise) return;
       const stripe = await stripePromise;
       if (!stripe) {
-        setError("Stripe를 불러오지 못했습니다.");
+        setError(t("payments.stripe_2"));
         return;
       }
       const returnUrl = stripePaymentIntentReturnUrlClient(
@@ -134,16 +139,16 @@ export function MarketplaceCheckoutSheet({
         return_url: returnUrl,
       });
       if (confirmError) {
-        setError(confirmError.message ?? "인증에 실패했습니다.");
+        setError(confirmError.message ?? t("payments.sd3f0vg"));
         return;
       }
       if (paymentIntent?.status !== "succeeded") {
-        setError("결제가 완료되지 않았습니다.");
+        setError(t("lib.stripe.pay.intent.service.s6c02628d73"));
         return;
       }
       const done = await confirmMarketplacePayment(oid);
       if ("error" in done && done.error) {
-        setError(done.error);
+        setError(errorText(done.error));
         return;
       }
       if ("success" in done && done.success) {
@@ -159,18 +164,18 @@ export function MarketplaceCheckoutSheet({
 
   function paySelected() {
     if (!orderId || !selectedId) {
-      setError("카드를 선택해 주세요.");
+      setError(t("payments.sfr3dor"));
       return;
     }
     if (!purchaseTermsAccepted) {
-      setError("결제 전 이용약관에 동의해 주세요.");
+      setError(t("payments.szkp449"));
       return;
     }
     setError("");
     startTransition(async () => {
       const res = await payMarketplaceWithSavedCard(orderId, selectedId, true);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("requiresAction" in res && res.requiresAction && res.clientSecret) {
@@ -190,13 +195,13 @@ export function MarketplaceCheckoutSheet({
   async function redirectCheckout() {
     if (!orderId) return;
     if (!purchaseTermsAccepted) {
-      setError("결제 전 이용약관에 동의해 주세요.");
+      setError(t("payments.szkp449"));
       return;
     }
     setError("");
     const res = await createMarketplaceCheckoutRedirect(orderId, true);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("checkoutUrl" in res && res.checkoutUrl) {
@@ -208,12 +213,12 @@ export function MarketplaceCheckoutSheet({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle>결제 수단 선택</DialogTitle>
+          <DialogTitle>{t("payments.s14y8ndl")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
-            <p className="text-sm text-muted-foreground">{orderName || "마켓 구매"}</p>
+            <p className="text-sm text-muted-foreground">{orderName || t("payments.s168egod")}</p>
             <p className="text-2xl font-black mt-1">
               {amount > 0 ? formatMoney(amount) : "—"}
             </p>
@@ -266,7 +271,7 @@ export function MarketplaceCheckoutSheet({
                     <p className="font-bold truncate">
                       {pm.brand} •••• {pm.last4}
                       {pm.isDefault ? (
-                        <span className="ml-2 text-[10px] font-bold text-primary">기본</span>
+                        <span className="ml-2 text-[10px] font-bold text-primary">{t("lib.virtual-avatar.sunyg")}</span>
                       ) : null}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -283,8 +288,8 @@ export function MarketplaceCheckoutSheet({
               >
                 <Plus className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="font-bold">새 카드로 결제</p>
-                  <p className="text-xs text-muted-foreground">Stripe에서 카드 입력 · 저장 가능</p>
+                  <p className="font-bold">{t("payments.sgep6gg")}</p>
+                  <p className="text-xs text-muted-foreground">{t("payments.stripe")}</p>
                 </div>
               </button>
             </div>
@@ -312,7 +317,7 @@ export function MarketplaceCheckoutSheet({
                 disabled={pending || loading || !selectedId || !orderId || !purchaseTermsAccepted}
                 onClick={paySelected}
               >
-                {pending ? "결제 중…" : "선택한 카드로 결제"}
+                {pending ? t("payments.s1p6xizt") : t("payments.sr2fd7d")}
               </Button>
             ) : (
               <Button

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter, useSearchParams } from "next/navigation";
 import type { WebtoonGenre } from "@prisma/client";
 import { WEBTOON_GENRE_LABEL, WEBTOON_GENRES } from "@/lib/webtoon/constants";
@@ -20,7 +23,7 @@ export function WebtoonGenreBar({ active }: { active: WebtoonGenre | null }) {
   return (
     <div className="overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
       <div className="flex flex-wrap gap-2">
-        <GenrePill label="전체" active={!active} onClick={() => navigate(null)} />
+        <GenrePill label={t("lib.live.categories.s934dd25ec5")} active={!active} onClick={() => navigate(null)} />
         {WEBTOON_GENRES.map((genre) => (
           <GenrePill
             key={genre}

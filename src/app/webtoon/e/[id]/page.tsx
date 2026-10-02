@@ -101,7 +101,7 @@ export default async function WebtoonEpisodePage({
             포트폴리오 · {episode.series.title}
           </Link>
 
-          <p className="text-[10px] text-amber-700">캡처·녹화·복사가 제한된 구역입니다.</p>
+          <p className="text-[10px] text-amber-700">Screenshots, recording, and copying are restricted here.</p>
         </aside>
       </div>
     </div>

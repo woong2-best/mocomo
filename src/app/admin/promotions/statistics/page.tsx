@@ -1,3 +1,7 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { adminPromotionStatsAction } from "@/actions/admin-promotions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPromotionStatsPage() {
   const res = await adminPromotionStatsAction();
-  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+  if (!res.ok) return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
 
   const maxSaved = Math.max(1, ...res.data.map((d) => d.usedBenefitKrw));
 
@@ -17,7 +21,7 @@ export default async function AdminPromotionStatsPage() {
         <Link href="/admin/promotions" className="text-sm text-muted-foreground hover:underline">
           ← 프로모션
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight">프로모션 통계</h1>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight">Promotion stats</h1>
         <p className="text-sm text-muted-foreground">
           API: <code className="text-xs">GET /api/admin/promotions/statistics</code>
         </p>
@@ -35,15 +39,15 @@ export default async function AdminPromotionStatsPage() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="grid grid-cols-2 gap-1">
-                <span className="text-muted-foreground">발급</span>
+                <span className="text-muted-foreground">{t("app.admin.swy99")}</span>
                 <span>{d.assignedCount.toLocaleString()}</span>
-                <span className="text-muted-foreground">사용</span>
+                <span className="text-muted-foreground">{t("app.admin.sxv25")}</span>
                 <span>{d.usedCount.toLocaleString()}</span>
-                <span className="text-muted-foreground">사용률</span>
+                <span className="text-muted-foreground">{t("app.admin.st6rgj")}</span>
                 <span>{d.usageRate}%</span>
-                <span className="text-muted-foreground">절감</span>
+                <span className="text-muted-foreground">{t("admin.syyvc")}</span>
                 <span>{formatUsd(d.usedBenefitKrw)}</span>
-                <span className="text-muted-foreground">평균 절감</span>
+                <span className="text-muted-foreground">{t("app.admin.s1woyff5")}</span>
                 <span>{formatUsd(d.avgBenefitKrw)}</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -66,7 +70,7 @@ export default async function AdminPromotionStatsPage() {
           </Card>
         ))}
         {res.data.length === 0 ? (
-          <p className="text-sm text-muted-foreground">통계 데이터가 없습니다.</p>
+          <p className="text-sm text-muted-foreground">{t("app.admin.s11czpl4")}</p>
         ) : null}
       </div>
     </div>

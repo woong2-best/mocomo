@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { KOREA_SIDO, USED_SHIPPING_REGION, formatUsedRegion, getSidoById, getSigunguList } from "@/lib/korea-regions";
 import { usedShippingRegionLabel } from "@/lib/used-regions-global";
@@ -19,8 +22,7 @@ type UsedRegionFilterProps = {
 function countryLabel(code: string, locale: string): string {
   const row = ALLOWED_COUNTRIES.find((c) => c.code === code);
   if (!row) return code;
-  if (locale === "en") return row.nameEn;
-  return row.nameKo;
+  return row.nameEn;
 }
 
 export function UsedRegionFilter({
@@ -54,7 +56,7 @@ export function UsedRegionFilter({
       <div className="space-y-2">
         <Input
           className="h-9 rounded-lg text-xs"
-          placeholder={locale === "en" ? "City or area (optional)" : "도시·지역 (선택)"}
+          placeholder={"City or area (optional)"}
           defaultValue={isUsedShippingRegion(currentRegion) ? "" : currentRegion}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -69,7 +71,7 @@ export function UsedRegionFilter({
           className="text-[10px] text-muted-foreground underline"
           onClick={() => apply({ region: "Shipping", sido: null })}
         >
-          {locale === "en" ? "Shipping only" : "배송 거래만"}
+          {"Shipping only"}
         </button>
         <p className="text-[10px] text-muted-foreground">
           {usedMarketPhoneCountryLabel(viewerCountry, locale)}
@@ -110,7 +112,7 @@ export function UsedRegionFilter({
             else apply({ sido: id, region: null });
           }}
         >
-          <option value="">시·도 전체</option>
+          <option value="">{t("used.s1q03uuf")}</option>
           {KOREA_SIDO.map((s) => (
             <option key={s.id} value={s.id}>
               {s.short}
@@ -134,7 +136,7 @@ export function UsedRegionFilter({
             if (s) apply({ region: formatUsedRegion(s.short, unit), sido: null });
           }}
         >
-          <option value="">시·군·구 전체</option>
+          <option value="">{t("used.s2dzhae")}</option>
           {sigunguList.map((u) => (
             <option key={u} value={u}>
               {u}

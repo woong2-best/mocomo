@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -86,14 +89,14 @@ export function SubcultureEventPinCard({
             )}
           >
             {isUserRec ? (
-              <span className="text-emerald-500 font-medium">유저 추천</span>
+              <span className="text-emerald-500 font-medium">User pick</span>
             ) : isMaid ? (
-              <span className="text-pink-500 font-medium">상설 영업</span>
+              <span className="text-pink-500 font-medium">{i18n("events.s1vqpuht")}</span>
             ) : (
               <>
-                {format(new Date(pin.startsAt), "yyyy년 M월 d일 (EEE)", { locale: ko })}
+                {format(new Date(pin.startsAt), i18n("events.yyyy_m_d_eee"), { locale: ko })}
                 {pin.endsAt &&
-                  ` — ${format(new Date(pin.endsAt), "M월 d일", { locale: ko })}`}
+                  ` — ${format(new Date(pin.endsAt), i18n("lib.birth.date.sbb2196ef1a"), { locale: ko })}`}
               </>
             )}
           </p>

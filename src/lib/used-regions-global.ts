@@ -10,7 +10,7 @@ import {
   parseUsedRegion,
   USED_SHIPPING_REGION,
 } from "@/lib/korea-regions";
-import { findCountry as findWorldCountry } from "@/lib/apt/world/world-countries";
+import { findCountry as findWorldCountry } from "@/lib/world-countries";
 
 /** Legacy KR shipping label — kept for DB backward compatibility */
 export { USED_SHIPPING_REGION };
@@ -35,10 +35,7 @@ export function isUsedShippingRegion(region: string): boolean {
 }
 
 export function usedShippingRegionLabel(locale: Locale = "ko"): string {
-  if (locale === "en") return USED_GLOBAL_SHIPPING_REGION;
-  if (locale === "ja") return "全国配送";
-  if (locale === "zh" || locale === "zh-TW") return "全国配送（邮寄）";
-  return USED_SHIPPING_REGION;
+  return USED_GLOBAL_SHIPPING_REGION;
 }
 
 export function normalizeUsedMarketCountry(countryCode?: string | null): string {
@@ -120,7 +117,7 @@ export function listUsedRegionsForCountry(countryCode?: string | null): string[]
 export function assertUsedMarketCountryAllowed(countryCode?: string | null): string | null {
   const cc = normalizeUsedMarketCountry(countryCode);
   if (isOfacSanctionedCountry(cc)) {
-    return "해당 지역에서는 중고거래를 이용할 수 없습니다.";
+    return "used.error.regionUnavailable";
   }
   return null;
 }

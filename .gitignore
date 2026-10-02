@@ -112,3 +112,6 @@ venv/
 # local DB migration artifacts (PII) and portable postgres binaries
 /.migration-dump/
 /.tools/
+
+# i18n migration caches
+scripts/i18n/.cache-*.json

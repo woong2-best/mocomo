@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MessageSquare, Settings } from "lucide-react";
@@ -11,7 +14,7 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 type Room = {
   id: string;
@@ -67,7 +70,7 @@ export function ConversationList({
         <Link
           href="/settings/messages"
           className="p-2 rounded-full hover:bg-muted/80 shrink-0"
-          aria-label={uiText(locale, "메시지 설정", "Message settings")}
+          aria-label={t("ui.message_settings")}
         >
           <Settings className="h-5 w-5" />
         </Link>
@@ -80,12 +83,12 @@ export function ConversationList({
               <MessageSquare className="h-7 w-7 text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {uiText(locale, "아직 대화가 없어요.", "No conversations yet.")}
+              {t("ui.no_conversations_yet")}
               <br />
-              {uiText(locale, "친구에게 첫 메시지를 보내 보세요.", "Send someone your first message.")}
+              {t("ui.send_someone_your_first_message")}
             </p>
             <Button asChild className="rounded-full">
-              <Link href="/messages/new">{uiText(locale, "새 메시지", "New message")}</Link>
+              <Link href="/messages/new">{t("messages.newTitle")}</Link>
             </Button>
           </div>
         ) : (

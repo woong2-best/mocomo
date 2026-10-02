@@ -26,9 +26,9 @@ export async function executeMarketplaceDisputeResolution(input: {
     where: { id: input.disputeId },
     include: { order: true },
   });
-  if (!dispute) return { error: "분쟁을 찾을 수 없습니다." };
+  if (!dispute) return { error: "Dispute not found." };
   if (["RESOLVED_BUYER", "RESOLVED_SELLER", "CLOSED"].includes(dispute.status)) {
-    return { error: "이미 처리된 분쟁입니다." };
+    return { error: "This dispute was already processed." };
   }
 
   const resolutionNote =
@@ -79,7 +79,7 @@ export async function executeMarketplaceDisputeResolution(input: {
       data: {
         orderId: dispute.orderId,
         requesterId: dispute.openerId,
-        reason: resolutionNote || "분쟁 해결 환불",
+        reason: resolutionNote || "Dispute resolution refund",
         amount,
         status: stripeRefundId ? "COMPLETED" : "APPROVED",
         stripeRefundId,
@@ -95,7 +95,7 @@ export async function executeMarketplaceDisputeResolution(input: {
         escrowHeld: false,
         settlementHeldReason: input.autoRule
           ? `자동 분쟁 규칙: ${input.autoRule}`
-          : "분쟁 환불",
+          : "Dispute refund",
       },
     });
     await db.marketplaceSellerProfile.updateMany({
@@ -135,14 +135,14 @@ export async function executeMarketplaceDisputeResolution(input: {
   await createNotification({
     userId: dispute.order.buyerId,
     type: "SYSTEM",
-    title: input.autoRule ? "분쟁 자동 처리 결과" : "분쟁 처리 결과",
+    title: input.autoRule ? "분쟁 자동 처리 결과" : "Dispute outcome",
     body: resolutionNote || status,
     link: `/market/orders/${dispute.orderId}`,
   });
   await createNotification({
     userId: dispute.order.sellerId,
     type: "SYSTEM",
-    title: input.autoRule ? "분쟁 자동 처리 결과" : "분쟁 처리 결과",
+    title: input.autoRule ? "분쟁 자동 처리 결과" : "Dispute outcome",
     body: resolutionNote || status,
     link: `/market/orders/${dispute.orderId}`,
   });
@@ -158,14 +158,14 @@ export async function executeNoShipAutoRefund(orderId: string): Promise<
     where: { id: orderId },
     include: { shipment: true, disputes: { take: 1 } },
   });
-  if (!order) return { error: "주문을 찾을 수 없습니다." };
-  if (order.disputes.length > 0) return { error: "분쟁 존재", skipped: true };
+  if (!order) return { error: "Order not found." };
+  if (order.disputes.length > 0) return { error: "Dispute exists", skipped: true };
   if (!["PAID", "PREPARING"].includes(order.status)) {
-    return { error: "대상 상태 아님", skipped: true };
+    return { error: "Wrong status", skipped: true };
   }
-  if (order.checkoutMode !== "STRIPE") return { error: "Stripe 주문 아님", skipped: true };
+  if (order.checkoutMode !== "STRIPE") return { error: "Not a Stripe order", skipped: true };
   const tracking = order.shipment?.trackingNumber?.trim();
-  if (tracking) return { error: "운송장 등록됨", skipped: true };
+  if (tracking) return { error: "Tracking number registered", skipped: true };
 
   const amount = order.subtotalAmount + order.shippingAmount;
   let stripeRefundId: string | undefined;
@@ -182,7 +182,7 @@ export async function executeNoShipAutoRefund(orderId: string): Promise<
     data: {
       orderId,
       requesterId: order.buyerId,
-      reason: "auto:NO_SHIP_DEADLINE — 운송장 미등록 자동 환불",
+      reason: "auto:NO_SHIP_DEADLINE — automatic refund for missing tracking",
       amount,
       status: stripeRefundId ? "COMPLETED" : "APPROVED",
       stripeRefundId,
@@ -196,7 +196,7 @@ export async function executeNoShipAutoRefund(orderId: string): Promise<
       status: "REFUNDED",
       settlementStatus: "REVERSED",
       escrowHeld: false,
-      settlementHeldReason: "운송장 미등록 자동 환불",
+      settlementHeldReason: "Automatic refund for missing tracking",
       cancelledAt: new Date(),
     },
   });
@@ -222,15 +222,15 @@ export async function executeNoShipAutoRefund(orderId: string): Promise<
   await createNotification({
     userId: order.buyerId,
     type: "SYSTEM",
-    title: "자동 환불 — 운송장 미등록",
-    body: "판매자가 기한 내 운송장을 등록하지 않아 결제가 자동 환불되었습니다.",
+    title: "Automatic refund — no tracking number",
+    body: "Payment was automatically refunded because the seller did not register tracking in time.",
     link: `/market/orders/${orderId}`,
   });
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: "자동 환불 — 운송장 미등록",
-    body: "운송장 등록 기한을 초과하여 주문이 자동 환불 처리되었습니다.",
+    title: "Automatic refund — no tracking number",
+    body: "The order was automatically refunded because the tracking registration deadline passed.",
     link: `/market/orders/${orderId}`,
   });
 

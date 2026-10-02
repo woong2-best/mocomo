@@ -1,9 +1,12 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { redirect } from "next/navigation";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 export const metadata = {
-  title: "방송 스튜디오 | MoCoMo",
-  description: "라이브 스튜디오",
+  title: t("app.avatar.mocomo_2"),
+  description: t("live.liveStudio"),
 };
 
 /** Legacy broadcast studio → live studio */

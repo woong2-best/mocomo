@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition, useEffect } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -28,13 +33,13 @@ function isAppealDetailSuccess(
 }
 
 const FILTER_OPTIONS: { value: UsedMarketAppealStatusFilter; label: string }[] = [
-  { value: "OPEN", label: "미처리" },
-  { value: "RECEIVED", label: "접수됨" },
-  { value: "UNDER_REVIEW", label: "검토 중" },
-  { value: "INFO_REQUESTED", label: "자료 요청" },
-  { value: "APPROVED", label: "승인" },
-  { value: "REJECTED", label: "기각" },
-  { value: "ALL", label: "전체" },
+  { value: "OPEN", label: t("admin.ssiz2k") },
+  { value: "RECEIVED", label: t("lib.account.status.s3ed6f559cf") },
+  { value: "UNDER_REVIEW", label: t("lib.direct-trade.smlzpqp") },
+  { value: "INFO_REQUESTED", label: t("admin.sma3fnh") },
+  { value: "APPROVED", label: t("lib.account.status.s0d1cd67197") },
+  { value: "REJECTED", label: t("lib.account.status.s804c263a67") },
+  { value: "ALL", label: t("lib.live.categories.s934dd25ec5") },
 ];
 
 const DECISION_ACTIONS: AppealStatus[] = [
@@ -104,10 +109,10 @@ export function AdminUsedMarketAppealsPanel({
       const res = await updateUsedMarketAppealStatus(
         selectedId,
         status,
-        decisionNote.trim() || `관리자 처리: ${appealStatusLabel(status)}`
+        decisionNote.trim() || `Admin action: ${appealStatusLabel(status)}`
       );
       if ("error" in res && res.error) {
-        setMsg(res.error);
+        setMsg(errorText(res.error));
         return;
       }
       setMsg(`${appealStatusLabel(status)} 처리되었습니다.`);
@@ -127,7 +132,7 @@ export function AdminUsedMarketAppealsPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">중고거래 이의 신청 검토</CardTitle>
+        <CardTitle className="text-base">{t("admin.shck7cw")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
@@ -168,7 +173,7 @@ export function AdminUsedMarketAppealsPanel({
                   </p>
                   {appeal.listing && (
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                      경매: {appeal.listing.title}
+                      Auction: {appeal.listing.title}
                     </p>
                   )}
                 </button>
@@ -178,11 +183,11 @@ export function AdminUsedMarketAppealsPanel({
 
           <div className="rounded-xl border p-4 space-y-4 max-h-[480px] overflow-y-auto">
             {!selectedId ? (
-              <p className="text-sm text-muted-foreground">왼쪽에서 이의 신청을 선택하세요.</p>
+              <p className="text-sm text-muted-foreground">{t("admin.s1g6u7bd")}</p>
             ) : detailLoading ? (
-              <p className="text-sm text-muted-foreground">상세 불러오는 중…</p>
+              <p className="text-sm text-muted-foreground">{t("admin.stfiqrc")}</p>
             ) : detail && "error" in detail ? (
-              <p className="text-sm text-destructive">{detail.error}</p>
+              <p className="text-sm text-destructive">{errorText(detail.error)}</p>
             ) : selectedAppeal ? (
               <>
                 <div className="space-y-2">
@@ -202,9 +207,9 @@ export function AdminUsedMarketAppealsPanel({
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">제재 로그</h4>
+                  <h4 className="text-sm font-semibold">{t("admin.sqajjn0")}</h4>
                   {sanctionLogs.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">제재 로그 없음</p>
+                    <p className="text-xs text-muted-foreground">{t("admin.swsf2ka")}</p>
                   ) : (
                     <ul className="text-xs space-y-2">
                       {sanctionLogs.map((log) => (
@@ -220,7 +225,7 @@ export function AdminUsedMarketAppealsPanel({
                             {fmt(log.bidTermsAcceptedAt)} · 보존 ~{fmt(log.retainUntil)}
                           </p>
                           <p className="text-muted-foreground">
-                            경매 마감 {fmt(log.auctionEndsAt)} · 결제 기한 {fmt(log.paymentDueAt)}
+                            Auction 마감 {fmt(log.auctionEndsAt)} · 결제 기한 {fmt(log.paymentDueAt)}
                           </p>
                         </li>
                       ))}
@@ -239,7 +244,7 @@ export function AdminUsedMarketAppealsPanel({
                       {fmt(selectedAppeal.listing.auctionEndsAt)}
                     </p>
                     {bids.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">입찰 기록 없음</p>
+                      <p className="text-xs text-muted-foreground">{t("admin.s110axhg")}</p>
                     ) : (
                       <ul className="text-xs divide-y rounded-lg border">
                         {bids.map((bid) => (
@@ -253,7 +258,7 @@ export function AdminUsedMarketAppealsPanel({
                             <span>
                               @{bid.bidder.username}
                               {bid.bidderId === selectedAppeal.userId && (
-                                <span className="text-orange-600 ml-1">(신청자)</span>
+                                <span className="text-orange-600 ml-1">{t("admin.sq1roem")}</span>
                               )}
                             </span>
                             <span className="tabular-nums text-right shrink-0">
@@ -284,7 +289,7 @@ export function AdminUsedMarketAppealsPanel({
                     id="decision-note"
                     value={decisionNote}
                     onChange={(e) => setDecisionNote(e.target.value)}
-                    placeholder="승인/기각 사유를 입력하세요."
+                    placeholder={t("admin.s4bkrtd")}
                     className="min-h-[72px] rounded-lg text-sm"
                   />
                   <div className="flex flex-wrap gap-2">
@@ -310,7 +315,7 @@ export function AdminUsedMarketAppealsPanel({
                 </div>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">항목을 선택하면 상세가 표시됩니다.</p>
+              <p className="text-sm text-muted-foreground">{t("admin.srcx2jz")}</p>
             )}
           </div>
         </div>

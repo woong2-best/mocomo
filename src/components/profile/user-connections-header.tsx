@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ArrowLeft, UserPlus } from "lucide-react";
@@ -32,7 +35,7 @@ export function UserConnectionsHeader({
         <Link
           href={`/u/${username}`}
           className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/70 shrink-0"
-          aria-label="프로필로"
+          aria-label={t("profile.srn9fg0")}
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
@@ -45,7 +48,7 @@ export function UserConnectionsHeader({
         <Link
           href="/discover"
           className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/70 shrink-0"
-          aria-label="사람 찾기"
+          aria-label={t("profile.s1u7mvsi")}
         >
           <UserPlus className="h-5 w-5" />
         </Link>
@@ -53,7 +56,7 @@ export function UserConnectionsHeader({
 
       <nav
         className="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-t border-border/40"
-        aria-label="팔로워·팔로잉 탭"
+        aria-label={t("profile.s1469ssb")}
       >
         {CONNECTION_TABS.map((tab) => {
           const active = tab.id === activeTab;

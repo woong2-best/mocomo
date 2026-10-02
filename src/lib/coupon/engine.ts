@@ -129,7 +129,7 @@ export function formatCouponBenefit(coupon: {
     return `수수료 면제 (첫 ${(coupon.waiveUpToKrw ?? 0).toLocaleString()}원)`;
   }
   if (coupon.benefitType === "FEE_PERCENT_OFF") {
-    return `수수료 ${coupon.percentOff ?? 0}% 할인`;
+    return `Fees ${coupon.percentOff ?? 0}% 할인`;
   }
   return `수수료 ₩${(coupon.fixedDiscountKrw ?? 0).toLocaleString()} 할인`;
 }

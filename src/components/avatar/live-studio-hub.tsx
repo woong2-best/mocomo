@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { ChevronRight, Layers, Radio, Sparkles } from "lucide-react";
 import { FolkBrushDivider } from "@/components/brand/folk-decor";
@@ -9,9 +12,9 @@ const STUDIOS = [
   {
     href: "/avatar/studio/broadcast",
     icon: Radio,
-    tag: "방송",
-    title: "방송 스튜디오",
-    description: "유튜브·트witch 스타일 송출 설정, OBS·스트리머 프로필, 방송 준비",
+    tag: t("avatar.sx2fs"),
+    title: t("avatar.sn9kols"),
+    description: t("avatar.witch_obs"),
     accent: "border-folk-terracotta/40 bg-folk-terracotta/10 hover:border-folk-terracotta/70",
     iconWrap: "bg-folk-terracotta/20 text-folk-terracotta",
   },
@@ -19,8 +22,8 @@ const STUDIOS = [
     href: "/avatar/studio/2d",
     icon: Layers,
     tag: "2D",
-    title: "2D 아바타 편집",
-    description: "그리기·PNG 업로드 → 투명 PNG 방송 아바타",
+    title: t("avatar.s10318pj"),
+    description: t("avatar.png_png"),
     accent: "border-folk-cobalt/35 bg-folk-cobalt/5 hover:border-folk-cobalt/55",
     iconWrap: "bg-folk-cobalt/15 text-folk-cobalt",
   },
@@ -34,18 +37,18 @@ export function LiveStudioHub() {
           <Sparkles className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="folk-tag mb-1.5 w-fit">스튜디오</p>
+          <p className="folk-tag mb-1.5 w-fit">{t("nav.liveStudio")}</p>
           <h1 className="text-xl sm:text-2xl font-display font-bold text-folk-cobalt folk-chunky-text">
-            스튜디오 선택
+            {t("avatar.s51llg5")}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            방송 설정과 2D 아바타 편집으로 작업하세요
+            {t("avatar.s1pxs7ay")}
           </p>
           <Link
             href="/live"
             className="mt-2 inline-flex text-xs font-semibold text-muted-foreground hover:text-folk-cobalt transition-colors"
           >
-            ← 라이브로 돌아가기
+            {t("avatar.s1s5f90w")}
           </Link>
         </div>
       </header>
@@ -87,7 +90,7 @@ export function LiveStudioHub() {
                 </p>
               </div>
               <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-folk-cobalt group-hover:gap-2 transition-all">
-                열기
+                {t("avatar.symkc")}
                 <ChevronRight className="h-4 w-4" />
               </span>
             </Link>

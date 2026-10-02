@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import { LetterDonationEnvelope } from "@/components/donations/letter-donation-envelope";
 
@@ -26,7 +31,7 @@ export function LetterDonationCard({
       .then(async (res) => {
         if (!res.ok) {
           const body = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(body.error ?? "편지를 불러오지 못했습니다.");
+          throw new Error(errorText(body.error ?? t("donations.s19mn3oe")));
         }
         return res.json() as Promise<{ tip: TipPayload }>;
       })
@@ -34,7 +39,7 @@ export function LetterDonationCard({
         if (!cancelled) setTip(data.tip);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "오류");
+        if (!cancelled) setError(e instanceof Error ? e.message : t("donations.sypx0"));
       });
     return () => {
       cancelled = true;
@@ -45,7 +50,7 @@ export function LetterDonationCard({
     return <p className="text-sm text-muted-foreground py-2">{error}</p>;
   }
   if (!tip) {
-    return <p className="text-sm text-muted-foreground py-2 animate-pulse">편지 불러오는 중…</p>;
+    return <p className="text-sm text-muted-foreground py-2 animate-pulse">{t("donations.scykiuh")}</p>;
   }
 
   return (

@@ -81,51 +81,51 @@ export default async function MarketplaceListingPage({
 
           <div className="rounded-xl border border-border/60 p-3 text-sm space-y-1">
             <p>
-              판매자{" "}
+              Seller{" "}
               <Link href={`/u/${listing.seller.username}`} className="font-medium hover:underline">
                 {listing.sellerProfile?.displayName ?? `@${listing.seller.username}`}
               </Link>
             </p>
             {listing.sellerProfile && (
               <p className="text-xs text-muted-foreground">
-                평점{" "}
+                Rating{" "}
                 {listing.sellerProfile.ratingAvg > 0
                   ? listing.sellerProfile.ratingAvg.toFixed(1)
                   : "-"}{" "}
-                · 판매 {listing.sellerProfile.salesCount}
+                · {listing.sellerProfile.salesCount} sold
               </p>
             )}
           </div>
 
           <div className="text-sm space-y-1 text-muted-foreground">
-            <p>재고 {listing.stock}</p>
-            {listing.productionDays ? <p>제작기간 {listing.productionDays}일</p> : null}
+            <p>Stock {listing.stock}</p>
+            {listing.productionDays ? <p>Production {listing.productionDays} days</p> : null}
             {listing.type !== "DIGITAL" && (
               <>
                 <p>
-                  배송비{" "}
+                  Shipping{" "}
                   {listing.shippingFeeType === "FREE"
-                    ? "무료"
+                    ? "Free"
                     : formatUsd(listing.shippingFeeFixed)}
                 </p>
                 <p>
-                  배송 가능{" "}
+                  Ships to{" "}
                   {listing.shipToCountries.length > 0
                     ? listing.shipToCountries.map((c) => shipCountryLabel(c)).join(" · ")
                     : listing.shipsWorldwide
-                      ? "지원 국가 전체"
-                      : "미설정"}
+                      ? "All supported countries"
+                      : "Not configured"}
                 </p>
               </>
             )}
             <p className="text-xs">
-              플랫폼 수수료 10% — 판매자 예상 수령 {formatUsd(fees.sellerEarnAmount)}
+              Platform fee 10% — seller receives about {formatUsd(fees.sellerEarnAmount)}
             </p>
           </div>
 
           {options.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-semibold">옵션</p>
+              <p className="text-sm font-semibold">Options</p>
               {options.map((o) => (
                 <div key={o.name ?? "opt"} className="text-sm">
                   <span className="font-medium">{o.name}</span>
@@ -136,7 +136,7 @@ export default async function MarketplaceListingPage({
           )}
 
           {isOwner ? (
-            <p className="text-sm text-muted-foreground">본인 상품입니다.</p>
+            <p className="text-sm text-muted-foreground">This is your own listing.</p>
           ) : (
             <MarketplaceBuyPanel
               listingId={listing.id}
@@ -154,13 +154,13 @@ export default async function MarketplaceListingPage({
           )}
 
           <Button type="button" variant="secondary" asChild>
-            <Link href={`/messages?user=${listing.seller.username}`}>판매자 문의</Link>
+            <Link href={`/messages?user=${listing.seller.username}`}>Contact seller</Link>
           </Button>
 
           {!isOwner && <MarketplaceReportButton listingId={listing.id} />}
 
           <div>
-            <h2 className="text-sm font-semibold mb-2">설명</h2>
+            <h2 className="text-sm font-semibold mb-2">Description</h2>
             <p className="text-sm whitespace-pre-wrap leading-relaxed">{listing.description}</p>
           </div>
 

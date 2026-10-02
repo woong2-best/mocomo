@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -201,11 +204,11 @@ export function SponsoredAdSchedulePicker({
   return (
     <div className="space-y-3">
       <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">게재 기간</label>
+        <label className="text-xs font-medium text-muted-foreground">{i18n("events.s1ol1m50")}</label>
         <p className="text-[11px] text-muted-foreground">
           {unlimited
-            ? "시작 일시만 선택 · 종료 제한 없음 (직접 삭제할 때까지 노출)"
-            : "시작일·종료일을 각각 선택 · 같은 시각 기준 24시간 단위"}
+            ? i18n("events.s1arh0fc")
+            : i18n("events.sso06b5")}
         </p>
         {!unlimited ? (
           <div className="flex gap-2 pt-1">
@@ -252,7 +255,7 @@ export function SponsoredAdSchedulePicker({
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm font-semibold">
-                {format(viewMonth, "yyyy년 M월", { locale: ko })}
+                {format(viewMonth, i18n("profile.yyyy_m"), { locale: ko })}
               </span>
               <Button
                 type="button"
@@ -267,7 +270,7 @@ export function SponsoredAdSchedulePicker({
             </div>
 
             <div className="grid grid-cols-7 gap-y-0.5 text-center text-[10px] text-muted-foreground mb-0.5">
-              {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
+              {[i18n("lib.webtoon.s13ek"), i18n("lib.webtoon.s139w"), i18n("lib.webtoon.s16c4"), i18n("lib.webtoon.s12c8"), i18n("lib.webtoon.s10vd"), i18n("lib.webtoon.sydk"), i18n("lib.webtoon.s15eo")].map((d) => (
                 <div key={d} className="py-1">
                   {d}
                 </div>
@@ -339,8 +342,8 @@ export function SponsoredAdSchedulePicker({
 
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
               {unlimited
-                ? `${format(rangeInterval.start, "M월 d일")}부터 · 제한 없음`
-                : `${format(rangeInterval.start, "M월 d일")} ~ ${format(rangeInterval.end, "M월 d일")} · ${days}일`}
+                ? `${format(rangeInterval.start, i18n("lib.birth.date.sbb2196ef1a"))}부터 · 제한 없음`
+                : `${format(rangeInterval.start, i18n("lib.birth.date.sbb2196ef1a"))} ~ ${format(rangeInterval.end, i18n("lib.birth.date.sbb2196ef1a"))} · ${days}일`}
             </p>
           </div>
 
@@ -354,7 +357,7 @@ export function SponsoredAdSchedulePicker({
               onChange={onHourChange}
               format={(h) => String(h).padStart(2, "0")}
               disabled={disabled}
-              label="시"
+              label={i18n("events.s12ho")}
             />
             <span className="text-lg font-light text-muted-foreground/50 pb-1">:</span>
             <AppleWheelPicker
@@ -363,24 +366,24 @@ export function SponsoredAdSchedulePicker({
               onChange={onMinuteChange}
               format={(m) => String(m).padStart(2, "0")}
               disabled={disabled}
-              label="분"
+              label={i18n("reels.s11fo")}
             />
           </div>
         </div>
 
         <div className="border-t border-border/50 px-4 py-3 space-y-1.5 bg-muted/10 text-sm">
           <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">시작</span>
+            <span className="text-muted-foreground">{i18n("explore.start")}</span>
             <span className="font-medium tabular-nums text-right">{summary.startLabel}</span>
           </div>
           <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">종료</span>
+            <span className="text-muted-foreground">Ended</span>
             <span className="font-medium tabular-nums text-right">{summary.endLabel}</span>
           </div>
           <div className="flex justify-between gap-3 pt-1.5 border-t border-border/40">
             <span className="text-muted-foreground">
               {unlimited
-                ? "운영자 면제 · 제한 없음"
+                ? i18n("events.s1kgl1b6")
                 : `${days}일 · 차감 MOCO`}
             </span>
             <span className="font-bold text-folk-terracotta tabular-nums">

@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import type { DiscoveryGender, DiscoveryLookingFor, DiscoveryMatchingMode, DiscoverySwipeAction } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -104,13 +107,13 @@ export async function updateDiscoverySettings(data: {
 
   if (data.enabled) {
     const u = await db.user.findUnique({ where: { id: user.id }, select: { birthDate: true, isBanned: true } });
-    if (u?.isBanned) return { error: "이용이 제한된 계정입니다." };
+    if (u?.isBanned) return { error: "actions.s12qpsrn" };
     if (!u?.birthDate) {
-      return { error: "매칭 참여 전 설정 → 프로필에서 생년월일을 등록해 주세요. (만 18세 이상)" };
+      return { error: "actions.s1nvsnb8" };
     }
     const age = usedAgeFromBirthDate(u.birthDate);
     if (age < DISCOVERY_MIN_AGE) {
-      return { error: `매칭은 만 ${DISCOVERY_MIN_AGE}세 이상만 이용할 수 있습니다.` };
+      return { error: t("actions.s1gsx2w2", { v0: DISCOVERY_MIN_AGE }) };
     }
   }
 
@@ -169,7 +172,7 @@ export async function setDiscoveryMatchingMode(
 ): Promise<{ success: true } | { error: string }> {
   const user = await requireAuthMinimal();
   const me = await db.discoveryProfile.findUnique({ where: { userId: user.id } });
-  if (!me?.enabled) return { error: "매칭 참여를 먼저 켜 주세요." };
+  if (!me?.enabled) return { error: "actions.sx4su87" };
 
   await db.discoveryProfile.update({
     where: { userId: user.id },
@@ -200,7 +203,7 @@ export async function getDiscoveryDeck(): Promise<
     });
 
     if (!me?.enabled) {
-      return { enabled: false, reason: "매칭 참여를 켜면 추천을 받을 수 있어요." };
+      return { enabled: false, reason: "Turn on matching to get recommendations." };
     }
 
     const [swipes, blocks, myAnime] = await Promise.all([
@@ -259,7 +262,7 @@ export async function getDiscoveryDeck(): Promise<
     return { enabled: true, cards, matchingMode: me.matchingMode };
   } catch (err) {
     console.error("[discovery] getDiscoveryDeck failed", err instanceof Error ? err.message : "unknown");
-    return { error: "추천을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: "actions.stkypsc" };
   }
 }
 
@@ -268,18 +271,18 @@ export async function undoDiscoverySwipe(
   targetUserId: string
 ): Promise<{ ok: true } | { error: string }> {
   const user = await requireAuthMinimal();
-  if (user.id === targetUserId) return { error: "되돌릴 수 없습니다." };
+  if (user.id === targetUserId) return { error: "actions.spe7d23" };
 
   const [a, b] = orderedPair(user.id, targetUserId);
   const existingMatch = await db.discoveryMatch.findUnique({
     where: { userAId_userBId: { userAId: a, userBId: b } },
   });
-  if (existingMatch) return { error: "이미 매칭된 상대는 되돌릴 수 없어요." };
+  if (existingMatch) return { error: "actions.sgtl0qs" };
 
   const swipe = await db.discoverySwipe.findUnique({
     where: { fromUserId_toUserId: { fromUserId: user.id, toUserId: targetUserId } },
   });
-  if (!swipe) return { error: "되돌릴 스와이프가 없습니다." };
+  if (!swipe) return { error: "actions.sd7no5z" };
 
   await db.discoverySwipe.delete({
     where: { fromUserId_toUserId: { fromUserId: user.id, toUserId: targetUserId } },
@@ -326,13 +329,13 @@ export async function discoverySwipe(
   action: DiscoverySwipeAction
 ): Promise<{ ok: true; matched?: boolean; following?: boolean } | { error: string }> {
   const user = await requireAuthMinimal();
-  if (user.id === targetUserId) return { error: "자기 자신에게는 할 수 없습니다." };
+  if (user.id === targetUserId) return { error: "actions.s1jx95b7" };
 
   const me = await db.discoveryProfile.findUnique({ where: { userId: user.id } });
-  if (!me?.enabled) return { error: "매칭 참여를 먼저 켜 주세요." };
+  if (!me?.enabled) return { error: "actions.sx4su87" };
 
   const target = await db.discoveryProfile.findUnique({ where: { userId: targetUserId } });
-  if (!target?.enabled) return { error: "상대가 매칭에 참여하지 않습니다." };
+  if (!target?.enabled) return { error: "actions.s1ol8cij" };
 
   await db.discoverySwipe.upsert({
     where: { fromUserId_toUserId: { fromUserId: user.id, toUserId: targetUserId } },
@@ -445,7 +448,7 @@ export async function openDiscoveryChat(otherUserId: string) {
   const match = await db.discoveryMatch.findUnique({
     where: { userAId_userBId: { userAId: a, userBId: b } },
   });
-  if (!match) return { error: "매칭된 상대에게만 메시지를 보낼 수 있습니다." };
+  if (!match) return { error: "actions.s13n7bnp" };
   return getOrCreateDiscoveryDM(otherUserId);
 }
 

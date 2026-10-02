@@ -29,7 +29,7 @@ export async function creditCycleRolloverInTx(
   await creditSettlementMocoInTx(tx, {
     userId: input.userId,
     amount: input.rolloverMoco,
-    reason: "월간 정산 이월 (다음 주기 Available)",
+    reason: "Monthly settlement carryover (next cycle Available)",
     referenceType: "moco_settlement_cycle_rollover",
     referenceId: input.cycleId,
   });
@@ -87,7 +87,7 @@ export async function returnSettlementCycleToAvailable(
       await creditSettlementMocoInTx(tx, {
         userId: cycle.userId,
         amount: returnMoco,
-        reason: "정산 실패 반환 (Processing → Available)",
+        reason: "Settlement failure return (Processing → Available)",
         referenceType: "moco_settlement_cycle_return",
         referenceId: cycle.id,
       });

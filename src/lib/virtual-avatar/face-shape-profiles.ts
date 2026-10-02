@@ -14,14 +14,14 @@ export type FaceShapeProfile = FaceShapeBoneProfile & {
 };
 
 export const FACE_SHAPE_LABELS: Record<FaceShape, string> = {
-  oval: "계란형",
-  round: "둥근형",
-  square: "각진형",
-  long: "긴형",
-  heart: "하트형",
-  invertedTriangle: "역삼각형",
-  diamond: "다이아몬드형",
-  triangle: "삼각형",
+  oval: "Oval",
+  round: "Round",
+  square: "Angular",
+  long: "Long",
+  heart: "Heart",
+  invertedTriangle: "Inverted triangle",
+  diamond: "Diamond",
+  triangle: "Triangle",
 };
 
 export const FACE_SHAPE_PROFILES: Record<FaceShape, FaceShapeProfile> = {

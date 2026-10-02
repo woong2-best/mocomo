@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -55,6 +59,8 @@ export function LiveMobilePortraitViewer({
   recentTips = [],
   donationAlertsOnStream = false,
 }: LiveMobilePortraitViewerProps) {
+  const { t } = useLocale();
+
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const { chatOverlayEnabled } = useLiveChat();
@@ -97,7 +103,7 @@ export function LiveMobilePortraitViewer({
           )}
           <span className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-bold bg-violet-600 flex items-center gap-1">
             <Mic2 className="h-3 w-3" />
-            보이스
+            {t("live.voiceBadge")}
           </span>
           <span className="shrink-0 flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-2.5 py-1 text-xs tabular-nums">
             <Eye className="h-3.5 w-3.5" />
@@ -107,7 +113,7 @@ export function LiveMobilePortraitViewer({
             type="button"
             onClick={() => router.push("/live")}
             className="h-9 w-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center"
-            aria-label="나가기"
+            aria-label={t("live.sqpdxk")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -191,7 +197,7 @@ export function LiveMobilePortraitViewer({
         )}
 
         <span className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-bold bg-gradient-to-r from-pink-500 to-orange-500 shadow-md">
-          라이브
+          {t("home.featureLive")}
         </span>
 
         <span className="shrink-0 flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-2.5 py-1 text-xs tabular-nums">
@@ -204,7 +210,7 @@ export function LiveMobilePortraitViewer({
             type="button"
             onClick={share}
             className="h-9 w-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center"
-            aria-label="공유"
+            aria-label={t("toast.share")}
           >
             {copied ? <Check className="h-4 w-4" /> : <ShareGlobeIcon className="h-4 w-4" />}
           </button>
@@ -212,7 +218,7 @@ export function LiveMobilePortraitViewer({
             type="button"
             onClick={() => router.push("/live")}
             className="h-9 w-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center"
-            aria-label="나가기"
+            aria-label={t("live.sqpdxk")}
           >
             <X className="h-5 w-5" />
           </button>

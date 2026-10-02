@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -61,7 +64,7 @@ export function AdminCouponsTable({
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="코드 · 쿠폰명 · 생성자"
+            placeholder={t("admin.s13db153")}
             className="max-w-xs"
             onKeyDown={(e) => {
               if (e.key === "Enter") push({ q: q || undefined, page: "1" });
@@ -75,21 +78,21 @@ export function AdminCouponsTable({
             value={query.status ?? "all"}
             onChange={(e) => push({ status: e.target.value, page: "1" })}
           >
-            <option value="all">전체</option>
-            <option value="ACTIVE">사용중</option>
-            <option value="EXPIRED">만료</option>
-            <option value="INACTIVE">비활성화</option>
-            <option value="EXHAUSTED">사용완료</option>
+            <option value="all">{t("lib.live.categories.s934dd25ec5")}</option>
+            <option value="ACTIVE">{t("admin.st6uk4")}</option>
+            <option value="EXPIRED">{t("admin.swm80")}</option>
+            <option value="INACTIVE">{t("admin.sow9lnf")}</option>
+            <option value="EXHAUSTED">{t("admin.sp4wuo5")}</option>
           </select>
           <select
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
             value={query.sort ?? "newest"}
             onChange={(e) => push({ sort: e.target.value })}
           >
-            <option value="newest">최신순</option>
-            <option value="oldest">오래된순</option>
-            <option value="expires">만료순</option>
-            <option value="usage">사용량순</option>
+            <option value="newest">{t("reels.sv12fs")}</option>
+            <option value="oldest">{t("reels.sprgayc")}</option>
+            <option value="expires">{t("admin.ss478c")}</option>
+            <option value="usage">{t("admin.sp4ufu8")}</option>
           </select>
           <Button
             type="button"
@@ -135,17 +138,17 @@ export function AdminCouponsTable({
         <table className="w-full min-w-[960px] text-left text-sm">
           <thead className="bg-muted/40 text-xs text-muted-foreground">
             <tr>
-              <th className="px-3 py-2">쿠폰명</th>
-              <th className="px-3 py-2">코드</th>
-              <th className="px-3 py-2">상태</th>
-              <th className="px-3 py-2">혜택</th>
-              <th className="px-3 py-2">적용 대상</th>
-              <th className="px-3 py-2">사용 인원</th>
-              <th className="px-3 py-2">사용 금액</th>
-              <th className="px-3 py-2">남은 혜택</th>
-              <th className="px-3 py-2">생성일</th>
-              <th className="px-3 py-2">만료일</th>
-              <th className="px-3 py-2">관리</th>
+              <th className="px-3 py-2">{t("admin.svh6yd")}</th>
+              <th className="px-3 py-2">{t("admin.s109ag")}</th>
+              <th className="px-3 py-2">{t("admin.sxxkr")}</th>
+              <th className="px-3 py-2">{t("admin.s11kch")}</th>
+              <th className="px-3 py-2">{t("admin.spr2wwp")}</th>
+              <th className="px-3 py-2">{t("admin.s1w48nob")}</th>
+              <th className="px-3 py-2">{t("admin.s1w44bmk")}</th>
+              <th className="px-3 py-2">{t("admin.s5kn5jd")}</th>
+              <th className="px-3 py-2">{t("admin.st6x3c")}</th>
+              <th className="px-3 py-2">{t("admin.ss48ak")}</th>
+              <th className="px-3 py-2">{t("admin.sug18")}</th>
             </tr>
           </thead>
           <tbody>

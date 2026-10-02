@@ -80,8 +80,8 @@ export function isCloudflareStreamConfigured(): boolean {
 }
 
 export function cloudflareStreamConfigError(): string | null {
-  if (!accountId()) return "CLOUDFLARE_ACCOUNT_ID가 설정되지 않았습니다.";
-  if (!apiToken()) return "CLOUDFLARE_STREAM_API_TOKEN이 설정되지 않았습니다.";
+  if (!accountId()) return "CLOUDFLARE_ACCOUNT_ID is not set.";
+  if (!apiToken()) return "CLOUDFLARE_STREAM_API_TOKEN is not set.";
   return null;
 }
 
@@ -362,7 +362,7 @@ export async function probeCloudflareLiveInput(liveInputUid: string): Promise<Cl
       playable: false,
       hlsUrl: null,
       videoUid: null,
-      error: "customer host unknown — 키 다시 받기 후 재시도",
+      error: "customer host unknown — refresh keys and try again",
     };
   }
 

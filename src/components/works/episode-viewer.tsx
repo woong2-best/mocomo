@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect } from "react";
 import type { CreatorWorkKind } from "@prisma/client";
 import { incrementEpisodeView } from "@/actions/webtoon-studio-cloud";
@@ -56,7 +59,7 @@ export function EpisodeViewer({
       )}
       {kind === "VIDEO" && previewVideoBlocked && (
         <div className="rounded-xl border border-dashed border-amber-500/40 bg-amber-500/10 p-8 text-center space-y-3">
-          <p className="text-sm font-medium">유료 영상입니다</p>
+          <p className="text-sm font-medium">{t("works.s8r72tp")}</p>
           <PurchaseEpisodeButton
             episodeId={episodeId}
             price={price}
@@ -84,7 +87,7 @@ export function EpisodeViewer({
       {locked && (
         <div className="rounded-xl border border-dashed border-folk-cobalt/30 bg-muted/30 p-6 text-center space-y-3">
           <p className="text-sm text-muted-foreground">
-            {kind === "WEBTOON" ? "이후 회차는 유료입니다." : "나머지 사진은 구매 후 열람할 수 있습니다."}
+            {kind === "WEBTOON" ? t("works.sczn381") : t("works.sxgzuc9")}
           </p>
           <PurchaseEpisodeButton
             episodeId={episodeId}
@@ -95,7 +98,7 @@ export function EpisodeViewer({
         </div>
       )}
       {owned && price > 0 && (
-        <p className="text-xs text-center text-emerald-600 font-medium">구매 완료 · 전체 열람 중</p>
+        <p className="text-xs text-center text-emerald-600 font-medium">{t("works.s1k37n34")}</p>
       )}
     </div>
   );

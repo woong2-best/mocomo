@@ -41,7 +41,7 @@ export async function listBroadcastRolesAction(channelId: string) {
   const perm = await requireBroadcastPermission(user.id, channelId, "roles.manage");
   const permMod = await requireBroadcastPermission(user.id, channelId, "roles.assign_moderator");
   if (!perm.ok && !permMod.ok) {
-    return { error: "역할 목록을 볼 권한이 없습니다." };
+    return { error: "actions.s1opa7ty" };
   }
   const members = await listBroadcastRoleMembers(channelId);
   const logs = await listBroadcastRoleLogs(channelId, 30);
@@ -53,7 +53,7 @@ export async function searchBroadcastRoleUsersAction(channelId: string, query: s
   const perm = await requireBroadcastPermission(user.id, channelId, "roles.manage");
   const permMod = await requireBroadcastPermission(user.id, channelId, "roles.assign_moderator");
   if (!perm.ok && !permMod.ok) {
-    return { error: "사용자 검색 권한이 없습니다." };
+    return { error: "actions.s1miw3i5" };
   }
   const users = await searchUsersForBroadcastRole(user.id, channelId, query);
   return { users };

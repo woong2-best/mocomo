@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -16,14 +17,14 @@ export async function POST(req: NextRequest) {
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   let body: { targetType?: string; targetId?: string; days?: number };
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const targetType = body.targetType?.trim() as SponsoredAdTargetType | undefined;
@@ -31,13 +32,13 @@ export async function POST(req: NextRequest) {
   const days = body.days;
 
   if (!targetType || !ALLOWED_TARGETS.has(targetType)) {
-    return NextResponse.json({ error: "지원하지 않는 광고 대상입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Unsupported ad target." }, { status: 400 });
   }
   if (!targetId) {
-    return NextResponse.json({ error: "대상 ID가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
   if (!Number.isInteger(days) || (days ?? 0) < 1) {
-    return NextResponse.json({ error: "광고 일수를 선택해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Select how many days to advertise." }, { status: 400 });
   }
 
   const result = await purchaseSponsoredAd({
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({

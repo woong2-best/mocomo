@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -77,7 +80,7 @@ export function ProfileSupportBlock({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-muted-foreground">전체 누적 (받은)</span>
+          <span className="text-muted-foreground">{t("support.scy5j3j")}</span>
           <span className="font-medium">{formatUsd(profileReceivedTotal)}</span>
           <OreTierBadge tier={profileReceivedTier} size="sm" />
         </div>
@@ -95,7 +98,7 @@ export function ProfileSupportBlock({
 
       {summary.topSupporters.length > 0 && (
         <div className="px-4 pb-4">
-          <p className="text-xs font-medium text-muted-foreground mb-2">상위 서포터</p>
+          <p className="text-xs font-medium text-muted-foreground mb-2">{t("support.s1r2bzc3")}</p>
           <div className="flex flex-wrap gap-2">
             {summary.topSupporters.map((s) => (
               <Link
@@ -121,7 +124,7 @@ export function ProfileSupportBlock({
 
       {summary.recentTips.length > 0 && (
         <div className="px-4 pb-4 space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">최근 후원</p>
+          <p className="text-xs font-medium text-muted-foreground">{t("support.s17l1eh8")}</p>
           {summary.recentTips.slice(0, 5).map((t) => (
             <div key={t.id} className="text-sm flex gap-2 items-start">
               <Link href={`/u/${t.sender.username}`} className="shrink-0">

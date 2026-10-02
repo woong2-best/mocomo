@@ -25,10 +25,10 @@ export const MEETUP_ADJUST_MINUTES = 15;
 export const MEETUP_ADJUST_MAX = 4;
 
 export const MEETUP_PIN_WARNING =
-  "절대로 거래(물건 확인)가 완전히 완료되기 전까지 상대방에게 암호코드를 알려주지 마세요.";
+  "Never share your passcode with the other party until the trade (item inspection) is fully complete.";
 
 export const MEETUP_GPS_RETRY_MESSAGE =
-  "현재 위치를 정확하게 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.";
+  "Could not verify your location accurately. Please try again shortly.";
 
 export const MEETUP_NOSHOW_ALERT =
-  "상대방이 현재 거래 장소에 도착했다고 신고했습니다. 현장에 도착했다면 도착 인증을 진행해 주세요.";
+  "The other party reported arriving at the meetup spot. If you are on site, complete arrival verification.";

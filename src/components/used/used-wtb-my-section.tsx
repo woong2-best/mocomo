@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { getMySubcultureWtbAlerts } from "@/actions/subculture-wtb";
 import { UsedWtbAlertList } from "@/components/used/used-wtb-alert-list";
 import Link from "next/link";
@@ -20,11 +23,11 @@ export async function UsedWtbMySection() {
     <section>
       <div className="flex items-center justify-between gap-2 mb-3">
         <h2 className="text-sm font-semibold text-muted-foreground">
-          WTB 알림 ({alerts.length})
+          {t("used.wtbAlertsHeading", { count: String(alerts.length) })}
         </h2>
         {alerts.length > 0 && (
           <Link href="/market/wtb" className="text-xs font-semibold text-primary hover:underline">
-            전체 보기
+            {t("explore.viewAll")}
           </Link>
         )}
       </div>

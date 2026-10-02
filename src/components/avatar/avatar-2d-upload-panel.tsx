@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +29,7 @@ export function Avatar2dUploadPanel({ onRegistered }: { onRegistered?: () => voi
       setPending({ blob, w: bitmap.width, h: bitmap.height });
       bitmap.close();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "업로드 처리 실패");
+      setError(e instanceof Error ? e.message : t("avatar.s5tiqr9"));
     } finally {
       setLoading(false);
     }
@@ -34,7 +37,7 @@ export function Avatar2dUploadPanel({ onRegistered }: { onRegistered?: () => voi
 
   async function registerUpload() {
     if (!pending) {
-      setError("먼저 PNG·JPG 파일을 선택해 주세요.");
+      setError(t("avatar.png_jpg"));
       return;
     }
     setLoading(true);
@@ -47,7 +50,7 @@ export function Avatar2dUploadPanel({ onRegistered }: { onRegistered?: () => voi
       });
       onRegistered?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "등록 실패");
+      setError(e instanceof Error ? e.message : t("coupon.skg4s7s"));
     } finally {
       setLoading(false);
     }
@@ -56,8 +59,7 @@ export function Avatar2dUploadPanel({ onRegistered }: { onRegistered?: () => voi
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground leading-relaxed">
-        MediBang·Clip Studio 등에서 그린 <strong className="text-foreground">투명 PNG</strong>를 올리면 2D
-        방송 아바타로 등록됩니다. JPG도 PNG로 변환해 저장합니다.
+        {t("avatar.medibang_clip_studio")} <strong className="text-foreground">{t("avatar.png_2")}</strong>{t("avatar.2d_jpg_png")}
       </p>
 
       <input
@@ -92,12 +94,12 @@ export function Avatar2dUploadPanel({ onRegistered }: { onRegistered?: () => voi
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={preview} alt="미리보기" className="max-h-64 max-w-full object-contain" />
+          <img src={preview} alt={t("support.sohlxtc")} className="max-h-64 max-w-full object-contain" />
         </div>
       )}
 
       <Button type="button" className="w-full rounded-xl" disabled={loading || !pending} onClick={() => void registerUpload()}>
-        2D 아바타로 등록 · 방송 적용
+        {t("avatar.s2246wp")}
       </Button>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

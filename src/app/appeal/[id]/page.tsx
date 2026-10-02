@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { format } from "date-fns";
@@ -37,7 +40,7 @@ export default async function AppealDetailPage({
 
         {appeal.attachments.length > 0 && (
           <div className="space-y-2">
-            <h2 className="font-semibold">첨부파일</h2>
+            <h2 className="font-semibold">{t("app.appeal.sqm1sqw")}</h2>
             <ul className="space-y-1 text-sm">
               {appeal.attachments.map((file) => (
                 <li key={file.id}>
@@ -52,7 +55,7 @@ export default async function AppealDetailPage({
 
         {appeal.decisionNote && (
           <div className="rounded-xl bg-muted/40 p-4 text-sm">
-            <h2 className="font-semibold">최종 결과</h2>
+            <h2 className="font-semibold">{t("app.appeal.s1axbllv")}</h2>
             <p className="mt-2 whitespace-pre-wrap">{appeal.decisionNote}</p>
             {appeal.decidedAt && (
               <p className="mt-2 text-xs text-muted-foreground">

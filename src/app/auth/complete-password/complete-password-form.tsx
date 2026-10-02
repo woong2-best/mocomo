@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { completeSignupPasswordOnboarding } from "@/actions/signup-identity-onboarding";
 import { Button } from "@/components/ui/button";
@@ -18,34 +20,30 @@ export function CompletePasswordForm({ dest }: { dest?: string }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 8) {
-      setError(locale === "ko" ? "비밀번호는 8자 이상이어야 합니다." : "Password must be at least 8 characters.");
+      setError("Password must be at least 8 characters.");
       return;
     }
     if (password !== confirm) {
-      setError(locale === "ko" ? "비밀번호가 일치하지 않습니다." : "Passwords do not match.");
+      setError("Passwords do not match.");
       return;
     }
     setLoading(true);
     setError("");
     try {
       const result = await completeSignupPasswordOnboarding({ password, dest });
-      if (result?.error) setError(result.error);
+      if (result?.error) setError(errorText(result.error));
     } catch {
       setError(
-        locale === "ko"
-          ? "저장에 실패했습니다. 다시 시도해 주세요."
-          : "Could not save. Please try again."
+        "Could not save. Please try again."
       );
     } finally {
       setLoading(false);
     }
   }
 
-  const title = locale === "ko" ? "비밀번호 설정" : locale === "ja" ? "パスワード" : "Set a password";
+  const title = "Set a password";
   const desc =
-    locale === "ko"
-      ? "아이디로 로그인할 때 사용할 비밀번호를 만드세요."
-      : "Create a password for signing in with your username.";
+    "Create a password for signing in with your username.";
 
   return (
     <div className="flex-1 flex items-center justify-center p-4 bg-[#0f1a33] min-h-[60vh]">
@@ -59,7 +57,7 @@ export function CompletePasswordForm({ dest }: { dest?: string }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground">
-                {locale === "ko" ? "비밀번호" : "Password"} *
+                {"Password"} *
               </span>
               <Input
                 type="password"
@@ -72,7 +70,7 @@ export function CompletePasswordForm({ dest }: { dest?: string }) {
             </div>
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground">
-                {locale === "ko" ? "비밀번호 확인" : "Confirm password"} *
+                {"Confirm password"} *
               </span>
               <Input
                 type="password"
@@ -89,7 +87,7 @@ export function CompletePasswordForm({ dest }: { dest?: string }) {
               </p>
             ) : null}
             <Button type="submit" className="w-full rounded-xl" disabled={loading}>
-              {loading ? "…" : locale === "ko" ? "다음" : "Continue"}
+              {loading ? "…" : "Continue"}
             </Button>
           </form>
         </CardContent>

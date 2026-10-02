@@ -11,11 +11,11 @@ import { formatUsd } from "@/lib/money";
 export const dynamic = "force-dynamic";
 
 const SHIPMENT_STATUS_LABEL: Record<string, string> = {
-  PREPARING: "상품 준비 중",
-  SHIPPED: "발송 완료",
-  IN_CUSTOMS: "통관 중",
-  IN_TRANSIT: "배송 중",
-  DELIVERED: "배송 완료",
+  PREPARING: "Preparing item",
+  SHIPPED: "Shipped",
+  IN_CUSTOMS: "In customs",
+  IN_TRANSIT: "In transit",
+  DELIVERED: "Delivered",
 };
 
 export default async function MarketOrderDetailPage({
@@ -40,18 +40,18 @@ export default async function MarketOrderDetailPage({
     "SETTLED",
   ];
   const stepLabels: Record<string, string> = {
-    AWAITING_PAYMENT: "결제대기",
-    PAID: "결제 완료",
-    PREPARING: "상품 준비 중",
-    SHIPPED: "발송 완료",
-    DELIVERED: "배송 완료",
-    CONFIRMED: "구매 확정",
-    SETTLED: "정산 완료",
-    CANCELLED: "취소",
-    REFUND_REQUESTED: "환불요청",
-    REFUNDED: "환불완료",
-    DISPUTED: "분쟁",
-    ADMIN_REVIEW: "관리자 검토",
+    AWAITING_PAYMENT: "Awaiting payment",
+    PAID: "Payment complete",
+    PREPARING: "Preparing item",
+    SHIPPED: "Shipped",
+    DELIVERED: "Delivered",
+    CONFIRMED: "Purchase confirmed",
+    SETTLED: "Payout complete",
+    CANCELLED: "Cancelled.",
+    REFUND_REQUESTED: "Refund requested",
+    REFUNDED: "Refunded",
+    DISPUTED: "Disputes",
+    ADMIN_REVIEW: "Admin review",
   };
 
   return (
@@ -60,7 +60,7 @@ export default async function MarketOrderDetailPage({
         ← 주문 목록
       </Link>
       <div>
-        <h1 className="text-xl font-bold">주문 상세</h1>
+        <h1 className="text-xl font-bold">Order details</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {stepLabels[order.status] ?? order.status} ·{" "}
           {formatUsd(order.subtotalAmount + order.shippingAmount)}
@@ -104,7 +104,7 @@ export default async function MarketOrderDetailPage({
 
       {order.shipment && (
         <div className="rounded-xl border border-border/60 p-3 text-sm space-y-1">
-          <p className="font-semibold">배송 정보</p>
+          <p className="font-semibold">Shipping info</p>
           <p>
             배송사: {order.shipment.carrier ?? "-"}
             {order.shipment.carrierCode ? ` (${order.shipment.carrierCode})` : ""}
@@ -132,10 +132,10 @@ export default async function MarketOrderDetailPage({
 
       {order.checkoutMode !== "DIRECT_TRADE" && (
       <div className="rounded-xl border border-border/60 p-3 text-sm space-y-1">
-        <p className="font-semibold">에스크로 · 정산</p>
+        <p className="font-semibold">Escrow · payout</p>
         <p>
           {order.settlementStatus}
-          {order.escrowHeld ? " · 보관 중" : " · 해제됨"}
+          {order.escrowHeld ? " · 보관 중" : " · Released"}
           {order.settledAt ? ` · ${order.settledAt.toISOString().slice(0, 10)}` : ""}
         </p>
         {order.settlementHeldReason && (

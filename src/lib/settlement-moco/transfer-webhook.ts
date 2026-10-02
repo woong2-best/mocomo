@@ -73,10 +73,10 @@ export async function handleCreatorRewardTransferReversed(transfer: Stripe.Trans
   await createNotification({
     userId: batch.userId,
     type: "system",
-    title: "Reward 이체가 취소되었습니다",
+    title: "Reward transfer canceled",
     body: canRetry
       ? "다음 정산 주기 또는 온보딩 완료 후 자동으로 다시 시도합니다."
-      : "고객센터에 문의해 주세요.",
+      : "Contact customer support.",
     link: "/wallet",
   }).catch(() => null);
 }
@@ -127,8 +127,8 @@ export async function handleCreatorRewardPayoutFailed(
   await createNotification({
     userId: batch.userId,
     type: "system",
-    title: "은행 입금이 실패했습니다",
-    body: "Stripe Express 대시보드에서 계좌 정보를 확인한 뒤 고객센터로 문의해 주세요.",
+    title: "Bank deposit failed",
+    body: "Check account details in the Stripe Express Dashboard, then contact customer support.",
     link: "/wallet",
   }).catch(() => null);
 }

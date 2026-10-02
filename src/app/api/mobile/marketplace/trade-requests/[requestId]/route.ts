@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -15,12 +16,12 @@ export async function GET(
 
   const { requestId } = await params;
   if (!requestId || requestId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const result = await getMobileUsedTradeRequest(auth.user.id, requestId);
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 404 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 404 });
   }
   return NextResponse.json(result);
 }

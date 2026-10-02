@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import {
   forwardRef,
   useCallback,
@@ -58,6 +62,8 @@ const VTUBER_CAPTURE = { w: 1920, h: 1080 };
 export const LIVE_AVATAR_PREVIEW_READY_EVENT = "mocomo-live-avatar-preview-ready";
 
 function notifyPreviewReady() {
+  const { t } = useLocale();
+
   window.dispatchEvent(new Event(LIVE_AVATAR_PREVIEW_READY_EVENT));
 }
 
@@ -318,7 +324,7 @@ export const LiveAvatarPublishLayer = forwardRef<
           }
           await new Promise<void>((r) => requestAnimationFrame(() => r()));
         }
-        throw new Error("2D 아바타 준비 시간이 초과되었습니다.");
+        throw new Error(t("live.s18l71ub"));
       },
       attachCameraStream: async (stream: MediaStream) => {
         cameraStreamRef.current = stream;

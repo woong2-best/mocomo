@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { StudioInlineColorPicker } from "@/components/avatar/studio-inline-color-picker";
 import { normalizeHex } from "@/lib/color-picker-utils";
@@ -52,8 +55,8 @@ export function StudioColorField({ label, value, onChange, className, compact }:
         </div>
         <button
           type="button"
-          title={expanded ? "색상 선택 접기" : "색상 선택 펼치기"}
-          aria-label={expanded ? "색상 선택 접기" : "색상 선택 펼치기"}
+          title={expanded ? t("avatar.sf5buyi") : t("avatar.s17gfa2h")}
+          aria-label={expanded ? t("avatar.sf5buyi") : t("avatar.s17gfa2h")}
           aria-expanded={expanded}
           onClick={(e) => {
             e.preventDefault();

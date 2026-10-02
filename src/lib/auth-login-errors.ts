@@ -31,22 +31,22 @@ export class LoginOAuthOnlyError extends CredentialsSignin {
 export function loginErrorMessage(code: string | undefined, fallback?: string): string {
   switch (code) {
     case "email_not_verified":
-      return "이메일 인증이 완료되지 않았습니다. 받은 메일의 링크를 누르거나 「이메일 인증」에서 다시 요청해 주세요.";
+      return "Email isn't verified yet. Use the link in your email or request verification again under Email verification.";
     case "rate_limited":
-      return "로그인 시도가 너무 많습니다. 15분 후 다시 시도해 주세요.";
+      return "Too many sign-in attempts. Try again in 15 minutes.";
     case "banned":
-      return "이 계정은 이용이 제한되어 있습니다.";
+      return "This account is restricted.";
     case "account_deleted":
-      return "탈퇴한 계정입니다. 복구 기간이 지났거나 영구 삭제되었습니다.";
+      return "This account was deleted. The recovery period has passed or it was permanently removed.";
     case "account_pending_recovery":
-      return "탈퇴 처리되었습니다. 30일 이내 로그인하면 탈퇴를 취소하고 계정을 복구할 수 있습니다.";
+      return "Deletion is pending. Sign in within 30 days to cancel deletion and restore your account.";
     case "oauth_only":
-      return "이 이메일은 Discord·Google·LINE 등으로 가입된 계정입니다. 아래 소셜 로그인을 사용해 주세요.";
+      return "This email is registered with Discord, Google, LINE, or similar. Use social sign-in below.";
     case "invalid_credentials":
-      return "이메일 또는 비밀번호가 올바르지 않습니다.";
+      return "Incorrect email or password.";
     case "Configuration":
-      return "로그인 설정 오류입니다. 잠시 후 다시 시도하거나 소셜 로그인을 이용해 주세요.";
+      return "Sign-in configuration error. Try again later or use social sign-in.";
     default:
-      return fallback ?? "로그인에 실패했습니다. 다시 시도해 주세요.";
+      return fallback ?? "Sign-in failed. Please try again.";
   }
 }

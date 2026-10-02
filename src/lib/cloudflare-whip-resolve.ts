@@ -29,10 +29,10 @@ export async function resolveWhipPublishUrlForHost(
   | { error: string; status: number; publishState?: HostPublishState }
 > {
   if (channel.createdBy !== userId) {
-    return { error: "호스트만 송출할 수 있습니다.", status: 403 };
+    return { error: "Only the host can publish.", status: 403 };
   }
   if (channel.liveStatus === "ENDED") {
-    return { error: "종료된 방송입니다.", status: 400 };
+    return { error: "This broadcast has ended.", status: 400 };
   }
 
   const publishState = resolveHostPublishState(channel, tabId);
@@ -42,21 +42,21 @@ export async function resolveWhipPublishUrlForHost(
 
   if (resolveChannelIngestEngine(channel) !== "cloudflare") {
     return {
-      error: "브라우저 방송은 Cloudflare Stream이 필요합니다.",
+      error: "Browser broadcasting requires Cloudflare Stream.",
       status: 503,
     };
   }
 
   const cfUid = liveInputUidFromIngressId(channel.rtmpIngressId);
   if (!cfUid) {
-    return { error: "송출 URL 준비 중입니다. 잠시 후 다시 시도해 주세요.", status: 409 };
+    return { error: "Publish URL is being prepared. Try again shortly.", status: 409 };
   }
 
   await ensureStreamCustomerHost();
   const whipUrl = (await getCloudflareWhipPublishUrl(cfUid)) ?? "";
   if (!whipUrl) {
     return {
-      error: "Cloudflare WHIP URL을 받지 못했습니다. 「키 다시 받기」 후 다시 시도해 주세요.",
+      error: "Couldn't get Cloudflare WHIP URL. Tap Refresh keys and try again.",
       status: 503,
     };
   }

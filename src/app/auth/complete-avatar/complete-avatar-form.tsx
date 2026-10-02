@@ -1,5 +1,10 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import Link from "next/link";
 import { completeAvatarOnboarding } from "@/actions/avatar-onboarding";
@@ -20,11 +25,7 @@ export function CompleteAvatarForm({ dest }: { dest?: string }) {
     e.preventDefault();
     if (!image.trim()) {
       setError(
-        locale === "ko"
-          ? "프로필 사진을 반드시 설정해 주세요."
-          : locale === "ja"
-            ? "プロフィール写真を設定してください。"
-            : "Please set a profile photo."
+        "Please set a profile photo."
       );
       return;
     }
@@ -32,12 +33,10 @@ export function CompleteAvatarForm({ dest }: { dest?: string }) {
     setError("");
     try {
       const result = await completeAvatarOnboarding({ image: image.trim(), dest });
-      if (result?.error) setError(result.error);
+      if (result?.error) setError(errorText(result.error));
     } catch {
       setError(
-        locale === "ko"
-          ? "저장에 실패했습니다. 다시 시도해 주세요."
-          : "Could not save. Please try again."
+        "Could not save. Please try again."
       );
     } finally {
       setLoading(false);
@@ -45,13 +44,9 @@ export function CompleteAvatarForm({ dest }: { dest?: string }) {
   }
 
   const title =
-    locale === "ko" ? "프로필 사진 설정" : locale === "ja" ? "プロフィール写真" : "Profile photo";
+    "Profile photo";
   const desc =
-    locale === "ko"
-      ? `${BRAND.name} 가입을 마치려면 기기에서 프로필 사진 파일을 업로드해 주세요.`
-      : locale === "ja"
-        ? `${BRAND.name} の登録完了にはプロフィール写真のアップロードが必要です。`
-        : `Upload a profile photo from your device to finish joining ${BRAND.name}.`;
+    `Upload a profile photo from your device to finish joining ${BRAND.name}.`;
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">
@@ -77,23 +72,11 @@ export function CompleteAvatarForm({ dest }: { dest?: string }) {
             ) : null}
             <Button type="submit" className="w-full rounded-xl" disabled={loading || !image.trim()}>
               {loading
-                ? locale === "ko"
-                  ? "저장 중…"
-                  : "Saving…"
-                : locale === "ko"
-                  ? "완료"
-                  : "Continue"}
+                ? "Saving…"
+                : "Continue"}
             </Button>
             <p className="text-[11px] text-muted-foreground leading-relaxed text-center">
-              {locale === "ko" ? (
-                <>
-                  계속하면{" "}
-                  <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
-                    {t("legal.terms")}
-                  </Link>
-                  에 동의한 것으로 간주됩니다.
-                </>
-              ) : null}
+              {null}
             </p>
           </form>
         </CardContent>

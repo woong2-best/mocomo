@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -22,19 +23,19 @@ export async function POST(
 
   const { id: orderId } = await params;
   if (!orderId || orderId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let body: Body = {};
   try {
     body = (await req.json()) as Body;
   } catch {
-    return NextResponse.json({ error: "JSON 본문이 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const reason = typeof body.reason === "string" ? body.reason.trim() : "";
   if (!reason) {
-    return NextResponse.json({ error: "피해 내용을 입력해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const evidenceUrls = Array.isArray(body.evidenceUrls)
@@ -49,7 +50,7 @@ export async function POST(
   );
 
   if (result.error) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({ ok: true });

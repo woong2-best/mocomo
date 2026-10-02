@@ -13,7 +13,6 @@ import {
   BarChart3,
   Settings,
   Gavel,
-  Coins,
   Flower2,
   Landmark,
   Shield,
@@ -38,37 +37,36 @@ export type AdminNavItem = {
 };
 
 export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
-  { href: "/admin", label: "대시보드", icon: LayoutDashboard, permission: "dashboard" },
-  { href: "/admin/users", label: "회원 관리", icon: Users, permission: "users" },
-  { href: "/admin/creators", label: "크리에이터 관리", icon: Drama, permission: "creators" },
-  { href: "/admin/settlements", label: "정산 관리", icon: CreditCard, permission: "settlements" },
-  { href: "/admin/coupons", label: "쿠폰", icon: TicketPercent, permission: "coupons" },
-  { href: "/admin/promotions", label: "프로모션", icon: Sparkles, permission: "coupons" },
-  { href: "/admin/products", label: "상품 관리", icon: ShoppingBag, permission: "products" },
-  { href: "/admin/communities", label: "커뮤니티 관리", icon: MessagesSquare, permission: "communities" },
-  { href: "/admin/live", label: "라이브 관리", icon: Radio, permission: "live" },
-  { href: "/admin/streaming-accounts", label: "스트리밍 계정", icon: Radio, permission: "live" },
-  { href: "/admin/reports", label: "신고 관리", icon: ShieldAlert, permission: "reports" },
-  { href: "/admin/events-map", label: "행사 지도 핀", icon: MapPin, permission: "reports" },
-  { href: "/admin/watermark/forensics", label: "워터마크 포렌식", icon: Fingerprint, permission: "reports" },
-  { href: "/admin/ads", label: "광고 관리", icon: Megaphone, permission: "ads" },
-  { href: "/admin/statistics", label: "통계", icon: BarChart3, permission: "statistics" },
-  { href: "/admin/search", label: "검색 통계", icon: Search, permission: "statistics" },
-  { href: "/admin/roles", label: "관리자 계정", icon: KeyRound, permission: "admins" },
-  { href: "/admin/audit", label: "감사 로그", icon: ScrollText, permission: "audit" },
-  { href: "/admin/security/logins", label: "로그인 기록", icon: History, permission: "audit" },
-  { href: "/admin/security/access", label: "접속기록", icon: Globe, permission: "audit" },
-  { href: "/admin/settings/security", label: "보안 설정", icon: Lock, permission: "settings" },
-  { href: "/admin/settings", label: "시스템 설정", icon: Settings, permission: "settings" },
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard" },
+  { href: "/admin/users", label: "Members", icon: Users, permission: "users" },
+  { href: "/admin/creators", label: "Creators", icon: Drama, permission: "creators" },
+  { href: "/admin/settlements", label: "Settlements", icon: CreditCard, permission: "settlements" },
+  { href: "/admin/coupons", label: "Coupons", icon: TicketPercent, permission: "coupons" },
+  { href: "/admin/promotions", label: "Promotions", icon: Sparkles, permission: "coupons" },
+  { href: "/admin/products", label: "Products", icon: ShoppingBag, permission: "products" },
+  { href: "/admin/communities", label: "Communities", icon: MessagesSquare, permission: "communities" },
+  { href: "/admin/live", label: "Live", icon: Radio, permission: "live" },
+  { href: "/admin/streaming-accounts", label: "Streaming accounts", icon: Radio, permission: "live" },
+  { href: "/admin/reports", label: "Reports", icon: ShieldAlert, permission: "reports" },
+  { href: "/admin/events-map", label: "Event map pins", icon: MapPin, permission: "reports" },
+  { href: "/admin/watermark/forensics", label: "Watermark forensics", icon: Fingerprint, permission: "reports" },
+  { href: "/admin/ads", label: "Ads", icon: Megaphone, permission: "ads" },
+  { href: "/admin/statistics", label: "Analytics", icon: BarChart3, permission: "statistics" },
+  { href: "/admin/search", label: "Search analytics", icon: Search, permission: "statistics" },
+  { href: "/admin/roles", label: "Admin accounts", icon: KeyRound, permission: "admins" },
+  { href: "/admin/audit", label: "Audit log", icon: ScrollText, permission: "audit" },
+  { href: "/admin/security/logins", label: "Login history", icon: History, permission: "audit" },
+  { href: "/admin/security/access", label: "Access log", icon: Globe, permission: "audit" },
+  { href: "/admin/settings/security", label: "Security settings", icon: Lock, permission: "settings" },
+  { href: "/admin/settings", label: "System settings", icon: Settings, permission: "settings" },
 ];
 
 export const ADMIN_LEGACY_NAV: AdminNavItem[] = [
   { href: "/admin/market", label: `${MARKET_BRAND_NAME} 분쟁`, icon: Gavel, permission: "legacy.ops" },
-  { href: "/admin/finance", label: "매출 · 출금", icon: Landmark, permission: "legacy.ops" },
-  { href: "/admin/economy", label: "APT 경제", icon: Coins, permission: "legacy.ops" },
+  { href: "/admin/finance", label: "Revenue & payouts", icon: Landmark, permission: "legacy.ops" },
   { href: "/admin/flowers", label: "Flower Gift", icon: Flower2, permission: "legacy.ops" },
-  { href: "/admin/moderation", label: "위험도 대기열", icon: ShieldAlert, permission: "reports" },
-  { href: "/admin/suspensions", label: "계정 제재", icon: Shield, permission: "reports" },
+  { href: "/admin/moderation", label: "Risk queue", icon: ShieldAlert, permission: "reports" },
+  { href: "/admin/suspensions", label: "Account sanctions", icon: Shield, permission: "reports" },
 ];
 
 export function getAdminPageTitle(pathname: string): string {
@@ -78,7 +76,7 @@ export function getAdminPageTitle(pathname: string): string {
   const prefix = all
     .filter((item) => item.href !== "/admin" && pathname.startsWith(item.href))
     .sort((a, b) => b.href.length - a.href.length)[0];
-  return prefix?.label ?? "관리자";
+  return prefix?.label ?? "Admin";
 }
 
 export function filterNavByPermissions(

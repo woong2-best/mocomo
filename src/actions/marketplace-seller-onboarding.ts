@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { MarketplaceSellerOnboardingStep, MarketplaceSellerType } from "@prisma/client";
@@ -178,7 +181,7 @@ async function limitSellerAction(bucket: string) {
   const ip = await getRequestIp();
   const { success } = await checkRateLimit(authLimiter, `seller:${bucket}:${ip}`);
   if (!success) {
-    return { ok: false as const, error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+    return { ok: false as const, error: "actions.s121u7h2" };
   }
   return { ok: true as const };
 }
@@ -188,11 +191,11 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
   if (!limited.ok) return { error: limited.error };
 
   const parsed = accountSchema.safeParse(input);
-  if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
+  if (!parsed.success) return { error: "actions.s15q8461" };
   const data = parsed.data;
 
   if (data.password !== data.passwordConfirm) {
-    return { error: "비밀번호가 일치하지 않습니다." };
+    return { error: "actions.sghcp87" };
   }
 
   const sellingMarket = normalizeSellerCountry(data.sellingMarket);
@@ -203,7 +206,7 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
   const existingSession = await getSessionUserId();
   if (existingSession) {
     return {
-      error: "이미 로그인되어 있습니다. 약관 동의 단계부터 이어서 진행해 주세요.",
+      error: "actions.stall24",
       alreadySignedIn: true,
     };
   }
@@ -226,7 +229,7 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
   });
 
   if (result.error) return { error: result.error };
-  if (!result.userId) return { error: "계정 생성에 실패했습니다." };
+  if (!result.userId) return { error: "actions.saws966" };
 
   await db.marketplaceSellerProfile.upsert({
     where: { userId: result.userId },
@@ -262,7 +265,7 @@ export async function saveSellerAgreements(input: z.infer<typeof agreementsSchem
   if (!limited.ok) return { error: limited.error };
 
   const parsed = agreementsSchema.safeParse(input);
-  if (!parsed.success) return { error: "필수 약관에 모두 동의해 주세요." };
+  if (!parsed.success) return { error: "actions.s1tf9a4a" };
 
   const user = await requireAuthForAction();
   const now = new Date();
@@ -366,7 +369,7 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
   if (!limited.ok) return { error: limited.error };
 
   const parsed = sellerInfoSchema.safeParse(input);
-  if (!parsed.success) return { error: "판매자 정보를 확인해 주세요." };
+  if (!parsed.success) return { error: "actions.szwvtu4" };
   const data = parsed.data;
 
   const user = await requireAuthForAction();
@@ -420,13 +423,13 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
 /** @deprecated Stripe Connect Hosted Onboarding으로 대체 */
 export async function submitSellerKyc(_input: unknown) {
   return {
-    error: "신분증은 Stripe 온보딩에서 직접 제출해 주세요. Stripe 단계로 이동합니다.",
+    error: "actions.stripe_stripe",
   };
 }
 
 /** @deprecated */
 export async function submitSellerKycPrep(_mode: "defer" | "start") {
-  return { error: "Stripe Connect 온보딩을 이용해 주세요." };
+  return { error: "actions.stripe_connect_2" };
 }
 
 export type StartStripeConnectInput = {
@@ -441,7 +444,7 @@ export async function startSellerStripeConnectOnboarding(input: StartStripeConne
     const user = await requireAuthForAction();
     const dbUser = await loadOnboardingUser(user.id);
     if (!dbUser?.marketplaceSeller?.sellerType) {
-      return { error: "판매자 정보를 먼저 입력해 주세요." };
+      return { error: "actions.sgoiiuv" };
     }
 
     const result = await startSellerConnectOnboarding({
@@ -508,12 +511,12 @@ export async function completeSellerOnboarding() {
     const user = await requireAuthForAction();
     const dbUser = await loadOnboardingUser(user.id);
 
-    if (!dbUser?.emailVerified) return { error: "이메일 인증이 필요합니다." };
+    if (!dbUser?.emailVerified) return { error: "actions.s1phpiy6" };
     if (!dbUser.marketplaceSeller?.agreedTermsAt || !dbUser.marketplaceSeller?.agreedPrivacyAt) {
-      return { error: "판매자 이용약관 및 개인정보 처리방침 동의가 필요합니다." };
+      return { error: "actions.s1sfx92t" };
     }
     if (!dbUser.marketplaceSeller.sellerType) {
-      return { error: "판매자 정보(개인/사업자)를 입력해 주세요." };
+      return { error: "actions.svamqna" };
     }
 
     if (dbUser.stripeConnectAccountId) {
@@ -531,7 +534,7 @@ export async function completeSellerOnboarding() {
       return { error: MARKET_UNAVAILABLE_KO };
     }
     if (!isSellerStripeConnectReady(profile)) {
-      return { error: "Stripe 본인 확인 및 정산 계좌 등록을 완료해 주세요." };
+      return { error: "actions.stripe_5" };
     }
 
     if (profile?.onboardingCompletedAt) {
@@ -557,8 +560,8 @@ export async function completeSellerOnboarding() {
     await createNotification({
       userId: user.id,
       type: "system",
-      title: "판매자 등록 완료",
-      body: `${MARKET_BRAND_FULL} Stripe 본인 확인 및 정산 설정이 완료되었습니다. 이제 상품을 등록할 수 있습니다.`,
+      title: "actions.s9vph6g",
+      body: t("actions.stripe_6", { v0: MARKET_BRAND_FULL }),
       link: "/market/seller",
     }).catch(() => null);
 

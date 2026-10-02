@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { PaymentIntentType } from "@prisma/client";
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   if (limited) return limited;
 
   if (!isPaymentsConfigured()) {
-    return NextResponse.json({ error: "결제가 설정되지 않았습니다." }, { status: 503 });
+    return NextResponse.json({ error: "Payments aren't configured." }, { status: 503 });
   }
 
   const auth = await requireMobileApiUser(req, { writeKind: "default" });
@@ -36,12 +37,12 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = prepareSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   try {
@@ -60,14 +61,14 @@ export async function POST(req: NextRequest) {
     });
 
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
 
     return NextResponse.json(result);
   } catch (e) {
     console.error("[api/mobile/checkout/intent] POST", e);
     return NextResponse.json(
-      { error: "결제 준비 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요." },
+      { error: "Request failed." },
       { status: 500 }
     );
   }
@@ -110,12 +111,12 @@ export async function PATCH(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = confirmSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   if (parsed.data.mode === "checkout") {
@@ -134,7 +135,7 @@ export async function PATCH(req: NextRequest) {
       purchaseTermsAccepted: true,
     });
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
     return NextResponse.json(result);
   }
@@ -142,7 +143,7 @@ export async function PATCH(req: NextRequest) {
   if (parsed.data.mode === "finalize") {
     const result = await confirmCheckoutPaymentIntent(auth.user.id, parsed.data.orderId);
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
     return NextResponse.json(result);
   }
@@ -154,8 +155,8 @@ export async function PATCH(req: NextRequest) {
     });
     if ("error" in result && result.error) {
       const messages: Record<string, string> = {
-        INSUFFICIENT_GEMS_BALANCE: "MOCO 잔액이 부족합니다.",
-        INSUFFICIENT_MOCO_BALANCE: "MOCO 잔액이 부족합니다.",
+        INSUFFICIENT_GEMS_BALANCE: "Insufficient MOCO balance.",
+        INSUFFICIENT_MOCO_BALANCE: "Insufficient MOCO balance.",
       };
       return NextResponse.json(
         { error: messages[result.error] ?? result.error },
@@ -173,7 +174,7 @@ export async function PATCH(req: NextRequest) {
   );
 
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
   }
 
   if ("requiresAction" in result && result.requiresAction && result.clientSecret) {

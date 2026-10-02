@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   Brush,
   Circle,
@@ -17,15 +20,15 @@ import type { EditorToolId } from "@/lib/media-editor/types";
 import { cn } from "@/lib/utils";
 
 const TOOLS: { id: EditorToolId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "select", label: "선택", icon: MousePointer2 },
-  { id: "image", label: "이미지", icon: ImagePlus },
-  { id: "text", label: "텍스트", icon: Type },
-  { id: "emoji", label: "이모지", icon: Smile },
-  { id: "sticker", label: "스티커", icon: Sticker },
-  { id: "shape", label: "도형", icon: Shapes },
-  { id: "brush", label: "브러시", icon: Brush },
-  { id: "blur", label: "블러", icon: Sparkles },
-  { id: "overlay", label: "오버레이", icon: Droplets },
+  { id: "select", label: t("media.sxzul"), icon: MousePointer2 },
+  { id: "image", label: t("lib.media-editor.su4sho"), icon: ImagePlus },
+  { id: "text", label: t("lib.webtoon-studio.svlwgx"), icon: Type },
+  { id: "emoji", label: t("lib.media-editor.su4kgc"), icon: Smile },
+  { id: "sticker", label: t("lib.media-editor.stjcm0"), icon: Sticker },
+  { id: "shape", label: t("lib.media-editor.svr2p"), icon: Shapes },
+  { id: "brush", label: t("lib.media-editor.ssqgsc"), icon: Brush },
+  { id: "blur", label: t("lib.media-editor.sxc9k"), icon: Sparkles },
+  { id: "overlay", label: t("lib.media-editor.sps6ybw"), icon: Droplets },
 ];
 
 export function EditorToolPanel({
@@ -86,10 +89,10 @@ export function EditorToolPanel({
           </button>
         );
       })}
-      <button type="button" className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-xl opacity-40" title="레이어">
+      <button type="button" className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-xl opacity-40" title={t("webtoon-studio.srxeiw")}>
         <Layers className="h-5 w-5" />
       </button>
-      <button type="button" className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-xl opacity-40" title="도형">
+      <button type="button" className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-xl opacity-40" title={t("lib.media-editor.svr2p")}>
         <Circle className="h-5 w-5" />
       </button>
     </aside>

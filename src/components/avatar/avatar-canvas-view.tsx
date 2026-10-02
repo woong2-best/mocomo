@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VirtualAvatar3DScene } from "@/lib/virtual-avatar/avatar-3d-scene";
 import { PhotoAvatarScene } from "@/lib/photo-avatar/photo-avatar-scene";
@@ -87,7 +92,7 @@ export function AvatarCanvasView({
 
   const connectMocapStream = useCallback(async () => {
     if (!(sceneRef.current instanceof VirtualAvatar3DScene)) return;
-    const url = window.prompt("WebSocket 모캡 URL (ws://localhost:8080 등)");
+    const url = window.prompt(t("avatar.websocket_url_ws_localhost_8080"));
     if (!url?.trim()) return;
     localStorage.setItem(AVATAR_MOCAP_STREAM_KEY, url.trim());
     const ok = await sceneRef.current.connectMocapStream(url.trim());
@@ -140,7 +145,7 @@ export function AvatarCanvasView({
         );
       }
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "아바타 초기화 실패");
+      setLoadError(e instanceof Error ? e.message : t("avatar.s13we7s8"));
       return;
     }
 
@@ -178,28 +183,22 @@ export function AvatarCanvasView({
   const { config, resetView, zoomIn, zoomOut, toggleAutoRotate, toggleAnimation } = studio;
 
   const syncStatus = !syncEnabled
-    ? "실시간 연동 버튼을 눌러 내 얼굴로 아바타를 움직여 보세요"
+    ? t("avatar.s1hbqa54")
     : faceTracking.starting
-      ? "카메라 연결 중…"
+      ? t("avatar.s13qcexd")
       : faceTracking.error
         ? faceTracking.error
         : faceTracking.landmarkerState === "loading"
-          ? "얼굴 인식 준비 중…"
+          ? t("avatar.s1c594hq")
           : faceTracking.faceDetected
-            ? `연동 · 얼굴${faceTracking.blendShapeCount || 52}ch${
-                faceTracking.bodyDetected ? " · 상체" : ""
-              }${faceTracking.legsDetected ? " · 하체" : ""}${
-                faceTracking.handsDetected ? " · 손" : ""
-              }${faceTracking.voiceActive ? " · 음성" : ""}${
-                faceTracking.speechLipActive ? " · STT립" : ""
-              }${faceTracking.aiLipActive ? " · AI립" : ""}`
-            : "카메라 앞에 얼굴을 맞춰 주세요";
+            ? t("avatar.sptn5a5", { v0: faceTracking.blendShapeCount || 52, v1: faceTracking.bodyDetected ? " · 상체" : "", v2: faceTracking.legsDetected ? " · 하체" : "", v3: faceTracking.handsDetected ? " · 손" : "", v4: faceTracking.voiceActive ? " · 음성" : "", v5: faceTracking.speechLipActive ? " · STT립" : "", v6: faceTracking.aiLipActive ? " · AI립" : "" })
+            : t("avatar.s1shbevc");
 
   return (
     <div className="relative flex flex-col min-h-0 lg:col-span-6 live-studio-panel overflow-hidden">
       <div className="px-4 py-2.5 border-b-2 border-[hsl(var(--folk-cobalt)/0.12)] bg-folk-gold/10 shrink-0 flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-display font-bold text-folk-cobalt">3D 미리보기</h2>
+          <h2 className="text-sm font-display font-bold text-folk-cobalt">{t("avatar.soe9j9b")}</h2>
           <p
             className={cn(
               "text-[10px] truncate mt-0.5",
@@ -242,7 +241,7 @@ export function AvatarCanvasView({
 
         {syncEnabled && faceTracking.error && (
           <div className="absolute top-3 left-3 right-3 z-10 rounded-xl border-2 border-folk-terracotta/30 bg-background/95 px-3 py-2 text-[11px] text-muted-foreground shadow-folk-sm">
-            {faceTracking.error}
+            {errorText(faceTracking.error)}
           </div>
         )}
 
@@ -254,17 +253,17 @@ export function AvatarCanvasView({
         )}
 
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 px-1.5 py-1 rounded-xl bg-background/95 border-2 border-[hsl(var(--folk-cobalt)/0.2)] shadow-folk backdrop-blur-sm max-w-[calc(100%-1rem)] overflow-x-auto">
-          <ToolbarBtn active={config.view.autoRotate} title="자동 회전" onClick={toggleAutoRotate}>
+          <ToolbarBtn active={config.view.autoRotate} title={t("avatar.slnp44v")} onClick={toggleAutoRotate}>
             <RotateCw className="h-4 w-4" />
           </ToolbarBtn>
-          <ToolbarBtn title="줌 인" onClick={zoomIn}>
+          <ToolbarBtn title={t("avatar.sth8bo")} onClick={zoomIn}>
             <ZoomIn className="h-4 w-4" />
           </ToolbarBtn>
-          <ToolbarBtn title="줌 아웃" onClick={zoomOut}>
+          <ToolbarBtn title={t("avatar.spduvtf")} onClick={zoomOut}>
             <ZoomOut className="h-4 w-4" />
           </ToolbarBtn>
           <ToolbarBtn
-            title="뷰 리셋"
+            title={t("avatar.snzcx1r")}
             onClick={() => {
               resetView();
               if (sceneRef.current instanceof VirtualAvatar3DScene) {
@@ -276,7 +275,7 @@ export function AvatarCanvasView({
           </ToolbarBtn>
           <ToolbarBtn
             active={config.effects.animationPlaying}
-            title={config.effects.animationPlaying ? "애니메이션 정지" : "애니메이션 재생"}
+            title={config.effects.animationPlaying ? t("avatar.s1tlgg7v") : t("avatar.s1tlgby9")}
             onClick={toggleAnimation}
           >
             {config.effects.animationPlaying ? (
@@ -287,37 +286,37 @@ export function AvatarCanvasView({
           </ToolbarBtn>
           <ToolbarBtn
             active={mocapPreset === "wave"}
-            title="모션 · 손 흔들기"
+            title={t("avatar.s1sw4xvb")}
             onClick={() => (mocapPreset === "wave" ? stopMocap() : playMocap("wave"))}
           >
             <span className="text-[10px] font-bold">👋</span>
           </ToolbarBtn>
           <ToolbarBtn
             active={mocapPreset === "bow"}
-            title="모션 · 인사"
+            title={t("avatar.s1tzd225")}
             onClick={() => (mocapPreset === "bow" ? stopMocap() : playMocap("bow"))}
           >
             <span className="text-[10px] font-bold">🙇</span>
           </ToolbarBtn>
           <ToolbarBtn
             active={mocapPreset === "walk"}
-            title="모션 · 걷기"
+            title={t("avatar.s1tz8d1u")}
             onClick={() => (mocapPreset === "walk" ? stopMocap() : playMocap("walk"))}
           >
             <span className="text-[10px] font-bold">🚶</span>
           </ToolbarBtn>
-          <ToolbarBtn title="BVH 모캡" onClick={() => bvhInputRef.current?.click()}>
+          <ToolbarBtn title={t("avatar.bvh")} onClick={() => bvhInputRef.current?.click()}>
             <Upload className="h-4 w-4" />
           </ToolbarBtn>
-          <ToolbarBtn title="FBX 모캡" onClick={() => fbxInputRef.current?.click()}>
+          <ToolbarBtn title={t("avatar.fbx")} onClick={() => fbxInputRef.current?.click()}>
             <span className="text-[9px] font-bold">FBX</span>
           </ToolbarBtn>
-          <ToolbarBtn title="WebSocket 모캡 스트림" onClick={() => void connectMocapStream()}>
+          <ToolbarBtn title={t("avatar.websocket")} onClick={() => void connectMocapStream()}>
             <span className="text-[10px] font-bold">📡</span>
           </ToolbarBtn>
           <ToolbarBtn
             active={timelineRecording}
-            title="트래킹 녹화"
+            title={t("avatar.s3u0tr6")}
             onClick={() => {
               if (timelineRecording) {
                 timelineRecorderRef.current.stop();
@@ -335,14 +334,14 @@ export function AvatarCanvasView({
             <Circle className={cn("h-3.5 w-3.5", timelineRecording && "text-red-500 fill-red-500")} />
           </ToolbarBtn>
           <ToolbarBtn
-            title="트래킹 JSON 재생"
+            title={t("avatar.json")}
             onClick={() => timelineInputRef.current?.click()}
           >
             <Play className="h-3.5 w-3.5" />
           </ToolbarBtn>
           <ToolbarBtn
             active={webmRecording}
-            title="WebM 녹화"
+            title={t("avatar.webm")}
             onClick={() => {
               void (async () => {
                 const canvas = sceneRef.current?.getCanvasElement();
@@ -399,7 +398,7 @@ export function AvatarCanvasView({
             }}
           />
           <ToolbarBtn
-            title="전체화면"
+            title={t("reels.sq37vtc")}
             onClick={() => {
               hostRef.current?.requestFullscreen?.().catch(() => undefined);
             }}
@@ -409,7 +408,7 @@ export function AvatarCanvasView({
         </div>
 
         <p className="absolute bottom-14 left-3 text-[10px] text-white/70 z-10 pointer-events-none">
-          실시간 연동: 고개·표정 · 드래그: 회전 · 휠: 줌
+          {t("avatar.s9ltc4t")}
         </p>
       </div>
     </div>

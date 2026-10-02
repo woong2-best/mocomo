@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { Mic, Radio } from "lucide-react";
 import { getCachedVoiceChannels } from "@/lib/cached-data";
@@ -36,26 +39,26 @@ export default async function VoicePage() {
             </Button>
           </Link>
           <Link href="/voice/new">
-            <Button size="sm">방 만들기</Button>
+            <Button size="sm">Create room</Button>
           </Link>
         </div>
       </div>
 
       <PageSection
-        title="활성 음성방"
+        title={t("app.voice.suydo2h")}
         icon={Mic}
-        description="실시간 음성 방송 · LiveKit WebRTC"
+        description={t("app.voice.livekit_webrtc")}
       >
         {channels.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center gap-3 p-8 text-center text-muted-foreground">
-              <p>활성 음성방이 없습니다.</p>
+              <p>{t("app.voice.sgshllq")}</p>
               <div className="flex flex-wrap justify-center gap-2">
                 <Button asChild size="sm">
-                  <Link href="/voice/new">첫 방송 만들기</Link>
+                  <Link href="/voice/new">{t("app.voice.sdfvh9h")}</Link>
                 </Button>
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/live">라이브 시청하기</Link>
+                  <Link href="/live">Watch live</Link>
                 </Button>
               </div>
             </CardContent>

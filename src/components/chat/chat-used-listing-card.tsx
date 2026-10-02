@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -42,7 +45,7 @@ export function ChatUsedListingCard({ listingId, className }: Props) {
   }, [listingId]);
 
   const href = listing?.href ?? `/market/${listingId}`;
-  const title = listing?.title ?? "상품 보기";
+  const title = listing?.title ?? t("chat.s1y6ptat");
 
   return (
     <Link
@@ -65,7 +68,7 @@ export function ChatUsedListingCard({ listingId, className }: Props) {
         )}
       </div>
       <p className="px-3 py-2.5 text-[15px] font-semibold leading-snug text-foreground line-clamp-2">
-        {failed ? "상품 페이지 열기" : title}
+        {failed ? t("chat.s1jpnuq9") : title}
       </p>
     </Link>
   );

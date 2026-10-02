@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useMemo, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -54,7 +59,7 @@ export function MemberRoleAddDialog({
     setError("");
     const res = await assignMemberRole(memberId, roleId);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       setAssigningId(null);
       return;
     }
@@ -73,7 +78,7 @@ export function MemberRoleAddDialog({
           <DialogTitle>{groupLabel}에 멤버 추가</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground -mt-2">
-          커뮤니티 멤버에게 <span className="font-medium text-foreground">{roleName}</span>{" "}
+          {t("community-server.s1p14npw")} <span className="font-medium text-foreground">{roleName}</span>{" "}
           역할을 부여합니다.
         </p>
         <div className="relative">
@@ -81,14 +86,14 @@ export function MemberRoleAddDialog({
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="이름 또는 @username 검색"
+            placeholder={t("community-server.username")}
             className="pl-9"
           />
         </div>
         <ul className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-lg p-1">
           {candidates.length === 0 ? (
             <li className="px-3 py-6 text-center text-sm text-muted-foreground">
-              추가할 수 있는 멤버가 없습니다.
+              {t("community-server.spiavs3")}
             </li>
           ) : (
             candidates.map((m) => {

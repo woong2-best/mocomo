@@ -124,7 +124,7 @@ export async function listMobileDmInbox(userId: string) {
 
 export async function getOrCreateDmForUser(actorId: string, otherUserId: string) {
   if (actorId === otherUserId) {
-    return { error: "자기 자신과는 DM할 수 없습니다." as const };
+    return { error: "You can't DM yourself." as const };
   }
 
   const other = await db.user.findUnique({
@@ -132,7 +132,7 @@ export async function getOrCreateDmForUser(actorId: string, otherUserId: string)
     select: { id: true, deletedAt: true },
   });
   if (!other || other.deletedAt) {
-    return { error: "사용자를 찾을 수 없습니다." as const };
+    return { error: "User not found." as const };
   }
 
   const cosplayer = await db.cosplayerProfile.findUnique({
@@ -234,7 +234,7 @@ export async function getMobileRoomMessages(
     );
     return {
       messagingBlocked: true as const,
-      blockMessage: "차단된 사용자와는 메시지를 주고받을 수 없습니다.",
+      blockMessage: "You can't message a blocked user.",
       room: {
         id: room.id,
         type: room.type,

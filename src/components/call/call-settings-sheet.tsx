@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useState } from "react";
 import { AudioLines, Waves } from "lucide-react";
 import { CallBottomSheet } from "@/components/call/call-bottom-sheet";
@@ -97,16 +100,16 @@ export function CallSettingsSheet({
   if (!open) return null;
 
   return (
-    <CallBottomSheet open={open} onClose={onClose} title="설정">
+    <CallBottomSheet open={open} onClose={onClose} title={t("settings.title")}>
       <SettingRow
         icon={Waves}
-        label="오디오 잡음 억제"
+        label={t("call.sbrupe8")}
         checked={noiseSuppression}
         onChange={onNoiseChange}
       />
       <SettingRow
         icon={AudioLines}
-        label="오디오 보정 효과"
+        label={t("call.s155w4hz")}
         checked={audioEnhance}
         onChange={onEnhanceChange}
       />

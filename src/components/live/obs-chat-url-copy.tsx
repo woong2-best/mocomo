@@ -1,10 +1,16 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { mintLiveOverlayUrls, mintStudioObsChatUrl } from "@/actions/live-external";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type Props = {
   /** Active live channel — host dashboard. Omit to mint from Live Studio. */
@@ -24,6 +30,7 @@ export function ObsChatUrlCopy({
   variant = "full",
   className,
 }: Props) {
+  const { t } = useLocale();
   const [obsChatUrl, setObsChatUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +48,7 @@ export function ObsChatUrlCopy({
         : await mintStudioObsChatUrl();
       if (cancelled) return;
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         setLoading(false);
         return;
       }
@@ -78,7 +85,7 @@ export function ObsChatUrlCopy({
           className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-semibold"
           disabled={!obsChatUrl || loading}
           onClick={() => void copyUrl()}
-          title={obsChatUrl ?? error ?? "OBS 채팅 URL"}
+          title={obsChatUrl ?? error ?? t("live.obsChat.title")}
         >
           {loading ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -87,7 +94,7 @@ export function ObsChatUrlCopy({
           ) : (
             <Copy className="h-3.5 w-3.5" />
           )}
-          {copied ? "복사됨" : "OBS URL"}
+          {copied ? t("live.obsChat.copied") : t("live.obsChat.compactLabel")}
         </Button>
       </div>
     );
@@ -101,17 +108,13 @@ export function ObsChatUrlCopy({
       )}
     >
       <div>
-        <h2 className="font-display font-bold text-folk-cobalt text-base">OBS 채팅 URL</h2>
-        <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-          진행 중 방송의 OBS 브라우저 소스 URL입니다. YouTube·Twitch·MoCoMo 댓글과
-          채팅후원·룰렛·유료후원 알림이 이 URL 하나로 표시됩니다. 후원 알림은 방송 설정에서
-          켜 두세요.
-        </p>
+        <h2 className="font-display font-bold text-folk-cobalt text-base">{t("live.obsChat.title")}</h2>
+        <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{t("live.obsChat.desc")}</p>
       </div>
       {loading ? (
         <p className="text-xs text-muted-foreground flex items-center gap-2">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          URL 불러오는 중…
+          {t("live.obsChat.loading")}
         </p>
       ) : error ? (
         <p className="text-xs text-muted-foreground">{error}</p>
@@ -123,7 +126,7 @@ export function ObsChatUrlCopy({
             onClick={() => void copyUrl()}
           >
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? "복사됨" : "OBS 채팅 URL 복사"}
+            {copied ? t("live.obsChat.copied") : t("live.obsChat.copy")}
           </Button>
           <p className="break-all font-mono text-[10px] text-muted-foreground">{obsChatUrl}</p>
         </>

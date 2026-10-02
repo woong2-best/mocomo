@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   forwardRef,
   useEffect,
@@ -51,9 +54,9 @@ type PostMediaComposerProps = {
   maxImages?: number;
   maxVideos?: number;
   allowVideo?: boolean;
-  /** false면 영상 촬영 버튼 숨김 */
+  /** false면 Video 촬영 버튼 숨김 */
   allowVideoCapture?: boolean;
-  /** default 레이아웃 — 영상 파일 버튼 바로 옆 (유료 판매 금액 등) */
+  /** default 레이아웃 — Video 파일 버튼 바로 옆 (유료 판매 금액 등) */
   afterVideoButton?: ReactNode;
   layout?: "default" | "toolbar";
   /** toolbar 레이아웃 하단 우측 (게시하기 등) */
@@ -217,7 +220,7 @@ export const PostMediaComposer = forwardRef<
             return {
               i,
               url: null,
-              error: e instanceof Error ? e.message : `사진 ${i + 1} 업로드 실패`,
+              error: e instanceof Error ? e.message : t("media.s1nbbruv", { v0: i + 1 }),
             };
           }
         })
@@ -242,13 +245,13 @@ export const PostMediaComposer = forwardRef<
       if (errors.length > 0) {
         setError(
           errors.length === pending.files.length
-            ? errors[0] ?? "사진 업로드에 실패했습니다."
-            : `일부 사진만 올렸습니다. ${errors[0]}`
+            ? errors[0] ?? t("media.s28j1hw")
+            : t("media.sgfhe4x", { v0: errors[0] })
         );
       }
     } catch (e) {
       if (gen !== galleryUploadGenRef.current) return;
-      setError(e instanceof Error ? e.message : "사진 업로드에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("media.s28j1hw"));
     } finally {
       finishUploadBusy(gen);
     }
@@ -288,7 +291,7 @@ export const PostMediaComposer = forwardRef<
             return {
               previewUrl: previewUrls[i],
               url: null,
-              error: e instanceof Error ? e.message : `사진 ${i + 1} 업로드 실패`,
+              error: e instanceof Error ? e.message : t("media.s1nbbruv", { v0: i + 1 }),
             };
           } finally {
             URL.revokeObjectURL(previewUrls[i]);
@@ -313,14 +316,14 @@ export const PostMediaComposer = forwardRef<
       if (errors.length > 0) {
         setError(
           errors.length === files.length
-            ? errors[0] ?? "사진 업로드에 실패했습니다."
-            : `일부 사진만 올렸습니다. ${errors[0]}`
+            ? errors[0] ?? t("media.s28j1hw")
+            : t("media.sgfhe4x", { v0: errors[0] })
         );
       }
     } catch (e) {
       if (gen !== galleryUploadGenRef.current) return;
       onChange(baseItems);
-      setError(e instanceof Error ? e.message : "사진 업로드에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("media.s28j1hw"));
       previewUrls.forEach((u) => URL.revokeObjectURL(u));
     } finally {
       finishUploadBusy(gen);
@@ -409,14 +412,14 @@ export const PostMediaComposer = forwardRef<
           );
         } catch (e) {
           next = next.filter((item) => item.url !== previewUrl);
-          errors.push(e instanceof Error ? e.message : `영상 ${i + 1} 업로드 실패`);
+          errors.push(e instanceof Error ? e.message : t("works.sizpdhb", { v0: i + 1 }));
         } finally {
           URL.revokeObjectURL(previewUrl);
         }
       }
       onChange(next);
       if (errors.length > 0) {
-        setError(errors[0] ?? "영상 업로드에 실패했습니다.");
+        setError(errors[0] ?? t("profile.s1eazbik"));
       }
     } finally {
       setUploading(false);
@@ -429,7 +432,7 @@ export const PostMediaComposer = forwardRef<
       maxVideos -
       itemsRef.current.filter((m) => m.type === "VIDEO").length;
     if (remaining <= 0) {
-      setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다.`);
+      setError(t("media.s1pcne85", { v0: maxVideos }));
       return;
     }
     const input = document.createElement("input");
@@ -441,7 +444,7 @@ export const PostMediaComposer = forwardRef<
         (ev.target as HTMLInputElement).files ?? []
       ).filter((f) => isGalleryVideoFile(f));
       if (files.length === 0) {
-        setError("영상 파일을 선택해 주세요.");
+        setError(t("media.s1j0ramj"));
         return;
       }
       ingestVideoFiles(files);
@@ -453,16 +456,16 @@ export const PostMediaComposer = forwardRef<
     setError("");
     const remaining = maxImages - itemsRef.current.filter((m) => m.type === "IMAGE").length;
     if (remaining <= 0) {
-      setError(`사진은 최대 ${maxImages}장까지 추가할 수 있습니다.`);
+      setError(t("media.so67akm", { v0: maxImages }));
       return;
     }
     if (list.length === 0) {
-      setError("이미지 파일을 선택해 주세요. (jpg, png, webp, heic 등)");
+      setError(t("media.jpg_png_webp_heic"));
       return;
     }
     const batch = list.slice(0, remaining);
     if (list.length > remaining) {
-      setError(`사진은 최대 ${maxImages}장까지 추가할 수 있습니다. ${batch.length}장만 추가했습니다.`);
+      setError(t("media.svmuumy", { v0: maxImages, v1: batch.length }));
     }
     if (watermarkCreditLabel && !quickUpload) {
       stageGalleryFiles(batch);
@@ -483,12 +486,12 @@ export const PostMediaComposer = forwardRef<
     const remaining =
       maxVideos - itemsRef.current.filter((m) => m.type === "VIDEO").length;
     if (remaining <= 0) {
-      setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다.`);
+      setError(t("media.s1pcne85", { v0: maxVideos }));
       return;
     }
     const batch = files.slice(0, remaining);
     if (files.length > remaining) {
-      setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다. ${batch.length}개만 추가했습니다.`);
+      setError(t("media.s1i5tstg", { v0: maxVideos, v1: batch.length }));
     }
     setError("");
     void uploadVideosDirect(batch);
@@ -512,13 +515,13 @@ export const PostMediaComposer = forwardRef<
     if (images.length > 0 && canAddImage) {
       void ingestGalleryImages(images);
     } else if (images.length > 0) {
-      setError(`사진은 최대 ${maxImages}장까지 추가할 수 있습니다.`);
+      setError(t("media.so67akm", { v0: maxImages }));
     }
 
     if (videos.length > 0 && canAddVideo) {
       ingestVideoFiles(videos.map((f) => normalizeGalleryVideoFile(f)));
     } else if (videos.length > 0) {
-      setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다.`);
+      setError(t("media.s1pcne85", { v0: maxVideos }));
     }
 
     return true;
@@ -547,8 +550,8 @@ export const PostMediaComposer = forwardRef<
             className={iconBtnClass}
             disabled={disabled || uploading}
             onClick={() => galleryInputRef.current?.click()}
-            aria-label="사진 선택"
-            title="사진"
+            aria-label={t("media.s1wib9dx")}
+            title={t("lib.creator.work.labels.s2f826f3ee6")}
           >
             <ImagePlus className="h-[18px] w-[18px]" />
           </button>
@@ -561,8 +564,8 @@ export const PostMediaComposer = forwardRef<
             className={iconBtnClass}
             disabled={disabled || uploading}
             onClick={pickVideoFiles}
-            aria-label="영상 파일"
-            title="영상"
+            aria-label={t("media.sh6wai8")}
+            title={t("lib.web.push.se9d6e13c5d")}
           >
             <Film className="h-[18px] w-[18px]" />
           </button>
@@ -585,7 +588,7 @@ export const PostMediaComposer = forwardRef<
                 setPreviewIndex(i);
                 setPreviewOpen(true);
               }}
-              aria-label="미리보기"
+              aria-label={t("support.sohlxtc")}
             >
               {m.type === "VIDEO" ? (
                 <video src={m.url} className="h-full w-full object-cover pointer-events-none" muted playsInline />
@@ -602,13 +605,13 @@ export const PostMediaComposer = forwardRef<
                 removeAt(i);
               }}
               disabled={disabled}
-              aria-label="삭제"
+              aria-label={t("toast.delete")}
             >
               <X className="h-3.5 w-3.5" strokeWidth={2.5} />
             </button>
             {m.type === "VIDEO" && (
               <span className="pointer-events-none absolute bottom-0.5 left-0.5 z-[1] rounded bg-black/70 px-1 text-[10px] text-white">
-                영상
+                {t("lib.web.push.se9d6e13c5d")}
               </span>
             )}
             {isLocalPreviewUrl(m.url) && (
@@ -651,7 +654,7 @@ export const PostMediaComposer = forwardRef<
               onClick={() => setCameraOpen(true)}
             >
               <Camera className="h-4 w-4" />
-              사진 찍기
+              {t("media.s1wicxfv")}
             </Button>
             <Button
               type="button"
@@ -662,7 +665,7 @@ export const PostMediaComposer = forwardRef<
               onClick={() => galleryInputRef.current?.click()}
             >
               <ImagePlus className="h-4 w-4" />
-              {allowVideo ? "사진 선택" : "갤러리에서 선택"}
+              {allowVideo ? t("media.s1wib9dx") : t("media.sm5w20d")}
             </Button>
           </>
         )}
@@ -678,7 +681,7 @@ export const PostMediaComposer = forwardRef<
                 onClick={() => setCameraOpen(true)}
               >
                 <Video className="h-4 w-4" />
-                영상 촬영
+                {t("media.sh6va8l")}
               </Button>
             )}
             <Button
@@ -690,7 +693,7 @@ export const PostMediaComposer = forwardRef<
               onClick={pickVideoFiles}
             >
               <Film className="h-4 w-4" />
-              영상 파일
+              {t("media.sh6wai8")}
             </Button>
             {afterVideoButton}
           </div>
@@ -701,8 +704,8 @@ export const PostMediaComposer = forwardRef<
       {layout === "default" && (
       <p className="text-xs text-muted-foreground">
         {allowVideo
-          ? `사진 최대 ${maxImages}장 · 영상 ${maxVideos}개`
-          : `사진 최대 ${maxImages}장`}
+          ? t("media.sj0aid0", { v0: maxImages, v1: maxVideos })
+          : t("media.s1rni9m9", { v0: maxImages })}
       </p>
       )}
       {error && <p className="text-xs text-destructive">{error}</p>}
@@ -761,7 +764,7 @@ export function UsedImageComposer({
     <div>
       <label className="text-sm font-medium">사진 (최대 {max}장)</label>
       <p className="text-xs text-muted-foreground mt-0.5">
-        갤러리에서 고른 뒤 썸네일이 보이면 업로드 완료입니다.
+        {t("media.scws0ec")}
       </p>
       <PostMediaComposer
         className="mt-2"

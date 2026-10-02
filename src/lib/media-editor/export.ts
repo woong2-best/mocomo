@@ -2,7 +2,7 @@ import type Konva from "konva";
 import type { CropRect, EditorProject } from "@/lib/media-editor/types";
 
 /**
- * 편집기 콘텐츠(배경 + 오버레이)를 원본 해상도로 내보낸다.
+ * 편집기 콘텐츠(Background + 오버레이)를 원본 해상도로 내보낸다.
  *
  * `contentNode`는 화면에 축소(viewportZoom)되어 그려진 Konva 그룹이므로,
  * crop 영역을 화면 절대 픽셀 좌표로 변환하고 pixelRatio 로 원본 해상도를 복원한다.
@@ -68,7 +68,7 @@ function canvasToBlob(
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("이미지보내기에 실패했습니다."))),
+      (blob) => (blob ? resolve(blob) : reject(new Error("Failed to send image."))),
       mimeType,
       quality
     );

@@ -1,10 +1,10 @@
 import { reencodeBannerVideoBlob } from "@/lib/video-editor/process-video";
 
-/** 프로필 배너 동영상 최대 길이(초) */
+/** 프로필 배너 동Video 최대 길이(초) */
 export const MAX_PROFILE_BANNER_VIDEO_DURATION_SEC = 10;
 
 export const BANNER_VIDEO_FORMAT_HINT =
-  "MP4(H.264·H.265) · WebM · 무음 자동 재생";
+  "MP4 (H.264·H.265) · WebM · autoplay muted";
 
 export function profileBannerHasVideo(bannerVideoUrl?: string | null): boolean {
   return Boolean(bannerVideoUrl?.trim());
@@ -57,7 +57,7 @@ export async function probeVideoDurationSec(file: File): Promise<number> {
       video.onloadedmetadata = () => {
         resolve(Number.isFinite(video.duration) ? video.duration : 0);
       };
-      video.onerror = () => reject(new Error("영상 정보를 읽을 수 없습니다."));
+      video.onerror = () => reject(new Error("Couldn't read video info."));
       video.src = url;
     });
     return duration;
@@ -78,9 +78,9 @@ export function bannerVideoMimeWarning(mime: string, fileName: string): string |
   const support = video.canPlayType(normalized);
   if (support === "probably" || support === "maybe") return null;
   if (normalized === "video/quicktime" || /\.mov$/i.test(fileName)) {
-    return "MOV 영상은 Chrome·Edge에서 재생되지 않습니다. MP4(H.264·H.265)로 변환 후 올려 주세요.";
+    return "MOV video won't play in Chrome or Edge. Convert to MP4 (H.264·H.265) before uploading.";
   }
-  return "이 브라우저에서 재생할 수 없는 영상 형식입니다. MP4(H.264·H.265) 또는 WebM을 사용해 주세요.";
+  return "This browser can't play this video format. Use MP4 (H.264·H.265) or WebM.";
 }
 
 function guessVideoMimeFromName(fileName: string): string {
@@ -120,7 +120,7 @@ function bannerOutputFilename(originalName: string, mime: string): string {
 }
 
 /**
- * 배너 업로드용 영상 준비.
+ * 배너 업로드용 Video 준비.
  * H.265(HEVC)는 브라우저에서 디코드 가능할 때 H.264 MP4로 재인코딩해 모든 브라우저에서 재생되게 한다.
  */
 export async function prepareBannerVideoForUpload(
@@ -135,12 +135,12 @@ export async function prepareBannerVideoForUpload(
   if (likelyHevc) {
     if (!browserSupportsHevc()) {
       throw new Error(
-        "H.265(HEVC) 영상은 이 브라우저에서 열 수 없습니다. MP4(H.264)로 변환하거나 Safari·iPhone에서 다시 올려 주세요."
+        "H.265 (HEVC) video can't open in this browser. Convert to MP4 (H.264) or upload again from Safari or iPhone."
       );
     }
     const duration = await probeVideoDurationSec(file);
     if (duration <= 0) {
-      throw new Error("영상 길이를 확인할 수 없습니다.");
+      throw new Error("Couldn't determine video length.");
     }
     const blob = await reencodeBannerVideoBlob(file, duration, onProgress);
     const type = blob.type || "video/mp4";
@@ -150,7 +150,7 @@ export async function prepareBannerVideoForUpload(
   const playable = await probeVideoPlayable(file);
   if (!playable) {
     throw new Error(
-      "이 브라우저에서 재생할 수 없는 영상입니다. MP4(H.264·H.265) 또는 WebM으로 변환 후 올려 주세요."
+      "This browser can't play this video. Convert to MP4 (H.264·H.265) or WebM before uploading."
     );
   }
 

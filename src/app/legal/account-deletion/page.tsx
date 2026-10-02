@@ -1,11 +1,14 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { ACCOUNT_DELETION } from "@/lib/legal-content";
 import { LegalDocumentView } from "@/components/legal/legal-document";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "계정 및 데이터 삭제 — MoCoMo",
+  title: t("app.legal.mocomo"),
   description:
-    "MoCoMo 계정 삭제 요청 방법, 삭제·보관되는 데이터 유형 및 처리 기간 안내",
+    t("app.legal.mocomo_2"),
 };
 
 export default function AccountDeletionPage() {

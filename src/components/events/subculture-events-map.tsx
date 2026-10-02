@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 import { useEffect, useRef, useState } from "react";
 import type {
   Map as MapLibreMap,
@@ -13,7 +16,7 @@ import { SUBCULTURE_EVENT_CATEGORY_COLORS } from "@/lib/subculture-event-types";
 import { loadMapLibre } from "@/lib/maps/maplibre-loader";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { ko } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 
 // --- Leaflet (legacy — horizontal tile repeat on zoom-out) ---
 // import type { Map as LeafletMap } from "leaflet";
@@ -82,28 +85,28 @@ function buildPinPopupHtml(pin: MapEventPin): string {
     ? `<img src="${escapeHtml(imageUrl)}" alt="" class="subculture-map-popup-img" loading="lazy" decoding="async" />`
     : "";
   const roadViewBlock = roadViewUrl
-    ? `<figure class="subculture-map-popup-roadview"><img src="${escapeHtml(roadViewUrl)}" alt="로드뷰" loading="lazy" decoding="async" /><figcaption>로드뷰</figcaption></figure>`
+    ? `<figure class="subculture-map-popup-roadview"><img src="${escapeHtml(roadViewUrl)}" alt="Street view" loading="lazy" decoding="async" /><figcaption>Street view</figcaption></figure>`
     : "";
 
   const dateStr =
     pin.category === "maid_cafe" || pin.category === "user_recommendation"
       ? pin.category === "user_recommendation"
-        ? "추천"
-        : "상설"
-      : format(new Date(pin.startsAt), "M/d", { locale: ko });
+        ? "Recommended"
+        : "Permanent"
+      : format(new Date(pin.startsAt), "M/d", { locale: enUS });
   const phaseBadge =
     pin.phase === "ongoing"
-      ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--ongoing">진행 중</span>'
+      ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--ongoing">Live now</span>'
       : pin.phase === "upcoming"
-        ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--upcoming">예정</span>'
+        ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--upcoming">Upcoming</span>'
         : "";
   const official =
     pin.source === "official" || pin.source === "auto"
-      ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--official">공식 자동</span>'
+      ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--official">Official</span>'
       : pin.category === "maid_cafe"
-        ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--maid">메이드 카페</span>'
+        ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--maid">Maid cafe</span>'
         : pin.category === "user_recommendation"
-          ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--ongoing">유저 추천</span>'
+          ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--ongoing">Community pick</span>'
           : "";
   const countryLabel = eventCountryFlag(pin.country);
   const venueBlock = pin.venueName
@@ -362,9 +365,9 @@ export function SubcultureEventsMap({
       //       : format(new Date(pin.startsAt), "M/d", { locale: ko });
       //   const official =
       //     pin.source === "official" || pin.source === "auto"
-      //       ? '<span style="font-size:10px;color:#7c3aed">공식 자동</span><br/>'
+      //       ? '<span style="font-size:10px;color:#7c3aed">Official auto</span><br/>'
       //       : pin.category === "maid_cafe"
-      //         ? '<span style="font-size:10px;color:#ec4899">메이드 카페</span><br/>'
+      //         ? '<span style="font-size:10px;color:#ec4899">Maid cafe</span><br/>'
       //         : "";
       //   const countryLabel = eventCountryFlag(pin.country);
       //   const popup = `${official}<strong>${pin.title}</strong><br/><span style="font-size:11px">${countryLabel} ${dateStr} · ${pin.venueName ?? ""}</span>`;

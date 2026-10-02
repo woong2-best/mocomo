@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { USED_AUCTION_C2C_DISCLOSURE } from "@/lib/used-auction-legal";
 
@@ -13,7 +16,7 @@ export function UsedAuctionLegalNotice({ compact = false }: { compact?: boolean 
       <p className="text-[11px] text-muted-foreground leading-relaxed">
         {USED_AUCTION_C2C_DISCLOSURE}{" "}
         <Link href="/legal/terms" className="text-primary hover:underline whitespace-nowrap">
-          이용약관 제8조
+          {t("used.s19498lo")}
         </Link>
       </p>
     </div>

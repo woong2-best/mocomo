@@ -235,7 +235,7 @@ export async function transferToNextBidder(
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "ended",
-      title: "경매 거래 무산",
+      title: "Auction deal fell through",
       body: `${listing.title} — 차순위 입찰자가 없습니다. 다시 등록할 수 있습니다.`,
       link: `/market/${listingId}`,
     });
@@ -271,12 +271,12 @@ export async function transferToNextBidder(
 
   const prevAmount = listing.currentBidAmount ?? listing.price;
   const intro = [
-    "이전 낙찰자가 결제를 완료하지 않아 회원님에게 거래 기회가 제공되었습니다.",
+    "The previous winner didn't pay, so you get a chance to buy.",
     "",
     `이전 최고 입찰: ${prevAmount.toLocaleString()}원 (미결제)`,
     `회원님 입찰: ${next.amount.toLocaleString()}원`,
     "",
-    "아래에서 가격을 협의해 주세요. 24시간 내 합의하지 않으면 거래가 종료됩니다.",
+    "Negotiate the price below. If you don't agree within 24 hours, the deal ends.",
   ];
   await db.message.create({
     data: { roomId, senderId: listing.sellerId, content: intro.join("\n") },
@@ -286,14 +286,14 @@ export async function transferToNextBidder(
   await sendUsedAuctionNotification({
     userId: next.bidderId,
     type: "won",
-    title: "차순위 거래 기회",
+    title: "Next-in-line deal",
     body: `${listing.title} — 가격 협의를 진행해 주세요.`,
     link: `/messages/${roomId}?usedListing=${listingId}`,
   });
   await sendUsedAuctionNotification({
     userId: listing.sellerId,
     type: "transfer",
-    title: "차순위 입찰자에게 승계",
+    title: "Passed to next bidder",
     body: `${listing.title} — ${next.amount.toLocaleString()}원 입찰자와 협의하세요.`,
     link: `/messages/${roomId}?usedListing=${listingId}`,
   });
@@ -344,7 +344,7 @@ export async function promoteNextAuctionWinner(
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "ended",
-      title: "경매 거래 무산",
+      title: "Auction deal fell through",
       body: `${listing.title} — 차순위 입찰자가 없습니다.`,
       link: `/market/${listingId}`,
     });
@@ -374,14 +374,14 @@ export async function promoteNextAuctionWinner(
     await sendUsedAuctionNotification({
       userId: next.bidderId,
       type: "won",
-      title: "차순위 자동 낙찰",
+      title: "Automatic runner-up win",
       body: `${listing.title} — 주문이 생성되었습니다.`,
       link: orderLink,
     });
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "transfer",
-      title: "차순위 낙찰 — 배송 준비",
+      title: "Runner-up win — prepare shipment",
       body: `${listing.title}`,
       link: orderLink,
     });
@@ -401,14 +401,14 @@ export async function promoteNextAuctionWinner(
   await sendUsedAuctionNotification({
     userId: next.bidderId,
     type: "won",
-    title: "차순위 낙찰 — 카드 hold 필요",
+    title: "Runner-up win — card hold required",
     body: `${listing.title} — 입찰 hold 승인 후 주문이 생성됩니다.`,
     link,
   });
   await sendUsedAuctionNotification({
     userId: listing.sellerId,
     type: "transfer",
-    title: "차순위 입찰자에게 승계",
+    title: "Passed to next bidder",
     body: `${listing.title}`,
     link,
   });
@@ -458,14 +458,14 @@ export async function processPaymentTimeout(listingId: string, config?: UsedAuct
   await sendUsedAuctionNotification({
     userId: winnerId,
     type: "payment_failed",
-    title: "낙찰 결제 기한 초과",
+    title: "Winner payment deadline passed",
     body: `${listing.title} — 중고거래 이용이 제한되었습니다. 이의가 있으면 ${USED_MARKET_APPEAL_PATH}에서 소명해 주세요.`,
     link: USED_MARKET_APPEAL_PATH,
   });
   await sendUsedAuctionNotification({
     userId: listing.sellerId,
     type: "ended",
-    title: "낙찰자 결제 미이행",
+    title: "Winner didn't pay",
     body: `${listing.title} — 차순위 입찰자에게 승계합니다.`,
     link: `/market/${listingId}`,
   });
@@ -490,14 +490,14 @@ export async function processPaymentReminders(listingId: string) {
     await sendUsedAuctionNotification({
       userId: listing.winningBidderId,
       type: "won",
-      title: "결제 마감 1시간 전",
+      title: "1 hour until payment deadline",
       body: listing.title,
       link,
     });
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "payment_reminder",
-      title: "낙찰자 결제 마감 1시간 전",
+      title: "1 hour until winner payment deadline",
       body: listing.title,
       link,
     });
@@ -511,21 +511,21 @@ export async function processPaymentReminders(listingId: string) {
     await sendUsedAuctionNotification({
       userId: listing.winningBidderId,
       type: "won",
-      title: "결제 마감 10분 전",
+      title: "10 minutes until payment deadline",
       body: listing.title,
       link,
     });
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "payment_reminder",
-      title: "낙찰자 결제 마감 10분 전",
+      title: "10 minutes until winner payment deadline",
       body: listing.title,
       link,
     });
   }
 }
 
-/** 3일 경매 — 하루 남음 / 1시간 남음을 판매자와 입찰자에게 한 번씩 */
+/** 3일 Auction — 하루 남음 / 1시간 남음을 판매자와 입찰자에게 한 번씩 */
 export async function processAuctionClockReminders(take = 50) {
   const now = Date.now();
   const in24h = new Date(now + 24 * 60 * 60 * 1000);
@@ -556,7 +556,7 @@ export async function processAuctionClockReminders(take = 50) {
       listingId: row.id,
       sellerId: row.sellerId,
       type: "reminder",
-      title: "경매 하루 남음",
+      title: "One day left in the auction",
       body: `${row.title} — 마감까지 1일 남았습니다.`,
     });
     sent += 1;
@@ -581,7 +581,7 @@ export async function processAuctionClockReminders(take = 50) {
       listingId: row.id,
       sellerId: row.sellerId,
       type: "reminder",
-      title: "경매 마감 1시간 전",
+      title: "1 hour until auction ends",
       body: `${row.title} — 곧 마감됩니다.`,
     });
     sent += 1;

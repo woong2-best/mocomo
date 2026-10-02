@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -40,14 +41,14 @@ export async function POST(
   const { id: channelId } = await params;
   const access = await resolveLiveChannelAccess(channelId, authResult.user.id);
   if (!access.allowed) {
-    return NextResponse.json({ error: "방송에 참여한 뒤 미션을 등록할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Join the stream before adding missions." }, { status: 403 });
   }
 
   let body: { title?: string; rewardAmount?: number; deadlineMinutes?: number };
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const result = await createLiveSupportMissionRest({
@@ -59,7 +60,7 @@ export async function POST(
   });
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({ ok: true, mission: result.mission });

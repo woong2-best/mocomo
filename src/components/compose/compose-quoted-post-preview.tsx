@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { QuotePostPreviewCard } from "@/components/post/quote-post-preview-card";
@@ -37,7 +40,7 @@ export function ComposeQuotedPostPreview({ postId }: { postId: string }) {
     return (
       <div className="flex items-center gap-2 rounded-2xl border border-border bg-muted/20 px-3 py-4 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
-        원본 게시물 불러오는 중…
+        {t("compose.s1o1iehh")}
       </div>
     );
   }
@@ -45,7 +48,7 @@ export function ComposeQuotedPostPreview({ postId }: { postId: string }) {
   if (error || !post) {
     return (
       <div className="rounded-2xl border border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground">
-        원본 게시물을 불러오지 못했습니다.
+        {t("compose.s1yrobwa")}
       </div>
     );
   }

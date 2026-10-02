@@ -16,7 +16,7 @@ export async function completeBirthDateOnboarding(input: {
   const user = await requireAuthForAction();
   const birthDate = parseBirthDateInput(input.birthYear, input.birthMonth, input.birthDay);
   if (!birthDate) {
-    return { error: "올바른 생년월일을 입력해 주세요." };
+    return { error: "actions.shi8acd" };
   }
 
   await db.user.update({

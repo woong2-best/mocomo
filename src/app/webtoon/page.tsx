@@ -22,7 +22,7 @@ export default async function WebtoonHomePage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">일러스트 작품</h1>
+          <h1 className="text-xl font-bold">Illustration works</h1>
           <p className="text-xs text-muted-foreground mt-1">
             픽시브형 열람·구매. 커머스 거래는{" "}
             <Link href="/market" className="text-primary hover:underline">

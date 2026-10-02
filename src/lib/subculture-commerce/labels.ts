@@ -60,9 +60,9 @@ export function buildSubcultureBadges(input: {
   if (productLabel) badges.push({ key: "product", label: productLabel, tone: "accent" });
 
   if (input.tradeMode === "TRADE") {
-    badges.push({ key: "trade", label: "교환 (WTT)", tone: "trade" });
+    badges.push({ key: "trade", label: "Trade (WTT)", tone: "trade" });
   } else if (input.tradeMode === "SELL_OR_TRADE") {
-    badges.push({ key: "trade", label: "판매·교환", tone: "trade" });
+    badges.push({ key: "trade", label: "Sell & trade", tone: "trade" });
   }
 
   const limited = limitedKindLabel(input.limitedKind);
@@ -89,7 +89,7 @@ export function buildSubcultureBadges(input: {
   if (origin && input.itemOrigin !== "OFFICIAL") {
     badges.push({ key: "origin", label: origin, tone: "muted" });
   } else if (input.itemOrigin === "OFFICIAL") {
-    badges.push({ key: "origin", label: "정품", tone: "muted" });
+    badges.push({ key: "origin", label: "Authentic", tone: "muted" });
   }
 
   if (input.characterName?.trim()) {
@@ -125,16 +125,16 @@ export function formatSubcultureMetaSummary(
   if (meta.tcgSet || meta.tcgNumber) {
     lines.push([meta.tcgSet, meta.tcgNumber].filter(Boolean).join(" · "));
   }
-  if (meta.tcgRarity) lines.push(`레어도: ${meta.tcgRarity}`);
-  if (meta.tcgLanguage) lines.push(`언어: ${meta.tcgLanguage}`);
-  if (meta.member) lines.push(`멤버: ${meta.member}`);
-  if (meta.pcVersion) lines.push(`버전: ${meta.pcVersion}`);
-  if (meta.manufacturer) lines.push(`제조사: ${meta.manufacturer}`);
-  if (meta.scale) lines.push(`스케일: ${meta.scale}`);
-  if (meta.circleName) lines.push(`서클: ${meta.circleName}`);
-  if (meta.sizeLabel) lines.push(`사이즈: ${meta.sizeLabel}`);
+  if (meta.tcgRarity) lines.push(`Rarity: ${meta.tcgRarity}`);
+  if (meta.tcgLanguage) lines.push(`Language: ${meta.tcgLanguage}`);
+  if (meta.member) lines.push(`Member: ${meta.member}`);
+  if (meta.pcVersion) lines.push(`Version: ${meta.pcVersion}`);
+  if (meta.manufacturer) lines.push(`Manufacturer: ${meta.manufacturer}`);
+  if (meta.scale) lines.push(`Scale: ${meta.scale}`);
+  if (meta.circleName) lines.push(`Circle: ${meta.circleName}`);
+  if (meta.sizeLabel) lines.push(`Size: ${meta.sizeLabel}`);
   if (meta.itemCount != null) lines.push(`수량: ${meta.itemCount}개`);
-  if (meta.tradeWants) lines.push(`교환 희망: ${meta.tradeWants}`);
-  if (meta.graded && meta.certNumber) lines.push(`인증번호: ${meta.certNumber}`);
+  if (meta.tradeWants) lines.push(`Want to trade: ${meta.tradeWants}`);
+  if (meta.graded && meta.certNumber) lines.push(`Certification no.: ${meta.certNumber}`);
   return lines;
 }

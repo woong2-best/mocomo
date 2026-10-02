@@ -14,13 +14,13 @@ export default async function PaymentFailPage({
   const text =
     reason === "region"
       ? OFAC_REGION_UNAVAILABLE_MESSAGE
-      : message ?? (code ? `오류 코드: ${code}` : "결제가 취소되었거나 실패했습니다.");
+      : message ?? (code ? `오류 코드: ${code}` : "Payment was canceled or failed.");
 
   return (
     <AppPageChrome maxWidth="lg" spacing="sm" className="!p-8 text-center">
       <XCircle className="h-14 w-14 text-destructive mx-auto" />
       <NativePageTitle>
-        <h1 className="text-xl font-bold">결제 실패</h1>
+        <h1 className="text-xl font-bold">Payment failed</h1>
       </NativePageTitle>
       <p className="text-muted-foreground text-sm">{text}</p>
       <Link href={DEFAULT_LANDING_PATH}>

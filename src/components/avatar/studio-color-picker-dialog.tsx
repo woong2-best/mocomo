@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BASIC_COLORS,
@@ -65,7 +68,7 @@ export function StudioColorPickerDialog({
   open,
   onOpenChange,
   value,
-  title = "색 선택",
+  title = t("avatar.socbr78"),
   onConfirm,
 }: StudioColorPickerDialogProps) {
   const [draft, setDraft] = useState(() => normalizeHex(value) ?? "#000000");
@@ -134,7 +137,7 @@ export function StudioColorPickerDialog({
 
         <div className="flex gap-3 p-3">
           <div className="shrink-0 w-[200px] space-y-2">
-            <p className="text-[10px] text-neutral-400">기본 색상(B)</p>
+            <p className="text-[10px] text-neutral-400">{t("avatar.s15v7j3")}</p>
             <div className="grid grid-cols-8 gap-px border border-neutral-600 bg-neutral-600">
               {BASIC_COLORS.map((color, i) => (
                 <button
@@ -157,10 +160,10 @@ export function StudioColorPickerDialog({
               className="w-full flex items-center justify-center gap-1 rounded border border-neutral-500 bg-[#3a3a3a] py-1 text-[10px] hover:bg-[#444]"
             >
               <Pipette className="h-3 w-3" />
-              화면 색상 고르기
+              {t("avatar.s1gge650")}
             </button>
 
-            <p className="text-[10px] text-neutral-400 pt-1">사용자 정의 색상(C)</p>
+            <p className="text-[10px] text-neutral-400 pt-1">{t("avatar.sqnksdi")}</p>
             <div className="grid grid-cols-8 gap-px border border-neutral-600 bg-neutral-600">
               {Array.from({ length: CUSTOM_COLOR_SLOTS }).map((_, i) => (
                 <button
@@ -177,7 +180,7 @@ export function StudioColorPickerDialog({
               onClick={addToCustom}
               className="w-full rounded border border-neutral-500 bg-[#3a3a3a] py-1 text-[10px] hover:bg-[#444]"
             >
-              사용자 정의 색상에 추가(A)
+              {t("avatar.s5q5kfg")}
             </button>
           </div>
 
@@ -190,12 +193,12 @@ export function StudioColorPickerDialog({
         </div>
 
         <div className="flex items-end justify-center gap-4 px-3 pb-3">
-          <NumInput label="색상(E)" value={hsv.h} min={0} max={360} onChange={(h) => applyHsv({ ...hsv, h })} />
-          <NumInput label="채도(S)" value={hsv.s} min={0} max={100} onChange={(s) => applyHsv({ ...hsv, s })} />
-          <NumInput label="휘도(V)" value={hsv.v} min={0} max={100} onChange={(v) => applyHsv({ ...hsv, v })} />
-          <NumInput label="빨강(R)" value={rgb.r} min={0} max={255} onChange={(r) => syncFromHex(rgbToHex({ ...rgb, r }))} />
-          <NumInput label="녹색(G)" value={rgb.g} min={0} max={255} onChange={(g) => syncFromHex(rgbToHex({ ...rgb, g }))} />
-          <NumInput label="파랑(U)" value={rgb.b} min={0} max={255} onChange={(b) => syncFromHex(rgbToHex({ ...rgb, b }))} />
+          <NumInput label={t("avatar.s1vsefmc")} value={hsv.h} min={0} max={360} onChange={(h) => applyHsv({ ...hsv, h })} />
+          <NumInput label={t("avatar.s140amhq")} value={hsv.s} min={0} max={100} onChange={(s) => applyHsv({ ...hsv, s })} />
+          <NumInput label={t("avatar.sbbc9e7")} value={hsv.v} min={0} max={100} onChange={(v) => applyHsv({ ...hsv, v })} />
+          <NumInput label={t("avatar.s1jvonzm")} value={rgb.r} min={0} max={255} onChange={(r) => syncFromHex(rgbToHex({ ...rgb, r }))} />
+          <NumInput label={t("avatar.s7x61kq")} value={rgb.g} min={0} max={255} onChange={(g) => syncFromHex(rgbToHex({ ...rgb, g }))} />
+          <NumInput label={t("avatar.s1v02quv")} value={rgb.b} min={0} max={255} onChange={(b) => syncFromHex(rgbToHex({ ...rgb, b }))} />
         </div>
 
         <div className="flex items-center gap-2 px-3 pb-3">
@@ -226,10 +229,10 @@ export function StudioColorPickerDialog({
             className="h-8 bg-[#3a3a3a] border-neutral-500 text-neutral-100 hover:bg-[#444]"
             onClick={() => onOpenChange(false)}
           >
-            취소
+            {t("toast.cancel")}
           </Button>
           <Button type="button" size="sm" className="h-8 min-w-16 bg-[#0078d4] hover:bg-[#006cbd] text-white" onClick={confirm}>
-            확인
+            {t("auth.confirmAction")}
           </Button>
         </div>
       </DialogContent>

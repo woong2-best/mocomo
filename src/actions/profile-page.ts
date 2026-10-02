@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { Prisma, type MediaType } from "@prisma/client";
@@ -292,7 +295,7 @@ export const getProfileTabContentMeta = cache(async function getProfileTabConten
     header.user.creatorSubscriptionPriceKrw
   );
   const profileBlocked = !header.isSelf && header.relationship.blockedByViewer;
-  const blockedEmptyMessage = `@${header.user.username} 님을 차단했습니다. 게시물을 볼 수 없습니다.`;
+  const blockedEmptyMessage = t("actions.s1fi4c0u", { v0: header.user.username });
 
   const viewerSub = header.isSelf
     ? { subscribed: false as const }

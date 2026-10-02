@@ -1,5 +1,11 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Radio } from "lucide-react";
@@ -24,6 +30,7 @@ export function LiveScheduledCard({
   broadcastMode?: LiveBroadcastMode | string | null;
   isOwner: boolean;
 }) {
+  const { t } = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -33,7 +40,7 @@ export function LiveScheduledCard({
     startTransition(async () => {
       const res = await startScheduledLiveStream(id);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if (res.joinPassword) {
@@ -62,10 +69,10 @@ export function LiveScheduledCard({
       {isOwner ? (
         <Button size="sm" className="w-full rounded-xl gap-1 mt-2" onClick={goLive} disabled={pending}>
           <Radio className="h-3.5 w-3.5" />
-          {pending ? "여는 중…" : "스튜디오 열기"}
+          {pending ? t("live.sf2wsh9") : t("live.s51m85w")}
         </Button>
       ) : (
-        <p className="text-[10px] text-muted-foreground">예약 방송 · 시작 대기</p>
+        <p className="text-[10px] text-muted-foreground">{t("live.s1ouurmd")}</p>
       )}
     </div>
   );

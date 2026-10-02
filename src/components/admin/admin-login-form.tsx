@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { signIn, signOut } from "next-auth/react";
@@ -20,7 +25,7 @@ import {
 type Step = "password" | "passkey" | "totp";
 
 const STEPS: { key: Step; label: string }[] = [
-  { key: "password", label: "계정" },
+  { key: "password", label: t("settings.account") },
   { key: "passkey", label: "Passkey" },
   { key: "totp", label: "TOTP" },
 ];
@@ -79,9 +84,9 @@ export function AdminLoginForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(
     errorParam === "forbidden"
-      ? "관리자 권한이 없는 계정입니다. 관리자 계정으로 로그인해 주세요."
+      ? t("admin.s16l1qcz")
       : errorParam === "expired" || errorParam === "SessionExpired"
-        ? "관리자 로그인 1시간이 지나 자동으로 로그아웃되었습니다. 다시 로그인해 주세요."
+        ? t("admin.s1i0kvcq")
         : null
   );
   const [mfaAlreadyComplete, setMfaAlreadyComplete] = useState(false);
@@ -137,14 +142,14 @@ export function AdminLoginForm({
 
     if (!res || res.error) {
       setLoading(false);
-      setError("로그인에 실패했습니다. 관리자 이메일·아이디와 비밀번호를 확인해 주세요.");
+      setError(t("admin.s1847u1j"));
       return;
     }
 
     const advanced = await adminMfaAfterPasswordAction();
     setLoading(false);
     if ("error" in advanced && advanced.error) {
-      setError(advanced.error);
+      setError(errorText(advanced.error));
       try {
         await adminLogoutMfaAction();
         await signOut({ redirect: false });
@@ -171,12 +176,12 @@ export function AdminLoginForm({
     const opts = await adminPasskeyAuthOptionsAction();
     if ("error" in opts && opts.error) {
       setLoading(false);
-      setError(opts.error);
+      setError(errorText(opts.error));
       return;
     }
     if (!("options" in opts) || !opts.options) {
       setLoading(false);
-      setError("Passkey 옵션을 받지 못했습니다.");
+      setError(t("admin.passkey_3"));
       return;
     }
     try {
@@ -184,14 +189,14 @@ export function AdminLoginForm({
       const verified = await adminPasskeyAuthVerifyAction(assertion);
       setLoading(false);
       if ("error" in verified && verified.error) {
-        setError(verified.error);
+        setError(errorText(verified.error));
         return;
       }
       setStep("totp");
       setCode("");
     } catch (e) {
       setLoading(false);
-      setError(e instanceof Error ? e.message : "Passkey 인증이 취소되었습니다.");
+      setError(e instanceof Error ? e.message : t("admin.passkey_4"));
     }
   }
 
@@ -205,7 +210,7 @@ export function AdminLoginForm({
     });
     setLoading(false);
     if ("error" in verified && verified.error) {
-      setError(verified.error);
+      setError(errorText(verified.error));
       return;
     }
     router.replace(callbackUrl.startsWith("/") ? callbackUrl : "/admin");
@@ -230,7 +235,7 @@ export function AdminLoginForm({
   if (!ready) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-zinc-100 p-6 dark:bg-zinc-950">
-        <p className="text-sm text-muted-foreground">관리자 로그인 준비 중…</p>
+        <p className="text-sm text-muted-foreground">{t("admin.s1lkoe4x")}</p>
       </div>
     );
   }
@@ -242,7 +247,7 @@ export function AdminLoginForm({
           <div className="flex justify-center">
             <BrandLogo className="h-10 w-auto" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight">관리자 로그인</h1>
+          <h1 className="text-xl font-bold tracking-tight">{t("admin.stq4rvk")}</h1>
           <p className="text-sm text-muted-foreground">
             메인 사이트 로그인과 별개입니다. 관리자 계정으로 3단계 인증이 필요합니다.
           </p>
@@ -262,7 +267,7 @@ export function AdminLoginForm({
               대시보드로 이동할 수 있습니다.
             </p>
             <Button type="button" className="w-full" asChild>
-              <Link href="/">MoCoMo 홈으로</Link>
+              <Link href="/">{t("admin.mocomo")}</Link>
             </Button>
             <Button type="button" className="w-full" variant="secondary" asChild>
               <Link href={callbackUrl.startsWith("/admin") ? callbackUrl : "/admin"}>
@@ -274,7 +279,7 @@ export function AdminLoginForm({
 
         {!mfaAlreadyComplete && step === "password" ? (
           <form onSubmit={onPasswordSubmit} className="space-y-3">
-            <p className="text-xs font-medium text-muted-foreground">1단계 · 관리자 계정</p>
+            <p className="text-xs font-medium text-muted-foreground">{t("admin.s1yedy89")}</p>
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 이메일 또는 아이디
@@ -285,7 +290,7 @@ export function AdminLoginForm({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="mocomocompany 또는 owner@…"
+                placeholder={t("admin.mocomocompany_owner")}
               />
             </div>
             <div>
@@ -302,20 +307,20 @@ export function AdminLoginForm({
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "확인 중…" : "다음 · Passkey 인증"}
+              {loading ? t("community-server.sauj92q") : t("admin.passkey_5")}
             </Button>
           </form>
         ) : null}
 
         {!mfaAlreadyComplete && step === "passkey" ? (
           <div className="space-y-3">
-            <p className="text-xs font-medium text-muted-foreground">2단계 · Passkey</p>
+            <p className="text-xs font-medium text-muted-foreground">{t("admin.2_passkey")}</p>
             <p className="text-sm text-muted-foreground">
               Windows Hello, Face ID, Touch ID 또는 보안 키로 인증하세요.
             </p>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button type="button" className="w-full" disabled={loading} onClick={onPasskey}>
-              {loading ? "대기 중…" : "Passkey로 인증"}
+              {loading ? t("admin.sbknqxx") : t("admin.passkey_6")}
             </Button>
             <Button type="button" variant="ghost" className="w-full" disabled={loading} onClick={onRestart}>
               처음부터 · 계정 다시 입력
@@ -325,7 +330,7 @@ export function AdminLoginForm({
 
         {!mfaAlreadyComplete && step === "totp" ? (
           <form onSubmit={onTotpSubmit} className="space-y-3">
-            <p className="text-xs font-medium text-muted-foreground">3단계 · Authenticator</p>
+            <p className="text-xs font-medium text-muted-foreground">{t("admin.3_authenticator")}</p>
             <p className="text-sm text-muted-foreground">
               Google / Microsoft Authenticator 앱의 6자리 코드를 입력하세요.
             </p>
@@ -366,7 +371,7 @@ export function AdminLoginForm({
             </label>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "확인 중…" : "인증 완료 · 관리자 페이지"}
+              {loading ? t("community-server.sauj92q") : t("admin.s131y79e")}
             </Button>
             <Button type="button" variant="ghost" className="w-full" disabled={loading} onClick={onRestart}>
               처음부터 · 계정 다시 입력

@@ -31,7 +31,7 @@ export function assertPostAuthor(
   userId: string
 ): void {
   if (post.authorId !== userId) {
-    throw new CollaboratorError("작성자만 할 수 있는 작업입니다.", 403);
+    throw new CollaboratorError("Only the author can do this.", 403);
   }
 }
 
@@ -76,25 +76,25 @@ export async function inviteCollaborators(
 ): Promise<{ invited: number }> {
   const { enabled, max } = await getCollaboratorSettings();
   if (!enabled) {
-    throw new CollaboratorError("공동작업자 기능이 비활성화되어 있습니다.", 403);
+    throw new CollaboratorError("Collaborators are disabled.", 403);
   }
 
   const post = await db.post.findUnique({
     where: { id: postId },
     select: { id: true, authorId: true, title: true },
   });
-  if (!post) throw new CollaboratorError("게시물을 찾을 수 없습니다.", 404);
+  if (!post) throw new CollaboratorError("Post not found.", 404);
 
   if (!(await canManageCollaborators(post, inviterId))) {
-    throw new CollaboratorError("작성자만 공동작업자를 초대할 수 있습니다.", 403);
+    throw new CollaboratorError("Only the author can invite collaborators.", 403);
   }
 
   const uniqueIds = [...new Set(userIds.map((id) => id.trim()).filter(Boolean))];
   if (uniqueIds.length === 0) {
-    throw new CollaboratorError("초대할 사용자를 선택해 주세요.");
+    throw new CollaboratorError("Select users to invite.");
   }
   if (uniqueIds.includes(post.authorId) || uniqueIds.includes(inviterId)) {
-    throw new CollaboratorError("작성자 자신은 공동작업자로 초대할 수 없습니다.");
+    throw new CollaboratorError("You can't invite yourself as a collaborator.");
   }
 
   const users = await db.user.findMany({
@@ -106,7 +106,7 @@ export async function inviteCollaborators(
     select: { id: true },
   });
   if (users.length !== uniqueIds.length) {
-    throw new CollaboratorError("일부 사용자를 찾을 수 없습니다.");
+    throw new CollaboratorError("Some users couldn't be found.");
   }
 
   const existing = await db.postCollaborator.findMany({
@@ -120,7 +120,7 @@ export async function inviteCollaborators(
     return s === "PENDING" || s === "ACCEPTED";
   });
   if (alreadyActive.length > 0) {
-    throw new CollaboratorError("이미 초대되었거나 공동작업 중인 사용자가 있습니다.");
+    throw new CollaboratorError("Some users were already invited or are already collaborating.");
   }
 
   const currentActive = await countActiveSlots(postId);
@@ -185,7 +185,7 @@ export async function acceptCollaboratorInvite(
     },
   });
   if (!row || row.status !== "PENDING") {
-    throw new CollaboratorError("수락할 초대가 없습니다.", 404);
+    throw new CollaboratorError("No invitation to accept.", 404);
   }
 
   const { max } = await getCollaboratorSettings();
@@ -222,7 +222,7 @@ export async function rejectCollaboratorInvite(
     select: { id: true, status: true },
   });
   if (!row || row.status !== "PENDING") {
-    throw new CollaboratorError("거절할 초대가 없습니다.", 404);
+    throw new CollaboratorError("No invitation to decline.", 404);
   }
 
   await db.postCollaborator.update({
@@ -240,13 +240,13 @@ export async function removeCollaborator(
     where: { id: postId },
     select: { authorId: true },
   });
-  if (!post) throw new CollaboratorError("게시물을 찾을 수 없습니다.", 404);
+  if (!post) throw new CollaboratorError("Post not found.", 404);
 
   if (!(await canManageCollaborators(post, actorId))) {
-    throw new CollaboratorError("작성자만 공동작업자를 제거할 수 있습니다.", 403);
+    throw new CollaboratorError("Only the author can remove collaborators.", 403);
   }
   if (targetUserId === post.authorId) {
-    throw new CollaboratorError("작성자는 제거할 수 없습니다.");
+    throw new CollaboratorError("The author can't be removed.");
   }
 
   const row = await db.postCollaborator.findUnique({
@@ -254,7 +254,7 @@ export async function removeCollaborator(
     select: { id: true, status: true },
   });
   if (!row || (row.status !== "PENDING" && row.status !== "ACCEPTED")) {
-    throw new CollaboratorError("공동작업자를 찾을 수 없습니다.", 404);
+    throw new CollaboratorError("Collaborator not found.", 404);
   }
 
   await db.postCollaborator.update({
@@ -272,13 +272,13 @@ export async function leaveCollaboration(
     select: { id: true, status: true, post: { select: { authorId: true } } },
   });
   if (!row) {
-    throw new CollaboratorError("공동작업 정보가 없습니다.", 404);
+    throw new CollaboratorError("No collaboration info.", 404);
   }
   if (row.post.authorId === userId) {
-    throw new CollaboratorError("작성자는 나갈 수 없습니다.");
+    throw new CollaboratorError("The author can't leave.");
   }
   if (row.status !== "ACCEPTED" && row.status !== "PENDING") {
-    throw new CollaboratorError("공동작업 중이 아닙니다.");
+    throw new CollaboratorError("You're not collaborating on this post.");
   }
 
   await db.postCollaborator.update({
@@ -302,7 +302,7 @@ export async function listCollaborators(
       author: { select: userPublicSelect },
     },
   });
-  if (!post) throw new CollaboratorError("게시물을 찾을 수 없습니다.", 404);
+  if (!post) throw new CollaboratorError("Post not found.", 404);
 
   const isAuthorOrAdmin =
     viewerId != null && (await canManageCollaborators(post, viewerId));

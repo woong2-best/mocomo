@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { Metadata } from "next";
 import { getCachedSession } from "@/lib/auth";
 import { getCachedReelsPage } from "@/lib/reels/query";
@@ -7,7 +10,7 @@ import { ReelsFeed } from "@/components/reels/reels-feed";
 
 export const metadata: Metadata = {
   title: "Reels · MoCoMo",
-  description: "세로 숏폼 영상 피드",
+  description: t("app.reels.s84h615"),
   robots: { index: true, follow: true },
 };
 

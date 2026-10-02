@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { PurchaseEpisodeButton } from "@/components/works/purchase-episode-button";
@@ -20,7 +23,7 @@ export function ProfileWebtoonsPanel({
       <div className="space-y-4 p-4">
         <div className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4 text-[#0096fa]" />
-          <h2 className="font-bold text-sm">판매 작품</h2>
+          <h2 className="font-bold text-sm">{t("profile.s1vdsqg3")}</h2>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -35,7 +38,7 @@ export function ProfileWebtoonsPanel({
                   {work.title}
                 </Link>
                 <p className="text-[10px] text-muted-foreground">
-                  {work.price <= 0 ? "무료" : formatUsd(work.price)}
+                  {work.price <= 0 ? t("lib.moco.display.s9caae35a56") : formatUsd(work.price)}
                 </p>
                 {work.owned ? (
                   <Link

@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useCall, useCallBusy } from "@/components/call/call-provider";
 import { Button } from "@/components/ui/button";
@@ -22,7 +27,7 @@ export function CallButton({
     setLoading(true);
     setError("");
     const result = await startCall(calleeId, chatRoomId);
-    if (result.error) setError(result.error);
+    if (result.error) setError(errorText(result.error));
     setLoading(false);
   }
 
@@ -35,10 +40,10 @@ export function CallButton({
         className="rounded-xl gap-1.5"
         disabled={disabled || loading || busy}
         onClick={handleCall}
-        title="음성 통화 (마이크 확인 후 연결)"
+        title={t("call.s16hqisy")}
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
-        <span className="hidden sm:inline">음성 통화</span>
+        <span className="hidden sm:inline">{t("call.smavk62")}</span>
       </Button>
       {error && <span className="text-xs text-destructive">{error}</span>}
     </div>

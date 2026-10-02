@@ -17,7 +17,7 @@ export async function fulfillCreatorSubscriptionFromStripe(input: {
 }) {
   const intent = await db.paymentIntent.findUnique({ where: { id: input.orderId } });
   if (!intent || intent.userId !== input.subscriberId) {
-    return { error: "결제 정보를 찾을 수 없습니다." as const };
+    return { error: "Payment information not found." as const };
   }
   if (intent.status === "PAID") {
     return { success: true as const, alreadyPaid: true };
@@ -25,7 +25,7 @@ export async function fulfillCreatorSubscriptionFromStripe(input: {
 
   const meta = intent.metadata as Record<string, string>;
   const creatorId = meta.creatorId;
-  if (!creatorId) return { error: "크리에이터 정보가 없습니다." as const };
+  if (!creatorId) return { error: "Creator information is missing." as const };
 
   await recordPaymentGross(input.amountUsdCents, intent.id, intent.type);
 
@@ -43,13 +43,13 @@ export async function fulfillCreatorSubscriptionFromStripe(input: {
       referenceType: "creator_subscription",
       referenceId: r.referenceId,
       paymentIntentId: input.orderId,
-      memo: "크리에이터 정기 후원",
+      memo: "Creator subscription",
     });
     await creditSellerEarning(r.creatorId, r.sellerAmount, {
       referenceType: "creator_subscription",
       referenceId: r.referenceId,
       paymentIntentId: input.orderId,
-      memo: "크리에이터 정기 후원",
+      memo: "Creator subscription",
     });
   }
 
@@ -99,7 +99,7 @@ export async function renewCreatorSubscriptionFromInvoice(input: {
   await creditSellerEarning(sub.creatorId, sellerAmount, {
     referenceType: "creator_subscription_renewal",
     referenceId: input.stripeInvoiceId,
-    memo: "크리에이터 정기 후원 갱신",
+    memo: "Creator subscription renewal",
   });
 
   return { success: true as const };
@@ -131,7 +131,7 @@ export async function cancelCreatorStripeSubscription(subscriberId: string, crea
   const sub = await db.subscription.findUnique({
     where: { subscriberId_creatorId: { subscriberId, creatorId } },
   });
-  if (!sub) return { error: "구독을 찾을 수 없습니다." as const };
+  if (!sub) return { error: "Subscription not found." as const };
   if (!sub.stripeSubscriptionId) {
     await db.subscription.update({
       where: { id: sub.id },

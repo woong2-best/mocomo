@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,7 +11,7 @@ import { deleteUsedListing } from "@/actions/used-market";
 import { UsedListingHeartButton } from "@/components/used/used-listing-heart-button";
 import { UsedListingStarButton } from "@/components/used/used-listing-star-button";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 export function UsedDetailHeader({
   listingId,
@@ -23,8 +26,8 @@ export function UsedDetailHeader({
   initialStarred?: boolean;
   heading?: string;
 }) {
-  const { locale } = useLocale();
-  const resolvedHeading = heading ?? uiText(locale, "상품", "Listing");
+  const { locale , t } = useLocale();
+  const resolvedHeading = heading ?? t("ui.listing");
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -42,7 +45,7 @@ export function UsedDetailHeader({
         <Link
           href="/market"
           className="p-2 -ml-1 rounded-lg hover:bg-muted"
-          aria-label={uiText(locale, "뒤로", "Back")}
+          aria-label={t("common.back")}
         >
           <ChevronLeft className="h-6 w-6" />
         </Link>
@@ -61,7 +64,7 @@ export function UsedDetailHeader({
                   setConfirmDelete(false);
                 }}
                 className="p-2 rounded-lg hover:bg-muted"
-                aria-label={uiText(locale, "더보기", "More")}
+                aria-label={t("nav.more")}
               >
                 <MoreHorizontal className="h-5 w-5" />
               </button>
@@ -70,7 +73,7 @@ export function UsedDetailHeader({
                   <button
                     type="button"
                     className="fixed inset-0 z-40"
-                    aria-label={uiText(locale, "닫기", "Close")}
+                    aria-label={t("common.close")}
                     onClick={() => {
                       setMenuOpen(false);
                       setConfirmDelete(false);
@@ -84,12 +87,12 @@ export function UsedDetailHeader({
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted"
                       >
                         <Trash2 className="h-4 w-4" />
-                        {uiText(locale, "글 삭제", "Delete listing")}
+                        {t("ui.delete_listing")}
                       </button>
                     ) : (
                       <div className="px-3 py-2 space-y-2">
                         <p className="text-xs text-muted-foreground">
-                          {uiText(locale, "삭제할까요?", "Delete this listing?")}
+                          {t("ui.delete_this_listing")}
                         </p>
                         <div className="flex gap-2">
                           <button
@@ -97,7 +100,7 @@ export function UsedDetailHeader({
                             className="flex-1 rounded-lg border py-1.5 text-xs"
                             onClick={() => setConfirmDelete(false)}
                           >
-                            {uiText(locale, "취소", "Cancel")}
+                            {t("calendar.cancel")}
                           </button>
                           <button
                             type="button"
@@ -105,7 +108,7 @@ export function UsedDetailHeader({
                             className="flex-1 rounded-lg bg-destructive text-destructive-foreground py-1.5 text-xs font-medium"
                             onClick={() => void remove()}
                           >
-                            {deleting ? "…" : uiText(locale, "삭제", "Delete")}
+                            {deleting ? "…" : t("post.menu.delete")}
                           </button>
                         </div>
                       </div>

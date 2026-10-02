@@ -25,10 +25,10 @@ export function buildYoutubeNativeObsChatSetup(
     cssPath: YOUTUBE_OBS_CHAT_CSS_PATH,
     cssPublicUrl,
     steps: [
-      "OBS → 소스(+) → 브라우저",
-      "URL에 YouTube 채팅 주소 붙여넣기",
-      "「사용자 정의 CSS」에 CSS 붙여넣기",
-      "배경 투명 ✓ · 너비 450 · 높이 700",
+      "OBS → Sources (+) → Browser",
+      "Paste the YouTube chat URL",
+      "Paste CSS under Custom CSS",
+      "Transparent background ✓ · width 450 · height 700",
     ],
   };
 }
@@ -45,6 +45,6 @@ ${popoutUrl}
 [사용자 정의 CSS란 — 아래 CSS 전체]
 ${css}
 
-설정: 배경 투명 ✓ · 450×700 · OBS 30.2.3+
+설정: Background 투명 ✓ · 450×700 · OBS 30.2.3+
 채팅 안 보이면: 소스 우클릭 → 새로고침`;
 }

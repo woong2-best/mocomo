@@ -1,10 +1,13 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { CULTURE_WIKI_TERMS } from "@/lib/legal-content";
 import { LegalDocumentView } from "@/components/legal/legal-document";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "컬쳐 위키 이용 약관 — MoCoMo",
-  description: "MoCoMo 컬쳐 위키 이용 조건, CC BY-NC-SA 4.0, DMCA 및 저작권 정책",
+  title: t("app.legal.mocomo_5"),
+  description: t("app.legal.mocomo_cc_by_nc_sa"),
 };
 
 export default function CultureWikiTermsPage() {

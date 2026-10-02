@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import type { AdultVerificationScope } from "@prisma/client";
@@ -31,7 +34,7 @@ export function MobileAdultVerifyClient({ scope, alreadyVerified }: Props) {
       await requestPortOneIdentityVerification(scope);
       window.location.href = APP_SUCCESS_URL;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "본인인증에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("auth.sbkrnho"));
     } finally {
       setBusy(false);
     }
@@ -42,7 +45,7 @@ export function MobileAdultVerifyClient({ scope, alreadyVerified }: Props) {
       <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex gap-3">
         <ShieldAlert className="h-6 w-6 text-amber-600 shrink-0" />
         <div className="text-sm space-y-1">
-          <p className="font-semibold text-amber-800 dark:text-amber-200">본인인증</p>
+          <p className="font-semibold text-amber-800 dark:text-amber-200">{t("auth.soo83ad")}</p>
           <p className="text-muted-foreground leading-relaxed">{ADULT_VERIFICATION_REQUIRED_MSG}</p>
         </div>
       </div>
@@ -55,11 +58,11 @@ export function MobileAdultVerifyClient({ scope, alreadyVerified }: Props) {
         disabled={busy}
         onClick={() => void startVerification()}
       >
-        {busy ? "인증 진행 중…" : "휴대폰 본인인증 시작"}
+        {busy ? t("auth.s19jsxmd") : t("auth.s6vrjis")}
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        인증이 완료되면 앱으로 자동 돌아갑니다.
+        {t("auth.s1t9aw46")}
       </p>
     </div>
   );

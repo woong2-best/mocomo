@@ -94,7 +94,7 @@ export async function createMobileUsedListing(
   } & SubcultureListingInput
 ) {
   const user = await loadUsedMarketUser(userId);
-  if (!user) return { error: "로그인이 필요합니다." as const };
+  if (!user) return { error: "Sign-in required." as const };
 
   const isAuction = data.saleType === "AUCTION";
   if (USED_AUCTION_RETIRED && isAuction) return { error: USED_AUCTION_RETIRED_MSG };
@@ -109,24 +109,24 @@ export async function createMobileUsedListing(
     const adultErr = assertUsedAdultForRestricted(user, restricted);
     if (adultErr) return { error: USED_ADULT_SELLER_MSG };
   }
-  if (!data.title.trim()) return { error: "제목을 입력해 주세요." as const };
+  if (!data.title.trim()) return { error: "Enter a title." as const };
   const currency = normalizeUsedCurrency(data.currency);
   const price = Math.floor(Number(data.price) || 0);
-  if (data.price < 0 || price < 0) return { error: "가격이 올바르지 않습니다." as const };
+  if (data.price < 0 || price < 0) return { error: "Invalid price." as const };
   const maxPrice = maxUsedListingPrice(currency);
   if (price > maxPrice) {
     return { error: `가격은 ${maxUsedListingPriceLabel(currency)} 이하로 입력해 주세요.` as const };
   }
-  if (!data.region.trim()) return { error: "거래 지역을 선택해 주세요." as const };
+  if (!data.region.trim()) return { error: "Select a trading area." as const };
   const listingCountry = normalizeMeetCountry(data.meetCountry || user.countryCode);
   if (!isValidUsedRegion(data.region, listingCountry)) {
-    return { error: "올바른 거래 지역을 선택해 주세요." as const };
+    return { error: "Select a valid trading area." as const };
   }
 
   const parsedCats = parseUsedSellCategories(data.categories, data.category);
   if ("error" in parsedCats && parsedCats.error) return { error: parsedCats.error };
 
-  if (isAuction && price <= 0) return { error: "경매 시작가를 입력해 주세요." as const };
+  if (isAuction && price <= 0) return { error: "Enter a starting bid." as const };
   if (isAuction) {
     const balance = await getMocoBalanceSnapshot(userId);
     if (!canParticipateInAuction(balance)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
@@ -139,7 +139,7 @@ export async function createMobileUsedListing(
     data.reservePrice != null && data.reservePrice > 0 ? Math.floor(data.reservePrice) : null;
 
   if (buyNowPrice != null && buyNowPrice <= price) {
-    return { error: "즉시구매가는 시작가보다 높아야 합니다." as const };
+    return { error: "Buy-now price must be higher than the starting bid." as const };
   }
 
   const ephemeral = data.images.filter(
@@ -149,7 +149,7 @@ export async function createMobileUsedListing(
   );
   if (ephemeral.length > 0) {
     return {
-      error: "사진이 영구 저장되지 않았습니다. 사진을 다시 추가해 주세요." as const,
+      error: "Photos weren't saved permanently. Please add them again." as const,
     };
   }
 
@@ -242,10 +242,10 @@ export async function createMobileUsedListing(
   } catch (e) {
     if (mapDepositError(e)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {
-      return { error: "중고거래 DB가 준비되지 않았습니다." as const };
+      return { error: "Marketplace database isn't ready." as const };
     }
     console.error("[createMobileUsedListing]", e);
-    return { error: "글 등록에 실패했습니다. 잠시 후 다시 시도해 주세요." as const };
+    return { error: "Couldn't post the listing. Please try again shortly." as const };
   }
 }
 
@@ -294,13 +294,13 @@ export async function listMobileMyUsedListings(
 
 export async function toggleMobileUsedListingStar(userId: string, listingId: string) {
   const user = await loadUsedMarketUser(userId);
-  if (!user) return { error: "로그인이 필요합니다." as const };
+  if (!user) return { error: "Sign-in required." as const };
 
   const listing = await db.usedListing.findUnique({
     where: { id: listingId },
     select: { id: true, sellerId: true, meetCountry: true, region: true },
   });
-  if (!listing) return { error: "게시글을 찾을 수 없습니다." as const };
+  if (!listing) return { error: "Listing not found." as const };
   const { assertUsedMarketListingVisible } = await import("@/lib/used-market-locale-scope");
   const visibleErr = await assertUsedMarketListingVisible({ userId, listing });
   if (visibleErr) return { error: visibleErr };
@@ -318,13 +318,13 @@ export async function toggleMobileUsedListingStar(userId: string, listingId: str
 
 export async function toggleMobileUsedFavorite(userId: string, listingId: string) {
   const user = await loadUsedMarketUser(userId);
-  if (!user) return { error: "로그인이 필요합니다." as const };
+  if (!user) return { error: "Sign-in required." as const };
 
   const listing = await db.usedListing.findUnique({
     where: { id: listingId },
     select: { sellerId: true, title: true, meetCountry: true, region: true },
   });
-  if (!listing) return { error: "게시글을 찾을 수 없습니다." as const };
+  if (!listing) return { error: "Listing not found." as const };
   const tradeErr = await assertUsedMarketTradeAccess({
     userId,
     buyerCountry: user.countryCode,
@@ -352,7 +352,7 @@ export async function toggleMobileUsedFavorite(userId: string, listingId: string
 
 export async function startMobileUsedTradeChat(userId: string, listingId: string) {
   const user = await loadUsedMarketUser(userId);
-  if (!user) return { error: "로그인이 필요합니다." as const };
+  if (!user) return { error: "Sign-in required." as const };
 
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
@@ -361,7 +361,7 @@ export async function startMobileUsedTradeChat(userId: string, listingId: string
     where: { id: listingId },
     include: { seller: { select: { id: true, username: true } } },
   });
-  if (!listing) return { error: "게시글을 찾을 수 없습니다." as const };
+  if (!listing) return { error: "Listing not found." as const };
   if (listing.sellerId !== userId) {
     const tradeErr = await assertUsedMarketTradeAccess({
       userId,
@@ -385,18 +385,18 @@ export async function placeMobileUsedAuctionBid(
   opts?: { paymentIntentDbId?: string | null }
 ) {
   const user = await loadUsedMarketUser(userId);
-  if (!user) return { error: "로그인이 필요합니다." as const };
+  if (!user) return { error: "Sign-in required." as const };
 
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
 
   if (!termsAccepted) {
-    return { error: "입찰 전 결제 의무 및 이용 제한 안내에 동의해 주세요." as const };
+    return { error: "Agree to payment obligations and usage limits before bidding." as const };
   }
 
   const bidAmount = Math.floor(amount);
   if (!Number.isFinite(bidAmount) || bidAmount <= 0) {
-    return { error: "입찰가를 올바르게 입력해 주세요." as const };
+    return { error: "Enter a valid bid amount." as const };
   }
 
   try {
@@ -404,7 +404,7 @@ export async function placeMobileUsedAuctionBid(
 
     const listing = await db.usedListing.findUnique({ where: { id: listingId } });
     if (!listing || listing.saleType !== "AUCTION") {
-      return { error: "경매 상품이 아닙니다." as const };
+      return { error: "This isn't an auction item." as const };
     }
     const tradeErr = await assertUsedMarketTradeAccess({
       userId,
@@ -432,7 +432,7 @@ export async function placeMobileUsedAuctionBid(
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "bid",
-      title: "새 입찰",
+      title: "New bid",
       body: `${listing.title} · ${priceLabel}`,
       link,
       actorId: userId,
@@ -443,7 +443,7 @@ export async function placeMobileUsedAuctionBid(
       await sendUsedAuctionNotification({
         userId: prevBidderId,
         type: "outbid",
-        title: "더 높은 입찰",
+        title: "Higher bid",
         body: `${listing.title} — ${priceLabel}로 더 높은 입찰이 들어왔습니다.`,
         link,
         actorId: userId,
@@ -455,7 +455,7 @@ export async function placeMobileUsedAuctionBid(
         listingId,
         sellerId: listing.sellerId,
         type: "extended",
-        title: "경매 마감 연장",
+        title: "Auction extended",
         body: `${listing.title} — 마감 직전 입찰로 종료 시각이 연장되었습니다.`,
       });
     }
@@ -463,7 +463,7 @@ export async function placeMobileUsedAuctionBid(
     return { success: true as const, amount: result.amount, extended: result.extended };
   } catch (e) {
     console.error("[placeMobileUsedAuctionBid]", e);
-    return { error: "입찰에 실패했습니다. 잠시 후 다시 시도해 주세요." as const };
+    return { error: "Bid failed. Please try again shortly." as const };
   }
 }
 
@@ -728,9 +728,9 @@ export function isUsedListingEditable(status: string) {
 
 export async function deleteMobileUsedListing(userId: string, listingId: string) {
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
-  if (!listing || listing.sellerId !== userId) return { error: "권한이 없습니다." as const };
+  if (!listing || listing.sellerId !== userId) return { error: "Permission denied." as const };
   const user = await loadUsedMarketUser(userId);
-  if (!user) return { error: "로그인이 필요합니다." as const };
+  if (!user) return { error: "Sign-in required." as const };
   const accessErr = assertAuctionPostAccess(user);
   if (accessErr) return { error: accessErr };
 
@@ -744,19 +744,19 @@ export async function deleteMobileUsedListing(userId: string, listingId: string)
 
 export async function bumpMobileUsedListing(userId: string, listingId: string) {
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
-  if (!listing || listing.sellerId !== userId) return { error: "권한이 없습니다." as const };
-  if (listing.saleType !== "FIXED") return { error: "경매 글은 끌어올릴 수 없습니다." as const };
+  if (!listing || listing.sellerId !== userId) return { error: "Permission denied." as const };
+  if (listing.saleType !== "FIXED") return { error: "Auction listings can't be bumped." as const };
   if (!isUsedListingEditable(listing.status)) {
-    return { error: "거래 진행 중이거나 완료된 글은 끌어올릴 수 없습니다." as const };
+    return { error: "Can't bump listings that are in progress or completed." as const };
   }
   const user = await loadUsedMarketUser(userId);
-  if (!user) return { error: "로그인이 필요합니다." as const };
+  if (!user) return { error: "Sign-in required." as const };
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
 
   const dayStart = startOfUtcDay();
   if (listing.lastBumpedAt && listing.lastBumpedAt >= dayStart) {
-    return { error: "끌어올리기는 하루에 한 번만 할 수 있습니다." as const };
+    return { error: "You can bump once per day." as const };
   }
   const now = new Date();
   await db.usedListing.update({
@@ -784,27 +784,27 @@ export async function updateMobileUsedListing(
   } & SubcultureListingInput
 ) {
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
-  if (!listing || listing.sellerId !== userId) return { error: "권한이 없습니다." as const };
+  if (!listing || listing.sellerId !== userId) return { error: "Permission denied." as const };
   if (!isUsedListingEditable(listing.status)) {
-    return { error: "거래가 진행 중이어서 수정할 수 없습니다." as const };
+    return { error: "Can't edit while a trade is in progress." as const };
   }
   const user = await loadUsedMarketUser(userId);
-  if (!user) return { error: "로그인이 필요합니다." as const };
+  if (!user) return { error: "Sign-in required." as const };
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
 
   const title = (data.title ?? listing.title).trim();
-  if (!title) return { error: "제목을 입력해 주세요." as const };
+  if (!title) return { error: "Enter a title." as const };
   const currency = normalizeUsedCurrency(data.currency ?? listing.currency);
   const price =
     data.price !== undefined ? Math.floor(Number(data.price) || 0) : listing.price;
-  if (price < 0) return { error: "가격이 올바르지 않습니다." as const };
+  if (price < 0) return { error: "Invalid price." as const };
   const maxPrice = maxUsedListingPrice(currency);
   if (price > maxPrice) {
     return { error: `가격은 ${maxUsedListingPriceLabel(currency)} 이하로 입력해 주세요.` as const };
   }
   const region = (data.region ?? listing.region).trim();
-  if (!region) return { error: "거래 지역을 선택해 주세요." as const };
+  if (!region) return { error: "Select a trading area." as const };
 
   const subculture = normalizeSubcultureListingInput({
     characterName: data.characterName,
@@ -981,13 +981,13 @@ export async function createMobileUsedTradeRequest(
   meetAtIso: string
 ) {
   const user = await loadUsedMarketUser(userId);
-  if (!user) return { error: "로그인이 필요합니다." as const };
+  if (!user) return { error: "Sign-in required." as const };
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
 
   const meetAt = new Date(meetAtIso);
   if (Number.isNaN(meetAt.getTime()) || meetAt.getTime() < Date.now() - 60_000) {
-    return { error: "거래 날짜와 시간을 선택해 주세요." as const };
+    return { error: "Choose a meetup date and time." as const };
   }
 
   const link = await db.usedListingChat.findFirst({
@@ -998,21 +998,21 @@ export async function createMobileUsedTradeRequest(
       },
     },
   });
-  if (!link?.listing) return { error: "이 채팅방에서 거래 요청을 할 수 없습니다." as const };
+  if (!link?.listing) return { error: "Trade requests aren't available in this chat." as const };
   const listing = link.listing;
   const isBuyer = link.buyerId === userId;
   const isSeller = listing.sellerId === userId;
-  if (!isBuyer && !isSeller) return { error: "이 채팅방에서 거래 요청을 할 수 없습니다." as const };
-  if (listing.saleType !== "FIXED") return { error: "경매 상품은 거래 요청을 사용할 수 없습니다." as const };
+  if (!isBuyer && !isSeller) return { error: "Trade requests aren't available in this chat." as const };
+  if (listing.saleType !== "FIXED") return { error: "Trade requests aren't available for auction items." as const };
   if (listing.status !== "SELLING") {
-    return { error: "이미 거래 진행 중이거나 완료된 상품입니다." as const };
+    return { error: "This item is already in a trade or sold." as const };
   }
 
   const existingPending = await db.usedTradeRequest.findFirst({
     where: { listingId, roomId, status: "PENDING" },
   });
   if (existingPending) {
-    return { error: "이미 거래 요청을 보냈습니다." as const, requestId: existingPending.id };
+    return { error: "You already sent a trade request." as const, requestId: existingPending.id };
   }
 
   const request = await db.usedTradeRequest.create({
@@ -1045,9 +1045,9 @@ export async function getMobileUsedTradeRequest(userId: string, requestId: strin
       seller: { select: { id: true, username: true } },
     },
   });
-  if (!row) return { error: "요청을 찾을 수 없습니다." as const };
+  if (!row) return { error: "Request not found." as const };
   if (row.buyerId !== userId && row.sellerId !== userId) {
-    return { error: "권한이 없습니다." as const };
+    return { error: "Permission denied." as const };
   }
   return {
     request: {
@@ -1081,11 +1081,11 @@ export async function respondMobileUsedTradeRequest(
     where: { id: requestId },
     include: { listing: true },
   });
-  if (!row) return { error: "요청을 찾을 수 없습니다." as const };
+  if (!row) return { error: "Request not found." as const };
   const initiatorId = row.requestedById ?? row.buyerId;
   const responderId = initiatorId === row.sellerId ? row.buyerId : row.sellerId;
-  if (userId !== responderId) return { error: "요청을 받은 사람만 응답할 수 있습니다." as const };
-  if (row.status !== "PENDING") return { error: "이미 처리된 요청입니다." as const };
+  if (userId !== responderId) return { error: "Only the recipient can respond to the request." as const };
+  if (row.status !== "PENDING") return { error: "This request was already handled." as const };
 
   const now = new Date();
   if (action === "reject") {
@@ -1095,13 +1095,13 @@ export async function respondMobileUsedTradeRequest(
     });
     await sendMobileDmMessage(userId, {
       roomId: row.roomId,
-      content: "거래 요청을 거절했습니다.",
+      content: "Trade request declined.",
     }).catch(() => undefined);
     return { status: "REJECTED" as const };
   }
 
   if (row.listing.status !== "SELLING") {
-    return { error: "이미 다른 거래가 진행 중입니다." as const };
+    return { error: "Another trade is already in progress." as const };
   }
 
   await db.$transaction([
@@ -1125,7 +1125,7 @@ export async function respondMobileUsedTradeRequest(
 
   await sendMobileDmMessage(userId, {
     roomId: row.roomId,
-    content: "거래 요청을 승인했습니다. 이제 글을 수정할 수 없습니다.",
+    content: "Trade request approved. You can't edit the listing now.",
   }).catch(() => undefined);
 
   return { status: "APPROVED" as const, listingStatus: "RESERVED" as const };
@@ -1140,19 +1140,19 @@ export async function respondMobileUsedTradeMeetCompletion(
     where: { id: requestId },
     include: { listing: true },
   });
-  if (!row) return { error: "요청을 찾을 수 없습니다." as const };
+  if (!row) return { error: "Request not found." as const };
   if (row.buyerId !== userId && row.sellerId !== userId) {
-    return { error: "권한이 없습니다." as const };
+    return { error: "Permission denied." as const };
   }
-  if (row.status !== "APPROVED") return { error: "승인된 거래만 완료 확인할 수 있습니다." as const };
-  if (!row.meetAt) return { error: "거래 일정이 없습니다." as const };
+  if (row.status !== "APPROVED") return { error: "Only approved trades can be marked complete." as const };
+  if (!row.meetAt) return { error: "No meetup scheduled." as const };
 
   const { isUsedTradeMeetCompletionDue } = await import("@/lib/used-trade-meet");
   if (!isUsedTradeMeetCompletionDue(row.meetAt)) {
-    return { error: "아직 거래 완료 확인 기간이 아닙니다." as const };
+    return { error: "It's not time to confirm completion yet." as const };
   }
   if (row.meetCompletionDeclinedAt) {
-    return { error: "이미 거래 미완료로 처리되었습니다." as const };
+    return { error: "Already marked as incomplete." as const };
   }
 
   const now = new Date();
@@ -1175,7 +1175,7 @@ export async function respondMobileUsedTradeMeetCompletion(
     ]);
     await sendMobileDmMessage(userId, {
       roomId: row.roomId,
-      content: "거래가 완료되지 않아 다시 판매 중으로 변경했습니다.",
+      content: "Trade didn't complete; listing is for sale again.",
     }).catch(() => undefined);
     return { status: "DECLINED" as const, listingStatus: "SELLING" as const };
   }
@@ -1195,7 +1195,7 @@ export async function respondMobileUsedTradeMeetCompletion(
     });
     await sendMobileDmMessage(userId, {
       roomId: row.roomId,
-      content: "거래가 완료되었습니다.",
+      content: "Trade completed.",
     }).catch(() => undefined);
     return { status: "COMPLETED" as const, listingStatus: "SOLD" as const };
   }

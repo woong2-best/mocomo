@@ -1,5 +1,11 @@
 "use client";
 
+
+import { isPhoneVerificationError } from "@/lib/error-codes";
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,11 +23,8 @@ import {
 } from "@/lib/used-youth-protection";
 import type { UsedListingStatus, UsedRestrictedKind } from "@prisma/client";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
-function needsPhoneVerification(error: string) {
-  return error.includes("휴대폰") || error.includes("phone verification");
-}
+
 
 export function UsedAuctionBottomBar({
   listingId,
@@ -58,7 +61,7 @@ export function UsedAuctionBottomBar({
   currency?: string | null;
   availableMocoBalance?: number | null;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const needsAdult =
     isUsedRestrictedKind(restrictedKind) && !isSeller && !viewerAdultVerified;
   const router = useRouter();
@@ -75,11 +78,11 @@ export function UsedAuctionBottomBar({
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (needsPhoneVerification(res.error)) {
+      if (isPhoneVerificationError(res.error)) {
         router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
         return;
       }
-      setBarError(res.error);
+      setBarError(errorText(res.error));
       return;
     }
     if ("roomId" in res && res.roomId) router.push(`/messages/${res.roomId}`);
@@ -98,7 +101,7 @@ export function UsedAuctionBottomBar({
     const res = await getUsedListingChatRooms(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      setBarError(res.error);
+      setBarError(errorText(res.error));
       return;
     }
     const rooms = res.rooms ?? [];
@@ -119,7 +122,7 @@ export function UsedAuctionBottomBar({
     setConfirmCancel(false);
     const res = await cancelUsedAuction(listingId);
     setLoading(false);
-    if ("error" in res && res.error) setBarError(res.error);
+    if ("error" in res && res.error) setBarError(errorText(res.error));
     else router.refresh();
   }
 
@@ -131,11 +134,7 @@ export function UsedAuctionBottomBar({
         {confirmCancel ? (
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-2">
             <p className="text-xs text-destructive">
-              {uiText(
-                locale,
-                "입찰 없는 경매만 취소할 수 있습니다. 취소할까요?",
-                "You can only cancel an auction with no bids. Cancel it?"
-              )}
+              {t("ui.you_can_only_cancel_an_auction")}
             </p>
             <div className="flex gap-2">
               <Button
@@ -145,10 +144,10 @@ export function UsedAuctionBottomBar({
                 disabled={loading}
                 onClick={() => void confirmCancelAuction()}
               >
-                {uiText(locale, "취소하기", "Cancel auction")}
+                {t("ui.cancel_auction")}
               </Button>
               <Button type="button" size="sm" variant="outline" onClick={() => setConfirmCancel(false)}>
-                {uiText(locale, "닫기", "Close")}
+                {t("common.close")}
               </Button>
             </div>
           </div>
@@ -161,7 +160,7 @@ export function UsedAuctionBottomBar({
             disabled={loading}
             onClick={() => void cancelAuction()}
           >
-            {uiText(locale, "경매 취소 (입찰 없을 때)", "Cancel auction (no bids)")}
+            {t("ui.cancel_auction_no_bids")}
           </Button>
         ) : null}
         <Button
@@ -173,7 +172,7 @@ export function UsedAuctionBottomBar({
           onClick={() => void openSellerChats()}
         >
           <MessageSquare className="h-5 w-5 mr-2" />
-          {loading ? uiText(locale, "불러오는 중…", "Loading…") : uiText(locale, "메시지 보내기", "Message")}
+          {loading ? t("tower.loadingMore") : t("ui.message")}
         </Button>
         {sellerRooms && sellerRooms.length > 1 && (
           <ul className="max-h-32 overflow-y-auto rounded-xl border divide-y text-sm">
@@ -196,15 +195,15 @@ export function UsedAuctionBottomBar({
       <div className="used-action-bar flex gap-2 border-t bg-background p-3 pb-safe z-20">
         <div className="flex-1 flex flex-col justify-center">
           <p className="text-sm font-bold text-orange-600 dark:text-orange-400">
-            {uiText(locale, "낙찰 · 결제 필요", "Won · payment due")}
+            {t("ui.won_payment_due")}
           </p>
           <p className="text-xs text-muted-foreground">
-            {uiText(locale, "기한 내 결제 완료를 신고해 주세요", "Complete payment before the deadline")}
+            {t("ui.complete_payment_before_the_deadline")}
           </p>
         </div>
         <Button asChild size="lg" className="h-12 rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
           <Link href={`/messages/${initialBuyerRoomId}`}>
-            {uiText(locale, "채팅 · 결제", "Chat · pay")}
+            {t("ui.chat_pay")}
           </Link>
         </Button>
       </div>
@@ -216,15 +215,15 @@ export function UsedAuctionBottomBar({
       <div className="used-action-bar flex gap-2 border-t bg-background p-3 pb-safe z-20">
         <div className="flex-1 flex flex-col justify-center">
           <p className="text-sm font-bold text-green-600 dark:text-green-400">
-            {uiText(locale, "낙찰되었습니다", "You won the auction")}
+            {t("ui.you_won_the_auction")}
           </p>
           <p className="text-xs text-muted-foreground">
-            {uiText(locale, "판매자와 채팅으로 거래를 진행하세요", "Chat with the seller to complete the trade")}
+            {t("ui.chat_with_the_seller_to_complete")}
           </p>
         </div>
         <Button asChild size="lg" className="h-12 rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
           <Link href={`/messages/${initialBuyerRoomId}`}>
-            {uiText(locale, "메시지 보내기", "Message")}
+            {t("ui.message")}
           </Link>
         </Button>
       </div>
@@ -235,8 +234,8 @@ export function UsedAuctionBottomBar({
     return (
       <div className="used-action-bar border-t bg-muted/40 p-4 text-center text-sm text-muted-foreground pb-safe">
         {status === "RESERVED"
-          ? uiText(locale, "다른 분과 예약 중이에요", "Reserved for another buyer")
-          : uiText(locale, "경매가 종료되었어요", "This auction has ended")}
+          ? t("ui.reserved_for_another_buyer")
+          : t("ui.this_auction_has_ended")}
         {isLoggedIn && status === "SELLING" && (
           <Button
             type="button"
@@ -245,7 +244,7 @@ export function UsedAuctionBottomBar({
             disabled={loading}
             onClick={() => void openChat()}
           >
-            {uiText(locale, "메시지 보내기", "Message")}
+            {t("ui.message")}
           </Button>
         )}
       </div>
@@ -259,14 +258,14 @@ export function UsedAuctionBottomBar({
           <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2">
             <Link href={usedAdultVerifyUrl(listingId, restrictedKind)}>
               <ShieldAlert className="h-5 w-5" />
-              {uiText(locale, "성인 인증 후 입찰", "Verify age to bid")}
+              {t("ui.verify_age_to_bid")}
             </Link>
           </Button>
         ) : (
           <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2">
             <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>
               <Gavel className="h-5 w-5" />
-              {uiText(locale, "로그인 후 입찰", "Sign in to bid")}
+              {t("ui.sign_in_to_bid")}
             </Link>
           </Button>
         )}
@@ -294,7 +293,7 @@ export function UsedAuctionBottomBar({
         <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2">
           <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>
             <Gavel className="h-5 w-5" />
-            {uiText(locale, "로그인 후 입찰", "Sign in to bid")}
+            {t("ui.sign_in_to_bid")}
           </Link>
         </Button>
       )}

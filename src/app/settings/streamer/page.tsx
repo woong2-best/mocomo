@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCachedSession } from "@/lib/auth";
@@ -15,21 +18,21 @@ export default async function StreamerSettingsPage() {
 
   return (
     <AppPageChrome spacing="sm">
-      <h1 className="text-xl font-bold">스트리머 프로필</h1>
+      <h1 className="text-xl font-bold">{t("settings.sc5py3w")}</h1>
       <p className="text-sm text-muted-foreground">
-        공지·방송 일정·소개 문구를 설정합니다. 파트너 배지는 운영진이 부여합니다.
+        {t("settings.s1emwjjs")}
       </p>
       <Link
         href="/settings/streaming-accounts"
         className="inline-flex text-sm font-medium text-primary hover:underline"
       >
-        스트리밍 계정 연결 →
+        {t("settings.s93jpme")}
       </Link>
       <Link
         href="/live/studio"
         className="inline-flex text-sm font-medium text-primary hover:underline"
       >
-        라이브 스튜디오 →
+        {t("settings.s1qa6jd2")}
       </Link>
       <StreamerSettingsForm
         initial={{

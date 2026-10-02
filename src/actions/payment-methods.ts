@@ -11,22 +11,22 @@ import {
 } from "@/lib/stripe-payment-methods";
 
 function actionAuthError(e: unknown): string {
-  if (!(e instanceof Error)) return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+  if (!(e instanceof Error)) return "actions.se2gpcp";
   switch (e.message) {
     case "UNAUTHORIZED":
-      return "로그인이 필요합니다.";
+      return "common.error.authRequired";
     case "BANNED":
-      return "이용이 제한된 계정입니다.";
+      return "actions.s12qpsrn";
     case "ACCOUNT_DELETED":
-      return "삭제된 계정입니다.";
+      return "actions.so0m8y9";
     case "USER_NOT_FOUND":
-      return "사용자 정보를 찾을 수 없습니다.";
+      return "actions.s1mr2r81";
     case "ACCOUNT_SUSPENDED":
-      return "계정이 정지되어 카드를 등록할 수 없습니다.";
+      return "actions.s1mcwspz";
     case "ACCOUNT_LIMITED":
-      return "계정 제한으로 카드를 등록할 수 없습니다.";
+      return "actions.s1mocqj6";
     default:
-      return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+      return "actions.se2gpcp";
   }
 }
 
@@ -52,7 +52,7 @@ export async function startAddPaymentMethod(returnPath?: string) {
     });
     if ("error" in res && res.error) return { error: res.error };
     if (!("checkoutUrl" in res) || !res.checkoutUrl) {
-      return { error: "카드 등록 페이지로 이동하지 못했습니다." };
+      return { error: "actions.s90ss29" };
     }
     return { checkoutUrl: res.checkoutUrl };
   } catch (e) {

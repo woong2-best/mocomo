@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { isPaymentsConfigured } from "@/lib/payments";
@@ -60,7 +59,6 @@ export async function fulfillStudioAssetPurchase(userId: string, assetId: string
   revalidatePath("/studio/market");
   revalidatePath(`/studio/market/${assetId}`);
   revalidatePath("/studio/library");
-  revalidateAptHub();
   return { success: true, alreadyOwned: false, creatorId: asset.creatorId, creatorEarn, platformFee };
 }
 

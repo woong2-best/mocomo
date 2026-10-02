@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Bell, LogOut, Menu, UserRound } from "lucide-react";
 import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import { Button } from "@/components/ui/button";
@@ -24,18 +27,18 @@ export function AdminHeader({
         type="button"
         className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 text-muted-foreground hover:bg-muted lg:hidden"
         onClick={onMenuClick}
-        aria-label="메뉴 열기"
+        aria-label={t("admin.s14rjarg")}
       >
         <Menu className="h-4 w-4" />
       </button>
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold tracking-tight">{title}</p>
-        <p className="truncate text-[11px] text-muted-foreground">MoCoMo 관리자 콘솔</p>
+        <p className="truncate text-[11px] text-muted-foreground">{t("admin.mocomo_3")}</p>
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2">
-        <Button type="button" variant="ghost" size="icon" className="relative h-9 w-9" disabled title="알림 (준비 중)">
+        <Button type="button" variant="ghost" size="icon" className="relative h-9 w-9" disabled title={t("admin.s1wz8gws")}>
           <Bell className="h-4 w-4" />
           <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-indigo-500" />
         </Button>
@@ -58,7 +61,7 @@ export function AdminHeader({
           onClick={() => void performWebSignOut({ callbackUrl: "/auth/signin" })}
         >
           <LogOut className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">로그아웃</span>
+          <span className="hidden sm:inline">{t("menu.signOut")}</span>
         </Button>
       </div>
     </header>

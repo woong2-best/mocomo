@@ -19,13 +19,13 @@ export type SubcultureEventSeed = {
 };
 
 export const SUBCULTURE_EVENT_CATEGORY_LABELS: Record<string, string> = {
-  comic: "코믹·동인",
-  anime: "애니",
-  cosplay: "코스프레",
-  goods: "굿즈·일러스트",
-  maid_cafe: "메이드 카페",
-  user_recommendation: "추천",
-  other: "기타",
+  comic: "Comics & doujin",
+  anime: "Anime",
+  cosplay: "Cosplay",
+  goods: "Merch & illustration",
+  maid_cafe: "Maid cafe",
+  user_recommendation: "Featured",
+  other: "Other",
 };
 
 /** 지도 핀 색 (범례·MapLibre 공통) */
@@ -43,7 +43,7 @@ export const SUBCULTURE_EVENT_CATEGORY_COLORS: Record<string, string> = {
 export type EventMapPanelTab = "venue" | "maid_cafe" | "recommendation";
 
 export const EVENT_MAP_PANEL_TABS: { id: EventMapPanelTab; label: string }[] = [
-  { id: "venue", label: "행사장" },
-  { id: "maid_cafe", label: "메이드 카페" },
-  { id: "recommendation", label: "추천" },
+  { id: "venue", label: "Venue" },
+  { id: "maid_cafe", label: "Maid cafe" },
+  { id: "recommendation", label: "Featured" },
 ];

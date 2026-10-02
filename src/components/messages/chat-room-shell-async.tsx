@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { getCachedAuthUserMinimal, getCachedSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
@@ -86,11 +89,11 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   const paidIds = collectPaidAttachmentIds(messages);
   const purchasedIds = await getPurchasedMessageAttachmentIds(session.user.id, paidIds);
   const initialMessages = serializeChatMessages(messages, session.user.id, purchasedIds);
-  const lockHint = locale === "ko" ? CHAT_REPORT_LOCK_MESSAGE_KO : CHAT_REPORT_LOCK_MESSAGE_EN;
+  const lockHint = CHAT_REPORT_LOCK_MESSAGE_EN;
   const readOnlyHint = roomLocked
     ? lockHint
     : dmBlocked
-      ? "차단된 사용자와는 메시지를 주고받을 수 없습니다."
+      ? t("lib.chat.dm.service.sae2d9a6408")
       : perms.canMessage
         ? undefined
         : MESSAGE_REQUEST_BLOCKED;

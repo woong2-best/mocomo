@@ -10,14 +10,14 @@ export async function deleteOwnPost(
   postId: string
 ): Promise<{ ok?: true; error?: string; authorUsername?: string }> {
   const userId = await getAuthUserId();
-  if (!userId) return { error: "로그인이 필요합니다." };
+  if (!userId) return { error: "common.error.authRequired" };
 
   const post = await db.post.findUnique({
     where: { id: postId },
     select: { id: true, authorId: true, author: { select: { username: true } } },
   });
-  if (!post) return { error: "게시물을 찾을 수 없습니다." };
-  if (post.authorId !== userId) return { error: "본인 게시물만 삭제할 수 있습니다." };
+  if (!post) return { error: "actions.sgr97ft" };
+  if (post.authorId !== userId) return { error: "actions.si15yum" };
 
   await db.report.deleteMany({ where: { postId } });
   await db.post.delete({ where: { id: postId } });

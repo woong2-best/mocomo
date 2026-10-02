@@ -65,7 +65,7 @@ export class VirtualAvatar3DScene {
   private mocapPlayer = new VrmMocapPlayer();
   private trackingPlayer = new TrackingTimelinePlayer();
   private broadcastMode: BroadcastBgMode = "normal";
-  private vrmModelName = "기본 VRM";
+  private vrmModelName = "Default VRM";
   private onVrmLoaded: ((name: string) => void) | null = null;
   private renderStack: AvatarRenderStack;
   private facePaint = new FacePaintLayer();
@@ -157,7 +157,7 @@ export class VirtualAvatar3DScene {
     }
   }
 
-  /** WHIP VTuber 송출 — 투명 배경·고정 카메라·그리드 비활성 */
+  /** WHIP VTuber 송출 — 투명 Background·고정 카메라·그리드 비활성 */
   setLiveCaptureMode(on: boolean) {
     this.liveCaptureMode = on;
     if (on) {
@@ -183,7 +183,7 @@ export class VirtualAvatar3DScene {
       await this.loadVrmFromBlob(custom.blob, custom.name);
       return;
     }
-    await this.loadVrmFromUrl(DEFAULT_VRM, "기본 VRM");
+    await this.loadVrmFromUrl(DEFAULT_VRM, "Default VRM");
   }
 
   /** 스튜디오·다른 탭에서 프리셋 변경 시 액세서리·머티리얼 재적용 */
@@ -373,7 +373,7 @@ export class VirtualAvatar3DScene {
       await this.loadVrmFromBlob(custom.blob, custom.name);
       return;
     }
-    await this.loadVrmFromUrl(DEFAULT_VRM, "기본 VRM");
+    await this.loadVrmFromUrl(DEFAULT_VRM, "Default VRM");
   }
 
   private resolveTracking(dt: number): AvatarFaceTrackingFrame | null {

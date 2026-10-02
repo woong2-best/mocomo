@@ -57,7 +57,7 @@ export type SubmitChatRoomReportInput = {
 
 export async function submitChatRoomReport(input: SubmitChatRoomReportInput) {
   const roomId = input.roomId.trim();
-  if (!roomId) return { error: "신고 대상을 찾을 수 없습니다." as const };
+  if (!roomId) return { error: "Report target not found." as const };
 
   const reasonLabel =
     input.reasonPath?.trim() ||
@@ -69,7 +69,7 @@ export async function submitChatRoomReport(input: SubmitChatRoomReportInput) {
     where: { roomId_userId: { roomId, userId: input.reporterId } },
     select: { userId: true },
   });
-  if (!member) return { error: "대화방에 접근할 수 없습니다." as const };
+  if (!member) return { error: "You can't access this chat." as const };
 
   const room = await db.chatRoom.findUnique({
     where: { id: roomId },
@@ -80,19 +80,19 @@ export async function submitChatRoomReport(input: SubmitChatRoomReportInput) {
       members: { select: { userId: true } },
     },
   });
-  if (!room) return { error: "대화방을 찾을 수 없습니다." as const };
+  if (!room) return { error: "Conversation not found." as const };
   if (room.status === "READ_ONLY") {
-    return { error: "이미 신고로 잠긴 대화입니다." as const };
+    return { error: "This chat is already locked from a report." as const };
   }
 
   if (room.type !== "DM" && room.type !== "MARKET" && room.type !== "GROUP") {
-    return { error: "이 대화방은 신고할 수 없습니다." as const };
+    return { error: "This chat can't be reported." as const };
   }
 
   const otherMemberId =
     input.reportedUserId?.trim() ||
     room.members.find((m) => m.userId !== input.reporterId)?.userId;
-  if (!otherMemberId) return { error: "신고 대상 사용자를 찾을 수 없습니다." as const };
+  if (!otherMemberId) return { error: "Reported user not found." as const };
 
   const recent = await db.report.findFirst({
     where: {
@@ -102,7 +102,7 @@ export async function submitChatRoomReport(input: SubmitChatRoomReportInput) {
       createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     },
   });
-  if (recent) return { error: "이미 최근에 신고한 대화입니다." as const };
+  if (recent) return { error: "You recently reported this chat." as const };
 
   const reportedUserIp = (await latestUserIp(otherMemberId)) ?? "unknown";
   const reporterIp = input.reporterIp.trim() || "unknown";
@@ -165,6 +165,6 @@ export async function submitChatRoomReport(input: SubmitChatRoomReportInput) {
       createdAt: result.systemMessage.createdAt.toISOString(),
       isSystemMessage: true,
     },
-    message: "신고가 접수되어 대화가 잠겼습니다.",
+    message: "Report received. This chat is locked.",
   };
 }

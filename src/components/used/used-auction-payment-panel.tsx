@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -33,12 +38,12 @@ export function UsedAuctionPaymentPanel({
   if (marketplaceOrderId) {
     return (
       <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-4 space-y-2">
-        <p className="text-sm font-bold text-green-700 dark:text-green-400">Stripe 주문 생성됨</p>
+        <p className="text-sm font-bold text-green-700 dark:text-green-400">{t("used.stripe")}</p>
         <p className="text-xs text-muted-foreground">
-          배송·추적·구매확정은 Star Market 주문 파이프라인(72h 이의 → capture)을 따릅니다.
+          {t("used.star_market_72h_capture")}
         </p>
         <Button asChild className="w-full rounded-xl">
-          <Link href={`/market/orders/${marketplaceOrderId}`}>주문 · 배송 관리</Link>
+          <Link href={`/market/orders/${marketplaceOrderId}`}>{t("used.s1xxt60e")}</Link>
         </Button>
       </div>
     );
@@ -49,8 +54,8 @@ export function UsedAuctionPaymentPanel({
       <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-4 flex gap-2 items-start">
         <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
         <div>
-          <p className="text-sm font-bold text-green-700 dark:text-green-400">결제 완료 신고됨</p>
-          <p className="text-xs text-muted-foreground">판매자와 채팅으로 거래를 마무리하세요.</p>
+          <p className="text-sm font-bold text-green-700 dark:text-green-400">{t("used.smf0ymc")}</p>
+          <p className="text-xs text-muted-foreground">{t("used.s17gjjt7")}</p>
         </div>
       </div>
     );
@@ -60,11 +65,11 @@ export function UsedAuctionPaymentPanel({
     <section className="rounded-xl border border-orange-500/40 bg-orange-500/5 p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-bold text-orange-700 dark:text-orange-300">낙찰 · 결제 필요</p>
+          <p className="text-sm font-bold text-orange-700 dark:text-orange-300">{t("used.s1dmbieq")}</p>
           <p className="text-lg font-black">{formatUsedPrice(amount, currency)}</p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] text-muted-foreground">남은 결제 시간</p>
+          <p className="text-[10px] text-muted-foreground">{t("used.shl51sk")}</p>
           <UsedAuctionPaymentCountdown dueAt={paymentDueAt} className="text-base" />
         </div>
       </div>
@@ -72,8 +77,8 @@ export function UsedAuctionPaymentPanel({
       <div className="flex gap-2 items-start text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5">
         <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
         <p>
-          낙찰 후 결제를 완료하지 않을 경우 <strong className="text-foreground">중고거래 이용이 영구 제한</strong>
-          됩니다. 판매자와 채팅으로 결제·수령을 조율한 뒤 아래 버튼으로 완료를 신고하세요.
+          {t("used.s1265ttq")} <strong className="text-foreground">{t("used.sysz17v")}</strong>
+          {t("used.sp6pvs8")}
         </p>
       </div>
 
@@ -88,12 +93,12 @@ export function UsedAuctionPaymentPanel({
               setError("");
               const res = await markAuctionPaymentComplete(listingId);
               setBusy(false);
-              if ("error" in res && res.error) setError(res.error);
+              if ("error" in res && res.error) setError(errorText(res.error));
               else if ("redirectPath" in res && res.redirectPath) router.push(res.redirectPath);
               else router.refresh();
             }}
           >
-            {busy ? "처리 중…" : "결제 완료 신고"}
+            {busy ? t("post.menu.blockReportSubmitting") : t("used.s1m07wx0")}
           </Button>
           {error && <p className="text-xs text-destructive">{error}</p>}
         </>

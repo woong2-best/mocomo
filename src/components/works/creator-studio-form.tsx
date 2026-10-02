@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import type { CreatorWorkKind } from "@prisma/client";
 import { useState } from "react";
 import Link from "next/link";
@@ -39,7 +44,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
       const url = await uploadImageBlob(file, file.name);
       setCoverUrl(url);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "표지 업로드 실패");
+      setErr(e instanceof Error ? e.message : t("works.sfyrsvv"));
     } finally {
       setLoading(false);
     }
@@ -56,7 +61,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
       }
       setContentUrls((prev) => [...prev, ...urls]);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "이미지 업로드 실패");
+      setErr(e instanceof Error ? e.message : t("works.s1bw7noj"));
     } finally {
       setLoading(false);
     }
@@ -69,7 +74,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
       const url = await uploadVideoBlob(file, file.name);
       setVideoUrl(url);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "영상 업로드 실패");
+      setErr(e instanceof Error ? e.message : t("works.sizpdhb"));
     } finally {
       setLoading(false);
     }
@@ -82,7 +87,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
     const res = await createCreatorSeries({ title, description, coverUrl, kind });
     setLoading(false);
     if ("error" in res && res.error) {
-      setErr(res.error);
+      setErr(errorText(res.error));
       return;
     }
     setSeriesId(res.series!.id);
@@ -91,7 +96,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
 
   async function onPublishEpisode() {
     if (!seriesId) {
-      setErr("먼저 시리즈를 만들거나 선택해 주세요.");
+      setErr(t("works.s1lvb55r"));
       return;
     }
     setLoading(true);
@@ -109,7 +114,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
     });
     setLoading(false);
     if ("error" in res && res.error) {
-      setErr(res.error);
+      setErr(errorText(res.error));
       return;
     }
     setMsg(`${episodeNo}화가 등록되었습니다.`);
@@ -122,7 +127,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
   return (
     <div className="space-y-8">
       <section className="folk-card p-5 space-y-4">
-        <h2 className="font-bold text-folk-cobalt">1. 시리즈 만들기</h2>
+        <h2 className="font-bold text-folk-cobalt">{t("works.sicfmb1")}</h2>
         <div className="flex flex-wrap gap-2">
           {(["WEBTOON", "PHOTO", "VIDEO"] as CreatorWorkKind[]).map((k) => (
             <button
@@ -140,9 +145,9 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
             </button>
           ))}
         </div>
-        <Input placeholder="작품 제목" value={title} onChange={(e) => setTitle(e.target.value)} className="rounded-xl" />
+        <Input placeholder={t("works.spskwxi")} value={title} onChange={(e) => setTitle(e.target.value)} className="rounded-xl" />
         <Textarea
-          placeholder="소개 (선택)"
+          placeholder={t("seller.bio")}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="rounded-xl min-h-[80px]"
@@ -174,7 +179,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
       </section>
 
       <section className="folk-card p-5 space-y-4">
-        <h2 className="font-bold text-folk-cobalt">2. 회차·작품 등록</h2>
+        <h2 className="font-bold text-folk-cobalt">{t("works.s1pgfh3y")}</h2>
         {mySeries.length > 0 && (
           <select
             value={seriesId}
@@ -192,7 +197,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
           <Input
             type="number"
             min={1}
-            placeholder="회차"
+            placeholder={t("lib.wallet.labels.s2626a8b182")}
             value={episodeNo}
             onChange={(e) => setEpisodeNo(Number(e.target.value))}
             className="rounded-xl"
@@ -201,14 +206,14 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
             type="number"
             min={0}
             step={100}
-            placeholder="가격 (USD)"
+            placeholder={t("works.usd")}
             value={price}
             onChange={(e) => setPrice(Number(e.target.value))}
             className="rounded-xl"
           />
         </div>
         <Input
-          placeholder="회차 제목 (선택)"
+          placeholder={t("works.s1plu32r")}
           value={episodeTitle}
           onChange={(e) => setEpisodeTitle(e.target.value)}
           className="rounded-xl"
@@ -222,10 +227,10 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
               onChange={(e) => setFreePreviewCount(Number(e.target.value))}
               className="rounded-xl"
             />
-            <p className="text-[11px] text-muted-foreground -mt-2">무료 미리보기 장 수 (웹툰·사진)</p>
+            <p className="text-[11px] text-muted-foreground -mt-2">{t("works.s8ca8su")}</p>
             <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
               <Upload className="h-4 w-4" />
-              {activeKind === "WEBTOON" ? "웹툰 컷 업로드 (여러 장)" : "사진 업로드 (여러 장)"}
+              {activeKind === "WEBTOON" ? t("works.s1ozu5jd") : t("works.sc97bxb")}
               <input
                 type="file"
                 accept="image/*"
@@ -242,7 +247,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
         {activeKind === "VIDEO" && (
           <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
             <Upload className="h-4 w-4" />
-            영상 업로드
+            Video 업로드
             <input
               type="file"
               accept="video/*"
@@ -255,9 +260,9 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
             />
           </label>
         )}
-        {videoUrl && <p className="text-xs text-emerald-600 truncate">영상 업로드 완료</p>}
+        {videoUrl && <p className="text-xs text-emerald-600 truncate">{t("works.sizpsxv")}</p>}
         <Button type="button" className="rounded-xl w-full" disabled={loading} onClick={() => void onPublishEpisode()}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "회차 등록 · 판매 시작"}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("works.s1wgfeiw")}
         </Button>
       </section>
 
@@ -266,7 +271,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
 
       {mySeries.length > 0 && (
         <section className="space-y-2">
-          <h3 className="text-sm font-semibold text-muted-foreground">내 시리즈</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground">{t("works.s1ggl9l8")}</h3>
           {mySeries.map((s) => (
             <Link
               key={s.id}

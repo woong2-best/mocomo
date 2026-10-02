@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { ExternalLink, Heart, BarChart2, Bookmark, Share2 } from "lucide-react";
 import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
@@ -41,7 +44,7 @@ export function FeedAdCard({ ad }: { ad: FeedAd }) {
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
-              <span>{ad.adCategory || "광고"}</span>
+              <span>{ad.adCategory || t("feed.sudwv")}</span>
             </div>
           </div>
           <Link
@@ -85,7 +88,7 @@ export function FeedAdCard({ ad }: { ad: FeedAd }) {
             {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
             className="inline-flex items-center gap-1 text-xs font-medium text-[#A855F7] hover:underline px-2 py-1"
           >
-            {ad.ctaLabel || "자세히 보기"}
+            {ad.ctaLabel || t("feed.s13o8zr0")}
             {external && <ExternalLink className="h-3 w-3" />}
           </Link>
           <span className="flex items-center min-h-8 min-w-8 justify-center opacity-60">

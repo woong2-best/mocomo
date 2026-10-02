@@ -88,9 +88,7 @@ export function resolveCheckoutRouting(input: {
     const disclaimer =
       access.message === MARKET_UNAVAILABLE_KO
         ? translate(locale, "market.unavailable")
-        : locale === "en"
-          ? access.messageEn
-          : access.message;
+        : access.messageEn;
     return {
       mode: "BLOCKED",
       buyerCountry,

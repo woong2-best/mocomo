@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextResponse } from "next/server";
 import { AdminAccessError, requireAdminPermission } from "@/lib/admin/access";
 import { db } from "@/lib/db";
@@ -29,7 +30,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ jobId: string 
       ok: true,
       jobId: job.id,
       status: job.status,
-      error: job.error,
+      error: errorText(job.error),
       result: job.result,
     });
   } catch (e) {

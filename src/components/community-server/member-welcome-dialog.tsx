@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   Dialog,
   DialogContent,
@@ -26,15 +29,14 @@ export function MemberWelcomeDialog() {
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-lg">🎉 멤버가 되신 것을 축하합니다!</DialogTitle>
+          <DialogTitle className="text-lg">{t("community-server.sznbes9")}</DialogTitle>
           <DialogDescription className="text-sm leading-relaxed pt-2">
-            이제 이 커뮤니티의 게시글 작성, 댓글, 채팅, 음성채널 등 모든 기능을 이용할 수
-            있습니다.
+            {t("community-server.sb0kgj2")}
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end pt-2">
           <Button type="button" onClick={() => void dismissWelcome()}>
-            시작하기
+            {t("community-server.spf1pl9")}
           </Button>
         </div>
       </DialogContent>

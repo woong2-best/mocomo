@@ -137,13 +137,13 @@ export function quoteOnDemandWithdrawal(input: {
   const withdrawMoco = Math.max(0, Math.floor(input.withdrawMoco));
 
   if (withdrawMoco <= 0) {
-    return { ok: false, code: "INVALID_AMOUNT", message: "출금 MOCO 수량을 입력해 주세요." };
+    return { ok: false, code: "INVALID_AMOUNT", message: "Enter the MOCO amount to withdraw." };
   }
   if (withdrawMoco > balanceBeforeMoco) {
     return {
       ok: false,
       code: "INSUFFICIENT_BALANCE",
-      message: "정산 MOCO 잔액보다 많이 출금할 수 없습니다.",
+      message: "You cannot withdraw more than your settlement MOCO balance.",
     };
   }
 
@@ -170,7 +170,7 @@ export function quoteOnDemandWithdrawal(input: {
     return {
       ok: false,
       code: "BELOW_MIN_PAYOUT",
-      message: "최소 현금 지급 금액 미달입니다.",
+      message: "Below minimum cash payout amount.",
     };
   }
 

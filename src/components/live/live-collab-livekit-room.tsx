@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -9,7 +13,7 @@ import { fetchLivekitCredentials } from "@/lib/livekit-token-fetch";
 import { VIDEO_CALL_CAPTURE, VIDEO_CALL_ROOM_OPTIONS, VOICE_CALL_CAPTURE } from "@/lib/livekit-audio-options";
 import "@livekit/components-styles";
 
-/** 시청자 — CO_HOST LiveKit 영상만 (분할 우측) */
+/** 시청자 — CO_HOST LiveKit Video만 (분할 우측) */
 export function LiveCollabCoHostPanel({
   channelId,
   coHostUserId,
@@ -19,6 +23,7 @@ export function LiveCollabCoHostPanel({
   coHostUserId: string;
   coHostLabel?: string;
 }) {
+  const { t } = useLocale();
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +39,7 @@ export function LiveCollabCoHostPanel({
         }
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "합방 연결 실패");
+          setError(e instanceof Error ? e.message : t("live.s1tn4gkk"));
         }
       }
     })();
@@ -97,7 +102,7 @@ export function LiveCollabPublishRoom({
         }
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "합방 송출 연결 실패");
+          setError(e instanceof Error ? e.message : t("live.s3ry80v"));
         }
       }
     })();
@@ -111,7 +116,7 @@ export function LiveCollabPublishRoom({
       <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
         {error}
         <p className="text-xs mt-2 text-muted-foreground">
-          LiveKit(LIVEKIT_*) 설정이 필요합니다. 관리자에게 문의하세요.
+          {t("live.livekit_livekit")}
         </p>
       </div>
     );
@@ -121,7 +126,7 @@ export function LiveCollabPublishRoom({
     return (
       <div className="aspect-video rounded-xl bg-black flex items-center justify-center text-white/70 gap-2">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="text-sm">합방 송출 준비 중…</span>
+        <span className="text-sm">{t("live.shyucng")}</span>
       </div>
     );
   }

@@ -1,16 +1,19 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { cn } from "@/lib/utils";
 import type { ProfileTab } from "@/lib/profile-queries";
 import { ProfileFeedControls } from "@/components/profile/profile-feed-controls";
 import { useProfileTab } from "@/components/profile/profile-tab-context";
 
 const tabs: { id: ProfileTab; label: string }[] = [
-  { id: "posts", label: "게시물" },
-  { id: "replies", label: "답글" },
-  { id: "media", label: "미디어" },
-  { id: "wiki", label: "위키" },
-  { id: "likes", label: "좋아요" },
+  { id: "posts", label: t("lib.post.share.s0131626e0e") },
+  { id: "replies", label: t("profile.sve7f") },
+  { id: "media", label: t("profile.ssf1g8") },
+  { id: "wiki", label: t("anime.badgeAnime") },
+  { id: "likes", label: t("lib.notifications.s224a288614") },
 ];
 
 export function ProfileTabs({
@@ -26,7 +29,7 @@ export function ProfileTabs({
   return (
     <div className="sticky top-[var(--profile-compact-h)] z-20">
       <div className="border-b border-border/60 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
-        <nav className="flex w-full items-stretch" aria-label="프로필 탭">
+        <nav className="flex w-full items-stretch" aria-label={t("profile.s4mxg6x")}>
           {tabs.filter((t) => showLikesTab || t.id !== "likes").map((t) => {
             const isActive = active === t.id;
             return (

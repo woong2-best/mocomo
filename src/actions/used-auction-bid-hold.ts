@@ -49,7 +49,7 @@ export async function payUsedAuctionBidHoldAction(
   const holdListingId =
     (meta?.metadata as { listingId?: string } | null)?.listingId ?? listingId;
   if (holdListingId !== listingId) {
-    return { error: "경매 정보가 일치하지 않습니다." };
+    return { error: "actions.s1tx50zn" };
   }
   return result;
 }

@@ -19,16 +19,16 @@ export async function markAuctionPaymentComplete(listingId: string) {
 
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.saleType !== "AUCTION") {
-    return { error: "경매 상품이 아닙니다." };
+    return { error: "actions.s13bzg0h" };
   }
   if (listing.auctionState !== "PAYMENT_PENDING") {
-    return { error: "결제 대기 상태가 아닙니다." };
+    return { error: "actions.s10iyl0m" };
   }
   if (listing.winningBidderId !== user.id) {
-    return { error: "낙찰자만 결제 완료를 신고할 수 있습니다." };
+    return { error: "actions.s1csu88a" };
   }
   if (!listing.paymentDueAt || listing.paymentDueAt.getTime() < Date.now()) {
-    return { error: "결제 기한이 지났습니다." };
+    return { error: "actions.sj0g8j9" };
   }
 
   await db.usedListing.update({

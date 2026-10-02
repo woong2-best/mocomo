@@ -1,16 +1,19 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { adminSetMarketplaceOrderStatus } from "@/actions/marketplace-admin";
 import { Button } from "@/components/ui/button";
 
 const STATUSES = [
-  { id: "PAID" as const, label: "결제 완료" },
-  { id: "PREPARING" as const, label: "준비 중" },
-  { id: "SHIPPED" as const, label: "발송" },
-  { id: "DELIVERED" as const, label: "배송완료" },
-  { id: "CONFIRMED" as const, label: "구매확정" },
+  { id: "PAID" as const, label: t("market.s1p6xvzw") },
+  { id: "PREPARING" as const, label: t("market.sq4kb3p") },
+  { id: "SHIPPED" as const, label: t("market.sx24l") },
+  { id: "DELIVERED" as const, label: t("market.sojtant") },
+  { id: "CONFIRMED" as const, label: t("market.smnpopk") },
 ];
 
 export function AdminMarketplaceOrderStatus({

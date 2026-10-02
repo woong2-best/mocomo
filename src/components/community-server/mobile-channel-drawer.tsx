@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -56,7 +59,7 @@ function groupChannels(channels: CommunityChannelView[]): ChannelGroup[] {
   );
   const groups = new Map<string, ChannelGroup>();
   for (const ch of visible) {
-    const categoryName = ch.categoryName ?? "채널";
+    const categoryName = ch.categoryName ?? t("community-server.szpsc");
     const key = ch.categoryId ?? categoryName;
     if (!groups.has(key)) {
       groups.set(key, { categoryId: ch.categoryId, categoryName, items: [] });
@@ -102,11 +105,11 @@ export function MobileChannelDrawer({
         className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-xs text-muted-foreground hover:text-foreground"
       >
         <Menu className="h-5 w-5" />
-        <span>채널</span>
+        <span>{t("community-server.szpsc")}</span>
       </button>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="fixed left-0 top-0 h-full w-[min(100vw,18rem)] max-w-full translate-x-0 translate-y-0 rounded-none border-r p-0 gap-0">
-          <div className="p-3 border-b font-semibold">채널</div>
+          <div className="p-3 border-b font-semibold">{t("community-server.szpsc")}</div>
           <div className="overflow-y-auto p-2 space-y-3 flex-1">
             {groups.map((group) => (
               <div key={group.categoryId ?? group.categoryName}>
@@ -121,7 +124,7 @@ export function MobileChannelDrawer({
                     <button
                       type="button"
                       className="text-muted-foreground hover:text-foreground p-1"
-                      aria-label={`${group.categoryName}에 채널 추가`}
+                      aria-label={t("community-server.s1tkmju8", { v0: group.categoryName })}
                       onClick={() => openCreate(group.categoryId)}
                     >
                       <Plus className="h-3.5 w-3.5" />

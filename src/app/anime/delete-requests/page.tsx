@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { auth, isSiteOperator } from "@/lib/auth";
 import { getAnimeDeleteRequests } from "@/actions/anime";
@@ -30,7 +33,7 @@ export default async function AnimeDeleteRequestsPage() {
     <AppPageChrome maxWidth="2xl">
       <NativePageTitle>
         <div>
-          <h1 className="text-xl font-bold">삭제 요청</h1>
+          <h1 className="text-xl font-bold">{t("anime.deleteRequests")}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             위키 문서 삭제 요청은 운영진 검토 후 처리됩니다. 문서 하단 편집 메뉴에서 요청할 수 있습니다.
           </p>
@@ -39,7 +42,7 @@ export default async function AnimeDeleteRequestsPage() {
 
       {isAdmin ? (
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-muted-foreground">운영진 · 대기 목록</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground">{t("app.anime.s1ho3jwy")}</h2>
           <AnimeDeleteRequestsAdmin requests={pending} />
         </section>
       ) : (

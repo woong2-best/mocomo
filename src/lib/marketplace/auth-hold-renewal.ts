@@ -63,10 +63,10 @@ export async function renewMarketplaceAuthHold(orderId: string): Promise<Marketp
       items: { select: { listingId: true }, take: 1 },
     },
   });
-  if (!order) return { error: "주문을 찾을 수 없습니다." };
-  if (order.checkoutMode !== "STRIPE") return { error: "Stripe 주문이 아닙니다." };
+  if (!order) return { error: "Order not found." };
+  if (order.checkoutMode !== "STRIPE") return { error: "Not a Stripe order." };
   if (!ACTIVE_HOLD_STATUSES.includes(order.status as (typeof ACTIVE_HOLD_STATUSES)[number])) {
-    return { error: "갱신 대상 상태가 아닙니다." };
+    return { error: "Not in a renewable status." };
   }
 
   const storedRef = order.stripePaymentIntentId ?? order.stripeCheckoutSessionId;
@@ -86,10 +86,10 @@ export async function renewMarketplaceAuthHold(orderId: string): Promise<Marketp
   }
 
   const paymentIntentDbId = await findMarketplacePaymentIntentDbId(orderId);
-  if (!paymentIntentDbId) return { error: "결제 기록을 찾을 수 없습니다." };
+  if (!paymentIntentDbId) return { error: "Payment record not found." };
 
   const listingId = order.items[0]?.listingId;
-  if (!listingId) return { error: "상품 정보가 없습니다." };
+  if (!listingId) return { error: "Product information missing." };
 
   try {
     await stripe.paymentIntents.cancel(piId);
@@ -261,8 +261,8 @@ export async function reauthorizeExpiringMarketplaceHoldsBatch(limit = 30) {
         await createNotification({
           userId: row.buyerId,
           type: "SYSTEM",
-          title: "결제 승인이 갱신되었습니다",
-          body: "배송·구매확정 대기 중 카드 승인을 자동으로 갱신했습니다.",
+          title: "Payment authorization renewed",
+          body: "We automatically renewed card authorization while shipment or purchase confirmation is pending.",
           link: `/market/orders/${row.id}`,
         });
         continue;
@@ -272,15 +272,15 @@ export async function reauthorizeExpiringMarketplaceHoldsBatch(limit = 30) {
         const hint =
           result.reason === "requires_3ds"
             ? "카드사 본인인증(3DS)이 필요합니다. 주문 페이지에서 카드를 다시 확인해 주세요."
-            : "주문 페이지에서 카드를 다시 확인해 주세요. 갱신하지 않으면 정산이 지연될 수 있습니다.";
+            : "Reconfirm your card on the order page. Settlement may be delayed if you do not renew.";
         await markPaymentSettlementBlocked(
           row.id,
-          `카드 승인 갱신 필요 (${result.reason})`
+          `Please check your input and try again.${result.reason})`
         );
         await createNotification({
           userId: row.buyerId,
           type: "SYSTEM",
-          title: "결제 승인 갱신이 필요합니다",
+          title: "Payment authorization renewal required",
           body: hint,
           link: `/market/orders/${row.id}`,
         });

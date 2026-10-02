@@ -2,7 +2,6 @@
 
 import type { ChatMessageView } from "@/lib/chat-message-normalize";
 import { getQuotedMessageBody, getReplyToHeading } from "@/lib/chat-reply-ui";
-import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
 export function ChatMessageReplyQuote({
@@ -18,14 +17,12 @@ export function ChatMessageReplyQuote({
   selfUsername: string;
   onJumpToOriginal?: (messageId: string) => void;
 }) {
-  const { locale } = useLocale();
   const heading = getReplyToHeading(replyTo, {
     selfUserId,
     selfUsername,
     bubbleIsMine: isMine,
-    locale,
   });
-  const body = getQuotedMessageBody(replyTo, locale);
+  const body = getQuotedMessageBody(replyTo);
   const clickable = Boolean(onJumpToOriginal && replyTo.id);
 
   return (

@@ -2,7 +2,7 @@
 
 import { requireAuth } from "@/lib/auth";
 
-const DISABLED = { error: "단체방 기능이 종료되었습니다." } as const;
+const DISABLED = { error: "actions.slf9yvs" } as const;
 
 /** 코스어 전용 단체방 — 코스어만 개설, 6자리 입장 코드 자동 생성 */
 export async function createCosplayerGroupRoom(_name: string) {

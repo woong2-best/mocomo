@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { LiveCloudflareWhepPlayer } from "@/components/live/live-cloudflare-whep-player";
 import { LiveCollabCoHostPanel } from "@/components/live/live-collab-livekit-room";
 import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
@@ -16,6 +20,7 @@ export function LiveSplitBroadcastPlayer({
   coHostLabel?: string;
   showOverlays?: boolean;
 }) {
+  const { t } = useLocale();
   return (
     <div className="relative aspect-video w-full bg-black rounded-xl overflow-hidden ring-1 ring-border/40">
       <div className="absolute inset-0 grid grid-cols-2">
@@ -25,7 +30,7 @@ export function LiveSplitBroadcastPlayer({
             <LiveOverlayLayer pointerEvents="none" className="z-[15]" />
           )}
           <span className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded bg-orange-600/90 text-white text-[9px] font-bold pointer-events-none">
-            호스트
+            {t("live.swbu18")}
           </span>
         </div>
         <div className="relative min-h-0 min-w-0">
@@ -35,7 +40,7 @@ export function LiveSplitBroadcastPlayer({
             coHostLabel={coHostLabel}
           />
           <span className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded bg-violet-600/90 text-white text-[9px] font-bold pointer-events-none">
-            합방
+            {t("live.s11bz4")}
           </span>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     platform: "mobile",
   });
   if ("error" in res && res.error) {
-    return NextResponse.json({ error: res.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(res.error) }, { status: 400 });
   }
   return NextResponse.json({ checkoutUrl: res.checkoutUrl, sessionId: res.sessionId });
 }
@@ -46,12 +47,12 @@ export async function DELETE(req: NextRequest) {
 
   const body = (await req.json().catch(() => null)) as { id?: string } | null;
   if (!body?.id) {
-    return NextResponse.json({ error: "id가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const res = await detachPaymentMethod(auth.user.id, body.id);
   if ("error" in res && res.error) {
-    return NextResponse.json({ error: res.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(res.error) }, { status: 400 });
   }
   return NextResponse.json({ ok: true, methods: res.methods });
 }
@@ -65,12 +66,12 @@ export async function PATCH(req: NextRequest) {
 
   const body = (await req.json().catch(() => null)) as { id?: string } | null;
   if (!body?.id) {
-    return NextResponse.json({ error: "id가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const res = await setDefaultPaymentMethod(auth.user.id, body.id);
   if ("error" in res && res.error) {
-    return NextResponse.json({ error: res.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(res.error) }, { status: 400 });
   }
   return NextResponse.json({ ok: true, methods: res.methods });
 }

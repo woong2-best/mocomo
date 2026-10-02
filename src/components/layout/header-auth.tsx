@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import type { SupportTierLevel } from "@prisma/client";
 import { Button } from "@/components/ui/button";
@@ -56,7 +59,7 @@ export function HeaderAuth({ compact = false }: { compact?: boolean }) {
             variant="ghost"
             size="icon"
             className="rounded-xl hidden sm:inline-flex"
-            aria-label={`${tierInfo.labelKo} (${tierInfo.label}) · 광석 등급`}
+            aria-label={t("support.s1kqb204", { v0: tierInfo.labelKo, v1: tierInfo.label })}
           >
             <Link href={SUPPORT_TIERS_PAGE_PATH}>
               <OreIcon tier={displayTier} size={20} />

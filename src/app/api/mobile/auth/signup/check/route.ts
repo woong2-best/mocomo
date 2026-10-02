@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const schema = z.object({
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   });
   const parsed = schema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid input." }, { status: 400 });
   }
 
   const availability = await checkSignupAvailability(
@@ -41,13 +42,13 @@ export async function POST(req: NextRequest) {
     parsed.data.name
   );
   if (!availability.ok) {
-    return NextResponse.json({ ok: false, error: availability.error }, { status: 409 });
+    return NextResponse.json({ ok: false, error: errorText(availability.error) }, { status: 409 });
   }
 
   const usernameCheck = await checkUsernameAvailable(parsed.data.username);
   if (!usernameCheck.available) {
     return NextResponse.json(
-      { ok: false, error: usernameCheck.error ?? "사용할 수 없는 닉네임입니다." },
+      { ok: false, error: errorText(usernameCheck.error ?? "This username is not available.") },
       { status: 409 }
     );
   }

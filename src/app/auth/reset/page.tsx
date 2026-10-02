@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -26,7 +31,7 @@ function ResetForm() {
     const result = await resetPasswordConfirm({ email, token, password });
     setLoading(false);
     if (result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     router.push("/auth/signin?reset=1");
@@ -36,9 +41,9 @@ function ResetForm() {
     return (
       <Card className="max-w-md mx-auto glass">
         <CardContent className="p-6 text-center text-muted-foreground">
-          유효하지 않은 링크입니다.
+          {t("auth.s1pm7pki")}
           <Link href="/auth/forgot-password" className="block mt-4 text-primary">
-            다시 요청
+            {t("auth.sdr53r5")}
           </Link>
         </CardContent>
       </Card>
@@ -48,13 +53,13 @@ function ResetForm() {
   return (
     <Card className="max-w-md mx-auto glass">
       <CardHeader>
-        <CardTitle>새 비밀번호</CardTitle>
+        <CardTitle>{t("auth.smzl9hg")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             type="password"
-            placeholder="새 비밀번호 (8자 이상)"
+            placeholder={t("auth.newPasswordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength={8}
@@ -62,7 +67,7 @@ function ResetForm() {
           />
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "변경 중..." : "비밀번호 변경"}
+            {loading ? t("auth.s1qjjytc") : t("auth.changePassword")}
           </Button>
         </form>
       </CardContent>
@@ -73,7 +78,7 @@ function ResetForm() {
 export default function ResetPasswordPage() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4">
-      <Suspense fallback={<p className="text-muted-foreground">로딩...</p>}>
+      <Suspense fallback={<p className="text-muted-foreground">{t("auth.sxdr6kh")}</p>}>
         <ResetForm />
       </Suspense>
     </div>

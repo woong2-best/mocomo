@@ -18,7 +18,7 @@ async function notifyRewardGateSkip(userId: string, skipReason: string) {
   await createNotification({
     userId,
     type: "system",
-    title: "Reward 정산이 보류되었습니다",
+    title: "Reward settlement is on hold",
     body: skipReason,
     link: "/wallet",
   }).catch(() => null);
@@ -32,7 +32,7 @@ async function processOneLockedCycle(cycleId: string): Promise<"processed" | "sk
 
   const achieved = achievedSettlementRewardTier(cycle.lockedMoco);
   if (achieved.requiredMoco <= 0 || achieved.rewardUsd <= 0) {
-    await closeSettlementCycleWithoutCashPayout(cycleId, "Reward 등급 미달 — 전액 다음 주기로 이월");
+    await closeSettlementCycleWithoutCashPayout(cycleId, "Reward tier not met — full amount carried to next cycle");
     return "tierSkipped";
   }
 
@@ -84,8 +84,8 @@ async function processOneLockedCycle(cycleId: string): Promise<"processed" | "sk
         netAmountMinor: plan.amount.netMinor,
         currency: plan.amount.currency,
         status: REWARD_BATCH_STATUS.SKIPPED_BELOW_MINIMUM,
-        skipReason: "최소 지급 금액 미달",
-        errorMessage: "최소 지급 금액 미달",
+        skipReason: "Below minimum payout amount",
+        errorMessage: "Below minimum payout amount",
       },
     });
     await markSettlementCyclePaid(cycleId, batch.id, {
@@ -128,7 +128,7 @@ async function processOneLockedCycle(cycleId: string): Promise<"processed" | "sk
   if (!gate.ok || !gate.accountId) {
     await notifyRewardGateSkip(
       plan.userId,
-      gate.skipReason ?? "정산 등록이 완료되지 않아 Reward 지급이 보류되었습니다.",
+      gate.skipReason ?? "Reward payout is on hold because settlement registration is incomplete.",
     );
     return "skipped";
   }
@@ -147,7 +147,7 @@ async function processOneLockedCycle(cycleId: string): Promise<"processed" | "sk
   });
 
   if (outcome === "processed") return "processed";
-  await markSettlementCycleFailed(cycleId, "Stripe Transfer 실패");
+  await markSettlementCycleFailed(cycleId, "Stripe Transfer failed");
   return "failed";
 }
 
@@ -171,7 +171,7 @@ export async function processLockedSettlementCycles(): Promise<{
       else result.skipped++;
     } catch {
       result.failed++;
-      await markSettlementCycleFailed(id, "정산 처리 중 오류").catch(() => null);
+      await markSettlementCycleFailed(id, "Error while processing settlement").catch(() => null);
     }
   }
   return result;

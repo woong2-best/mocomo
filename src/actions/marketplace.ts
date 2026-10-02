@@ -50,16 +50,16 @@ export async function applyMarketplaceSeller(input: {
 }) {
   const user = await requireAuth();
   const displayName = input.displayName.trim().slice(0, 80);
-  if (!displayName) return { error: "판매자 닉네임을 입력해 주세요." };
+  if (!displayName) return { error: "actions.s1k33opv" };
 
   const existing = await db.marketplaceSellerProfile.findUnique({
     where: { userId: user.id },
   });
   if (existing?.status === "APPROVED") {
-    return { error: "이미 승인된 판매자입니다." };
+    return { error: "actions.s1uejdai" };
   }
   if (existing?.status === "PENDING") {
-    return { error: "판매자 신청이 검토 중입니다." };
+    return { error: "actions.s17tzezf" };
   }
 
   const profile = await db.marketplaceSellerProfile.upsert({
@@ -157,7 +157,7 @@ export async function startMarketplaceConnectOnboarding(payoutCountry?: string) 
       marketplaceSeller: { select: { sellingMarket: true } },
     },
   });
-  if (!dbUser) return { error: "사용자를 찾을 수 없습니다." };
+  if (!dbUser) return { error: "actions.svypth4" };
 
   const result = await startSellerConnectOnboarding({
     userId: dbUser.id,
@@ -238,17 +238,17 @@ export async function createMarketplaceListingForUser(
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     if (msg === "SELLER_PENDING_APPROVAL") {
-      return { error: "관리자 승인 대기 중입니다. 승인 후 상품을 등록할 수 있습니다." };
+      return { error: "actions.sa93zy6" };
     }
     if (msg === "SELLER_REQUIRED") {
-      return { error: "판매자 가입이 필요합니다." };
+      return { error: "actions.s169spda" };
     }
-    return { error: "판매가 제한되었거나 판매자 등록이 필요합니다." };
+    return { error: "actions.s1i4ps9" };
   }
 
   const title = input.title.trim().slice(0, 120);
   const description = input.description.trim().slice(0, 10_000);
-  if (!title || !description) return { error: "제목과 설명을 입력해 주세요." };
+  if (!title || !description) return { error: "actions.smz62wg" };
 
   const sellerUser = await db.user.findUnique({
     where: { id: userId },
@@ -260,10 +260,10 @@ export async function createMarketplaceListingForUser(
   }
 
   if (!MARKETPLACE_CATEGORIES.includes(input.category as (typeof MARKETPLACE_CATEGORIES)[number])) {
-    return { error: "카테고리를 선택해 주세요." };
+    return { error: "actions.s172og7" };
   }
   if (!Number.isFinite(input.priceAmount) || input.priceAmount < 0) {
-    return { error: "가격이 올바르지 않습니다." };
+    return { error: "actions.s1y2yueo" };
   }
 
   const listingRating = input.contentRating ?? (input.isNsfw ? "ADULT" : "GENERAL");
@@ -285,10 +285,10 @@ export async function createMarketplaceListingForUser(
   }
 
   if (input.type === "DIGITAL") {
-    return { error: "디지털 상품 등록은 지원하지 않습니다." };
+    return { error: "actions.s1rdit1s" };
   }
   if (input.type === "CUSTOM_ORDER" && (!input.productionDays || input.productionDays < 1)) {
-    return { error: "주문제작 상품은 제작기간(일)이 필요합니다." };
+    return { error: "actions.s19bcrmj" };
   }
 
   const validated = validateShipToCountries(input.shipToCountries);

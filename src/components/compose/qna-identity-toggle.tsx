@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { cn } from "@/lib/utils";
 
 export function QnaIdentityToggle({
@@ -20,7 +23,7 @@ export function QnaIdentityToggle({
         className
       )}
       role="radiogroup"
-      aria-label="질문 공개 범위"
+      aria-label={t("compose.s1gpybll")}
     >
       <button
         type="button"
@@ -35,7 +38,7 @@ export function QnaIdentityToggle({
             : "text-muted-foreground hover:text-foreground"
         )}
       >
-        공개
+        {t("settings.postsLockOff")}
       </button>
       <button
         type="button"
@@ -50,7 +53,7 @@ export function QnaIdentityToggle({
             : "text-muted-foreground hover:text-foreground"
         )}
       >
-        익명
+        {t("lib.tests.community.author.test.sf130c4ef01")}
       </button>
     </div>
   );

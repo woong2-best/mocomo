@@ -13,7 +13,7 @@ export default async function StudioAdminReviewPage() {
   const items = await getReviewQueue();
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-2xl font-semibold">자산 검수</h1>
+      <h1 className="font-display text-2xl font-semibold">Asset review</h1>
       <ReviewQueueClient items={items} />
     </div>
   );

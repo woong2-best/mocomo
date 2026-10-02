@@ -28,7 +28,7 @@ export async function POST(
 
   const { id: commentId } = await params;
   if (!commentId || commentId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const authResult = await requireApiUser({ writeKind: "default" });
@@ -36,7 +36,7 @@ export async function POST(
 
   const viewer = await loadViewer();
   if (!viewer || !isCommentAdmin(viewer)) {
-    return NextResponse.json({ error: "관리자만 숨길 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Only admins can hide comments." }, { status: 403 });
   }
 
   const comment = await db.comment.findFirst({
@@ -44,7 +44,7 @@ export async function POST(
     select: { id: true, postId: true, hiddenAt: true },
   });
   if (!comment) {
-    return NextResponse.json({ error: "댓글을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
   await db.comment.update({
@@ -73,7 +73,7 @@ export async function DELETE(
 
   const { id: commentId } = await params;
   if (!commentId || commentId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const authResult = await requireApiUser({ writeKind: "default" });
@@ -81,7 +81,7 @@ export async function DELETE(
 
   const viewer = await loadViewer();
   if (!viewer || !isCommentAdmin(viewer)) {
-    return NextResponse.json({ error: "관리자만 해제할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Only admins can unhide comments." }, { status: 403 });
   }
 
   const comment = await db.comment.findFirst({
@@ -89,7 +89,7 @@ export async function DELETE(
     select: { id: true, postId: true },
   });
   if (!comment) {
-    return NextResponse.json({ error: "댓글을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
   await db.comment.update({

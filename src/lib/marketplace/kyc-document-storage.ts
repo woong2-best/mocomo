@@ -34,14 +34,14 @@ export async function uploadKycDocumentBuffer(input: {
 
   if (isSupabaseStorageConfigured()) {
     const supabase = getSupabaseAdmin();
-    if (!supabase) return { error: "Storage 설정 오류" };
+    if (!supabase) return { error: "Storage configuration error" };
 
     const { error } = await supabase.storage.from(BUCKET).upload(documentKey, input.buffer, {
       contentType: input.contentType,
       upsert: false,
     });
     if (error) {
-      return { error: error.message || "신분증 이미지 업로드에 실패했습니다." };
+      return { error: error.message || "Failed to upload ID image." };
     }
     return { documentKey };
   }
@@ -58,18 +58,18 @@ export async function createKycDocumentViewUrl(
   expiresSec = 300
 ): Promise<{ url: string } | { error: string }> {
   if (!documentKey.startsWith(KYC_PREFIX) || documentKey.includes("..")) {
-    return { error: "잘못된 문서 키입니다." };
+    return { error: "Invalid document key." };
   }
 
   if (isSupabaseStorageConfigured()) {
     const supabase = getSupabaseAdmin();
-    if (!supabase) return { error: "Storage 설정 오류" };
+    if (!supabase) return { error: "Storage configuration error" };
 
     const { data, error } = await supabase.storage
       .from(BUCKET)
       .createSignedUrl(documentKey, expiresSec);
     if (error || !data?.signedUrl) {
-      return { error: error?.message || "신분증 이미지를 불러올 수 없습니다." };
+      return { error: error?.message || "Could not load ID image." };
     }
     return { url: data.signedUrl };
   }
@@ -80,7 +80,7 @@ export async function createKycDocumentViewUrl(
       url: `/api/admin/market/seller-kyc-document?key=${encodeURIComponent(documentKey)}`,
     };
   } catch {
-    return { error: "신분증 이미지를 찾을 수 없습니다." };
+    return { error: "ID image not found." };
   }
 }
 
@@ -88,16 +88,16 @@ export async function readKycDocumentBuffer(
   documentKey: string
 ): Promise<{ buffer: Buffer; contentType: string } | { error: string }> {
   if (!documentKey.startsWith(KYC_PREFIX) || documentKey.includes("..")) {
-    return { error: "잘못된 문서 키입니다." };
+    return { error: "Invalid document key." };
   }
 
   if (isSupabaseStorageConfigured()) {
     const supabase = getSupabaseAdmin();
-    if (!supabase) return { error: "Storage 설정 오류" };
+    if (!supabase) return { error: "Storage configuration error" };
 
     const { data, error } = await supabase.storage.from(BUCKET).download(documentKey);
     if (error || !data) {
-      return { error: error?.message || "신분증 이미지를 찾을 수 없습니다." };
+      return { error: error?.message || "ID image not found." };
     }
     const buffer = Buffer.from(await data.arrayBuffer());
     const ext = documentKey.split(".").pop()?.toLowerCase();
@@ -125,6 +125,6 @@ export async function readKycDocumentBuffer(
             : "image/jpeg";
     return { buffer, contentType };
   } catch {
-    return { error: "신분증 이미지를 찾을 수 없습니다." };
+    return { error: "ID image not found." };
   }
 }

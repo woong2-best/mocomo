@@ -4,8 +4,8 @@ export const EARNING_CATEGORY_LABELS: Record<EarningCategory, string> = {
   MARKET_CREATOR: "MARKET CREATOR",
   LIVE: "LIVE",
   MEMBERSHIP: "MEMBERSHIP",
-  WITHDRAWAL: "지출 (출금)",
-  OTHER: "기타",
+  WITHDRAWAL: "Expense (payout)",
+  OTHER: "Other",
 };
 
 const MARKET_CREATOR_TYPES = new Set([

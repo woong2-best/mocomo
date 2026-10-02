@@ -26,7 +26,7 @@ export default async function MarketSellItemPage() {
           <Link href="/market" className="text-xs text-muted-foreground hover:text-foreground">
             ← {MARKET_BRAND_NAME}
           </Link>
-          <h1 className="text-2xl font-bold">판매 등록</h1>
+          <h1 className="text-2xl font-bold">List for sale</h1>
           <p className="text-sm text-muted-foreground">
             일반 · 주문제작 · 예약판매 상품을 등록합니다.
           </p>

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useRef } from "react";
 import { Play, Pause } from "lucide-react";
 import { computeOutputDimensions, drawVideoFrame } from "@/lib/video-editor/draw-frame";
@@ -206,7 +209,7 @@ export function VideoPreviewCanvas({
               e.stopPropagation();
               onTogglePlay?.();
             }}
-            aria-label={playing ? "일시정지" : "재생"}
+            aria-label={playing ? t("media.spzasrv") : t("media.sz0s1")}
           >
             {playing ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4" fill="currentColor" />}
           </button>

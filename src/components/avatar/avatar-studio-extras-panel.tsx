@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRef, useState, type RefObject } from "react";
 import {
   StudioPanel,
@@ -48,11 +51,11 @@ export function AvatarStudioExtrasPanel({
   } = studio;
 
   return (
-    <StudioPanel title="효과 · 내보내기" className="shrink-0 max-h-[38vh]">
+    <StudioPanel title={t("avatar.sfeffm9")} className="shrink-0 max-h-[38vh]">
       <StudioSegmentTabs
         tabs={[
-          { id: "effects" as const, label: "효과" },
-          { id: "output" as const, label: "출력" },
+          { id: "effects" as const, label: t("avatar.s11glw") },
+          { id: "output" as const, label: t("avatar.szzex") },
         ]}
         value={tab}
         onChange={setTab}
@@ -60,16 +63,16 @@ export function AvatarStudioExtrasPanel({
 
       {tab === "effects" && (
         <>
-          <StudioSection title="셀·MToon">
+          <StudioSection title={t("avatar.mtoon")}>
             <button
               type="button"
               onClick={() => setEffects({ celShading: !config.effects.celShading })}
               className={studioChipSm(config.effects.celShading, "w-full py-1.5 text-[10px]")}
             >
-              {config.effects.celShading ? "MToon·셀 ON" : "MToon·셀 OFF"}
+              {config.effects.celShading ? t("avatar.mtoon_on") : t("avatar.mtoon_off")}
             </button>
           </StudioSection>
-          <StudioSection title="렌더 품질">
+          <StudioSection title={t("avatar.svyh40o")}>
             <div className="grid grid-cols-3 gap-1.5">
               {RENDER_QUALITIES.map((rq) => (
                 <button
@@ -84,10 +87,10 @@ export function AvatarStudioExtrasPanel({
               ))}
             </div>
             <p className="text-[9px] text-muted-foreground mt-1.5">
-              스튜디오·시네마: IBL·블룸·얼굴 UV 메이크업 · 시네마: SSAO·림라이트
+              {t("avatar.ibl_uv_ssao")}
             </p>
           </StudioSection>
-          <StudioSection title="모션">
+          <StudioSection title={t("avatar.swt68")}>
             <div className="grid grid-cols-3 gap-1.5">
               {MOTIONS.map((motion) => (
                 <button key={motion.id} type="button" onClick={() => setEffects({ motion: motion.id })} className={studioChipSm(config.effects.motion === motion.id, "py-1.5 text-[10px]")}>
@@ -96,7 +99,7 @@ export function AvatarStudioExtrasPanel({
               ))}
             </div>
           </StudioSection>
-          <StudioSection title="배경" defaultOpen={false}>
+          <StudioSection title={t("lib.media-editor.swyh9")} defaultOpen={false}>
             <div className="flex flex-wrap gap-1.5">
               {BACKGROUNDS.map((bg) => (
                 <button key={bg.id} type="button" onClick={() => setEffects({ background: bg.id })} className={studioChipSm(config.effects.background === bg.id, "px-2 py-1 text-[10px]")}>
@@ -105,7 +108,7 @@ export function AvatarStudioExtrasPanel({
               ))}
             </div>
           </StudioSection>
-          <StudioSection title="파티클" defaultOpen={false}>
+          <StudioSection title={t("avatar.svxv9s")} defaultOpen={false}>
             <div className="flex flex-wrap gap-1.5">
               {PARTICLE_EFFECTS.map((fx) => (
                 <button key={fx.id} type="button" onClick={() => setEffects({ particle: fx.id })} className={studioChipSm(config.effects.particle === fx.id, "px-2 py-1 text-[10px]")}>
@@ -119,16 +122,16 @@ export function AvatarStudioExtrasPanel({
 
       {tab === "output" && (
         <>
-          <StudioSection title="사진 아바타" defaultOpen>
+          <StudioSection title={t("avatar.s1rvyxns")} defaultOpen>
             <PhotoAvatarUploadPanel
               onReady={() => {
-                flash("사진 아바타 적용");
+                flash(t("avatar.sgamj28"));
                 window.dispatchEvent(new Event("mocomo-photo-avatar-reload"));
               }}
             />
           </StudioSection>
           <StudioSection title="VRM · OBS" defaultOpen={false}>
-            <p className="text-[10px] text-muted-foreground mb-2">{vrmModelName ?? "기본 VRM"}</p>
+            <p className="text-[10px] text-muted-foreground mb-2">{vrmModelName ?? t("lib.virtual-avatar.vrm")}</p>
             <div className="grid grid-cols-2 gap-1.5">
               <Button type="button" variant="outline" size="sm" className="rounded-xl h-8 text-[11px] border-2" onClick={() => vrmInputRef.current?.click()}>
                 <Upload className="h-3 w-3 mr-1" /> VRM
@@ -143,14 +146,14 @@ export function AvatarStudioExtrasPanel({
               const file = e.target.files?.[0];
               if (!file) return;
               void (async () => {
-                if (!(await uploadVrm(file))) { flash("VRM만 가능"); return; }
+                if (!(await uploadVrm(file))) { flash(t("avatar.vrm_7")); return; }
                 const ok = await sceneRef.current?.loadVrmFromFile(file);
-                flash(ok ? "VRM 적용" : "로드 실패");
+                flash(ok ? t("avatar.vrm_8") : t("avatar.sxdc06c"));
               })();
               e.target.value = "";
             }} />
           </StudioSection>
-          <StudioSection title="내보내기">
+          <StudioSection title={t("avatar.sn2vni4")}>
             <div className="grid grid-cols-3 gap-1.5">
               <Button type="button" variant="outline" size="sm" className="rounded-xl h-8 text-[10px] border-2" onClick={() => { onExportPng(); flash("PNG"); }}>
                 <Download className="h-3 w-3" />
@@ -162,15 +165,15 @@ export function AvatarStudioExtrasPanel({
                 <Save className="h-3 w-3" />
               </Button>
             </div>
-            <Button type="button" variant="ghost" size="sm" className="w-full h-7 text-[10px]" onClick={() => { savePreset(); flash("저장됨"); }}>
-              프리셋 저장 (로컬+클라우드)
+            <Button type="button" variant="ghost" size="sm" className="w-full h-7 text-[10px]" onClick={() => { savePreset(); flash(t("avatar.su9jj7")); }}>
+              {t("avatar.s13gr0uc")}
             </Button>
-            <Button type="button" variant="ghost" size="sm" className="w-full h-7 text-[10px]" onClick={() => void loadCloudPreset().then((ok) => flash(ok ? "클라우드 불러옴" : "클라우드 없음"))}>
-              클라우드 불러오기
+            <Button type="button" variant="ghost" size="sm" className="w-full h-7 text-[10px]" onClick={() => void loadCloudPreset().then((ok) => flash(ok ? t("avatar.sh5bzdw") : t("avatar.ss1syeq")))}>
+              {t("avatar.sydk15o")}
             </Button>
             <input ref={presetInputRef} type="file" accept=".json" className="hidden" onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) void importPreset(file).then((ok) => flash(ok ? "불러옴" : "오류"));
+              if (file) void importPreset(file).then((ok) => flash(ok ? t("avatar.ssnrkg") : t("donations.sypx0")));
               e.target.value = "";
             }} />
           </StudioSection>

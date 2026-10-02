@@ -10,17 +10,17 @@ export async function GET(req: NextRequest) {
 
   const query = q || [place, region].filter(Boolean).join(" ");
   if (!query) {
-    return NextResponse.json({ error: "검색어가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   try {
     const result = await geocodeMeetQuery({ country, region, place, q });
     if (!result) {
-      return NextResponse.json({ error: "장소를 찾지 못했습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Place not found." }, { status: 404 });
     }
     return NextResponse.json({ ...result, country });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "지오코딩에 실패했습니다.";
+    const msg = e instanceof Error ? e.message : "Request failed.";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

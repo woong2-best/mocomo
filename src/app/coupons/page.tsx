@@ -21,22 +21,22 @@ export default async function MyCouponsPage() {
   return (
     <SettingsPageChrome>
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">내 쿠폰 · 프로모션</h1>
+        <h1 className="text-2xl font-bold">My coupons · Promotions</h1>
         <Link href="/settings" className="text-sm text-muted-foreground hover:underline">
-          설정으로
+          Settings
         </Link>
       </div>
       <p className="text-sm text-muted-foreground -mt-2">
-        쿠폰은 코드로 등록하고, 프로모션은 계정에 자동 귀속됩니다. 정산 시 함께 적용됩니다.
+        Redeem coupons with a code; promotions attach to your account automatically. Both apply at checkout.
       </p>
 
       <CouponRedeemForm />
 
-      <h2 className="text-lg font-semibold pt-2">프로모션</h2>
+      <h2 className="text-lg font-semibold pt-2">Promotions</h2>
       {promotions.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            보유 중인 프로모션이 없습니다.
+            You have no active promotions.
           </CardContent>
         </Card>
       ) : (
@@ -57,15 +57,15 @@ export default async function MyCouponsPage() {
               <CardContent className="space-y-1 text-sm">
                 <p>{a.benefitLabel}</p>
                 <p className="text-xs text-muted-foreground">
-                  남은 혜택:{" "}
+                  Remaining benefit:{" "}
                   {a.remainingBenefitKrw != null
                     ? `₩${a.remainingBenefitKrw.toLocaleString()}`
-                    : "할인형"}
+                    : "Discount type"}
                   {" · "}
-                  만료:{" "}
+                  Expires:{" "}
                   {a.promotion.endsAt
                     ? a.promotion.endsAt.toISOString().slice(0, 10)
-                    : "없음"}
+                    : "None"}
                 </p>
               </CardContent>
             </Card>
@@ -73,11 +73,11 @@ export default async function MyCouponsPage() {
         </div>
       )}
 
-      <h2 className="text-lg font-semibold pt-4">쿠폰</h2>
+      <h2 className="text-lg font-semibold pt-4">Coupons</h2>
       {coupons.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            보유 중인 쿠폰이 없습니다.
+            You have no coupons.
           </CardContent>
         </Card>
       ) : (
@@ -98,24 +98,24 @@ export default async function MyCouponsPage() {
               <CardContent className="space-y-2 text-sm">
                 <p>{a.benefitLabel}</p>
                 <p className="text-xs text-muted-foreground">
-                  남은 혜택:{" "}
+                  Remaining benefit:{" "}
                   {a.remainingBenefitKrw != null
                     ? `₩${a.remainingBenefitKrw.toLocaleString()}`
-                    : "할인형"}
+                    : "Discount type"}
                   {" · "}
-                  만료:{" "}
+                  Expires:{" "}
                   {a.coupon.endsAt
                     ? a.coupon.endsAt.toISOString().slice(0, 10)
-                    : "없음"}
+                    : "None"}
                 </p>
                 {a.usages.length > 0 ? (
                   <div className="pt-2 border-t border-border/50">
-                    <p className="text-xs font-medium mb-1">사용 내역</p>
+                    <p className="text-xs font-medium mb-1">Usage history</p>
                     <ul className="space-y-1 text-xs text-muted-foreground">
                       {a.usages.map((u) => (
                         <li key={u.id}>
-                          {u.createdAt.toISOString().slice(0, 16).replace("T", " ")} · 정산 ₩
-                          {u.grossAmountKrw.toLocaleString()} · 혜택 ₩
+                          {u.createdAt.toISOString().slice(0, 16).replace("T", " ")} · gross ₩
+                          {u.grossAmountKrw.toLocaleString()} · benefit ₩
                           {u.benefitAppliedKrw.toLocaleString()}
                         </li>
                       ))}

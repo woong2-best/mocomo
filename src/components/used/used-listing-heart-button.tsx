@@ -1,12 +1,14 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
 import { toggleUsedFavorite } from "@/actions/used-market";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 export function UsedListingHeartButton({
   listingId,
@@ -19,7 +21,7 @@ export function UsedListingHeartButton({
   className?: string;
   size?: "md" | "sm";
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const router = useRouter();
   const [favorited, setFavorited] = useState(initialFavorited);
   const [busy, setBusy] = useState(false);
@@ -53,8 +55,8 @@ export function UsedListingHeartButton({
       className={cn("p-1 rounded-full", className)}
       aria-label={
         favorited
-          ? uiText(locale, "관심 해제", "Remove favorite")
-          : uiText(locale, "관심 등록", "Add favorite")
+          ? t("ui.remove_favorite")
+          : t("ui.add_favorite")
       }
       aria-pressed={favorited}
     >

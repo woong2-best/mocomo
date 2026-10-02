@@ -35,7 +35,7 @@ export async function completeAvatarOnboarding(input: {
   const user = await requireAuthForAction();
   const image = input.image?.trim() ?? "";
   if (!image) {
-    return { error: "프로필 사진을 설정해 주세요." };
+    return { error: "actions.s1s27zyz" };
   }
 
   const result = await applyProfileUpdateForUser(user.id, { image });

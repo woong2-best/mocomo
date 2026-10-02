@@ -10,8 +10,10 @@ import type { UnifiedSettlementHistoryItem } from "@/lib/settlement-moco/history
 function row(
   partial: Partial<UnifiedSettlementHistoryItem> & Pick<UnifiedSettlementHistoryItem, "kind" | "id" | "at">,
 ): UnifiedSettlementHistoryItem {
-  if (partial.kind === "on_demand_withdrawal") {
+  const { kind, ...rest } = partial;
+  if (kind === "on_demand_withdrawal") {
     return {
+      kind: "on_demand_withdrawal",
       status: "COMPLETED",
       withdrawMoco: 100,
       balanceAfterMoco: 0,
@@ -21,10 +23,11 @@ function row(
       netAmountMinor: 4750,
       currency: "usd",
       stripeTransferId: "tr_1",
-      ...partial,
+      ...rest,
     } as UnifiedSettlementHistoryItem;
   }
   return {
+    kind: "monthly_cycle",
     periodYear: 2026,
     periodMonth: 1,
     status: "PAID",
@@ -33,7 +36,7 @@ function row(
     rolloverMoco: 10,
     netAmountMinor: 42750,
     currency: "usd",
-    ...partial,
+    ...rest,
   } as UnifiedSettlementHistoryItem;
 }
 

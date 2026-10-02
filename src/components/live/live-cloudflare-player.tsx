@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type HlsType from "hls.js";
 import { Loader2, Radio } from "lucide-react";
@@ -12,10 +16,11 @@ export function LiveCloudflarePlayer({
   channelId: string;
   hlsUrl?: string | null;
 }) {
+  const { t } = useLocale();
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsType | null>(null);
   const [status, setStatus] = useState<"loading" | "playing" | "waiting">("loading");
-  const [hint, setHint] = useState("Cloudflare Stream 연결 중…");
+  const [hint, setHint] = useState(t("live.cloudflareConnecting"));
   const [, setHlsUrl] = useState<string | null>(initialHlsUrl ?? null);
 
   const attachHls = useCallback((url: string) => {
@@ -39,7 +44,7 @@ export function LiveCloudflarePlayer({
 
     void import("hls.js").then(({ default: Hls }) => {
       if (!videoRef.current || !Hls.isSupported()) {
-        setHint("HLS 미지원 브라우저");
+        setHint(t("live.hls"));
         return;
       }
       const hls = new Hls({
@@ -58,12 +63,12 @@ export function LiveCloudflarePlayer({
         if (!data.fatal) return;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           setStatus("waiting");
-          setHint("방송 시작 후 5~15초 기다려 주세요…");
+          setHint(t("live.5_15"));
           hls.startLoad();
           return;
         }
         setStatus("waiting");
-        setHint("재생 오류 — 방송을 다시 시작한 뒤 새로고침해 주세요");
+        setHint(t("live.s1lfsplc"));
       });
     });
   }, []);
@@ -87,14 +92,14 @@ export function LiveCloudflarePlayer({
       if (onAir && url) {
         setHlsUrl(url);
         setStatus("waiting");
-        setHint("송출 감지 · HLS 준비 중 (5~15초)…");
+        setHint(t("live.hls_5_15"));
         attachHls(url);
         return;
       }
       setStatus("waiting");
-      setHint(body.message ?? "스트리머가 방송을 시작하면 화면이 나타납니다");
+      setHint(body.message ?? t("live.swy3gc6"));
     } catch {
-      setHint("재생 정보를 불러오지 못했습니다");
+      setHint(t("live.spxu2vq"));
     }
   }, [channelId, attachHls]);
 

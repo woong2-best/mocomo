@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +37,7 @@ export function SupportTierInfoPopover({
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-sm font-bold mb-3">광석 등급 안내</p>
+        <p className="text-sm font-bold mb-3">{t("support.s8817c0")}</p>
         <SupportTierTable />
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+import { errorText } from "@/lib/i18n/error-text";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,6 +17,8 @@ import { ExternalLink } from "lucide-react";
 import { YoutubeEmbedGuide } from "@/components/live/youtube-embed-guide";
 import { BROADCAST_PICK_CATEGORIES } from "@/lib/live-categories";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
+import { broadcastCategoryLabel } from "@/lib/live-category-i18n";
 
 const PLATFORM_LABELS: Record<string, string> = {
   YOUTUBE: "YouTube",
@@ -34,6 +40,7 @@ type Props = {
 
 export function ExternalLiveNewForm({ accounts }: Props) {
   const router = useRouter();
+  const { locale, t } = useLocale();
   const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id ?? "");
   const [error, setError] = useState("");
@@ -64,9 +71,9 @@ export function ExternalLiveNewForm({ accounts }: Props) {
       if ("error" in result && result.error) {
         const suffix =
           "existingChannelId" in result && result.existingChannelId
-            ? ` (이전 방송: /voice/${result.existingChannelId})`
+            ? t("live.external.prevBroadcastSuffix", { id: result.existingChannelId })
             : "";
-        setError(`${result.error}${suffix}`);
+        setError(`${errorText(result.error)}${suffix}`);
         return;
       }
       if ("channel" in result && result.channel) {
@@ -80,16 +87,13 @@ export function ExternalLiveNewForm({ accounts }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">인증된 계정으로 방송 시작</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          영상은 해당 플랫폼 플레이어로만 보여 줍니다. 채팅·후원은 MoCoMo에서 제공됩니다.
-          제목·설명은 YouTube/Twitch에서 설정한 내용이 자동으로 반영됩니다.
-        </p>
+        <CardTitle className="text-lg">{t("live.external.title")}</CardTitle>
+        <p className="text-sm text-muted-foreground">{t("live.external.desc")}</p>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">카테고리</label>
+            <label className="text-sm font-medium">{t("live.studio.category")}</label>
             <div className="flex flex-wrap gap-2">
               {BROADCAST_PICK_CATEGORIES.map((c) => (
                 <button
@@ -103,14 +107,14 @@ export function ExternalLiveNewForm({ accounts }: Props) {
                       : "border-border/70 text-muted-foreground hover:border-folk-cobalt/40"
                   )}
                 >
-                  {c.label}
+                  {broadcastCategoryLabel(locale, c.value)}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">스트리밍 계정</label>
+            <label className="text-sm font-medium">{t("live.external.streamingAccount")}</label>
             <div className="space-y-2">
               {accounts.map((acc) => (
                 <button
@@ -146,7 +150,7 @@ export function ExternalLiveNewForm({ accounts }: Props) {
             </div>
             <p className="text-xs text-muted-foreground">
               <Link href="/settings/streaming-accounts" className="text-primary hover:underline">
-                다른 계정 연결/관리
+                {t("live.external.manageAccounts")}
               </Link>
             </p>
           </div>
@@ -155,7 +159,7 @@ export function ExternalLiveNewForm({ accounts }: Props) {
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <Button type="submit" className="w-full" disabled={busy || !selectedAccountId}>
-            {busy ? "연결 중…" : "방송 연결하고 시작"}
+            {busy ? t("live.external.connecting") : t("live.external.connectAndStart")}
           </Button>
         </form>
       </CardContent>

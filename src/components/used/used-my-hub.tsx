@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Heart, Scale, ShoppingBag, DollarSign } from "lucide-react";
@@ -7,7 +10,6 @@ import { getMyUsedHubLane, type UsedHubLane } from "@/actions/used-market";
 import { UsedListingGrid } from "@/components/used/used-listing-grid";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 type HubItem = {
   id: string;
@@ -60,30 +62,30 @@ export function UsedMyHub({
   userId: string;
   initialLane?: UsedHubLane;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const [lane, setLane] = useState<UsedHubLane>(() => parseInitialLane(initialLane));
   const [items, setItems] = useState<HubItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const shortcuts: { lane: UsedHubLane; label: string; icon: typeof ShoppingBag }[] = [
-    { lane: "purchased", label: uiText(locale, "구매내역", "Purchases"), icon: ShoppingBag },
-    { lane: "selling", label: uiText(locale, "판매내역", "Sales"), icon: DollarSign },
-    { lane: "favorites", label: uiText(locale, "찜리스트", "Favorites"), icon: Heart },
-    { lane: "disputes", label: uiText(locale, "분쟁", "Disputes"), icon: Scale },
+    { lane: "purchased", label: t("ui.purchases"), icon: ShoppingBag },
+    { lane: "selling", label: t("ui.sales"), icon: DollarSign },
+    { lane: "favorites", label: t("ui.favorites"), icon: Heart },
+    { lane: "disputes", label: t("ui.disputes"), icon: Scale },
   ];
 
   const emptyMessage = (hubLane: UsedHubLane) => {
     switch (hubLane) {
       case "purchased":
-        return uiText(locale, "구매한 상품이 없어요.", "No purchases yet.");
+        return t("ui.no_purchases_yet");
       case "selling":
-        return uiText(locale, "판매한 글이 없어요.", "No listings yet.");
+        return t("ui.no_listings_yet");
       case "live-auctions":
-        return uiText(locale, "진행 중인 경매가 없어요.", "No live auctions.");
+        return t("ui.no_live_auctions");
       case "favorites":
-        return uiText(locale, "찜한 상품이 없어요.", "No favorites yet.");
+        return t("ui.no_favorites_yet");
       case "disputes":
-        return uiText(locale, "분쟁 내역이 없어요.", "No disputes.");
+        return t("ui.no_disputes");
       default:
         return "";
     }
@@ -129,12 +131,12 @@ export function UsedMyHub({
         href="/market/new"
         className="flex h-12 w-full items-center justify-center rounded-full bg-folk-terracotta text-base font-extrabold text-white hover:bg-folk-terracotta/90"
       >
-        {uiText(locale, "판매", "Sell")}
+        {t("ui.sell")}
       </Link>
 
       {loading ? (
         <p className="py-10 text-center text-sm text-muted-foreground">
-          {uiText(locale, "불러오는 중…", "Loading…")}
+          {t("tower.loadingMore")}
         </p>
       ) : items.length === 0 ? (
         <p className="py-10 text-center text-sm text-muted-foreground">{emptyMessage(lane)}</p>

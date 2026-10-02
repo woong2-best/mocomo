@@ -1,65 +1,65 @@
 /** Shared subculture commerce enums — mirrored in Prisma schema. */
 
 export const SUBCULTURE_CONDITION_GRADES = [
-  { id: "NEW", label: "미개봉·신품급" },
-  { id: "LIKE_NEW", label: "거의 새 것" },
+  { id: "NEW", label: "Sealed · like new" },
+  { id: "LIKE_NEW", label: "Like new" },
   { id: "NM", label: "NM (Near Mint)" },
   { id: "LP", label: "LP (Light Played)" },
   { id: "MP", label: "MP (Moderate Played)" },
   { id: "HP", label: "HP (Heavy Played)" },
-  { id: "POOR", label: "손상·하자 있음" },
-  { id: "UNKNOWN", label: "상태 미표기" },
+  { id: "POOR", label: "Damaged · defects" },
+  { id: "UNKNOWN", label: "Condition not specified" },
 ] as const;
 
 export type SubcultureConditionGrade =
   (typeof SUBCULTURE_CONDITION_GRADES)[number]["id"];
 
 export const SUBCULTURE_LIMITED_KINDS = [
-  { id: "STANDARD", label: "일반 판매" },
-  { id: "EVENT_EXCLUSIVE", label: "행사 한정" },
-  { id: "VENUE_ONLY", label: "会場限定·현장 only" },
-  { id: "PREORDER", label: "예약·선주문" },
-  { id: "COLLAB", label: "콜라보·한정" },
-  { id: "LIMITED_RUN", label: "한정 수량" },
-  { id: "LOTTERY", label: "추첨·kuji" },
-  { id: "PROMO", label: "프로모·特典" },
+  { id: "STANDARD", label: "General sale" },
+  { id: "EVENT_EXCLUSIVE", label: "Event exclusive" },
+  { id: "VENUE_ONLY", label: "Venue-exclusive · in-person only" },
+  { id: "PREORDER", label: "Pre-order" },
+  { id: "COLLAB", label: "Collab · limited" },
+  { id: "LIMITED_RUN", label: "Limited quantity" },
+  { id: "LOTTERY", label: "Lottery · kuji" },
+  { id: "PROMO", label: "Promo · bonus" },
 ] as const;
 
 export type SubcultureLimitedKind = (typeof SUBCULTURE_LIMITED_KINDS)[number]["id"];
 
 export const SUBCULTURE_LISTING_FORMATS = [
-  { id: "SINGLE", label: "단품" },
-  { id: "LOT", label: "Lot·묶음" },
-  { id: "SET", label: "세트·풀셋" },
-  { id: "BINDER", label: "바인더·앨범" },
-  { id: "BOX", label: "박스·팩" },
+  { id: "SINGLE", label: "Single item" },
+  { id: "LOT", label: "Lot · bundle" },
+  { id: "SET", label: "Set · complete set" },
+  { id: "BINDER", label: "Binder · album" },
+  { id: "BOX", label: "Box · pack" },
 ] as const;
 
 export type SubcultureListingFormat =
   (typeof SUBCULTURE_LISTING_FORMATS)[number]["id"];
 
 export const SUBCULTURE_TRADE_MODES = [
-  { id: "SELL", label: "판매만" },
-  { id: "TRADE", label: "교환만 (WTT)" },
-  { id: "SELL_OR_TRADE", label: "판매·교환" },
+  { id: "SELL", label: "Sell only" },
+  { id: "TRADE", label: "Trade only (WTT)" },
+  { id: "SELL_OR_TRADE", label: "Sell & trade" },
 ] as const;
 
 export type SubcultureTradeMode = (typeof SUBCULTURE_TRADE_MODES)[number]["id"];
 
 export const SUBCULTURE_ITEM_ORIGINS = [
-  { id: "OFFICIAL", label: "정품·공식" },
-  { id: "FANMADE", label: "팬메·동인·自製" },
-  { id: "BOOTLEG_UNKNOWN", label: "출처 불명·짝퉁 의심" },
+  { id: "OFFICIAL", label: "Official · authentic" },
+  { id: "FANMADE", label: "Fan mail · doujin · fan-made" },
+  { id: "BOOTLEG_UNKNOWN", label: "Unknown source · suspected counterfeit" },
 ] as const;
 
 export type SubcultureItemOrigin = (typeof SUBCULTURE_ITEM_ORIGINS)[number]["id"];
 
 export const SUBCULTURE_PACKAGING_STATES = [
-  { id: "SEALED", label: "미개봉 (Sealed)" },
-  { id: "OPENED_COMPLETE", label: "개봉·구성품 완전" },
-  { id: "OPENED_INCOMPLETE", label: "개봉·구성품 일부 없음" },
-  { id: "LOOSE", label: "Loose·본체만" },
-  { id: "NA", label: "해당 없음" },
+  { id: "SEALED", label: "Sealed" },
+  { id: "OPENED_COMPLETE", label: "Opened · complete contents" },
+  { id: "OPENED_INCOMPLETE", label: "Opened · missing parts" },
+  { id: "LOOSE", label: "Loose · figure only" },
+  { id: "NA", label: "Not applicable" },
 ] as const;
 
 export type SubculturePackagingState =

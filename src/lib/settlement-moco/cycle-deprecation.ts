@@ -25,7 +25,7 @@ export async function deprecateOpenSettlementCyclesForOnDemand(): Promise<{ rele
         await creditSettlementMocoInTx(tx, {
           userId: cycle.userId,
           amount: returnMoco,
-          reason: "월간 Lock 해제 (온디맨드 정산 전환)",
+          reason: "Monthly lock release (switch to on-demand settlement)",
           referenceType: "moco_settlement_cycle_deprecated",
           referenceId: cycle.id,
         });

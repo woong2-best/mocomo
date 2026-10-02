@@ -4,9 +4,9 @@
  */
 
 const TYPO_MAP: Record<string, string> = {
-  감쟈: "감자",
-  감저: "감자",
-  튀김: "튀김",
+  감쟈: "Potato",
+  감저: "Potato",
+  튀김: "Fries",
 };
 
 export function normalizeSearchQuery(raw: string): string {

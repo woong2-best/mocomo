@@ -30,8 +30,8 @@ export async function fetchFeedAdPool(): Promise<FeedAdData[]> {
       imageUrl: e.imageUrl,
       linkUrl: e.linkUrl?.trim() || "/events",
       sponsorName: e.createdBy?.name || e.createdBy?.username || "MoCoMo",
-      ctaLabel: "바로가기",
-      adCategory: "광고",
+      ctaLabel: "Go to",
+      adCategory: "Ad",
     }));
 
   const slotAds: FeedAdData[] = slots.map((s) => ({
@@ -41,7 +41,7 @@ export async function fetchFeedAdPool(): Promise<FeedAdData[]> {
     linkUrl: s.linkUrl,
     sponsorName: s.sponsorName,
     ctaLabel: s.ctaLabel,
-    adCategory: s.adCategory ?? "광고",
+    adCategory: s.adCategory ?? "Ad",
   }));
 
   return [...eventAds, ...slotAds];
@@ -52,7 +52,7 @@ function adTitleFromLink(linkUrl: string): string {
     const href = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
     return new URL(href).hostname.replace(/^www\./, "");
   } catch {
-    return "광고";
+    return "Ad";
   }
 }
 

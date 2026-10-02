@@ -6,7 +6,7 @@ export default async function StudioDiscoverPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-2xl font-semibold">크리에이터 탐색</h1>
+      <h1 className="font-display text-2xl font-semibold">Explore creators</h1>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {creators.map((c) => (
           <Link
@@ -22,7 +22,7 @@ export default async function StudioDiscoverPage() {
           </Link>
         ))}
       </div>
-      {!creators.length && <p className="text-muted-foreground">등록된 크리에이터가 없습니다.</p>}
+      {!creators.length && <p className="text-muted-foreground">No creators registered yet.</p>}
     </div>
   );
 }

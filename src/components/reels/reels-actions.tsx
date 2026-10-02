@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -187,7 +190,7 @@ export function ReelsActions({
           type="button"
           className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
           aria-pressed={expanded}
-          aria-label={expanded ? "전체화면 종료" : "전체화면"}
+          aria-label={expanded ? i18n("reels.s9nk1fb") : i18n("reels.sq37vtc")}
           onClick={onToggleExpand}
         >
           {expanded ? (

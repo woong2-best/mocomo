@@ -111,7 +111,7 @@ async function initMarketplacePurchase(
 
   if (routing.mode === "BLOCKED") {
     return {
-      error: routing.blockedReason ?? "마켓플레이스는 Stripe 지원 국가에서만 이용할 수 있습니다.",
+      error: routing.blockedReason ?? "actions.stripe_3",
     };
   }
 
@@ -137,17 +137,17 @@ async function initMarketplacePurchase(
   });
 
   if (!listing || listing.status !== "ACTIVE") {
-    return { error: "판매 중인 상품이 아닙니다." };
+    return { error: "actions.s1t0nl25" };
   }
   const listingRating = listing.contentRating ?? (listing.isNsfw ? "ADULT" : "GENERAL");
   const { assertPaymentNotForAdultContent } = await import("@/lib/adult-monetization-ban");
   const adultListingBlock = assertPaymentNotForAdultContent(listingRating);
   if (adultListingBlock) return adultListingBlock;
   if (listing.sellerId === buyer.id) {
-    return { error: "본인 상품은 구매할 수 없습니다." };
+    return { error: "actions.suz2ksc" };
   }
   if (listing.sellerProfile?.status === "SUSPENDED" || listing.sellerProfile?.status === "REJECTED") {
-    return { error: "현재 구매할 수 없는 판매자입니다." };
+    return { error: "actions.s1rknfwv" };
   }
 
   const needsShipping = listing.type !== "DIGITAL";
@@ -163,7 +163,7 @@ async function initMarketplacePurchase(
   }
 
   if (listing.type !== "DIGITAL" && listing.stock < quantity) {
-    return { error: "재고가 부족합니다." };
+    return { error: "actions.s18hc6oe" };
   }
 
   const sellerProfileCheck = await db.marketplaceSellerProfile.findUnique({
@@ -174,12 +174,12 @@ async function initMarketplacePurchase(
     sellerProfileCheck?.sanctionLevel === "PERMANENT_BAN" ||
     sellerProfileCheck?.sanctionLevel === "SALES_SUSPENDED"
   ) {
-    return { error: "판매가 제한된 판매자입니다." };
+    return { error: "actions.s1d7xyb5" };
   }
 
   if (needsShipping) {
     if (!input.shipName?.trim() || !input.shipCountry?.trim() || !input.shipAddress1?.trim()) {
-      return { error: "배송지(이름·국가·주소)를 입력해 주세요." };
+      return { error: "actions.s1qpamyx" };
     }
     const dest = normalizeShipCountry(input.shipCountry);
     if (!dest) {
@@ -204,7 +204,7 @@ async function initMarketplacePurchase(
   const totalAmount = fees.totalAmount;
 
   if (!listing.seller.stripeConnectAccountId) {
-    return { error: "판매자 Stripe Connect 온보딩이 완료되지 않았습니다." };
+    return { error: "actions.stripe_connect" };
   }
 
   const shippingFields = {
@@ -376,7 +376,7 @@ async function createMarketplaceCheckoutSession(
               price_data: {
                 currency: init.currency,
                 unit_amount: init.shippingAmount,
-                product_data: { name: "배송비" },
+                product_data: { name: "Shipping" },
               },
               quantity: 1,
             },
@@ -405,7 +405,7 @@ async function createMarketplaceCheckoutSession(
   };
 
   const session = await stripe.checkout.sessions.create(sessionParams);
-  if (!session.url) return { error: "결제 페이지를 만들 수 없습니다." };
+  if (!session.url) return { error: "actions.s6bk4av" };
 
   await db.marketplaceOrder.update({
     where: { id: init.order.id },
@@ -435,7 +435,7 @@ export async function prepareMarketplacePaymentForBuyer(
   if (adultBlock) return adultBlock;
 
   if (!isStripeConfigured()) {
-    return { error: "Stripe 결제가 설정되지 않았습니다." };
+    return { error: "actions.stripe_4" };
   }
 
   const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);
@@ -498,7 +498,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
   opts?: { purchaseTermsAccepted?: boolean }
 ) {
   if (!isStripeConfigured()) {
-    return { error: "Stripe 결제가 설정되지 않았습니다." };
+    return { error: "actions.stripe_4" };
   }
 
   const consentBlock = await assertAndRecordPurchaseTermsConsent({
@@ -516,20 +516,20 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
     where: { id: paymentIntentDbId },
   });
   if (!paymentIntent || paymentIntent.userId !== buyer.id) {
-    return { error: "결제 정보를 찾을 수 없습니다." };
+    return { error: "actions.s1am6wzc" };
   }
   if (paymentIntent.type !== "MARKETPLACE") {
-    return { error: "마켓 결제가 아닙니다." };
+    return { error: "actions.scn01bw" };
   }
   if (paymentIntent.status === "PAID") {
-    return { error: "이미 결제된 주문입니다." };
+    return { error: "actions.s1batyd1" };
   }
 
   const meta = paymentIntent.metadata as Record<string, string | undefined>;
   const marketplaceOrderId = meta.marketplaceOrderId;
   const listingId = meta.listingId;
   if (!marketplaceOrderId || !listingId) {
-    return { error: "주문 정보가 올바르지 않습니다." };
+    return { error: "actions.s1ooy78e" };
   }
 
   const order = await db.marketplaceOrder.findUnique({
@@ -537,7 +537,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
     include: { items: true },
   });
   if (!order || order.buyerId !== buyer.id || order.status !== "AWAITING_PAYMENT") {
-    return { error: "주문을 찾을 수 없습니다." };
+    return { error: "actions.sr119vd" };
   }
 
   const listing = await db.marketplaceListing.findUnique({
@@ -555,10 +555,10 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
       sellerProfile: { select: { id: true, status: true } },
     },
   });
-  if (!listing) return { error: "상품을 찾을 수 없습니다." };
+  if (!listing) return { error: "actions.s1fhot7o" };
 
   if (listing.status !== "ACTIVE") {
-    return { error: "판매가 중단된 상품입니다." };
+    return { error: "actions.s8d3w03" };
   }
 
   const item = order.items[0];
@@ -568,7 +568,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
   // then rejects as a mismatch — after the buyer has already paid.
   const unitAmount = item?.unitPrice ?? 0;
   if (unitAmount * quantity + order.shippingAmount !== paymentIntent.amount) {
-    return { error: "주문 금액이 올바르지 않습니다. 다시 주문해 주세요." };
+    return { error: "actions.marketplace_checkout.s69cf6d9c77" };
   }
 
   if (paymentIntent.paymentKey) {
@@ -585,7 +585,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
         existing.status === "processing" ||
         existing.status === "requires_capture"
       ) {
-        return { error: "이미 결제가 진행된 주문입니다." };
+        return { error: "actions.marketplace_checkout.s18df0926b7" };
       }
     }
     // The stored key now points at a dead intent; leaving it behind breaks the
@@ -618,7 +618,7 @@ export async function createMarketplaceCheckoutForBuyer(
   platform: CheckoutPlatform = "web"
 ) {
   if (!isStripeConfigured()) {
-    return { error: "Stripe 결제가 설정되지 않았습니다." };
+    return { error: "actions.marketplace_checkout.s52a132feb8" };
   }
 
   const init = await initMarketplacePurchase(buyer, input);
@@ -703,18 +703,18 @@ export async function sellerUpdateShipment(input: {
     where: { id: input.orderId },
     include: { items: { select: { listingType: true } } },
   });
-  if (!order || order.sellerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.sellerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (["CANCELLED", "REFUNDED", "CONFIRMED", "SETTLED"].includes(order.status)) {
-    return { error: "이 주문은 배송 상태를 변경할 수 없습니다." };
+    return { error: "actions.marketplace_checkout.s408d8e3539" };
   }
   if (order.status === "ADMIN_REVIEW" || order.status === "DISPUTED") {
-    return { error: "관리자 검토·분쟁 중에는 배송 상태를 변경할 수 없습니다." };
+    return { error: "actions.marketplace_checkout.s45970f0e7a" };
   }
 
   const status = input.status ?? "SHIPPED";
   const trackingNumber = input.trackingNumber.trim();
   if (!trackingNumber && status !== "PREPARING") {
-    return { error: "송장번호를 입력해 주세요." };
+    return { error: "actions.marketplace_checkout.s4e3309e8a6" };
   }
 
   const manualDeliveredGuard = rejectSellerManualDeliveredForPhysical(order.items, status);
@@ -733,7 +733,7 @@ export async function sellerUpdateShipment(input: {
   const carrierCode = carrierMeta?.id ?? input.carrierCode?.trim() ?? null;
 
   if ((status === "SHIPPED" || status === "IN_TRANSIT") && !carrierCode && !carrierLabel) {
-    return { error: "배송사를 선택해 주세요." };
+    return { error: "actions.marketplace_checkout.se35c39dd60" };
   }
 
   let externalTrackingId: string | undefined;
@@ -815,8 +815,8 @@ export async function sellerUpdateShipment(input: {
     type: "SYSTEM",
     title:
       status === "PREPARING"
-        ? "상품을 준비 중입니다"
-        : "상품이 발송되었습니다",
+        ? "We're preparing your order"
+        : "Your order has shipped",
     body: carrierLabel ? `${carrierLabel} ${trackingNumber}` : trackingNumber,
     link: `/market/orders/${order.id}`,
     actorId: user.id,
@@ -839,14 +839,14 @@ export async function sellerSetOrderStatus(
     where: { id: orderId },
     include: { shipment: true, items: { select: { listingType: true } } },
   });
-  if (!order || order.sellerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.sellerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
 
   const allowedFrom: Record<string, string[]> = {
     PREPARING: ["PAID", "PREPARING"],
     SHIPPED: ["PAID", "PREPARING", "SHIPPED"],
   };
   if (!allowedFrom[status]?.includes(order.status)) {
-    return { error: "현재 상태에서는 변경할 수 없습니다." };
+    return { error: "actions.marketplace_checkout.sacd9fd1e5e" };
   }
 
   await db.marketplaceOrder.update({ where: { id: orderId }, data: { status } });
@@ -872,7 +872,7 @@ export async function sellerSetOrderStatus(
   await createNotification({
     userId: order.buyerId,
     type: "SYSTEM",
-    title: "주문 상태가 변경되었습니다",
+    title: "Order status updated",
     body: status,
     link: `/market/orders/${orderId}`,
     actorId: user.id,
@@ -888,9 +888,9 @@ export async function confirmMarketplaceOrder(orderId: string) {
     where: { id: orderId },
     include: { items: { select: { listingType: true } }, shipment: true },
   });
-  if (!order || order.buyerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.buyerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (order.status === "DISPUTED" || order.status === "ADMIN_REVIEW") {
-    return { error: "분쟁·검토 중에는 구매 확정할 수 없습니다." };
+    return { error: "actions.marketplace_checkout.s59efc994b9" };
   }
 
   const { canBuyerManuallyConfirmOrder } = await import("@/lib/marketplace/confirm-guards");
@@ -903,8 +903,8 @@ export async function confirmMarketplaceOrder(orderId: string) {
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: "구매가 확정되었습니다",
-    body: "에스크로 정책에 따라 정산이 진행됩니다.",
+    title: "Purchase confirmed",
+    body: "Payout will proceed per escrow policy.",
     link: `/market/orders/${orderId}`,
     actorId: user.id,
   });
@@ -922,12 +922,12 @@ export async function requestMarketplaceRefund(
     where: { id: orderId },
     include: { shipment: true },
   });
-  if (!order || order.buyerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.buyerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (["CANCELLED", "REFUNDED", "CONFIRMED"].includes(order.status)) {
-    return { error: "환불을 요청할 수 없는 상태입니다." };
+    return { error: "actions.marketplace_checkout.s7c7e84ba27" };
   }
   const text = reason.trim();
-  if (!text) return { error: "환불 사유를 입력해 주세요." };
+  if (!text) return { error: "actions.marketplace_checkout.se1e9e6c5a7" };
 
   const refundAmount =
     amountOverride ??
@@ -949,7 +949,7 @@ export async function requestMarketplaceRefund(
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: "환불 요청",
+    title: "Refund requested",
     body: text.slice(0, 120),
     link: `/market/orders/${orderId}`,
     actorId: user.id,
@@ -967,9 +967,9 @@ export async function sellerRespondMarketplaceRefund(
     where: { id: refundId },
     include: { order: true },
   });
-  if (!refund || refund.order.sellerId !== user.id) return { error: "권한이 없습니다." };
+  if (!refund || refund.order.sellerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (refund.status !== "REQUESTED" && refund.status !== "SELLER_REVIEW") {
-    return { error: "이미 처리된 환불입니다." };
+    return { error: "lib.call.booking.s4e85bd7196" };
   }
 
   if (!approve) {
@@ -984,7 +984,7 @@ export async function sellerRespondMarketplaceRefund(
     await createNotification({
       userId: refund.order.buyerId,
       type: "SYSTEM",
-      title: "환불이 거절되었습니다",
+      title: "Refund declined",
       link: `/market/orders/${refund.orderId}`,
       actorId: user.id,
     });
@@ -1040,7 +1040,7 @@ export async function sellerRespondMarketplaceRefund(
   await createNotification({
     userId: refund.order.buyerId,
     type: "SYSTEM",
-    title: "환불이 승인되었습니다",
+    title: "Refund approved",
     link: `/market/orders/${refund.orderId}`,
     actorId: user.id,
   });
@@ -1057,13 +1057,13 @@ export async function openMarketplaceDispute(
   const user = await requireAuth();
   const order = await db.marketplaceOrder.findUnique({ where: { id: orderId } });
   if (!order || (order.buyerId !== user.id && order.sellerId !== user.id)) {
-    return { error: "권한이 없습니다." };
+    return { error: "lib.subculture-commerce.st3onev" };
   }
   if (["SETTLED", "REFUNDED", "CANCELLED", "AWAITING_PAYMENT"].includes(order.status)) {
-    return { error: "이 주문에는 분쟁을 제기할 수 없습니다." };
+    return { error: "actions.marketplace_checkout.s8be9d2e6ff" };
   }
   const text = reason.trim();
-  if (!text) return { error: "분쟁 사유를 입력해 주세요." };
+  if (!text) return { error: "actions.marketplace_checkout.s33968d9687" };
 
   const code = reasonCode ?? "OTHER";
   const evidence = {
@@ -1119,7 +1119,7 @@ export async function openMarketplaceDispute(
   await createNotification({
     userId: otherId,
     type: "SYSTEM",
-    title: "분쟁이 접수되었습니다 — 정산이 보류됩니다",
+    title: "Dispute opened — payout on hold",
     body: text.slice(0, 120),
     link: `/market/orders/${orderId}`,
     actorId: user.id,
@@ -1144,10 +1144,10 @@ export async function submitMarketplaceDisputeEvidence(
     where: { id: disputeId },
     include: { order: true },
   });
-  if (!dispute) return { error: "분쟁을 찾을 수 없습니다." };
+  if (!dispute) return { error: "lib.marketplace.s1hvx3ui" };
   const order = dispute.order;
   if (order.buyerId !== user.id && order.sellerId !== user.id) {
-    return { error: "권한이 없습니다." };
+    return { error: "lib.subculture-commerce.st3onev" };
   }
 
   const payload = {
@@ -1184,13 +1184,13 @@ export async function submitMarketplaceDisputeEvidence(
 export async function cancelMarketplaceOrder(orderId: string) {
   const user = await requireAuth();
   const order = await db.marketplaceOrder.findUnique({ where: { id: orderId } });
-  if (!order || order.buyerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.buyerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (order.status !== "AWAITING_PAYMENT" && order.status !== "PAID" && order.status !== "PREPARING") {
-    return { error: "배송 시작 전만 취소할 수 있습니다. 이후에는 반품·환불을 이용해 주세요." };
+    return { error: "actions.marketplace_checkout.sad8872c8f4" };
   }
   if (order.status === "PAID" || order.status === "PREPARING") {
     // 결제 후 취소 → 환불 요청으로 전환
-    return requestMarketplaceRefund(orderId, "배송 전 주문 취소");
+    return requestMarketplaceRefund(orderId, "Cancelled.");
   }
   await db.marketplaceOrder.update({
     where: { id: orderId },
@@ -1211,14 +1211,14 @@ export async function submitMarketplaceReview(input: {
     where: { id: input.orderId },
     include: { items: true, review: true },
   });
-  if (!order || order.buyerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.buyerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (order.status !== "CONFIRMED" && order.status !== "DELIVERED") {
-    return { error: "구매 확정 후 리뷰를 작성할 수 있습니다." };
+    return { error: "actions.marketplace_checkout.s76c259508f" };
   }
-  if (order.review) return { error: "이미 리뷰를 작성했습니다." };
+  if (order.review) return { error: "actions.marketplace_checkout.s5d1e28cd8e" };
   const rating = Math.min(5, Math.max(1, Math.floor(input.rating)));
   const listingId = order.items[0]?.listingId;
-  if (!listingId) return { error: "상품 정보가 없습니다." };
+  if (!listingId) return { error: "lib.marketplace.sehb28b" };
 
   await db.marketplaceReview.create({
     data: {
@@ -1247,7 +1247,7 @@ export async function submitMarketplaceReview(input: {
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: "새 리뷰가 등록되었습니다",
+    title: "New review posted",
     body: `★${rating}`,
     link: `/market/i/${listingId}`,
     actorId: user.id,

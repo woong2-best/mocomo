@@ -31,12 +31,12 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "가입 정보를 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Check your sign-up details." }, { status: 400 });
   }
 
   const ip = await getRequestIp();
@@ -84,6 +84,6 @@ export async function POST(req: NextRequest) {
       );
     }
     console.error("[api/mobile/auth/oauth/complete-signup]", err);
-    return NextResponse.json({ error: "가입에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

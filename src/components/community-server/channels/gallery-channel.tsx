@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { db } from "@/lib/db";
 import { PostCard } from "@/components/feed/post-card";
 import { Images } from "lucide-react";
@@ -36,12 +39,12 @@ export async function GalleryChannelView({ communityId }: { communityId: string 
       <header className="shrink-0 px-4 py-3 border-b border-border/50">
         <h1 className="font-semibold flex items-center gap-2">
           <Images className="h-5 w-5" />
-          갤러리
+          {t("lib.community-server.sq3zvo")}
         </h1>
       </header>
       <div className="flex-1 min-h-0 overflow-y-auto p-4">
         {posts.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-12">이미지 게시글이 없습니다.</p>
+          <p className="text-center text-sm text-muted-foreground py-12">{t("community-server.s2vgxe3")}</p>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
             {posts.map((post) => (

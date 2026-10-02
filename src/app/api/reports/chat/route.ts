@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi, getClientIpFromRequest } from "@/lib/api-security";
@@ -24,12 +25,12 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "신고 정보를 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Check your report details." }, { status: 400 });
   }
 
   const reporterIp = getClientIpFromRequest(req);
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!isReportReasonId(parsed.data.reason)) {
-    return NextResponse.json({ error: "신고 사유를 선택해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Select a report reason." }, { status: 400 });
   }
 
   const result = await submitChatRoomReport({
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
   });
 
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json(result);

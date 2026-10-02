@@ -21,7 +21,7 @@ export async function getMyStreamingAccounts() {
 export async function connectStreamingAccountOAuth(platform: string) {
   const user = await requireAuthMinimal();
   if (!isConnectablePlatform(platform)) {
-    return { error: "지원하지 않는 플랫폼입니다." };
+    return { error: "actions.sz6neik" };
   }
   return startOAuthConnect(user.id, platform);
 }
@@ -29,7 +29,7 @@ export async function connectStreamingAccountOAuth(platform: string) {
 export async function connectStreamingAccountManual(platform: string, channelInput: string) {
   const user = await requireAuthMinimal();
   if (!isConnectablePlatform(platform)) {
-    return { error: "지원하지 않는 플랫폼입니다." };
+    return { error: "actions.sz6neik" };
   }
   const result = await startManualConnect(user.id, platform, channelInput);
   if (!result.ok) return { error: result.error };

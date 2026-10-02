@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 /** 2D 방송 아바타 캔버스 권장 크기 */
 export const AVATAR_2D_SIZE = 1024;
 
@@ -24,11 +27,11 @@ export type Avatar2dDrawTool =
   | "eyedropper";
 
 export const AVATAR_2D_DRAW_TOOLS: { id: Avatar2dDrawTool; label: string }[] = [
-  { id: "pencil", label: "연필" },
-  { id: "pen", label: "펜" },
-  { id: "gpen", label: "G펜" },
-  { id: "airbrush", label: "에어브러시" },
-  { id: "eraser", label: "지우개" },
-  { id: "fill", label: "채우기" },
-  { id: "eyedropper", label: "스포이드" },
+  { id: "pencil", label: t("lib.webtoon-studio.syu6s") },
+  { id: "pen", label: t("lib.webtoon-studio.s15ss") },
+  { id: "gpen", label: t("lib.webtoon-studio.s17hx") },
+  { id: "airbrush", label: t("lib.webtoon-studio.shu474o") },
+  { id: "eraser", label: t("lib.webtoon-studio.suika4") },
+  { id: "fill", label: t("lib.webtoon-studio.suvu84") },
+  { id: "eyedropper", label: t("lib.webtoon-studio.spfsrzk") },
 ];

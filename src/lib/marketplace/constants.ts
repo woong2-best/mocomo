@@ -12,28 +12,28 @@ export const MARKETPLACE_LISTING_TYPES: {
   label: string;
   description: string;
 }[] = [
-  { id: "PHYSICAL", label: "일반상품", description: "재고 기반 실물 상품" },
-  { id: "CUSTOM_ORDER", label: "주문제작", description: "코스프레 의상·소품 등 제작" },
-  { id: "PREORDER", label: "예약판매", description: "예약 후 제작·발송" },
+  { id: "PHYSICAL", label: "Standard product", description: "In-stock physical goods" },
+  { id: "CUSTOM_ORDER", label: "Made to order", description: "Cosplay costumes, props, and custom work" },
+  { id: "PREORDER", label: "Pre-order", description: "Produce and ship after pre-order" },
 ];
 
 /** Browse / sell UI — 디지털 상품 신규 등록·노출 제외 (레거시 DB 타입은 유지) */
 export const MARKETPLACE_BROWSE_LISTING_TYPES = MARKETPLACE_LISTING_TYPES;
 
 export const MARKETPLACE_CATEGORIES = [
-  "코스프레",
-  "굿즈",
-  "피규어",
-  "TCG·트레이딩카드",
-  "포토카드",
-  "동인지·아트북",
-  "행사·한정",
-  "VTuber·스트리머",
-  "보드게임",
-  "팬아트",
-  "일러스트",
-  "의상·소품",
-  "기타",
+  "Cosplay",
+  "Goods",
+  "Figures",
+  "TCG · trading cards",
+  "Photocards",
+  "Doujin · art books",
+  "Events · limited",
+  "VTuber · streamer",
+  "Board games",
+  "Fan art",
+  "Illustration",
+  "Costumes · props",
+  "Other",
 ] as const;
 
 /** @deprecated Prefer shipping-config carriers (KR_POST, US_USPS, INTL_EMS, etc). Kept for legacy reads. */
@@ -42,10 +42,10 @@ export const MARKETPLACE_SHIPPING_METHODS = [
   { id: "FEDEX", label: "FedEx" },
   { id: "UPS", label: "UPS" },
   { id: "DHL", label: "DHL" },
-  { id: "POST", label: "우체국" },
-  { id: "DIRECT", label: "직접배송" },
-  { id: "FREE", label: "무료배송" },
-  { id: "DIGITAL_NONE", label: "배송 없음(디지털)" },
+  { id: "POST", label: "Postal service" },
+  { id: "DIRECT", label: "Direct shipping" },
+  { id: "FREE", label: "Free shipping" },
+  { id: "DIGITAL_NONE", label: "No shipping (digital)" },
 ] as const;
 
 export {
@@ -84,10 +84,10 @@ export function computeMarketplaceFees(
 
 export function listingTypeLabel(type: MarketplaceListingType): string {
   const labels: Record<MarketplaceListingType, string> = {
-    PHYSICAL: "일반상품",
-    CUSTOM_ORDER: "주문제작",
-    PREORDER: "예약판매",
-    DIGITAL: "디지털",
+    PHYSICAL: "Standard product",
+    CUSTOM_ORDER: "Made to order",
+    PREORDER: "Pre-order",
+    DIGITAL: "Digital",
   };
   return labels[type] ?? type;
 }

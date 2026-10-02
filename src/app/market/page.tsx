@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { Suspense } from "react";
 import { Package } from "lucide-react";
@@ -66,7 +69,7 @@ async function UsedFeed({
   const viewerShowNsfw = viewerPrefs?.showNsfw ?? false;
 
   if (!dbReady) {
-    return <DbSetupBanner title="중고거래를 일시적으로 불러올 수 없습니다" />;
+    return <DbSetupBanner title={t("app.market.sodwy3p")} />;
   }
 
   if (listings.length === 0) {
@@ -75,11 +78,11 @@ async function UsedFeed({
         <Package className="h-12 w-12 mx-auto text-muted-foreground/40" />
         <p className="text-muted-foreground text-sm">
           {q || category || region || sido || work || product
-            ? "선택한 조건에 맞는 상품이 없어요."
-            : "아직 올라온 중고 글이 없어요."}
+            ? t("app.market.sxn1r68")
+            : t("app.market.s10s1572")}
         </p>
         <Button variant="secondary" asChild>
-          <Link href="/market/new">첫 글 올리기</Link>
+          <Link href="/market/new">{t("cosplay.s16wni3f")}</Link>
         </Button>
       </div>
     );

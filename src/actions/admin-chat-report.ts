@@ -47,7 +47,7 @@ export async function getChatReportEvidence(reportId: string) {
   });
 
   if (!report || report.targetType !== "CHAT_ROOM" || !report.chatRoomId) {
-    return { error: "채팅 신고 기록을 찾을 수 없습니다." as const };
+    return { error: "actions.sgnfacr" as const };
   }
 
   const roomId = report.chatRoomId;

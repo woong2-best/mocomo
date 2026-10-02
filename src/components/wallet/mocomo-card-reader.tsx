@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { cn } from "@/lib/utils";
 import type { ReaderLightState } from "@/components/wallet/wallet-payment-types";
 
@@ -22,7 +25,7 @@ export function MocomoCardReader({ light, active = false, className }: Props) {
         "p-1.5 shadow-[0_14px_32px_-8px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]",
         className,
       )}
-      aria-label="카드 리더기"
+      aria-label={t("wallet.sisumds")}
     >
       <div className="flex min-h-[13.5rem] flex-1 gap-1 rounded-[1.05rem] bg-gradient-to-b from-[#2f343a] to-[#22272c] p-1">
         <div className="relative flex flex-1 items-center justify-center rounded-lg bg-gradient-to-br from-[#383e45] to-[#2a2f34] shadow-[inset_0_2px_6px_rgba(0,0,0,0.45)]">

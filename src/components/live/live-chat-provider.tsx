@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import {
   createContext,
   useCallback,
@@ -45,6 +49,7 @@ export function LiveChatProvider({
   chatOverlayInitial?: boolean;
   children: ReactNode;
 }) {
+  const { t } = useLocale();
   const { socket, connected } = useLiveSocket(userId, channelId);
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [historyError, setHistoryError] = useState("");
@@ -121,7 +126,7 @@ export function LiveChatProvider({
         if (cancelled) return;
         const body = await res.json();
         if (!res.ok || !body.ok) {
-          setHistoryError("채팅 기록을 불러오지 못했습니다. DB 마이그레이션을 확인해 주세요.");
+          setHistoryError(t("live.s9lciv9"));
           return;
         }
         const list = ensureArray<LiveChatMessage>(body.messages);
@@ -131,7 +136,7 @@ export function LiveChatProvider({
         }
       })
       .catch(() => {
-        if (!cancelled) setHistoryError("채팅 기록을 불러오지 못했습니다.");
+        if (!cancelled) setHistoryError(t("live.sp4bxvm"));
       });
     return () => {
       cancelled = true;

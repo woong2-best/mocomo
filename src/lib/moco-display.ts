@@ -12,7 +12,7 @@ export function formatMocoDisplay(moco: number): string {
 
 /** 가격 옆 보조 표시 */
 export function formatUsdWithMocoHint(usdCents: number): string {
-  if (usdCents <= 0) return "무료";
+  if (usdCents <= 0) return "Free";
   const moco = usdCentsToMocoDisplay(usdCents);
   return `${formatMocoDisplay(moco)}`;
 }

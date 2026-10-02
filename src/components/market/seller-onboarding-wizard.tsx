@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -32,7 +37,7 @@ import { ChevronRight } from "lucide-react";
 type OnboardingState = Awaited<ReturnType<typeof getSellerOnboardingState>>;
 
 const SETTLEMENT_REGISTER_COPY =
-  "Stripe Express 온보딩에서 본인 확인·은행 계좌·세무 정보(W-9/W-8BEN)를 등록합니다. 연말 세무 보고는 Stripe Tax Reporting에 위임됩니다.";
+  t("market.stripe_express_w_9_w");
 
 export function SellerOnboardingWizard({
   initialState,
@@ -128,7 +133,7 @@ export function SellerOnboardingWizard({
     if (typeof window === "undefined") return;
     const p = new URLSearchParams(window.location.search);
     if (p.get("onboarding") === "fee_paid") {
-      setMessage("입점비 결제가 완료되었습니다. 판매자 센터로 이동합니다.");
+      setMessage(t("market.s15t22n6"));
       refreshState();
     }
   }, []);
@@ -141,11 +146,11 @@ export function SellerOnboardingWizard({
           router.replace(res.redirectTo);
           return;
         }
-        if ("error" in res && res.error) setError(res.error);
+        if ("error" in res && res.error) setError(errorText(res.error));
         else refreshState();
       });
     } else if (connectParam === "refresh") {
-      setMessage("아래에서 Reward 정산 등록을 완료해 주세요.");
+      setMessage(t("market.reward"));
       refreshState();
     }
   }, [connectParam, fromApp, returnTo, router]);
@@ -206,7 +211,7 @@ export function SellerOnboardingWizard({
           refreshState();
           return;
         }
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       try {
@@ -215,7 +220,7 @@ export function SellerOnboardingWizard({
         /* ignore */
       }
       setEmail(res.email ?? email);
-      setMessage("계정이 생성되었습니다. 이메일 인증 코드를 확인해 주세요.");
+      setMessage(t("market.s106m7ra"));
       setStep("EMAIL");
     });
   }
@@ -231,7 +236,7 @@ export function SellerOnboardingWizard({
         agreePromo,
       });
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setStep(res.nextStep as SellerOnboardingStepId);
@@ -244,7 +249,7 @@ export function SellerOnboardingWizard({
     startTransition(async () => {
       const res = await verifySellerEmailCode(email, emailCode);
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       const pw = (() => {
@@ -266,12 +271,12 @@ export function SellerOnboardingWizard({
           /* ignore */
         }
         if (signInResult?.error) {
-          setMessage("이메일 인증 완료. 로그인해 주세요.");
+          setMessage(t("market.s1u8g7cd"));
           router.push(`/auth/signin?callbackUrl=/market/seller/register`);
           return;
         }
       }
-      setMessage("이메일 인증이 완료되었습니다.");
+      setMessage(t("market.s1wfmdxm"));
       refreshState();
     });
   }
@@ -281,10 +286,10 @@ export function SellerOnboardingWizard({
     startTransition(async () => {
       const res = await resendSellerEmailCode(email);
       if (res && "error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
-      setMessage("인증 코드를 다시 보냈습니다.");
+      setMessage(t("market.s5b732q"));
     });
   }
 
@@ -303,7 +308,7 @@ export function SellerOnboardingWizard({
         businessRepresentativeName: businessRepresentativeName || undefined,
       });
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("nextStep" in res && res.nextStep) {
@@ -322,12 +327,12 @@ export function SellerOnboardingWizard({
   const uiStep = toSellerOnboardingUiStep(effectiveStep);
 
   const title = useMemo(() => {
-    if (effectiveStep === "ACCOUNT") return `${MARKET_BRAND_FULL}과 함께 비즈니스를 시작하세요!`;
-    if (effectiveStep === "AGREEMENTS") return "약관 동의";
-    if (effectiveStep === "EMAIL") return "이메일 인증";
-    if (effectiveStep === "SELLER_INFO") return "판매자 · 사업자 정보";
-    if (effectiveStep === "SETTLEMENT") return "Reward 정산 등록";
-    return "가입 완료";
+    if (effectiveStep === "ACCOUNT") return t("market.s1jmf6cy", { v0: MARKET_BRAND_FULL });
+    if (effectiveStep === "AGREEMENTS") return t("market.scoh4fw");
+    if (effectiveStep === "EMAIL") return t("auth.signupStep3");
+    if (effectiveStep === "SELLER_INFO") return t("market.s1e38y6t");
+    if (effectiveStep === "SETTLEMENT") return t("market.reward_2");
+    return t("market.s1mfhojn");
   }, [effectiveStep]);
 
   return (
@@ -336,7 +341,7 @@ export function SellerOnboardingWizard({
         {title}
       </h1>
       <p className="text-center text-sm text-muted-foreground mb-6">
-        {MARKET_BRAND_FULL} 판매자 온보딩
+        {t("market.sellerOnboardingSubtitle", { brand: MARKET_BRAND_FULL })}
       </p>
 
       <SellerOnboardingStepper uiStep={uiStep} signedIn={state.signedIn} />
@@ -394,13 +399,12 @@ export function SellerOnboardingWizard({
         {effectiveStep === "EMAIL" && (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{email}</span> 으로 보낸 6자리 코드를
-              입력해 주세요.
+              <span className="font-medium text-foreground">{email}</span> {t("market.s5hq67d")}
             </p>
             <Input
               value={emailCode}
               onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="인증 코드 6자리"
+              placeholder={t("market.s13w0owl")}
               inputMode="numeric"
             />
             <div className="flex flex-wrap gap-2">
@@ -409,10 +413,10 @@ export function SellerOnboardingWizard({
                 disabled={pending || emailCode.length !== 6}
                 onClick={handleEmailVerify}
               >
-                이메일 인증 완료
+                {t("auth.emailVerifyDone")}
               </Button>
               <Button type="button" variant="secondary" disabled={pending} onClick={handleResendEmail}>
-                코드 재전송
+                {t("market.s1hvzctt")}
               </Button>
             </div>
           </div>
@@ -423,8 +427,8 @@ export function SellerOnboardingWizard({
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
-                  ["INDIVIDUAL", "개인 판매자"],
-                  ["BUSINESS", "사업자"],
+                  ["INDIVIDUAL", t("seller.individual")],
+                  ["BUSINESS", t("seller.business")],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -445,37 +449,37 @@ export function SellerOnboardingWizard({
             <Input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="판매자 표시 이름"
+              placeholder={t("seller.displayName")}
             />
             <Input
               value={businessRegNo}
               onChange={(e) => setBusinessRegNo(e.target.value)}
-              placeholder={sellerType === "BUSINESS" ? "사업자등록번호 (필수)" : "주민/사업자 식별번호 (필수)"}
+              placeholder={sellerType === "BUSINESS" ? t("seller.businessRegNo") : t("market.s1smzti6")}
             />
             {sellerType === "BUSINESS" && (
               <>
                 <Input
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="상호 / 법인명"
+                  placeholder={t("seller.businessName")}
                 />
                 <Input
                   value={businessRepresentativeName}
                   onChange={(e) => setBusinessRepresentativeName(e.target.value)}
-                  placeholder="대표자명"
+                  placeholder={t("seller.representative")}
                 />
               </>
             )}
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              placeholder="소개 (선택)"
+              placeholder={t("seller.bio")}
               rows={3}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
             {sellerType === "BUSINESS" && (
               <p className="text-xs text-muted-foreground rounded-lg bg-muted/40 px-3 py-2">
-                사업자등록증·대표자 정보는 Stripe 단계에서 추가로 확인합니다.
+                {t("market.stripe_10")}
               </p>
             )}
             <Button
@@ -484,7 +488,7 @@ export function SellerOnboardingWizard({
               disabled={pending || !displayName.trim() || !businessRegNo.trim()}
               onClick={handleSellerInfo}
             >
-              다음
+              {t("seller.next")}
             </Button>
           </div>
         )}
@@ -493,8 +497,7 @@ export function SellerOnboardingWizard({
           <div className="space-y-4">
             {!marketEligible ? (
               <p className="text-sm text-destructive leading-relaxed">
-                선택한 판매 국가에서는 마켓플레이스 판매자 등록을 지원하지 않습니다. 지원 국가를
-                선택해 주세요.
+                {t("market.smooh5j")}
               </p>
             ) : (
               <>
@@ -518,14 +521,14 @@ export function SellerOnboardingWizard({
 
         {effectiveStep === "COMPLETE" && (
           <div className="space-y-3 text-center">
-            <p className="text-sm text-muted-foreground">판매자 등록이 완료되었습니다.</p>
+            <p className="text-sm text-muted-foreground">{t("seller.complete")}</p>
             {fromApp && returnTo ? (
               <Button type="button" className="w-full" onClick={() => window.location.replace(returnTo)}>
-                앱으로 돌아가기
+                {t("market.sutrk7r")}
               </Button>
             ) : (
               <Button type="button" className="w-full" asChild>
-                <Link href="/market/seller?welcome=1">판매자 센터로</Link>
+                <Link href="/market/seller?welcome=1">{t("seller.sellerCenter")}</Link>
               </Button>
             )}
           </div>
@@ -567,7 +570,7 @@ function AccountStep(props: {
 }) {
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium">판매 국가</label>
+      <label className="block text-sm font-medium">{t("seller.sellingCountry")}</label>
       <select
         value={props.sellingMarket}
         onChange={(e) => props.setSellingMarket(e.target.value)}
@@ -585,34 +588,34 @@ function AccountStep(props: {
       <Input
         value={props.username}
         onChange={(e) => props.setUsername(e.target.value)}
-        placeholder="아이디"
+        placeholder={t("auth.emailLocalPart")}
         autoComplete="username"
       />
       <Input
         type="password"
         value={props.password}
         onChange={(e) => props.setPassword(e.target.value)}
-        placeholder="비밀번호"
+        placeholder={t("auth.passwordSimple")}
         autoComplete="new-password"
       />
       <Input
         type="password"
         value={props.passwordConfirm}
         onChange={(e) => props.setPasswordConfirm(e.target.value)}
-        placeholder="비밀번호 확인"
+        placeholder={t("market.sz31113")}
         autoComplete="new-password"
       />
       <Input
         value={props.name}
         onChange={(e) => props.setName(e.target.value)}
-        placeholder="이름"
+        placeholder={t("market.name")}
         autoComplete="name"
       />
       <Input
         type="email"
         value={props.email}
         onChange={(e) => props.setEmail(e.target.value)}
-        placeholder="이메일"
+        placeholder={t("settings.email")}
         autoComplete="email"
       />
       <div className="grid grid-cols-3 gap-2">
@@ -639,10 +642,10 @@ function AccountStep(props: {
         />
       </div>
       <p className="text-[10px] text-muted-foreground leading-relaxed">
-        생년월일은 연령 확인에 사용됩니다. 허위 기재 시 약관에 따라 계정이 제한될 수 있습니다.
+        {t("market.sfiqw9u")}
       </p>
       <Button type="button" className="w-full h-11 mt-2" disabled={props.pending} onClick={props.onSubmit}>
-        가입하고 이메일 인증
+        {t("market.sn9hhlo")}
       </Button>
     </div>
   );
@@ -675,11 +678,11 @@ function AgreementsStep(props: {
     <div className="space-y-4">
       {!props.signedIn && (
         <p className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/50 rounded-lg px-3 py-2">
-          계정 생성 후 로그인하면 약관 동의가 저장됩니다. 이미 계정이 있다면{" "}
+          {t("market.signInAfterAccountCreate")}{" "}
           <Link href="/auth/signin?callbackUrl=/market/seller/register" className="underline font-medium">
-            로그인
+            {t("auth.signIn")}
           </Link>
-          해 주세요.
+          {t("market.s17wjgua")}
         </p>
       )}
       <label className="flex items-start gap-2.5 cursor-pointer">
@@ -690,23 +693,23 @@ function AgreementsStep(props: {
           className="mt-1"
         />
         <span>
-          <span className="font-semibold text-sm">모두 동의합니다</span>
+          <span className="font-semibold text-sm">{t("market.s1be383y")}</span>
         </span>
       </label>
       <ul className="divide-y divide-border/70 border border-border/70 rounded-lg">
-        <ConsentRow required checked={props.agreeAge} onToggle={() => toggle(props.setAgreeAge, props.agreeAge)} label="만 19세 이상입니다" />
-        <ConsentRow required checked={props.agreeTerms} onToggle={() => toggle(props.setAgreeTerms, props.agreeTerms)} label={`${MARKET_BRAND_FULL} 판매자 서비스 이용약관`} onDetail={() => props.onOpenConsent("terms")} />
-        <ConsentRow optional checked={props.agreeMarketing} onToggle={() => toggle(props.setAgreeMarketing, props.agreeMarketing)} label="마케팅 목적의 개인정보 수집 및 이용 동의" onDetail={() => props.onOpenConsent("marketing")} />
-        <ConsentRow optional checked={props.agreePromo} onToggle={() => toggle(props.setAgreePromo, props.agreePromo)} label="특별 프로모션 혜택(광고) 수신 동의" />
+        <ConsentRow required checked={props.agreeAge} onToggle={() => toggle(props.setAgreeAge, props.agreeAge)} label={t("market.s1ajsb9s")} />
+        <ConsentRow required checked={props.agreeTerms} onToggle={() => toggle(props.setAgreeTerms, props.agreeTerms)} label={t("market.sqnz0kg", { v0: MARKET_BRAND_FULL })} onDetail={() => props.onOpenConsent("terms")} />
+        <ConsentRow optional checked={props.agreeMarketing} onToggle={() => toggle(props.setAgreeMarketing, props.agreeMarketing)} label={t("market.srcv2tg")} onDetail={() => props.onOpenConsent("marketing")} />
+        <ConsentRow optional checked={props.agreePromo} onToggle={() => toggle(props.setAgreePromo, props.agreePromo)} label={t("market.s1etrdwt")} />
         <li>
           <button type="button" onClick={() => props.onOpenConsent("privacy")} className="w-full flex items-center justify-between px-3 py-3 text-sm hover:bg-muted/30">
-            <span>개인정보 수집 및 이용 안내</span>
+            <span>{t("market.s1s0ifhg")}</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </button>
         </li>
       </ul>
       <Button type="button" className="w-full h-11" disabled={!props.canSubmit || props.pending || !props.signedIn} onClick={props.onSubmit}>
-        약관 동의하고 계속하기
+        {t("market.s1rcxhz1")}
       </Button>
     </div>
   );
@@ -732,7 +735,7 @@ function ConsentRow({
       <input type="checkbox" checked={checked} onChange={onToggle} className="shrink-0" />
       <button type="button" className="flex-1 text-left text-sm flex items-center gap-1.5 min-w-0" onClick={onDetail ?? onToggle}>
         <span className={cn("shrink-0 text-[11px] font-semibold", required && "text-primary", optional && "text-muted-foreground")}>
-          {required ? "[필수]" : "[선택]"}
+          {required ? t("market.sxro0e") : t("market.suvz7p")}
         </span>
         <span className="truncate">{label}</span>
         {onDetail && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground ml-auto" />}

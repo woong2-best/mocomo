@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useTransition } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -13,31 +16,31 @@ import { Flag, RefreshCw } from "lucide-react";
 type PendingReport = Awaited<ReturnType<typeof getPendingReports>>[number];
 
 const REASON_LABELS: Record<string, string> = {
-  SPAM: "스팸·광고",
-  ABUSE: "욕설·괴롭힘",
-  HARASSMENT: "괴롭힘",
-  HATE: "혐오 표현",
-  VIOLENCE: "폭력",
-  FRAUD: "사기·불법 거래",
-  PRIVACY: "개인정보",
-  COPYRIGHT: "저작권",
-  SEXUAL: "음란물",
-  IMPERSONATION: "사칭",
-  OTHER: "기타",
+  SPAM: t("lib.report.reasons.sf17adeb45b"),
+  ABUSE: t("lib.report.reasons.s3645e9834b"),
+  HARASSMENT: t("lib.report.reasons.sb84a441368"),
+  HATE: t("lib.report.reasons.sc239878d41"),
+  VIOLENCE: t("lib.report.reasons.sd82ae088e8"),
+  FRAUD: t("lib.report.reasons.s93743c40f1"),
+  PRIVACY: t("lib.report.reasons.sd629d0b2e0"),
+  COPYRIGHT: t("lib.report.reasons.sc7038aeb72"),
+  SEXUAL: t("lib.marketplace.su34lk"),
+  IMPERSONATION: t("lib.report.reasons.scde9c0bab2"),
+  OTHER: t("lib.webtoon.surv4"),
 };
 
 const TARGET_LABELS: Record<ReportTargetType, string> = {
-  USER: "사용자",
-  POST: "게시물",
-  COMMENT: "댓글",
-  MESSAGE: "메시지",
-  CHAT_ROOM: "채팅방",
-  USED_LISTING: "중고 매물",
-  LIVE_CHANNEL: "라이브 채널",
-  LIVE_CHAT: "라이브 채팅",
-  STREAM_CLIP: "스트림 클립",
-  MARKETPLACE_LISTING: "마켓 상품",
-  MARKETPLACE_SELLER: "마켓 판매자",
+  USER: t("admin.st6u9f"),
+  POST: t("lib.post.share.s0131626e0e"),
+  COMMENT: t("lib.notifications.s6d4e9bd3a9"),
+  MESSAGE: t("lib.chat.message.normalize.s96330a61aa"),
+  CHAT_ROOM: t("admin.suy0i0"),
+  USED_LISTING: t("admin.sqnl6zt"),
+  LIVE_CHANNEL: t("admin.stuql3s"),
+  LIVE_CHAT: t("admin.stuqrt9"),
+  STREAM_CLIP: t("admin.s4zcksh"),
+  MARKETPLACE_LISTING: t("admin.s168hwbg"),
+  MARKETPLACE_SELLER: t("admin.sutyy1z"),
 };
 
 function reportSummary(report: PendingReport): string {

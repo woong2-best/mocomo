@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { SubcultureProductFamily } from "@/lib/subculture-commerce/catalog";
 import {
   isPhotocardProductType,
@@ -94,7 +97,7 @@ function VerticalFields({
     return (
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <FieldLabel>세트명</FieldLabel>
+          <FieldLabel>{t("used.stbpc5")}</FieldLabel>
           <Input
             value={meta.tcgSet ?? ""}
             onChange={(e) => set("tcgSet", e.target.value)}
@@ -104,7 +107,7 @@ function VerticalFields({
           />
         </div>
         <div className="space-y-1">
-          <FieldLabel>카드 번호</FieldLabel>
+          <FieldLabel>{t("used.s1cq37xk")}</FieldLabel>
           <Input
             value={meta.tcgNumber ?? ""}
             onChange={(e) => set("tcgNumber", e.target.value)}
@@ -114,7 +117,7 @@ function VerticalFields({
           />
         </div>
         <div className="space-y-1">
-          <FieldLabel>레어도</FieldLabel>
+          <FieldLabel>{t("used.srx09k")}</FieldLabel>
           <Input
             value={meta.tcgRarity ?? ""}
             onChange={(e) => set("tcgRarity", e.target.value)}
@@ -124,7 +127,7 @@ function VerticalFields({
           />
         </div>
         <div className="space-y-1">
-          <FieldLabel>언어</FieldLabel>
+          <FieldLabel>{t("settings.language")}</FieldLabel>
           <Input
             value={meta.tcgLanguage ?? ""}
             onChange={(e) => set("tcgLanguage", e.target.value)}
@@ -140,12 +143,12 @@ function VerticalFields({
             onChange={(e) => set("graded", e.target.checked)}
             disabled={disabled}
           />
-          등급사 slab (PSA/BGS/CGC)
+          {t("used.slab_psa_bgs_cgc")}
         </label>
         {meta.graded && (
           <>
             <div className="space-y-1">
-              <FieldLabel>등급사</FieldLabel>
+              <FieldLabel>{t("used.srcrck")}</FieldLabel>
               <Input
                 value={meta.grader ?? ""}
                 onChange={(e) => set("grader", e.target.value)}
@@ -155,7 +158,7 @@ function VerticalFields({
               />
             </div>
             <div className="space-y-1">
-              <FieldLabel>등급</FieldLabel>
+              <FieldLabel>{t("nav.tier")}</FieldLabel>
               <Input
                 value={meta.grade ?? ""}
                 onChange={(e) => set("grade", e.target.value)}
@@ -165,7 +168,7 @@ function VerticalFields({
               />
             </div>
             <div className="space-y-1 col-span-2">
-              <FieldLabel>인증 번호</FieldLabel>
+              <FieldLabel>{t("used.so17kaz")}</FieldLabel>
               <Input
                 value={meta.certNumber ?? ""}
                 onChange={(e) => set("certNumber", e.target.value)}
@@ -183,17 +186,17 @@ function VerticalFields({
     return (
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <FieldLabel>앨범·활동명</FieldLabel>
+          <FieldLabel>{t("used.si2k1ml")}</FieldLabel>
           <Input
             value={meta.album ?? ""}
             onChange={(e) => set("album", e.target.value)}
-            placeholder="앨범 / MD"
+            placeholder={t("used.swwr2qk")}
             className="h-10 rounded-xl"
             disabled={disabled}
           />
         </div>
         <div className="space-y-1">
-          <FieldLabel>멤버</FieldLabel>
+          <FieldLabel>{t("used.swqlc")}</FieldLabel>
           <Input
             value={meta.member ?? ""}
             onChange={(e) => set("member", e.target.value)}
@@ -202,11 +205,11 @@ function VerticalFields({
           />
         </div>
         <div className="space-y-1 col-span-2">
-          <FieldLabel>버전·특전</FieldLabel>
+          <FieldLabel>{t("used.s1g1i5wi")}</FieldLabel>
           <Input
             value={meta.pcVersion ?? ""}
             onChange={(e) => set("pcVersion", e.target.value)}
-            placeholder="럭드 / 위버스 / 미공포"
+            placeholder={t("used.s17j9exs")}
             className="h-10 rounded-xl"
             disabled={disabled}
           />
@@ -219,7 +222,7 @@ function VerticalFields({
     return (
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <FieldLabel>제조사</FieldLabel>
+          <FieldLabel>{t("used.suabmg")}</FieldLabel>
           <Input
             value={meta.manufacturer ?? ""}
             onChange={(e) => set("manufacturer", e.target.value)}
@@ -229,7 +232,7 @@ function VerticalFields({
           />
         </div>
         <div className="space-y-1">
-          <FieldLabel>스케일</FieldLabel>
+          <FieldLabel>{t("used.stin1c")}</FieldLabel>
           <Input
             value={meta.scale ?? ""}
             onChange={(e) => set("scale", e.target.value)}
@@ -246,7 +249,7 @@ function VerticalFields({
     return (
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <FieldLabel>행사</FieldLabel>
+          <FieldLabel>{t("used.s11dmr")}</FieldLabel>
           <Input
             value={meta.eventName ?? ""}
             onChange={(e) => set("eventName", e.target.value)}
@@ -256,7 +259,7 @@ function VerticalFields({
           />
         </div>
         <div className="space-y-1">
-          <FieldLabel>서클·작가</FieldLabel>
+          <FieldLabel>{t("used.s19bji")}</FieldLabel>
           <Input
             value={meta.circleName ?? ""}
             onChange={(e) => set("circleName", e.target.value)}
@@ -271,11 +274,11 @@ function VerticalFields({
   if (family === "cosplay") {
     return (
       <div className="space-y-1">
-        <FieldLabel>사이즈</FieldLabel>
+        <FieldLabel>{t("used.st6zi8")}</FieldLabel>
         <Input
           value={meta.sizeLabel ?? ""}
           onChange={(e) => set("sizeLabel", e.target.value)}
-          placeholder="M / 165cm 기준"
+          placeholder={t("used.m_165cm")}
           className="h-10 rounded-xl"
           disabled={disabled}
         />
@@ -319,25 +322,25 @@ export function UsedSubcultureFields({
       )}
     >
       <div>
-        <h3 className="text-sm font-bold text-foreground">서브컬처 상세</h3>
+        <h3 className="text-sm font-bold text-foreground">{t("used.stfvkbf")}</h3>
         <p className="text-[10px] text-muted-foreground mt-0.5">
-          카드·포카·한정굿 등 — 검색·신뢰에 쓰이는 정보
+          {t("used.s1k1wmko")}
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <div className="space-y-1">
-          <FieldLabel>캐릭터·멤버</FieldLabel>
+          <FieldLabel>{t("used.s5h658k")}</FieldLabel>
           <Input
             value={value.characterName}
             onChange={(e) => patch({ characterName: e.target.value })}
-            placeholder="캐릭터 / 멤버명"
+            placeholder={t("used.s102uklj")}
             className="h-10 rounded-xl"
             disabled={disabled}
           />
         </div>
         <div className="space-y-1">
-          <FieldLabel>거래 방식</FieldLabel>
+          <FieldLabel>{t("used.s1m4ppl8")}</FieldLabel>
           <SelectField
             value={value.tradeMode}
             onChange={(v) => patch({ tradeMode: v })}
@@ -346,17 +349,17 @@ export function UsedSubcultureFields({
           />
         </div>
         <div className="space-y-1">
-          <FieldLabel>상태</FieldLabel>
+          <FieldLabel>{t("used.sxxkr")}</FieldLabel>
           <SelectField
             value={value.conditionGrade}
             onChange={(v) => patch({ conditionGrade: v })}
             options={SUBCULTURE_CONDITION_GRADES}
-            placeholder="상태 선택"
+            placeholder={t("used.s1xq2i0y")}
             disabled={disabled}
           />
         </div>
         <div className="space-y-1">
-          <FieldLabel>한정 유형</FieldLabel>
+          <FieldLabel>{t("used.s74febg")}</FieldLabel>
           <SelectField
             value={value.limitedKind}
             onChange={(v) => patch({ limitedKind: v })}
@@ -365,7 +368,7 @@ export function UsedSubcultureFields({
           />
         </div>
         <div className="space-y-1">
-          <FieldLabel>판매 형태</FieldLabel>
+          <FieldLabel>{t("used.s1vdv6lv")}</FieldLabel>
           <SelectField
             value={value.listingFormat}
             onChange={(v) => patch({ listingFormat: v })}
@@ -374,7 +377,7 @@ export function UsedSubcultureFields({
           />
         </div>
         <div className="space-y-1">
-          <FieldLabel>출처</FieldLabel>
+          <FieldLabel>{t("used.s103gc")}</FieldLabel>
           <SelectField
             value={value.itemOrigin}
             onChange={(v) => patch({ itemOrigin: v })}
@@ -383,18 +386,18 @@ export function UsedSubcultureFields({
           />
         </div>
         <div className="space-y-1 col-span-2 sm:col-span-1">
-          <FieldLabel>포장·구성</FieldLabel>
+          <FieldLabel>{t("used.s1g27vn")}</FieldLabel>
           <SelectField
             value={value.packagingState}
             onChange={(v) => patch({ packagingState: v })}
             options={SUBCULTURE_PACKAGING_STATES}
-            placeholder="선택"
+            placeholder={t("used.sxzul")}
             disabled={disabled}
           />
         </div>
         {showLotCount && (
           <div className="space-y-1 col-span-2 sm:col-span-1">
-            <FieldLabel>수량 (장·개)</FieldLabel>
+            <FieldLabel>{t("used.s4ypsxk")}</FieldLabel>
             <Input
               type="number"
               min={1}
@@ -429,11 +432,11 @@ export function UsedSubcultureFields({
 
       {isTrade && saleType !== "AUCTION" && (
         <div className="space-y-1">
-          <FieldLabel>교환 희망 (WTT)</FieldLabel>
+          <FieldLabel>{t("used.wtt")}</FieldLabel>
           <textarea
             value={value.meta.tradeWants ?? ""}
             onChange={(e) => patch({ meta: { ...value.meta, tradeWants: e.target.value } })}
-            placeholder="원하는 카드·멤버·작품을 적어 주세요"
+            placeholder={t("used.s6foku2")}
             className="w-full min-h-[72px] rounded-xl border border-border p-3 text-sm"
             disabled={disabled}
           />
@@ -442,7 +445,7 @@ export function UsedSubcultureFields({
 
       {saleType === "AUCTION" && value.tradeMode !== "SELL" && (
         <p className="text-[10px] text-amber-700 dark:text-amber-400">
-          경매는 판매 전용입니다. 교환은 일반 판매로 등록해 주세요.
+          {t("used.s1lzeyx9")}
         </p>
       )}
     </section>

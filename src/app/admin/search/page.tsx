@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { getAdminSearchStatistics } from "@/lib/search/admin-stats";
 import { getTrendingLive } from "@/lib/search/trends";
 
@@ -13,16 +16,16 @@ export default async function AdminSearchPage() {
   return (
     <div className="space-y-8 p-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">검색 통계</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("lib.admin.s1njcesm")}</h1>
         <p className="text-sm text-muted-foreground">
           실시간 검색어 · TOP Keyword/Topic · 실패(결과 없음) · 클릭률
         </p>
       </div>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="전체 검색" value={stats.totals.all} />
-        <StatCard label="24시간 검색" value={stats.totals.last24h} />
-        <StatCard label="24h 결과 없음" value={stats.totals.zeroResult24h} />
+        <StatCard label={t("app.admin.sqk4zll")} value={stats.totals.all} />
+        <StatCard label={t("app.admin.s1egze0v")} value={stats.totals.last24h} />
+        <StatCard label={t("app.admin.24h")} value={stats.totals.zeroResult24h} />
         <StatCard
           label="24h CTR"
           value={`${(stats.totals.ctr24h * 100).toFixed(1)}%`}
@@ -30,14 +33,14 @@ export default async function AdminSearchPage() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <RankTable title="TOP 검색어 (7일)" rows={stats.topQueries} />
-        <RankTable title="TOP Topic (7일)" rows={stats.topTopics} />
-        <RankTable title="오늘 검색어" rows={todayQueries} />
-        <RankTable title="오늘 Topic" rows={todayTopics} />
+        <RankTable title={t("app.admin.top_7")} rows={stats.topQueries} />
+        <RankTable title={t("app.admin.top_topic_7")} rows={stats.topTopics} />
+        <RankTable title={t("app.admin.s1vsvzhb")} rows={todayQueries} />
+        <RankTable title={t("app.admin.topic")} rows={todayTopics} />
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">검색량 변화 (7일)</h2>
+        <h2 className="text-lg font-semibold">{t("app.admin.s1kswtfs")}</h2>
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-7 text-sm">
           {stats.volumeByDay.map((d) => (
             <li key={d.day} className="rounded-lg border p-2">
@@ -46,24 +49,24 @@ export default async function AdminSearchPage() {
             </li>
           ))}
           {!stats.volumeByDay.length ? (
-            <li className="text-sm text-muted-foreground">데이터 없음</li>
+            <li className="text-sm text-muted-foreground">No data</li>
           ) : null}
         </ul>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">최근 검색 / 실시간</h2>
+        <h2 className="text-lg font-semibold">Recent search / live</h2>
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
               <tr>
-                <th className="p-2">시간</th>
-                <th className="p-2">원본</th>
-                <th className="p-2">정규화</th>
+                <th className="p-2">{t("reels.sy36w")}</th>
+                <th className="p-2">{t("lib.video-editor.syuqw")}</th>
+                <th className="p-2">Normalized</th>
                 <th className="p-2">Topic</th>
-                <th className="p-2">결과</th>
+                <th className="p-2">Results</th>
                 <th className="p-2">국가</th>
-                <th className="p-2">회원</th>
+                <th className="p-2">{t("admin.s11l1g")}</th>
               </tr>
             </thead>
             <tbody>
@@ -127,7 +130,7 @@ function RankTable({
           </li>
         ))}
         {!rows.length ? (
-          <li className="p-3 text-sm text-muted-foreground">데이터 없음</li>
+          <li className="p-3 text-sm text-muted-foreground">No data</li>
         ) : null}
       </ol>
     </div>

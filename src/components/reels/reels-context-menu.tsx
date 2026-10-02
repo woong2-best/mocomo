@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
@@ -28,11 +31,11 @@ const ITEMS: {
   icon: typeof Flag;
   href?: boolean;
 }[] = [
-  { id: "not-interested", label: "관심 없음", icon: EyeOff },
-  { id: "report", label: "신고", icon: Flag },
-  { id: "copy-link", label: "링크 복사", icon: Copy },
-  { id: "save", label: "저장", icon: Bookmark },
-  { id: "author", label: "작성자 보기", icon: User, href: true },
+  { id: "not-interested", label: i18n("reels.s1prdgqi"), icon: EyeOff },
+  { id: "report", label: i18n("report.sy3gg"), icon: Flag },
+  { id: "copy-link", label: i18n("toast.copyLink"), icon: Copy },
+  { id: "save", label: i18n("settings.save"), icon: Bookmark },
+  { id: "author", label: i18n("reels.s120xrm4"), icon: User, href: true },
 ];
 
 export function ReelsContextMenu({ open, reel, x, y, onClose, onAction }: Props) {
@@ -77,7 +80,7 @@ export function ReelsContextMenu({ open, reel, x, y, onClose, onAction }: Props)
     <div
       ref={ref}
       role="menu"
-      aria-label="영상 메뉴"
+      aria-label={i18n("reels.sh6ryzk")}
       className="fixed z-[80] w-52 overflow-hidden rounded-2xl border border-white/15 bg-zinc-950/95 py-1 text-white shadow-2xl backdrop-blur-md"
       style={{ left, top }}
     >

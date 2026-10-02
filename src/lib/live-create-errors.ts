@@ -1,8 +1,8 @@
 /** 방송 생성 실패 메시지 (DB·인증 등) */
 export function formatLiveCreateError(e: unknown): string {
   if (e instanceof Error) {
-    if (e.message === "UNAUTHORIZED") return "로그인이 필요합니다.";
-    if (e.message === "BANNED") return "이용이 제한된 계정입니다.";
+    if (e.message === "UNAUTHORIZED") return "Sign-in required.";
+    if (e.message === "BANNED") return "This account is restricted.";
     const msg = e.message;
     const missingCol = msg.match(
       /column [`'"]?(?:\w+\.)?(\w+)[`'"]? does not exist/i

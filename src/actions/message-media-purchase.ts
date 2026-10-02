@@ -18,15 +18,15 @@ export async function fulfillMessageMediaPurchase(
       },
     },
   });
-  if (!attachment) return { error: "미디어를 찾을 수 없습니다." };
+  if (!attachment) return { error: "actions.sbz5e1p" };
   if (!isPaidMedia(attachment.priceKrw)) {
-    return { error: "구매가 필요 없는 미디어입니다." };
+    return { error: "actions.s1q0ka3" };
   }
   if (attachment.message.senderId === buyerId) {
-    return { error: "본인 콘텐츠는 구매할 수 없습니다." };
+    return { error: "actions.s1i85y9b" };
   }
   if (attachment.priceKrw !== amount) {
-    return { error: "가격이 일치하지 않습니다." };
+    return { error: "actions.s5c55hc" };
   }
 
   const existing = await db.messageAttachmentPurchase.findUnique({

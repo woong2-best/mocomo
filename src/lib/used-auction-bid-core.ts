@@ -43,23 +43,23 @@ export async function executeUsedAuctionBid(
   input: ExecuteUsedAuctionBidInput
 ): Promise<ExecuteUsedAuctionBidResult> {
   if (!input.termsAccepted) {
-    return { error: "입찰 전 결제 의무 및 이용 제한 안내에 동의해 주세요." };
+    return { error: "Agree to payment obligations and usage limits before bidding." };
   }
 
   const bidAmount = Math.floor(input.bidAmount);
   if (!Number.isFinite(bidAmount) || bidAmount <= 0) {
-    return { error: "입찰가를 올바르게 입력해 주세요." };
+    return { error: "Enter a valid bid amount." };
   }
 
   const listing = await db.usedListing.findUnique({ where: { id: input.listingId } });
   if (!listing || listing.saleType !== "AUCTION") {
-    return { error: "경매 상품이 아닙니다." };
+    return { error: "This isn't an auction item." };
   }
   const maxPrice = maxUsedListingPrice(listing.currency);
   if (bidAmount > maxPrice) {
     return { error: `입찰가는 ${maxUsedListingPriceLabel(listing.currency)} 이하입니다.` };
   }
-  if (listing.sellerId === input.userId) return { error: "본인 경매에는 입찰할 수 없습니다." };
+  if (listing.sellerId === input.userId) return { error: "You can't bid on your own auction." };
 
   const bidder = await db.user.findUnique({
     where: { id: input.userId },
@@ -74,7 +74,7 @@ export async function executeUsedAuctionBid(
     if (tradeErr) return { error: tradeErr };
   }
 
-  if (!isAuctionLive(listing)) return { error: "마감된 경매입니다." };
+  if (!isAuctionLive(listing)) return { error: "This auction has ended." };
 
   const minBid = minNextBidAmount(listing);
   if (bidAmount < minBid) {
@@ -103,7 +103,7 @@ export async function executeUsedAuctionBid(
     if (holdMin) return { error: holdMin.error };
     if (!input.paymentIntentDbId) {
       return {
-        error: "입찰 전 카드 hold 승인이 필요합니다.",
+        error: "Card hold authorization is required before bidding.",
         needsBidHold: true,
         holdMode,
       };
@@ -189,7 +189,7 @@ export async function executeUsedAuctionBid(
     const depositErr = mapDepositError(e);
     if (depositErr) return { error: depositErr };
     if (e instanceof Error) {
-      if (e.message === "CLOSED") return { error: "마감된 경매입니다." };
+      if (e.message === "CLOSED") return { error: "This auction has ended." };
       if (e.message === "LOW_BID") {
         const fresh = await db.usedListing.findUnique({ where: { id: input.listingId } });
         if (fresh) {
@@ -199,7 +199,7 @@ export async function executeUsedAuctionBid(
         }
       }
     }
-    return { error: "입찰에 실패했습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: "Bid failed. Please try again shortly." };
   }
 
   if (prevBidderId && prevBidderId !== input.userId) {

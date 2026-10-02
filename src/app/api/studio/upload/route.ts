@@ -56,12 +56,12 @@ export async function POST(req: NextRequest) {
   if (ext.endsWith(".glb")) {
     const scan = scanGlbBuffer(buffer);
     if (!scan.safe) {
-      return NextResponse.json({ error: "유효하지 않거나 안전하지 않은 GLB 파일입니다" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
     }
   } else if (ext.endsWith(".gltf")) {
     const scan = scanGltfText(buffer.toString("utf8"));
     if (!scan.safe) {
-      return NextResponse.json({ error: "유효하지 않거나 안전하지 않은 glTF 파일입니다" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
     }
   }
 

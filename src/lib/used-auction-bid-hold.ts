@@ -41,7 +41,7 @@ export function validateBidHoldAmount(
 ): { error: string } | null {
   if (currency !== "usd") return null;
   if (bidAmount < USED_AUCTION_MIN_BID_HOLD_USD_CENTS) {
-    return { error: "USD 입찰은 카드 hold를 위해 최소 $0.50 이상이어야 합니다." };
+    return { error: "USD bids must be at least $0.50 for card hold." };
   }
   return null;
 }
@@ -117,15 +117,15 @@ export async function confirmUsedAuctionBidHold(
 > {
   const intent = await db.paymentIntent.findUnique({ where: { id: paymentIntentDbId } });
   if (!intent || intent.userId !== userId || intent.type !== "USED_AUCTION_BID_HOLD") {
-    return { error: "입찰 hold 정보를 찾을 수 없습니다." };
+    return { error: "Bid hold info not found." };
   }
   const meta = intent.metadata as { listingId?: string; bidAmount?: number };
   if (meta.listingId !== listingId) {
-    return { error: "경매 정보가 일치하지 않습니다." };
+    return { error: "Auction details don't match." };
   }
   const bidAmount = Number(meta.bidAmount);
   if (!Number.isFinite(bidAmount) || bidAmount <= 0) {
-    return { error: "입찰가 정보가 없습니다." };
+    return { error: "Bid amount missing." };
   }
   return verifyUsedAuctionBidHold({
     userId,
@@ -144,11 +144,11 @@ export async function payUsedAuctionBidHoldWithSavedCard(
   | { requiresAction: true; clientSecret: string; orderId: string }
   | { error: string }
 > {
-  if (!isStripeConfigured()) return { error: "결제가 설정되지 않았습니다." };
+  if (!isStripeConfigured()) return { error: "Payments aren't configured." };
 
   const intent = await db.paymentIntent.findUnique({ where: { id: paymentIntentDbId } });
   if (!intent || intent.userId !== userId || intent.type !== "USED_AUCTION_BID_HOLD") {
-    return { error: "입찰 hold 정보를 찾을 수 없습니다." };
+    return { error: "Bid hold info not found." };
   }
   if (intent.status === "PAID") {
     const meta = intent.metadata as { listingId?: string; bidAmount?: number };
@@ -160,11 +160,11 @@ export async function payUsedAuctionBidHoldWithSavedCard(
     if ("error" in confirmed) return confirmed;
     return confirmed;
   }
-  if (!intent.paymentKey) return { error: "결제를 먼저 준비해 주세요." };
+  if (!intent.paymentKey) return { error: "Set up payment first." };
 
   const methods = await listSavedPaymentMethods(userId);
   if (!methods.some((m) => m.id === paymentMethodId)) {
-    return { error: "등록된 카드만 사용할 수 있습니다." };
+    return { error: "Only saved cards can be used." };
   }
 
   const stripe = getStripe();
@@ -185,7 +185,7 @@ export async function payUsedAuctionBidHoldWithSavedCard(
     }
 
     if (!isMarketplacePaymentAuthorized(pi)) {
-      return { error: "카드 승인(hold)이 완료되지 않았습니다." };
+      return { error: "Card hold authorization wasn't completed." };
     }
 
     const meta = intent.metadata as { listingId?: string; bidAmount?: number };
@@ -203,7 +203,7 @@ export async function payUsedAuctionBidHoldWithSavedCard(
         orderId: paymentIntentDbId,
       };
     }
-    return { error: stripeErr.message ?? "카드 승인에 실패했습니다." };
+    return { error: stripeErr.message ?? "Card authorization failed." };
   }
 }
 
@@ -247,13 +247,13 @@ export async function prepareUsedAuctionBidHold(input: {
     },
   });
   if (!listing || listing.saleType !== "AUCTION") {
-    return { error: "경매 상품이 아닙니다." };
+    return { error: "This isn't an auction item." };
   }
 
   const mode = await resolveBidHoldMode({ listing });
-  if (mode === "none") return { error: "이 경매는 입찰 hold가 필요하지 않습니다.", mode };
+  if (mode === "none") return { error: "This auction doesn't require a bid hold.", mode };
   if (mode === "honor") {
-    return { error: "Stripe 입찰 hold를 사용할 수 없습니다. 일반 입찰을 이용해 주세요.", mode };
+    return { error: "Stripe bid hold isn't available. Use standard bidding.", mode };
   }
 
   const currency = normalizeUsedCurrency(listing.currency);
@@ -273,7 +273,7 @@ export async function prepareUsedAuctionBidHold(input: {
     select: { stripeConnectAccountId: true },
   });
   if (!seller?.stripeConnectAccountId) {
-    return { error: "판매자 Stripe Connect 설정이 완료되지 않았습니다.", mode: "honor" };
+    return { error: "Seller Stripe Connect setup isn't complete.", mode: "honor" };
   }
 
   const holdAmount = computeBidHoldAmount(bidAmount, currency);
@@ -324,7 +324,7 @@ export async function prepareUsedAuctionBidHold(input: {
     });
   } catch (e) {
     await db.paymentIntent.delete({ where: { id: intent.id } }).catch(() => null);
-    return { error: e instanceof Error ? e.message : "입찰 hold 준비 실패" };
+    return { error: e instanceof Error ? e.message : "Bid hold setup failed" };
   }
 
   await db.paymentIntent.update({
@@ -332,7 +332,7 @@ export async function prepareUsedAuctionBidHold(input: {
     data: { paymentKey: pi.id },
   });
 
-  if (!pi.client_secret) return { error: "결제 준비에 실패했습니다." };
+  if (!pi.client_secret) return { error: "Couldn't prepare payment." };
 
   return {
     orderId: intent.id,
@@ -355,7 +355,7 @@ export async function verifyUsedAuctionBidHold(input: {
 > {
   const intent = await db.paymentIntent.findUnique({ where: { id: input.paymentIntentDbId } });
   if (!intent || intent.userId !== input.userId || intent.type !== "USED_AUCTION_BID_HOLD") {
-    return { error: "입찰 hold 정보를 찾을 수 없습니다." };
+    return { error: "Bid hold info not found." };
   }
   if (intent.status === "PAID") {
     const existing = await db.usedAuctionBid.findFirst({
@@ -371,14 +371,14 @@ export async function verifyUsedAuctionBidHold(input: {
       };
     }
   }
-  if (!intent.paymentKey) return { error: "Stripe 결제가 준비되지 않았습니다." };
+  if (!intent.paymentKey) return { error: "Stripe payment isn't ready." };
 
   const meta = intent.metadata as { listingId?: string; bidAmount?: number };
   if (meta.listingId !== input.listingId) {
-    return { error: "경매 정보가 일치하지 않습니다." };
+    return { error: "Auction details don't match." };
   }
   if (Number(meta.bidAmount) !== Math.floor(input.bidAmount)) {
-    return { error: "입찰가가 hold 금액과 일치하지 않습니다." };
+    return { error: "Bid amount doesn't match the hold amount." };
   }
 
   const stripe = getStripe();
@@ -386,10 +386,10 @@ export async function verifyUsedAuctionBidHold(input: {
     expand: ["latest_charge"],
   });
   if (!isMarketplacePaymentAuthorized(pi)) {
-    return { error: "카드 승인(hold)이 완료되지 않았습니다." };
+    return { error: "Card hold authorization wasn't completed." };
   }
   if (pi.amount !== intent.amount) {
-    return { error: "Hold 금액이 일치하지 않습니다." };
+    return { error: "Hold amount doesn't match." };
   }
 
   const holdExpiresAt = await resolveHoldExpiresAtFromPaymentIntent(stripe, pi);
@@ -613,8 +613,8 @@ export async function reauthorizeExpiringBidHoldsBatch(limit = 30) {
         await sendUsedAuctionNotification({
           userId: bid.bidderId,
           type: "outbid",
-          title: "입찰 hold 자동 갱신됨",
-          body: "카드 승인이 자동으로 갱신되었습니다. 경매를 계속 진행할 수 있습니다.",
+          title: "Bid hold auto-renewed",
+          body: "Card hold was auto-renewed. You can keep bidding.",
           link: `/market/${bid.listingId}`,
         });
         safeLogWarn("used-auction-hold-reauth-auto", {
@@ -636,8 +636,8 @@ export async function reauthorizeExpiringBidHoldsBatch(limit = 30) {
         await sendUsedAuctionNotification({
           userId: bid.bidderId,
           type: "outbid",
-          title: "입찰 hold 갱신 필요",
-          body: `카드 승인 갱신에 실패했습니다 (${result.reason}). 경매 페이지에서 동일 금액으로 다시 입찰해 주세요.`,
+          title: "Bid hold renewal needed",
+          body: `Something went wrong. Please try again.${result.reason}). Auction 페이지에서 동일 금액으로 다시 입찰해 주세요.`,
           link: `/market/${bid.listingId}`,
         });
         reauthorized += 1;

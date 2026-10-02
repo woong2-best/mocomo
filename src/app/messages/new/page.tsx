@@ -1,11 +1,15 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { NewMessageCompose } from "@/components/messages/new-message-compose";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { ChevronLeft } from "lucide-react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 export default function NewMessagePage() {
   return (
@@ -19,6 +23,7 @@ function NewMessagePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isNativeApp } = useClientPlatform();
+  const { t } = useLocale();
 
   useEffect(() => {
     if (isNativeApp) return;
@@ -39,8 +44,8 @@ function NewMessagePageInner() {
         <Link href="/messages" className="p-2 rounded-full hover:bg-muted/80">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        {!isNativeApp && <h1 className="font-bold text-lg">새 메시지</h1>}
-        {isNativeApp && <h1 className="sr-only">새 메시지</h1>}
+        {!isNativeApp && <h1 className="font-bold text-lg">{t("messages.newTitle")}</h1>}
+        {isNativeApp && <h1 className="sr-only">{t("messages.newTitle")}</h1>}
       </header>
       <NewMessageCompose />
     </div>

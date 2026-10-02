@@ -40,7 +40,7 @@ export default async function AdminUsedMarketPage() {
       title={
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Gavel className="h-6 w-6" />
-          중고거래 · 경매 관리
+          중고거래 · Auction 관리
         </h1>
       }
     >

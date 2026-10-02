@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import dynamic from "next/dynamic";
 
 export const LiveStreamRoomLazy = dynamic(
@@ -7,7 +11,7 @@ export const LiveStreamRoomLazy = dynamic(
   {
     loading: () => (
       <div className="rounded-2xl border border-border p-12 text-center text-muted-foreground animate-pulse">
-        방송 룸 불러오는 중…
+        {t("live.sh6ugup")}
       </div>
     ),
   }

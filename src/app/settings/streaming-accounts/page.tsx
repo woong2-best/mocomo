@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { redirect } from "next/navigation";
 import { getCachedSession } from "@/lib/auth";
 import { listUserStreamingAccounts } from "@/lib/streaming-accounts/service";
@@ -27,13 +30,12 @@ export default async function StreamingAccountsSettingsPage({
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="h-4 w-4" />
-          스트리머 설정
+          {t("settings.syrc8oh")}
         </Link>
       </div>
-      <h1 className="text-xl font-bold">연결된 스트리밍 계정</h1>
+      <h1 className="text-xl font-bold">{t("settings.s1cce4rc")}</h1>
       <p className="mb-4 text-sm text-muted-foreground">
-        YouTube · Twitch 계정을 연결하고 소유권을 인증하세요. 인증된 계정으로만 외부 라이브
-        후원을 받을 수 있습니다.
+        {t("settings.youtube_twitch")}
       </p>
       <StreamingAccountsManager
         initialAccounts={accounts}

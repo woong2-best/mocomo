@@ -3,7 +3,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { listMocoTransactionHistory } from "@/lib/moco/transaction-history";
 
-/** GET — MOCO Burn 원장 (광고·경매 페널티 등) */
+/** GET — MOCO Burn 원장 (광고·Auction 페널티 등) */
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-moco-history", 60);
   if (limited) return limited;

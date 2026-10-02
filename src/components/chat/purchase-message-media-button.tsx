@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 
 import { PayButton } from "@/components/payments/pay-button";
 import { formatUsd } from "@/lib/money";
@@ -7,7 +10,7 @@ import { usePathname } from "next/navigation";
 export function PurchaseMessageMediaButton({
   attachmentId,
   priceKrw,
-  label = "결제하기",
+  label = t("profile.smmgb44"),
   paymentsEnabled = true,
   sellerUsername,
   returnPath,
@@ -36,7 +39,7 @@ export function PurchaseMessageMediaButton({
     <PayButton
       type="MESSAGE_MEDIA"
       amount={priceKrw}
-      orderName="팬아트 구매"
+      orderName={t("lib.payment.history.sebfaacc16f")}
       metadata={{ attachmentId, username: sellerUsername, returnPath: checkoutReturn }}
       returnPath={checkoutReturn}
       onPurchaseSuccess={onPurchaseSuccess}

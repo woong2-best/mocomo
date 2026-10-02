@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Radio, User } from "lucide-react";
@@ -18,11 +21,11 @@ function formatViewerCountCompact(n: number, locale: string) {
   if (n >= 10000) {
     const man = n / 10000;
     const val = man >= 10 ? String(Math.round(man)) : man.toFixed(1).replace(/\.0$/, "");
-    return locale.startsWith("ko") ? `${val}만` : `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
+    return locale.startsWith("ko") ? t("live.s10p8", { v0: val }) : `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
   }
   if (n >= 1000) {
     const val = (n / 1000).toFixed(1).replace(/\.0$/, "");
-    return locale.startsWith("ko") ? `${val}천` : `${val}K`;
+    return locale.startsWith("ko") ? t("live.s14f0", { v0: val }) : `${val}K`;
   }
   return n.toLocaleString(locale.startsWith("ko") ? "ko-KR" : "en-US");
 }
@@ -34,7 +37,7 @@ function LiveHeroCarouselInner({
   channels: LiveHubChannel[];
   hostMap: Record<string, LiveHubHost>;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
 
@@ -139,7 +142,7 @@ function LiveHeroCarouselInner({
                   </span>
                   <span className="rounded-md bg-black/55 px-2.5 py-1 text-xs font-bold tabular-nums text-white">
                     {formatViewerCountCompact(ch.viewerCount, locale)}
-                    {locale.startsWith("ko") ? "명" : ""}
+                    {locale.startsWith("ko") ? t("live.s10ud") : ""}
                   </span>
                 </div>
 

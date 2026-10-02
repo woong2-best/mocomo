@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -52,7 +55,7 @@ function groupChannels(channels: CommunityChannelView[]): ChannelGroup[] {
   const visible = channels.filter((ch) => !HIDDEN_CHANNEL_TYPES.has(ch.type));
   const groups = new Map<string, ChannelGroup>();
   for (const ch of visible) {
-    const categoryName = ch.categoryName ?? "채널";
+    const categoryName = ch.categoryName ?? t("community-server.szpsc");
     const key = ch.categoryId ?? categoryName;
     if (!groups.has(key)) {
       groups.set(key, { categoryId: ch.categoryId, categoryName, items: [] });
@@ -133,7 +136,7 @@ export function ChannelSidebar({
                         "text-muted-foreground hover:text-foreground rounded p-0.5",
                         "mx-auto sm:mx-0 sm:opacity-0 sm:group-hover/cat:opacity-100 transition-opacity"
                       )}
-                      aria-label={`${group.categoryName}에 채널 추가`}
+                      aria-label={t("community-server.s1tkmju8", { v0: group.categoryName })}
                       onClick={() => openCreate(group.categoryId)}
                     >
                       <Plus className="h-3.5 w-3.5" />

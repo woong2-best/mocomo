@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import {
@@ -44,10 +49,10 @@ type PreviewData = {
 };
 
 const AMOUNT_PRESETS = [
-  { label: "+1천", add: 1_000 },
-  { label: "+1만", add: 10_000 },
-  { label: "+10만", add: 100_000 },
-  { label: "+100만", add: 1_000_000 },
+  { label: t("support.s21h2"), add: 1_000 },
+  { label: t("support.s1xra"), add: 10_000 },
+  { label: t("support.stima"), add: 100_000 },
+  { label: t("support.100"), add: 1_000_000 },
 ];
 
 export function VideoTipWizardDialog({
@@ -97,7 +102,7 @@ export function VideoTipWizardDialog({
   const [agreed, setAgreed] = useState(false);
 
   const viewerName =
-    session?.user?.name ?? session?.user?.username ?? username ?? "후원자";
+    session?.user?.name ?? session?.user?.username ?? username ?? t("support.swfd6s");
 
   const durationSec = useMemo(
     () =>
@@ -163,7 +168,7 @@ export function VideoTipWizardDialog({
       const body = await res.json();
       if (!res.ok || !body.ok) {
         setPreview(null);
-        setPreviewError(body.error ?? "영상을 불러올 수 없습니다.");
+        setPreviewError(errorText(body.error ?? t("support.s1j3y2g7")));
         return null;
       }
       const data: PreviewData = {
@@ -176,7 +181,7 @@ export function VideoTipWizardDialog({
       setEndSec(Math.min(30, settings.maxSec));
       return data;
     } catch {
-      setPreviewError("네트워크 오류");
+      setPreviewError(t("support.s10f9nog"));
       return null;
     } finally {
       setPreviewLoading(false);
@@ -204,7 +209,7 @@ export function VideoTipWizardDialog({
       className="h-8 px-2 rounded-md text-white/90 hover:bg-white/10 hover:text-white gap-1"
     >
       <Film className="h-4 w-4" />
-      <span className="text-xs font-semibold hidden sm:inline">영상 후원</span>
+      <span className="text-xs font-semibold hidden sm:inline">{t("support.sh6wx58")}</span>
     </Button>
   );
 
@@ -219,10 +224,10 @@ export function VideoTipWizardDialog({
         <DialogHeader className="px-4 pt-4 pb-2 border-b border-white/10">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Film className="h-5 w-5 text-emerald-400" />
-            {displayName} 영상 후원
+            {displayName} video tip
           </DialogTitle>
           <p className="text-xs text-white/50">
-            {step}/4 · YouTube 영상을 등록하고 재생 구간·금액을 설정한 뒤 후원합니다.
+            {step}/4 · Add a YouTube video, set the clip and amount, then tip.
           </p>
         </DialogHeader>
 
@@ -239,7 +244,7 @@ export function VideoTipWizardDialog({
                 <span className="font-semibold text-sm truncate">{viewerName}</span>
               </div>
               <label className="flex items-center gap-2 text-xs text-white/70 shrink-0 cursor-pointer">
-                익명
+                Anonymous
                 <button
                   type="button"
                   role="switch"
@@ -260,7 +265,7 @@ export function VideoTipWizardDialog({
 
             <div className="rounded-xl bg-black/40 border border-white/10 p-3">
               <Input
-                placeholder="후원할 영상의 URL을 입력해주세요"
+                placeholder={t("support.url")}
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && void loadPreview(urlInput)}
@@ -270,7 +275,7 @@ export function VideoTipWizardDialog({
 
             {previewLoading && (
               <p className="text-xs text-white/50 flex items-center gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" /> 영상 확인 중…
+                <Loader2 className="h-3 w-3 animate-spin" /> Checking video…
               </p>
             )}
             {previewError && <p className="text-xs text-red-400">{previewError}</p>}
@@ -285,14 +290,14 @@ export function VideoTipWizardDialog({
                   />
                 </div>
                 <p className="text-sm font-medium line-clamp-2 pt-1">
-                  {preview.title ?? "YouTube 영상"}
+                  {preview.title ?? t("support.youtube")}
                 </p>
               </div>
             )}
 
             {history.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-white/80">이전 후원한 영상</p>
+                <p className="text-xs font-semibold text-white/80">{t("support.so433r4")}</p>
                 <div className="relative">
                   {historyScroll > 0 && (
                     <button
@@ -322,7 +327,7 @@ export function VideoTipWizardDialog({
                           />
                           {i === 0 && historyScroll === 0 && (
                             <span className="absolute top-1 right-1 text-[9px] bg-blue-600 px-1.5 py-0.5 rounded-full">
-                              최근
+                              Recent
                             </span>
                           )}
                         </div>
@@ -348,8 +353,8 @@ export function VideoTipWizardDialog({
             )}
 
             <p className="text-[10px] text-white/40 leading-relaxed">
-              퍼가기 허용·지역/연령 제한·스팸 필터에 걸리면 후원할 수 없습니다. 익명 후원은
-              랭킹에 반영되지 않습니다.
+              Tips are blocked if embedding, region/age limits, or spam filters apply. Anonymous
+              tips do not appear on rankings.
             </p>
 
             <Button
@@ -364,7 +369,7 @@ export function VideoTipWizardDialog({
                 if (loaded) setStep(2);
               }}
             >
-              다음
+              Next
             </Button>
           </div>
         )}
@@ -373,7 +378,7 @@ export function VideoTipWizardDialog({
           <div className="p-4 space-y-4">
             <div className="aspect-video rounded-xl overflow-hidden bg-black">
               <iframe
-                title="미리보기"
+                title={t("support.sohlxtc")}
                 src={youtubeEmbedUrl(preview.videoId, {
                   startSec,
                   endSec: playToEnd ? undefined : endSec,
@@ -384,7 +389,7 @@ export function VideoTipWizardDialog({
             </div>
 
             <Textarea
-              placeholder="영상과 함께 보여줄 메시지 (선택)"
+              placeholder={t("support.s6d5edo")}
               value={description}
               onChange={(e) => setDescription(e.target.value.slice(0, 200))}
               className="rounded-xl bg-black/40 border-white/10 text-sm min-h-[72px] resize-none"
@@ -392,9 +397,9 @@ export function VideoTipWizardDialog({
 
             <div className="space-y-3 rounded-xl bg-black/30 p-3 border border-white/10">
               <div className="flex justify-between text-xs">
-                <span>재생 구간</span>
+                <span>{t("support.snpzron")}</span>
                 <span className="text-emerald-400 font-semibold tabular-nums">
-                  {durationSec}초 · 최대 {settings.maxSec}초
+                  {durationSec}s · max {settings.maxSec}s
                 </span>
               </div>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
@@ -404,14 +409,14 @@ export function VideoTipWizardDialog({
                   onChange={(e) => setPlayToEnd(e.target.checked)}
                   className="rounded border-white/30"
                 />
-                끝까지 재생하기 (최대 {settings.maxSec}초 과금)
+                Play to end (billed up to {settings.maxSec}s)
               </label>
               {!playToEnd && (
                 <>
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] text-white/50">
-                      <span>시작 {formatSecLabel(startSec)}</span>
-                      <span>끝 {formatSecLabel(endSec)}</span>
+                      <span>Start {formatSecLabel(startSec)}</span>
+                      <span>End {formatSecLabel(endSec)}</span>
                     </div>
                     <input
                       type="range"
@@ -437,14 +442,14 @@ export function VideoTipWizardDialog({
                 </>
               )}
               <p className="text-[10px] text-white/40">
-                초당 {formatUsd(settings.rateKrwPerSec)} × {durationSec}초 ={" "}
-                {formatUsd(baseAmount)} (최소 {formatUsd(settings.minKrw)})
+                {formatUsd(settings.rateKrwPerSec)}/s × {durationSec}s ={" "}
+                {formatUsd(baseAmount)} (min {formatUsd(settings.minKrw)})
               </p>
             </div>
 
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1 rounded-full border-white/20" onClick={() => setStep(1)}>
-                이전
+                Back
               </Button>
               <Button
                 className="flex-1 rounded-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold"
@@ -453,7 +458,7 @@ export function VideoTipWizardDialog({
                   setStep(3);
                 }}
               >
-                다음
+                Next
               </Button>
             </div>
           </div>
@@ -463,9 +468,9 @@ export function VideoTipWizardDialog({
           <div className="p-4 space-y-4">
             <div className="flex items-center justify-between">
               <p className="font-semibold text-sm flex items-center gap-1">
-                후원 금액 <Info className="h-3.5 w-3.5 text-white/40" />
+                Tip amount <Info className="h-3.5 w-3.5 text-white/40" />
               </p>
-              <span className="text-[10px] text-white/50">플랫폼 5% · 정산 {formatUsd(effectiveAmount - fee)}</span>
+              <span className="text-[10px] text-white/50">Platform 5% · payout {formatUsd(effectiveAmount - fee)}</span>
             </div>
 
             <div className="rounded-xl bg-black/40 border border-white/10 p-4 flex items-center gap-3">
@@ -483,7 +488,7 @@ export function VideoTipWizardDialog({
                   type="button"
                   className="ml-auto text-white/40 hover:text-white"
                   onClick={() => setAmountOverride(null)}
-                  aria-label="금액 초기화"
+                  aria-label={t("support.s1oc5v51")}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -510,25 +515,25 @@ export function VideoTipWizardDialog({
                 className="rounded-full border-white/15 text-xs h-8"
                 onClick={() => setAmountOverride(baseAmount)}
               >
-                자동 계산
+                Auto amount
               </Button>
             </div>
 
             <p className="text-xs text-white/50">
-              재생 {durationSec}초 기준 자동 금액 {formatUsd(baseAmount)} · 더 후원하려면 금액을
-              올릴 수 있습니다.
+              Auto amount for {durationSec}s playback: {formatUsd(baseAmount)} · You can tip more
+              if you want.
             </p>
 
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1 rounded-full border-white/20" onClick={() => setStep(2)}>
-                이전
+                Back
               </Button>
               <Button
                 className="flex-1 rounded-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold"
                 disabled={effectiveAmount < baseAmount}
                 onClick={() => setStep(4)}
               >
-                다음
+                Next
               </Button>
             </div>
           </div>
@@ -537,10 +542,10 @@ export function VideoTipWizardDialog({
         {step === 4 && preview && (
           <div className="p-4 space-y-4">
             <div className="rounded-xl bg-black/30 p-3 text-xs space-y-1 border border-white/10">
-              <p className="font-medium truncate">{preview.title ?? "YouTube 영상"}</p>
+              <p className="font-medium truncate">{preview.title ?? t("support.youtube")}</p>
               <p className="text-white/50">
-                {formatSecLabel(startSec)} ~ {playToEnd ? "끝까지" : formatSecLabel(endSec)} ·{" "}
-                {durationSec}초
+                {formatSecLabel(startSec)} ~ {playToEnd ? t("support.sqopox") : formatSecLabel(endSec)} ·{" "}
+                {durationSec}s
               </p>
               {description && <p className="text-white/70">&ldquo;{description}&rdquo;</p>}
               <p className="text-emerald-400 font-bold text-base pt-1">
@@ -556,14 +561,14 @@ export function VideoTipWizardDialog({
                 className="mt-0.5 rounded border-white/30"
               />
               <span>
-                결제 및 영상 후원 유의사항에 동의합니다. 호스트 검수 후 방송에 재생됩니다.
+                I agree to payment and video tip terms. Clips play on stream after host review.
               </span>
             </label>
 
             <PayButton
               type="TIP"
               amount={effectiveAmount}
-              orderName={`${displayName} 영상 후원`}
+              orderName={`${displayName} video tip`}
               metadata={tipMetadataForCheckout({
                 receiverId: creatorId,
                 message: description.trim() || undefined,
@@ -585,11 +590,11 @@ export function VideoTipWizardDialog({
               className="w-full rounded-full h-12 bg-emerald-500 hover:bg-emerald-600 text-black font-bold gap-2"
             >
               <Play className="h-4 w-4 fill-current" />
-              {formatUsd(effectiveAmount)} 후원하기
+              Tip {formatUsd(effectiveAmount)}
             </PayButton>
 
             <Button variant="ghost" className="w-full text-white/50" onClick={() => setStep(3)}>
-              이전
+              Back
             </Button>
           </div>
         )}
@@ -598,5 +603,5 @@ export function VideoTipWizardDialog({
   );
 }
 
-/** @deprecated VideoTipWizardDialog 사용 */
+/** @deprecated Use VideoTipWizardDialog */
 export const VideoTipCreatorDialog = VideoTipWizardDialog;

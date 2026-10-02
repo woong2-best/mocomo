@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -32,7 +35,7 @@ import { cn } from "@/lib/utils";
 
 type MemosMap = Record<string, string>;
 
-const WEEKDAY_KO = ["일", "월", "화", "수", "목", "금", "토"] as const;
+const WEEKDAY_KO = [t("lib.webtoon.s13ek"), t("lib.webtoon.s139w"), t("lib.webtoon.s16c4"), t("lib.webtoon.s12c8"), t("lib.webtoon.s10vd"), t("lib.webtoon.sydk"), t("lib.webtoon.s15eo")] as const;
 
 function profileUsernameFromPath(pathname: string | null): string | null {
   if (!pathname) return null;
@@ -196,14 +199,14 @@ export function ProfileCalendar() {
     target?.kind === "day"
       ? `${target.cell.y}.${String(target.cell.m).padStart(2, "0")}.${String(target.cell.d).padStart(2, "0")}`
       : target?.kind === "weekday"
-        ? `매주 ${WEEKDAY_KO[target.weekday]}`
+        ? t("lib.live-broadcast.swpzs", { v0: WEEKDAY_KO[target.weekday] })
         : "";
 
   const memoSubtitle =
     target?.kind === "day"
       ? (target.cell.holiday ?? null)
       : target?.kind === "weekday"
-        ? "방송 일정 · 라이브 스튜디오에서 수정"
+        ? t("layout.syfg87p")
         : null;
 
   const editingDay = target?.kind === "day" && canEditDays;
@@ -283,7 +286,7 @@ export function ProfileCalendar() {
                 i === 6 && isScheduleHeader && "text-sky-100",
                 i > 0 && i < 6 && "text-foreground"
               )}
-              aria-label={`${w.han} ${w.en} 메모`}
+              aria-label={t("layout.swpuc", { v0: w.han, v1: w.en })}
             >
               <span className="text-sm font-serif font-bold leading-none">{w.han}</span>
               <span className="mt-0.5 text-[8px] font-semibold tracking-wide opacity-70">{w.en}</span>
@@ -416,7 +419,7 @@ export function ProfileCalendar() {
           target?.kind === "weekday"
             ? scheduleWeekdays.size > 0
               ? undefined
-              : "라이브 스튜디오에서 방송 요일·메모를 설정하세요."
+              : t("layout.s135kwiy")
             : canEditDays
               ? undefined
               : signedIn

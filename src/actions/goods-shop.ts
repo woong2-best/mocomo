@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -29,12 +32,12 @@ export async function resolveEmoticonPackForPurchase(slug: string) {
     await ensureEmoticonCatalog(db);
     const pack = await db.emoticonPack.findUnique({ where: { slug } });
     if (pack) return { pack, dbReady: true };
-    return { pack: null as null, dbReady: true, error: "이모티콘을 찾을 수 없습니다." };
+    return { pack: null as null, dbReady: true, error: "actions.sz3xqc9" };
   } catch {
     return {
       pack: null as null,
       dbReady: false,
-      error: "굿즈샵 DB가 연결되지 않았습니다. Supabase SQL 섹션 J를 실행해 주세요.",
+      error: "actions.db_supabase_sql_j",
     };
   }
 }
@@ -64,22 +67,22 @@ export async function getReceivedEmoticonGifts() {
 export async function sendEmoticonToStreamer(itemId: string, receiverUsername: string) {
   const user = await requireAuth();
   const receiverName = receiverUsername.trim().replace(/^@/, "");
-  if (!receiverName) return { error: "스트리머 닉네임을 입력해 주세요." };
+  if (!receiverName) return { error: "actions.sbvu893" };
 
   const receiver = await db.user.findUnique({
     where: { username: receiverName },
     select: { id: true, username: true },
   });
-  if (!receiver) return { error: "스트리머를 찾을 수 없습니다." };
-  if (receiver.id === user.id) return { error: "본인에게는 보낼 수 없습니다." };
+  if (!receiver) return { error: "actions.s1qart2d" };
+  if (receiver.id === user.id) return { error: "actions.s9jx1pn" };
 
   const item = await db.userEmoticon.findUnique({
     where: { id: itemId },
     include: { pack: true, gift: true },
   });
-  if (!item || item.userId !== user.id) return { error: "이모티콘을 찾을 수 없습니다." };
-  if (item.status !== "AVAILABLE") return { error: "이미 사용된 이모티콘입니다." };
-  if (item.gift) return { error: "이미 전송된 이모티콘입니다." };
+  if (!item || item.userId !== user.id) return { error: "actions.sz3xqc9" };
+  if (item.status !== "AVAILABLE") return { error: "actions.sexkndy" };
+  if (item.gift) return { error: "actions.s163ypza" };
 
   const { platformFee, creatorAmount } = calcShopFees(item.pricePaid);
 
@@ -115,7 +118,7 @@ export async function sendEmoticonToStreamer(itemId: string, receiverUsername: s
   await creditSellerEarning(receiver.id, creatorAmount, {
     referenceType: "emoticon_gift",
     referenceId: itemId,
-    memo: `이모티콘 선물 · ${item.pack.name}`,
+    memo: t("actions.s1jz4h13", { v0: item.pack.name }),
   });
 
   revalidatePath("/support");
@@ -126,7 +129,7 @@ export async function sendEmoticonToStreamer(itemId: string, receiverUsername: s
 
 export async function fulfillEmoticonPurchase(userId: string, packId: string) {
   const pack = await db.emoticonPack.findUnique({ where: { id: packId } });
-  if (!pack) return { error: "이모티콘을 찾을 수 없습니다." };
+  if (!pack) return { error: "actions.sz3xqc9" };
   await db.userEmoticon.create({
     data: { userId, packId, pricePaid: pack.price },
   });
@@ -141,8 +144,8 @@ export async function createGoodsListingRequest(data: {
   videoUrl?: string;
 }) {
   const user = await requireAuth();
-  if (!data.title.trim()) return { error: "상품명을 입력해 주세요." };
-  if (!data.description.trim()) return { error: "상품 설명을 입력해 주세요." };
+  if (!data.title.trim()) return { error: "actions.s4m4qe4" };
+  if (!data.description.trim()) return { error: "actions.s14e7pi0" };
   if (data.images.length === 0) {
     data.images = [];
   }
@@ -162,7 +165,7 @@ export async function createGoodsListingRequest(data: {
 
 export async function fulfillListingFee(requestId: string, sellerId: string) {
   const request = await db.goodsListingRequest.findUnique({ where: { id: requestId } });
-  if (!request || request.sellerId !== sellerId) return { error: "등록 요청을 찾을 수 없습니다." };
+  if (!request || request.sellerId !== sellerId) return { error: "actions.s1ygmq3u" };
 
   const media = request.media as { images?: string[]; videoUrl?: string | null };
   const images = media.images ?? [];
@@ -192,9 +195,9 @@ export async function fulfillListingFee(requestId: string, sellerId: string) {
 
 export async function updatePhysicalProductPrice(productId: string, price: number, shippingFee?: number) {
   const user = await requireAuth();
-  if (price < 1000) return { error: "판매가는 1,000원 이상이어야 합니다." };
+  if (price < 1000) return { error: "actions.1_000" };
   const product = await db.physicalProduct.findUnique({ where: { id: productId } });
-  if (!product || product.sellerId !== user.id) return { error: "상품을 찾을 수 없습니다." };
+  if (!product || product.sellerId !== user.id) return { error: "actions.s1fhot7o" };
 
   await db.physicalProduct.update({
     where: { id: productId },
@@ -239,8 +242,8 @@ export async function createPhysicalOrderDraft(input: {
 }) {
   const user = await requireAuth();
   const product = await db.physicalProduct.findUnique({ where: { id: input.productId } });
-  if (!product || !product.active) return { error: "상품을 찾을 수 없습니다." };
-  if (product.sellerId === user.id) return { error: "본인 상품은 구매할 수 없습니다." };
+  if (!product || !product.active) return { error: "actions.s1fhot7o" };
+  if (product.sellerId === user.id) return { error: "actions.suz2ksc" };
   const qty = Math.max(1, Math.min(input.quantity, product.stock));
   const productTotal = product.price * qty;
   const shippingFee = product.shippingFee;
@@ -276,11 +279,11 @@ export async function fulfillPhysicalGoodsPayment(orderId: string, buyerId: stri
     where: { id: orderId },
     include: { items: { include: { product: true } } },
   });
-  if (!order || order.buyerId !== buyerId) return { error: "주문을 찾을 수 없습니다." };
+  if (!order || order.buyerId !== buyerId) return { error: "actions.sr119vd" };
   if (order.status !== "PENDING_PAYMENT") return { success: true, alreadyPaid: true };
 
   const item = order.items[0];
-  if (!item) return { error: "주문 항목이 없습니다." };
+  if (!item) return { error: "actions.sbvelg7" };
 
   await db.$transaction([
     db.physicalOrder.update({
@@ -333,7 +336,7 @@ export async function getMySellOrders() {
 export async function updateOrderShipping(orderId: string, status: "PREPARING" | "SHIPPED" | "DELIVERED", trackingNo?: string) {
   const user = await requireAuth();
   const order = await db.physicalOrder.findUnique({ where: { id: orderId } });
-  if (!order || order.sellerId !== user.id) return { error: "주문을 찾을 수 없습니다." };
+  if (!order || order.sellerId !== user.id) return { error: "actions.sr119vd" };
 
   await db.physicalOrder.update({
     where: { id: orderId },

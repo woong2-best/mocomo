@@ -1,5 +1,10 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -16,7 +21,6 @@ import {
   type ReportTaxonomyNode,
 } from "@/lib/report-reasons";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -83,7 +87,7 @@ export function ContentReportFlow({
     phase === "done"
       ? t("common.done")
       : chatRoomId
-        ? uiText(locale, "채팅 신고", "Report chat")
+        ? t("ui.report_chat")
         : t("report.title");
 
   const currentNodes = stack.length > 0 ? stack[stack.length - 1]! : reportCopy.taxonomy;
@@ -214,7 +218,7 @@ export function ContentReportFlow({
             commentId,
           });
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       try {
@@ -250,7 +254,7 @@ export function ContentReportFlow({
           <button
             type="button"
             className="absolute inset-0 bg-black/60"
-            aria-label="닫기"
+            aria-label={t("common.close")}
             onClick={() => handleOpenChange(false)}
           />
           <div
@@ -445,7 +449,7 @@ export function ContentReportRailButton({
           "flex flex-col items-center gap-0.5 min-h-11 min-w-11 text-white",
           className
         )}
-        aria-label="신고"
+        aria-label={t("report.sy3gg")}
         onClick={(e) => {
           e.stopPropagation();
           if (status === "loading") return;

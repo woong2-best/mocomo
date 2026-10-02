@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { extractYoutubeId, wikiHeadingId } from "@/lib/anime-revision";
 import { WikiInline } from "@/components/anime/wiki-inline";
 
@@ -170,4 +173,4 @@ export function WikiContent({
 }
 
 export const WIKI_EDITOR_HELP =
-  "사진은 업로드로 넣고, 영상은 유튜브 링크를 붙여넣으면 됩니다. 제목은 # 또는 ## 로 구분하세요.";
+  t("anime.s8h8zc2");

@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, TrendingUp } from "lucide-react";
@@ -20,10 +23,10 @@ export async function RankingsContentAsync() {
 
   return (
     <div className="space-y-6">
-      <PageSection title="후원 랭킹" icon={Trophy} variant="card">
+      <PageSection title={t("nav.rankings")} icon={Trophy} variant="card">
         <div className="space-y-2 moco-stagger">
           {tips.length === 0 ? (
-            <p className="text-muted-foreground text-sm">데이터 없음</p>
+            <p className="text-muted-foreground text-sm">{t("rankings.s12yqat6")}</p>
           ) : (
             tips.map((t) => (
               <div
@@ -50,10 +53,10 @@ export async function RankingsContentAsync() {
         </div>
       </PageSection>
 
-      <PageSection title="인기 게시물" icon={TrendingUp} variant="card">
+      <PageSection title={t("explore.trendingPosts")} icon={TrendingUp} variant="card">
         <div className="moco-stagger">
           {posts.length === 0 ? (
-            <p className="text-muted-foreground text-sm">데이터 없음</p>
+            <p className="text-muted-foreground text-sm">{t("rankings.s12yqat6")}</p>
           ) : (
             posts.map((p) => (
               <div

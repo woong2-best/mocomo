@@ -23,10 +23,10 @@ export function buildUnifiedTermsDocument(countryCode: string): LegalDocument {
   const supplemental = getTermsSupplementalBlocks(countryCode);
   return {
     slug: "terms",
-    title: "MoCoMo 통합 이용약관",
+    title: "MoCoMo Unified Terms of Service",
     updatedAt: TERMS_OF_SERVICE.updatedAt,
     intro:
-      "회원가입 시 동의하는 이용약관입니다. 서비스 이용약관과 Acceptable Use Policy(AUP), 크리에이터 약관, 저작권, 결제·환불, 운영정책을 함께 포함합니다.",
+      "Terms you agree to when signing up. Includes the Terms of Service, Acceptable Use Policy (AUP), creator terms, copyright, payment and refunds, and community guidelines.",
     blocks: [
       ...TERMS_OF_SERVICE.blocks,
       ...supplemental,

@@ -8,11 +8,11 @@ export type ModerationSanctionType =
   | "restore";
 
 export const MODERATION_SANCTION_LABELS: Record<ModerationSanctionType, string> = {
-  warning: "경고",
-  limited: "일부 제한",
-  read_only: "읽기 전용",
-  temp_7: "7일 정지",
-  temp_30: "30일 정지",
-  permanent: "영구 정지",
-  restore: "복구",
+  warning: "Warning",
+  limited: "Partial restrictions",
+  read_only: "Read-only",
+  temp_7: "7-day suspension",
+  temp_30: "30-day suspension",
+  permanent: "Permanent suspension",
+  restore: "Restored",
 };

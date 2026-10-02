@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -66,7 +69,7 @@ export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
         <Link href="/voice/new">
           <Button variant="outline" className="gap-2 rounded-xl">
             <Radio className="h-4 w-4" />
-            자체 송출
+            {t("live.firstPartyGoLive")}
           </Button>
         </Link>
       ) : null}

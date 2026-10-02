@@ -20,7 +20,7 @@ export function recommendationRowToMapPin(row: EventMapUserRecommendationRow): M
     title: row.title,
     country: inferEventCountryFromCoords(row.lat, row.lng),
     category: "user_recommendation",
-    categoryLabel: SUBCULTURE_EVENT_CATEGORY_LABELS.user_recommendation ?? "추천",
+    categoryLabel: SUBCULTURE_EVENT_CATEGORY_LABELS.user_recommendation ?? "Featured",
     venueName: row.description?.trim() || null,
     description: `${row.user.name?.trim() || row.user.username}님 추천`,
     lat: row.lat,

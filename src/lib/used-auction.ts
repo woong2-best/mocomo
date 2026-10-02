@@ -1,6 +1,7 @@
 import type { UsedAuctionState, UsedSaleType } from "@prisma/client";
+import { translate } from "@/lib/i18n/messages";
 
-/** 경매 최소 입찰 단위 기본값 (원). 달러 상품은 1달러(100센트). */
+/** Auction 최소 입찰 단위 기본값 (원). 달러 상품은 1달러(100센트). */
 export const DEFAULT_BID_INCREMENT = 1_000;
 
 export function defaultBidIncrement(currency?: string | null): number {
@@ -10,29 +11,29 @@ export function defaultBidIncrement(currency?: string | null): number {
 /** 마감 직전 입찰 시 최대 연장 횟수 (회당 antiSnipeMinutes) */
 export const MAX_ANTI_SNIPE_EXTENSIONS = 5;
 
-/** 모든 경매는 등록 시점부터 3일. 클라이언트가 보낸 기간은 쓰지 않는다. */
+/** 모든 Auction는 등록 시점부터 3일. 클라이언트가 보낸 기간은 쓰지 않는다. */
 export const AUCTION_DURATION_HOURS = 72;
 
 export const AUCTION_DURATION_OPTIONS = [
-  { hours: AUCTION_DURATION_HOURS, label: "3일" },
+  { hours: AUCTION_DURATION_HOURS, label: "3 days" },
 ] as const;
 
 export const BID_INCREMENT_PRESETS = [
-  { value: 500, label: "500원" },
-  { value: 1_000, label: "1,000원" },
-  { value: 5_000, label: "5,000원" },
-  { value: 10_000, label: "1만 원" },
-  { value: 50_000, label: "5만 원" },
-  { value: 100_000, label: "10만 원" },
+  { value: 500, label: "₩500" },
+  { value: 1_000, label: "₩1,000" },
+  { value: 5_000, label: "₩5,000" },
+  { value: 10_000, label: "₩10,000" },
+  { value: 50_000, label: "₩50,000" },
+  { value: 100_000, label: "₩100,000" },
 ] as const;
 
-/** 저가 카드·lot 경매용 */
+/** 저가 카드·lot Auction용 */
 export const BID_INCREMENT_PRESETS_TCG_KRW = [
-  { value: 100, label: "100원" },
-  { value: 500, label: "500원" },
-  { value: 1_000, label: "1,000원" },
-  { value: 5_000, label: "5,000원" },
-  { value: 10_000, label: "1만 원" },
+  { value: 100, label: "₩100" },
+  { value: 500, label: "₩500" },
+  { value: 1_000, label: "₩1,000" },
+  { value: 5_000, label: "₩5,000" },
+  { value: 10_000, label: "₩10,000" },
 ] as const;
 
 export const BID_INCREMENT_PRESETS_TCG_USD = [
@@ -76,7 +77,7 @@ export function auctionEndsAtMs(endsAt: Date | string | null | undefined): numbe
   return Number.isFinite(ms) ? ms : null;
 }
 
-/** 경매가 아직 진행 중인지 (시간 + 상태) */
+/** Auction가 아직 진행 중인지 (시간 + 상태) */
 export function isAuctionLive(l: AuctionListingSlice, now = Date.now()): boolean {
   if (!isAuctionListing(l)) return false;
   if (l.status !== "SELLING") return false;
@@ -141,22 +142,27 @@ export function auctionCountdownParts(
 export function formatAuctionCountdown(endsAt: Date | string, now = Date.now()): string {
   const parts = auctionCountdownParts(endsAt, now);
   if (!parts) return "—";
-  if (parts.ended) return "마감";
+  if (parts.ended) return translate("en", "used.auction.countdownEnded");
   return parts.text;
 }
 
+const AUCTION_STATE_KEYS: Record<UsedAuctionState, string> = {
+  LIVE: "used.auction.stateLive",
+  ENDED: "used.auction.stateEnded",
+  CANCELLED: "used.auction.stateCancelled",
+  PAYMENT_PENDING: "used.auction.statePaymentPending",
+  PAYMENT_COMPLETED: "used.auction.statePaymentCompleted",
+  PAYMENT_TIMEOUT: "used.auction.statePaymentTimeout",
+  TRANSFERRED_TO_NEXT_BIDDER: "used.auction.stateTransferred",
+  PRICE_NEGOTIATION: "used.auction.stateNegotiation",
+  NEGOTIATION_COMPLETED: "used.auction.stateNegotiationDone",
+  NEGOTIATION_FAILED: "used.auction.stateNegotiationFailed",
+};
+
 export function auctionStateLabel(state: UsedAuctionState | null | undefined): string {
-  if (state === "LIVE") return "경매 진행중";
-  if (state === "ENDED") return "경매 종료";
-  if (state === "CANCELLED") return "경매 취소";
-  if (state === "PAYMENT_PENDING") return "낙찰 · 결제 대기";
-  if (state === "PAYMENT_COMPLETED") return "결제 완료";
-  if (state === "PAYMENT_TIMEOUT") return "결제 기한 초과";
-  if (state === "TRANSFERRED_TO_NEXT_BIDDER") return "차순위 승계";
-  if (state === "PRICE_NEGOTIATION") return "가격 협상 중";
-  if (state === "NEGOTIATION_COMPLETED") return "협상 완료";
-  if (state === "NEGOTIATION_FAILED") return "협상 실패";
-  return "";
+  if (!state) return "";
+  const key = AUCTION_STATE_KEYS[state];
+  return key ? translate("en", key) : "";
 }
 
 export function isPaymentPending(l: AuctionListingSlice): boolean {

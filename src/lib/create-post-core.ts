@@ -69,7 +69,7 @@ export async function createPostForUser(
   data: CreatePostInput
 ): Promise<{ postId?: string; error?: string }> {
   if (user.isBanned) {
-    return { error: "이용이 제한된 계정입니다." };
+    return { error: "This account is restricted." };
   }
 
   const content = data.content?.trim() ?? "";
@@ -84,16 +84,16 @@ export async function createPostForUser(
       where: { id: quotedPostId },
       select: { id: true, isNsfw: true, contentRating: true },
     });
-    if (!quoted) return { error: "인용할 게시물을 찾을 수 없습니다." };
+    if (!quoted) return { error: "Quoted post not found." };
     quotedIsNsfw = quoted.isNsfw || quoted.contentRating === "ADULT";
   }
 
   if (data.poll) {
     const pollErr = validatePostPollInput(data.poll);
     if (pollErr) return { error: pollErr };
-    if (!content) return { error: "투표 질문을 본문에 적어 주세요." };
+    if (!content) return { error: "Add your poll question in the body." };
   } else if (!content && !hasMediaInput && !quotedPostId) {
-    return { error: "내용을 입력해 주세요." };
+    return { error: "Enter content." };
   }
 
   const requestedCommunityId = data.communityId?.trim() || undefined;
@@ -102,7 +102,7 @@ export async function createPostForUser(
     (Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0)) > 0 ||
       (data.media ?? []).some((m) => Math.max(0, Math.floor(m.priceKrw ?? 0)) > 0))
   ) {
-    return { error: "QnA에는 유료 파일을 올릴 수 없습니다." };
+    return { error: "Paid files can't be attached to Q&A." };
   }
 
   const instantPrice = Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0));
@@ -156,12 +156,12 @@ export async function createPostForUser(
         select: { id: true, creatorId: true },
       });
       if (!community) {
-        return { error: "QnA를 찾을 수 없습니다." };
+        return { error: "Q&A not found." };
       }
       const isOwner = community.creatorId === user.id;
       const perms = await loadMemberPermissions(communityId, user.id, isOwner);
       if (!isOwner && !hasPermission(perms, "createPosts")) {
-        return { error: "게시글 작성 권한이 없습니다." };
+        return { error: "You don't have permission to post." };
       }
     }
     const isAnonymous = Boolean(communityId);
@@ -292,7 +292,7 @@ export async function createPostForUser(
         const msg =
           e instanceof CollaboratorError
             ? e.message
-            : "공동작업자 초대에 실패했습니다.";
+            : "Failed to invite collaborators.";
         return { postId: post.id, error: msg };
       }
     }

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import type { LiveSupportEventType } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -17,12 +18,12 @@ export async function POST(
 
   const { id: channelId } = await params;
   if (!channelId || channelId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const access = await resolveLiveChannelAccess(channelId, authResult.user.id);
   if (!access.allowed) {
-    return NextResponse.json({ error: "방송에 참여한 뒤 응원할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Join the stream before cheering." }, { status: 403 });
   }
 
   let body: {
@@ -34,7 +35,7 @@ export async function POST(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const result = await sendLiveSupportCheerRest({
@@ -47,7 +48,7 @@ export async function POST(
   });
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({ ok: true, event: result.event });

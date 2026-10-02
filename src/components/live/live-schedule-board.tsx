@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { BadgeCheck, Calendar, Radio, User } from "lucide-react";
 import { LiveHubNav } from "@/components/live/live-hub-nav";

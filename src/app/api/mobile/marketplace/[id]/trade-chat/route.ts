@@ -15,7 +15,7 @@ export async function POST(
 
   const { id } = await params;
   if (!id || id.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const result = await startMobileUsedTradeChat(auth.user.id, id);

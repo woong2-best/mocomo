@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
@@ -19,15 +22,15 @@ export default async function MessageSettingsPage() {
         <Link
           href="/messages"
           className="p-2 -ml-2 rounded-full hover:bg-muted/80"
-          aria-label="메시지"
+          aria-label={t("settings.ss8r7c")}
         >
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold">메시지 설정</h1>
+        <h1 className="text-2xl font-bold">{t("settings.s2wgdll")}</h1>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>메시지 · 통화</CardTitle>
+          <CardTitle>{t("settings.s1s4x2gg")}</CardTitle>
         </CardHeader>
         <CardContent>
           <MessageContactSettingsForm initial={settings} />

@@ -1,5 +1,11 @@
+"use client";
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Image from "next/image";
 import { AlertTriangle, ExternalLink } from "lucide-react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 const GUIDE_IMAGES = {
   error: "/live/guides/youtube-embed/error-embed-blocked.png",
@@ -15,18 +21,16 @@ type Props = {
 };
 
 export function YoutubeEmbedGuide({ variant = "full", watchUrl }: Props) {
+  const { t } = useLocale();
+
   if (variant === "compact") {
     return (
       <div className="rounded-lg border border-red-500/25 bg-red-500/5 px-3 py-2.5 text-[11px] leading-relaxed text-red-900 dark:text-red-100">
-        <p className="font-semibold">YouTube 라이브 — 퍼가기 허용 필수</p>
-        <p className="mt-1 text-muted-foreground">
-          MoCoMo에 영상이 보이려면 YouTube Studio에서{" "}
-          <strong className="text-foreground">퍼가기 허용</strong>을 켜야 합니다. 아래
-          안내를 확인한 뒤 방송을 시작하세요.
-        </p>
+        <p className="font-semibold">{t("live.youtube.guide.compactTitle")}</p>
+        <p className="mt-1 text-muted-foreground">{t("live.youtube.guide.compactIntro")}</p>
         <details className="mt-2">
           <summary className="cursor-pointer font-medium text-primary hover:underline">
-            설정 방법 보기
+            {t("live.youtube.guide.showSteps")}
           </summary>
           <GuideSteps className="mt-3" imageClassName="rounded-md border" />
         </details>
@@ -41,18 +45,15 @@ export function YoutubeEmbedGuide({ variant = "full", watchUrl }: Props) {
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
             <div>
-              <h2 className="text-base font-semibold">동영상을 재생할 수 없습니다</h2>
-              <p className="mt-1 text-sm text-white/70">
-                YouTube에서 <strong className="text-white">퍼가기 허용</strong>이 꺼져 있으면
-                MoCoMo에 영상이 표시되지 않습니다. 아래 순서대로 설정을 변경해 주세요.
-              </p>
+              <h2 className="text-base font-semibold">{t("live.youtube.guide.playerTitle")}</h2>
+              <p className="mt-1 text-sm text-white/70">{t("live.youtube.guide.playerIntro")}</p>
             </div>
           </div>
 
           <div className="overflow-hidden rounded-lg border border-white/10">
             <Image
               src={GUIDE_IMAGES.error}
-              alt="퍼가기 허용이 꺼져 있을 때 MoCoMo에 표시되는 화면"
+              alt={t("live.youtube.guide.errorScreenAlt")}
               width={640}
               height={360}
               className="w-full opacity-90"
@@ -72,13 +73,11 @@ export function YoutubeEmbedGuide({ variant = "full", watchUrl }: Props) {
               className="inline-flex items-center justify-center gap-2 self-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black"
             >
               <ExternalLink className="h-4 w-4" />
-              YouTube에서 보기
+              {t("live.youtube.guide.watchOnYoutube")}
             </a>
           ) : null}
 
-          <p className="text-center text-xs text-white/50">
-            설정 저장 후 이 페이지를 새로고침하면 영상이 표시됩니다.
-          </p>
+          <p className="text-center text-xs text-white/50">{t("live.youtube.guide.refreshHint")}</p>
         </div>
       </div>
     );
@@ -86,11 +85,8 @@ export function YoutubeEmbedGuide({ variant = "full", watchUrl }: Props) {
 
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm">
-      <h2 className="text-base font-semibold">YouTube 라이브 — 퍼가기 허용 설정</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        MoCoMo에서 YouTube 라이브를 임베드하려면 YouTube Studio에서{" "}
-        <strong>퍼가기 허용</strong>을 켜야 합니다.
-      </p>
+      <h2 className="text-base font-semibold">{t("live.youtube.guide.title")}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{t("live.youtube.guide.intro")}</p>
       <GuideSteps className="mt-4" imageClassName="rounded-lg border" />
     </div>
   );
@@ -103,24 +99,25 @@ function GuideSteps({
   className?: string;
   imageClassName?: string;
 }) {
+  const { t } = useLocale();
   const steps = [
     {
-      title: "OBS로 유튜브 라이브 시작 후 제목 옆 「수정」을 클릭합니다",
-      body: "OBS로 YouTube 라이브를 켠 뒤, 스트림 설정에서 제목 옆에 있는 「수정」 버튼을 누릅니다.",
+      title: t("live.youtube.guide.step1Title"),
+      body: t("live.youtube.guide.step1Body"),
       image: GUIDE_IMAGES.studioEdit,
-      alt: "YouTube Studio 제목 옆 수정 버튼",
+      alt: t("live.youtube.guide.step1Alt"),
     },
     {
-      title: "세부정보 → 퍼가기 허용 체크",
-      body: "「설정 수정」 창에서 세부정보 탭을 선택하고, 라이선스 아래 「퍼가기 허용」에 체크합니다.",
+      title: t("live.youtube.guide.step2Title"),
+      body: t("live.youtube.guide.step2Body"),
       image: GUIDE_IMAGES.unchecked,
-      alt: "퍼가기 허용 체크박스 (꺼짐)",
+      alt: t("live.youtube.guide.step2Alt"),
     },
     {
-      title: "저장 후 MoCoMo 새로고침",
-      body: "「저장」을 누른 뒤 MoCoMo 방송 페이지를 새로고침하면 영상이 표시됩니다.",
+      title: t("live.youtube.guide.step3Title"),
+      body: t("live.youtube.guide.step3Body"),
       image: GUIDE_IMAGES.checked,
-      alt: "퍼가기 허용 체크박스 (켜짐)",
+      alt: t("live.youtube.guide.step3Alt"),
     },
   ];
 

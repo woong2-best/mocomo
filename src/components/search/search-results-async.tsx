@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { enrichSearchUsersWithFollowStatus, runFastSearch } from "@/lib/search-fast";
@@ -24,7 +27,7 @@ export async function SearchResultsAsync({
   const q = query.trim();
   if (q.length < 1) {
     return (
-      <p className="text-sm text-muted-foreground">검색어를 입력해 주세요.</p>
+      <p className="text-sm text-muted-foreground">{t("search.s1tx7jn5")}</p>
     );
   }
 
@@ -56,7 +59,7 @@ export async function SearchResultsAsync({
     <>
       {isLiveFeatureEnabled() && liveStreams.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">라이브 방송</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("search.stunxr8")}</h2>
           {liveStreams.map((ch) => (
             <Link key={ch.id} href={`/voice/${ch.id}`} className="block text-sm py-1 hover:text-primary">
               🔴 {ch.name} <span className="text-muted-foreground text-xs">({ch.category})</span>
@@ -66,7 +69,7 @@ export async function SearchResultsAsync({
       )}
       {animes.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">애니</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("search.syjxk")}</h2>
           <div className="space-y-2">
             {animes.map((a) => (
               <Link
@@ -87,7 +90,7 @@ export async function SearchResultsAsync({
                       locale
                     )}
                   </p>
-                  <p className="text-[11px] text-primary/70 mt-0.5">컬쳐위키</p>
+                  <p className="text-[11px] text-primary/70 mt-0.5">{t("nav.anime")}</p>
                 </div>
               </Link>
             ))}
@@ -96,7 +99,7 @@ export async function SearchResultsAsync({
       )}
       {users.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">사람</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("search.sxs2o")}</h2>
           <div className="space-y-1">
             {users.map((u) => {
               const displayName = userDisplayName(u);
@@ -126,8 +129,8 @@ export async function SearchResultsAsync({
         </section>
       )}
       <section>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-2">게시물</h2>
-        {posts.length === 0 && <p className="text-xs text-muted-foreground">없음</p>}
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("search.sq80a4")}</h2>
+        {posts.length === 0 && <p className="text-xs text-muted-foreground">{t("settings.none")}</p>}
         {posts.map((p) => (
           <Link key={p.id} href={`/post/${p.id}`}>
             <Card className="mb-2 hover:border-primary/30">
@@ -137,11 +140,11 @@ export async function SearchResultsAsync({
         ))}
       </section>
       {animes.length === 0 && users.length === 0 && posts.length === 0 && (
-        <p className="text-sm text-muted-foreground">검색 결과가 없습니다.</p>
+        <p className="text-sm text-muted-foreground">{t("search.s1ilpk74")}</p>
       )}
       {related.length > 0 && (
         <section className="pt-2">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">연관 검색어</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("search.slb69a3")}</h2>
           <div className="flex flex-wrap gap-2">
             {related.map((r) => (
               <Link

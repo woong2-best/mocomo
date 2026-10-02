@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   googleSearchUrlForMeet,
   marketplaceMeetLocationQuery,
@@ -42,7 +45,7 @@ export function UsedMeetMapCard({ map, region, meetPlace }: Props) {
         meetPlace={placeLabel || undefined}
         coords={coords}
         heightClassName="h-[220px] sm:h-[220px]"
-        pinTitle={locationQuery || "거래 장소"}
+        pinTitle={locationQuery || t("used.s1m4rnnj")}
         pinSearchUrl={searchUrl}
         pinMapUrl={mapUrl}
       />

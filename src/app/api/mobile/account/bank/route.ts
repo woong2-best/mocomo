@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   const status = await getAccountBankStatusForUser(auth.user.id);
   if (!status) {
-    return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
   return NextResponse.json(status);
 }
@@ -49,17 +50,17 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const user = await loadBankVerificationUserById(auth.user.id);
   if (!user) {
-    return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
 
   const ip = await getRequestIp();
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
       { ip, linkStripeConnect: false }
     );
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
     }
     return NextResponse.json(result);
   }
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
     { ip, linkStripeConnect: false }
   );
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
   return NextResponse.json(result);
 }

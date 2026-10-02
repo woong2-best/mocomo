@@ -37,7 +37,7 @@ export default function Error({
       description={
         staleDeploy
           ? "배포 직후 일시적으로 발생할 수 있습니다. 새로고침(Ctrl+Shift+R) 후 다시 시도해 주세요."
-          : "일시적인 오류일 수 있습니다. 다시 시도하거나 홈으로 이동해 주세요."
+          : "Something went wrong. Please try again."
       }
       onRetry={() => {
         if (staleDeploy) reloadForStaleDeployment();
@@ -45,7 +45,7 @@ export default function Error({
       }}
       retryLabel={staleDeploy ? "새로고침" : "다시 시도"}
       primaryHref={DEFAULT_LANDING_PATH}
-      primaryLabel="홈으로"
+      primaryLabel="Home"
     />
   );
 }

@@ -1,9 +1,12 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { CREATOR_TERMS } from "@/lib/legal-content";
 import { LegalDocumentView } from "@/components/legal/legal-document";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "크리에이터 약관 — MoCoMo",
+  title: t("app.legal.mocomo_4"),
 };
 
 export default function CreatorTermsPage() {

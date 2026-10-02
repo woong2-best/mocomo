@@ -1,5 +1,4 @@
 import { revalidatePath } from "next/cache";
-import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { db } from "@/lib/db";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
 import { fulfillEventRegistration } from "@/actions/events";
@@ -214,7 +213,7 @@ export async function fulfillPaymentIntent(
     return { ok: true, type: intent.type, alreadyPaid: true };
   }
   if (!intent.purchaseTermsAcceptedAt) {
-    return { ok: false, error: "결제 약관 동의 기록이 없습니다." };
+    return { ok: false, error: "No payment terms consent on file." };
   }
   if (intent.amount !== amount) {
     return { ok: false, error: "?? ??? ???? ????." };
@@ -343,7 +342,7 @@ export async function fulfillPaymentIntent(
 
   if (intent.type === "VENDOR_ONBOARDING_FEE") {
     const profile = await db.marketplaceSellerProfile.findUnique({ where: { userId } });
-    if (!profile) return { ok: false, error: "판매자 프로필을 찾을 수 없습니다." };
+    if (!profile) return { ok: false, error: "Seller profile not found." };
     if (profile.vendorOnboardingFeePaidAt) {
       return { ok: true as const, type: intent.type, alreadyPaid: true };
     }
@@ -364,7 +363,7 @@ export async function fulfillPaymentIntent(
       referenceType: "vendor_onboarding_fee",
       referenceId: profile.id,
       paymentIntentId: intent.id,
-      memo: "판매자 입점비 (Stripe 미지원 국가)",
+      memo: "Seller onboarding fee (Stripe unsupported country)",
     });
     revalidatePath("/market/seller/register");
     revalidatePath("/market/seller");
@@ -490,7 +489,7 @@ export async function fulfillPaymentIntent(
         referenceType: "message_media",
         referenceId: r.referenceId,
         paymentIntentId: intent.id,
-        memo: "DM 팬아트 판매",
+        memo: "DM fan art sale",
       });
     }
     if ("roomId" in r && r.roomId) {
@@ -513,7 +512,6 @@ export async function fulfillPaymentIntent(
     }
     revalidatePath("/studio/market");
     revalidatePath("/studio/library");
-    revalidateAptHub();
   }
 
   if (intent.type === "MARKETPLACE") {
@@ -536,10 +534,10 @@ export async function fulfillPaymentIntent(
     const pack = findMocoTopupPackage(metaMoco);
     const mocoAmount = pack?.moco ?? krwToMoco(amount);
     if (pack && pack.krw !== amount) {
-      return { ok: false, error: "모코 충전 금액이 패키지와 일치하지 않습니다." };
+      return { ok: false, error: "MOCO top-up amount doesn't match the package." };
     }
     if (mocoAmount <= 0) {
-      return { ok: false, error: "모코 충전량을 확인할 수 없습니다." };
+      return { ok: false, error: "Couldn't verify MOCO top-up amount." };
     }
     await creditPlatformWallet({
       userId,

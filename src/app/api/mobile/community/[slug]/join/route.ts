@@ -45,7 +45,7 @@ export async function POST(
   const { slug: raw } = await params;
   const slug = normalizeCommunitySlugParam(raw);
   if (!slug || slug.length > 80) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let inviteCode: string | undefined;
@@ -72,14 +72,14 @@ export async function POST(
       },
     });
     if (!community) {
-      return NextResponse.json({ error: "커뮤니티를 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Community not found." }, { status: 404 });
     }
 
     const banned = await db.communityBan.findUnique({
       where: { communityId_userId: { communityId: community.id, userId: auth.user.id } },
     });
     if (banned && (!banned.expiresAt || banned.expiresAt > new Date())) {
-      return NextResponse.json({ error: "이 커뮤니티에 참여할 수 없습니다." }, { status: 403 });
+      return NextResponse.json({ error: "Not found." }, { status: 403 });
     }
 
     const existing = await db.communityMember.findUnique({
@@ -104,31 +104,31 @@ export async function POST(
       const pin = joinPassword ?? "";
       if (!isValidCommunityJoinPassword(pin)) {
         return NextResponse.json(
-          { error: "4자리 숫자 비밀번호를 입력해 주세요." },
+          { error: "Required field missing." },
           { status: 400 }
         );
       }
       const ok = await verifyCommunityJoinPassword(pin, community.joinPasswordHash);
       if (!ok) {
-        return NextResponse.json({ error: "비밀번호가 올바르지 않습니다." }, { status: 403 });
+        return NextResponse.json({ error: "Incorrect password." }, { status: 403 });
       }
     }
 
     if (community.joinMode === "INVITE_ONLY") {
       if (!inviteCode) {
-        return NextResponse.json({ error: "초대 링크가 필요한 커뮤니티입니다." }, { status: 400 });
+        return NextResponse.json({ error: "Required field missing." }, { status: 400 });
       }
       const invite = await db.communityInvite.findFirst({
         where: { communityId: community.id, code: inviteCode },
       });
       if (!invite) {
-        return NextResponse.json({ error: "유효하지 않은 초대 링크입니다." }, { status: 400 });
+        return NextResponse.json({ error: "Invalid request." }, { status: 400 });
       }
       if (invite.expiresAt && invite.expiresAt < new Date()) {
-        return NextResponse.json({ error: "만료된 초대 링크입니다." }, { status: 400 });
+        return NextResponse.json({ error: "This invite link has expired." }, { status: 400 });
       }
       if (invite.maxUses != null && invite.useCount >= invite.maxUses) {
-        return NextResponse.json({ error: "초대 링크 사용 횟수가 초과되었습니다." }, { status: 400 });
+        return NextResponse.json({ error: "Invite link use limit exceeded." }, { status: 400 });
       }
       await db.communityInvite.update({
         where: { id: invite.id },
@@ -154,7 +154,7 @@ export async function POST(
       return NextResponse.json({
         success: true,
         pending: true,
-        message: "가입 요청이 접수되었습니다. 승인 후 알림을 받게 됩니다.",
+        message: "Join request received. You will be notified when approved.",
       });
     }
 

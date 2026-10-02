@@ -27,10 +27,10 @@ export async function GET(req: NextRequest) {
 
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
   if (q.length < 1) {
-    return NextResponse.json({ error: "검색어를 입력해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
   if (q.length > 80) {
-    return NextResponse.json({ error: "검색어가 너무 깁니다." }, { status: 400 });
+    return NextResponse.json({ error: "Search query is too long." }, { status: 400 });
   }
 
   try {
@@ -50,6 +50,6 @@ export async function GET(req: NextRequest) {
     );
   } catch (e) {
     console.error("[api/search]", e);
-    return NextResponse.json({ error: "검색에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Search failed." }, { status: 500 });
   }
 }

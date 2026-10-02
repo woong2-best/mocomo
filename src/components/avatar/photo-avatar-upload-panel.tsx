@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2, Trash2, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,7 +36,7 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
       setMode("photo");
       onReady?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "사진 아바타 생성에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("avatar.s1bk981x"));
     } finally {
       setLoading(false);
     }
@@ -41,7 +44,7 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
 
   function switchMode(next: "flat2d" | "photo") {
     if (next === "photo" && !hasRig) {
-      setError("먼저 얼굴 사진을 업로드해 주세요.");
+      setError(t("avatar.s1mmossn"));
       return;
     }
     setPhotoAvatarRenderMode(next);
@@ -60,7 +63,7 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
     <div className="space-y-2 rounded-xl border border-border/70 bg-muted/20 p-3">
       <div className="flex items-center gap-2">
         <UserCircle2 className="h-4 w-4 text-primary" />
-        <p className="text-xs font-semibold">사진 → 버츄얼 (2D)</p>
+        <p className="text-xs font-semibold">{t("avatar.sivpyjt")}</p>
       </div>
       <p className="text-[10px] text-muted-foreground leading-snug">
         정면 얼굴 사진을 올리면 눈·코·입을 자동 인식해 {PHOTO_AVATAR_SIZE}×{PHOTO_AVATAR_SIZE} 아바타를
@@ -75,7 +78,7 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
             mode === "flat2d" ? "border-primary bg-primary/10 text-primary" : "border-border"
           }`}
         >
-          기본 2D
+          {t("avatar.s1tmj3xm")}
         </button>
         <button
           type="button"
@@ -84,7 +87,7 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
             mode === "photo" ? "border-primary bg-primary/10 text-primary" : "border-border"
           }`}
         >
-          사진 아바타
+          {t("avatar.s1rvyxns")}
         </button>
       </div>
 
@@ -111,7 +114,7 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
           onClick={() => inputRef.current?.click()}
         >
           {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
-          {loading ? "인식 중…" : "갤러리에서 얼굴 사진"}
+          {loading ? t("avatar.sn6lbrk") : t("avatar.s1lt4vtc")}
         </Button>
         {hasRig && (
           <Button
@@ -122,14 +125,14 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
             onClick={() => void removePhotoAvatar()}
           >
             <Trash2 className="h-3.5 w-3.5" />
-            사진 아바타 삭제
+            {t("avatar.sgalah3")}
           </Button>
         )}
       </div>
 
       {error && <p className="text-[10px] text-destructive">{error}</p>}
       {hasRig && mode === "photo" && (
-        <p className="text-[10px] text-emerald-600">사진 아바타 활성 — 스튜디오·라이브·OBS에 적용됩니다.</p>
+        <p className="text-[10px] text-emerald-600">{t("avatar.obs_6")}</p>
       )}
     </div>
   );

@@ -63,15 +63,15 @@ export function createLayer(
 
 function layerDefaultName(type: EditorLayerType): string {
   const names: Record<EditorLayerType, string> = {
-    background: "배경",
-    image: "이미지",
-    text: "텍스트",
-    emoji: "이모지",
-    sticker: "스티커",
-    shape: "도형",
-    brush: "브러시",
-    blur: "블러",
-    overlay: "오버레이",
+    background: "Background",
+    image: "Image",
+    text: "Text",
+    emoji: "Emoji",
+    sticker: "Sticker",
+    shape: "Shapes",
+    brush: "Brush",
+    blur: "Blur",
+    overlay: "Overlay",
   };
   return names[type];
 }

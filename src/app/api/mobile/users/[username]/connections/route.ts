@@ -25,12 +25,12 @@ export async function GET(
   const { username: raw } = await params;
   const username = decodeURIComponent(raw ?? "").trim();
   if (!username || username.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const tab = parseTab(req.nextUrl.searchParams.get("type"));
   if (!tab) {
-    return NextResponse.json({ error: "type=followers|following 이 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const cursor = (req.nextUrl.searchParams.get("cursor") ?? "").trim() || undefined;
@@ -40,7 +40,7 @@ export async function GET(
     select: { id: true, username: true },
   });
   if (!profileUser) {
-    return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
 
   const where =

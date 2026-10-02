@@ -1,12 +1,14 @@
 import type { MessageAttachmentType, SupportTierLevel } from "@prisma/client";
 import { lastMessagePreview } from "@/lib/chat-attachments";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
-import { enUS, ko } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import type { Locale } from "@/lib/i18n/config";
-import { uiText } from "@/lib/i18n/ui-text";
+import { createTranslator } from "@/lib/i18n/messages";
 
-function dateFnsLocale(locale: Locale | string | undefined) {
-  return locale === "ko" ? ko : enUS;
+const t = createTranslator("en");
+
+function dateFnsLocale(_locale: Locale | string | undefined) {
+  return enUS;
 }
 
 type RoomMember = {
@@ -36,22 +38,25 @@ type RoomPreview = {
 export function groupMemberDisplayNames(
   members: RoomMember[],
   currentUserId: string,
-  locale: Locale | string | undefined = "ko"
+  _locale: Locale | string | undefined = "en"
 ): string {
   const others = members.filter((m) => m.userId !== currentUserId);
   const names = others
     .map((m) => m.user.name?.trim() || m.user.username)
     .filter(Boolean);
-  if (names.length === 0) return uiText(locale, "단체 대화", "Group chat");
+  if (names.length === 0) return t("ui.group_chat");
   if (names.length <= 3) return names.join(", ");
   const rest = names.length - 3;
-  return uiText(locale, `${names.slice(0, 3).join(", ")} 외 ${rest}명`, `${names.slice(0, 3).join(", ")} +${rest} more`);
+  return t("chat.groupMembersOverflow", {
+    names: names.slice(0, 3).join(", "),
+    rest: String(rest),
+  });
 }
 
 export function getConversationMeta(
   room: RoomPreview,
   currentUserId: string,
-  locale: Locale | string | undefined = "ko"
+  locale: Locale | string | undefined = "en"
 ) {
   const other = room.members.find((m) => m.userId !== currentUserId);
   const isDm = room.type === "DM";
@@ -59,11 +64,11 @@ export function getConversationMeta(
   const isGroup = room.type === "GROUP";
   const typeLabel =
     room.type === "COSPLAYER_GROUP"
-      ? uiText(locale, "코스어 단체방", "Cosplayer group")
+      ? t("ui.cosplayer_group")
       : room.type === "SOCIAL_GROUP"
-        ? uiText(locale, "친목 단체방", "Social group")
+        ? t("ui.social_group")
         : room.type === "FANDOM"
-          ? uiText(locale, "팬덤방", "Fandom room")
+          ? t("ui.fandom_room")
           : room.type;
   const displayName =
     (isMarket && room.name) ||
@@ -97,26 +102,25 @@ export function getConversationMeta(
   };
 }
 
-export function formatChatListTime(date: Date | string | null, locale: Locale | string | undefined = "ko") {
+export function formatChatListTime(date: Date | string | null, locale: Locale | string | undefined = "en") {
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date) : date;
   const loc = dateFnsLocale(locale);
   if (isToday(d)) return format(d, "HH:mm", { locale: loc });
-  if (isYesterday(d)) return uiText(locale, "어제", "Yesterday");
+  if (isYesterday(d)) return t("ui.yesterday");
   return format(d, "M.d", { locale: loc });
 }
 
-export function formatBubbleTime(date: Date | string, locale: Locale | string | undefined = "ko") {
+export function formatBubbleTime(date: Date | string, locale: Locale | string | undefined = "en") {
   const d = typeof date === "string" ? new Date(date) : date;
   return format(d, "a h:mm", { locale: dateFnsLocale(locale) });
 }
 
-export function formatDateDivider(date: Date | string, locale: Locale | string | undefined = "ko") {
+export function formatDateDivider(date: Date | string, locale: Locale | string | undefined = "en") {
   const d = typeof date === "string" ? new Date(date) : date;
   const loc = dateFnsLocale(locale);
-  if (isToday(d)) return uiText(locale, "오늘", "Today");
-  if (isYesterday(d)) return uiText(locale, "어제", "Yesterday");
-  if (locale === "ko") return format(d, "yyyy년 M월 d일", { locale: loc });
+  if (isToday(d)) return t("calendar.today");
+  if (isYesterday(d)) return t("ui.yesterday");
   return format(d, "MMM d, yyyy", { locale: loc });
 }
 

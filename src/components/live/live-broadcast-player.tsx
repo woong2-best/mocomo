@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useState } from "react";
 import type { LiveBroadcastMode } from "@prisma/client";
 import { LiveSrsPlayer } from "@/components/live/live-srs-player";
@@ -38,6 +42,7 @@ export function LiveBroadcastPlayer({
   /** 서버에서 LIVE 상태를 알면 WHEP를 즉시 시작 */
   isLiveOnAir?: boolean;
 }) {
+  const { t } = useLocale();
   const optimisticWhep =
     broadcastMode === "BROWSER" || (!!isLiveOnAir && !isVoiceBroadcastMode(broadcastMode));
   const [engine, setEngine] = useState<PlaybackEngine | null>(() => {
@@ -72,7 +77,7 @@ export function LiveBroadcastPlayer({
         const msg =
           typeof body.error === "string"
             ? body.error
-            : "재생 정보를 가져오지 못했습니다";
+            : t("live.sc4wyy");
         setLoadError(msg);
         const eng = parseEngine(body);
         if (eng) setEngine(eng);
@@ -108,7 +113,7 @@ export function LiveBroadcastPlayer({
         setResolvedMode(body.broadcastMode as LiveBroadcastMode);
       }
     } catch {
-      setLoadError("재생 정보를 가져오지 못했습니다");
+      setLoadError(t("live.sc4wyy"));
       if (
         preferredEngine === "cloudflare" ||
         preferredEngine === "livekit" ||
@@ -135,7 +140,7 @@ export function LiveBroadcastPlayer({
         <p className="text-sm text-destructive text-center">{loadError}</p>
         <Button variant="outline" size="sm" onClick={() => void load()}>
           <RefreshCw className="h-4 w-4 mr-1" />
-          다시 시도
+          {t("toast.retry")}
         </Button>
       </div>
     );
@@ -168,7 +173,7 @@ export function LiveBroadcastPlayer({
         <LiveSplitBroadcastPlayer
           channelId={channelId}
           coHostUserId={collab.coHostUserId}
-          coHostLabel={collab.coHost?.name ?? collab.coHost?.username ?? "합방"}
+          coHostLabel={collab.coHost?.name ?? collab.coHost?.username ?? t("live.s11bz4")}
         />
       );
     }

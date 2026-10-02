@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { AdminWatermarkDetectionResponse } from "@/lib/watermark/types";
@@ -19,43 +24,43 @@ type SystemStatus = {
 
 function humanizeDetectionError(message: string, contentId: string, creatorUsername: string) {
   if (message === "Creator not found" || message === "Creator username is invalid") {
-    return "크리에이터 @아이디를 찾을 수 없습니다. 프로필 URL의 username을 확인하세요.";
+    return t("admin.url_username");
   }
   if (message === "No watermark sessions recorded for this creator") {
     return [
-      `@${creatorUsername.trim().replace(/^@+/, "") || "해당 크리에이터"}의 유료 사진·영상 시청 세션이 없습니다.`,
-      "다른 계정으로 해당 크리에이터의 유료 콘텐츠를 연 뒤, 그 화면을 캡처해 다시 시도하세요.",
+      `@${creatorUsername.trim().replace(/^@+/, "") || t("admin.s1y2nkvl")}의 유료 사진·Video 시청 세션이 없습니다.`,
+      t("admin.sjqi8hb"),
     ].join(" ");
   }
   if (message === "Creator username, Media ID, or Session ID is required") {
-    return "판매 크리에이터 @아이디를 입력하세요.";
+    return t("admin.s8n3b8i");
   }
   if (message === "No watermark sessions recorded yet") {
     return [
-      "아직 기록된 유료 미디어 시청 세션이 없습니다.",
-      "포렌식은 플레이어에 워터마크가 입혀진 유료 사진·영상 캡처만 비교할 수 있습니다.",
-      "테스트: 다른 계정으로 유료 사진 또는 영상을 구매·연 뒤, 화면을 캡처하고 Media ID를 입력해 다시 분석하세요.",
-      "참고: 작성자 본인 열람, 워터마크 켜기 전 캡처는 세션이 없거나 신호가 없습니다.",
+      t("admin.s5vihdc"),
+      t("admin.s14fx6c9"),
+      t("admin.media_id"),
+      t("admin.s1rruup8"),
     ].join(" ");
   }
   if (message === "No watermark sessions recorded for this content") {
     return [
-      `Media ID(${contentId.trim() || "입력값"})에 대한 시청 세션이 없습니다.`,
-      "해당 사진·영상을 구매한 다른 계정으로 연 뒤, 그 화면을 캡처해 다시 시도하세요.",
+      `Media ID(${contentId.trim() || t("admin.su4bte")})에 대한 시청 세션이 없습니다.`,
+      t("admin.s10hr0be"),
     ].join(" ");
   }
   if (message === "Session ID not found") {
     return [
-      "Session ID를 찾을 수 없습니다.",
-      "DevTools에서 __mocomoForensicDebug.canvases()[0].sessionId 처럼 실제 값을 복사해 넣으세요.",
-      "placeholder 문장(DevTools canvases()[0].sessionId)을 그대로 붙여넣으면 안 됩니다.",
+      t("admin.session_id"),
+      t("admin.devtools_mocomoforensicdebug_canvases_0_"),
+      t("admin.placeholder_devtools_canvases_0_sessioni"),
     ].join(" ");
   }
   if (message === "Detection timed out on server") {
     return [
-      "서버 분석 시간이 초과되었습니다.",
-      "크리에이터 @아이디를 입력했는지 확인하세요.",
-      "특정 사진만 비교하려면 Media ID를 추가로 넣으면 더 빠릅니다.",
+      t("admin.spqu9wk"),
+      t("admin.syvsbr9"),
+      t("admin.media_id_3"),
     ].join(" ");
   }
   return message;
@@ -81,13 +86,13 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       const normalizedSessionId = normalizeWatermarkSessionIdInput(sessionId);
       if (sessionId.trim() && !normalizedSessionId) {
         setError(
-          "Session ID 형식이 올바르지 않습니다. 고급 필드는 비우거나 DevTools에서 복사한 c… 값만 넣으세요."
+          t("admin.session_id_devtools_c")
         );
         return;
       }
       const creatorHandle = creatorUsername.trim().replace(/^@+/, "");
       if (!creatorHandle && !contentId.trim() && !normalizedSessionId) {
-        setError("유출된 콘텐츠를 판매한 크리에이터 @아이디를 입력하세요.");
+        setError(t("admin.svvcugq"));
         return;
       }
 
@@ -129,11 +134,11 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
           const noiseLike = r.centralScore > 0.45 && r.centralScore < 0.58;
           setError(
             [
-              "워터마크 신호를 찾지 못했습니다.",
+              t("admin.s1vbksj8"),
               noiseLike
                 ? `공간 비트 일치 ${(r.centralScore * 100).toFixed(0)}%는 압축·텍스처 노이즈 수준이며, 워터마크가 아닙니다.`
                 : null,
-              "유료 미디어가 완전히 로드된 뒤 캡처했는지, 크리에이터 @아이디가 맞는지 확인하세요.",
+              t("admin.swk8eo0"),
             ]
               .filter(Boolean)
               .join(" ")
@@ -153,7 +158,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
         const poll = await fetch(`/api/admin/watermark/detect/${started.jobId}`);
         const body = await poll.json();
         if (!poll.ok) {
-          setError(body.error ?? "Job lookup failed");
+          setError(errorText(body.error ?? "Job lookup failed"));
           return;
         }
         if (body.status === "PENDING") {
@@ -172,12 +177,12 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
             const noiseLike = r.centralScore > 0.45 && r.centralScore < 0.58;
             setError(
               [
-                "워터마크 신호를 찾지 못했습니다.",
+                t("admin.s1vbksj8"),
                 noiseLike
                   ? `공간 비트 일치 ${(r.centralScore * 100).toFixed(0)}%는 압축·텍스처 노이즈 수준이며, 워터마크가 아닙니다.`
                   : null,
-                "노트북·폰 스크린샷은 유료 미디어가 완전히 로드된 뒤 캡처하세요.",
-                "노트북 화면을 다른 폰으로 찍은 사진은 흔들림·각도·밝기에 따라 실패할 수 있습니다 — 크리에이터 @아이디를 확인하고 선명한 정면 캡처를 사용하세요.",
+                t("admin.szjd5b6"),
+                t("admin.s1oljwd8_2"),
               ]
                 .filter(Boolean)
                 .join(" ")
@@ -190,8 +195,8 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       setError(
         [
           "Analysis timed out",
-          "크리에이터 @아이디가 맞는지 확인하세요.",
-          "특정 사진만 대상으로 하려면 Media ID를 추가하세요.",
+          t("admin.s14lnstn"),
+          t("admin.media_id_4"),
         ].join(" ")
       );
     } catch (e) {
@@ -205,32 +210,32 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="rounded-xl border bg-white p-4 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
-        <p className="text-sm font-medium">시스템 상태</p>
+        <p className="text-sm font-medium">{t("admin.s16n1jnr")}</p>
         <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
           <div>
-            <dt className="text-muted-foreground">워터마크</dt>
+            <dt className="text-muted-foreground">{t("media.spy7kp4")}</dt>
             <dd className={systemStatus.enabled ? "text-emerald-600" : "text-red-600"}>
-              {systemStatus.enabled ? "켜짐" : "꺼짐"}
+              {systemStatus.enabled ? t("settings.nsfwOn") : t("settings.nsfwOff")}
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">마스터 시크릿</dt>
+            <dt className="text-muted-foreground">{t("admin.sqiefdv")}</dt>
             <dd className={systemStatus.secretConfigured ? "text-emerald-600" : "text-red-600"}>
-              {systemStatus.secretConfigured ? "설정됨" : "미설정"}
+              {systemStatus.secretConfigured ? t("admin.st9g47") : t("admin.ssh3s9")}
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">기록된 시청 세션</dt>
+            <dt className="text-muted-foreground">{t("admin.s1pjwmta")}</dt>
             <dd className="font-medium">{systemStatus.sessionCount.toLocaleString()}건</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">프로토콜 버전</dt>
+            <dt className="text-muted-foreground">{t("admin.s1r8sr2k")}</dt>
             <dd className="font-medium">v{systemStatus.watermarkVersion}</dd>
           </div>
         </dl>
         {systemStatus.sessionCount === 0 ? (
           <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
-            시청 세션이 0건이면 분석을 시작할 수 없습니다. 다른 계정으로 유료 사진·영상을
+            시청 세션이 0건이면 분석을 시작할 수 없습니다. 다른 계정으로 유료 사진·Video을
             열어 세션을 만든 뒤 다시 시도하세요.
           </p>
         ) : (
@@ -240,7 +245,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
             DevTools <code className="rounded bg-muted px-1">exportPng()</code>는 개발용 진단입니다.
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
-            유료 사진·영상이 화면에 완전히 표시된 뒤 캡처하세요. 판매 크리에이터 @아이디만으로도 분석할 수 있습니다.
+            유료 사진·Video이 화면에 완전히 표시된 뒤 캡처하세요. 판매 크리에이터 @아이디만으로도 분석할 수 있습니다.
           </p>
           </>
         )}
@@ -249,7 +254,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       <div className="rounded-xl border bg-white p-6 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
         <h1 className="text-xl font-semibold">Watermark Forensics</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          노트북·폰 스크린샷, 또는 다른 기기로 화면을 촬영한 사진·영상을 업로드하세요. 유료 미디어가
+          노트북·폰 스크린샷, 또는 다른 기기로 화면을 촬영한 사진·Video을 업로드하세요. 유료 미디어가
           완전히 로드된 뒤 캡처한 샘플과 시청 세션을 비교합니다.
         </p>
 
@@ -266,16 +271,16 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
           </p>
 
           <label className="block text-sm">
-            <span className="font-medium">판매 크리에이터 @아이디</span>
+            <span className="font-medium">{t("admin.sae0eh0")}</span>
             <input
               type="text"
               value={creatorUsername}
               onChange={(e) => setCreatorUsername(e.target.value)}
-              placeholder="예: creator_handle"
+              placeholder={t("admin.creator_handle")}
               className="mt-1 block w-full rounded-lg border px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
             />
             <span className="mt-1 block text-xs text-muted-foreground">
-              유출된 사진·영상을 <strong>판매한 사람</strong>의 프로필 username (@ 없이 또는 @ 포함 모두 가능).
+              유출된 사진·Video을 <strong>{t("admin.s1j2exrs")}</strong>의 프로필 username (@ 없이 또는 @ 포함 모두 가능).
               이 크리에이터 유료 콘텐츠 시청 세션만 검색합니다.
             </span>
           </label>
@@ -295,7 +300,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
                   type="text"
                   value={contentId}
                   onChange={(e) => setContentId(e.target.value)}
-                  placeholder="특정 PostMedia id (더 빠름)"
+                  placeholder={t("admin.postmedia_id")}
                   className="mt-1 block w-full rounded-lg border px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
                 />
               </label>
@@ -305,7 +310,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
                   type="text"
                   value={sessionId}
                   onChange={(e) => setSessionId(e.target.value)}
-                  placeholder="DevTools sessionId (개발용)"
+                  placeholder={t("admin.devtools_sessionid")}
                   className="mt-1 block w-full rounded-lg border px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
                 />
               </label>

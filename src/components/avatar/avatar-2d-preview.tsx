@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef, useState } from "react";
 import { Flat2dAvatarScene } from "@/lib/avatar-2d/flat-2d-scene";
 import { hasFlat2dAvatar } from "@/lib/avatar-2d/storage";
@@ -34,7 +37,7 @@ export function Avatar2dPreview() {
       <p className="text-xs text-muted-foreground text-center py-8">
         {MOCOMO_2D_LIBRARY_NAME}가 비어 있습니다.
         <br />
-        그리기 또는 업로드 후 저장하면 여기에 쌓입니다.
+        {t("avatar.sq4fyfw")}
       </p>
     );
   }

@@ -1,5 +1,9 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { OreIcon } from "@/components/support/ore-icon";
 import { LetterDonationEnvelope } from "@/components/donations/letter-donation-envelope";
@@ -26,7 +30,8 @@ const STROKE =
   "0 2px 0 #000, 0 -2px 0 #000, 2px 0 0 #000, -2px 0 0 #000, 0 0 6px #000, 0 0 12px rgba(0,0,0,0.85)";
 
 function formatDonorName(username: string, anonymous?: boolean) {
-  if (anonymous) return "익명의 후원자";
+  const { t } = useLocale();
+  if (anonymous) return t("live.stf9b7w");
   return username.startsWith("@") ? username.slice(1) : username;
 }
 
@@ -47,14 +52,14 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
     headline = (
       <>
         <span className="text-[#7dd3fc]">{name}</span>
-        <span className="text-white font-bold"> · 채팅</span>
+        <span className="text-white font-bold"> {t("live.s49etm")}</span>
       </>
     );
   } else if (tip.eventType === "ROULETTE" && tip.rouletteLabel) {
     headline = (
       <>
         <span className="text-[#5dff6a]">{name}</span>
-        <span className="text-white font-bold">님 룰렛!</span>
+        <span className="text-white font-bold">{t("live.s1osetxq")}</span>
         <span className="text-[#ffe44d]">{tip.rouletteLabel}</span>
       </>
     );
@@ -62,7 +67,7 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
     headline = (
       <>
         <span className="text-[#5dff6a]">{name}</span>
-        <span className="text-white font-bold">님 TTS</span>
+        <span className="text-white font-bold">{t("live.tts")}</span>
         <span className="text-[#ffe44d] tabular-nums">{amountDisplay}</span>
       </>
     );
@@ -70,7 +75,7 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
     headline = (
       <>
         <span className="text-[#5dff6a]">{name}</span>
-        <span className="text-white font-bold">님 사운드</span>
+        <span className="text-white font-bold">{t("live.s1otn37w")}</span>
         <span className="text-[#ffe44d] tabular-nums">{amountDisplay}</span>
       </>
     );
@@ -78,7 +83,7 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
     headline = (
       <>
         <span className="text-[#5dff6a]">{name}</span>
-        <span className="text-white font-bold">님 투표</span>
+        <span className="text-white font-bold">{t("live.sml3s3c")}</span>
         <span className="text-[#ffe44d] tabular-nums">{amountDisplay}</span>
       </>
     );
@@ -86,7 +91,7 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
     headline = (
       <>
         <span className="text-[#5dff6a]">{name}</span>
-        <span className="text-white font-bold">님이</span>
+        <span className="text-white font-bold">{t("live.svijg")}</span>
         <OreIcon tier={tier} size={28} className="inline-block drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" />
         <span className="text-[#ffe44d] tabular-nums">
           {amountDisplay}!
@@ -107,7 +112,7 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
       {isLetter && tip.message?.trim() ? (
         <div className="py-1">
           <p className="text-[11px] font-bold text-amber-100 mb-2" style={{ textShadow: STROKE }}>
-            {name}님의 편지 후원 · {formatUsd(tip.amount)}
+            {t("live.donationAlert.letterTip", { name, amount: formatUsd(tip.amount) })}
           </p>
           <LetterDonationEnvelope
             amount={tip.amount}
@@ -154,8 +159,9 @@ function alertDuration(tip: LiveTipAlert) {
   return ALERT_MS.tip;
 }
 
-/** 트witch/치지직 스타일 — 영상 오른쪽 알림 (라이브 페이지 후원·CP·채팅) */
-export function LiveDonationAlertOverlay({ tips }: { tips: LiveTipAlert[] }) {
+/** 트witch/치지직 스타일 — Video 오른쪽 알림 (라이브 페이지 후원·CP·채팅) */
+export function LiveDonationAlertOverlay({
+  tips }: { tips: LiveTipAlert[] }) {
   const seenRef = useRef<Set<string>>(new Set());
   const queueRef = useRef<LiveTipAlert[]>([]);
   const [current, setCurrent] = useState<LiveTipAlert | null>(null);

@@ -67,7 +67,7 @@ export function EditorCanvas({
   const previewLineRef = useRef<Konva.Line>(null);
 
   const activeLayer = project.layers.find((l) => l.id === project.activeLayerId) ?? null;
-  // 크롭 프레임 조절 모드: 배경/선택 없음 + 그리기 아님
+  // 크롭 프레임 조절 모드: Background/선택 없음 + 그리기 아님
   const cropMode = cropEditing && !brushMode && (!activeLayer || activeLayer.type === "background");
   const { crop } = project;
 
@@ -248,7 +248,7 @@ export function EditorCanvas({
       className="absolute inset-0 touch-none"
     >
       <Layer>
-        {/* 내보내기 대상: 배경 + 오버레이 (UI 장식 없음) */}
+        {/* 내보내기 대상: Background + 오버레이 (UI 장식 없음) */}
         <Group
           ref={contentGroupRef}
           x={viewportOffset.x}

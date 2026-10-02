@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   CREATOR_REWARD_TIER_TABLE,
   achievedCreatorRewardTier,
@@ -11,10 +14,10 @@ export function CreatorRewardTierTable({ earnedMoco = 0 }: { earnedMoco?: number
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
       <div>
-        <p className="font-bold text-sm">Reward 정산 등급 (Novice / Pulse / …)</p>
+        <p className="font-bold text-sm">{t("wallet.reward_novice_pulse")}</p>
         <p className="text-xs text-muted-foreground mt-1">
-          매월 earned MOCO로 산정하는 <strong>정산 지급</strong> 등급입니다. 프로필{' '}
-          <strong>후원 광석</strong>(Seed/Stone/…) 등급과 이름·기준이 다릅니다. 수량은 모두 MOCO 기준입니다.
+          {t("wallet.earned_moco")} <strong>{t("wallet.spb29fy")}</strong> {t("wallet.rewardTierSuffix")}{" "}
+          <strong>{t("wallet.scgh9hc")}</strong>{t("wallet.seed_stone_moco")}
         </p>
       </div>
       <ul className="max-h-64 overflow-y-auto space-y-1 text-xs">
@@ -32,8 +35,8 @@ export function CreatorRewardTierTable({ earnedMoco = 0 }: { earnedMoco?: number
           >
             <span className="font-semibold">
               {row.label}
-              {row.label === current.label ? " · 현재" : ""}
-              {row.label === progress.nextLabel ? " · 다음" : ""}
+              {row.label === current.label ? t("wallet.slwf9t") : ""}
+              {row.label === progress.nextLabel ? t("wallet.slqg41") : ""}
             </span>
             <span className="font-mono font-bold tabular-nums">{row.requiredMoco.toLocaleString()} MOCO</span>
           </li>

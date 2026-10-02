@@ -21,11 +21,11 @@ export function createImageLayer(
     flipX: false,
     flipY: false,
     effects: {},
-  }, { name: opts?.name ?? (type === "background" ? "배경" : "이미지") });
+  }, { name: opts?.name ?? (type === "background" ? "Background" : "Image") });
 }
 
-export function createTextLayer(text = "텍스트", x = 40, y = 40): EditorLayer {
-  return createLayer("text", { text, ...DEFAULT_TEXT_STYLE, width: 280 }, { name: "텍스트", x, y });
+export function createTextLayer(text = "Text", x = 40, y = 40): EditorLayer {
+  return createLayer("text", { text, ...DEFAULT_TEXT_STYLE, width: 280 }, { name: "Text", x, y });
 }
 
 export function createEmojiLayer(emoji: string, x = 80, y = 80, fontSize = 72): EditorLayer {
@@ -51,20 +51,20 @@ export function createShapeLayer(kind: ShapeKind, x = 100, y = 100): EditorLayer
       strokeWidth: kind === "line" || kind === "arrow" ? 6 : 3,
       cornerRadius: 12,
     },
-    { name: "도형", x, y }
+    { name: "Shapes", x, y }
   );
 }
 
 export function createBrushLayer(): EditorLayer {
-  return createLayer("brush", { strokes: [] }, { name: "브러시" });
+  return createLayer("brush", { strokes: [] }, { name: "Brush" });
 }
 
 export function createBlurLayer(w: number, h: number, x: number, y: number): EditorLayer {
-  return createLayer("blur", { width: w, height: h, blurRadius: 12 }, { name: "블러", x, y });
+  return createLayer("blur", { width: w, height: h, blurRadius: 12 }, { name: "Blur", x, y });
 }
 
 export function createOverlayLayer(w: number, h: number, x: number, y: number, color = "rgba(0,0,0,0.25)"): EditorLayer {
-  return createLayer("overlay", { width: w, height: h, color }, { name: "오버레이", x, y });
+  return createLayer("overlay", { width: w, height: h, color }, { name: "Overlay", x, y });
 }
 
 export function fitLayerToCanvas(layer: EditorLayer, canvasW: number, canvasH: number): EditorLayer {
@@ -128,7 +128,7 @@ export function minCoverScale(
 }
 
 /**
- * 배경 이미지를 중심 피벗으로 박스 중앙에 배치하고, 최소 커버 배율 이상으로 맞춘다.
+ * Background 이미지를 중심 피벗으로 박스 중앙에 배치하고, 최소 커버 배율 이상으로 맞춘다.
  * offsetX/offsetY 를 이미지 중심으로 두는 렌더링과 짝을 이룬다(회전/줌이 항상 중앙 기준).
  */
 export function coverBackgroundTransform(
@@ -269,7 +269,7 @@ export async function createProjectFromImageSrc(
     }
   }
   const now = new Date().toISOString();
-  const bgLayer = createImageLayer(normalizedSrc, nw, nh, { name: "배경", type: "background" });
+  const bgLayer = createImageLayer(normalizedSrc, nw, nh, { name: "Background", type: "background" });
   const bg = {
     ...bgLayer,
     locked: true,
@@ -277,7 +277,7 @@ export async function createProjectFromImageSrc(
   } as EditorLayer;
   return {
     version: 2,
-    meta: { id: newProjectId(), title: opts.title ?? "편집", createdAt: now, updatedAt: now },
+    meta: { id: newProjectId(), title: opts.title ?? "Edit", createdAt: now, updatedAt: now },
     width: canvasW,
     height: canvasH,
     layers: [bg],
@@ -296,7 +296,7 @@ export async function createLayerFromFile(file: File): Promise<EditorLayer> {
     reader.readAsDataURL(file);
   });
   const { width, height } = await readImageDimensions(src);
-  return createImageLayer(src, width, height, { name: file.name.replace(/\.[^.]+$/, "") || "이미지" });
+  return createImageLayer(src, width, height, { name: file.name.replace(/\.[^.]+$/, "") || "Image" });
 }
 
 export type { ImageLayerData, LayerTransform };

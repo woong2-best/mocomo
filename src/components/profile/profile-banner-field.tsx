@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRef, useState } from "react";
 import { Film, ImagePlus, Link2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -69,7 +72,7 @@ export function ProfileBannerField({
     e.target.value = "";
     if (!raw) return;
     if (!isGalleryVideoFile(raw)) {
-      setError("지원하지 않는 영상 형식입니다.");
+      setError(t("profile.s3hqp0n"));
       return;
     }
     setError("");
@@ -83,11 +86,11 @@ export function ProfileBannerField({
       }
       const duration = await probeVideoDurationSec(file);
       if (duration <= 0) {
-        setError("영상 길이를 확인할 수 없습니다.");
+        setError(t("lib.profile.banner.sc3e2d98af1"));
         return;
       }
       if (profileBannerVideoTooLong(duration)) {
-        setError(`배너 동영상은 ${MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초 이하여야 합니다.`);
+        setError(`배너 동Video은 ${MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초 이하여야 합니다.`);
         return;
       }
       const prepared = await prepareBannerVideoForUpload(file);
@@ -95,7 +98,7 @@ export function ProfileBannerField({
       onBannerVideoUrlChange(url);
       onBannerUrlChange("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "영상 업로드에 실패했습니다.");
+      setError(err instanceof Error ? err.message : t("profile.s1eazbik"));
     } finally {
       setUploadingVideo(false);
     }
@@ -112,7 +115,7 @@ export function ProfileBannerField({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <label className="text-sm font-medium">배너 (사진 또는 동영상)</label>
+        <label className="text-sm font-medium">{t("profile.s1ytpxdw")}</label>
         <Button
           type="button"
           variant="ghost"
@@ -121,7 +124,7 @@ export function ProfileBannerField({
           onClick={() => setShowUrl((v) => !v)}
         >
           <Link2 className="h-3.5 w-3.5 mr-1" />
-          {showUrl ? "URL 숨기기" : "URL로 입력"}
+          {showUrl ? t("profile.url") : t("profile.url_2")}
         </Button>
       </div>
 
@@ -135,7 +138,7 @@ export function ProfileBannerField({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        마이페이지·왼쪽 메뉴 상단에 표시됩니다. 동영상은 무음 자동 재생, 최대{" "}
+        마이페이지·왼쪽 메뉴 상단에 표시됩니다. 동Video은 무음 자동 재생, 최대{" "}
         {MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초.
       </p>
 
@@ -160,7 +163,7 @@ export function ProfileBannerField({
           onClick={() => videoRef.current?.click()}
         >
           {uploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
-          동영상 올리기
+          동Video 올리기
         </Button>
         {hasMedia ? (
           <Button
@@ -187,7 +190,7 @@ export function ProfileBannerField({
               onBannerUrlChange(e.target.value);
               if (e.target.value) onBannerVideoUrlChange("");
             }}
-            placeholder="배너 이미지 URL (https://...)"
+            placeholder={t("profile.url_https")}
             className="rounded-xl text-sm"
           />
           <Input
@@ -197,7 +200,7 @@ export function ProfileBannerField({
               onBannerVideoUrlChange(e.target.value);
               if (e.target.value) onBannerUrlChange("");
             }}
-            placeholder="배너 동영상 URL (https://...)"
+            placeholder={t("profile.url_https_2")}
             className="rounded-xl text-sm"
           />
         </div>
@@ -215,8 +218,8 @@ export function ProfileBannerField({
           imageSrc={cropSrc}
           aspect={3}
           lockAspect
-          title="배너 자르기"
-          description="가로 3:1 영역에 맞게 드래그·확대·회전·뒤집기 후 적용하세요."
+          title={t("profile.s1qwzipw")}
+          description={t("profile.3_1")}
           maxWidth={1500}
           maxHeight={500}
           uploadFilename="profile-banner.jpg"

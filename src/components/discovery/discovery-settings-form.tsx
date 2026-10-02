@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -46,6 +51,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
   const [preferred, setPreferred] = useState<DiscoveryGender[]>(initial.preferredGenders);
   const [pitch, setPitch] = useState(initial.pitch ?? "");
   const [msg, setMsg] = useState("");
+  const [msgIsError, setMsgIsError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [lat, setLat] = useState<number | null>(initial.lat);
@@ -64,12 +70,15 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
       if (data.lat != null && data.lng != null) {
         setLat(data.lat);
         setLng(data.lng);
-        setMsg("위치 좌표를 저장했습니다.");
+        setMsg(t("discovery.s1uq2c8w"));
+      setMsgIsError(false);
       } else {
-        setMsg("위치를 찾지 못했습니다. 도시명을 다시 입력해 주세요.");
+        setMsg(t("discovery.svt8dox"));
+      setMsgIsError(true);
       }
     } catch {
-      setMsg("위치 검색에 실패했습니다.");
+      setMsg(t("discovery.svat83g"));
+      setMsgIsError(true);
     } finally {
       setGeoLoading(false);
     }
@@ -78,6 +87,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
   async function fetchCurrentLocation() {
     setGeoLoading(true);
     setMsg("");
+    setMsgIsError(false);
     try {
       const coords = await getCurrentCoords();
       setLat(coords.lat);
@@ -89,15 +99,19 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
         const data = (await res.json()) as { label?: string; error?: string };
         if (res.ok && data.label) {
           setCity(data.label);
-          setMsg("현재 위치를 설정했습니다.");
+          setMsg(t("discovery.s1x335ok"));
+      setMsgIsError(false);
         } else {
-          setMsg("위치 좌표를 저장했습니다.");
+          setMsg(t("discovery.s1uq2c8w"));
+      setMsgIsError(false);
         }
       } catch {
-        setMsg("위치 좌표를 저장했습니다.");
+        setMsg(t("discovery.s1uq2c8w"));
+      setMsgIsError(false);
       }
     } catch (err) {
       setMsg(geolocationErrorMessage(err));
+      setMsgIsError(true);
     } finally {
       setGeoLoading(false);
     }
@@ -107,6 +121,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
     e.preventDefault();
     setLoading(true);
     setMsg("");
+    setMsgIsError(false);
     const result = await updateDiscoverySettings({
       enabled,
       gender,
@@ -124,9 +139,11 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
       pitch,
     });
     if (result && "error" in result && result.error) {
-      setMsg(result.error);
+      setMsg(errorText(result.error));
+      setMsgIsError(true);
     } else {
-      setMsg("저장되었습니다.");
+      setMsg(t("profile.s12la3bm"));
+      setMsgIsError(false);
       router.refresh();
     }
     setLoading(false);
@@ -136,16 +153,16 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
     <AppPageChrome spacing="sm">
     <form onSubmit={(e) => void handleSave(e)} className="space-y-4">
       <Link href="/discover" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-        ← 매칭
+        {t("discovery.s49bm3d")}
       </Link>
 
       <div className="space-y-1">
         <h1 className={cn("text-2xl font-display font-bold flex items-center gap-2", isNativeApp && "sr-only")}>
           <Search className="h-6 w-6 text-folk-terracotta" />
-          매칭 설정
+          {t("settings.discoverSettings")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          원할 때만 켜세요. 끄면 추천 풀에서 완전히 빠집니다.
+          {t("discovery.s1e7xis3")}
         </p>
       </div>
 
@@ -154,10 +171,10 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
           <Shield className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <div className="text-xs text-muted-foreground space-y-1">
             <p>만 {DISCOVERY_MIN_AGE}세 이상 · 생년월일 등록 필수</p>
-            <p>매칭 상대에게만 공개하는 정보는 아래에서 선택</p>
+            <p>{t("discovery.s1shuzrv")}</p>
             {!initial.hasBirthDate && (
               <Link href="/settings/profile" className="text-primary underline font-medium">
-                프로필에서 생년월일 등록 →
+                {t("discovery.snqv5pj")}
               </Link>
             )}
           </div>
@@ -166,11 +183,11 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
 
       <Card className="rounded-2xl">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">참여</CardTitle>
+          <CardTitle className="text-base">{t("discovery.sztmc")}</CardTitle>
         </CardHeader>
         <CardContent>
           <label className="flex items-center justify-between gap-3 cursor-pointer">
-            <span className="text-sm font-medium">매칭 추천 받기</span>
+            <span className="text-sm font-medium">{t("discovery.s1tkxmpi")}</span>
             <input
               type="checkbox"
               checked={enabled}
@@ -181,7 +198,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
           </label>
           {!initial.hasBirthDate && (
             <p className="text-xs text-muted-foreground mt-2">
-              생년월일 등록 후 참여할 수 있어요.
+              {t("discovery.s1avemm9")}
             </p>
           )}
         </CardContent>
@@ -189,21 +206,21 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
 
       <Card className="rounded-2xl">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">나를 소개</CardTitle>
+          <CardTitle className="text-base">{t("discovery.s3l8l3g")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <label className="text-xs text-muted-foreground">한 줄 소개 (매칭 전용)</label>
+            <label className="text-xs text-muted-foreground">{t("discovery.s1feq4ud")}</label>
             <textarea
               className="mt-1 w-full min-h-[80px] rounded-xl border bg-background px-3 py-2 text-sm"
               maxLength={280}
               value={pitch}
               onChange={(e) => setPitch(e.target.value)}
-              placeholder="같이 코스프레 찍을 사람, 애니 얘기할 친구…"
+              placeholder={t("discovery.shxdhrw")}
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">내 성별</label>
+            <label className="text-xs text-muted-foreground">{t("discovery.smbaun3")}</label>
             <select
               className="mt-1 w-full border rounded-xl px-3 py-2 text-sm"
               value={gender}
@@ -218,18 +235,18 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={showGender} onChange={(e) => setShowGender(e.target.checked)} />
-            성별 공개
+            {t("discovery.s1wwb978")}
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={showAge} onChange={(e) => setShowAge(e.target.checked)} />
-            나이 공개
+            {t("discovery.s5ckg3v")}
           </label>
         </CardContent>
       </Card>
 
       <Card className="rounded-2xl">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">추천 방식</CardTitle>
+          <CardTitle className="text-base">{t("discovery.s1card64")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="flex flex-wrap gap-2">
@@ -257,12 +274,12 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
 
       <Card className="rounded-2xl">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">찾는 상대</CardTitle>
+          <CardTitle className="text-base">{t("discovery.s13sjand")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {matchingMode === "RANDOM" ? (
             <p className="text-xs text-amber-600/90 bg-amber-500/10 rounded-xl px-3 py-2">
-              완전 랜덤 모드에서는 성별·나이·거리·취향 필터를 적용하지 않습니다. (만 18세 미만·차단·이미 본 사람은 제외)
+              {t("discovery.sbv4do2")}
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
@@ -283,7 +300,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
             ))}
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-2">선호 성별 (비우면 모두)</p>
+            <p className="text-xs text-muted-foreground mb-2">{t("discovery.s1z0p1qe")}</p>
             <div className="flex flex-wrap gap-2">
               {GENDERS.filter((g) => g !== "UNSPECIFIED").map((g) => (
                 <button
@@ -302,7 +319,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground">최소 나이</label>
+              <label className="text-xs text-muted-foreground">{t("discovery.s1a1on64")}</label>
               <Input
                 type="number"
                 min={DISCOVERY_MIN_AGE}
@@ -313,7 +330,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">최대 나이</label>
+              <label className="text-xs text-muted-foreground">{t("discovery.s187ms0o")}</label>
               <Input
                 type="number"
                 min={DISCOVERY_MIN_AGE}
@@ -330,19 +347,19 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
       <Card className="rounded-2xl">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-1">
-            <MapPin className="h-4 w-4" /> 거리
+            <MapPin className="h-4 w-4" /> {t("discovery.sucl8")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <Input
-            placeholder="예: 서울 강남, 부산 해운대"
+            placeholder={t("discovery.s3sqcjx")}
             value={city}
             onChange={(e) => setCity(e.target.value)}
             className="rounded-xl"
           />
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" size="sm" className="rounded-lg" disabled={geoLoading} onClick={() => void geocodeCity()}>
-              도시 검색
+              {t("discovery.sh66imp")}
             </Button>
             <Button
               type="button"
@@ -352,11 +369,11 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
               disabled={geoLoading}
               onClick={() => void fetchCurrentLocation()}
             >
-              {geoLoading ? "위치 확인 중…" : "현재 위치"}
+              {geoLoading ? t("discovery.sxtvgpy") : t("discovery.s9mxq6k")}
             </Button>
           </div>
           {lat != null && lng != null && (
-            <p className="text-[11px] text-emerald-600">위치 저장됨 · 거리 필터 적용</p>
+            <p className="text-[11px] text-emerald-600">{t("discovery.sc0gfnu")}</p>
           )}
           <div>
             <label className="text-xs text-muted-foreground">최대 거리 {maxDistanceKm}km</label>
@@ -374,7 +391,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
       </Card>
 
       {msg && (
-        <p className={cn("text-sm text-center", msg.includes("실패") || msg.includes("못") ? "text-destructive" : "text-emerald-600")}>
+        <p className={cn("text-sm text-center", msgIsError ? "text-destructive" : "text-emerald-600")}>
           {msg}
         </p>
       )}
@@ -384,7 +401,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
         disabled={loading}
         className="w-full rounded-xl bg-folk-terracotta text-white hover:bg-folk-terracotta/90 font-bold"
       >
-        {loading ? "저장 중…" : "저장"}
+        {loading ? t("calendar.saving") : t("settings.save")}
       </Button>
     </form>
     </AppPageChrome>

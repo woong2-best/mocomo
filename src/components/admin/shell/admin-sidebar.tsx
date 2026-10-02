@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Shield, X } from "lucide-react";
@@ -56,7 +59,7 @@ export function AdminSidebar({
       {open ? (
         <button
           type="button"
-          aria-label="사이드바 닫기"
+          aria-label={t("admin.s1oycqmd")}
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={onClose}
         />
@@ -81,7 +84,7 @@ export function AdminSidebar({
             type="button"
             className="rounded-md p-1.5 text-zinc-400 hover:bg-white/5 hover:text-white lg:hidden"
             onClick={onClose}
-            aria-label="닫기"
+            aria-label={t("common.close")}
           >
             <X className="h-4 w-4" />
           </button>

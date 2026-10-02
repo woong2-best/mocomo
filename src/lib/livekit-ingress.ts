@@ -81,7 +81,7 @@ export async function createObsRtmpIngress(
   | { error: string }
 > {
   if (!isLivekitIngressConfigured()) {
-    return { error: "LiveKit Ingress가 설정되지 않았습니다. LIVEKIT_* 환경 변수를 확인하세요." };
+    return { error: "LiveKit Ingress isn't configured. Check LIVEKIT_* environment variables." };
   }
 
   const createOnce = async () => {
@@ -106,7 +106,7 @@ export async function createObsRtmpIngress(
     const info = await createOnce();
     const creds = normalizeIngressCredentials(info);
     if (!creds) {
-      return { error: "RTMP URL/스트림 키를 받지 못했습니다. LiveKit Ingress 플랜을 확인하세요." };
+      return { error: "Couldn't get RTMP URL/stream key. Check your LiveKit Ingress plan." };
     }
     return { ingressId: info.ingressId, url: creds.url, streamKey: creds.streamKey };
   } catch (e) {
@@ -127,7 +127,7 @@ export async function createObsRtmpIngress(
       if (reused) return reused;
     }
     console.error("[createObsRtmpIngress]", e);
-    return { error: msg || "OBS 인그레스 생성 실패" };
+    return { error: msg || "Failed to create OBS ingress" };
   }
 }
 

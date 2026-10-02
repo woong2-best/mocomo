@@ -55,7 +55,7 @@ export async function GET(
   const { username: raw } = await params;
   const username = decodeURIComponent(raw ?? "").trim();
   if (!username || username.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const viewerId = await getMobileUserId(req);
@@ -79,7 +79,7 @@ export async function GET(
   });
 
   if (!user || user.deletedAt) {
-    return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
 
   let following = false;
@@ -107,7 +107,7 @@ export async function GET(
   const isSelf = viewerId === user.id;
   const relationship = await getUserRelationship(viewerId, user.id);
   if (!isSelf && relationship.blockedViewer) {
-    return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
   const perms =
     viewerId && !isSelf

@@ -79,7 +79,7 @@ async function fetchHostsByIds(hostIds: string[]) {
 }
 
 async function fetchLiveHubChannels(category?: LiveStreamCategory, mode: LiveHubMode = "all") {
-  // 보이스 라이브 기능 제거 — voice 탭·목록 비움, 전체/영상은 BROWSER·OBS만
+  // 보이스 라이브 기능 제거 — voice 탭·목록 비움, 전체/Video은 BROWSER·OBS만
   if (mode === "voice") return [] as LiveHubChannel[];
 
   const cutoff = liveViewerCutoff();

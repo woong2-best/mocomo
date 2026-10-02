@@ -1,3 +1,7 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { adminLoadUserDetail } from "@/actions/admin-cms";
 import { AdminUserActions } from "@/components/admin/cms/admin-user-actions";
@@ -13,7 +17,7 @@ export default async function AdminUserDetailPage({
   const { id } = await params;
   const res = await adminLoadUserDetail(id);
   if (!res.ok) {
-    return <p className="text-sm text-destructive">{res.error}</p>;
+    return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
   }
 
   const { user, tipsSent, tipsReceived, payments, reportsAbout, postsCount, ordersBought, ordersSold } =
@@ -27,7 +31,7 @@ export default async function AdminUserDetailPage({
         </Link>
         <h1 className="mt-2 text-2xl font-bold">@{user.username}</h1>
         <p className="text-sm text-muted-foreground">
-          {user.email ?? "이메일 없음"} · {user.role} · {user.accountStatus}
+          {user.email ?? t("app.admin.s1whd4ui")} · {user.role} · {user.accountStatus}
           {user.deletedAt ? " · DELETED" : ""}
         </p>
       </div>
@@ -44,10 +48,10 @@ export default async function AdminUserDetailPage({
 
       <AdminUserActions userId={user.id} username={user.username} />
 
-      <DashboardCard title="프로필">
-        <p className="text-sm whitespace-pre-wrap">{user.profile?.bio || "바이오 없음"}</p>
+      <DashboardCard title={t("settings.profile")}>
+        <p className="text-sm whitespace-pre-wrap">{user.profile?.bio || t("app.admin.sjfjqg2")}</p>
         <p className="mt-2 text-xs text-muted-foreground">
-          가입 {user.createdAt.toISOString()} · 최근 로그인{" "}
+          가입 {user.createdAt.toISOString()}Please sign in to continue.{" "}
           {user.lastLoginAt?.toISOString() ?? "—"}
         </p>
         {user.wallet ? (
@@ -58,10 +62,10 @@ export default async function AdminUserDetailPage({
         ) : null}
       </DashboardCard>
 
-      <DashboardCard title="관리자 메모">
+      <DashboardCard title={t("admin.s1jy8b2o")}>
         <ul className="space-y-2 text-sm">
           {user.adminMemosAbout.length === 0 ? (
-            <li className="text-muted-foreground">메모 없음</li>
+            <li className="text-muted-foreground">{t("app.admin.s15ssb2q")}</li>
           ) : (
             user.adminMemosAbout.map((m) => (
               <li key={m.id} className="border-b border-border/40 pb-2">
@@ -76,7 +80,7 @@ export default async function AdminUserDetailPage({
       </DashboardCard>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <DashboardCard title="보낸 후원">
+        <DashboardCard title={t("app.admin.s1et8j54")}>
           <ul className="space-y-1 text-xs">
             {tipsSent.map((t) => (
               <li key={t.id}>
@@ -85,7 +89,7 @@ export default async function AdminUserDetailPage({
             ))}
           </ul>
         </DashboardCard>
-        <DashboardCard title="받은 후원">
+        <DashboardCard title={t("app.admin.s1ec86pz")}>
           <ul className="space-y-1 text-xs">
             {tipsReceived.map((t) => (
               <li key={t.id}>
@@ -94,7 +98,7 @@ export default async function AdminUserDetailPage({
             ))}
           </ul>
         </DashboardCard>
-        <DashboardCard title="결제">
+        <DashboardCard title={t("app.admin.sugz0")}>
           <ul className="space-y-1 text-xs">
             {payments.map((p) => (
               <li key={p.id}>
@@ -103,7 +107,7 @@ export default async function AdminUserDetailPage({
             ))}
           </ul>
         </DashboardCard>
-        <DashboardCard title="신고 이력">
+        <DashboardCard title={t("app.admin.s2g5ky9")}>
           <ul className="space-y-1 text-xs">
             {reportsAbout.map((r) => (
               <li key={r.id}>

@@ -185,9 +185,9 @@ async function loadTrade(where: Prisma.UsedDirectTradeWhereUniqueInput): Promise
 
 async function resultFor(tradeId: string, userId: string, error?: string): Promise<DirectTradeResult> {
   const trade = await loadTrade({ id: tradeId });
-  if (!trade) return { view: emptyFallback(tradeId), error: error ?? "거래를 찾을 수 없습니다." };
+  if (!trade) return { view: emptyFallback(tradeId), error: error ?? "Trade not found." };
   const view = await toView(trade, userId);
-  if (!view) return { view: emptyFallback(tradeId), error: error ?? "권한이 없습니다." };
+  if (!view) return { view: emptyFallback(tradeId), error: error ?? "Permission denied." };
   return error ? { view, error } : { view };
 }
 
@@ -205,17 +205,17 @@ function emptyFallback(id: string): DirectTradeView {
     proposedMeetAt: null,
     proposedByMe: false,
     tradeStatus: "SCHEDULED",
-    tradeStatusLabel: "거래 진행",
+    tradeStatusLabel: "In progress",
     myArrivalStatus: "ARRIVAL_PENDING",
-    myArrivalLabel: "대기",
+    myArrivalLabel: "Waiting",
     counterpartArrivalStatus: "ARRIVAL_PENDING",
-    counterpartArrivalLabel: "대기",
+    counterpartArrivalLabel: "Waiting",
     disputeStatus: "NONE",
-    disputeStatusLabel: "없음",
+    disputeStatusLabel: "None",
     depositStatus: "NONE",
-    depositStatusLabel: "없음",
+    depositStatusLabel: "None",
     penaltyStatus: "NONE",
-    penaltyStatusLabel: "없음",
+    penaltyStatusLabel: "None",
     guidance: null,
     myPin: null,
     pinWarning: null,
@@ -316,9 +316,9 @@ async function notify(userId: string, actorId: string | undefined, title: string
 
 async function requireParty(listingId: string, userId: string) {
   const trade = await loadTrade({ listingId });
-  if (!trade) return { error: "직거래 일정이 없습니다." as const };
+  if (!trade) return { error: "No in-person meetup scheduled." as const };
   const role = roleOf(trade, userId);
-  if (!role) return { error: "이 거래의 당사자가 아닙니다." as const };
+  if (!role) return { error: "You are not a party to this trade." as const };
   return { trade, role };
 }
 
@@ -327,20 +327,20 @@ export async function proposeDirectMeet(userId: string, listingId: string, meetA
   if ("error" in loaded) return { view: emptyFallback(listingId), error: loaded.error };
   const meetAt = new Date(meetAtIso);
   if (Number.isNaN(meetAt.getTime()) || meetAt.getTime() < Date.now() + 60_000) {
-    return resultFor(loaded.trade.id, userId, "지금보다 이후 시간을 선택해 주세요.");
+    return resultFor(loaded.trade.id, userId, "Choose a time later than now.");
   }
   if (loaded.trade.phase !== "SCHEDULED" || loaded.trade.meetAt) {
-    return resultFor(loaded.trade.id, userId, "이미 약속 시간이 있습니다.");
+    return resultFor(loaded.trade.id, userId, "A meetup time is already set.");
   }
   if (loaded.trade.proposedMeetAt && loaded.trade.proposedById && loaded.trade.proposedById !== userId) {
-    return resultFor(loaded.trade.id, userId, "상대방이 제안한 시간을 먼저 수락해 주세요.");
+    return resultFor(loaded.trade.id, userId, "Accept the other party's proposed time first.");
   }
   await db.usedDirectTrade.update({
     where: { id: loaded.trade.id },
     data: { proposedMeetAt: meetAt, proposedById: userId },
   });
   const otherId = loaded.role === "buyer" ? loaded.trade.sellerId : loaded.trade.buyerId;
-  await notify(otherId, userId, "거래 약속", `${loaded.trade.listing.title} 약속 시간을 확인해 주세요.`, `/messages/${loaded.trade.roomId}`);
+  await notify(otherId, userId, "Meetup scheduled", `${loaded.trade.listing.title} 약속 시간을 확인해 주세요.`, `/messages/${loaded.trade.roomId}`);
   return resultFor(loaded.trade.id, userId);
 }
 
@@ -348,10 +348,10 @@ export async function acceptDirectMeet(userId: string, listingId: string): Promi
   const loaded = await requireParty(listingId, userId);
   if ("error" in loaded) return { view: emptyFallback(listingId), error: loaded.error };
   if (!loaded.trade.proposedMeetAt || loaded.trade.proposedById === userId || loaded.trade.meetAt) {
-    return resultFor(loaded.trade.id, userId, "수락할 약속이 없습니다.");
+    return resultFor(loaded.trade.id, userId, "No meetup time to accept.");
   }
   if (loaded.trade.phase !== "SCHEDULED") {
-    return resultFor(loaded.trade.id, userId, "지금은 약속을 수락할 수 없습니다.");
+    return resultFor(loaded.trade.id, userId, "You cannot accept a meetup time right now.");
   }
   await db.usedDirectTrade.update({
     where: { id: loaded.trade.id },
@@ -363,7 +363,7 @@ export async function acceptDirectMeet(userId: string, listingId: string): Promi
   });
   const otherId = loaded.trade.proposedById;
   if (otherId) {
-    await notify(otherId, userId, "거래 수락", `${loaded.trade.listing.title} 약속 시간이 확정되었습니다.`, `/messages/${loaded.trade.roomId}`);
+    await notify(otherId, userId, "Trade accepted", `${loaded.trade.listing.title} 약속 시간이 확정되었습니다.`, `/messages/${loaded.trade.roomId}`);
   }
   return resultFor(loaded.trade.id, userId);
 }
@@ -377,18 +377,18 @@ export async function adjustDirectMeet(
   if ("error" in loaded) return { view: emptyFallback(listingId), error: loaded.error };
   const { trade } = loaded;
   if (trade.phase !== "SCHEDULED" || !trade.meetAt) {
-    return resultFor(trade.id, userId, "확정된 약속이 없습니다.");
+    return resultFor(trade.id, userId, "No confirmed meetup time.");
   }
   if (trade.buyerArrival === "ARRIVAL_VERIFIED" || trade.sellerArrival === "ARRIVAL_VERIFIED") {
-    return resultFor(trade.id, userId, "도착 인증 이후에는 시간을 바꿀 수 없습니다.");
+    return resultFor(trade.id, userId, "You cannot change the meetup time after arrival verification.");
   }
   if (trade.meetAdjustCount >= MEETUP_ADJUST_MAX) {
-    return resultFor(trade.id, userId, "약속 시간 변경 횟수를 모두 사용했습니다.");
+    return resultFor(trade.id, userId, "You have used all meetup time changes.");
   }
   const delta = MEETUP_ADJUST_MINUTES * 60_000 * (direction === "later" ? 1 : -1);
   const next = new Date(trade.meetAt.getTime() + delta);
   if (next.getTime() < Date.now() + 60_000) {
-    return resultFor(trade.id, userId, "약속 시간은 현재보다 뒤여야 합니다.");
+    return resultFor(trade.id, userId, "The meetup time must be later than now.");
   }
   await db.usedDirectTrade.update({
     where: { id: trade.id },
@@ -416,7 +416,13 @@ export async function adjustDirectMeet(
     },
   });
   const otherId = loaded.role === "buyer" ? trade.sellerId : trade.buyerId;
-  await notify(otherId, userId, "약속 시간 변경", `${trade.listing.title} 약속이 15분 ${direction === "later" ? "늦춰" : "당겨"}졌습니다.`, `/messages/${trade.roomId}`);
+  await notify(
+    otherId,
+    userId,
+    "Meetup time changed",
+    `${trade.listing.title}: meetup moved ${direction === "later" ? "15 minutes later" : "15 minutes earlier"}.`,
+    `/messages/${trade.roomId}`
+  );
   return resultFor(trade.id, userId);
 }
 
@@ -486,11 +492,11 @@ export async function verifyDirectArrival(
   const lastVerify = role === "buyer" ? loaded.trade.buyerLastVerifyAt : loaded.trade.sellerLastVerifyAt;
   const myArrival = arrivalOf(loaded.trade, role);
 
-  if (!loaded.trade.meetAt) return resultFor(loaded.trade.id, userId, "약속 시간을 먼저 확정해 주세요.");
-  if (TERMINAL.has(loaded.trade.phase)) return resultFor(loaded.trade.id, userId, "이미 종료된 거래입니다.");
-  if (myArrival === "ARRIVAL_VERIFIED") return resultFor(loaded.trade.id, userId, "이미 도착이 인증되었습니다.");
+  if (!loaded.trade.meetAt) return resultFor(loaded.trade.id, userId, "Confirm the meetup time first.");
+  if (TERMINAL.has(loaded.trade.phase)) return resultFor(loaded.trade.id, userId, "This trade has already ended.");
+  if (myArrival === "ARRIVAL_VERIFIED") return resultFor(loaded.trade.id, userId, "Arrival is already verified.");
   if (lastVerify && now.getTime() - lastVerify.getTime() < MEETUP_VERIFY_MIN_INTERVAL_MS) {
-    return resultFor(loaded.trade.id, userId, "잠시 후 다시 시도해 주세요.");
+    return resultFor(loaded.trade.id, userId, "Please try again in a moment.");
   }
 
   const meetLat = loaded.trade.listing.meetLat;
@@ -507,7 +513,7 @@ export async function verifyDirectArrival(
   if (sample.failure === "PERMISSION_DENIED") {
     status = "ARRIVAL_PERMISSION_DENIED";
     gpsInc = 1;
-    message = "위치 권한이 없어 도착을 확인하지 못했습니다. 권한을 허용한 뒤 다시 인증해 주세요. 보증금은 차감되지 않습니다.";
+    message = "We could not verify arrival because location permission was denied. Allow permission and try again. Your deposit will not be deducted.";
   } else if (sample.failure === "GPS_FAILED" || meetLat == null || meetLng == null || sample.latitude == null || sample.longitude == null) {
     status = "ARRIVAL_GPS_FAILED";
     gpsInc = 1;
@@ -528,7 +534,7 @@ export async function verifyDirectArrival(
     } else if (classified.kind === "out_of_range") {
       status = "ARRIVAL_PENDING";
       rangeInc = 1;
-      message = "약속 장소에서 50m 이내가 아닙니다. 장소에 도착한 뒤 다시 인증해 주세요.";
+      message = "You are not within 50m of the meetup spot. Arrive at the location and verify again.";
     } else if (classified.kind === "low_accuracy") {
       status = "ARRIVAL_LOW_ACCURACY";
       gpsInc = 1;
@@ -539,10 +545,10 @@ export async function verifyDirectArrival(
   }
 
   if (gpsInc && gpsUsed >= MEETUP_GPS_MAX_ATTEMPTS) {
-    return resultFor(loaded.trade.id, userId, "위치 확인 횟수를 모두 사용했습니다. 보증금은 차감되지 않습니다.");
+    return resultFor(loaded.trade.id, userId, "You have used all location check attempts. Your deposit will not be deducted.");
   }
   if (rangeInc && rangeUsed >= MEETUP_RANGE_MAX_ATTEMPTS) {
-    return resultFor(loaded.trade.id, userId, "도착 인증 횟수를 모두 사용했습니다.");
+    return resultFor(loaded.trade.id, userId, "You have used all arrival verification attempts.");
   }
 
   const otherArrival = arrivalOf(loaded.trade, role === "buyer" ? "seller" : "buyer");
@@ -611,13 +617,13 @@ export async function verifyDirectArrival(
 
   if (phase === "DISPUTE_REVIEW" && loaded.trade.phase !== "DISPUTE_REVIEW") {
     const link = `/messages/${loaded.trade.roomId}`;
-    await notify(loaded.trade.buyerId, undefined, "분쟁 검토", `${loaded.trade.listing.title} — 위치를 확정할 수 없어 보류했습니다. 보증금은 차감되지 않습니다.`, link);
-    await notify(loaded.trade.sellerId, undefined, "분쟁 검토", `${loaded.trade.listing.title} — 위치를 확정할 수 없어 보류했습니다. 보증금은 차감되지 않습니다.`, link);
+    await notify(loaded.trade.buyerId, undefined, "Dispute review", `${loaded.trade.listing.title} — 위치를 확정할 수 없어 보류했습니다. 보증금은 차감되지 않습니다.`, link);
+    await notify(loaded.trade.sellerId, undefined, "Dispute review", `${loaded.trade.listing.title} — 위치를 확정할 수 없어 보류했습니다. 보증금은 차감되지 않습니다.`, link);
   } else if (clearNoShow && status === "ARRIVAL_VERIFIED" && otherArrival === "ARRIVAL_VERIFIED") {
     await notify(
       role === "buyer" ? loaded.trade.sellerId : loaded.trade.buyerId,
       userId,
-      "도착 인증",
+      "Arrival verification",
       `${loaded.trade.listing.title} — 상대방도 도착했습니다. 암호코드로 거래를 완료해 주세요.`,
       `/messages/${loaded.trade.roomId}`
     );
@@ -640,7 +646,7 @@ export async function reportDirectNoShow(userId: string, listingId: string): Pro
       now: new Date(),
     })
   ) {
-    return resultFor(loaded.trade.id, userId, "지금은 노쇼로 신고할 수 없습니다.");
+    return resultFor(loaded.trade.id, userId, "You cannot report a no-show right now.");
   }
   const accusedId = otherRole === "buyer" ? loaded.trade.buyerId : loaded.trade.sellerId;
   const due = new Date(Date.now() + MEETUP_NOSHOW_RESPONSE_MINUTES * 60_000);
@@ -654,8 +660,8 @@ export async function reportDirectNoShow(userId: string, listingId: string): Pro
       noShowResponseDueAt: due,
     },
   });
-  if (marked.count === 0) return resultFor(loaded.trade.id, userId, "이미 처리 중인 신고가 있습니다.");
-  await notify(accusedId, userId, "현장 도착 인증", MEETUP_NOSHOW_ALERT, `/messages/${loaded.trade.roomId}`);
+  if (marked.count === 0) return resultFor(loaded.trade.id, userId, "A report is already being processed.");
+  await notify(accusedId, userId, "On-site arrival verification", MEETUP_NOSHOW_ALERT, `/messages/${loaded.trade.roomId}`);
   return resultFor(loaded.trade.id, userId);
 }
 
@@ -713,12 +719,12 @@ async function finishCompleted(trade: TradeRow) {
 export async function submitDirectTradePin(userId: string, listingId: string, pin: string): Promise<DirectTradeResult> {
   const loaded = await requireParty(listingId, userId);
   if ("error" in loaded) return { view: emptyFallback(listingId), error: loaded.error };
-  if (loaded.role !== "seller") return resultFor(loaded.trade.id, userId, "판매자가 암호코드를 입력합니다.");
-  if (!/^\d{6}$/.test(pin)) return resultFor(loaded.trade.id, userId, "암호코드 6자리를 입력해 주세요.");
-  if (!loaded.trade.buyerPinHmac) return resultFor(loaded.trade.id, userId, "아직 암호코드가 발급되지 않았습니다.");
-  if (TERMINAL.has(loaded.trade.phase)) return resultFor(loaded.trade.id, userId, "이미 종료된 거래입니다.");
+  if (loaded.role !== "seller") return resultFor(loaded.trade.id, userId, "The seller enters the PIN code.");
+  if (!/^\d{6}$/.test(pin)) return resultFor(loaded.trade.id, userId, "Enter the 6-digit PIN code.");
+  if (!loaded.trade.buyerPinHmac) return resultFor(loaded.trade.id, userId, "A PIN code has not been issued yet.");
+  if (TERMINAL.has(loaded.trade.phase)) return resultFor(loaded.trade.id, userId, "This trade has already ended.");
   if (loaded.trade.pinAttempts >= MEETUP_PIN_MAX_ATTEMPTS) {
-    return resultFor(loaded.trade.id, userId, "입력 횟수를 초과했습니다. 보증금은 차감되지 않습니다.");
+    return resultFor(loaded.trade.id, userId, "Too many attempts. Your deposit will not be deducted.");
   }
 
   const hmac = tradePinHmac(loaded.trade.id, loaded.trade.buyerId, pin);
@@ -732,9 +738,9 @@ export async function submitDirectTradePin(userId: string, listingId: string, pi
       },
     });
     if (nextAttempts >= MEETUP_PIN_MAX_ATTEMPTS) {
-      return resultFor(loaded.trade.id, userId, "입력 횟수를 초과했습니다. 분쟁 검토로 넘겼고 보증금은 차감되지 않습니다.");
+      return resultFor(loaded.trade.id, userId, "Too many attempts. Escalated to dispute review; your deposit will not be deducted.");
     }
-    return resultFor(loaded.trade.id, userId, "암호코드가 일치하지 않습니다.");
+    return resultFor(loaded.trade.id, userId, "The PIN code does not match.");
   }
 
   try {
@@ -747,15 +753,15 @@ export async function submitDirectTradePin(userId: string, listingId: string, pi
         data: { phase: "DISPUTE_REVIEW" },
       });
       safeLogWarn("direct-trade-complete", { tradeId: loaded.trade.id, error: message });
-      return resultFor(loaded.trade.id, userId, "보증금 상태를 확인할 수 없어 분쟁 검토로 넘겼습니다. 보증금은 차감되지 않습니다.");
+      return resultFor(loaded.trade.id, userId, "Could not verify deposit status; escalated to dispute review. Your deposit will not be deducted.");
     }
     if (message === "TRADE_NOT_READY") return resultFor(loaded.trade.id, userId);
     throw error;
   }
 
   const link = `/messages/${loaded.trade.roomId}`;
-  await notify(loaded.trade.buyerId, userId, "거래 완료", `${loaded.trade.listing.title} 거래가 완료되어 보증금 2 MOCO가 돌아왔습니다.`, link);
-  await notify(loaded.trade.sellerId, userId, "거래 완료", `${loaded.trade.listing.title} 거래가 완료되어 보증금 2 MOCO가 돌아왔습니다.`, link);
+  await notify(loaded.trade.buyerId, userId, "Trade complete", `${loaded.trade.listing.title} 거래가 완료되어 보증금 2 MOCO가 돌아왔습니다.`, link);
+  await notify(loaded.trade.sellerId, userId, "Trade complete", `${loaded.trade.listing.title} 거래가 완료되어 보증금 2 MOCO가 돌아왔습니다.`, link);
   return resultFor(loaded.trade.id, userId);
 }
 
@@ -843,8 +849,8 @@ async function confirmNoShow(trade: TradeRow): Promise<"confirmed" | "review" | 
   }
 
   const link = `/market/${trade.listingId}`;
-  await notify(trade.buyerId, undefined, "노쇼 확정", `${trade.listing.title} 노쇼가 확정되어 거래가 종료되었습니다.`, link);
-  await notify(trade.sellerId, undefined, "노쇼 확정", `${trade.listing.title} 노쇼가 확정되어 거래가 종료되었습니다.`, link);
+  await notify(trade.buyerId, undefined, "No-show confirmed", `${trade.listing.title} 노쇼가 확정되어 거래가 종료되었습니다.`, link);
+  await notify(trade.sellerId, undefined, "No-show confirmed", `${trade.listing.title} 노쇼가 확정되어 거래가 종료되었습니다.`, link);
   return "confirmed";
 }
 
@@ -888,8 +894,8 @@ export async function sweepDirectTrades(now = new Date(), limit = 40): Promise<{
         reviewed += 1;
         const link = `/messages/${trade.roomId}`;
         const body = `${trade.listing.title} — 도착을 확정할 수 없어 보류했습니다. 보증금은 차감되지 않습니다.`;
-        await notify(trade.buyerId, undefined, "분쟁 검토", body, link);
-        await notify(trade.sellerId, undefined, "분쟁 검토", body, link);
+        await notify(trade.buyerId, undefined, "Dispute review", body, link);
+        await notify(trade.sellerId, undefined, "Dispute review", body, link);
       }
     } catch (error) {
       safeLogWarn("direct-trade-sweep", {

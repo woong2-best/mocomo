@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
       const items = await listMobileMyUsedListings(auth.user.id, mineSaleType);
       return NextResponse.json({ items });
     } catch {
-      return NextResponse.json({ error: "내 거래 목록을 불러오지 못했습니다." }, { status: 500 });
+      return NextResponse.json({ error: "Not found." }, { status: 500 });
     }
   }
 
@@ -68,7 +69,7 @@ export async function GET(req: NextRequest) {
               : await listMobileUsedDisputes(auth.user.id, takeLane);
       return NextResponse.json({ items, lane });
     } catch {
-      return NextResponse.json({ error: "목록을 불러오지 못했습니다.", items: [] }, { status: 500 });
+      return NextResponse.json({ error: "Not found.", items: [] }, { status: 500 });
     }
   }
   if (idsParam) {
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
       const items = await listMobileUsedByIds(idsParam.split(","));
       return NextResponse.json({ items, lane: "ids" });
     } catch {
-      return NextResponse.json({ error: "상품 목록을 불러오지 못했습니다.", items: [] }, { status: 500 });
+      return NextResponse.json({ error: "Not found.", items: [] }, { status: 500 });
     }
   }
   if (lane === "recommend") {
@@ -86,7 +87,7 @@ export async function GET(req: NextRequest) {
       const items = await listMobileRecommendedUsed(viewerId, takeLane);
       return NextResponse.json({ items, lane: "recommend" });
     } catch {
-      return NextResponse.json({ error: "추천 상품을 불러오지 못했습니다.", items: [] }, { status: 500 });
+      return NextResponse.json({ error: "Not found.", items: [] }, { status: 500 });
     }
   }
 
@@ -256,7 +257,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ items, mode: browseMode, degraded: true });
     } catch {
       return NextResponse.json(
-        { error: "상품 목록을 불러오지 못했습니다.", items: [] },
+        { error: "Not found.", items: [] },
         { status: 500 }
       );
     }
@@ -305,12 +306,12 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = createSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const {
@@ -339,7 +340,7 @@ export async function POST(req: NextRequest) {
     }),
   });
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
   return NextResponse.json({ listingId: result.listingId });
 }

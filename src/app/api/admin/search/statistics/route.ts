@@ -32,6 +32,6 @@ export async function GET() {
       return NextResponse.json({ error: e.message }, { status: e.status });
     }
     console.error("[api/admin/search/statistics]", e);
-    return NextResponse.json({ error: "통계 실패" }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

@@ -6,7 +6,7 @@ import "./studio.css";
 
 export const metadata: Metadata = {
   title: "MoCoMo Studio",
-  description: "MoCoMo 창작 플랫폼 — 3D 자산 제작·마켓·크리에이터",
+  description: "MoCoMo creator platform — 3D assets, market, and creators",
 };
 
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {

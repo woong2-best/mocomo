@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import type { ProfileTabContentMeta } from "@/actions/profile-page";
 import { ProfileTabContent } from "@/components/profile/profile-tab-content";
@@ -14,11 +19,11 @@ export function ProfileTabContentShell({ username }: { username: string }) {
     fetch(`/api/profile/${username}/meta`)
       .then(async (res) => {
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "프로필을 불러올 수 없습니다.");
+        if (!res.ok) throw new Error(errorText(json.error ?? t("profile.s10lte57")));
         if (!cancelled) setMeta(json as ProfileTabContentMeta);
       })
       .catch((err: Error) => {
-        if (!cancelled) setMetaError(err.message || "프로필을 불러올 수 없습니다.");
+        if (!cancelled) setMetaError(err.message || t("profile.s10lte57"));
       });
     return () => {
       cancelled = true;

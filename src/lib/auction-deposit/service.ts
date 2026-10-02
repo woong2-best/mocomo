@@ -1,5 +1,8 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 /**
- * 경매 입찰 보증금 — MOCO 동결·환불·몰수
+ * Auction 입찰 보증금 — MOCO 동결·환불·몰수
  * availableMocoBalance = PlatformWallet.mocoPoints
  * lockedMocoBalance    = PlatformWallet.lockedMocoBalance
  */
@@ -46,7 +49,7 @@ export function canParticipateInAuction(balance: Pick<MocoBalanceSnapshot, "avai
   return balance.availableMocoBalance >= AUCTION_BID_DEPOSIT_MOCO;
 }
 
-/** 경매 입찰 — 항상 2 MOCO 보증금(미구매 시 몰수) 적용 */
+/** Auction 입찰 — 항상 2 MOCO 보증금(미구매 시 몰수) 적용 */
 export async function isMocoBidDepositRequired(_listing: {
   depositEnabled: boolean;
 }): Promise<boolean> {
@@ -92,7 +95,7 @@ async function consumePurchasedGemsForDeposit(
       bucket: "MOCO_POINTS",
       delta: -gems,
       balanceAfter: wallet.mocoPoints,
-      reason: "경매 보증금 — 구매 MOCO 차감",
+      reason: t("lib.auction-deposit.moco"),
       referenceType: "auction_deposit_gem_lock",
       referenceId,
     });
@@ -175,7 +178,7 @@ export async function refundLockedDepositInTransaction(
     bucket: "MOCO_LOCKED",
     delta: -deposit.amountMoco,
     balanceAfter: updated.lockedMocoBalance,
-    reason: "경매 보증금 환원",
+    reason: t("lib.auction-deposit.s9vser6"),
     referenceType: "auction_deposit_refund",
     referenceId: refundRef,
     metadata: { listingId: deposit.listingId, depositId },
@@ -185,7 +188,7 @@ export async function refundLockedDepositInTransaction(
     bucket: "MOCO_POINTS",
     delta: deposit.amountMoco,
     balanceAfter: updated.mocoPoints,
-    reason: "경매 보증금 환원",
+    reason: t("lib.auction-deposit.s9vser6"),
     referenceType: "auction_deposit_refund",
     referenceId: refundRef,
     metadata: { listingId: deposit.listingId, depositId },
@@ -259,7 +262,7 @@ export async function lockBidDepositInTransaction(
       bucket: "MOCO_POINTS",
       delta: -fromPoints,
       balanceAfter: updated.mocoPoints,
-      reason: "경매 입찰 보증금 동결",
+      reason: t("lib.auction-deposit.s38cdn8"),
       referenceType: "auction_deposit_lock",
       referenceId: lockRef,
       metadata: { listingId: input.listingId, bidId: input.bidId, fromPoints, fromGems },
@@ -270,14 +273,14 @@ export async function lockBidDepositInTransaction(
     bucket: "MOCO_LOCKED",
     delta: amountMoco,
     balanceAfter: updated.lockedMocoBalance,
-    reason: "경매 입찰 보증금 동결",
+    reason: t("lib.auction-deposit.s38cdn8"),
     referenceType: "auction_deposit_lock",
     referenceId: lockRef,
     metadata: { listingId: input.listingId, bidId: input.bidId, fromPoints, fromGems },
   });
 }
 
-/** 경매 등록 — 판매자 2 MOCO 보증금 동결. 입찰 행은 만들지 않는다. */
+/** Auction 등록 — 판매자 2 MOCO 보증금 동결. 입찰 행은 만들지 않는다. */
 export async function lockSellerDepositInTransaction(
   tx: Tx,
   input: { userId: string; listingId: string; amountMoco?: number }
@@ -334,7 +337,7 @@ export async function lockSellerDepositInTransaction(
       bucket: "MOCO_POINTS",
       delta: -fromPoints,
       balanceAfter: updated.mocoPoints,
-      reason: "경매 등록 보증금 동결",
+      reason: t("lib.auction-deposit.sd50q0j"),
       referenceType: "auction_deposit_lock",
       referenceId: lockRef,
       metadata: { listingId: input.listingId, role: "SELLER", fromPoints, fromGems },
@@ -345,7 +348,7 @@ export async function lockSellerDepositInTransaction(
     bucket: "MOCO_LOCKED",
     delta: amountMoco,
     balanceAfter: updated.lockedMocoBalance,
-    reason: "경매 등록 보증금 동결",
+    reason: t("lib.auction-deposit.sd50q0j"),
     referenceType: "auction_deposit_lock",
     referenceId: lockRef,
     metadata: { listingId: input.listingId, role: "SELLER", fromPoints, fromGems },
@@ -396,7 +399,7 @@ export async function refundAuctionDeposit(
       bucket: "MOCO_LOCKED",
       delta: -deposit.amountMoco,
       balanceAfter: updated.lockedMocoBalance,
-      reason: "경매 입찰 보증금 환원",
+      reason: t("lib.auction-deposit.s38ie1h"),
       referenceType: "auction_deposit_refund",
       referenceId: refundRef,
       metadata: { listingId: deposit.listingId, depositId },
@@ -406,7 +409,7 @@ export async function refundAuctionDeposit(
       bucket: "MOCO_POINTS",
       delta: deposit.amountMoco,
       balanceAfter: updated.mocoPoints,
-      reason: "경매 입찰 보증금 환원",
+      reason: t("lib.auction-deposit.s38ie1h"),
       referenceType: "auction_deposit_refund",
       referenceId: refundRef,
       metadata: { listingId: deposit.listingId, depositId },
@@ -432,7 +435,7 @@ export async function refundActiveDepositForBidder(
 }
 
 /**
- * 경매 종료 시 보증금.
+ * Auction 종료 시 보증금.
  * - 유찰: 판매자 포함 전원 환원
  * - 낙찰: 낙찰자와 판매자는 거래 완료까지 유지, 그 외 입찰자는 즉시 환원
  */
@@ -587,7 +590,7 @@ export async function forfeitLockedDepositInTransaction(
     userId: deposit.userId,
     amountMoco: deposit.amountMoco,
     type: "AUCTION_PENALTY",
-    reason: "직거래 노쇼 보증금 차감",
+    reason: t("lib.auction-deposit.s8ystu6"),
     referenceId: `direct_trade_noshow:${deposit.id}`,
     metadata: {
       listingId: input.listingId,

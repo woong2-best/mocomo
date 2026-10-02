@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
@@ -56,7 +59,7 @@ export function UsedWtbAlertList({ alerts: initial }: { alerts: WtbAlertRow[] })
   if (alerts.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        등록된 WTB 알림이 없어요. 상품 상세에서 조건을 등록할 수 있어요.
+        {t("used.wtb")}
       </p>
     );
   }
@@ -70,18 +73,20 @@ export function UsedWtbAlertList({ alerts: initial }: { alerts: WtbAlertRow[] })
         >
           <div className="min-w-0 flex-1">
             <Link href={searchHref(a)} className="font-medium text-sm hover:underline line-clamp-2">
-              {alertSummary(a) || "조건 알림"}
+              {alertSummary(a) || t("used.so57afg")}
             </Link>
             {a.maxPrice != null && a.maxPrice > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
-                희망 최대 {formatUsedPrice(a.maxPrice, a.currency)}
+                {t("used.wtbMaxPrice", { price: formatUsedPrice(a.maxPrice, a.currency) })}
               </p>
             )}
             {a.note && (
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.note}</p>
             )}
             <p className="text-[10px] text-muted-foreground mt-1">
-              {new Date(a.createdAt).toLocaleDateString("ko-KR")} 등록
+              {t("used.wtbRegisteredOn", {
+                date: new Date(a.createdAt).toLocaleDateString("en-US"),
+              })}
             </p>
           </div>
           <Button
@@ -91,7 +96,7 @@ export function UsedWtbAlertList({ alerts: initial }: { alerts: WtbAlertRow[] })
             className="shrink-0 text-muted-foreground"
             disabled={busyId === a.id}
             onClick={() => void remove(a.id)}
-            aria-label="WTB 알림 해제"
+            aria-label={t("used.wtb_2")}
           >
             <BellOff className="h-4 w-4" />
           </Button>

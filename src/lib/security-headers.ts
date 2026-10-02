@@ -16,20 +16,6 @@ const CSP_BASE = [
 /** MapLibre GL JS — Web Worker bootstrap via blob: URLs (서브컬처 행사 지도 등) */
 const MAPLIBRE_SCRIPT_SRC = "blob:";
 
-/** APT corner scene viewer — Three.js via unpkg import map */
-export const APT_SCENE_VIEWER_HEADERS: { key: string; value: string }[] = [
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  {
-    key: "Content-Security-Policy",
-    value: [
-      ...CSP_BASE,
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://unpkg.com",
-      "frame-src 'self'",
-      "frame-ancestors 'self'",
-    ].join("; "),
-  },
-];
-
 /** PortOne V2 — 본인인증·결제 SDK (cdn script + checkout iframe) */
 const PORTONE_SCRIPT_SRC = "https://cdn.portone.io";
 const PORTONE_FRAME_SRC = "https://checkout.portone.io https://api.portone.io";

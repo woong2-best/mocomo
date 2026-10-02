@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -45,7 +48,7 @@ export function WatermarkSettingsForm({ initial }: { initial: WatermarkSettings 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        게시물에 올리는 사진·영상에 워터마크를 넣을지 정합니다. 기본은 꺼져 있습니다.
+        {t("settings.s1od9r8f")}
       </p>
 
       <button
@@ -60,7 +63,7 @@ export function WatermarkSettingsForm({ initial }: { initial: WatermarkSettings 
         )}
       >
         <div>
-          <p className="text-sm font-semibold">워터마크 삽입</p>
+          <p className="text-sm font-semibold">{t("settings.s1jqm680")}</p>
           <p className="text-xs text-muted-foreground mt-0.5">{enabled ? "On" : "Off"}</p>
         </div>
         <span
@@ -76,8 +79,8 @@ export function WatermarkSettingsForm({ initial }: { initial: WatermarkSettings 
       <div className="grid grid-cols-2 gap-2">
         {(
           [
-            { id: "corner" as const, label: "하단", hint: "오른쪽 아래" },
-            { id: "diagonal" as const, label: "전체", hint: "사선으로 반복" },
+            { id: "corner" as const, label: t("settings.s119qo"), hint: t("settings.s1ci97mz") },
+            { id: "diagonal" as const, label: t("live.modeAll"), hint: t("settings.s4kzgfd") },
           ] as const
         ).map((opt) => {
           const active = enabled && placement === opt.id;
@@ -101,7 +104,7 @@ export function WatermarkSettingsForm({ initial }: { initial: WatermarkSettings 
           );
         })}
       </div>
-      {saved ? <p className="text-sm text-primary">저장되었습니다.</p> : null}
+      {saved ? <p className="text-sm text-primary">{t("settings.s12la3bm")}</p> : null}
     </div>
   );
 }

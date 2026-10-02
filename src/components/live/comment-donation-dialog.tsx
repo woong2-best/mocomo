@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useState, type ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import { DollarSign } from "lucide-react";
@@ -35,7 +39,7 @@ export function CommentDonationDialog({
   triggerVariant = "default",
   triggerSize = "sm",
   triggerClassName,
-  triggerLabel = "댓글 후원",
+  triggerLabel = t("live.sbucfnj"),
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }: {
@@ -53,6 +57,7 @@ export function CommentDonationDialog({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
+  const { t } = useLocale();
   const { data: session } = useSession();
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
@@ -91,10 +96,10 @@ export function CommentDonationDialog({
         variant={triggerVariant}
         size={triggerSize}
         className={`${triggerClass} opacity-60`}
-        title="결제 준비 중"
+        title={t("live.s1s3qovd")}
       >
         <DollarSign className="h-4 w-4" />
-        후원 준비 중
+        {t("live.s168d2yx")}
       </Button>
     );
   }
@@ -102,9 +107,9 @@ export function CommentDonationDialog({
   const dialogBody = (
     <>
       <DialogHeader>
-        <DialogTitle>{displayName}에게 감사를 전하세요</DialogTitle>
+        <DialogTitle>{t("live.commentDonation.title", { name: displayName })}</DialogTitle>
         <DialogDescription>
-          댓글 후원을 구매하면 채팅에 하이라이트 댓글이 자동으로 게시됩니다.
+          {t("live.sumapo9")}
         </DialogDescription>
       </DialogHeader>
 
@@ -131,12 +136,12 @@ export function CommentDonationDialog({
               </span>
             </div>
             <p className="mt-1 text-sm text-white/95 break-words">
-              {trimmedMessage || "후원 메시지 미리보기…"}
+              {trimmedMessage || t("live.stetdx6")}
             </p>
           </div>
         </div>
         <div className="px-3 py-2 text-[11px] text-muted-foreground bg-muted/30">
-          결제 후 위 댓글이 라이브 채팅에 표시됩니다.
+          {t("live.s1r9jgy3")}
         </div>
       </div>
 
@@ -158,7 +163,7 @@ export function CommentDonationDialog({
       </div>
 
       <Input
-        placeholder={`금액 직접 입력 (최소 ${formatUsd(MIN_TIP_USD_CENTS)})`}
+        placeholder={t("live.s19tf4ve", { v0: formatUsd(MIN_TIP_USD_CENTS) })}
         value={custom}
         onChange={(e) => setCustom(e.target.value.replace(/\D/g, "").slice(0, 7))}
         className="rounded-lg tabular-nums"
@@ -166,7 +171,7 @@ export function CommentDonationDialog({
       />
 
       <textarea
-        placeholder="채팅에 표시할 메시지 (필수)"
+        placeholder={t("live.s4hg6jq")}
         value={message}
         onChange={(e) => setMessage(e.target.value.slice(0, COMMENT_DONATION_MESSAGE_MAX))}
         maxLength={COMMENT_DONATION_MESSAGE_MAX}
@@ -178,13 +183,13 @@ export function CommentDonationDialog({
       </p>
 
       <p className="text-xs text-muted-foreground">
-        수수료 10% · 크리에이터 정산 {formatUsd(creatorGets)}
+        {t("live.commentDonation.feeLine", { amount: formatUsd(creatorGets) })}
       </p>
 
       <PayButton
         type="TIP"
         amount={effectiveAmount}
-        orderName={`${displayName} 댓글 후원`}
+        orderName={t("live.sbucfnj", { v0: displayName })}
         metadata={tipMetadataForCheckout({
           receiverId: creatorId,
           message: trimmedMessage,
@@ -198,7 +203,7 @@ export function CommentDonationDialog({
         className="w-full rounded-lg h-11 font-bold"
         onPurchaseSuccess={() => setOpen(false)}
       >
-        구매 후 보내기 · {formatUsd(effectiveAmount)}
+        {t("live.commentDonation.sendAfterPurchase", { amount: formatUsd(effectiveAmount) })}
       </PayButton>
     </>
   );
@@ -257,7 +262,7 @@ export function CommentDonationIconButton({
           variant="ghost"
           size="icon"
           className="h-9 w-9 shrink-0 rounded-lg text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700"
-          title="댓글 후원"
+          title={t("live.sbucfnj")}
         >
           <DollarSign className="h-4 w-4" />
         </Button>

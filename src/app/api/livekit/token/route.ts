@@ -8,17 +8,17 @@ import { db } from "@/lib/db";
 export const runtime = "nodejs";
 
 const LIVE_DENY: Record<string, string> = {
-  NOT_FOUND: "방송을 찾을 수 없습니다.",
-  NOT_LIVE: "방송이 종료되었습니다.",
-  NOT_MEMBER: "시청 권한이 없습니다.",
-  TIER_REQUIRED: "비공개 방송입니다. 필요 후원 등급을 충족한 뒤 시청해 주세요.",
+  NOT_FOUND: "Stream not found.",
+  NOT_LIVE: "This broadcast has ended.",
+  NOT_MEMBER: "You don't have permission to watch.",
+  TIER_REQUIRED: "Please check your input and try again.",
 };
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+      return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
     }
 
     const limited = await rateLimitPublicApi(req, `livekit:${session.user.id}`, 30);
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     if (!isLivekitConfigured()) {
       return NextResponse.json(
-        { error: "LiveKit 서버 설정이 없습니다. Vercel 환경 변수(LIVEKIT_*)를 확인하세요." },
+        { error: "Not found." },
         { status: 503 }
       );
     }
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
     if (room.startsWith("call-")) {
       return NextResponse.json(
-        { error: "DM 통화는 P2P WebRTC를 사용합니다. LiveKit 토큰이 필요하지 않습니다." },
+        { error: "Required field missing." },
         { status: 400 }
       );
     }
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     const live = await resolveLiveChannelAccess(room, session.user.id);
     if (!live.allowed) {
       return NextResponse.json(
-        { error: LIVE_DENY[live.reason] ?? "입장 권한이 없습니다.", reason: live.reason },
+        { error: LIVE_DENY[live.reason] ?? "You don't have permission to do that.", reason: live.reason },
         { status: 403 }
       );
     }
@@ -74,12 +74,12 @@ export async function GET(req: NextRequest) {
       audioOnly: isVoiceLive,
     });
     if (!token) {
-      return NextResponse.json({ error: "LiveKit 토큰 생성 실패" }, { status: 503 });
+      return NextResponse.json({ error: "Request failed." }, { status: 503 });
     }
 
     const serverUrl = getLivekitUrl();
     if (!serverUrl) {
-      return NextResponse.json({ error: "NEXT_PUBLIC_LIVEKIT_URL이 필요합니다." }, { status: 503 });
+      return NextResponse.json({ error: "Required field missing." }, { status: 503 });
     }
 
     return NextResponse.json({
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     console.error("[api/livekit/token]", e);
     return NextResponse.json(
-      { error: "음성/영상 서버 연결 중 오류가 발생했습니다.", reason: "SERVER_ERROR" },
+      { error: "Request failed.", reason: "SERVER_ERROR" },
       { status: 500 }
     );
   }

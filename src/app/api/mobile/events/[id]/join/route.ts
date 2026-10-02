@@ -16,7 +16,7 @@ export async function POST(
 
   const { id } = await params;
   if (!id || id.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let entryUrl: string | undefined;
@@ -40,7 +40,7 @@ export async function POST(
       select: { id: true },
     });
     if (!event) {
-      return NextResponse.json({ error: "이벤트를 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Event not found." }, { status: 404 });
     }
 
     const participant = await db.eventParticipant.upsert({

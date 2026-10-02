@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -36,11 +39,11 @@ export default async function SupportTiersPage() {
       <SupportPageTitle>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="shrink-0" asChild>
-            <Link href="/support" aria-label="뒤로">
+            <Link href="/support" aria-label={t("common.back")}>
               <ChevronLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-lg font-bold">광석 등급</h1>
+          <h1 className="text-lg font-bold">{t("app.support.s1psfbu4")}</h1>
         </div>
       </SupportPageTitle>
 
@@ -68,13 +71,13 @@ export default async function SupportTiersPage() {
       {session?.user?.id && progress ? (
         <section className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
           <div className="flex justify-between text-sm items-center gap-3">
-            <span className="text-muted-foreground">내 누적 후원</span>
+            <span className="text-muted-foreground">My lifetime tips</span>
             {nextTier ? (
               <span className="shrink-0" title={nextTier.labelKo}>
                 <OreIcon tier={nextTier.level} size={32} />
               </span>
             ) : (
-              <span className="shrink-0 opacity-80" title="최고 등급">
+              <span className="shrink-0 opacity-80" title={t("app.support.s17fu66s")}>
                 <OreIcon tier={level} size={32} />
               </span>
             )}
@@ -92,15 +95,15 @@ export default async function SupportTiersPage() {
         </section>
       ) : (
         <section className="rounded-2xl border border-border/60 bg-muted/20 p-4 text-center text-sm text-muted-foreground">
-          <p>로그인하면 다음 광석까지 남은 금액을 확인할 수 있습니다.</p>
+          <p>{t("app.support.s74l8tp")}</p>
           <Button variant="secondary" size="sm" className="mt-3" asChild>
-            <Link href="/auth/signin?callbackUrl=%2Fsupport%2Ftiers">로그인</Link>
+            <Link href="/auth/signin?callbackUrl=%2Fsupport%2Ftiers">Please sign in to continue.</Link>
           </Button>
         </section>
       )}
 
       <section className="space-y-2 pt-2">
-        <p className="text-sm font-semibold text-muted-foreground px-1">전체 등급</p>
+        <p className="text-sm font-semibold text-muted-foreground px-1">All tiers</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {SUPPORT_TIERS.map((t) => (
             <OreTierButton

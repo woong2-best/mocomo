@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { Loader2, Play, Star } from "lucide-react";
 import type { StarHubCreator, StarMarketListing, StarWikiEntry } from "@/lib/star-bookmarks";
@@ -13,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { STAR_CHANGED_EVENT } from "@/lib/post-engage-client";
 import { userDisplayName } from "@/lib/user-public-select";
 import { resolveVideoPosterUrl } from "@/lib/video-poster";
+import { useLocale } from "@/components/providers/locale-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 function formatDuration(sec: number | null | undefined): string | null {
   if (!sec || sec <= 0 || !Number.isFinite(sec)) return null;
@@ -36,13 +41,14 @@ function pickCover(post: GridPost) {
 }
 
 function StarGridTile({ post }: { post: GridPost }) {
+  const { t } = useLocale();
   const cover = pickCover(post);
   const isVideo = cover?.type === "VIDEO" || post.postType === "VIDEO";
   const duration = isVideo ? formatDuration(cover?.duration) : null;
   const qna = isQnaStarPost(post);
   const fallback = qna
     ? post.community?.name || post.title || post.content?.slice(0, 40) || "QnA"
-    : post.title || post.content?.slice(0, 40) || "게시물";
+    : post.title || post.content?.slice(0, 40) || t("star.badge.post");
 
   return (
     <Link
@@ -64,7 +70,7 @@ function StarGridTile({ post }: { post: GridPost }) {
           qna ? "bg-sky-600 text-white" : "bg-black/75 text-white"
         )}
       >
-        {qna ? "QnA" : "게시물"}
+        {qna ? t("star.badge.qna") : t("star.badge.post")}
       </span>
       {isVideo ? (
         <span className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-md bg-black/70 text-white">
@@ -82,12 +88,12 @@ function StarGridTile({ post }: { post: GridPost }) {
 
 type StarKind = "all" | "posts" | "qna" | "market" | "wiki";
 
-const STAR_TABS: { id: StarKind; label: string }[] = [
-  { id: "all", label: "전체" },
-  { id: "posts", label: "게시물" },
-  { id: "qna", label: "QnA" },
-  { id: "market", label: "마켓" },
-  { id: "wiki", label: "컬처위키" },
+const STAR_TAB_KEYS: { id: StarKind; key: MessageKey }[] = [
+  { id: "all", key: "star.tab.all" },
+  { id: "posts", key: "star.tab.posts" },
+  { id: "qna", key: "star.tab.qna" },
+  { id: "market", key: "star.tab.market" },
+  { id: "wiki", key: "star.tab.wiki" },
 ];
 
 type HubResponse = {
@@ -99,6 +105,7 @@ type HubResponse = {
 };
 
 function StarWikiTile({ entry }: { entry: StarWikiEntry }) {
+  const { t } = useLocale();
   return (
     <Link
       href={`/anime/${entry.slug}`}
@@ -114,7 +121,7 @@ function StarWikiTile({ entry }: { entry: StarWikiEntry }) {
         </div>
       )}
       <span className="absolute left-1 top-1 rounded bg-folk-terracotta/90 px-1.5 py-0.5 text-[10px] font-extrabold text-white">
-        위키
+        {t("star.badge.wiki")}
       </span>
       <span className="absolute bottom-1 left-1 right-1 truncate rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-semibold text-white">
         {entry.title}
@@ -124,6 +131,7 @@ function StarWikiTile({ entry }: { entry: StarWikiEntry }) {
 }
 
 function StarMarketTile({ listing }: { listing: StarMarketListing }) {
+  const { t } = useLocale();
   return (
     <Link
       href={`/market/${listing.id}`}
@@ -135,7 +143,7 @@ function StarMarketTile({ listing }: { listing: StarMarketListing }) {
         <img src={listing.thumbnailUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-muted/40 p-2 text-center text-[11px] font-semibold text-muted-foreground">
-          {listing.title || "상품"}
+          {listing.title || t("star.badge.product")}
         </div>
       )}
       <span className="absolute bottom-1 left-1 right-1 truncate rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-semibold text-white">
@@ -158,6 +166,7 @@ export function StarHubClient({
   initialCreators: StarHubCreator[];
   initialTotal: number;
 }) {
+  const { t } = useLocale();
   const [kind, setKind] = useState<StarKind>("all");
   const [posts, setPosts] = useState(initialPosts);
   const [listings, setListings] = useState<StarMarketListing[]>(initialListings);
@@ -167,7 +176,7 @@ export function StarHubClient({
   const [creatorId, setCreatorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
-  const tabLabel = STAR_TABS.find((item) => item.id === kind)?.label ?? "전체";
+  const tabLabel = t(STAR_TAB_KEYS.find((item) => item.id === kind)?.key ?? "star.tab.all");
 
   const refresh = useCallback(async (nextKind: StarKind, nextCreatorId: string | null) => {
     setLoading(true);
@@ -226,9 +235,7 @@ export function StarHubClient({
   const onClearAll = useCallback(async () => {
     if (total <= 0) return;
     if (
-      !window.confirm(
-        `STAR에 저장한 ${tabLabel}을 모두 삭제할까요? 북마크만 지워지며 글 자체는 삭제되지 않습니다.`
-      )
+      !window.confirm(t("star.clearConfirm", { tab: tabLabel }))
     ) {
       return;
     }
@@ -250,7 +257,7 @@ export function StarHubClient({
     } finally {
       setClearing(false);
     }
-  }, [kind, tabLabel, total]);
+  }, [kind, tabLabel, total, t]);
 
   const visiblePosts = useMemo(
     () => (kind === "posts" ? posts.filter((post) => !isQnaStarPost(post)) : posts),
@@ -276,17 +283,17 @@ export function StarHubClient({
         disabled={clearing || total <= 0}
         onClick={() => void onClearAll()}
       >
-        {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : "전체 삭제하기"}
+        {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : t("star.deleteAll")}
       </Button>
     ),
-    [clearing, onClearAll, total]
+    [clearing, onClearAll, total, t]
   );
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-2 overflow-x-auto">
-          {STAR_TABS.map((item) => {
+          {STAR_TAB_KEYS.map((item) => {
             const active = kind === item.id;
             return (
               <button
@@ -304,7 +311,7 @@ export function StarHubClient({
                 )}
                 aria-pressed={active}
               >
-                {item.label}
+                {t(item.key)}
               </button>
             );
           })}
@@ -331,7 +338,7 @@ export function StarHubClient({
               >
                 <Star className={cn("h-6 w-6", creatorId === null ? "text-primary fill-primary/30" : "text-muted-foreground")} />
               </span>
-              <span className="text-[11px] font-bold text-foreground">전체</span>
+              <span className="text-[11px] font-bold text-foreground">{t("star.tab.all")}</span>
             </button>
             {creators.map((c) => {
               const active = creatorId === c.id;
@@ -373,16 +380,16 @@ export function StarHubClient({
       ) : showEmpty ? (
         <p className="text-center text-muted-foreground py-16 text-sm leading-relaxed">
           {kind === "market"
-            ? "저장한 마켓 상품이 없습니다. 상품 사진 위 별 버튼으로 저장하세요."
+            ? t("star.empty.market")
             : kind === "wiki"
-              ? "저장한 컬처 위키가 없습니다. 문서의 STAR 버튼으로 저장하세요."
+              ? t("star.empty.wiki")
               : creatorId
-                ? "이 크리에이터의 STAR 저장 글이 없습니다."
+                ? t("star.empty.creator")
                 : kind === "qna"
-                  ? "저장한 QnA가 없습니다. 질문 글의 별 버튼으로 저장하세요."
+                  ? t("star.empty.qna")
                   : kind === "all"
-                    ? "저장한 STAR가 없습니다. 피드·마켓 상품의 별 아이콘을 눌러 저장하세요."
-                    : "저장한 게시물이 없습니다. 피드에서 별 아이콘을 눌러 저장하세요."}
+                    ? t("star.empty.all")
+                    : t("star.empty.posts")}
         </p>
       ) : kind === "all" ? (
         <div className="grid grid-cols-3 gap-0.5 sm:gap-1 md:grid-cols-4 lg:grid-cols-5">

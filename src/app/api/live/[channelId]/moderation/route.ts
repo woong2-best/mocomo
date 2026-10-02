@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -15,13 +16,13 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
   const perm = await requireBroadcastPermission(session.user.id, channelId, "chat.ban");
   if (!perm.ok) {
-    return NextResponse.json({ error: perm.error }, { status: 403 });
+    return NextResponse.json({ error: errorText(perm.error) }, { status: 403 });
   }
 
   const bans = await listLiveChatBans(channelId);
@@ -37,7 +38,7 @@ export async function POST(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
@@ -45,12 +46,12 @@ export async function POST(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const targetUserId = body.targetUserId?.trim();
   if (!targetUserId) {
-    return NextResponse.json({ error: "targetUserId가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const action = body.action?.trim();
@@ -81,11 +82,11 @@ export async function POST(
       });
       break;
     default:
-      return NextResponse.json({ error: "알 수 없는 action입니다." }, { status: 400 });
+      return NextResponse.json({ error: "Unknown action." }, { status: 400 });
   }
 
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 403 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 403 });
   }
   return NextResponse.json({ ok: true, ...result });
 }

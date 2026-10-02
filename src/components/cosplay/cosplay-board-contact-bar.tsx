@@ -1,5 +1,12 @@
 "use client";
+const i18n = createTranslator("en");
 
+
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Mail } from "lucide-react";
@@ -27,7 +34,7 @@ export function CosplayBoardContactBar({
     startTransition(async () => {
       const res = await getOrCreateDM(authorId);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("roomId" in res && res.roomId) {
@@ -39,7 +46,7 @@ export function CosplayBoardContactBar({
   return (
     <div className="px-4 py-3 border-t border-[#d6d6d6] dark:border-border bg-[#f0f4ff] dark:bg-muted/30 flex flex-wrap items-center gap-3">
       <p className="text-xs text-muted-foreground flex-1 min-w-[12rem]">
-        「{postTitle}」 문의 — @{authorUsername}
+        「{postTitle}{i18n("cosplay.s13p0xbb")}{authorUsername}
       </p>
       {isSignedIn && canMessage ? (
         <Button
@@ -50,11 +57,11 @@ export function CosplayBoardContactBar({
           onClick={contact}
         >
           <Mail className="h-3.5 w-3.5" />
-          {pending ? "연결 중…" : "DM 보내기"}
+          {pending ? i18n("discovery.seed2mt") : i18n("cosplay.sy6i8yh")}
         </Button>
       ) : (
         <Button size="sm" variant="secondary" className="rounded-lg" asChild>
-          <Link href={`/auth/signin?callbackUrl=/u/${authorUsername}`}>로그인 후 문의</Link>
+          <Link href={`/auth/signin?callbackUrl=/u/${authorUsername}`}>{i18n("cosplay.s1j6pm0w")}</Link>
         </Button>
       )}
       {error && <p className="text-xs text-destructive w-full">{error}</p>}

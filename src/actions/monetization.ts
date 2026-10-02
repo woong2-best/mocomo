@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { ProductType, PaymentIntentType } from "@prisma/client";
@@ -38,7 +37,7 @@ export async function createPaymentIntent(input: {
   return createStripeCheckout({
     type: input.type,
     amount: input.amount,
-    orderName: "MoCoMo 결제",
+    orderName: "actions.mocomo",
     metadata: input.metadata,
   });
 }
@@ -57,7 +56,6 @@ export async function confirmStripeCheckout(sessionId: string) {
   if (result.type === "STUDIO_ASSET") {
     revalidatePath("/studio/library");
     revalidatePath("/studio/market");
-    revalidateAptHub();
   }
 
   return {
@@ -74,16 +72,16 @@ export async function confirmPaymentIntent(
   _orderId: string,
   _amount: number
 ) {
-  return { error: "Stripe Checkout으로 결제해 주세요. session_id가 필요합니다." };
+  return { error: "actions.stripe_checkout_session_id" };
 }
 
 export async function sendTip(_receiverId: string, _amount: number, _message?: string) {
-  return { error: "결제 창을 통해 후원해 주세요." };
+  return { error: "actions.s1tfxq3u" };
 }
 
 export async function subscribeToCreator(creatorId: string, amount: number) {
   if (!isPaymentsConfigured()) {
-    return { error: "결제가 설정되지 않았습니다." };
+    return { error: "market.paymentsDisabled" };
   }
   const user = await requireAuth();
   const periodEnd = new Date();
@@ -103,7 +101,7 @@ export async function subscribeToCreator(creatorId: string, amount: number) {
 }
 
 export async function upgradePremium() {
-  return { error: "결제 창을 통해 프리미엄을 구독해 주세요." };
+  return { error: "actions.sv8rxhj" };
 }
 
 export async function createDigitalProduct(data: {
@@ -116,7 +114,7 @@ export async function createDigitalProduct(data: {
 }) {
   const user = await requireAuth();
   if (!data.previewUrl || !data.fileUrl) {
-    return { error: "미리보기·다운로드 URL이 필요합니다." };
+    return { error: "actions.url_3" };
   }
   const product = await db.digitalProduct.create({
     data: { sellerId: user.id, ...data },
@@ -126,7 +124,7 @@ export async function createDigitalProduct(data: {
 }
 
 export async function purchaseProduct(_productId: string) {
-  return { error: "결제 창을 통해 구매해 주세요." };
+  return { error: "actions.s15yrkd2" };
 }
 
 export async function getTipRanking(limit = 10) {

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -51,14 +54,14 @@ function TransactionRow({ tx }: { tx: WalletEnrichedTransaction }) {
   const isIncome = tx.net > 0;
   const title =
     tx.category === "WITHDRAWAL"
-      ? "출금"
+      ? t("wallet.szxf0")
       : tx.label || EARNING_CATEGORY_LABELS[tx.category];
   const subtitle =
     tx.category === "WITHDRAWAL"
-      ? "출금 신청"
+      ? t("wallet.s18kcjnl")
       : tx.payerUsername
         ? `@${tx.payerUsername}`
-        : "전자지급";
+        : t("wallet.sq2ekid");
 
   return (
     <motion.div
@@ -82,7 +85,7 @@ function TransactionRow({ tx }: { tx: WalletEnrichedTransaction }) {
           {formatMocoNetFromCents(tx.net)}
         </p>
         <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
-          잔액 {formatMocoDisplay(ledgerCentsToMoco(tx.cumulative))}
+          {t("wallet.month.balance", { balance: formatMocoDisplay(ledgerCentsToMoco(tx.cumulative)) })}
         </p>
       </div>
     </motion.div>
@@ -119,7 +122,7 @@ function CategoryBlock({
           {spent > 0 ? (
             <span className="text-red-600 font-bold">-{formatMocoDisplay(ledgerCentsToMoco(spent))}</span>
           ) : null}
-          {earned === 0 && spent === 0 ? `${items.length}건` : null}
+          {earned === 0 && spent === 0 ? t("wallet.sy2c", { v0: items.length }) : null}
         </p>
       </div>
       <div className="px-4 max-h-56 overflow-y-auto overscroll-contain">
@@ -169,20 +172,20 @@ export function WalletMonthDetailPanel({ year, month, monthLabel, transactions, 
             <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-b border-border/50">
               <div>
                 <p className="text-sm font-black tracking-tight">
-                  {year}년 {monthLabel} 거래 내역
+                  {t("wallet.month.header", { year: String(year), month: monthLabel })}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  수익{" "}
+                  {t("wallet.month.income")}{" "}
                   <span className="text-emerald-600 font-bold tabular-nums">
                     +{formatMocoDisplay(ledgerCentsToMoco(incomeTotal))}
                   </span>
                   {" · "}
-                  지출{" "}
+                  {t("wallet.month.expense")}{" "}
                   <span className="text-red-600 font-bold tabular-nums">
                     -{formatMocoDisplay(ledgerCentsToMoco(expenseTotal))}
                   </span>
                   {" · "}
-                  {monthTx.length}건
+                  {t("wallet.month.count", { count: String(monthTx.length) })}
                 </p>
               </div>
               <button
@@ -190,13 +193,13 @@ export function WalletMonthDetailPanel({ year, month, monthLabel, transactions, 
                 onClick={onClose}
                 className="text-xs font-bold px-3 py-1.5 rounded-full border border-border/60 hover:bg-muted/50 active:scale-95 transition-all"
               >
-                닫기
+                {t("common.close")}
               </button>
             </div>
 
             <div className="p-3 space-y-3 max-h-[min(72vh,560px)] overflow-y-auto overscroll-contain">
               {monthTx.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-10">이 달 금융 거래가 없습니다.</p>
+                <p className="text-sm text-muted-foreground text-center py-10">{t("wallet.s1n79cyw")}</p>
               ) : (
                 <>
                   {INCOME_CATEGORIES.map((cat) => (

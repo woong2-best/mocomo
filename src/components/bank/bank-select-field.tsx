@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useMemo, useState } from "react";
 import { Search, ChevronDown, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -56,7 +59,7 @@ export function BankSelectField({
     <div className="space-y-3">
       <div>
         <p className="text-xs font-medium text-muted-foreground mb-2">
-          {en ? "Popular banks" : "🇰🇷 자주 쓰는 은행"}
+          {en ? "Popular banks" : t("bank.slin6ea")}
         </p>
         <div className="flex flex-wrap gap-2">
           {quickBanks.map((b) => (
@@ -81,7 +84,7 @@ export function BankSelectField({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder={en ? 'Search bank (e.g. "Mirae", "키움")' : '은행 검색 (예: "미래", "Chase")'}
+          placeholder={en ? t("bank.search_bank_e_g_mirae") : t("bank.chase")}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -104,7 +107,7 @@ export function BankSelectField({
             ? `${selected.name} (${selected.code})`
             : en
               ? "Select bank"
-              : "은행 선택"}
+              : t("bank.sookm44")}
         </span>
         <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
       </button>
@@ -135,7 +138,7 @@ export function BankSelectField({
           ))}
           {filtered.length === 0 && (
             <p className="px-3 py-4 text-sm text-muted-foreground text-center">
-              {en ? "No banks found" : "검색 결과가 없습니다"}
+              {en ? "No banks found" : t("share.s1pc32b2")}
             </p>
           )}
         </div>
@@ -144,7 +147,7 @@ export function BankSelectField({
       <p className="text-[11px] text-muted-foreground leading-relaxed">
         {en
           ? "1 KRW verification via Apick · Korea only. Overseas sellers receive payouts via Stripe Connect."
-          : "Apick 1원 인증 · 한국 계좌만 지원. 해외 판매자 정산은 Stripe Connect만 이용합니다."}
+          : t("bank.apick_1_stripe_connect")}
       </p>
     </div>
   );

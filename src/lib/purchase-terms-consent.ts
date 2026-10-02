@@ -7,7 +7,7 @@ import {
 } from "@/lib/purchase-chargeback-terms";
 
 export const PURCHASE_TERMS_REQUIRED_ERROR =
-  "결제 전 이용약관(만 18세 이상·무단 결제 책임)에 동의해 주세요.";
+  "Agree to the payment terms (18+, unauthorized payment responsibility) before paying.";
 
 export type RecordPurchaseTermsInput = {
   userId: string;
@@ -76,7 +76,7 @@ export async function assertAndRecordPurchaseTermsConsent(
   });
 
   if (!intent || intent.userId !== input.userId) {
-    return { error: "결제 정보를 찾을 수 없습니다." };
+    return { error: "Payment information not found." };
   }
 
   if (intent.purchaseTermsAcceptedAt) {
@@ -114,7 +114,7 @@ export async function assertPurchaseTermsConsentRecorded(
   });
 
   if (!intent || intent.userId !== userId) {
-    return { error: "결제 정보를 찾을 수 없습니다." };
+    return { error: "Payment information not found." };
   }
 
   if (!intent.purchaseTermsAcceptedAt) {

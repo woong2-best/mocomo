@@ -145,7 +145,7 @@ export async function verifyUsedMarketBankCode(
 export async function sendUsedMarketPhoneOtp(rawPhone: string) {
   const user = await requirePhoneVerificationUser();
   if (isKoreaUsedMarketCountry(user.countryCode)) {
-    return { error: "한국은 계좌 1원 인증을 이용해 주세요." };
+    return { error: "actions.sbw3jma" };
   }
   return sendUsedMarketPhoneOtpForUser(user, rawPhone);
 }
@@ -153,7 +153,7 @@ export async function sendUsedMarketPhoneOtp(rawPhone: string) {
 export async function verifyUsedMarketPhoneOtp(rawPhone: string, code: string) {
   const user = await requirePhoneVerificationUser();
   if (isKoreaUsedMarketCountry(user.countryCode)) {
-    return { error: "한국은 계좌 1원 인증을 이용해 주세요." };
+    return { error: "actions.sbw3jma" };
   }
   const result = await verifyUsedMarketPhoneOtpForUser(user, rawPhone, code);
   if ("success" in result && result.success) revalidateBankPaths();

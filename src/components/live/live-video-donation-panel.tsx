@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useState } from "react";
 import { Check, Film, Loader2, Play, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +18,7 @@ export function LiveVideoDonationPanel({
   channelId: string;
   isHost: boolean;
 }) {
+  const { t } = useLocale();
   const [playing, setPlaying] = useState<LiveVideoDonationPayload | null>(null);
   const [queue, setQueue] = useState<LiveVideoDonationPayload[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -57,7 +62,7 @@ export function LiveVideoDonationPanel({
   return (
     <div className="rounded-lg border bg-card/95 backdrop-blur p-3 space-y-2">
       <p className="text-xs font-semibold flex items-center gap-1">
-        <Film className="h-3.5 w-3.5" /> 영상 후원
+        <Film className="h-3.5 w-3.5" /> {t("live.sh6wx58")}
       </p>
 
       {playing?.videoId && (
@@ -72,7 +77,7 @@ export function LiveVideoDonationPanel({
                 {item.username} · {formatUsd(item.amount)}
               </p>
               <p className="text-muted-foreground truncate">
-                {item.videoTitle ?? item.videoUrl ?? "URL 없음"}
+                {item.videoTitle ?? item.videoUrl ?? t("live.url_2")}
               </p>
               {item.description && (
                 <p className="text-muted-foreground truncate italic">&ldquo;{item.description}&rdquo;</p>
@@ -80,8 +85,8 @@ export function LiveVideoDonationPanel({
               {item.durationSec != null && (
                 <p className="text-[10px] text-muted-foreground tabular-nums">
                   {formatSecLabel(item.startSec)} ~{" "}
-                  {item.playToEnd ? "끝까지" : formatSecLabel(item.endSec ?? item.startSec + item.durationSec)}{" "}
-                  ({item.durationSec}초)
+                  {item.playToEnd ? t("live.sqopox") : formatSecLabel(item.endSec ?? item.startSec + item.durationSec)}{" "}
+                  {t("live.videoDonation.seconds", { seconds: String(item.durationSec) })}
                 </p>
               )}
               <div className="flex flex-wrap gap-1 mt-1">
@@ -94,7 +99,7 @@ export function LiveVideoDonationPanel({
                       disabled={loadingId === item.id}
                       onClick={() => void act(item.id, "approve")}
                     >
-                      <Check className="h-3 w-3" /> 승인
+                      <Check className="h-3 w-3" /> {t("live.sy7rz")}
                     </Button>
                     <Button
                       size="sm"
@@ -103,7 +108,7 @@ export function LiveVideoDonationPanel({
                       disabled={loadingId === item.id}
                       onClick={() => void act(item.id, "reject")}
                     >
-                      <X className="h-3 w-3" /> 거절
+                      <X className="h-3 w-3" /> {t("collab.reject")}
                     </Button>
                   </>
                 )}
@@ -115,7 +120,7 @@ export function LiveVideoDonationPanel({
                     disabled={loadingId === item.id || !!playing}
                     onClick={() => void act(item.id, "play")}
                   >
-                    <Play className="h-3 w-3" /> 재생
+                    <Play className="h-3 w-3" /> {t("live.sz0s1")}
                   </Button>
                 )}
               </div>
@@ -144,7 +149,7 @@ function VideoDonationPlayer({
     <div className="space-y-2">
       <div className="aspect-video rounded-md overflow-hidden bg-black">
         <iframe
-          title="영상 후원"
+          title={t("live.sh6wx58")}
           src={youtubeEmbedUrl(item.videoId, {
             autoplay: true,
             startSec: item.startSec,
@@ -169,7 +174,7 @@ function VideoDonationPlayer({
             disabled={loadingId === item.id}
             onClick={() => void onAct(item.id, "complete")}
           >
-            재생 완료
+            {t("live.snq42c7")}
           </Button>
           <Button
             size="sm"
@@ -178,7 +183,7 @@ function VideoDonationPlayer({
             disabled={loadingId === item.id}
             onClick={() => void onAct(item.id, "skip")}
           >
-            <SkipForward className="h-3 w-3" /> 건너뛰기
+            <SkipForward className="h-3 w-3" /> {t("live.smhv4us")}
           </Button>
         </div>
       )}
@@ -186,7 +191,7 @@ function VideoDonationPlayer({
   );
 }
 
-/** 방송 영상 위 YouTube PiP + 설명 */
+/** 방송 Video 위 YouTube PiP + 설명 */
 export function LiveVideoDonationOverlay({ channelId }: { channelId: string }) {
   const [playing, setPlaying] = useState<LiveVideoDonationPayload | null>(null);
 
@@ -216,7 +221,7 @@ export function LiveVideoDonationOverlay({ channelId }: { channelId: string }) {
     <div className="pointer-events-none absolute top-3 right-3 z-[25] w-[min(42%,360px)]">
       <div className="aspect-video rounded-lg overflow-hidden ring-2 ring-emerald-500/80 shadow-2xl bg-black">
         <iframe
-          title="영상 후원"
+          title={t("live.sh6wx58")}
           src={youtubeEmbedUrl(playing.videoId, {
             autoplay: true,
             startSec: playing.startSec,
@@ -228,7 +233,10 @@ export function LiveVideoDonationOverlay({ channelId }: { channelId: string }) {
       </div>
       <div className="mt-1 rounded-md bg-black/75 px-2 py-1.5 text-white text-xs space-y-0.5">
         <p className="font-semibold truncate">
-          {playing.username} · {playing.amount.toLocaleString()}원
+          {t("live.videoDonation.pipLine", {
+            username: playing.username,
+            amount: playing.amount.toLocaleString(),
+          })}
         </p>
         {playing.description && <p className="text-white/85 line-clamp-2">{playing.description}</p>}
       </div>

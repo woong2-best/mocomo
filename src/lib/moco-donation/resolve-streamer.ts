@@ -15,7 +15,7 @@ export type ResolvedStreamerTarget =
 export async function resolveStreamerTarget(streamerIdRaw: string): Promise<ResolvedStreamerTarget> {
   const streamerId = streamerIdRaw.trim();
   if (!streamerId || streamerId.length > 64) {
-    return { ok: false, error: "streamer_id가 올바르지 않습니다." };
+    return { ok: false, error: "streamer_id is invalid." };
   }
 
   const byChannel = await db.voiceChannel.findUnique({
@@ -48,7 +48,7 @@ export async function resolveStreamerTarget(streamerIdRaw: string): Promise<Reso
     },
   });
   if (!live) {
-    return { ok: false, error: "진행 중인 방송을 찾을 수 없습니다." };
+    return { ok: false, error: "No live stream in progress was found." };
   }
 
   return {

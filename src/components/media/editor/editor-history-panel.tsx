@@ -14,7 +14,7 @@ export function EditorHistoryPanel({
   if (items.length <= 1) return null;
   return (
     <div className="border-t bg-muted/10 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">히스토리 ({items.length})</p>
+      <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">History ({items.length})</p>
       <div className="flex gap-1 overflow-x-auto pb-1">
         {items.map((_, i) => (
           <button

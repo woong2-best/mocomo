@@ -3,16 +3,6 @@ import type { Locale } from "@/lib/i18n/config";
 import { LIVE_CATEGORIES } from "@/lib/live-categories";
 
 const CATEGORY_LABELS: Partial<Record<Locale, Record<string, string>>> = {
-  ko: {
-    ALL: "전체",
-    JUST_CHATTING: "CHATTING",
-    GAME: "GAMING",
-    MUSIC: "MUSIC",
-    IRL: "FESTIVAL",
-    VIRTUAL: "FOLLOWING",
-    LIVE: "R-18",
-    default: "라이브",
-  },
   en: {
     ALL: "All",
     JUST_CHATTING: "CHATTING",
@@ -22,26 +12,6 @@ const CATEGORY_LABELS: Partial<Record<Locale, Record<string, string>>> = {
     VIRTUAL: "FOLLOWING",
     LIVE: "R-18",
     default: "Live",
-  },
-  ja: {
-    ALL: "すべて",
-    JUST_CHATTING: "CHATTING",
-    GAME: "GAMING",
-    MUSIC: "MUSIC",
-    IRL: "FESTIVAL",
-    VIRTUAL: "FOLLOWING",
-    LIVE: "R-18",
-    default: "ライブ",
-  },
-  zh: {
-    ALL: "全部",
-    JUST_CHATTING: "CHATTING",
-    GAME: "GAMING",
-    MUSIC: "MUSIC",
-    IRL: "FESTIVAL",
-    VIRTUAL: "FOLLOWING",
-    LIVE: "R-18",
-    default: "直播",
   },
 };
 

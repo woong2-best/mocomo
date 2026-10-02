@@ -34,7 +34,7 @@ export function googleSearchUrlForEvent(pin: MapEventPin): string {
 
 export function mapLinkForEvent(pin: MapEventPin): { label: string; url: string } {
   return {
-    label: "Google 지도",
+    label: "Google Maps",
     url: googleMapsExternalUrl({
       place: pin.venueName ?? pin.title,
       coords: { lat: pin.lat, lng: pin.lng },

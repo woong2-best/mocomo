@@ -32,15 +32,13 @@ export default async function UsedVerifyPage({
     <AppPageChrome maxWidth="2xl" spacing="sm" className="py-6 space-y-4">
       <div>
         <Link href="/market" className="text-sm text-muted-foreground hover:text-foreground underline">
-          {locale === "en" ? "Back to marketplace" : "중고거래 홈"}
+          {"Back to marketplace"}
         </Link>
         <h1 className="text-xl font-bold mt-2">
-          {locale === "en" ? "Verify to use marketplace" : "중고거래 이용 인증"}
+          {"Verify to use marketplace"}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {locale === "en"
-            ? "Phone verification is required before listing, bidding, or chatting."
-            : "글 등록·입찰·채팅 전 휴대폰 인증이 필요합니다."}
+          {"Phone verification is required before listing, bidding, or chatting."}
         </p>
       </div>
       <UsedPhoneVerifyForm callbackUrl={next} countryCode={user.countryCode} />

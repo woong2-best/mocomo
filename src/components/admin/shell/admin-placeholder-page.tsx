@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Button } from "@/components/ui/button";
 import { DashboardCard } from "@/components/admin/shell/stat-card";
 
@@ -19,8 +22,8 @@ export function AdminPlaceholderPage({
       </div>
 
       <DashboardCard
-        title="준비 중"
-        description="이번 단계는 UI·라우팅만 제공합니다. 실제 동작은 다음 단계에서 구현합니다."
+        title={t("lib.live.bead.slots.se86e2d3dcc")}
+        description={t("admin.s1ra6py1")}
       >
         <div className="space-y-4">
           <div className="rounded-xl border border-dashed border-border/80 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">

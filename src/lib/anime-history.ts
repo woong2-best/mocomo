@@ -25,7 +25,7 @@ export async function listAnimeHistory(slug: string): Promise<
       creator: { select: { username: true } },
     },
   });
-  if (!anime) return { error: "문서를 찾을 수 없습니다." };
+  if (!anime) return { error: "Document not found." };
 
   const revisions = await db.animeRevision.findMany({
     where: { animeId: anime.id },
@@ -41,13 +41,14 @@ export async function listAnimeHistory(slug: string): Promise<
     restorable: true,
   }));
 
-  const hasInitial = entries.some((e) => e.summary === "최초 작성");
+  // "Initial draft" in Korean was stored by older revisions; keep recognising it.
+  const hasInitial = entries.some((e) => e.summary === "Initial draft" || e.summary === "\uCD5C\uCD08 \uC791\uC131");
   if (!hasInitial) {
     entries.unshift({
       id: `created-${anime.id}`,
       username: anime.creator.username,
       createdAt: anime.createdAt.toISOString(),
-      summary: "최초 작성",
+      summary: "Initial draft",
       restorable: false,
     });
   }

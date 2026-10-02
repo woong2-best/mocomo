@@ -1,5 +1,9 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef, useState } from "react";
 import { formatUsd } from "@/lib/money";
 
@@ -15,14 +19,15 @@ type AlertItem = {
 };
 
 function SideAlertCard({ item }: { item: AlertItem }) {
+  const { t } = useLocale();
   const name = item.username.startsWith("@") ? item.username.slice(1) : item.username;
   const isChat = item.kind === "chat";
   const isCheer = item.kind === "cheer";
 
   let title = "";
-  if (isChat) title = `${name} · 채팅`;
+  if (isChat) title = t("live.s49etm", { v0: name });
   else if (item.eventType === "ROULETTE" && item.rouletteLabel) {
-    title = `${name} 룰렛 · ${item.rouletteLabel}`;
+    title = t("live.so2p43m", { v0: name, v1: item.rouletteLabel });
   } else if (isCheer) title = `${name} · ${item.amount.toLocaleString()} CP`;
   else title = `${name} · ${formatUsd(item.amount)}`;
 

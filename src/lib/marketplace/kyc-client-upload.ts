@@ -25,12 +25,12 @@ export async function uploadSellerKycDocument(
           ? "로그인이 필요합니다."
           : res.status === 429
             ? "업로드 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
-            : "신분증 이미지 업로드에 실패했습니다."),
+            : "Failed to upload ID image."),
     };
   }
 
   if (!body.documentKey) {
-    return { error: "업로드 응답을 처리할 수 없습니다." };
+    return { error: "Could not process upload response." };
   }
 
   return { documentKey: body.documentKey };

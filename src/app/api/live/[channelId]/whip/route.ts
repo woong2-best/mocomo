@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -21,9 +22,9 @@ function whipErrorMessage(status: number, raw: string): string {
     return "송출 키가 만료되었거나 잘못되었습니다. 페이지를 새로고침한 뒤 방송을 다시 시작해 주세요.";
   }
   if (/Unable to parse SDP/i.test(text)) {
-    return "영상 연결 정보(SDP) 형식 오류입니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.";
+    return "Something went wrong. Please try again.";
   }
-  return text || `WHIP 연결 실패 (${status})`;
+  return text || `Something went wrong. Please try again.${status})`;
 }
 
 async function postSdpToCloudflareWhip(whipUrl: string, sdp: string) {
@@ -47,7 +48,7 @@ export async function POST(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const cfErr = cloudflareStreamConfigError();
@@ -57,13 +58,13 @@ export async function POST(
 
   const { channelId } = await params;
   if (!channelId || channelId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const body = (await req.json().catch(() => ({}))) as { sdp?: string };
   const sdp = body.sdp ? normalizeSdp(body.sdp) : "";
   if (!sdp) {
-    return NextResponse.json({ error: "SDP가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Please check your input and try again." }, { status: 400 });
   }
 
   const tabId = readPublisherTabIdFromRequest(req);
@@ -81,14 +82,14 @@ export async function POST(
   });
 
   if (!channel) {
-    return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Stream not found." }, { status: 404 });
   }
 
   const resolved = await resolveWhipPublishUrlForHost(channel, session.user.id, tabId);
   if ("error" in resolved) {
     return NextResponse.json(
       {
-        error: resolved.error,
+        error: errorText(resolved.error),
         publishState: resolved.publishState,
       },
       { status: resolved.status }
@@ -128,7 +129,7 @@ export async function POST(
   } catch (e) {
     console.error("[whip-proxy]", channelId, e);
     return NextResponse.json(
-      { error: "Cloudflare 송출 서버 연결에 실패했습니다." },
+      { error: "Something went wrong. Please try again." },
       { status: 502 }
     );
   }

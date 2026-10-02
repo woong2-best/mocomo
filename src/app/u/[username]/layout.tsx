@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { ProfileHeaderAsync } from "@/components/profile/profile-header-async";
-import { ProfileMinigameAsync } from "@/components/profile/profile-minigame-async";
 import { ProfileTabProvider } from "@/components/profile/profile-tab-context";
 import { ProfileWebtoonsAsync } from "@/components/profile/profile-webtoons-async";
 import { ProfileHeaderSkeleton } from "@/components/ui/content-skeletons";
@@ -44,9 +43,6 @@ async function ProfileLayoutShell({
         <Suspense fallback={null}>
           <ProfilePageWebtoons username={username} />
         </Suspense>
-        <Suspense fallback={null}>
-          <ProfilePageMinigame username={username} />
-        </Suspense>
       </div>
       </ProfileTabProvider>
     </AppPageChrome>
@@ -55,8 +51,4 @@ async function ProfileLayoutShell({
 
 async function ProfilePageWebtoons({ username }: { username: string }) {
   return <ProfileWebtoonsAsync username={username} />;
-}
-
-async function ProfilePageMinigame({ username }: { username: string }) {
-  return <ProfileMinigameAsync username={username} />;
 }

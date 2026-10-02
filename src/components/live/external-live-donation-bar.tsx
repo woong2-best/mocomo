@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useState } from "react";
 import { Target } from "lucide-react";
 import { LiveSupportDialog } from "@/components/live/live-support-dialog";
@@ -8,7 +12,7 @@ import { MocoVideoDonationDialog } from "@/components/live/moco-video-donation-d
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import { cn } from "@/lib/utils";
 
-/** External live viewer — YouTube 영상 · MOCO 효과음 · 미션 */
+/** External live viewer — YouTube Video · MOCO 효과음 · 미션 */
 export function ExternalLiveDonationBar({
   channelId,
   hostDisplayName,
@@ -18,6 +22,7 @@ export function ExternalLiveDonationBar({
   hostDisplayName: string;
   isHost?: boolean;
 }) {
+  const { t } = useLocale();
   const { socket, connected } = useLiveChat();
   const [missionOpen, setMissionOpen] = useState(false);
 
@@ -34,7 +39,7 @@ export function ExternalLiveDonationBar({
         streamerId={channelId}
         trigger={
           <button type="button" className={btnClass}>
-            영상 후원
+            {t("live.sh6wx58")}
           </button>
         }
       />
@@ -42,7 +47,7 @@ export function ExternalLiveDonationBar({
         streamerId={channelId}
         trigger={
           <button type="button" className={btnClass}>
-            효과음 후원
+            {t("live.sc8rtpw")}
           </button>
         }
       />
@@ -57,7 +62,7 @@ export function ExternalLiveDonationBar({
         trigger={
           <button type="button" disabled={!connected} className={btnClass}>
             <Target className="h-3.5 w-3.5" />
-            미션
+            {t("live.sx17k")}
           </button>
         }
       />

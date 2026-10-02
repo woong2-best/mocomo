@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -58,7 +61,7 @@ export function AdminPromotionsTable({
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="이름 · slug"
+            placeholder={t("admin.slug")}
             className="max-w-xs"
             onKeyDown={(e) => {
               if (e.key === "Enter") push({ q: q || undefined, page: "1" });
@@ -77,17 +80,17 @@ export function AdminPromotionsTable({
               })
             }
           >
-            <option value="all">전체</option>
-            <option value="true">활성</option>
-            <option value="false">비활성</option>
+            <option value="all">{t("lib.live.categories.s934dd25ec5")}</option>
+            <option value="true">{t("settings.twoFactorOn")}</option>
+            <option value="false">{t("settings.twoFactorOff")}</option>
           </select>
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="outline" asChild>
-            <Link href="/admin/promotions/statistics">통계</Link>
+            <Link href="/admin/promotions/statistics">{t("lib.admin.s10m9b")}</Link>
           </Button>
           <Button type="button" variant="outline" asChild>
-            <Link href="/admin/coupons">쿠폰</Link>
+            <Link href="/admin/coupons">{t("lib.admin.s10is0")}</Link>
           </Button>
           {canWrite ? (
             <Button type="button" onClick={() => setCreateOpen(true)}>
@@ -103,12 +106,12 @@ export function AdminPromotionsTable({
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left">
             <tr>
-              <th className="p-3">우선순위</th>
-              <th className="p-3">이름</th>
-              <th className="p-3">혜택</th>
-              <th className="p-3">트리거</th>
-              <th className="p-3">발급/사용</th>
-              <th className="p-3">절감</th>
+              <th className="p-3">{t("admin.spved3s")}</th>
+              <th className="p-3">{t("market.name")}</th>
+              <th className="p-3">{t("admin.s11kch")}</th>
+              <th className="p-3">{t("admin.svrn5o")}</th>
+              <th className="p-3">{t("admin.s1b66usf")}</th>
+              <th className="p-3">{t("admin.syyvc")}</th>
               <th className="p-3" />
             </tr>
           </thead>
@@ -120,7 +123,7 @@ export function AdminPromotionsTable({
                   <div className="font-medium">{p.name}</div>
                   <div className="text-xs text-muted-foreground">{p.slug}</div>
                   {!p.active ? (
-                    <span className="text-xs text-destructive">비활성</span>
+                    <span className="text-xs text-destructive">{t("settings.twoFactorOff")}</span>
                   ) : null}
                 </td>
                 <td className="p-3">{p.benefitLabel}</td>

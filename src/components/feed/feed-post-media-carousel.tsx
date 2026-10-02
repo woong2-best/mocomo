@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   useCallback,
   useEffect,
@@ -456,7 +459,7 @@ export function FeedPostMediaCarousel({
           )}
           style={padStyle}
           role="list"
-          aria-label="게시물 미디어"
+          aria-label={t("feed.svtcyuc")}
         >
           {items.map((m, i) => {
             const aspect = postMediaAspectRatio(m);

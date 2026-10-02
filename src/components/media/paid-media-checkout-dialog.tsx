@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Lock } from "lucide-react";
 import {
   Dialog,
@@ -50,18 +53,18 @@ export function PaidMediaCheckoutDialog({
           <div className="mb-1 flex h-14 w-14 items-center justify-center rounded-full bg-folk-cobalt/10">
             <Lock className="h-7 w-7 text-folk-cobalt" strokeWidth={2.25} />
           </div>
-          <DialogTitle>{isSub ? "열람 불가" : "결제가 필요합니다"}</DialogTitle>
+          <DialogTitle>{isSub ? t("media.sftu5j4") : t("media.se0kmzt")}</DialogTitle>
           <DialogDescription>
             {isSub
-              ? "구독 전용 콘텐츠입니다. 정기 후원 기능은 종료되어 새로 구독할 수 없습니다."
+              ? t("media.s17oy9lc")
               : variant === "photo"
-                ? "전체 사진을 보려면 결제해 주세요."
-                : "미리보기가 끝났습니다. 이어서 보려면 결제해 주세요."}
+                ? t("media.s1jrc1ta")
+                : t("media.sbiwbci")}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-3 pt-1">
           {isSub ? (
-            <p className="text-sm text-muted-foreground">열람 권한이 없습니다.</p>
+            <p className="text-sm text-muted-foreground">{t("media.s1red94v")}</p>
           ) : mediaId && priceKrw > 0 ? (
             <PurchasePostMediaButton
               mediaId={mediaId}
@@ -69,7 +72,7 @@ export function PaidMediaCheckoutDialog({
               paymentsEnabled={paymentsEnabled}
               username={username}
               postId={postId}
-              label="결제하기"
+              label={t("profile.smmgb44")}
               variant="button"
               onPurchaseSuccess={async () => {
                 await onPurchaseSuccess?.();
@@ -77,7 +80,7 @@ export function PaidMediaCheckoutDialog({
               }}
             />
           ) : (
-            <p className="text-sm text-muted-foreground">열람 권한이 없습니다.</p>
+            <p className="text-sm text-muted-foreground">{t("media.s1red94v")}</p>
           )}
         </div>
       </DialogContent>

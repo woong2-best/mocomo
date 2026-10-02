@@ -55,12 +55,12 @@ export default async function CosplayProfilesPage() {
               <Camera className="h-6 w-6 text-pink-500" />
               코스어 프로필
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">등록된 코스플레이어를 둘러보세요.</p>
+            <p className="text-sm text-muted-foreground mt-1">Browse registered cosplayers.</p>
           </div>
         </NativePageTitle>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="rounded-xl" asChild>
-            <Link href="/cosplay">마켓 게시판</Link>
+            <Link href="/cosplay">Market board</Link>
           </Button>
           {session?.user && !hasCosplayerProfile && (
             <Link href="/cosplay/apply">

@@ -28,8 +28,8 @@ export async function createProfileMediaPost(input: {
   const user = await requireAuth();
   const content = input.content?.trim();
   const mediaUrl = input.mediaUrl?.trim();
-  if (!content) return { error: "내용을 입력해 주세요." };
-  if (!mediaUrl) return { error: "사진 또는 영상을 추가해 주세요." };
+  if (!content) return { error: "actions.s1xl2qqb" };
+  if (!mediaUrl) return { error: "actions.st9khj2" };
 
   const visibility = parseContentVisibility(input.visibility);
   const mediaPrice = Math.max(0, Math.floor(input.priceKrw ?? 0));

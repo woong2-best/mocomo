@@ -63,14 +63,14 @@ export async function runStripeDiagnostics(): Promise<StripeDiagnostics> {
   if (!configured) {
     return {
       ...base,
-      apiError: "STRIPE_SECRET_KEY 또는 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 가 없습니다.",
+      apiError: "STRIPE_SECRET_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is missing.",
     };
   }
 
   if (keyMode === "mismatch") {
     return {
       ...base,
-      apiError: "Secret key와 Publishable key 모드(test/live)가 일치하지 않습니다.",
+      apiError: "Secret key and publishable key modes (test/live) do not match.",
     };
   }
 
@@ -85,7 +85,7 @@ export async function runStripeDiagnostics(): Promise<StripeDiagnostics> {
       balancePendingUsdCents: sumBalanceUsdCents(balance.pending),
     };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Stripe API 오류";
+    const message = e instanceof Error ? e.message : "Stripe API error";
     return { ...base, apiError: message };
   }
 }

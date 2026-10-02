@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
@@ -63,26 +66,26 @@ export function MemberModerationMenu({
           <MemberRoleAssignSubmenu member={member} communityId={communityId} />
         )}
         <DropdownMenuItem onClick={() => void run(() => kickCommunityMember(member.id))}>
-          추방
+          {t("community-server.s1000l")}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => void run(() => timeoutCommunityMember(member.id, 10))}
         >
-          타임아웃 (10분)
+          {t("community-server.s1yi3hu7")}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => void run(() => timeoutCommunityMember(member.id, 60))}
         >
-          타임아웃 (1시간)
+          {t("community-server.s9eypn")}
         </DropdownMenuItem>
         <DropdownMenuItem
           className="text-destructive"
           onClick={() => {
-            if (!confirm(`${member.username}님을 차단할까요?`)) return;
-            void run(() => banCommunityMember(member.id, { reason: "관리자 차단" }));
+            if (!confirm(t("community-server.s12kq8ej", { v0: member.username }))) return;
+            void run(() => banCommunityMember(member.id, { reason: t("community-server.s1jybapo") }));
           }}
         >
-          영구 차단
+          {t("community-server.ser2y5x")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

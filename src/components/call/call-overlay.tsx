@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { ActiveCallState } from "@/lib/call-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -20,15 +23,15 @@ import type { CallParticipant } from "@/lib/call-types";
 
 function phaseSubtitle(isVideo: boolean, phase: ActiveCallState["phase"]) {
   if (phase === "preparing") {
-    return isVideo ? "영상 통화 준비 중…" : "음성 통화 준비 중…";
+    return isVideo ? t("call.s1wdz0kw") : t("call.sp21ex7");
   }
   if (phase === "incoming") {
-    return isVideo ? "영상 통화 요청" : "음성 통화 요청";
+    return isVideo ? t("call.sia326y") : t("call.s1eph47z");
   }
   if (phase === "outgoing") {
-    return isVideo ? "영상 통화 거는 중…" : "전화 거는 중…";
+    return isVideo ? t("call.sq9kz4g") : t("call.sr1s7dt");
   }
-  return isVideo ? "영상 통화" : "음성 통화";
+  return isVideo ? t("call.sh6w58f") : t("call.smavk62");
 }
 
 function PermissionBanner({
@@ -163,7 +166,7 @@ export function CallRingingStage({
           </p>
           {ringing && (
             <p className="mt-2 text-sm text-white/40">
-              {phase === "outgoing" ? "상대방이 받을 때까지 기다려 주세요" : "MoCoMo 통화"}
+              {phase === "outgoing" ? t("call.sjshb0n") : t("call.mocomo")}
             </p>
           )}
         </>
@@ -219,7 +222,7 @@ export function CallOverlay({
   const mediaReady = micReady && camReady;
 
   if (callState.phase === "active" && peerCallSlot && minimized) {
-    const name = callState.peer.username || "통화";
+    const name = callState.peer.username || t("call.s10ugv");
     return (
       <>
         <div className="pointer-events-none fixed bottom-0 left-0 h-px w-px overflow-hidden [&_*]:pointer-events-none" aria-hidden>
@@ -230,17 +233,17 @@ export function CallOverlay({
             type="button"
             onClick={onExpand}
             className="flex min-w-0 flex-1 items-center gap-3 text-left"
-            aria-label="통화 화면 열기"
+            aria-label={t("call.sv97sbf")}
           >
             <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400" />
             <span className="truncate text-sm font-semibold">{name}</span>
-            <span className="shrink-0 text-xs text-white/60">통화 중</span>
+            <span className="shrink-0 text-xs text-white/60">{t("call.srbmgkw")}</span>
           </button>
           <button
             type="button"
             onClick={onHangup}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500"
-            aria-label="통화 종료"
+            aria-label={t("call.s1to4lew")}
           >
             <PhoneOff className="h-5 w-5" />
           </button>
@@ -298,10 +301,10 @@ export function CallOverlay({
       <div className="absolute inset-x-0 bottom-0 z-10 px-10 pb-safe pt-6">
         {callState.phase === "incoming" && (
           <div className="mx-auto flex max-w-sm items-center justify-between gap-8">
-            <RingButton variant="decline" label="거절" icon={PhoneOff} onClick={onDecline} large />
+            <RingButton variant="decline" label={t("collab.reject")} icon={PhoneOff} onClick={onDecline} large />
             <RingButton
               variant="accept"
-              label="받기"
+              label={t("call.swy9h")}
               icon={isVideo ? Video : PhoneIncoming}
               disabled={!mediaReady || micChecking || cameraChecking}
               onClick={onAccept}
@@ -312,7 +315,7 @@ export function CallOverlay({
 
         {(callState.phase === "outgoing" || callState.phase === "preparing") && (
           <div className="flex justify-center">
-            <RingButton variant="decline" label="취소" icon={PhoneOff} onClick={onCancel} large />
+            <RingButton variant="decline" label={t("toast.cancel")} icon={PhoneOff} onClick={onCancel} large />
           </div>
         )}
       </div>

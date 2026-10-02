@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { PayButton } from "@/components/payments/pay-button";
 import { formatUsd } from "@/lib/money";
 import { usePathname } from "next/navigation";
@@ -8,7 +11,7 @@ import type { ContentRating } from "@prisma/client";
 export function PurchasePostMediaButton({
   mediaId,
   priceKrw,
-  label = "결제하기",
+  label = t("profile.smmgb44"),
   paymentsEnabled,
   username,
   postId,
@@ -38,7 +41,7 @@ export function PurchasePostMediaButton({
   if (!paymentsEnabled) {
     return (
       <p className="text-[13px] font-semibold text-white/90 text-center px-2">
-        {variant === "label" ? label : "결제 연동 후 구매할 수 있습니다."}
+        {variant === "label" ? label : t("works.s15a6h5y")}
       </p>
     );
   }

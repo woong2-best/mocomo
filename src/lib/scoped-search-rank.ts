@@ -110,7 +110,7 @@ function postRankingLabel(post: { title: string | null; content: string }): stri
   const title = post.title?.trim();
   if (title) return title;
   const line = post.content.trim().split("\n")[0] ?? "";
-  return line.length > 80 ? `${line.slice(0, 80)}…` : line || "(제목 없음)";
+  return line.length > 80 ? `${line.slice(0, 80)}…` : line || "(Untitled)";
 }
 
 function countPostMedia(media: { type: string }[]): { imageCount: number; videoCount: number } {

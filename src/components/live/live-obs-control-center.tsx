@@ -1,5 +1,9 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useState } from "react";
 import { Copy, Check, Loader2, Monitor, Radio, Signal, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,11 +29,12 @@ async function fetchObsCredentials(channelId: string, refresh = false): Promise<
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(typeof body.error === "string" ? body.error : "OBS 키를 불러오지 못했습니다.");
+  const { t } = useLocale();
+    throw new Error(typeof body.error === "string" ? body.error : t("live.obs_5"));
   }
   const server = body.obsServer || body.url || "";
   const key = body.obsStreamKey || body.streamKey || "";
-  if (!server || !key) throw new Error("서버 또는 키가 비어 있습니다.");
+  if (!server || !key) throw new Error(t("live.sqs0hh"));
   return {
     obsServer: server,
     obsStreamKey: key,
@@ -39,7 +44,8 @@ async function fetchObsCredentials(channelId: string, refresh = false): Promise<
 }
 
 /** 트위치식 — 웹은 준비만, OBS/다중 송출 = 실제 LIVE */
-export function LiveObsControlCenter({ channelId }: { channelId: string }) {
+export function LiveObsControlCenter({
+  channelId }: { channelId: string }) {
   const [creds, setCreds] = useState<ObsCreds | null>(null);
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -63,7 +69,7 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
     } catch (e) {
       setCreds(null);
       setWarning("");
-      setLoadError(e instanceof Error ? e.message : "불러오기 실패");
+      setLoadError(e instanceof Error ? e.message : t("live.saa7ppw"));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -117,7 +123,7 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
   function copyAll() {
     if (!creds) return;
     void navigator.clipboard.writeText(
-      `서버: ${creds.obsServer}\n방송 키: ${creds.obsStreamKey}`
+      t("live.s17yr8n2", { v0: creds.obsServer, v1: creds.obsStreamKey })
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -127,7 +133,7 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
     <div className="space-y-3">
       <div className="rounded-xl border-2 border-violet-500/30 bg-violet-500/5 p-3 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-semibold">OBS 서버 · 방송 키</p>
+          <p className="text-sm font-semibold">{t("live.obs_4")}</p>
           <Button
             type="button"
             variant="outline"
@@ -141,26 +147,24 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
             ) : (
               <RefreshCw className="h-3 w-3" />
             )}
-            키 다시 받기
+            {t("live.obs.refreshKeys")}
           </Button>
         </div>
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
           <Loader2 className="h-4 w-4 animate-spin" />
-          불러오는 중…
+          {t("common.loading")}
         </div>
       ) : loadError || !creds ? (
         <div className="text-sm text-destructive space-y-2">
-          <p>{loadError || "연결 정보 없음"}</p>
+          <p>{loadError || t("live.sk7ltev")}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void loadCreds(false)}>
-            다시 시도
+            {t("toast.retry")}
           </Button>
           <LiveObsCloudflareGuide compact />
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            OBS는 켜져 있어도, MoCoMo <strong>서버·방송 키</strong>가 없으면 Cloudflare로 송출되지 않습니다.
-            다중 송출만 켠 경우 대상 서버가 <code className="text-[10px]">live.cloudflare.com</code> 인지 확인하세요.
-            (예전 Vultr <code className="text-[10px]">45.32.16.32</code> 는 사용하지 않습니다.)
+            {t("live.obs_mocomo_2")} <strong>{t("live.sup2oa3")}</strong>{t("live.cloudflare_2")} <code className="text-[10px]">live.cloudflare.com</code> {t("live.vultr")} <code className="text-[10px]">45.32.16.32</code> {t("live.s10se0k1")}
           </p>
         </div>
       ) : (
@@ -171,13 +175,13 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
             </p>
           )}
           <div>
-            <p className="text-[10px] font-medium text-muted-foreground mb-0.5">서버</p>
+            <p className="text-[10px] font-medium text-muted-foreground mb-0.5">{t("live.sxvqg")}</p>
             <code className="block text-xs sm:text-sm bg-muted rounded-lg px-2 py-2 break-all select-all font-mono">
               {creds.obsServer}
             </code>
           </div>
           <div>
-            <p className="text-[10px] font-medium text-muted-foreground mb-0.5">방송 키</p>
+            <p className="text-[10px] font-medium text-muted-foreground mb-0.5">{t("live.soir95o")}</p>
             <code className="block text-xs sm:text-sm bg-muted rounded-lg px-2 py-2 break-all select-all font-mono">
               {creds.obsStreamKey}
             </code>
@@ -190,7 +194,7 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
             onClick={copyAll}
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            서버 + 키 복사
+            {t("live.obs.copyServerAndKey")}
           </Button>
           {ingestEngine === "srs" ? (
             <LiveObsMultiRtmpGuide />
@@ -217,18 +221,18 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
           </span>
         ) : (
           <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
-            오프라인
+            {t("live.spvs1r0")}
           </span>
         )}
         <Monitor className="h-4 w-4 text-violet-600 shrink-0" />
         <p className="flex-1 min-w-[200px] text-xs sm:text-sm text-muted-foreground">
           {onAir && playable
-            ? "시청자에게 방송이 노출되고 있습니다."
+            ? t("live.snsvk8q")
             : ingestEngine === "cloudflare"
-              ? "OBS 「방송 시작」 후 Cloudflare CDN HLS로 5~15초 안에 표시됩니다."
+              ? t("live.obs_cloudflare_cdn_hls_5")
               : ingestEngine === "livekit"
-                ? "OBS 「방송 시작」 후 3~10초 안에 WebRTC로 화면이 나옵니다."
-                : "VPS(SRS) — 다중 송출 대상에 아래 서버·키를 넣으세요."}
+                ? t("live.obs_3_10_webrtc")
+                : t("live.vps_srs")}
         </p>
       </div>
 
@@ -241,11 +245,11 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
           {onAir ? <Signal className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
           <span>
             {ingestEngine === "cloudflare"
-              ? "엔진 Cloudflare · "
+              ? t("live.cloudflare_3")
               : ingestEngine === "livekit"
-                ? "엔진 LiveKit · "
-                : "엔진 VPS(SRS) · "}
-            {signalMsg || "다중 송출 대상이 켜지면 신호가 잡힙니다."}
+                ? t("live.livekit")
+                : t("live.vps_srs_2")}
+            {signalMsg || t("live.s8iv3eb")}
           </span>
         </div>
       )}

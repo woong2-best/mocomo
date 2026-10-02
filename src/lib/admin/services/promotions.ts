@@ -138,13 +138,13 @@ export type CreatePromotionInput = {
 
 export async function createPromotion(actor: AdminActor, input: CreatePromotionInput) {
   const name = input.name.trim();
-  if (name.length < 2) return { error: "프로모션 이름을 입력해 주세요." };
+  if (name.length < 2) return { error: "Enter a promotion name." };
   const slug = (input.slug?.trim() || slugify(name)).toLowerCase();
   const exists = await db.promotion.findUnique({ where: { slug } });
-  if (exists) return { error: "이미 존재하는 slug입니다." };
+  if (exists) return { error: "This slug already exists." };
 
   if (input.benefitType === "FEE_WAIVER" && !(input.waiveUpToKrw && input.waiveUpToKrw > 0)) {
-    return { error: "면제 한도를 입력해 주세요." };
+    return { error: "Enter the waiver limit." };
   }
 
   const promo = await db.promotion.create({
@@ -312,7 +312,7 @@ export async function assignPromotion(
   opts?: { skipRules?: boolean; notify?: boolean }
 ) {
   const promo = await db.promotion.findUnique({ where: { id: promotionId } });
-  if (!promo || !promo.active) return { error: "프로모션을 사용할 수 없습니다." };
+  if (!promo || !promo.active) return { error: "This promotion cannot be used." };
 
   let created = 0;
   let skipped = 0;
@@ -341,7 +341,7 @@ export async function assignPromotion(
         await createNotification({
           userId,
           type: "PROMOTION",
-          title: `프로모션 지급: ${promo.name}`,
+          title: `Promotion granted: {v0} ${promo.name}`,
           body: formatCouponBenefit(promo),
           link: "/coupons",
           actorId: actor?.id,

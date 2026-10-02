@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import type { MocoDonationType } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -28,12 +29,12 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ success: false, error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Invalid request." }, { status: 400 });
   }
 
   const streamerId = body.streamer_id?.trim();
   if (!streamerId) {
-    return NextResponse.json({ success: false, error: "streamer_id가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Required field missing." }, { status: 400 });
   }
 
   const typeRaw = (body.type?.toUpperCase() ?? "SFX") as MocoDonationType;
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: "채팅/TTS 후원은 종료되었습니다. SFX(효과음) 후원을 이용해 주세요.",
+        error: "Chat/TTS donations are closed. Please use SFX donations.",
         code: "LEGACY_TYPE_DEPRECATED",
       },
       { status: 400 }
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
   }
   if (!VALID_TYPES.has(typeRaw)) {
     return NextResponse.json(
-      { success: false, error: "type은 SFX 또는 VIDEO입니다." },
+      { success: false, error: "type must be SFX or VIDEO." },
       { status: 400 }
     );
   }
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, ...stripeAccountNotReadyPayload() }, { status: 422 });
     }
     const status = result.code === "INSUFFICIENT_MOCO" ? 402 : 400;
-    return NextResponse.json({ success: false, error: result.error, code: result.code }, { status });
+    return NextResponse.json({ success: false, error: errorText(result.error), code: result.code }, { status });
   }
 
   return NextResponse.json({

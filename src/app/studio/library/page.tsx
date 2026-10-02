@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
-import { isAptPublicEnabled } from "@/lib/apt-public-gate";
-import { APT_GAME_PATH } from "@/lib/site-routes";
 import { getMyStudioLibrary } from "@/studio/actions/library";
 import { AssetCard } from "@/studio/components/asset-card";
 
@@ -11,8 +9,8 @@ export default async function StudioLibraryPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-2xl font-semibold">내 보관함</h1>
-      <p className="text-sm text-muted-foreground">무료 획득·구매한 Studio 자산</p>
+      <h1 className="font-display text-2xl font-semibold">My inventory</h1>
+      <p className="text-sm text-muted-foreground">Free and purchased Studio assets</p>
       {items.length ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {items.map(({ asset }) => (
@@ -25,14 +23,6 @@ export default async function StudioLibraryPage() {
           <Link href="/studio/market" className="text-pink-600 hover:underline">
             마켓에서 획득
           </Link>
-          {isAptPublicEnabled() ? (
-            <>
-              {" · "}
-              <Link href={APT_GAME_PATH} className="text-pink-600 hover:underline">
-                APT에서 배치
-              </Link>
-            </>
-          ) : null}
         </p>
       )}
     </div>

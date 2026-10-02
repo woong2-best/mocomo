@@ -1,10 +1,14 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { ChatUsedTradeMeetCompletionCard } from "@/components/chat/chat-used-trade-meet-completion-card";
 import { useLocale } from "@/components/providers/locale-provider";
 import { parseMeetTimeInput } from "@/lib/used-trade-meet";
-import { uiText } from "@/lib/i18n/ui-text";
 import { cn } from "@/lib/utils";
 
 type UsedTradeContext = {
@@ -24,11 +28,11 @@ const MEET_DAY_OFFSETS = [0, 1, 2, 3, 4, 5, 6];
 function meetDayLabel(offset: number, locale: string | undefined) {
   const date = new Date();
   date.setDate(date.getDate() + offset);
-  if (offset === 0) return uiText(locale, "오늘", "Today");
-  if (offset === 1) return uiText(locale, "내일", "Tomorrow");
-  const daysKo = ["일", "월", "화", "수", "목", "금", "토"];
+  if (offset === 0) return t("calendar.today");
+  if (offset === 1) return t("ui.tomorrow");
+  const daysKo = [t("lib.webtoon.s13ek"), t("lib.webtoon.s139w"), t("lib.webtoon.s16c4"), t("lib.webtoon.s12c8"), t("lib.webtoon.s10vd"), t("lib.webtoon.sydk"), t("lib.webtoon.s15eo")];
   const daysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const dayName = locale === "ko" ? daysKo[date.getDay()] : daysEn[date.getDay()];
+  const dayName = daysEn[date.getDay()];
   return `${date.getMonth() + 1}/${date.getDate()} (${dayName})`;
 }
 
@@ -76,14 +80,14 @@ export function ChatUsedTradePanel({
     setError("");
     const parsedTime = parseMeetTimeInput(meetTimeText);
     if (!parsedTime) {
-      setError(uiText(locale, "거래 시간을 HH:MM 형식으로 입력해 주세요.", "Enter trade time as HH:MM."));
+      setError(t("ui.enter_trade_time_as_hh_mm"));
       return;
     }
     const meetAt = meetCustomDate ? new Date(meetCustomDate) : new Date();
     if (!meetCustomDate) meetAt.setDate(meetAt.getDate() + meetDayOffset);
     meetAt.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
     if (meetAt.getTime() < Date.now()) {
-      setError(uiText(locale, "지금보다 이후 시간을 선택해 주세요.", "Pick a time later than now."));
+      setError(t("ui.pick_a_time_later_than_now"));
       return;
     }
     setBusy(true);
@@ -95,7 +99,7 @@ export function ChatUsedTradePanel({
       });
       const body = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(body.error ?? uiText(locale, "거래 요청에 실패했습니다.", "Could not send trade request."));
+        setError(errorText(body.error ?? t("ui.could_not_send_trade_request")));
         return;
       }
       await refresh();
@@ -120,7 +124,7 @@ export function ChatUsedTradePanel({
 
       {!readOnly && ctx.canRequestTrade ? (
         <>
-          <p className="text-xs font-bold text-muted-foreground">{uiText(locale, "거래 날짜", "Trade date")}</p>
+          <p className="text-xs font-bold text-muted-foreground">{t("ui.trade_date")}</p>
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {MEET_DAY_OFFSETS.map((offset) => {
               const isCalendarSlot = offset === 6;
@@ -130,7 +134,7 @@ export function ChatUsedTradePanel({
               const label = isCalendarSlot
                 ? meetCustomDate
                   ? `${meetCustomDate.getMonth() + 1}/${meetCustomDate.getDate()}`
-                  : uiText(locale, "날짜 선택", "Pick date")
+                  : t("ui.pick_date")
                 : meetDayLabel(offset, locale);
               return (
                 <button
@@ -153,7 +157,7 @@ export function ChatUsedTradePanel({
               );
             })}
           </div>
-          <p className="text-xs font-bold text-muted-foreground">{uiText(locale, "거래 시간", "Trade time")}</p>
+          <p className="text-xs font-bold text-muted-foreground">{t("ui.trade_time")}</p>
           <input
             value={meetTimeText}
             onChange={(e) => setMeetTimeText(e.target.value)}
@@ -167,7 +171,7 @@ export function ChatUsedTradePanel({
             onClick={() => void requestTrade()}
             className="h-11 w-full rounded-xl bg-folk-cobalt text-sm font-extrabold text-white disabled:opacity-50"
           >
-            {uiText(locale, "거래 요청하기", "Request trade meetup")}
+            {t("ui.request_trade_meetup")}
           </button>
         </>
       ) : null}
@@ -175,7 +179,7 @@ export function ChatUsedTradePanel({
       {calendarOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center">
           <div className="max-h-[70vh] w-full max-w-md overflow-hidden rounded-t-2xl bg-background sm:rounded-2xl border border-border">
-            <p className="px-4 py-3 text-base font-extrabold">{uiText(locale, "거래 날짜 선택", "Pick trade date")}</p>
+            <p className="px-4 py-3 text-base font-extrabold">{t("ui.pick_trade_date")}</p>
             <div className="max-h-80 overflow-y-auto divide-y divide-border">
               {calendarDays.map((d) => (
                 <button
@@ -199,7 +203,7 @@ export function ChatUsedTradePanel({
               className="w-full border-t py-3 text-sm font-bold text-muted-foreground"
               onClick={() => setCalendarOpen(false)}
             >
-              {uiText(locale, "닫기", "Close")}
+              {t("common.close")}
             </button>
           </div>
         </div>

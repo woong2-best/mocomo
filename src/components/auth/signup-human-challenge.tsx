@@ -1,11 +1,13 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import type { HumanChallengeQuestion } from "@/lib/human-challenge-types";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { Locale } from "@/lib/i18n/config";
-import { createTranslator } from "@/lib/i18n/messages";
 
 type SignupHumanChallengeProps = {
   challenge: HumanChallengeQuestion;

@@ -1,11 +1,17 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
 import { Button } from "@/components/ui/button";
 
-export function LiveShareButton({ channelId }: { channelId: string }) {
+export function LiveShareButton({
+  channelId }: { channelId: string }) {
+  const { t } = useLocale();
   const [copied, setCopied] = useState(false);
 
   function share() {
@@ -21,7 +27,7 @@ export function LiveShareButton({ channelId }: { channelId: string }) {
   return (
     <Button type="button" variant="outline" size="sm" className="rounded-lg gap-1 h-8 text-xs" onClick={share}>
       {copied ? <Check className="h-3.5 w-3.5" /> : <ShareGlobeIcon className="h-3.5 w-3.5" />}
-      {copied ? "복사됨" : "공유"}
+      {copied ? t("live.ssm4kx") : t("toast.share")}
     </Button>
   );
 }

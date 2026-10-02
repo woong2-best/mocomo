@@ -10,7 +10,7 @@ const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;
 const DialogClose = DialogPrimitive.Close;
 
-/** default: 일반 모달 · stack: 글쓰기 시트(z~61) 위 — 카메라·자르기·영상 편집 */
+/** default: 일반 모달 · stack: 글쓰기 시트(z~61) 위 — 카메라·자르기·Video 편집 */
 export type DialogLayer = "default" | "stack";
 
 const dialogLayerZ = {

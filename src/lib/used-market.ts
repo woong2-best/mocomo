@@ -19,18 +19,18 @@ import {
 export type { MeetCoords } from "@/lib/maps/types";
 
 export const USED_CURRENCIES = [
-  { id: "krw", label: "원 (KRW)" },
-  { id: "usd", label: "달러 (USD)" },
-  { id: "jpy", label: "엔 (JPY)" },
-  { id: "eur", label: "유로 (EUR)" },
-  { id: "gbp", label: "파운드 (GBP)" },
-  { id: "twd", label: "대만 달러 (TWD)" },
-  { id: "cny", label: "위안 (CNY)" },
-  { id: "hkd", label: "홍콩 달러 (HKD)" },
-  { id: "sgd", label: "싱가포르 달러 (SGD)" },
-  { id: "aud", label: "호주 달러 (AUD)" },
-  { id: "cad", label: "캐나다 달러 (CAD)" },
-  { id: "thb", label: "바트 (THB)" },
+  { id: "krw", label: "Korean won (KRW)" },
+  { id: "usd", label: "US dollar (USD)" },
+  { id: "jpy", label: "Japanese yen (JPY)" },
+  { id: "eur", label: "Euro (EUR)" },
+  { id: "gbp", label: "British pound (GBP)" },
+  { id: "twd", label: "New Taiwan dollar (TWD)" },
+  { id: "cny", label: "Chinese yuan (CNY)" },
+  { id: "hkd", label: "Hong Kong dollar (HKD)" },
+  { id: "sgd", label: "Singapore dollar (SGD)" },
+  { id: "aud", label: "Australian dollar (AUD)" },
+  { id: "cad", label: "Canadian dollar (CAD)" },
+  { id: "thb", label: "Thai baht (THB)" },
 ] as const;
 
 export type UsedCurrency = (typeof USED_CURRENCIES)[number]["id"];
@@ -66,23 +66,23 @@ export const MAX_USED_LISTING_PRICE_LABEL = formatUsd(MAX_USED_LISTING_PRICE_USD
 
 /** DB 저장·글쓰기용 카테고리 */
 export const USED_CATEGORIES = [
-  { id: "FIGURE", label: "피규어 / 인형" },
-  { id: "GOODS", label: "캐릭터 굿즈" },
-  { id: "BOOK", label: "도서 / 미디어" },
-  { id: "COSPLAY", label: "코스프레" },
-  { id: "FASHION", label: "패션" },
-  { id: "DIGITAL", label: "디지털 / 가전" },
-  { id: "OTHER", label: "기타" },
+  { id: "FIGURE", label: "Figures / dolls" },
+  { id: "GOODS", label: "Character goods" },
+  { id: "BOOK", label: "Books / media" },
+  { id: "COSPLAY", label: "Cosplay" },
+  { id: "FASHION", label: "Fashion" },
+  { id: "DIGITAL", label: "Digital / electronics" },
+  { id: "OTHER", label: "Other" },
 ] as const;
 
 /** /market 목록 필터 pill (6종) */
 export const USED_MARKET_BROWSE_CATEGORIES = [
-  { id: "FIGURE", label: "피규어 / 인형" },
-  { id: "TCG", label: "TCG / 카드" },
-  { id: "GOODS", label: "캐릭터 굿즈" },
-  { id: "BOOK", label: "도서 / 미디어" },
-  { id: "COSPLAY_FASHION", label: "코스프레 / 패션" },
-  { id: "DIGITAL", label: "디지털 / 가전" },
+  { id: "FIGURE", label: "Figures / dolls" },
+  { id: "TCG", label: "TCG / cards" },
+  { id: "GOODS", label: "Character goods" },
+  { id: "BOOK", label: "Books / media" },
+  { id: "COSPLAY_FASHION", label: "Cosplay / fashion" },
+  { id: "DIGITAL", label: "Digital / electronics" },
 ] as const;
 
 const TCG_BROWSE_PRODUCT_TYPES = [
@@ -125,21 +125,21 @@ export {
 } from "@/lib/used-regions-global";
 
 const USED_CATEGORY_LABELS: Record<string, string> = {
-  DIGITAL: "디지털 / 가전",
-  FIGURE: "피규어 / 인형",
-  GOODS: "캐릭터 굿즈",
-  COSPLAY: "코스프레 / 패션",
-  FASHION: "코스프레 / 패션",
-  BOOK: "도서 / 미디어",
-  OTHER: "기타",
+  DIGITAL: "Digital / electronics",
+  FIGURE: "Figures / dolls",
+  GOODS: "Character goods",
+  COSPLAY: "Cosplay / fashion",
+  FASHION: "Cosplay / fashion",
+  BOOK: "Books / media",
+  OTHER: "Other",
 };
 
 export function usedCategoryLabel(id: string) {
-  return USED_CATEGORY_LABELS[id] ?? USED_CATEGORIES.find((c) => c.id === id)?.label ?? "기타";
+  return USED_CATEGORY_LABELS[id] ?? USED_CATEGORIES.find((c) => c.id === id)?.label ?? "Other";
 }
 
 export function formatUsedPrice(price: number, currency?: string | null) {
-  if (price === 0) return "나눔";
+  if (price === 0) return "Free";
   return formatPrice(price, normalizeUsedCurrency(currency));
 }
 
@@ -186,7 +186,7 @@ export function formatUsedTimeAgo(date: Date | string) {
   const d = typeof date === "string" ? new Date(date) : date;
   const diff = Date.now() - d.getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "방금 전";
+  if (mins < 1) return "Just now";
   if (mins < 60) return `${mins}분 전`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}시간 전`;
@@ -196,16 +196,16 @@ export function formatUsedTimeAgo(date: Date | string) {
 }
 
 export function usedStatusLabel(status: string) {
-  if (status === "RESERVED") return "예약중";
-  if (status === "SOLD") return "거래완료";
-  if (status === "SELLING") return "판매중";
+  if (status === "RESERVED") return "Reserved";
+  if (status === "SOLD") return "Sold";
+  if (status === "SELLING") return "For sale";
   return "";
 }
 
 export const USED_STATUS_OPTIONS = [
-  { value: "SELLING" as const, label: "판매중" },
-  { value: "RESERVED" as const, label: "예약중" },
-  { value: "SOLD" as const, label: "거래완료" },
+  { value: "SELLING" as const, label: "For sale" },
+  { value: "RESERVED" as const, label: "Reserved" },
+  { value: "SOLD" as const, label: "Sold" },
 ];
 
 export function usedMapSearchUrl(

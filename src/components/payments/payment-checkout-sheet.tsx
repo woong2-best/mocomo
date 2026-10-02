@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -101,7 +106,7 @@ export function PaymentCheckoutSheet({
     void prepareCheckoutPayment({ type, amount, orderName, metadata })
       .then((res) => {
         if ("error" in res && res.error) {
-          setError(res.error);
+          setError(errorText(res.error));
           return;
         }
         if (!("orderId" in res) || !res.orderId) return;
@@ -126,7 +131,7 @@ export function PaymentCheckoutSheet({
     void resumePath;
     void metadata;
     void amount;
-    setError("크리에이터 정기 후원 기능은 종료되었습니다.");
+    setError(t("lib.creator.subscription.checkout.se1c56128e4"));
   }
 
   const handle3ds = useCallback(
@@ -134,7 +139,7 @@ export function PaymentCheckoutSheet({
       if (!stripePromise) return;
       const stripe = await stripePromise;
       if (!stripe) {
-        setError("Stripe를 불러오지 못했습니다.");
+        setError(t("payments.stripe_2"));
         return;
       }
       const returnUrl = stripePaymentIntentReturnUrlClient(oid, resumePath);
@@ -142,16 +147,16 @@ export function PaymentCheckoutSheet({
         return_url: returnUrl,
       });
       if (confirmError) {
-        setError(confirmError.message ?? "인증에 실패했습니다.");
+        setError(confirmError.message ?? t("payments.sd3f0vg"));
         return;
       }
       if (paymentIntent?.status !== "succeeded") {
-        setError("결제가 완료되지 않았습니다.");
+        setError(t("lib.stripe.pay.intent.service.s6c02628d73"));
         return;
       }
       const done = await confirmCheckoutPayment(oid);
       if ("error" in done && done.error) {
-        setError(done.error);
+        setError(errorText(done.error));
         return;
       }
       if ("success" in done && done.success) {
@@ -164,18 +169,18 @@ export function PaymentCheckoutSheet({
 
   function paySelected() {
     if (!orderId || !selectedId) {
-      setError("카드를 선택해 주세요.");
+      setError(t("payments.sfr3dor"));
       return;
     }
     if (!purchaseTermsAccepted) {
-      setError("결제 전 이용약관에 동의해 주세요.");
+      setError(t("payments.szkp449"));
       return;
     }
     setError("");
     startTransition(async () => {
       const res = await payWithSavedCard(orderId, selectedId, true);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("requiresAction" in res && res.requiresAction && res.clientSecret) {
@@ -191,7 +196,7 @@ export function PaymentCheckoutSheet({
 
   async function redirectCheckout() {
     if (!purchaseTermsAccepted) {
-      setError("결제 전 이용약관에 동의해 주세요.");
+      setError(t("payments.szkp449"));
       return;
     }
     setError("");
@@ -203,7 +208,7 @@ export function PaymentCheckoutSheet({
       purchaseTermsAccepted: true,
     });
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("checkoutUrl" in res && res.checkoutUrl) window.location.href = res.checkoutUrl;
@@ -214,7 +219,7 @@ export function PaymentCheckoutSheet({
     saveCheckoutForResume({ type, amount, orderName, metadata, returnPath: resumePath });
     const res = await startAddPaymentMethod(resumePath);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("checkoutUrl" in res && res.checkoutUrl) window.location.href = res.checkoutUrl;
@@ -224,7 +229,7 @@ export function PaymentCheckoutSheet({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle>결제 수단 선택</DialogTitle>
+          <DialogTitle>{t("payments.s14y8ndl")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -272,7 +277,7 @@ export function PaymentCheckoutSheet({
           ) : isRecurringSubscription ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Stripe에서 카드 등록 후 <strong>매월 자동 결제</strong>됩니다. MOCO가 아닌 카드 정기
+                Stripe에서 카드 등록 후 <strong>{t("payments.s199844z")}</strong>됩니다. MOCO가 아닌 카드 정기
                 결제입니다.
               </p>
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -287,7 +292,7 @@ export function PaymentCheckoutSheet({
                   disabled={pending || !purchaseTermsAccepted || !recurringDonationTermsAccepted}
                   onClick={startRecurringSubscription}
                 >
-                  {pending ? "이동 중…" : "정기 후원 시작"}
+                  {pending ? t("payments.sl87ntc") : t("payments.sgi66jo")}
                 </Button>
               </div>
             </div>
@@ -343,7 +348,7 @@ export function PaymentCheckoutSheet({
                     <p className="font-bold truncate">
                       {pm.brand} •••• {pm.last4}
                       {pm.isDefault ? (
-                        <span className="ml-2 text-[10px] font-bold text-primary">기본</span>
+                        <span className="ml-2 text-[10px] font-bold text-primary">{t("lib.virtual-avatar.sunyg")}</span>
                       ) : null}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -360,8 +365,8 @@ export function PaymentCheckoutSheet({
               >
                 <Plus className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="font-bold">지갑에 카드 추가</p>
-                  <p className="text-xs text-muted-foreground">카드 등록 후 이 화면으로 돌아와 결제할 수 있습니다</p>
+                  <p className="font-bold">{t("payments.sc24tpf")}</p>
+                  <p className="text-xs text-muted-foreground">{t("payments.shjs9e9")}</p>
                 </div>
               </button>
 
@@ -372,8 +377,8 @@ export function PaymentCheckoutSheet({
               >
                 <Plus className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="font-bold">새 카드로 결제</p>
-                  <p className="text-xs text-muted-foreground">Stripe에서 카드 입력 · 저장 가능</p>
+                  <p className="font-bold">{t("payments.sgep6gg")}</p>
+                  <p className="text-xs text-muted-foreground">{t("payments.stripe")}</p>
                 </div>
               </button>
             </div>
@@ -402,7 +407,7 @@ export function PaymentCheckoutSheet({
                   disabled={pending || loading || !selectedId || !orderId || !purchaseTermsAccepted}
                   onClick={paySelected}
                 >
-                  {pending ? "결제 중…" : "선택한 카드로 결제"}
+                  {pending ? t("payments.s1p6xizt") : t("payments.sr2fd7d")}
                 </Button>
               ) : (
                 <Button

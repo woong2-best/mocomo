@@ -8,7 +8,7 @@ export async function postEngage(postId: string, action: "like" | "repost" | "st
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(
-      typeof body.error === "string" ? body.error : "요청에 실패했습니다."
+      typeof body.error === "string" ? body.error : "Request failed."
     );
   }
   return body as Record<string, unknown>;

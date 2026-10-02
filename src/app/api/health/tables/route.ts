@@ -8,8 +8,8 @@ export async function GET(req: NextRequest) {
   if (denied) return denied;
 
   const result = {
-    bookmark: { ok: false, hint: "STAR 저장 (원래부터 있음)" },
-    repost: { ok: false, hint: "리트윗 — Repost 테이블 + SQL 필요" },
+    bookmark: { ok: false, hint: "Saved." },
+    repost: { ok: false, hint: "Please check your input and try again." },
     comment: { ok: false, hint: "댓글 — Comment 테이블" },
     community: { ok: false, hint: "커뮤니티 — Community + SQL 섹션 N" },
   };

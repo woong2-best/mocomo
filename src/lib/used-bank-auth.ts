@@ -1,8 +1,8 @@
 import { isOfacSanctionedCountry } from "@/lib/compliance/ofac-sanctioned-countries";
-import type { Locale } from "@/lib/i18n/config";
+import { ERROR_CODES } from "@/lib/error-codes";
 import { isKoreaUsedMarketCountry, normalizeUsedMarketCountry } from "@/lib/used-regions-global";
 
-/** 중고거래 이용 자격 — KR: 직거래(정산 계좌 불필요) · 해외: 휴대폰 SMS 인증 */
+/** Used marketplace eligibility: KR needs no extra step; everywhere else needs SMS phone verification. */
 export function isUsedMarketEligible(user: {
   countryCode: string;
   stripeOnboardingCompleted?: boolean;
@@ -17,69 +17,42 @@ export function isUsedMarketEligible(user: {
   return !!user.phoneVerified;
 }
 
-/** @deprecated KR 직거래에는 불필요 — 레거시 UI·에러 매칭용 */
-export const USED_BANK_REQUIRED_MSG =
-  "중고거래 이용을 위해 휴대폰 번호 인증을 완료해 주세요.";
-
-export const USED_PHONE_REQUIRED_MSG =
-  "중고거래 이용을 위해 휴대폰 번호 인증을 완료해 주세요.";
-
-/** @deprecated use USED_BANK_REQUIRED_MSG or USED_PHONE_REQUIRED_MSG */
+/** Error code (en.json key) for "phone verification required". */
+export const USED_BANK_REQUIRED_MSG = ERROR_CODES.usedPhoneVerificationRequired;
+export const USED_PHONE_REQUIRED_MSG = ERROR_CODES.usedPhoneVerificationRequired;
 export const USED_PHONE_REQUIRED_MSG_LEGACY = USED_BANK_REQUIRED_MSG;
 
-export function usedBankRequiredMsg(locale: Locale = "ko") {
-  return usedPhoneRequiredMsg(locale);
+export function usedBankRequiredMsg() {
+  return usedPhoneRequiredMsg();
 }
 
-export function usedPhoneRequiredMsg(locale: Locale = "ko") {
-  if (locale === "en") {
-    return "Mobile phone verification is required for the used marketplace.";
-  }
-  if (locale === "ja") {
-    return "フリマ利用には携帯電話番号の認証が必要です。";
-  }
-  if (locale === "zh" || locale === "zh-TW") {
-    return "使用二手交易需完成手机号码认证。";
-  }
-  if (locale === "ko") return USED_PHONE_REQUIRED_MSG;
-  return "Mobile phone verification is required for the used marketplace.";
+export function usedPhoneRequiredMsg() {
+  return ERROR_CODES.usedPhoneVerificationRequired;
 }
 
-export function usedMarketVerificationRequiredMsg(countryCode: string, locale: Locale = "en") {
+export function usedMarketVerificationRequiredMsg(countryCode: string) {
   if (isKoreaUsedMarketCountry(countryCode)) {
-    return usedMarketBlockedRegionMsg(locale);
+    return usedMarketBlockedRegionMsg();
   }
-  return usedPhoneRequiredMsg(locale);
+  return usedPhoneRequiredMsg();
 }
 
 /** @deprecated */
-export function usedPhoneRequiredMsgLegacy(_countryCode: string, locale: Locale = "en") {
-  return usedMarketVerificationRequiredMsg(_countryCode, locale);
+export function usedPhoneRequiredMsgLegacy(countryCode: string) {
+  return usedMarketVerificationRequiredMsg(countryCode);
 }
 
-export function usedMarketBlockedRegionMsg(locale: Locale = "ko") {
-  if (locale === "en") {
-    return "The used marketplace is unavailable in your region.";
-  }
-  if (locale === "ja") {
-    return "お住まいの地域ではフリマをご利用いただけません。";
-  }
-  if (locale === "zh" || locale === "zh-TW") {
-    return "您所在的地区无法使用二手交易。";
-  }
-  if (locale === "ko") {
-    return "해당 지역에서는 중고거래를 이용할 수 없습니다.";
-  }
-  return "The used marketplace is unavailable in your region.";
+export function usedMarketBlockedRegionMsg() {
+  return ERROR_CODES.usedRegionUnavailable;
 }
 
-/** @deprecated — global marketplace; kept for legacy imports */
-export function usedMarketUnsupportedCountryMsg(locale: Locale = "ko") {
-  return usedMarketBlockedRegionMsg(locale);
+/** @deprecated global marketplace; kept for legacy imports */
+export function usedMarketUnsupportedCountryMsg() {
+  return usedMarketBlockedRegionMsg();
 }
 
 /** @deprecated */
-export const USED_KR_ONLY_MSG = usedMarketBlockedRegionMsg("ko");
+export const USED_KR_ONLY_MSG = usedMarketBlockedRegionMsg();
 
 /** @deprecated use isUsedMarketEligible */
 export function isBankVerifiedForUsed(user: {

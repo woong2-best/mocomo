@@ -1,10 +1,12 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import type { SupportTierLevel } from "@prisma/client";
-import { clearLocalHomeData } from "@/lib/apt/local-home-store";
 import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -19,7 +21,7 @@ import { OreIcon } from "@/components/support/ore-icon";
 import { getTierInfo } from "@/lib/tiers";
 import { AccountSwitcherDialog } from "@/components/auth/account-switcher-dialog";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTierLevel }) {
   const { data: session } = useSession();
@@ -34,9 +36,7 @@ export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTie
 
   const handleSignOut = () => {
     const userId = session.user.id;
-    void clearLocalHomeData(userId).finally(() => {
-      void performWebSignOut({ userId });
-    });
+    void performWebSignOut({ userId });
   };
 
   return (
@@ -75,7 +75,7 @@ export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTie
           <DropdownMenuItem asChild>
             <Link href={`/u/${username}`}>
               <User className="h-4 w-4 shrink-0" />
-              {uiText(locale, "내 프로필", "My profile")}
+              {t("common.myProfile")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
@@ -87,7 +87,7 @@ export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTie
           <DropdownMenuItem asChild>
             <Link
               href="/support"
-              aria-label={uiText(locale, `${tierInfo.labelKo} (${tierInfo.label}) · 등급`, `${tierInfo.label} · tier`)}
+              aria-label={t("profile.tierAria", { tier: tierInfo.label })}
             >
               <OreIcon tier={displayTier} size={16} />
             </Link>
@@ -98,7 +98,7 @@ export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTie
             onSelect={handleSignOut}
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            {uiText(locale, "로그아웃", "Sign out")}
+            {t("menu.signOut")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

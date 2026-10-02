@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { Flag } from "lucide-react";
 import type { ReportTargetType } from "@prisma/client";
@@ -12,7 +15,7 @@ export function ReportButton({
   reportedUserId,
   postId,
   commentId,
-  label = "신고",
+  label = t("report.sy3gg"),
   variant = "ghost",
   size = "sm",
 }: {

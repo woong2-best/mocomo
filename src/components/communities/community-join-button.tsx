@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { joinCommunity, leaveCommunity } from "@/actions/community-hub";
@@ -43,13 +48,13 @@ export function CommunityJoinButton({
         if (!result) {
           setMember(!target);
           desiredRef.current = !target;
-          setError("응답이 없습니다. 로그인 상태를 확인해 주세요.");
+          setError(t("communities.s1irxqz9"));
           break;
         }
         if ("error" in result && result.error) {
           setMember(!target);
           desiredRef.current = !target;
-          setError(result.error);
+          setError(errorText(result.error));
           break;
         }
         if (desiredRef.current !== target) continue;
@@ -60,7 +65,7 @@ export function CommunityJoinButton({
       const rollback = !desiredRef.current;
       setMember(rollback);
       desiredRef.current = rollback;
-      setError(e instanceof Error ? e.message : "요청에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("lib.post.engage.client.s951a3d5ff5"));
     } finally {
       inFlightRef.current = false;
     }
@@ -69,7 +74,7 @@ export function CommunityJoinButton({
   if (isOwner) {
     return (
       <span className="text-xs text-muted-foreground px-2 py-1 rounded-full bg-muted">
-        개설자
+        {t("communities.sq5h54")}
       </span>
     );
   }
@@ -84,7 +89,7 @@ export function CommunityJoinButton({
         onClick={() => void toggle()}
         aria-pressed={member}
       >
-        {member ? "가입됨 · 탈퇴" : "가입하기"}
+        {member ? t("communities.scdap6a") : t("communities.smj8tgd")}
       </Button>
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>

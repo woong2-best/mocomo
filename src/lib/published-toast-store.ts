@@ -79,7 +79,7 @@ export function pushPublishedToast(input: {
   present({
     id: nextId(),
     kind: "published",
-    message: input.message ?? "게시됨",
+    message: input.message ?? "Published",
     postId: input.postId,
     userImage: input.userImage,
     userName: input.userName,
@@ -98,7 +98,7 @@ export function pushPublishingToast(input?: {
   present({
     id: nextId(),
     kind: "publishing",
-    message: input?.message ?? "게시 중…",
+    message: input?.message ?? "Publishing…",
     userImage: input?.userImage,
     userName: input?.userName,
     avatars: input?.avatars,
@@ -169,8 +169,8 @@ export function syncSettlementAccountToast(active: boolean, href?: string) {
     applyPersistentWarning({
       id: SETTLEMENT_TOAST_ID,
       kind: "warning",
-      message: "계좌를 등록해주세요",
-      detail: "지갑 → 수익 탭에서 1원 인증으로 등록",
+      message: "Add a payout account",
+      detail: "Register in Wallet → Earnings with ₩1 verification",
       href,
       durationMs: 0,
     });
@@ -179,13 +179,13 @@ export function syncSettlementAccountToast(active: boolean, href?: string) {
   clearPersistentWarning(SETTLEMENT_TOAST_ID);
 }
 
-/** 유료 가격만 있고 사진·영상 없음 */
+/** 유료 가격만 있고 사진·Video 없음 */
 export function syncPaidMediaRequiredToast(active: boolean) {
   if (active) {
     applyPersistentWarning({
       id: PAID_MEDIA_TOAST_ID,
       kind: "warning",
-      message: "판매할 사진 또는 영상을 업로드해 주세요",
+      message: "Upload a photo or video to sell",
       durationMs: 0,
     });
     return;

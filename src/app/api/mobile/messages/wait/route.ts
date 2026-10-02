@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const sinceRaw = req.nextUrl.searchParams.get("since");
   const since = sinceRaw ? new Date(sinceRaw) : new Date(Date.now() - 4000);
   if (Number.isNaN(since.getTime())) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const started = Date.now();

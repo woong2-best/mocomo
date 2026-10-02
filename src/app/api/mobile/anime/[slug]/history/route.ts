@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -14,12 +15,12 @@ export async function GET(
   const { slug: raw } = await params;
   const slug = decodeURIComponent(raw ?? "").trim();
   if (!slug || slug.length > 120) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const data = await listAnimeHistory(slug);
   if ("error" in data) {
-    return NextResponse.json({ error: data.error }, { status: 404 });
+    return NextResponse.json({ error: errorText(data.error) }, { status: 404 });
   }
   return NextResponse.json(data);
 }
@@ -37,7 +38,7 @@ export async function POST(
   const { slug: raw } = await params;
   const slug = decodeURIComponent(raw ?? "").trim();
   if (!slug || slug.length > 120) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let revisionId = "";
@@ -45,15 +46,15 @@ export async function POST(
     const body = (await req.json()) as { revisionId?: string };
     revisionId = String(body.revisionId ?? "").trim();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
   if (!revisionId || revisionId.startsWith("created-")) {
-    return NextResponse.json({ error: "복구할 기록을 선택해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Select a record to restore." }, { status: 400 });
   }
 
   const result = await restoreAnimeRevisionForUser(auth.user.id, revisionId);
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
   return NextResponse.json({ anime: result.anime, slug });
 }

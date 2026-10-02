@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -28,12 +29,12 @@ export async function GET(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
   if (!channelId || channelId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const tabId = readPublisherTabIdFromRequest(_req);
@@ -50,10 +51,10 @@ export async function GET(
     },
   });
   if (!channel || channel.createdBy !== session.user.id) {
-    return NextResponse.json({ error: "호스트만 방송 설정을 받을 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Only the host can receive broadcast settings." }, { status: 403 });
   }
   if (channel.liveStatus === "ENDED") {
-    return NextResponse.json({ error: "종료된 방송입니다." }, { status: 400 });
+    return NextResponse.json({ error: "This broadcast has ended." }, { status: 400 });
   }
 
   if (resolveHostPublishState(channel, tabId) === "live_elsewhere") {
@@ -70,7 +71,7 @@ export async function GET(
 
   const prov = await provisionObsIngress(channelId, session.user.id);
   if ("error" in prov) {
-    return NextResponse.json({ error: prov.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(prov.error) }, { status: 400 });
   }
 
   const engine = resolveChannelIngestEngine({
@@ -101,7 +102,7 @@ export async function GET(
       whipPublishUrl,
       hlsUrl,
       liveInputUid: cfUid,
-      message: "브라우저에서 방송 시작 → Cloudflare CDN으로 송출됩니다.",
+      message: "Start from the browser; output goes to Cloudflare CDN.",
     });
   }
 

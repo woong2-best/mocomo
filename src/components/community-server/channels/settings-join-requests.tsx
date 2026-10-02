@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import { Check, Loader2, X } from "lucide-react";
 import { getCommunityJoinRequests, reviewCommunityJoinRequest } from "@/actions/community-join";
@@ -26,7 +31,7 @@ export function CommunityJoinRequestsPanel({ communityId }: { communityId: strin
     setLoading(true);
     const res = await getCommunityJoinRequests(communityId);
     setRequests(res.requests ?? []);
-    if (res.error) setError(res.error);
+    if (res.error) setError(errorText(res.error));
     setLoading(false);
   }
 
@@ -38,7 +43,7 @@ export function CommunityJoinRequestsPanel({ communityId }: { communityId: strin
     setActing(id);
     setError("");
     const res = await reviewCommunityJoinRequest(id, action);
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else await load();
     setActing(null);
   }
@@ -47,9 +52,9 @@ export function CommunityJoinRequestsPanel({ communityId }: { communityId: strin
     <section className="space-y-4 rounded-xl border border-border p-4">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h2 className="font-semibold">가입 요청</h2>
+          <h2 className="font-semibold">{t("lib.notifications.s3e55ce56df")}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            승인 대기 중인 멤버를 확인하고 처리합니다.
+            {t("community-server.s1phff50")}
           </p>
         </div>
         {requests.length > 0 && (
@@ -62,10 +67,10 @@ export function CommunityJoinRequestsPanel({ communityId }: { communityId: strin
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          불러오는 중…
+          {t("common.loading")}
         </div>
       ) : requests.length === 0 ? (
-        <p className="text-sm text-muted-foreground">대기 중인 가입 요청이 없습니다.</p>
+        <p className="text-sm text-muted-foreground">{t("community-server.s1m72rm4")}</p>
       ) : (
         <ul className="space-y-2">
           {requests.map((r) => (

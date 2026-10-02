@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect } from "react";
 
 /** Immediate redirect to mocomo:// deep link (AuthSession return URL). */
@@ -10,12 +13,12 @@ export function MobileDeepLinkRedirect({ url }: { url: string }) {
 
   return (
     <div className="space-y-4">
-      <p>인증이 완료되었습니다. MoCoMo 앱이 열립니다.</p>
+      <p>{t("auth.mocomo")}</p>
       <a
         href={url}
         className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 font-medium text-primary-foreground"
       >
-        앱 열기
+        {t("auth.soxhia3")}
       </a>
     </div>
   );

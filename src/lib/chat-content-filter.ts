@@ -2,8 +2,7 @@
 
 export const DM_CONTENT_MASK = "###";
 
-export const DM_CONTENT_FILTER_WARNING_KO =
-  "외부 결제·연락처 유도는 이용약관상 금지됩니다. 해당 내용이 자동으로 가려졌습니다.";
+export const DM_CONTENT_FILTER_ERROR = "chat.error.offPlatformSolicitation";
 
 export const DM_CONTENT_FILTER_WARNING_EN =
   "Off-platform payments and external contact solicitation are prohibited. Masked content was replaced with ###.";
@@ -17,17 +16,17 @@ type MaskRule = {
 const MASK_RULES: MaskRule[] = [
   { id: "stripe_url", pattern: /:\/\/stripe\.com/gi },
   { id: "stripe", pattern: /stripe\.com/gi },
-  { id: "telegram_kr_long", pattern: /텔레그렘/gi },
+  { id: "telegram_kr_long", pattern: /\uD154\uB808\uADF8\uB7A8/gi },
   { id: "telegram", pattern: /telegram/gi },
   { id: "paypal", pattern: /paypal/gi },
-  { id: "payple_kr", pattern: /페이팔/gi },
-  { id: "account_kr", pattern: /계좌/gi },
-  { id: "deposit_kr", pattern: /입금/gi },
-  { id: "tele_kr", pattern: /텔레/gi },
+  { id: "payple_kr", pattern: /\uD398\uC774\uD314/gi },
+  { id: "account_kr", pattern: /\uACC4\uC870/gi },
+  { id: "deposit_kr", pattern: /\uC785\uAE08/gi },
+  { id: "tele_kr", pattern: /\uD154\uB808/gi },
   { id: "tele_en", pattern: /\btele\b/gi },
-  { id: "kakao", pattern: /카톡/gi },
+  { id: "kakao", pattern: /\uCE74\uD1A1/gi },
   { id: "line_en", pattern: /\bline\b/gi },
-  { id: "line_kr", pattern: /라인/gi },
+  { id: "line_kr", pattern: /\uB77C\uC778/gi },
 ];
 
 export type FilterDmMessageResult = {
@@ -68,7 +67,7 @@ export function validateCreatorMarketingText(
   if (!trimmed) return { ok: true, text: "" };
   const filtered = filterDmMessageContent(trimmed);
   if (filtered.wasFiltered) {
-    return { ok: false, error: DM_CONTENT_FILTER_WARNING_KO };
+    return { ok: false, error: DM_CONTENT_FILTER_ERROR };
   }
   return { ok: true, text: filtered.text };
 }

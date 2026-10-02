@@ -12,7 +12,7 @@ import {
   getSellerHarmScoreTotal,
 } from "@/lib/auction-deposit";
 
-/** GET — 경매 보증금 잔액·활성 동결·피해 스코어 */
+/** GET — Auction 보증금 잔액·활성 동결·피해 스코어 */
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "auction-deposit-status", 60);
   if (limited) return limited;

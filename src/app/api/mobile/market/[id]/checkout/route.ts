@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -51,7 +52,7 @@ export async function POST(
   if (limited) return limited;
 
   if (!isPaymentsConfigured()) {
-    return NextResponse.json({ error: "결제가 설정되지 않았습니다." }, { status: 503 });
+    return NextResponse.json({ error: "Payments aren't configured." }, { status: 503 });
   }
 
   const auth = await requireMobileApiUser(req, { writeKind: "default" });
@@ -59,7 +60,7 @@ export async function POST(
 
   const { id: listingId } = await params;
   if (!listingId || listingId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let json: unknown;
@@ -71,7 +72,7 @@ export async function POST(
 
   const parsed = checkoutBodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const eligibility = await getMarketplaceCheckoutEligibility({
@@ -81,7 +82,7 @@ export async function POST(
     headers: req.headers,
   });
   if ("error" in eligibility) {
-    return NextResponse.json({ error: eligibility.error }, { status: 404 });
+    return NextResponse.json({ error: errorText(eligibility.error) }, { status: 404 });
   }
   if (eligibility.mode === "BLOCKED" || eligibility.blocked) {
     return NextResponse.json(
@@ -91,7 +92,7 @@ export async function POST(
   }
   if (!eligibility.sellerReady) {
     return NextResponse.json(
-      { error: eligibility.sellerReadyMessage ?? "판매자 결제 준비가 완료되지 않았습니다." },
+      { error: eligibility.sellerReadyMessage ?? "Done." },
       { status: 422 }
     );
   }
@@ -108,7 +109,7 @@ export async function POST(
   );
 
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
   }
 
   return NextResponse.json(result);
@@ -126,19 +127,19 @@ export async function PATCH(
 
   const { id: listingId } = await params;
   if (!listingId) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let json: unknown;
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = patchSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const dbUser = await db.user.findUnique({
@@ -154,7 +155,7 @@ export async function PATCH(
       { purchaseTermsAccepted: true }
     );
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
     return NextResponse.json(result);
   }
@@ -162,7 +163,7 @@ export async function PATCH(
   if (parsed.data.mode === "finalize") {
     const result = await confirmCheckoutPaymentIntent(auth.user.id, parsed.data.orderId);
     if ("error" in result && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 422 });
+      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
     }
     return NextResponse.json(result);
   }
@@ -175,7 +176,7 @@ export async function PATCH(
   );
 
   if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
   }
 
   if ("requiresAction" in result && result.requiresAction && result.clientSecret) {

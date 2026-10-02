@@ -1,16 +1,9 @@
 import type {
-  LiveOverlayChosungQuizProps,
-  LiveOverlayLotteryProps,
-  LiveOverlayQuizProps,
   LiveOverlayState,
   LiveOverlayTextProps,
-  LiveOverlayWheelProps,
-  LiveOverlayWordGuessProps,
   LiveOverlayWidget,
   LiveOverlayWidgetType,
 } from "@/lib/live-overlays/types";
-import { toChosung } from "@/lib/live-overlays/chosung";
-import { createDefaultWheelProps } from "@/lib/live-overlays/wheel-theme";
 
 export function emptyOverlayState(): LiveOverlayState {
   return { version: 0, widgets: [] };
@@ -50,60 +43,13 @@ function newId() {
 
 const defaultProps: Record<LiveOverlayWidgetType, LiveOverlayWidget["props"]> = {
   text: {
-    content: "방송 텍스트",
+    content: "Broadcast text",
     fontSize: 28,
     color: "#ffffff",
     background: "rgba(0,0,0,0.55)",
     bold: true,
     align: "center",
   } satisfies LiveOverlayTextProps,
-  wheel: createDefaultWheelProps(),
-  lottery: {
-    title: "추첨",
-    entries: ["참가자1", "참가자2", "참가자3"],
-    winner: null,
-    drawing: false,
-    removeWinner: true,
-    history: [],
-  } satisfies LiveOverlayLotteryProps,
-  quiz: {
-    title: "라이브 퀴즈",
-    question: "MoCoMo는 어떤 커뮤니티?",
-    options: ["서브컬처·코스프레", "주식", "요리", "스포츠"],
-    correctIndex: 0,
-    phase: "idle",
-    timeLeft: 0,
-    durationSec: 30,
-    scores: [],
-    answeredIds: [],
-    lastWinner: null,
-    points: 10,
-  } satisfies LiveOverlayQuizProps,
-  wordGuess: {
-    title: "단어 맞히기",
-    category: "애니",
-    answer: "원피스",
-    hint: "대표작 · 루피",
-    phase: "idle",
-    timeLeft: 0,
-    durationSec: 45,
-    winner: null,
-    recentGuesses: [],
-  } satisfies LiveOverlayWordGuessProps,
-  chosungQuiz: {
-    title: "초성 퀴즈",
-    category: "애니",
-    answer: "원피스",
-    chosung: toChosung("원피스"),
-    hint: "",
-    phase: "idle",
-    timeLeft: 0,
-    durationSec: 40,
-    winner: null,
-    points: 10,
-    scores: [],
-    recentGuesses: [],
-  } satisfies LiveOverlayChosungQuizProps,
 };
 
 const defaultLayout: Record<
@@ -111,11 +57,6 @@ const defaultLayout: Record<
   Pick<LiveOverlayWidget, "x" | "y" | "w" | "h">
 > = {
   text: { x: 8, y: 72, w: 84, h: 14 },
-  wheel: { x: 62, y: 10, w: 28, h: 28 },
-  lottery: { x: 8, y: 8, w: 48, h: 42 },
-  quiz: { x: 8, y: 12, w: 52, h: 40 },
-  wordGuess: { x: 8, y: 12, w: 48, h: 34 },
-  chosungQuiz: { x: 8, y: 12, w: 52, h: 38 },
 };
 
 export function createOverlayWidget(type: LiveOverlayWidgetType, z: number): LiveOverlayWidget {
@@ -126,33 +67,14 @@ export function createOverlayWidget(type: LiveOverlayWidgetType, z: number): Liv
     ...layout,
     z,
     visible: true,
-    props: structuredClone(type === "wheel" ? createDefaultWheelProps() : defaultProps[type]),
+    props: structuredClone(defaultProps[type]),
   };
 }
 
-/** 저장된 돌림판 — 세로 직사각형 레이아웃 등 구버전 보정 */
+/** Saved state may still hold removed game widgets (wheel, quiz, …); keep text only. */
 export function normalizeOverlayState(state: LiveOverlayState): LiveOverlayState {
   return {
     ...state,
-    widgets: state.widgets.map((w) =>
-      w.type === "wheel" ? { ...w, h: w.w } : w
-    ),
+    widgets: state.widgets.filter((w) => (w.type as string) === "text"),
   };
-}
-
-export function pickWeightedSegment(
-  segments: LiveOverlayWheelProps["segments"]
-): { index: number; label: string } {
-  const pool = segments.filter((s) => s.label.trim());
-  if (!pool.length) return { index: 0, label: "?" };
-  const total = pool.reduce((sum, s) => sum + Math.max(1, s.weight), 0);
-  let r = Math.random() * total;
-  for (let i = 0; i < pool.length; i++) {
-    r -= Math.max(1, pool[i].weight);
-    if (r <= 0) {
-      const idx = segments.indexOf(pool[i]);
-      return { index: idx >= 0 ? idx : i, label: pool[i].label };
-    }
-  }
-  return { index: 0, label: pool[0].label };
 }

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MarketplaceCheckoutInput } from "@/actions/marketplace-checkout";
@@ -153,7 +156,7 @@ export function MarketplaceBuyPanel({
       <div className="space-y-3 rounded-2xl border border-border/60 p-4">
         <AdultMonetizationNotice />
         <p className="text-sm text-muted-foreground">
-          이 상품은 성인 콘텐츠로 분류되어 플랫폼 내 결제·구매가 불가합니다.
+          {t("market.sohesaz")}
         </p>
       </div>
     );

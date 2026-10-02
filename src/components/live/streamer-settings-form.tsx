@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useState, useTransition } from "react";
 import { updateStreamerProfile } from "@/actions/streamer";
 import { Button } from "@/components/ui/button";
@@ -10,6 +14,7 @@ export function StreamerSettingsForm({
 }: {
   initial: { bio: string; announcement: string; scheduleNote: string };
 }) {
+  const { t } = useLocale();
   const [bio, setBio] = useState(initial.bio);
   const [announcement, setAnnouncement] = useState(initial.announcement);
   const [scheduleNote, setScheduleNote] = useState(initial.scheduleNote);
@@ -19,14 +24,14 @@ export function StreamerSettingsForm({
   function save() {
     startTransition(async () => {
       await updateStreamerProfile({ bio, announcement, scheduleNote });
-      setMsg("저장되었습니다.");
+      setMsg(t("live.s12la3bm"));
     });
   }
 
   return (
     <div className="space-y-4 rounded-2xl border p-4">
       <div>
-        <label className="text-xs text-muted-foreground">소개</label>
+        <label className="text-xs text-muted-foreground">{t("live.sxv68")}</label>
         <textarea
           value={bio}
           onChange={(e) => setBio(e.target.value)}
@@ -36,7 +41,7 @@ export function StreamerSettingsForm({
       </div>
       <div>
         <label className="text-xs text-muted-foreground">
-          라이브 고정 메시지 (채팅 상단에 표시 · 링크·#태그 가능)
+          {t("live.s1ssh8h7")}
         </label>
         <textarea
           value={announcement}
@@ -47,12 +52,12 @@ export function StreamerSettingsForm({
       </div>
       <div>
         <label className="text-xs text-muted-foreground">
-          방송 스케줄 (라이브 → 스케줄 페이지에 표시 · 사이트 달력과 별개)
+          {t("live.s1eoos7p")}
         </label>
         <Input value={scheduleNote} onChange={(e) => setScheduleNote(e.target.value)} className="rounded-xl mt-1" />
       </div>
       <Button className="w-full rounded-xl" onClick={save} disabled={pending}>
-        저장
+        {t("settings.save")}
       </Button>
       {msg && <p className="text-xs text-muted-foreground text-center">{msg}</p>}
     </div>

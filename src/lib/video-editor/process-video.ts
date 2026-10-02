@@ -42,7 +42,7 @@ function waitForVideoReady(video: HTMLVideoElement, timeoutMs = 15000): Promise<
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       cleanup();
-      reject(new Error("영상을 재생할 수 없습니다."));
+      reject(new Error("Unable to play video."));
     }, timeoutMs);
     const cleanup = () => {
       clearTimeout(timer);
@@ -55,7 +55,7 @@ function waitForVideoReady(video: HTMLVideoElement, timeoutMs = 15000): Promise<
     };
     const onError = () => {
       cleanup();
-      reject(new Error("영상 메타데이터를 읽을 수 없습니다."));
+      reject(new Error("Unable to read video metadata."));
     };
     video.addEventListener("loadedmetadata", onReady);
     video.addEventListener("error", onError);
@@ -82,7 +82,7 @@ type ProcessVideoOptions = {
   preferMp4?: boolean;
 };
 
-/** 편집 상태를 적용해 영상을 재인코딩한다 (오디오 포함) */
+/** 편집 상태를 적용해 Video을 재인코딩한다 (오디오 포함) */
 export async function processVideoBlob(
   blob: Blob,
   edit: VideoEditState,
@@ -122,7 +122,7 @@ export async function processVideoBlob(
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     URL.revokeObjectURL(url);
-    throw new Error("Canvas를 사용할 수 없습니다.");
+    throw new Error("Canvas is not available.");
   }
 
   const mimeType = pickRecorderMime(options?.preferMp4);
@@ -158,12 +158,12 @@ export async function processVideoBlob(
     };
     recorder.onerror = () => {
       cleanup();
-      reject(new Error("영상 인코딩에 실패했습니다."));
+      reject(new Error("Video encoding failed."));
     };
     recorder.onstop = () => {
       cleanup();
       if (chunks.length === 0) {
-        reject(new Error("인코딩된 영상 데이터가 비어 있습니다."));
+        reject(new Error("Encoded video data is empty."));
         return;
       }
       resolve(new Blob(chunks, { type: mimeType }));
@@ -224,7 +224,7 @@ export async function processVideoBlob(
         } catch {
           video.pause();
           recorder.stop();
-          reject(new Error("영상 프레임을 처리할 수 없습니다."));
+          reject(new Error("Unable to process video frame."));
           return;
         }
 

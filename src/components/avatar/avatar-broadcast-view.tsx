@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VirtualAvatar3DScene } from "@/lib/virtual-avatar/avatar-3d-scene";
 import { Flat2dAvatarScene } from "@/lib/avatar-2d/flat-2d-scene";
@@ -173,7 +178,7 @@ export function AvatarBroadcastView({ bgMode = "transparent" }: { bgMode?: Broad
       {(faceTracking.starting || !sceneReady) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
           <Loader2 className="h-8 w-8 animate-spin text-white" />
-          <p className="text-sm text-white/80">아바타 · 카메라 준비 중…</p>
+          <p className="text-sm text-white/80">{t("avatar.sj7a4l0")}</p>
         </div>
       )}
 
@@ -188,7 +193,7 @@ export function AvatarBroadcastView({ bgMode = "transparent" }: { bgMode?: Broad
 
       {faceTracking.error && (
         <p className="absolute bottom-10 left-3 right-3 text-center text-xs text-red-300 z-10">
-          {faceTracking.error}
+          {errorText(faceTracking.error)}
         </p>
       )}
 

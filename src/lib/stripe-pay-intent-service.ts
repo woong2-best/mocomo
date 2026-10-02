@@ -48,7 +48,7 @@ function stripeMetadata(
 async function finalizePaidCheckout(userId: string, orderId: string) {
   const intent = await db.paymentIntent.findUnique({ where: { id: orderId } });
   if (!intent || intent.userId !== userId) {
-    return { error: "결제 정보를 찾을 수 없습니다." };
+    return { error: "Payment information not found." };
   }
 
   if (intent.status === "PAID") {
@@ -61,7 +61,7 @@ async function finalizePaidCheckout(userId: string, orderId: string) {
   }
 
   if (!intent.paymentKey) {
-    return { error: "Stripe 결제 정보가 없습니다." };
+    return { error: "No Stripe payment information." };
   }
 
   const stripe = getStripe();
@@ -71,13 +71,13 @@ async function finalizePaidCheckout(userId: string, orderId: string) {
   const bidHoldAuthorized =
     intent.type === "USED_AUCTION_BID_HOLD" && isMarketplacePaymentAuthorized(pi);
   if (pi.status !== "succeeded" && !marketplaceAuthorized && !bidHoldAuthorized) {
-    return { error: "결제가 완료되지 않았습니다." };
+    return { error: "Payment not completed." };
   }
   if (pi.metadata?.orderId !== orderId) {
-    return { error: "결제 주문이 일치하지 않습니다." };
+    return { error: "Payment order does not match." };
   }
   if (pi.amount !== intent.amount) {
-    return { error: "결제 금액이 일치하지 않습니다." };
+    return { error: "Payment amount does not match." };
   }
 
   if (intent.type === "USED_AUCTION_BID_HOLD") {
@@ -119,7 +119,7 @@ export async function prepareCheckoutPaymentIntent(input: {
   metadata: Record<string, unknown>;
 }) {
   if (!isStripeConfigured()) {
-    return { error: "결제가 설정되지 않았습니다." };
+    return { error: "Payments aren't configured." };
   }
 
   const ofacBlock = await assertOfacPaymentRequestAllowed(input.userId, input.metadata);
@@ -164,7 +164,7 @@ export async function prepareCheckoutPaymentIntent(input: {
   } catch (e) {
     console.error("[prepareCheckoutPaymentIntent] stripe.paymentIntents.create", e);
     if (e instanceof Stripe.errors.StripeError) {
-      return { error: e.message || "결제 준비에 실패했습니다." };
+      return { error: e.message || "Couldn't prepare payment." };
     }
     throw e;
   }
@@ -206,7 +206,7 @@ export async function payCheckoutWithSavedMethod(
   opts?: { purchaseTermsAccepted?: boolean; platform?: PurchaseTermsPlatform }
 ) {
   if (!isPaymentsConfigured()) {
-    return { error: "결제가 설정되지 않았습니다." };
+    return { error: "Payments aren't configured." };
   }
 
   const consentBlock = await assertAndRecordPurchaseTermsConsent({
@@ -222,18 +222,18 @@ export async function payCheckoutWithSavedMethod(
 
   const intent = await db.paymentIntent.findUnique({ where: { id: orderId } });
   if (!intent || intent.userId !== userId) {
-    return { error: "결제 정보를 찾을 수 없습니다." };
+    return { error: "Payment information not found." };
   }
   if (intent.status === "PAID") {
     return finalizePaidCheckout(userId, orderId);
   }
   if (!intent.paymentKey) {
-    return { error: "결제를 먼저 준비해 주세요." };
+    return { error: "Set up payment first." };
   }
 
   const methods = await listSavedPaymentMethods(userId);
   if (!methods.some((m) => m.id === paymentMethodId)) {
-    return { error: "등록된 카드만 사용할 수 있습니다." };
+    return { error: "Only saved cards can be used." };
   }
 
   const stripe = getStripe();
@@ -259,7 +259,7 @@ export async function payCheckoutWithSavedMethod(
       return finalizePaidCheckout(userId, orderId);
     }
 
-    return { error: "결제를 완료하지 못했습니다." };
+    return { error: "Could not complete payment." };
   } catch (err: unknown) {
     const stripeErr = err as { code?: string; message?: string; payment_intent?: Stripe.PaymentIntent };
     if (
@@ -272,7 +272,7 @@ export async function payCheckoutWithSavedMethod(
         orderId,
       };
     }
-    return { error: stripeErr.message ?? "결제에 실패했습니다." };
+    return { error: stripeErr.message ?? "Payment failed." };
   }
 }
 

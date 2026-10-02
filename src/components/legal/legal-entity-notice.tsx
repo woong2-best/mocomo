@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import {
   LEGAL_CONTACT_EMAIL,
@@ -73,7 +76,7 @@ export function PaymentLegalNoticeContent({
               {section.body}{" "}
               {"href" in section && section.href ? (
                 <Link href={section.href} className="text-primary hover:underline">
-                  전문
+                  {t("legal.sz1ro")}
                 </Link>
               ) : null}
             </p>
@@ -89,7 +92,7 @@ export function PaymentLegalNoticeContent({
                 {section.body}{" "}
                 {"href" in section && section.href ? (
                   <Link href={section.href} className="text-primary hover:underline">
-                    전문 보기
+                    {t("legal.soctne0")}
                   </Link>
                 ) : null}
               </p>
@@ -99,7 +102,7 @@ export function PaymentLegalNoticeContent({
       </div>
 
       <p className="text-[9px] text-muted-foreground/90 pt-1">
-        결제·등록 시 위 약관에 동의한 것으로 간주됩니다.
+        {t("legal.skjyxdp")}
       </p>
     </div>
   );
@@ -120,7 +123,7 @@ export function PaymentLegalNotice({
         className
       )}
     >
-      <p className="text-[11px] font-semibold text-foreground">사업자·약관 고지</p>
+      <p className="text-[11px] font-semibold text-foreground">{t("legal.sk4z3b1")}</p>
       <PaymentLegalNoticeContent compact={compact} />
     </div>
   );

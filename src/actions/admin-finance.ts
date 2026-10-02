@@ -33,9 +33,9 @@ export async function getFinanceDashboard() {
 export async function markPayoutPaid(payoutId: string, adminNote?: string) {
   const admin = await requireAdmin();
   const payout = await db.payoutRequest.findUnique({ where: { id: payoutId } });
-  if (!payout) return { error: "출금 요청을 찾을 수 없습니다." };
+  if (!payout) return { error: "actions.segpd8q" };
   if (payout.status === "PAID") return { success: true };
-  if (payout.status === "REJECTED") return { error: "거절된 요청입니다." };
+  if (payout.status === "REJECTED") return { error: "actions.s7opesi" };
 
   await db.$transaction(async (tx) => {
     await tx.payoutRequest.update({
@@ -44,7 +44,7 @@ export async function markPayoutPaid(payoutId: string, adminNote?: string) {
         status: "PAID",
         processedById: admin.id,
         processedAt: new Date(),
-        adminNote: adminNote?.trim() || "입금 완료",
+        adminNote: adminNote?.trim() || "Deposit complete",
       },
     });
     await tx.wallet.update({
@@ -61,8 +61,8 @@ export async function markPayoutPaid(payoutId: string, adminNote?: string) {
 export async function rejectPayout(payoutId: string, reason: string) {
   const admin = await requireAdmin();
   const payout = await db.payoutRequest.findUnique({ where: { id: payoutId } });
-  if (!payout) return { error: "출금 요청을 찾을 수 없습니다." };
-  if (payout.status === "PAID") return { error: "이미 지급 완료된 요청입니다." };
+  if (!payout) return { error: "actions.segpd8q" };
+  if (payout.status === "PAID") return { error: "actions.sptwx4d" };
 
   await db.$transaction(async (tx) => {
     const wallet = await tx.wallet.update({
@@ -75,7 +75,7 @@ export async function rejectPayout(payoutId: string, reason: string) {
         status: "REJECTED",
         processedById: admin.id,
         processedAt: new Date(),
-        adminNote: reason.trim() || "반려",
+        adminNote: reason.trim() || "Rejected",
       },
     });
     await tx.ledgerEntry.create({
@@ -86,7 +86,7 @@ export async function rejectPayout(payoutId: string, reason: string) {
         balanceAfter: wallet.availableBalance,
         referenceType: "payout",
         referenceId: payoutId,
-        memo: reason.trim() || "출금 반려 환급",
+        memo: reason.trim() || "Refund for rejected withdrawal",
       },
     });
   });

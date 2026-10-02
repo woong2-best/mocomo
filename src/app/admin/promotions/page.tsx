@@ -1,3 +1,7 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { Suspense } from "react";
 import { adminListPromotionsAction } from "@/actions/admin-promotions";
 import { getAdminActor } from "@/lib/admin/access";
@@ -26,17 +30,17 @@ export default async function AdminPromotionsPage({
         query.active === "true" ? true : query.active === "false" ? false : undefined,
     }),
   ]);
-  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+  if (!res.ok) return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">프로모션</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("lib.admin.srn4ya0")}</h1>
         <p className="text-sm text-muted-foreground">
           코드 없이 계정에 귀속 · 정산 시 우선순위 자동 적용 · 실DB CRUD
         </p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted-foreground">로딩…</p>}>
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
         <AdminPromotionsTable
           items={res.data.items}
           total={res.data.total}

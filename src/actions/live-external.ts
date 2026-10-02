@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import type { LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuthMinimal } from "@/lib/auth";
@@ -20,6 +23,8 @@ import {
   getAccountTokens,
   resolveVerifiedLiveSource,
 } from "@/lib/streaming-accounts/service";
+import { getServerTranslator } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 export async function createExternalLiveStream(data: {
   /** Optional — ignored when platform title is available. */
@@ -34,8 +39,9 @@ export async function createExternalLiveStream(data: {
   goLive?: boolean;
 }) {
   try {
+    const { t } = await getServerTranslator();
     if (!isExternalLiveEnabled()) {
-      return { error: "외부 방송 연동이 비활성화되어 있습니다." };
+      return { error: "live.external.disabled" };
     }
 
     const user = await requireAuthMinimal();
@@ -44,7 +50,7 @@ export async function createExternalLiveStream(data: {
 
     const accountId = data.connectedAccountId?.trim();
     if (!accountId) {
-      return { error: "인증된 스트리밍 계정을 선택해 주세요." };
+      return { error: "live.external.pickAccount" };
     }
 
     const account = await db.connectedStreamingAccount.findUnique({
@@ -52,24 +58,25 @@ export async function createExternalLiveStream(data: {
     });
 
     if (!account || account.userId !== user.id) {
-      return { error: "스트리밍 계정을 찾을 수 없습니다." };
+      return { error: "live.external.accountNotFound" };
     }
     if (!account.verified || account.revokedAt) {
-      return {
-        error:
-          "인증되지 않았거나 해제된 스트리밍 계정입니다. 설정에서 계정을 다시 연결해 주세요.",
-      };
+      return { error: "live.external.accountUnverified" };
     }
 
     const liveProvider = platformToLiveExternal(account.platform);
     if (!liveProvider) {
-      return {
-        error: "이 플랫폼은 외부 라이브 임베드를 아직 지원하지 않습니다.",
-      };
+      return { error: "live.external.platformUnsupported" };
     }
 
     const resolved = await resolveVerifiedLiveSource(accountId, user.id);
-    if ("error" in resolved) return { error: resolved.error };
+    if ("errorKey" in resolved && resolved.errorKey) {
+      return { error: String(resolved.errorKey) };
+    }
+    if ("error" in resolved && resolved.error) return { error: resolved.error };
+    if (!("provider" in resolved)) {
+      return { error: "live.external.resolveFailed" };
+    }
     const parsed = resolved;
 
     if (parsed.provider === "YOUTUBE") {
@@ -80,8 +87,7 @@ export async function createExternalLiveStream(data: {
       if (!kids.ok) return { error: kids.error };
       if (kids.madeForKids) {
         return {
-          error:
-            "Made for Kids로 표시된 YouTube 영상은 정책상 임베드할 수 없습니다. 다른 라이브를 연결해 주세요.",
+          error: "actions.made_for_kids_youtube",
         };
       }
     }
@@ -136,7 +142,7 @@ export async function createExternalLiveStream(data: {
     const title =
       platformMeta.title?.trim() ||
       data.name?.trim() ||
-      `${account.channelName} 라이브`;
+      t("home.featureLive", { v0: account.channelName });
     const description =
       platformMeta.description?.trim().slice(0, 500) ||
       data.description?.trim().slice(0, 500) ||
@@ -238,13 +244,13 @@ export async function mintLiveOverlayUrls(channelId: string) {
     },
   });
   if (!channel || channel.createdBy !== user.id) {
-    return { error: "호스트만 오버레이 URL을 발급할 수 있습니다." };
+    return { error: "actions.url_2" };
   }
   const broadcastSid = overlayBroadcastSid(channel.createdAt);
   const chatToken = mintOverlayToken(channelId, "chat", { broadcastSid });
   const donationToken = mintOverlayToken(channelId, "donation", { broadcastSid });
   if (!chatToken || !donationToken) {
-    return { error: "LIVE_OVERLAY_SECRET 또는 AUTH_SECRET이 필요합니다." };
+    return { error: "actions.live_overlay_secret_auth_secret" };
   }
 
   const youtubeNative =
@@ -272,10 +278,8 @@ export async function mintStudioObsChatUrl() {
     select: { id: true },
   });
   if (!channel) {
-    return {
-      error:
-        "진행 중인 방송이 없습니다. 방송을 시작한 뒤 여기서 OBS 채팅 URL을 복사하세요.",
-    };
+    const { t } = await getServerTranslator();
+    return { errorKey: "live.obsChat.noActiveBroadcast" as const, error: "live.obsChat.noActiveBroadcast" };
   }
   return mintLiveOverlayUrls(channel.id);
 }

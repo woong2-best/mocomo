@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { BarChart3, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,8 +49,8 @@ export function ComposePollEditor({ value, onChange, disabled, compact }: Compos
           disabled={disabled}
           onClick={() => toggle(true)}
           className="h-9 w-9 rounded-full flex items-center justify-center text-primary hover:bg-primary/10 transition-colors"
-          aria-label="투표 추가"
-          title="투표"
+          aria-label={t("compose.s1v8n330")}
+          title={t("lib.notifications.sf9b8f71347")}
         >
           <BarChart3 className="h-[18px] w-[18px]" />
         </button>
@@ -62,7 +65,7 @@ export function ComposePollEditor({ value, onChange, disabled, compact }: Compos
         className="w-full rounded-xl gap-2 border-dashed"
       >
         <BarChart3 className="h-4 w-4" />
-        투표 추가
+        {t("compose.s1v8n330")}
       </Button>
     );
   }
@@ -72,7 +75,7 @@ export function ComposePollEditor({ value, onChange, disabled, compact }: Compos
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-semibold flex items-center gap-1.5">
           <BarChart3 className="h-4 w-4 text-primary" />
-          투표
+          {t("lib.notifications.sf9b8f71347")}
         </span>
         <Button
           type="button"
@@ -83,12 +86,12 @@ export function ComposePollEditor({ value, onChange, disabled, compact }: Compos
           className="h-8 px-2 text-muted-foreground"
         >
           <X className="h-4 w-4" />
-          제거
+          {t("collab.remove")}
         </Button>
       </div>
 
       <p className="text-[11px] text-muted-foreground leading-snug">
-        본문이 투표 질문이 됩니다 · 선택지 2~4개 · 마감 후 결과 공개
+        {t("compose.2_4")}
       </p>
 
       <div className="space-y-2">
@@ -98,7 +101,7 @@ export function ComposePollEditor({ value, onChange, disabled, compact }: Compos
               value={opt}
               disabled={disabled}
               maxLength={50}
-              placeholder={`선택지 ${i + 1}`}
+              placeholder={t("compose.staz6r", { v0: i + 1 })}
               className="rounded-lg h-9 text-sm"
               onChange={(e) => {
                 const next = [...poll.options];
@@ -113,7 +116,7 @@ export function ComposePollEditor({ value, onChange, disabled, compact }: Compos
                 size="icon"
                 disabled={disabled}
                 className="shrink-0 h-9 w-9 rounded-lg"
-                aria-label={`선택지 ${i + 1} 삭제`}
+                aria-label={t("compose.st4ogbw", { v0: i + 1 })}
                 onClick={() => updateOptions(poll.options.filter((_, j) => j !== i))}
               >
                 <X className="h-3.5 w-3.5" />
@@ -133,12 +136,12 @@ export function ComposePollEditor({ value, onChange, disabled, compact }: Compos
           onClick={() => updateOptions([...poll.options, ""])}
         >
           <Plus className="h-3.5 w-3.5" />
-          선택지 추가
+          {t("compose.st4qhs9")}
         </Button>
       )}
 
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">마감 시간</label>
+        <label className="text-xs font-medium text-muted-foreground">{t("compose.s11tixs0")}</label>
         <div className="flex flex-wrap gap-1.5">
           {POST_POLL_DURATION_OPTIONS.map((d) => (
             <button

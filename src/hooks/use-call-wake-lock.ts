@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-/** 영상 통화 중 화면 꺼짐·백그라운드로 인한 끊김 완화 */
+/** Video 통화 중 화면 꺼짐·백그라운드로 인한 끊김 완화 */
 export function useCallWakeLock(enabled: boolean) {
   useEffect(() => {
     if (!enabled || typeof navigator === "undefined" || !("wakeLock" in navigator)) {

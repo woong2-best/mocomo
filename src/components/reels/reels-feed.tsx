@@ -1,4 +1,9 @@
 "use client";
+const i18n = createTranslator("en");
+
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 
 import {
   useCallback,
@@ -251,7 +256,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   const shareReel = useCallback(
     async (reel: ReelItem) => {
       const url = absoluteUrl(`/reels?v=${reel.postId}`);
-      await copyShareUrl(url, t("toast.linkCopied"));
+      await copyShareUrl(url, i18n("toast.linkCopied"));
     },
     [t]
   );
@@ -285,8 +290,8 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   if (items.length === 0) {
     return (
       <div className="flex h-[100dvh] flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white">
-        <p className="font-display text-lg font-bold">아직 볼 영상이 없어요</p>
-        <p className="text-sm text-white/70">세로 영상을 업로드하면 여기에 나타납니다.</p>
+        <p className="font-display text-lg font-bold">{i18n("reels.sy1abv7")}</p>
+        <p className="text-sm text-white/70">{i18n("reels.s1lhnbz0")}</p>
         <Link
           href="/compose"
           className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black"

@@ -37,7 +37,7 @@ export async function buildCloudflarePlaybackFields(channel: ChannelSlice) {
       tryLoad: playable,
       message: playable
         ? "브라우저 실시간 방송 연결됨."
-        : "실시간 재생 URL 준비 중… 잠시만 기다려 주세요.",
+        : "Preparing live playback URL… Please wait.",
       probeError: undefined as string | undefined,
     };
   }
@@ -64,7 +64,7 @@ export async function buildCloudflarePlaybackFields(channel: ChannelSlice) {
         ? "송출 감지 · HLS 준비 중 (5~15초)…"
         : browser
           ? "「방송 시작」을 누르고 카메라·마이크를 허용해 주세요."
-          : "방송이 시작되면 화면이 나타납니다.",
+          : "Video appears when the broadcast starts.",
     probeError: probe.error,
   };
 }

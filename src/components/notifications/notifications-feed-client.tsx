@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -12,26 +15,18 @@ import {
   notificationIcon,
   type NotificationRow,
 } from "@/lib/notification-display";
-import { markAllNotificationsReadAction, markNotificationRead, deleteAllEconomyNotificationsAction } from "@/actions/notifications";
+import { markAllNotificationsReadAction, markNotificationRead } from "@/actions/notifications";
 import { dispatchNotificationsRead } from "@/lib/notification-read-sync";
 import { CollabInviteNotificationActions } from "@/components/notifications/collab-invite-notification-actions";
-import { isAptPublicEnabled } from "@/lib/apt-public-gate";
-
-const APT_ECONOMY_FILTER_IDS = new Set(["economy", "market", "shop", "flea"]);
 
 const FILTERS: { id: string; label: string; category: string | null }[] = [
-  { id: "all", label: "전체", category: null },
-  { id: "social", label: "소셜", category: "social" },
-  { id: "economy", label: "경제", category: "economy" },
-  { id: "market", label: "장터", category: "market" },
-  { id: "shop", label: "상점", category: "shop" },
-  { id: "flea", label: "벼룩", category: "flea" },
-  { id: "live", label: "라이브", category: "live" },
-  { id: "fraud", label: "보안", category: "fraud" },
-  { id: "system", label: "공지", category: "system" },
-  { id: "messages", label: "메시지", category: "messages" },
-  { id: "commerce", label: "후원·선물", category: "commerce" },
-  { id: "community", label: "커뮤니티", category: "community" },
+  { id: "all", label: i18n("lib.live.categories.s934dd25ec5"), category: null },
+  { id: "social", label: i18n("notifications.sxzdc"), category: "social" },
+  { id: "market", label: i18n("notifications.sz3u3"), category: "market" },
+  { id: "live", label: i18n("lib.search.fast.sdb12b62c3a"), category: "live" },
+  { id: "messages", label: i18n("lib.chat.message.normalize.s96330a61aa"), category: "messages" },
+  { id: "commerce", label: i18n("notifications.scgnr47"), category: "commerce" },
+  { id: "community", label: i18n("notifications.sqvrsyw"), category: "community" },
 ];
 
 export function NotificationsFeedClient({
@@ -88,36 +83,26 @@ export function NotificationsFeedClient({
     return () => clearInterval(t);
   }, [filter, refresh]);
 
-  async function onItemClick(id: string, read: boolean, source?: "social" | "apt") {
+  async function onItemClick(id: string, read: boolean) {
     if (!read) {
       setItems((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );
       setUnread((u) => Math.max(0, u - 1));
-      await markNotificationRead(id, source ?? "social");
+      await markNotificationRead(id);
     }
   }
 
-  const visibleFilters = FILTERS.filter(
-    (f) => isAptPublicEnabled() || !APT_ECONOMY_FILTER_IDS.has(f.id)
-  );
-
-  const visibleItems = isAptPublicEnabled()
-    ? items
-    : items.filter((n) => n.source !== "apt");
-
   const filtered =
-    filter === "all"
-      ? visibleItems
-      : filter === "economy"
-        ? visibleItems.filter((n) => n.source === "apt")
-        : visibleItems.filter((n) => notificationCategoryForType(n.type) === filter);
+    filter === "all" || filter === "social"
+      ? items
+      : items.filter((n) => notificationCategoryForType(n.type) === filter);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-1.5">
-          {visibleFilters.map((f) => (
+          {FILTERS.map((f) => (
             <button
               key={f.id}
               type="button"
@@ -133,19 +118,6 @@ export function NotificationsFeedClient({
             </button>
           ))}
         </div>
-        {isAptPublicEnabled() && filter === "economy" && items.some((n) => n.source === "apt") && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              void deleteAllEconomyNotificationsAction().then(() => {
-                setItems((prev) => prev.filter((n) => n.source !== "apt"));
-              });
-            }}
-          >
-            경제 알림 삭제
-          </Button>
-        )}
         {unread > 0 && (
           <form action={markAllNotificationsReadAction}>
             <Button
@@ -166,7 +138,7 @@ export function NotificationsFeedClient({
 
       {fetchError ? (
         <div className="rounded-2xl border border-dashed p-12 text-center space-y-3">
-          <p className="text-sm text-muted-foreground">알림을 불러오지 못했습니다.</p>
+          <p className="text-sm text-muted-foreground">{i18n("notifications.sns1b26")}</p>
           <Button
             type="button"
             variant="outline"
@@ -195,8 +167,8 @@ export function NotificationsFeedClient({
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
           {filter === "all"
-            ? "알림이 없습니다. 좋아요·댓글·팔로우·쪽지 활동이 여기에 표시됩니다."
-            : "이 카테고리에 알림이 없습니다."}
+            ? i18n("notifications.s1qc3enz")
+            : i18n("notifications.s3yuix3")}
         </div>
       ) : (
         <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden bg-card">
@@ -261,7 +233,7 @@ export function NotificationsFeedClient({
                 {n.link ? (
                   <Link
                     href={href}
-                    onClick={() => void onItemClick(n.id, n.read, n.source ?? "social")}
+                    onClick={() => void onItemClick(n.id, n.read)}
                     className="block"
                   >
                     {inner}
@@ -270,7 +242,7 @@ export function NotificationsFeedClient({
                   <button
                     type="button"
                     className="w-full text-left"
-                    onClick={() => void onItemClick(n.id, n.read, n.source ?? "social")}
+                    onClick={() => void onItemClick(n.id, n.read)}
                   >
                     {inner}
                   </button>

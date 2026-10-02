@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,7 +53,7 @@ export function EventsChannelPanel({
       endsAt,
     });
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       setLoading(false);
       return;
     }
@@ -66,38 +71,38 @@ export function EventsChannelPanel({
       <header className="shrink-0 px-4 py-3 border-b border-border/50 flex items-center justify-between gap-2">
         <h1 className="font-semibold flex items-center gap-2">
           <Calendar className="h-5 w-5" />
-          이벤트
+          {t("lib.payment.history.sbff20dc3bb")}
         </h1>
         {canManage && (
           <Button size="sm" variant="outline" onClick={() => setOpen((v) => !v)}>
             <Plus className="h-4 w-4 mr-1" />
-            {open ? "닫기" : "이벤트 만들기"}
+            {open ? t("common.close") : t("community-server.sw2oj9c")}
           </Button>
         )}
       </header>
 
       {open && canManage && (
         <div className="shrink-0 border-b border-border/50 p-4 space-y-3 bg-muted/20">
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="이벤트 제목" />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("events.s7ws085")} />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="설명"
+            placeholder={t("community-server.sxvj5")}
             className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <label className="text-xs text-muted-foreground">
-              시작
+              {t("explore.start")}
               <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="mt-1" />
             </label>
             <label className="text-xs text-muted-foreground">
-              종료
+              {t("lib.subculture.event.phase.scafdc61bbf")}
               <Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className="mt-1" />
             </label>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button size="sm" disabled={loading} onClick={() => void submit()}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "등록"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("events.svsek")}
           </Button>
         </div>
       )}
@@ -105,7 +110,7 @@ export function EventsChannelPanel({
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
         {events.length === 0 ? (
           <div className="rounded-xl border border-dashed py-12 text-center text-sm text-muted-foreground">
-            진행 중인 커뮤니티 이벤트가 없습니다.
+            {t("community-server.s126co51")}
           </div>
         ) : (
           events.map((e) => (

@@ -25,5 +25,5 @@ export function resolveHostPublishState(
 }
 
 export function publisherLockError(): string {
-  return "이미 다른 기기·브라우저에서 방송 중입니다. 방송을 시작한 그 기기에서 계속하거나, 먼저 「방송 종료」를 누른 뒤 이 기기에서 시작해 주세요.";
+  return "You're already live on another device or browser. Continue on the device that started the stream, or end the stream there before starting on this device.";
 }

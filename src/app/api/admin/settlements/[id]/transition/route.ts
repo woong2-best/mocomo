@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import type { SettlementStatus } from "@prisma/client";
 import { AdminAccessError, requireAdminPermission } from "@/lib/admin/access";
@@ -22,7 +23,7 @@ export async function POST(
     }
     const res = await transitionSettlement(actor, id, body.toStatus, body.note);
     if ("error" in res && res.error) {
-      return NextResponse.json({ error: res.error }, { status: 400 });
+      return NextResponse.json({ error: errorText(res.error) }, { status: 400 });
     }
     return NextResponse.json({ ok: true, settlement: res.settlement });
   } catch (e) {

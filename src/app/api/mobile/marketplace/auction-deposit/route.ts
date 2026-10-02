@@ -12,7 +12,7 @@ import {
   getSellerHarmScoreTotal,
 } from "@/lib/auction-deposit";
 
-/** GET — 모바일 경매 보증금 잔액·활성 동결 상태 */
+/** GET — 모바일 Auction 보증금 잔액·활성 동결 상태 */
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-auction-deposit", 60);
   if (limited) return limited;

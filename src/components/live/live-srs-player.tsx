@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type HlsType from "hls.js";
 import { Loader2, Radio, RefreshCw } from "lucide-react";
@@ -20,7 +24,9 @@ function absoluteUrl(pathOrUrl: string): string {
 }
 
 /** VPS SRS — RTMP 있으면 FLV 우선, HLS는 보조 (폴링 시 플레이어 재시작 금지) */
-export function LiveSrsPlayer({ channelId }: { channelId: string }) {
+export function LiveSrsPlayer({
+  channelId }: { channelId: string }) {
+  const { t } = useLocale();
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsType | null>(null);
   const flvRef = useRef<{ destroy: () => void } | null>(null);
@@ -73,8 +79,8 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
           flvStartedRef.current = false;
           setHint(
             head.status === 404
-              ? "FLV 없음 — OBS 키 끝자리가 스튜디오와 같은지 확인"
-              : `FLV 프록시 ${head.status} — 잠시 후 다시 시도`
+              ? t("live.flv_obs")
+              : t("live.flv_2", { v0: String(head.status) })
           );
           return;
         }
@@ -83,7 +89,7 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
         const flvjs = mod.default;
         if (!flvjs.isSupported()) {
           flvStartedRef.current = false;
-          setHint("FLV 미지원 — Chrome/Edge 사용");
+          setHint(t("live.flv_chrome_edge"));
           return;
         }
 
@@ -115,8 +121,8 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
           const code = info?.code ?? "";
           setHint(
             code === "HttpStatusCodeInvalid"
-              ? "FLV 404 — OBS 서버·키를 스튜디오와 동일하게"
-              : "FLV 연결 실패 — 5초 후 자동 재시도"
+              ? t("live.flv_404_obs")
+              : t("live.flv_5")
           );
           setTimeout(() => {
             if (!playingRef.current) void startFlv(url);
@@ -126,7 +132,7 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
         await video.play().catch(() => undefined);
       } catch {
         flvStartedRef.current = false;
-        setHint("FLV 재생 실패 — OBS 키·다중 송출 대상 확인");
+        setHint(t("live.flv_obs_2"));
       }
     },
     [channelId, flvUrl, markPlaying]
@@ -179,7 +185,7 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
         cache: "no-store",
       });
       const body = (await res.json().catch(() => ({}))) as PlaybackBody;
-      if (!res.ok) throw new Error("재생 정보를 가져오지 못했습니다");
+      if (!res.ok) throw new Error(t("live.sc4wyy"));
 
       if (body.flvUrl) setFlvUrl(body.flvUrl);
 
@@ -193,7 +199,7 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
       if (body.srsOnAir) {
         setStatus("waiting");
         if (!playingRef.current) {
-          setHint("송출 감지됨 · FLV로 화면 연결 중…");
+          setHint(t("live.flv_3"));
           void startFlv(body.flvUrl ?? undefined);
           startHls(hlsPath);
         }
@@ -202,10 +208,10 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
 
       if (!playingRef.current) {
         setStatus("waiting");
-        setHint(body.message ?? "다중 송출이 MoCoMo로 나가는지 확인하세요");
+        setHint(body.message ?? t("live.mocomo_5"));
       }
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : "재생 실패");
+      setErrorMsg(e instanceof Error ? e.message : t("live.snq3mvn"));
       setStatus("error");
     }
   }, [channelId, startHls, startFlv]);
@@ -225,7 +231,7 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
         <p className="text-sm text-destructive text-center">{errorMsg}</p>
         <Button variant="outline" size="sm" onClick={() => void load()}>
           <RefreshCw className="h-4 w-4 mr-1" />
-          다시 시도
+          {t("toast.retry")}
         </Button>
       </div>
     );
@@ -238,7 +244,7 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white/80 gap-2 bg-black/60 pointer-events-none px-4 text-center">
           <Loader2 className="h-10 w-10 animate-spin" />
           <Radio className="h-8 w-8 text-folk-terracotta" />
-          <p className="text-sm max-w-md">{hint || "VPS 연결 중…"}</p>
+          <p className="text-sm max-w-md">{hint || t("live.vps_2")}</p>
         </div>
       )}
       {status === "playing" && playMode && (
@@ -257,7 +263,7 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
             void startFlv();
           }}
         >
-          FLV로 보기
+          {t("live.flv")}
         </Button>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
 
   const userId = await getMobileUserId(req);
   if (!userId) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const user = await db.user.findUnique({
@@ -65,13 +66,13 @@ export async function GET(req: NextRequest) {
   });
 
   if (!user) {
-    return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
   if (isServiceBanned(user)) {
-    return NextResponse.json({ error: "이용이 제한된 계정입니다." }, { status: 403 });
+    return NextResponse.json({ error: "This account is restricted." }, { status: 403 });
   }
   if (user.deletedAt) {
-    return NextResponse.json({ error: "탈퇴한 계정입니다." }, { status: 403 });
+    return NextResponse.json({ error: "This account has been deleted." }, { status: 403 });
   }
   try {
     assertAccountCanWrite(user, "default");
@@ -185,21 +186,21 @@ export async function PATCH(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = patchSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const data = parsed.data;
   if (data.locale && !isLocale(data.locale)) {
-    return NextResponse.json({ error: "지원하지 않는 언어입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Unsupported language." }, { status: 400 });
   }
   if (data.username !== undefined && !isValidUsername(normalizeUsername(data.username))) {
     return NextResponse.json(
-      { error: "아이디는 영문·숫자·_ 3~20자입니다." },
+      { error: "Username must be 3–20 letters, numbers, or underscores." },
       { status: 400 }
     );
   }
@@ -261,7 +262,7 @@ export async function PATCH(req: NextRequest) {
   });
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   if (data.locale || data.countryCode || data.timeZone || data.usedServiceRegion) {
@@ -275,7 +276,7 @@ export async function PATCH(req: NextRequest) {
         storedCountry?.countryCode
       );
       if (countryBlock) {
-        return NextResponse.json({ error: countryBlock.error }, { status: 403 });
+        return NextResponse.json({ error: errorText(countryBlock.error) }, { status: 403 });
       }
     }
     const nextCountry = data.countryCode
@@ -285,7 +286,7 @@ export async function PATCH(req: NextRequest) {
       data.usedServiceRegion &&
       !isValidUsedRegion(data.usedServiceRegion, nextCountry)
     ) {
-      return NextResponse.json({ error: "올바른 서비스 지역을 선택해 주세요." }, { status: 400 });
+      return NextResponse.json({ error: "Select a valid service region." }, { status: 400 });
     }
     await db.user.update({
       where: { id: auth.user.id },
@@ -310,7 +311,7 @@ export async function PATCH(req: NextRequest) {
   if (data.postsLocked !== undefined) {
     const lockResult = await setPostsLockedForUser(auth.user.id, data.postsLocked);
     if ("error" in lockResult) {
-      return NextResponse.json({ error: lockResult.error }, { status: 400 });
+      return NextResponse.json({ error: errorText(lockResult.error) }, { status: 400 });
     }
   }
 

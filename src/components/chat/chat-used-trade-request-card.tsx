@@ -1,10 +1,12 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, ShoppingBag, X } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 type TradeRequest = {
   id: string;
   listingId: string;
@@ -25,7 +27,7 @@ export function ChatUsedTradeRequestCard({
   selfUserId: string;
   onUpdated?: () => void;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const [request, setRequest] = useState<TradeRequest | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -67,12 +69,12 @@ export function ChatUsedTradeRequestCard({
     : request.buyerId === selfUserId;
   const statusLabel =
     request.status === "PENDING"
-      ? uiText(locale, "대기 중", "Pending")
+      ? t("ui.pending")
       : request.status === "APPROVED"
-        ? uiText(locale, "예약됨", "Reserved")
+        ? t("ui.reserved")
         : request.status === "REJECTED"
-          ? uiText(locale, "거절됨", "Declined")
-          : uiText(locale, "취소됨", "Cancelled");
+          ? t("ui.declined")
+          : t("ui.cancelled");
 
   const href = `/market/${request.listingId}`;
 
@@ -83,12 +85,12 @@ export function ChatUsedTradeRequestCard({
     >
       <div className="flex items-center gap-2 px-3 pt-3">
         <ShoppingBag className="h-5 w-5 text-sky-400 shrink-0" />
-        <p className="text-sm font-extrabold">{uiText(locale, "중고 거래 요청", "Used trade request")}</p>
+        <p className="text-sm font-extrabold">{t("ui.used_trade_request")}</p>
       </div>
       <p className="px-3 pt-2 text-[13px] font-semibold text-white/90">
         {sentByMe
-          ? uiText(locale, "거래 일정을 보냈습니다.", "You sent a trade schedule.")
-          : uiText(locale, "거래 일정이 도착했습니다.", "A trade schedule arrived.")}
+          ? t("ui.you_sent_a_trade_schedule")
+          : t("ui.a_trade_schedule_arrived")}
       </p>
       {request.meetAt ? (
         <p className="px-3 text-xs font-semibold text-white/60">{formatMeetAt(request.meetAt, locale)}</p>
@@ -101,7 +103,7 @@ export function ChatUsedTradeRequestCard({
             disabled={busy}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-red-600 text-white disabled:opacity-50"
             onClick={() => void respond("reject")}
-            aria-label={uiText(locale, "거절", "Decline")}
+            aria-label={t("collab.reject")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -110,7 +112,7 @@ export function ChatUsedTradeRequestCard({
             disabled={busy}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-green-600 text-white disabled:opacity-50"
             onClick={() => void respond("approve")}
-            aria-label={uiText(locale, "승인", "Approve")}
+            aria-label={t("ui.approve")}
           >
             <Check className="h-5 w-5" />
           </button>
@@ -123,9 +125,9 @@ export function ChatUsedTradeRequestCard({
 function formatMeetAt(iso: string, locale: string | undefined) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  const daysKo = ["일", "월", "화", "수", "목", "금", "토"];
+  const daysKo = [t("lib.webtoon.s13ek"), t("lib.webtoon.s139w"), t("lib.webtoon.s16c4"), t("lib.webtoon.s12c8"), t("lib.webtoon.s10vd"), t("lib.webtoon.sydk"), t("lib.webtoon.s15eo")];
   const daysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const days = locale === "ko" ? daysKo : daysEn;
+  const days = daysEn;
   const hh = String(date.getHours()).padStart(2, "0");
   const mm = String(date.getMinutes()).padStart(2, "0");
   return `${date.getMonth() + 1}/${date.getDate()} (${days[date.getDay()]}) ${hh}:${mm}`;

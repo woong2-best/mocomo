@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { getCommunityRoles, assignMemberRole } from "@/actions/community-roles";
 import {
@@ -33,7 +36,7 @@ export function MemberRoleAssignSubmenu({
 
   return (
     <DropdownMenuSub>
-      <DropdownMenuSubTrigger>역할 지정</DropdownMenuSubTrigger>
+      <DropdownMenuSubTrigger>{t("community-server.sjhhlky")}</DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
         {roles.map((r) => (
           <DropdownMenuItem key={r.id} onClick={() => void assign(r.id)}>

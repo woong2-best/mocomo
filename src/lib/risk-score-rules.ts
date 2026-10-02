@@ -44,17 +44,17 @@ export function riskTierFromScore(score: number): RiskTier {
 export function riskTierLabel(tier: RiskTier): string {
   switch (tier) {
     case "normal":
-      return "정상";
+      return "Normal";
     case "caution":
-      return "주의";
+      return "Caution";
     case "limited":
-      return "일부 제한";
+      return "Partial restrictions";
     case "review":
-      return "관리자 검토";
+      return "Admin review";
     case "pending_sanction":
-      return "제재 대기";
+      return "Sanction pending";
     case "urgent":
-      return "긴급 검토";
+      return "Urgent review";
   }
 }
 

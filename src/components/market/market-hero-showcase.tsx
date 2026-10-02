@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
@@ -21,48 +24,48 @@ type HeroSlide = {
 const SLIDES: HeroSlide[] = [
   {
     id: "custom",
-    eyebrow: "주문제작 OPEN",
-    title: "코스프레·소품\n맞춤 제작",
-    subtitle: "제작 일수·견적을 확인하고 크리에이터에게 바로 주문하세요.",
-    cta: "주문제작 둘러보기",
+    eyebrow: t("market.open"),
+    title: t("market.s1kolt6m"),
+    subtitle: t("market.sde13r6"),
+    cta: t("market.sbczqsf"),
     href: "/market?type=CUSTOM_ORDER",
-    tabLabel: "주문제작",
+    tabLabel: t("market.sq4zp2p"),
     accent: "from-folk-terracotta/90 to-folk-cobalt/80",
     panelClass:
       "bg-[radial-gradient(ellipse_at_20%_20%,hsl(var(--folk-gold)/0.35),transparent_50%),linear-gradient(135deg,hsl(var(--folk-cream)),hsl(28_40%_92%))]",
   },
   {
     id: "preorder",
-    eyebrow: "예약판매",
-    title: "한정 굿즈\n미리 확보",
-    subtitle: "예약 오픈 상품을 먼저 잡고, 발송 일정을 추적하세요.",
-    cta: "예약판매 보기",
+    eyebrow: t("market.spt4wsp"),
+    title: t("market.se1n6p5"),
+    subtitle: t("market.s1w2nnx8"),
+    cta: t("market.s1bosbw3"),
     href: "/market?type=PREORDER",
-    tabLabel: "예약판매",
+    tabLabel: t("market.spt4wsp"),
     accent: "from-amber-600/90 to-folk-terracotta/80",
     panelClass:
       "bg-[radial-gradient(ellipse_at_60%_80%,hsl(var(--folk-gold)/0.4),transparent_50%),linear-gradient(160deg,#faf6ef,#f3e8d8)]",
   },
   {
     id: "physical",
-    eyebrow: "일반 판매",
-    title: "굿즈·피규어\n실물 상품",
-    subtitle: "재고 기반 실물 상품을 등록하고 전 세계에 판매하세요.",
-    cta: "일반 상품 보기",
+    eyebrow: t("market.sme4hg8"),
+    title: t("market.s1f7nzr"),
+    subtitle: t("market.s1esc94j"),
+    cta: t("market.s162eftd"),
     href: "/market?type=PHYSICAL",
-    tabLabel: "일반 판매",
+    tabLabel: t("market.sme4hg8"),
     accent: "from-folk-cobalt/90 to-sky-800/80",
     panelClass:
       "bg-[radial-gradient(ellipse_at_80%_10%,hsl(var(--folk-cobalt)/0.18),transparent_45%),linear-gradient(145deg,#f7f4ee,#e8eef8)]",
   },
   {
     id: "seller",
-    eyebrow: "판매자 온보딩",
-    title: `글로벌 ${MARKET_BRAND_NAME}\n판매 시작`,
-    subtitle: "한국 SMS · 해외 Stripe 경로로 판매자 등록을 완료하세요.",
-    cta: "판매자 등록",
+    eyebrow: t("seller.onboardingTitle"),
+    title: t("market.s2nqatb", { v0: MARKET_BRAND_NAME }),
+    subtitle: t("market.sms_stripe"),
+    cta: t("market.s1hbpofk"),
     href: "/market/seller/register",
-    tabLabel: "판매 시작",
+    tabLabel: t("market.s1vdrv29"),
     accent: "from-folk-forest/90 to-folk-cobalt/75",
     panelClass:
       "bg-[radial-gradient(ellipse_at_30%_70%,hsl(var(--folk-forest)/0.2),transparent_50%),linear-gradient(135deg,#f3f6f1,#e8efe6)]",

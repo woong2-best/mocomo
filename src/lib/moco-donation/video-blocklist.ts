@@ -29,14 +29,14 @@ export function checkVideoDonationBlocklist(input: {
   const title = input.title.toLowerCase();
 
   if (input.blocklist.videoIds?.some((id) => id.toLowerCase() === vid)) {
-    return "스트리머가 차단한 영상입니다.";
+    return "This video is blocked by the streamer.";
   }
   if (input.blocklist.channelIds?.some((id) => id.toLowerCase() === ch)) {
-    return "스트리머가 차단한 채널의 영상입니다.";
+    return "This video is from a channel blocked by the streamer.";
   }
   for (const kw of input.blocklist.keywords ?? []) {
     if (kw && title.includes(kw)) {
-      return "스트리머가 차단한 키워드가 포함된 영상입니다.";
+      return "This video contains a keyword blocked by the streamer.";
     }
   }
   return null;

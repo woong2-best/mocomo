@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
@@ -21,7 +24,7 @@ export function SellerPortalShell({
             <span className="truncate font-serif text-[1.05rem] font-semibold tracking-tight text-foreground">
               {BRAND.name} marketplace
             </span>
-            <span className="text-[10px] text-muted-foreground">판매자 등록</span>
+            <span className="text-[10px] text-muted-foreground">{t("market.s1hbpofk")}</span>
           </Link>
           <div className="flex shrink-0 items-center gap-2 text-sm">
             {signedIn ? (
@@ -35,7 +38,7 @@ export function SellerPortalShell({
                 href="/auth/signin?callbackUrl=/market/seller/register"
                 className="rounded-md border border-border px-3 py-1.5 text-foreground hover:bg-muted/40"
               >
-                로그인
+                {t("auth.signIn")}
               </Link>
             )}
             {!fromApp ? (
@@ -52,11 +55,11 @@ export function SellerPortalShell({
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:max-w-3xl sm:py-12">{children}</main>
       <footer className="border-t border-border/60 bg-background px-4 py-4 text-center text-xs text-muted-foreground">
         <Link href="/legal/seller-terms" className="hover:underline">
-          판매자 이용약관
+          {t("market.sytdjb0")}
         </Link>
         <span className="mx-2">·</span>
         <Link href="/legal/privacy" className="hover:underline">
-          개인정보처리방침
+          {t("legal.privacy")}
         </Link>
       </footer>
     </div>

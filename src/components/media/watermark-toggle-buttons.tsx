@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Grid3x3, Stamp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EMPTY_WATERMARK_OPTIONS, type WatermarkOptions } from "@/lib/media-watermark";
@@ -37,7 +40,7 @@ export function WatermarkToggleButtons({
           )}
         >
           <Grid3x3 className="h-3.5 w-3.5" />
-          사선
+          {t("media.sxtys")}
         </button>
         <button
           type="button"
@@ -52,7 +55,7 @@ export function WatermarkToggleButtons({
           )}
         >
           <Stamp className="h-3.5 w-3.5" />
-          하단
+          {t("media.s119qo")}
         </button>
         {noneOn ? (
           <button
@@ -61,7 +64,7 @@ export function WatermarkToggleButtons({
             onClick={() => onChange({ diagonal: true, corner: true })}
             className="text-[11px] font-semibold text-primary hover:underline disabled:opacity-40"
           >
-            기본 켜기
+            {t("media.s1tnj9bg")}
           </button>
         ) : (
           <button
@@ -70,7 +73,7 @@ export function WatermarkToggleButtons({
             onClick={() => onChange(EMPTY_WATERMARK_OPTIONS)}
             className="text-[11px] font-semibold text-primary hover:underline disabled:opacity-40"
           >
-            끄기
+            {t("media.suxrg")}
           </button>
         )}
       </div>

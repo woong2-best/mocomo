@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
@@ -28,7 +31,7 @@ export default async function AnimeNewPage({
         </Button>
       </Link>
       <NativePageTitle>
-        <h1 className="text-xl font-bold">새 위키 문서</h1>
+        <h1 className="text-xl font-bold">{t("app.anime.s12duqa4")}</h1>
       </NativePageTitle>
       <AnimeForm
         mode="create"

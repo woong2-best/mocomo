@@ -79,8 +79,8 @@ export async function applyRiskAutoActions(
     await createNotification({
       userId,
       type: "SYSTEM",
-      title: "계정 주의 안내",
-      body: "커뮤니티 운영원칙 위반 가능성이 감지되었습니다. 추가 위반 시 제한될 수 있습니다.",
+      title: "Account caution notice",
+      body: "A possible community guidelines violation was detected. Further violations may result in restrictions.",
       link: "/legal/policy",
     });
   }
@@ -90,8 +90,8 @@ export async function applyRiskAutoActions(
     await createNotification({
       userId,
       type: "SYSTEM",
-      title: "기능 일부 제한",
-      body: "위험도 점수로 인해 댓글·DM·라이브 등 일부 기능이 제한되었습니다.",
+      title: "Partial feature restriction",
+      body: "Some features such as comments, DMs, and live streams are restricted due to your risk score.",
     });
   }
 

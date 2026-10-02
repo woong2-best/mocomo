@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { getCommunityReports, resolveCommunityReport } from "@/actions/community-content";
@@ -31,11 +34,11 @@ export function CommunityReportsPanel({ communityId }: { communityId: string }) 
 
   return (
     <section className="space-y-4 rounded-xl border border-border p-4">
-      <h2 className="font-semibold">신고 처리</h2>
+      <h2 className="font-semibold">{t("lib.community-server.s2g6gqc")}</h2>
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : reports.length === 0 ? (
-        <p className="text-sm text-muted-foreground">대기 중인 신고가 없습니다.</p>
+        <p className="text-sm text-muted-foreground">{t("community-server.sopnlru")}</p>
       ) : (
         <ul className="space-y-2">
           {reports.map((r) => (
@@ -53,7 +56,7 @@ export function CommunityReportsPanel({ communityId }: { communityId: string }) 
                     void resolveCommunityReport(r.id, communityId, "DISMISSED").then(load)
                   }
                 >
-                  기각
+                  {t("lib.account.status.s804c263a67")}
                 </Button>
                 <Button
                   type="button"
@@ -62,7 +65,7 @@ export function CommunityReportsPanel({ communityId }: { communityId: string }) 
                     void resolveCommunityReport(r.id, communityId, "RESOLVED").then(load)
                   }
                 >
-                  처리 완료
+                  {t("community-server.s1629b4k")}
                 </Button>
               </div>
             </li>

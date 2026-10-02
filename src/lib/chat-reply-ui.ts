@@ -1,7 +1,8 @@
 import type { ChatMessageView } from "@/lib/chat-message-normalize";
 import { getChatMessageReplyPreview } from "@/lib/chat-message-normalize";
-import type { Locale } from "@/lib/i18n/config";
-import { uiText } from "@/lib/i18n/ui-text";
+import { createTranslator } from "@/lib/i18n/messages";
+
+const t = createTranslator("en");
 
 export function getReplyToHeading(
   replyTo: NonNullable<ChatMessageView["replyTo"]>,
@@ -9,22 +10,17 @@ export function getReplyToHeading(
     selfUserId: string;
     selfUsername: string;
     bubbleIsMine: boolean;
-    locale: Locale | string | undefined;
   }
 ): string {
-  const { selfUserId, selfUsername, bubbleIsMine, locale } = opts;
+  const { selfUserId, selfUsername, bubbleIsMine } = opts;
   const quotedIsSelf = replyTo.sender.id === selfUserId;
   if (quotedIsSelf) {
     if (bubbleIsMine) {
-      return uiText(locale, "나에게 답장", "Reply to yourself");
+      return t("ui.reply_to_yourself");
     }
-    return uiText(locale, `${selfUsername}에게 답장`, `Reply to ${selfUsername}`);
+    return t("chat.replyToUser", { username: selfUsername });
   }
-  return uiText(
-    locale,
-    `${replyTo.sender.username}에게 답장`,
-    `Reply to ${replyTo.sender.username}`
-  );
+  return t("chat.replyToUser", { username: replyTo.sender.username });
 }
 
 export type QuotedMessageBody =
@@ -33,8 +29,7 @@ export type QuotedMessageBody =
   | { kind: "video"; thumbUrl: string | null; label: string };
 
 export function getQuotedMessageBody(
-  replyTo: NonNullable<ChatMessageView["replyTo"]>,
-  locale: Locale | string | undefined = "ko"
+  replyTo: NonNullable<ChatMessageView["replyTo"]>
 ): QuotedMessageBody {
   const preview = getChatMessageReplyPreview(replyTo);
   const unpaidVisual = replyTo.attachments?.find(
@@ -44,21 +39,26 @@ export function getQuotedMessageBody(
       Boolean(a.url)
   );
   const textOnly = replyTo.content?.trim();
-  if (textOnly && preview !== "사진" && preview !== "동영상" && preview !== "음성 메시지") {
+  if (
+    textOnly &&
+    preview !== t("ui.photo") &&
+    preview !== t("live.modeVideo") &&
+    preview !== t("chat.voiceMessage")
+  ) {
     return { kind: "text", text: preview };
   }
   if (unpaidVisual?.type === "VIDEO") {
     return {
       kind: "video",
       thumbUrl: unpaidVisual.url || null,
-      label: uiText(locale, "동영상", "Video"),
+      label: t("live.modeVideo"),
     };
   }
   if (unpaidVisual && (unpaidVisual.type === "IMAGE" || unpaidVisual.type === "GIF")) {
     return {
       kind: "photo",
       thumbUrl: unpaidVisual.url || null,
-      label: uiText(locale, "사진", "Photo"),
+      label: t("ui.photo"),
     };
   }
   return { kind: "text", text: preview };

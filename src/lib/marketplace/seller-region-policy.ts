@@ -17,8 +17,5 @@ export function sellerRequiresPhoneVerification(
 }
 
 export function sellerPhoneOptionalMessage(locale: "ko" | "en" = "ko"): string {
-  if (locale === "en") {
-    return "Bank account verification (1 KRW) is required for Korea only. Overseas sellers continue with email + Stripe Connect.";
-  }
-  return "계좌 1원 인증은 한국(KR) 판매자만 필수입니다. 해외 판매자는 이메일·Stripe Connect·KYC로 가입합니다.";
+      return "Bank account verification (1 KRW) is required for Korea only. Overseas sellers continue with email + Stripe Connect.";
 }

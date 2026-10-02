@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { motion } from "framer-motion";
 import { PenSquare } from "lucide-react";
 import { useAuthReady } from "@/hooks/use-auth-ready";
@@ -34,7 +37,7 @@ export function NativeAppComposeFab() {
           type="button"
           onClick={() => openCompose()}
           className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:opacity-95"
-          aria-label="글쓰기"
+          aria-label={t("feed.compose")}
           whileTap={reduced ? undefined : { scale: 0.9 }}
           whileHover={reduced ? undefined : { scale: 1.06 }}
           transition={springSnappy}

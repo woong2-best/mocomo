@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { getCachedCommunities } from "@/lib/cached-data";
 import { CommunitiesHubClient } from "@/components/communities/communities-hub-client";
 
@@ -8,7 +11,7 @@ export async function CommunitiesHubAsync() {
     communities = await getCachedCommunities();
   } catch (e) {
     console.error("[CommunitiesHubAsync]", e);
-    loadError = "커뮤니티 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    loadError = t("communities.s23ajv4");
   }
 
   return (

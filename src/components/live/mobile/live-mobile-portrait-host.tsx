@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { Eye, Radio, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +51,8 @@ export function LiveMobilePortraitHost({
   donationAlertsOnStream = false,
   isNsfw = false,
 }: LiveMobilePortraitHostProps) {
+  const { t } = useLocale();
+
   const { chatOverlayEnabled } = useLiveChat();
 
   return (
@@ -67,7 +73,7 @@ export function LiveMobilePortraitHost({
 
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-safe pb-2 pointer-events-auto">
         <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-gradient-to-r from-pink-500 to-orange-500">
-          라이브
+          {t("home.featureLive")}
         </span>
         <p className="text-sm font-semibold truncate flex-1 min-w-0">{channelName}</p>
         <span className="flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-2.5 py-1 text-xs tabular-nums">
@@ -87,7 +93,7 @@ export function LiveMobilePortraitHost({
           </DialogTrigger>
           <DialogContent className="rounded-2xl max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>방송 설정</DialogTitle>
+              <DialogTitle>{t("live.s1duasqh")}</DialogTitle>
             </DialogHeader>
             <LiveHostSettings
               channelId={channelId}
@@ -105,7 +111,7 @@ export function LiveMobilePortraitHost({
           size="icon"
           className="h-9 w-9 rounded-full bg-black/40 text-white hover:bg-red-600/80 hover:text-white"
           onClick={onEndStream}
-          aria-label="방송 종료"
+          aria-label={t("live.s1dubywf")}
         >
           <X className="h-5 w-5" />
         </Button>
@@ -126,7 +132,7 @@ export function LiveMobilePortraitHost({
       <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+7.5rem)] left-0 right-0 z-20 flex justify-center pointer-events-none">
         <span className="text-[10px] text-white/70 flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded-full">
           <Radio className="h-3 w-3" />
-          세로 모드 방송
+          {t("live.s1jo9czs")}
         </span>
       </div>
     </div>

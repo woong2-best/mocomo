@@ -44,7 +44,7 @@ export function useOptimisticLike(
       desiredRef.current = serverRef.current;
       setLiked(serverRef.current);
       setLikeCount(serverCountRef.current);
-      setError(err instanceof Error ? err.message : "좋아요에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "Couldn't like.");
     } finally {
       inFlightRef.current = false;
     }
@@ -79,7 +79,7 @@ export function useOptimisticStar(postId: string, initialStarred: boolean) {
     } catch (err) {
       desiredRef.current = serverRef.current;
       setStarred(serverRef.current);
-      setError(err instanceof Error ? err.message : "STAR 저장에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "Couldn't save to STAR.");
     } finally {
       inFlightRef.current = false;
     }

@@ -118,7 +118,7 @@ export async function applyProfileUpdateForUser(
     where: { id: userId },
     select: { id: true, username: true, image: true },
   });
-  if (!user) return { error: "사용자를 찾을 수 없습니다." };
+  if (!user) return { error: "User not found." };
 
   const {
     username,
@@ -147,10 +147,10 @@ export async function applyProfileUpdateForUser(
 
   if (usernameChanged) {
     if (!nextUsername || !isValidUsername(nextUsername)) {
-      return { error: "아이디는 영문·숫자·_ 3~20자입니다." };
+      return { error: "Username must be 3–20 letters, numbers, or underscores." };
     }
     if (RESERVED_USERNAMES.has(nextUsername)) {
-      return { error: "사용할 수 없는 아이디입니다." };
+      return { error: "This username isn't available." };
     }
     const usernameCheck = validateUsernameAndName(nextUsername, name);
     if (!usernameCheck.ok) return { error: usernameCheck.error };
@@ -229,7 +229,7 @@ export async function applyProfileUpdateForUser(
     birthDay !== undefined
   ) {
     const birth = parseBirthDateInput(birthYear, birthMonth, birthDay);
-    if (!birth) return { error: "올바른 생년월일을 입력해 주세요." };
+    if (!birth) return { error: "Enter a valid birth date." };
     userUpdate.birthDate = birth;
     Object.assign(userUpdate, birthDateCollectionMeta("PROFILE_EDIT"));
   }

@@ -1,5 +1,10 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 
+
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -61,7 +66,7 @@ export function GroupRoomPanel({
     setError("");
     const res = await setGroupRoomAnnouncement(roomId, annTitle, annBody);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     setAnnTitle("");
@@ -73,7 +78,7 @@ export function GroupRoomPanel({
     setError("");
     const res = await createGroupPoll(roomId, pollQ, pollOpts);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     setPollQ("");
@@ -84,7 +89,7 @@ export function GroupRoomPanel({
   async function handleVote(pollId: string, optionId: string) {
     setError("");
     const res = await voteGroupPoll(pollId, optionId);
-    if ("error" in res && res.error) setError(res.error);
+    if ("error" in res && res.error) setError(errorText(res.error));
     else refresh();
   }
 
@@ -94,7 +99,7 @@ export function GroupRoomPanel({
       ? await joinSocialGroupVoiceCall(roomId)
       : await startSocialGroupVoiceCall(roomId);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("channelId" in res && res.channelId) {
@@ -149,16 +154,16 @@ export function GroupRoomPanel({
 
       {isCosplayer && isOwner ? (
         <details className="text-xs">
-          <summary className="cursor-pointer font-medium text-muted-foreground">공지 · 투표 만들기</summary>
+          <summary className="cursor-pointer font-medium text-muted-foreground">{t("chat.s1jb7ydi")}</summary>
           <div className="mt-2 space-y-2">
             <Input
-              placeholder="공지 제목"
+              placeholder={t("chat.s1qgc736")}
               value={annTitle}
               onChange={(e) => setAnnTitle(e.target.value)}
               className="h-8 rounded-lg text-xs"
             />
             <textarea
-              placeholder="공지 내용"
+              placeholder={t("chat.s1qg8a4q")}
               value={annBody}
               onChange={(e) => setAnnBody(e.target.value)}
               className="w-full min-h-[60px] rounded-lg border border-input bg-background px-2 py-1 text-xs"
@@ -173,7 +178,7 @@ export function GroupRoomPanel({
               공지 등록
             </Button>
             <Input
-              placeholder="투표 질문"
+              placeholder={t("chat.s1v8miu8")}
               value={pollQ}
               onChange={(e) => setPollQ(e.target.value)}
               className="h-8 rounded-lg text-xs"
@@ -181,7 +186,7 @@ export function GroupRoomPanel({
             {pollOpts.map((v, i) => (
               <Input
                 key={i}
-                placeholder={`선택지 ${i + 1}`}
+                placeholder={`Options ${i + 1}`}
                 value={v}
                 onChange={(e) => {
                   const next = [...pollOpts];
@@ -225,7 +230,7 @@ export function GroupRoomPanel({
           onClick={() => void handleVoice()}
         >
           <Phone className="h-4 w-4" />
-          {voiceLive ? "단체 통화 참여" : "단체 통화 시작"}
+          {voiceLive ? t("chat.szz1v4x") : t("chat.szz0a5e")}
         </Button>
       ) : null}
 

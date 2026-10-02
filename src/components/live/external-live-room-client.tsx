@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -14,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Square } from "lucide-react";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type Props = {
   channelId: string;
@@ -65,6 +69,7 @@ function shouldLeaveAfterStatus(data: {
  * Client shell for external live rooms — presence, platform sync, auto-leave on end.
  */
 export function ExternalLiveRoomClient(props: Props) {
+  const { t } = useLocale();
   const { channelId, isHost, title, platformTitle, platformDescription } = props;
   const router = useRouter();
   const joinedRef = useRef(false);
@@ -173,10 +178,7 @@ export function ExternalLiveRoomClient(props: Props) {
       <LiveHostPresenceSync channelId={channelId} enabled={isHost} />
       {isHost ? (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2">
-          <p className="text-xs text-muted-foreground">
-            OBS 채팅 → 호스트 대시보드에서 URL 복사 → OBS 브라우저 소스에 붙여넣기.
-            제목·설명은 YouTube/Twitch에서 바꾸면 자동 반영됩니다.
-          </p>
+          <p className="text-xs text-muted-foreground">{t("live.externalRoom.obsHint")}</p>
           <Button
             type="button"
             variant="destructive"
@@ -185,7 +187,7 @@ export function ExternalLiveRoomClient(props: Props) {
             onClick={handleEndStream}
           >
             <Square className="h-3.5 w-3.5 fill-current" />
-            방송 종료
+            {t("live.externalRoom.endBroadcast")}
           </Button>
         </div>
       ) : null}

@@ -4,9 +4,9 @@ const DEFAULT_BANNED = [
   "discord.gg",
   "telegram.me",
   "bit.ly",
-  "무료충전",
-  "카지노",
-  "도박",
+  "Free top-up",
+  "Casino",
+  "Gambling",
 ];
 
 export function mergeBannedWords(channelWords: string[] | unknown): string[] {
@@ -19,15 +19,15 @@ export function filterLiveChatContent(
   bannedWords: string[]
 ): { ok: true; text: string } | { ok: false; error: string } {
   const text = content.trim().slice(0, 200);
-  if (!text) return { ok: false, error: "메시지를 입력해 주세요." };
+  if (!text) return { ok: false, error: "Enter a message." };
   const lower = text.toLowerCase();
   for (const word of mergeBannedWords(bannedWords)) {
     if (word && lower.includes(word.toLowerCase())) {
-      return { ok: false, error: "금칙어가 포함된 메시지입니다." };
+      return { ok: false, error: "This message contains blocked words." };
     }
   }
   if (/(.)\1{8,}/.test(text)) {
-    return { ok: false, error: "반복 문자가 너무 많습니다." };
+    return { ok: false, error: "Too many repeated characters." };
   }
   return { ok: true, text };
 }

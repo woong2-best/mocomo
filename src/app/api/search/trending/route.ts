@@ -26,6 +26,6 @@ export async function GET(req: NextRequest) {
     );
   } catch (e) {
     console.error("[api/search/trending]", e);
-    return NextResponse.json({ error: "트렌드 조회 실패" }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

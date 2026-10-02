@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { redirect } from "next/navigation";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { isCommunityDbReady } from "@/actions/community-hub";
@@ -19,7 +22,7 @@ export default async function NewCommunityPage() {
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
       {!dbReady && (
-        <DbSetupBanner title="QnA DB가 준비되지 않았습니다. Supabase SQL 섹션 N을 실행해 주세요." />
+        <DbSetupBanner title={t("app.communities.qna_db_supabase_sql_n")} />
       )}
       <CommunityCreateForm embedded />
     </AppPageChrome>

@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { auth } from "@/lib/auth";
 import { isPaymentsConfigured, PREMIUM_USD_CENTS } from "@/lib/payments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,11 +11,11 @@ import { Button } from "@/components/ui/button";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
 const benefits = [
-  "광고 제거",
-  "프로필 꾸미기 확장",
-  "고급 기능 · 스트리밍 확장",
-  "추가 저장공간",
-  "특별 배지",
+  t("app.premium.s1n8mdut"),
+  t("app.premium.swo3eqc"),
+  t("app.premium.s1eviu2m"),
+  t("app.premium.s1mrfr9k"),
+  t("app.premium.s1ueyld1"),
 ];
 
 export default async function PremiumPage() {
@@ -31,7 +34,7 @@ export default async function PremiumPage() {
 
       <Card className="border-yellow-500/30 bg-gradient-to-b from-yellow-500/10 to-transparent rounded-2xl">
         <CardHeader>
-          <CardTitle>프리미엄 혜택</CardTitle>
+          <CardTitle>{t("app.premium.s1tf2inh")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {benefits.map((b) => (
@@ -44,7 +47,7 @@ export default async function PremiumPage() {
       </Card>
 
       {isPremium ? (
-        <p className="text-center text-primary font-medium">프리미엄 회원입니다</p>
+        <p className="text-center text-primary font-medium">{t("app.premium.sc3h2wh")}</p>
       ) : session ? (
         paymentsEnabled ? (
           <PayButton
@@ -63,7 +66,7 @@ export default async function PremiumPage() {
         )
       ) : (
         <Link href="/auth/signin?callbackUrl=/premium">
-          <Button className="w-full rounded-xl">로그인 후 구독</Button>
+          <Button className="w-full rounded-xl">{t("app.premium.s1j6n5o9")}</Button>
         </Link>
       )}
     </AppPageChrome>

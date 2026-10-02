@@ -1,5 +1,10 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -19,7 +24,6 @@ import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { NaverLocalPartField } from "@/components/auth/naver-local-part-field";
 import { BRAND } from "@/lib/brand";
 import { DEFAULT_GUEST_LOCALE, LOCALE_LABELS, LOCALES, type Locale } from "@/lib/i18n/config";
-import { createTranslator } from "@/lib/i18n/messages";
 import { CountrySelect } from "@/components/i18n/country-select";
 import { useLocale } from "@/components/providers/locale-provider";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
@@ -153,7 +157,6 @@ export function SignupNaverForm() {
         locale,
         countryCode,
         timeZone: tz,
-        homeFloor: check.homeFloor,
         birthYear,
         birthMonth,
         birthDay,
@@ -181,7 +184,7 @@ export function SignupNaverForm() {
       });
 
       if (result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
 
@@ -257,11 +260,7 @@ export function SignupNaverForm() {
             />
             <SignupBirthDateFields locale={locale} values={birth} onChange={setBirth} />
             <p className="text-xs text-muted-foreground rounded-xl bg-muted/50 px-3 py-2 leading-relaxed">
-              {locale === "ko"
-                ? "이메일 인증 후 프로필 아이콘 사진을 반드시 설정합니다. 배너는 나중에 해도 됩니다."
-                : locale === "ja"
-                  ? "メール認証のあと、プロフィール写真の設定が必須です。"
-                  : "After email verification you’ll set a required profile icon. Banner is optional."}
+              {"After email verification you’ll set a required profile icon. Banner is optional."}
             </p>
             <div className="grid grid-cols-1 gap-2">
               <label className="space-y-1">
@@ -318,19 +317,7 @@ export function SignupNaverForm() {
             )}
 
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              {locale === "ko" ? (
-                <>
-                  회원가입 시{" "}
-                  <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
-                    {t("legal.terms")}
-                  </Link>
-                  ,{" "}
-                  <Link href="/legal/privacy" className="text-primary hover:underline" target="_blank">
-                    {t("legal.privacy")}
-                  </Link>
-                  에 동의한 것으로 간주됩니다.
-                </>
-              ) : (
+              {(
                 t("auth.termsAgreement")
               )}
             </p>

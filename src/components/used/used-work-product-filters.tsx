@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Clapperboard, Package, SlidersHorizontal } from "lucide-react";
@@ -60,7 +63,7 @@ export function UsedWorkProductFilters({ onNavigate, isPending }: UsedWorkProduc
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
           <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-          상세 검색
+          {t("used.s1vqy92q")}
         </h3>
         {hasDetailed && (
           <button
@@ -68,12 +71,12 @@ export function UsedWorkProductFilters({ onNavigate, isPending }: UsedWorkProduc
             onClick={clearDetailed}
             className="text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
           >
-            조건 초기화
+            {t("used.s1279fdc")}
           </button>
         )}
       </div>
       <p className="text-[10px] text-muted-foreground -mt-1">
-        작품(IP) · 상품 종류(피규어 등)로 좁혀 보기
+        {t("used.sbjxsyp")}
       </p>
 
       <form onSubmit={submitDetailedSearch} className="space-y-2.5">
@@ -84,19 +87,19 @@ export function UsedWorkProductFilters({ onNavigate, isPending }: UsedWorkProduc
               className="text-[10px] font-medium text-muted-foreground flex items-center gap-1 mb-1"
             >
               <Clapperboard className="h-3 w-3 shrink-0" />
-              작품명
+              {t("used.su9he6")}
             </label>
             <input
               id="used-work-filter"
               type="text"
               value={workQuery}
               onChange={(e) => setWorkQuery(sanitizeWorkTitleInput(e.target.value))}
-              placeholder="귀멸의칼날"
+              placeholder={t("used.s1sfs11g")}
               className="w-full h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30 min-w-0"
               autoComplete="off"
               spellCheck={false}
             />
-            <p className="text-[10px] text-muted-foreground mt-0.5">띄어쓰기 없이 입력</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{t("used.s1v6xjcy")}</p>
           </div>
 
           <div className="min-w-0">
@@ -105,7 +108,7 @@ export function UsedWorkProductFilters({ onNavigate, isPending }: UsedWorkProduc
               className="text-[10px] font-medium text-muted-foreground flex items-center gap-1 mb-1"
             >
               <Package className="h-3 w-3 shrink-0" />
-              상품 종류
+              {t("used.s1y6rubw")}
             </label>
             <select
               id="used-product-type"
@@ -113,7 +116,7 @@ export function UsedWorkProductFilters({ onNavigate, isPending }: UsedWorkProduc
               onChange={(e) => setProductQuery(e.target.value)}
               className="w-full h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30 appearance-none min-w-0"
             >
-              <option value="">전체 종류</option>
+              <option value="">{t("used.sqk9ppf")}</option>
               {USED_PRODUCT_TYPES.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.label}
@@ -129,14 +132,14 @@ export function UsedWorkProductFilters({ onNavigate, isPending }: UsedWorkProduc
           className="w-full h-10 rounded-xl text-sm"
           disabled={isPending}
         >
-          상세 검색
+          {t("used.s1vqy92q")}
         </Button>
       </form>
 
       {hasDetailed && (
         <p className="text-[10px] text-muted-foreground">
-          적용 중:{" "}
-          {workParam ? `작품 ${workParam}` : null}
+          {t("used.filtersActiveLabel")}{" "}
+          {workParam ? t("used.sz40n", { v0: workParam }) : null}
           {workParam && productParam ? " · " : null}
           {productParam
             ? USED_PRODUCT_TYPES.find((p) => p.id === productParam)?.label ?? productParam

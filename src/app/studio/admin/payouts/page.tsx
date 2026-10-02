@@ -13,7 +13,7 @@ export default async function StudioAdminPayoutsPage() {
   const payouts = await getPendingStudioPayouts();
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-2xl font-semibold">Studio 출금 관리</h1>
+      <h1 className="font-display text-2xl font-semibold">Studio payouts</h1>
       <AdminPayoutsClient payouts={payouts} />
     </div>
   );

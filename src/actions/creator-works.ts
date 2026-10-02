@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import type { CreatorWorkKind } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -84,10 +87,10 @@ export async function getEpisodeAccess(userId: string | null, episodeId: string)
       series: { select: { id: true, title: true, kind: true, coverUrl: true, genre: true } },
     },
   });
-  if (!episode) return { error: "작품을 찾을 수 없습니다." as const };
+  if (!episode) return { error: "actions.sv7siz8" as const };
   const isAuthor = userId === episode.authorId;
   if (!isAuthor && episode.scheduledAt && episode.scheduledAt > new Date()) {
-    return { error: "아직 공개되지 않은 회차입니다." as const };
+    return { error: "actions.s106x1tx" as const };
   }
 
   const owned = userId ? await userOwnsEpisode(userId, episodeId) : episode.price <= 0;
@@ -123,8 +126,8 @@ export async function createCreatorSeries(input: {
   kind: CreatorWorkKind;
 }) {
   const user = await requireAuth();
-  if (!input.title.trim()) return { error: "제목을 입력해 주세요." };
-  if (!input.coverUrl.trim()) return { error: "표지 이미지가 필요합니다." };
+  if (!input.title.trim()) return { error: "actions.sojdmy3" };
+  if (!input.coverUrl.trim()) return { error: "actions.scuuh6h" };
 
   const series = await db.creatorSeries.create({
     data: {
@@ -154,23 +157,23 @@ export async function publishCreatorEpisode(input: {
 }) {
   const user = await requireAuth();
   const series = await db.creatorSeries.findUnique({ where: { id: input.seriesId } });
-  if (!series || series.authorId !== user.id) return { error: "시리즈를 찾을 수 없습니다." };
-  if (input.price < 0) return { error: "가격이 올바르지 않습니다." };
-  if (input.episodeNo < 1) return { error: "회차 번호는 1 이상이어야 합니다." };
+  if (!series || series.authorId !== user.id) return { error: "actions.s1wo3hx9" };
+  if (input.price < 0) return { error: "actions.s1y2yueo" };
+  if (input.episodeNo < 1) return { error: "actions.stoe11l" };
 
   const previewUrls = input.previewUrls ?? [];
   const contentUrls = input.contentUrls ?? [];
 
   if (series.kind === "VIDEO") {
-    if (!input.videoUrl?.trim()) return { error: "영상 URL이 필요합니다." };
+    if (!input.videoUrl?.trim()) return { error: "actions.url" };
   } else if (contentUrls.length === 0) {
-    return { error: "본문 이미지가 필요합니다." };
+    return { error: "actions.sapsw5x" };
   }
 
   const existing = await db.creatorEpisode.findUnique({
     where: { seriesId_episodeNo: { seriesId: input.seriesId, episodeNo: input.episodeNo } },
   });
-  if (existing) return { error: "같은 회차 번호가 이미 있습니다." };
+  if (existing) return { error: "actions.sjl7cmc" };
 
   const scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : null;
   const isFuture = scheduledAt && scheduledAt > new Date();
@@ -179,7 +182,7 @@ export async function publishCreatorEpisode(input: {
     data: {
       seriesId: input.seriesId,
       authorId: user.id,
-      title: input.title.trim() || `${input.episodeNo}화`,
+      title: input.title.trim() || t("actions.s16c4", { v0: input.episodeNo }),
       episodeNo: input.episodeNo,
       price: input.price,
       previewUrls,
@@ -222,9 +225,9 @@ export async function fulfillCreatorEpisodePurchase(
     where: { id: episodeId },
     include: { author: { select: { id: true } } },
   });
-  if (!episode) return { error: "에피소드를 찾을 수 없습니다." };
-  if (episode.price !== amount) return { error: "가격이 일치하지 않습니다." };
-  if (episode.authorId === buyerId) return { error: "본인 작품은 구매할 수 없습니다." };
+  if (!episode) return { error: "actions.s1mox0n5" };
+  if (episode.price !== amount) return { error: "actions.s5c55hc" };
+  if (episode.authorId === buyerId) return { error: "actions.s15qa9ak" };
 
   const existing = await db.creatorEpisodePurchase.findUnique({
     where: { buyerId_episodeId: { buyerId, episodeId } },

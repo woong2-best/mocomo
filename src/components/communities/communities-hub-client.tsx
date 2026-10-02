@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -13,7 +16,6 @@ import {
 import type { CommunityCategory } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 export type CommunityHubItem = {
   id: string;
@@ -88,7 +90,7 @@ function CommunityRow({ community, locale }: { community: CommunityHubItem; loca
           )}
         </div>
         <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-          {community.description?.trim() || "소개가 아직 없습니다."}
+          {community.description?.trim() || t("communities.s1u8pz2o")}
         </p>
       </div>
 
@@ -111,7 +113,7 @@ export function CommunitiesHubClient({
   communities: CommunityHubItem[];
   loadError?: string | null;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const searchParams = useSearchParams();
   const query = (searchParams.get("q") ?? "").trim().toLowerCase();
   const [tab, setTab] = useState<TabId>("ALL");
@@ -182,11 +184,11 @@ export function CommunitiesHubClient({
           <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
             <span className="inline-block h-3.5 w-3.5 rounded-[2px] bg-[#c80000]" aria-hidden />
             {tab === "ALL"
-              ? uiText(locale, "커뮤니티", "Communities")
+              ? t("ui.communities")
               : communityCategoryTabTitle(tab, locale)}
           </h2>
           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-            {uiText(locale, "관심 주제를 골라 커뮤니티에 들어가세요", "Pick a topic and join a community")}
+            {t("ui.pick_a_topic_and_join_a")}
           </p>
         </div>
         <Link
@@ -194,29 +196,29 @@ export function CommunitiesHubClient({
           className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#c80000] hover:underline underline-offset-2"
         >
           <Plus className="h-3.5 w-3.5" />
-          {uiText(locale, "만들기", "Create")}
+          {t("ui.create")}
         </Link>
       </div>
 
       {loadError ? (
         <div className="px-4 py-14 text-center space-y-2">
           <p className="text-sm text-destructive">{loadError}</p>
-          <p className="text-xs text-muted-foreground">페이지를 새로고침하면 다시 불러옵니다.</p>
+          <p className="text-xs text-muted-foreground">{t("communities.soe9yp5")}</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="px-4 py-14 text-center space-y-3">
           <p className="text-sm text-muted-foreground">
             {query
-              ? `"${searchParams.get("q")}"에 맞는 커뮤니티가 없습니다.`
+              ? t("communities.s8gq76p", { v0: searchParams.get("q") })
               : tab === "ALL"
-                ? "아직 커뮤니티가 없습니다. 첫 커뮤니티를 만들어보세요!"
-                : "이 카테고리에 커뮤니티가 없습니다."}
+                ? t("communities.s1u2klt0")
+                : t("communities.s16mj8t7")}
           </p>
           <Link
             href="/communities/new"
             className="inline-flex items-center justify-center h-9 px-4 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            커뮤니티 만들기
+            {t("communities.sy1kmao")}
           </Link>
         </div>
       ) : (

@@ -51,7 +51,7 @@ export default async function AnimeEditPage({ params }: { params: Promise<{ slug
 
       {isAdmin && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/70 p-3 bg-muted/20">
-          <span className="text-sm font-medium">운영진</span>
+          <span className="text-sm font-medium">Staff</span>
           <AnimeProtectionToggle slug={slug} isProtected={anime.isProtected} />
         </div>
       )}
@@ -59,7 +59,7 @@ export default async function AnimeEditPage({ params }: { params: Promise<{ slug
       <AnimeForm mode="edit" slug={slug} initial={anime} />
 
       <section className="rounded-xl border border-border/70 p-4 space-y-2">
-        <h2 className="text-sm font-semibold">삭제 요청</h2>
+        <h2 className="text-sm font-semibold">Deleted.</h2>
         <AnimeDeleteRequestForm slug={slug} title={anime.title} />
       </section>
     </AppPageChrome>

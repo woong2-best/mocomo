@@ -6,7 +6,7 @@ import { ShellRouter } from "@/components/layout/shell-router";
 import { RightPanelHydrated } from "@/components/layout/right-panel-hydrated";
 import { BRAND } from "@/lib/brand";
 import { getPublicSiteOrigin } from "@/lib/site-url";
-import { DEFAULT_GUEST_COUNTRY, DEFAULT_GUEST_LOCALE } from "@/lib/i18n/config";
+import { DEFAULT_GUEST_COUNTRY } from "@/lib/i18n/config";
 import "./globals.css";
 
 const folkDisplay = Fredoka({
@@ -58,7 +58,7 @@ const buildId =
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
-      lang={DEFAULT_GUEST_LOCALE}
+      lang="en"
       className="dark"
       data-client="web"
       data-visible-animations="off"

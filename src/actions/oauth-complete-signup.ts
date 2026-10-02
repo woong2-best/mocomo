@@ -32,7 +32,7 @@ export async function completeWebOAuthSignup(input: {
 }): Promise<{ error?: string }> {
   const ticket = await readWebOAuthPendingSignup();
   if (!ticket) {
-    return { error: "가입 인증이 만료되었습니다. 다시 로그인해 주세요." };
+    return { error: "actions.spgny2l" };
   }
 
   const parsed = parseOAuthSignupCompletion(input);
@@ -80,7 +80,7 @@ export async function completeWebOAuthSignup(input: {
         }
         const sessionOk = await establishWebSessionForUser(existing);
         await clearWebOAuthPendingSignupCookie();
-        if (!sessionOk) return { error: "세션을 만들지 못했습니다. 다시 시도해 주세요." };
+        if (!sessionOk) return { error: "actions.sa48s0g" };
         await markSignupNeedsIdentity();
         redirect(signupIdentityEntryPath(safeDest));
       }
@@ -111,13 +111,13 @@ export async function completeWebOAuthSignup(input: {
 
     const sessionOk = await establishWebSessionForUser(user);
     await clearWebOAuthPendingSignupCookie();
-    if (!sessionOk) return { error: "세션을 만들지 못했습니다. 다시 시도해 주세요." };
+    if (!sessionOk) return { error: "actions.sa48s0g" };
 
     revalidatePath("/");
     await markSignupNeedsIdentity();
     redirect(signupIdentityEntryPath(safeDest));
   } catch (e) {
     if (e && typeof e === "object" && "digest" in e) throw e;
-    return { error: e instanceof Error ? e.message : "가입에 실패했습니다." };
+    return { error: e instanceof Error ? e.message : "actions.s1kfewgc" };
   }
 }

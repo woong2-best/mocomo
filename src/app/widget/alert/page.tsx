@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { MocoDonationAlertWidget } from "@/components/live/overlay/moco-donation-alert-widget";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
 
@@ -36,7 +37,7 @@ export default async function WidgetAlertPage({
   if (!verified.ok) {
     return (
       <p style={{ color: "#fff", padding: 16, textShadow: "0 1px 2px #000" }}>
-        {verified.error}
+        {errorText(verified.error)}
       </p>
     );
   }

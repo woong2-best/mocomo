@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -50,7 +53,7 @@ export function Sidebar() {
         )}
       >
         <div className="folk-sidebar-nav-stack">
-          <nav className="folk-sidebar-nav" aria-label="주요 메뉴">
+          <nav className="folk-sidebar-nav" aria-label={t("nav.mainMenu")}>
             {navItems.map(({ href, icon: Icon, labelKey }) => (
               <PrefetchLink
                 key={href}

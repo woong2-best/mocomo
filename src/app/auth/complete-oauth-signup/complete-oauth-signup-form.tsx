@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { completeWebOAuthSignup } from "@/actions/oauth-complete-signup";
 import {
@@ -36,14 +41,12 @@ export function CompleteOAuthSignupForm({ dest, account }: Props) {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!signupTermsConsentComplete(termsAccepted, privacyAccepted)) {
-      setError("필수 약관에 모두 동의해 주세요.");
+      setError(t("auth.s1tf9a4a"));
       return;
     }
     if (!birthDateFieldsValid(birth)) {
       setError(
-        locale === "ko"
-          ? "생년월일을 확인해 주세요. (연 4자리, 월·일 각 2자리)"
-          : "Check your date of birth (4-digit year, 2-digit month and day)."
+        "Check your date of birth (4-digit year, 2-digit month and day)."
       );
       return;
     }
@@ -58,27 +61,19 @@ export function CompleteOAuthSignupForm({ dest, account }: Props) {
         privacyAccepted,
         dest,
       });
-      if (result?.error) setError(result.error);
+      if (result?.error) setError(errorText(result.error));
     } catch {
-      setError("가입에 실패했습니다. 다시 시도해 주세요.");
+      setError(t("auth.sgkru7y"));
     } finally {
       setLoading(false);
     }
   }
 
   const title =
-    locale === "ko"
-      ? "회원가입 완료"
-      : locale === "ja"
-        ? "会員登録の完了"
-        : "Finish signing up";
+    "Finish signing up";
 
   const desc =
-    locale === "ko"
-      ? `${BRAND.name} 이용을 위해 생년월일과 약관 동의가 필요합니다. 입력하기 전에는 계정이 만들어지지 않습니다.`
-      : locale === "ja"
-        ? `${BRAND.name} のご利用には生年月日と規約同意が必要です。`
-        : `Enter your date of birth and accept the terms to create your ${BRAND.name} account.`;
+    `Enter your date of birth and accept the terms to create your ${BRAND.name} account.`;
 
   const birthOk = birthDateFieldsValid(birth);
   const canSubmit =
@@ -117,11 +112,7 @@ export function CompleteOAuthSignupForm({ dest, account }: Props) {
             <Button type="submit" className="w-full rounded-xl" disabled={!canSubmit}>
               {loading
                 ? "…"
-                : locale === "ko"
-                  ? "동의하고 시작하기"
-                  : locale === "ja"
-                    ? "同意して始める"
-                    : "Agree and join"}
+                : ("Agree and join")}
             </Button>
           </form>
         </CardContent>

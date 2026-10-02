@@ -15,7 +15,7 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
@@ -44,13 +44,13 @@ export async function GET(
   });
 
   if (!channel) {
-    return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Stream not found." }, { status: 404 });
   }
 
   const isExternal =
     channel.broadcastMode === "EXTERNAL" || channel.mediaSourceType === "EXTERNAL";
   if (!isExternal) {
-    return NextResponse.json({ error: "외부 방송이 아닙니다." }, { status: 400 });
+    return NextResponse.json({ error: "Not an external broadcast." }, { status: 400 });
   }
 
   const mocomoLive = channel.isLive && channel.liveStatus !== "ENDED";

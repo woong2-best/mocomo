@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
@@ -39,7 +44,7 @@ export function StreamingAccountsManager({
   const [selectedPlatform, setSelectedPlatform] = useState<string>("YOUTUBE");
   const [error, setError] = useState(bannerError ?? "");
   const [success, setSuccess] = useState(
-    bannerConnected ? `${PLATFORM_LABELS[bannerConnected] ?? bannerConnected} 연결 완료` : ""
+    bannerConnected ? `${PLATFORM_LABELS[bannerConnected] ?? bannerConnected} connected` : ""
   );
   const [pending, startTransition] = useTransition();
 
@@ -49,7 +54,7 @@ export function StreamingAccountsManager({
     startTransition(async () => {
       const res = await connectStreamingAccountOAuth(platform);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       if ("url" in res && res.url) {
@@ -63,20 +68,20 @@ export function StreamingAccountsManager({
     startTransition(async () => {
       const res = await verifyStreamingAccount(accountId);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
-      setSuccess("계정이 인증되었습니다.");
+      setSuccess(t("streaming-accounts.s1vfipan"));
       window.location.reload();
     });
   }
 
   async function onDisconnect(accountId: string) {
-    if (!confirm("이 스트리밍 계정 연결을 해제할까요?")) return;
+    if (!confirm(t("streaming-accounts.sckhf4b"))) return;
     startTransition(async () => {
       const res = await disconnectStreamingAccountAction(accountId);
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       window.location.reload();
@@ -100,15 +105,15 @@ export function StreamingAccountsManager({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">연결된 계정</CardTitle>
+          <CardTitle className="text-base">{t("streaming-accounts.s16331ud")}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            후원을 받으려면 먼저 본인 소유의 스트리밍 계정을 인증해야 합니다. URL만 붙여넣는
-            방식은 사용할 수 없습니다.
+            Verify a streaming account you own before receiving tips. Pasting a URL alone is
+            not supported.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
           {accounts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">연결된 계정이 없습니다.</p>
+            <p className="text-sm text-muted-foreground">{t("streaming-accounts.s2eggma")}</p>
           ) : (
             accounts.map((acc) => (
               <div
@@ -121,13 +126,13 @@ export function StreamingAccountsManager({
                       {PLATFORM_LABELS[acc.platform] ?? acc.platform}
                     </span>
                     {acc.verified ? (
-                      <Badge variant="default">인증됨</Badge>
+                      <Badge variant="default">{t("streaming-accounts.su72qr")}</Badge>
                     ) : acc.pendingVerification ? (
-                      <Badge variant="secondary">검증 대기</Badge>
+                      <Badge variant="secondary">{t("streaming-accounts.s1ona9eb")}</Badge>
                     ) : acc.revokedAt ? (
-                      <Badge variant="destructive">해제됨</Badge>
+                      <Badge variant="destructive">{t("streaming-accounts.sw8k5c")}</Badge>
                     ) : (
-                      <Badge variant="outline">미인증</Badge>
+                      <Badge variant="outline">{t("streaming-accounts.ssi6u5")}</Badge>
                     )}
                   </div>
                   <p className="truncate text-sm">{acc.channelName}</p>
@@ -137,12 +142,12 @@ export function StreamingAccountsManager({
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                   >
-                    채널 보기
+                    View channel
                     <ExternalLink className="h-3 w-3" />
                   </a>
                   {acc.platform === "YOUTUBE" && !acc.verified ? (
                     <p className="text-xs text-muted-foreground">
-                      Google 로그인으로 다시 연결하면 바로 인증됩니다.
+                      Reconnect with Google to verify instantly.
                     </p>
                   ) : null}
                 </div>
@@ -153,12 +158,12 @@ export function StreamingAccountsManager({
                       disabled={pending}
                       onClick={() => onOAuthConnect(acc.platform)}
                     >
-                      Google로 연결
+                      Connect with Google
                     </Button>
                   ) : null}
                   {acc.pendingVerification && acc.platform !== "YOUTUBE" ? (
                     <Button size="sm" disabled={pending} onClick={() => onVerify(acc.id)}>
-                      소유권 확인
+                      Verify ownership
                     </Button>
                   ) : null}
                   <Button
@@ -178,7 +183,7 @@ export function StreamingAccountsManager({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">계정 연결</CardTitle>
+          <CardTitle className="text-base">{t("streaming-accounts.s1pht6jz")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -199,16 +204,16 @@ export function StreamingAccountsManager({
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
                 {selectedPlatform === "YOUTUBE"
-                  ? "Google 계정으로 로그인하면 채널이 바로 인증됩니다."
-                  : `${PLATFORM_LABELS[selectedPlatform]} 계정으로 로그인하여 채널 소유권을 확인합니다.`}
+                  ? t("streaming-accounts.google_4")
+                  : `Sign in with ${PLATFORM_LABELS[selectedPlatform]} to verify channel ownership.`}
               </p>
               <Button disabled={pending} onClick={() => onOAuthConnect(selectedPlatform)}>
-                {`${PLATFORM_LABELS[selectedPlatform]} 연결`}
+                {`Connect ${PLATFORM_LABELS[selectedPlatform]}`}
               </Button>
               {selectedPlatform === "YOUTUBE" ? (
                 <p className="text-xs text-muted-foreground">
-                  Google이 ‘확인하지 않은 앱’을 보여 주면 <strong>고급</strong> →{" "}
-                  <strong>mocomo.net(으)로 이동</strong>을 눌러 주세요.
+                  If Google shows an unverified app warning, tap <strong>{t("streaming-accounts.sucyx")}</strong> →{" "}
+                  <strong>{t("streaming-accounts.mocomo_net")}</strong>.
                 </p>
               ) : null}
             </div>
@@ -217,11 +222,11 @@ export function StreamingAccountsManager({
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        라이브 시작은{" "}
+        To go live, choose a verified account under{" "}
         <Link href="/live/external/new" className="text-primary hover:underline">
-          외부 방송 연결
+          External stream setup
         </Link>
-        에서 인증된 계정만 선택할 수 있습니다.
+        .
       </p>
     </div>
   );

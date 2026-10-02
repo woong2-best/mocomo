@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { completeSignupProfileOnboarding } from "@/actions/signup-identity-onboarding";
 import { Button } from "@/components/ui/button";
@@ -31,12 +33,10 @@ export function CompleteProfileForm({ dest, initialUsername, initialName }: Prop
         name: name.trim(),
         dest,
       });
-      if (result?.error) setError(result.error);
+      if (result?.error) setError(errorText(result.error));
     } catch {
       setError(
-        locale === "ko"
-          ? "저장에 실패했습니다. 다시 시도해 주세요."
-          : "Could not save. Please try again."
+        "Could not save. Please try again."
       );
     } finally {
       setLoading(false);
@@ -44,11 +44,9 @@ export function CompleteProfileForm({ dest, initialUsername, initialName }: Prop
   }
 
   const title =
-    locale === "ko" ? "아이디 · 닉네임" : locale === "ja" ? "ID · ニックネーム" : "Username & nickname";
+    "Username & nickname";
   const desc =
-    locale === "ko"
-      ? "MoCoMo에서 사용할 아이디와 닉네임을 정해 주세요."
-      : "Choose your username and display name.";
+    "Choose your username and display name.";
 
   return (
     <div className="flex-1 flex items-center justify-center p-4 bg-[#0f1a33] min-h-[60vh]">
@@ -62,7 +60,7 @@ export function CompleteProfileForm({ dest, initialUsername, initialName }: Prop
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground">
-                {locale === "ko" ? "아이디" : "Username"} *
+                {"Username"} *
               </span>
               <Input
                 value={username}
@@ -75,17 +73,17 @@ export function CompleteProfileForm({ dest, initialUsername, initialName }: Prop
                 required
               />
               <p className="text-[10px] text-muted-foreground">
-                {locale === "ko" ? "영문·숫자·_ 3~20자" : "3–20 letters, numbers, underscore"}
+                {"3–20 letters, numbers, underscore"}
               </p>
             </div>
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground">
-                {locale === "ko" ? "닉네임" : "Nickname"} *
+                {"Nickname"} *
               </span>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value.slice(0, 40))}
-                placeholder={locale === "ko" ? "표시 이름" : "Display name"}
+                placeholder={"Display name"}
                 autoComplete="nickname"
                 className="rounded-xl"
                 required
@@ -97,7 +95,7 @@ export function CompleteProfileForm({ dest, initialUsername, initialName }: Prop
               </p>
             ) : null}
             <Button type="submit" className="w-full rounded-xl" disabled={loading}>
-              {loading ? "…" : locale === "ko" ? "다음" : "Continue"}
+              {loading ? "…" : "Continue"}
             </Button>
           </form>
         </CardContent>

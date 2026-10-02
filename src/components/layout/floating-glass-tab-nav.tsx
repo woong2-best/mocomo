@@ -84,7 +84,7 @@ export function FloatingGlassTabNav({ layoutId = "floating-tab-glow", className 
 
   return (
     <nav
-      aria-label="주요 메뉴"
+      aria-label={t("common.mainNav")}
       className={cn("floating-tab-nav-shell lg:hidden", className)}
     >
       <motion.div

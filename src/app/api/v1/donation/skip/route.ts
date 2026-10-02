@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { resolveDonateApiUser } from "@/lib/moco-donation/api-auth";
@@ -14,12 +15,12 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ success: false, error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Invalid request." }, { status: 400 });
   }
 
   const donationId = body.donation_id?.trim();
   if (!donationId) {
-    return NextResponse.json({ success: false, error: "donation_id가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Required field missing." }, { status: 400 });
   }
 
   const result = await skipMocoDonation({
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!result.ok) {
-    return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+    return NextResponse.json({ success: false, error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({ success: true });

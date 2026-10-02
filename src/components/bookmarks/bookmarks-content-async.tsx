@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { getCachedSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -36,7 +39,7 @@ export async function BookmarksContentAsync() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {posts.length === 0 ? (
-        <p className="col-span-full text-center text-muted-foreground py-12">저장한 항목이 없습니다.</p>
+        <p className="col-span-full text-center text-muted-foreground py-12">{t("bookmarks.srik1de")}</p>
       ) : (
         posts.map((p) => <FeedPostCard key={p.id} post={p} paymentsEnabled={paymentsEnabled} />)
       )}

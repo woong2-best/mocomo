@@ -1,5 +1,10 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
 
+
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { updateEventAdCreative } from "@/actions/events";
@@ -40,7 +45,7 @@ export function EventAdEditPanel({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !isGalleryImageFile(file, true)) {
-      setError("이미지 파일을 선택해 주세요.");
+      setError(i18n("events.s13qm3zj"));
       return;
     }
     setError("");
@@ -65,12 +70,12 @@ export function EventAdEditPanel({
     try {
       const res = await updateEventAdCreative(eventId, { imageUrl, linkUrl });
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setSaved(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "저장 실패");
+      setError(err instanceof Error ? err.message : i18n("events.spv2ty7"));
     } finally {
       setSaving(false);
     }
@@ -80,7 +85,7 @@ export function EventAdEditPanel({
     <form onSubmit={onSave} className="space-y-4 rounded-xl border border-border bg-background/60 p-4">
       {!compact && (
         <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">광고 수정</p>
+          <p className="text-sm font-medium text-foreground">{i18n("events.s1n8liha")}</p>
           <p className="text-xs text-muted-foreground">
             이미지와 링크는 결제 기간 동안 언제든 변경할 수 있습니다.
           </p>
@@ -88,7 +93,7 @@ export function EventAdEditPanel({
       )}
 
       <div className="space-y-2">
-        <label className="text-xs font-medium text-muted-foreground">광고 이미지</label>
+        <label className="text-xs font-medium text-muted-foreground">Ad image</label>
         <div className="flex flex-wrap gap-2">
           {imageUrl ? (
             <div className="relative">
@@ -99,7 +104,7 @@ export function EventAdEditPanel({
                 className="w-28 rounded-xl object-cover border border-border aspect-[4/5]"
               />
               <label className="absolute inset-0 cursor-pointer rounded-xl">
-                <span className="sr-only">이미지 변경</span>
+                <span className="sr-only">{i18n("events.s45fbz5")}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={onImagePick} />
               </label>
               <Button
@@ -114,7 +119,7 @@ export function EventAdEditPanel({
             </div>
           ) : (
             <label className="flex w-28 cursor-pointer items-center justify-center rounded-xl border border-dashed border-border aspect-[4/5] hover:border-[#A855F7]/40">
-              <span className="text-xs text-muted-foreground">이미지</span>
+              <span className="text-xs text-muted-foreground">{i18n("lib.media-editor.su4sho")}</span>
               <input type="file" accept="image/*" className="hidden" onChange={onImagePick} />
             </label>
           )}
@@ -122,7 +127,7 @@ export function EventAdEditPanel({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">클릭 시 이동 링크</label>
+        <label className="text-xs font-medium text-muted-foreground">Link on click</label>
         <Input
           placeholder="https://"
           value={linkUrl}
@@ -134,7 +139,7 @@ export function EventAdEditPanel({
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {saved && <p className="text-sm text-emerald-600">저장되었습니다.</p>}
+      {saved && <p className="text-sm text-emerald-600">Saved.</p>}
 
       <Button
         type="submit"
@@ -148,7 +153,7 @@ export function EventAdEditPanel({
             저장 중…
           </>
         ) : (
-          "변경사항 저장"
+          i18n("events.szn54av")
         )}
       </Button>
 
@@ -161,8 +166,8 @@ export function EventAdEditPanel({
           lockAspect
           objectFit="contain"
           showSponsorPreview
-          title="광고 이미지"
-          description="스폰서 슬롯(4:5) 비율로 맞춰 주세요. 전체 이미지가 보이도록 조절한 뒤 원하는 영역을 선택하세요."
+          title={i18n("events.s1onguiz")}
+          description={i18n("events.4_5")}
           maxWidth={SPONSORED_AD_IMAGE_MAX_WIDTH}
           maxHeight={SPONSORED_AD_IMAGE_MAX_HEIGHT}
           uploadFilename="event-ad.jpg"

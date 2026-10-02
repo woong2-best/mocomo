@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
@@ -20,7 +21,7 @@ export async function GET(
   const { slug: raw } = await params;
   const slug = normalizeCommunitySlugParam(raw);
   if (!slug || slug.length > 80) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const community = await db.community.findUnique({
@@ -46,7 +47,7 @@ export async function GET(
   });
 
   if (!community) {
-    return NextResponse.json({ error: "커뮤니티를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Community not found." }, { status: 404 });
   }
 
   let membership: { role: string } | null = null;
@@ -135,13 +136,13 @@ export async function PATCH(
 
   const userId = await getMobileUserId(req);
   if (!userId) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { slug: raw } = await params;
   const slug = normalizeCommunitySlugParam(raw);
   if (!slug || slug.length > 80) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let body: {
@@ -153,7 +154,7 @@ export async function PATCH(
   try {
     body = (await req.json()) as typeof body;
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const result = await updateCommunityBrandingForUser(userId, slug, {
@@ -164,7 +165,7 @@ export async function PATCH(
   });
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: result.status ?? 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: result.status ?? 400 });
   }
 
   return NextResponse.json({

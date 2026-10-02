@@ -22,7 +22,7 @@ function waitForPeerConnected(pc: RTCPeerConnection, timeoutMs = 20000): Promise
   if (pc.connectionState === "connected") return Promise.resolve();
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
-      () => reject(new Error("카메라 송출이 Cloudflare에 연결되지 않았습니다. 방송을 다시 시작해 주세요.")),
+      () => reject(new Error("Camera feed isn't connected to Cloudflare. Restart the broadcast.")),
       timeoutMs
     );
     const onState = () => {
@@ -33,7 +33,7 @@ function waitForPeerConnected(pc: RTCPeerConnection, timeoutMs = 20000): Promise
       } else if (pc.connectionState === "failed" || pc.connectionState === "closed") {
         clearTimeout(timer);
         pc.removeEventListener("connectionstatechange", onState);
-        reject(new Error("카메라 송출 연결 실패"));
+        reject(new Error("Camera publish connection failed"));
       }
     };
     pc.addEventListener("connectionstatechange", onState);
@@ -80,7 +80,7 @@ export class CloudflareWhipPublisher {
     await waitForIceGathering(pc);
 
     const rawSdp = pc.localDescription?.sdp;
-    if (!rawSdp) throw new Error("SDP offer 생성 실패");
+    if (!rawSdp) throw new Error("Failed to create SDP offer");
     const sdp = normalizeSdp(rawSdp);
 
     let res: Response;
@@ -96,7 +96,7 @@ export class CloudflareWhipPublisher {
           ? "송출 서버에 연결하지 못했습니다. 네트워크·로그인 상태를 확인해 주세요."
           : e instanceof Error
             ? e.message
-            : "WHIP 네트워크 오류";
+            : "WHIP network error";
       throw new Error(hint);
     }
 
@@ -107,11 +107,11 @@ export class CloudflareWhipPublisher {
     };
 
     if (!res.ok) {
-      throw new Error(data.error || `WHIP 연결 실패 (${res.status})`);
+      throw new Error(data.error || `Something went wrong. Please try again.${res.status})`);
     }
 
     const answerSdp = data.answerSdp ? normalizeSdp(data.answerSdp) : "";
-    if (!answerSdp) throw new Error("WHIP 응답 SDP 없음");
+    if (!answerSdp) throw new Error("No SDP in WHIP response");
 
     await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
     await waitForPeerConnected(pc);

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Users } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MemberListContent } from "@/components/community-server/member-list-content";
@@ -61,7 +64,7 @@ export function MobileMemberTabBar({
         className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-xs text-muted-foreground hover:text-foreground relative"
       >
         <Users className="h-5 w-5" />
-        <span>멤버</span>
+        <span>{t("lib.community-server.swqlc")}</span>
         {welcomePending && (
           <span className="absolute top-2 right-[calc(50%-1.25rem)] h-2 w-2 rounded-full bg-red-500" />
         )}

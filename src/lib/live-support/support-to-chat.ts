@@ -32,22 +32,22 @@ export function formatSupportChatContent(params: {
   const name = displayName(params.username);
 
   if (params.kind === "mission") {
-    const title = params.missionTitle?.trim() || "미션";
+    const title = params.missionTitle?.trim() || "Mission";
     const reward =
       params.missionReward != null ? ` · ${params.missionReward.toLocaleString()} CP` : "";
     switch (params.missionStatus) {
       case "PENDING":
         return `${name}님이 미션 등록${reward}: ${title}`;
       case "ACCEPTED":
-        return `✅ 호스트가 미션 수락: ${title}`;
+        return `✅ Host accepted mission: {v0} ${title}`;
       case "COMPLETED":
-        return `🎉 미션 완료! ${title}${reward}`;
+        return `🎉 Mission complete! {v0} ({v1} CP) ${title}${reward}`;
       case "FAILED":
-        return `미션 실패: ${title}`;
+        return `Mission failed: {v0} ${title}`;
       case "CANCELLED":
-        return `미션 취소: ${title}`;
+        return `Mission canceled: {v0} ${title}`;
       default:
-        return `미션 · ${title}`;
+        return `Mission · {v0} ${title}`;
     }
   }
 

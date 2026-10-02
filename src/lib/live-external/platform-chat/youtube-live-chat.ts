@@ -101,14 +101,14 @@ async function resolveYoutubeChatTarget(params: {
     return {
       videoId,
       liveChatId: null,
-      hint: "YouTube 계정 재연결이 필요합니다 (설정 → 스트리밍 계정).",
+      hint: "YouTube account reconnection required (Settings → Streaming accounts).",
     };
   }
 
   return {
     videoId,
     liveChatId: null,
-    hint: "YouTube 채팅을 찾을 수 없습니다. YouTube에서 채팅이 켜져 있는지 확인하세요.",
+    hint: "YouTube chat not found. Make sure chat is enabled on YouTube.",
   };
 }
 
@@ -152,7 +152,7 @@ export async function fetchYoutubeLiveChatMessages(params: {
       nextPageToken: null,
       liveChatId,
       pollingIntervalMs: 5000,
-      platformError: "YouTube OAuth 토큰이 없습니다. 스트리밍 계정을 다시 연결하세요.",
+      platformError: "No YouTube OAuth token. Reconnect your streaming account.",
       resolvedVideoId: target.videoId,
     };
   }
@@ -169,8 +169,8 @@ export async function fetchYoutubeLiveChatMessages(params: {
       const msg =
         errBody?.error?.message ??
         (res.status === 403
-          ? "YouTube 채팅 API 권한이 없습니다. Google 계정을 다시 연결하세요."
-          : `YouTube API 오류 (${res.status})`);
+          ? "YouTube 채팅 API You don't have permission to do that. Google 계정을 다시 연결하세요."
+          : `Something went wrong. Please try again.${res.status})`);
       return {
         messages: [],
         nextPageToken: params.pageToken ?? null,
@@ -232,7 +232,7 @@ export async function fetchYoutubeLiveChatMessages(params: {
       nextPageToken: params.pageToken ?? null,
       liveChatId,
       pollingIntervalMs: 5000,
-      platformError: "YouTube 채팅 요청 실패",
+      platformError: "YouTube chat request failed",
       resolvedVideoId: target.videoId,
     };
   }

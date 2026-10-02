@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { HomeFeedClient } from "@/components/home/home-feed-client";
 import { getCachedFeedPosts } from "@/lib/cached-data";
@@ -86,12 +89,12 @@ export async function HomeFeedAsync() {
     return (
       <>
         <p className="text-xs text-amber-700 bg-amber-500/15 border border-amber-500/40 rounded-xl px-3 py-2 mb-4">
-          지금은 피드를 불러올 수 없습니다. 잠시 후 새로고침해 주세요.
+          {t("home.s15xfz79")}
         </p>
         <div className="text-center py-12 rounded-2xl border border-dashed">
-          <p className="text-muted-foreground mb-4">연결 후 피드가 표시됩니다</p>
+          <p className="text-muted-foreground mb-4">{t("home.snwj11l")}</p>
           <Link href="/explore" className="text-primary text-sm font-medium hover:underline">
-            탐색으로 이동 →
+            {t("home.s1o7qnwe")}
           </Link>
         </div>
       </>

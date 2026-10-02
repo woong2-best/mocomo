@@ -25,12 +25,12 @@ export async function GET(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
   if (!channelId || channelId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   try {
@@ -46,7 +46,7 @@ export async function GET(
       },
     });
     if (!channel) {
-      return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Stream not found." }, { status: 404 });
     }
 
     if (channel.createdBy === session.user.id) {
@@ -60,7 +60,7 @@ export async function GET(
         access.reason === "TIER_REQUIRED" ? 403 : access.reason === "NOT_FOUND" ? 404 : 403;
       return NextResponse.json(
         {
-          error: "시청 권한이 없습니다.",
+          error: "You don't have permission to watch.",
           reason: access.reason,
           minViewerTier: access.minViewerTier,
         },
@@ -110,7 +110,7 @@ export async function GET(
         tryLoad: true,
         message: probe.playable
           ? "방송 중"
-          : "방송이 시작되면 화면이 나타납니다.",
+          : "Video appears when the broadcast starts.",
       });
     }
 
@@ -118,7 +118,7 @@ export async function GET(
     if (srsErr || !isSrsConfigured()) {
       return NextResponse.json(
         {
-          error: srsErr ?? "SRS 방송이 설정되지 않았습니다.",
+          error: srsErr ?? "SRS streaming isn't configured.",
           ingestEngine: "srs",
           configured: false,
         },
@@ -135,7 +135,7 @@ export async function GET(
         ok: false,
         hlsUrl: null,
         waiting: true,
-        message: "방송이 시작되면 화면이 나타납니다.",
+        message: "Video appears when the broadcast starts.",
       });
     }
 
@@ -165,7 +165,7 @@ export async function GET(
   } catch (e) {
     console.error("[playback]", channelId, e);
     return NextResponse.json(
-      { error: "재생 정보 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요." },
+      { error: "Request failed." },
       { status: 500 }
     );
   }

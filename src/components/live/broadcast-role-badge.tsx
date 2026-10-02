@@ -1,7 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import { Crown, Shield, Sparkles } from "lucide-react";
 import type { EffectiveBroadcastRole } from "@/lib/live-broadcast/permissions";
-import { broadcastRoleLabelKo, MANAGER_CHAT_COLOR } from "@/lib/live-broadcast/permissions";
+import { broadcastRoleLabel, MANAGER_CHAT_COLOR } from "@/lib/live-broadcast/permissions";
+import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
 export function BroadcastRoleBadge({
@@ -13,17 +16,19 @@ export function BroadcastRoleBadge({
   className?: string;
   size?: number;
 }) {
+  const { locale } = useLocale();
+  const label = broadcastRoleLabel(locale, role);
   if (role === "VIEWER") return null;
 
   if (role === "MANAGER") {
     return (
       <Image
         src="/images/live/manager-badge.png"
-        alt={broadcastRoleLabelKo(role)}
+        alt={label}
         width={size}
         height={size}
         className={cn("shrink-0 object-contain", className)}
-        title={broadcastRoleLabelKo(role)}
+        title={label}
       />
     );
   }
@@ -35,7 +40,7 @@ export function BroadcastRoleBadge({
           "inline-flex items-center justify-center rounded-sm bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0",
           className
         )}
-        title={broadcastRoleLabelKo(role)}
+        title={label}
       >
         <Crown className="h-3.5 w-3.5" style={{ width: size * 0.75, height: size * 0.75 }} />
       </span>
@@ -49,7 +54,7 @@ export function BroadcastRoleBadge({
           "inline-flex items-center justify-center rounded-sm bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0",
           className
         )}
-        title={broadcastRoleLabelKo(role)}
+        title={label}
       >
         <Shield className="h-3.5 w-3.5" style={{ width: size * 0.75, height: size * 0.75 }} />
       </span>
@@ -63,7 +68,7 @@ export function BroadcastRoleBadge({
           "inline-flex items-center justify-center rounded-sm bg-violet-500/15 text-violet-600 dark:text-violet-400 shrink-0",
           className
         )}
-        title={broadcastRoleLabelKo(role)}
+        title={label}
       >
         <Sparkles className="h-3.5 w-3.5" style={{ width: size * 0.75, height: size * 0.75 }} />
       </span>

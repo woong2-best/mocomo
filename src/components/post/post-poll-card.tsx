@@ -1,5 +1,10 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -7,7 +12,7 @@ import { BarChart3, Check } from "lucide-react";
 import { formatPollTimeLeft, type PostPollView } from "@/lib/post-poll";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 type PostPollCardProps = {
   postId: string;
@@ -18,7 +23,7 @@ type PostPollCardProps = {
 };
 
 export function PostPollCard({ postId, poll: initialPoll, isAuthor = false, compact, onVote }: PostPollCardProps) {
-  const { locale } = useLocale();
+  const { t } = useLocale();
   const [poll, setPoll] = useState(initialPoll);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -49,13 +54,13 @@ export function PostPollCard({ postId, poll: initialPoll, isAuthor = false, comp
         error?: string;
       };
       if (!res.ok || !data.poll) {
-        setError(data.error ?? uiText(locale, "투표에 실패했습니다.", "Vote failed."));
+        setError(errorText(data.error ?? t("ui.vote_failed")));
         return;
       }
       setPoll(data.poll);
       onVote?.(data.poll);
     } catch {
-      setError(uiText(locale, "투표에 실패했습니다.", "Vote failed."));
+      setError(t("ui.vote_failed"));
     } finally {
       setBusy(false);
     }
@@ -72,7 +77,7 @@ export function PostPollCard({ postId, poll: initialPoll, isAuthor = false, comp
       <div className="px-3 py-2 border-b border-border/60 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1 font-medium">
           <BarChart3 className="h-3.5 w-3.5" />
-          {uiText(locale, `${poll.totalVotes.toLocaleString()}표`, `${poll.totalVotes.toLocaleString()} votes`)}
+          <span>{t("post.pollVotes", { count: poll.totalVotes.toLocaleString() })}</span>
         </span>
         <span>{formatPollTimeLeft(poll.closesAt, poll.closed)}</span>
       </div>
@@ -124,12 +129,12 @@ export function PostPollCard({ postId, poll: initialPoll, isAuthor = false, comp
 
       {!poll.closed && !poll.myVoteOptionId && (
         <p className="px-3 pb-2 text-[10px] text-muted-foreground">
-          {uiText(locale, "탭하여 투표 · 마감 전 변경 가능", "Tap to vote · change before close")}
+          {t("ui.tap_to_vote_change_before_close")}
         </p>
       )}
       {poll.closed && (
         <p className="px-3 pb-2 text-[10px] text-muted-foreground">
-          {uiText(locale, "투표가 종료되었습니다", "Poll closed")}
+          {t("ui.poll_closed")}
         </p>
       )}
       {error && <p className="px-3 pb-2 text-[10px] text-destructive">{error}</p>}

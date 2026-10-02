@@ -26,7 +26,7 @@ export function postDisplayTitle(post: Pick<CommunityPostsBoardItem, "title" | "
   const title = post.title?.trim();
   if (title) return title;
   const line = post.content.trim().split("\n")[0] ?? "";
-  return line.length > 80 ? `${line.slice(0, 80)}…` : line || "(제목 없음)";
+  return line.length > 80 ? `${line.slice(0, 80)}…` : line || "(Untitled)";
 }
 
 /** DC 갤러리 스타일 — 오늘이면 HH:MM, 올해면 MM.DD, 이전이면 YY.MM.DD */

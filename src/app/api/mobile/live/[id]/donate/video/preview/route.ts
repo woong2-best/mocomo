@@ -1,10 +1,11 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { prepareMocoVideoDonation } from "@/lib/moco-donation/prepare-video-donation";
 
-/** Mobile — YouTube 영상 도네 견적 (Bearer) */
+/** Mobile — YouTube Video 도네 견적 (Bearer) */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -18,7 +19,7 @@ export async function POST(
   const { id: channelId } = await params;
   const access = await resolveLiveChannelAccess(channelId, authResult.user.id);
   if (!access.allowed) {
-    return NextResponse.json({ ok: false, error: "방송에 참여한 뒤 미리보기할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ ok: false, error: "Join the stream before previewing." }, { status: 403 });
   }
 
   let body: {
@@ -30,7 +31,7 @@ export async function POST(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
 
   const prepared = await prepareMocoVideoDonation({
@@ -42,7 +43,7 @@ export async function POST(
   });
 
   if (!prepared.ok) {
-    return NextResponse.json({ ok: false, error: prepared.error, code: prepared.code }, { status: 422 });
+    return NextResponse.json({ ok: false, error: errorText(prepared.error), code: prepared.code }, { status: 422 });
   }
 
   return NextResponse.json({

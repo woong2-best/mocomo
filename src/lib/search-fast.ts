@@ -55,7 +55,7 @@ function buildSuggestions(
   suggestions.push({
     id: isHashtagSearchQuery(q) ? `tag:${lower}` : `query:${lower}`,
     label: q,
-    sublabel: isHashtagSearchQuery(q) ? "해시태그" : "검색",
+    sublabel: isHashtagSearchQuery(q) ? "해시태그" : "Search",
     href: `/search?q=${encodeURIComponent(q)}`,
     kind: isHashtagSearchQuery(q) ? "tag" : "query",
   });
@@ -67,7 +67,7 @@ function buildSuggestions(
     suggestions.push({
       id: `trend:${p.query}`,
       label: p.query,
-      sublabel: "인기 검색어",
+      sublabel: "Trending searches",
       href: `/search?q=${encodeURIComponent(p.query)}`,
       kind: "trend",
     });
@@ -88,7 +88,7 @@ function buildSuggestions(
     suggestions.push({
       id: `live:${ch.id}`,
       label: ch.name,
-      sublabel: "라이브",
+      sublabel: "Live",
       href: `/voice/${ch.id}`,
       kind: "live",
     });
@@ -307,7 +307,7 @@ export async function runFastSearch(
   const autoAsSuggestions: SearchSuggestion[] = autoSuggest.map((s) => ({
     id: `trend:${s.normalized}`,
     label: s.query,
-    sublabel: "인기 검색어",
+    sublabel: "Trending searches",
     href: `/search?q=${encodeURIComponent(s.query)}`,
     kind: "trend" as const,
   }));

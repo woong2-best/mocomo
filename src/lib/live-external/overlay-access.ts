@@ -39,18 +39,18 @@ export async function assertOverlayBroadcastAccess(
   });
 
   if (!channel) {
-    return { ok: false, error: "방송을 찾을 수 없습니다.", status: 404 };
+    return { ok: false, error: "Stream not found.", status: 404 };
   }
 
   if (tokenPayload.broadcastSid != null) {
     const sid = Math.floor(channel.createdAt.getTime() / 1000);
     if (tokenPayload.broadcastSid !== sid) {
-      return { ok: false, error: "이 방송 세션용 토큰이 아닙니다.", status: 401 };
+      return { ok: false, error: "This token is not for this broadcast session.", status: 401 };
     }
   }
 
   if (channel.liveStatus === "ENDED") {
-    return { ok: false, error: "방송이 종료되었습니다.", status: 410 };
+    return { ok: false, error: "This broadcast has ended.", status: 410 };
   }
 
   if (
@@ -59,7 +59,7 @@ export async function assertOverlayBroadcastAccess(
       liveStatus: channel.liveStatus,
     })
   ) {
-    return { ok: false, error: "방송이 활성 상태가 아닙니다.", status: 410 };
+    return { ok: false, error: "This broadcast is not active.", status: 410 };
   }
 
   return { ok: true, channel };

@@ -1,11 +1,15 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getOrCreateDM } from "@/actions/chat";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 import { getTierInfo } from "@/lib/tiers";
+import { errorText } from "@/lib/i18n/error-text";
 import { SupportTierLevel } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
@@ -29,8 +33,8 @@ export function StartDmButton({
       const tier = result.requiredTier as SupportTierLevel | undefined;
       setError(
         tier
-          ? `${result.error} (필요: ${getTierInfo(tier).labelKo})`
-          : result.error
+          ? `${errorText(result.error)} (Required: ${getTierInfo(tier).label})`
+          : errorText(result.error)
       );
       return;
     }
@@ -46,7 +50,7 @@ export function StartDmButton({
         size={profileStyle ? "default" : "sm"}
         onClick={start}
         disabled={loading}
-        aria-label={loading ? "확인 중..." : "메시지"}
+        aria-label={loading ? t("auth.verifyChecking") : t("lib.chat.message.normalize.s96330a61aa")}
         className={cn(
           profileStyle
             ? "rounded-full font-bold shrink-0 h-10 w-10 p-0"
@@ -54,7 +58,7 @@ export function StartDmButton({
         )}
       >
         <MessageSquare className="h-4 w-4" />
-        {!profileStyle && (loading ? "확인 중..." : "메시지")}
+        {!profileStyle && (loading ? t("auth.verifyChecking") : t("lib.chat.message.normalize.s96330a61aa"))}
       </Button>
       {error && <p className="text-xs text-destructive mt-2 max-w-xs">{error}</p>}
     </div>

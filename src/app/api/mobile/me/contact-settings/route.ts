@@ -12,7 +12,7 @@ const bodySchema = z
     callRequestAudience: audience.optional(),
   })
   .refine((value) => value.messageRequestAudience || value.callRequestAudience, {
-    message: "변경할 설정이 없습니다.",
+    message: "Not found.",
   });
 
 /** GET/PUT /api/mobile/me/contact-settings */
@@ -34,12 +34,12 @@ export async function PUT(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const settings = await saveContactSettings(auth.user.id, parsed.data);

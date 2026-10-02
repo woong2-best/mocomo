@@ -50,7 +50,7 @@ type ChannelObsRow = {
 function formatDbError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
   if (/rtmpUrl|rtmpStreamKey|obsRtmpStreamKey|broadcastMode|liveStatus|column|does not exist/i.test(msg)) {
-    return "OBS DB 컬럼이 없습니다. Supabase SQL Editor에서 scripts/supabase-fix-all.sql 을 실행해 주세요.";
+    return "OBS DB columns are missing. Run scripts/supabase-fix-all.sql in the Supabase SQL Editor.";
   }
   const code = e && typeof e === "object" && "code" in e ? String((e as { code?: string }).code) : "";
   const hint = code ? ` (${code})` : "";
@@ -198,7 +198,7 @@ export function obsConfigError(): string | null {
   if (engine === "livekit") {
     return isLivekitIngressConfigured()
       ? null
-      : "LiveKit Ingress가 설정되지 않았습니다. LIVEKIT_* 환경 변수를 확인하세요.";
+      : "LiveKit Ingress isn't configured. Check LIVEKIT_* environment variables.";
   }
   return srsConfigError();
 }
@@ -252,7 +252,7 @@ async function provisionCloudflareStreamIngress(
       error:
         e instanceof Error
           ? e.message
-          : "Cloudflare Live Input 생성에 실패했습니다. API 토큰·Stream 구독을 확인하세요.",
+          : "Failed to create Cloudflare Live Input. Check API token and Stream subscription.",
     };
   }
 }
@@ -271,7 +271,7 @@ async function provisionSrsIngress(
     streamKey = await getOrCreateUserObsStreamKey(userId, { rotate: options?.force });
   } catch (e) {
     console.error("[provisionSrsIngress] user key", e);
-    return { error: "계정 방송 키를 만들지 못했습니다." };
+    return { error: "Couldn't create the account stream key." };
   }
 
   try {
@@ -315,7 +315,7 @@ async function provisionLivekitIngress(
         return {
           data: srs.data,
           warning:
-            "LiveKit 한도 초과 — 임시로 VPS(SRS)로 연결했습니다. LiveKit 대시보드에서 Ingress를 정리한 뒤 「키 다시 받기」를 권장합니다.",
+            "LiveKit limit reached — temporarily connected via VPS (SRS). Clean up Ingress in the LiveKit dashboard, then use 「Get key again」.",
         };
       }
     }
@@ -369,10 +369,10 @@ export async function provisionObsIngress(
   const channel = loaded;
 
   if (!channel || channel.createdBy !== userId) {
-    return { error: "호스트만 OBS 설정을 받을 수 있습니다." };
+    return { error: "Only the host can get OBS settings." };
   }
   if (channel.liveStatus === "ENDED") {
-    return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
+    return { error: "This stream has ended. Create a new one." };
   }
 
   if (!options?.force) {

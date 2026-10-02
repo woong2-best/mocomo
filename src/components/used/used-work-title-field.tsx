@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { sanitizeWorkTitleInput } from "@/lib/used-catalog";
@@ -67,7 +70,7 @@ export function UsedWorkTitleField({
   return (
     <div ref={wrapRef} className="space-y-1 relative">
       <label htmlFor="used-work-title" className="text-[15px] font-bold">
-        작품명
+        {t("used.su9he6")}
       </label>
       <input
         id="used-work-title"
@@ -76,7 +79,7 @@ export function UsedWorkTitleField({
         disabled={disabled}
         onChange={(e) => onInputChange(e.target.value)}
         onFocus={() => setOpen(true)}
-        placeholder="블루아카이브, 원신…"
+        placeholder={t("used.s84985i")}
         className="w-full h-11 rounded-xl border border-border px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
         autoComplete="off"
         spellCheck={false}
@@ -116,13 +119,13 @@ export function UsedWorkTitleField({
       )}
       {animeSlug ? (
         <p className="text-[10px] text-primary">
-          위키 연결:{" "}
+          {t("used.wikiLinkLabel")}{" "}
           <Link href={`/anime/${animeSlug}`} className="underline">
             {animeSlug}
           </Link>
         </p>
       ) : (
-        <p className="text-[10px] text-muted-foreground">예: 원신, 홀로라이브, 귀멸의칼날</p>
+        <p className="text-[10px] text-muted-foreground">{t("used.sce7ea2")}</p>
       )}
     </div>
   );

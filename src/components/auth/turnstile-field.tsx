@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Script from "next/script";
 import { Button } from "@/components/ui/button";
@@ -161,7 +164,7 @@ function TurnstileWidget({
   if (!isTurnstileConfigured() || !siteKey) {
     return (
       <p className="text-xs text-muted-foreground text-center">
-        보안 확인은 서버 요청 제한으로 보호됩니다.
+        {t("auth.stgtbjj")}
       </p>
     );
   }
@@ -174,14 +177,14 @@ function TurnstileWidget({
     return (
       <div className="space-y-2 text-center">
         <p className="text-xs text-destructive">
-          보안 확인 위젯을 불러오지 못했습니다. Site Key가 Vercel과 Cloudflare MoCoMo 위젯이 같은지 확인해 주세요.
+          {t("auth.site_key_vercel_cloudflare_mocomo")}
         </p>
         <div className="flex flex-wrap justify-center gap-2">
           <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => window.location.reload()}>
-            새로고침
+            {t("auth.reload")}
           </Button>
           <Button type="button" size="sm" className="rounded-xl" onClick={enableFallback}>
-            제한 모드로 계속
+            {t("auth.s1j65d7l")}
           </Button>
         </div>
       </div>
@@ -196,12 +199,12 @@ function TurnstileWidget({
         onReady={() => setReady(true)}
         onError={() => setFailed(true)}
       />
-      <div ref={containerRef} className="min-h-[70px] flex justify-center items-center" aria-label="보안 확인" />
+      <div ref={containerRef} className="min-h-[70px] flex justify-center items-center" aria-label={t("auth.s1helnkf")} />
       {showSkip && (
         <div className="text-center">
-          <p className="text-xs text-muted-foreground mb-1">위젯이 비어 있나요?</p>
+          <p className="text-xs text-muted-foreground mb-1">{t("auth.spillkk")}</p>
           <Button type="button" variant="ghost" size="sm" className="text-xs h-auto p-0 underline" onClick={enableFallback}>
-            제한 모드로 계속 가입하기
+            {t("auth.spyvjjw")}
           </Button>
         </div>
       )}
@@ -212,7 +215,7 @@ function TurnstileWidget({
 function TurnstileFallbackNotice() {
   return (
     <p className="text-xs text-amber-800 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-center">
-      <strong>요청 제한 모드</strong>로 진행합니다. 아래 버튼을 그대로 눌러 주세요.
+      <strong>{t("auth.s2kojf1")}</strong>{t("auth.s1qulovs")}
     </p>
   );
 }

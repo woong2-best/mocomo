@@ -22,59 +22,59 @@ for (const code of SUBCULTURE_COUNTRY_CODES) {
 }
 
 export const SUBCULTURE_EVENT_COUNTRY_LABELS: Record<SubcultureEventCountry, string> = {
-  kr: "한국",
-  us: "미국",
-  jp: "일본",
-  cn: "중국",
-  tw: "대만",
-  th: "태국",
-  vn: "베트남",
-  ph: "필리핀",
-  id: "인도네시아",
-  sg: "싱가포르",
-  my: "말레이시아",
-  la: "라오스",
-  kh: "캄보디아",
-  mm: "미얀마",
-  bn: "브루나이",
-  hk: "홍콩",
-  mo: "마카오",
-  gb: "영국",
-  fr: "프랑스",
-  de: "독일",
-  es: "스페인",
-  it: "이탈리아",
-  ru: "러시아",
-  ca: "캐나다",
-  br: "브라질",
-  mx: "멕시코",
-  ar: "아르헨티나",
-  cl: "칠레",
-  co: "콜롬비아",
-  pe: "페루",
-  au: "호주",
-  nz: "뉴질랜드",
-  fi: "핀란드",
-  se: "스웨덴",
-  no: "노르웨이",
-  dk: "덴마크",
-  pl: "폴란드",
-  ro: "루마니아",
-  hu: "헝가리",
-  cz: "체코",
-  at: "오스트리아",
-  ch: "스위스",
-  nl: "네덜란드",
-  be: "벨기에",
-  pt: "포르투갈",
-  gr: "그리스",
-  ua: "우크라이나",
-  tr: "터키",
-  sa: "사우디아라비아",
-  ae: "아랍에미리트",
-  il: "이스라엘",
-  za: "남아프리카공화국",
-  other: "글로벌",
+  kr: "Korea",
+  us: "United States",
+  jp: "Japan",
+  cn: "China",
+  tw: "Taiwan",
+  th: "Thailand",
+  vn: "Vietnam",
+  ph: "Philippines",
+  id: "Indonesia",
+  sg: "Singapore",
+  my: "Malaysia",
+  la: "Laos",
+  kh: "Cambodia",
+  mm: "Myanmar",
+  bn: "Brunei",
+  hk: "Hong Kong",
+  mo: "Macao",
+  gb: "United Kingdom",
+  fr: "France",
+  de: "Germany",
+  es: "Spain",
+  it: "Italy",
+  ru: "Russia",
+  ca: "Canada",
+  br: "Brazil",
+  mx: "Mexico",
+  ar: "Argentina",
+  cl: "Chile",
+  co: "Colombia",
+  pe: "Peru",
+  au: "Australia",
+  nz: "New Zealand",
+  fi: "Finland",
+  se: "Sweden",
+  no: "Norway",
+  dk: "Denmark",
+  pl: "Poland",
+  ro: "Romania",
+  hu: "Hungary",
+  cz: "Czech Republic",
+  at: "Austria",
+  ch: "Switzerland",
+  nl: "Netherlands",
+  be: "Belgium",
+  pt: "Portugal",
+  gr: "Greece",
+  ua: "Ukraine",
+  tr: "Turkey",
+  sa: "Saudi Arabia",
+  ae: "United Arab Emirates",
+  il: "Israel",
+  za: "South Africa",
+  other: "Global",
 };
 
 const EVENT_COUNTRY_ISO: Record<SubcultureEventCountry, string> = Object.fromEntries(
@@ -83,12 +83,12 @@ const EVENT_COUNTRY_ISO: Record<SubcultureEventCountry, string> = Object.fromEnt
 
 export function eventCountryDisplayLabel(country: SubcultureEventCountry, locale: Locale): string {
   if (country === "other") {
-    if (locale === "ko") return "글로벌";
-    if (locale === "ja") return "グローバル";
-    if (locale === "zh") return "全球";
+    
+    
+    
     return "Global";
   }
-  const nameLocale = locale === "ko" ? "ko" : "en";
+  const nameLocale = "en";
   return countryDisplayName(EVENT_COUNTRY_ISO[country], nameLocale);
 }
 
@@ -255,10 +255,7 @@ export function subcultureCountrySummary(userCountryCode: string, locale: Locale
   const target = userCountryToEventCountry(userCountryCode);
   const label = eventCountryDisplayLabel(target, locale);
   const flag = eventCountryFlag(target);
-  if (locale === "en") return `${flag} ${label} subculture events — official auto-sync`;
-  if (locale === "ja") return `${flag} ${label}のサブカルイベント — 公式自動収集`;
-  if (locale === "zh") return `${flag} ${label}亚文化·动漫活动 — 官网自动同步`;
-  return `${flag} ${label} 서브컬처·애니 행사 — 공식 사이트 자동 수집`;
+  return `${flag} ${label} subculture events — official auto-sync`;
 }
 
 export function isKoreaEventCountry(country: SubcultureEventCountry): boolean {

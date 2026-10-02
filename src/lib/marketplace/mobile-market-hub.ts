@@ -150,7 +150,7 @@ export async function listRecentBuyerOrdersForUser(userId: string, take = 8) {
     status: o.status,
     createdAt: o.createdAt.toISOString(),
     coverUrl: o.items[0]?.listing?.coverUrl ?? null,
-    title: o.items[0]?.titleSnapshot ?? "주문",
+    title: o.items[0]?.titleSnapshot ?? "Order",
     itemCount: o.items.length,
   }));
 }

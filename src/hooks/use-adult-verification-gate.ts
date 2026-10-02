@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useCallback, useState, useTransition } from "react";
 import type { AdultVerificationScope } from "@prisma/client";
@@ -41,7 +44,7 @@ export function useAdultVerificationGate(defaultScope: AdultVerificationScope = 
           await runPortOneVerification();
           onSuccess?.();
         } catch (e) {
-          setError(e instanceof Error ? e.message : "인증에 실패했습니다.");
+          setError(e instanceof Error ? e.message : i18n("payments.sd3f0vg"));
         }
       });
     },

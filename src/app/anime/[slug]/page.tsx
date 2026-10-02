@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -167,7 +170,7 @@ export default async function AnimeDetailPage({
                 </Button>
               </Link>
             ) : isLoggedIn && anime.isProtected ? (
-              <Button size="sm" variant="outline" className="gap-1" disabled title="운영진만 편집 가능">
+              <Button size="sm" variant="outline" className="gap-1" disabled title={t("app.anime.sbojt4x")}>
                 <Shield className="h-3.5 w-3.5" />
                 편집 제한
               </Button>

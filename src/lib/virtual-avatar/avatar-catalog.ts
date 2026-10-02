@@ -49,71 +49,71 @@ export type CatalogItem = {
 };
 
 const HAIR_NAMES = [
-  "실크 롱 웨이브",
-  "청순 단발",
-  "하이 포니테일",
-  "트윈테일 리본",
-  "시크 숏컷",
-  "볼륨 웨이브",
-  "사이드 브레이드",
-  "울프컷 레이어",
-  "허쉬컷",
-  "투블럭",
-  "픽시컷",
-  "롱 스트레이트",
-  "반묶음",
-  "올림머리",
-  "커튼 뱅",
-  "층 레이어",
-  "내추럴 컬",
-  "듀라롱",
-  "사이버 네온",
-  "핑크 그라데이션",
-  "실버 밥",
-  "투톤 하이라이트",
-  "프린세스 컬",
-  "보헤미안 웨이브",
+  "Silky long waves",
+  "Soft short bob",
+  "High ponytail",
+  "Twin tails with ribbons",
+  "Chic pixie cut",
+  "Voluminous waves",
+  "Side braid",
+  "Wolf cut layers",
+  "Hush cut",
+  "Two-block cut",
+  "Pixie cut",
+  "Long straight",
+  "Half updo",
+  "Updo",
+  "Curtain bangs",
+  "Layered cut",
+  "Natural curls",
+  "Durarara-style long",
+  "Cyber neon",
+  "Pink gradient",
+  "Silver bob",
+  "Two-tone highlights",
+  "Princess curls",
+  "Bohemian waves",
 ];
 
 const TOP_NAMES = [
-  "데일리 티셔츠",
-  "오버핏 후드",
-  "크롭 니트",
-  "셔츠 블라우스",
-  "스포츠 재킷",
-  "가디건",
-  "레ather 재킷",
-  "프릴 블라우스",
-  "사이버 재킷",
-  "오프숄더",
+  "Daily tee",
+  "Oversized hoodie",
+  "Crop knit",
+  "Shirt blouse",
+  "Sports jacket",
+  "Cardigan",
+  "Leather jacket",
+  "Frill blouse",
+  "Cyber jacket",
+  "Off-shoulder",
 ];
 
 const BOTTOM_NAMES = [
-  "데님 팬츠",
-  "미니 스커트",
-  "와이드 슬랙",
-  "쇼츠",
-  "플리츠 스커트",
-  "카고 팬츠",
-  "레ggings",
-  "하이웨스트",
+  "Denim pants",
+  "Mini skirt",
+  "Wide slacks",
+  "Shorts",
+  "Pleated skirt",
+  "Cargo pants",
+  "Leggings",
+  "High-waist",
 ];
 
 const FULL_OUTFIT_NAMES = [
-  "핑크 크롭 세트",
-  "데님 원피스",
-  "오피스 수트",
-  "판타지 로브",
-  "사이버 수트",
-  "파티 드레스",
-  "스포츠 세트",
-  "코지 파자마",
+  "Pink crop set",
+  "Denim dress",
+  "Office suit",
+  "Fantasy robe",
+  "Cyber suit",
+  "Party dress",
+  "Sports set",
+  "Cozy pajamas",
 ];
 
-const SHOE_NAMES = ["스니커즈", "하이탑", "로퍼", "부츠", "샌들", "플랫"];
-const HEADWEAR_NAMES = ["캡", "비니", "헤드폰", "왕관", "고양이 귀", "베레모"];
-const ACCESSORY_NAMES = ["목걸이", "안경", "마스크", "날개", "꼬리", "반지"];
-const MAKEUP_NAMES = ["내추럴", "글램", "코랄", "스모키", "페어리", "네온"];
+const SHOE_NAMES = ["Sneakers", "High-tops", "Loafers", "Boots", "Sandals", "Flats"];
+const HEADWEAR_NAMES = ["Cap", "Beanie", "Headphones", "Crown", "Cat ears", "Beret"];
+const ACCESSORY_NAMES = ["Necklace", "Glasses", "Mask", "Wings", "Tail", "Ring"];
+const MAKEUP_NAMES = ["Natural", "Glam", "Coral", "Smoky", "Fairy", "Neon"];
 
 const HAIR_GRADIENTS: [string, string][] = [
   ["#2a1810", "#1a1a1a"],
@@ -177,7 +177,7 @@ function hairItem(i: number): CatalogItem {
   const id = `hair_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: HAIR_NAMES[i] ?? `헤어 ${i + 1}`,
+    name: HAIR_NAMES[i] ?? `Hair ${i + 1}`,
     category: "hair",
     price: free ? 0 : 4 + (i % 8),
     tags: free ? ["free"] : i % 5 === 0 ? ["hot"] : i % 7 === 0 ? ["new"] : undefined,
@@ -204,7 +204,7 @@ function topItem(i: number): CatalogItem {
   const id = `top_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: TOP_NAMES[i] ?? `상의 ${i + 1}`,
+    name: TOP_NAMES[i] ?? `Tops ${i + 1}`,
     category: "top",
     price: free ? 0 : 5 + (i % 6),
     tags: free ? ["free"] : i === 2 ? ["hot"] : undefined,
@@ -231,7 +231,7 @@ function bottomItem(i: number): CatalogItem {
   const id = `bottom_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: BOTTOM_NAMES[i] ?? `하의 ${i + 1}`,
+    name: BOTTOM_NAMES[i] ?? `Bottoms ${i + 1}`,
     category: "bottom",
     price: free ? 0 : 4 + (i % 5),
     tags: free ? ["free"] : undefined,
@@ -255,7 +255,7 @@ function fullOutfitItem(i: number): CatalogItem {
   const id = `full_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: FULL_OUTFIT_NAMES[i] ?? `한벌 ${i + 1}`,
+    name: FULL_OUTFIT_NAMES[i] ?? `Outfits ${i + 1}`,
     category: "fullOutfit",
     price: 8 + (i % 6),
     tags: i === 0 ? ["hot", "new"] : i === 3 ? ["new"] : undefined,
@@ -282,7 +282,7 @@ function shoesItem(i: number): CatalogItem {
   const id = `shoes_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: SHOE_NAMES[i] ?? `신발 ${i + 1}`,
+    name: SHOE_NAMES[i] ?? `Shoes ${i + 1}`,
     category: "shoes",
     price: free ? 0 : 3 + (i % 4),
     tags: free ? ["free"] : undefined,
@@ -304,7 +304,7 @@ function headwearItem(i: number): CatalogItem {
   const id = `head_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: HEADWEAR_NAMES[i] ?? `헤드웨어 ${i + 1}`,
+    name: HEADWEAR_NAMES[i] ?? `Headwear ${i + 1}`,
     category: "headwear",
     price: 3 + (i % 5),
     tags: i === 4 ? ["hot"] : undefined,
@@ -327,7 +327,7 @@ function accessoryItem(i: number): CatalogItem {
   const bones: CatalogAttachment["bone"][] = ["neck", "head", "head", "chest", "hips", "leftHand"];
   return {
     id,
-    name: ACCESSORY_NAMES[i] ?? `액세서리 ${i + 1}`,
+    name: ACCESSORY_NAMES[i] ?? `Accessories ${i + 1}`,
     category: "accessory",
     price: 2 + (i % 6),
     tags: i === 3 ? ["new"] : undefined,
@@ -356,7 +356,7 @@ function makeupItem(i: number): CatalogItem {
   const free = i === 0;
   return {
     id: `makeup_${String(i + 1).padStart(3, "0")}`,
-    name: MAKEUP_NAMES[i] ?? `메이크업 ${i + 1}`,
+    name: MAKEUP_NAMES[i] ?? `Makeup ${i + 1}`,
     category: "makeup",
     price: free ? 0 : 5 + (i % 4),
     tags: free ? ["free"] : i === 1 ? ["hot"] : undefined,
@@ -381,19 +381,19 @@ export const AVATAR_CATALOG: CatalogItem[] = [
 export const CATALOG_BY_ID = new Map(AVATAR_CATALOG.map((item) => [item.id, item]));
 
 export const SHOP_CATEGORY_LABELS: { id: ShopCategory; label: string; emoji: string }[] = [
-  { id: "all", label: "전체", emoji: "✨" },
-  { id: "hair", label: "헤어", emoji: "💇" },
-  { id: "fullOutfit", label: "한벌", emoji: "👗" },
-  { id: "top", label: "상의", emoji: "👕" },
-  { id: "bottom", label: "하의", emoji: "👖" },
-  { id: "headwear", label: "모자", emoji: "🧢" },
-  { id: "shoes", label: "신발", emoji: "👟" },
-  { id: "accessory", label: "액세", emoji: "💎" },
-  { id: "makeup", label: "메이크업", emoji: "💄" },
+  { id: "all", label: "All", emoji: "✨" },
+  { id: "hair", label: "Hair", emoji: "💇" },
+  { id: "fullOutfit", label: "Outfits", emoji: "👗" },
+  { id: "top", label: "Tops", emoji: "👕" },
+  { id: "bottom", label: "Bottoms", emoji: "👖" },
+  { id: "headwear", label: "Hats", emoji: "🧢" },
+  { id: "shoes", label: "Shoes", emoji: "👟" },
+  { id: "accessory", label: "Acc.", emoji: "💎" },
+  { id: "makeup", label: "Makeup", emoji: "💄" },
 ];
 
 export const SHOP_FILTER_TABS = [
-  { id: "my" as const, label: "착용", emoji: "✓" },
+  { id: "my" as const, label: "Wear", emoji: "✓" },
   { id: "wish" as const, label: "♥", emoji: "♥" },
   { id: "hot" as const, label: "HOT", emoji: "🔥" },
   { id: "new" as const, label: "NEW", emoji: "N" },

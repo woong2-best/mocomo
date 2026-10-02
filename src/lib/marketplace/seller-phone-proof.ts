@@ -17,7 +17,7 @@ export async function consumeSellerPhoneProof(
       select: { phone: true, phoneVerified: true },
     });
     if (user?.phoneVerified && user.phone === phoneE164) return { ok: true };
-    return { ok: false, error: "휴대폰 인증이 필요합니다." };
+    return { ok: false, error: "Mobile phone verification is required." };
   }
 
   const proofId = sellerPhoneProofIdentifier(phoneE164);
@@ -26,7 +26,7 @@ export async function consumeSellerPhoneProof(
     orderBy: { expires: "desc" },
   });
   if (!row || row.expires < new Date()) {
-    return { ok: false, error: "휴대폰 인증이 만료되었습니다. 다시 인증해 주세요." };
+    return { ok: false, error: "Mobile phone verification expired. Please verify again." };
   }
 
   const exclusive = await assertPhoneExclusiveToAccount(phoneE164, userId);

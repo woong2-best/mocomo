@@ -32,9 +32,9 @@ export async function purchaseEventSponsoredAd(eventId: string, days: number) {
 function adTitleFromLink(linkUrl: string): string {
   try {
     const href = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
-    return new URL(href).hostname.replace(/^www\./, "") || "광고";
+    return new URL(href).hostname.replace(/^www\./, "") || "Ad";
   } catch {
-    return "광고";
+    return "actions.sudwv";
   }
 }
 
@@ -50,8 +50,8 @@ export async function registerEventSponsoredAd(data: {
   const user = await requireAuth();
   const imageUrl = data.imageUrl?.trim();
   const linkUrl = data.linkUrl?.trim();
-  if (!imageUrl) return { ok: false as const, error: "광고 이미지를 등록해 주세요." };
-  if (!linkUrl) return { ok: false as const, error: "클릭 시 이동할 링크를 입력해 주세요." };
+  if (!imageUrl) return { ok: false as const, error: "actions.s15062kd" };
+  if (!linkUrl) return { ok: false as const, error: "actions.sxfb8bl" };
 
   const isOperator = isOperatorIdentity({
     username: user.username,
@@ -87,15 +87,15 @@ export async function registerEventSponsoredAd(data: {
     try {
       mocoCost = calcSponsoredAdMoco(days);
     } catch {
-      return { ok: false as const, error: "광고 기간을 확인해 주세요." };
+      return { ok: false as const, error: "actions.sz02khy" };
     }
 
     const purchasedMoco = await getPurchasedMoco(user.id);
     if (purchasedMoco < 1) {
-      return { ok: false as const, error: "MOCO가 없으면 광고를 등록할 수 없습니다." };
+      return { ok: false as const, error: "actions.moco_5" };
     }
     if (purchasedMoco < mocoCost) {
-      return { ok: false as const, error: "MOCO를 충전해주세요." };
+      return { ok: false as const, error: "actions.moco_6" };
     }
   }
 

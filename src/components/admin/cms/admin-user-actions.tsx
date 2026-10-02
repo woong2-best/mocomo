@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -25,18 +30,18 @@ export function AdminUserActions({ userId, username }: { userId: string; usernam
   function run(fn: () => Promise<{ error?: string; success?: boolean }>) {
     start(async () => {
       const res = await fn();
-      setMsg(res.error ?? "완료되었습니다.");
+      setMsg(errorText(res.error ?? t("admin.s1v6rat1")));
       if (!res.error) router.refresh();
     });
   }
 
   return (
     <div className="space-y-4 rounded-2xl border border-border/70 p-4">
-      <h2 className="text-sm font-semibold">관리 작업</h2>
+      <h2 className="text-sm font-semibold">{t("admin.s1oldqh4")}</h2>
       <Input
         value={reason}
         onChange={(e) => setReason(e.target.value)}
-        placeholder="사유 (정지/삭제)"
+        placeholder={t("admin.s1g8bjg2")}
       />
       <div className="flex flex-wrap gap-2">
         <Button
@@ -48,7 +53,7 @@ export function AdminUserActions({ userId, username }: { userId: string; usernam
             run(() =>
               adminUserSuspendAction({
                 userId,
-                reason: reason || "관리자 정지",
+                reason: reason || t("admin.s1jyaq9z"),
                 mode: "permanent",
               })
             )
@@ -67,7 +72,7 @@ export function AdminUserActions({ userId, username }: { userId: string; usernam
             return run(() =>
               adminUserSuspendAction({
                 userId,
-                reason: reason || "임시 정지 7일",
+                reason: reason || t("admin.s8hhy36"),
                 mode: "temporary",
                 untilIso: until.toISOString(),
               })
@@ -80,7 +85,7 @@ export function AdminUserActions({ userId, username }: { userId: string; usernam
           type="button"
           size="sm"
           disabled={pending}
-          onClick={() => run(() => adminUserRestoreAction(userId, reason || "해제"))}
+          onClick={() => run(() => adminUserRestoreAction(userId, reason || t("community-server.s11elk")))}
         >
           계정 해제
         </Button>
@@ -90,7 +95,7 @@ export function AdminUserActions({ userId, username }: { userId: string; usernam
           variant="outline"
           disabled={pending}
           onClick={() =>
-            run(() => adminUserSoftDeleteAction(userId, reason || "관리자 soft delete"))
+            run(() => adminUserSoftDeleteAction(userId, reason || t("admin.soft_delete")))
           }
         >
           Soft Delete
@@ -99,7 +104,7 @@ export function AdminUserActions({ userId, username }: { userId: string; usernam
 
       <div className="flex flex-wrap items-end gap-2">
         <div>
-          <label className="text-xs text-muted-foreground">프리미엄 일수</label>
+          <label className="text-xs text-muted-foreground">{t("admin.s1tezy6g")}</label>
           <Input
             type="number"
             className="w-28"
@@ -119,7 +124,7 @@ export function AdminUserActions({ userId, username }: { userId: string; usernam
 
       <div className="flex flex-wrap items-end gap-2">
         <div className="flex-1 min-w-[160px]">
-          <label className="text-xs text-muted-foreground">닉네임 변경</label>
+          <label className="text-xs text-muted-foreground">{t("admin.sdhs1lg")}</label>
           <Input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} />
         </div>
         <Button
@@ -133,7 +138,7 @@ export function AdminUserActions({ userId, username }: { userId: string; usernam
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs text-muted-foreground">관리자 메모</label>
+        <label className="text-xs text-muted-foreground">{t("admin.s1jy8b2o")}</label>
         <textarea
           className="min-h-[80px] w-full rounded-xl border border-border bg-background p-3 text-sm"
           value={memo}

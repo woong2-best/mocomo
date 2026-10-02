@@ -64,7 +64,7 @@ function formatResendError(message: string): string {
     const hint = getResendAccountHint();
     return hint
       ? `Resend 무료 한도: ${hint} 주소로만 발송 가능합니다. resend.com/domains 에서 mocomo.net 도메인 인증이 필요합니다.`
-      : "Resend 무료 한도: Resend 가입 이메일로만 발송됩니다. resend.com/domains 에서 도메인 인증이 필요합니다.";
+      : "Resend free tier: Messages can only be sent to your Resend signup email. Domain verification is required at resend.com/domains.";
   }
   return message;
 }
@@ -94,7 +94,7 @@ export async function sendEmail({
   const resend = getResendClient();
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set");
-    return { ok: false, error: "RESEND_API_KEY가 설정되지 않았습니다." };
+    return { ok: false, error: "RESEND_API_KEY is not configured." };
   }
 
   const from = getEmailFromAddress();
@@ -130,12 +130,12 @@ export async function sendEmail({
       return { ok: false, error: formatResendError(error.message) };
     }
     if (!data?.id) {
-      return { ok: false, error: "Resend가 메일 ID를 반환하지 않았습니다." };
+      return { ok: false, error: "Resend did not return a message ID." };
     }
     return { ok: true, messageId: data.id };
   } catch (e) {
     console.error("[email]", e);
-    return { ok: false, error: "메일 서버 연결에 실패했습니다." };
+    return { ok: false, error: "Failed to connect to the mail server." };
   }
 }
 

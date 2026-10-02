@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { ImageIcon } from "lucide-react";
 import { userDisplayName } from "@/lib/user-public-select";

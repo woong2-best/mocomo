@@ -95,7 +95,7 @@ export async function burnPurchasedMocoWithHistory(
   return { recorded: true };
 }
 
-/** lockedMocoBalance에서 Burn + 원장 기록 (경매 페널티 등, 멱등) */
+/** lockedMocoBalance에서 Burn + 원장 기록 (Auction 페널티 등, 멱등) */
 export async function burnLockedMocoWithHistory(
   tx: Tx,
   input: RecordMocoBurnInput
@@ -139,7 +139,7 @@ export function adPurchaseReason(days: number): string {
   return `MoCoMo 광고 ${days}일 차감`;
 }
 
-export const AUCTION_PENALTY_REASON = "경매 낙찰 미결제 페널티 차감";
+export const AUCTION_PENALTY_REASON = "Auction win non-payment penalty deduction";
 
 export async function listMocoTransactionHistory(userId: string, take = 50) {
   return db.mocoTransactionHistory.findMany({

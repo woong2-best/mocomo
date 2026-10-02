@@ -30,7 +30,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-akihabara-honten",
     title: "めいどりーみん 秋葉原本店",
-    description: "상설 · 아키하바라 · 메이드리밍 본점",
+    description: "Permanent · Akihabara · Maidreamin main store",
     venueName: "めいどりーみん 秋葉原本店",
     address: "東京都千代田区外神田3-16-17 住吉ビル6F",
     lat: 35.701974,
@@ -40,7 +40,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-akiba",
     title: "めいどりーみん 秋葉原 AKIBA",
-    description: "상설 · 아키하바라",
+    description: "Permanent · Akihabara",
     venueName: "めいどりーみん AKIBA",
     address: "東京都千代田区外神田1-8-4 銭谷ビル3F",
     lat: 35.69885,
@@ -50,7 +50,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-idol-street",
     title: "めいどりーみん 秋葉原アイドル通り店",
-    description: "상설 · 아키하바라 아이돌거리",
+    description: "Permanent · Akihabara idol street",
     venueName: "めいどりーみん アイドル通り",
     address: "東京都千代田区外神田1-14-1 宝田中央通りビル3F",
     lat: 35.69855,
@@ -60,7 +60,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-chuo-dori",
     title: "めいどりーみん 秋葉原中央通り店",
-    description: "상설 · 아키하바라 중앙거리",
+    description: "Permanent · Akihabara central street",
     venueName: "めいどりーみん 中央通り",
     address: "東京都千代田区外神田1-14-1 宝田中央通りビル2F",
     lat: 35.69848,
@@ -70,7 +70,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-denkigai",
     title: "めいどりーみん 秋葉原電気街口駅前店",
-    description: "상설 · 아키하바라 전기거리가",
+    description: "Permanent · Akihabara electric town",
     venueName: "めいどりーみん 電気街口",
     address: "東京都千代田区外神田1-15-9 いちご秋葉原駅前ビル6F",
     lat: 35.6982,
@@ -80,7 +80,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-heavens-gate",
     title: "めいどりーみん LIVE Heaven’s Gate",
-    description: "상설 · 아키하바라 · 라이브 레스토랑",
+    description: "Permanent · Akihabara · live restaurant",
     venueName: "Heaven’s Gate",
     address: "東京都千代田区外神田1-15-9 いちご秋葉原駅前ビル6F",
     lat: 35.69815,
@@ -90,7 +90,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-sotokanda1",
     title: "めいどりーみん 秋葉原外神田一丁目店",
-    description: "상설 · 아키하바라 외신전",
+    description: "Permanent · Akihabara foreign shrine",
     venueName: "めいどりーみん 外神田一丁目",
     address: "東京都千代田区外神田1-8-10 バウハウス2F",
     lat: 35.699106,
@@ -100,7 +100,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-kyoeki",
     title: "めいどりーみん 秋葉原（外神田4丁目）",
-    description: "상설 · 아키하바라",
+    description: "Permanent · Akihabara",
     venueName: "めいどりーみん 外神田4丁目",
     address: "東京都千代田区外神田4-4-2 京映外神田ビル4F",
     lat: 35.7008,
@@ -110,7 +110,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-shinjuku",
     title: "めいどりーみん 新宿東口店",
-    description: "상설 · 신주쿠 동구",
+    description: "Permanent · Shinjuku east",
     venueName: "めいどりーみん 新宿東口",
     address: "東京都新宿区新宿3-22-10",
     lat: 35.693136,
@@ -120,7 +120,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-shibuya",
     title: "めいどりーみん 渋谷 SHIBUYA",
-    description: "상설 · 시부야",
+    description: "Permanent · Shibuya",
     venueName: "めいどりーみん SHIBUYA",
     address: "東京都渋谷区宇田川町30-1 蓬莱屋ビルB1",
     lat: 35.662075,
@@ -130,7 +130,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-ikebukuro",
     title: "めいどりーみん 池袋サンシャイン通り店",
-    description: "상설 · 이케부쿠로",
+    description: "Permanent · Ikebukuro",
     venueName: "めいどりーみん 池袋",
     address: "東京都豊島区東池袋1-22-14 ロッカビル7F",
     lat: 35.731155,
@@ -140,7 +140,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-osu-maneki",
     title: "めいどりーみん 名古屋大須招き猫前店",
-    description: "상설 · 나고야 오스",
+    description: "Permanent · Nagoya Osu",
     venueName: "めいどりーみん 大須招き猫前",
     address: "愛知県名古屋市中区大須3-30-21",
     lat: 35.1588,
@@ -150,7 +150,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-osu-akamon",
     title: "めいどりーみん 名古屋大須赤門通り店",
-    description: "상설 · 나고야 오스 적문거리",
+    description: "Permanent · Nagoya Osu red-light street",
     venueName: "めいどりーみん 大須赤門通り",
     address: "愛知県名古屋市中区大須3-33-9",
     lat: 35.1575,
@@ -160,7 +160,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-namba",
     title: "めいどりーみん 大阪なんば店",
-    description: "상설 · 오사카 난바",
+    description: "Permanent · Osaka Namba",
     venueName: "めいどりーみん なんば",
     address: "大阪府大阪市浪速区難波中2-2-21 難波バレビル3F",
     lat: 34.661486,
@@ -170,7 +170,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-nipponbashi",
     title: "めいどりーみん 大阪日本橋オタロード店",
-    description: "상설 · 오사카 닛폰바시 오타로드",
+    description: "Permanent · Osaka Nipponbashi otaku road",
     venueName: "めいどりーみん 日本橋",
     address: "大阪府大阪市浪速区難波中2-3-12",
     lat: 34.6665,
@@ -180,7 +180,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-sapporo",
     title: "めいどりーみん 札幌狸小路店",
-    description: "상설 · 삿포로 다누키코지",
+    description: "Permanent · Sapporo Tanukikoji",
     venueName: "めいどりーみん 札幌狸小路",
     address: "北海道札幌市中央区南二条西4-10-2 清水ビル6F",
     lat: 43.057928,
@@ -190,7 +190,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-tenjin",
     title: "めいどりーみん 天神西通り店",
-    description: "상설 · 후쿠오카 텐진",
+    description: "Permanent · Fukuoka Tenjin",
     venueName: "めいどりーみん 天神西通り",
     address: "福岡県福岡市中央区大名1-12-61",
     lat: 33.589306,
@@ -200,7 +200,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidreamin-kokura",
     title: "めいどりーみん 小倉あるあるCity店",
-    description: "상설 · 기타큐슈 코쿠라",
+    description: "Permanent · Kitakyushu Kokura",
     venueName: "めいどりーみん 小倉あるあるCity",
     address: "福岡県北九州市小倉北区浅野2-14-5",
     lat: 33.8875,
@@ -210,7 +210,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-athome-honten",
     title: "＠ほぉ～むカフェ 本店",
-    description: "상설 · 아키하바라 · @home cafe",
+    description: "Permanent · Akihabara · @home cafe",
     venueName: "@ほぉ～むカフェ 本店",
     address: "東京都千代田区外神田1-11-4 ミツワビル3-7F",
     lat: 35.699554,
@@ -220,7 +220,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-athome-donki",
     title: "＠ほぉ～むカフェ ドン・キホーテ店",
-    description: "상설 · 아키하바라 돈키호테 5F",
+    description: "Permanent · Akihabara Don Quijote 5F",
     venueName: "@ほぉ～むカフェ ドンキ店",
     address: "東京都千代田区外神田4-3-3 ドン・キホーテ秋葉原店5F",
     lat: 35.7004,
@@ -230,7 +230,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidmade-akihabara",
     title: "MAID√MADE 秋葉原駅前店",
-    description: "상설 · 아키하바라역 앞",
+    description: "Permanent · near Akihabara Station",
     venueName: "MAID√MADE 秋葉原",
     address: "東京都千代田区外神田1-15-13 秋葉原B&Vビル10F",
     lat: 35.6981,
@@ -240,7 +240,7 @@ export const JP_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("jp", {
     externalKey: "venue-maid-jp-maidmade-osu",
     title: "MAID√MADE 名古屋大須本店",
-    description: "상설 · 나고야 오스",
+    description: "Permanent · Nagoya Osu",
     venueName: "MAID√MADE 大須",
     address: "愛知県名古屋市中区大須3-35-23",
     lat: 35.1572,
@@ -254,7 +254,7 @@ export const TH_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("th", {
     externalKey: "venue-maid-th-maidreamin-mbk",
     title: "Maidreamin MBK Bangkok",
-    description: "상설 · 방콕 MBK 센터 7F",
+    description: "Permanent · Bangkok MBK Center 7F",
     venueName: "Maidreamin MBK",
     address: "444 MBK Center 7F, Phayathai Rd, Pathumwan, Bangkok",
     lat: 13.7447151,
@@ -264,7 +264,7 @@ export const TH_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("th", {
     externalKey: "venue-maid-th-maidreamin-future-park",
     title: "Maidreamin Future Park Rangsit",
-    description: "상설 · 방콕 근교 Future Park ZPELL 3F",
+    description: "Permanent · Bangkok suburbs Future Park ZPELL 3F",
     venueName: "Maidreamin Future Park",
     address: "Future Park Rangsit ZPELL 3F, Pathum Thani",
     lat: 13.9889524,
@@ -278,7 +278,7 @@ export const GB_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("gb", {
     externalKey: "venue-maid-gb-usagi-london",
     title: "Usagi Anime Maid Cafe",
-    description: "상설 · 런던 홀본 · 영국 최초 애니 메이드 카페",
+    description: "Permanent · London Holborn · UK's first anime maid cafe",
     venueName: "Usagi Anime Maid Cafe",
     address: "17 Little Russell Street, London WC1A 2HL",
     lat: 51.5180307,
@@ -288,7 +288,7 @@ export const GB_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("gb", {
     externalKey: "venue-maid-gb-animaid-manchester",
     title: "Animaid Cafe",
-    description: "상설 · 맨체스터 Afflecks 2F · 일본풍 메이드 카페",
+    description: "Permanent · Manchester Afflecks 2F · Japanese-style maid cafe",
     venueName: "Animaid Cafe",
     address: "Afflecks, 52 Church Street, Manchester M4 1PW",
     lat: 53.4825243,
@@ -301,8 +301,8 @@ export const GB_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
 export const TW_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid("tw", {
     externalKey: "venue-maid-tw-ximending-cluster",
-    title: "西門町 女僕咖啡街 (시먼딩)",
-    description: "상설 · 타이베이 시먼딩 여포카페 밀집 구역",
+    title: "Ximending maid cafe street (Ximending)",
+    description: "Permanent · Taipei Ximending maid cafe district",
     venueName: "西門町 女僕咖啡",
     address: "台北市萬華區西門町",
     lat: 25.042841,

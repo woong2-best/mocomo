@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import type { MarketplaceCheckoutInput } from "@/actions/marketplace-checkout";
 import type { DirectTradeSnapshot } from "@/lib/marketplace/payment-routing";
@@ -47,7 +52,7 @@ export function DirectTradeCheckoutSheet({
         | { error?: string; marketplaceOrderId?: string; directTradeSnapshot?: DirectTradeSnapshot }
         | DirectTradeSnapshot;
       if (!res.ok) {
-        setError(("error" in data && data.error) || "주문을 만들 수 없습니다.");
+        setError(("error" in data && data.error) || t("payments.s1gtbt7"));
         return;
       }
       const payload = data as {
@@ -57,7 +62,7 @@ export function DirectTradeCheckoutSheet({
       setOrderId(payload.marketplaceOrderId);
       setSnapshot(payload.directTradeSnapshot);
     } catch {
-      setError("네트워크 오류가 발생했습니다.");
+      setError(t("profile.s18n7wbo"));
     } finally {
       setLoading(false);
     }
@@ -82,7 +87,7 @@ export function DirectTradeCheckoutSheet({
       });
       const data = (await res.json()) as { error?: string; ok?: boolean };
       if (!res.ok) {
-        setError(data.error ?? "확인에 실패했습니다.");
+        setError(errorText(data.error ?? t("payments.soo10em")));
         return;
       }
       setPaid(true);
@@ -95,7 +100,7 @@ export function DirectTradeCheckoutSheet({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle>무통장 직거래</DialogTitle>
+          <DialogTitle>{t("payments.s1izxg7h")}</DialogTitle>
         </DialogHeader>
 
         {loading ? (
@@ -110,12 +115,12 @@ export function DirectTradeCheckoutSheet({
 
             <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-2 text-sm">
               <p className="font-semibold text-base">{snapshot.sellerDisplayName}</p>
-              <Row label="은행" value={snapshot.bankName} />
-              <Row label="계좌번호" value={snapshot.accountNumber} mono />
-              <Row label="예금주" value={snapshot.accountHolder} />
-              {snapshot.contactPhone ? <Row label="연락처" value={snapshot.contactPhone} /> : null}
+              <Row label={t("lib.bank.verification.s27a36aee28")} value={snapshot.bankName} />
+              <Row label={t("lib.apick.smmrdvc")} value={snapshot.accountNumber} mono />
+              <Row label={t("payments.stux30")} value={snapshot.accountHolder} />
+              {snapshot.contactPhone ? <Row label={t("payments.stw1wr")} value={snapshot.contactPhone} /> : null}
               <div className="pt-2 border-t border-border/50 flex justify-between items-center">
-                <span className="text-muted-foreground">송금 금액</span>
+                <span className="text-muted-foreground">{t("payments.s1wr00pe")}</span>
                 <span className="text-xl font-black text-primary">
                   {formatPrice(snapshot.amount, snapshot.currency)}
                 </span>
@@ -137,12 +142,12 @@ export function DirectTradeCheckoutSheet({
                 disabled={confirming || paid}
                 onClick={confirmPaid}
               >
-                {confirming ? "처리 중…" : "송금 완료 표시"}
+                {confirming ? t("post.menu.blockReportSubmitting") : t("payments.s1cpi727")}
               </Button>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-destructive py-4">{error || "주문 정보를 불러올 수 없습니다."}</p>
+          <p className="text-sm text-destructive py-4">{error || t("payments.svk7wqk")}</p>
         )}
       </DialogContent>
     </Dialog>

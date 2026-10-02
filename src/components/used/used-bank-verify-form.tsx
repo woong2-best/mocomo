@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -41,7 +46,7 @@ export function UsedBankVerifyForm({
 
   const intro =
     mode === "account" ? (
-      locale === "en" ? (
+      (
         <>
           Register your <strong className="text-foreground">Korean bank account</strong> with a 1 KRW
           deposit. Enter the <strong className="text-foreground">4-digit number</strong> from your
@@ -49,27 +54,13 @@ export function UsedBankVerifyForm({
           <strong className="text-foreground">One account per user</strong>, cannot be changed after
           verification. Up to <strong className="text-foreground">3 requests</strong> per day.
         </>
-      ) : (
-        <>
-          <strong className="text-foreground">국내 계좌</strong>로 1원을 보내드립니다. 입금통장메모에
-          표시된 <strong className="text-foreground">4자리 숫자</strong>를 입력하면 인증이 완료됩니다.{" "}
-          <strong className="text-foreground">계정당 계좌 하나</strong>, 인증 후 변경 불가. 하루{" "}
-          <strong className="text-foreground">3회</strong>까지 요청 가능합니다.
-        </>
       )
-    ) : locale === "en" ? (
+    ) : (
       <>
         Verify your <strong className="text-foreground">Korean bank account</strong> with a 1 KRW
         deposit. Enter the <strong className="text-foreground">4-digit number</strong> from your bank
         app memo. <strong className="text-foreground">One account per user</strong>. Up to{" "}
         <strong className="text-foreground">3 attempts</strong> per day.
-      </>
-    ) : (
-      <>
-        중고거래는 <strong className="text-foreground">한국 계좌 1원 인증</strong> 후 이용할 수
-        있습니다. 입금통장메모의 <strong className="text-foreground">4자리 숫자</strong>를 입력해
-        주세요. <strong className="text-foreground">계정당 계좌 하나</strong>, 인증 후 변경 불가.
-        하루 <strong className="text-foreground">3회</strong>까지 요청 가능합니다.
       </>
     );
 
@@ -84,11 +75,11 @@ export function UsedBankVerifyForm({
     const res = await sendBank(bankCode, accountNum);
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("alreadyVerified" in res && res.alreadyVerified) {
-      setMessage(res.message ?? "이미 인증된 계좌입니다.");
+      setMessage(res.message ?? t("used.s11yopdm"));
       router.push(callbackUrl);
       router.refresh();
       return;
@@ -96,9 +87,9 @@ export function UsedBankVerifyForm({
     setSent(true);
     const remain =
       "sendsRemaining" in res && typeof res.sendsRemaining === "number"
-        ? ` (오늘 ${res.sendsRemaining}회 남음)`
+        ? t("used.swnbfql", { v0: res.sendsRemaining })
         : "";
-    setMessage((res.message ?? "1원을 보냈습니다.") + remain);
+    setMessage((res.message ?? t("used.s1tfj1nw")) + remain);
     if ("devCode" in res && res.devCode) setCode(res.devCode);
   }
 
@@ -109,11 +100,11 @@ export function UsedBankVerifyForm({
     const res = await verifyBank(bankCode, accountNum, code);
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     if ("displayAccount" in res) {
-      setMessage(`${res.displayAccount} 인증이 완료되었습니다.`);
+      setMessage(t("used.s1nh0k92", { v0: res.displayAccount }));
     }
     router.push(callbackUrl);
     router.refresh();
@@ -124,7 +115,7 @@ export function UsedBankVerifyForm({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Landmark className="h-5 w-5 text-primary" />
-          {locale === "en" ? "Bank account verification" : "계좌 1원 인증"}
+          {"Bank account verification"}
         </CardTitle>
         <p className="text-sm text-muted-foreground font-normal">{intro}</p>
       </CardHeader>
@@ -133,11 +124,11 @@ export function UsedBankVerifyForm({
           value={bankCode}
           onChange={setBankCode}
           disabled={sent && loading}
-          locale={locale === "en" ? "en" : "ko"}
+          locale={"en"}
         />
 
         <Input
-          placeholder={locale === "en" ? "Account number (digits only)" : "계좌번호 (- 없이)"}
+          placeholder={"Account number (digits only)"}
           value={accountNum}
           onChange={(e) => setAccountNum(e.target.value.replace(/\D/g, ""))}
           className="rounded-xl h-11"
@@ -153,17 +144,13 @@ export function UsedBankVerifyForm({
             disabled={loading || accountNum.length < 8}
           >
             {loading
-              ? locale === "en"
-                ? "Sending…"
-                : "송금 중…"
-              : locale === "en"
-                ? "Send 1 KRW"
-                : "1원 인증 요청"}
+              ? "Sending…"
+              : "Send 1 KRW"}
           </Button>
         ) : (
           <form onSubmit={confirmCode} className="space-y-3">
             <Input
-              placeholder={locale === "en" ? "4-digit memo number" : "입금통장메모 4자리 숫자"}
+              placeholder={"4-digit memo number"}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
               className="rounded-xl h-11 tracking-widest text-center"
@@ -178,12 +165,8 @@ export function UsedBankVerifyForm({
             >
               <ShieldCheck className="h-4 w-4" />
               {loading
-                ? locale === "en"
-                  ? "Verifying…"
-                  : "확인 중…"
-                : locale === "en"
-                  ? "Verify"
-                  : "인증 완료"}
+                ? "Verifying…"
+                : "Verify"}
             </Button>
             <button
               type="button"
@@ -191,7 +174,7 @@ export function UsedBankVerifyForm({
               onClick={() => {
                 void clearPending().then((res) => {
                   if ("error" in res && res.error) {
-                    setError(res.error);
+                    setError(errorText(res.error));
                     return;
                   }
                   setSent(false);
@@ -201,7 +184,7 @@ export function UsedBankVerifyForm({
                 });
               }}
             >
-              {locale === "en" ? "Change account" : "계좌 다시 입력"}
+              {"Change account"}
             </button>
           </form>
         )}

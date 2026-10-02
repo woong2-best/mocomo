@@ -25,7 +25,7 @@ export async function GET() {
       url,
       reachable: false,
       ms: 0,
-      hint: "Vercel에 AUTH_SECRET이 없습니다. Render와 동일한 값을 넣고 재배포하세요.",
+      hint: "Not found.",
     });
   }
 

@@ -14,7 +14,7 @@ export default async function WorksLibraryPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="font-bold">구매한 작품</h2>
+      <h2 className="font-bold">Purchased works</h2>
       {episodes.length === 0 ? (
         <p className="text-sm text-muted-foreground rounded-xl border border-dashed p-8 text-center">
           구매한 회차가 없습니다.

@@ -1,5 +1,10 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Trash2 } from "lucide-react";
@@ -20,8 +25,6 @@ import {
   parseUsedTradeRequestMarker,
   stripUsedTradeRequestMarker,
 } from "@/lib/chat-used-trade-request-marker";
-import { ChatGameShareCard } from "@/components/chat/chat-game-share-card";
-import { ActivityPanel } from "@/components/activities/activity-panel";
 import {
   formatBubbleTime,
   formatDateDivider,
@@ -38,19 +41,15 @@ import {
   isUsedListingAttachment,
   parseChatUsedListing,
 } from "@/lib/chat-used-listing-share";
-import { parseChatGameShare } from "@/lib/chat-game-share";
+import { stripLegacyGameShareMarker } from "@/lib/chat-legacy-game-share";
 import { parseAtmLetter } from "@/lib/chat-atm-letter";
 import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
 import { TransferLetterCard } from "@/components/messages/transfer-letter-stage";
 import { LetterDonationCard } from "@/components/donations/letter-donation-card";
 import { cn } from "@/lib/utils";
-import {
-  DM_CONTENT_FILTER_WARNING_EN,
-  DM_CONTENT_FILTER_WARNING_KO,
-  filterDmMessageContent,
-} from "@/lib/chat-content-filter";
+import { filterDmMessageContent } from "@/lib/chat-content-filter";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
 
 type Message = ChatMessageView;
@@ -84,7 +83,7 @@ export function ChatRoomClient({
   skipInitialSync?: boolean;
 }) {
   const { locale } = useLocale();
-  const filterWarningCopy = uiText(locale, DM_CONTENT_FILTER_WARNING_KO, DM_CONTENT_FILTER_WARNING_EN);
+  const filterWarningCopy = t("chat.dmContentFilterWarning");
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [replyTarget, setReplyTarget] = useState<Message | null>(null);
@@ -381,28 +380,16 @@ export function ChatRoomClient({
       const msg = e instanceof Error ? e.message : "";
       setError(
         msg.startsWith("SLOW_MODE:")
-          ? uiText(
-              locale,
-              `슬로우 모드: ${msg.split(":")[1]}초 후에 다시 보낼 수 있습니다.`,
-              `Slow mode: try again in ${msg.split(":")[1]}s.`
-            )
+          ? t("chat.slowModeWait", { seconds: msg.split(":")[1] ?? "0" })
           : msg === "CHANNEL_LOCKED"
-            ? uiText(locale, "채널이 잠겨 있어 메시지를 보낼 수 없습니다.", "This channel is locked.")
+            ? t("ui.this_channel_is_locked")
             : msg === "ATTACHMENT_INVALID"
-              ? uiText(
-                  locale,
-                  "첨부 파일을 저장하지 못했습니다. 다시 보내 주세요.",
-                  "Couldn't save attachment. Please try again."
-                )
+              ? t("ui.couldn_t_save_attachment_please_try")
               : msg === "PAID_DM_DISABLED"
-                ? uiText(
-                    locale,
-                    "메시지에서 유료 팬아트 판매는 더 이상 지원하지 않습니다.",
-                    "Paid fan art sales in messages are no longer supported."
-                  )
+                ? t("ui.paid_fan_art_sales_in_messages")
                 : msg === MESSAGE_REQUEST_BLOCKED
                   ? msg
-                  : uiText(locale, "메시지 전송에 실패했습니다.", "Couldn't send message.")
+                  : t("ui.couldn_t_send_message")
       );
     }
   }
@@ -492,9 +479,9 @@ export function ChatRoomClient({
 
   function removeMessage(messageId: string) {
     if (!communityId || !canDeleteMessages || isPendingMessageId(messageId)) return;
-    if (!confirm(uiText(locale, "이 메시지를 삭제할까요?", "Delete this message?"))) return;
+    if (!confirm(t("ui.delete_this_message"))) return;
     void deleteCommunityChatMessage(messageId, communityId).then((res) => {
-      if ("error" in res && res.error) setError(res.error);
+      if ("error" in res && res.error) setError(errorText(res.error));
       else setMessages((prev) => prev.filter((m) => m.id !== messageId));
     });
   }
@@ -509,10 +496,10 @@ export function ChatRoomClient({
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-sm font-medium text-muted-foreground">
-              {uiText(locale, "아직 메시지가 없어요", "No messages yet")}
+              {t("ui.no_messages_yet")}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {uiText(locale, "인사를 건네 보세요 👋", "Say hello 👋")}
+              {t("ui.say_hello")}
             </p>
           </div>
         )}
@@ -538,7 +525,7 @@ export function ChatRoomClient({
           );
           const hasAttachments = visibleAttachments.length > 0;
           const postShare = usedShare || tradeRequestId ? null : parseChatPostShare(m.content);
-          const gameShare = parseChatGameShare(m.content);
+          const legacyGameNote = stripLegacyGameShareMarker(m.content);
           const atmLetter = parseAtmLetter(m.content);
           const letterTipId = atmLetter ? null : parseLetterDonationMarker(m.content);
           const hasText = usedShare
@@ -547,8 +534,8 @@ export function ChatRoomClient({
               ? !!tradeCaption
               : postShare
                 ? !!postShare.note
-                : gameShare
-                  ? !!gameShare.note
+                : legacyGameNote !== null
+                  ? !!legacyGameNote
                   : atmLetter || letterTipId
                     ? false
                     : !!m.content?.trim();
@@ -619,7 +606,7 @@ export function ChatRoomClient({
                         />
                       </div>
                     )}
-                    {!hasAttachments && !hasText && !postShare && !gameShare && !atmLetter && !letterTipId && !usedShare && (
+                    {!hasAttachments && !hasText && !postShare && legacyGameNote === null && !atmLetter && !letterTipId && !usedShare && (
                       <div
                         className={cn(
                           "px-3.5 py-2 text-xs italic rounded-2xl",
@@ -628,7 +615,7 @@ export function ChatRoomClient({
                             : "rounded-bl-md bg-muted text-muted-foreground"
                         )}
                       >
-                        {uiText(locale, "미디어를 불러올 수 없습니다", "Couldn't load media")}
+                        {t("ui.couldn_t_load_media")}
                       </div>
                     )}
                     {hasText && (
@@ -653,32 +640,8 @@ export function ChatRoomClient({
                         {usedShare?.note ??
                           tradeCaption ??
                           postShare?.note ??
-                          gameShare?.note ??
+                          legacyGameNote ??
                           m.content}
-                      </div>
-                    )}
-                    {gameShare && (
-                      <div className={cn(hasText && "mt-1")}>
-                        {m.replyTo && !hasAttachments && !hasText && (
-                          <div
-                            className={cn(
-                              "mb-1.5 px-3 pt-2 pb-1 rounded-2xl",
-                              bubbleHighlightClass(m.id),
-                              isMine
-                                ? "rounded-br-md bg-primary text-primary-foreground"
-                                : "rounded-bl-md bg-background border border-border/60"
-                            )}
-                          >
-                            <ChatMessageReplyQuote
-                              replyTo={m.replyTo}
-                              isMine={isMine}
-                              selfUserId={userId}
-                              selfUsername={username}
-                              onJumpToOriginal={jumpToQuotedMessage}
-                            />
-                          </div>
-                        )}
-                        <ChatGameShareCard share={gameShare} isMine={isMine} />
                       </div>
                     )}
                     {atmLetter ? (
@@ -740,7 +703,7 @@ export function ChatRoomClient({
                         type="button"
                         onClick={() => removeMessage(m.id)}
                         className="h-7 w-7 rounded-md bg-muted/70 hover:bg-destructive/20 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-destructive opacity-80 hover:opacity-100 transition-opacity"
-                        aria-label={uiText(locale, "삭제", "Delete")}
+                        aria-label={t("post.menu.delete")}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -757,7 +720,7 @@ export function ChatRoomClient({
         open={Boolean(contextMenu)}
         x={contextMenu?.x ?? 0}
         y={contextMenu?.y ?? 0}
-        label={uiText(locale, "답장", "Reply")}
+        label={t("ui.reply")}
         onReply={() => {
           if (contextMenu) startReply(contextMenu.message);
         }}
@@ -767,7 +730,6 @@ export function ChatRoomClient({
         <p className="text-xs text-amber-700 dark:text-amber-400 px-4 pb-1 text-center">{filterWarning}</p>
       )}
       {error && <p className="text-xs text-destructive px-4 pb-1 text-center">{error}</p>}
-      <ActivityPanel />
       {!readOnly ? <ChatUsedTradePanel roomId={roomId} readOnly={readOnly} /> : null}
       {!readOnly && (
         <div className="shrink-0 border-t border-border/60 bg-background">
@@ -792,16 +754,8 @@ export function ChatRoomClient({
           {readOnlyHint
             ? readOnlyHint
             : userId === "guest"
-              ? uiText(
-                  locale,
-                  "게스트 읽기 전용입니다. 로그인 후 커뮤니티에 참여하면 채팅을 보낼 수 있습니다.",
-                  "Read-only as guest. Sign in and join the community to chat."
-                )
-              : uiText(
-                  locale,
-                  "읽기 전용 모드입니다. 상단에서 커뮤니티에 참여하면 채팅을 보낼 수 있습니다.",
-                  "Read-only. Join the community from the header to chat."
-                )}
+              ? t("ui.read_only_as_guest_sign_in")
+              : t("ui.read_only_join_the_community_from")}
         </div>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const receiverId = body.receiverId?.trim() ?? "";
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   const moco = typeof body.moco === "number" ? body.moco : Number.parseInt(String(body.moco ?? ""), 10);
 
   if (!receiverId || !roomId) {
-    return NextResponse.json({ error: "받는 사람과 대화방이 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
   if (!Number.isInteger(moco) || moco < LETTER_DONATION_MIN_MOCO) {
     return NextResponse.json(
@@ -53,14 +54,14 @@ export async function POST(req: NextRequest) {
     if (result.error === "INSUFFICIENT_MOCO_BALANCE") {
       const balance = await getUserGemBalance(auth.user.id);
       return NextResponse.json(
-        { error: "MOCO 잔액이 부족합니다. 지갑에서 충전해 주세요.", balance },
+        { error: "Insufficient MOCO. Top up in your wallet.", balance },
         { status: 400 }
       );
     }
     if ("code" in result && result.code === "STRIPE_ACCOUNT_NOT_READY") {
       return NextResponse.json(stripeAccountNotReadyPayload(), { status: 422 });
     }
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({

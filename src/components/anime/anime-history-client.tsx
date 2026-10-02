@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { restoreAnimeRevision } from "@/actions/anime";
@@ -36,7 +41,7 @@ export function AnimeHistoryClient({
     const res = await restoreAnimeRevision(id);
     setBusy(null);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     router.push(`/anime/${slug}`);
@@ -44,12 +49,12 @@ export function AnimeHistoryClient({
   }
 
   if (entries.length === 0) {
-    return <p className="text-sm text-muted-foreground">수정 기록이 없습니다.</p>;
+    return <p className="text-sm text-muted-foreground">{t("anime.s3wqsh3")}</p>;
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">시간 순 · 유저 아이디 · 날짜</p>
+      <p className="text-xs text-muted-foreground">{t("anime.s1xil4yk")}</p>
       <ol className="space-y-2">
         {entries.map((r, index) => (
           <li
@@ -62,12 +67,12 @@ export function AnimeHistoryClient({
                 <span className="font-mono">@{r.username}</span>
               </p>
               <p className="text-xs text-muted-foreground tabular-nums">{formatStamp(r.createdAt)}</p>
-              <p className="text-xs text-muted-foreground">{r.summary || "내용 수정"}</p>
+              <p className="text-xs text-muted-foreground">{r.summary || t("anime.s5ogtc8")}</p>
             </div>
             {r.restorable ? (
               <InlineConfirm
-                message="이 버전으로 문서를 복구할까요?"
-                confirmLabel="복구"
+                message={t("anime.s1kj85fu")}
+                confirmLabel={t("lib.moderation.sanctions.s278e353472")}
                 pending={busy === r.id}
                 onConfirm={() => restore(r.id)}
                 renderTrigger={(open) => (
@@ -79,7 +84,7 @@ export function AnimeHistoryClient({
                     disabled={busy === r.id}
                     onClick={open}
                   >
-                    {busy === r.id ? "복구 중…" : "이 버전으로 복구"}
+                    {busy === r.id ? t("anime.s1eeq5zy") : t("anime.sn34163")}
                   </Button>
                 )}
               />

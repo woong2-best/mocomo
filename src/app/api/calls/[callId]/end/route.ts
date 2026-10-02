@@ -22,7 +22,7 @@ export async function POST(
   const { callId } = await ctx.params;
   const result = await endVoiceCallForParticipant(user.id, callId);
   if (!result.ok) {
-    const error = result.status === 404 ? "통화를 찾을 수 없습니다." : "권한이 없습니다.";
+    const error = result.status === 404 ? "Call not found." : "Permission denied.";
     return NextResponse.json({ error }, { status: result.status });
   }
   return NextResponse.json({ ok: true });

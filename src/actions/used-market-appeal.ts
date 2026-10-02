@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { AppealStatus } from "@prisma/client";
@@ -19,7 +22,7 @@ const appealSchema = z.object({
 
 export async function getUsedMarketAppealContext() {
   const session = await auth();
-  if (!session?.user?.id) return { error: "로그인이 필요합니다." as const };
+  if (!session?.user?.id) return { error: "common.error.authRequired" as const };
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
@@ -30,9 +33,9 @@ export async function getUsedMarketAppealContext() {
       usedMarketBanListingId: true,
     },
   });
-  if (!user) return { error: "사용자를 찾을 수 없습니다." as const };
+  if (!user) return { error: "actions.svypth4" as const };
   if (!isUsedMarketBanned(user)) {
-    return { error: "현재 중고거래 이용 제한 상태가 아닙니다." as const };
+    return { error: "actions.s444f0c" as const };
   }
 
   const listing = user.usedMarketBanListingId
@@ -73,7 +76,7 @@ export async function getUsedMarketAppealContext() {
 export async function submitUsedMarketAppeal(data: z.infer<typeof appealSchema>) {
   const user = await requireAuth();
   const parsed = appealSchema.safeParse(data);
-  if (!parsed.success) return { error: "입력값을 확인해 주세요." };
+  if (!parsed.success) return { error: "actions.slqeo1f" };
 
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
@@ -83,7 +86,7 @@ export async function submitUsedMarketAppeal(data: z.infer<typeof appealSchema>)
     },
   });
   if (!dbUser || !isUsedMarketBanned(dbUser)) {
-    return { error: "현재 중고거래 이용 제한 상태가 아닙니다." };
+    return { error: "actions.s444f0c" };
   }
 
   const existing = await db.usedMarketAppeal.findFirst({
@@ -92,7 +95,7 @@ export async function submitUsedMarketAppeal(data: z.infer<typeof appealSchema>)
       status: { in: OPEN_APPEAL_STATUSES },
     },
   });
-  if (existing) return { error: "이미 검토 중인 이의 신청이 있습니다." };
+  if (existing) return { error: "actions.s1acx4hx" };
 
   const latestSanction = await db.usedMarketSanctionLog.findFirst({
     where: { userId: user.id },
@@ -106,7 +109,7 @@ export async function submitUsedMarketAppeal(data: z.infer<typeof appealSchema>)
       USED_MARKET_APPEAL_WINDOW_DAYS * 24 * 60 * 60 * 1000;
     if (Date.now() > deadline) {
       return {
-        error: `이의 신청 기한(${USED_MARKET_APPEAL_WINDOW_DAYS}일)이 지났습니다. support@mocomo.net 으로 문의해 주세요.`,
+        error: t("actions.support_mocomo_net", { v0: USED_MARKET_APPEAL_WINDOW_DAYS }),
       };
     }
   }
@@ -125,8 +128,8 @@ export async function submitUsedMarketAppeal(data: z.infer<typeof appealSchema>)
   await createNotification({
     userId: user.id,
     type: "SYSTEM",
-    title: "중고거래 이의 신청 접수",
-    body: "이의 신청이 정상적으로 접수되었습니다. 검토 결과를 알려드리겠습니다.",
+    title: "actions.shcot3b",
+    body: "actions.s1f6t8vl",
     link: "/market/appeal",
   });
 

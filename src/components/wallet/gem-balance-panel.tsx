@@ -1,5 +1,10 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
@@ -23,7 +28,6 @@ import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 type GemPurchaseRow = {
   id: string;
@@ -135,16 +139,15 @@ export function GemBalancePanel({
   onPaymentResult,
   onPaymentProcessing,
 }: Props) {
-  const { locale } = useLocale();
-  const u = (ko: string, en: string) => uiText(locale, ko, en);
-  const termsErrorMsg = u("충전 전 약관에 동의해 주세요.", "Please accept the terms before topping up.");
+  const { locale, t } = useLocale();
+  const termsErrorMsg = t("wallet.topup.acceptTerms");
   const router = useRouter();
   const { registerInsertHandler } = useWalletPay();
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
   const [statusLine, setStatusLine] = useState(() =>
-    u("충전할 MOCO 수량을 입력해 주세요.", "Enter how many MOCO to buy.")
+    t("wallet.topup.enterAmount")
   );
   const [awaitingInsert, setAwaitingInsert] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -177,12 +180,12 @@ export function GemBalancePanel({
   const handle3ds = useCallback(
     async (secret: string, orderId: string) => {
       if (!stripePromise) {
-        setError(u("Stripe를 불러오지 못했습니다.", "Couldn't load Stripe."));
+        setError(t("wallet.topup.stripeLoadFailed"));
         return;
       }
       const stripe = await stripePromise;
       if (!stripe) {
-        setError(u("Stripe를 불러오지 못했습니다.", "Couldn't load Stripe."));
+        setError(t("wallet.topup.stripeLoadFailed"));
         return;
       }
       const returnUrl = stripePaymentIntentReturnUrlClient(orderId, "/wallet");
@@ -190,28 +193,28 @@ export function GemBalancePanel({
         return_url: returnUrl,
       });
       if (confirmError) {
-        setError(confirmError.message ?? u("카드 인증에 실패했습니다.", "Card verification failed."));
-        setStatusLine(confirmError.message ?? u("카드 인증에 실패했습니다.", "Card verification failed."));
+        setError(confirmError.message ?? t("wallet.topup.cardAuthFailed"));
+        setStatusLine(confirmError.message ?? t("wallet.topup.cardAuthFailed"));
         onPaymentResult?.("failure");
         return;
       }
       if (paymentIntent?.status !== "succeeded") {
-        setError(u("결제가 완료되지 않았습니다.", "Payment wasn't completed."));
-        setStatusLine(u("결제가 완료되지 않았습니다.", "Payment wasn't completed."));
+        setError(t("wallet.topup.paymentIncomplete"));
+        setStatusLine(t("wallet.topup.paymentIncomplete"));
         onPaymentResult?.("failure");
         return;
       }
       const done = await confirmCheckoutPayment(orderId);
       if ("error" in done && done.error) {
-        setError(done.error);
-        setStatusLine(done.error);
+        setError(errorText(done.error));
+        setStatusLine(errorText(done.error));
         onPaymentResult?.("failure");
         return;
       }
       if ("success" in done && done.success) {
         setAmount("");
         setAwaitingInsert(false);
-        setStatusLine(u("충전이 완료되었습니다.", "Top-up complete."));
+        setStatusLine(t("wallet.topup.complete"));
         onPaymentResult?.("success");
         router.refresh();
       }
@@ -222,38 +225,33 @@ export function GemBalancePanel({
   const runTopup = useCallback(() => {
     if (!termsAccepted) {
       setError(termsErrorMsg);
-      setStatusLine(u("약관에 동의한 뒤 다시 시도해 주세요.", "Accept the terms and try again."));
+      setStatusLine(t("wallet.topup.acceptTermsRetry"));
       onPaymentResult?.("failure");
       return;
     }
     const moco = parseMocoTopupCount(amount);
     if (moco == null || moco < minTopupMoco) {
-      setError(
-        u(
-          `최소 ${minTopupMoco} MOCO부터 충전할 수 있습니다.`,
-          `Minimum top-up is ${minTopupMoco} MOCO.`
-        )
-      );
-      setStatusLine(u("1 MOCO 이상 입력해 주세요.", "Enter at least 1 MOCO."));
+      setError(t("wallet.topup.minAmount", { min: String(minTopupMoco) }));
+      setStatusLine(t("wallet.topup.minOneMoco"));
       onPaymentResult?.("failure");
       return;
     }
     if (!defaultCard) {
       setError(
-        u("등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.", "No saved card. Add one below.")
+        t("wallet.topup.noSavedCardHint")
       );
-      setStatusLine(u("등록된 카드가 없습니다.", "No saved card."));
+      setStatusLine(t("wallet.topup.noSavedCard"));
       onPaymentResult?.("failure");
       return;
     }
     setError("");
-    setStatusLine(u("등록된 카드로 결제 중…", "Paying with saved card…"));
+    setStatusLine(t("wallet.topup.payingSavedCard"));
     onPaymentProcessing?.();
     startTransition(async () => {
       const res = await payGemTopupWithSavedCard(moco, defaultCard.id, true);
       if ("error" in res && res.error) {
-        setError(res.error);
-        setStatusLine(res.error);
+        setError(errorText(res.error));
+        setStatusLine(errorText(res.error));
         onPaymentResult?.("failure");
         return;
       }
@@ -264,13 +262,13 @@ export function GemBalancePanel({
       if ("success" in res && res.success) {
         setAmount("");
         setAwaitingInsert(false);
-        setStatusLine(u("충전이 완료되었습니다.", "Top-up complete."));
+        setStatusLine(t("wallet.topup.complete"));
         onPaymentResult?.("success");
         router.refresh();
         return;
       }
-      setError(u("결제에 실패했습니다. 다시 시도해 주세요.", "Payment failed. Try again."));
-      setStatusLine(u("결제에 실패했습니다.", "Payment failed."));
+      setError(t("wallet.topup.paymentFailed"));
+      setStatusLine(t("wallet.topup.paymentFailShort"));
       onPaymentResult?.("failure");
     });
   }, [
@@ -287,12 +285,7 @@ export function GemBalancePanel({
   useEffect(() => {
     registerInsertHandler(() => {
       if (!awaitingInsert) {
-        setStatusLine(
-          u(
-            "먼저 ATM [확인]을 누른 뒤 카드를 리더기에 넣어 주세요.",
-            "Press ATM [OK], then insert your card."
-          )
-        );
+        setStatusLine(t("wallet.topup.atmInsertCard"));
         return;
       }
       runTopup();
@@ -308,7 +301,7 @@ export function GemBalancePanel({
     setAmount(normalized);
     setAwaitingInsert(false);
     if (error) setError("");
-    setStatusLine(u("수량을 확인한 뒤 [확인]을 눌러 주세요.", "Confirm amount, then press [OK]."));
+    setStatusLine(t("wallet.topup.confirmAmount"));
   }
 
   function backspace() {
@@ -316,41 +309,31 @@ export function GemBalancePanel({
     setAmount(amount.slice(0, -1));
     setAwaitingInsert(false);
     if (error) setError("");
-    setStatusLine(u("충전할 MOCO 수량을 입력해 주세요.", "Enter how many MOCO to buy."));
+    setStatusLine(t("wallet.topup.enterAmount"));
   }
 
   function confirmAmountForCardInsert() {
     if (!termsAccepted) {
       setError(termsErrorMsg);
-      setStatusLine(u("약관에 동의한 뒤 다시 시도해 주세요.", "Accept the terms and try again."));
+      setStatusLine(t("wallet.topup.acceptTermsRetry"));
       return;
     }
     const moco = parseMocoTopupCount(amount);
     if (moco == null || moco < minTopupMoco) {
-      setError(
-        u(
-          `최소 ${minTopupMoco} MOCO부터 충전할 수 있습니다.`,
-          `Minimum top-up is ${minTopupMoco} MOCO.`
-        )
-      );
-      setStatusLine(u("1 MOCO 이상 입력해 주세요.", "Enter at least 1 MOCO."));
+      setError(t("wallet.topup.minAmount", { min: String(minTopupMoco) }));
+      setStatusLine(t("wallet.topup.minOneMoco"));
       return;
     }
     if (!defaultCard) {
       setError(
-        u("등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.", "No saved card. Add one below.")
+        t("wallet.topup.noSavedCardHint")
       );
-      setStatusLine(u("등록된 카드가 없습니다.", "No saved card."));
+      setStatusLine(t("wallet.topup.noSavedCard"));
       return;
     }
     setError("");
     setAwaitingInsert(true);
-    setStatusLine(
-      u(
-        "카드를 선택한 뒤 리더기 슬롯 방향으로 밀어 넣어 주세요.",
-        "Select a card, then insert it into the reader."
-      )
-    );
+    setStatusLine(t("wallet.topup.swipeCard"));
   }
 
   return (
@@ -405,15 +388,15 @@ export function GemBalancePanel({
                   )}
                 >
                   {atmOverlay === "success"
-                    ? u("결제 완료", "Payment complete")
-                    : u("결제 실패", "Payment failed")}
+                    ? t("wallet.topup.paymentSuccess")
+                    : t("wallet.topup.paymentFailShort")}
                 </p>
               </motion.div>
             ) : null}
           </AnimatePresence>
           <MocoEarthTransferHero userImageUrl={userImageUrl} transferActive={pending}>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">
-              {u("현재 잔액", "Current balance")}
+              {t("wallet.topup.currentBalance")}
             </p>
             <p className="mt-0.5 font-mono text-xl font-bold tabular-nums text-neutral-900">
               {formatMocoDisplay(balance)}
@@ -431,17 +414,17 @@ export function GemBalancePanel({
             {feeBreakdown ? (
               <dl className="mt-3 space-y-1 text-[11px] text-neutral-600">
                 <div className="flex justify-between gap-2">
-                  <dt>{u("MOCO 상품 가격", "MOCO price")}</dt>
+                  <dt>{t("wallet.topup.mocoPrice")}</dt>
                   <dd className="font-mono font-semibold tabular-nums">{formatUsdCents(feeBreakdown.basePriceCents)}</dd>
                 </div>
                 <div className="flex justify-between gap-2">
-                  <dt>{u("결제 대행 수수료 (PG 실비)", "Payment processing fee")}</dt>
+                  <dt>{t("wallet.topup.pgFee")}</dt>
                   <dd className="font-mono font-semibold tabular-nums text-neutral-800">
                     +{formatUsdCents(feeBreakdown.pgFeeCents)}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-2 border-t border-neutral-200 pt-1 text-neutral-900">
-                  <dt className="font-bold">{u("최종 결제 금액", "Total charge")}</dt>
+                  <dt className="font-bold">{t("wallet.topup.totalCharge")}</dt>
                   <dd className="font-mono text-sm font-black tabular-nums">
                     {formatUsdCents(feeBreakdown.usdCents)}
                   </dd>
@@ -449,25 +432,22 @@ export function GemBalancePanel({
               </dl>
             ) : (
               <p className="mt-2 text-[11px] text-neutral-500">
-                {u("1 단위 정수 · 최소", "Whole units · min")} {minTopupMoco} MOCO
+                {t("wallet.topup.wholeUnitsMin")} {minTopupMoco} MOCO
               </p>
             )}
             {bulkSaveCents > 0 ? (
               <p className="mt-2 rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800">
-                {u(
-                  `10개 묶음 구매 시 PG 고정 수수료 절약 약 ${formatUsdCents(bulkSaveCents)}`,
-                  `Save ~${formatUsdCents(bulkSaveCents)} on fees when buying 10 at once`
-                )}
+                {t("wallet.topup.bulkSaveHint", { amount: formatUsdCents(bulkSaveCents) })}
               </p>
             ) : null}
             {defaultCard ? (
               <p className="mt-2 text-[11px] text-neutral-500">
-                {u("결제 카드", "Card")} · {defaultCard.brand.toUpperCase()} ···{defaultCard.last4}
-                {defaultCard.isDefault ? u(" (기본)", " (default)") : ""}
+                {t("wallet.topup.cardLabel")} · {defaultCard.brand.toUpperCase()} ···{defaultCard.last4}
+                {defaultCard.isDefault ? t("wallet.topup.cardDefault") : ""}
               </p>
             ) : (
               <p className="mt-2 text-[11px] text-amber-700">
-                {u("등록된 카드가 없습니다. 아래에서 카드를 추가해 주세요.", "No saved card. Add one below.")}
+                {t("wallet.topup.noSavedCardHint")}
               </p>
             )}
           </MocoEarthTransferHero>
@@ -479,7 +459,7 @@ export function GemBalancePanel({
             {pending ? (
               <span className="inline-flex items-center gap-2">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                {u("결제 화면으로 이동 중…", "Opening payment…")}
+                {t("wallet.topup.openingPayment")}
               </span>
             ) : (
               statusLine
@@ -490,10 +470,10 @@ export function GemBalancePanel({
         {lowBalanceNotice ? (
           <div className="mx-4 mt-3 rounded-md border border-amber-500/35 bg-amber-500/10 px-3 py-2">
             <p className="text-sm font-semibold text-amber-200">
-              {u("MOCO 잔액이 부족합니다", "Low MOCO balance")}
+              {t("wallet.topup.lowBalance")}
             </p>
             <p className="mt-0.5 text-xs text-amber-200/70">
-              {u("키패드로 충전 수량을 입력해 주세요.", "Enter a top-up amount on the keypad.")}
+              {t("wallet.topup.keypadHint")}
             </p>
           </div>
         ) : null}
@@ -505,7 +485,7 @@ export function GemBalancePanel({
             <AtmNumKey label="2" disabled={pending} onPress={() => appendDigit("2")} className="col-start-2 row-start-1" />
             <AtmNumKey label="3" disabled={pending} onPress={() => appendDigit("3")} className="col-start-3 row-start-1" />
             <AtmActionKey
-              label={u("지우기", "Clear")}
+              label={t("wallet.topup.clear")}
               subLabel="←"
               tone="clear"
               disabled={pending || !amount}
@@ -521,7 +501,7 @@ export function GemBalancePanel({
             <AtmNumKey label="8" disabled={pending} onPress={() => appendDigit("8")} className="col-start-2 row-start-3" />
             <AtmNumKey label="9" disabled={pending} onPress={() => appendDigit("9")} className="col-start-3 row-start-3" />
             <AtmActionKey
-              label={u("확인", "OK")}
+              label={t("wallet.topup.ok")}
               subLabel="OK"
               tone="confirm"
               disabled={
@@ -553,7 +533,7 @@ export function GemBalancePanel({
                 setTermsAccepted(e.target.checked);
                 if (e.target.checked && error === termsErrorMsg) {
                   setError("");
-                  setStatusLine(u("수량을 확인한 뒤 [확인]을 눌러 주세요.", "Confirm amount, then press [OK]."));
+                  setStatusLine(t("wallet.topup.confirmAmount"));
                 }
               }}
               className="mt-0.5 accent-emerald-500"
@@ -565,13 +545,13 @@ export function GemBalancePanel({
             href="/contribution-tower"
             className="block text-center text-[11px] font-bold text-emerald-400/90 underline"
           >
-            {u("기여 탑 보러가기", "View contribution tower")}
+            {t("wallet.viewContributionTower")}
           </a>
 
           {purchases.length > 0 ? (
             <div className="space-y-2 border-t border-slate-700/50 pt-3">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                {u("충전 내역", "Top-up history")}
+                {t("wallet.topup.history")}
               </p>
               <ul className="max-h-36 space-y-1.5 overflow-y-auto">
                 {purchases.map((p) => (
@@ -581,11 +561,11 @@ export function GemBalancePanel({
                   >
                     <p className="font-mono font-semibold tabular-nums text-slate-200">
                       {formatMocoDisplay(p.gems)}
-                      {p.remainingGems < p.gems ? u(" · 일부 사용", " · partially used") : ""}
+                      {p.remainingGems < p.gems ? t("wallet.topup.partiallyUsed") : ""}
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      {new Date(p.createdAt).toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US")} ·{" "}
-                      {u("잔여", "left")}{" "}
+                      {new Date(p.createdAt).toLocaleDateString("en-US")} ·{" "}
+                      {t("wallet.topup.remaining")}{" "}
                       {formatMocoDisplay(p.remainingGems)}
                     </p>
                   </li>

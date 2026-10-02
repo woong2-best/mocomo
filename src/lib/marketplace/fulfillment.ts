@@ -29,7 +29,7 @@ export async function fulfillMarketplaceOrder(params: {
       buyer: { select: { id: true, username: true, email: true } },
     },
   });
-  if (!order) return { error: "주문을 찾을 수 없습니다." };
+  if (!order) return { error: "Order not found." };
   if (order.status !== "AWAITING_PAYMENT" && order.status !== "ADMIN_REVIEW") {
     if (["PAID", "PREPARING", "SHIPPED", "DELIVERED", "CONFIRMED", "SETTLED"].includes(order.status)) {
       return { ok: true as const, alreadyPaid: true };
@@ -66,7 +66,7 @@ export async function fulfillMarketplaceOrder(params: {
       },
     });
     if (updated.count === 0) {
-      return { error: "재고가 부족하여 주문을 확정할 수 없습니다." };
+      return { error: "Not found." };
     }
     const listing = await db.marketplaceListing.findUnique({
       where: { id: item.listingId },
@@ -185,12 +185,12 @@ export async function fulfillMarketplaceOrder(params: {
   await createNotification({
     userId: order.buyerId,
     type: "SYSTEM",
-    title: "결제가 완료되었습니다",
+    title: "Done.",
     body: holdForReview
       ? "안전 검토 후 주문 처리가 이어집니다."
       : order.usedListingId
         ? "주문 내역에서 배송·추적을 확인하세요. 배송 완료 후 72시간 뒤 자동 구매확정됩니다."
-        : "주문 내역에서 배송·다운로드를 확인하세요. 구매 확정 전까지 결제 승인(보류) 상태입니다.",
+        : "Your order has shipped",
     link: `/market/orders/${order.id}`,
   });
 
@@ -240,7 +240,7 @@ export async function autoConfirmMarketplaceOrdersBatch() {
       userId: row.buyerId,
       type: "SYSTEM",
       title: "구매가 자동 확정되었습니다",
-      body: `배송 완료 후 ${MARKETPLACE_DISPUTE_WINDOW_HOURS}시간이 지나 자동 구매확정되었습니다.`,
+      body: `Done. ${MARKETPLACE_DISPUTE_WINDOW_HOURS}시간이 지나 자동 구매확정되었습니다.`,
       link: `/market/orders/${row.id}`,
     });
     confirmed += 1;

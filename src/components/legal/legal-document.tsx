@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import type { LegalDocument } from "@/lib/legal-content";
 import { LEGAL_CONTACT_EMAIL, LEGAL_PAGES } from "@/lib/legal-content";
+import { createTranslator } from "@/lib/i18n/messages";
+
+const t = createTranslator("en");
 
 function renderBlock(block: LegalDocument["blocks"][number], key: number) {
   switch (block.type) {
@@ -100,9 +105,14 @@ export function LegalDocumentView({
 
   return (
     <article className="max-w-3xl mx-auto">
+      <p className="mb-6 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        {t("legal.englishOnlyBanner")}
+      </p>
       <header className="mb-8">
         <h1 className="text-2xl font-bold">{document.title}</h1>
-        <p className="text-sm text-muted-foreground mt-2">최종 업데이트: {document.updatedAt}</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          {t("legal.lastUpdated", { date: document.updatedAt })}
+        </p>
         {document.intro && (
           <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{document.intro}</p>
         )}
@@ -111,7 +121,7 @@ export function LegalDocumentView({
       <div>{blocks.map((block, i) => renderBlock(block, i))}</div>
 
       <footer className="mt-12 pt-6 border-t border-border">
-        <p className="text-xs text-muted-foreground mb-3">관련 문서</p>
+        <p className="text-xs text-muted-foreground mb-3">{t("legal.relatedDocs")}</p>
         <div className="flex flex-wrap gap-3 text-sm">
           {LEGAL_PAGES.filter((p) => p.doc.slug !== document.slug).map((p) => (
             <Link key={p.href} href={p.href} className="text-primary hover:underline">

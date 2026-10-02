@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +17,7 @@ export function CouponRedeemForm() {
   return (
     <div className="flex flex-wrap items-end gap-2 rounded-xl border border-border p-3">
       <div className="flex-1 min-w-[12rem]">
-        <label className="text-xs text-muted-foreground">쿠폰 코드</label>
+        <label className="text-xs text-muted-foreground">{t("coupon.s1m7fg2g")}</label>
         <Input
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -34,16 +37,16 @@ export function CouponRedeemForm() {
               body: JSON.stringify({ code }),
             });
             const data = await res.json();
-            if (!res.ok) setMsg(data.error || "등록 실패");
+            if (!res.ok) setMsg(data.error || t("coupon.skg4s7s"));
             else {
-              setMsg("쿠폰이 등록되었습니다.");
+              setMsg(t("coupon.satjfw5"));
               setCode("");
               router.refresh();
             }
           })
         }
       >
-        등록
+        {t("events.svsek")}
       </Button>
       {msg ? <p className="w-full text-sm text-muted-foreground">{msg}</p> : null}
     </div>

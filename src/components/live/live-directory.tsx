@@ -1,5 +1,9 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { memo } from "react";
 import { Eye, Radio, Sparkles, User, Video, MessageSquare, Shield } from "lucide-react";
@@ -22,13 +26,14 @@ export type LiveHost = {
 };
 
 const FEATURES = [
-  { icon: Video, label: "HD 송출" },
-  { icon: MessageSquare, label: "실시간 채팅" },
-  { icon: Shield, label: "합방 비밀번호" },
-  { icon: Eye, label: "실제 시청자 수" },
+  { icon: Video, label: t("live.s15rbun") },
+  { icon: MessageSquare, label: t("live.feature.chat") },
+  { icon: Shield, label: t("live.s1dcrmek") },
+  { icon: Eye, label: t("live.s90ujhr") },
 ];
 
 function LiveCard({ ch, host }: { ch: LiveChannelCard; host?: LiveHost }) {
+  const { t } = useLocale();
   return (
     <Link href={`/voice/${ch.id}`} prefetch={false} className="live-card group">
       <div className="live-card-thumb">
@@ -97,7 +102,7 @@ export function LiveDirectory({
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
                 <Radio className="h-5 w-5" />
               </span>
-              라이브
+              {t("home.featureLive")}
             </h1>
             <div className="flex flex-wrap gap-2">
               {FEATURES.map(({ icon: Icon, label }) => (
@@ -119,11 +124,11 @@ export function LiveDirectory({
         {channels.length > 0 && (
           <div className="flex flex-wrap gap-4 text-sm">
             <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-              <p className="text-xs text-muted-foreground">지금 방송</p>
+              <p className="text-xs text-muted-foreground">{t("live.onAir")}</p>
               <p className="text-xl font-bold tabular-nums">{channels.length}</p>
             </div>
             <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-              <p className="text-xs text-muted-foreground">총 시청자</p>
+              <p className="text-xs text-muted-foreground">{t("live.totalViewers")}</p>
               <p className="text-xl font-bold tabular-nums text-folk-terracotta dark:text-folk-terracotta">
                 {totalViewers}
               </p>
@@ -134,14 +139,14 @@ export function LiveDirectory({
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
-            지금 방송 중 · {channels.length}
+            {t("live.directory.liveNow", { count: String(channels.length) })}
           </h2>
           {channels.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card/50 py-20 text-center space-y-4">
               <Sparkles className="h-12 w-12 mx-auto text-muted-foreground/60" />
-              <p className="text-muted-foreground font-medium">진행 중인 라이브가 없습니다.</p>
+              <p className="text-muted-foreground font-medium">{t("live.sxt8i5p")}</p>
               <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                방송을 시작하면 시청자가 입장할 때 여기에 표시됩니다. 빈 방·데모 목록은 표시하지 않습니다.
+                {t("live.sa6ks7u")}
               </p>
               <LivePageActions variant="empty" />
             </div>

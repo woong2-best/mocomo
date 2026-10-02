@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -88,8 +91,8 @@ export default function EmbedPaidVideoClient({ params }: Props) {
           ) : (
             <p className="px-6 text-center text-sm text-white/70">
               {canvasFailed
-                ? "워터마크 적용에 실패했습니다. 다시 시도해 주세요."
-                : "불러오는 중…"}
+                ? i18n("app.embed.s1ogpbyb")
+                : i18n("common.loading")}
             </p>
           )}
         </div>

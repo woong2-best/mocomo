@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useRef, useState, type RefObject } from "react";
 import { StudioPanel, StudioSection, studioChipSm } from "@/components/avatar/studio-controls";
 import { Button } from "@/components/ui/button";
@@ -8,9 +11,9 @@ import type { VirtualAvatar3DScene } from "@/lib/virtual-avatar/avatar-3d-scene"
 import type { PaintZone } from "@/lib/virtual-avatar/types";
 
 const ZONES: { id: PaintZone; label: string }[] = [
-  { id: "face", label: "얼굴" },
-  { id: "body", label: "바디" },
-  { id: "all", label: "전체" },
+  { id: "face", label: t("avatar.syl2w") },
+  { id: "body", label: t("avatar.swzgg") },
+  { id: "all", label: t("lib.live.categories.s934dd25ec5") },
 ];
 
 export function AvatarTexturePaintPanel({
@@ -75,8 +78,8 @@ export function AvatarTexturePaintPanel({
   };
 
   return (
-    <StudioPanel title="텍스처 · 스컬pt" className="shrink-0">
-      <StudioSection title="모드">
+    <StudioPanel title={t("avatar.s15y69ec")} className="shrink-0">
+      <StudioSection title={t("avatar.swqpg")}>
         <div className="grid grid-cols-2 gap-1.5 mb-2">
           <button
             type="button"
@@ -87,7 +90,7 @@ export function AvatarTexturePaintPanel({
             }}
             className={studioChipSm(mode === "paint" && config.paint.enabled, "py-1.5 text-[10px]")}
           >
-            UV 페인트
+            {t("avatar.s16gnffd")}
           </button>
           <button
             type="button"
@@ -98,14 +101,14 @@ export function AvatarTexturePaintPanel({
             }}
             className={studioChipSm(mode === "sculpt" && config.sculpt.enabled, "py-1.5 text-[10px]")}
           >
-            메시 스컬pt
+            {t("avatar.s10gyep0")}
           </button>
         </div>
       </StudioSection>
 
       {config.paint.enabled && (
         <>
-          <StudioSection title="페인트 존">
+          <StudioSection title={t("avatar.sz0obw")}>
             <div className="flex flex-wrap gap-1.5">
               {ZONES.map((z) => (
                 <button
@@ -119,7 +122,7 @@ export function AvatarTexturePaintPanel({
               ))}
             </div>
           </StudioSection>
-          <StudioSection title="브러시">
+          <StudioSection title={t("lib.media-editor.ssqgsc")}>
             <label className="text-[10px] text-muted-foreground block mb-1">
               크기 {config.paint.brushSize}
             </label>
@@ -142,7 +145,7 @@ export function AvatarTexturePaintPanel({
       )}
 
       {config.sculpt.enabled && (
-        <StudioSection title="스컬pt 강도">
+        <StudioSection title={t("avatar.sydfcir")}>
           <input
             type="range"
             min={4}
@@ -151,11 +154,11 @@ export function AvatarTexturePaintPanel({
             onChange={(e) => setSculpt({ brushStrength: Number(e.target.value) / 1000 })}
             className="w-full accent-folk-cobalt"
           />
-          <p className="text-[9px] text-muted-foreground mt-1">캔버스 클릭 → 3D 얼굴 메시 변형</p>
+          <p className="text-[9px] text-muted-foreground mt-1">{t("avatar.s1ja8ej")}</p>
         </StudioSection>
       )}
 
-      <StudioSection title="미니 캔버스">
+      <StudioSection title={t("avatar.s179u50k")}>
         <canvas
           ref={canvasRef}
           width={256}
@@ -168,10 +171,10 @@ export function AvatarTexturePaintPanel({
         />
         <div className="grid grid-cols-2 gap-1.5 mt-2">
           <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] rounded-xl" onClick={clearPaint}>
-            페인트 지우기
+            {t("avatar.sbfqcxk")}
           </Button>
           <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] rounded-xl" onClick={clearSculpt}>
-            스컬pt 초기화
+            {t("avatar.s8cxco")}
           </Button>
         </div>
       </StudioSection>

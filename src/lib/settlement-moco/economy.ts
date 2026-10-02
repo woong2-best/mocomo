@@ -129,7 +129,7 @@ export async function debitSettlementMocoForReward(input: {
         bucket: "SETTLEMENT_MOCO",
         delta: -deduct,
         balanceAfter: updated.settlementMocoPoints,
-        reason: "월간 정산 등급 차감",
+        reason: "Monthly settlement tier deduction",
         referenceType: "reward_payout_batch",
         referenceId: input.batchId,
       },

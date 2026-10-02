@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateContactAudience } from "@/actions/contact-audience";
@@ -58,7 +63,7 @@ export function MessageContactSettingsForm({ initial }: { initial: Settings }) {
     const result = await updateContactAudience({ messageRequestAudience: next });
     setLoading(null);
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     if ("settings" in result && result.settings) setSettings(result.settings);
@@ -72,7 +77,7 @@ export function MessageContactSettingsForm({ initial }: { initial: Settings }) {
     const result = await updateContactAudience({ callRequestAudience: next });
     setLoading(null);
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(errorText(result.error));
       return;
     }
     if ("settings" in result && result.settings) setSettings(result.settings);
@@ -83,20 +88,20 @@ export function MessageContactSettingsForm({ initial }: { initial: Settings }) {
     <div className="space-y-8">
       <section className="space-y-3" role="radiogroup" aria-label="Allow message requests from">
         <div>
-          <h2 className="font-semibold">메시지 요청 허용 범위</h2>
+          <h2 className="font-semibold">{t("settings.s2jg0c0")}</h2>
           <p className="text-sm text-muted-foreground mt-1">Allow message requests from</p>
         </div>
         <Choice
           selected={settings.messageRequestAudience === "EVERYONE"}
-          title="Everyone (모든 사람)"
-          description="누구나 나에게 새 메시지를 보낼 수 있습니다."
+          title={t("settings.everyone")}
+          description={t("settings.s1fhrtf1")}
           disabled={loading !== null}
           onSelect={() => void selectMessage("EVERYONE")}
         />
         <Choice
           selected={settings.messageRequestAudience === "FOLLOWING_ONLY"}
-          title="No one (내가 팔로우하는 사람만)"
-          description="내가 팔로우한 사람만 새 DM을 시작할 수 있습니다. 상대가 나를 팔로우해도, 내가 팔로우하지 않았다면 보낼 수 없습니다."
+          title={t("settings.no_one")}
+          description={t("settings.sowcrg1")}
           disabled={loading !== null}
           onSelect={() => void selectMessage("FOLLOWING_ONLY")}
         />
@@ -104,22 +109,22 @@ export function MessageContactSettingsForm({ initial }: { initial: Settings }) {
 
       <section className="space-y-3" role="radiogroup" aria-label="Calls">
         <div>
-          <h2 className="font-semibold">통화</h2>
+          <h2 className="font-semibold">{t("settings.s10ugv")}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            기본값은 On입니다. Off면 메시지와 같이, 내가 팔로우한 사람만 전화를 걸 수 있습니다.
+            {t("settings.on_off")}
           </p>
         </div>
         <Choice
           selected={settings.callRequestAudience === "EVERYONE"}
           title="On"
-          description="모든 사람이 나에게 통화할 수 있습니다."
+          description={t("settings.sqhmdlq")}
           disabled={loading !== null}
           onSelect={() => void selectCall("EVERYONE")}
         />
         <Choice
           selected={settings.callRequestAudience === "FOLLOWING_ONLY"}
           title="Off"
-          description="내가 팔로우한 사람만 통화할 수 있습니다."
+          description={t("settings.s1kcv2qa")}
           disabled={loading !== null}
           onSelect={() => void selectCall("FOLLOWING_ONLY")}
         />

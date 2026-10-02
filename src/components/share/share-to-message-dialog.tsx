@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Check, ChevronLeft, Loader2, Search } from "lucide-react";
@@ -159,8 +164,8 @@ export function ShareToMessageDialog({
     });
     setSending(false);
     if (!result.ok) {
-      setError(result.error);
-      onError?.(result.error);
+      setError(errorText(result.error));
+      onError?.(errorText(result.error));
       return;
     }
     onOpenChange(false);
@@ -199,7 +204,7 @@ export function ShareToMessageDialog({
             <button
               type="button"
               className="rounded-full p-2 hover:bg-black/5 dark:hover:bg-white/10"
-              aria-label="뒤로"
+              aria-label={t("common.back")}
               onClick={handleBack}
             >
               <ChevronLeft className="h-5 w-5" />
@@ -229,7 +234,7 @@ export function ShareToMessageDialog({
                   setQuery(e.target.value);
                   setError("");
                 }}
-                placeholder="검색"
+                placeholder={t("lib.search.fast.s4f5a3f69b7")}
                 autoComplete="off"
                 spellCheck={false}
                 className={cn(
@@ -284,7 +289,7 @@ export function ShareToMessageDialog({
                         />
                         <span className="block truncate text-sm text-muted-foreground">
                           @{user.username}
-                          {blocked ? " · 메시지 요청을 받지 않음" : ""}
+                          {blocked ? t("share.spbsdpz") : ""}
                         </span>
                       </span>
                       <span
@@ -310,7 +315,7 @@ export function ShareToMessageDialog({
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value.slice(0, 1000))}
-                placeholder="쪽지 쓰기..."
+                placeholder={t("share.scfwvox")}
                 rows={2}
                 disabled={sending}
                 className="w-full resize-none rounded-xl border border-border/60 bg-background/70 px-3 py-2 text-sm outline-none focus:border-[#1D9BF0] focus:ring-1 focus:ring-[#1D9BF0]/30"
@@ -331,7 +336,7 @@ export function ShareToMessageDialog({
                     보내는 중…
                   </span>
                 ) : (
-                  "보내기"
+                  t("share.ssjcvk")
                 )}
               </button>
             </div>

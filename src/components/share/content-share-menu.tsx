@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -77,7 +80,7 @@ export function ContentShareMenu({
       window.setTimeout(() => setCopied(false), 2000);
       setOpen(false);
     } catch {
-      onActionError?.("링크 복사에 실패했습니다.");
+      onActionError?.(t("share.srsq7vp"));
     }
   }
 
@@ -100,8 +103,8 @@ export function ContentShareMenu({
           <button
             type="button"
             className={cn(buttonClass, className)}
-            aria-label={copied ? "링크 복사됨" : "공유"}
-            title={copied ? "링크 복사됨" : "공유"}
+            aria-label={copied ? t("share.swp53h8") : t("toast.share")}
+            title={copied ? t("share.swp53h8") : t("toast.share")}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -158,8 +161,8 @@ export function ContentShareMenu({
         onError={onActionError}
         onShared={(roomId) => {
           publishedToast?.showInfoToast({
-            message: "게시물을 공유함",
-            detail: "대화 보기",
+            message: t("share.s10g9agl"),
+            detail: t("share.sgmvy14"),
             href: `/messages/${roomId}`,
             durationMs: 4500,
           });

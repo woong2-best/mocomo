@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -51,7 +54,7 @@ export function CollabInviteNotificationActions({
           void act("accept");
         }}
       >
-        {busy === "accept" ? "…" : "수락"}
+        {busy === "accept" ? "…" : t("collab.accept")}
       </Button>
       <Button
         type="button"
@@ -65,7 +68,7 @@ export function CollabInviteNotificationActions({
           void act("reject");
         }}
       >
-        {busy === "reject" ? "…" : "거절"}
+        {busy === "reject" ? "…" : t("collab.reject")}
       </Button>
     </div>
   );

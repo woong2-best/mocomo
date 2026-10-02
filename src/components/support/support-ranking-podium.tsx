@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { motion } from "framer-motion";
 import type { SupportTierLevel } from "@prisma/client";
@@ -22,8 +25,8 @@ export type SupportRankingEntry = {
 };
 
 const PODIUM = [
-  { place: 2, label: "2등", height: "h-24", medal: "bg-slate-300", order: "order-1" },
-  { place: 1, label: "1등", height: "h-32", medal: "bg-amber-400", order: "order-2" },
+  { place: 2, label: t("support.s10xr"), height: "h-24", medal: "bg-slate-300", order: "order-1" },
+  { place: 1, label: t("support.s10ww"), height: "h-32", medal: "bg-amber-400", order: "order-2" },
 ] as const;
 
 function RankingAvatar({
@@ -149,8 +152,8 @@ export function SupportRankingPodium({ entries }: { entries: SupportRankingEntry
           <SupportTrophyIcon className="h-4 w-4" />
         </span>
         <div>
-          <h2 className="text-base font-display font-bold text-folk-cobalt">후원 랭킹</h2>
-          <p className="text-[11px] text-muted-foreground">사이트 전체 누적 후원 TOP</p>
+          <h2 className="text-base font-display font-bold text-folk-cobalt">{t("nav.rankings")}</h2>
+          <p className="text-[11px] text-muted-foreground">{t("support.top")}</p>
         </div>
       </div>
 
@@ -173,11 +176,11 @@ export function SupportRankingPodium({ entries }: { entries: SupportRankingEntry
 
         <div className="lg:w-44 xl:w-52 shrink-0 rounded-xl border border-border/60 bg-background/80 overflow-hidden">
           <div className="px-3 py-2 border-b border-border/50 bg-muted/30">
-            <p className="text-xs font-semibold text-folk-cobalt">3위 ~</p>
+            <p className="text-xs font-semibold text-folk-cobalt">{t("support.su1zrj")}</p>
           </div>
           <div className="max-h-[220px] overflow-y-auto overscroll-contain divide-y divide-border/40">
             {rest.length === 0 ? (
-              <p className="p-3 text-[11px] text-muted-foreground text-center">아직 더 많은 랭킹이 없습니다</p>
+              <p className="p-3 text-[11px] text-muted-foreground text-center">{t("support.sf506le")}</p>
             ) : (
               rest.map((entry) =>
                 entry.user ? (

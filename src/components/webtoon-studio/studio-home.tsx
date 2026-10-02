@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { listCloudStudioProjects, loadCloudStudioProject } from "@/actions/webtoon-studio-cloud";
 import { createDefaultProject } from "@/lib/webtoon-studio/constants";
@@ -31,8 +34,8 @@ export function StudioHome({
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-6 max-w-2xl mx-auto">
       <div className="text-center space-y-2">
-        <h2 className="text-xl font-bold">웹툰 드로잉 스튜디오</h2>
-        <p className="text-sm text-muted-foreground">프로젝트를 선택하거나 새로 시작하세요.</p>
+        <h2 className="text-xl font-bold">{t("webtoon-studio.sgl9o14")}</h2>
+        <p className="text-sm text-muted-foreground">{t("webtoon-studio.s1y9b6sn")}</p>
         <Button type="button" className="rounded-xl" onClick={() => onOpen(createDefaultProject())}>
           + 새 프로젝트
         </Button>
@@ -40,7 +43,7 @@ export function StudioHome({
 
       {cloud.length > 0 && (
         <section>
-          <h3 className="text-sm font-bold mb-2">클라우드 프로젝트</h3>
+          <h3 className="text-sm font-bold mb-2">{t("webtoon-studio.s11c9on3")}</h3>
           <ul className="space-y-2">
             {cloud.map((p) => (
               <li key={p.id}>
@@ -63,7 +66,7 @@ export function StudioHome({
 
       {local.length > 0 && (
         <section>
-          <h3 className="text-sm font-bold mb-2">로컬 자동 저장</h3>
+          <h3 className="text-sm font-bold mb-2">{t("webtoon-studio.s1fjgm30")}</h3>
           <ul className="space-y-2">
             {local.map((p) => (
               <li key={p.id}>

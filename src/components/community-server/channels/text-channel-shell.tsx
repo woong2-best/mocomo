@@ -1,6 +1,5 @@
 "use client";
 
-import { ActivityRoom } from "@/components/activities/activity-room";
 import { ChatRoomShell } from "@/components/messages/chat-room-shell";
 import { useCommunityMembership } from "@/components/community-server/community-membership-context";
 import type { ChatMessageView } from "@/lib/chat-message-normalize";
@@ -42,7 +41,7 @@ export function TextChannelShell({
     hasPermission(permissions, "deleteMessages") || hasPermission(permissions, "moderateChat");
 
   return (
-    <ActivityRoom contextType="community" contextId={communityId} roomId={roomId}>
+    <div className="flex flex-col flex-1 min-h-0">
       <ChatRoomShell
         roomId={roomId}
         communityId={communityId}
@@ -57,6 +56,6 @@ export function TextChannelShell({
         guestMode={guestMode}
         canDeleteMessages={canDeleteMessages}
       />
-    </ActivityRoom>
+    </div>
   );
 }

@@ -24,7 +24,7 @@ export async function GET() {
         (!host
           ? "Stream customer host를 찾지 못했습니다. API 토큰·Stream 구독 확인, 또는 Stream 대시보드의 customer-xxx.cloudflarestream.com 을 NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_HOST 로 설정."
           : null),
-      hint: "OBS → Cloudflare Stream Live (RTMPS). 스튜디오 서버/키 사용. Vultr·LiveKit 방송 불필요.",
+      hint: "Please check your input and try again.",
       streamHost: host ?? getStreamCustomerHost(),
       recording: "off",
     });

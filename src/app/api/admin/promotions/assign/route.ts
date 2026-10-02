@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { AdminAccessError, requireAdminPermission } from "@/lib/admin/access";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
       notify: true,
     });
     if ("error" in res && res.error) {
-      return NextResponse.json({ error: res.error }, { status: 400 });
+      return NextResponse.json({ error: errorText(res.error) }, { status: 400 });
     }
     return NextResponse.json({ ok: true, created: res.created, skipped: res.skipped });
   } catch (e) {

@@ -1,5 +1,8 @@
 "use server";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 import type { Prisma } from "@prisma/client";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
@@ -37,7 +40,7 @@ export type MarketplaceCartCheckoutInput = Omit<MarketplaceCheckoutInput, "listi
 };
 
 export async function groupMarketplaceCartLines(items: MarketplaceCartLine[]) {
-  if (!items.length) return { error: "장바구니가 비어 있습니다." as const };
+  if (!items.length) return { error: "actions.s1xxy7xc" as const };
 
   const listings = await db.marketplaceListing.findMany({
     where: { id: { in: items.map((i) => i.listingId) } },
@@ -73,15 +76,15 @@ export async function groupMarketplaceCartLines(items: MarketplaceCartLine[]) {
   for (const line of items) {
     const listing = byId.get(line.listingId);
     if (!listing || listing.status !== "ACTIVE") {
-      return { error: "판매 중이지 않은 상품이 포함되어 있습니다." as const };
+      return { error: "actions.s217ip7" as const };
     }
     const qty = Math.max(1, line.quantity);
     if (listing.type !== "DIGITAL" && listing.stock < qty) {
-      return { error: `"${listing.title}" 재고가 부족합니다.` as const };
+      return { error: "actions.s1uk9n72" as const };
     }
     const group = groups.get(listing.sellerId) ?? {
       sellerId: listing.sellerId,
-      sellerDisplayName: listing.sellerProfile?.displayName ?? "판매자",
+      sellerDisplayName: listing.sellerProfile?.displayName ?? "Seller",
       lines: [],
       subtotal: 0,
       shippingAmount: 0,
@@ -108,7 +111,7 @@ async function initMultiItemStripeCartOrder(
   const grouped = await groupMarketplaceCartLines(input.items);
   if ("error" in grouped) return grouped;
   const group = grouped.groups.find((g) => g.sellerId === sellerId);
-  if (!group) return { error: "판매자 그룹을 찾을 수 없습니다." };
+  if (!group) return { error: "actions.spyep9e" };
 
   const routing = resolveCheckoutRouting({
     userCountryCode: buyer.countryCode,
@@ -116,7 +119,7 @@ async function initMultiItemStripeCartOrder(
     geoCountry: getRequestCountryFromHeaders(hdrs),
   });
   if (routing.mode === "BLOCKED") {
-    return { error: routing.blockedReason ?? "마켓플레이스는 Stripe 지원 국가에서만 이용할 수 있습니다." };
+    return { error: routing.blockedReason ?? "actions.stripe_3" };
   }
 
   const ofacBlock = await assertOfacPaymentRequestAllowed(buyer.id, {
@@ -139,7 +142,7 @@ async function initMultiItemStripeCartOrder(
 
   if (needsShipping) {
     if (!input.shipName?.trim() || !input.shipCountry?.trim() || !input.shipAddress1?.trim()) {
-      return { error: "배송지(이름·국가·주소)를 입력해 주세요." };
+      return { error: "actions.s1qpamyx" };
     }
     const dest = normalizeShipCountry(input.shipCountry);
     if (!dest) return { error: UNSUPPORTED_ADDRESS_COUNTRY_MESSAGE };
@@ -157,7 +160,7 @@ async function initMultiItemStripeCartOrder(
     select: { stripeConnectAccountId: true },
   });
   if (!seller?.stripeConnectAccountId) {
-    return { error: "판매자 Stripe Connect 온보딩이 완료되지 않았습니다." };
+    return { error: "actions.stripe_connect" };
   }
 
   const fees = computeFeesForCheckoutMode("STRIPE", group.subtotal, group.shippingAmount);
@@ -221,7 +224,7 @@ async function initMultiItemStripeCartOrder(
 
   if (!isStripeConfigured()) {
     await db.marketplaceOrder.delete({ where: { id: order.id } });
-    return { error: "Stripe 결제가 설정되지 않았습니다." };
+    return { error: "actions.stripe_4" };
   }
 
   const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);
@@ -239,7 +242,7 @@ async function initMultiItemStripeCartOrder(
     amount: fees.totalAmount,
     currency: currency.toLowerCase(),
     customer: customerId,
-    description: `${group.sellerDisplayName} · ${group.lines.length}건`.slice(0, 200),
+    description: t("actions.s4qiz", { v0: group.sellerDisplayName, v1: group.lines.length }).slice(0, 200),
     metadata: {
       orderId: paymentIntent.id,
       type: "MARKETPLACE",
@@ -268,7 +271,7 @@ async function initMultiItemStripeCartOrder(
     publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
     methods,
     amount: fees.totalAmount,
-    orderName: `${group.sellerDisplayName} 외 ${group.lines.length}건`,
+    orderName: t("actions.st3hl8", { v0: group.sellerDisplayName, v1: group.lines.length }),
     mocoBalance: mocoQuote.mocoBalance,
     mocoRequired: mocoQuote.mocoRequired,
     canPayWithMoco: mocoQuote.canPayWithMoco,
@@ -295,7 +298,7 @@ export async function checkoutMarketplaceCartForSeller(
 
   if (routing.mode === "BLOCKED") {
     return {
-      error: routing.blockedReason ?? "마켓플레이스는 Stripe 지원 국가에서만 이용할 수 있습니다.",
+      error: routing.blockedReason ?? "actions.stripe_3",
       checkoutMode: "BLOCKED" as const,
     };
   }
@@ -360,7 +363,7 @@ export async function checkoutMarketplaceCartForSellerMobile(
 
   if (routing.mode === "BLOCKED") {
     return {
-      error: routing.blockedReason ?? "마켓플레이스는 Stripe 지원 국가에서만 이용할 수 있습니다.",
+      error: routing.blockedReason ?? "actions.stripe_3",
       checkoutMode: "BLOCKED" as const,
     };
   }

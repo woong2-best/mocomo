@@ -1,4 +1,9 @@
 "use client";
+const i18n = createTranslator("en");
+
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -17,8 +22,8 @@ import { DbSetupBanner } from "@/components/ui/db-setup-banner";
 import { NativePageTitle } from "@/components/layout/app-page-chrome";
 
 const MODES: { id: CosplayBoardMode; label: string }[] = [
-  { id: "rental", label: "코스프레 대여" },
-  { id: "purchase", label: "구매" },
+  { id: "rental", label: i18n("cosplay.s1erulvc") },
+  { id: "purchase", label: i18n("cosplay.suins") },
 ];
 
 function BoardRow({ post, index }: { post: CosplayBoardListItem; index: number }) {
@@ -31,7 +36,7 @@ function BoardRow({ post, index }: { post: CosplayBoardListItem; index: number }
     >
       <td className="py-2 px-2 text-center text-[11px] text-muted-foreground tabular-nums">
         {post.isNotice ? (
-          <span className="font-bold text-[#c0392b]">공지</span>
+          <span className="font-bold text-[#c0392b]">{i18n("lib.community-server.suiy3")}</span>
         ) : (
           index
         )}
@@ -123,7 +128,7 @@ export function CosplayBoard({
               <Camera className="h-5 w-5 text-pink-500" />
               코스프레 마켓
             </h1>
-            <p className="text-xs text-muted-foreground mt-1">대여·구매 게시판</p>
+            <p className="text-xs text-muted-foreground mt-1">{i18n("cosplay.s1qrjokj")}</p>
           </div>
         </NativePageTitle>
         <div className="flex flex-wrap gap-2">
@@ -143,14 +148,14 @@ export function CosplayBoard({
       </div>
 
       {!dbReady && (
-        <DbSetupBanner title="코스프레 게시판 DB가 준비되지 않았습니다. Supabase SQL 섹션 Z5 실행 후 다시 시도해 주세요." />
+        <DbSetupBanner title={i18n("cosplay.db_supabase_sql_z5")} />
       )}
 
       <div className="flex items-center justify-center">
         <div
           className="inline-flex rounded-full border-2 border-[#3b4890]/30 bg-[#eef1fb] dark:bg-muted/40 p-1 shadow-sm"
           role="tablist"
-          aria-label="코스프레 게시판 분류"
+          aria-label={i18n("cosplay.sul9ncw")}
         >
           {MODES.map((item) => {
             const active = mode === item.id;
@@ -183,21 +188,21 @@ export function CosplayBoard({
       >
         <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[#d6d6d6] dark:border-border bg-[#f7f7f7] dark:bg-muted/30 text-[11px] text-muted-foreground">
           <span>
-            {mode === "rental" ? "코스프레 대여" : "구매"} 게시판 · 총{" "}
+            {mode === "rental" ? i18n("cosplay.s1erulvc") : i18n("cosplay.suins")}{i18n("cosplay.s1h5zrx0")}{" "}
             <strong className="text-foreground">{totalCount}</strong>개
           </span>
-          <span className="hidden sm:inline">번호 · 제목 · 글쓴이 · 날짜 · 조회</span>
+          <span className="hidden sm:inline">{i18n("cosplay.s1d03b25")}</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[320px] border-collapse">
             <thead>
               <tr className="bg-[#3b4890] text-white text-[11px]">
-                <th className="w-12 py-2 px-2 font-semibold">번호</th>
-                <th className="py-2 px-2 text-left font-semibold">제목</th>
-                <th className="w-24 py-2 px-2 font-semibold hidden sm:table-cell">글쓴이</th>
-                <th className="w-16 py-2 px-2 font-semibold hidden md:table-cell">날짜</th>
-                <th className="w-14 py-2 px-2 font-semibold hidden md:table-cell">조회</th>
+                <th className="w-12 py-2 px-2 font-semibold">{i18n("cosplay.sx8s0")}</th>
+                <th className="py-2 px-2 text-left font-semibold">{i18n("cosplay.sz28d")}</th>
+                <th className="w-24 py-2 px-2 font-semibold hidden sm:table-cell">{i18n("cosplay.sqg3cw")}</th>
+                <th className="w-16 py-2 px-2 font-semibold hidden md:table-cell">{i18n("cosplay.sv5fg")}</th>
+                <th className="w-14 py-2 px-2 font-semibold hidden md:table-cell">{i18n("home.views")}</th>
               </tr>
             </thead>
             <tbody>
@@ -212,7 +217,7 @@ export function CosplayBoard({
                         </Link>
                       </>
                     ) : (
-                      "게시판을 불러올 수 없습니다."
+                      i18n("cosplay.s1q6oc5j")
                     )}
                   </td>
                 </tr>

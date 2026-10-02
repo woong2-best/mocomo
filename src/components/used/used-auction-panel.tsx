@@ -15,7 +15,10 @@ import { UsedAuctionCountdown } from "@/components/used/used-auction-countdown";
 import { UsedAuctionPaymentCountdown } from "@/components/used/used-auction-payment-countdown";
 import { Gavel, Shield, Zap } from "lucide-react";
 import { getServerTranslator } from "@/lib/i18n/server";
-import { uiText } from "@/lib/i18n/ui-text";
+import { createTranslator } from "@/lib/i18n/messages";
+
+const t = createTranslator("en");
+
 import type { UsedAuctionState } from "@prisma/client";
 
 type Listing = AuctionListingSlice & {
@@ -30,17 +33,17 @@ type Listing = AuctionListingSlice & {
 };
 
 function localizedAuctionState(locale: string | undefined, state: UsedAuctionState | null | undefined) {
-  if (state === "LIVE") return uiText(locale, "경매 진행중", "Live auction");
-  if (state === "ENDED") return uiText(locale, "경매 종료", "Auction ended");
-  if (state === "CANCELLED") return uiText(locale, "경매 취소", "Auction cancelled");
-  if (state === "PAYMENT_PENDING") return uiText(locale, "낙찰 · 결제 대기", "Won · awaiting payment");
-  if (state === "PAYMENT_COMPLETED") return uiText(locale, "결제 완료", "Payment complete");
-  if (state === "PAYMENT_TIMEOUT") return uiText(locale, "결제 기한 초과", "Payment deadline passed");
+  if (state === "LIVE") return t("ui.live_auction");
+  if (state === "ENDED") return t("ui.auction_ended");
+  if (state === "CANCELLED") return t("ui.auction_cancelled");
+  if (state === "PAYMENT_PENDING") return t("ui.won_awaiting_payment");
+  if (state === "PAYMENT_COMPLETED") return t("wallet.topup.paymentSuccess");
+  if (state === "PAYMENT_TIMEOUT") return t("ui.payment_deadline_passed");
   if (state === "TRANSFERRED_TO_NEXT_BIDDER")
-    return uiText(locale, "차순위 승계", "Passed to next bidder");
-  if (state === "PRICE_NEGOTIATION") return uiText(locale, "가격 협상 중", "Price negotiation");
-  if (state === "NEGOTIATION_COMPLETED") return uiText(locale, "협상 완료", "Negotiation complete");
-  if (state === "NEGOTIATION_FAILED") return uiText(locale, "협상 실패", "Negotiation failed");
+    return t("ui.passed_to_next_bidder");
+  if (state === "PRICE_NEGOTIATION") return t("ui.price_negotiation");
+  if (state === "NEGOTIATION_COMPLETED") return t("ui.negotiation_complete");
+  if (state === "NEGOTIATION_FAILED") return t("ui.negotiation_failed");
   return "";
 }
 
@@ -57,7 +60,7 @@ export async function UsedAuctionPanel({
 }) {
   if (!isAuctionListing(listing)) return null;
 
-  const { locale } = await getServerTranslator();
+  const { locale, t } = await getServerTranslator();
 
   const live = isAuctionLive(listing);
   const paymentPending = isPaymentPending(listing);
@@ -73,15 +76,15 @@ export async function UsedAuctionPanel({
       <div className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1.5 text-sm font-bold text-orange-600 dark:text-orange-400">
           <Gavel className="h-4 w-4" />
-          {uiText(locale, "경매", "Auction")}
+          {t("ui.auction")}
           {live
-            ? uiText(locale, " 진행중", " · live")
+            ? t("ui.live")
             : localizedAuctionState(locale, listing.auctionState) || ""}
         </span>
         {paymentPending && listing.paymentDueAt && (
           <div className="text-right">
             <p className="text-[10px] text-muted-foreground">
-              {uiText(locale, "남은 결제 시간", "Time left to pay")}
+              {t("ui.time_left_to_pay")}
             </p>
             <UsedAuctionPaymentCountdown dueAt={listing.paymentDueAt} className="text-sm" />
           </div>
@@ -91,7 +94,7 @@ export async function UsedAuctionPanel({
       {endsAt && (live || listing.status === "SELLING") && (
         <div>
           <p className="text-[10px] text-muted-foreground mb-1.5">
-            {uiText(locale, "남은 시간", "Time left")}
+            {t("ui.time_left")}
           </p>
           <UsedAuctionCountdown endsAt={endsAt} />
         </div>
@@ -101,17 +104,17 @@ export async function UsedAuctionPanel({
         <div>
           <p className="text-xs text-muted-foreground">
             {listing.bidCount > 0
-              ? uiText(locale, "현재가", "Current price")
-              : uiText(locale, "시작가", "Starting price")}
+              ? t("ui.current_price")
+              : t("ui.starting_price")}
           </p>
           <p className="text-xl font-black">{formatUsedPrice(current, listing.currency)}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">
-            {uiText(locale, `입찰 ${listing.bidCount}회`, `${listing.bidCount} bid(s)`)}
+            {t("used.bidCountShort", { count: String(listing.bidCount) })}
           </p>
           <p className="text-sm font-medium mt-1">
-            {uiText(locale, "다음 최소", "Next min")}{" "}
+            {t("ui.next_min")}{" "}
             <span className="font-bold text-foreground">{formatUsedPrice(minBid, listing.currency)}</span>
           </p>
         </div>
@@ -120,31 +123,31 @@ export async function UsedAuctionPanel({
       {listing.buyNowPrice != null && listing.buyNowPrice > 0 && live && (
         <p className="text-xs flex items-center gap-1 text-muted-foreground">
           <Zap className="h-3.5 w-3.5 text-amber-500" />
-          {uiText(locale, "즉시구매", "Buy now")} {formatUsedPrice(listing.buyNowPrice, listing.currency)}
+          {t("ui.buy_now")} {formatUsedPrice(listing.buyNowPrice, listing.currency)}
         </p>
       )}
 
       {hasReserve && (
         <p className="text-xs flex items-center gap-1 text-muted-foreground">
           <Shield className="h-3.5 w-3.5" />
-          {uiText(locale, "최저 낙찰가 설정됨 (미달 시 유찰)", "Reserve set (no sale if not met)")}
+          {t("ui.reserve_set_no_sale_if_not")}
         </p>
       )}
 
       {live && (
         <p className="text-[11px] text-muted-foreground">
-          {uiText(
-            locale,
-            `마감 ${listing.antiSnipeMinutes}분 전 입찰 시 ${listing.antiSnipeMinutes}분 연장 (최대 ${MAX_ANTI_SNIPE_EXTENSIONS}회, 남은 ${extensionsLeft}회)`,
-            `Bids within ${listing.antiSnipeMinutes} min of end extend by ${listing.antiSnipeMinutes} min (max ${MAX_ANTI_SNIPE_EXTENSIONS}, ${extensionsLeft} left)`
-          )}
+          {t("used.auctionAntiSnipe", {
+            minutes: String(listing.antiSnipeMinutes),
+            maxExtensions: String(MAX_ANTI_SNIPE_EXTENSIONS),
+            left: String(extensionsLeft),
+          })}
         </p>
       )}
 
       {listing.currentBidder && listing.bidCount > 0 && (
         <div className="pt-2 border-t border-border/60">
           <p className="text-xs text-muted-foreground mb-1">
-            {uiText(locale, "최고 입찰자", "High bidder")}
+            {t("ui.high_bidder")}
           </p>
           <p className="text-sm font-semibold">{maskBidderName(listing.currentBidder.username)}</p>
         </div>
@@ -152,17 +155,13 @@ export async function UsedAuctionPanel({
 
       {(live || paymentPending) && (
         <p className="text-[11px] text-muted-foreground border-t border-border/60 pt-2">
-          {uiText(
-            locale,
-            "입찰은 법적·계약적 책임이 따르는 약속입니다. 낙찰 후 결제를 완료하지 않을 경우 중고거래 서비스 이용이 제한될 수 있습니다.",
-            "Bids are binding. Failure to pay after winning may restrict your access to used goods."
-          )}
+          {t("ui.bids_are_binding_failure_to_pay")}
         </p>
       )}
 
       {negotiating && listing.negotiationDueAt && (
         <p className="text-xs text-primary font-medium">
-          {uiText(locale, "차순위 입찰자와 가격 협상 중 ·", "Negotiating with next bidder ·")}{" "}
+          {t("ui.negotiating_with_next_bidder")}{" "}
           <UsedAuctionPaymentCountdown dueAt={listing.negotiationDueAt} />
         </p>
       )}
@@ -176,22 +175,18 @@ export async function UsedAuctionPanel({
           }`}
         >
           {isWinningBidder
-            ? uiText(
-                locale,
-                `내가 최고가 (${formatUsedPrice(myHighestBid, listing.currency)})`,
-                `You're high bidder (${formatUsedPrice(myHighestBid, listing.currency)})`
-              )
-            : uiText(
-                locale,
-                `내 입찰 ${formatUsedPrice(myHighestBid, listing.currency)} · 다른 분이 더 높은 금액`,
-                `Your bid ${formatUsedPrice(myHighestBid, listing.currency)} · outbid`
-              )}
+            ? t("used.highBidderSelf", {
+                amount: formatUsedPrice(myHighestBid, listing.currency),
+              })
+            : t("used.outbid", {
+                amount: formatUsedPrice(myHighestBid, listing.currency),
+              })}
         </p>
       )}
 
       {!live && listing.auctionState === "ENDED" && listing.bidCount === 0 && (
         <p className="text-xs text-muted-foreground">
-          {uiText(locale, "입찰 없이 종료되었습니다.", "Ended with no bids.")}
+          {t("ui.ended_with_no_bids")}
         </p>
       )}
     </section>

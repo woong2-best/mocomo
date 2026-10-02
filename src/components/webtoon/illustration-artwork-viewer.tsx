@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect } from "react";
 import { incrementEpisodeView } from "@/actions/webtoon-studio-cloud";
 import { PurchaseEpisodeButton } from "@/components/works/purchase-episode-button";
@@ -51,7 +54,7 @@ export function IllustrationArtworkViewer({
             />
             {locked && i === visibleUrls.length - 1 && (
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-4 pb-4 pt-16 text-center">
-                <p className="text-sm font-medium text-white">고해상도 · 전체 이미지는 구매 후 열람</p>
+                <p className="text-sm font-medium text-white">{t("webtoon.skkd3xu")}</p>
               </div>
             )}
           </div>
@@ -73,10 +76,10 @@ export function IllustrationArtworkViewer({
       )}
 
       {owned && price > 0 && (
-        <p className="text-xs text-center text-[#0096fa] font-semibold">구매 완료 · 전체 작품 열람 중</p>
+        <p className="text-xs text-center text-[#0096fa] font-semibold">{t("webtoon.s9fijjv")}</p>
       )}
       {owned && price <= 0 && (
-        <p className="text-xs text-center text-muted-foreground">무료 공개 작품</p>
+        <p className="text-xs text-center text-muted-foreground">{t("webtoon.si95n9k")}</p>
       )}
     </div>
   );

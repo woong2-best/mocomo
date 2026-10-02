@@ -1,5 +1,11 @@
 "use client";
 
+
+import { isAuthRequiredError } from "@/lib/error-codes";
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -44,11 +50,11 @@ function friendlyPostError(err: unknown, apiError?: string): string {
   if (apiError) return apiError;
   if (err instanceof Error) {
     if (err.message.includes("Server Components render")) {
-      return "게시 처리 중 서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+      return t("compose.sjl124v");
     }
     return err.message;
   }
-  return "연결 오류가 발생했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.";
+  return t("compose.s1o4lvs7");
 }
 
 export function ComposeForm({
@@ -191,7 +197,7 @@ export function ComposeForm({
     if (showPaidMediaRequired) {
       setPaidMediaWarned(true);
       syncPaidMediaRequiredToast(true);
-      setError("유료 판매를 하려면 사진 또는 영상을 첨부해 주세요.");
+      setError(t("compose.s1ioviby"));
       return;
     }
 
@@ -202,7 +208,7 @@ export function ComposeForm({
         (!m.url.startsWith("http") && !m.url.startsWith("/"))
     );
     if (invalidMedia) {
-      setError("사진·영상 업로드가 끝난 뒤 다시 시도해 주세요.");
+      setError(t("compose.sm205eh"));
       return;
     }
 
@@ -269,7 +275,7 @@ export function ComposeForm({
     ].slice(0, 3);
     const toastUser = {
       userImage: communityId && isAnonymous ? null : authorAvatar?.image,
-      userName: communityId && isAnonymous ? "익명" : authorAvatar?.name,
+      userName: communityId && isAnonymous ? t("lib.tests.community.author.test.sf130c4ef01") : authorAvatar?.name,
       avatars:
         communityId && isAnonymous
           ? undefined
@@ -309,7 +315,7 @@ export function ComposeForm({
           message: t("toast.publishFailed"),
           detail: t("toast.retry"),
         });
-        if (res.status === 401 || msg.includes("로그인")) {
+        if (res.status === 401 || isAuthRequiredError(result.error)) {
           onNeedSignIn?.();
         }
         return;
@@ -324,7 +330,7 @@ export function ComposeForm({
         onPosted?.(result.postId);
         return;
       }
-      setError(result.error ?? t("toast.publishFailed"));
+      setError(errorText(result.error ?? t("toast.publishFailed")));
       (publishedToast?.showErrorToast ?? pushErrorToast)({
         message: t("toast.publishFailed"),
         detail: t("toast.retry"),
@@ -453,7 +459,7 @@ export function ComposeForm({
     <form onSubmit={handleSubmit} onPasteCapture={handleComposePaste} className="space-y-4">
       {variant === "sheet" && !isQuoteCompose && (
         <p className="text-sm text-muted-foreground -mt-1">
-          사진·영상을 고른 뒤 바로 올릴 수 있습니다.
+          {t("compose.s1ckvxjo")}
         </p>
       )}
       {isQuoteCompose ? (
@@ -494,14 +500,14 @@ export function ComposeForm({
           <input
             name="title"
             defaultValue={defaultTitle}
-            placeholder="제목 (선택)"
+            placeholder={t("compose.sdvk5qv")}
             className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm"
           />
           <ComposeRichTextarea
             name="content"
             value={content}
             onChange={setContent}
-            placeholder="내용을 입력하세요... @멘션 #해시태그"
+            placeholder={t("compose.s1ndj4vm")}
             variant="default"
             disabled={submitBusy}
           />
@@ -514,12 +520,12 @@ export function ComposeForm({
             {showInstantPurchase ? (
               <div className="space-y-1.5">
                 <label htmlFor="compose-instant-price" className="text-xs font-medium text-muted-foreground">
-                  즉시 구매 (등급 미달 시)
+                  {t("compose.s14qd7a6")}
                 </label>
                 <Input
                   id="compose-instant-price"
                   inputMode="decimal"
-                  placeholder="예: 80.00"
+                  placeholder={t("compose.80_00")}
                   value={instantPriceUsd}
                   onChange={(e) => setInstantPriceUsd(sanitizeUsdDollarInput(e.target.value))}
                   disabled={submitBusy}
@@ -570,9 +576,9 @@ export function ComposeForm({
   return (
     <div className="folk-card p-5 space-y-4">
       <div>
-        <h2 className="font-bold text-folk-cobalt">글쓰기</h2>
+        <h2 className="font-bold text-folk-cobalt">{t("feed.compose")}</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          사진·영상을 고른 뒤 바로 올릴 수 있습니다.
+          {t("compose.s1ckvxjo")}
         </p>
       </div>
       {formBody}

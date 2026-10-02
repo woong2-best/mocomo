@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
@@ -29,12 +30,12 @@ export async function GET(
 
   const verified = verifyOverlayToken(token, { channelId, kind: "donation" });
   if (!verified.ok) {
-    return NextResponse.json({ error: verified.error }, { status: 401 });
+    return NextResponse.json({ error: errorText(verified.error) }, { status: 401 });
   }
 
   const broadcastAccess = await assertOverlayBroadcastAccess(channelId, verified.payload);
   if (!broadcastAccess.ok) {
-    return NextResponse.json({ error: broadcastAccess.error }, { status: broadcastAccess.status });
+    return NextResponse.json({ error: errorText(broadcastAccess.error) }, { status: broadcastAccess.status });
   }
 
   const channel = await db.voiceChannel.findUnique({
@@ -42,7 +43,7 @@ export async function GET(
     select: { createdBy: true, createdAt: true, donationAlertsOnStream: true },
   });
   if (!channel) {
-    return NextResponse.json({ error: "채널을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
   if (!channel.donationAlertsOnStream) {
@@ -51,7 +52,7 @@ export async function GET(
 
   const requested = since ? new Date(since) : new Date(Date.now() - 10 * 60_000);
   if (Number.isNaN(requested.getTime())) {
-    return NextResponse.json({ error: "since 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid since format." }, { status: 400 });
   }
   // Never reach behind the channel itself, whatever the caller asks for.
   const sinceDate = new Date(Math.max(requested.getTime(), channel.createdAt.getTime()));

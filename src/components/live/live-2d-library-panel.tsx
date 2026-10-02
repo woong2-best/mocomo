@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Layers, Loader2 } from "lucide-react";
@@ -29,6 +33,8 @@ export function Live2dLibraryPanel({
   vtuberActive,
   compact = false,
 }: Live2dLibraryPanelProps) {
+  const { t } = useLocale();
+
   const [loading, setLoading] = useState(true);
   const [characters, setCharacters] = useState<
     (Flat2dLibraryCharacterEntry & { thumbUrl: string })[]
@@ -78,7 +84,7 @@ export function Live2dLibraryPanel({
         }
       >
         <Loader2 className="h-4 w-4 animate-spin" />
-        {MOCOMO_2D_LIBRARY_NAME} 불러오는 중…
+        {t("live.library2d.loading", { name: MOCOMO_2D_LIBRARY_NAME })}
       </div>
     );
   }
@@ -109,7 +115,7 @@ export function Live2dLibraryPanel({
               : "text-xs text-muted-foreground leading-relaxed"
           }
         >
-          2D 캐릭터를 만들면 여기에 저장됩니다. 더블클릭해 방송에 붙이세요.
+          {t("live.sgb7189")}
         </p>
         <Link
           href="/avatar/studio/2d"
@@ -119,7 +125,7 @@ export function Live2dLibraryPanel({
               : "inline-flex text-xs font-medium text-primary hover:underline"
           }
         >
-          2D 아바타 스튜디오 →
+          {t("live.s1xzkc8")}
         </Link>
       </div>
     );
@@ -152,13 +158,12 @@ export function Live2dLibraryPanel({
               : "text-[11px] text-primary hover:underline shrink-0"
           }
         >
-          + 더 만들기
+          {t("live.s1xp7vrr")}
         </Link>
       </div>
       {!compact && (
         <p className="text-[11px] text-muted-foreground">
-          캐릭터를 <strong className="text-foreground">더블클릭</strong>하면 방송 화면에 붙습니다. 다시
-          더블클릭하면 해제됩니다.
+          {t("live.squ4u95")} <strong className="text-foreground">{t("live.snf44xl")}</strong>{t("live.swrx76x")}
         </p>
       )}
       <div
@@ -189,13 +194,13 @@ export function Live2dLibraryPanel({
                 backgroundImage:
                   "linear-gradient(45deg,#ccc 25%,transparent 25%),linear-gradient(-45deg,#ccc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ccc 75%),linear-gradient(-45deg,transparent 75%,#ccc 75%)",
               }}
-              title={`${c.name} — 더블클릭하여 방송에 적용`}
+              title={t("live.s77e8yf", { v0: c.name })}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={c.thumbUrl} alt={c.name} className="w-full h-full object-contain p-1" />
               {active && (
                 <span className="absolute bottom-0 inset-x-0 bg-folk-terracotta/90 text-white text-[9px] font-bold py-0.5">
-                  적용 중
+                  {t("live.sq19qyh")}
                 </span>
               )}
               <span className="absolute top-0 inset-x-0 bg-black/50 text-white text-[9px] truncate px-1 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -213,7 +218,7 @@ export function Live2dLibraryPanel({
 function vtuberFaceHint() {
   return (
     <p className="text-[11px] text-muted-foreground leading-relaxed">
-      카메라를 정면·상반신까지 비추면 2D 캐릭터가 표정·몸 움직임에 맞춰 살짝 움직입니다.
+      {t("live.s1y3c2dc")}
     </p>
   );
 }

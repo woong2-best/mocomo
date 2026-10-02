@@ -12,13 +12,13 @@ import { notifyPostComment, notifyPostVote } from "@/lib/notifications";
 function createPostErrorMessage(code: string): string {
   switch (code) {
     case "UNAUTHORIZED":
-      return "로그인이 필요합니다. 다시 로그인한 뒤 시도해 주세요.";
+      return "actions.s1jdik8t";
     case "BANNED":
-      return "이용이 제한된 계정입니다.";
+      return "actions.s12qpsrn";
     case "USER_NOT_FOUND":
-      return "계정 정보를 찾을 수 없습니다. 다시 로그인해 주세요.";
+      return "actions.s17a9bk3";
     default:
-      return "게시에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+      return "actions.sgqdqup";
   }
 }
 

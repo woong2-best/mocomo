@@ -105,7 +105,7 @@ export function startOAuthConnect(
 ): { url: string } | { error: string } {
   const provider = getStreamingProvider(platform);
   if (!provider.supportsOAuth) {
-    return { error: "이 플랫폼은 OAuth 연결을 지원하지 않습니다." };
+    return { error: "This platform does not support OAuth connection." };
   }
   const redirectUri = streamingOAuthRedirectUri(platform);
   const state = mintStreamingOAuthState(userId, platform);
@@ -129,7 +129,7 @@ async function assertChannelNotLinked(
   });
   if (existing && existing.userId !== userId) {
     return {
-      error: "이 스트리밍 계정은 이미 다른 MoCoMo 계정에 연결되어 있습니다.",
+      error: "This streaming account is already linked to another MoCoMo account.",
     };
   }
   return null;
@@ -153,7 +153,7 @@ export async function completeOAuthConnect(
     tokens = result.tokens;
     channel = result.channel;
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "OAuth 연결에 실패했습니다.";
+    const msg = e instanceof Error ? e.message : "OAuth connection failed.";
     return { ok: false, error: msg };
   }
 
@@ -226,7 +226,7 @@ export async function startManualConnect(
 > {
   const provider = getStreamingProvider(platform);
   if (provider.supportsOAuth) {
-    return { ok: false, error: "이 플랫폼은 OAuth로 연결해 주세요." };
+    return { ok: false, error: "Please connect this platform via OAuth." };
   }
 
   const parsed = provider.parseManualChannelInput(channelInput);
@@ -300,14 +300,14 @@ export async function verifyManualAccount(
     select: ACCOUNT_SELECT,
   });
   if (!account || account.userId !== userId) {
-    return { ok: false, error: "계정을 찾을 수 없습니다." };
+    return { ok: false, error: "Account not found." };
   }
   if (account.revokedAt) {
-    return { ok: false, error: "해제된 계정입니다. 다시 연결해 주세요." };
+    return { ok: false, error: "Account was unlinked. Please reconnect." };
   }
   if (account.verified) return { ok: true };
   if (!account.verificationCode) {
-    return { ok: false, error: "검증 코드가 없습니다. 계정을 다시 연결해 주세요." };
+    return { ok: false, error: "No verification code. Please reconnect your account." };
   }
 
   const platform = account.platform as ConnectableStreamingPlatform;
@@ -349,7 +349,7 @@ export async function verifyManualAccount(
       return {
         ok: false,
         error:
-          "채널 설명(또는 프로필)에 검증 코드가 없습니다. 코드를 붙여넣은 뒤 저장하고 다시 시도해 주세요.",
+          "Verification code not found in channel description (or profile). Paste the code, save, and try again.",
       };
     }
   }
@@ -381,7 +381,7 @@ export async function disconnectStreamingAccount(
     select: { userId: true },
   });
   if (!account || account.userId !== userId) {
-    return { ok: false, error: "계정을 찾을 수 없습니다." };
+    return { ok: false, error: "Account not found." };
   }
 
   await db.connectedStreamingAccount.update({
@@ -436,10 +436,10 @@ export async function resolveVerifiedLiveSource(accountId: string, userId: strin
     select: ACCOUNT_SELECT,
   });
   if (!account || account.userId !== userId) {
-    return { error: "스트리밍 계정을 찾을 수 없습니다." };
+    return { error: "Streaming account not found." };
   }
   if (!account.verified || account.revokedAt) {
-    return { error: "인증되지 않았거나 해제된 스트리밍 계정입니다." };
+    return { error: "Streaming account is unverified or unlinked." };
   }
 
   const platform = account.platform as ConnectableStreamingPlatform;

@@ -8,7 +8,7 @@ export default async function GoodsListPage() {
   return (
     <div className="space-y-4">
       {products.length === 0 ? (
-        <p className="text-center text-muted-foreground py-16 text-sm">판매 중인 굿즈가 없습니다.</p>
+        <p className="text-center text-muted-foreground py-16 text-sm">No merch listed for sale.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((p) => {

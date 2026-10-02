@@ -17,7 +17,13 @@ import {
   normalizeLocale,
   type Locale,
 } from "@/lib/i18n/config";
-import { createTranslator, prefetchLocaleTable, type MessageKey } from "@/lib/i18n/messages";
+import {
+  createTranslator,
+  loadLocaleTableAsync,
+  prefetchLocaleTable,
+  type MessageKey,
+  type TranslateVars,
+} from "@/lib/i18n/messages";
 import { updateUserLocale } from "@/actions/locale";
 import { readClientCookie, setClientLocaleCookies } from "@/lib/i18n/client-cookies";
 import { DEFAULT_TIMEZONE, normalizeTimeZone, TIMEZONE_COOKIE } from "@/lib/i18n/timezone";
@@ -28,7 +34,7 @@ type LocaleContextValue = {
   timeZone: string;
   setLocale: (locale: Locale, countryCode?: string, timeZone?: string) => Promise<void>;
   hydrateFromSession: (locale: Locale, countryCode: string, timeZone: string) => void;
-  t: (key: MessageKey, vars?: Record<string, string>) => string;
+  t: (key: MessageKey | string, vars?: TranslateVars) => string;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -53,7 +59,18 @@ export function LocaleProvider({
   const [locale, setLocaleState] = useState<Locale>(normalizeLocale(initialLocale, DEFAULT_GUEST_LOCALE));
   const [countryCode, setCountryCode] = useState(initialCountryCode.toUpperCase());
   const [timeZone, setTimeZone] = useState(normalizeTimeZone(initialTimeZone));
+  const [catalogReady, setCatalogReady] = useState(0);
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadLocaleTableAsync(locale).then(() => {
+      if (!cancelled) setCatalogReady((n) => n + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
 
   useEffect(() => {
     const cookieCountry = readClientCookie(COUNTRY_COOKIE)?.toUpperCase();
@@ -102,24 +119,22 @@ export function LocaleProvider({
       hydrateFromSession,
       t: createTranslator(locale),
     }),
-    [locale, countryCode, timeZone, setLocale, hydrateFromSession]
+    [locale, countryCode, timeZone, setLocale, hydrateFromSession, catalogReady]
   );
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
 
+const FALLBACK_LOCALE_CONTEXT: LocaleContextValue = {
+  locale: DEFAULT_GUEST_LOCALE,
+  countryCode: DEFAULT_GUEST_COUNTRY,
+  timeZone: DEFAULT_TIMEZONE,
+  setLocale: async () => {},
+  hydrateFromSession: () => {},
+  t: createTranslator(DEFAULT_GUEST_LOCALE),
+};
+
 export function useLocale() {
   const ctx = useContext(LocaleContext);
-  if (!ctx) {
-    const locale = DEFAULT_GUEST_LOCALE;
-    return {
-      locale,
-      countryCode: DEFAULT_GUEST_COUNTRY,
-      timeZone: DEFAULT_TIMEZONE,
-      setLocale: async () => {},
-      hydrateFromSession: () => {},
-      t: createTranslator(locale),
-    };
-  }
-  return ctx;
+  return ctx ?? FALLBACK_LOCALE_CONTEXT;
 }

@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
 
   const doc = await readKycDocumentBuffer(documentKey);
   if ("error" in doc) {
-    return NextResponse.json({ error: doc.error, targetId: auditTargetId }, { status: 404 });
+    return NextResponse.json({ error: errorText(doc.error), targetId: auditTargetId }, { status: 404 });
   }
 
   return new NextResponse(new Uint8Array(doc.buffer), {

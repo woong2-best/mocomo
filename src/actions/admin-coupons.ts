@@ -21,9 +21,9 @@ import { requireAuth } from "@/lib/auth";
 
 function errMsg(e: unknown) {
   if (e instanceof AdminAccessError) {
-    return e.status === 401 ? "로그인이 필요합니다." : "권한이 없습니다.";
+    return e.status === 401 ? "common.error.authRequired" : "actions.st3onev";
   }
-  return e instanceof Error ? e.message : "오류가 발생했습니다.";
+  return e instanceof Error ? e.message : "actions.s1su4v2o";
 }
 
 export async function adminListCouponsAction(query: CouponListQuery) {
@@ -39,7 +39,7 @@ export async function adminGetCouponAction(id: string) {
   try {
     await requireAdminPermission("coupons");
     const data = await getCouponDetail(id);
-    if (!data) return { ok: false as const, error: "쿠폰을 찾을 수 없습니다." };
+    if (!data) return { ok: false as const, error: "actions.swb7p1p" };
     return { ok: true as const, data };
   } catch (e) {
     return { ok: false as const, error: errMsg(e) };

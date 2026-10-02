@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, users: [] });
   }
   if (q.length > 40) {
-    return NextResponse.json({ error: "검색어가 너무 깁니다." }, { status: 400 });
+    return NextResponse.json({ error: "Search query is too long." }, { status: 400 });
   }
 
   try {
@@ -29,6 +29,6 @@ export async function GET(req: NextRequest) {
     );
   } catch (e) {
     console.error("[api/messages/user-search]", e);
-    return NextResponse.json({ error: "검색에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Search failed." }, { status: 500 });
   }
 }

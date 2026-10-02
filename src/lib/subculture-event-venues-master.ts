@@ -33,34 +33,34 @@ export const SUBCULTURE_VENUE_MASTER: MasterVenue[] = [
   // 🇰🇷 대한민국
   v("bexco", "kr", "BEXCO", "55 APEC-ro, Haeundae-gu, Busan, South Korea", 35.1689, 129.1362, [
     "bexco",
-    "벡스코",
-    "부산 벡스코",
-    "부산벡스코",
+    "BEXCO",
+    "BEXCO Busan",
+    "BEXCO Busan",
   ]),
   v("coex", "kr", "COEX", "513 Yeongdong-daero, Gangnam-gu, Seoul, South Korea", 37.5115, 127.0602, [
     "coex",
-    "코엑스",
-    "서울 코엑스",
+    "COEX",
+    "COEX Seoul",
   ]),
   v("kintex", "kr", "KINTEX", "217-60 Kintex-ro, Ilsanseo-gu, Goyang-si, Gyeonggi-do, South Korea", 37.5273, 126.6154, [
     "kintex",
-    "킨텍스",
-    "일산 킨텍스",
-    "킨텍스 제1",
+    "KINTEX",
+    "KINTEX Ilsan",
+    "KINTEX Hall 1",
   ]),
   v("kintex2", "kr", "KINTEX Hall 2", "217-60 Kintex-ro, Ilsanseo-gu, Goyang-si, Gyeonggi-do, South Korea", 37.5278, 126.6182, [
     "kintex hall 2",
-    "킨텍스 제2",
+    "KINTEX Hall 2",
     "kintex 2",
   ]),
   v("setec", "kr", "SETEC", "3104 Nambusunhwan-ro, Gangnam-gu, Seoul, South Korea", 37.4842, 127.0346, [
     "setec",
-    "세텍",
+    "SETEC",
   ]),
   v("bccc", "kr", "Busan Cinema Center", "97 Centum jungang-ro, Haeundae-gu, Busan, South Korea", 35.1698, 129.1312, [
     "bccc",
-    "부산문화콘텐츠콤플렉스",
-    "센텀",
+    "Busan Contents Complex",
+    "Centum",
     "busan cinema center",
   ]),
 

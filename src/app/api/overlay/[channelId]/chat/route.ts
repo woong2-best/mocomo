@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
@@ -21,17 +22,17 @@ export async function GET(
 
   const verified = verifyOverlayToken(token, { channelId, kind: "chat" });
   if (!verified.ok) {
-    return NextResponse.json({ error: verified.error }, { status: 401 });
+    return NextResponse.json({ error: errorText(verified.error) }, { status: 401 });
   }
 
   const access = await assertOverlayBroadcastAccess(channelId, verified.payload);
   if (!access.ok) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+    return NextResponse.json({ error: errorText(access.error) }, { status: access.status });
   }
 
   const sinceDate = since ? new Date(since) : new Date(Date.now() - 5 * 60_000);
   if (Number.isNaN(sinceDate.getTime())) {
-    return NextResponse.json({ error: "since 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid since format." }, { status: 400 });
   }
 
   const messages = await db.liveChatMessage.findMany({

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +37,7 @@ export function CallBottomSheet({ open, onClose, title, children, className }: P
         type="button"
         className="absolute inset-0 bg-black/55"
         onClick={onClose}
-        aria-label="닫기"
+        aria-label={t("common.close")}
       />
       <div
         className={cn(

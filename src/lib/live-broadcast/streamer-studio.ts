@@ -63,13 +63,13 @@ export async function banStreamerViewer(input: {
   const { hostUserId, actorId, targetUserId, reason, channelId } = input;
 
   if (targetUserId === hostUserId) {
-    return { error: "방송 소유자를 차단할 수 없습니다." };
+    return { error: "You cannot block the broadcast owner." };
   }
 
   if (actorId !== hostUserId) {
     const staff = await getStreamerStaffRole(hostUserId, actorId);
     if (staff !== "MANAGER" && staff !== "MODERATOR") {
-      return { error: "시청자를 차단할 권한이 없습니다." };
+      return { error: "You do not have permission to block viewers." };
     }
   }
 
@@ -77,11 +77,11 @@ export async function banStreamerViewer(input: {
     where: { id: targetUserId, deletedAt: null },
     select: { id: true },
   });
-  if (!target) return { error: "MoCoMo 사용자를 찾을 수 없습니다." };
+  if (!target) return { error: "MoCoMo user not found." };
 
   const targetStaff = await getStreamerStaffRole(hostUserId, targetUserId);
   if (targetStaff === "MANAGER" && actorId !== hostUserId) {
-    return { error: "관리자는 방송 소유자만 차단할 수 있습니다." };
+    return { error: "Moderators can block only the broadcast owner." };
   }
 
   await db.streamerChatBan.upsert({
@@ -128,7 +128,7 @@ export async function unbanStreamerViewer(input: {
   if (actorId !== hostUserId) {
     const staff = await getStreamerStaffRole(hostUserId, actorId);
     if (staff !== "MANAGER" && staff !== "MODERATOR") {
-      return { error: "차단을 해제할 권한이 없습니다." };
+      return { error: "You do not have permission to unblock." };
     }
   }
 
@@ -237,11 +237,11 @@ export async function assignStreamerStaff(input: {
   const { hostUserId, actorId, targetUserId, role } = input;
 
   if (role !== "MANAGER") {
-    return { error: "관리자 역할만 지정할 수 있습니다." };
+    return { error: "Only moderator roles can be assigned." };
   }
 
   if (targetUserId === hostUserId) {
-    return { error: "방송 소유자의 역할은 변경할 수 없습니다." };
+    return { error: "The broadcast owner's role cannot be changed." };
   }
 
   const actorRole: EffectiveBroadcastRole =
@@ -252,14 +252,14 @@ export async function assignStreamerStaff(input: {
     (await getStreamerStaffRole(hostUserId, targetUserId)) ?? "VIEWER";
 
   if (!canAssignBroadcastRole(actorRole, targetRole, role)) {
-    return { error: "이 사용자에게 해당 역할을 부여할 권한이 없습니다." };
+    return { error: "You cannot grant that role to this user." };
   }
 
   const target = await db.user.findUnique({
     where: { id: targetUserId, deletedAt: null },
     select: { id: true },
   });
-  if (!target) return { error: "MoCoMo 사용자를 찾을 수 없습니다." };
+  if (!target) return { error: "MoCoMo user not found." };
 
   await db.streamerStaffAssignment.upsert({
     where: { hostUserId_userId: { hostUserId, userId: targetUserId } },
@@ -308,7 +308,7 @@ export async function removeStreamerStaff(input: {
   const { hostUserId, actorId, targetUserId } = input;
 
   if (targetUserId === hostUserId) {
-    return { error: "방송 소유자는 제거할 수 없습니다." };
+    return { error: "The broadcast owner cannot be removed." };
   }
 
   const actorRole: EffectiveBroadcastRole =
@@ -319,7 +319,7 @@ export async function removeStreamerStaff(input: {
     (await getStreamerStaffRole(hostUserId, targetUserId)) ?? "VIEWER";
 
   if (!canAssignBroadcastRole(actorRole, targetRole, null)) {
-    return { error: "이 사용자의 역할을 제거할 권한이 없습니다." };
+    return { error: "You cannot remove this user's role." };
   }
 
   await db.streamerStaffAssignment.deleteMany({

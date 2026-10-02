@@ -1,3 +1,7 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { adminLoadStaff } from "@/actions/admin-cms";
 import { getAdminActor } from "@/lib/admin/access";
 import { AdminRolesPanel } from "@/components/admin/cms/admin-roles-panel";
@@ -6,12 +10,12 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminRolesPage() {
   const [actor, res] = await Promise.all([getAdminActor(), adminLoadStaff()]);
-  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+  if (!res.ok) return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">관리자 계정</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("lib.admin.s1jy62od")}</h1>
         <p className="text-sm text-muted-foreground">
           OWNER만 추가 · 권한 변경 · 활성화/비활성화 · 비밀번호 초기화 · 삭제(USER로 강등)
         </p>

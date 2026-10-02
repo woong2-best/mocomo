@@ -36,7 +36,7 @@ export async function buildViewerPlaybackPayload(
   });
 
   if (!channel) {
-    return { status: 404, error: "방송을 찾을 수 없습니다." };
+    return { status: 404, error: "Stream not found." };
   }
 
   if (channel.createdBy === userId) {
@@ -48,7 +48,7 @@ export async function buildViewerPlaybackPayload(
   if (!access.allowed) {
     return {
       status: access.reason === "NOT_FOUND" ? 404 : 403,
-      error: "시청 권한이 없습니다.",
+      error: "You don't have permission to watch.",
     };
   }
 
@@ -84,7 +84,7 @@ export async function buildViewerPlaybackPayload(
 
   const srsErr = srsConfigError();
   if (srsErr || !isSrsConfigured()) {
-    return { status: 503, error: srsErr ?? "SRS 방송이 설정되지 않았습니다.", ingestEngine: "srs" };
+    return { status: 503, error: srsErr ?? "SRS streaming isn't configured.", ingestEngine: "srs" };
   }
 
   const { streamKey } = await resolveObsStreamKeyForChannel(channelId, {

@@ -64,30 +64,30 @@ export function verifyOverlayToken(
   expected: { channelId: string; kind: "chat" | "donation" }
 ): { ok: true; payload: OverlayTokenPayload } | { ok: false; error: string } {
   const sec = secret();
-  if (!sec) return { ok: false, error: "오버레이 시크릿이 설정되지 않았습니다." };
+  if (!sec) return { ok: false, error: "Overlay secret is not configured." };
   const [body, sig] = token.split(".");
-  if (!body || !sig) return { ok: false, error: "토큰 형식이 올바르지 않습니다." };
+  if (!body || !sig) return { ok: false, error: "Invalid token format." };
   const expectSig = b64url(createHmac("sha256", sec).update(body).digest());
   try {
     const a = fromB64url(sig);
     const b = fromB64url(expectSig);
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
-      return { ok: false, error: "토큰 서명이 올바르지 않습니다." };
+      return { ok: false, error: "Invalid token signature." };
     }
   } catch {
-    return { ok: false, error: "토큰 서명이 올바르지 않습니다." };
+    return { ok: false, error: "Invalid token signature." };
   }
   let payload: OverlayTokenPayload;
   try {
     payload = JSON.parse(fromB64url(body).toString("utf8")) as OverlayTokenPayload;
   } catch {
-    return { ok: false, error: "토큰을 읽을 수 없습니다." };
+    return { ok: false, error: "Could not read token." };
   }
   if (payload.channelId !== expected.channelId || payload.kind !== expected.kind) {
-    return { ok: false, error: "토큰 대상이 일치하지 않습니다." };
+    return { ok: false, error: "Token audience does not match." };
   }
   if (payload.exp < Math.floor(Date.now() / 1000)) {
-    return { ok: false, error: "토큰이 만료되었습니다." };
+    return { ok: false, error: "Token expired." };
   }
   return { ok: true, payload };
 }

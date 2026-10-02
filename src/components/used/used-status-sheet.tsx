@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateUsedListingStatus } from "@/actions/used-market";
@@ -38,7 +41,7 @@ export function UsedStatusSheet({
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-muted/50 text-sm font-semibold"
       >
-        {usedStatusLabel(currentStatus) || "판매중"}
+        {usedStatusLabel(currentStatus) || t("used.svtnel")}
         <ChevronDown className="h-4 w-4" />
       </button>
       {open && (
@@ -46,7 +49,7 @@ export function UsedStatusSheet({
           <button
             type="button"
             className="absolute inset-0 bg-black/50"
-            aria-label="닫기"
+            aria-label={t("common.close")}
             onClick={() => setOpen(false)}
           />
           <div className="relative bg-card rounded-t-2xl border-t border-border p-4 pb-8 space-y-1 animate-in slide-in-from-bottom">
@@ -68,7 +71,7 @@ export function UsedStatusSheet({
               className="w-full py-3 mt-2 text-center text-muted-foreground font-medium"
               onClick={() => setOpen(false)}
             >
-              닫기
+              {t("common.close")}
             </button>
           </div>
         </div>

@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -55,12 +60,12 @@ export function AppealForm({
   if (openAppeal) {
     return (
       <div className="mx-auto max-w-xl space-y-4 rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
-        <h1 className="text-2xl font-bold">이의 제기 검토 중</h1>
+        <h1 className="text-2xl font-bold">{t("appeal.sajzc69")}</h1>
         <p className="text-sm text-muted-foreground">
-          현재 제출한 이의 제기가 검토 중입니다. 중복 제출은 불가능합니다.
+          {t("appeal.s1qm8z8o")}
         </p>
         <div className="rounded-xl bg-amber-500/10 px-4 py-3 text-sm">
-          <p className="font-semibold text-amber-700">🟡 검토 중</p>
+          <p className="font-semibold text-amber-700">{t("appeal.sfqvotp")}</p>
           <p className="mt-1 text-muted-foreground">
             접수일: {format(openAppeal.createdAt, "yyyy-MM-dd HH:mm", { locale: ko })}
           </p>
@@ -69,7 +74,7 @@ export function AppealForm({
           </p>
         </div>
         <Button asChild variant="secondary">
-          <Link href={`/appeal/${openAppeal.id}`}>접수 내역 보기</Link>
+          <Link href={`/appeal/${openAppeal.id}`}>{t("appeal.s12cshmy")}</Link>
         </Button>
       </div>
     );
@@ -79,16 +84,16 @@ export function AppealForm({
     return (
       <div className="mx-auto max-w-xl space-y-4 rounded-2xl border border-border/60 bg-card p-8 text-center shadow-sm">
         <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
-        <h1 className="text-2xl font-bold">이의 제기가 접수되었습니다.</h1>
+        <h1 className="text-2xl font-bold">{t("appeal.s1lpnex0")}</h1>
         <p className="text-sm text-muted-foreground">
-          담당자가 내용을 검토한 후 이메일 또는 사이트 알림을 통해 결과를 안내해 드립니다.
+          {t("appeal.s5q3w00")}
         </p>
         <div className="flex flex-wrap justify-center gap-2">
           <Button asChild variant="secondary">
-            <Link href="/appeal/history">접수 내역 보기</Link>
+            <Link href="/appeal/history">{t("appeal.s12cshmy")}</Link>
           </Button>
           <Button asChild>
-            <Link href="/">홈으로</Link>
+            <Link href="/">{t("events.swcstk")}</Link>
           </Button>
         </div>
       </div>
@@ -100,33 +105,31 @@ export function AppealForm({
       <div className="space-y-2">
         <Link href="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" />
-          뒤로가기
+          {t("appeal.snk29go")}
         </Link>
-        <h1 className="text-2xl font-bold">계정 정지 이의 제기</h1>
+        <h1 className="text-2xl font-bold">{t("appeal.s26g3l6")}</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          귀하의 계정이 운영원칙 위반으로 인해 제한되었습니다. 이번 이의 제기는 담당자가 직접 검토하며,
-          허위 정보 제출 또는 반복적인 이의 제기는 기각될 수 있습니다. 검토에는 일반적으로 수 시간에서
-          최대 7일 정도 소요될 수 있습니다.
+          {t("appeal.s1s7u4h4_2")}
         </p>
       </div>
 
       <section className="space-y-3 rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-        <h2 className="font-semibold">계정 정보</h2>
+        <h2 className="font-semibold">{t("appeal.s1phtmwe")}</h2>
         <dl className="grid gap-2 text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">계정 ID</dt>
+            <dt className="text-muted-foreground">{t("appeal.s1pgum6i")}</dt>
             <dd className="font-mono">{user.id}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">닉네임</dt>
+            <dt className="text-muted-foreground">{t("settings.nickname")}</dt>
             <dd>@{user.username}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">가입일</dt>
+            <dt className="text-muted-foreground">{t("appeal.sq5zfb")}</dt>
             <dd>{format(user.createdAt, "yyyy-MM-dd", { locale: ko })}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">정지 일시</dt>
+            <dt className="text-muted-foreground">{t("appeal.sqg7d91")}</dt>
             <dd>
               {user.suspendedAt
                 ? format(user.suspendedAt, "yyyy-MM-dd HH:mm", { locale: ko })
@@ -134,12 +137,12 @@ export function AppealForm({
             </dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">정지 유형</dt>
+            <dt className="text-muted-foreground">{t("appeal.sqg7eui")}</dt>
             <dd>{accountStatusLabel(user.accountStatus)}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">정지 사유</dt>
-            <dd className="mt-1 whitespace-pre-wrap">{user.suspensionReason ?? "관리자 입력 사유 없음"}</dd>
+            <dt className="text-muted-foreground">{t("appeal.sqg68dl")}</dt>
+            <dd className="mt-1 whitespace-pre-wrap">{user.suspensionReason ?? t("appeal.s1dicdvy")}</dd>
           </div>
         </dl>
       </section>
@@ -158,7 +161,7 @@ export function AppealForm({
               allowFollowUpEmail,
             });
             if (res.error) {
-              setError(res.error);
+              setError(errorText(res.error));
               return;
             }
             setDone(true);
@@ -167,29 +170,29 @@ export function AppealForm({
         }}
       >
         <div className="space-y-2">
-          <label className="text-sm font-medium">제목</label>
+          <label className="text-sm font-medium">{t("cosplay.sz28d")}</label>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
-            placeholder="계정 정지가 잘못 적용되었습니다."
+            placeholder={t("appeal.s1hj0mns")}
           />
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">상세 내용 (최소 50자)</label>
+          <label className="text-sm font-medium">{t("appeal.s1votm2m")}</label>
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={8}
             maxLength={5000}
-            placeholder="왜 해당 조치가 잘못되었다고 생각하는지 구체적으로 작성해 주세요."
+            placeholder={t("appeal.s1l8mf8b")}
           />
           <p className="text-xs text-muted-foreground">{content.trim().length} / 5000</p>
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">연락 가능한 이메일</label>
+          <label className="text-sm font-medium">{t("appeal.s8qmr0g")}</label>
           <Input
             type="email"
             value={contactEmail}
@@ -204,7 +207,7 @@ export function AppealForm({
             onChange={(e) => setAllowFollowUpEmail(e.target.checked)}
             className="h-4 w-4 rounded border-border"
           />
-          추가 자료 요청 시 이메일 수신에 동의합니다.
+          {t("appeal.s1kegbr3")}
         </label>
 
         <div className="space-y-2 rounded-xl bg-muted/40 p-4 text-sm">
@@ -215,7 +218,7 @@ export function AppealForm({
               onChange={(e) => setAckTruth(e.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border-border"
             />
-            제출한 내용은 사실입니다.
+            {t("appeal.s1xwydz2")}
           </label>
           <label className="flex items-start gap-2">
             <input
@@ -224,7 +227,7 @@ export function AppealForm({
               onChange={(e) => setAckNotFalse(e.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border-border"
             />
-            허위 신고가 아닙니다.
+            {t("appeal.smw80nt")}
           </label>
           <label className="flex items-start gap-2">
             <input
@@ -233,7 +236,7 @@ export function AppealForm({
               onChange={(e) => setAckNoRepeat(e.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border-border"
             />
-            동일한 사유로 반복 제출하지 않았습니다.
+            {t("appeal.s8q8udb")}
           </label>
         </div>
 
@@ -241,16 +244,16 @@ export function AppealForm({
 
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="ghost" asChild>
-            <Link href="/">취소</Link>
+            <Link href="/">{t("toast.cancel")}</Link>
           </Button>
           <Button type="submit" disabled={!canSubmit}>
             {pending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                이의 제기를 제출하는 중...
+                {t("appeal.s1xu4q7h")}
               </>
             ) : (
-              "이의 제기 제출"
+              t("appeal.s1kuqwr4")
             )}
           </Button>
         </div>

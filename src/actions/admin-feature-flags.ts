@@ -15,9 +15,9 @@ import {
 function errMsg(e: unknown) {
   if (e instanceof AdminAccessError) {
     if (e.message === "ADMIN_STEPUP_REQUIRED") return "ADMIN_STEPUP_REQUIRED";
-    return e.status === 401 ? "로그인이 필요합니다." : "권한이 없습니다.";
+    return e.status === 401 ? "common.error.authRequired" : "actions.st3onev";
   }
-  return e instanceof Error ? e.message : "오류가 발생했습니다.";
+  return e instanceof Error ? e.message : "actions.s1su4v2o";
 }
 
 export async function adminListFeatureFlagsAction() {

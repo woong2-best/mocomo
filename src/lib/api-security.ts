@@ -43,7 +43,7 @@ export async function rateLimitPublicApi(
     const { success } = await checkRateLimit(apiLimiter, key);
     if (!success) {
       return NextResponse.json(
-        { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." },
+        { error: "Too many requests. Please try again in a moment." },
         { status: 429 }
       );
     }
@@ -56,7 +56,7 @@ export async function rateLimitPublicApi(
    */
   if (!checkMemoryRateLimit(key, maxPerMinute)) {
     return NextResponse.json(
-      { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." },
+      { error: "Too many requests. Please try again in a moment." },
       { status: 429 }
     );
   }
@@ -65,7 +65,7 @@ export async function rateLimitPublicApi(
 
 export async function checkUploadRateLimit(userId: string): Promise<NextResponse | null> {
   if (!checkMemoryRateLimit(`upload:${userId}`, 20)) {
-    return NextResponse.json({ error: "업로드 요청이 너무 많습니다." }, { status: 429 });
+    return NextResponse.json({ error: "Too many upload requests." }, { status: 429 });
   }
   return null;
 }

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -72,10 +75,10 @@ export function OAuthCompleteClient({
       <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center space-y-3 pb-2">
           <BrandLogoLockup size={72} priority className="mx-auto" />
-          <CardTitle className="text-xl font-semibold">잠시만 기다려 주세요</CardTitle>
+          <CardTitle className="text-xl font-semibold">{t("auth.s1n0vimw")}</CardTitle>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground">
-          계정을 확인하는 중입니다…
+          {t("auth.sdn7zeq")}
         </CardContent>
       </Card>
     </div>

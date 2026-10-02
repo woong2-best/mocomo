@@ -25,13 +25,13 @@ export async function POST(req: NextRequest) {
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   if (parsed.data.allDevices) {
     const userId = await getMobileUserId(req);
     if (!userId) {
-      return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+      return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
     }
     await revokeAllMobileRefreshTokens(userId);
     return NextResponse.json({ ok: true });

@@ -1,7 +1,7 @@
 import type { CropAspectPreset } from "@/lib/media-editor/types";
 
 export const EDITOR_CROP_PRESETS: CropAspectPreset[] = [
-  { id: "free", label: "자유" },
+  { id: "free", label: "Freehand" },
   { id: "1:1", label: "1:1", aspect: 1 },
   { id: "3:4", label: "3:4", aspect: 3 / 4 },
   { id: "4:5", label: "4:5", aspect: 4 / 5 },

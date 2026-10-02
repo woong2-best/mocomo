@@ -1,5 +1,9 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -81,7 +85,7 @@ function LiveRackActionButtons() {
       <Link href={liveHref} className="block w-full">
         <Button className="h-9 w-full rounded-xl gap-1.5 px-2 text-xs font-bold shadow-sm" size="sm">
           <Video className="h-3.5 w-3.5 shrink-0" />
-          라이브
+          {t("home.featureLive")}
         </Button>
       </Link>
       <Link href={studioHref} className="block w-full">
@@ -91,7 +95,7 @@ function LiveRackActionButtons() {
           className="h-9 w-full rounded-xl gap-1.5 border-white/25 bg-black/40 px-2 text-xs font-bold text-white hover:bg-black/55 hover:text-white"
         >
           <MonitorPlay className="h-3.5 w-3.5 shrink-0" />
-          스튜디오
+          {t("nav.liveStudio")}
         </Button>
       </Link>
     </div>
@@ -111,6 +115,7 @@ export function LiveFolderRail({
   activeFilter: LiveFolderFilter;
   onFilterChange: (filter: LiveFolderFilter) => void;
 }) {
+  const { t } = useLocale();
   const { blockedOpen, setBlockedOpen, guardCategoryNav, checking } = useLiveR18Gate();
   const [hoverId, setHoverId] = useState<LiveFolderFilter | null>(null);
 

@@ -70,23 +70,23 @@ export async function getUsedMarketPhoneStatusForUser(userId: string) {
 
 export async function sendUsedMarketPhoneOtpForUser(user: UserSlice, rawPhone: string) {
   if (!isUsedMarketPhoneCountry(user.countryCode)) {
-    return { error: usedMarketBlockedRegionMsg("ko") };
+    return { error: usedMarketBlockedRegionMsg() };
   }
   const region = user.countryCode.toUpperCase();
 
   if (!isValidMobilePhoneInput(rawPhone, region)) {
     return {
-      error: `올바른 휴대폰 번호를 입력해 주세요. (예: ${phonePlaceholderForCountry(region)})`,
+      error: `Please check your input and try again. ${phonePlaceholderForCountry(region)})`,
     };
   }
 
   const phone = normalizeMobilePhone(rawPhone, region);
-  if (!phone) return { error: "휴대폰 번호 형식이 올바르지 않습니다." };
+  if (!phone) return { error: "Invalid phone number format." };
 
   if (user.phoneVerified) {
     if (user.phone === phone) {
       return {
-        message: `이미 인증된 번호입니다. (${formatPhoneDisplay(phone)})`,
+        message: `Please sign in to continue.${formatPhoneDisplay(phone)})`,
         phoneDisplay: formatPhoneDisplay(phone),
         alreadyVerified: true as const,
       };
@@ -127,7 +127,7 @@ export async function sendUsedMarketPhoneOtpForUser(user: UserSlice, rawPhone: s
   return {
     message: sent.dev
       ? `개발 모드: 인증번호 ${code} (실서비스는 문자로 전송됩니다)`
-      : "인증번호를 문자로 보냈습니다.",
+      : "We sent a verification code by text.",
     devCode: sent.dev ? code : undefined,
     phoneDisplay: formatPhoneDisplay(phone),
     sendsRemaining: rate.remaining,
@@ -140,12 +140,12 @@ export async function verifyUsedMarketPhoneOtpForUser(
   code: string
 ) {
   if (!isUsedMarketPhoneCountry(user.countryCode)) {
-    return { error: usedMarketBlockedRegionMsg("ko") };
+    return { error: usedMarketBlockedRegionMsg() };
   }
   const region = user.countryCode.toUpperCase();
   const phone = normalizeMobilePhone(rawPhone, region);
-  if (!phone) return { error: "휴대폰 번호 형식이 올바르지 않습니다." };
-  if (!/^\d{6}$/.test(code.trim())) return { error: "6자리 인증번호를 입력해 주세요." };
+  if (!phone) return { error: "Invalid phone number format." };
+  if (!/^\d{6}$/.test(code.trim())) return { error: "Enter the 6-digit verification code." };
 
   if (user.phoneVerified) {
     if (user.phone === phone) {
@@ -168,10 +168,10 @@ export async function verifyUsedMarketPhoneOtpForUser(
     orderBy: { expires: "desc" },
   });
   if (!row || row.expires < new Date()) {
-    return { error: "인증번호가 만료되었습니다. 다시 요청해 주세요." };
+    return { error: "Verification code expired. Request a new one." };
   }
   if (!phoneCodeMatchesToken(row.token, phone, code)) {
-    return { error: "인증번호가 일치하지 않습니다." };
+    return { error: "Verification code doesn't match." };
   }
 
   try {

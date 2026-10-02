@@ -18,9 +18,9 @@ export default async function MarketSellPage() {
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
       <section className="space-y-3">
-        <h2 className="font-bold text-lg">굿즈 판매 문의</h2>
+        <h2 className="font-bold text-lg">Merch seller inquiry</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          사진·설명·영상을 올리고 등록비 {formatUsd(LISTING_FEE_USD_CENTS)}를 결제하면 상품을 등록할 수 있습니다. 판매·배송·결제는
+          사진·설명·Video을 올리고 등록비 {formatUsd(LISTING_FEE_USD_CENTS)}를 결제하면 상품을 등록할 수 있습니다. 판매·배송·결제는
           MoCoMo 굿즈샵에서 처리됩니다 (플랫폼 수수료 10%).
         </p>
         <GoodsListingForm paymentsEnabled={paymentsEnabled} />
@@ -28,7 +28,7 @@ export default async function MarketSellPage() {
 
       {products.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-bold">내 등록 상품</h2>
+          <h2 className="font-bold">My listings</h2>
           <ul className="space-y-4">
             {products.map((p) => {
               const imgs = p.images as string[];
@@ -45,7 +45,7 @@ export default async function MarketSellPage() {
                       <p className="text-xs text-muted-foreground">
                         {p.active && p.price > 0
                           ? `${formatUsd(p.price)} · 판매 중`
-                          : "가격 설정 필요"}
+                          : "Price required"}
                       </p>
                     </div>
                   </div>

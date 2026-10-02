@@ -72,12 +72,12 @@ export async function writeBenefitPreviewLedger(input: {
   }[] = [
     {
       entryType: "GROSS",
-      label: "총 수익",
+      label: "Gross revenue",
       amountKrw: input.grossAmountKrw,
     },
     {
       entryType: "PLATFORM_FEE",
-      label: "플랫폼 수수료",
+      label: "Platform fee",
       amountKrw: -input.feeBeforeKrw,
     },
   ];
@@ -92,14 +92,14 @@ export async function writeBenefitPreviewLedger(input: {
     if (input.couponApplied) {
       lines.push({
         entryType: "COUPON",
-        label: "Coupon 할인",
+        label: "Coupon discount",
         amountKrw: 0, // 상세는 steps에서 — 합산 중복 방지용 마커
       });
     }
   }
   lines.push({
     entryType: "NET_PAYOUT",
-    label: "최종 지급",
+    label: "Net payout",
     amountKrw: input.sellerAmountKrw,
   });
 

@@ -1,5 +1,8 @@
 "use client";
+const i18n = createTranslator("en");
 
+
+import { createTranslator } from "@/lib/i18n/messages";
 import {
   useCallback,
   useEffect,
@@ -8,6 +11,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+
+const t = createTranslator("en");
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
@@ -65,9 +70,9 @@ type Props = {
 };
 
 const SORT_OPTIONS: { id: SortId; label: string }[] = [
-  { id: "popular", label: "인기 댓글" },
-  { id: "newest", label: "최신순" },
-  { id: "oldest", label: "오래된순" },
+  { id: "popular", label: i18n("reels.skkmnjp") },
+  { id: "newest", label: i18n("reels.sv12fs") },
+  { id: "oldest", label: i18n("reels.sprgayc") },
 ];
 
 function formatRelativeKo(iso?: string): string {
@@ -75,18 +80,18 @@ function formatRelativeKo(iso?: string): string {
   const t = new Date(iso).getTime();
   if (!Number.isFinite(t)) return "";
   const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
-  if (sec < 60) return "방금";
+  if (sec < 60) return i18n("reels.swykf");
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}분`;
+  if (min < 60) return `${min}m`;
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}시간`;
+  if (hr < 24) return `${hr}h`;
   const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}일`;
+  if (day < 7) return `${day}d`;
   const week = Math.floor(day / 7);
-  if (week < 5) return `${week}주`;
+  if (week < 5) return `${week}w`;
   const month = Math.floor(day / 30);
-  if (month < 12) return `${month}개월`;
-  return `${Math.floor(month / 12)}년`;
+  if (month < 12) return `${month}mo`;
+  return `${Math.floor(month / 12)}y`;
 }
 
 function SkeletonRows() {
@@ -109,7 +114,7 @@ function SkeletonRows() {
 function AuthorBadge() {
   return (
     <span className="ml-1 inline-flex items-center rounded bg-white/15 px-1 py-px text-[10px] font-medium text-white/80">
-      작성자
+      Author
     </span>
   );
 }
@@ -156,14 +161,14 @@ function CommentMenu({
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      window.alert(typeof body.error === "string" ? body.error : "고정에 실패했습니다.");
+      window.alert(typeof body.error === "string" ? body.error : i18n("reels.symiql8"));
       return;
     }
     onPinnedChange(next);
   }
 
   async function remove() {
-    if (!window.confirm("이 댓글을 삭제할까요?")) return;
+    if (!window.confirm(i18n("reels.s187gtiz"))) return;
     const hard = isAdmin && !isMine ? "?hard=1" : "";
     const res = await fetch(`/api/comments/${comment.id}${hard}`, {
       method: "DELETE",
@@ -171,21 +176,21 @@ function CommentMenu({
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      window.alert(typeof body.error === "string" ? body.error : "삭제에 실패했습니다.");
+      window.alert(typeof body.error === "string" ? body.error : i18n("reels.sqez72a"));
       return;
     }
     onDeleted();
   }
 
   async function hide() {
-    if (!window.confirm("이 댓글을 숨길까요?")) return;
+    if (!window.confirm(i18n("reels.s1tnovle"))) return;
     const res = await fetch(`/api/comments/${comment.id}/hide`, {
       method: "POST",
       credentials: "include",
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      window.alert(typeof body.error === "string" ? body.error : "숨기기에 실패했습니다.");
+      window.alert(typeof body.error === "string" ? body.error : i18n("reels.s2utjt5"));
       return;
     }
     onDeleted();
@@ -200,23 +205,23 @@ function CommentMenu({
       postId,
       commentId: comment.id,
     });
-    window.alert(res.error ?? "신고가 접수되었습니다.");
+    window.alert(res.error ?? i18n("reels.s1xj77n8"));
   }
 
   async function block() {
     const res = await blockUserAction(comment.author.id, comment.author.username);
-    window.alert(res.error ?? "차단되었습니다.");
+    window.alert(res.error ?? i18n("post.menu.blockDone"));
   }
 
   async function sanction() {
-    if (!window.confirm(`@${comment.author.username} 계정을 7일 제재할까요?`)) return;
+    if (!window.confirm(`Restrict @${comment.author.username} for 7 days?`)) return;
     const until = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await suspendUserTemporary(
       comment.author.id,
-      "댓글 관리자 제재",
+      i18n("reels.sljf4an"),
       until
     );
-    window.alert("계정 제재를 적용했습니다.");
+    window.alert(i18n("reels.svy3aii"));
   }
 
   return (
@@ -225,7 +230,7 @@ function CommentMenu({
         <button
           type="button"
           className="inline-flex h-7 w-7 items-center justify-center rounded-full text-white/35 hover:bg-white/10 hover:text-white/70"
-          aria-label="댓글 메뉴"
+          aria-label={i18n("reels.sbu7hhv")}
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
@@ -239,12 +244,12 @@ function CommentMenu({
             className="focus:bg-white/10"
             onClick={() => void pin(!isPinned)}
           >
-            {isPinned ? "고정 해제" : "고정"}
+            {isPinned ? i18n("reels.s1pxa7lf") : i18n("reels.sui45")}
           </DropdownMenuItem>
         )}
         {isMine && (
           <DropdownMenuItem className="focus:bg-white/10" onClick={onEdit}>
-            수정
+            Edit
           </DropdownMenuItem>
         )}
         {canDelete && (
@@ -252,20 +257,20 @@ function CommentMenu({
             className="text-red-300 focus:bg-white/10 focus:text-red-200"
             onClick={() => void remove()}
           >
-            삭제
+            Delete
           </DropdownMenuItem>
         )}
         <DropdownMenuItem className="focus:bg-white/10" onClick={() => void copyLink()}>
-          링크 복사
+          Copy link
         </DropdownMenuItem>
         {!isMine && (
           <>
             <DropdownMenuSeparator className="bg-white/10" />
             <DropdownMenuItem className="focus:bg-white/10" onClick={() => void report()}>
-              신고
+              Report
             </DropdownMenuItem>
             <DropdownMenuItem className="focus:bg-white/10" onClick={() => void block()}>
-              차단
+              Block
             </DropdownMenuItem>
           </>
         )}
@@ -273,13 +278,13 @@ function CommentMenu({
           <>
             <DropdownMenuSeparator className="bg-white/10" />
             <DropdownMenuItem className="focus:bg-white/10" onClick={() => void hide()}>
-              숨김
+              Hide
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-red-300 focus:bg-white/10 focus:text-red-200"
               onClick={() => void sanction()}
             >
-              계정 제재
+              Restrict account
             </DropdownMenuItem>
           </>
         )}
@@ -365,7 +370,7 @@ function CommentRow({
         likedByAuthor?: boolean;
         error?: string;
       };
-      if (!res.ok) throw new Error(body.error || "실패");
+      if (!res.ok) throw new Error(body.error || i18n("reels.syb44"));
       onPatch(comment.id, {
         likedByMe: !!body.liked,
         likeCount:
@@ -419,7 +424,7 @@ function CommentRow({
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      window.alert(typeof body.error === "string" ? body.error : "수정 실패");
+      window.alert(typeof body.error === "string" ? body.error : i18n("reels.s2tpfbb"));
       return;
     }
     onPatch(comment.id, { content: text, isEdited: true });
@@ -475,7 +480,7 @@ function CommentRow({
             {isPinned && (
               <p className="mb-0.5 flex items-center gap-1 text-[11px] font-medium text-white/45">
                 <Pin className="h-3 w-3" />
-                고정됨
+                Pinned
               </p>
             )}
             <p className="text-[13px] leading-snug">
@@ -490,7 +495,7 @@ function CommentRow({
                 {formatRelativeKo(comment.createdAt)}
               </span>
               {comment.isEdited ? (
-                <span className="ml-1 text-white/30">(수정됨)</span>
+                <span className="ml-1 text-white/30">{i18n("reels.spxgg6e")}</span>
               ) : null}
             </p>
 
@@ -508,7 +513,7 @@ function CommentRow({
                     className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-black"
                     onClick={() => void saveEdit()}
                   >
-                    저장
+                    Save
                   </button>
                   <button
                     type="button"
@@ -518,7 +523,7 @@ function CommentRow({
                       setEditText(comment.content);
                     }}
                   >
-                    취소
+                    Cancel
                   </button>
                 </div>
               </div>
@@ -554,7 +559,7 @@ function CommentRow({
             <button
               type="button"
               className="p-1 text-white/45 transition-transform active:scale-90 hover:text-white"
-              aria-label={liked ? "좋아요 취소" : "좋아요"}
+              aria-label={liked ? i18n("reels.su52o21") : i18n("lib.notifications.s224a288614")}
               aria-pressed={liked}
               disabled={!viewerId || likeBusy}
               onClick={() => void toggleLike()}
@@ -571,10 +576,10 @@ function CommentRow({
 
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/40">
           {likeCount > 0 && (
-            <span className="tabular-nums">좋아요 {formatNumber(likeCount)}개</span>
+            <span className="tabular-nums">{formatNumber(likeCount)} likes</span>
           )}
           {comment.likedByAuthor && (
-            <span className="text-amber-300/80">작성자가 좋아함</span>
+            <span className="text-amber-300/80">{i18n("reels.s167wbcv")}</span>
           )}
           {viewerId && (
             <button
@@ -583,7 +588,7 @@ function CommentRow({
               onClick={() => setReplyOpen((v) => !v)}
             >
               <ReplyBubbleIcon className="h-3.5 w-3.5" />
-              답글 달기
+              Reply
             </button>
           )}
           {needsTr && (
@@ -594,10 +599,10 @@ function CommentRow({
               onClick={() => void runTranslate()}
             >
               {trLoading
-                ? t("translate.loading")
+                ? i18n("translate.loading")
                 : showTranslated
-                  ? t("translate.viewOriginal")
-                  : "번역 보기"}
+                  ? i18n("translate.viewOriginal")
+                  : i18n("translate.viewTranslation")}
             </button>
           )}
         </div>
@@ -617,8 +622,8 @@ function CommentRow({
           >
             <span className="inline-block h-px w-6 bg-white/30" aria-hidden />
             {expanded
-              ? "답글 숨기기"
-              : `답글 ${formatNumber(replyCount)}개 모두 보기`}
+              ? i18n("reels.s1wpsoxf")
+              : `View all ${formatNumber(replyCount)} replies`}
           </button>
         )}
 
@@ -654,7 +659,7 @@ function CommentRow({
                 disabled={loadingReplies}
                 onClick={() => void loadReplies(false)}
               >
-                {loadingReplies ? "불러오는 중…" : "답글 더 보기"}
+                {loadingReplies ? i18n("common.loading") : i18n("reels.s1vqpobh")}
               </button>
             )}
           </ul>
@@ -664,7 +669,7 @@ function CommentRow({
           <CommentForm
             postId={postId}
             parentId={comment.id}
-            placeholder="답글 달기..."
+            placeholder={i18n("reels.s1nojek5")}
             autoFocus
             className="mt-2"
             inputClassName="h-9 rounded-full border-white/15 bg-white/[0.06] text-white placeholder:text-white/35"
@@ -754,7 +759,7 @@ export function ReelsCommentsPanel({
           postAuthorId?: string;
           error?: string;
         };
-        if (!res.ok) throw new Error(body.error || "댓글을 불러오지 못했습니다.");
+        if (!res.ok) throw new Error(body.error || i18n("reels.szgx8n5"));
 
         if (typeof body.postAuthorId === "string") {
           setPostAuthorId(body.postAuthorId);
@@ -771,7 +776,7 @@ export function ReelsCommentsPanel({
         setError("");
       } catch (e) {
         if (opts.reset && !opts.silent) {
-          setError(e instanceof Error ? e.message : "댓글을 불러오지 못했습니다.");
+          setError(e instanceof Error ? e.message : i18n("reels.szgx8n5"));
         }
       } finally {
         setLoading(false);
@@ -1045,7 +1050,7 @@ export function ReelsCommentsPanel({
   }, [open, onClose]);
 
   const sortLabel =
-    SORT_OPTIONS.find((o) => o.id === sort)?.label ?? "인기 댓글";
+    SORT_OPTIONS.find((o) => o.id === sort)?.label ?? i18n("reels.skkmnjp");
   const allComments = [...pinned, ...comments];
   const empty = !loading && !error && allComments.length === 0;
 
@@ -1053,13 +1058,13 @@ export function ReelsCommentsPanel({
     <>
       <header className="flex shrink-0 items-center justify-between gap-2 px-4 pb-1 pt-1">
         <h2 className="text-[15px] font-semibold text-white">
-          댓글{total > 0 ? ` ${formatNumber(total)}` : ""}
+          Comments{total > 0 ? ` ${formatNumber(total)}` : ""}
         </h2>
         <div className="relative flex items-center gap-0.5">
           <button
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10"
-            aria-label="정렬"
+            aria-label={i18n("reels.sz1kn")}
             aria-expanded={sortMenuOpen}
             onClick={() => setSortMenuOpen((v) => !v)}
           >
@@ -1068,7 +1073,7 @@ export function ReelsCommentsPanel({
           <button
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10"
-            aria-label="댓글 닫기"
+            aria-label={i18n("reels.sbu67a0")}
             onClick={onClose}
           >
             <X className="h-5 w-5" />
@@ -1110,7 +1115,7 @@ export function ReelsCommentsPanel({
           <p className="py-6 text-center text-sm text-red-300">{error}</p>
         ) : empty ? (
           <p className="py-10 text-center text-sm text-white/45">
-            아직 댓글이 없습니다. 첫 댓글을 남겨 보세요.
+            No comments yet. Be the first to comment.
           </p>
         ) : (
           <ul className="space-y-5 pb-4">
@@ -1141,7 +1146,7 @@ export function ReelsCommentsPanel({
         {user ? (
           <CommentForm
             postId={postId}
-            placeholder="댓글 추가..."
+            placeholder={i18n("reels.sxvvb73")}
             className="mt-0"
             inputClassName="rounded-full border-white/15 bg-transparent text-white placeholder:text-white/35"
           />
@@ -1150,7 +1155,7 @@ export function ReelsCommentsPanel({
             href={`/auth/signin?callbackUrl=${encodeURIComponent(`/post/${postId}`)}`}
             className="flex h-10 items-center rounded-full border border-white/15 px-4 text-sm text-white/45"
           >
-            댓글을 쓰려면 로그인하세요
+            Sign in to comment
           </Link>
         )}
       </div>
@@ -1167,7 +1172,7 @@ export function ReelsCommentsPanel({
             : "w-0 translate-x-4 opacity-0 pointer-events-none border-0"
         )}
         aria-hidden={!open}
-        aria-label="댓글"
+        aria-label={i18n("lib.notifications.s6d4e9bd3a9")}
       >
         {open ? (
           <div className="flex h-full w-[min(100vw,24rem)] flex-col">{panelBody}</div>
@@ -1187,13 +1192,13 @@ export function ReelsCommentsPanel({
             "absolute inset-0 bg-black/50 transition-opacity duration-150",
             open ? "pointer-events-auto opacity-100" : "opacity-0"
           )}
-          aria-label="댓글 닫기"
+          aria-label={i18n("reels.sbu67a0")}
           onClick={onClose}
         />
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="댓글"
+          aria-label={i18n("lib.notifications.s6d4e9bd3a9")}
           className={cn(
             "pointer-events-auto absolute inset-x-0 bottom-0 flex max-h-[78dvh] flex-col overflow-hidden rounded-t-2xl bg-[#121212] text-white shadow-2xl transition-transform duration-150 ease-out will-change-transform",
             open ? "translate-y-0" : "translate-y-full"

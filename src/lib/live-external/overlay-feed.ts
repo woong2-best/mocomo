@@ -41,7 +41,7 @@ export async function buildOverlayChatFeed(params: {
     ? new Date(params.since)
     : new Date(Date.now() - 10 * 60_000);
   if (Number.isNaN(sinceDate.getTime())) {
-    return { ok: false, error: "since 형식이 올바르지 않습니다.", status: 400 };
+    return { ok: false, error: "Invalid since format.", status: 400 };
   }
 
   const channel = access.channel;

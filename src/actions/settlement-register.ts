@@ -7,8 +7,7 @@ import { getCreatorSettlementStatusForUser } from "@/lib/settlement-register-ser
 export async function registerCreatorSettlement(_raw: unknown) {
   void _raw;
   return {
-    error:
-      "앱 내 계좌 직접 등록(Custom Connect)은 더 이상 지원하지 않습니다. Stripe Express 온보딩을 이용해 주세요.",
+    error: "actions.custom_connect_stripe_express",
     code: "CUSTOM_CONNECT_DEPRECATED" as const,
   };
 }

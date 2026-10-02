@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { Eye, Mic2, Radio, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -30,6 +34,7 @@ export function LiveMobilePortraitVoiceHost({
   recentTips?: LiveTipAlert[];
   donationAlertsOnStream?: boolean;
 }) {
+  const { t } = useLocale();
   const router = useRouter();
   const { chatOverlayEnabled } = useLiveChat();
 
@@ -49,7 +54,7 @@ export function LiveMobilePortraitVoiceHost({
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-safe pb-2 pointer-events-auto">
         <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-violet-600 flex items-center gap-1">
           <Mic2 className="h-3 w-3" />
-          보이스 LIVE
+          {t("live.live")}
         </span>
         <p className="text-sm font-semibold truncate flex-1 min-w-0">{channelName}</p>
         <span className="flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-2.5 py-1 text-xs tabular-nums">
@@ -62,7 +67,7 @@ export function LiveMobilePortraitVoiceHost({
           size="icon"
           className="h-9 w-9 rounded-full bg-black/40 text-white hover:bg-black/55"
           onClick={() => router.push("/live")}
-          aria-label="나가기"
+          aria-label={t("live.sqpdxk")}
         >
           <X className="h-5 w-5" />
         </Button>
@@ -77,7 +82,7 @@ export function LiveMobilePortraitVoiceHost({
           onClick={onEndStream}
         >
           <Radio className="h-4 w-4" />
-          방송 종료
+          {t("live.s1dubywf")}
         </Button>
       </div>
 

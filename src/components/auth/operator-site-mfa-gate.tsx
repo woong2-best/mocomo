@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -85,12 +90,12 @@ export function OperatorSiteMfaGate() {
       armedRef.current = true;
       const res = await adminMfaAfterPasswordAction();
       if ("error" in res && res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         setOpen(true);
         return;
       }
       if ("next" in res && res.next === "enroll") {
-        setError("관리자 보안 등록(Passkey·OTP)이 필요합니다. 아래 링크에서 등록한 뒤 다시 로그인해 주세요.");
+        setError(t("auth.passkey_otp_2"));
         setOpen(true);
         return;
       }
@@ -104,22 +109,22 @@ export function OperatorSiteMfaGate() {
     try {
       const opts = await adminPasskeyAuthOptionsAction();
       if ("error" in opts && opts.error) {
-        setError(opts.error);
+        setError(errorText(opts.error));
         return;
       }
       if (!("options" in opts) || !opts.options) {
-        setError("Passkey 옵션을 불러오지 못했습니다.");
+        setError(t("auth.passkey"));
         return;
       }
       const assertion = await startAuthentication(opts.options);
       const verified = await adminPasskeyAuthVerifyAction(assertion);
       if ("error" in verified && verified.error) {
-        setError(verified.error);
+        setError(errorText(verified.error));
         return;
       }
       setStep("totp");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Passkey 인증에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("lib.admin.passkey_10"));
     } finally {
       setLoading(false);
     }
@@ -132,7 +137,7 @@ export function OperatorSiteMfaGate() {
     const res = await adminTotpAuthVerifyAction(code.trim(), { useRecovery });
     setLoading(false);
     if ("error" in res && res.error) {
-      setError(res.error);
+      setError(errorText(res.error));
       return;
     }
     setOpen(false);
@@ -149,7 +154,7 @@ export function OperatorSiteMfaGate() {
     } catch {
       logoutLock.current = false;
       setLoggingOut(false);
-      setError("로그아웃에 실패했습니다. 다시 시도해 주세요.");
+      setError(t("auth.shkd2p4"));
     }
   }
 
@@ -165,7 +170,7 @@ export function OperatorSiteMfaGate() {
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <h2 id="operator-mfa-title" className="text-lg font-black tracking-tight">
-            관리자 추가 인증
+            {t("auth.sn2mjh9")}
           </h2>
           <Button
             type="button"
@@ -175,11 +180,11 @@ export function OperatorSiteMfaGate() {
             disabled={loggingOut}
             onClick={() => void onLogout()}
           >
-            {loggingOut ? "로그아웃 중…" : "로그아웃"}
+            {loggingOut ? t("auth.s14a9snu") : t("menu.signOut")}
           </Button>
         </div>
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-          운영자 계정은 사이트 이용 전 Passkey와 OTP(TOTP) 인증이 필요합니다.
+          {t("auth.passkey_otp_totp")}
         </p>
 
         {error ? (
@@ -191,10 +196,10 @@ export function OperatorSiteMfaGate() {
         {step === "passkey" ? (
           <div className="mt-5 space-y-3">
             <Button type="button" className="w-full" disabled={loading || loggingOut} onClick={() => void runPasskey()}>
-              {loading ? "인증 중…" : "Passkey로 계속"}
+              {loading ? t("auth.so18p3k") : t("auth.passkey_3")}
             </Button>
             <Button type="button" variant="outline" className="w-full" asChild>
-              <a href="/admin/enroll">보안 등록(Passkey·OTP) 설정</a>
+              <a href="/admin/enroll">{t("auth.passkey_otp")}</a>
             </Button>
           </div>
         ) : (
@@ -202,7 +207,7 @@ export function OperatorSiteMfaGate() {
             <Input
               inputMode="numeric"
               autoComplete="one-time-code"
-              placeholder={useRecovery ? "Recovery code" : "6자리 OTP"}
+              placeholder={useRecovery ? "Recovery code" : t("auth.6_otp")}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               disabled={loading || loggingOut}
@@ -213,10 +218,10 @@ export function OperatorSiteMfaGate() {
                 checked={useRecovery}
                 onChange={(e) => setUseRecovery(e.target.checked)}
               />
-              Recovery code 사용
+              {t("auth.recovery_code")}
             </label>
             <Button type="submit" className="w-full" disabled={loading || loggingOut || !code.trim()}>
-              {loading ? "확인 중…" : "OTP 확인"}
+              {loading ? t("community-server.sauj92q") : t("auth.otp")}
             </Button>
           </form>
         )}

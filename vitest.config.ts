@@ -9,6 +9,7 @@ export default defineConfig({
       "src/lib/marketplace/__tests__/**/*.test.ts",
       "src/lib/settlement-moco/__tests__/**/*.test.ts",
       "src/lib/__tests__/api-idempotency.test.ts",
+      "src/lib/__tests__/error-text.test.ts",
     ],
   },
 });

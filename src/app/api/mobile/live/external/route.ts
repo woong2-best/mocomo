@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import type { LiveStreamCategory } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
 
   if (!isExternalLiveEnabled()) {
     return NextResponse.json(
-      { error: "외부 방송 연동이 비활성화되어 있습니다." },
+      { error: "External stream linking is disabled." },
       { status: 503 }
     );
   }
@@ -55,13 +56,13 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const accountId = body.connectedAccountId?.trim();
   if (!accountId) {
     return NextResponse.json(
-      { error: "인증된 스트리밍 계정을 선택해 주세요." },
+      { error: "Please sign in." },
       { status: 400 }
     );
   }
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
     const user = authResult.user;
     const hostCheck = await assertLiveHostEligible(user.id);
     if (!hostCheck.ok) {
-      return NextResponse.json({ error: hostCheck.error }, { status: 403 });
+      return NextResponse.json({ error: errorText(hostCheck.error) }, { status: 403 });
     }
 
     const account = await db.connectedStreamingAccount.findUnique({
@@ -78,13 +79,13 @@ export async function POST(req: NextRequest) {
     });
 
     if (!account || account.userId !== user.id) {
-      return NextResponse.json({ error: "스트리밍 계정을 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Streaming account not found." }, { status: 404 });
     }
     if (!account.verified || account.revokedAt) {
       return NextResponse.json(
         {
           error:
-            "인증되지 않았거나 해제된 스트리밍 계정입니다. 웹 설정에서 계정을 다시 연결해 주세요.",
+            "Please sign in to continue.",
         },
         { status: 403 }
       );
@@ -93,14 +94,20 @@ export async function POST(req: NextRequest) {
     const liveProvider = platformToLiveExternal(account.platform);
     if (!liveProvider) {
       return NextResponse.json(
-        { error: "이 플랫폼은 외부 라이브 임베드를 아직 지원하지 않습니다." },
+        { error: "External live embed is not supported for this platform yet." },
         { status: 400 }
       );
     }
 
     const resolved = await resolveVerifiedLiveSource(accountId, user.id);
-    if ("error" in resolved) {
-      return NextResponse.json({ error: resolved.error }, { status: 400 });
+    if ("errorKey" in resolved && resolved.errorKey) {
+      return NextResponse.json({ error: String(resolved.errorKey) }, { status: 400 });
+    }
+    if ("error" in resolved && resolved.error) {
+      return NextResponse.json({ error: errorText(resolved.error) }, { status: 400 });
+    }
+    if (!("provider" in resolved)) {
+      return NextResponse.json({ error: "live.external.resolveFailed" }, { status: 400 });
     }
     const parsed = resolved;
 
@@ -110,13 +117,13 @@ export async function POST(req: NextRequest) {
         accessToken: tokens?.accessToken,
       });
       if (!kids.ok) {
-        return NextResponse.json({ error: kids.error }, { status: 400 });
+        return NextResponse.json({ error: errorText(kids.error) }, { status: 400 });
       }
       if (kids.madeForKids) {
         return NextResponse.json(
           {
             error:
-              "Made for Kids로 표시된 YouTube 영상은 정책상 임베드할 수 없습니다. 다른 라이브를 연결해 주세요.",
+              "Not found.",
           },
           { status: 400 }
         );
@@ -132,7 +139,7 @@ export async function POST(req: NextRequest) {
     const prep = await prepareHostForNewBroadcast(user.id);
     if (!prep.ok) {
       return NextResponse.json(
-        { error: prep.error, existingChannelId: prep.blockingChannelId },
+        { error: errorText(prep.error), existingChannelId: prep.blockingChannelId },
         { status: 409 }
       );
     }

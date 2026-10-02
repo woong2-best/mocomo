@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import type { CommunityJoinMode } from "@prisma/client";
 import { Button } from "@/components/ui/button";
@@ -12,9 +17,9 @@ import {
 } from "@/actions/community-join";
 
 const JOIN_MODE_OPTIONS: { value: CommunityJoinMode; label: string; description: string }[] = [
-  { value: "OPEN", label: "누구나 즉시 가입", description: "로그인한 사용자는 버튼 한 번으로 가입할 수 있습니다." },
-  { value: "APPROVE", label: "가입 승인 필요", description: "방장·관리자가 요청을 승인해야 합니다." },
-  { value: "INVITE_ONLY", label: "초대 링크 전용", description: "초대 링크가 있는 사용자만 가입할 수 있습니다." },
+  { value: "OPEN", label: t("community-server.sh01hb6"), description: t("community-server.s19uk5oz") },
+  { value: "APPROVE", label: t("community-server.s1zxe8m"), description: t("community-server.sux261w") },
+  { value: "INVITE_ONLY", label: t("community-server.sp3k2nm"), description: t("community-server.svtw6vm") },
 ];
 
 export function CommunityJoinModeSettings({
@@ -43,7 +48,7 @@ export function CommunityJoinModeSettings({
     try {
       const result = await updateCommunityJoinMode(communityId, mode);
       if ("error" in result && result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       setJoinMode(mode);
@@ -57,19 +62,19 @@ export function CommunityJoinModeSettings({
     setPasswordOk("");
     const pin = passwordDraft.trim();
     if (!/^\d{4}$/.test(pin)) {
-      setError("비밀번호는 숫자 4자리여야 합니다.");
+      setError(t("community-server.skj7xjg"));
       return;
     }
     setPasswordLoading(true);
     try {
       const result = await updateCommunityJoinPassword(communityId, pin);
       if ("error" in result && result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       setHasJoinPassword(true);
       setPasswordDraft("");
-      setPasswordOk("가입 비밀번호가 설정되었습니다.");
+      setPasswordOk(t("community-server.s5c9hd1"));
     } finally {
       setPasswordLoading(false);
     }
@@ -82,12 +87,12 @@ export function CommunityJoinModeSettings({
     try {
       const result = await updateCommunityJoinPassword(communityId, null);
       if ("error" in result && result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       setHasJoinPassword(false);
       setPasswordDraft("");
-      setPasswordOk("가입 비밀번호가 해제되었습니다.");
+      setPasswordOk(t("community-server.s14wi00s"));
     } finally {
       setPasswordLoading(false);
     }
@@ -100,7 +105,7 @@ export function CommunityJoinModeSettings({
     try {
       const result = await createCommunityInvite(communityId);
       if ("error" in result && result.error) {
-        setError(result.error);
+        setError(errorText(result.error));
         return;
       }
       if ("code" in result) {
@@ -116,9 +121,9 @@ export function CommunityJoinModeSettings({
   return (
     <section className="space-y-4 rounded-xl border border-border p-4">
       <div>
-        <h2 className="font-semibold">가입 방식</h2>
+        <h2 className="font-semibold">{t("community-server.s1mfg0nj")}</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          커뮤니티 참여 방법을 설정합니다. 언제든지 변경할 수 있습니다.
+          {t("community-server.s14i8vbi")}
         </p>
       </div>
       <div className="space-y-2">
@@ -148,7 +153,7 @@ export function CommunityJoinModeSettings({
       {joinMode === "INVITE_ONLY" && (
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" size="sm" variant="outline" disabled={inviteLoading} onClick={() => void generateInvite()}>
-            {inviteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "초대 링크 생성"}
+            {inviteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("community-server.sp3its1")}
           </Button>
           {inviteLink && <p className="text-xs text-muted-foreground break-all">{inviteLink}</p>}
         </div>
@@ -156,10 +161,10 @@ export function CommunityJoinModeSettings({
 
       <div className="space-y-3 border-t border-border pt-4">
         <div>
-          <h3 className="text-sm font-semibold">가입 비밀번호 (선택)</h3>
+          <h3 className="text-sm font-semibold">{t("community-server.slv5cjh")}</h3>
           <p className="text-xs text-muted-foreground mt-1">
             숫자 4자리를 설정하면 가입·가입 요청 시 비밀번호가 필요합니다.
-            {hasJoinPassword ? " 현재 비밀번호가 설정되어 있습니다." : ""}
+            {hasJoinPassword ? t("community-server.snfajh2") : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -173,7 +178,7 @@ export function CommunityJoinModeSettings({
             value={passwordDraft}
             onChange={(e) => setPasswordDraft(e.target.value.replace(/\D/g, "").slice(0, 4))}
             className="w-28 font-mono tracking-[0.35em] text-center"
-            aria-label="가입 비밀번호 4자리"
+            aria-label={t("community-server.sz2qkpj")}
           />
           <Button
             type="button"
@@ -181,7 +186,7 @@ export function CommunityJoinModeSettings({
             disabled={passwordLoading || passwordDraft.length !== 4}
             onClick={() => void savePassword()}
           >
-            {passwordLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : hasJoinPassword ? "변경" : "설정"}
+            {passwordLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : hasJoinPassword ? t("community-server.sx1x9") : t("settings.title")}
           </Button>
           {hasJoinPassword && (
             <Button
@@ -191,7 +196,7 @@ export function CommunityJoinModeSettings({
               disabled={passwordLoading}
               onClick={() => void clearPassword()}
             >
-              해제
+              {t("community-server.s11elk")}
             </Button>
           )}
         </div>

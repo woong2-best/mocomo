@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import {
@@ -39,7 +42,7 @@ export function CommunityCategoriesPanel({ communityId }: { communityId: string 
 
   return (
     <section className="space-y-4 rounded-xl border border-border p-4">
-      <h2 className="font-semibold">채널 카테고리</h2>
+      <h2 className="font-semibold">{t("community-server.s3dzmns")}</h2>
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
@@ -60,9 +63,9 @@ export function CommunityCategoriesPanel({ communityId }: { communityId: string 
         </ul>
       )}
       <div className="flex gap-2">
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="새 카테고리" />
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("community-server.sp44scc")} />
         <Button type="button" size="sm" disabled={!name.trim()} onClick={() => void add()}>
-          추가
+          {t("messages.szwto")}
         </Button>
       </div>
     </section>

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Trash2, Pin, PinOff, MoreHorizontal } from "lucide-react";
@@ -33,7 +36,7 @@ export function CommunityPostCard({
     hasPermission(permissions, "deletePosts") || hasPermission(permissions, "announce");
 
   async function remove() {
-    if (!confirm("이 게시글을 삭제할까요?")) return;
+    if (!confirm(t("community-server.s10ae3ye"))) return;
     setLoading(true);
     const res = await deleteCommunityPost(post.id, communityId);
     if ("error" in res && res.error) alert(res.error);
@@ -72,18 +75,18 @@ export function CommunityPostCard({
                 <DropdownMenuItem onClick={() => void togglePin()}>
                   {post.isPinned ? (
                     <>
-                      <PinOff className="h-4 w-4" /> 고정 해제
+                      <PinOff className="h-4 w-4" /> {t("reels.s1pxa7lf")}
                     </>
                   ) : (
                     <>
-                      <Pin className="h-4 w-4" /> 공지 고정
+                      <Pin className="h-4 w-4" /> {t("community-server.s1qg7myy")}
                     </>
                   )}
                 </DropdownMenuItem>
               )}
               {hasPermission(permissions, "deletePosts") && (
                 <DropdownMenuItem className="text-destructive" onClick={() => void remove()}>
-                  <Trash2 className="h-4 w-4" /> 삭제
+                  <Trash2 className="h-4 w-4" /> {t("toast.delete")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

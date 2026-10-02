@@ -15,11 +15,8 @@ export function sanitizeMainSiteCallbackPath(
 /** 탐색 · 발견 */
 export const EXPLORE_PATH = "/explore";
 
-/** 세로 숏폼 영상 피드 (Reels) */
+/** 세로 숏폼 Video 피드 (Reels) */
 export const REELS_PATH = "/reels";
-
-/** APT 집 · 다이오라마 게임 (구 /apt 메인) — @see apt-public-gate (보류 시 비공개) */
-export const APT_GAME_PATH = "/play/house";
 
 /** 커뮤니티 피드 경로 (과거 /feed — revalidate·탭 매칭용) */
 export const COMMUNITY_FEED_PATH = "/";

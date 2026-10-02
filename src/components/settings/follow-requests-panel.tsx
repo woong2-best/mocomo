@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,7 +44,7 @@ export function FollowRequestsPanel({
 
   if (items.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground py-2">대기 중인 팔로우 요청이 없습니다.</p>
+      <p className="text-sm text-muted-foreground py-2">{t("settings.sddcdml")}</p>
     );
   }
 
@@ -70,7 +73,7 @@ export function FollowRequestsPanel({
                 disabled={pending}
                 onClick={() => act(req.user.id, "approve")}
               >
-                수락
+                {t("collab.accept")}
               </Button>
               <Button
                 size="sm"
@@ -79,7 +82,7 @@ export function FollowRequestsPanel({
                 disabled={pending}
                 onClick={() => act(req.user.id, "reject")}
               >
-                거절
+                {t("collab.reject")}
               </Button>
             </div>
           </li>

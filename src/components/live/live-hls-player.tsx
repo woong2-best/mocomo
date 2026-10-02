@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type HlsType from "hls.js";
 import { Loader2, Radio, RefreshCw } from "lucide-react";
@@ -20,6 +24,7 @@ type PlaybackResponse = {
 
 function absoluteHlsUrl(pathOrUrl: string): string {
   if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+  const { t } = useLocale();
     return pathOrUrl;
   }
   if (typeof window === "undefined") return pathOrUrl;
@@ -27,7 +32,8 @@ function absoluteHlsUrl(pathOrUrl: string): string {
 }
 
 /** 트위치/치지직 방식 HLS — HTTPS 프록시, SRS 신호 대기 시 자동 재시도 */
-export function LiveHlsPlayer({ channelId }: { channelId: string }) {
+export function LiveHlsPlayer({
+  channelId }: { channelId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsType | null>(null);
   const [status, setStatus] = useState<"loading" | "waiting" | "playing" | "error">("loading");
@@ -64,7 +70,7 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
     void import("hls.js").then(({ default: Hls }) => {
       if (cancelled || !videoRef.current) return;
       if (!Hls.isSupported()) {
-        setErrorMsg("이 브라우저는 HLS 재생을 지원하지 않습니다.");
+        setErrorMsg(t("live.hls_2"));
         setStatus("error");
         return;
       }
@@ -103,14 +109,14 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           setStatus("waiting");
           setWaitHint(
-            "MoCoMo 송출 대기 중… 다중 송출 대상이 켜진 뒤 5~20초 기다려 주세요."
+            t("live.mocomo_5_20")
           );
           hls.startLoad();
           return;
         }
         setStatus("error");
         setErrorMsg(
-          "재생 오류입니다. OBS 키·서버 주소를 확인하고 방송을 재시작한 뒤 새로고침해 주세요."
+          t("live.obs")
         );
       });
     });
@@ -139,7 +145,7 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
       }
       if (!body.onAir && body.streamKeyHint) {
         setWaitHint(
-          `MoCoMo로 송출이 없습니다. 다중 송출 대상: 서버 rtmp://45.32.16.32:1935/live, 키 끝 ${body.streamKeyHint} 확인.`
+          t("live.mocomo_rtmp_45_32_16", { v0: body.streamKeyHint })
         );
       }
     } catch {
@@ -180,15 +186,15 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
           typeof body.error === "string"
             ? body.error
             : res.status === 401
-              ? "로그인이 만료되었습니다. 새로고침 후 다시 로그인해 주세요."
-              : `재생 API 오류 (${res.status}). 설정에서 OBS 키를 확인해 주세요.`;
+              ? t("live.skujaaz")
+              : t("live.api_obs", { v0: res.status });
         throw new Error(detail);
       }
       if (!body.hlsUrl) {
         if (await fallbackFromObs()) return;
         setHlsUrl(null);
         setStatus("waiting");
-        setWaitHint(body.message ?? "OBS에서 방송을 시작해 주세요.");
+        setWaitHint(body.message ?? t("live.obs_2"));
         return;
       }
 
@@ -205,7 +211,7 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
       }
     } catch (e) {
       if (await fallbackFromObs()) return;
-      setErrorMsg(e instanceof Error ? e.message : "재생 실패");
+      setErrorMsg(e instanceof Error ? e.message : t("live.snq3mvn"));
       setStatus("error");
     }
   }, [channelId, fallbackFromObs]);
@@ -222,22 +228,22 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
   useEffect(() => {
     if (status !== "waiting") return;
     void refreshSignalHint();
-    const t = setInterval(() => {
+    const retryInterval = setInterval(() => {
       retryRef.current += 1;
       void refreshSignalHint();
       void loadPlayback();
     }, 4000);
-    return () => clearInterval(t);
+    return () => clearInterval(retryInterval);
   }, [status, loadPlayback, refreshSignalHint]);
 
   useEffect(() => {
     if (status !== "loading" || !hlsUrl) return;
-    const t = setTimeout(() => {
+    const waitTimer = setTimeout(() => {
       setStatus("waiting");
-      setWaitHint("HLS 준비가 지연되고 있습니다. OBS 방송을 유지한 채 잠시만 기다려 주세요…");
+      setWaitHint(t("live.hls_obs"));
       void loadPlayback();
     }, 22000);
-    return () => clearTimeout(t);
+    return () => clearTimeout(waitTimer);
   }, [status, hlsUrl, loadPlayback]);
 
   if (status === "error") {
@@ -246,7 +252,7 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
         <p className="text-sm text-destructive text-center">{errorMsg}</p>
         <Button variant="outline" size="sm" onClick={() => void loadPlayback()}>
           <RefreshCw className="h-4 w-4 mr-1" />
-          다시 시도
+          {t("toast.retry")}
         </Button>
       </div>
     );
@@ -269,8 +275,8 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
           <p className="text-sm text-center px-4 max-w-sm">
             {status === "waiting"
               ? waitHint ??
-                "OBS에서 방송을 시작하면 5~15초 뒤 화면이 나타납니다…"
-              : "방송 화면 연결 중…"}
+                t("live.obs_5_15")
+              : t("live.sm91x99")}
           </p>
         </div>
       )}

@@ -115,17 +115,17 @@ export async function verifyNtsBusinessRegistration(
 ): Promise<NtsBusinessVerifyResult> {
   const regNo = normalizeBusinessRegNo(input.regNo);
   if (!regNo) {
-    return { ok: false, error: "사업자등록번호는 10자리 숫자여야 합니다." };
+    return { ok: false, error: "Business registration number must be 10 digits." };
   }
 
   const startDate = normalizeBusinessStartDate(input.startDate);
   if (!startDate) {
-    return { ok: false, error: "개업일자는 YYYYMMDD 형식으로 입력해 주세요." };
+    return { ok: false, error: "Enter the opening date in YYYYMMDD format." };
   }
 
   const representativeName = input.representativeName.trim();
   if (!representativeName) {
-    return { ok: false, error: "대표자명을 입력해 주세요." };
+    return { ok: false, error: "Enter the representative's name." };
   }
 
   if (isNtsDevMode()) {
@@ -134,7 +134,7 @@ export async function verifyNtsBusinessRegistration(
       ok: true,
       regNo,
       statusCode: "01",
-      taxType: "부가가치세 일반과세자",
+      taxType: "General VAT taxpayer",
       dev: true,
     };
   }
@@ -153,35 +153,35 @@ export async function verifyNtsBusinessRegistration(
 
     const validateRes = await ntsPost<NtsValidateResponse>("validate", validateBody);
     if (!validateRes || validateRes.status_code !== "OK") {
-      return { ok: false, error: "사업자등록 확인 API 호출에 실패했습니다." };
+      return { ok: false, error: "Business registration verification API call failed." };
     }
 
     const item = validateRes.data?.[0];
     if (!item || item.valid !== "01") {
       return {
         ok: false,
-        error: item?.valid_msg?.trim() || "입력하신 사업자 정보가 국세청 등록 정보와 일치하지 않습니다.",
+        error: item?.valid_msg?.trim() || "The business information you entered does not match National Tax Service records.",
       };
     }
 
     const statusRes = await ntsPost<NtsStatusResponse>("status", { b_no: [regNo] });
     if (!statusRes || statusRes.status_code !== "OK") {
-      return { ok: false, error: "사업자 상태 조회 API 호출에 실패했습니다." };
+      return { ok: false, error: "Business status lookup API call failed." };
     }
 
     const status = statusRes.data?.[0];
     if (!status?.b_stt_cd) {
-      return { ok: false, error: "국세청에 등록되지 않은 사업자등록번호입니다." };
+      return { ok: false, error: "This business registration number is not registered with the National Tax Service." };
     }
 
     if (status.b_stt_cd === "02") {
-      return { ok: false, error: "휴업 상태의 사업자는 판매자 등록이 불가합니다." };
+      return { ok: false, error: "Businesses in temporary closure cannot register as Sellers." };
     }
     if (status.b_stt_cd === "03") {
-      return { ok: false, error: "폐업 상태의 사업자는 판매자 등록이 불가합니다." };
+      return { ok: false, error: "Closed businesses cannot register as Sellers." };
     }
     if (status.b_stt_cd !== "01") {
-      return { ok: false, error: "사업자 상태를 확인할 수 없습니다." };
+      return { ok: false, error: "Could not verify business status." };
     }
 
     return {
@@ -194,10 +194,10 @@ export async function verifyNtsBusinessRegistration(
     if (e instanceof Error && e.message === "NTS_NOT_CONFIGURED") {
       return {
         ok: false,
-        error: "사업자 확인 설정이 없습니다. NTS_BUSINESSMAN_SERVICE_KEY를 설정해 주세요.",
+        error: "Business verification is not configured. Set NTS_BUSINESSMAN_SERVICE_KEY.",
       };
     }
-    return { ok: false, error: "사업자등록 확인 중 오류가 발생했습니다." };
+    return { ok: false, error: "An error occurred while verifying business registration." };
   }
 }
 

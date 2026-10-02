@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import dynamic from "next/dynamic";
 import type { MeetCoords } from "@/lib/used-market";
 import { Input } from "@/components/ui/input";
@@ -34,7 +37,7 @@ export function UsedMeetMapPicker({
   return (
     <div className="space-y-2">
       <p className="text-sm text-muted-foreground">
-        위 칸은 지도 검색용입니다. 건물·출입구 등 상세는 아래 주소 상세에 적어 주세요.
+        {t("used.sl3oqy5")}
       </p>
       <MeetMapView
         mode="pick"
@@ -46,7 +49,7 @@ export function UsedMeetMapPicker({
         heightClassName="h-56"
       />
       <Input
-        placeholder="주소 상세 (예: 2번 출구 스타벅스 앞)"
+        placeholder={t("used.sn2yei3")}
         value={meetPlace}
         onChange={(e) => onMeetPlaceChange(e.target.value)}
         className="rounded-xl h-11"

@@ -90,7 +90,7 @@ export function CultureWikiHubList({
 
   function formatWhen(d: Date) {
     const tag =
-      locale === "ko" ? "ko-KR" : locale === "ja" ? "ja-JP" : locale === "zh" ? "zh-CN" : "en-US";
+      "en-US";
     return new Intl.DateTimeFormat(tag, {
       month: "short",
       day: "numeric",

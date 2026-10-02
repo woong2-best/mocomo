@@ -45,19 +45,19 @@ export function parseOAuthSignupCompletion(
   input: unknown
 ): { ok: true; birthDate: Date } | { ok: false; error: string } {
   if (!input || typeof input !== "object") {
-    return { ok: false, error: "생년월일과 이용 동의가 필요합니다." };
+    return { ok: false, error: "Birth date and terms agreement are required." };
   }
   const raw = input as Record<string, unknown>;
   if (raw.termsAccepted !== true) {
-    return { ok: false, error: "이용약관에 동의해 주세요." };
+    return { ok: false, error: "Please agree to the Terms of Service." };
   }
   if (raw.privacyAccepted !== true) {
-    return { ok: false, error: "개인정보 처리방침에 동의해 주세요." };
+    return { ok: false, error: "Please agree to the Privacy Policy." };
   }
 
   const parsed = oauthSignupConsentSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "올바른 생년월일을 입력해 주세요." };
+    return { ok: false, error: "Enter a valid birth date." };
   }
 
   const birthDate = parseBirthDateInput(
@@ -66,7 +66,7 @@ export function parseOAuthSignupCompletion(
     parsed.data.birthDay
   );
   if (!birthDate) {
-    return { ok: false, error: "올바른 생년월일을 입력해 주세요." };
+    return { ok: false, error: "Enter a valid birth date." };
   }
   return { ok: true, birthDate };
 }
@@ -125,10 +125,10 @@ export async function createOAuthUserWithConsent(opts: {
   if (opts.username?.trim()) {
     const normalized = normalizeUsername(opts.username);
     if (!isValidUsername(normalized)) {
-      throw new Error("아이디는 영문·숫자·_ 3~20자입니다.");
+      throw new Error("Username must be 3–20 letters, numbers, or underscores.");
     }
     if (RESERVED_USERNAMES.has(normalized)) {
-      throw new Error("사용할 수 없는 아이디입니다.");
+      throw new Error("This username isn't available.");
     }
     const taken = await findUserByUsernameInsensitive(normalized);
     if (taken) {
@@ -146,7 +146,7 @@ export async function createOAuthUserWithConsent(opts: {
 
   const password = opts.password?.trim() ?? "";
   if (password && password.length < 8) {
-    throw new Error("비밀번호는 8자 이상이어야 합니다.");
+    throw new Error("Password must be at least 8 characters.");
   }
   const passwordHash = password
     ? await bcrypt.hash(password, OAUTH_SIGNUP_BCRYPT_ROUNDS)
@@ -219,7 +219,7 @@ export async function linkOAuthSignupAccount(opts: {
   }
 
   if (!isOAuthEncryptionConfigured()) {
-    throw new Error("OAuth 설정이 되어 있지 않습니다.");
+    throw new Error("OAuth isn't configured.");
   }
 
   await persistEncryptedOAuthAccount({

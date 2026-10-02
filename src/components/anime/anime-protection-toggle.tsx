@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toggleAnimeProtection } from "@/actions/anime";
@@ -32,7 +35,7 @@ export function AnimeProtectionToggle({ slug, isProtected }: { slug: string; isP
       onClick={() => void toggle()}
     >
       {protectedState ? <Shield className="h-3.5 w-3.5" /> : <ShieldOff className="h-3.5 w-3.5" />}
-      {loading ? "처리 중…" : protectedState ? "보호됨 (운영진만 편집)" : "문서 보호 켜기"}
+      {loading ? t("post.menu.blockReportSubmitting") : protectedState ? t("anime.s114r6oh") : t("anime.s13v1fzo")}
     </Button>
   );
 }

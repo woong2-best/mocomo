@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LiveKitRoom,
@@ -43,14 +48,14 @@ function VoiceLiveHostControls({
         await localParticipant.setMicrophoneEnabled(true);
         const res = await startVoiceLiveBroadcast(channelId);
         if ("error" in res && res.error) {
-          setLiveError(res.error);
+          setLiveError(errorText(res.error));
           wentLiveRef.current = false;
           onAirChange?.(false);
           return;
         }
         onAirChange?.(true);
       } catch {
-        setLiveError("방송 시작에 실패했습니다.");
+        setLiveError(t("voice-live.s1a08gpg"));
         wentLiveRef.current = false;
         onAirChange?.(false);
       }
@@ -72,12 +77,12 @@ function VoiceLiveHostControls({
         variant={isMicrophoneEnabled ? "default" : "secondary"}
         className="rounded-full h-14 w-14 p-0"
         onClick={() => void toggleMic()}
-        aria-label={isMicrophoneEnabled ? "마이크 끄기" : "마이크 켜기"}
+        aria-label={isMicrophoneEnabled ? t("voice-live.sqg2zbg") : t("voice-live.sqg886s")}
       >
         {isMicrophoneEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
       </Button>
       <p className="text-xs text-muted-foreground">
-        {isMicrophoneEnabled ? "마이크 켜짐 · 시청자에게 전달 중" : "마이크 꺼짐"}
+        {isMicrophoneEnabled ? t("voice-live.s6vhifn") : t("voice-live.sqg2vec")}
       </p>
     </div>
   );
@@ -112,7 +117,7 @@ export function VoiceLiveHostStudio({
       })
       .catch((e) => {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "연결 실패");
+          setError(e instanceof Error ? e.message : t("voice-live.seed06c"));
         }
       });
     return () => {
@@ -132,7 +137,7 @@ export function VoiceLiveHostStudio({
     return (
       <div className="rounded-2xl bg-gradient-to-b from-violet-950/40 to-background border border-border/60 flex flex-col items-center justify-center gap-3 py-20">
         <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
-        <p className="text-sm text-muted-foreground">보이스 스튜디오 연결 중…</p>
+        <p className="text-sm text-muted-foreground">{t("voice-live.s9753ll")}</p>
       </div>
     );
   }
@@ -164,7 +169,7 @@ export function VoiceLiveHostStudio({
           <p className="text-lg font-bold">{hostDisplayName}</p>
         )}
         <p className="text-xs text-muted-foreground text-center max-w-xs">
-          영상 없이 목소리만 송출합니다. 수요가 몰려도 영상 CDN 부담 없이 안정적으로 시청됩니다.
+          Video 없이 목소리만 송출합니다. 수요가 몰려도 Video CDN 부담 없이 안정적으로 시청됩니다.
         </p>
 
         <LiveKitRoom
@@ -296,7 +301,7 @@ export function VoiceLiveListener({
       })
       .catch((e) => {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "연결 실패");
+          setError(e instanceof Error ? e.message : t("voice-live.seed06c"));
         }
       });
     return () => {
@@ -316,7 +321,7 @@ export function VoiceLiveListener({
     return (
       <div className="rounded-2xl bg-gradient-to-b from-violet-950/40 to-background border border-border/60 flex flex-col items-center justify-center gap-3 min-h-[280px]">
         <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
-        <p className="text-sm text-muted-foreground">보이스 방송 연결 중…</p>
+        <p className="text-sm text-muted-foreground">{t("voice-live.s1xjpy4p")}</p>
       </div>
     );
   }

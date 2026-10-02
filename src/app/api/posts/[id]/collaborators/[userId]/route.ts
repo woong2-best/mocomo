@@ -15,7 +15,7 @@ export async function DELETE(
 
   const { id: postId, userId: targetUserId } = await params;
   if (!postId || postId.length > 64 || !targetUserId || targetUserId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const authResult = await requireApiUser();
@@ -30,6 +30,6 @@ export async function DELETE(
       return NextResponse.json({ error: e.message }, { status: e.status });
     }
     console.error("[api/posts/collaborators DELETE]", e);
-    return NextResponse.json({ error: "제거에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

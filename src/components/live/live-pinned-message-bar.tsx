@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { ChevronDown, Pin } from "lucide-react";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import { cn } from "@/lib/utils";
@@ -17,7 +21,9 @@ function previewLine(text: string, max = 100): string {
 }
 
 /** Collapsible pinned streamer notice above live chat (external viewer). */
-export function LivePinnedMessageBar({ message, className }: Props) {
+export function LivePinnedMessageBar({
+  message, className }: Props) {
+  const { t } = useLocale();
   const trimmed = message?.trim();
   if (!trimmed) return null;
 
@@ -34,7 +40,7 @@ export function LivePinnedMessageBar({ message, className }: Props) {
           {previewLine(trimmed)}
         </span>
         <span className="hidden min-w-0 flex-1 truncate font-medium text-foreground group-open:inline">
-          고정 메시지
+          {t("live.s1ps8r1")}
         </span>
         <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>

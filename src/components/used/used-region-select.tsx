@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useMemo, useState } from "react";
 import {
   KOREA_SIDO,
@@ -81,19 +84,19 @@ export function UsedRegionSelect({
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">거래 국가</label>
+        <label className="text-sm font-medium">{t("used.s1m4n2uj")}</label>
         <CountrySelect
           value={cc}
           onChange={changeCountry}
           locale={locale}
-          searchPlaceholder={locale === "en" ? "Search country" : "국가 검색"}
+          searchPlaceholder={"Search country"}
           className={selectClass}
         />
       </div>
 
       {isKoreaUsedMarketCountry(cc) ? (
         <div className="space-y-2">
-          <label className="text-sm font-medium">시·군·구</label>
+          <label className="text-sm font-medium">{t("used.s1gdss0a")}</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <select className={selectClass} value={sidoId} onChange={(e) => applySido(e.target.value)}>
               {KOREA_SIDO.map((s) => (
@@ -123,7 +126,7 @@ export function UsedRegionSelect({
       ) : (
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            {locale === "en" ? "City" : locale === "ja" ? "市区町村" : "시·도시"}
+            {"City"}
           </label>
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm">
@@ -146,14 +149,14 @@ export function UsedRegionSelect({
                   )
                 }
               />
-              {locale === "en" ? "Meet in a city" : "직거래 도시"}
+              {"Meet in a city"}
             </label>
             {!isUsedShippingRegion(value) ? (
               <Input
                 value={isUsedShippingRegion(value) ? "" : value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={
-                  locale === "en" ? "e.g. Los Angeles, Tokyo, London" : "예: Tokyo, London, New York"
+                  "e.g. Los Angeles, Tokyo, London"
                 }
                 className="rounded-xl h-11"
               />

@@ -47,15 +47,15 @@ export async function handleStripeChargeDisputeEvent(event: Stripe.Event): Promi
     await createNotification({
       userId: order.sellerId,
       type: "SYSTEM",
-      title: "Stripe 차지백(분쟁) 접수",
-      body: "정산이 보류되었습니다. Stripe Dashboard에서 증빙을 제출해 주세요.",
+      title: "Stripe chargeback (dispute) received",
+      body: "Settlement is on hold. Submit evidence in the Stripe Dashboard.",
       link: `/market/orders/${order.id}`,
     });
     await createNotification({
       userId: order.buyerId,
       type: "SYSTEM",
-      title: "결제 분쟁 접수",
-      body: "카드사 분쟁 절차가 진행 중입니다.",
+      title: "Payment dispute received",
+      body: "A card network dispute is in progress.",
       link: `/market/orders/${order.id}`,
     });
     await refreshSellerTrust(order.sellerId).catch(() => null);
@@ -91,8 +91,8 @@ export async function handleStripeChargeDisputeEvent(event: Stripe.Event): Promi
       await createNotification({
         userId: order.sellerId,
         type: "SYSTEM",
-        title: "차지백 패소",
-        body: "카드사 분쟁에서 패소했습니다. 정산이 회수됩니다.",
+        title: "Chargeback lost",
+        body: "You lost the card network dispute. Settlement will be reversed.",
         link: `/market/orders/${order.id}`,
       });
     } else if (won) {
@@ -110,8 +110,8 @@ export async function handleStripeChargeDisputeEvent(event: Stripe.Event): Promi
       await createNotification({
         userId: order.sellerId,
         type: "SYSTEM",
-        title: "차지백 승소",
-        body: "카드사 분쟁에서 승소했습니다.",
+        title: "Chargeback won",
+        body: "You won the card network dispute.",
         link: `/market/orders/${order.id}`,
       });
     }

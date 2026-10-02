@@ -15,11 +15,11 @@ export function stripeAccountNotReadyPayload() {
 
 /** 후원 버튼 비활성 안내 */
 export const CREATOR_PAYOUT_BLOCKED_KO =
-  "해당 크리에이터가 아직 정산 계좌(Stripe)를 연동하지 않아 후원할 수 없습니다.";
+  "This creator hasn't connected a payout account (Stripe) yet, so tips aren't available.";
 
 /** API 에러 코드 수신 시 토스트 */
 export const CREATOR_PAYOUT_BLOCKED_TOAST_KO =
-  "해당 크리에이터가 정산 계좌를 연동하지 않아 후원할 수 없습니다.";
+  "This creator hasn't connected a payout account, so tips aren't available.";
 
 export type StripeAccountNotReady = {
   ok: false;

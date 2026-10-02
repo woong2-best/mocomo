@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { formatAtmLetterDate } from "@/lib/chat-atm-letter";
@@ -103,11 +106,11 @@ export function TransferLetterCard(props: Props) {
         type="button"
         className="tl-envelope-area tl-envelope-inline"
         onClick={() => setOpen(true)}
-        aria-label="편지 열기"
+        aria-label={t("messages.sx21g4")}
       >
         <EnvelopeFace />
       </button>
-      <p className="tl-hint">봉투를 눌러 편지를 여세요</p>
+      <p className="tl-hint">{t("messages.si3isoz")}</p>
       {mounted && stage ? createPortal(stage, document.body) : null}
     </>
   );

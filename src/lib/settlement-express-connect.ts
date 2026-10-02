@@ -53,7 +53,7 @@ async function detachLegacyCustomConnectAccount(userId: string, customAccountId:
     create: {
       userId,
       countryCode: "US",
-      legalName: "Express 마이그레이션 필요",
+      legalName: "Express migration required",
       dateOfBirth: new Date("1990-01-01"),
       addressLine1: "—",
       city: "—",
@@ -79,8 +79,8 @@ async function detachLegacyCustomConnectAccount(userId: string, customAccountId:
   await createNotification({
     userId,
     type: "system",
-    title: "정산 계정 재연동이 필요합니다",
-    body: "보안·세무 정책 업데이트로 Stripe Express 온보딩이 필요합니다. 지갑에서 다시 연동해 주세요.",
+    title: "Payout account reconnection required",
+    body: "Stripe Express onboarding is required due to security and tax policy updates. Reconnect from your wallet.",
     link: "/wallet",
   }).catch(() => null);
 
@@ -93,11 +93,11 @@ export async function ensureExpressConnectAccount(
   opts?: { requestCardPayments?: boolean; payoutCountry?: string }
 ): Promise<{ accountId: string } | { error: string }> {
   if (!isStripeConfigured()) {
-    return { error: "Stripe가 설정되지 않았습니다." };
+    return { error: "Stripe is not configured." };
   }
 
   const user = await loadUserConnectRow(userId);
-  if (!user) return { error: "사용자를 찾을 수 없습니다." };
+  if (!user) return { error: "User not found." };
 
   const stripe = getStripe();
 
@@ -153,7 +153,7 @@ export async function ensureExpressConnectAccount(
       create: {
         userId,
         countryCode: country,
-        legalName: "Stripe 온보딩",
+        legalName: "Stripe onboarding",
         dateOfBirth: new Date("1990-01-01"),
         addressLine1: "—",
         city: "—",
@@ -176,7 +176,7 @@ export async function ensureExpressConnectAccount(
 
     return { accountId: account.id };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Stripe Express 계정 생성 실패";
+    const msg = e instanceof Error ? e.message : "Failed to create Stripe Express account";
     console.error("[settlement-express-connect] ensureExpressConnectAccount:", msg);
     return { error: msg };
   }
@@ -185,7 +185,7 @@ export async function ensureExpressConnectAccount(
 export async function createExpressOnboardingLink(
   accountId: string
 ): Promise<{ url: string } | { error: string }> {
-  if (!isStripeConfigured()) return { error: "Stripe가 설정되지 않았습니다." };
+  if (!isStripeConfigured()) return { error: "Stripe is not configured." };
 
   const { refreshUrl, returnUrl } = payoutConnectUrls();
   const stripe = getStripe();
@@ -197,10 +197,10 @@ export async function createExpressOnboardingLink(
       return_url: returnUrl,
       type: "account_onboarding",
     });
-    if (!link.url) return { error: "온보딩 링크를 만들 수 없습니다." };
+    if (!link.url) return { error: "Could not create onboarding link." };
     return { url: link.url };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "온보딩 링크 생성 실패";
+    const msg = e instanceof Error ? e.message : "Failed to create onboarding link";
     console.error("[settlement-express-connect] createExpressOnboardingLink:", msg);
     return { error: msg };
   }
@@ -213,7 +213,7 @@ export async function createExpressOnboardingLink(
 export async function createExpressAccountLink(
   accountId: string
 ): Promise<{ url: string; mode: "onboarding" | "login" } | { error: string }> {
-  if (!isStripeConfigured()) return { error: "Stripe가 설정되지 않았습니다." };
+  if (!isStripeConfigured()) return { error: "Stripe is not configured." };
 
   const stripe = getStripe();
   try {
@@ -225,10 +225,10 @@ export async function createExpressAccountLink(
     }
 
     const link = await stripe.accounts.createLoginLink(accountId);
-    if (!link.url) return { error: "대시보드 링크를 만들 수 없습니다." };
+    if (!link.url) return { error: "Could not create dashboard link." };
     return { url: link.url, mode: "login" };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "정산 링크 생성 실패";
+    const msg = e instanceof Error ? e.message : "Failed to create payout link";
     if (/has not completed onboarding/i.test(msg)) {
       const onboarding = await createExpressOnboardingLink(accountId);
       if ("error" in onboarding) return onboarding;
@@ -259,7 +259,7 @@ function profileNameFromStripeAccount(account: Stripe.Account): string {
   if (ind?.first_name || ind?.last_name) {
     return [ind.first_name, ind.last_name].filter(Boolean).join(" ").trim();
   }
-  return account.business_profile?.name?.trim() || "Stripe 온보딩";
+  return account.business_profile?.name?.trim() || "Stripe onboarding";
 }
 
 /** Stripe Account → CreatorSettlementProfile 스냅샷 (Express 온보딩 후) */

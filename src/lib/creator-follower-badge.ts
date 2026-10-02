@@ -16,10 +16,10 @@ export type CreatorFollowerBadgeDef = {
 };
 
 export const CREATOR_FOLLOWER_BADGES: CreatorFollowerBadgeDef[] = [
-  { id: "bronze", label: "Bronze", labelKo: "브론즈", minFollowers: 100, color: "#b45309" },
-  { id: "silver", label: "Silver", labelKo: "실버", minFollowers: 1000, color: "#94a3b8" },
-  { id: "gold", label: "Gold", labelKo: "골드", minFollowers: 5000, color: "#eab308" },
-  { id: "platinum", label: "Platinum", labelKo: "플래티넘", minFollowers: 10000, color: "#22d3ee" },
+  { id: "bronze", label: "Bronze", labelKo: "Bronze", minFollowers: 100, color: "#b45309" },
+  { id: "silver", label: "Silver", labelKo: "Silver", minFollowers: 1000, color: "#94a3b8" },
+  { id: "gold", label: "Gold", labelKo: "Gold", minFollowers: 5000, color: "#eab308" },
+  { id: "platinum", label: "Platinum", labelKo: "Platinum", minFollowers: 10000, color: "#22d3ee" },
 ];
 
 export function creatorBadgeFromFollowerCount(count: number): CreatorFollowerBadgeId | null {

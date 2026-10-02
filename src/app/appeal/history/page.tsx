@@ -16,7 +16,7 @@ export default async function AppealHistoryPage() {
   return (
     <AppPageChrome maxWidth="3xl" className="py-8 space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">이의 제기 내역</h1>
+        <h1 className="text-2xl font-bold">Appeal history</h1>
         <Link href="/appeal" className="text-sm text-primary hover:underline">
           새 이의 제기
         </Link>

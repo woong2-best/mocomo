@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useMemo, useState } from "react";
 import { Heart, Home, LayoutGrid } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -12,11 +15,11 @@ function formatCompactViewers(n: number, locale: string) {
   if (n >= 10000) {
     const man = n / 10000;
     return locale.startsWith("ko")
-      ? `${man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "")}만`
+      ? t("live.s10p8", { v0: man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "") })
       : `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
   }
   if (n >= 1000) {
-    return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}${locale.startsWith("ko") ? "천" : "K"}`;
+    return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
   }
   return String(n);
 }

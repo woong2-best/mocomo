@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import type { AvatarTrackingFrame } from "@/lib/virtual-avatar/tracking/types";
 import type { Flat2dAvatarMeta } from "@/lib/avatar-2d/types";
@@ -36,7 +39,7 @@ export class Flat2dAvatarRenderer {
         this.imageLoaded = true;
         resolve();
       };
-      img.onerror = () => reject(new Error("2D 아바타 이미지 로드 실패"));
+      img.onerror = () => reject(new Error(i18n("lib.avatar-2d.s3ae70i")));
       img.src = url;
     });
   }

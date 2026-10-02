@@ -13,7 +13,7 @@ import { useClientPlatform } from "@/components/providers/client-platform-provid
 import { cn } from "@/lib/utils";
 import { PeerLocalClock, PeerMemberClocks } from "@/components/messages/peer-local-clock";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 import { ChatRoomMenu } from "@/components/messages/chat-room-menu";
 
 export function ChatHeader({
@@ -51,7 +51,7 @@ export function ChatHeader({
   productId?: string;
   onReportSubmitted?: () => void;
 }) {
-  const { locale } = useLocale();
+  const { t } = useLocale();
   const { isNativeApp } = useClientPlatform();
   const profileHref = profileUsername ? `/u/${profileUsername}` : undefined;
   const { isUserOnline, socketReady, realtimeOff } = useChatSocket();
@@ -65,14 +65,14 @@ export function ChatHeader({
     }));
   const presenceLabel =
     roomType === "GROUP"
-      ? uiText(locale, `${memberCount ?? members.length}명`, `${memberCount ?? members.length} members`)
+      ? t("messages.memberCount", { count: String(memberCount ?? members.length) })
       : roomType === "DM" && otherUserId
         ? !socketReady && !realtimeOff
-          ? uiText(locale, "연결 중…", "Connecting…")
+          ? t("live.external.connecting")
           : otherOnline
-            ? uiText(locale, "접속 중", "Online")
-            : uiText(locale, "오프라인", "Offline")
-        : uiText(locale, "프로필 보기", "View profile");
+            ? t("ui.online")
+            : t("ui.offline")
+        : t("ui.view_profile");
 
   return (
     <header className={cn("flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b border-border/60 bg-background/95 backdrop-blur-md shrink-0 z-10", isNativeApp && "pt-safe")}>
@@ -80,7 +80,7 @@ export function ChatHeader({
         <Link
           href="/messages"
           className="md:hidden p-2 -ml-1 rounded-full hover:bg-muted/80 shrink-0"
-          aria-label={uiText(locale, "대화 목록", "Conversation list")}
+          aria-label={t("ui.conversation_list")}
         >
           <ChevronLeft className="h-5 w-5" />
         </Link>

@@ -4,7 +4,7 @@ const KICK_LOGIN = /^[a-zA-Z0-9_]{2,25}$/;
 
 function parseKickChannel(raw: string): StreamingChannelInfo | { error: string } {
   const input = raw.trim();
-  if (!input) return { error: "Kick 채널 URL 또는 사용자명을 입력해 주세요." };
+  if (!input) return { error: "Enter a Kick channel URL or username." };
 
   let slug: string | null = null;
   if (KICK_LOGIN.test(input) && !input.includes(".")) {
@@ -13,15 +13,15 @@ function parseKickChannel(raw: string): StreamingChannelInfo | { error: string }
     try {
       const parsed = new URL(input.startsWith("http") ? input : `https://${input}`);
       const host = parsed.hostname.replace(/^www\./, "");
-      if (host !== "kick.com") return { error: "kick.com URL만 지원합니다." };
+      if (host !== "kick.com") return { error: "Only kick.com URLs are supported." };
       const parts = parsed.pathname.split("/").filter(Boolean);
       if (parts[0] && KICK_LOGIN.test(parts[0])) slug = parts[0].toLowerCase();
     } catch {
-      return { error: "유효한 Kick 채널 URL이 아닙니다." };
+      return { error: "Not a valid Kick channel URL." };
     }
   }
 
-  if (!slug) return { error: "Kick 사용자명을 확인할 수 없습니다." };
+  if (!slug) return { error: "Could not verify Kick username." };
 
   return {
     channelId: slug,
@@ -54,7 +54,7 @@ export const kickStreamingProvider: StreamingPlatformProvider = {
   },
 
   async exchangeOAuthCode() {
-    throw new Error("Kick OAuth는 아직 지원하지 않습니다.");
+    throw new Error("Kick OAuth is not supported yet.");
   },
 
   parseManualChannelInput(raw) {
@@ -74,7 +74,7 @@ export const kickStreamingProvider: StreamingPlatformProvider = {
   async resolveLiveSource() {
     return {
       error:
-        "Kick 외부 임베드 라이브는 아직 지원하지 않습니다. Twitch·YouTube 계정을 연결해 주세요.",
+        "Kick external embed live is not supported yet. Connect Twitch or YouTube accounts.",
     };
   },
 };

@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { ChevronLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,7 +42,7 @@ export default async function AnimeNewestPage() {
       </NativePageTitle>
       <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
         {animes.length === 0 ? (
-          <li className="p-4 text-sm text-muted-foreground">등록된 글이 없습니다.</li>
+          <li className="p-4 text-sm text-muted-foreground">{t("community-server.s1vo571j")}</li>
         ) : (
           animes.map((a) => (
             <li key={a.slug}>

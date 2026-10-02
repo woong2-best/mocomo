@@ -24,7 +24,7 @@ export default async function WebtoonStudioPage() {
         </Link>
       </div>
       <p className="text-sm text-muted-foreground leading-relaxed">
-        그린 그림을 <strong className="text-foreground font-medium">작품 단위</strong>로 올리고 가격을 정해
+        그린 그림을 <strong className="text-foreground font-medium">By work</strong>로 올리고 가격을 정해
         판매하세요. 등록된 작품은{" "}
         <Link href="/webtoon" className="text-[#0096fa] font-medium hover:underline">
           일러스트 마켓

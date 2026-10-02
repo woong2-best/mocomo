@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextResponse } from "next/server";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
@@ -99,7 +100,7 @@ export async function POST(req: Request) {
     } else {
       const verified = await verifyStripeCheckoutSession(sessionId);
       if (!verified.ok) {
-        return NextResponse.json({ error: verified.error }, { status: 422 });
+        return NextResponse.json({ error: errorText(verified.error) }, { status: 422 });
       }
 
       const intent = await db.paymentIntent.findUnique({ where: { id: verified.orderId } });
@@ -112,7 +113,7 @@ export async function POST(req: Request) {
           verified.amount
         );
         if (!result.ok) {
-          return NextResponse.json({ error: result.error }, { status: 422 });
+          return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
         }
       }
     }
@@ -159,7 +160,7 @@ export async function POST(req: Request) {
     } else {
       const result = await fulfillFromPaymentIntent(pi);
       if (result && !result.ok) {
-        return NextResponse.json({ error: result.error }, { status: 422 });
+        return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
       }
     }
   }

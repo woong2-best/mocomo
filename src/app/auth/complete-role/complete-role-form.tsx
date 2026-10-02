@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
 import {
@@ -53,7 +58,7 @@ export function CompleteRoleOnboardingForm({
         await skipSignupRoleCoser({ dest });
       } catch (e) {
         if (isNextNavigationError(e)) throw e;
-        setError("계속 진행에 실패했습니다. 다시 시도해 주세요.");
+        setError(t("auth.sfxz8kn"));
         setLoading(false);
       }
       return;
@@ -67,14 +72,14 @@ export function CompleteRoleOnboardingForm({
     try {
       const res = await followOnboardingCosplayer(userId);
       if (res.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         return;
       }
       setCosplayers((prev) =>
         prev.map((c) => (c.userId === userId ? { ...c, following: !!res.following } : c))
       );
     } catch {
-      setError("팔로우에 실패했습니다.");
+      setError(t("auth.s1k1umdl"));
     } finally {
       setFollowBusyId(null);
     }
@@ -87,7 +92,7 @@ export function CompleteRoleOnboardingForm({
       await completeSignupRoleFan({ dest });
     } catch (e) {
       if (isNextNavigationError(e)) throw e;
-      setError("계속 진행에 실패했습니다. 다시 시도해 주세요.");
+      setError(t("auth.sfxz8kn"));
       setLoading(false);
     }
   }
@@ -96,11 +101,11 @@ export function CompleteRoleOnboardingForm({
     e.preventDefault();
     const photoUrl = photo[0]?.url?.trim();
     if (!photoUrl || photoUrl.startsWith("blob:")) {
-      setError("대표 사진을 업로드해 주세요.");
+      setError(t("auth.s1pp1hu7"));
       return;
     }
     if (!bio.trim()) {
-      setError("자기소개를 입력해 주세요.");
+      setError(t("auth.s1yjme52"));
       return;
     }
     setLoading(true);
@@ -112,12 +117,12 @@ export function CompleteRoleOnboardingForm({
         dest,
       });
       if (res?.error) {
-        setError(res.error);
+        setError(errorText(res.error));
         setLoading(false);
       }
     } catch (err) {
       if (isNextNavigationError(err)) throw err;
-      setError("등록에 실패했습니다. 다시 시도해 주세요.");
+      setError(t("auth.s1j1q593"));
       setLoading(false);
     }
   }
@@ -129,7 +134,7 @@ export function CompleteRoleOnboardingForm({
       await skipSignupRoleCoser({ dest });
     } catch (e) {
       if (isNextNavigationError(e)) throw e;
-      setError("계속 진행에 실패했습니다. 다시 시도해 주세요.");
+      setError(t("auth.sfxz8kn"));
       setLoading(false);
     }
   }
@@ -141,17 +146,17 @@ export function CompleteRoleOnboardingForm({
           <BrandLogoLockup size={72} priority className="mx-auto" />
           <CardTitle className="text-xl font-semibold">
             {step === "role"
-              ? "어떤 방식으로 즐기시나요?"
+              ? t("auth.s1opuphf")
               : step === "fan"
-                ? "코스어를 팔로우해 보세요"
-                : "컬쳐위키 코스어 등록"}
+                ? t("auth.sqzfrgk")
+                : t("auth.s1jo2ezo")}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             {step === "role"
-              ? `${BRAND.name}에서 팬으로 응원할지, 코스어로 활동할지 골라 주세요.`
+              ? t("auth.s1shaxxo", { v0: BRAND.name })
               : step === "fan"
-                ? "관심 있는 코스어를 팔로우하면 홈에서 더 쉽게 만날 수 있어요."
-                : "사진과 소개만 입력하면 컬쳐위키 코스어로 바로 등록됩니다. (페이지 이동 없음)"}
+                ? t("auth.svmzith")
+                : t("auth.s1wtktrd")}
           </p>
         </CardHeader>
         <CardContent className="space-y-4 pt-2">
@@ -164,10 +169,10 @@ export function CompleteRoleOnboardingForm({
                 disabled={loading}
               >
                 <span className="flex items-center gap-2 text-base font-semibold">
-                  <Sparkles className="h-4 w-4" /> 코스어 / 크리에이터
+                  <Sparkles className="h-4 w-4" /> {t("auth.s14bx6fz")}
                 </span>
                 <span className="text-xs font-normal opacity-90 text-left">
-                  컬쳐위키에 코스어 프로필을 등록하고 활동을 시작해요
+                  {t("auth.sps6cn6")}
                 </span>
               </Button>
               <Button
@@ -178,10 +183,10 @@ export function CompleteRoleOnboardingForm({
                 disabled={loading}
               >
                 <span className="flex items-center gap-2 text-base font-semibold">
-                  <Heart className="h-4 w-4" /> 팬
+                  <Heart className="h-4 w-4" /> {t("auth.s15po")}
                 </span>
                 <span className="text-xs font-normal text-muted-foreground text-left">
-                  좋아하는 코스어를 팔로우하며 즐겨요
+                  {t("auth.s1rfhl1b")}
                 </span>
               </Button>
             </div>
@@ -191,7 +196,7 @@ export function CompleteRoleOnboardingForm({
             <div className="space-y-3">
               {cosplayers.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6">
-                  아직 등록된 코스어가 없어요. 나중에 컬쳐위키에서 찾아볼 수 있습니다.
+                  {t("auth.sdef92r")}
                 </p>
               ) : (
                 <ul className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
@@ -218,7 +223,7 @@ export function CompleteRoleOnboardingForm({
                         disabled={followBusyId === c.userId || c.following}
                         onClick={() => void onFollow(c.userId)}
                       >
-                        {c.following ? "팔로잉" : "팔로우"}
+                        {c.following ? t("compose.collabFollowing") : t("auth.svtgiw")}
                       </Button>
                     </li>
                   ))}
@@ -230,7 +235,7 @@ export function CompleteRoleOnboardingForm({
                 disabled={loading}
                 onClick={() => void finishFan()}
               >
-                {loading ? "…" : "다음"}
+                {loading ? "…" : t("seller.next")}
               </Button>
               <button
                 type="button"
@@ -241,7 +246,7 @@ export function CompleteRoleOnboardingForm({
                   setError("");
                 }}
               >
-                역할 다시 선택
+                {t("auth.shzb4m0")}
               </button>
             </div>
           ) : null}
@@ -250,7 +255,7 @@ export function CompleteRoleOnboardingForm({
             <form onSubmit={(e) => void submitCoser(e)} className="space-y-4">
               <div>
                 <label className="text-sm font-medium flex items-center gap-1.5">
-                  <Camera className="h-4 w-4" /> 대표 사진 *
+                  <Camera className="h-4 w-4" /> {t("auth.s1f333s6")}
                 </label>
                 <PostMediaComposer
                   className="mt-2"
@@ -266,7 +271,8 @@ export function CompleteRoleOnboardingForm({
               </div>
               <div>
                 <label className="text-sm font-medium flex items-center gap-1.5">
-                  <UserRound className="h-4 w-4" /> 자기소개 * ({bio.length}/{BIO_MAX})
+                  <UserRound className="h-4 w-4" />{" "}
+                  {t("auth.bioLabel", { current: String(bio.length), max: String(BIO_MAX) })}
                 </label>
                 <textarea
                   required
@@ -274,7 +280,7 @@ export function CompleteRoleOnboardingForm({
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   rows={4}
-                  placeholder="코스 스타일, 좋아하는 작품, 행사 일정 등"
+                  placeholder={t("auth.sz9gkz9")}
                   className="mt-1 w-full rounded-xl border border-border bg-background p-3 text-sm"
                 />
               </div>
@@ -283,7 +289,7 @@ export function CompleteRoleOnboardingForm({
                 className="w-full rounded-xl"
                 disabled={loading || uploadingPhoto || photo.length === 0 || !bio.trim()}
               >
-                {loading ? "등록 중…" : "코스어 등록하고 계속"}
+                {loading ? t("auth.skg4uo9") : t("auth.sbmmbh5")}
               </Button>
               <Button
                 type="button"
@@ -292,7 +298,7 @@ export function CompleteRoleOnboardingForm({
                 disabled={loading}
                 onClick={() => void skipCoser()}
               >
-                나중에 등록하고 계속
+                {t("auth.s1wxdhd8")}
               </Button>
               <button
                 type="button"
@@ -303,7 +309,7 @@ export function CompleteRoleOnboardingForm({
                   setError("");
                 }}
               >
-                역할 다시 선택
+                {t("auth.shzb4m0")}
               </button>
             </form>
           ) : null}
@@ -313,11 +319,11 @@ export function CompleteRoleOnboardingForm({
           ) : null}
 
           <p className="text-[11px] text-muted-foreground leading-relaxed text-center">
-            계속하면{" "}
+            {t("auth.continuePrefix")}{" "}
             <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
-              이용약관
+              {t("legal.terms")}
             </Link>
-            에 동의한 것으로 간주됩니다.
+            {t("auth.sn9i1xt")}
           </p>
         </CardContent>
       </Card>

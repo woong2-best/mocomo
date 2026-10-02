@@ -13,10 +13,10 @@ import {
 } from "@/lib/used-regions-global";
 
 export const CROSS_BORDER_BLOCKED_MSG =
-  "국가 간 거래는 지원하지 않습니다. 본인이 설정한 국가의 이웃과만 거래할 수 있습니다.";
+  "Cross-border trades aren't supported. You can trade only with neighbors in your selected country.";
 
 export const OUT_OF_SERVICE_AREA_MSG =
-  "본인 서비스 지역 밖의 상품입니다. 지정한 동네 이웃과만 거래할 수 있습니다.";
+  "This listing is outside your service area. You can trade only with neighbors in your set area.";
 
 export type UsedMarketLocality = {
   countryCode: string;

@@ -15,7 +15,7 @@ export default async function SellerConnectExternalPage({
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center gap-4 px-4 text-center">
       <ExternalLink className="h-10 w-10 text-primary" />
-      <h1 className="text-xl font-bold">Stripe 온보딩</h1>
+      <h1 className="text-xl font-bold">Stripe onboarding</h1>
       <p className="text-sm text-muted-foreground leading-relaxed">
         Stripe 본인 확인 및 정산 계좌 등록은 앱 내 브라우저에서 지원되지 않습니다. 아래 버튼으로
         Safari·Chrome 등 외부 브라우저에서 진행해 주세요.
@@ -28,7 +28,7 @@ export default async function SellerConnectExternalPage({
         </Button>
       ) : (
         <Button asChild variant="secondary" className="w-full">
-          <Link href="/market/seller/register">판매자 등록으로 돌아가기</Link>
+          <Link href="/market/seller/register">Back to seller registration</Link>
         </Button>
       )}
     </div>

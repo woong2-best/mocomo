@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -54,7 +57,7 @@ export function AdminUsersTable({
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="닉네임 · 이메일 · UID"
+          placeholder={t("admin.uid")}
           className="max-w-sm"
           onKeyDown={(e) => {
             if (e.key === "Enter") pushParams({ q: q || undefined, page: "1" });
@@ -68,20 +71,20 @@ export function AdminUsersTable({
           value={query.status ?? "all"}
           onChange={(e) => pushParams({ status: e.target.value, page: "1" })}
         >
-          <option value="all">전체</option>
-          <option value="active">활성</option>
-          <option value="suspended">정지</option>
-          <option value="premium">프리미엄</option>
-          <option value="deleted">삭제됨</option>
+          <option value="all">{t("lib.live.categories.s934dd25ec5")}</option>
+          <option value="active">{t("settings.twoFactorOn")}</option>
+          <option value="suspended">{t("admin.sz51n")}</option>
+          <option value="premium">{t("lib.payment.history.sbc6dd7236b")}</option>
+          <option value="deleted">{t("admin.st701l")}</option>
         </select>
         <select
           className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
           value={query.sort ?? "createdAt"}
           onChange={(e) => pushParams({ sort: e.target.value })}
         >
-          <option value="createdAt">가입일</option>
-          <option value="lastLoginAt">최근 로그인</option>
-          <option value="username">닉네임</option>
+          <option value="createdAt">{t("appeal.sq5zfb")}</option>
+          <option value="lastLoginAt">{t("admin.s1eiyn0")}</option>
+          <option value="username">{t("settings.nickname")}</option>
         </select>
         <Button
           type="button"
@@ -122,11 +125,11 @@ export function AdminUsersTable({
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-muted/40 text-xs text-muted-foreground">
             <tr>
-              <th className="px-3 py-2">회원</th>
-              <th className="px-3 py-2">역할</th>
-              <th className="px-3 py-2">상태</th>
-              <th className="px-3 py-2">가입</th>
-              <th className="px-3 py-2">최근 로그인</th>
+              <th className="px-3 py-2">{t("admin.s11l1g")}</th>
+              <th className="px-3 py-2">{t("community-server.syu4z")}</th>
+              <th className="px-3 py-2">{t("admin.sxxkr")}</th>
+              <th className="px-3 py-2">{t("nav.signup")}</th>
+              <th className="px-3 py-2">{t("admin.s1eiyn0")}</th>
             </tr>
           </thead>
           <tbody>

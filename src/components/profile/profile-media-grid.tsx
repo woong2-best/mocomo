@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Loader2, Play } from "lucide-react";
@@ -71,7 +76,7 @@ function MediaTile({
               paymentsEnabled={paymentsEnabled}
               username={username}
               postId={item.postId}
-              label="결제하기"
+              label={t("profile.smmgb44")}
               variant="label"
             />
           </div>
@@ -87,7 +92,7 @@ function MediaTile({
         className="group relative block aspect-square min-w-0 w-full overflow-hidden bg-neutral-900"
       >
         {blurredThumb}
-        <LockedMediaPaywallOverlay label={isSubLocked ? "구독하기" : "결제하기"} />
+        <LockedMediaPaywallOverlay label={isSubLocked ? t("profile.smmt3ld") : t("profile.smmgb44")} />
       </Link>
     );
   }
@@ -174,14 +179,14 @@ export function ProfileMediaGrid({
       const res = await fetch(`/api/profile/${username}/media?${params.toString()}`);
       const json = await res.json();
       if (!res.ok) {
-        setLoadError(json.error ?? "불러오기에 실패했습니다.");
+        setLoadError(errorText(json.error ?? t("profile.sebv8ht")));
         return;
       }
       setItems((prev) => [...prev, ...(json.items as ProfileGridMediaItem[])]);
       setCursor(json.nextCursor);
       if (!json.nextCursor) setDone(true);
     } catch {
-      setLoadError("네트워크 오류가 발생했습니다.");
+      setLoadError(t("profile.s18n7wbo"));
     } finally {
       setLoading(false);
     }
@@ -228,7 +233,7 @@ export function ProfileMediaGrid({
           </>
         )}
         {done && items.length > 0 && !loadError && (
-          <p className="text-xs text-muted-foreground">더 이상 없습니다</p>
+          <p className="text-xs text-muted-foreground">{t("profile.s1es3a9e")}</p>
         )}
       </div>
     </>

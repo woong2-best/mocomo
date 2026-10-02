@@ -16,7 +16,7 @@ export function LiveOverlayCommentFeed({
   messages: LiveChatMessage[];
   className?: string;
   avatarSize?: "sm" | "md";
-  /** vtuber — 투명 배경·컬러 닉네임·프로필 없음 (화면공유+2D 방송) */
+  /** vtuber — 투명 Background·컬러 닉네임·프로필 없음 (화면공유+2D 방송) */
   variant?: "default" | "vtuber";
 }) {
   if (messages.length === 0) return null;

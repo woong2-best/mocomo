@@ -1,10 +1,7 @@
 import type { MessageAttachmentType } from "@prisma/client";
 import { CreatorBulkDmJobStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import {
-  DM_CONTENT_FILTER_WARNING_KO,
-  validateCreatorMarketingText,
-} from "@/lib/chat-content-filter";
+import { validateCreatorMarketingText } from "@/lib/chat-content-filter";
 import {
   normalizeChatAttachmentUrl,
   parseChatAttachmentType,
@@ -78,7 +75,7 @@ function parsePaidMarketingMedia(input: {
   const urlRaw = typeof input.url === "string" ? input.url.trim() : "";
   if (!urlRaw) {
     if (input.requirePaid) {
-      return { ok: false, error: "유료 미디어를 첨부해 주세요." };
+      return { ok: false, error: "Attach paid media." };
     }
     return { ok: true, media: null };
   }
@@ -87,15 +84,15 @@ function parsePaidMarketingMedia(input: {
   const type =
     typeof input.type === "string" ? parseChatAttachmentType(input.type) : null;
   if (!url || !type) {
-    return { ok: false, error: "미디어 형식이 올바르지 않습니다." };
+    return { ok: false, error: "Invalid media format." };
   }
   if (type !== "IMAGE" && type !== "VIDEO") {
-    return { ok: false, error: "사진 또는 동영상만 첨부할 수 있습니다." };
+    return { ok: false, error: "Only photos or videos can be attached." };
   }
 
   const priceKrw = Math.max(0, Math.round(input.priceKrw ?? 0));
   if (priceKrw <= 0) {
-    return { ok: false, error: "유료 미디어는 가격을 설정해야 합니다." };
+    return { ok: false, error: "Paid media must have a price set." };
   }
   const pricingErr = validateSaleMediaPricing(priceKrw);
   if (pricingErr) return { ok: false, error: pricingErr };
@@ -118,7 +115,7 @@ function buildMessagePayload(
   const hasText = !!text.trim();
   const hasMedia = !!media;
   if (!hasText && !hasMedia) {
-    return { ok: false, error: "메시지 내용 또는 유료 미디어를 입력해 주세요." };
+    return { ok: false, error: "Enter a message or attach paid media." };
   }
   return {
     ok: true,
@@ -301,7 +298,7 @@ export async function enqueueCreatorBulkDm(
   | { ok: true; jobId: string; totalFollowers: number; settings: CreatorMarketingSettingsDto }
   | { ok: false; error: string }
 > {
-  return { ok: false, error: "단체 발송 기능이 종료되었습니다." };
+  return { ok: false, error: "Bulk messaging has been discontinued." };
 }
 
 export async function processCreatorBulkDmJob(jobId: string) {
@@ -406,11 +403,10 @@ export async function processCreatorBulkDmJob(jobId: string) {
         sentCount,
         failedCount,
         cursorFollowerId,
-        errorMessage: e instanceof Error ? e.message : "단체 발송 중 오류가 발생했습니다.",
+        errorMessage: e instanceof Error ? e.message : "An error occurred during bulk send.",
         completedAt: new Date(),
       },
     });
   }
 }
 
-export { DM_CONTENT_FILTER_WARNING_KO };

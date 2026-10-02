@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -165,7 +168,7 @@ export function useAvatarFaceTracking() {
   const attachExternalStream = useCallback(
     async (stream: MediaStream) => {
       if (!videoRef.current) {
-        setError("카메라를 준비하지 못했습니다.");
+        setError(i18n("hooks.s13fbs4e"));
         return;
       }
 
@@ -200,7 +203,7 @@ export function useAvatarFaceTracking() {
     if (runningRef.current || starting) return;
 
     if (!videoRef.current) {
-      setError("카메라를 준비하지 못했습니다.");
+      setError(i18n("hooks.s13fbs4e"));
       return;
     }
 
@@ -243,11 +246,11 @@ export function useAvatarFaceTracking() {
     } catch (e) {
       const name = e instanceof Error ? e.name : "";
       if (name === "NotAllowedError") {
-        setError("카메라·마이크 권한을 허용해 주세요.");
+        setError(i18n("media.s113fb9m"));
       } else if (name === "NotFoundError") {
-        setError("카메라를 찾을 수 없습니다.");
+        setError(i18n("hooks.s1554ztt"));
       } else {
-        setError("카메라를 시작할 수 없습니다.");
+        setError(i18n("hooks.s1h7c2jq"));
       }
       stop();
     } finally {

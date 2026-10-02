@@ -63,7 +63,7 @@ export async function saveBankAccount(data: {
   const accountNumber = data.accountNumber.replace(/\D/g, "");
   const holderName = data.holderName.trim();
   if (!bankName || !accountNumber || !holderName) {
-    return { error: "은행명·계좌번호·예금주를 모두 입력해 주세요." };
+    return { error: "actions.s1h4k40u" };
   }
 
   try {
@@ -76,7 +76,7 @@ export async function saveBankAccount(data: {
     revalidatePath("/support");
     return { success: true };
   } catch {
-    return { error: "계좌 저장에 실패했습니다. DB 섹션 L을 실행해 주세요." };
+    return { error: "actions.db_l" };
   }
 }
 
@@ -84,7 +84,6 @@ export async function saveBankAccount(data: {
 export async function requestPayout(_amount: number) {
   await requireAuth();
   return {
-    error:
-      "수동 출금은 지원하지 않습니다. 정산 MOCO는 매월 말 크리에이터 활동 성과 보수(Reward)로 자동 지급됩니다.",
+    error: "actions.moco_reward",
   };
 }

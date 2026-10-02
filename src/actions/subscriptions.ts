@@ -16,7 +16,7 @@ export async function startCreatorSubscriptionCheckout(input: {
   recurringDonationTermsAccepted?: boolean;
 }) {
   void input;
-  return { error: "크리에이터 정기 후원 기능은 종료되었습니다." };
+  return { error: "actions.si8p6b0" };
 }
 
 export async function confirmCreatorSubscription(sessionId: string) {

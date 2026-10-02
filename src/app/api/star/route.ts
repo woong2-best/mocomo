@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (e) {
     console.error("[api/star]", e);
-    return NextResponse.json({ error: "STAR 목록을 불러오지 못했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Not found." }, { status: 500 });
   }
 }
 
@@ -95,6 +95,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ ok: true, deleted });
   } catch (e) {
     console.error("[api/star DELETE]", e);
-    return NextResponse.json({ error: "STAR 기록을 삭제하지 못했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Not found." }, { status: 500 });
   }
 }

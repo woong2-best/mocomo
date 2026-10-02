@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import {
@@ -38,7 +41,7 @@ export type CropAspectPreset = {
 };
 
 const DEFAULT_ASPECT_PRESETS: CropAspectPreset[] = [
-  { id: "free", label: "자유", aspect: undefined },
+  { id: "free", label: t("lib.media-editor.sz1cg"), aspect: undefined },
   { id: "1:1", label: "1:1", aspect: 1 },
   { id: "4:5", label: "4:5", aspect: 4 / 5 },
   { id: "3:4", label: "3:4", aspect: 3 / 4 },
@@ -239,7 +242,7 @@ export function ImageCropDialog({
       onComplete(url);
       onOpenChange(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "처리에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("collab.actionFailed"));
     } finally {
       setBusy(false);
     }
@@ -294,11 +297,11 @@ export function ImageCropDialog({
           {showSponsorPreview ? (
             <div className="hidden sm:block space-y-2">
               <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                스폰서 노출 미리보기
+                {t("media.sgcxcws")}
               </p>
               <SponsorAdPreviewFrame imageUrl={livePreviewUrl} />
               <p className="text-[10px] text-muted-foreground leading-snug">
-                사이드바 스폰서 슬롯에 이렇게 표시됩니다.
+                {t("media.s8pfw4z")}
               </p>
             </div>
           ) : null}
@@ -307,7 +310,7 @@ export function ImageCropDialog({
         {showSponsorPreview ? (
           <div className="px-5 pb-3 sm:hidden space-y-2 shrink-0">
             <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-              스폰서 노출 미리보기
+              {t("media.sgcxcws")}
             </p>
             <SponsorAdPreviewFrame imageUrl={livePreviewUrl} hideHeader />
           </div>
@@ -334,7 +337,7 @@ export function ImageCropDialog({
               onClick={() => onOpenChange(false)}
               disabled={busy}
             >
-              취소
+              {t("toast.cancel")}
             </Button>
             <Button
               type="button"
@@ -345,10 +348,10 @@ export function ImageCropDialog({
               {busy ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  업로드 중…
+                  {t("compose.uploading")}
                 </>
               ) : (
-                "적용"
+                t("media.sz3yg")
               )}
             </Button>
           </div>
@@ -391,7 +394,7 @@ export function ImageCropDialog({
               variant="outline"
               size="icon"
               className="rounded-xl h-10 w-10"
-              title="90° 왼쪽"
+              title={t("media.sru2hu0")}
               disabled={busy}
               onClick={() => rotateBy(-90)}
             >
@@ -402,7 +405,7 @@ export function ImageCropDialog({
               variant="outline"
               size="icon"
               className="rounded-xl h-10 w-10"
-              title="90° 오른쪽"
+              title={t("media.saip26a")}
               disabled={busy}
               onClick={() => rotateBy(90)}
             >
@@ -413,7 +416,7 @@ export function ImageCropDialog({
               variant="outline"
               size="icon"
               className={cn("rounded-xl h-10 w-10", flipH && "border-primary bg-primary/10")}
-              title="좌우 뒤집기"
+              title={t("media.sbvkuqv")}
               disabled={busy}
               onClick={toggleFlipH}
             >
@@ -424,7 +427,7 @@ export function ImageCropDialog({
               variant="outline"
               size="icon"
               className={cn("rounded-xl h-10 w-10", flipV && "border-primary bg-primary/10")}
-              title="상하 뒤집기"
+              title={t("media.s1c05m4a")}
               disabled={busy}
               onClick={toggleFlipV}
             >
@@ -435,7 +438,7 @@ export function ImageCropDialog({
               variant="outline"
               size="icon"
               className="rounded-xl h-10 w-10"
-              title="축소"
+              title={t("media.s1013r")}
               disabled={busy || zoom <= minZoom}
               onClick={() =>
                 setZoom((z) => Math.max(minZoom, Math.round((z - 0.15) * 100) / 100))
@@ -448,7 +451,7 @@ export function ImageCropDialog({
               variant="outline"
               size="icon"
               className="rounded-xl h-10 w-10"
-              title="확대"
+              title={t("media.s11ft7")}
               disabled={busy || zoom >= 6}
               onClick={() => setZoom((z) => Math.min(6, Math.round((z + 0.15) * 100) / 100))}
             >
@@ -462,7 +465,7 @@ export function ImageCropDialog({
               disabled={busy}
               onClick={handleReset}
             >
-              초기화
+              {t("media.suvxgs")}
             </Button>
           </div>
 
@@ -471,7 +474,7 @@ export function ImageCropDialog({
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <ZoomIn className="h-3.5 w-3.5" />
-                  확대 · 축소
+                  {t("media.syawtat")}
                 </span>
                 <span>{Math.round(zoom * 100)}%</span>
               </div>
@@ -491,7 +494,7 @@ export function ImageCropDialog({
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <RotateCw className="h-3.5 w-3.5" />
-                  회전
+                  {t("media.s11la0")}
                 </span>
                 <span className="tabular-nums">{rotationLabel}</span>
               </div>

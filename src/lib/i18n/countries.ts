@@ -26,11 +26,7 @@ const INTL_REGION = new Map<string, Intl.DisplayNames>();
 
 function intlRegionName(code: string, locale: string): string | undefined {
   const tag =
-    locale === "zh"
-      ? "zh-Hans"
-      : locale === "zh-TW"
-        ? "zh-Hant"
-        : locale.split("-")[0] ?? locale;
+    locale.split("-")[0] ?? locale;
   let display = INTL_REGION.get(tag);
   if (!display) {
     try {
@@ -345,14 +341,8 @@ export function countryDisplayName(code: string, locale: CountryLocale): string 
   const upper = code.toUpperCase();
   const c = COUNTRY_BY_CODE.get(upper);
   if (!c) return code;
-  if (locale === "ko") return c.nameKo;
-  if (locale === "en") return c.nameEn;
-  if (upper === "OTHER") {
-    if (locale === "ja") return "その他";
-    if (locale === "zh" || locale === "zh-TW") return locale === "zh-TW" ? "其他" : "其他";
-    return intlRegionName(upper, locale) ?? c.nameEn;
-  }
-  return intlRegionName(upper, locale) ?? c.nameEn;
+  
+  return c.nameEn;
 }
 
 export function isKnownCountryCode(code: string): boolean {
@@ -368,8 +358,8 @@ export function isSelectableCountryCode(code: string): boolean {
 }
 
 export function regionLabel(region: CountryRegion, locale: CountryLocale): string {
-  if (locale === "ko") return region.labelKo;
-  if (locale === "ja") return region.labelJa;
-  if (locale === "zh" || locale === "zh-TW") return region.labelZh;
+  
+  
+  
   return region.labelEn;
 }

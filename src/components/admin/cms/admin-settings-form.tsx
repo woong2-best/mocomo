@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -24,7 +29,7 @@ export function AdminSettingsForm({ initial }: { initial: SiteSettingsShape }) {
         e.preventDefault();
         start(async () => {
           const res = await adminSaveSettingsAction(form);
-          setMsg(res.error ?? "저장되었습니다. 새로고침해도 유지됩니다.");
+          setMsg(errorText(res.error ?? t("admin.sus0f67")));
           if (!res.error && res.data) {
             setForm(res.data);
             router.refresh();
@@ -33,11 +38,11 @@ export function AdminSettingsForm({ initial }: { initial: SiteSettingsShape }) {
       }}
     >
       <label className="block space-y-1 text-sm">
-        <span>사이트 이름</span>
+        <span>{t("admin.s9kr3nk")}</span>
         <Input value={form.siteName} onChange={(e) => set("siteName", e.target.value)} />
       </label>
       <label className="block space-y-1 text-sm">
-        <span>플랫폼 수수료 (%)</span>
+        <span>{t("admin.s6faa6t")}</span>
         <Input
           type="number"
           value={form.platformFeePercent}
@@ -116,7 +121,7 @@ export function AdminSettingsForm({ initial }: { initial: SiteSettingsShape }) {
         게시물 공동작업자 기능
       </label>
       <label className="block space-y-1 text-sm">
-        <span>공동작업자 최대 인원</span>
+        <span>{t("admin.s11nive4")}</span>
         <Input
           type="number"
           min={1}
@@ -126,7 +131,7 @@ export function AdminSettingsForm({ initial }: { initial: SiteSettingsShape }) {
         />
       </label>
       <Button type="submit" disabled={pending}>
-        {pending ? "저장 중…" : "설정 저장"}
+        {pending ? t("calendar.saving") : t("admin.s1y4ohis")}
       </Button>
       {msg ? <p className="text-sm text-muted-foreground">{msg}</p> : null}
     </form>

@@ -20,25 +20,25 @@ export async function POST(
 
   const { roomId } = await params;
   if (!roomId || roomId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let json: unknown;
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "아이디를 입력해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Enter a username." }, { status: 400 });
   }
 
   const result = await addChatMemberByUsername(authResult.user.id, roomId, parsed.data.username);
   if ("error" in result) {
     const status = result.error === "NOT_MEMBER" ? 403 : 400;
-    const message = result.error === "NOT_MEMBER" ? "대화 멤버만 추가할 수 있습니다." : result.error;
+    const message = result.error === "NOT_MEMBER" ? "Only chat members can add people." : result.error;
     return NextResponse.json({ error: message }, { status });
   }
   return NextResponse.json(result);

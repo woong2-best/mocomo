@@ -54,7 +54,7 @@ export default async function GoodsDetailPage({ params }: { params: Promise<{ id
           <p className="text-sm whitespace-pre-wrap leading-relaxed">{product.description}</p>
           {media?.videoUrl && (
             <a href={media.videoUrl} target="_blank" rel="noreferrer" className="text-sm text-primary underline">
-              소개 영상 보기
+              소개 Video 보기
             </a>
           )}
         </div>

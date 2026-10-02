@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -52,7 +55,7 @@ function SharedPostMediaPreview({ media }: { media: ShareCardMedia }) {
       )}
       {isVideo ? (
         <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-          동영상
+          동Video
         </span>
       ) : null}
     </div>
@@ -106,7 +109,7 @@ export function ChatSharedPostCard({ postId, isMine = false, className }: Props)
         )}
       >
         <Loader2 className="h-4 w-4 animate-spin" />
-        <span className="text-xs">게시물 불러오는 중…</span>
+        <span className="text-xs">{t("chat.s12xsw5p")}</span>
       </div>
     );
   }
@@ -121,7 +124,7 @@ export function ChatSharedPostCard({ postId, isMine = false, className }: Props)
           className
         )}
       >
-        <p className="font-medium">게시물 보기</p>
+        <p className="font-medium">{t("toast.viewPost")}</p>
         <p className="text-xs text-muted-foreground mt-0.5 truncate">mocomo.net/post/…</p>
       </Link>
     );
@@ -130,7 +133,7 @@ export function ChatSharedPostCard({ postId, isMine = false, className }: Props)
   const preview =
     post.title?.trim() ||
     post.content.trim().replace(/\s+/g, " ").slice(0, 220) ||
-    "게시물";
+    t("lib.post.share.s0131626e0e");
   const timeLabel = formatDistanceToNowStrict(new Date(post.createdAt), {
     addSuffix: false,
     locale: ko,

@@ -38,7 +38,7 @@ async function ensureLiveMember(prisma: PrismaClient, channelId: string, userId:
     where: { id: channelId },
     select: { isLive: true, createdBy: true, chatBannedWords: true },
   });
-  if (!channel?.isLive) return { ok: false as const, error: "방송 중이 아닙니다." };
+  if (!channel?.isLive) return { ok: false as const, error: "Not currently live." };
 
   await prisma.voiceMember.upsert({
     where: { channelId_userId: { channelId, userId } },
@@ -87,7 +87,7 @@ export async function sendLiveSupportCheerRest(input: {
   }
 
   if (type === "TTS" && !message) {
-    return { ok: false, error: "TTS 후원은 메시지가 필요합니다." };
+    return { ok: false, error: "TTS tips require a message." };
   }
 
   const metadata: Record<string, unknown> = { ...(input.metadata ?? {}) };
@@ -102,7 +102,7 @@ export async function sendLiveSupportCheerRest(input: {
     where: { id: input.userId },
     select: { username: true },
   });
-  if (!sender) return { ok: false, error: "사용자를 찾을 수 없습니다." };
+  if (!sender) return { ok: false, error: "User not found." };
 
   const row = await db.liveSupportEvent.create({
     data: {
@@ -115,10 +115,6 @@ export async function sendLiveSupportCheerRest(input: {
       metadata: Object.keys(metadata).length ? (metadata as object) : undefined,
     },
   });
-
-  void import("@/lib/apt/economy/live-gold-service")
-    .then(({ grantLiveCheerGold }) => grantLiveCheerGold(input.userId, amount, row.id))
-    .catch(() => undefined);
 
   const event: LiveSupportEventPayload = {
     id: row.id,
@@ -147,9 +143,9 @@ export async function createLiveSupportMissionRest(input: {
   const title = input.title.trim().slice(0, 120);
   const rewardAmount = Math.floor(Number(input.rewardAmount) || 0);
 
-  if (!channelId || !title) return { ok: false, error: "미션 내용을 입력해 주세요." };
+  if (!channelId || !title) return { ok: false, error: "Enter mission details." };
   if (rewardAmount < 500 || rewardAmount > 500_000) {
-    return { ok: false, error: "미션 보상은 500~500,000 CP 입니다." };
+    return { ok: false, error: "Mission rewards must be between 500 and 500,000 CP." };
   }
 
   const live = await ensureLiveMember(db, channelId, input.userId);
@@ -165,7 +161,7 @@ export async function createLiveSupportMissionRest(input: {
     where: { id: input.userId },
     select: { username: true },
   });
-  if (!sender) return { ok: false, error: "사용자를 찾을 수 없습니다." };
+  if (!sender) return { ok: false, error: "User not found." };
 
   const row = await db.liveSupportMission.create({
     data: {
@@ -201,35 +197,35 @@ export async function resolveLiveSupportMissionRest(input: {
 }): Promise<{ ok: true; mission: LiveSupportMissionPayload } | { ok: false; error: string }> {
   const missionId = input.missionId.trim();
   const status = input.status;
-  if (!missionId || !status) return { ok: false, error: "잘못된 요청입니다." };
+  if (!missionId || !status) return { ok: false, error: "Invalid request." };
 
   const mission = await db.liveSupportMission.findUnique({
     where: { id: missionId },
     include: { sender: { select: { username: true } } },
   });
-  if (!mission) return { ok: false, error: "미션을 찾을 수 없습니다." };
+  if (!mission) return { ok: false, error: "Mission not found." };
 
   const channel = await db.voiceChannel.findUnique({
     where: { id: mission.channelId },
     select: { createdBy: true, isLive: true },
   });
-  if (!channel?.isLive) return { ok: false, error: "방송 중이 아닙니다." };
+  if (!channel?.isLive) return { ok: false, error: "Not currently live." };
 
   const isHost = channel.createdBy === input.userId;
   const isSender = mission.senderId === input.userId;
 
-  if (status === "ACCEPTED" && !isHost) return { ok: false, error: "호스트만 수락할 수 있습니다." };
+  if (status === "ACCEPTED" && !isHost) return { ok: false, error: "Only the host can accept." };
   if ((status === "COMPLETED" || status === "FAILED") && !isHost) {
-    return { ok: false, error: "호스트만 결과를 처리할 수 있습니다." };
+    return { ok: false, error: "Only the host can resolve results." };
   }
   if (status === "CANCELLED" && !isSender && !isHost) {
-    return { ok: false, error: "권한이 없습니다." };
+    return { ok: false, error: "Permission denied." };
   }
   if (mission.status !== "PENDING" && status === "ACCEPTED") {
-    return { ok: false, error: "이미 처리된 미션입니다." };
+    return { ok: false, error: "This mission was already processed." };
   }
   if (mission.status === "COMPLETED" || mission.status === "CANCELLED") {
-    return { ok: false, error: "종료된 미션입니다." };
+    return { ok: false, error: "This mission has ended." };
   }
 
   const row = await db.liveSupportMission.update({
@@ -264,13 +260,13 @@ export async function voteLiveSupportPollRest(input: {
 > {
   const pollId = input.pollId.trim();
   const optionId = input.optionId.trim();
-  if (!pollId || !optionId) return { ok: false, error: "선택지를 골라 주세요." };
+  if (!pollId || !optionId) return { ok: false, error: "Choose an option." };
 
   const poll = await db.liveSupportPoll.findUnique({ where: { id: pollId } });
-  if (!poll || poll.status !== "OPEN") return { ok: false, error: "진행 중인 투표가 없습니다." };
+  if (!poll || poll.status !== "OPEN") return { ok: false, error: "No active poll." };
   if (poll.endsAt && poll.endsAt.getTime() < Date.now()) {
     await db.liveSupportPoll.update({ where: { id: pollId }, data: { status: "CLOSED" } });
-    return { ok: false, error: "투표가 종료되었습니다." };
+    return { ok: false, error: "This poll has ended." };
   }
 
   const live = await ensureLiveMember(db, poll.channelId, input.userId);
@@ -283,11 +279,11 @@ export async function voteLiveSupportPollRest(input: {
   const existing = await db.liveSupportPollVote.findUnique({
     where: { pollId_userId: { pollId, userId: input.userId } },
   });
-  if (existing) return { ok: false, error: "이미 투표했습니다." };
+  if (existing) return { ok: false, error: "You already voted." };
 
   const options = parsePollOptions(poll.options);
   const target = options.find((o) => o.id === optionId);
-  if (!target) return { ok: false, error: "잘못된 선택지입니다." };
+  if (!target) return { ok: false, error: "Invalid option." };
 
   target.votes += amount;
 
@@ -295,7 +291,7 @@ export async function voteLiveSupportPollRest(input: {
     where: { id: input.userId },
     select: { username: true },
   });
-  if (!sender) return { ok: false, error: "사용자를 찾을 수 없습니다." };
+  if (!sender) return { ok: false, error: "User not found." };
 
   await db.liveSupportPollVote.create({
     data: { pollId, userId: input.userId, optionId, amount },

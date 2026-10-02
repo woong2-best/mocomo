@@ -1,11 +1,14 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { redirect } from "next/navigation";
 import { getCachedSession } from "@/lib/auth";
 import { Avatar2dStudio } from "@/components/avatar/avatar-2d-studio";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 export const metadata = {
-  title: "2D 아바타 편집 | MoCoMo",
-  description: "사이트에서 그리거나 PNG 업로드 → 투명 PNG로 라이브·OBS 방송",
+  title: t("app.avatar.2d_mocomo"),
+  description: t("app.avatar.png_png_obs"),
 };
 
 export default async function Avatar2dStudioPage() {

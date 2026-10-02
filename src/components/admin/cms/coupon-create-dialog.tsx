@@ -1,5 +1,10 @@
 "use client";
 
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { CouponAudience, CouponBenefitType } from "@prisma/client";
@@ -43,11 +48,11 @@ export function CouponCreateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>새 쿠폰 생성</DialogTitle>
+          <DialogTitle>{t("admin.s2erxkc")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 text-sm">
           <label className="block space-y-1">
-            <span>쿠폰명</span>
+            <span>{t("admin.svh6yd")}</span>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Creator Welcome" />
           </label>
 
@@ -62,9 +67,9 @@ export function CouponCreateDialog({
                 value={autoLen}
                 onChange={(e) => setAutoLen(Number(e.target.value) as 8 | 10 | 12)}
               >
-                <option value={8}>8자리</option>
-                <option value={10}>10자리</option>
-                <option value={12}>12자리</option>
+                <option value={8}>{t("admin.s1047o")}</option>
+                <option value={10}>{t("admin.s1v8mz")}</option>
+                <option value={12}>{t("admin.s1va4d")}</option>
               </select>
             ) : (
               <Input
@@ -76,12 +81,12 @@ export function CouponCreateDialog({
           </div>
 
           <fieldset className="space-y-1">
-            <legend className="text-xs text-muted-foreground">혜택 종류</legend>
+            <legend className="text-xs text-muted-foreground">{t("admin.sb5vdma")}</legend>
             {(
               [
-                ["FEE_WAIVER", "수수료 면제"],
-                ["FEE_PERCENT_OFF", "수수료 할인(%)"],
-                ["FIXED_AMOUNT", "고정금액 할인"],
+                ["FEE_WAIVER", t("admin.sfmsbgc")],
+                ["FEE_PERCENT_OFF", t("admin.s620leo")],
+                ["FIXED_AMOUNT", t("admin.sngu2p6")],
               ] as const
             ).map(([id, label]) => (
               <label key={id} className="flex items-center gap-2">
@@ -98,7 +103,7 @@ export function CouponCreateDialog({
 
           {benefitType === "FEE_WAIVER" ? (
             <label className="block space-y-1">
-              <span>면제 한도 (원) — 예: 첫 1,000,000원</span>
+              <span>{t("admin.1_000_000")}</span>
               <Input
                 type="number"
                 value={waiveUpToKrw}
@@ -108,7 +113,7 @@ export function CouponCreateDialog({
           ) : null}
           {benefitType === "FEE_PERCENT_OFF" ? (
             <label className="block space-y-1">
-              <span>할인율 (%)</span>
+              <span>{t("admin.s1gj60fw")}</span>
               <Input
                 type="number"
                 value={percentOff}
@@ -118,7 +123,7 @@ export function CouponCreateDialog({
           ) : null}
           {benefitType === "FIXED_AMOUNT" ? (
             <label className="block space-y-1">
-              <span>고정 할인 (원)</span>
+              <span>{t("admin.s1oq0hj8")}</span>
               <Input
                 type="number"
                 value={fixedDiscountKrw}
@@ -128,23 +133,23 @@ export function CouponCreateDialog({
           ) : null}
 
           <label className="block space-y-1">
-            <span>적용 대상</span>
+            <span>{t("admin.spr2wwp")}</span>
             <select
               className="w-full rounded-lg border border-border bg-background px-3 py-2"
               value={audience}
               onChange={(e) => setAudience(e.target.value as CouponAudience)}
             >
-              <option value="ALL_USERS">모든 회원</option>
-              <option value="SPECIFIC_USERS">특정 회원</option>
-              <option value="SPECIFIC_CREATORS">특정 크리에이터</option>
-              <option value="SPECIFIC_TIER">특정 등급</option>
+              <option value="ALL_USERS">{t("admin.s16csuy4")}</option>
+              <option value="SPECIFIC_USERS">{t("admin.s1vugv6w")}</option>
+              <option value="SPECIFIC_CREATORS">{t("admin.s1bj4x4")}</option>
+              <option value="SPECIFIC_TIER">{t("admin.s1vub0ik")}</option>
             </select>
           </label>
           {audience === "SPECIFIC_TIER" ? (
             <Input
               value={targetTier}
               onChange={(e) => setTargetTier(e.target.value)}
-              placeholder="예: PREMIUM / GOLD"
+              placeholder={t("admin.premium_gold")}
             />
           ) : null}
 
@@ -159,7 +164,7 @@ export function CouponCreateDialog({
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block space-y-1">
-              <span>시작</span>
+              <span>{t("explore.start")}</span>
               <Input
                 type="datetime-local"
                 value={startsAt}
@@ -167,7 +172,7 @@ export function CouponCreateDialog({
               />
             </label>
             <label className="block space-y-1">
-              <span>종료 (선택)</span>
+              <span>{t("admin.s1emp9j1")}</span>
               <Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
             </label>
           </div>
@@ -178,7 +183,7 @@ export function CouponCreateDialog({
           </label>
 
           <label className="block space-y-1">
-            <span>관리자 메모</span>
+            <span>{t("admin.s1jy8b2o")}</span>
             <textarea
               className="min-h-[72px] w-full rounded-lg border border-border bg-background p-2"
               value={adminMemo}
@@ -211,17 +216,17 @@ export function CouponCreateDialog({
                   adminMemo,
                 });
                 if (res.error) {
-                  setMsg(res.error);
+                  setMsg(errorText(res.error));
                   return;
                 }
-                setMsg("생성됨");
+                setMsg(t("admin.st6t9w"));
                 onOpenChange(false);
                 if (res.id) router.push(`/admin/coupons/${res.id}`);
                 else router.refresh();
               })
             }
           >
-            {pending ? "생성 중…" : "쿠폰 생성"}
+            {pending ? t("communities.s1w6bzz5") : t("admin.s1m7d1xg")}
           </Button>
         </div>
       </DialogContent>

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -39,7 +42,7 @@ export function LetterDonationEnvelope({
           interactive && !open && "cursor-pointer hover:scale-[1.02] active:scale-[0.99] transition-transform",
           (!interactive || open) && "cursor-default"
         )}
-        aria-label={open ? "편지가 열렸습니다" : "편지 봉투 열기"}
+        aria-label={open ? t("donations.s1ltqplx") : t("donations.s1d55voh")}
       >
         {/* Envelope body */}
         <div
@@ -75,12 +78,12 @@ export function LetterDonationEnvelope({
           <p className="mt-3 text-right text-base font-black text-[#1B4A8C] tabular-nums">
             {Math.max(0, Math.floor(amount / 500)).toLocaleString()} MOCO
           </p>
-          <p className="text-[10px] text-[#8b7355] text-right mt-1">봉투를 열면 MOCO가 전달됩니다</p>
+          <p className="text-[10px] text-[#8b7355] text-right mt-1">{t("donations.moco")}</p>
         </div>
       </button>
 
       {!open && interactive ? (
-        <p className="text-xs text-muted-foreground font-medium">봉투를 눌러 편지를 열어보세요</p>
+        <p className="text-xs text-muted-foreground font-medium">{t("donations.s1p5l5mz")}</p>
       ) : null}
     </div>
   );

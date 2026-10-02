@@ -1,0 +1,466 @@
+"use server";
+
+
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
+import { APT_GAME_PATH } from "@/lib/site-routes";
+import { getCachedCurrentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
+import { clampFloor, emptyFloorPlans, getRoomsForFloor } from "@/lib/apt/floor-plan-store";
+import type { HouseBuildState } from "@/lib/apt/house/build-types";
+import { emptyHouseBuild, seedFromCoords } from "@/lib/apt/house/build-types";
+import type { HousingLocation, HousingType } from "@/lib/apt/housing-types";
+import type { AptRoom } from "@/lib/apt/floor-plan-types";
+import { DEFAULT_BONDEE_ROOM, type BondeeRoomState } from "@/lib/apt/bondee/types";
+import {
+  defaultFurnitureForPlan,
+  defaultResidents,
+  type FurnitureItem,
+  type ResidentAgent,
+  type SimulationSnapshot,
+} from "@/lib/apt/simulation/types";
+import { resolveAptHomeOwnerId } from "@/actions/apt-cohabitation";
+
+export type AptProfileDto = {
+  housingType: HousingType;
+  countryCode: string;
+  latitude: number | null;
+  longitude: number | null;
+  regionLabel: string | null;
+  homeFloor: number;
+  moveInCompleted: boolean;
+  /** 회원가입 시 층을 미리 선택해 AptProfile이 생성된 경우 */
+  floorPresetFromSignup: boolean;
+  homePublic: boolean;
+  floorPlans: Record<number, AptRoom[]>;
+  furniture: FurnitureItem[];
+  residents: ResidentAgent[];
+  simulation: Partial<SimulationSnapshot>;
+  houseBuild: HouseBuildState;
+};
+
+export type MoveInPayload = {
+  housingType: HousingType;
+  homeFloor?: number;
+  countryCode: string;
+  latitude: number;
+  longitude: number;
+  regionLabel: string;
+};
+
+function defaultPlans(): Record<number, AptRoom[]> {
+  return emptyFloorPlans();
+}
+
+function parseJson<T>(raw: unknown, fallback: T): T {
+  if (raw == null) return fallback;
+  return raw as T;
+}
+
+function rowToDto(
+  row: {
+    housingType: string;
+    countryCode: string;
+    latitude: number | null;
+    longitude: number | null;
+    regionLabel: string | null;
+    homeFloor: number;
+    moveInCompletedAt: Date | null;
+    homePublic: boolean;
+    floorPlans: unknown;
+    furniture: unknown;
+    residents: unknown;
+    simulationState: unknown;
+    houseBuild: unknown;
+  },
+  user: { id: string; name: string | null; username: string }
+): AptProfileDto {
+  const floorPlans = parseJson<Record<number, AptRoom[]>>(row.floorPlans, defaultPlans());
+  const homeFloor = row.homeFloor ?? APT_DEFAULT_FLOOR;
+  const rooms = getRoomsForFloor(floorPlans, homeFloor);
+
+  return {
+    housingType: (row.housingType === "house" ? "house" : "apartment") as HousingType,
+    countryCode: row.countryCode ?? "KR",
+    latitude: row.latitude,
+    longitude: row.longitude,
+    regionLabel: row.regionLabel,
+    homeFloor,
+    moveInCompleted: !!row.moveInCompletedAt,
+    floorPresetFromSignup: false,
+    homePublic: row.homePublic ?? true,
+    floorPlans,
+    furniture: parseJson(row.furniture, defaultFurnitureForPlan(rooms)),
+    residents: parseJson(
+      row.residents,
+      defaultResidents({ userId: user.id, displayName: user.name ?? user.username })
+    ),
+    simulation: parseJson(row.simulationState, {}),
+    houseBuild: parseJson(row.houseBuild, emptyHouseBuild()),
+  };
+}
+
+export async function getAptProfile(): Promise<AptProfileDto | null> {
+  const user = await getCachedCurrentUser();
+  if (!user) return null;
+
+  const plans = defaultPlans();
+  const rooms = getRoomsForFloor(plans, APT_DEFAULT_FLOOR);
+  const fallback: AptProfileDto = {
+    housingType: "apartment",
+    countryCode: user.countryCode ?? "KR",
+    latitude: null,
+    longitude: null,
+    regionLabel: null,
+    homeFloor: APT_DEFAULT_FLOOR,
+    moveInCompleted: false,
+    floorPresetFromSignup: false,
+    homePublic: true,
+    floorPlans: plans,
+    furniture: defaultFurnitureForPlan(rooms),
+    residents: defaultResidents({
+      userId: user.id,
+      displayName: user.name ?? user.username,
+    }),
+    simulation: {},
+    houseBuild: emptyHouseBuild(seedFromCoords(user.countryCode === "KR" ? 37.5 : 0, 127)),
+  };
+
+  try {
+    const ownerId = await resolveAptHomeOwnerId(user.id);
+    const row = await db.aptProfile.findUnique({ where: { userId: ownerId } });
+    if (!row) return fallback;
+    const dto = rowToDto(row, user);
+    return {
+      ...dto,
+      floorPresetFromSignup: !row.moveInCompletedAt,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+export async function completeAptMoveIn(payload: MoveInPayload) {
+  const user = await getCachedCurrentUser();
+  if (!user) return { error: "actions.s1mzxopt" };
+
+  const housingType = "apartment";
+  const floor = housingType === "apartment" ? clampFloor(payload.homeFloor ?? APT_DEFAULT_FLOOR) : 0;
+
+  if (await isFloorOccupied(payload.countryCode, floor, user.id)) {
+    return { error: t("actions.s1956kg8", { v0: floor }) };
+  }
+
+  const plans = defaultPlans();
+  const furniture: FurnitureItem[] = [];
+  const residents = defaultResidents({
+    userId: user.id,
+    displayName: user.name ?? user.username,
+  });
+
+  try {
+    await db.aptProfile.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        housingType,
+        countryCode: payload.countryCode.toUpperCase(),
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        regionLabel: payload.regionLabel,
+        homeFloor: floor || APT_DEFAULT_FLOOR,
+        moveInCompletedAt: new Date(),
+        floorPlans: plans,
+        furniture,
+        residents,
+        simulationState: {},
+        houseBuild: emptyHouseBuild(seedFromCoords(payload.latitude, payload.longitude)),
+      },
+      update: {
+        housingType,
+        countryCode: payload.countryCode.toUpperCase(),
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        regionLabel: payload.regionLabel,
+        homeFloor: floor || APT_DEFAULT_FLOOR,
+        moveInCompletedAt: new Date(),
+        floorPlans: plans,
+        furniture,
+        residents,
+      },
+    });
+
+    revalidateAptHub();
+    return { ok: true as const, housingType };
+  } catch (e) {
+    console.error("[completeAptMoveIn]", e);
+    return { error: "actions.sf2ws33" };
+  }
+}
+
+export async function saveAptFloorPlan(floor: number, rooms: AptRoom[]) {
+  const user = await getCachedCurrentUser();
+  if (!user) return { error: "actions.s1mzxopt" };
+
+  const existing = await db.aptProfile.findUnique({ where: { userId: user.id } });
+  const plans = parseJson<Record<number, AptRoom[]>>(existing?.floorPlans, defaultPlans());
+  plans[floor] = rooms;
+
+  await db.aptProfile.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      homeFloor: floor,
+      floorPlans: plans,
+      furniture: defaultFurnitureForPlan(rooms),
+      residents: defaultResidents({ userId: user.id, displayName: user.name ?? user.username }),
+    },
+    update: { floorPlans: plans },
+  });
+
+  return { ok: true as const };
+}
+
+export async function saveAptSimulationState(payload: {
+  furniture: FurnitureItem[];
+  residents: ResidentAgent[];
+  homeFloor: number;
+}) {
+  const user = await getCachedCurrentUser();
+  if (!user) return;
+  const ownerId = await resolveAptHomeOwnerId(user.id);
+
+  await db.aptProfile.upsert({
+    where: { userId: ownerId },
+    create: {
+      userId: ownerId,
+      homeFloor: payload.homeFloor,
+      furniture: payload.furniture,
+      residents: payload.residents,
+      moveInCompletedAt: new Date(),
+    },
+    update: {
+      furniture: payload.furniture,
+      residents: payload.residents,
+      homeFloor: payload.homeFloor,
+    },
+  });
+}
+
+export async function placeAptTv() {
+  const user = await getCachedCurrentUser();
+  if (!user) return { error: "actions.s1mzxopt" };
+
+  const profile = await getAptProfile();
+  if (!profile) return { error: "actions.s1ok12y" };
+
+  const floor = profile.homeFloor;
+  const rooms = getRoomsForFloor(profile.floorPlans, floor);
+  const living = rooms.find((r) => r.type === "living");
+  if (!living) return { error: "actions.ssdgwyr" };
+
+  const furniture: FurnitureItem[] = [
+    ...profile.furniture.filter((f) => f.type !== "tv"),
+    { id: `tv-${Date.now()}`, type: "tv", roomId: living.id, x: 0.3, z: -0.15, active: false },
+  ];
+
+  await saveAptSimulationState({
+    furniture,
+    residents: profile.residents,
+    homeFloor: floor,
+  });
+
+  revalidateAptHub();
+  return { ok: true as const, furniture };
+}
+
+export async function saveAptHouseBuild(state: HouseBuildState) {
+  const user = await getCachedCurrentUser();
+  if (!user) return { error: "actions.s1mzxopt" };
+
+  try {
+    await db.aptProfile.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        housingType: "house",
+        moveInCompletedAt: new Date(),
+        houseBuild: state,
+      },
+      update: { houseBuild: state },
+    });
+    revalidateAptHub();
+    return { ok: true as const };
+  } catch (e) {
+    console.error("[saveAptHouseBuild]", e);
+    return { error: "actions.s1y34v5o" };
+  }
+}
+
+export type CountryAptPreview = {
+  userId: string;
+  username: string;
+  displayName: string;
+  homeFloor: number;
+  floorPlans: Record<number, AptRoom[]>;
+  bondeeRoom: BondeeRoomState;
+};
+
+export type FloorOccupant = {
+  userId: string;
+  username: string;
+  displayName: string;
+  homeFloor: number;
+  /** true = 현관문 열림 → 다른 유저가 집 구경 가능 */
+  doorOpen: boolean;
+};
+
+/** 국가별 층 점유 현황 (입주 완료 유저) */
+export async function getCountryFloorOccupants(countryCode: string): Promise<FloorOccupant[]> {
+  const rows = await db.aptProfile.findMany({
+    where: {
+      moveInCompletedAt: { not: null },
+      housingType: "apartment",
+      countryCode: countryCode.toUpperCase(),
+    },
+    include: {
+      user: { select: { id: true, name: true, username: true } },
+    },
+  });
+
+  return rows.map((row) => ({
+    userId: row.user.id,
+    username: row.user.username,
+    displayName: row.user.name ?? row.user.username,
+    homeFloor: row.homeFloor ?? APT_DEFAULT_FLOOR,
+    doorOpen: row.homePublic ?? true,
+  }));
+}
+
+export async function getOccupiedFloorsForCountry(countryCode: string): Promise<number[]> {
+  const occupants = await getCountryFloorOccupants(countryCode);
+  return occupants.map((o) => o.homeFloor);
+}
+
+async function isFloorOccupied(countryCode: string, floor: number, excludeUserId?: string) {
+  const existing = await db.aptProfile.findFirst({
+    where: {
+      moveInCompletedAt: { not: null },
+      housingType: "apartment",
+      countryCode: countryCode.toUpperCase(),
+      homeFloor: floor,
+      ...(excludeUserId ? { userId: { not: excludeUserId } } : {}),
+    },
+    select: { userId: true },
+  });
+  return !!existing;
+}
+
+/** 회원가입·입주 시 층 가용 여부 */
+export async function checkFloorAvailableForSignup(countryCode: string, floor: number) {
+  const clamped = clampFloor(floor);
+  if (await isFloorOccupied(countryCode, clamped)) {
+    return { ok: false as const, error: t("actions.s1956kg8", { v0: clamped }) };
+  }
+  return { ok: true as const, floor: clamped };
+}
+
+async function loadOccupiedSignupFloors(countryCode: string): Promise<Set<number>> {
+  const rows = await db.aptProfile.findMany({
+    where: {
+      moveInCompletedAt: { not: null },
+      housingType: "apartment",
+      countryCode: countryCode.toUpperCase(),
+    },
+    select: { homeFloor: true },
+  });
+  return new Set(rows.map((row) => row.homeFloor));
+}
+
+function pickNearestFreeFloor(start: number, taken: Set<number>): number | null {
+  if (!taken.has(start)) return start;
+  for (let delta = 1; delta <= 250; delta++) {
+    for (const f of [start + delta, start - delta]) {
+      if (f >= 1 && f <= APT_TOTAL_FLOORS && !taken.has(f)) {
+        return f;
+      }
+    }
+  }
+  return null;
+}
+
+/** 1단계에서 이미 배정된 층이면 단일 조회로 확인, 충돌 시에만 재배정 */
+export async function tryResolvePrecheckedSignupFloor(countryCode: string, floor: number) {
+  const start = clampFloor(floor);
+  if (!(await isFloorOccupied(countryCode, start))) {
+    return { ok: true as const, floor: start };
+  }
+  return pickAvailableSignupFloor(countryCode, start);
+}
+
+/** 회원가입 시 UI 없이 자동 배정할 입주 층 */
+export async function pickAvailableSignupFloor(
+  countryCode: string,
+  preferred = APT_DEFAULT_FLOOR
+) {
+  const start = clampFloor(preferred);
+  const taken = await loadOccupiedSignupFloors(countryCode);
+  const floor = pickNearestFreeFloor(start, taken);
+  if (floor == null) {
+    return { ok: false as const, error: "actions.s12hab9i" };
+  }
+  return { ok: true as const, floor };
+}
+
+const countryAptMemo = new Map<string, { at: number; data: CountryAptPreview[] }>();
+const COUNTRY_APT_TTL_MS = 12_000;
+
+export async function listCountryApartments(countryCode: string): Promise<CountryAptPreview[]> {
+  const user = await getCachedCurrentUser();
+  const cc = countryCode.toUpperCase();
+  const memoKey = `${cc}:${user?.id ?? "anon"}`;
+  const hit = countryAptMemo.get(memoKey);
+  if (hit && Date.now() - hit.at < COUNTRY_APT_TTL_MS) return hit.data;
+
+  const rows = await db.aptProfile.findMany({
+    where: {
+      moveInCompletedAt: { not: null },
+      housingType: "apartment",
+      countryCode: cc,
+      homePublic: true,
+      ...(user ? { userId: { not: user.id } } : {}),
+    },
+    include: {
+      user: { select: { id: true, name: true, username: true } },
+    },
+    take: 60,
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const data = rows.map((row) => {
+    const sim =
+      row.simulationState && typeof row.simulationState === "object"
+        ? (row.simulationState as Record<string, unknown>)
+        : {};
+    const bondee =
+      sim.bondee && typeof sim.bondee === "object" && "items" in (sim.bondee as object)
+        ? (sim.bondee as BondeeRoomState)
+        : DEFAULT_BONDEE_ROOM;
+
+    return {
+      userId: row.user.id,
+      username: row.user.username,
+      displayName: row.user.name ?? row.user.username,
+      homeFloor: row.homeFloor ?? APT_DEFAULT_FLOOR,
+      floorPlans: parseJson<Record<number, AptRoom[]>>(row.floorPlans, defaultPlans()),
+      bondeeRoom: bondee,
+    };
+  });
+  countryAptMemo.set(memoKey, { at: Date.now(), data });
+  return data;
+}
+
+export type { HousingLocation };

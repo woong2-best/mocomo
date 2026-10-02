@@ -1,4 +1,4 @@
-/** 피드·라이트박스·영상 뷰어 등 오버레이가 열려 있을 때 router.refresh()로 UI가 날아가지 않게 막는다. */
+/** 피드·라이트박스·Video 뷰어 등 오버레이가 열려 있을 때 router.refresh()로 UI가 날아가지 않게 막는다. */
 
 let overlayCount = 0;
 

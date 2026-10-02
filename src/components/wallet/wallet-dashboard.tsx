@@ -1,5 +1,10 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveBankAccount, requestPayout } from "@/actions/wallet";
@@ -10,9 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const LEDGER_LABELS: Record<string, string> = {
-  SELLER_EARNING: "수익 적립",
-  PAYOUT_REQUEST: "출금 신청",
-  PAYOUT_REJECTED: "출금 반려 환급",
+  SELLER_EARNING: t("wallet.s2qvzpb"),
+  PAYOUT_REQUEST: t("wallet.s18kcjnl"),
+  PAYOUT_REJECTED: t("wallet.s1a8a4up"),
 };
 
 type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWallet>>;
@@ -34,9 +39,9 @@ export function WalletDashboard({ data }: { data: WalletData }) {
     setMsg("");
     const res = await saveBankAccount({ bankName, accountNumber, holderName });
     setLoading(false);
-    if ("error" in res && res.error) setMsg(res.error);
+    if ("error" in res && res.error) setMsg(errorText(res.error));
     else {
-      setMsg("계좌가 저장되었습니다.");
+      setMsg(t("wallet.s1i8m6ka"));
       router.refresh();
     }
   }
@@ -47,9 +52,9 @@ export function WalletDashboard({ data }: { data: WalletData }) {
     setMsg("");
     const res = await requestPayout(Number(payoutAmount));
     setLoading(false);
-    if ("error" in res && res.error) setMsg(res.error);
+    if ("error" in res && res.error) setMsg(errorText(res.error));
     else {
-      setMsg("출금 신청이 접수되었습니다. 영업일 기준 3~5일 내 입금됩니다.");
+      setMsg(t("wallet.3_5"));
       setPayoutAmount("");
       router.refresh();
     }
@@ -59,35 +64,36 @@ export function WalletDashboard({ data }: { data: WalletData }) {
     <div className="space-y-6 max-w-lg">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">정산 잔액</CardTitle>
+          <CardTitle className="text-lg">{t("wallet.spb20r6")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <p className="text-3xl font-black">{formatUsd(withdrawable)}</p>
           <p className="text-xs text-muted-foreground">
-            출금 가능 · 총 적립 {formatUsd(data.totalEarned)} · 출금 완료{" "}
-            {formatUsd(data.totalWithdrawn)}
+            {t("wallet.dashboard.summary", {
+              earned: formatUsd(data.totalEarned),
+              withdrawn: formatUsd(data.totalWithdrawn),
+            })}
           </p>
           {data.pendingPayout > 0 && (
-            <p className="text-xs text-amber-700">처리 중 출금 {formatUsd(data.pendingPayout)}</p>
+            <p className="text-xs text-amber-700">{t("wallet.dashboard.pendingPayout", { amount: formatUsd(data.pendingPayout) })}</p>
           )}
           <p className="text-xs text-muted-foreground pt-2">
-            결제는 Stripe로 수납되며, 수익은 여기 적립 후 출금 신청 → 운영자 확인 후 계좌로
-            송금됩니다.
+            {t("wallet.stripe_8")}
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">출금 계좌</CardTitle>
+          <CardTitle className="text-lg">{t("wallet.s18k8rgc")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={saveBank} className="space-y-3">
-            <Input placeholder="은행명 (예: 카카오뱅크)" value={bankName} onChange={(e) => setBankName(e.target.value)} required />
-            <Input placeholder="계좌번호" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} required />
-            <Input placeholder="예금주" value={holderName} onChange={(e) => setHolderName(e.target.value)} required />
+            <Input placeholder={t("wallet.s86jroo")} value={bankName} onChange={(e) => setBankName(e.target.value)} required />
+            <Input placeholder={t("wallet.smmrdvc")} value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} required />
+            <Input placeholder={t("wallet.stux30")} value={holderName} onChange={(e) => setHolderName(e.target.value)} required />
             <Button type="submit" variant="secondary" disabled={loading}>
-              계좌 저장
+              {t("wallet.s1pjxny5")}
             </Button>
           </form>
         </CardContent>
@@ -95,13 +101,13 @@ export function WalletDashboard({ data }: { data: WalletData }) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">출금 신청</CardTitle>
+          <CardTitle className="text-lg">{t("wallet.s18kcjnl")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={submitPayout} className="space-y-3">
             <Input
               type="number"
-              placeholder={`금액 (최소 ${formatUsd(MIN_PAYOUT_KRW)})`}
+              placeholder={t("wallet.s7lcllm", { v0: formatUsd(MIN_PAYOUT_KRW) })}
               value={payoutAmount}
               onChange={(e) => setPayoutAmount(e.target.value)}
               min={MIN_PAYOUT_KRW}
@@ -109,7 +115,7 @@ export function WalletDashboard({ data }: { data: WalletData }) {
               required
             />
             <Button type="submit" variant="secondary" disabled={loading || withdrawable < MIN_PAYOUT_KRW}>
-              출금 신청
+              {t("wallet.s18kcjnl")}
             </Button>
           </form>
         </CardContent>
@@ -118,7 +124,7 @@ export function WalletDashboard({ data }: { data: WalletData }) {
       {data.recent.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">최근 내역</CardTitle>
+            <CardTitle className="text-lg">{t("wallet.s17kux89")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {data.recent.map((e) => (

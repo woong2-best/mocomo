@@ -121,7 +121,7 @@ export async function getCroppedImageBlob(
 
   return new Promise((resolve, reject) => {
     out.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("이미지 변환에 실패했습니다."))),
+      (blob) => (blob ? resolve(blob) : reject(new Error("Failed to convert the image."))),
       mimeType,
       quality
     );

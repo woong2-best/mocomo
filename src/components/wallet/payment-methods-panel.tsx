@@ -1,5 +1,10 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -47,7 +52,7 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
     const res = await startAddPaymentMethod();
     setAdding(false);
     if ("error" in res && res.error) {
-      setMsg(res.error);
+      setMsg(errorText(res.error));
       return;
     }
     if ("checkoutUrl" in res && res.checkoutUrl) window.location.href = res.checkoutUrl;
@@ -57,7 +62,7 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
     startTransition(async () => {
       setMsg("");
       const res = await chooseDefaultPaymentMethod(id);
-      if ("error" in res && res.error) setMsg(res.error);
+      if ("error" in res && res.error) setMsg(errorText(res.error));
       else if ("methods" in res && res.methods) {
         setMethods(res.methods);
         router.refresh();
@@ -69,7 +74,7 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
     startTransition(async () => {
       setMsg("");
       const res = await removePaymentMethod(id);
-      if ("error" in res && res.error) setMsg(res.error);
+      if ("error" in res && res.error) setMsg(errorText(res.error));
       else if ("methods" in res && res.methods) {
         setMethods(res.methods);
         router.refresh();
@@ -104,9 +109,9 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
                 <div className="flex h-full flex-col justify-center gap-2 p-6">
                   <div className="flex items-center gap-2 text-white/90">
                     <Plus className="h-5 w-5" />
-                    <span className="font-black text-lg">결제 수단 추가</span>
+                    <span className="font-black text-lg">{t("wallet.s14yakco")}</span>
                   </div>
-                  <p className="text-sm text-white/70">카드를 등록해 두면 결제할 때 선택할 수 있습니다</p>
+                  <p className="text-sm text-white/70">{t("wallet.s1idbpdy")}</p>
                   {adding ? <Loader2 className="h-4 w-4 animate-spin text-white/80" /> : null}
                 </div>
               </button>
@@ -127,7 +132,7 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
               <div className="relative flex h-full flex-col justify-between p-5">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-xs text-white/70 font-semibold">{pm.isDefault ? "기본 결제 수단" : pm.brand}</p>
+                    <p className="text-xs text-white/70 font-semibold">{pm.isDefault ? t("wallet.s1tlhz8s") : pm.brand}</p>
                     <p className="text-2xl font-black text-white mt-1 tracking-widest">•••• {pm.last4}</p>
                   </div>
                   <CreditCard className="h-6 w-6 text-white/40" />
@@ -145,7 +150,7 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
                           disabled={pending}
                           onClick={() => setDefault(pm.id)}
                         >
-                          기본
+                          {t("wallet.sunyg")}
                         </Button>
                       ) : null}
                       <Button
@@ -156,7 +161,7 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
                         disabled={pending}
                         onClick={() => removeCard(pm.id)}
                       >
-                        삭제
+                        {t("toast.delete")}
                       </Button>
                     </div>
                   ) : null}
@@ -169,11 +174,11 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
 
       {methods.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground px-4">
-          등록된 카드가 없습니다. 맨 앞 카드를 눌러 첫 결제 수단을 추가하세요.
+          {t("wallet.s1o5cnvw")}
         </p>
       ) : (
         <p className="text-center text-xs text-muted-foreground">
-          카드를 좌우로 넘기듯 아래 스택에서 선택 · 결제 시 목록에서 고릅니다
+          {t("wallet.s1crjq2x")}
         </p>
       )}
 

@@ -3,10 +3,12 @@ import { Star } from "lucide-react";
 import { StarContentAsync } from "@/components/star/star-content-async";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { GridCardsSkeleton } from "@/components/ui/content-skeletons";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-export default function StarPage() {
+export default async function StarPage() {
+  const { t } = await getServerTranslator();
   return (
     <AppPageChrome maxWidth="5xl">
       <NativePageTitle>
@@ -14,7 +16,7 @@ export default function StarPage() {
           <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
           STAR
         </h1>
-        <p className="text-sm text-muted-foreground">전체 · 게시물 · QnA · 마켓</p>
+        <p className="text-sm text-muted-foreground">{t("star.pageSubtitle")}</p>
       </NativePageTitle>
 
       <Suspense fallback={<GridCardsSkeleton count={4} />}>

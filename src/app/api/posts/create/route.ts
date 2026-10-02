@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   const userId = session?.user?.id;
   if (!userId) {
     return NextResponse.json(
-      { error: "로그인이 필요합니다. 다시 로그인한 뒤 시도해 주세요." },
+      { error: "Please sign in." },
       { status: 401 }
     );
   }
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
   try {
     body = (await req.json()) as CreatePostInput;
   } catch {
-    return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const user = await db.user.findUnique({
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
   });
   if (!user) {
     return NextResponse.json(
-      { error: "계정 정보를 찾을 수 없습니다. 다시 로그인해 주세요." },
+      { error: "Account not found. Please sign in again." },
       { status: 401 }
     );
   }
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
     if ("code" in result && result.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE) {
       return NextResponse.json(result, { status: 400 });
     }
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }
 
   return NextResponse.json({

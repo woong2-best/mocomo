@@ -1,5 +1,9 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { Users } from "lucide-react";
 import { LiveCloudflareWhepPlayer } from "@/components/live/live-cloudflare-whep-player";
 import {
@@ -16,6 +20,7 @@ export function LiveCollabPublishStudio({
   channelId: string;
   coHostLabel?: string;
 }) {
+  const { t } = useLocale();
   return (
     <LiveCollabPublishRoom channelId={channelId}>
       <div className="relative w-full aspect-video rounded-xl overflow-hidden ring-1 ring-border/50 bg-black shadow-sm">
@@ -23,27 +28,27 @@ export function LiveCollabPublishStudio({
           <div className="relative min-h-0 min-w-0 border-r border-white/10">
             <LiveCloudflareWhepPlayer channelId={channelId} embedded />
             <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded bg-orange-600/90 text-white text-[9px] font-bold">
-              호스트
+              {t("live.swbu18")}
             </span>
           </div>
           <div className="relative min-h-0 min-w-0">
             <LiveCollabLocalPreview />
             <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded bg-violet-600/90 text-white text-[9px] font-bold">
-              합방 (나)
+              {t("live.s11h6ovt")}
             </span>
           </div>
         </div>
       </div>
       <p className="text-xs text-muted-foreground flex items-center gap-1">
         <Users className="h-3.5 w-3.5" />
-        아래에서 마이크·카메라를 조절하세요. 시청자 화면은 좌우 분할로 표시됩니다.
+        {t("live.collabPublish.hint")}
         {coHostLabel ? ` · ${coHostLabel}` : ""}
       </p>
     </LiveCollabPublishRoom>
   );
 }
 
-/** 호스트 스튜디오 — 합방자 영상 우측 미리보기 */
+/** 호스트 스튜디오 — 합방자 Video 우측 미리보기 */
 export function LiveHostCollabPreview({
   channelId,
   coHostUserId,
@@ -61,7 +66,7 @@ export function LiveHostCollabPreview({
         <div className="relative min-h-0 min-w-0 border-r border-white/10 overflow-hidden">
           <div className="relative h-full w-full min-h-0 overflow-hidden">{children}</div>
           <span className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded bg-orange-600/90 text-white text-[9px] font-bold pointer-events-none">
-            호스트
+            {t("live.swbu18")}
           </span>
         </div>
         <div className="relative min-h-0 min-w-0">
@@ -71,7 +76,7 @@ export function LiveHostCollabPreview({
             coHostLabel={coHostLabel}
           />
           <span className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded bg-violet-600/90 text-white text-[9px] font-bold pointer-events-none">
-            합방
+            {t("live.s11bz4")}
           </span>
         </div>
       </div>

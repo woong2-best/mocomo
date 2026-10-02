@@ -76,12 +76,12 @@ export async function finishPasskeyEnroll(
 
 export async function renamePasskey(userId: string, credentialId: string, name: string) {
   const trimmed = name.trim().slice(0, 64);
-  if (!trimmed) return { error: "이름을 입력해 주세요." };
+  if (!trimmed) return { error: "Enter a name." };
   const updated = await db.adminWebAuthnCredential.updateMany({
     where: { id: credentialId, userId },
     data: { name: trimmed },
   });
-  if (!updated.count) return { error: "Passkey를 찾을 수 없습니다." };
+  if (!updated.count) return { error: "Passkey not found." };
   void logSiteAdminAudit({
     actorId: userId,
     action: "ADMIN_SECURITY_CHANGE",
@@ -95,12 +95,12 @@ export async function renamePasskey(userId: string, credentialId: string, name: 
 export async function deletePasskey(userId: string, credentialId: string) {
   const count = await db.adminWebAuthnCredential.count({ where: { userId } });
   if (count <= 1) {
-    return { error: "최소 1개의 Passkey가 필요합니다." };
+    return { error: "At least one passkey is required." };
   }
   const deleted = await db.adminWebAuthnCredential.deleteMany({
     where: { id: credentialId, userId },
   });
-  if (!deleted.count) return { error: "Passkey를 찾을 수 없습니다." };
+  if (!deleted.count) return { error: "Passkey not found." };
   void logSiteAdminAudit({
     actorId: userId,
     action: "ADMIN_PASSKEY_DELETE",
@@ -146,10 +146,10 @@ export async function beginTotpSetup(userId: string, accountLabel: string) {
 
 export async function verifyTotpSetup(userId: string, code: string) {
   const row = await db.adminTotpCredential.findUnique({ where: { userId } });
-  if (!row) return { error: "Authenticator 설정을 먼저 시작해 주세요." };
+  if (!row) return { error: "Start authenticator setup first." };
   const secret = decryptTotpSecret(row);
   if (!verifyTotpCode(secret, code)) {
-    return { error: "인증 코드가 올바르지 않습니다." };
+    return { error: "Verification code is incorrect." };
   }
   await db.adminTotpCredential.update({
     where: { userId },
@@ -168,7 +168,7 @@ export async function verifyTotpSetup(userId: string, code: string) {
 export async function setTotpEnabled(userId: string, enabled: boolean) {
   const row = await db.adminTotpCredential.findUnique({ where: { userId } });
   if (!row?.verifiedAt) {
-    return { error: "Authenticator가 검증되지 않았습니다." };
+    return { error: "Authenticator has not been verified." };
   }
   if (!enabled) {
     // 비활성화 시에도 enrollment 깨짐 — 명시적 허용하되 대시보드 접근은 막힘

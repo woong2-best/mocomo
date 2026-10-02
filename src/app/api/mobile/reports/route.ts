@@ -61,12 +61,12 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const data = parsed.data;
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     },
   });
   if (recent) {
-    return NextResponse.json({ error: "이미 최근에 신고한 콘텐츠입니다." }, { status: 400 });
+    return NextResponse.json({ error: "You already reported this content recently." }, { status: 400 });
   }
 
   let moderationCaseId: string | undefined;
@@ -145,6 +145,6 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    message: "신고가 접수되었습니다. 검토 후 조치하겠습니다.",
+    message: "Report submitted. We will review it.",
   });
 }

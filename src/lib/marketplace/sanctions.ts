@@ -52,7 +52,7 @@ export async function applyMarketplaceSanction(input: {
   const profile = await db.marketplaceSellerProfile.findUnique({
     where: { id: input.sellerProfileId },
   });
-  if (!profile) return { error: "판매자 프로필이 없습니다." };
+  if (!profile) return { error: "Seller profile not found." };
 
   const level =
     input.level ??
@@ -97,7 +97,7 @@ export async function applyMarketplaceSanction(input: {
   await createNotification({
     userId: profile.userId,
     type: "SYSTEM",
-    title: "판매자 제재 안내",
+    title: "Seller sanction notice",
     body: `${MARKETPLACE_SANCTION_LABELS[level] ?? level} — ${input.reason.slice(0, 100)}`,
     link: "/market/seller",
   });

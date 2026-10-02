@@ -47,7 +47,7 @@ export async function checkBankSendRateLimit(input: {
   accountFingerprint: string;
   ip: string;
 }) {
-  const msg = `계좌 1원 인증은 하루 ${BANK_SEND_USER_DAY}번까지만 요청할 수 있습니다. 내일 다시 시도해 주세요.`;
+  const msg = `Please sign in to continue. ${BANK_SEND_USER_DAY}번까지만 요청할 수 있습니다. 내일 다시 시도해 주세요.`;
 
   const byUser = await enforceDaily("send-user", input.userId, BANK_SEND_USER_DAY, msg);
   if (!byUser.ok) return byUser;
@@ -56,7 +56,7 @@ export async function checkBankSendRateLimit(input: {
     "send-acct",
     input.accountFingerprint,
     BANK_SEND_ACCOUNT_DAY,
-    "이 계좌로는 오늘 더 이상 인증 요청을 할 수 없습니다."
+    "No more verification requests for this account today."
   );
   if (!byAccount.ok) return byAccount;
 
@@ -65,14 +65,14 @@ export async function checkBankSendRateLimit(input: {
     "send-ip",
     ipKey,
     BANK_SEND_IP_DAY,
-    "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
+    "Too many requests. Please try again in a moment."
   );
   if (!byIp.ok) return byIp;
 
   if (authLimiter && input.ip !== "unknown") {
     const { success } = await checkRateLimit(authLimiter, `bank-send-ip:${input.ip}`);
     if (!success) {
-      return { ok: false as const, error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+      return { ok: false as const, error: "Too many requests. Please try again in a moment." };
     }
   }
 
@@ -109,7 +109,7 @@ export async function checkBankVerifyAttemptLimit(userId: string, accountFingerp
   if (fails >= BANK_VERIFY_FAIL_MAX) {
     return {
       ok: false as const,
-      error: "인증 시도 횟수를 초과했습니다. 1원 인증을 다시 요청해 주세요.",
+      error: "Too many verification attempts. Request 1-won verification again.",
     };
   }
   return { ok: true as const, remaining: BANK_VERIFY_FAIL_MAX - fails };

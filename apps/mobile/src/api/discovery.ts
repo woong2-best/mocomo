@@ -257,16 +257,3 @@ export async function fetchWalletEarnings(year?: number) {
     auth: true,
   });
 }
-
-export async function fetchGames() {
-  return apiRequest<{
-    items: {
-      id: string;
-      name: string;
-      href: string | null;
-      description: string | null;
-      category: string;
-      status: string;
-    }[];
-  }>(MobileApi.games, { auth: true });
-}
