@@ -119,6 +119,9 @@ export const MobileApi = {
   stripeConnect: "/api/mobile/stripe/connect",
   stripeConnectDashboard: "/api/mobile/stripe/connect/dashboard",
   settlementStatus: "/api/mobile/settlement/status",
+  settlementOnDemandQuote: "/api/mobile/settlements/on-demand-withdraw/quote",
+  settlementOnDemandWithdraw: "/api/mobile/settlements/on-demand-withdraw",
+  settlementHistory: "/api/mobile/settlements/history",
   /** @deprecated Custom Connect 410 — use settlements connect-account */
   settlementRegister: "/api/mobile/settlement/register",
   sponsoredAdPurchase: "/api/mobile/sponsored-ad/purchase",

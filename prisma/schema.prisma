@@ -332,6 +332,7 @@ model User {
   creatorSettlementProfile CreatorSettlementProfile?
   creatorTaxAttestations CreatorTaxAttestation[]
   creatorRewardPayoutBatches CreatorRewardPayoutBatch[]
+  creatorMocoOnDemandWithdrawals CreatorMocoOnDemandWithdrawal[]
   creatorMocoSettlementCycles CreatorMocoSettlementCycle[]
   profile       Profile?
   cosplayerProfile CosplayerProfile?
@@ -4805,6 +4806,8 @@ enum MocoSettlementCycleStatus {
   PAID
   FAILED
   RETURNED
+  /** Monthly lock retired while FEATURE_ON_DEMAND_PAYOUT_ENABLED is active */
+  DEPRECATED_ON_DEMAND_ACTIVE
 }
 
 model CreatorMocoSettlementCycle {
@@ -4877,6 +4880,53 @@ model CreatorRewardPayoutBatch {
   @@unique([userId, periodYear, periodMonth])
   @@index([status, createdAt])
   @@index([stripeTransferId])
+}
+
+/** Real-time Reward withdrawal — partial/full settlement MOCO → Connect transfer */
+model CreatorMocoOnDemandWithdrawal {
+  id                  String    @id @default(cuid())
+  userId              String
+  withdrawMoco        Int
+  balanceBeforeMoco   Int
+  balanceAfterMoco    Int
+  activeTierBefore    String
+  activeTierAfter     String
+  payoutTier          String
+  faceValueCents      Int
+  platformMarginCents Int
+  netTransferCents    Int
+  grossAmountMinor    Int
+  withholdingMinor    Int       @default(0)
+  netAmountMinor      Int
+  currency            String
+  stripeTransferId    String?
+  idempotencyKey      String?   @unique
+  status              String    @default("PENDING")
+  errorMessage        String?   @db.Text
+  createdAt           DateTime  @default(now())
+  completedAt         DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([stripeTransferId])
+}
+
+model ApiIdempotencyKey {
+  id             String   @id @default(cuid())
+  scope          String
+  idempotencyKey String
+  userId         String
+  status         String
+  responseCode   Int?
+  responseBody   Json?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  @@unique([scope, idempotencyKey])
+  @@index([expiresAt])
+  @@index([userId, createdAt])
 }
 
 model PlatformWalletLedger {

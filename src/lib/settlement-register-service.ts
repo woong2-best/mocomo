@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { isOnDemandPayoutEnabled } from "@/lib/settlement-moco/feature-flags";
 import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
 import { getCreatorPayoutDashboard } from "@/lib/settlement-moco/payout-gate";
 
@@ -60,6 +61,7 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
     earnedMocoTier: "SEED" as const,
     purchasedMocoPoints: 0,
     rewardProgress: rewardTierProgress(0),
+    onDemandPayoutEnabled: isOnDemandPayoutEnabled(),
     recentRewards: [] as Awaited<
       ReturnType<typeof db.creatorRewardPayoutBatch.findMany>
     >,
@@ -141,6 +143,7 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
       purchasedMocoPoints:
         (userGems?.gemBalance ?? 0) + (settlementMoco?.mocoPoints ?? 0),
       rewardProgress: rewardTierProgress(settlementMoco?.settlementMocoPoints ?? 0),
+      onDemandPayoutEnabled: isOnDemandPayoutEnabled(),
       recentRewards,
       payoutDashboard,
     };

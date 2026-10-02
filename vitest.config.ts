@@ -5,6 +5,10 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: "node",
-    include: ["src/lib/marketplace/__tests__/**/*.test.ts"],
+    include: [
+      "src/lib/marketplace/__tests__/**/*.test.ts",
+      "src/lib/settlement-moco/__tests__/**/*.test.ts",
+      "src/lib/__tests__/api-idempotency.test.ts",
+    ],
   },
 });

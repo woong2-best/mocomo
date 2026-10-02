@@ -13,6 +13,7 @@ export type SettlementStatus = {
   earnedMocoPoints: number;
   earnedMocoTier: string;
   purchasedMocoPoints: number;
+  onDemandPayoutEnabled?: boolean;
   rewardProgress?: {
     currentLabel: string;
     currentRewardUsd: number;

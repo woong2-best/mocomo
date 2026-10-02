@@ -24,5 +24,7 @@ export async function GET(req: NextRequest) {
     lockSkippedDuplicate: result.lockSkippedDuplicate,
     lockSkippedZero: result.lockSkippedZero,
     lockFailed: result.lockFailed,
+    onDemandMode: result.onDemandMode,
+    deprecatedCyclesReleased: result.deprecatedCyclesReleased,
   });
 }

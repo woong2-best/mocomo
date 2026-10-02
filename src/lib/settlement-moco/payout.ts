@@ -6,9 +6,11 @@ import {
   REWARD_BATCH_STATUS,
   REWARD_RETRYABLE_STATUSES,
 } from "@/lib/settlement-moco/payout-status";
+import { deprecateOpenSettlementCyclesForOnDemand } from "@/lib/settlement-moco/cycle-deprecation";
 import { lockAllCreatorSettlementCycles } from "@/lib/settlement-moco/cycle-lock";
 import { isMocoSettlementLockDay } from "@/lib/settlement-moco/cycle-period";
 import { processLockedSettlementCycles } from "@/lib/settlement-moco/cycle-run";
+import { isOnDemandPayoutEnabled } from "@/lib/settlement-moco/feature-flags";
 import { executeRewardTransfer } from "@/lib/settlement-moco/reward-transfer";
 
 export { executeRewardTransfer } from "@/lib/settlement-moco/reward-transfer";
@@ -23,6 +25,8 @@ export type MonthlySettlementResult = {
   lockSkippedDuplicate: number;
   lockSkippedZero: number;
   lockFailed: number;
+  onDemandMode: boolean;
+  deprecatedCyclesReleased: number;
 };
 
 export async function notifyRewardGateSkip(userId: string, skipReason: string) {
@@ -123,7 +127,20 @@ export async function processMonthlySettlementCron(
     lockSkippedDuplicate: 0,
     lockSkippedZero: 0,
     lockFailed: 0,
+    onDemandMode: isOnDemandPayoutEnabled(),
+    deprecatedCyclesReleased: 0,
   };
+
+  if (isOnDemandPayoutEnabled()) {
+    const released = await deprecateOpenSettlementCyclesForOnDemand();
+    result.deprecatedCyclesReleased = released.released;
+    const held = await reprocessHeldRewardBatches();
+    result.retried = held.retried;
+    result.processed += held.processed;
+    result.failed += held.failed;
+    result.skipped += held.skipped;
+    return result;
+  }
 
   const held = await reprocessHeldRewardBatches();
   result.retried = held.retried;

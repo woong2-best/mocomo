@@ -170,7 +170,9 @@ export async function buildCyclePayoutPlan(cycleId: string): Promise<CyclePayout
 
 export async function listProcessingSettlementCycles(limit = 500) {
   return db.creatorMocoSettlementCycle.findMany({
-    where: { status: MocoSettlementCycleStatus.PROCESSING },
+    where: {
+      status: MocoSettlementCycleStatus.PROCESSING,
+    },
     orderBy: { lockedAt: "asc" },
     take: limit,
     select: { id: true },
