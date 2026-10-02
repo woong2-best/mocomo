@@ -568,7 +568,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
   // then rejects as a mismatch — after the buyer has already paid.
   const unitAmount = item?.unitPrice ?? 0;
   if (unitAmount * quantity + order.shippingAmount !== paymentIntent.amount) {
-    return { error: "주문 금액이 올바르지 않습니다. 다시 주문해 주세요." };
+    return { error: "actions.marketplace_checkout.s69cf6d9c77" };
   }
 
   if (paymentIntent.paymentKey) {
@@ -585,7 +585,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
         existing.status === "processing" ||
         existing.status === "requires_capture"
       ) {
-        return { error: "이미 결제가 진행된 주문입니다." };
+        return { error: "actions.marketplace_checkout.s18df0926b7" };
       }
     }
     // The stored key now points at a dead intent; leaving it behind breaks the
@@ -618,7 +618,7 @@ export async function createMarketplaceCheckoutForBuyer(
   platform: CheckoutPlatform = "web"
 ) {
   if (!isStripeConfigured()) {
-    return { error: "Stripe 결제가 설정되지 않았습니다." };
+    return { error: "actions.marketplace_checkout.s52a132feb8" };
   }
 
   const init = await initMarketplacePurchase(buyer, input);
@@ -703,18 +703,18 @@ export async function sellerUpdateShipment(input: {
     where: { id: input.orderId },
     include: { items: { select: { listingType: true } } },
   });
-  if (!order || order.sellerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.sellerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (["CANCELLED", "REFUNDED", "CONFIRMED", "SETTLED"].includes(order.status)) {
-    return { error: "이 주문은 배송 상태를 변경할 수 없습니다." };
+    return { error: "actions.marketplace_checkout.s408d8e3539" };
   }
   if (order.status === "ADMIN_REVIEW" || order.status === "DISPUTED") {
-    return { error: "관리자 검토·분쟁 중에는 배송 상태를 변경할 수 없습니다." };
+    return { error: "actions.marketplace_checkout.s45970f0e7a" };
   }
 
   const status = input.status ?? "SHIPPED";
   const trackingNumber = input.trackingNumber.trim();
   if (!trackingNumber && status !== "PREPARING") {
-    return { error: "송장번호를 입력해 주세요." };
+    return { error: "actions.marketplace_checkout.s4e3309e8a6" };
   }
 
   const manualDeliveredGuard = rejectSellerManualDeliveredForPhysical(order.items, status);
@@ -733,7 +733,7 @@ export async function sellerUpdateShipment(input: {
   const carrierCode = carrierMeta?.id ?? input.carrierCode?.trim() ?? null;
 
   if ((status === "SHIPPED" || status === "IN_TRANSIT") && !carrierCode && !carrierLabel) {
-    return { error: "배송사를 선택해 주세요." };
+    return { error: "actions.marketplace_checkout.se35c39dd60" };
   }
 
   let externalTrackingId: string | undefined;
@@ -839,14 +839,14 @@ export async function sellerSetOrderStatus(
     where: { id: orderId },
     include: { shipment: true, items: { select: { listingType: true } } },
   });
-  if (!order || order.sellerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.sellerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
 
   const allowedFrom: Record<string, string[]> = {
     PREPARING: ["PAID", "PREPARING"],
     SHIPPED: ["PAID", "PREPARING", "SHIPPED"],
   };
   if (!allowedFrom[status]?.includes(order.status)) {
-    return { error: "현재 상태에서는 변경할 수 없습니다." };
+    return { error: "actions.marketplace_checkout.sacd9fd1e5e" };
   }
 
   await db.marketplaceOrder.update({ where: { id: orderId }, data: { status } });
@@ -888,9 +888,9 @@ export async function confirmMarketplaceOrder(orderId: string) {
     where: { id: orderId },
     include: { items: { select: { listingType: true } }, shipment: true },
   });
-  if (!order || order.buyerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.buyerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (order.status === "DISPUTED" || order.status === "ADMIN_REVIEW") {
-    return { error: "분쟁·검토 중에는 구매 확정할 수 없습니다." };
+    return { error: "actions.marketplace_checkout.s59efc994b9" };
   }
 
   const { canBuyerManuallyConfirmOrder } = await import("@/lib/marketplace/confirm-guards");
@@ -922,12 +922,12 @@ export async function requestMarketplaceRefund(
     where: { id: orderId },
     include: { shipment: true },
   });
-  if (!order || order.buyerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.buyerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (["CANCELLED", "REFUNDED", "CONFIRMED"].includes(order.status)) {
-    return { error: "환불을 요청할 수 없는 상태입니다." };
+    return { error: "actions.marketplace_checkout.s7c7e84ba27" };
   }
   const text = reason.trim();
-  if (!text) return { error: "환불 사유를 입력해 주세요." };
+  if (!text) return { error: "actions.marketplace_checkout.se1e9e6c5a7" };
 
   const refundAmount =
     amountOverride ??
@@ -967,9 +967,9 @@ export async function sellerRespondMarketplaceRefund(
     where: { id: refundId },
     include: { order: true },
   });
-  if (!refund || refund.order.sellerId !== user.id) return { error: "권한이 없습니다." };
+  if (!refund || refund.order.sellerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (refund.status !== "REQUESTED" && refund.status !== "SELLER_REVIEW") {
-    return { error: "이미 처리된 환불입니다." };
+    return { error: "lib.call.booking.s4e85bd7196" };
   }
 
   if (!approve) {
@@ -1057,13 +1057,13 @@ export async function openMarketplaceDispute(
   const user = await requireAuth();
   const order = await db.marketplaceOrder.findUnique({ where: { id: orderId } });
   if (!order || (order.buyerId !== user.id && order.sellerId !== user.id)) {
-    return { error: "권한이 없습니다." };
+    return { error: "lib.subculture-commerce.st3onev" };
   }
   if (["SETTLED", "REFUNDED", "CANCELLED", "AWAITING_PAYMENT"].includes(order.status)) {
-    return { error: "이 주문에는 분쟁을 제기할 수 없습니다." };
+    return { error: "actions.marketplace_checkout.s8be9d2e6ff" };
   }
   const text = reason.trim();
-  if (!text) return { error: "분쟁 사유를 입력해 주세요." };
+  if (!text) return { error: "actions.marketplace_checkout.s33968d9687" };
 
   const code = reasonCode ?? "OTHER";
   const evidence = {
@@ -1144,10 +1144,10 @@ export async function submitMarketplaceDisputeEvidence(
     where: { id: disputeId },
     include: { order: true },
   });
-  if (!dispute) return { error: "분쟁을 찾을 수 없습니다." };
+  if (!dispute) return { error: "lib.marketplace.s1hvx3ui" };
   const order = dispute.order;
   if (order.buyerId !== user.id && order.sellerId !== user.id) {
-    return { error: "권한이 없습니다." };
+    return { error: "lib.subculture-commerce.st3onev" };
   }
 
   const payload = {
@@ -1184,9 +1184,9 @@ export async function submitMarketplaceDisputeEvidence(
 export async function cancelMarketplaceOrder(orderId: string) {
   const user = await requireAuth();
   const order = await db.marketplaceOrder.findUnique({ where: { id: orderId } });
-  if (!order || order.buyerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.buyerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (order.status !== "AWAITING_PAYMENT" && order.status !== "PAID" && order.status !== "PREPARING") {
-    return { error: "배송 시작 전만 취소할 수 있습니다. 이후에는 반품·환불을 이용해 주세요." };
+    return { error: "actions.marketplace_checkout.sad8872c8f4" };
   }
   if (order.status === "PAID" || order.status === "PREPARING") {
     // 결제 후 취소 → 환불 요청으로 전환
@@ -1211,14 +1211,14 @@ export async function submitMarketplaceReview(input: {
     where: { id: input.orderId },
     include: { items: true, review: true },
   });
-  if (!order || order.buyerId !== user.id) return { error: "권한이 없습니다." };
+  if (!order || order.buyerId !== user.id) return { error: "lib.subculture-commerce.st3onev" };
   if (order.status !== "CONFIRMED" && order.status !== "DELIVERED") {
-    return { error: "구매 확정 후 리뷰를 작성할 수 있습니다." };
+    return { error: "actions.marketplace_checkout.s76c259508f" };
   }
-  if (order.review) return { error: "이미 리뷰를 작성했습니다." };
+  if (order.review) return { error: "actions.marketplace_checkout.s5d1e28cd8e" };
   const rating = Math.min(5, Math.max(1, Math.floor(input.rating)));
   const listingId = order.items[0]?.listingId;
-  if (!listingId) return { error: "상품 정보가 없습니다." };
+  if (!listingId) return { error: "lib.marketplace.sehb28b" };
 
   await db.marketplaceReview.create({
     data: {
