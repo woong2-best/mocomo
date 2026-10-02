@@ -74,7 +74,7 @@ export const starAffinityScorer: Scorer<StarMarketQuery, StarListingCandidate> =
       if (query.favoriteSellerIds.has(c.sellerId)) boost += 0.8;
       if (query.preferredCategories.includes(c.category)) boost += 0.6;
       if (boost <= 0) return c;
-      return addSignal(c, "affinity", boost, weight, "관심 셀러/카테고리");
+      return addSignal(c, "affinity", boost, weight, "Favorite sellers/categories");
     });
   },
 };
