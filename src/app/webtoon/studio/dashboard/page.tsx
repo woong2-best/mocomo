@@ -24,7 +24,7 @@ export default async function WebtoonDashboardPage() {
       </div>
 
       {!stats ? (
-        <p className="text-sm text-muted-foreground">Couldn't load stats.</p>
+        <p className="text-sm text-muted-foreground">Couldn`t load stats.</p>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -41,12 +41,12 @@ export default async function WebtoonDashboardPage() {
             ))}
           </div>
           <p className="text-sm text-muted-foreground">
-            예상 매출(판매가 합): <strong className="text-foreground">{stats.revenue.toLocaleString()}원</strong>
+            Estimated revenue (sum of prices): <strong className="text-foreground">{stats.revenue.toLocaleString()}원</strong>
           </p>
 
           {stats.upcoming.length > 0 && (
             <section>
-              <h3 className="font-semibold text-sm mb-2">예약 공개 예정</h3>
+              <h3 className="font-semibold text-sm mb-2">Scheduled to publish</h3>
               <ul className="space-y-2 text-sm">
                 {stats.upcoming.map((e) => (
                   <li key={e.id} className="rounded-lg border border-border/60 px-3 py-2">
