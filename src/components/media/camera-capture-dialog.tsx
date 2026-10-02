@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -38,7 +41,7 @@ function pickRecorderMime(): string {
 function captureVideoFrame(video: HTMLVideoElement): Promise<Blob> {
   const w = video.videoWidth;
   const h = video.videoHeight;
-  if (!w || !h) return Promise.reject(new Error("카메라가 준비되지 않았습니다."));
+  if (!w || !h) return Promise.reject(new Error(t("media.s17cqigz")));
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
@@ -47,7 +50,7 @@ function captureVideoFrame(video: HTMLVideoElement): Promise<Blob> {
   ctx.drawImage(video, 0, 0, w, h);
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("사진 저장에 실패했습니다."))),
+      (blob) => (blob ? resolve(blob) : reject(new Error(t("media.s1qz1ixw")))),
       "image/jpeg",
       0.92
     );
@@ -97,9 +100,9 @@ function PlainCameraCaptureDialog({
     } catch (e) {
       const name = e instanceof Error ? e.name : "";
       if (name === "NotAllowedError") {
-        setError("카메라·마이크 권한을 허용해 주세요.");
+        setError(t("media.s113fb9m"));
       } else {
-        setError("카메라를 시작할 수 없습니다. 다른 앱이 사용 중인지 확인해 주세요.");
+        setError(t("media.slr8lz8"));
       }
     } finally {
       setStarting(false);
@@ -126,7 +129,7 @@ function PlainCameraCaptureDialog({
       onCapture(blob, "image/jpeg");
       onOpenChange(false);
     } catch {
-      setError("사진 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      setError(t("media.s13qrn0u"));
     }
   }
 
@@ -175,11 +178,11 @@ function PlainCameraCaptureDialog({
         className="max-w-lg p-0 gap-0 overflow-hidden max-h-[92vh] flex flex-col"
       >
         <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
-          <DialogTitle>{mode === "photo" ? "사진 찍기" : "영상 촬영"}</DialogTitle>
+          <DialogTitle>{mode === "photo" ? t("media.s1wicxfv") : t("media.sh6va8l")}</DialogTitle>
           <DialogDescription>
             {mode === "photo"
-              ? "상품 사진을 촬영하세요. (얼굴 필터 없음)"
-              : "영상을 촬영하세요."}
+              ? t("media.s16hl9yr")
+              : t("media.s100eh3f")}
           </DialogDescription>
         </DialogHeader>
 
@@ -211,7 +214,7 @@ function PlainCameraCaptureDialog({
             className="rounded-xl shrink-0"
             onClick={() => setFacingMode((f) => (f === "user" ? "environment" : "user"))}
             disabled={starting || recording}
-            aria-label="카메라 전환"
+            aria-label={t("media.s1qk4a54")}
           >
             <FlipHorizontal className="h-4 w-4" />
           </Button>
@@ -224,7 +227,7 @@ function PlainCameraCaptureDialog({
               disabled={starting}
             >
               <Camera className="h-4 w-4" />
-              촬영
+              {t("media.szzh1")}
             </Button>
           ) : recording ? (
             <Button
@@ -234,7 +237,7 @@ function PlainCameraCaptureDialog({
               onClick={stopRecording}
             >
               <Square className="h-4 w-4 fill-current" />
-              녹화 종료
+              {t("media.sanyey4")}
             </Button>
           ) : (
             <Button
@@ -244,7 +247,7 @@ function PlainCameraCaptureDialog({
               disabled={starting}
             >
               <Video className="h-4 w-4" />
-              녹화 시작
+              {t("media.sanxj7e")}
             </Button>
           )}
 
@@ -255,7 +258,7 @@ function PlainCameraCaptureDialog({
             onClick={() => onOpenChange(false)}
             disabled={recording}
           >
-            취소
+            {t("toast.cancel")}
           </Button>
         </div>
 
@@ -306,9 +309,9 @@ function FilteredCameraCaptureDialog({
     } catch (e) {
       const name = e instanceof Error ? e.name : "";
       if (name === "NotAllowedError") {
-        setError("카메라·마이크 권한을 허용해 주세요.");
+        setError(t("media.s113fb9m"));
       } else {
-        setError("카메라를 시작할 수 없습니다. 다른 앱이 사용 중인지 확인해 주세요.");
+        setError(t("media.slr8lz8"));
       }
     } finally {
       setStarting(false);
@@ -346,7 +349,7 @@ function FilteredCameraCaptureDialog({
       onCapture(blob, "image/jpeg");
       onOpenChange(false);
     } catch {
-      setError("사진 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      setError(t("media.s13qrn0u"));
     }
   }
 
@@ -395,9 +398,9 @@ function FilteredCameraCaptureDialog({
         className="max-w-lg p-0 gap-0 overflow-hidden max-h-[92vh] flex flex-col"
       >
         <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
-          <DialogTitle>{mode === "photo" ? "사진 찍기" : "영상 촬영"}</DialogTitle>
+          <DialogTitle>{mode === "photo" ? t("media.s1wicxfv") : t("media.sh6va8l")}</DialogTitle>
           <DialogDescription>
-            인스타 스타일 얼굴 필터를 선택한 뒤 촬영하세요.
+            {t("media.sxo4jeg")}
           </DialogDescription>
         </DialogHeader>
 
@@ -424,7 +427,7 @@ function FilteredCameraCaptureDialog({
             className="rounded-xl shrink-0 h-11 w-11"
             onClick={() => setFacingMode((f) => (f === "user" ? "environment" : "user"))}
             disabled={starting || recording}
-            aria-label="카메라 전환"
+            aria-label={t("media.s1qk4a54")}
           >
             <FlipHorizontal className="h-4 w-4" />
           </Button>
@@ -437,7 +440,7 @@ function FilteredCameraCaptureDialog({
               disabled={starting}
             >
               <Camera className="h-4 w-4" />
-              촬영
+              {t("media.szzh1")}
             </Button>
           ) : recording ? (
             <Button
@@ -447,7 +450,7 @@ function FilteredCameraCaptureDialog({
               onClick={stopRecording}
             >
               <Square className="h-4 w-4 fill-current" />
-              녹화 종료
+              {t("media.sanyey4")}
             </Button>
           ) : (
             <Button
@@ -457,7 +460,7 @@ function FilteredCameraCaptureDialog({
               disabled={starting}
             >
               <Video className="h-4 w-4" />
-              녹화 시작
+              {t("media.sanxj7e")}
             </Button>
           )}
 
@@ -468,7 +471,7 @@ function FilteredCameraCaptureDialog({
             onClick={() => onOpenChange(false)}
             disabled={recording}
           >
-            취소
+            {t("toast.cancel")}
           </Button>
         </div>
 

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { Loader2 } from "lucide-react";
@@ -78,7 +81,7 @@ function ForensicGateOverlay({
       {loading ? (
         <Loader2 className="h-8 w-8 animate-spin text-white/70" aria-hidden />
       ) : (
-        <p className="text-sm text-white/80">{message ?? "워터마크를 적용할 수 없습니다."}</p>
+        <p className="text-sm text-white/80">{message ?? t("reels.sekdl1j")}</p>
       )}
     </div>
   );
@@ -301,8 +304,8 @@ export function ProtectedPaidMedia({
               <div className="flex min-h-[160px] min-w-[240px] max-w-md items-center justify-center rounded-lg bg-black/70 p-6 text-center">
                 <p className="text-sm text-white/85">
                   {sessionError
-                    ? "워터마크 세션을 불러올 수 없습니다. 새로고침 후 다시 시도해 주세요."
-                    : "워터마크 적용에 실패했습니다. 새로고침 후 다시 시도해 주세요."}
+                    ? t("media.stldtgj")
+                    : t("media.s1g3dn1d")}
                 </p>
               </div>
             ) : (
@@ -311,8 +314,8 @@ export function ProtectedPaidMedia({
                 dark={fillsTile}
                 message={
                   sessionError
-                    ? "워터마크 세션을 불러올 수 없습니다. 새로고침 후 다시 시도해 주세요."
-                    : "워터마크 적용에 실패했습니다. 새로고침 후 다시 시도해 주세요."
+                    ? t("media.stldtgj")
+                    : t("media.s1g3dn1d")
                 }
               />
             )

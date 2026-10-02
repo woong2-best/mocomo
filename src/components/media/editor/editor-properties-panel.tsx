@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { EFFECT_SLIDERS } from "@/lib/media-editor/effects";
 import { EDITOR_FONTS, EMOJI_QUICK_PICK, SHAPE_KINDS, BRUSH_TOOLS } from "@/lib/media-editor/constants";
 import { STICKER_CATEGORIES } from "@/lib/media-editor/constants";
@@ -38,11 +41,11 @@ export function EditorPropertiesPanel({
 }) {
   return (
     <div className="flex flex-col h-full min-h-0 text-xs">
-      <div className="px-3 py-2 border-b font-semibold text-muted-foreground uppercase tracking-wide">속성</div>
+      <div className="px-3 py-2 border-b font-semibold text-muted-foreground uppercase tracking-wide">{t("media.sxzd0")}</div>
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {activeTool === "emoji" && (
           <section>
-            <p className="mb-2 font-medium">이모지</p>
+            <p className="mb-2 font-medium">{t("lib.media-editor.su4kgc")}</p>
             <div className="flex flex-wrap gap-1">
               {EMOJI_QUICK_PICK.map((e) => (
                 <button key={e} type="button" className="text-xl p-1 rounded hover:bg-muted" onClick={() => onAddEmoji(e)}>
@@ -78,7 +81,7 @@ export function EditorPropertiesPanel({
 
         {activeTool === "shape" && (
           <section>
-            <p className="mb-2 font-medium">도형</p>
+            <p className="mb-2 font-medium">{t("lib.media-editor.svr2p")}</p>
             <div className="grid grid-cols-2 gap-1">
               {SHAPE_KINDS.map((s) => (
                 <button key={s.id} type="button" className="rounded border px-2 py-1.5 hover:bg-muted" onClick={() => onAddShape(s.id)}>
@@ -91,7 +94,7 @@ export function EditorPropertiesPanel({
 
         {activeTool === "brush" && (
           <section className="space-y-2">
-            <p className="font-medium">브러시</p>
+            <p className="font-medium">{t("lib.media-editor.ssqgsc")}</p>
             <div className="flex flex-wrap gap-1">
               {BRUSH_TOOLS.map((b) => (
                 <button
@@ -105,7 +108,7 @@ export function EditorPropertiesPanel({
               ))}
             </div>
             <label className="flex items-center gap-2">
-              색상
+              {t("media.sxul4")}
               <input type="color" value={brushSettings.color} onChange={(e) => onSetBrush({ color: e.target.value })} />
             </label>
             <label className="block">
@@ -113,7 +116,7 @@ export function EditorPropertiesPanel({
               <input type="range" min={1} max={48} value={brushSettings.size} onChange={(e) => onSetBrush({ size: Number(e.target.value) })} className="w-full" />
             </label>
             <label className="block">
-              투명도
+              {t("media.svoxzf")}
               <input type="range" min={0.1} max={1} step={0.05} value={brushSettings.opacity} onChange={(e) => onSetBrush({ opacity: Number(e.target.value) })} className="w-full" />
             </label>
           </section>
@@ -122,14 +125,14 @@ export function EditorPropertiesPanel({
         {activeLayer && (
           <section className="space-y-2 border-t pt-3">
             <label className="block">
-              레이어 이름
+              {t("media.sq2octk")}
               <input
                 className="mt-1 w-full rounded border px-2 py-1 bg-background"
                 value={activeLayer.name}
                 onChange={(e) => onRename(e.target.value)}
               />
             </label>
-            <p className="font-medium">정렬</p>
+            <p className="font-medium">{t("reels.sz1kn")}</p>
             <div className="grid grid-cols-3 gap-1">
               {(
                 [
@@ -170,7 +173,7 @@ export function EditorPropertiesPanel({
 
         {activeLayer && (activeLayer.type === "background" || activeLayer.type === "image") && (
           <section className="space-y-2 border-t pt-3">
-            <p className="font-medium">이미지 효과</p>
+            <p className="font-medium">{t("media.s45jqns")}</p>
             {EFFECT_SLIDERS.map((s) => (
               <label key={s.key} className="block">
                 {s.label}
@@ -189,7 +192,7 @@ export function EditorPropertiesPanel({
         )}
 
         {!activeLayer && activeTool === "select" && (
-          <p className="text-muted-foreground">레이어를 선택하거나 도구를 고르세요.</p>
+          <p className="text-muted-foreground">{t("media.s1pfw79l")}</p>
         )}
       </div>
     </div>

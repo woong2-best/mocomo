@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useId, useState } from "react";
 import { setScreenCaptureBlocked } from "@/lib/capacitor-screen-secure";
 import { cn } from "@/lib/utils";
@@ -81,7 +84,7 @@ export function PaidMediaProtectionShell({
       {hidden && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/95 p-4 text-center">
           <p className="text-xs font-medium text-muted-foreground">
-            유료 콘텐츠 보호 중입니다. 이 화면으로 돌아오면 다시 볼 수 있어요.
+            {t("media.ss2xqas")}
           </p>
         </div>
       )}

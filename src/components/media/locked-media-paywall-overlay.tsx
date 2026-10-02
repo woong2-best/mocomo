@@ -1,11 +1,14 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Twitter-style locked media chrome: blur sits on the media; this is the centered lock + label. */
 export function LockedMediaPaywallOverlay({
-  label = "결제하기",
+  label = t("profile.smmgb44"),
   className,
   children,
 }: {

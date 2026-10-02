@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useId, useState } from "react";
 import { cn } from "@/lib/utils";
 import { PAID_VIDEO_PROTECTION_WARNING_MS } from "@/lib/paid-content-protection-slide";
@@ -41,7 +44,7 @@ export function PaidVideoCopyrightWarning({
   return (
     <div
       role={isSlide ? "img" : "presentation"}
-      aria-label={isSlide ? "콘텐츠 보호 안내" : undefined}
+      aria-label={isSlide ? t("media.sxfsjf4") : undefined}
       className={cn(
         scopeClass,
         isSlide
@@ -213,35 +216,31 @@ export function PaidVideoCopyrightWarning({
 
         <div className="lead">
           본 콘텐츠에는 이용자 식별 및 권리 보호를 위한{" "}
-          <b>포렌식 워터마킹 기술</b>이 적용되어 있습니다.
+          <b>{t("media.s186xet4")}</b>{t("media.sm7jkj9")}
           <br />
           무단 유출·녹화·재배포·공개 등이 확인될 경우{" "}
-          <b>기술적 분석</b>을 통해 해당 계정 및 관련 정보를 확인할 수 있습니다.
+          <b>{t("media.sjwgrd4")}</b>{t("media.setqwrt")}
           <br />
           <br />
-          결제는 소유권 또는 유포 권한 이전을 의미하지 않으며,
+          {t("media.sojrag2")}
           <br />
-          본 콘텐츠는 <b>개인적인 시청·열람 목적</b>으로만 제공됩니다.
+          {t("media.s1oc5bis")} <b>{t("media.s1iu04av")}</b>{t("media.si1vuvq")}
         </div>
 
         <ul className="rules">
-          <li>계정 공유·양도·타인 이용을 금지합니다.</li>
-          <li>무단 복제·다운로드·캡처·녹화·재배포를 금지합니다.</li>
+          <li>{t("media.s1snim0j")}</li>
+          <li>{t("media.szcvjf2")}</li>
           <li>
-            <b>사생활·인격권 침해, 명예훼손</b> 등 민·형사상 책임이 발생할 수
-            있습니다.
+            <b>{t("media.s9iyz48")}</b> {t("media.s1ljd6d8")}
           </li>
           <li>
-            <b>성폭력범죄의 처벌 등에 관한 특례법</b> 등 관련 법령에 따른 처벌
-            대상이 될 수 있습니다.
+            <b>{t("media.ss35nc0")}</b> {t("media.s3qsf9g")}
           </li>
           <li>
-            <b>저작권법</b> 등 관련 법령에 따른 민·형사상 책임이 발생할 수
-            있습니다.
+            <b>{t("media.sq27bh6")}</b> {t("media.s15h4tc8")}
           </li>
           <li>
-            본 콘텐츠는 <b>미국 연방법 및 해당 주의 법률</b>을 포함한 관련
-            법령의 적용을 받습니다.
+            {t("media.s1oc5bis")} <b>{t("media.s1ni23ck")}</b>{t("media.sdbh23r")}
           </li>
         </ul>
 

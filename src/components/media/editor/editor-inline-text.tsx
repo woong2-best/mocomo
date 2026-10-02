@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef, useState } from "react";
 import type Konva from "konva";
 import type { EditorLayer } from "@/lib/media-editor/types";
@@ -76,7 +79,7 @@ export function EditorInlineText({
   }, [containerRef, layer, stageRef]);
 
   function finish() {
-    onCommit(value.trim() || "텍스트");
+    onCommit(value.trim() || t("lib.webtoon-studio.svlwgx"));
     onClose();
   }
 

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -43,7 +46,7 @@ import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 const ASPECT_PRESETS = [
-  { id: "free", label: "자유", aspect: undefined as number | undefined },
+  { id: "free", label: t("lib.media-editor.sz1cg"), aspect: undefined as number | undefined },
   { id: "1:1", label: "1:1", aspect: 1 },
   { id: "4:5", label: "4:5", aspect: 4 / 5 },
   { id: "16:9", label: "16:9", aspect: 16 / 9 },
@@ -67,19 +70,19 @@ type VideoEditDialogProps = {
 };
 
 const TOOLS: { id: VideoTool; label: string; icon: typeof Scissors }[] = [
-  { id: "trim", label: "자르기", icon: Scissors },
-  { id: "transform", label: "회전·비율", icon: Crop },
-  { id: "filter", label: "필터", icon: Palette },
-  { id: "adjust", label: "보정", icon: Sun },
-  { id: "sticker", label: "이모지", icon: Smile },
-  { id: "audio", label: "소리", icon: Volume2 },
-  { id: "watermark", label: "워터마크", icon: Droplets },
+  { id: "trim", label: t("media.su4sek"), icon: Scissors },
+  { id: "transform", label: t("media.sbrbioz"), icon: Crop },
+  { id: "filter", label: t("media.s11f8s"), icon: Palette },
+  { id: "adjust", label: t("media.sx8kh"), icon: Sun },
+  { id: "sticker", label: t("lib.media-editor.su4kgc"), icon: Smile },
+  { id: "audio", label: t("media.sxxuo"), icon: Volume2 },
+  { id: "watermark", label: t("media.spy7kp4"), icon: Droplets },
 ];
 
 function formatMaxDurationLabel(sec: number): string {
-  if (sec >= 60 && sec % 60 === 0) return `${sec / 60}분`;
-  if (sec >= 60) return `${Math.floor(sec / 60)}분 ${sec % 60}초`;
-  return `${sec}초`;
+  if (sec >= 60 && sec % 60 === 0) return t("reels.s11fo", { v0: sec / 60 });
+  if (sec >= 60) return t("media.srsgh8", { v0: Math.floor(sec / 60), v1: sec % 60 });
+  return t("media.s14i0", { v0: sec });
 }
 
 export function VideoEditDialog({
@@ -173,7 +176,7 @@ export function VideoEditDialog({
 
   function handleReset() {
     if (typeof window !== "undefined") {
-      const ok = window.confirm("모든 편집을 원본 상태로 되돌릴까요?");
+      const ok = window.confirm(t("media.s113z2b5"));
       if (!ok) return;
     }
     reset(duration, maxDurationSec);
@@ -189,7 +192,7 @@ export function VideoEditDialog({
   function requestClose() {
     if (busy) return;
     if (hasUnsavedEdits() && typeof window !== "undefined") {
-      const ok = window.confirm("저장하지 않고 나가시겠습니까? 편집 내용이 사라집니다.");
+      const ok = window.confirm(t("media.s1ac53oi"));
       if (!ok) return;
     }
     onOpenChange(false);
@@ -271,11 +274,11 @@ export function VideoEditDialog({
 
     const clipLen = clippedEdit.endSec - clippedEdit.startSec;
     if (!skipProcess && clipLen < 0.3) {
-      setError("0.3초 이상 구간을 선택해 주세요.");
+      setError(t("media.0_3"));
       return;
     }
     if (!skipProcess && clipLen > maxDurationSec) {
-      setError(`영상은 최대 ${formatMaxDurationLabel(maxDurationSec)}까지 올릴 수 있습니다.`);
+      setError(t("media.si5lsid", { v0: formatMaxDurationLabel(maxDurationSec) }));
       return;
     }
 
@@ -307,9 +310,9 @@ export function VideoEditDialog({
         } catch (procErr) {
           if (!needsVideoReencode(clippedEdit, effectiveDuration) && effectiveDuration <= maxDurationSec) {
             toUpload = videoBlob;
-            setWarn("편집 적용을 건너뛰고 원본 영상을 업로드합니다.");
+            setWarn(t("media.sodrq2z"));
           } else {
-            throw procErr instanceof Error ? procErr : new Error("영상 처리에 실패했습니다.");
+            throw procErr instanceof Error ? procErr : new Error(t("media.sw8h8m5"));
           }
         }
       }
@@ -326,7 +329,7 @@ export function VideoEditDialog({
         skipProcess
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "영상 처리에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("media.sw8h8m5"));
     } finally {
       setBusy(false);
       onUploadingChange?.(false);
@@ -363,24 +366,24 @@ export function VideoEditDialog({
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="flex items-center gap-2">
               <Scissors className="h-5 w-5" />
-              영상 편집
+              {t("media.sh6wf2x")}
             </DialogTitle>
             <div className="flex items-center gap-1">
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" disabled={!canUndo || busy} onClick={undo} aria-label="실행 취소">
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" disabled={!canUndo || busy} onClick={undo} aria-label={t("media.s7n0b5r")}>
                 <Undo2 className="h-4 w-4" />
               </Button>
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" disabled={!canRedo || busy} onClick={redo} aria-label="다시 실행">
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" disabled={!canRedo || busy} onClick={redo} aria-label={t("media.sdr4ix9")}>
                 <Redo2 className="h-4 w-4" />
               </Button>
               <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" disabled={busy} onClick={handleReset}>
-                원본 복원
+                {t("media.sjvf7n7")}
               </Button>
             </div>
           </div>
           <DialogDescription>
             {watermarkCreditLabel
-              ? "워터마크를 고른 뒤 적용하세요."
-              : "구간 자르기·회전·필터·보정·이모지·소리 조절 후 적용하세요."}
+              ? t("media.s18ru9zu")
+              : t("media.s1urtsg8")}
           </DialogDescription>
         </DialogHeader>
 
@@ -397,7 +400,7 @@ export function VideoEditDialog({
               onTimeUpdate={setCurrentSec}
               onTogglePlay={() => setPlaying((p) => !p)}
               onPlaceSticker={placeSticker}
-              onError={() => setError("이 영상은 브라우저에서 미리보기가 안 됩니다.")}
+              onError={() => setError(t("media.s1ji4r89"))}
               className="h-full"
             />
           ) : (
@@ -467,10 +470,10 @@ export function VideoEditDialog({
                     <RotateCw className="h-4 w-4 mr-1" /> 90°
                   </Button>
                   <Button type="button" variant="outline" size="sm" className="rounded-full h-8" disabled={busy} onClick={() => patch((s) => ({ ...s, flipX: !s.flipX }))}>
-                    <FlipHorizontal2 className="h-4 w-4 mr-1" /> 좌우
+                    <FlipHorizontal2 className="h-4 w-4 mr-1" /> {t("media.sz7ac")}
                   </Button>
                   <Button type="button" variant="outline" size="sm" className="rounded-full h-8" disabled={busy} onClick={() => patch((s) => ({ ...s, flipY: !s.flipY }))}>
-                    <FlipVertical2 className="h-4 w-4 mr-1" /> 상하
+                    <FlipVertical2 className="h-4 w-4 mr-1" /> {t("media.sxygn")}
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -513,9 +516,9 @@ export function VideoEditDialog({
               <div className="space-y-2">
                 {(
                   [
-                    { key: "brightness" as const, label: "밝기" },
-                    { key: "contrast" as const, label: "대비" },
-                    { key: "saturation" as const, label: "채도" },
+                    { key: "brightness" as const, label: t("lib.webtoon-studio.swyb7") },
+                    { key: "contrast" as const, label: t("lib.media-editor.svhok") },
+                    { key: "saturation" as const, label: t("lib.webtoon-studio.szqbk") },
                   ] as const
                 ).map(({ key, label }) => (
                   <div key={key} className="flex items-center gap-2">
@@ -539,7 +542,7 @@ export function VideoEditDialog({
 
             {tool === "sticker" && (
               <div className="space-y-2">
-                <p className="text-[10px] text-muted-foreground">이모지를 고른 뒤 영상을 탭해 배치하세요.</p>
+                <p className="text-[10px] text-muted-foreground">{t("media.s1m5w4yz")}</p>
                 <div className="flex flex-wrap gap-1">
                   {EMOJI_QUICK_PICK.slice(0, 16).map((em) => (
                     <button
@@ -558,7 +561,7 @@ export function VideoEditDialog({
                 </div>
                 {edit.stickers.length > 0 && (
                   <Button type="button" variant="outline" size="sm" className="rounded-full h-7 text-xs" disabled={busy} onClick={() => patch((s) => ({ ...s, stickers: [] }))}>
-                    이모지 모두 제거
+                    {t("media.sstgb7c")}
                   </Button>
                 )}
               </div>
@@ -568,9 +571,9 @@ export function VideoEditDialog({
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Button type="button" variant={edit.muted ? "default" : "outline"} size="sm" className="rounded-full h-8" disabled={busy} onClick={() => patch((s) => ({ ...s, muted: !s.muted }))}>
-                    {edit.muted ? "음소거 해제" : "음소거"}
+                    {edit.muted ? t("media.s3btimw") : t("lib.community-server.su4r74")}
                   </Button>
-                  <span className="text-xs text-muted-foreground">볼륨</span>
+                  <span className="text-xs text-muted-foreground">{t("media.sx5v0")}</span>
                   <input
                     type="range"
                     min={0}
@@ -607,7 +610,7 @@ export function VideoEditDialog({
               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                 <div className="h-full bg-primary transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
               </div>
-              <p className="text-xs text-muted-foreground text-center">처리·업로드 중…</p>
+              <p className="text-xs text-muted-foreground text-center">{t("media.s1ocprir")}</p>
             </div>
           )}
 
@@ -616,19 +619,19 @@ export function VideoEditDialog({
 
           <div className="flex flex-col sm:flex-row gap-2 justify-end px-4 pb-4 pt-2 border-t border-border/60">
             <Button type="button" variant="outline" className="rounded-xl" onClick={requestClose} disabled={busy}>
-              취소
+              {t("toast.cancel")}
             </Button>
             <Button type="button" variant="secondary" className="rounded-xl" onClick={() => void applyUpload(true)} disabled={busy || !videoBlob}>
-              원본 그대로
+              {t("media.s1bqxr30")}
             </Button>
             <Button type="button" className="rounded-xl" onClick={() => void applyUpload(false)} disabled={busy || !videoBlob}>
               {busy ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  업로드 중…
+                  {t("compose.uploading")}
                 </>
               ) : (
-                "적용"
+                t("media.sz3yg")
               )}
             </Button>
           </div>

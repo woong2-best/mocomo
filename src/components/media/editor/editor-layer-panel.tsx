@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   ChevronDown,
   ChevronUp,
@@ -37,7 +40,7 @@ export function EditorLayerPanel({
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="px-3 py-2 border-b border-border/60 shrink-0">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">레이어</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("webtoon-studio.srxeiw")}</h3>
       </div>
       <div className="flex-1 overflow-y-auto overscroll-contain p-2 space-y-1">
         {layers.map((layer, revIdx) => {
@@ -105,22 +108,22 @@ function LayerRow({
         <span className="text-muted-foreground ml-1">({layer.type})</span>
       </button>
       <div className="flex items-center shrink-0">
-        <IconBtn title={layer.visible ? "숨기기" : "보이기"} onClick={onToggleVisible}>
+        <IconBtn title={layer.visible ? t("auth.hidePassword") : t("media.ssn86o")} onClick={onToggleVisible}>
           {layer.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
         </IconBtn>
-        <IconBtn title={layer.locked ? "잠금 해제" : "잠금"} onClick={onToggleLocked}>
+        <IconBtn title={layer.locked ? t("media.sl62vhc") : t("settings.postsLockOn")} onClick={onToggleLocked}>
           {layer.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
         </IconBtn>
-        <IconBtn title="복제" onClick={onDuplicate}>
+        <IconBtn title={t("webtoon-studio.sx8lj")} onClick={onDuplicate}>
           <Copy className="h-3.5 w-3.5" />
         </IconBtn>
-        <IconBtn title="위로" onClick={onMoveUp} disabled={!canMoveUp}>
+        <IconBtn title={t("media.syv2w")} onClick={onMoveUp} disabled={!canMoveUp}>
           <ChevronUp className="h-3.5 w-3.5" />
         </IconBtn>
-        <IconBtn title="아래로" onClick={onMoveDown} disabled={!canMoveDown}>
+        <IconBtn title={t("media.stsf0o")} onClick={onMoveDown} disabled={!canMoveDown}>
           <ChevronDown className="h-3.5 w-3.5" />
         </IconBtn>
-        <IconBtn title="삭제" onClick={onDelete} disabled={!canDelete}>
+        <IconBtn title={t("toast.delete")} onClick={onDelete} disabled={!canDelete}>
           <Trash2 className="h-3.5 w-3.5 text-destructive" />
         </IconBtn>
       </div>

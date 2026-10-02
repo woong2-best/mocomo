@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -23,7 +26,7 @@ export function AdultContentBadge({ className, size = "sm", variant = "overlay" 
           className
         )}
       >
-        성인 콘텐츠
+        {t("media.s1aw4bu7")}
       </span>
     );
   }
@@ -37,7 +40,7 @@ export function AdultContentBadge({ className, size = "sm", variant = "overlay" 
         className
       )}
     >
-      성인 콘텐츠
+      {t("media.s1aw4bu7")}
     </span>
   );
 }

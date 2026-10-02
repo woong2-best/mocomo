@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useId, useRef, useState, type ComponentType } from "react";
 import type Konva from "konva";
 import {
@@ -40,7 +43,7 @@ import { cn } from "@/lib/utils";
 export type CropAspectPresetExport = CropAspectPreset;
 
 const DEFAULT_ASPECT_PRESETS: CropAspectPreset[] = [
-  { id: "free", label: "자유" },
+  { id: "free", label: t("lib.media-editor.sz1cg") },
   { id: "1:1", label: "1:1", aspect: 1 },
   { id: "4:5", label: "4:5", aspect: 4 / 5 },
   { id: "3:4", label: "3:4", aspect: 3 / 4 },
@@ -75,7 +78,7 @@ export type ImageEditorDialogProps = {
   aspectPresets?: CropAspectPreset[];
 };
 
-const FONT_LABELS = ["기본", "세리프", "임팩트", "고정폭", "캐주얼"];
+const FONT_LABELS = [t("lib.virtual-avatar.sunyg"), t("media.st7l74"), t("media.su944z"), t("media.sqarfc"), t("media.sv8gy8")];
 
 type LocalTool = "crop" | "adjust" | "draw" | "markup" | "watermark";
 
@@ -85,19 +88,19 @@ const EDITOR_TOOLS: {
   icon: ComponentType<{ className?: string }>;
   watermarkOnly?: boolean;
 }[] = [
-  { id: "crop", label: "자르기", icon: Crop },
-  { id: "adjust", label: "보정", icon: Sun },
-  { id: "draw", label: "그리기", icon: Paintbrush },
-  { id: "markup", label: "텍스트", icon: Type },
-  { id: "watermark", label: "워터마크", icon: Droplets, watermarkOnly: true },
+  { id: "crop", label: t("media.su4sek"), icon: Crop },
+  { id: "adjust", label: t("media.sx8kh"), icon: Sun },
+  { id: "draw", label: t("media.sqdvcs"), icon: Paintbrush },
+  { id: "markup", label: t("lib.webtoon-studio.svlwgx"), icon: Type },
+  { id: "watermark", label: t("media.spy7kp4"), icon: Droplets, watermarkOnly: true },
 ];
 
 export function ImageEditorDialog({
   open,
   onOpenChange,
   imageSrc,
-  title = "사진 편집",
-  description = "자르고 회전한 뒤 적용하세요.",
+  title = t("media.s1wiedup"),
+  description = t("media.shtklr2"),
   maxWidth,
   maxHeight,
   uploadFilename,
@@ -139,7 +142,7 @@ export function ImageEditorDialog({
   const activeAspectLabel =
     presets.find((p) =>
       p.aspect === undefined ? cropAspect === undefined : p.aspect === cropAspect
-    )?.label ?? "자유";
+    )?.label ?? t("lib.media-editor.sz1cg");
 
   const pad = 8;
   const viewBox = project
@@ -169,7 +172,7 @@ export function ImageEditorDialog({
   useEffect(() => {
     if (!open) return;
     if (!imageSrc?.trim()) {
-      setError("편집할 이미지가 없습니다.");
+      setError(t("media.slb0av4"));
       setLoading(false);
       return;
     }
@@ -197,7 +200,7 @@ export function ImageEditorDialog({
         resetHistory(next);
       })
       .catch(() => {
-        if (!cancelled) setError("이미지를 불러올 수 없습니다.");
+        if (!cancelled) setError(t("lib.photo-avatar.s14gu5hf"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -314,7 +317,7 @@ export function ImageEditorDialog({
     if (!bg || !project) return;
     const hasEdits = project.layers.length > 1;
     if (hasEdits && typeof window !== "undefined") {
-      const ok = window.confirm("추가한 레이어와 크롭·회전·확대를 모두 초기 상태로 되돌릴까요?");
+      const ok = window.confirm(t("media.s1gbj0au"));
       if (!ok) return;
     }
     setCropAspect(initialAspect);
@@ -346,7 +349,7 @@ export function ImageEditorDialog({
   function requestClose() {
     if (busy) return;
     if (hasUnsavedEdits() && typeof window !== "undefined") {
-      const ok = window.confirm("저장하지 않고 나가시겠습니까? 편집 내용이 사라집니다.");
+      const ok = window.confirm(t("media.s1ac53oi"));
       if (!ok) return;
     }
     onOpenChange(false);
@@ -375,7 +378,7 @@ export function ImageEditorDialog({
       onComplete(url);
       onOpenChange(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "처리에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("collab.actionFailed"));
     } finally {
       setBusy(false);
     }
@@ -435,7 +438,7 @@ export function ImageEditorDialog({
               onClick={apply}
               disabled={busy || loading || !project}
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "적용"}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("media.sz3yg")}
             </Button>
           </div>
           <DialogDescription className="sr-only">{description}</DialogDescription>
@@ -568,7 +571,7 @@ export function ImageEditorDialog({
               onChange={(e) => setRotation(Number(e.target.value))}
               className="w-full accent-primary h-7"
               disabled={busy || !bg}
-              aria-label="회전"
+              aria-label={t("media.s11la0")}
             />
           </div>
         ) : null}
@@ -604,10 +607,10 @@ export function ImageEditorDialog({
               ) : null}
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-1">
-                  <button type="button" className={iconBtnClass()} title="90° 왼쪽" disabled={busy} onClick={() => rotateBy(-90)}>
+                  <button type="button" className={iconBtnClass()} title={t("media.sru2hu0")} disabled={busy} onClick={() => rotateBy(-90)}>
                     <RotateCcw className="h-5 w-5" />
                   </button>
-                  <button type="button" className={iconBtnClass()} title="90° 오른쪽" disabled={busy} onClick={() => rotateBy(90)}>
+                  <button type="button" className={iconBtnClass()} title={t("media.saip26a")} disabled={busy} onClick={() => rotateBy(90)}>
                     <RotateCw className="h-5 w-5" />
                   </button>
                 </div>
@@ -624,7 +627,7 @@ export function ImageEditorDialog({
                   <button
                     type="button"
                     className={iconBtnClass(!!bg?.data.flipX)}
-                    title="좌우 뒤집기"
+                    title={t("media.sbvkuqv")}
                     disabled={busy || !bg}
                     onClick={() => toggleFlip("x")}
                   >
@@ -633,7 +636,7 @@ export function ImageEditorDialog({
                   <button
                     type="button"
                     className={iconBtnClass(!!bg?.data.flipY)}
-                    title="상하 뒤집기"
+                    title={t("media.s1c05m4a")}
                     disabled={busy || !bg}
                     onClick={() => toggleFlip("y")}
                   >
@@ -643,7 +646,7 @@ export function ImageEditorDialog({
               </div>
               <div className="flex justify-center">
                 <button type="button" className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40" disabled={busy} onClick={handleReset}>
-                  초기화
+                  {t("media.suvxgs")}
                 </button>
               </div>
             </div>
@@ -674,7 +677,7 @@ export function ImageEditorDialog({
               })}
               <label className="block space-y-1">
                 <span className="flex items-center justify-between text-xs text-muted-foreground">
-                  확대
+                  {t("media.s11ft7")}
                   <span className="tabular-nums">{Math.round(displayZoom * 100)}%</span>
                 </span>
                 <input
@@ -694,7 +697,7 @@ export function ImageEditorDialog({
           {localTool === "draw" ? (
             <div className="flex flex-wrap items-center gap-3 px-4 pb-4 pt-2">
               <label className="flex items-center gap-2 text-xs">
-                색상
+                {t("media.sxul4")}
                 <input
                   type="color"
                   value={editor.brushSettings.color}
@@ -703,7 +706,7 @@ export function ImageEditorDialog({
                 />
               </label>
               <label className="flex-1 min-w-[120px] text-xs">
-                굵기
+                {t("media.sugkb")}
                 <input
                   type="range"
                   min={1}
@@ -725,7 +728,7 @@ export function ImageEditorDialog({
                   }))
                 }
               >
-                지우개
+                {t("lib.webtoon-studio.suika4")}
               </Button>
             </div>
           ) : null}
@@ -741,7 +744,7 @@ export function ImageEditorDialog({
                   disabled={busy}
                   onClick={() => document.getElementById(fileInputId)?.click()}
                 >
-                  사진 추가
+                  {t("profile.s1wid6d0")}
                 </Button>
                 <input
                   id={fileInputId}
@@ -768,7 +771,7 @@ export function ImageEditorDialog({
                     setShowShapePick(false);
                   }}
                 >
-                  텍스트
+                  {t("lib.webtoon-studio.svlwgx")}
                 </Button>
                 <Button
                   type="button"
@@ -781,7 +784,7 @@ export function ImageEditorDialog({
                     setShowShapePick(false);
                   }}
                 >
-                  이모지
+                  {t("lib.media-editor.su4kgc")}
                 </Button>
                 <Button
                   type="button"
@@ -794,7 +797,7 @@ export function ImageEditorDialog({
                     setShowEmojiPick(false);
                   }}
                 >
-                  도형
+                  {t("lib.media-editor.svr2p")}
                 </Button>
               </div>
 
@@ -853,7 +856,7 @@ export function ImageEditorDialog({
                         l.type === "text" ? { ...l, data: { ...l.data, fontFamily: e.target.value } } : l
                       )
                     }
-                    title="폰트"
+                    title={t("media.s117ew")}
                   >
                     {EDITOR_FONTS.map((font, i) => (
                       <option key={font} value={font}>
@@ -870,7 +873,7 @@ export function ImageEditorDialog({
                       )
                     }
                     className="h-8 w-10 rounded border"
-                    title="글자색"
+                    title={t("media.sqgi0p")}
                   />
                   <Button
                     type="button"

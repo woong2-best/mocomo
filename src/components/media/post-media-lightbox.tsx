@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   useCallback,
   useEffect,
@@ -140,14 +143,14 @@ export function PostMediaLightbox({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="사진 보기"
+      aria-label={t("media.s1wiaczo")}
       className="fixed inset-0 z-[200] flex bg-black text-white"
     >
       <button
         type="button"
         onClick={onClose}
         className="absolute top-3 left-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 hover:bg-black/70"
-        aria-label="닫기"
+        aria-label={t("common.close")}
       >
         <X className="h-5 w-5" />
       </button>
@@ -158,7 +161,7 @@ export function PostMediaLightbox({
             type="button"
             onClick={goPrev}
             className="absolute left-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/45 hover:bg-black/65 md:left-4"
-            aria-label="이전 사진"
+            aria-label={t("media.snrrv6w")}
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
@@ -197,7 +200,7 @@ export function PostMediaLightbox({
               blockUntilForensicReady={!isOwner && !current.locked}
             />
           ) : (
-            <p className="text-sm text-white/70">사진을 표시할 수 없습니다.</p>
+            <p className="text-sm text-white/70">{t("media.s4xuts7")}</p>
           )}
         </div>
 
@@ -206,7 +209,7 @@ export function PostMediaLightbox({
             type="button"
             onClick={goNext}
             className="absolute right-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/45 hover:bg-black/65 md:right-4"
-            aria-label="다음 사진"
+            aria-label={t("media.seb9g40")}
           >
             <ChevronRight className="h-6 w-6" />
           </button>
@@ -293,7 +296,7 @@ function ThumbButton({
         vertical ? "w-full" : "w-14",
         active ? "bg-white/20" : "hover:bg-white/10"
       )}
-      aria-label={`${index + 1}번 사진`}
+      aria-label={t("media.snt0ab4", { v0: index + 1 })}
       aria-current={active ? "true" : undefined}
     >
       <div

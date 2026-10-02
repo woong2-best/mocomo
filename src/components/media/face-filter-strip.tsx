@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useMemo, useState } from "react";
 import {
   FACE_FILTER_BY_CATEGORY,
@@ -23,9 +26,9 @@ type FaceFilterStripProps = {
 };
 
 const TABS: { id: FaceFilterCategory; label: string }[] = [
-  { id: "beauty", label: "뷰티" },
+  { id: "beauty", label: t("media.sxgqo") },
   { id: "ar", label: "AR" },
-  { id: "mask3d", label: "3D 마스크" },
+  { id: "mask3d", label: t("media.spzf1ep") },
 ];
 
 const AR_FILTER_HINTS: Partial<Record<string, string>> = {
@@ -68,7 +71,7 @@ export function FaceFilterStrip({
       <div className="flex items-center justify-between gap-2 px-0.5">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Sparkles className="h-3.5 w-3.5" />
-          <span>얼굴 필터</span>
+          <span>{t("media.sdpbyvo")}</span>
         </div>
         <div className="flex rounded-lg bg-muted/60 p-0.5 gap-0.5">
           {TABS.map((t) => (
@@ -93,13 +96,13 @@ export function FaceFilterStrip({
 
       {tab === "mask3d" && (
         <p className="text-[10px] text-muted-foreground px-0.5 leading-snug">
-          얼굴을 따라 붙는 풀페이스 마스크 · 고개를 돌려도 추적
+          {t("media.s19zvp7x")}
         </p>
       )}
 
       {tab === "beauty" && (
         <p className="text-[10px] text-muted-foreground px-0.5 leading-snug">
-          ♡ 블러시 · 글래스 · 소프트 — 인스타급 스킨·눈·입술 보정
+          {t("media.suy3pr6")}
         </p>
       )}
 
@@ -121,12 +124,12 @@ export function FaceFilterStrip({
           )}
         >
           {faceTrackingReady
-            ? "얼굴 추적 준비됨"
+            ? t("media.sfwsfx5")
             : landmarkerState === "error"
-              ? "얼굴 인식 모듈 로드 실패 — 새로고침 후 다시 시도해 주세요"
+              ? t("media.sv4as9z")
               : landmarkerState === "loading" || landmarkerState === "idle"
-                ? "얼굴 인식 모듈 로딩 중…"
-                : "얼굴을 화면 중앙에 맞춰 주세요"}
+                ? t("media.sva8xuj")
+                : t("media.si1lcdq")}
         </p>
       )}
 

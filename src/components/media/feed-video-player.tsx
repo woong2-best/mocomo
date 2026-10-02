@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   useCallback,
   useEffect,
@@ -1215,7 +1218,7 @@ export function FeedVideoPlayer({
       )}
       tabIndex={0}
       role="group"
-      aria-label="동영상 플레이어"
+      aria-label={t("media.s6pkl8j")}
       onClick={stopFeedNavigation}
       onPointerDown={(e) => {
         stopFeedNavigation(e);
@@ -1299,7 +1302,7 @@ export function FeedVideoPlayer({
 
       {forensicBlocked ? (
         <div className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center bg-black p-4 text-center text-sm text-white/80">
-          워터마크를 적용할 수 없습니다. 새로고침 후 다시 시도해 주세요.
+          {t("media.s1jkqi7f")}
         </div>
       ) : null}
 
@@ -1357,7 +1360,7 @@ export function FeedVideoPlayer({
             ref={trackRef}
             data-video-seek-bar
             role="slider"
-            aria-label="탐색"
+            aria-label={t("live.sideBrowse")}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(displayProgress)}
@@ -1391,7 +1394,7 @@ export function FeedVideoPlayer({
           <div className="mt-0.5 flex items-center gap-3 text-white">
             <button
               type="button"
-              aria-label={playing ? "일시정지" : "재생"}
+              aria-label={playing ? t("media.spzasrv") : t("media.sz0s1")}
               onClick={(e) => {
                 stopFeedNavigation(e);
                 focusPlayer();
@@ -1430,7 +1433,7 @@ export function FeedVideoPlayer({
                   <div
                     ref={volumeTrackRef}
                     role="slider"
-                    aria-label="볼륨"
+                    aria-label={t("media.sx5v0")}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={displayVolumePct}
@@ -1465,7 +1468,7 @@ export function FeedVideoPlayer({
               )}
               <button
                 type="button"
-                aria-label={effectiveMuted ? "음소거 해제" : "음소거"}
+                aria-label={effectiveMuted ? t("media.s3btimw") : t("lib.community-server.su4r74")}
                 onClick={(e) => {
                   stopFeedNavigation(e);
                   toggleMute();
@@ -1483,7 +1486,7 @@ export function FeedVideoPlayer({
               <div className="relative">
                 <button
                   type="button"
-                  aria-label="재생 속도"
+                  aria-label={t("media.snq38h2")}
                   onClick={(e) => {
                     stopFeedNavigation(e);
                     setSpeedOpen((o) => !o);
@@ -1497,7 +1500,7 @@ export function FeedVideoPlayer({
                     className="absolute bottom-full right-0 mb-2 w-24 overflow-hidden rounded-lg bg-black/90 py-1 text-xs shadow-lg ring-1 ring-white/10"
                     onClick={stopFeedNavigation}
                   >
-                    <p className="px-3 py-1 text-[10px] text-white/50">재생 속도</p>
+                    <p className="px-3 py-1 text-[10px] text-white/50">{t("media.snq38h2")}</p>
                     {SPEED_OPTIONS.map((rate) => (
                       <button
                         key={rate}
@@ -1511,7 +1514,7 @@ export function FeedVideoPlayer({
                           rate === speed ? "font-bold text-white" : "text-white/80"
                         )}
                       >
-                        {rate === 1 ? "1x (기본)" : `${rate}x`}
+                        {rate === 1 ? t("media.s1uyfln6") : `${rate}x`}
                       </button>
                     ))}
                   </div>
@@ -1521,7 +1524,7 @@ export function FeedVideoPlayer({
               {!protect && (
                 <button
                   type="button"
-                  aria-label="전체화면"
+                  aria-label={t("reels.sq37vtc")}
                   onClick={(e) => {
                     stopFeedNavigation(e);
                     toggleFullscreen();
