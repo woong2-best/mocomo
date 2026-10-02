@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -68,13 +71,13 @@ export function StreamingAccountsManager({
         setError(errorText(res.error));
         return;
       }
-      setSuccess("계정이 인증되었습니다.");
+      setSuccess(t("streaming-accounts.s1vfipan"));
       window.location.reload();
     });
   }
 
   async function onDisconnect(accountId: string) {
-    if (!confirm("이 스트리밍 계정 연결을 해제할까요?")) return;
+    if (!confirm(t("streaming-accounts.sckhf4b"))) return;
     startTransition(async () => {
       const res = await disconnectStreamingAccountAction(accountId);
       if ("error" in res && res.error) {
@@ -102,7 +105,7 @@ export function StreamingAccountsManager({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">연결된 계정</CardTitle>
+          <CardTitle className="text-base">{t("streaming-accounts.s16331ud")}</CardTitle>
           <p className="text-sm text-muted-foreground">
             후원을 받으려면 먼저 본인 소유의 스트리밍 계정을 인증해야 합니다. URL만 붙여넣는
             방식은 사용할 수 없습니다.
@@ -110,7 +113,7 @@ export function StreamingAccountsManager({
         </CardHeader>
         <CardContent className="space-y-3">
           {accounts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">연결된 계정이 없습니다.</p>
+            <p className="text-sm text-muted-foreground">{t("streaming-accounts.s2eggma")}</p>
           ) : (
             accounts.map((acc) => (
               <div
@@ -123,13 +126,13 @@ export function StreamingAccountsManager({
                       {PLATFORM_LABELS[acc.platform] ?? acc.platform}
                     </span>
                     {acc.verified ? (
-                      <Badge variant="default">인증됨</Badge>
+                      <Badge variant="default">{t("streaming-accounts.su72qr")}</Badge>
                     ) : acc.pendingVerification ? (
-                      <Badge variant="secondary">검증 대기</Badge>
+                      <Badge variant="secondary">{t("streaming-accounts.s1ona9eb")}</Badge>
                     ) : acc.revokedAt ? (
-                      <Badge variant="destructive">해제됨</Badge>
+                      <Badge variant="destructive">{t("streaming-accounts.sw8k5c")}</Badge>
                     ) : (
-                      <Badge variant="outline">미인증</Badge>
+                      <Badge variant="outline">{t("streaming-accounts.ssi6u5")}</Badge>
                     )}
                   </div>
                   <p className="truncate text-sm">{acc.channelName}</p>
@@ -180,7 +183,7 @@ export function StreamingAccountsManager({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">계정 연결</CardTitle>
+          <CardTitle className="text-base">{t("streaming-accounts.s1pht6jz")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -201,7 +204,7 @@ export function StreamingAccountsManager({
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
                 {selectedPlatform === "YOUTUBE"
-                  ? "Google 계정으로 로그인하면 채널이 바로 인증됩니다."
+                  ? t("streaming-accounts.google_4")
                   : `${PLATFORM_LABELS[selectedPlatform]} 계정으로 로그인하여 채널 소유권을 확인합니다.`}
               </p>
               <Button disabled={pending} onClick={() => onOAuthConnect(selectedPlatform)}>
@@ -209,8 +212,8 @@ export function StreamingAccountsManager({
               </Button>
               {selectedPlatform === "YOUTUBE" ? (
                 <p className="text-xs text-muted-foreground">
-                  Google이 ‘확인하지 않은 앱’을 보여 주면 <strong>고급</strong> →{" "}
-                  <strong>mocomo.net(으)로 이동</strong>을 눌러 주세요.
+                  Google이 ‘확인하지 않은 앱’을 보여 주면 <strong>{t("streaming-accounts.sucyx")}</strong> →{" "}
+                  <strong>{t("streaming-accounts.mocomo_net")}</strong>을 눌러 주세요.
                 </p>
               ) : null}
             </div>
