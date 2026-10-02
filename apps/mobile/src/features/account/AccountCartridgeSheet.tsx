@@ -94,7 +94,6 @@ function resolveMediaUri(uri: string | null | undefined): string | null {
  * Nintendo Switch game-card account switcher — flex 2×3 grid (no absolute pile-up).
  * Long-press a non-active card, then tap another to swap positions.
  */
-/** Nintendo Switch–style cartridge grid — preserved for Games Hub / future use. */
 export function AccountsCartridgeSheet({
   visible,
   onClose,

@@ -694,17 +694,6 @@ export function MessageRoomScreen() {
                     <Ionicons name="image-outline" size={22} color={colors.cobalt} />
                   </Pressable>
                 ) : null}
-                {!recording ? (
-                  <Pressable
-                    onPress={() => navigation.navigate("GamesHub")}
-                    disabled={busy}
-                    hitSlop={8}
-                    style={styles.pillIcon}
-                    accessibilityLabel={t("nav.games")}
-                  >
-                    <Ionicons name="game-controller-outline" size={22} color={colors.cobalt} />
-                  </Pressable>
-                ) : null}
               </>
             ) : (
               <Pressable

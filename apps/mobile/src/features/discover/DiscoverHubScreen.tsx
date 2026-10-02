@@ -77,12 +77,6 @@ export function DiscoverHubScreen() {
         icon: "calendar-outline",
       },
       {
-        title: u("게임", "Games"),
-        subtitle: u("미니게임 허브", "Mini-game hub"),
-        target: { kind: "stack", route: "GamesHub" },
-        icon: "game-controller-outline",
-      },
-      {
         title: u("지갑", "Wallet"),
         subtitle: u("잔액·정산", "Balance · payouts"),
         target: { kind: "stack", route: "Wallet" },

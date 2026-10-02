@@ -9,7 +9,6 @@ export type DrawerRoute =
   | "StarList"
   | "CommunityList"
   | "Wallet"
-  | "GamesHub"
   | "AnimeList"
   | "MarketplaceList"
   | "SellerListings"
@@ -111,6 +110,5 @@ export type RootStackParamList = {
   Settings: undefined;
   LegalPolicies: undefined;
   Wallet: { initialTab?: "wallet" | "earnings" | "transfer" | "tier"; returnScreen?: "UsedCreate" | "AuctionCreate" | "MarketplaceList" | "AuctionList" | "MarketSellItem" } | undefined;
-  GamesHub: undefined;
   Support: undefined;
 };

@@ -399,10 +399,6 @@ export function RootNavigator() {
               getComponent={() => require("@/features/wallet/WalletScreen").WalletScreen}
             />
             <Stack.Screen
-              name="GamesHub"
-              getComponent={() => require("@/features/games/GamesHubScreen").GamesHubScreen}
-            />
-            <Stack.Screen
               name="Login"
               component={LoginScreen}
               options={{

@@ -14,7 +14,6 @@ const DIRS = [
   "src/features/discover",
   "src/features/activity",
   "src/features/events",
-  "src/features/games",
   "src/features/reels",
   "src/features/legal",
 ];
