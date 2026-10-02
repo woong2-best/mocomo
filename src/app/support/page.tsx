@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getSupportDashboard, getSupportRankingWithAvatars } from "@/actions/support";
@@ -28,7 +31,7 @@ export default async function SupportPage() {
             </span>
             후원
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">크리에이터 편지 후원 · 광석 등급</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("app.support.s1hm5hgz")}</p>
         </div>
       </SupportPageTitle>
 
