@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { AlertTriangle, ChevronRight } from "lucide-react";
 import { walletSettlementPath } from "@/lib/settlement-account";
@@ -16,7 +19,7 @@ type Props = {
 export function SettlementAccountBanner({
   callbackUrl,
   className,
-  message = "계좌를 등록해주세요",
+  message = t("lib.published.toast.store.s0154b4bd11"),
   onNavigate,
 }: Props) {
   const href = walletSettlementPath(callbackUrl);
@@ -31,7 +34,7 @@ export function SettlementAccountBanner({
         "transition-colors hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40",
         className
       )}
-      aria-label={`${message}. 지갑으로 이동`}
+      aria-label={t("monetization.s1xtux8i", { v0: message })}
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-500/15">
         <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" aria-hidden />
