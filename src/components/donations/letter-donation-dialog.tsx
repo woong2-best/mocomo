@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Mail } from "lucide-react";
@@ -38,7 +41,7 @@ export function LetterDonationDialog({
   triggerClassName,
   triggerIcon,
   iconOnly = false,
-  triggerLabel = "편지 후원",
+  triggerLabel = t("donations.sx519g"),
   currentTier: _currentTier,
   currentTotal: _currentTotal,
 }: {
@@ -87,10 +90,10 @@ export function LetterDonationDialog({
         variant={triggerVariant}
         size={triggerSize}
         className={`${triggerClass} opacity-60`}
-        title="결제 준비 중"
+        title={t("donations.s1s3qovd")}
       >
         <Mail className="h-4 w-4" />
-        후원 준비 중
+        {t("donations.s168d2yx")}
       </Button>
     );
   }
@@ -145,7 +148,7 @@ export function LetterDonationDialog({
           </div>
 
           <Input
-            placeholder={`금액 직접 입력 (최소 ${formatUsd(LETTER_DONATION_MIN_KRW)})`}
+            placeholder={t("donations.s19tf4ve", { v0: formatUsd(LETTER_DONATION_MIN_KRW) })}
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             className="rounded-xl"
@@ -153,7 +156,7 @@ export function LetterDonationDialog({
           />
 
           <textarea
-            placeholder="편지 내용을 적어 주세요…"
+            placeholder={t("donations.sgsuipe")}
             value={message}
             onChange={(e) => setMessage(e.target.value.slice(0, LETTER_DONATION_MESSAGE_MAX))}
             maxLength={LETTER_DONATION_MESSAGE_MAX}
@@ -166,7 +169,7 @@ export function LetterDonationDialog({
           <PayButton
             type="TIP"
             amount={effectiveAmount}
-            orderName={`${displayName} 편지 후원`}
+            orderName={t("donations.sx519g", { v0: displayName })}
             metadata={tipMetadataForCheckout({
               receiverId: creatorId,
               message: trimmedMessage,
