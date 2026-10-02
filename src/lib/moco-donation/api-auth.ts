@@ -12,7 +12,7 @@ export async function resolveDonateApiUser(req: NextRequest): Promise<DonateApiU
   if (bearer) {
     const mobile = await requireMobileApiUser(req, { writeKind: "default" });
     if ("error" in mobile) {
-      return { ok: false, response: mobile.error ?? NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 }) };
+      return { ok: false, response: mobile.error ?? NextResponse.json({ error: "Sign-in required." }, { status: 401 }) };
     }
     return { ok: true, userId: mobile.user.id };
   }
@@ -21,7 +21,7 @@ export async function resolveDonateApiUser(req: NextRequest): Promise<DonateApiU
   if (!session?.user?.id) {
     return {
       ok: false,
-      response: NextResponse.json({ success: false, error: "로그인이 필요합니다." }, { status: 401 }),
+      response: NextResponse.json({ success: false, error: "Sign-in required." }, { status: 401 }),
     };
   }
   return { ok: true, userId: session.user.id };

@@ -64,11 +64,11 @@ export async function prepareMocoVideoDonation(
 ): Promise<PrepareVideoDonationResult> {
   const normalized = normalizeYoutubeUrl(input.mediaUrl.trim());
   if (!normalized) {
-    return { ok: false, error: "YouTube URL을 확인해 주세요.", code: "INVALID_URL" };
+    return { ok: false, error: "Check the YouTube URL.", code: "INVALID_URL" };
   }
   const videoId = extractYoutubeVideoId(normalized);
   if (!videoId) {
-    return { ok: false, error: "YouTube Video ID를 추출할 수 없습니다.", code: "INVALID_URL" };
+    return { ok: false, error: "Could not extract the YouTube video ID.", code: "INVALID_URL" };
   }
 
   const startSec = Math.max(0, Math.floor(input.startSec ?? 0));
@@ -90,10 +90,10 @@ export async function prepareMocoVideoDonation(
   }
 
   if (yt.meta.durationSec > 0 && startSec >= yt.meta.durationSec) {
-    return { ok: false, error: "시작 시간이 영상 길이를 넘습니다.", code: "YOUTUBE_BAD_START" };
+    return { ok: false, error: "Start time exceeds the video length.", code: "YOUTUBE_BAD_START" };
   }
   if (!playToEnd && endSec != null && yt.meta.durationSec > 0 && endSec > yt.meta.durationSec) {
-    return { ok: false, error: "종료 시간이 영상 길이를 넘습니다.", code: "YOUTUBE_BAD_END" };
+    return { ok: false, error: "End time exceeds the video length.", code: "YOUTUBE_BAD_END" };
   }
 
   const blocked = checkVideoDonationBlocklist({

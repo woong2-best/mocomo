@@ -42,7 +42,7 @@ export async function createMocoDonation(
   if (type === "TTS") {
     return {
       success: false,
-      error: "TTS 도네이션은 종료되었습니다. 효과음(SFX) 후원을 이용해 주세요.",
+      error: "TTS donations are no longer available. Use sound effect (SFX) support instead.",
       code: "TTS_DEPRECATED",
     };
   }
@@ -50,7 +50,7 @@ export async function createMocoDonation(
   if (type === "CHAT") {
     return {
       success: false,
-      error: "채팅 후원은 종료되었습니다. 효과음(SFX) 후원을 이용해 주세요.",
+      error: "Chat donations are no longer available. Use sound effect (SFX) support instead.",
       code: "CHAT_DEPRECATED",
     };
   }
@@ -58,7 +58,7 @@ export async function createMocoDonation(
   const target = await resolveStreamerTarget(input.streamerId);
   if (!target.ok) return { success: false, error: target.error };
   if (!target.isLive) {
-    return { success: false, error: "방송 중일 때만 도네이션할 수 있습니다." };
+    return { success: false, error: "Donations are only available while the stream is live." };
   }
 
   const { assertLiveDonationsAllowed } = await import("@/lib/streaming-accounts/donation-guard");
@@ -68,7 +68,7 @@ export async function createMocoDonation(
   }
 
   if (input.userId === target.streamerId) {
-    return { success: false, error: "자기 방송에는 도네이션할 수 없습니다." };
+    return { success: false, error: "You cannot donate to your own stream." };
   }
 
   const payout = await assertCreatorPayoutsEnabled(target.streamerId);
@@ -89,7 +89,7 @@ export async function createMocoDonation(
 
   if (type === "VIDEO") {
     const raw = input.mediaUrl?.trim() ?? "";
-    if (!raw) return { success: false, error: "영상 URL이 필요합니다." };
+    if (!raw) return { success: false, error: "Video URL is required." };
 
     const prepared = await prepareMocoVideoDonation({
       channelId: target.channelId,
@@ -113,7 +113,7 @@ export async function createMocoDonation(
   } else if (type === "SFX") {
     const key = input.sfxKey?.trim();
     if (!key || !isValidDonationSfxKey(key)) {
-      return { success: false, error: "유효한 효과음을 선택해 주세요.", code: "INVALID_SFX" };
+      return { success: false, error: "Select a valid sound effect.", code: "INVALID_SFX" };
     }
     sfxKey = resolveDonationSfx(key).id;
     const min = MOCO_DONATION_MIN_AMOUNT.SFX;
@@ -124,10 +124,10 @@ export async function createMocoDonation(
       };
     }
     if (!message) {
-      return { success: false, error: "방송 화면에 표시할 메시지를 입력해 주세요." };
+      return { success: false, error: "Enter a message to show on the stream." };
     }
   } else {
-    return { success: false, error: "지원하지 않는 후원 유형입니다." };
+    return { success: false, error: "Unsupported donation type." };
   }
 
   if (message) {
@@ -179,7 +179,7 @@ export async function createMocoDonation(
     await creditSettlementMoco({
       userId: target.streamerId,
       amount: mocoAmount,
-      reason: "MOCO 라이브 도네이션 (SFX·영상)",
+      reason: "MOCO live donation (SFX · video)",
       referenceType: "gift_event",
       referenceId: donation.giftEventId!,
       metadata: { source: "live_moco_donation", type, channelId: target.channelId },
@@ -198,7 +198,7 @@ export async function createMocoDonation(
     };
   } catch (err) {
     if (err instanceof InsufficientGemsBalanceError) {
-      return { success: false, error: "MOCO 잔액이 부족합니다.", code: "INSUFFICIENT_MOCO" };
+      return { success: false, error: "Insufficient MOCO balance.", code: "INSUFFICIENT_MOCO" };
     }
     throw err;
   }
@@ -212,12 +212,12 @@ export async function skipMocoDonation(input: {
     where: { id: input.donationId },
     include: { user: { select: { username: true } } },
   });
-  if (!row) return { ok: false, error: "도네이션을 찾을 수 없습니다." };
+  if (!row) return { ok: false, error: "Donation not found." };
   if (row.streamerId !== input.hostUserId) {
-    return { ok: false, error: "호스트만 스킵할 수 있습니다." };
+    return { ok: false, error: "Only the host can skip." };
   }
   if (row.status !== "PENDING" && row.status !== "PLAYING") {
-    return { ok: false, error: "스킵할 수 없는 상태입니다." };
+    return { ok: false, error: "Cannot skip in the current state." };
   }
 
   const updated = await db.mocoDonation.update({

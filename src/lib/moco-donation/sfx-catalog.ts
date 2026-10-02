@@ -8,7 +8,7 @@ export type DonationSfxEntry = {
 
 /** 스트리머/운영자가 파일 추가 후 목록만 갱신 */
 export const DONATION_SFX_CATALOG: readonly DonationSfxEntry[] = [
-  { id: "default", label: "도네 효과음", src: "/sfx/donation/default.mp3" },
+  { id: "default", label: "Donation sound effect", src: "/sfx/donation/default.mp3" },
 ] as const;
 
 export function resolveDonationSfx(sfxKey: string | null | undefined): DonationSfxEntry {
