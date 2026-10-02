@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnimeGenre } from "@prisma/client";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type AnimeFormData = {
   title: string;
@@ -45,6 +46,7 @@ export function AnimeForm({
   initial?: Partial<AnimeFormData>;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -77,7 +79,7 @@ export function AnimeForm({
     setLoading(false);
 
     if ("error" in result && result.error) {
-      setError(result.error);
+      setError(result.error.includes(".") ? t(result.error) : result.error);
       return;
     }
     if ("anime" in result && result.anime) router.push(`/anime/${result.anime.slug}`);

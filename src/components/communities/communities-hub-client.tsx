@@ -13,7 +13,6 @@ import {
 import type { CommunityCategory } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 export type CommunityHubItem = {
   id: string;
@@ -182,11 +181,11 @@ export function CommunitiesHubClient({
           <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
             <span className="inline-block h-3.5 w-3.5 rounded-[2px] bg-[#c80000]" aria-hidden />
             {tab === "ALL"
-              ? uiText(locale, "커뮤니티", "Communities")
+              ? t("ui.communities")
               : communityCategoryTabTitle(tab, locale)}
           </h2>
           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-            {uiText(locale, "관심 주제를 골라 커뮤니티에 들어가세요", "Pick a topic and join a community")}
+            {t("ui.pick_a_topic_and_join_a")}
           </p>
         </div>
         <Link
@@ -194,7 +193,7 @@ export function CommunitiesHubClient({
           className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#c80000] hover:underline underline-offset-2"
         >
           <Plus className="h-3.5 w-3.5" />
-          {uiText(locale, "만들기", "Create")}
+          {t("ui.create")}
         </Link>
       </div>
 

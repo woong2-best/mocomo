@@ -16,7 +16,6 @@ import {
   type ReportTaxonomyNode,
 } from "@/lib/report-reasons";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -83,7 +82,7 @@ export function ContentReportFlow({
     phase === "done"
       ? t("common.done")
       : chatRoomId
-        ? uiText(locale, "채팅 신고", "Report chat")
+        ? t("ui.report_chat")
         : t("report.title");
 
   const currentNodes = stack.length > 0 ? stack[stack.length - 1]! : reportCopy.taxonomy;

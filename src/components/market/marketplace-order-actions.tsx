@@ -20,7 +20,6 @@ import { getCarriersForShipment } from "@/lib/marketplace/shipping-config";
 import { MARKETPLACE_DISPUTE_REASONS } from "@/lib/marketplace/protection-config";
 import type { MarketplaceDisputeReason } from "@prisma/client";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 type OrderDetail = NonNullable<
   Awaited<ReturnType<typeof import("@/actions/marketplace-checkout").getMarketplaceOrderDetail>>
@@ -364,7 +363,7 @@ function MarketplaceDisputeForm({
     setMsg("");
     const text = detail.trim();
     if (!text) {
-      setMsg(uiText(locale, "피해 내용을 입력해 주세요.", "Describe what happened."));
+      setMsg(t("report.detailsPlaceholder"));
       return;
     }
     const urls = evidenceUrls
@@ -377,11 +376,7 @@ function MarketplaceDisputeForm({
       if (res.error) setMsg(res.error);
       else {
         setMsg(
-          uiText(
-            locale,
-            "분쟁이 접수되었습니다. 거래 기록이 보관됩니다.",
-            "Dispute filed. Trade records are preserved."
-          )
+          t("ui.dispute_filed_trade_records_are_preserved")
         );
         window.location.reload();
       }
@@ -391,14 +386,10 @@ function MarketplaceDisputeForm({
   return (
     <section className="rounded-xl border border-destructive/35 bg-destructive/5 p-3 space-y-2">
       <p className="text-sm font-semibold">
-        {uiText(locale, "분쟁 신청 / 사기 신고", "Dispute / fraud report")}
+        {t("ui.dispute_fraud_report")}
       </p>
       <p className="text-[11px] text-muted-foreground leading-relaxed">
-        {uiText(
-          locale,
-          "접수 시 결제·채팅·배송 타임라인이 자동 저장되며, 경찰·소비자원 제출용 자료로 활용할 수 있습니다.",
-          "Payment, chat, and shipping timelines are saved automatically for legal submission."
-        )}
+        {t("ui.payment_chat_and_shipping_timelines_are")}
       </p>
       <select
         className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
@@ -417,21 +408,13 @@ function MarketplaceDisputeForm({
         value={detail}
         disabled={disabled || pending}
         onChange={(e) => setDetail(e.target.value)}
-        placeholder={uiText(
-          locale,
-          "피해 경위·거래 상대 행위 등 상세 내용",
-          "Detailed description of the incident"
-        )}
+        placeholder={t("ui.detailed_description_of_the_incident")}
       />
       <Input
         value={evidenceUrls}
         disabled={disabled || pending}
         onChange={(e) => setEvidenceUrls(e.target.value)}
-        placeholder={uiText(
-          locale,
-          "증거 URL (스크린샷·사진, 쉼표 또는 줄바꿈)",
-          "Evidence URLs (screenshots, comma or newline)"
-        )}
+        placeholder={t("ui.evidence_urls_screenshots_comma_or_newline")}
       />
       {msg ? <p className="text-xs text-muted-foreground">{msg}</p> : null}
       <Button
@@ -441,7 +424,7 @@ function MarketplaceDisputeForm({
         disabled={disabled || pending}
         onClick={submit}
       >
-        {uiText(locale, "분쟁 접수", "Submit dispute")}
+        {t("ui.submit_dispute")}
       </Button>
     </section>
   );

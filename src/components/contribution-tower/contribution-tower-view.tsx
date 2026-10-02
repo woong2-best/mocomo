@@ -7,6 +7,7 @@ import type { ContributionTowerBlockDto } from "@/lib/contribution-tower/service
 import { userAvatarFallbackInitial } from "@/lib/user-public-select";
 import { ColumnBase, ColumnCapital } from "@/components/contribution-tower/column-capital-base";
 import styles from "@/components/contribution-tower/contribution-tower-column.module.css";
+import { useLocale } from "@/components/providers/locale-provider";
 
 const POLL_MS = 4000;
 
@@ -59,6 +60,7 @@ function TowerBlock({ block, index }: { block: ContributionTowerBlockDto; index:
 }
 
 export function ContributionTowerView({ initial }: { initial: ApiResponse }) {
+  const { t } = useLocale();
   const [blocks, setBlocks] = useState(initial.blocks);
   const [totalVisible, setTotalVisible] = useState(initial.totalVisible);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -141,14 +143,10 @@ export function ContributionTowerView({ initial }: { initial: ApiResponse }) {
     <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 pb-16 pt-6">
       <header className="space-y-2 text-center">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#E85D04]">MoCoMo</p>
-        <h1 className="text-2xl font-black text-[#1B3A6B] dark:text-sky-100">실시간 기여 탑</h1>
-        <p className="text-sm leading-relaxed text-muted-foreground dark:text-sky-100/80">
-          MOCO 충전 1회마다 아래 기둥에 돌 블록이 쌓입니다. 결제 완료 즉시 등록되며, 전 세계 이용자가
-          실시간으로 확인할 수 있습니다.
-        </p>
+        <h1 className="text-2xl font-black text-[#1B3A6B] dark:text-sky-100">{t("tower.title")}</h1>
+        <p className="text-sm leading-relaxed text-muted-foreground dark:text-sky-100/80">{t("tower.desc")}</p>
         <p className="text-xs tabular-nums text-muted-foreground dark:text-sky-100/70">
-          누적 블록 <span className="font-bold text-foreground dark:text-white">{totalVisible.toLocaleString()}</span>
-          개
+          {t("tower.totalBlocksLine", { count: totalVisible.toLocaleString() })}
         </p>
       </header>
 
@@ -159,11 +157,11 @@ export function ContributionTowerView({ initial }: { initial: ApiResponse }) {
           disabled={loadingMore}
           className="mx-auto rounded-full border border-border bg-card/90 px-4 py-2 text-xs font-bold text-muted-foreground backdrop-blur-sm hover:text-foreground disabled:opacity-50 dark:border-white/20 dark:bg-white/10 dark:text-sky-100/90"
         >
-          {loadingMore ? "불러오는 중…" : "더 오래된 블록 보기"}
+          {loadingMore ? t("tower.loadingMore") : t("tower.loadMore")}
         </button>
       ) : null}
 
-      <div className={styles.skyScene} aria-label="기여 탑 블록 목록">
+      <div className={styles.skyScene} aria-label={t("tower.blocksAria")}>
         <div className={styles.clouds} aria-hidden />
         <div className={styles.columnWrap}>
           <div className={styles.capital}>
@@ -174,11 +172,11 @@ export function ContributionTowerView({ initial }: { initial: ApiResponse }) {
             <div className={styles.fluteOverlay} aria-hidden />
             {blocks.length === 0 ? (
               <p className={styles.emptyShaft}>
-                아직 쌓인 블록이 없습니다.{" "}
+                {t("tower.empty")}
                 <Link href="/wallet" className="font-bold text-[#1B3A6B] underline dark:text-sky-200">
-                  MOCO 충전
+                  {t("tower.emptyTopUp")}
                 </Link>
-                으로 첫 블록을 올려 보세요.
+                {t("tower.emptySuffix")}
               </p>
             ) : (
               <div className={styles.blockStack}>
@@ -195,9 +193,9 @@ export function ContributionTowerView({ initial }: { initial: ApiResponse }) {
       </div>
 
       <p className="text-center text-[11px] leading-relaxed text-muted-foreground dark:text-sky-100/65">
-        기여 탑에 표시되는 프로필·닉네임·아이디는 MOCO 충전 시 동의한 패키지 서비스의 일부입니다.{" "}
+        {t("tower.footer")}
         <Link href="/legal/payment" className="underline">
-          결제 및 환불 정책
+          {t("tower.paymentPolicy")}
         </Link>
       </p>
     </div>
