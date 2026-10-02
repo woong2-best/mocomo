@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import {
@@ -33,7 +36,7 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
     setMsg("");
     start(async () => {
       const res = await fn();
-      setMsg(errorText(res.error ?? "처리됨"));
+      setMsg(errorText(res.error ?? t("market.suvdzo")));
       window.location.reload();
     });
   }
@@ -46,7 +49,11 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
             {o.items[0]?.titleSnapshot ?? o.id} · {dispute.reasonCode}
           </p>
           <p className="text-xs text-muted-foreground">
-            @{dispute.opener.username} 제기 · 구매 @{o.buyer.username} → 판매 @{o.seller.username}
+            {t("market.disputeParties", {
+              opener: dispute.opener.username,
+              buyer: o.buyer.username,
+              seller: o.seller.username,
+            })}
           </p>
         </div>
         <p className="text-xs shrink-0">{o.status} / {o.settlementStatus}</p>
@@ -54,36 +61,48 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
 
       <div className="grid gap-2 sm:grid-cols-2 text-xs">
         <div className="rounded-lg bg-muted/40 p-2 space-y-1">
-          <p className="font-medium">결제·에스크로</p>
+          <p className="font-medium">{t("market.s1u1wzv3")}</p>
           <p>
-            {(o.subtotalAmount + o.shippingAmount).toLocaleString()}원 (수수료{" "}
-            {o.platformFeeAmount.toLocaleString()})
+            {t("market.disputeAmountKrw", {
+              amount: (o.subtotalAmount + o.shippingAmount).toLocaleString(),
+              fee: o.platformFeeAmount.toLocaleString(),
+            })}
           </p>
-          <p>판매자 수령 예정 {o.sellerEarnAmount.toLocaleString()}원</p>
+          <p>
+            {t("market.sellerEarnKrw", {
+              amount: o.sellerEarnAmount.toLocaleString(),
+            })}
+          </p>
           <p>PI: {o.stripePaymentIntentId ?? "-"}</p>
-          <p className="text-amber-700">{o.settlementHeldReason ?? "정산 보류 중"}</p>
+          <p className="text-amber-700">{o.settlementHeldReason ?? t("market.sq6g97e")}</p>
         </div>
         <div className="rounded-lg bg-muted/40 p-2 space-y-1">
-          <p className="font-medium">배송</p>
+          <p className="font-medium">{t("market.sx2lt")}</p>
           <p>
             {o.shipment?.carrier ?? "-"} · {o.shipment?.trackingNumber ?? "-"}
           </p>
-          <p>상태 {o.shipment?.status ?? "-"}</p>
+          <p>
+            {t("market.shipmentStatusLabel", { status: o.shipment?.status ?? "-" })}
+          </p>
           {(o.shipment?.proofUrls?.length ?? 0) > 0 && (
-            <p>증빙 사진 {o.shipment!.proofUrls.length}장</p>
+            <p>
+              {t("market.proofPhotoCount", {
+                count: String(o.shipment!.proofUrls.length),
+              })}
+            </p>
           )}
         </div>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 text-xs">
         <div>
-          <p className="font-medium mb-1">구매자 증빙</p>
+          <p className="font-medium mb-1">{t("market.s10wuj8k")}</p>
           <pre className="whitespace-pre-wrap rounded-lg border p-2 max-h-28 overflow-auto">
             {JSON.stringify(dispute.buyerEvidence ?? dispute.evidence ?? {}, null, 2)}
           </pre>
         </div>
         <div>
-          <p className="font-medium mb-1">판매자 증빙</p>
+          <p className="font-medium mb-1">{t("market.s1hbt874")}</p>
           <pre className="whitespace-pre-wrap rounded-lg border p-2 max-h-28 overflow-auto">
             {JSON.stringify(dispute.sellerEvidence ?? {}, null, 2)}
           </pre>
@@ -92,7 +111,7 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
 
       {"tradeEvidenceSnapshot" in dispute && dispute.tradeEvidenceSnapshot ? (
         <div className="text-xs">
-          <p className="font-medium mb-1">거래·채팅 타임라인 스냅샷</p>
+          <p className="font-medium mb-1">{t("market.svkjmp2")}</p>
           <pre className="whitespace-pre-wrap rounded-lg border p-2 max-h-40 overflow-auto">
             {JSON.stringify(dispute.tradeEvidenceSnapshot, null, 2)}
           </pre>
@@ -103,20 +122,24 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
         href={`/api/admin/marketplace/disputes/${dispute.id}/export`}
         className="inline-flex text-xs font-semibold text-primary hover:underline"
       >
-        법적 증거 자료 내보내기 (.txt)
+        {t("market.txt")}
       </a>
 
       {o.sellerProfile && (
         <p className="text-xs text-muted-foreground">
-          판매자 신뢰도 {o.sellerProfile.trustScore} ({o.sellerProfile.trustTier}) · 제재{" "}
-          {o.sellerProfile.sanctionLevel} · 신고 {o.sellerProfile.reportCount}
+          {t("market.sellerTrustLine", {
+            score: String(o.sellerProfile.trustScore),
+            tier: o.sellerProfile.trustTier,
+            level: o.sellerProfile.sanctionLevel,
+            count: String(o.sellerProfile.reportCount),
+          })}
         </p>
       )}
 
       <Input
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="처리 메모"
+        placeholder={t("market.s1627ae8")}
       />
       <div className="flex flex-wrap gap-2 items-center">
         <Button
@@ -126,14 +149,14 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
             run(() => resolveMarketplaceDispute(dispute.id, "buyer", note))
           }
         >
-          환불 승인 (구매자 승)
+          {t("market.s1wcicv")}
         </Button>
         <Input
           className="w-28"
           type="number"
           value={partial}
           onChange={(e) => setPartial(e.target.value)}
-          placeholder="부분금액"
+          placeholder={t("market.sop23j1")}
         />
         <Button
           size="sm"
@@ -145,7 +168,7 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
             )
           }
         >
-          부분 환불
+          {t("market.s1ikbeto")}
         </Button>
         <Button
           size="sm"
@@ -155,7 +178,7 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
             run(() => resolveMarketplaceDispute(dispute.id, "seller", note))
           }
         >
-          환불 거절 · 정산
+          {t("market.s1m8crmk")}
         </Button>
         {o.sellerProfile && (
           <Button
@@ -167,12 +190,12 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
                 adminSanctionMarketplaceSeller({
                   sellerProfileId: o.sellerProfile!.id,
                   escalate: true,
-                  reason: note || `분쟁 ${dispute.id} 관련 제재`,
+                  reason: note || t("market.s1f3lxid", { v0: dispute.id }),
                 })
               )
             }
           >
-            판매자 제재 상향
+            {t("market.sfq5gds")}
           </Button>
         )}
       </div>
@@ -183,14 +206,19 @@ export function AdminDisputeCard({ dispute }: { dispute: DisputeRow }) {
 
 export function AdminReviewOrderCard({ order }: { order: ReviewOrder }) {
   const [pending, start] = useTransition();
-  const [reason, setReason] = useState("관리자 정산 보류");
+  const [reason, setReason] = useState(t("market.s46vrjh"));
 
   return (
     <div className="rounded-xl border border-border/60 p-3 text-sm space-y-2">
       <p className="font-medium">{order.items[0]?.titleSnapshot ?? order.id}</p>
       <p className="text-xs text-muted-foreground">
-        @{order.buyer.username} → @{order.seller.username} · {order.status} · 위험{" "}
-        {order.riskScore} [{order.riskFlags.join(", ")}]
+        {t("market.reviewOrderMeta", {
+          buyer: order.buyer.username,
+          seller: order.seller.username,
+          status: order.status,
+          score: String(order.riskScore),
+          flags: order.riskFlags.join(", "),
+        })}
       </p>
       <p className="text-xs">{order.settlementHeldReason}</p>
       <div className="flex flex-wrap gap-2">
@@ -204,7 +232,7 @@ export function AdminReviewOrderCard({ order }: { order: ReviewOrder }) {
             })
           }
         >
-          검토 해제 · 진행
+          {t("market.s1evj9i")}
         </Button>
         <Button
           size="sm"
@@ -217,7 +245,7 @@ export function AdminReviewOrderCard({ order }: { order: ReviewOrder }) {
             })
           }
         >
-          정산 강제 진행
+          {t("market.s1156vqx")}
         </Button>
         <Input
           className="w-40"
@@ -235,7 +263,7 @@ export function AdminReviewOrderCard({ order }: { order: ReviewOrder }) {
             })
           }
         >
-          정산 보류
+          {t("market.spb05bd")}
         </Button>
       </div>
     </div>
@@ -269,7 +297,7 @@ export function AdminSanctionQuick({
               await adminSanctionMarketplaceSeller({
                 sellerProfileId,
                 level,
-                reason: `관리자 지정: ${level}`,
+                reason: t("market.stsrtmx", { v0: level }),
               });
               window.location.reload();
             })

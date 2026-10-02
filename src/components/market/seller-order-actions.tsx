@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { updateOrderShipping } from "@/actions/goods-shop";
 import { Button } from "@/components/ui/button";
@@ -28,25 +31,25 @@ export function SellerOrderActions({
     <div className="flex flex-wrap gap-2 items-end">
       {status === "PAID" && (
         <Button size="sm" variant="outline" className="rounded-xl" disabled={loading} onClick={() => setStatus("PREPARING")}>
-          준비 중
+          {t("market.sq4kb3p")}
         </Button>
       )}
       {(status === "PAID" || status === "PREPARING") && (
         <>
           <Input
-            placeholder="운송장 번호"
+            placeholder={t("market.s651uyg")}
             value={tracking}
             onChange={(e) => setTracking(e.target.value)}
             className="rounded-xl h-9 text-sm max-w-[180px]"
           />
           <Button size="sm" className="rounded-xl" disabled={loading} onClick={() => setStatus("SHIPPED")}>
-            발송 완료
+            {t("market.s1dn69dv")}
           </Button>
         </>
       )}
       {status === "SHIPPED" && (
         <Button size="sm" className="rounded-xl" disabled={loading} onClick={() => setStatus("DELIVERED")}>
-          배송 완료 처리
+          {t("market.s9sbg71")}
         </Button>
       )}
     </div>

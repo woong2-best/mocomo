@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -20,12 +23,12 @@ import {
 } from "lucide-react";
 
 const SIDEBAR = [
-  { href: "/market/seller", label: "판매 홈", icon: Store },
-  { href: "/market/sell-item", label: "상품 등록", icon: Package },
-  { href: "/market/orders?role=seller", label: "주문·배송", icon: Truck },
-  { href: "/market/seller#settlement", label: "정산", icon: Wallet },
-  { href: "/market/seller#profile", label: "판매자 정보", icon: Settings },
-  { href: "/legal/seller-terms", label: "도움말·약관", icon: HelpCircle },
+  { href: "/market/seller", label: t("market.srdm5fg"), icon: Store },
+  { href: "/market/sell-item", label: t("market.s1y6oi91"), icon: Package },
+  { href: "/market/orders?role=seller", label: t("market.ss59pnw"), icon: Truck },
+  { href: "/market/seller#settlement", label: t("market.sz397"), icon: Wallet },
+  { href: "/market/seller#profile", label: t("market.s1hbsyjn"), icon: Settings },
+  { href: "/legal/seller-terms", label: t("market.s20dio6"), icon: HelpCircle },
 ] as const;
 
 export function SellerCenterShell({
@@ -48,7 +51,7 @@ export function SellerCenterShell({
             <span className="font-serif text-[1.05rem] font-semibold tracking-tight truncate">
               {BRAND.name} marketplace
             </span>
-            <span className="hidden sm:inline text-[11px] text-muted-foreground">판매자센터</span>
+            <span className="hidden sm:inline text-[11px] text-muted-foreground">{t("market.s1w6z9o0")}</span>
           </Link>
 
           <div className="flex items-center gap-1 sm:gap-3 text-sm">
@@ -56,24 +59,24 @@ export function SellerCenterShell({
               href="/legal/seller-terms"
               className="hidden md:inline text-muted-foreground hover:text-foreground"
             >
-              판매자교육
+              {t("market.s1w6vtot")}
             </Link>
             <Link
               href="/support"
               className="hidden md:inline text-muted-foreground hover:text-foreground"
             >
-              온라인문의
+              {t("market.shfc4p0")}
             </Link>
             <Link
               href="/legal/seller-terms"
               className="hidden sm:inline text-muted-foreground hover:text-foreground"
             >
-              도움말
+              {t("market.sraq50")}
             </Link>
             <button
               type="button"
               className="p-2 text-muted-foreground hover:text-foreground rounded-md"
-              aria-label="알림"
+              aria-label={t("nav.notifications")}
             >
               <Bell className="h-4 w-4" />
             </button>
@@ -84,7 +87,9 @@ export function SellerCenterShell({
                 onClick={() => setMenuOpen((v) => !v)}
                 className="flex items-center gap-1 rounded-md px-2 py-1.5 hover:bg-muted/60 font-medium"
               >
-                <span className="max-w-[8rem] truncate">{displayName} 님</span>
+                <span className="max-w-[8rem] truncate">
+                  {t("market.sellerGreeting", { name: displayName })}
+                </span>
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
 
@@ -93,12 +98,12 @@ export function SellerCenterShell({
                   <button
                     type="button"
                     className="fixed inset-0 z-40 cursor-default"
-                    aria-label="메뉴 닫기"
+                    aria-label={t("market.s14rg279")}
                     onClick={() => setMenuOpen(false)}
                   />
                   <div className="absolute right-0 mt-1.5 z-50 w-64 rounded-lg border border-border bg-white shadow-lg py-1 text-sm">
                     <div className="px-3.5 py-2.5 text-xs text-muted-foreground border-b border-border/70">
-                      업체코드{" "}
+                      {t("market.sellerCompanyCode")}{" "}
                       <span className="font-mono text-foreground font-medium">{sellerCode}</span>
                     </div>
                     <Link
@@ -106,28 +111,28 @@ export function SellerCenterShell({
                       className="block px-3.5 py-2.5 hover:bg-muted/50"
                       onClick={() => setMenuOpen(false)}
                     >
-                      계정정보
+                      {t("market.smmqrdc")}
                     </Link>
                     <Link
                       href="/settings"
                       className="block px-3.5 py-2.5 hover:bg-muted/50"
                       onClick={() => setMenuOpen(false)}
                     >
-                      비밀번호 변경
+                      {t("auth.changePassword")}
                     </Link>
                     <Link
                       href="/settings"
                       className="block px-3.5 py-2.5 hover:bg-muted/50"
                       onClick={() => setMenuOpen(false)}
                     >
-                      SMS/이메일 수신관리
+                      {t("market.sms")}
                     </Link>
                     <Link
                       href="/market/seller#profile"
                       className="block px-3.5 py-2.5 hover:bg-muted/50 border-b border-border/70"
                       onClick={() => setMenuOpen(false)}
                     >
-                      주소록/배송정보 관리
+                      {t("market.s5o4uai")}
                     </Link>
                     <button
                       type="button"
@@ -135,7 +140,7 @@ export function SellerCenterShell({
                       onClick={() => void performWebSignOut({ callbackUrl: "/market" })}
                     >
                       <LogOut className="h-3.5 w-3.5" />
-                      로그아웃
+                      {t("menu.signOut")}
                     </button>
                   </div>
                 </>
@@ -172,12 +177,12 @@ export function SellerCenterShell({
             })}
           </nav>
           <div className="mt-auto px-4 pt-6 text-[11px] text-muted-foreground space-y-2">
-            <p className="font-medium text-foreground/70">관련 사이트</p>
+            <p className="font-medium text-foreground/70">{t("market.spnlabc")}</p>
             <Link href="/market" className="block hover:text-foreground">
               {MARKET_BRAND_FULL}
             </Link>
             <Link href="/" className="block hover:text-foreground">
-              MoCoMo 홈
+              {t("market.mocomo_2")}
             </Link>
           </div>
         </aside>

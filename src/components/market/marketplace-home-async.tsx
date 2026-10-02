@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { MarketPageTitle } from "@/components/market/market-page-chrome";
 import { MarketToolbar } from "@/components/market/market-toolbar";
@@ -49,8 +52,8 @@ export async function MarketplaceHomeAsync({
     : category
       ? `#${category}`
       : q
-        ? `"${q}" 검색 결과`
-        : "오늘의 발견";
+        ? t("market.s1q1ymxv", { v0: q })
+        : t("market.sl72tho");
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -67,7 +70,7 @@ export async function MarketplaceHomeAsync({
                 href="/market/sell-item"
                 className="rounded-xl bg-folk-terracotta px-3.5 py-2 text-xs font-bold text-white shadow-[2px_2px_0_hsl(var(--folk-cobalt)/0.15)] hover:brightness-110"
               >
-                판매 등록
+                {t("market.s1vdpeu0")}
               </Link>
             </div>
           </div>
@@ -87,14 +90,14 @@ export async function MarketplaceHomeAsync({
             <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
               {sectionTitle}
               <span className="hidden sm:inline text-muted-foreground font-medium text-sm ml-2">
-                | 서브컬처 크리에이터 상품을 한눈에
+                {t("market.sgmdaj1")}
               </span>
             </h2>
             {items.length > 0 && (
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                {items.length}개 상품
-                {q ? ` · 검색: ${q}` : ""}
-                {category ? ` · 카테고리: ${category}` : ""}
+                {t("market.productCount", { count: String(items.length) })}
+                {q ? t("market.s3jd5wo", { v0: q }) : ""}
+                {category ? t("market.s1j08pnx", { v0: category }) : ""}
               </p>
             )}
           </div>
@@ -103,7 +106,7 @@ export async function MarketplaceHomeAsync({
               href="/market"
               className="shrink-0 text-xs font-semibold text-folk-terracotta hover:underline"
             >
-              필터 해제
+              {t("market.s7wn3h8")}
             </Link>
           )}
         </div>

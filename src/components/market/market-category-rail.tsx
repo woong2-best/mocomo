@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { MARKETPLACE_BROWSE_LISTING_TYPES } from "@/lib/marketplace/constants";
 import type { MarketplaceListingType } from "@prisma/client";
@@ -20,7 +23,7 @@ export function MarketCategoryRail({
             : "border-folk-cobalt/20 bg-background text-foreground hover:border-folk-terracotta/50"
         )}
       >
-        전체
+        {t("live.modeAll")}
       </Link>
       {MARKETPLACE_BROWSE_LISTING_TYPES.map((t) => (
         <Link

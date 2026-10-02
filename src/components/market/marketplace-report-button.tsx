@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { reportMarketplaceListing } from "@/actions/marketplace-admin";
@@ -19,14 +22,14 @@ export function MarketplaceReportButton({ listingId }: { listingId: string }) {
   if (!open) {
     return (
       <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(true)}>
-        신고
+        {t("market.sy3gg")}
       </Button>
     );
   }
 
   return (
     <div className="rounded-xl border border-border/60 p-3 space-y-2 text-sm">
-      <p className="font-semibold">상품·판매자 신고</p>
+      <p className="font-semibold">{t("market.snf2plg")}</p>
       <select
         className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
         value={reason}
@@ -41,7 +44,7 @@ export function MarketplaceReportButton({ listingId }: { listingId: string }) {
       <Input
         value={details}
         onChange={(e) => setDetails(e.target.value)}
-        placeholder="상세 (선택)"
+        placeholder={t("market.skfnmj1")}
       />
       {msg && <p className="text-xs text-muted-foreground">{msg}</p>}
       <div className="flex gap-2">
@@ -52,15 +55,15 @@ export function MarketplaceReportButton({ listingId }: { listingId: string }) {
           onClick={() =>
             start(async () => {
               const res = await reportMarketplaceListing({ listingId, reason, details });
-              setMsg(errorText(res.error ?? "신고가 접수되었습니다."));
+              setMsg(errorText(res.error ?? t("market.s1xj77n8")));
               if (!res.error) setOpen(false);
             })
           }
         >
-          제출
+          {t("market.sz5z4")}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
-          닫기
+          {t("common.close")}
         </Button>
       </div>
     </div>

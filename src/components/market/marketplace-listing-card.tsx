@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { ClipboardList } from "lucide-react";
 import { listingTypeLabel } from "@/lib/marketplace/constants";
@@ -42,19 +45,19 @@ const TYPE_BADGE: Record<
   { label: string; className: string }
 > = {
   PHYSICAL: {
-    label: "일반상품",
+    label: t("market.spy9xqb"),
     className: "text-folk-cobalt border-folk-cobalt/35 bg-folk-cobalt/5",
   },
   CUSTOM_ORDER: {
-    label: "주문제작",
+    label: t("market.sq4zp2p"),
     className: "text-folk-forest border-folk-forest/40 bg-folk-forest/5",
   },
   DIGITAL: {
-    label: "디지털",
+    label: t("market.sriaa4"),
     className: "text-violet-700 border-violet-400/50 bg-violet-50",
   },
   PREORDER: {
-    label: "예약판매",
+    label: t("market.spt4wsp"),
     className: "text-amber-800 border-amber-500/45 bg-amber-50",
   },
 };
@@ -93,7 +96,7 @@ export function MarketplaceListingCard({
           />
           {item.productionDays ? (
             <span className="absolute bottom-2 left-2 rounded-md bg-background/90 px-1.5 py-0.5 text-[10px] font-bold text-foreground backdrop-blur-sm border border-border/60">
-              제작 {item.productionDays}일
+              {t("market.productionDays", { days: String(item.productionDays) })}
             </span>
           ) : null}
         </div>

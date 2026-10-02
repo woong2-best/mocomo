@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { updatePhysicalProductPrice } from "@/actions/goods-shop";
@@ -27,15 +30,15 @@ export function SetProductPriceForm({
     const res = await updatePhysicalProductPrice(productId, Number(price), Number(shipping));
     setLoading(false);
     if ("error" in res && res.error) setMsg(errorText(res.error));
-    else setMsg("판매가가 설정되었습니다. 굿즈 목록에 노출됩니다.");
+    else setMsg(t("market.slknfn6"));
   }
 
   return (
     <form onSubmit={submit} className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-      <p className="text-sm font-medium">판매가·배송비 설정 (등록비 결제 완료)</p>
+      <p className="text-sm font-medium">{t("market.saumbqe")}</p>
       <Input
         type="number"
-        placeholder="판매가 (USD)"
+        placeholder={t("market.usd")}
         value={price}
         onChange={(e) => setPrice(e.target.value)}
         className="rounded-xl"
@@ -44,14 +47,14 @@ export function SetProductPriceForm({
       />
       <Input
         type="number"
-        placeholder="배송비"
+        placeholder={t("market.ssiacz")}
         value={shipping}
         onChange={(e) => setShipping(e.target.value)}
         className="rounded-xl"
         min={0}
       />
       <Button type="submit" className="w-full rounded-xl" disabled={loading}>
-        {loading ? "저장 중…" : "판매 시작"}
+        {loading ? t("calendar.saving") : t("market.s1vdrv29")}
       </Button>
       {msg && <p className="text-xs text-primary">{msg}</p>}
     </form>

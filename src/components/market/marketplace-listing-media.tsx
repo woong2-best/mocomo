@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { SensitiveMediaFrame } from "@/components/media/sensitive-media-frame";
 
 export function MarketplaceListingMedia({
@@ -33,7 +36,7 @@ export function MarketplaceListingMedia({
           </SensitiveMediaFrame>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            이미지 없음
+            {t("market.s45h0h6")}
           </div>
         )}
       </div>

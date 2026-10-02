@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 export function PrintReceiptButton() {
   return (
     <button
@@ -7,7 +10,7 @@ export function PrintReceiptButton() {
       className="rounded-lg border border-border px-3 py-1.5 text-sm print:hidden"
       onClick={() => window.print()}
     >
-      인쇄 / PDF
+      {t("market.pdf")}
     </button>
   );
 }

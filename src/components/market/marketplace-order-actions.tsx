@@ -52,7 +52,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
     startTransition(async () => {
       const res = await fn();
       if (res.error) setMsg(errorText(res.error));
-      else setMsg("처리되었습니다.");
+      else setMsg(t("market.s16bo0w1"));
       window.location.reload();
     });
   }
@@ -63,9 +63,9 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
 
       {order.isSeller && ["PAID", "PREPARING", "SHIPPED", "DELIVERED"].includes(order.status) && (
         <section className="rounded-xl border border-border/60 p-3 space-y-2">
-          <p className="text-sm font-semibold">배송 처리</p>
+          <p className="text-sm font-semibold">{t("market.s1dy786b")}</p>
           <p className="text-[11px] text-muted-foreground">
-            MoCoMo는 배송을 대행하지 않습니다. 송장 등록 후 배송 추적으로 배송완료가 자동 확인됩니다.
+            {t("market.mocomo")}
           </p>
 
           <div className="flex flex-wrap gap-2">
@@ -77,7 +77,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                 disabled={pending}
                 onClick={() => run(() => sellerSetOrderStatus(order.id, "PREPARING"))}
               >
-                상품 준비 중
+                {t("market.s16ka6z2")}
               </Button>
             )}
             {(order.status === "SHIPPED" || order.status === "PREPARING") && (
@@ -97,7 +97,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                   )
                 }
               >
-                배송 중
+                {t("market.soivoki")}
               </Button>
             )}
           </div>
@@ -110,19 +110,19 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
             {carriers.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}
-                {c.country ? ` (${c.country})` : " (국제)"}
+                {c.country ? ` (${c.country})` : t("market.s18ngs2")}
               </option>
             ))}
           </select>
           <Input
             value={tracking}
             onChange={(e) => setTracking(e.target.value)}
-            placeholder="송장번호 (필수)"
+            placeholder={t("market.s154vzeh")}
           />
           <Input
             value={proofUrls}
             onChange={(e) => setProofUrls(e.target.value)}
-            placeholder="발송·운송장·포장 사진 URL (쉼표 구분, 선택)"
+            placeholder={t("market.url_5")}
           />
           <div className="flex flex-wrap gap-2">
             <Button
@@ -141,7 +141,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                 )
               }
             >
-              발송 완료
+              {t("market.s1dn69dv")}
             </Button>
           </div>
         </section>
@@ -150,16 +150,16 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
       {order.isSeller &&
         order.disputes.some((d) => ["OPEN", "EVIDENCE"].includes(d.status)) && (
           <section className="rounded-xl border border-amber-500/40 p-3 space-y-2">
-            <p className="text-sm font-semibold">분쟁 증빙 제출 (판매자 보호)</p>
+            <p className="text-sm font-semibold">{t("market.s9fah2w")}</p>
             <Input
               value={evidenceUrls}
               onChange={(e) => setEvidenceUrls(e.target.value)}
-              placeholder="운송장·발송사진·채팅 캡처 URL (쉼표)"
+              placeholder={t("market.url_6")}
             />
             <Input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="설명"
+              placeholder={t("market.sxvj5")}
             />
             {order.disputes
               .filter((d) => ["OPEN", "EVIDENCE"].includes(d.status))
@@ -179,7 +179,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                     )
                   }
                 >
-                  증빙 제출
+                  {t("market.suzz138")}
                 </Button>
               ))}
           </section>
@@ -188,7 +188,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
       {order.isSeller &&
         order.refunds.some((r) => r.status === "REQUESTED") && (
           <section className="rounded-xl border border-border/60 p-3 space-y-2">
-            <p className="text-sm font-semibold">환불 요청 처리</p>
+            <p className="text-sm font-semibold">{t("market.s11gwpvv")}</p>
             {order.refunds
               .filter((r) => r.status === "REQUESTED")
               .map((r) => (
@@ -200,7 +200,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                     disabled={pending}
                     onClick={() => run(() => sellerRespondMarketplaceRefund(r.id, true))}
                   >
-                    승인
+                    {t("market.sy7rz")}
                   </Button>
                   <Button
                     type="button"
@@ -209,7 +209,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                     disabled={pending}
                     onClick={() => run(() => sellerRespondMarketplaceRefund(r.id, false))}
                   >
-                    거절
+                    {t("collab.reject")}
                   </Button>
                 </div>
               ))}
@@ -218,15 +218,14 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
 
       {order.isBuyer && (
         <section className="rounded-xl border border-border/60 p-3 space-y-2">
-          <p className="text-sm font-semibold">구매자 액션</p>
+          <p className="text-sm font-semibold">{t("market.s10wttwf")}</p>
           {order.checkoutMode === "DIRECT_TRADE" ? (
             <p className="text-[11px] text-muted-foreground">
-              무통장 직거래 주문입니다. 입금 후 아래 버튼으로 송금 완료를 표시해 주세요.
+              {t("market.s1702cie")}
             </p>
           ) : (
             <p className="text-[11px] text-muted-foreground">
-              결제금은 구매 확정(또는 자동 확정) 전까지 에스크로로 보호됩니다. 정산 상태:{" "}
-              {order.settlementStatus}
+              {t("market.escrowUntilConfirm")} {order.settlementStatus}
             </p>
           )}
           <div className="flex flex-wrap gap-2">
@@ -237,7 +236,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                 disabled={pending}
                 onClick={() => run(() => confirmDirectTradePayment(order.id))}
               >
-                송금 완료 표시
+                {t("market.s1cpi727")}
               </Button>
             )}
             {order.status === "DELIVERED" &&
@@ -248,13 +247,13 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                 disabled={pending}
                 onClick={() => run(() => confirmMarketplaceOrder(order.id))}
               >
-                구매 확정
+                {t("market.s1q9tsp4")}
               </Button>
             )}
             {order.status === "DELIVERED" &&
               order.shipment?.deliverySignalSource === "fallback" && (
               <p className="text-[11px] text-muted-foreground w-full">
-                배송 추적 자동 처리 주문은 72시간 후 자동 구매확정됩니다.
+                {t("market.s1da6p5g")}
               </p>
             )}
             {["AWAITING_PAYMENT", "PAID", "PREPARING"].includes(order.status) && (
@@ -265,14 +264,14 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                 disabled={pending}
                 onClick={() => run(() => cancelMarketplaceOrder(order.id))}
               >
-                취소
+                {t("toast.cancel")}
               </Button>
             )}
           </div>
           <Input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="환불 요청 사유"
+            placeholder={t("market.s11gurjf")}
           />
           <div className="flex flex-wrap gap-2">
             <Button
@@ -282,7 +281,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
               disabled={pending || !reason.trim()}
               onClick={() => run(() => requestMarketplaceRefund(order.id, reason))}
             >
-              환불 요청
+              {t("market.s9n2r2h")}
             </Button>
           </div>
         </section>
@@ -294,7 +293,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
           order.status === "DELIVERED") &&
         !order.review && (
           <section className="rounded-xl border border-border/60 p-3 space-y-2">
-            <p className="text-sm font-semibold">리뷰</p>
+            <p className="text-sm font-semibold">{t("market.swmh0")}</p>
             <Input
               type="number"
               min={1}
@@ -305,7 +304,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
             <Input
               value={reviewBody}
               onChange={(e) => setReviewBody(e.target.value)}
-              placeholder="리뷰 내용"
+              placeholder={t("market.s13n7n81")}
             />
             <Button
               type="button"
@@ -317,23 +316,26 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                 )
               }
             >
-              리뷰 등록
+              {t("market.s13n8aco")}
             </Button>
           </section>
         )}
 
       {order.downloads.length > 0 && (
         <section className="rounded-xl border border-border/60 p-3 space-y-2">
-          <p className="text-sm font-semibold">디지털 다운로드</p>
+          <p className="text-sm font-semibold">{t("market.s8br810")}</p>
           {order.downloads.map((d) => (
             <div key={d.id} className="flex items-center justify-between gap-2 text-sm">
               <span className="text-muted-foreground">
-                {d.downloadCount}/{d.maxDownloads}회
+                {t("market.downloadCount", {
+                  used: String(d.downloadCount),
+                  max: String(d.maxDownloads),
+                })}
                 {d.expiresAt ? ` · ~${d.expiresAt.toISOString().slice(0, 10)}` : ""}
               </span>
               <Button type="button" size="sm" variant="secondary" asChild>
                 <Link href={`/api/market/download/${d.downloadToken}`} target="_blank">
-                  다운로드
+                  {t("market.sne9z68")}
                 </Link>
               </Button>
             </div>
@@ -343,7 +345,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
 
       <Button type="button" variant="outline" size="sm" asChild>
         <Link href={`/market/orders/${order.id}/receipt`} target="_blank">
-          영수증 보기
+          {t("market.s1tikt06")}
         </Link>
       </Button>
     </div>

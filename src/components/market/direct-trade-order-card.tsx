@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { formatPrice } from "@/lib/money";
 import type { DirectTradeSnapshot } from "@/lib/marketplace/payment-routing";
 
@@ -15,35 +18,35 @@ export function DirectTradeOrderCard({
   return (
     <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 space-y-3">
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-amber-800">무통장 직거래</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-amber-800">{t("market.s1izxg7h")}</p>
         <p className="text-sm text-amber-950 mt-1 leading-relaxed">{snapshot.notice}</p>
       </div>
 
       <dl className="rounded-xl border border-amber-100 bg-white/70 p-3 text-sm space-y-2">
         <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">판매자</dt>
+          <dt className="text-muted-foreground">{t("market.svtn3w")}</dt>
           <dd className="font-semibold">{snapshot.sellerDisplayName}</dd>
         </div>
         <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">은행</dt>
+          <dt className="text-muted-foreground">{t("market.sz2a1")}</dt>
           <dd className="font-semibold">{snapshot.bankName}</dd>
         </div>
         <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">계좌번호</dt>
+          <dt className="text-muted-foreground">{t("market.smmrdvc")}</dt>
           <dd className="font-mono font-bold">{snapshot.accountNumber}</dd>
         </div>
         <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">예금주</dt>
+          <dt className="text-muted-foreground">{t("market.stux30")}</dt>
           <dd className="font-semibold">{snapshot.accountHolder}</dd>
         </div>
         {snapshot.contactPhone ? (
           <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">연락처</dt>
+            <dt className="text-muted-foreground">{t("market.stw1wr")}</dt>
             <dd className="font-semibold">{snapshot.contactPhone}</dd>
           </div>
         ) : null}
         <div className="flex justify-between gap-2 pt-2 border-t border-border/40">
-          <dt className="text-muted-foreground">송금 금액</dt>
+          <dt className="text-muted-foreground">{t("market.s1wr00pe")}</dt>
           <dd className="text-lg font-black text-primary">
             {formatPrice(snapshot.amount, snapshot.currency)}
           </dd>
@@ -52,11 +55,11 @@ export function DirectTradeOrderCard({
 
       {awaiting ? (
         <p className="text-xs text-amber-900">
-          아래 계좌로 입금 후 주문 화면에서 「송금 완료 표시」를 눌러 주세요.
+          {t("market.se5y3r3")}
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">
-          입금·발송·환불 등은 구매자와 판매자 간 직접 협의합니다.
+          {t("market.sxqf0vb")}
         </p>
       )}
     </div>

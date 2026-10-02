@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -7,15 +10,15 @@ import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
 const tabs = [
   { href: "/market", label: MARKET_BRAND_NAME, match: (p: string) => p === "/market" },
-  { href: "/market/orders", label: "주문", match: (p: string) => p.startsWith("/market/orders") },
-  { href: "/market/seller", label: "판매자", match: (p: string) => p.startsWith("/market/seller") },
+  { href: "/market/orders", label: t("market.sz7p8"), match: (p: string) => p.startsWith("/market/orders") },
+  { href: "/market/seller", label: t("market.svtn3w"), match: (p: string) => p.startsWith("/market/seller") },
   {
     href: "/market/sell-item",
-    label: "판매 등록",
+    label: t("market.s1vdpeu0"),
     match: (p: string) => p.startsWith("/market/sell-item"),
   },
-  { href: "/webtoon", label: "일러스트", match: (p: string) => p.startsWith("/webtoon") },
-  { href: "/market", label: "중고", match: (p: string) => p.startsWith("/market") },
+  { href: "/webtoon", label: t("nav.webtoon"), match: (p: string) => p.startsWith("/webtoon") },
+  { href: "/market", label: t("nav.used"), match: (p: string) => p.startsWith("/market") },
 ];
 
 export function MarketNav() {

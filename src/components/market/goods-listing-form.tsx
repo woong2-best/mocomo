@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { createGoodsListingRequest } from "@/actions/goods-shop";
@@ -28,7 +31,7 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
     if (!files?.length) return;
     const list = Array.from(files).filter((f) => isGalleryImageFile(f, true));
     if (list.length === 0) {
-      setError("이미지 파일을 선택해 주세요.");
+      setError(t("market.s13qm3zj"));
       return;
     }
     setUploading(true);
@@ -42,7 +45,7 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
       }
       setImages((prev) => [...prev, ...urls].slice(0, 8));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "업로드 실패");
+      setError(err instanceof Error ? err.message : t("market.s1vgkz0f"));
     } finally {
       setUploading(false);
     }
@@ -67,22 +70,22 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
   if (requestId) {
     return (
       <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 space-y-4">
-        <p className="font-semibold">등록 정보가 저장되었습니다.</p>
+        <p className="font-semibold">{t("market.s1o5i0cl")}</p>
         <p className="text-sm text-muted-foreground">
-          상품 노출을 위해 등록비 <strong>{formatUsd(LISTING_FEE_KRW)}</strong>을 결제해 주세요.
+          {t("market.s1v7j3a9")} <strong>{formatUsd(LISTING_FEE_KRW)}</strong>{t("market.syv5x3e")}
         </p>
         {paymentsEnabled ? (
           <PayButton
             type="LISTING_FEE"
             amount={LISTING_FEE_KRW}
-            orderName="굿즈샵 등록비"
+            orderName={t("market.spm93yc")}
             metadata={{ requestId }}
             className="w-full rounded-2xl"
           >
-            등록비 {formatUsd(LISTING_FEE_KRW)} 결제
+            {t("market.listingFeePay", { fee: formatUsd(LISTING_FEE_KRW) })}
           </PayButton>
         ) : (
-          <p className="text-sm text-destructive">결제 설정이 필요합니다.</p>
+          <p className="text-sm text-destructive">{t("market.s13ujlm2")}</p>
         )}
       </div>
     );
@@ -91,21 +94,21 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
   return (
     <form onSubmit={submitDraft} className="space-y-4 rounded-2xl border border-border/60 p-5 bg-card">
       <Input
-        placeholder="상품명"
+        placeholder={t("market.st9k72")}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         className="rounded-xl"
         required
       />
       <textarea
-        placeholder="상품 설명 (소재, 사이즈, 주의사항 등)"
+        placeholder={t("market.s1pibgil")}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         className="w-full min-h-[120px] rounded-xl border border-border bg-background p-3 text-sm"
         required
       />
       <Input
-        placeholder="소개 영상 URL (선택)"
+        placeholder={t("market.url")}
         value={videoUrl}
         onChange={(e) => setVideoUrl(e.target.value)}
         className="rounded-xl"
@@ -113,7 +116,7 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
       />
 
       <div>
-            <label className="text-sm font-medium">상품 사진 (선택 · 나중에 추가 가능)</label>
+            <label className="text-sm font-medium">{t("market.s1mbr4rw")}</label>
         <div className="flex flex-wrap gap-2 mt-2">
           {images.map((url) => (
             // eslint-disable-next-line @next/next/no-img-element
@@ -133,9 +136,11 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" className="w-full rounded-2xl" disabled={uploading}>
-        다음: 등록비 결제
+        {t("market.shdflk2")}
       </Button>
-      <p className="text-xs text-center text-muted-foreground">굿즈 등록 광고비 {formatUsd(LISTING_FEE_KRW)}</p>
+      <p className="text-xs text-center text-muted-foreground">
+        {t("market.goodsListingAdFee", { fee: formatUsd(LISTING_FEE_KRW) })}
+      </p>
     </form>
   );
 }

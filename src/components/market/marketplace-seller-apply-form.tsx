@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -48,7 +51,7 @@ export function MarketplaceSellerApplyForm({
         setError(errorText(res.error));
         return;
       }
-      setMessage("판매자 프로필이 준비되었습니다. 상품을 등록할 수 있습니다.");
+      setMessage(t("market.snzk2tv"));
       router.refresh();
     });
   }
@@ -72,24 +75,24 @@ export function MarketplaceSellerApplyForm({
       <Input
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
-        placeholder="판매자 닉네임"
+        placeholder={t("market.sjd79tx")}
       />
       <textarea
         value={bio}
         onChange={(e) => setBio(e.target.value)}
-        placeholder="소개"
+        placeholder={t("market.sxv68")}
         rows={4}
         className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
       />
       <Input
         value={sns}
         onChange={(e) => setSns(e.target.value)}
-        placeholder="SNS / 포트폴리오 URL"
+        placeholder={t("market.sns_url")}
       />
       <textarea
         value={applyReason}
         onChange={(e) => setApplyReason(e.target.value)}
-        placeholder="판매 신청 사유 (선택)"
+        placeholder={t("market.s1r58gll")}
         rows={3}
         className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
       />
@@ -98,10 +101,10 @@ export function MarketplaceSellerApplyForm({
       <PayoutCountryField value={payoutCountry} onChange={setPayoutCountry} id="apply-payout-country" />
       <div className="flex flex-wrap gap-2">
         <Button type="button" disabled={pending} onClick={apply}>
-          판매자 등록
+          {t("market.s1hbpofk")}
         </Button>
         <Button type="button" variant="secondary" disabled={pending} onClick={connect}>
-          {connectReady ? "Stripe Connect 재연결" : "Stripe Connect 정산 연결"}
+          {connectReady ? t("market.stripe_connect") : t("market.stripe_connect_2")}
         </Button>
       </div>
     </div>

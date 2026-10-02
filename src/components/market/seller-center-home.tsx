@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useState, useTransition } from "react";
@@ -64,11 +67,11 @@ export function SellerCenterHome({
     <div className="space-y-5 max-w-4xl">
       {(!prep.connectReady || prep.stripeRequirementsDue || prep.stripeDisabled) && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 space-y-2">
-          <p className="font-semibold">Stripe 온보딩</p>
+          <p className="font-semibold">{t("market.stripe_5")}</p>
           <p>{prep.connectMessage}</p>
           <PayoutCountryField value={payoutCountry} onChange={setPayoutCountry} id="seller-payout-country" />
           <Button type="button" size="sm" disabled={stripePending} onClick={resumeStripe}>
-            Stripe 온보딩 이어서 하기
+            {t("seller.stripeResume")}
           </Button>
           {stripeError ? <p className="text-sm text-destructive">{stripeError}</p> : null}
         </div>
@@ -84,26 +87,25 @@ export function SellerCenterHome({
           )}
         >
           {prep.status === "APPROVED" ? (
-            <>판매자 등록이 완료되었습니다. Stripe 정산이 준비되면 바로 상품을 등록할 수 있습니다.</>
+            <>{t("market.stripe_6")}</>
           ) : (
-            <>가입 신청이 접수되었습니다. Stripe 온보딩 완료 후 판매를 시작할 수 있습니다.</>
+            <>{t("market.stripe_7")}</>
           )}
         </div>
       )}
 
       {prep.status === "PENDING" && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-semibold">승인 대기 중</p>
+          <p className="font-semibold">{t("market.stg3ooy")}</p>
           <p className="mt-1 text-amber-800/90">
-            Stripe 온보딩 상태를 확인 중입니다. 추가 정보가 필요하면 위 배너에서 이어서 진행해
-            주세요.
+            {t("market.stripe_8")}
           </p>
         </div>
       )}
 
       {prep.status === "REJECTED" && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          판매자 신청이 거절되었습니다. 판매자 가입을 다시 진행하거나 고객지원으로 문의해 주세요.
+          {t("market.s1vr1z4b")}
         </div>
       )}
 
@@ -115,15 +117,15 @@ export function SellerCenterHome({
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-                {MARKET_BRAND_FULL}과 함께 빠르게 판매를 시작하세요!
+                {t("market.sellerHomeHero", { brand: MARKET_BRAND_FULL })}
               </h1>
               <p className="text-sm text-muted-foreground mt-1.5">
-                가이드에 따라 단계를 완료하면 바로 판매할 수 있어요.
+                {t("market.s1sowfve")}
               </p>
             </div>
             <div className="sm:w-44 shrink-0">
               <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="font-medium">판매 준비하기</span>
+                <span className="font-medium">{t("market.s1aaq67c")}</span>
                 <span className="text-muted-foreground">
                   {doneCount}/{total}
                 </span>
@@ -140,32 +142,34 @@ export function SellerCenterHome({
           <div className="space-y-3">
             <PrepCard
               done={prep.sellerInfoDone}
-              title="판매자 정보 입력하기"
-              description="Stripe에서 본인 확인 및 정산 계좌를 등록합니다."
+              title={t("market.s2xwf91")}
+              description={t("market.stripe_9")}
               actions={
                 <Button asChild className="min-w-[9.5rem]">
-                  <Link href="#profile">판매자 정보 입력</Link>
+                  <Link href="#profile">{t("market.se9nrtp")}</Link>
                 </Button>
               }
             />
 
             <PrepCard
               done={prep.firstProductDone}
-              title="첫 상품등록하기"
-              description="첫 상품을 등록하면 판매를 시작할 수 있어요. 상품 사진·가격·배송 정보를 정확히 입력해 주세요."
+              title={t("market.srohkv4")}
+              description={t("market.sd71n2h")}
               actions={
                 <div className="flex flex-col gap-2 w-full sm:w-auto">
                   {prep.canList && prep.status === "APPROVED" ? (
                     <Button asChild className="min-w-[9.5rem]">
-                      <Link href="/market/sell-item">상품등록 하기</Link>
+                      <Link href="/market/sell-item">{t("market.s10ec6sl")}</Link>
                     </Button>
                   ) : (
                     <Button type="button" className="min-w-[9.5rem]" disabled>
-                      승인 후 상품등록
+                      {t("market.sduknow")}
                     </Button>
                   )}
                   <Button asChild variant="outline" className="min-w-[9.5rem] border-primary/40 text-primary">
-                    <Link href="/market">{MARKET_BRAND_NAME}에서 둘러보기</Link>
+                    <Link href="/market">
+                      {t("market.browseOnBrand", { brand: MARKET_BRAND_NAME })}
+                    </Link>
                   </Button>
                 </div>
               }
@@ -176,22 +180,21 @@ export function SellerCenterHome({
 
       <section className="rounded-2xl border border-border/60 bg-white p-5 sm:p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3 mb-4">
-          <h2 className="text-base font-bold">판매자가이드 및 혜택</h2>
+          <h2 className="text-base font-bold">{t("market.sgp3k9y")}</h2>
           <span className="text-xs text-muted-foreground">1/1</span>
         </div>
         <div className="grid sm:grid-cols-[140px_1fr] gap-4 items-center">
           <div className="h-28 rounded-xl bg-gradient-to-br from-primary/15 via-amber-50 to-sky-50 border border-border/40" />
           <div>
-            <p className="font-semibold">성장하는 셀러를 위한 판매 가이드</p>
+            <p className="font-semibold">{t("market.s1tq4890")}</p>
             <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-              상품 등록, 주문 처리, Stripe Connect 정산까지 {MARKET_BRAND_FULL} 판매자센터에서 한 번에
-              관리할 수 있습니다. 약관과 정책을 확인한 뒤 첫 상품을 올려 보세요.
+              {t("market.sellerCenterBlurb", { brand: MARKET_BRAND_FULL })}
             </p>
             <Link
               href="/legal/seller-terms"
               className="inline-block mt-3 text-sm text-primary font-medium hover:underline"
             >
-              판매자 이용약관 보기
+              {t("market.sa6vfj4")}
             </Link>
           </div>
         </div>
@@ -201,10 +204,10 @@ export function SellerCenterHome({
         id="profile"
         className="rounded-2xl border border-border/60 bg-white p-5 sm:p-6 shadow-sm scroll-mt-20"
       >
-        <h2 className="text-base font-bold mb-1">판매자 정보 · 정산</h2>
+        <h2 className="text-base font-bold mb-1">{t("market.s1c5axcx")}</h2>
         <p className="text-xs text-muted-foreground mb-4">
           {prep.sellerTypeLabel} · {prep.connectMessage}
-          {prep.listingsCount > 0 ? ` · 등록 상품 ${prep.listingsCount}개` : ""}
+          {prep.listingsCount > 0 ? t("market.s17xvob2", { v0: prep.listingsCount }) : ""}
         </p>
         <MarketplaceSellerApplyForm
           initialName={profileFormName}
@@ -216,9 +219,9 @@ export function SellerCenterHome({
         id="settlement"
         className="rounded-2xl border border-border/60 bg-white p-5 sm:p-6 shadow-sm scroll-mt-20"
       >
-        <h2 className="text-base font-bold mb-1">정산 · Invoice</h2>
+        <h2 className="text-base font-bold mb-1">{t("market.invoice")}</h2>
         <p className="text-xs text-muted-foreground mb-4">
-          Stripe Connect 정산 완료 주문의 플랫폼 수수료(10%) 차감 내역입니다.
+          {t("market.stripe_connect_10")}
         </p>
         <SellerSettlementInvoices invoices={settlementInvoices} />
       </section>
@@ -263,7 +266,7 @@ function PrepCard({
       </div>
       {!done && <div className="sm:ml-auto shrink-0">{actions}</div>}
       {done && (
-        <span className="sm:ml-auto text-sm font-medium text-emerald-700 shrink-0">완료</span>
+        <span className="sm:ml-auto text-sm font-medium text-emerald-700 shrink-0">{t("common.done")}</span>
       )}
     </div>
   );

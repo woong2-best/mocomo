@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
@@ -92,7 +95,7 @@ export function MarketplaceListingForm() {
   function submit(publish: boolean) {
     setError("");
     if (shipToCountries.length === 0) {
-      setError("배송 가능 국가를 1개 이상 선택해 주세요.");
+      setError(t("market.smcw3hc"));
       return;
     }
     startTransition(async () => {
@@ -150,7 +153,7 @@ export function MarketplaceListingForm() {
   return (
     <div className="space-y-6">
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold">판매 종류</h2>
+        <h2 className="text-sm font-semibold">{t("market.s1vdsqwv")}</h2>
         <div className="grid gap-2 sm:grid-cols-2">
           {MARKETPLACE_BROWSE_LISTING_TYPES.map((t) => (
             <button
@@ -172,25 +175,25 @@ export function MarketplaceListingForm() {
       </section>
 
       <section className="space-y-3">
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목" maxLength={120} />
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("market.sz28d")} maxLength={120} />
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="설명"
+          placeholder={t("market.sxvj5")}
           rows={6}
           className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
         />
         <div className="grid gap-3 sm:grid-cols-2">
           <UsedWorkTitleField value={workTitle} onChange={setWorkTitle} disabled={pending} />
           <div className="space-y-1">
-            <label className="text-sm font-medium">상품 종류</label>
+            <label className="text-sm font-medium">{t("market.s1y6rubw")}</label>
             <select
               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm h-11"
               value={productType}
               onChange={(e) => setProductType(e.target.value)}
               disabled={pending}
             >
-              <option value="">선택 (권장)</option>
+              <option value="">{t("market.s17kpn2j")}</option>
               {USED_PRODUCT_TYPES.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.label}
@@ -217,7 +220,7 @@ export function MarketplaceListingForm() {
               </option>
             ))}
           </select>
-          <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="태그 (쉼표 구분)" />
+          <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t("market.sm1dzed")} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
@@ -225,21 +228,21 @@ export function MarketplaceListingForm() {
             min={0}
             value={priceAmount}
             onChange={(e) => setPriceAmount(e.target.value)}
-            placeholder="가격 (USD cents, 예: 1000 = $10)"
+            placeholder={t("market.usd_cents_1000_10")}
           />
           <Input
             type="number"
             min={0}
             value={stock}
             onChange={(e) => setStock(e.target.value)}
-            placeholder="재고"
+            placeholder={t("market.sywtw")}
           />
         </div>
       </section>
 
       {(type === "CUSTOM_ORDER" || type === "PREORDER") && (
         <section className="space-y-2">
-          <label className="text-sm font-semibold">제작기간 (일)</label>
+          <label className="text-sm font-semibold">{t("market.s1tbx932")}</label>
           <Input
             type="number"
             min={1}
@@ -250,34 +253,34 @@ export function MarketplaceListingForm() {
       )}
 
       <section className="space-y-2">
-        <label className="text-sm font-semibold">커버·미디어 URL</label>
-        <Input value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} placeholder="커버 이미지 URL" />
+        <label className="text-sm font-semibold">{t("market.url_2")}</label>
+        <Input value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} placeholder={t("market.url_3")} />
         <textarea
           value={mediaUrls}
           onChange={(e) => setMediaUrls(e.target.value)}
-          placeholder={"추가 사진/영상 URL (줄바꿈)"}
+          placeholder={t("market.url_4")}
           rows={3}
           className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
         />
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold">옵션</h2>
+        <h2 className="text-sm font-semibold">{t("market.syrwj")}</h2>
         <div className="flex flex-wrap gap-2">
           <Input
             value={optionName}
             onChange={(e) => setOptionName(e.target.value)}
-            placeholder="옵션명 (예: 색상)"
+            placeholder={t("market.s867v1")}
             className="max-w-[140px]"
           />
           <Input
             value={optionValues}
             onChange={(e) => setOptionValues(e.target.value)}
-            placeholder="값 (예: 빨강, 파랑)"
+            placeholder={t("market.s5euuzz")}
             className="min-w-[180px] flex-1"
           />
           <Button type="button" variant="secondary" onClick={addOption}>
-            추가
+            {t("market.szwto")}
           </Button>
         </div>
         {options.length > 0 && (
@@ -293,9 +296,9 @@ export function MarketplaceListingForm() {
 
       <section className="space-y-4">
           <div className="space-y-2">
-            <h2 className="text-sm font-semibold">배송 가능 국가</h2>
+            <h2 className="text-sm font-semibold">{t("market.s1cdbwgv")}</h2>
             <p className="text-xs text-muted-foreground">
-              현재 KR / US / JP / CN 만 지원합니다. 복수 선택 가능합니다.
+              {t("market.kr_us_jp_cn")}
             </p>
             <div className="flex flex-wrap gap-2">
               {MARKETPLACE_SHIP_COUNTRIES.map((c) => {
@@ -320,9 +323,9 @@ export function MarketplaceListingForm() {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-sm font-semibold">주로 이용하는 배송사</h2>
+            <h2 className="text-sm font-semibold">{t("market.sokmbos")}</h2>
             <p className="text-xs text-muted-foreground">
-              발송 시 선택합니다. 국제 배송(EMS/DHL 등) 포함. MoCoMo는 배송을 대행하지 않습니다.
+              {t("market.ems_dhl_mocomo")}
             </p>
             <div className="flex flex-wrap gap-2">
               {PREFERRED_CARRIER_CHOICES.map((m) => (
@@ -348,17 +351,17 @@ export function MarketplaceListingForm() {
               value={shippingFeeType}
               onChange={(e) => setShippingFeeType(e.target.value as MarketplaceShippingFeeType)}
             >
-              <option value="FREE">무료배송</option>
-              <option value="FIXED">고정 배송비</option>
-              <option value="BY_COUNTRY">국가별 (추후)</option>
-              <option value="FREE_OVER_AMOUNT">금액별 무료 (추후)</option>
+              <option value="FREE">{t("market.soe05ft")}</option>
+              <option value="FIXED">{t("market.s1q1rwo")}</option>
+              <option value="BY_COUNTRY">{t("market.sfocz6o")}</option>
+              <option value="FREE_OVER_AMOUNT">{t("market.sfd8udg")}</option>
             </select>
             <Input
               type="number"
               min={0}
               value={shippingFeeFixed}
               onChange={(e) => setShippingFeeFixed(e.target.value)}
-              placeholder="배송비 (USD cents, 예: 300 = $3)"
+              placeholder={t("market.usd_cents_300_3")}
               disabled={shippingFeeType === "FREE"}
             />
           </div>
@@ -370,13 +373,13 @@ export function MarketplaceListingForm() {
 
       <div className="flex flex-wrap gap-2">
         <Button type="button" disabled={pending} onClick={() => submit(true)}>
-          {pending ? "등록 중…" : "판매 등록"}
+          {pending ? t("market.skg4uo9") : t("market.s1vdpeu0")}
         </Button>
         <Button type="button" variant="secondary" disabled={pending} onClick={() => submit(false)}>
-          임시저장
+          {t("market.spzfvr1")}
         </Button>
         <Button type="button" variant="ghost" asChild>
-          <Link href="/market">취소</Link>
+          <Link href="/market">{t("toast.cancel")}</Link>
         </Button>
       </div>
     </div>

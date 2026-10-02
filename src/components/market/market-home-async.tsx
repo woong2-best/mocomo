@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Package, Store } from "lucide-react";
@@ -13,7 +16,7 @@ export async function MarketHomeAsync() {
       <MarketPageTitle>
         <div>
           <h1 className="text-2xl font-bold">{MARKET_BRAND_NAME}</h1>
-          <p className="text-sm text-muted-foreground mt-1">굿즈 · 크리에이터 상품</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("market.s1lmkrob")}</p>
         </div>
       </MarketPageTitle>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -24,8 +27,10 @@ export async function MarketHomeAsync() {
                 <Package className="h-6 w-6 text-cyan-600" />
               </div>
               <div>
-                <p className="font-bold">실물 굿즈</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{goods.length}개 판매 중</p>
+                <p className="font-bold">{t("market.s4bfnld")}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t("market.goodsOnSale", { count: String(goods.length) })}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -37,8 +42,10 @@ export async function MarketHomeAsync() {
                 <Store className="h-6 w-6 text-amber-600" />
               </div>
               <div>
-                <p className="font-bold">굿즈 판매 문의</p>
-                <p className="text-xs text-muted-foreground mt-0.5">STAR {MARKET_BRAND_NAME} 등록</p>
+                <p className="font-bold">{t("market.s1g9286t")}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t("market.starBrandRegistered", { brand: MARKET_BRAND_NAME })}
+                </p>
               </div>
             </CardContent>
           </Card>

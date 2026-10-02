@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ShoppingCart, User } from "lucide-react";
@@ -27,7 +30,7 @@ export function MarketQuickActions({ className }: { className?: string }) {
         className="flex w-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-xl border border-folk-cobalt/15 bg-background px-1 py-1.5 text-foreground transition-colors hover:border-folk-terracotta/40 hover:bg-folk-cream/60"
       >
         <User className="h-5 w-5 text-folk-cobalt" strokeWidth={2} />
-        <span className="text-[10px] font-bold leading-none">마이</span>
+        <span className="text-[10px] font-bold leading-none">{t("market.swp0s")}</span>
       </Link>
       <Link
         href="/market/cart"
@@ -39,7 +42,7 @@ export function MarketQuickActions({ className }: { className?: string }) {
             {count > 99 ? "99+" : count}
           </span>
         ) : null}
-        <span className="text-[10px] font-bold leading-none">장바구니</span>
+        <span className="text-[10px] font-bold leading-none">{t("market.addToCart")}</span>
       </Link>
     </div>
   );

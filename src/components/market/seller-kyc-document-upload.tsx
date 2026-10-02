@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
@@ -63,20 +66,19 @@ export function SellerKycDocumentUpload({ value, onChange, disabled, idType }: P
 
   const maskHint =
     idType === "NATIONAL_ID"
-      ? "주민등록증 뒷자리(발급일·번호)는 가려 주세요."
+      ? t("market.sbvgjd")
       : idType === "RESIDENT_CARD"
-        ? "외국인등록번호 뒷자리는 가려 주세요."
-        : "신분증 번호 전체가 보이지 않도록 가려 주세요.";
+        ? t("market.sq0l31w")
+        : t("market.s10y8nss");
 
   return (
     <div className="space-y-2 rounded-xl border border-border/70 bg-muted/20 p-3">
       <div className="flex items-start gap-2">
         <ImagePlus className="h-4 w-4 text-primary shrink-0 mt-0.5" />
         <div className="min-w-0">
-          <p className="text-sm font-medium">신분증 사진</p>
+          <p className="text-sm font-medium">{t("market.sninpun")}</p>
           <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-            마스킹 처리된 신분증 사진을 업로드해 주세요. ({maskHint}) 선명한 정면 사진일수록
-            OCR·자동 검증이 빠릅니다.
+            {t("market.kycUploadHint", { maskHint })}
           </p>
         </div>
       </div>
@@ -100,7 +102,7 @@ export function SellerKycDocumentUpload({ value, onChange, disabled, idType }: P
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={value.previewUrl}
-              alt="신분증 미리보기"
+              alt={t("market.scmj2yf")}
               className="max-h-48 w-full object-contain bg-black/5"
             />
             {uploading && (
@@ -117,7 +119,7 @@ export function SellerKycDocumentUpload({ value, onChange, disabled, idType }: P
               disabled={disabled || uploading}
               onClick={() => inputRef.current?.click()}
             >
-              다른 사진 선택
+              {t("market.sv2rkft")}
             </Button>
             <Button
               type="button"
@@ -127,10 +129,10 @@ export function SellerKycDocumentUpload({ value, onChange, disabled, idType }: P
               onClick={clearDocument}
             >
               <Trash2 className="h-4 w-4 mr-1" />
-              삭제
+              {t("toast.delete")}
             </Button>
             {value.documentKey && !uploading && (
-              <span className="text-xs text-emerald-700 self-center">업로드 완료</span>
+              <span className="text-xs text-emerald-700 self-center">{t("market.s1vglegz")}</span>
             )}
           </div>
         </div>
@@ -151,8 +153,8 @@ export function SellerKycDocumentUpload({ value, onChange, disabled, idType }: P
           ) : (
             <ImagePlus className="h-6 w-6 text-muted-foreground" />
           )}
-          <span className="font-medium">신분증 사진 업로드</span>
-          <span className="text-xs text-muted-foreground">JPEG · PNG · WEBP · 최대 10MB</span>
+          <span className="font-medium">{t("market.ss6rts4")}</span>
+          <span className="text-xs text-muted-foreground">{t("market.jpeg_png_webp_10mb")}</span>
         </button>
       )}
 
