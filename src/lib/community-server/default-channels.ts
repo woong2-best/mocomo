@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { CommunityChannelType } from "@prisma/client";
 
 export type DefaultChannelSpec = {
@@ -11,15 +14,15 @@ export type DefaultChannelSpec = {
 };
 
 export const DEFAULT_SERVER_CHANNELS: DefaultChannelSpec[] = [
-  { type: "POSTS", name: "게시글", slug: "posts", category: "일반", position: 0, isDefault: true },
-  { type: "TEXT", name: "채팅", slug: "chat", category: "일반", position: 1 },
-  { type: "ANNOUNCEMENT", name: "공지", slug: "announcements", category: "일반", position: 2 },
-  { type: "QA", name: "Q&A", slug: "qa", category: "일반", position: 3 },
-  { type: "GALLERY", name: "갤러리", slug: "gallery", category: "일반", position: 4 },
-  { type: "FILE", name: "파일", slug: "files", category: "일반", position: 5 },
-  { type: "EVENT", name: "이벤트", slug: "events", category: "이벤트", position: 0 },
-  { type: "MEMBERS", name: "멤버", slug: "members", category: "정보", position: 0 },
-  { type: "SETTINGS", name: "설정", slug: "settings", category: "정보", position: 1 },
+  { type: "POSTS", name: t("lib.flower.sq7xo0"), slug: "posts", category: t("lib.webtoon-studio.syyos"), position: 0, isDefault: true },
+  { type: "TEXT", name: t("lib.flower.szwht"), slug: "chat", category: t("lib.webtoon-studio.syyos"), position: 1 },
+  { type: "ANNOUNCEMENT", name: t("lib.community-server.suiy3"), slug: "announcements", category: t("lib.webtoon-studio.syyos"), position: 2 },
+  { type: "QA", name: "Q&A", slug: "qa", category: t("lib.webtoon-studio.syyos"), position: 3 },
+  { type: "GALLERY", name: t("lib.community-server.sq3zvo"), slug: "gallery", category: t("lib.webtoon-studio.syyos"), position: 4 },
+  { type: "FILE", name: t("lib.community-server.s10zqo"), slug: "files", category: t("lib.webtoon-studio.syyos"), position: 5 },
+  { type: "EVENT", name: t("lib.payment.history.sbff20dc3bb"), slug: "events", category: t("lib.payment.history.sbff20dc3bb"), position: 0 },
+  { type: "MEMBERS", name: t("lib.community-server.swqlc"), slug: "members", category: t("lib.community-server.sz2in"), position: 0 },
+  { type: "SETTINGS", name: t("settings.title"), slug: "settings", category: t("lib.community-server.sz2in"), position: 1 },
 ];
 
 export const DEFAULT_SERVER_ROLES = [
