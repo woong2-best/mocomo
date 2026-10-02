@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { PostDetailCard } from "@/components/post/post-detail-card";
@@ -43,10 +46,10 @@ export default async function PostPage({
     return (
       <AppPageChrome maxWidth="2xl">
         <div className="px-4 py-16 max-w-md mx-auto text-center space-y-3">
-          <p className="text-lg font-bold">이 게시물은 잠겨 있습니다</p>
+          <p className="text-lg font-bold">{t("app.post.s14qos5d")}</p>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {detail.communityId
-              ? "이 QnA 글은 잠겨 있습니다."
+              ? t("app.post.qna")
               : `@${detail.author.username} 님이 계정을 잠갔습니다. 승인된 팔로워만 게시물을 볼 수 있습니다.`}
           </p>
           {detail.communityId ? null : (
@@ -66,7 +69,7 @@ export default async function PostPage({
     return (
       <AppPageChrome maxWidth="2xl">
         <div className="px-4 py-16 max-w-md mx-auto text-center space-y-3">
-          <p className="text-lg font-bold">성인 콘텐츠</p>
+          <p className="text-lg font-bold">{t("media.s1aw4bu7")}</p>
           <p className="text-sm text-muted-foreground leading-relaxed">
             이 게시물은 만 19세 이상(생년월일 등록) 계정에서만 볼 수 있습니다.
           </p>
