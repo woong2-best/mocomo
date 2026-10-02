@@ -164,7 +164,7 @@ export function AdminSettlementsPanel({
               });
               if (res.error) setMsg(errorText(res.error));
               else {
-                setMsg(`초안 생성: ${res.id}`);
+                setMsg(`Draft created: ${res.id}`);
                 router.refresh();
               }
             })

@@ -186,7 +186,7 @@ export function AdminRolesPanel({
                               start(async () => {
                                 const res = await adminResetStaffPasswordAction(s.id);
                                 if ("temporaryPassword" in res && res.temporaryPassword) {
-                                  setMsg(`임시 비밀번호: ${res.temporaryPassword}`);
+                                  setMsg(`Temporary password: ${res.temporaryPassword}`);
                                 } else setMsg(errorText(res.error ?? t("reels.syb44")));
                               })
                             }

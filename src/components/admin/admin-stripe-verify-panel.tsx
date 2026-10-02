@@ -83,7 +83,7 @@ export function AdminStripeVerifyPanel({ data }: { data: StripeVerifyDashboard }
           <CardTitle className="text-lg">{t("admin.seecmmz")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <StatusRow ok={d.configured} label={t("admin.s7is06r")} detail={`모드: ${modeLabel}`} />
+          <StatusRow ok={d.configured} label={t("admin.s7is06r")} detail={`Mode: ${modeLabel}`} />
           <StatusRow
             ok={d.webhookSecretPresent}
             label="STRIPE_WEBHOOK_SECRET"

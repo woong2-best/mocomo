@@ -175,7 +175,7 @@ export function AdminSuspensionsPanel({
                           disabled={pending}
                           onClick={() =>
                             startTransition(async () => {
-                              await updateAppealStatus(appeal.id, status, `관리자 처리: ${status}`);
+                              await updateAppealStatus(appeal.id, status, `Admin action: ${status}`);
                               const next = await getAdminAppeals();
                               setAppeals(next);
                             })

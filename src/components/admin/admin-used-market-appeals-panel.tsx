@@ -109,7 +109,7 @@ export function AdminUsedMarketAppealsPanel({
       const res = await updateUsedMarketAppealStatus(
         selectedId,
         status,
-        decisionNote.trim() || `관리자 처리: ${appealStatusLabel(status)}`
+        decisionNote.trim() || `Admin action: ${appealStatusLabel(status)}`
       );
       if ("error" in res && res.error) {
         setMsg(errorText(res.error));
