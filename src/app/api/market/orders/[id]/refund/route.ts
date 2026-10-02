@@ -27,7 +27,7 @@ export async function POST(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { id: orderId } = await params;
@@ -35,12 +35,12 @@ export async function POST(
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = postSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "환불 사유를 입력해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Enter a reason for the refund." }, { status: 400 });
   }
 
   const order = await db.marketplaceOrder.findUnique({
@@ -48,7 +48,7 @@ export async function POST(
     include: { shipment: true },
   });
   if (!order || order.buyerId !== session.user.id) {
-    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Permission denied." }, { status: 403 });
   }
 
   const quote = computeRefundQuote({
@@ -78,7 +78,7 @@ export async function PATCH(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { id: orderId } = await params;
@@ -86,12 +86,12 @@ export async function PATCH(
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = patchSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const refund = await db.marketplaceRefund.findUnique({
@@ -99,7 +99,7 @@ export async function PATCH(
     include: { order: true },
   });
   if (!refund || refund.orderId !== orderId || refund.order.sellerId !== session.user.id) {
-    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Permission denied." }, { status: 403 });
   }
 
   const result = await sellerRespondMarketplaceRefund(parsed.data.refundId, parsed.data.approve);

@@ -47,7 +47,7 @@ export async function DELETE(req: NextRequest) {
 
   const body = (await req.json().catch(() => null)) as { id?: string } | null;
   if (!body?.id) {
-    return NextResponse.json({ error: "id가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const res = await detachPaymentMethod(auth.user.id, body.id);
@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest) {
 
   const body = (await req.json().catch(() => null)) as { id?: string } | null;
   if (!body?.id) {
-    return NextResponse.json({ error: "id가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const res = await setDefaultPaymentMethod(auth.user.id, body.id);

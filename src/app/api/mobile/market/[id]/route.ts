@@ -16,12 +16,12 @@ export async function GET(
   const viewerId = await getMobileUserId(req);
   const { id } = await params;
   if (!id || id.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const listing = await getMarketplaceListing(id);
   if (!listing || listing.status !== "ACTIVE") {
-    return NextResponse.json({ error: "상품을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Product not found." }, { status: 404 });
   }
 
   if (
@@ -32,7 +32,7 @@ export async function GET(
       isNsfw: true,
     }))
   ) {
-    return NextResponse.json({ error: "성인 콘텐츠는 열람할 수 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Not found." }, { status: 403 });
   }
 
   return NextResponse.json({

@@ -32,7 +32,7 @@ export async function GET(
 
   const sinceDate = since ? new Date(since) : new Date(Date.now() - 5 * 60_000);
   if (Number.isNaN(sinceDate.getTime())) {
-    return NextResponse.json({ error: "since 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid since format." }, { status: 400 });
   }
 
   const messages = await db.liveChatMessage.findMany({

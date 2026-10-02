@@ -13,7 +13,7 @@ export async function GET(
 
   const { id: parentId } = await params;
   if (!parentId || parentId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const limitRaw = Number(req.nextUrl.searchParams.get("limit") ?? "20");
@@ -31,7 +31,7 @@ export async function GET(
     },
   });
   if (!parent) {
-    return NextResponse.json({ error: "댓글을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
   const session = await auth();

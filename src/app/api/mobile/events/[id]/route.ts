@@ -21,7 +21,7 @@ export async function GET(
   const viewerId = await getMobileUserId(req);
   const { id } = await params;
   if (!id || id.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const event = await db.event.findFirst({
@@ -33,7 +33,7 @@ export async function GET(
   });
 
   if (!event) {
-    return NextResponse.json({ error: "이벤트를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
   }
 
   let joined = false;

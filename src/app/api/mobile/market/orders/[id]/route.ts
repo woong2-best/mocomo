@@ -15,12 +15,12 @@ export async function GET(
 
   const { id } = await params;
   if (!id || id.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const order = await getMarketplaceOrderDetailForUser(id, auth.user.id);
   if (!order) {
-    return NextResponse.json({ error: "주문을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Order not found." }, { status: 404 });
   }
 
   return NextResponse.json({

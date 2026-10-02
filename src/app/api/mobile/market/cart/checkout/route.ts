@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   if (limited) return limited;
 
   if (!isPaymentsConfigured()) {
-    return NextResponse.json({ error: "결제가 설정되지 않았습니다." }, { status: 503 });
+    return NextResponse.json({ error: "Payments aren't configured." }, { status: 503 });
   }
 
   const auth = await requireMobileApiUser(req, { writeKind: "default" });
@@ -41,12 +41,12 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const dbUser = await db.user.findUnique({

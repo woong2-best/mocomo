@@ -22,6 +22,6 @@ export async function GET(req: NextRequest) {
     );
   } catch (e) {
     console.error("[api/search/suggest]", e);
-    return NextResponse.json({ error: "추천 실패" }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     console.error("[api/mobile/community/feed]", e);
     return NextResponse.json(
-      { items: [], nextCursor: null, error: "QnA를 불러오지 못했습니다." },
+      { items: [], nextCursor: null, error: "Couldn't load Q&A." },
       { status: 503 }
     );
   }

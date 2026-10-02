@@ -15,12 +15,12 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ success: false, error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Invalid request." }, { status: 400 });
   }
 
   const donationId = body.donation_id?.trim();
   if (!donationId) {
-    return NextResponse.json({ success: false, error: "donation_id가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Required field missing." }, { status: 400 });
   }
 
   const result = await skipMocoDonation({

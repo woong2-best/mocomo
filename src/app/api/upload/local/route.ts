@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
 
   if (!validateBufferMime(buffer, mime, allowed)) {
     return NextResponse.json(
-      { error: "파일 형식이 올바르지 않습니다." },
+      { error: "Invalid request." },
       { status: 400 }
     );
   }
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "프로덕션 업로드 설정이 필요합니다. Vercel에 SUPABASE_SERVICE_ROLE_KEY를 추가하고 Supabase에서 Storage 버킷 SQL(섹션 L)을 실행해 주세요.",
+          "Please check your input and try again.",
       },
       { status: 503 }
     );

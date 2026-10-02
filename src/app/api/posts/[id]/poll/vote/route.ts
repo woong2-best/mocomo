@@ -14,7 +14,7 @@ export async function POST(
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { id: postId } = await ctx.params;
@@ -22,7 +22,7 @@ export async function POST(
   try {
     body = (await req.json()) as { optionId?: string };
   } catch {
-    return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const optionId = body.optionId?.trim();

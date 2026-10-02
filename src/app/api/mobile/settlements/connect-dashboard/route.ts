@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!user?.stripeConnectAccountId) {
-    return NextResponse.json({ error: "연동된 정산 계정이 없습니다." }, { status: 422 });
+    return NextResponse.json({ error: "Not found." }, { status: 422 });
   }
 
   const result = await createExpressDashboardLink(user.stripeConnectAccountId);

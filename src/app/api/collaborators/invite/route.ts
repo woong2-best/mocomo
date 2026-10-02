@@ -19,13 +19,13 @@ export async function POST(req: NextRequest) {
   try {
     body = (await req.json()) as { postId?: string; userIds?: string[] };
   } catch {
-    return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const postId = String(body.postId ?? "").trim();
   const userIds = Array.isArray(body.userIds) ? body.userIds.map(String) : [];
   if (!postId || postId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   try {
@@ -36,6 +36,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: e.message }, { status: e.status });
     }
     console.error("[api/collaborators/invite]", e);
-    return NextResponse.json({ error: "초대에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const preset = await db.avatarPreset.findUnique({
@@ -21,23 +21,23 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const body = (await req.json()) as { name?: string; config?: AvatarConfig };
   if (!body.config) {
-    return NextResponse.json({ error: "config 필요" }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const preset = await db.avatarPreset.upsert({
     where: { userId: session.user.id },
     create: {
       userId: session.user.id,
-      name: body.name ?? "기본",
+      name: body.name ?? "Default",
       config: body.config as object,
     },
     update: {
-      name: body.name ?? "기본",
+      name: body.name ?? "Default",
       config: body.config as object,
     },
   });

@@ -39,7 +39,7 @@ export async function GET(
 
   const { id: channelId } = await params;
   if (!channelId || channelId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const since = req.nextUrl.searchParams.get("since") ?? undefined;
@@ -92,7 +92,7 @@ export async function POST(
 
   const { id: channelId } = await params;
   if (!channelId || channelId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let content = "";
@@ -100,7 +100,7 @@ export async function POST(
     const body = await req.json();
     content = typeof body.content === "string" ? body.content.trim() : "";
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   if (!content || content.length > 200) {
@@ -121,7 +121,7 @@ export async function POST(
     },
   });
   if (!channel) {
-    return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Stream not found." }, { status: 404 });
   }
 
   const filtered = filterLiveChatContent(content, ensureStringArray(channel.chatBannedWords));
@@ -156,7 +156,7 @@ export async function POST(
     });
 
     if (recentBurst[0] && looksLikeSpamDuplicate(recentBurst[0].content, filtered.text)) {
-      return NextResponse.json({ error: "같은 메시지를 연속으로 보낼 수 없습니다." }, { status: 429 });
+      return NextResponse.json({ error: "Not found." }, { status: 429 });
     }
 
     if (channel.slowModeSeconds > 0 && recentBurst[0]) {
@@ -182,6 +182,6 @@ export async function POST(
     return NextResponse.json({ ok: true, message: mapped });
   } catch (e) {
     console.error("[api/mobile/live/chat] create", e);
-    return NextResponse.json({ error: "채팅 저장에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   try {
     body = (await req.json()) as CreatePostInput;
   } catch {
-    return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const user = await db.user.findUnique({
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     select: { id: true, username: true, isBanned: true },
   });
   if (!user) {
-    return NextResponse.json({ error: "계정 정보를 찾을 수 없습니다." }, { status: 401 });
+    return NextResponse.json({ error: "Not found." }, { status: 401 });
   }
 
   const media = (body.media ?? []).map((m) => ({

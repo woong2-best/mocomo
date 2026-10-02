@@ -17,7 +17,7 @@ export async function GET(
   const { slug: raw } = await params;
   const slug = normalizeCommunitySlugParam(raw);
   if (!slug || slug.length > 80) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const community = await db.community.findUnique({
@@ -25,7 +25,7 @@ export async function GET(
     select: { id: true, slug: true, name: true, isPublic: true },
   });
   if (!community) {
-    return NextResponse.json({ error: "커뮤니티를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Community not found." }, { status: 404 });
   }
 
   await ensureCommunityServerProvisioned(community.id).catch(() => undefined);
@@ -76,7 +76,7 @@ export async function POST(
   const { slug: raw } = await params;
   const slug = normalizeCommunitySlugParam(raw);
   if (!slug || slug.length > 80) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let channelSlug = "";
@@ -84,10 +84,10 @@ export async function POST(
     const body = (await req.json()) as { channelSlug?: string };
     channelSlug = body.channelSlug?.trim() ?? "";
   } catch {
-    return NextResponse.json({ error: "channelSlug가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
   if (!channelSlug || channelSlug.length > 80) {
-    return NextResponse.json({ error: "channelSlug가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const community = await db.community.findUnique({
@@ -95,7 +95,7 @@ export async function POST(
     select: { id: true, slug: true, name: true },
   });
   if (!community) {
-    return NextResponse.json({ error: "커뮤니티를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Community not found." }, { status: 404 });
   }
 
   const member = await db.communityMember.findUnique({
@@ -111,7 +111,7 @@ export async function POST(
     select: { id: true, slug: true, name: true, type: true, chatRoomId: true },
   });
   if (!channel?.chatRoomId || !TEXT_TYPES.has(channel.type)) {
-    return NextResponse.json({ error: "채널을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
   await db.chatMember.upsert({

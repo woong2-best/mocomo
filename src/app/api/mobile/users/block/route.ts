@@ -21,17 +21,17 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "userId가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const { userId: targetUserId } = parsed.data;
   if (auth.user.id === targetUserId) {
-    return NextResponse.json({ error: "자기 자신은 차단할 수 없습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Not found." }, { status: 400 });
   }
 
   const target = await db.user.findUnique({
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     select: { username: true },
   });
   if (!target) {
-    return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
 
   await db.$transaction([

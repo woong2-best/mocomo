@@ -18,7 +18,7 @@ export async function POST(
 
   const { id: channelId } = await params;
   if (!channelId || channelId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const access = await resolveLiveChannelAccess(channelId, authResult.user.id);
@@ -35,7 +35,7 @@ export async function POST(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const result = await sendLiveSupportCheerRest({

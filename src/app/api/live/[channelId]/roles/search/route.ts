@@ -16,7 +16,7 @@ export async function GET(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
@@ -33,7 +33,7 @@ export async function GET(
   );
   const granted = permManage.ok ? permManage : permMod.ok ? permMod : null;
   if (!granted) {
-    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Permission denied." }, { status: 403 });
   }
 
   const users = await searchUsersForBroadcastRole(session.user.id, channelId, q);

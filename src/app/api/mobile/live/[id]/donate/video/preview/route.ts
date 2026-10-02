@@ -31,7 +31,7 @@ export async function POST(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
 
   const prepared = await prepareMocoVideoDonation({

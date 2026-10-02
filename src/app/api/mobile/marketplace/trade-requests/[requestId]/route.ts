@@ -16,7 +16,7 @@ export async function GET(
 
   const { requestId } = await params;
   if (!requestId || requestId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const result = await getMobileUsedTradeRequest(auth.user.id, requestId);

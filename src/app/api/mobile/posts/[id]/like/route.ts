@@ -16,7 +16,7 @@ export async function POST(
 
   const { id: postId } = await params;
   if (!postId || postId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const authResult = await requireMobileApiUser(req);
@@ -29,7 +29,7 @@ export async function POST(
       select: { authorId: true, communityId: true },
     });
     if (!post) {
-      return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
     const blocked = qnaEngagementError(post.communityId);
     if (blocked) {
@@ -55,6 +55,6 @@ export async function POST(
     return NextResponse.json({ liked: true, likeCount: count });
   } catch (e) {
     console.error("[api/mobile/posts/like]", e);
-    return NextResponse.json({ error: "좋아요 처리에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

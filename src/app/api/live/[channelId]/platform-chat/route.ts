@@ -19,7 +19,7 @@ export async function GET(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
@@ -43,14 +43,14 @@ export async function GET(
   });
 
   if (!channel?.externalProvider || !channel.externalId) {
-    return NextResponse.json({ error: "외부 방송이 아닙니다." }, { status: 400 });
+    return NextResponse.json({ error: "Not an external broadcast." }, { status: 400 });
   }
 
   if (
     channel.liveStatus === "ENDED" ||
     !canViewerEnterLiveRoom({ isLive: channel.isLive, liveStatus: channel.liveStatus })
   ) {
-    return NextResponse.json({ error: "방송이 종료되었습니다." }, { status: 410 });
+    return NextResponse.json({ error: "This broadcast has ended." }, { status: 410 });
   }
 
   const result = await handlePlatformChatRequest(

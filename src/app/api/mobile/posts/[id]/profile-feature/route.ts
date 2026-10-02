@@ -21,7 +21,7 @@ export async function POST(
 
   const { id: postId } = await params;
   if (!postId || postId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const auth = await requireMobileApiUser(req, { writeKind: "default" });
@@ -32,7 +32,7 @@ export async function POST(
     select: { username: true, profileMainPostId: true },
   });
   if (!me) {
-    return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
 
   if (me.profileMainPostId === postId) {
@@ -46,7 +46,7 @@ export async function POST(
     select: { id: true, authorId: true },
   });
   if (!post) {
-    return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
 
   if (post.authorId === auth.user.id) {

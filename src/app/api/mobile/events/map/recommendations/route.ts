@@ -47,12 +47,12 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const { title, description, lat, lng } = parsed.data;
@@ -94,6 +94,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     console.error("[api/mobile/events/map/recommendations POST]", e);
-    return NextResponse.json({ error: "추천 장소 저장에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

@@ -24,7 +24,7 @@ export async function GET(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
@@ -41,7 +41,7 @@ export async function GET(
   });
 
   if (!channel) {
-    return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Stream not found." }, { status: 404 });
   }
   if (channel.createdBy !== session.user.id) {
     return NextResponse.json({ error: "호스트만 확인할 수 있습니다." }, { status: 403 });
@@ -121,7 +121,7 @@ export async function GET(
       hasStreamKey: false,
       onAir: false,
       ingestEngine: "srs",
-      message: "방송 키를 불러오지 못했습니다. 설정에서 키를 다시 받으세요.",
+      message: "Not found.",
     });
   }
 

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     req.nextUrl.searchParams.get("url") ||
     "";
   if (!raw.trim()) {
-    return NextResponse.json({ error: "channelId 또는 url 필요" }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const parsed = parseExternalLiveSource(raw, { providerHint: "CHZZK" });

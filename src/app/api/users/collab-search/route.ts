@@ -29,6 +29,6 @@ export async function GET(req: NextRequest) {
     );
   } catch (e) {
     console.error("[api/users/collab-search]", e);
-    return NextResponse.json({ error: "검색에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Search failed." }, { status: 500 });
   }
 }

@@ -24,7 +24,7 @@ export async function GET(
 
   const { id: postId } = await params;
   if (!postId || postId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const sort = parseSort(req.nextUrl.searchParams.get("sort"));
@@ -40,7 +40,7 @@ export async function GET(
       select: { id: true, authorId: true, communityId: true },
     });
     if (!post) {
-      return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
 
     const viewerId = await getMobileUserId(req);
@@ -61,7 +61,7 @@ export async function GET(
     });
   } catch (e) {
     console.error("[api/mobile/posts/comments GET]", e);
-    return NextResponse.json({ error: "댓글을 불러오지 못했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Couldn't load comments." }, { status: 500 });
   }
 }
 
@@ -74,7 +74,7 @@ export async function POST(
 
   const { id: postId } = await params;
   if (!postId || postId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const authResult = await requireMobileApiUser(req, { writeKind: "comment" });
@@ -85,7 +85,7 @@ export async function POST(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const content = body.content?.trim();
@@ -104,7 +104,7 @@ export async function POST(
       select: { id: true, authorId: true, communityId: true },
     });
     if (!post) {
-      return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
 
     const blockErr = await assertUserBlockInteractionAllowed(user.id, post.authorId);
@@ -119,7 +119,7 @@ export async function POST(
         select: { id: true, authorId: true },
       });
       if (!parent) {
-        return NextResponse.json({ error: "원 댓글을 찾을 수 없습니다." }, { status: 400 });
+        return NextResponse.json({ error: "Not found." }, { status: 400 });
       }
       const parentBlockErr = await assertUserBlockInteractionAllowed(user.id, parent.authorId);
       if (parentBlockErr) {
@@ -173,6 +173,6 @@ export async function POST(
     });
   } catch (e) {
     console.error("[api/mobile/posts/comments]", e);
-    return NextResponse.json({ error: "댓글 작성에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

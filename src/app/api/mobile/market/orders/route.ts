@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       createdAt: o.createdAt.toISOString(),
       buyer: o.buyer,
       seller: o.seller,
-      title: o.items[0]?.titleSnapshot ?? "주문",
+      title: o.items[0]?.titleSnapshot ?? "Order",
       items: o.items.map((i) => ({
         title: i.titleSnapshot,
         quantity: i.quantity,

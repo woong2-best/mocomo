@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
         },
       });
       if (!topic) {
-        return NextResponse.json({ error: "Topic 없음" }, { status: 404 });
+        return NextResponse.json({ error: "Not found." }, { status: 404 });
       }
       return NextResponse.json({ ok: true, topic });
     }
@@ -53,6 +53,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, topics });
   } catch (e) {
     console.error("[api/search/topics]", e);
-    return NextResponse.json({ error: "Topic 조회 실패" }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

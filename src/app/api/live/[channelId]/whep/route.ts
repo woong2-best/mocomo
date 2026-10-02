@@ -22,7 +22,7 @@ export async function POST(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const cfErr = cloudflareStreamConfigError();
@@ -34,12 +34,12 @@ export async function POST(
   const body = (await req.json().catch(() => ({}))) as { sdp?: string };
   const sdp = body.sdp ? normalizeSdp(body.sdp) : "";
   if (!sdp) {
-    return NextResponse.json({ error: "SDP가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const channel = await fetchChannelForWhep(channelId);
   if (!channel) {
-    return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Stream not found." }, { status: 404 });
   }
 
   const resolved = await resolveWhepPlaybackUrlForViewer(channelId, channel, session.user.id);
@@ -77,7 +77,7 @@ export async function POST(
   } catch (e) {
     console.error("[whep-proxy]", channelId, e);
     return NextResponse.json(
-      { error: "실시간 재생 연결에 실패했습니다." },
+      { error: "Request failed." },
       { status: 502 }
     );
   }

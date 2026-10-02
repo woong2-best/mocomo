@@ -47,12 +47,12 @@ export async function PUT(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = welcomeSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const result = await saveCreatorWelcomeMessage(auth.user.id, parsed.data);

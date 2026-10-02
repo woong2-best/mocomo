@@ -20,11 +20,11 @@ export async function POST(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   if (!body.pollId || !body.optionId) {
-    return NextResponse.json({ error: "선택지를 골라 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Choose an option." }, { status: 400 });
   }
 
   const result = await voteLiveSupportPollRest({

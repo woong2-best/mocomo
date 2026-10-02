@@ -3,7 +3,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 
 const DEPRECATED_BODY = {
   error:
-    "앱 내 계좌 직접 등록(Custom Connect)은 더 이상 지원하지 않습니다. Stripe Express 온보딩을 이용해 주세요.",
+    "Direct in-app bank registration (Custom Connect) is no longer supported. Use Stripe Express onboarding.",
   code: "CUSTOM_CONNECT_DEPRECATED",
   redirect: "/api/settlements/connect-account",
 } as const;

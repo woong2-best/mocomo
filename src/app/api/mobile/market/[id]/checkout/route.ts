@@ -52,7 +52,7 @@ export async function POST(
   if (limited) return limited;
 
   if (!isPaymentsConfigured()) {
-    return NextResponse.json({ error: "결제가 설정되지 않았습니다." }, { status: 503 });
+    return NextResponse.json({ error: "Payments aren't configured." }, { status: 503 });
   }
 
   const auth = await requireMobileApiUser(req, { writeKind: "default" });
@@ -60,7 +60,7 @@ export async function POST(
 
   const { id: listingId } = await params;
   if (!listingId || listingId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let json: unknown;
@@ -72,7 +72,7 @@ export async function POST(
 
   const parsed = checkoutBodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const eligibility = await getMarketplaceCheckoutEligibility({
@@ -92,7 +92,7 @@ export async function POST(
   }
   if (!eligibility.sellerReady) {
     return NextResponse.json(
-      { error: eligibility.sellerReadyMessage ?? "판매자 결제 준비가 완료되지 않았습니다." },
+      { error: eligibility.sellerReadyMessage ?? "Done." },
       { status: 422 }
     );
   }
@@ -127,19 +127,19 @@ export async function PATCH(
 
   const { id: listingId } = await params;
   if (!listingId) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let json: unknown;
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = patchSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const dbUser = await db.user.findUnique({

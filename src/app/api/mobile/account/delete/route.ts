@@ -18,12 +18,12 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const full = await loadAccountDeletionUser(auth.user.id);
   if (!full) {
-    return NextResponse.json({ error: "계정을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Account not found." }, { status: 404 });
   }
 
   const result = await requestAccountDeletionForUser(full, json as never);

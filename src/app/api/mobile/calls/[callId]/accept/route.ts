@@ -27,7 +27,7 @@ export async function POST(
       select: { calleeId: true, status: true },
     });
     if (!existing) {
-      return NextResponse.json({ error: "통화를 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
     }
     if (existing.calleeId !== user.id) {
       return NextResponse.json({ error: "수신자만 받을 수 있습니다." }, { status: 403 });
@@ -43,7 +43,7 @@ export async function POST(
     },
   });
   if (!call) {
-    return NextResponse.json({ error: "통화를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
   return NextResponse.json({

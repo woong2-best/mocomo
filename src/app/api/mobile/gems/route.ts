@@ -105,12 +105,12 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const data = parsed.data;
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: errorText(prepared.error) }, { status: 422 });
     }
     if (!("orderId" in prepared) || !prepared.orderId) {
-      return NextResponse.json({ error: "결제 준비에 실패했습니다." }, { status: 422 });
+      return NextResponse.json({ error: "Couldn't prepare payment." }, { status: 422 });
     }
     const result = await payCheckoutWithSavedMethod(
       auth.user.id,
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
 
   if (data.action === "pay") {
     return NextResponse.json(
-      { error: "모바일 앱에서는 MOCO 바로 결제를 사용할 수 없습니다. 카드로 결제해 주세요." },
+      { error: "Not found." },
       { status: 403 }
     );
   }
@@ -193,8 +193,8 @@ export async function POST(req: NextRequest) {
   const refund = await processRefundRequest(data.gemPurchaseId, auth.user.id);
   const code = "error" in refund ? refund.error : "REFUND_NOT_ALLOWED";
   const messages: Record<string, string> = {
-    UNAUTHORIZED: "환불 권한이 없습니다.",
-    REFUND_NOT_ALLOWED: "구매 MOCO는 환불할 수 없습니다.",
+    UNAUTHORIZED: "You don't have permission to do that.",
+    REFUND_NOT_ALLOWED: "Not found.",
   };
   return NextResponse.json({ error: messages[code] ?? code }, { status: 422 });
 }

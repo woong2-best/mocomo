@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     console.error("[api/mobile/reels]", e);
     return NextResponse.json(
-      { items: [], nextCursor: null, error: "영상 피드를 불러오지 못했습니다." },
+      { items: [], nextCursor: null, error: "Not found." },
       { status: 503 }
     );
   }

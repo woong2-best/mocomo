@@ -13,7 +13,7 @@ export async function POST(
 
   const { id: postId } = await params;
   if (!postId || postId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const authResult = await requireApiUser();
@@ -34,6 +34,6 @@ export async function POST(
     return NextResponse.json({ starred: true });
   } catch (e) {
     console.error("[api/posts/star]", e);
-    return NextResponse.json({ error: "STAR 저장에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Couldn't save to STAR." }, { status: 500 });
   }
 }

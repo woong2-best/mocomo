@@ -16,12 +16,12 @@ export async function GET(
 
   const viewerId = (await getMobileUserId(req)) ?? (await auth())?.user?.id;
   if (!viewerId) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { id } = await params;
   if (!id || id.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const post = await db.post.findFirst({
@@ -30,7 +30,7 @@ export async function GET(
   });
 
   if (!post) {
-    return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
 
   const preview = toQuotedPostPreview(post);

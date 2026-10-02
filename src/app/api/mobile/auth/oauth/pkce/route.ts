@@ -21,19 +21,19 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "인증 코드가 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Verification code is incorrect." }, { status: 400 });
   }
 
   const payload = openMobileOAuthHandoff(parsed.data.handoff);
   if (!payload) {
     return NextResponse.json(
       {
-        error: "인증이 만료되었거나 올바르지 않습니다. 앱에서 다시 시도해 주세요.",
+        error: "Please sign in.",
         code: "handoff_invalid",
       },
       { status: 401 }

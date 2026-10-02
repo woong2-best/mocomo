@@ -25,7 +25,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
 
   const { id: listingId } = await ctx.params;
   if (!listingId || listingId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let body: {

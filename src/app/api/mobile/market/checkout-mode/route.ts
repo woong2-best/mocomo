@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   });
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const userId = await getMobileUserId(req);

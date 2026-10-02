@@ -10,19 +10,19 @@ export async function POST(req: NextRequest) {
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   let body: { postId?: string };
   try {
     body = (await req.json()) as { postId?: string };
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const postId = typeof body.postId === "string" ? body.postId.trim() : "";
   if (!postId || postId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const res = await pinPostToProfile(postId);
@@ -38,7 +38,7 @@ export async function DELETE(req: NextRequest) {
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   let postId = req.nextUrl.searchParams.get("postId")?.trim() ?? "";
@@ -52,7 +52,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   if (!postId || postId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const res = await unpinPostFromProfile(postId);

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json().catch(() => null)) as { sessionId?: string } | null;
   if (!body?.sessionId) {
-    return NextResponse.json({ error: "sessionId가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const res = await confirmSetupCheckoutSession(auth.user.id, body.sessionId);

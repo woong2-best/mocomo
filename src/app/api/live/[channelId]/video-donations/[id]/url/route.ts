@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId, id } = await params;
@@ -25,10 +25,10 @@ export async function POST(
   });
 
   if (!row || row.channelId !== channelId) {
-    return NextResponse.json({ error: "영상 후원을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   if (row.senderId !== session.user.id) {
-    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Permission denied." }, { status: 403 });
   }
   if (row.status !== "AWAITING_URL") {
     return NextResponse.json({ error: "이미 URL이 등록되었습니다." }, { status: 400 });

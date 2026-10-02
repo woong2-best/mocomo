@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const { filename, contentType, category } = body as {
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   };
 
   if (!filename || !contentType || !category) {
-    return NextResponse.json({ error: "filename, contentType, category가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const allowed =

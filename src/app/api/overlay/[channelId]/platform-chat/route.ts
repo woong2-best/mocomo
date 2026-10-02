@@ -29,7 +29,7 @@ export async function GET(
 
   const channel = access.channel;
   if (!channel.externalProvider || !channel.externalId) {
-    return NextResponse.json({ error: "외부 방송이 아닙니다." }, { status: 400 });
+    return NextResponse.json({ error: "Not an external broadcast." }, { status: 400 });
   }
 
   const result = await handlePlatformChatRequest(

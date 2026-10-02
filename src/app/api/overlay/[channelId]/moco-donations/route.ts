@@ -71,7 +71,7 @@ export async function POST(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const token = body.token?.trim() ?? "";
@@ -87,13 +87,13 @@ export async function POST(
 
   const donationId = body.donation_id?.trim();
   if (!donationId) {
-    return NextResponse.json({ error: "donation_id가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   if (body.action === "playing") {
     const updated = await markMocoDonationPlaying(donationId, channelId);
     if (!updated) {
-      return NextResponse.json({ error: "재생 시작할 수 없습니다." }, { status: 400 });
+      return NextResponse.json({ error: "Not found." }, { status: 400 });
     }
     const payload = toMocoDonationPayload(updated);
     void relayMocoDonationEvent(channelId, { event: "new_donation", donation: payload });
@@ -103,12 +103,12 @@ export async function POST(
   if (body.action === "complete") {
     const updated = await completeMocoDonation(donationId, channelId);
     if (!updated) {
-      return NextResponse.json({ error: "완료 처리할 수 없습니다." }, { status: 400 });
+      return NextResponse.json({ error: "Not found." }, { status: 400 });
     }
     const payload = toMocoDonationPayload(updated);
     void relayMocoDonationEvent(channelId, { event: "donation_completed", donation: payload });
     return NextResponse.json({ ok: true, donation: payload });
   }
 
-  return NextResponse.json({ error: "action이 필요합니다." }, { status: 400 });
+  return NextResponse.json({ error: "Required field missing." }, { status: 400 });
 }

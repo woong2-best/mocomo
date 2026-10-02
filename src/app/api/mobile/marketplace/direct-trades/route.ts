@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       listingId: listingId ?? undefined,
       roomId: roomId ?? undefined,
     });
-    if (!view) return NextResponse.json({ error: "거래를 찾을 수 없습니다." }, { status: 404 });
+    if (!view) return NextResponse.json({ error: "Trade not found." }, { status: 404 });
     return NextResponse.json({ view });
   }
   const trades = await listDirectTradesForUser(auth.user.id);
@@ -56,10 +56,10 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
   const parsed = bodySchema.safeParse(json);
-  if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   const body = parsed.data;
   const userId = auth.user.id;
 
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     }
   })();
 
-  if (!result) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+  if (!result) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   if (result.error && !result.view.listingId) {
     return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
   }

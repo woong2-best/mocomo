@@ -14,13 +14,13 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
   const access = await resolveLiveChannelAccess(channelId, session.user.id);
   if (!access.allowed) {
-    return NextResponse.json({ error: "입장 권한이 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "You don't have permission to do that." }, { status: 403 });
   }
 
   let channel: {
@@ -53,7 +53,7 @@ export async function GET(
   }
 
   if (!channel) {
-    return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Stream not found." }, { status: 404 });
   }
 
   const splitActive =

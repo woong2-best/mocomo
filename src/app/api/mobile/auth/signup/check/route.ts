@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const schema = z.object({
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   });
   const parsed = schema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "입력값이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid input." }, { status: 400 });
   }
 
   const availability = await checkSignupAvailability(

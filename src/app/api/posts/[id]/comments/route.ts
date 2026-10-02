@@ -27,7 +27,7 @@ export async function GET(
 
   const { id: postId } = await params;
   if (!postId || postId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const sort = parseSort(req.nextUrl.searchParams.get("sort"));
@@ -43,7 +43,7 @@ export async function GET(
       select: { id: true, authorId: true, communityId: true },
     });
     if (!post) {
-      return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
 
     const session = await auth();
@@ -69,12 +69,12 @@ export async function GET(
       return NextResponse.json(
         {
           error:
-            "댓글 기능 DB 업데이트가 필요합니다. scripts/fix-comment-likes-pins.sql 을 실행해 주세요.",
+            "Please check your input and try again.",
         },
         { status: 503 }
       );
     }
-    return NextResponse.json({ error: "댓글을 불러오지 못했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Couldn't load comments." }, { status: 500 });
   }
 }
 
@@ -87,7 +87,7 @@ export async function POST(
 
   const { id: postId } = await params;
   if (!postId || postId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const authResult = await requireApiUser({ writeKind: "comment" });
@@ -98,7 +98,7 @@ export async function POST(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const content = body.content?.trim();
@@ -117,7 +117,7 @@ export async function POST(
       select: { id: true, authorId: true, communityId: true },
     });
     if (!post) {
-      return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
 
     const blockErr = await assertUserBlockInteractionAllowed(user.id, post.authorId);
@@ -132,7 +132,7 @@ export async function POST(
         select: { id: true, authorId: true, parentId: true },
       });
       if (!parent) {
-        return NextResponse.json({ error: "원 댓글을 찾을 수 없습니다." }, { status: 400 });
+        return NextResponse.json({ error: "Not found." }, { status: 400 });
       }
       const parentBlockErr = await assertUserBlockInteractionAllowed(user.id, parent.authorId);
       if (parentBlockErr) {
@@ -207,11 +207,11 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "댓글 DB 설정이 필요합니다. Supabase SQL Editor에서 scripts/fix-comment-likes-pins.sql 을 실행해 주세요.",
+            "Please check your input and try again.",
         },
         { status: 503 }
       );
     }
-    return NextResponse.json({ error: "댓글 등록에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

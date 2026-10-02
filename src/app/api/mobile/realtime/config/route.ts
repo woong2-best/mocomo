@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.json({ error: "실시간 통화 설정이 없습니다." }, { status: 503 });
+    return NextResponse.json({ error: "Not found." }, { status: 503 });
   }
 
   return NextResponse.json({ supabaseUrl, supabaseAnonKey });

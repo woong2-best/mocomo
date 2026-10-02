@@ -56,13 +56,13 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const accountId = body.connectedAccountId?.trim();
   if (!accountId) {
     return NextResponse.json(
-      { error: "인증된 스트리밍 계정을 선택해 주세요." },
+      { error: "Please sign in." },
       { status: 400 }
     );
   }
@@ -79,13 +79,13 @@ export async function POST(req: NextRequest) {
     });
 
     if (!account || account.userId !== user.id) {
-      return NextResponse.json({ error: "스트리밍 계정을 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "Streaming account not found." }, { status: 404 });
     }
     if (!account.verified || account.revokedAt) {
       return NextResponse.json(
         {
           error:
-            "인증되지 않았거나 해제된 스트리밍 계정입니다. 웹 설정에서 계정을 다시 연결해 주세요.",
+            "Please sign in to continue.",
         },
         { status: 403 }
       );
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             error:
-              "Made for Kids로 표시된 YouTube 영상은 정책상 임베드할 수 없습니다. 다른 라이브를 연결해 주세요.",
+              "Not found.",
           },
           { status: 400 }
         );

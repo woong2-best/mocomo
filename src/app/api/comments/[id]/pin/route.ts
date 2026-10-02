@@ -31,7 +31,7 @@ export async function POST(
 
   const { id: commentId } = await params;
   if (!commentId || commentId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const authResult = await requireApiUser({ writeKind: "default" });
@@ -39,7 +39,7 @@ export async function POST(
 
   const viewer = await loadViewer();
   if (!viewer) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const comment = await db.comment.findFirst({
@@ -54,13 +54,13 @@ export async function POST(
     },
   });
   if (!comment) {
-    return NextResponse.json({ error: "댓글을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   if (comment.parentId) {
-    return NextResponse.json({ error: "답글은 고정할 수 없습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Not found." }, { status: 400 });
   }
   if (!canPinComment(viewer, comment.post.authorId)) {
-    return NextResponse.json({ error: "고정 권한이 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "You don't have permission to do that." }, { status: 403 });
   }
   if (comment.pinnedAt) {
     return NextResponse.json({ ok: true, pinned: true });
@@ -106,7 +106,7 @@ export async function DELETE(
 
   const { id: commentId } = await params;
   if (!commentId || commentId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const authResult = await requireApiUser({ writeKind: "default" });
@@ -114,7 +114,7 @@ export async function DELETE(
 
   const viewer = await loadViewer();
   if (!viewer) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const comment = await db.comment.findFirst({
@@ -127,10 +127,10 @@ export async function DELETE(
     },
   });
   if (!comment) {
-    return NextResponse.json({ error: "댓글을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   if (!canPinComment(viewer, comment.post.authorId)) {
-    return NextResponse.json({ error: "고정 해제 권한이 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "You don't have permission to do that." }, { status: 403 });
   }
 
   if (comment.pinnedAt) {

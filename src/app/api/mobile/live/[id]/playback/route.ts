@@ -19,7 +19,7 @@ export async function GET(
 
   const { id } = await params;
   if (!id || id.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const payload = await buildViewerPlaybackPayload(id, authResult.user.id);

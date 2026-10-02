@@ -21,7 +21,7 @@ export async function GET(
 
   const { id } = await params;
   if (!id || id.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   if (!isLivekitConfigured()) {
@@ -62,12 +62,12 @@ export async function GET(
     { publish: canPublish || voiceHostPublish, audioOnly: isVoiceLive }
   );
   if (!token) {
-    return NextResponse.json({ error: "토큰 발급에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 
   const serverUrl = getLivekitUrl();
   if (!serverUrl) {
-    return NextResponse.json({ error: "LiveKit URL이 필요합니다." }, { status: 503 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 503 });
   }
 
   return NextResponse.json({

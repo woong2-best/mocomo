@@ -41,17 +41,17 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const { calleeId, chatRoomId } = parsed.data;
   if (user.id === calleeId) {
-    return NextResponse.json({ error: "자기 자신에게는 전화할 수 없습니다." }, { status: 400 });
+    return NextResponse.json({ error: "You can't call yourself." }, { status: 400 });
   }
 
   await releaseCallerActiveCalls(user.id);
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "상대방이 다른 통화 중입니다." }, { status: 409 });
   }
   if (blocked) {
-    return NextResponse.json({ error: "차단된 사용자와는 통화할 수 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Not found." }, { status: 403 });
   }
 
   if (chatRoomId) {

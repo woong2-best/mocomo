@@ -29,12 +29,12 @@ export async function GET(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId } = await params;
   if (!channelId || channelId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const tabId = readPublisherTabIdFromRequest(_req);
@@ -54,7 +54,7 @@ export async function GET(
     return NextResponse.json({ error: "호스트만 방송 설정을 받을 수 있습니다." }, { status: 403 });
   }
   if (channel.liveStatus === "ENDED") {
-    return NextResponse.json({ error: "종료된 방송입니다." }, { status: 400 });
+    return NextResponse.json({ error: "This broadcast has ended." }, { status: 400 });
   }
 
   if (resolveHostPublishState(channel, tabId) === "live_elsewhere") {

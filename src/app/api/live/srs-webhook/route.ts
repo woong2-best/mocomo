@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const header = req.headers.get("x-srs-secret") ?? req.headers.get("authorization");
     authOk = header === secret || header === `Bearer ${secret}`;
     if (!authOk) {
-      console.warn("[srs-webhook] secret mismatch — RTMP는 허용, LIVE 동기화만 건너뜀");
+      console.warn("You don't have permission to do that.");
     }
   }
 

@@ -19,7 +19,7 @@ export async function GET(
 
   const { roomId } = await params;
   if (!roomId || roomId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const after = req.nextUrl.searchParams.get("after");

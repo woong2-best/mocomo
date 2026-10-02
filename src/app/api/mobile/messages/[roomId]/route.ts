@@ -18,7 +18,7 @@ export async function GET(
 
   const { roomId } = await params;
   if (!roomId || roomId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const before = req.nextUrl.searchParams.get("before");
@@ -62,19 +62,19 @@ export async function POST(
 
   const { roomId } = await params;
   if (!roomId || roomId.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let json: unknown;
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = sendSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "메시지 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const result = await sendMobileDmMessage(authResult.user.id, {

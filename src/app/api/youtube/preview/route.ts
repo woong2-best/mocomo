@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
   const videoId = extractYoutubeVideoId(normalized);
   if (!videoId) {
-    return NextResponse.json({ error: "영상을 찾을 수 없습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Video not found." }, { status: 400 });
   }
 
   let title: string | null = null;

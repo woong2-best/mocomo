@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { channelId, id } = await params;
@@ -29,7 +29,7 @@ export async function POST(
     include: { sender: { select: { username: true } }, tip: { select: { message: true } } },
   });
   if (!row || row.channelId !== channelId) {
-    return NextResponse.json({ error: "찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
   let data: {

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
   const target = req.nextUrl.searchParams.get("target")?.trim() ?? "";
   if (!target || target.length > 64) {
-    return NextResponse.json({ error: "target이 필요합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
   const payoutsEnabled = await isPayoutTargetReady(target);

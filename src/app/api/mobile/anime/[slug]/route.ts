@@ -16,7 +16,7 @@ export async function GET(
   const { slug: raw } = await params;
   const slug = decodeURIComponent(raw ?? "").trim();
   if (!slug || slug.length > 120) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const viewerId = await getMobileUserId(req);
@@ -45,7 +45,7 @@ export async function GET(
   });
 
   if (!anime) {
-    return NextResponse.json({ error: "작품을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
   const starred = viewerId
@@ -81,14 +81,14 @@ export async function PATCH(
   const { slug: raw } = await params;
   const slug = decodeURIComponent(raw ?? "").trim();
   if (!slug || slug.length > 120) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   let body: AnimeUpdateInput;
   try {
     body = (await req.json()) as AnimeUpdateInput;
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const result = await updateAnimeForUser(auth.user.id, slug, body);

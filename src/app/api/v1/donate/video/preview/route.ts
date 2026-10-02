@@ -23,12 +23,12 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
 
   const streamerId = body.streamer_id?.trim();
   if (!streamerId) {
-    return NextResponse.json({ ok: false, error: "streamer_id가 필요합니다." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Required field missing." }, { status: 400 });
   }
 
   const target = await resolveStreamerTarget(streamerId);

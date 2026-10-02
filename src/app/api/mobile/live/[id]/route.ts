@@ -25,7 +25,7 @@ export async function GET(
   const viewerId = await getMobileUserId(req);
   const { id } = await params;
   if (!id || id.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const channel = await db.voiceChannel.findUnique({
@@ -58,7 +58,7 @@ export async function GET(
   });
 
   if (!channel) {
-    return NextResponse.json({ error: "라이브를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
   const host = await db.user.findUnique({

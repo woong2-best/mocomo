@@ -18,7 +18,7 @@ export async function POST(
   const { slug: raw } = await params;
   const slug = decodeURIComponent(raw ?? "").trim();
   if (!slug || slug.length > 120) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const anime = await db.anime.findUnique({
@@ -26,7 +26,7 @@ export async function POST(
     select: { id: true },
   });
   if (!anime) {
-    return NextResponse.json({ error: "문서를 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Document not found." }, { status: 404 });
   }
 
   const result = await toggleAnimeStarForUser(auth.user.id, anime.id);

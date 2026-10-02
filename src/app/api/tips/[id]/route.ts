@@ -13,12 +13,12 @@ export async function GET(
 
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const { id } = await params;
   if (!id || id.length > 64) {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const tip = await db.tip.findUnique({
@@ -34,12 +34,12 @@ export async function GET(
     },
   });
   if (!tip) {
-    return NextResponse.json({ error: "후원을 찾을 수 없습니다." }, { status: 404 });
+    return NextResponse.json({ error: "Tip not found." }, { status: 404 });
   }
 
   const viewerId = session.user.id;
   if (viewerId !== tip.receiverId && viewerId !== tip.senderId) {
-    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Permission denied." }, { status: 403 });
   }
 
   return NextResponse.json({

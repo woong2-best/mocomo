@@ -25,7 +25,7 @@ function loginFailResponse(err: unknown) {
     );
   }
   console.error("[api/mobile/auth/login]", err);
-  return NextResponse.json({ error: "로그인에 실패했습니다." }, { status: 500 });
+  return NextResponse.json({ error: "Please sign in." }, { status: 500 });
 }
 
 export async function POST(req: NextRequest) {
@@ -36,12 +36,12 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "로그인 정보를 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Please sign in." }, { status: 400 });
   }
 
   const ip = await getRequestIp();

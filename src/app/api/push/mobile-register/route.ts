@@ -11,19 +11,19 @@ const bodySchema = z.object({
 export async function POST(req: NextRequest) {
   const session = await getCachedSession();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   let json: unknown;
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "토큰 형식이 올바르지 않습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid token format." }, { status: 400 });
   }
 
   const { token, platform } = parsed.data;
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const session = await getCachedSession();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
   }
 
   const token = req.nextUrl.searchParams.get("token");
