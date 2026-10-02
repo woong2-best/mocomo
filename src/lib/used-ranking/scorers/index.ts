@@ -54,7 +54,7 @@ export const usedAuctionScorer: Scorer<UsedMarketQuery, UsedListingCandidate> = 
       const hoursLeft = (c.auctionEndsAt.getTime() - now) / (1000 * 60 * 60);
       if (hoursLeft <= 0) return c;
       const urgency = Math.max(0, 48 - hoursLeft) / 4 + Math.log1p(c.bidCount);
-      return addSignal(c, "auction_urgency", urgency, weight, "마감 임박");
+      return addSignal(c, "auction_urgency", urgency, weight, "Ending soon");
     });
   },
 };
@@ -67,7 +67,7 @@ export const usedGeoScorer: Scorer<UsedMarketQuery, UsedListingCandidate> = {
     const prefix = query.preferredRegion.slice(0, 2);
     return candidates.map((c) => {
       if (!c.region.startsWith(prefix)) return c;
-      return addSignal(c, "geo", 1, weight, "내 지역");
+      return addSignal(c, "geo", 1, weight, "Near me");
     });
   },
 };
