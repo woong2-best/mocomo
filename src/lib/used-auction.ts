@@ -1,4 +1,5 @@
 import type { UsedAuctionState, UsedSaleType } from "@prisma/client";
+import { translate } from "@/lib/i18n/messages";
 
 /** 경매 최소 입찰 단위 기본값 (원). 달러 상품은 1달러(100센트). */
 export const DEFAULT_BID_INCREMENT = 1_000;
@@ -141,22 +142,27 @@ export function auctionCountdownParts(
 export function formatAuctionCountdown(endsAt: Date | string, now = Date.now()): string {
   const parts = auctionCountdownParts(endsAt, now);
   if (!parts) return "—";
-  if (parts.ended) return "마감";
+  if (parts.ended) return translate("en", "used.auction.countdownEnded");
   return parts.text;
 }
 
+const AUCTION_STATE_KEYS: Record<UsedAuctionState, string> = {
+  LIVE: "used.auction.stateLive",
+  ENDED: "used.auction.stateEnded",
+  CANCELLED: "used.auction.stateCancelled",
+  PAYMENT_PENDING: "used.auction.statePaymentPending",
+  PAYMENT_COMPLETED: "used.auction.statePaymentCompleted",
+  PAYMENT_TIMEOUT: "used.auction.statePaymentTimeout",
+  TRANSFERRED_TO_NEXT_BIDDER: "used.auction.stateTransferred",
+  PRICE_NEGOTIATION: "used.auction.stateNegotiation",
+  NEGOTIATION_COMPLETED: "used.auction.stateNegotiationDone",
+  NEGOTIATION_FAILED: "used.auction.stateNegotiationFailed",
+};
+
 export function auctionStateLabel(state: UsedAuctionState | null | undefined): string {
-  if (state === "LIVE") return "경매 진행중";
-  if (state === "ENDED") return "경매 종료";
-  if (state === "CANCELLED") return "경매 취소";
-  if (state === "PAYMENT_PENDING") return "낙찰 · 결제 대기";
-  if (state === "PAYMENT_COMPLETED") return "결제 완료";
-  if (state === "PAYMENT_TIMEOUT") return "결제 기한 초과";
-  if (state === "TRANSFERRED_TO_NEXT_BIDDER") return "차순위 승계";
-  if (state === "PRICE_NEGOTIATION") return "가격 협상 중";
-  if (state === "NEGOTIATION_COMPLETED") return "협상 완료";
-  if (state === "NEGOTIATION_FAILED") return "협상 실패";
-  return "";
+  if (!state) return "";
+  const key = AUCTION_STATE_KEYS[state];
+  return key ? translate("en", key) : "";
 }
 
 export function isPaymentPending(l: AuctionListingSlice): boolean {

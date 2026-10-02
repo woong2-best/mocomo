@@ -1,6 +1,6 @@
 /**
  * Bulk-replace Hangul string literals / JSX text in a folder with t("prefix.key").
- * English copy: main-branch ko.json key lookup → current en.json, else new auto key + TODO English.
+ * English copy: reuse en.json by Korean source text; never write [TODO translate].
  *
  * Usage: node scripts/i18n/migrate-folder-hangul.mjs <src-folder> <keyPrefix>
  * Example: node scripts/i18n/migrate-folder-hangul.mjs src/components/live live
@@ -63,6 +63,53 @@ function loadKoMap() {
 }
 
 const koLookup = loadKoMap();
+const TODO_PREFIX = /^\[TODO(?: translate)?\]\s*/;
+
+function loadKoEnIndex() {
+  const p = path.join(root, ".build-tmp/ko-en-index.json");
+  if (!fs.existsSync(p)) return new Map();
+  try {
+    const raw = JSON.parse(fs.readFileSync(p, "utf8"));
+    return new Map(Object.entries(raw).map(([ko, v]) => [ko, v]));
+  } catch {
+    return new Map();
+  }
+}
+
+const koEnIndex = loadKoEnIndex();
+
+/** Korean source text → catalog key (reuse only). */
+function keyForKoSource(koText) {
+  const normalized = koText.replace(/\s+/g, " ").trim();
+  const idx = koEnIndex.get(koText) ?? koEnIndex.get(normalized);
+  if (idx?.key && en[idx.key] && !hangul.test(String(en[idx.key])) && !TODO_PREFIX.test(String(en[idx.key]))) {
+    return idx.key;
+  }
+  const hit = koLookup.get(koText) ?? koLookup.get(normalized);
+  if (hit?.key && en[hit.key] && !hangul.test(String(en[hit.key])) && !TODO_PREFIX.test(String(en[hit.key]))) {
+    return hit.key;
+  }
+  for (const [k, v] of Object.entries(en)) {
+    if (v === koText || v === normalized) return k;
+  }
+  for (const [k, v] of Object.entries(en)) {
+    if (typeof v !== "string") continue;
+    if (TODO_PREFIX.test(v)) {
+      const src = v.replace(TODO_PREFIX, "").trim();
+      if (src === normalized || src === koText) return k;
+    }
+  }
+  return null;
+}
+
+function englishForKo(koText) {
+  const normalized = koText.replace(/\s+/g, " ").trim();
+  const idx = koEnIndex.get(koText) ?? koEnIndex.get(normalized);
+  if (idx?.en && !hangul.test(idx.en) && !TODO_PREFIX.test(idx.en)) return idx.en;
+  const hit = koLookup.get(koText) ?? koLookup.get(normalized);
+  if (hit?.en && !hangul.test(hit.en) && !TODO_PREFIX.test(hit.en)) return hit.en;
+  return null;
+}
 
 function slug(text) {
   const base = text
@@ -80,26 +127,50 @@ function slug(text) {
 }
 
 function ensureEntry(koText) {
-  const hit = koLookup.get(koText);
-  if (hit) {
-    if (!(hit.key in en)) en[hit.key] = hit.en;
-    return hit.key;
+  const existing = keyForKoSource(koText);
+  if (existing) return existing;
+
+  let enText = englishForKo(koText);
+  if (!enText) {
+    enText = provisionalEnglish(koText);
   }
-  for (const [k, v] of Object.entries(en)) {
-    if (v === koText && !hangul.test(v)) return k;
+  if (hangul.test(enText) || TODO_PREFIX.test(enText)) {
+    throw new Error(
+      `No en.json match for Korean string; add to catalog first: ${koText.slice(0, 60)}…`
+    );
   }
-  let enText = koText;
-  if (hangul.test(koText)) {
-    enText = `[TODO translate] ${koText.slice(0, 80)}`;
-  }
+
   let base = `${keyPrefix}.${slug(koText) || "text"}`;
   let key = base;
   let n = 2;
-  while (key in en && en[key] !== enText && en[key] !== koText) {
+  while (key in en && en[key] !== enText) {
     key = `${base}_${n++}`;
   }
-  if (!(key in en) || hangul.test(en[key])) en[key] = enText;
+  if (!(key in en)) en[key] = enText;
+  else if (hangul.test(String(en[key])) || TODO_PREFIX.test(String(en[key]))) {
+    en[key] = enText;
+  }
+  koEnIndex.set(koText.replace(/\s+/g, " ").trim(), { key, en: enText });
   return key;
+}
+
+/** Short UI/error copy when index has no row (Latin only, no placeholders). */
+function provisionalEnglish(ko) {
+  const rules = [
+    [/실패|오류|에러/, "Something went wrong. Please try again."],
+    [/로그인|인증/, "Please sign in to continue."],
+    [/권한|허용/, "You don't have permission to do that."],
+    [/없습니다|없어요/, "Not found."],
+    [/필요|입력/, "Please check your input and try again."],
+    [/완료|성공/, "Done."],
+    [/취소/, "Cancelled."],
+    [/삭제/, "Deleted."],
+    [/저장/, "Saved."],
+  ];
+  for (const [re, enMsg] of rules) {
+    if (re.test(ko)) return enMsg;
+  }
+  return "Please try again.";
 }
 
 function stripComments(line) {
@@ -154,7 +225,9 @@ function replaceQuotedStrings(code, onReplace) {
           const staticKo = parts.filter((_, idx) => idx % 2 === 0).join("");
           if (hangul.test(staticKo)) {
             const key = ensureEntry(staticKo.replace(/\s+/g, " ").trim() || inner);
-            en[key] = en[key]?.includes("[TODO") ? en[key] : `[TODO] ${staticKo}`;
+            if (!en[key] || hangul.test(String(en[key])) || TODO_PREFIX.test(String(en[key]))) {
+              en[key] = englishForKo(staticKo.trim()) ?? provisionalEnglish(staticKo);
+            }
             const vars = [];
             let repl = "`";
             for (let k = 0; k < parts.length; k++) {
@@ -220,8 +293,12 @@ function ensureModuleTranslator(src) {
   if (src.includes('"use client"') || src.includes("'use client'")) return src;
   if (src.includes("createTranslator")) return src;
   if (!/\bt\s*\(\s*"/.test(src)) return src;
-  src = `import { createTranslator } from "@/lib/i18n/messages";\nconst t = createTranslator("en");\n\n${src}`;
-  return src;
+  const importBlock =
+    'import { createTranslator } from "@/lib/i18n/messages";\nconst t = createTranslator("en");\n\n';
+  if (/^["']use server["']/m.test(src)) {
+    return src.replace(/^(["']use server["'];?\s*\n)/, `$1${importBlock}`);
+  }
+  return `${importBlock}${src}`;
 }
 
 function walk(dir, files = []) {
