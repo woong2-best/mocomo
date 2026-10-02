@@ -34,7 +34,10 @@ export function LiveDonationBar({
       </div>
       {(cheerCp ?? 0) > 0 && (
         <p className="text-[10px] text-muted-foreground">
-          실제 후원 {formatUsd(totalKrw)} + 응원 CP {(cheerCp ?? 0).toLocaleString()}
+          {t("live.donationBar.breakdown", {
+            tips: formatUsd(totalKrw),
+            cp: (cheerCp ?? 0).toLocaleString(),
+          })}
         </p>
       )}
       <div className="h-2 rounded-full bg-background/80 overflow-hidden">

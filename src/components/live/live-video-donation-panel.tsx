@@ -86,7 +86,7 @@ export function LiveVideoDonationPanel({
                 <p className="text-[10px] text-muted-foreground tabular-nums">
                   {formatSecLabel(item.startSec)} ~{" "}
                   {item.playToEnd ? t("live.sqopox") : formatSecLabel(item.endSec ?? item.startSec + item.durationSec)}{" "}
-                  ({item.durationSec}초)
+                  {t("live.videoDonation.seconds", { seconds: String(item.durationSec) })}
                 </p>
               )}
               <div className="flex flex-wrap gap-1 mt-1">
@@ -233,7 +233,10 @@ export function LiveVideoDonationOverlay({ channelId }: { channelId: string }) {
       </div>
       <div className="mt-1 rounded-md bg-black/75 px-2 py-1.5 text-white text-xs space-y-0.5">
         <p className="font-semibold truncate">
-          {playing.username} · {playing.amount.toLocaleString()}원
+          {t("live.videoDonation.pipLine", {
+            username: playing.username,
+            amount: playing.amount.toLocaleString(),
+          })}
         </p>
         {playing.description && <p className="text-white/85 line-clamp-2">{playing.description}</p>}
       </div>

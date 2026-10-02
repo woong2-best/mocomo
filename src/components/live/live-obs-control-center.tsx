@@ -147,7 +147,7 @@ export function LiveObsControlCenter({
             ) : (
               <RefreshCw className="h-3 w-3" />
             )}
-            키 다시 받기
+            {t("live.obs.refreshKeys")}
           </Button>
         </div>
 
@@ -194,7 +194,7 @@ export function LiveObsControlCenter({
             onClick={copyAll}
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            서버 + 키 복사
+            {t("live.obs.copyServerAndKey")}
           </Button>
           {ingestEngine === "srs" ? (
             <LiveObsMultiRtmpGuide />

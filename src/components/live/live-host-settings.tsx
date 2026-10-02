@@ -238,7 +238,9 @@ function HostSettingsForm({
           {t("live.swjz3q1")}
         </label>
         {collabCoHostName && (
-          <p className="text-[11px] text-muted-foreground">합방 중: {collabCoHostName}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {t("live.hostSettings.collabWith", { name: collabCoHostName })}
+          </p>
         )}
         <p className="text-[10px] text-muted-foreground leading-snug">
           {t("live.s138hsru")}

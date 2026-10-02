@@ -156,7 +156,7 @@ export function LiveObsStudio({
             onClick={() => loadIngress(true)}
           >
             {refreshing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-            키 재발급 (계정)
+            {t("live.obs.regenerateKeyAccount")}
           </Button>
         </div>
 
@@ -201,7 +201,7 @@ export function LiveObsStudio({
           onClick={() => copy(t("live.s17yr8n2", { v0: creds.obsServer, v1: creds.obsStreamKey }), "all")}
         >
           {copied === "all" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          서버 + 키 한번에 복사
+          {t("live.obs.copyAll")}
         </Button>
 
         {overlayUrl ? (
@@ -253,7 +253,8 @@ export function LiveObsStudio({
             </p>
             {signalMsg && <p className="mt-1 opacity-90">{signalMsg}</p>}
             <p className="mt-1.5 text-[10px] opacity-80">
-              {t("live.s15t73dm")} <code className="bg-background/80 px-1 rounded">{t("live.http_ip_8080_live")}</code> {t("live.not_found")} <strong>{t("live.soir95o")}</strong>와 같은 이름의{" "}
+              {t("live.s15t73dm")} <code className="bg-background/80 px-1 rounded">{t("live.http_ip_8080_live")}</code> {t("live.not_found")} <strong>{t("live.soir95o")}</strong>
+              {t("live.obs.streamKeyNamed")}
               <code className="bg-background/80 px-1 rounded">.m3u8</code> {t("live.s1k5uh95")}
             </p>
           </div>

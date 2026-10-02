@@ -16,7 +16,7 @@ import {
   endLiveStream,
   leaveLiveStream,
 } from "@/actions/live-stream";
-import { tierLabelKo } from "@/lib/live-viewer-access";
+import { tierLabelEn } from "@/lib/live-viewer-access";
 import { useAdultVerificationGate } from "@/hooks/use-adult-verification-gate";
 import { LiveHostStudioShell } from "@/components/live/live-host-studio-shell";
 import { LiveCollabStudioShell } from "@/components/live/live-collab-studio-shell";
@@ -277,7 +277,7 @@ export function LiveRoomClient({
             <p className="text-sm text-destructive">{joinError || t("live.sesg7zu")}</p>
             {liveVisibility === "PRIVATE" && minViewerTier && (
               <p className="text-xs text-muted-foreground">
-                비공개 방송 · 필요 등급: {tierLabelKo(minViewerTier)} 이상 (이 스트리머에게 후원 누적)
+                {t("live.privateStreamTier", { tier: tierLabelEn(minViewerTier) })}
               </p>
             )}
             <Button type="button" className="rounded-xl" onClick={() => void enterStudioAsHost()}>

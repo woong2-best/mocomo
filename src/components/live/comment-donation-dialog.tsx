@@ -107,7 +107,7 @@ export function CommentDonationDialog({
   const dialogBody = (
     <>
       <DialogHeader>
-        <DialogTitle>{displayName}에게 감사를 전하세요</DialogTitle>
+        <DialogTitle>{t("live.commentDonation.title", { name: displayName })}</DialogTitle>
         <DialogDescription>
           {t("live.sumapo9")}
         </DialogDescription>
@@ -183,7 +183,7 @@ export function CommentDonationDialog({
       </p>
 
       <p className="text-xs text-muted-foreground">
-        수수료 10% · 크리에이터 정산 {formatUsd(creatorGets)}
+        {t("live.commentDonation.feeLine", { amount: formatUsd(creatorGets) })}
       </p>
 
       <PayButton
@@ -203,7 +203,7 @@ export function CommentDonationDialog({
         className="w-full rounded-lg h-11 font-bold"
         onPurchaseSuccess={() => setOpen(false)}
       >
-        구매 후 보내기 · {formatUsd(effectiveAmount)}
+        {t("live.commentDonation.sendAfterPurchase", { amount: formatUsd(effectiveAmount) })}
       </PayButton>
     </>
   );

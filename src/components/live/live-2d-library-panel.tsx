@@ -84,7 +84,7 @@ export function Live2dLibraryPanel({
         }
       >
         <Loader2 className="h-4 w-4 animate-spin" />
-        {MOCOMO_2D_LIBRARY_NAME} 불러오는 중…
+        {t("live.library2d.loading", { name: MOCOMO_2D_LIBRARY_NAME })}
       </div>
     );
   }

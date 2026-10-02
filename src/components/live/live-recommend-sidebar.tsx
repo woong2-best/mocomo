@@ -19,7 +19,7 @@ function formatCompactViewers(n: number, locale: string) {
       : `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
   }
   if (n >= 1000) {
-    return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}${locale.startsWith("ko") ? "천" : "K"}`;
+    return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
   }
   return String(n);
 }

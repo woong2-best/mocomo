@@ -69,11 +69,13 @@ export function WalletDashboard({ data }: { data: WalletData }) {
         <CardContent className="space-y-2">
           <p className="text-3xl font-black">{formatUsd(withdrawable)}</p>
           <p className="text-xs text-muted-foreground">
-            출금 가능 · 총 적립 {formatUsd(data.totalEarned)} · 출금 완료{" "}
-            {formatUsd(data.totalWithdrawn)}
+            {t("wallet.dashboard.summary", {
+              earned: formatUsd(data.totalEarned),
+              withdrawn: formatUsd(data.totalWithdrawn),
+            })}
           </p>
           {data.pendingPayout > 0 && (
-            <p className="text-xs text-amber-700">처리 중 출금 {formatUsd(data.pendingPayout)}</p>
+            <p className="text-xs text-amber-700">{t("wallet.dashboard.pendingPayout", { amount: formatUsd(data.pendingPayout) })}</p>
           )}
           <p className="text-xs text-muted-foreground pt-2">
             {t("wallet.stripe_8")}

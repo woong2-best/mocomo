@@ -156,8 +156,8 @@ export function LiveSupportDialog({
         <DialogHeader>
           <DialogTitle>{t("live.s1npy0j4")}</DialogTitle>
           <DialogDescription>
-            {hostDisplayName}님께 결제 없이 응원 포인트(CP)를 보냅니다. MOCO 후원(영상·효과음)은 채팅
-            하단 버튼을 이용해 주세요.
+            {t("live.supportCheer.desc1", { host: hostDisplayName })}{" "}
+            {t("live.supportCheer.desc2")}
           </DialogDescription>
         </DialogHeader>
 

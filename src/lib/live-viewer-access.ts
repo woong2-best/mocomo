@@ -37,3 +37,7 @@ export async function meetsPrivateLiveTier(
 export function tierLabelKo(level: SupportTierLevel): string {
   return SUPPORT_TIERS.find((t) => t.level === level)?.labelKo ?? level;
 }
+
+export function tierLabelEn(level: SupportTierLevel): string {
+  return SUPPORT_TIERS.find((t) => t.level === level)?.label ?? level;
+}

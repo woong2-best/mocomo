@@ -984,7 +984,7 @@ export function LiveBrowserStudio({
           onClick={() => void handleGoLive()}
         >
           {goingLive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
-          방송 시작
+          {t("live.browserStudio.startBroadcast")}
         </Button>
       )}
 
@@ -1002,7 +1002,7 @@ export function LiveBrowserStudio({
             onClick={() => void handleReconnect()}
           >
             {goingLive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
-            송출 재연결
+            {t("live.browserStudio.reconnectPublish")}
           </Button>
         </>
       )}

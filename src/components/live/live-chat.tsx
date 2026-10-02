@@ -236,7 +236,7 @@ function LiveChatInner({
     <div className="flex h-full min-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-border/60 bg-background">
       <div className="flex shrink-0 items-center justify-between border-b border-border/60 bg-muted/30 px-3 py-2.5">
         <span className="text-sm font-semibold">
-          채팅
+          {t("live.chat.title")}
           {isExternal ? (
             <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">
               MoCoMo{platformLabel ? ` + ${platformLabel}` : ""}
@@ -251,7 +251,7 @@ function LiveChatInner({
           )}
           {isExternal && platformConnected && platformLabel && (
             <span className="ml-1 text-[10px] font-normal text-violet-600 dark:text-violet-400">
-              {platformLabel} 연결
+              {t("live.chat.platformConnected", { platform: platformLabel })}
             </span>
           )}
         </span>

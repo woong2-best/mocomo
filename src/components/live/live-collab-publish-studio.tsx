@@ -41,7 +41,7 @@ export function LiveCollabPublishStudio({
       </div>
       <p className="text-xs text-muted-foreground flex items-center gap-1">
         <Users className="h-3.5 w-3.5" />
-        아래에서 마이크·카메라를 조절하세요. 시청자 화면은 좌우 분할로 표시됩니다.
+        {t("live.collabPublish.hint")}
         {coHostLabel ? ` · ${coHostLabel}` : ""}
       </p>
     </LiveCollabPublishRoom>

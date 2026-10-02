@@ -16,7 +16,7 @@ export function CreatorRewardTierTable({ earnedMoco = 0 }: { earnedMoco?: number
       <div>
         <p className="font-bold text-sm">{t("wallet.reward_novice_pulse")}</p>
         <p className="text-xs text-muted-foreground mt-1">
-          {t("wallet.earned_moco")} <strong>{t("wallet.spb29fy")}</strong> 등급입니다. 프로필{' '}
+          {t("wallet.earned_moco")} <strong>{t("wallet.spb29fy")}</strong> {t("wallet.rewardTierSuffix")}{" "}
           <strong>{t("wallet.scgh9hc")}</strong>{t("wallet.seed_stone_moco")}
         </p>
       </div>

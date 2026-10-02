@@ -124,7 +124,7 @@ export function LiveObsSetupGate({
         </div>
         <Button type="button" variant="secondary" size="sm" className="w-full rounded-xl gap-1" onClick={copyAll}>
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          서버 + 키 복사
+          {t("live.obs.copyServerAndKey")}
         </Button>
       </div>
 

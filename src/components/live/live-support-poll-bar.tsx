@@ -131,7 +131,9 @@ export function LiveSupportPollBar({
       {poll && poll.status === "OPEN" && (
         <div className="space-y-2">
           <p className="text-sm font-medium">{poll.question}</p>
-          <p className="text-[10px] text-muted-foreground">투표당 {poll.voteCost.toLocaleString()} CP</p>
+          <p className="text-[10px] text-muted-foreground">
+            {t("live.poll.voteCostCp", { cost: poll.voteCost.toLocaleString() })}
+          </p>
           {poll.options.map((o) => {
             const pct = totalVotes > 0 ? Math.round((o.votes / totalVotes) * 100) : 0;
             return (

@@ -50,7 +50,7 @@ export function WalletEarningsExportPanel({
           <div>
             <p className="text-sm font-semibold text-foreground">{t("wallet.excel")}</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              {year}년 연간·월별 거래 내역을 Excel(CSV)로 내려받습니다.
+              {t("wallet.export.yearOverview", { year: String(year) })}
             </p>
           </div>
           <span
@@ -76,7 +76,7 @@ export function WalletEarningsExportPanel({
             className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl border border-border/60 bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
           >
             <FileSpreadsheet className="h-4 w-4" />
-            {year}년 월별 요약 Excel
+            {t("wallet.export.monthSummary", { year: String(year) })}
           </button>
           <button
             type="button"
@@ -90,7 +90,7 @@ export function WalletEarningsExportPanel({
             className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl border border-border/60 bg-muted/40 hover:bg-muted/60 transition-colors"
           >
             <Download className="h-4 w-4" />
-            {year}년 전체 거래 Excel
+            {t("wallet.export.fullYear", { year: String(year) })}
           </button>
         </div>
       </div>

@@ -1,8 +1,5 @@
 "use client";
 
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 import { useLocale } from "@/components/providers/locale-provider";
 import Link from "next/link";
 import { MonitorSmartphone, Radio } from "lucide-react";
@@ -23,7 +20,9 @@ export function LiveHostPublishBlocked({
         <MonitorSmartphone className="h-10 w-10 mx-auto text-muted-foreground" />
         <p className="text-base font-semibold">{t("live.s1nu1t5d")}</p>
         <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-          「{channelName}」 방송은 <strong>{t("live.s1sfaene")}</strong>{t("live.s58hor1")}
+          {t("live.publishBlocked.channelIntro", { channelName })}
+          <strong>{t("live.s1sfaene")}</strong>
+          {t("live.s58hor1")}
         </p>
         <p className="text-xs text-muted-foreground">
           {t("live.s124ma9f")}

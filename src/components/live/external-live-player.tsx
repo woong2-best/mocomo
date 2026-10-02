@@ -159,7 +159,7 @@ export function ExternalLivePlayer({
                   className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black"
                 >
                   <ExternalLink className="h-4 w-4" />
-                  {providerDisplayName(provider)}에서 보기
+                  {t("live.external.watchOn", { provider: providerDisplayName(provider) })}
                 </a>
               </>
             )}

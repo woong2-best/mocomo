@@ -76,12 +76,12 @@ export function RevenueSettlementPanel({
         </div>
         <div className="space-y-1.5">
           <div className="flex items-baseline justify-between gap-3 text-sm">
-            <p className="font-bold">정산 등급 {progress.currentLabel}</p>
+            <p className="font-bold">{t("wallet.settlement.tierLabel", { label: progress.currentLabel })}</p>
             {progress.atMaxTier ? (
               <p className="text-xs font-semibold text-muted-foreground">{t("wallet.s17fu66s")}</p>
             ) : (
               <p className="text-xs font-semibold tabular-nums">
-                {progress.nextLabel}까지 {progress.mocoRemaining.toLocaleString()} MOCO
+                {t("wallet.settlement.mocoToNext", { tier: progress.nextLabel, moco: progress.mocoRemaining.toLocaleString() })}
               </p>
             )}
           </div>
@@ -98,14 +98,15 @@ export function RevenueSettlementPanel({
           </p>
         </div>
         <p className="text-sm text-muted-foreground">
-          후원 광석 뱃지 {settlement.earnedMocoTier ?? "SEED"} (정산 등급과 별개)
+          {t("wallet.settlement.supportBadgeLine", { tier: settlement.earnedMocoTier ?? "SEED" })}
         </p>
         <p className="text-xs text-muted-foreground">
           {settlement.onDemandPayoutEnabled
-            ? `${REWARD_TERMS_LABEL}은 온디맨드 출금으로 Connect 계정에 지급됩니다. 등급은 남은 정산 MOCO 잔액 기준으로 즉시 재산정됩니다.`
-            : `매월 1일 등급만큼 정산 MOCO를 차감한 뒤 ${REWARD_TERMS_LABEL}을 지급하고, 남은 수량은 다음 달로 넘어갑니다.`}{" "}
-          보유 MOCO {settlement.purchasedMocoPoints.toLocaleString()}는 결제로 충전한 수량이라 정산 등급에 포함되지
-          않습니다.
+            ? t("wallet.settlement.onDemandBody", { rewardLabel: REWARD_TERMS_LABEL })
+            : t("wallet.settlement.monthlyBody", { rewardLabel: REWARD_TERMS_LABEL })}{" "}
+          {t("wallet.settlement.purchasedMocoNote", {
+            amount: settlement.purchasedMocoPoints.toLocaleString(),
+          })}
         </p>
       </div>
 
@@ -169,7 +170,7 @@ export function RevenueSettlementPanel({
                   : "bg-muted/40 text-muted-foreground border-border/60"
               )}
             >
-              {y}년
+              {t("wallet.settlement.yearButton", { year: String(y) })}
             </button>
           ))}
         </div>

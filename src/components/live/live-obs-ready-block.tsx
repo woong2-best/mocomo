@@ -122,7 +122,7 @@ export function LiveObsReadyBlock({
               onClick={() => copy(creds.obsServer, "server")}
             >
               {copied === "server" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              서버 복사
+              {t("live.obs.copyServer")}
             </Button>
           </div>
           <div>
@@ -138,7 +138,7 @@ export function LiveObsReadyBlock({
               onClick={() => copy(creds.obsStreamKey, "key")}
             >
               {copied === "key" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              키 복사
+              {t("live.obs.copyKey")}
             </Button>
           </div>
           <Button
@@ -151,7 +151,7 @@ export function LiveObsReadyBlock({
             }
           >
             {copied === "all" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            서버 + 키 한번에 복사
+            {t("live.obs.copyAll")}
           </Button>
         </>
       )}

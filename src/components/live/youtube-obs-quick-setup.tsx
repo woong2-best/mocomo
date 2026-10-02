@@ -88,9 +88,11 @@ export function YoutubeObsQuickSetup({
           {t("live.youtube")}
         </p>
         <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-          {t("live.obs_26")} <strong className="font-medium text-foreground">URL</strong>과{" "}
-          <strong className="font-medium text-foreground">CSS</strong>를{" "}
-          <em>{t("live.s1gnhjl8")}</em>{t("live.url_3")}
+          {t("live.youtubeObs.urlCssLine", {
+            lead: t("live.obs_26"),
+            target: t("live.s1gnhjl8"),
+            tail: t("live.url_3"),
+          })}
         </p>
       </div>
 

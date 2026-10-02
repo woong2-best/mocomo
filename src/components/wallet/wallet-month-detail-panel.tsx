@@ -85,7 +85,7 @@ function TransactionRow({ tx }: { tx: WalletEnrichedTransaction }) {
           {formatMocoNetFromCents(tx.net)}
         </p>
         <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
-          잔액 {formatMocoDisplay(ledgerCentsToMoco(tx.cumulative))}
+          {t("wallet.month.balance", { balance: formatMocoDisplay(ledgerCentsToMoco(tx.cumulative)) })}
         </p>
       </div>
     </motion.div>
@@ -172,20 +172,20 @@ export function WalletMonthDetailPanel({ year, month, monthLabel, transactions, 
             <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-b border-border/50">
               <div>
                 <p className="text-sm font-black tracking-tight">
-                  {year}년 {monthLabel} 거래 내역
+                  {t("wallet.month.header", { year: String(year), month: monthLabel })}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  수익{" "}
+                  {t("wallet.month.income")}{" "}
                   <span className="text-emerald-600 font-bold tabular-nums">
                     +{formatMocoDisplay(ledgerCentsToMoco(incomeTotal))}
                   </span>
                   {" · "}
-                  지출{" "}
+                  {t("wallet.month.expense")}{" "}
                   <span className="text-red-600 font-bold tabular-nums">
                     -{formatMocoDisplay(ledgerCentsToMoco(expenseTotal))}
                   </span>
                   {" · "}
-                  {monthTx.length}건
+                  {t("wallet.month.count", { count: String(monthTx.length) })}
                 </p>
               </div>
               <button

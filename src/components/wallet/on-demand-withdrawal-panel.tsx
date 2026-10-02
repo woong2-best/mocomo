@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 type Quote = {
@@ -128,7 +131,7 @@ export function OnDemandWithdrawalPanel({ settlementMoco, payoutsEnabled, onSucc
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
       <div>
-        <p className="font-bold">Reward 온디맨드 출금</p>
+        <p className="font-bold">{t("wallet.onDemand.title")}</p>
         <p className="text-xs text-muted-foreground mt-1">
           Available {settlementMoco.toLocaleString()} MOCO · partial or full withdrawal
         </p>

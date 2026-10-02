@@ -127,7 +127,7 @@ export function SettlementRegistrationPanel({
             </p>
           ) : null}
           <p className="text-xs text-muted-foreground mt-2">
-            월말에 정산 MOCO가 {REWARD_TERMS_LABEL}로 자동 지급됩니다.
+            {t("wallet.registration.monthlyAuto", { rewardLabel: REWARD_TERMS_LABEL })}
             {taxReportingReady ? t("wallet.svmfeiz") : ""}
           </p>
           <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 mt-1">
@@ -173,8 +173,7 @@ export function SettlementRegistrationPanel({
       </div>
 
       <p className="text-sm text-muted-foreground leading-relaxed">
-        Stripe Express 온보딩에서 본인 확인·은행 계좌·세무 정보(W-9/W-8BEN)를 등록합니다. 월말에{" "}
-        {REWARD_TERMS_LABEL}가 등록 계좌로 자동 입금됩니다.
+        {t("wallet.registration.stripeOnboarding", { rewardLabel: REWARD_TERMS_LABEL })}
       </p>
       <ul className="text-sm text-muted-foreground leading-relaxed space-y-1 list-disc pl-4">
         <li>{t("wallet.stripe_2")}</li>
@@ -190,7 +189,7 @@ export function SettlementRegistrationPanel({
         <ExternalLink className="h-3.5 w-3.5" />
       </a>
       <p className="text-xs font-semibold">
-        정산 수령 상태:{" "}
+        {t("wallet.registration.payoutStatus")}{" "}
         {payoutsEnabled ? (
           <span className="text-emerald-700 dark:text-emerald-400">{t("wallet.payouts_enabled_2")}</span>
         ) : (

@@ -6,7 +6,8 @@ export function LiveObsCloudflareGuide({ compact }: { compact?: boolean }) {
   if (compact) {
     return (
       <p className="text-[11px] text-orange-900 dark:text-orange-100 bg-orange-500/10 rounded-lg px-2 py-1.5 leading-relaxed">
-        <strong>Cloudflare Stream.</strong> {t("live.obs_mocomo")} <strong>{t("live.sxvqg")}</strong>(RTMPS) · <strong>{t("live.soir95o")}</strong> 입력 후{" "}
+        <strong>Cloudflare Stream.</strong> {t("live.obs_mocomo")} <strong>{t("live.sxvqg")}</strong>(RTMPS) · <strong>{t("live.soir95o")}</strong>
+        {t("live.obs.afterEnter")}{" "}
         <strong>{t("live.s1dub35p")}</strong>{t("live.vultr_ip_livekit")}
       </p>
     );

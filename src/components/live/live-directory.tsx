@@ -139,7 +139,7 @@ export function LiveDirectory({
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
-            지금 방송 중 · {channels.length}
+            {t("live.directory.liveNow", { count: String(channels.length) })}
           </h2>
           {channels.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card/50 py-20 text-center space-y-4">

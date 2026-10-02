@@ -6,7 +6,8 @@ export function LiveObsStandardGuide({ compact }: { compact?: boolean }) {
   if (compact) {
     return (
       <p className="text-[11px] text-violet-800 dark:text-violet-200 bg-violet-500/10 rounded-lg px-2 py-1.5 leading-relaxed">
-        <strong>{t("live.s1p16dza")}</strong> {t("live.obs_16")} <strong>{t("live.sxvqg")}</strong>·<strong>{t("live.soir95o")}</strong> 입력 후{" "}
+        <strong>{t("live.s1p16dza")}</strong> {t("live.obs_16")} <strong>{t("live.sxvqg")}</strong>·<strong>{t("live.soir95o")}</strong>
+        {t("live.obs.afterEnter")}{" "}
         <strong>{t("live.ssg87i4")}</strong>{t("live.vps")}
       </p>
     );

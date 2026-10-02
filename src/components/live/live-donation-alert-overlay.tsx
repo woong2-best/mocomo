@@ -112,7 +112,7 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
       {isLetter && tip.message?.trim() ? (
         <div className="py-1">
           <p className="text-[11px] font-bold text-amber-100 mb-2" style={{ textShadow: STROKE }}>
-            {name}님의 편지 후원 · {formatUsd(tip.amount)}
+            {t("live.donationAlert.letterTip", { name, amount: formatUsd(tip.amount) })}
           </p>
           <LetterDonationEnvelope
             amount={tip.amount}

@@ -83,7 +83,8 @@ export function LiveSupportMissionPanel({
           {isHost && m.status === "PENDING" && (
             <div className="flex gap-1">
               <Button size="sm" variant="default" className="h-7 text-xs" disabled={loadingId === m.id} onClick={() => void resolve(m.id, "ACCEPTED")}>
-                {loadingId === m.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} 수락
+                {loadingId === m.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}{" "}
+                {t("live.mission.accept")}
               </Button>
               <Button size="sm" variant="outline" className="h-7 text-xs" disabled={loadingId === m.id} onClick={() => void resolve(m.id, "FAILED")}>
                 {t("collab.reject")}

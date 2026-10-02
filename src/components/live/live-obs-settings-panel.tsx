@@ -90,7 +90,7 @@ export function LiveObsSettingsPanel({
   if (!creds) {
     return (
       <p className="text-sm text-destructive">
-        OBS 정보를 불러오지 못했습니다.{" "}
+        {t("live.obs.fetchFailed")}{" "}
         <button type="button" className="underline" onClick={() => void load(false)}>
           {t("toast.retry")}
         </button>
@@ -111,7 +111,7 @@ export function LiveObsSettingsPanel({
           onClick={() => void load(true)}
         >
           {refreshing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-          키 재발급
+          {t("live.obs.regenerateKey")}
         </Button>
       </div>
       <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-500/10 rounded-lg px-2 py-1.5">
@@ -139,7 +139,7 @@ export function LiveObsSettingsPanel({
         }}
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-        복사
+        {t("live.obs.copyLabel")}
       </Button>
       <div
         className={`rounded-lg px-2.5 py-2 text-xs flex gap-2 ${
