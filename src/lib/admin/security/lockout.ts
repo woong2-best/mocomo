@@ -14,7 +14,7 @@ export async function assertNotLocked(userId: string): Promise<
   if (!row?.lockedUntil) return { ok: true };
   if (row.lockedUntil.getTime() > Date.now()) {
     return {
-      error: `로그인 실패가 많아 ${LOCK_MINUTES}분간 잠겼습니다. 잠금 해제 시각: ${row.lockedUntil.toISOString()}`,
+      error: `Something went wrong. Please try again. ${row.lockedUntil.toISOString()}`,
       lockedUntil: row.lockedUntil,
     };
   }

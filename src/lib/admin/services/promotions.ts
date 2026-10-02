@@ -341,7 +341,7 @@ export async function assignPromotion(
         await createNotification({
           userId,
           type: "PROMOTION",
-          title: `프로모션 지급: ${promo.name}`,
+          title: `Promotion granted: {v0} ${promo.name}`,
           body: formatCouponBenefit(promo),
           link: "/coupons",
           actorId: actor?.id,
