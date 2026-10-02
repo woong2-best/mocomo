@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { ReactNode } from "react";
 import { CHAT_PRESENCE_RING_CLASS } from "@/lib/chat-presence";
 import { cn } from "@/lib/utils";
@@ -19,7 +22,7 @@ export function PresenceAvatar({
   return (
     <div
       className={cn("relative inline-flex shrink-0 rounded-full", className)}
-      title={online ? "접속 중" : undefined}
+      title={online ? t("user.sq0t0ul") : undefined}
     >
       {children}
       {online ? (
