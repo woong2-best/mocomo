@@ -57,7 +57,7 @@ export default async function CosplayProfilePage({
           <p className="text-sm text-neon-cyan mt-2">{cp.followerCount} 팔로워 · 후원 {cp.totalTips.toLocaleString()}원</p>
           <div className="flex flex-wrap gap-2 mt-4">
             <Link href={`/u/${username}`}>
-              <span className="text-sm text-primary">전체 프로필 →</span>
+              <span className="text-sm text-primary">All profiles →</span>
             </Link>
             {canMessage ? <StartDmButton userId={user.id} /> : null}
           </div>
