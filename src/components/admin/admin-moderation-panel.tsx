@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AccountStatus } from "@prisma/client";
+import type { RiskTier } from "@/lib/risk-score-rules";
 import { AlertTriangle, ChevronDown, ChevronUp, Shield } from "lucide-react";
 
 type QueueItem = Awaited<ReturnType<typeof getModerationReviewQueue>>[number];
@@ -31,12 +32,20 @@ const SANCTION_OPTIONS: ModerationSanctionType[] = [
   "restore",
 ];
 
-function tierBadgeClass(tier: string) {
-  if (tier.includes("긴급")) return "bg-red-600/15 text-red-600";
-  if (tier.includes("대기") || tier.includes("검토")) return "bg-orange-500/15 text-orange-600";
-  if (tier.includes("제한")) return "bg-amber-500/15 text-amber-700";
-  if (tier.includes("주의")) return "bg-yellow-500/15 text-yellow-700";
-  return "bg-muted text-muted-foreground";
+function tierBadgeClass(tier: RiskTier) {
+  switch (tier) {
+    case "urgent":
+      return "bg-red-600/15 text-red-600";
+    case "pending_sanction":
+    case "review":
+      return "bg-orange-500/15 text-orange-600";
+    case "limited":
+      return "bg-amber-500/15 text-amber-700";
+    case "caution":
+      return "bg-yellow-500/15 text-yellow-700";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
 }
 
 export function AdminModerationPanel({ initialQueue }: { initialQueue: QueueItem[] }) {

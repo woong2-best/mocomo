@@ -19,7 +19,7 @@ import {
 } from "@/lib/moderation-sanctions";
 import { logModerationAudit } from "@/lib/moderation-audit";
 import { resetRiskScore } from "@/lib/risk-score";
-import { riskTierFromScore, riskTierLabel } from "@/lib/risk-score-rules";
+import { riskTierFromScore } from "@/lib/risk-score-rules";
 import { createNotification } from "@/lib/notifications";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import {
@@ -119,7 +119,7 @@ export async function getModerationUserDetail(userId: string) {
 
   return {
     ...user,
-    riskTier: riskTierLabel(riskTierFromScore(user.riskScore)),
+    riskTier: riskTierFromScore(user.riskScore),
     recentPosts,
     recentComments,
     dmCountWeek: dmCount,
@@ -187,7 +187,7 @@ export async function getModerationReviewQueue() {
 
       return {
         ...u,
-        riskTier: riskTierLabel(riskTierFromScore(u.riskScore)),
+        riskTier: riskTierFromScore(u.riskScore),
         recentReportCount: recentReports,
         aiRecommendation: ai?.recommendedAction ?? moderationCase?.recommendedAction ?? null,
         aiConfidence: ai?.confidence ?? moderationCase?.aiConfidence ?? null,
