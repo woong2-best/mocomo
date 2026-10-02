@@ -66,7 +66,7 @@ export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
         <Link href="/voice/new">
           <Button variant="outline" className="gap-2 rounded-xl">
             <Radio className="h-4 w-4" />
-            자체 송출
+            {t("live.firstPartyGoLive")}
           </Button>
         </Link>
       ) : null}

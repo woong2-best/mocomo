@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { Component, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
@@ -26,7 +27,7 @@ export class LiveStudioErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, message: "" };
 
   static getDerivedStateFromError(error: Error): State {
-    const msg = error.message?.trim() || "알 수 없는 오류";
+    const msg = error.message?.trim() || t("live.s10ewre2");
     return { hasError: true, message: msg };
   }
 
@@ -48,11 +49,11 @@ export class LiveStudioErrorBoundary extends Component<Props, State> {
       return (
         <div className="space-y-2">
           <p className="text-xs text-amber-700 dark:text-amber-300 px-1">
-            영상 UI 오류 — 방송 패널만 표시합니다. (Ctrl+Shift+R 권장)
+            {t("live.ui_ctrl_shift_r")}
           </p>
           <LiveBrowserStudio
             channelId={this.props.channelId}
-            channelName={this.props.channelName ?? "방송"}
+            channelName={this.props.channelName ?? t("live.sx2fs")}
             onEndStream={this.props.onEndStream}
           />
         </div>
@@ -70,7 +71,7 @@ export class LiveStudioErrorBoundary extends Component<Props, State> {
             className="rounded-xl"
             onClick={() => this.setState({ hasError: false, message: "" })}
           >
-            다시 시도
+            {t("toast.retry")}
           </Button>
         </div>
       );
@@ -78,7 +79,7 @@ export class LiveStudioErrorBoundary extends Component<Props, State> {
 
     return (
       <AppErrorState
-        title="스튜디오를 열지 못했습니다"
+        title={t("live.sbsa93w")}
         description={this.state.message}
         icon={AlertTriangle}
         variant="destructive"
@@ -87,9 +88,9 @@ export class LiveStudioErrorBoundary extends Component<Props, State> {
           this.props.channelId ? () => window.location.reload() : undefined
         }
         primaryHref={this.props.channelId ? undefined : "/live"}
-        primaryLabel={this.props.channelId ? "페이지 새로고침" : "라이브 홈"}
+        primaryLabel={this.props.channelId ? t("live.s1nx7peg") : t("live.sx1ht4s")}
         secondaryHref={this.props.channelId ? "/live" : undefined}
-        secondaryLabel={this.props.channelId ? "라이브 홈" : undefined}
+        secondaryLabel={this.props.channelId ? t("live.sx1ht4s") : undefined}
       />
     );
   }

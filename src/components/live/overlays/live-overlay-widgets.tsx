@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import type {
   LiveOverlayChosungQuizProps,
   LiveOverlayLotteryProps,
@@ -13,7 +14,9 @@ import { LiveOverlayQuiz } from "@/components/live/overlays/live-overlay-quiz";
 import { LiveOverlayWordGuess } from "@/components/live/overlays/live-overlay-word-guess";
 import { LiveOverlayChosungQuiz } from "@/components/live/overlays/live-overlay-chosung-quiz";
 
-export function TextOverlayWidget({ props }: { props: LiveOverlayTextProps }) {
+export function TextOverlayWidget({
+  props }: { props: LiveOverlayTextProps }) {
+  const { t } = useLocale();
   return (
     <div
       className="flex h-full w-full items-center px-3 py-2"
@@ -56,10 +59,10 @@ export function LotteryOverlayWidget({ props }: { props: LiveOverlayLotteryProps
       <p className="text-xs font-bold mb-1 truncate">{props.title}</p>
       <div className="flex-1 flex items-center justify-center min-h-0">
         {props.drawing ? (
-          <p className="text-lg font-bold animate-pulse">추첨 중…</p>
+          <p className="text-lg font-bold animate-pulse">{t("live.s1cb0bwh")}</p>
         ) : props.winner ? (
           <div className="text-center">
-            <p className="text-[10px] text-white/70">당첨</p>
+            <p className="text-[10px] text-white/70">{t("live.svkcv")}</p>
             <p className="text-xl font-black text-yellow-300 break-all">{props.winner}</p>
           </div>
         ) : (

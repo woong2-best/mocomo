@@ -2,6 +2,7 @@
 
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
 
 const TABS: {
   id: LiveFolderFilter;
@@ -26,6 +27,7 @@ export function LiveHubSlantTabs({
   onSelect: (id: LiveFolderFilter) => void;
   disabled?: boolean;
 }) {
+  const { t } = useLocale();
   return (
     <div
       className={cn(
@@ -33,7 +35,7 @@ export function LiveHubSlantTabs({
         disabled && "opacity-70 pointer-events-none"
       )}
       role="tablist"
-      aria-label="라이브 카테고리"
+      aria-label={t("live.hub.categoryAria")}
     >
       {TABS.map((tab) => {
         const on = tab.id === active;

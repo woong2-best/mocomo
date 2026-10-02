@@ -4,6 +4,7 @@ import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
 import { LiveHubNeonTabsGraphic } from "@/components/live/live-hub-neon-tabs-graphic";
 import { LIVE_HUB_NEON_THEME } from "@/components/live/live-hub-neon-theme";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
 
 /** Design reference width — strip scales to fit the content column (no horizontal scroll). */
 export const LIVE_NEON_TABS_DESIGN_WIDTH = 1680;
@@ -40,6 +41,7 @@ export function LiveHubNeonTabStrip({
   onSelect: (id: LiveFolderFilter) => void;
   disabled?: boolean;
 }) {
+  const { t } = useLocale();
   const bloom = (LIVE_HUB_NEON_THEME[active] ?? LIVE_HUB_NEON_THEME.ALL).cssBloom;
 
   return (
@@ -52,7 +54,7 @@ export function LiveHubNeonTabStrip({
       <div
         className="live-hub-neon-tabs-strip w-full live-hub-neon-tabs-strip--themed"
         role="tablist"
-        aria-label="라이브 카테고리"
+        aria-label={t("live.hub.categoryAria")}
         style={{ ["--live-hub-neon-bloom" as string]: bloom }}
       >
         <LiveHubNeonTabsGraphic active={active} />

@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter } from "next/navigation";
 import type { MouseEvent } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -19,15 +22,15 @@ function formatViewerCount(n: number, locale: string) {
   if (n >= 10000) {
     const man = n / 10000;
     return locale.startsWith("ko")
-      ? `${man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "")}만명 시청 중`
+      ? t("live.scr7y4p", { v0: man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "") })
       : `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K watching`;
   }
   if (n >= 1000) {
     return locale.startsWith("ko")
-      ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}천명 시청 중`
+      ? t("live.sor0ymx", { v0: (n / 1000).toFixed(1).replace(/\.0$/, "") })
       : `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K watching`;
   }
-  return locale.startsWith("ko") ? `${n}명 시청 중` : `${n} watching`;
+  return locale.startsWith("ko") ? t("live.s19z0eyl", { v0: n }) : `${n} watching`;
 }
 
 /** Full folder asset + label drawn ON the folder (bottom-left). */

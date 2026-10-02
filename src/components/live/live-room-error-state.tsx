@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { LucideIcon } from "lucide-react";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { PageErrorState } from "@/components/ui/app-error-state";
@@ -8,7 +11,7 @@ export function LiveRoomErrorState({
   icon,
   variant = "default",
   primaryHref = "/live",
-  primaryLabel = "라이브 홈",
+  primaryLabel = t("live.sx1ht4s"),
   secondaryHref,
   secondaryLabel,
 }: {

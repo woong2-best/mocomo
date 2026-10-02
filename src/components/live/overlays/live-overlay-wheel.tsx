@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useId } from "react";
 import { useLiveOverlayContextOptional } from "@/components/live/overlays/live-overlay-context";
 import { WHEEL_COLORS, WHEEL_SPIN_MS } from "@/lib/live-overlays/wheel-theme";
@@ -34,6 +35,7 @@ export function LiveOverlayWheel({
   selected: boolean;
   props: LiveOverlayWheelProps;
 }) {
+  const { t } = useLocale();
   const clipId = useId().replace(/:/g, "");
   const ctx = useLiveOverlayContextOptional();
   const isHost = ctx?.isHost ?? false;
@@ -134,7 +136,7 @@ export function LiveOverlayWheel({
           onClick={spin}
           onPointerDown={(e) => e.stopPropagation()}
           className="absolute inset-0 z-10 cursor-pointer rounded-full disabled:cursor-wait focus:outline-none"
-          aria-label="돌림판 돌리기"
+          aria-label={t("live.s1eat6j4")}
         />
       )}
     </div>

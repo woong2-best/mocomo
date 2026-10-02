@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useEffect, useState } from "react";
 import { ExternalLivePlayer } from "@/components/live/external-live-player";
 import { ExternalLiveStreamInfo } from "@/components/live/external-live-stream-info";
@@ -56,6 +57,7 @@ function ExternalLiveEndWatcher({
   channelId: string;
   onEnded?: () => void;
 }) {
+  const { t } = useLocale();
   const chat = useLiveChatOptional();
 
   useEffect(() => {
@@ -150,7 +152,7 @@ export function ExternalLiveRoom({
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               <span className="flex items-center gap-1 font-medium text-muted-foreground">
                 <Trophy className="h-3.5 w-3.5 text-amber-500" />
-                이번 방송 후원 TOP
+                {t("live.top")}
               </span>
               {ranking.map((t, i) => (
                 <span key={`${t.username}-${i}`} className="rounded-full bg-muted px-2 py-0.5">

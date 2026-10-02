@@ -1,5 +1,9 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, type ReactNode } from "react";
 import type { LiveSupportEventType } from "@prisma/client";
 import {
@@ -30,9 +34,9 @@ import {
 import type { Socket } from "socket.io-client";
 
 const TABS: { id: LiveSupportEventType | "MISSION"; label: string; icon: ReactNode }[] = [
-  { id: "GENERAL", label: "일반", icon: <Gift className="h-3.5 w-3.5" /> },
-  { id: "ROULETTE", label: "룰렛", icon: <RotateCw className="h-3.5 w-3.5" /> },
-  { id: "MISSION", label: "미션", icon: <Target className="h-3.5 w-3.5" /> },
+  { id: "GENERAL", label: t("live.syyos"), icon: <Gift className="h-3.5 w-3.5" /> },
+  { id: "ROULETTE", label: t("live.swgtn"), icon: <RotateCw className="h-3.5 w-3.5" /> },
+  { id: "MISSION", label: t("live.sx17k"), icon: <Target className="h-3.5 w-3.5" /> },
 ];
 
 export function LiveSupportDialog({
@@ -44,7 +48,7 @@ export function LiveSupportDialog({
   triggerSize = "sm",
   triggerClassName,
   trigger,
-  triggerLabel = "응원 CP",
+  triggerLabel = t("live.sn24kge"),
   initialTab = "GENERAL",
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -62,6 +66,7 @@ export function LiveSupportDialog({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
+  const { t } = useLocale();
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
   const setOpen = controlledOnOpenChange ?? setInternalOpen;
@@ -83,7 +88,7 @@ export function LiveSupportDialog({
     setLoading(true);
     const min = SUPPORT_MIN_AMOUNT[type];
     if (effectiveAmount < min) {
-      setError(`최소 ${min.toLocaleString()} CP`);
+      setError(t("live.s1a0tk2l", { v0: min.toLocaleString() }));
       setLoading(false);
       return;
     }
@@ -96,10 +101,10 @@ export function LiveSupportDialog({
     });
     setLoading(false);
     if (!res.ok) {
-      setError(res.error ?? "실패");
+      setError(res.error ?? t("live.syb44"));
       return;
     }
-    setSuccess("응원이 전달되었습니다!");
+    setSuccess(t("live.s1ae1nmb"));
     setMessage("");
     setTimeout(() => setOpen(false), 800);
   }
@@ -108,7 +113,7 @@ export function LiveSupportDialog({
     setError("");
     setSuccess("");
     if (!missionTitle.trim()) {
-      setError("미션 내용을 입력해 주세요.");
+      setError(t("live.s1wp22z7"));
       return;
     }
     setLoading(true);
@@ -119,10 +124,10 @@ export function LiveSupportDialog({
     });
     setLoading(false);
     if (!res.ok) {
-      setError(res.error ?? "실패");
+      setError(res.error ?? t("live.syb44"));
       return;
     }
-    setSuccess("미션이 등록되었습니다. 스트리머 수락을 기다려 주세요.");
+    setSuccess(t("live.s1x7mii4"));
     setMissionTitle("");
   }
 
@@ -147,7 +152,7 @@ export function LiveSupportDialog({
       ) : null}
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>라이브 응원 (가상 CP)</DialogTitle>
+          <DialogTitle>{t("live.s1npy0j4")}</DialogTitle>
           <DialogDescription>
             {hostDisplayName}님께 결제 없이 응원 포인트(CP)를 보냅니다. MOCO 후원(영상·효과음)은 채팅
             하단 버튼을 이용해 주세요.
@@ -181,28 +186,28 @@ export function LiveSupportDialog({
         {tab === "GENERAL" && (
           <div className="space-y-3 mt-3">
             <Textarea
-              placeholder="응원 메시지 (선택)"
+              placeholder={t("live.s181sazx")}
               value={message}
               onChange={(e) => setMessage(e.target.value.slice(0, 100))}
               rows={2}
             />
-            <SubmitRow loading={loading} onClick={() => void handleCheer("GENERAL")} label="일반 응원 보내기" />
+            <SubmitRow loading={loading} onClick={() => void handleCheer("GENERAL")} label={t("live.s1kzz3ar")} />
           </div>
         )}
 
         {tab === "ROULETTE" && (
           <div className="space-y-3 mt-3">
             <p className="text-xs text-muted-foreground">
-              후원 시 랜덤 미션(노래·춤·벌칙 등)이 추첨되어 방송 화면에 표시됩니다.
+              {t("live.s1r4blwm")}
             </p>
-            <SubmitRow loading={loading} onClick={() => void handleCheer("ROULETTE")} label="룰렛 돌리기" />
+            <SubmitRow loading={loading} onClick={() => void handleCheer("ROULETTE")} label={t("live.s1fpxgez")} />
           </div>
         )}
 
         {tab === "MISSION" && (
           <div className="space-y-3 mt-3">
             <Input
-              placeholder='예: "이 판 이기면" (미션 내용)'
+              placeholder={t("live.se0i2gm")}
               value={missionTitle}
               onChange={(e) => setMissionTitle(e.target.value.slice(0, 120))}
             />
@@ -219,7 +224,7 @@ export function LiveSupportDialog({
                 </Button>
               ))}
             </div>
-            <SubmitRow loading={loading} onClick={() => void handleMission()} label="미션 등록 (예치)" />
+            <SubmitRow loading={loading} onClick={() => void handleMission()} label={t("live.sah9af9")} />
           </div>
         )}
 
@@ -263,13 +268,13 @@ function AmountPicker({
         ))}
       </div>
       <Input
-        placeholder="직접 입력 CP"
+        placeholder={t("live.s18qvfh")}
         value={custom}
         onChange={(e) => onCustom(e.target.value.replace(/\D/g, "").slice(0, 8))}
         className="tabular-nums"
       />
       <p className="text-xs text-muted-foreground text-right tabular-nums">
-        선택: <strong>{effectiveAmount.toLocaleString()} CP</strong>
+        {t("live.st9vdp")} <strong>{effectiveAmount.toLocaleString()} CP</strong>
       </p>
     </div>
   );

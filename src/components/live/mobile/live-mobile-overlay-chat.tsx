@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { DollarSign, Send } from "lucide-react";
@@ -32,6 +33,7 @@ export function LiveMobileOverlayChat({
   viewerSupportTotal?: number;
   showMessages?: boolean;
 }) {
+  const { t } = useLocale();
   const { data: session } = useSession();
   const { messages, socket, appendMessage, replaceOptimistic, removeMessage } = useLiveChat();
   const visible = useLiveOverlayDisplayQueue(messages);
@@ -101,7 +103,7 @@ export function LiveMobileOverlayChat({
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void send()}
-            placeholder="댓글 달기…"
+            placeholder={t("live.sbts6tr")}
             className="flex-1 h-10 rounded-full bg-black/45 backdrop-blur-md border border-white/20 px-4 text-sm text-white placeholder:text-white/60"
             maxLength={200}
             disabled={sending}
@@ -111,7 +113,7 @@ export function LiveMobileOverlayChat({
             onClick={() => void send()}
             disabled={sending || !text.trim()}
             className="h-10 w-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-white disabled:opacity-40"
-            aria-label="댓글 보내기"
+            aria-label={t("live.sbvaahp")}
           >
             <Send className="h-4 w-4" />
           </button>
@@ -127,7 +129,7 @@ export function LiveMobileOverlayChat({
                 <button
                   type="button"
                   className="h-10 w-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-emerald-300 hover:bg-white/25"
-                  aria-label="댓글 후원"
+                  aria-label={t("live.sbucfnj")}
                 >
                   <DollarSign className="h-5 w-5" />
                 </button>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useState } from "react";
 import { Target } from "lucide-react";
 import { LiveSupportDialog } from "@/components/live/live-support-dialog";
@@ -18,6 +19,7 @@ export function ExternalLiveDonationBar({
   hostDisplayName: string;
   isHost?: boolean;
 }) {
+  const { t } = useLocale();
   const { socket, connected } = useLiveChat();
   const [missionOpen, setMissionOpen] = useState(false);
 
@@ -34,7 +36,7 @@ export function ExternalLiveDonationBar({
         streamerId={channelId}
         trigger={
           <button type="button" className={btnClass}>
-            영상 후원
+            {t("live.sh6wx58")}
           </button>
         }
       />
@@ -42,7 +44,7 @@ export function ExternalLiveDonationBar({
         streamerId={channelId}
         trigger={
           <button type="button" className={btnClass}>
-            효과음 후원
+            {t("live.sc8rtpw")}
           </button>
         }
       />
@@ -57,7 +59,7 @@ export function ExternalLiveDonationBar({
         trigger={
           <button type="button" disabled={!connected} className={btnClass}>
             <Target className="h-3.5 w-3.5" />
-            미션
+            {t("live.sx17k")}
           </button>
         }
       />

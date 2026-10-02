@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { Users } from "lucide-react";
 import { LiveCloudflareWhepPlayer } from "@/components/live/live-cloudflare-whep-player";
 import {
@@ -16,6 +17,7 @@ export function LiveCollabPublishStudio({
   channelId: string;
   coHostLabel?: string;
 }) {
+  const { t } = useLocale();
   return (
     <LiveCollabPublishRoom channelId={channelId}>
       <div className="relative w-full aspect-video rounded-xl overflow-hidden ring-1 ring-border/50 bg-black shadow-sm">
@@ -23,13 +25,13 @@ export function LiveCollabPublishStudio({
           <div className="relative min-h-0 min-w-0 border-r border-white/10">
             <LiveCloudflareWhepPlayer channelId={channelId} embedded />
             <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded bg-orange-600/90 text-white text-[9px] font-bold">
-              호스트
+              {t("live.swbu18")}
             </span>
           </div>
           <div className="relative min-h-0 min-w-0">
             <LiveCollabLocalPreview />
             <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded bg-violet-600/90 text-white text-[9px] font-bold">
-              합방 (나)
+              {t("live.s11h6ovt")}
             </span>
           </div>
         </div>
@@ -61,7 +63,7 @@ export function LiveHostCollabPreview({
         <div className="relative min-h-0 min-w-0 border-r border-white/10 overflow-hidden">
           <div className="relative h-full w-full min-h-0 overflow-hidden">{children}</div>
           <span className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded bg-orange-600/90 text-white text-[9px] font-bold pointer-events-none">
-            호스트
+            {t("live.swbu18")}
           </span>
         </div>
         <div className="relative min-h-0 min-w-0">
@@ -71,7 +73,7 @@ export function LiveHostCollabPreview({
             coHostLabel={coHostLabel}
           />
           <span className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded bg-violet-600/90 text-white text-[9px] font-bold pointer-events-none">
-            합방
+            {t("live.s11bz4")}
           </span>
         </div>
       </div>

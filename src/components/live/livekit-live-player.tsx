@@ -1,5 +1,9 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { LiveKitRoom, RoomAudioRenderer, VideoTrack, useTracks } from "@livekit/components-react";
 import { Track } from "livekit-client";
@@ -14,6 +18,7 @@ function PublisherVideo({
   channelId: string;
   hostUserId?: string;
 }) {
+  const { t } = useLocale();
   const tracks = useTracks(
     [
       Track.Source.Camera,
@@ -42,7 +47,7 @@ function PublisherVideo({
         <Loader2 className="h-10 w-10 animate-spin" />
         <Radio className="h-8 w-8 text-folk-terracotta" />
         <p className="text-sm text-center px-4 max-w-sm">
-          스트리머가 방송을 시작하면 실시간 화면이 나타납니다.
+          {t("live.s1osl8uk")}
         </p>
       </div>
     );
@@ -81,7 +86,7 @@ export function LivekitLivePlayer({
         }
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "연결 실패");
+          setError(e instanceof Error ? e.message : t("live.seed06c"));
         }
       }
     }
@@ -103,7 +108,7 @@ export function LivekitLivePlayer({
     return (
       <div className="aspect-video rounded-xl bg-black flex items-center justify-center text-white/70 gap-2">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="text-sm">방송 화면 연결 중…</span>
+        <span className="text-sm">{t("live.sm91x99")}</span>
       </div>
     );
   }
@@ -122,7 +127,7 @@ export function LivekitLivePlayer({
         <PublisherVideo channelId={channelId} hostUserId={hostUserId} />
       </LiveKitRoom>
       <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-violet-600 text-white text-[10px] font-bold z-10 pointer-events-none">
-        실시간
+        {t("live.sthqq4")}
       </span>
     </div>
   );

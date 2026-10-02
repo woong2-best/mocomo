@@ -6,12 +6,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BroadcastRoleBadge } from "@/components/live/broadcast-role-badge";
-import { broadcastRoleLabelKo, type EffectiveBroadcastRole } from "@/lib/live-broadcast/permissions";
+import { broadcastRoleLabel, type EffectiveBroadcastRole } from "@/lib/live-broadcast/permissions";
 import {
   assignBroadcastRoleAction,
   removeBroadcastRoleAction,
 } from "@/actions/broadcast-roles";
 import { Loader2, Search, Trash2 } from "lucide-react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type RoleMember = {
   userId: string;
@@ -40,6 +41,7 @@ type RoleLog = {
 };
 
 export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
+  const { t, locale } = useLocale();
   const [members, setMembers] = useState<RoleMember[]>([]);
   const [logs, setLogs] = useState<RoleLog[]>([]);
   const [query, setQuery] = useState("");
@@ -58,17 +60,17 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
     try {
       const res = await fetch(`/api/live/${channelId}/roles`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "불러오기 실패");
+      if (!res.ok) throw new Error(data.error ?? t("live.roles.loadFailed"));
       setMembers(data.members ?? []);
       setLogs(data.logs ?? []);
       const perms: string[] = data.permissions ?? [];
       setAssignableRoles(perms.includes("roles.manage") ? ["MANAGER"] : []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "불러오기 실패");
+      setError(e instanceof Error ? e.message : t("live.roles.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [channelId]);
+  }, [channelId, t]);
 
   useEffect(() => {
     void load();
@@ -80,7 +82,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
       setSearchHits([]);
       return;
     }
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       void (async () => {
         const res = await fetch(`/api/live/${channelId}/roles/search?q=${encodeURIComponent(q)}`);
         const data = await res.json();
@@ -95,7 +97,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
         }
       })();
     }, 250);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [query, channelId, selectedRole]);
 
   async function saveRole() {
@@ -109,7 +111,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
       setError(res.error);
       return;
     }
-    setMessage("역할이 저장되었습니다.");
+    setMessage(t("live.roles.saved"));
     setQuery("");
     setSelectedUserId(null);
     void load();
@@ -127,11 +129,13 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
     void load();
   }
 
+  const dateLocale = locale === "ko" ? "ko-KR" : "en-US";
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8 text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin mr-2" />
-        불러오는 중…
+        {t("common.loading")}
       </div>
     );
   }
@@ -139,13 +143,13 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold mb-2">사용자 추가</h3>
+        <h3 className="text-sm font-semibold mb-2">{t("live.roles.addUser")}</h3>
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="사용자 ID 또는 닉네임 검색"
+            placeholder={t("live.roles.searchPlaceholder")}
             className="pl-9"
           />
         </div>
@@ -166,7 +170,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
                   <p className="text-sm font-medium truncate">@{u.username}</p>
                   {u.name && <p className="text-xs text-muted-foreground truncate">{u.name}</p>}
                   <p className="text-[11px] text-muted-foreground">
-                    현재 역할: {broadcastRoleLabelKo(u.currentRole)}
+                    {t("live.roles.currentRole", { role: broadcastRoleLabel(locale, u.currentRole) })}
                   </p>
                 </div>
               </button>
@@ -181,12 +185,12 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
           >
             {assignableRoles.map((r) => (
               <option key={r} value={r}>
-                {broadcastRoleLabelKo(r)}
+                {broadcastRoleLabel(locale, r)}
               </option>
             ))}
           </select>
           <Button disabled={!selectedUserId || saving} onClick={() => void saveRole()}>
-            저장
+            {t("live.roles.save")}
           </Button>
         </div>
       </div>
@@ -195,7 +199,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
       {message && <p className="text-sm text-emerald-600">{message}</p>}
 
       <div>
-        <h3 className="text-sm font-semibold mb-2">현재 역할</h3>
+        <h3 className="text-sm font-semibold mb-2">{t("live.roles.currentRoles")}</h3>
         <div className="space-y-2">
           {members.map((m) => (
             <div
@@ -211,7 +215,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
                   <span className="text-sm font-medium truncate">@{m.username}</span>
                   <BroadcastRoleBadge role={m.role} size={18} />
                 </div>
-                <p className="text-[11px] text-muted-foreground">{broadcastRoleLabelKo(m.role)}</p>
+                <p className="text-[11px] text-muted-foreground">{broadcastRoleLabel(locale, m.role)}</p>
               </div>
               {m.role !== "OWNER" && (
                 <Button
@@ -220,7 +224,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
                   className="shrink-0 text-muted-foreground hover:text-destructive"
                   disabled={saving}
                   onClick={() => void removeRole(m.userId)}
-                  aria-label="역할 제거"
+                  aria-label={t("live.roles.removeRoleAria")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -232,16 +236,18 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
 
       {logs.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold mb-2">변경 기록</h3>
+          <h3 className="text-sm font-semibold mb-2">{t("live.roles.changeLog")}</h3>
           <div className="space-y-1.5 max-h-40 overflow-y-auto text-xs text-muted-foreground">
             {logs.map((log) => (
               <p key={log.id}>
-                {new Date(log.at).toLocaleString("ko-KR")} · @{log.actorUsername} → @
+                {new Date(log.at).toLocaleString(dateLocale)} · @{log.actorUsername} → @
                 {log.targetUsername}
                 {log.action === "REMOVE"
-                  ? ` · ${log.oldRole ? broadcastRoleLabelKo(log.oldRole) : ""} 제거`
+                  ? log.oldRole
+                    ? t("live.roles.roleRemoved", { role: broadcastRoleLabel(locale, log.oldRole) })
+                    : ""
                   : log.newRole
-                    ? ` · ${broadcastRoleLabelKo(log.newRole)} 지정`
+                    ? t("live.roles.roleAssigned", { role: broadcastRoleLabel(locale, log.newRole) })
                     : ""}
               </p>
             ))}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useEffect, useState } from "react";
 import { BarChart3, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ export function LiveSupportPollBar({
   onPoll: (p: LiveSupportPollPayload | null) => void;
   onAlert?: (alert: LiveTipAlert) => void;
 }) {
+  const { t } = useLocale();
   const [creating, setCreating] = useState(false);
   const [question, setQuestion] = useState("");
   const [optA, setOptA] = useState("");
@@ -51,7 +53,7 @@ export function LiveSupportPollBar({
   async function handleCreate() {
     setError("");
     if (!question.trim() || !optA.trim() || !optB.trim()) {
-      setError("질문과 선택지를 입력해 주세요.");
+      setError(t("live.s1qnjt11"));
       return;
     }
     setLoading(true);
@@ -62,7 +64,7 @@ export function LiveSupportPollBar({
     });
     setLoading(false);
     if (!res.ok) {
-      setError(res.error ?? "실패");
+      setError(res.error ?? t("live.syb44"));
       return;
     }
     if (res.poll) onPoll(res.poll);
@@ -78,7 +80,7 @@ export function LiveSupportPollBar({
     const res = await voteLivePoll(socket, { pollId: poll.id, optionId });
     setLoading(false);
     if (!res.ok) {
-      setError(res.error ?? "실패");
+      setError(res.error ?? t("live.syb44"));
       return;
     }
     if (res.poll) onPoll(res.poll);
@@ -101,22 +103,22 @@ export function LiveSupportPollBar({
     <div className="rounded-lg border bg-card/95 backdrop-blur p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-semibold flex items-center gap-1">
-          <BarChart3 className="h-3.5 w-3.5" /> 투표 후원
+          <BarChart3 className="h-3.5 w-3.5" /> {t("live.s1v8osn0")}
         </p>
         {isHost && !poll && (
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setCreating((v) => !v)}>
-            {creating ? "닫기" : "투표 만들기"}
+            {creating ? t("common.close") : t("live.sogs84o")}
           </Button>
         )}
       </div>
 
       {creating && isHost && (
         <div className="space-y-2">
-          <Input placeholder="질문 (예: 다음 게임은?)" value={question} onChange={(e) => setQuestion(e.target.value)} />
-          <Input placeholder="선택 1" value={optA} onChange={(e) => setOptA(e.target.value)} />
-          <Input placeholder="선택 2" value={optB} onChange={(e) => setOptB(e.target.value)} />
+          <Input placeholder={t("live.sbfzpcg")} value={question} onChange={(e) => setQuestion(e.target.value)} />
+          <Input placeholder={t("live.sp7i07i")} value={optA} onChange={(e) => setOptA(e.target.value)} />
+          <Input placeholder={t("live.sp7i07j")} value={optB} onChange={(e) => setOptB(e.target.value)} />
           <Button size="sm" className="w-full" disabled={loading} onClick={() => void handleCreate()}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "투표 시작"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("live.s1v8lew5")}
           </Button>
         </div>
       )}

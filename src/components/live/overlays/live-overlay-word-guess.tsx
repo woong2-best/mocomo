@@ -1,9 +1,12 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import type { LiveOverlayWordGuessProps } from "@/lib/live-overlays/types";
 import { cn } from "@/lib/utils";
 
-export function LiveOverlayWordGuess({ props }: { props: LiveOverlayWordGuessProps }) {
+export function LiveOverlayWordGuess({
+  props }: { props: LiveOverlayWordGuessProps }) {
+  const { t } = useLocale();
   const active = props.phase === "active";
   const reveal = props.phase === "reveal";
 
@@ -36,7 +39,7 @@ export function LiveOverlayWordGuess({ props }: { props: LiveOverlayWordGuessPro
 
       {active && (
         <p className="text-[10px] text-white/55 text-center mt-1">
-          채팅으로 정답을 입력하세요
+          {t("live.s1pklxzt")}
         </p>
       )}
 

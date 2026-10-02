@@ -17,8 +17,8 @@ import { MocoEarthTransferHero } from "@/components/moco/moco-earth-transfer-her
 import { formatMocoDisplay } from "@/lib/gems/display";
 import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
 import { formatSecLabel, youtubeEmbedUrl } from "@/lib/video-donation";
-import { CREATOR_PAYOUT_BLOCKED_KO } from "@/lib/creator-payout-ready";
 import { toastIfStripeAccountNotReady, useCreatorPayoutReady } from "@/components/support/use-creator-payout-ready";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type PreviewQuote = {
   videoId: string;
@@ -44,6 +44,7 @@ export function MocoVideoDonationDialog({
   onSuccess?: (remaining: number) => void;
   trigger?: ReactNode;
 }) {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [urlInput, setUrlInput] = useState("");
@@ -59,6 +60,7 @@ export function MocoVideoDonationDialog({
   const [error, setError] = useState("");
   const payoutsEnabled = useCreatorPayoutReady(streamerId);
   const payoutBlocked = payoutsEnabled === false;
+  const payoutBlockedMsg = t("support.creatorPayoutBlocked");
 
   const resetForm = useCallback(() => {
     setStep(1);
@@ -95,7 +97,7 @@ export function MocoVideoDonationDialog({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) {
-        setQuoteError(typeof body.error === "string" ? body.error : "영상을 확인할 수 없습니다.");
+        setQuoteError(typeof body.error === "string" ? body.error : t("live.donation.video.previewFailed"));
         setQuote(null);
         return null;
       }
@@ -119,7 +121,7 @@ export function MocoVideoDonationDialog({
   async function goToSegmentStep() {
     const url = urlInput.trim();
     if (!url) {
-      setError("YouTube URL을 입력해 주세요.");
+      setError(t("live.donation.video.urlRequired"));
       return;
     }
     setError("");
@@ -135,12 +137,12 @@ export function MocoVideoDonationDialog({
 
   async function submit() {
     if (!termsAccepted) {
-      setError("후원 전 약관에 동의해 주세요.");
+      setError(t("live.donation.acceptTerms"));
       return;
     }
     const url = urlInput.trim();
     if (!url || !quote) {
-      setError("영상 견적을 다시 확인해 주세요.");
+      setError(t("live.donation.video.quoteRetry"));
       return;
     }
 
@@ -164,10 +166,10 @@ export function MocoVideoDonationDialog({
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.success) {
         if (toastIfStripeAccountNotReady(body)) {
-          setError(CREATOR_PAYOUT_BLOCKED_KO);
+          setError(payoutBlockedMsg);
           return;
         }
-        setError(typeof body.error === "string" ? body.error : "후원에 실패했습니다.");
+        setError(typeof body.error === "string" ? body.error : t("live.donation.failed"));
         return;
       }
       onSuccess?.(body.remaining_moco ?? 0);
@@ -182,11 +184,11 @@ export function MocoVideoDonationDialog({
       size="sm"
       type="button"
       disabled={payoutBlocked}
-      title={payoutBlocked ? CREATOR_PAYOUT_BLOCKED_KO : undefined}
+      title={payoutBlocked ? payoutBlockedMsg : undefined}
       className="h-8 text-xs bg-[#0d4d2c] text-white hover:bg-[#0d4d2c]/90 gap-1.5"
     >
       <Film className="h-3.5 w-3.5" />
-      영상 후원
+      {t("live.donation.video.trigger")}
     </Button>
   );
 
@@ -197,16 +199,18 @@ export function MocoVideoDonationDialog({
         <DialogHeader className="px-4 pt-4">
           <DialogTitle className="flex items-center gap-2">
             <Film className="h-4 w-4 text-emerald-600" />
-            YouTube 영상 후원
+            {t("live.donation.video.title")}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
-            {step === 1 ? "1/2 · URL 입력" : "2/2 · 구간·MOCO 확인"}
+            {step === 1 ? t("live.donation.video.step1") : t("live.donation.video.step2")}
           </p>
         </DialogHeader>
 
         <MocoEarthTransferHero userImageUrl={userImageUrl} transferActive={pending} className="mx-4 rounded-lg">
           {typeof mocoBalance === "number" ? (
-            <p className="text-xs text-muted-foreground">보유 MOCO: {formatMocoDisplay(mocoBalance)}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("live.donation.balance", { balance: formatMocoDisplay(mocoBalance) })}
+            </p>
           ) : null}
         </MocoEarthTransferHero>
 
@@ -223,11 +227,11 @@ export function MocoVideoDonationDialog({
                 />
               </div>
               <div className="space-y-1">
-                <Label>메시지 (선택)</Label>
+                <Label>{t("live.donation.video.messageOptional")}</Label>
                 <Textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="방송 화면에 함께 표시"
+                  placeholder={t("live.donation.video.messagePlaceholder")}
                   maxLength={500}
                   rows={2}
                   className="border-2 border-[#1B3A6B]"
@@ -240,17 +244,19 @@ export function MocoVideoDonationDialog({
                 disabled={quoteLoading}
                 onClick={() => void goToSegmentStep()}
               >
-                {quoteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "다음"}
+                {quoteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("common.next")}
               </Button>
             </>
           ) : (
             <>
               {quote ? (
                 <>
-                  <p className="text-sm font-semibold line-clamp-2">{quote.videoTitle ?? "YouTube 영상"}</p>
+                  <p className="text-sm font-semibold line-clamp-2">
+                    {quote.videoTitle ?? t("live.donation.video.fallbackTitle")}
+                  </p>
                   <div className="aspect-video rounded-lg overflow-hidden bg-black">
                     <iframe
-                      title="미리보기"
+                      title={t("live.donation.video.previewIframeTitle")}
                       src={youtubeEmbedUrl(quote.videoId, {
                         startSec: quote.startSec,
                         endSec: quote.playToEnd ? undefined : quote.endSec ?? undefined,
@@ -262,7 +268,7 @@ export function MocoVideoDonationDialog({
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label>시작(초)</Label>
+                      <Label>{t("live.donation.video.startSec")}</Label>
                       <Input
                         type="number"
                         min={0}
@@ -272,7 +278,7 @@ export function MocoVideoDonationDialog({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label>끝(초)</Label>
+                      <Label>{t("live.donation.video.endSec")}</Label>
                       <Input
                         type="number"
                         min={startSec + 1}
@@ -286,15 +292,17 @@ export function MocoVideoDonationDialog({
 
                   <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <input type="checkbox" checked={playToEnd} onChange={(e) => setPlayToEnd(e.target.checked)} />
-                    끝까지 재생 (최대 {quote.maxPlaySec}초)
+                    {t("live.donation.video.playToEnd", { max: String(quote.maxPlaySec) })}
                   </label>
 
                   <Button type="button" variant="outline" size="sm" disabled={quoteLoading} onClick={() => void refreshQuote()}>
-                    {quoteLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "구간 변경 후 MOCO 다시 계산"}
+                    {quoteLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : t("live.donation.video.recalcQuote")}
                   </Button>
 
                   <div className="rounded-lg border-2 border-[#E85D04]/40 bg-[#FFF8F0] px-3 py-2 text-center">
-                    <p className="text-xs text-muted-foreground">재생 구간 {formatSecLabel(quote.segmentSec)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("live.donation.video.segmentDuration", { duration: formatSecLabel(quote.segmentSec) })}
+                    </p>
                     <p className="text-xl font-black text-[#E85D04]">{formatMocoDisplay(quote.mocoAmount)} MOCO</p>
                   </div>
                 </>
@@ -310,21 +318,21 @@ export function MocoVideoDonationDialog({
                 <span className="text-[11px] leading-relaxed text-muted-foreground">{MOCO_PURCHASE_TERMS_COPY}</span>
               </label>
 
-              {payoutBlocked ? <p className="text-xs text-amber-700">{CREATOR_PAYOUT_BLOCKED_KO}</p> : null}
+              {payoutBlocked ? <p className="text-xs text-amber-700">{payoutBlockedMsg}</p> : null}
               {error ? <p className="text-xs text-destructive">{error}</p> : null}
               {quoteError ? <p className="text-xs text-destructive">{quoteError}</p> : null}
 
               <div className="flex gap-2">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(1)}>
-                  이전
+                  {t("live.donation.video.previous")}
                 </Button>
                 <Button
                   className="flex-1 bg-[#0d4d2c] hover:bg-[#0a3d23]"
                   disabled={pending || !quote || quoteLoading || payoutBlocked}
-                  title={payoutBlocked ? CREATOR_PAYOUT_BLOCKED_KO : undefined}
+                  title={payoutBlocked ? payoutBlockedMsg : undefined}
                   onClick={() => void submit()}
                 >
-                  {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : "후원하기"}
+                  {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("live.donation.submit")}
                 </Button>
               </div>
             </>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { VideoTrack, useTracks } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { Loader2, Users } from "lucide-react";
@@ -13,6 +14,7 @@ export function LiveCollabCoHostVideo({
   coHostUserId: string;
   label?: string;
 }) {
+  const { t } = useLocale();
   const identity = liveCollabCoHostIdentity(coHostUserId);
   const tracks = useTracks(
     [Track.Source.Camera, Track.Source.ScreenShare],
@@ -31,7 +33,7 @@ export function LiveCollabCoHostVideo({
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/80 text-white/75">
         <Loader2 className="h-8 w-8 animate-spin" />
         <Users className="h-6 w-6" />
-        <p className="text-xs text-center px-3">{label ?? "합방 송출 대기 중…"}</p>
+        <p className="text-xs text-center px-3">{label ?? t("live.sy8ysg")}</p>
       </div>
     );
   }
@@ -48,7 +50,7 @@ export function LiveCollabLocalPreview() {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/80 text-white/75">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="text-xs">카메라 준비 중…</p>
+        <p className="text-xs">{t("live.s1hx8h3h")}</p>
       </div>
     );
   }

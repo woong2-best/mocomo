@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { Eye, Radio, Settings2 } from "lucide-react";
 import { LiveMobilePortraitHost } from "@/components/live/mobile/live-mobile-portrait-host";
 import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
@@ -66,6 +67,7 @@ export function LiveHostStudioShell({
   hostImage?: string | null;
   isNsfw?: boolean;
 }) {
+  const { t } = useLocale();
   const mobilePortrait = useLiveMobilePortrait();
   const collab = useLiveCollabState(channelId);
   const coHostLabel =
@@ -92,7 +94,7 @@ export function LiveHostStudioShell({
         <header className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-border/60 shrink-0">
           <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-violet-600/15 text-violet-700 dark:text-violet-300 flex items-center gap-1">
             <Radio className="h-3 w-3" />
-            보이스 스튜디오
+            {t("live.s1m3i5fo")}
           </span>
           <h1 className="text-base sm:text-lg font-bold truncate flex-1 min-w-0">{channelName}</h1>
           <span className="text-sm text-muted-foreground flex items-center gap-1 tabular-nums">
@@ -100,7 +102,7 @@ export function LiveHostStudioShell({
             {viewerCount}
           </span>
           <Button variant="destructive" size="sm" className="rounded-xl gap-1" onClick={onEndStream}>
-            방송 종료
+            {t("live.s1dubywf")}
           </Button>
         </header>
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4 lg:gap-6 mt-3 items-start">
@@ -148,7 +150,7 @@ export function LiveHostStudioShell({
       <header className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-border/60 shrink-0 sticky top-0 z-20 bg-background/95 backdrop-blur-sm">
         <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground flex items-center gap-1">
           <Radio className="h-3 w-3" />
-          스튜디오
+          {t("nav.liveStudio")}
         </span>
         {category && (
           <span className="text-[11px] px-2 py-0.5 rounded-md bg-muted font-medium">
@@ -175,12 +177,12 @@ export function LiveHostStudioShell({
           <DialogTrigger asChild>
             <Button variant="outline" size="sm" className="rounded-xl gap-1">
               <Settings2 className="h-4 w-4" />
-              설정
+              {t("settings.title")}
             </Button>
           </DialogTrigger>
           <DialogContent className="rounded-2xl max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>방송 설정</DialogTitle>
+              <DialogTitle>{t("live.s1duasqh")}</DialogTitle>
             </DialogHeader>
             <div className="pt-2 space-y-4">
               <LiveHostSettings
@@ -199,7 +201,7 @@ export function LiveHostStudioShell({
 
         <Button variant="destructive" size="sm" className="rounded-xl gap-1" onClick={onEndStream}>
           <Radio className="h-4 w-4" />
-          방송 종료
+          {t("live.s1dubywf")}
         </Button>
       </header>
 

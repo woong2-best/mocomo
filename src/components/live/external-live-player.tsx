@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 /**
  * External platform iframe player — clean embed without title/avatar overlay.
  */
@@ -117,14 +118,14 @@ export function ExternalLivePlayer({
                   href={watchUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  title="원본에서 열기"
+                  title={t("live.s1gvpdd4")}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
                 >
                   <Link2 className="h-4 w-4" />
                 </a>
                 <button
                   type="button"
-                  title="전체 화면"
+                  title={t("live.sqkc2hc")}
                   onClick={() => void toggleFullscreen()}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
                 >
@@ -141,10 +142,10 @@ export function ExternalLivePlayer({
               <>
                 <p className="text-sm text-white/80">
                   {provider === "CHZZK"
-                    ? "치지직 임베드가 이 환경에서 지원되지 않습니다."
+                    ? t("live.s13otgp5")
                     : provider === "TWITCH"
-                      ? "Twitch 임베드를 불러오지 못했습니다."
-                      : "이 플랫폼은 현재 임베드 대신 원본 페이지에서 시청해 주세요."}
+                      ? t("live.twitch")
+                      : t("live.s54i56q")}
                 </p>
                 <a
                   href={watchUrl}

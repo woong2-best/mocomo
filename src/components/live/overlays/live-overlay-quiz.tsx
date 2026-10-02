@@ -1,11 +1,14 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import type { LiveOverlayQuizProps } from "@/lib/live-overlays/types";
 import { cn } from "@/lib/utils";
 
 const LABELS = ["①", "②", "③", "④"];
 
-export function LiveOverlayQuiz({ props }: { props: LiveOverlayQuizProps }) {
+export function LiveOverlayQuiz({
+  props }: { props: LiveOverlayQuizProps }) {
+  const { t } = useLocale();
   const active = props.phase === "active";
   const reveal = props.phase === "reveal";
   const topScores = [...props.scores].sort((a, b) => b.score - a.score).slice(0, 5);
@@ -40,7 +43,7 @@ export function LiveOverlayQuiz({ props }: { props: LiveOverlayQuizProps }) {
               )}
             >
               <span className="shrink-0 text-violet-300">{LABELS[i]}</span>
-              <span className="break-words leading-tight">{opt || `선택 ${i + 1}`}</span>
+              <span className="break-words leading-tight">{opt || t("live.sxzul", { v0: i + 1 })}</span>
             </div>
           );
         })}
@@ -54,13 +57,13 @@ export function LiveOverlayQuiz({ props }: { props: LiveOverlayQuizProps }) {
 
       {active && (
         <p className="text-[10px] text-white/55 mt-2 text-center">
-          채팅에 1~4 또는 A~D로 답하세요
+          {t("live.1_4_a_d")}
         </p>
       )}
 
       {topScores.length > 0 && (
         <div className="mt-2 pt-2 border-t border-white/15 text-[10px] text-white/70 space-y-0.5">
-          <p className="font-bold text-white/90">점수</p>
+          <p className="font-bold text-white/90">{t("live.sz3ew")}</p>
           {topScores.map((s, i) => (
             <div key={s.username} className="flex justify-between gap-2">
               <span>{i + 1}. {s.username}</span>

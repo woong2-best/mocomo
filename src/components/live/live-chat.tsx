@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { memo, useEffect, useRef, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { usePlatformChat } from "@/components/live/platform-chat-provider";
@@ -190,7 +191,7 @@ function LiveChatInner({
       const body = await res.json();
       if (!res.ok || !body.ok || !body.message) {
         removeFromFeed(tempId);
-        setError(body.error ?? "전송에 실패했습니다.");
+        setError(body.error ?? t("live.s9edwdw"));
         setText(content);
         return;
       }
@@ -199,7 +200,7 @@ function LiveChatInner({
       replaceOptimistic(tempId, saved);
     } catch {
       removeFromFeed(tempId);
-      setError("네트워크 오류로 전송하지 못했습니다.");
+      setError(t("live.s1p3ku69"));
       setText(content);
     } finally {
       setSending(false);
@@ -221,7 +222,7 @@ function LiveChatInner({
       : externalProvider === "YOUTUBE"
         ? "YouTube"
         : externalProvider === "CHZZK"
-          ? "치지직"
+          ? t("live.sv7gwp")
           : null;
 
   return (
@@ -234,11 +235,11 @@ function LiveChatInner({
               MoCoMo{platformLabel ? ` + ${platformLabel}` : ""}
             </span>
           ) : isHost ? (
-            <span className="ml-1 text-[10px] font-normal text-muted-foreground">호스트</span>
+            <span className="ml-1 text-[10px] font-normal text-muted-foreground">{t("live.swbu18")}</span>
           ) : null}
           {connected && (
             <span className="ml-1 text-[10px] font-normal text-green-600 dark:text-green-400">
-              MoCoMo 실시간
+              {t("live.mocomo")}
             </span>
           )}
           {isExternal && platformConnected && platformLabel && (
@@ -260,7 +261,7 @@ function LiveChatInner({
       <LiveSupportSidebar
         channelId={channelId}
         isHost={!!isHost}
-        hostDisplayName={hostDisplayName ?? hostUsername ?? "스트리머"}
+        hostDisplayName={hostDisplayName ?? hostUsername ?? t("live.spfk49s")}
         hostUserId={hostUserId}
         hostUsername={hostUsername}
         paymentsEnabled={paymentsEnabled}
@@ -278,8 +279,8 @@ function LiveChatInner({
         {displayMessages.length === 0 && !historyError && (
           <p className="py-8 text-center text-xs text-muted-foreground">
             {isExternal && platformLabel
-              ? `${platformLabel} 채팅과 MoCoMo 채팅이 여기에 표시됩니다.`
-              : "채팅은 DB에 저장됩니다. 첫 메시지를 남겨 보세요."}
+              ? t("live.mocomo_2", { v0: platformLabel })
+              : t("live.sabz8a")}
           </p>
         )}
         {ensureArray<LiveChatMessage>(displayMessages).map((m) => {
@@ -338,7 +339,7 @@ function LiveChatInner({
                           type="button"
                           className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-0.5"
                           onClick={() => void removeMessage(m.id)}
-                          aria-label="채팅 삭제"
+                          aria-label={t("live.s17z53ym")}
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
@@ -350,7 +351,7 @@ function LiveChatInner({
                             targetType="LIVE_CHAT"
                             targetId={m.id}
                             reportedUserId={m.userId}
-                            label="신고"
+                            label={t("live.sy3gg")}
                             variant="ghost"
                             size="sm"
                           />
@@ -379,7 +380,7 @@ function LiveChatInner({
           {isExternal ? (
             <ExternalLiveDonationBar
               channelId={channelId}
-              hostDisplayName={hostDisplayName ?? hostUsername ?? "스트리머"}
+              hostDisplayName={hostDisplayName ?? hostUsername ?? t("live.spfk49s")}
               isHost={isHost}
             />
           ) : (
@@ -390,7 +391,7 @@ function LiveChatInner({
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void send()}
-              placeholder="채팅 입력…"
+              placeholder={t("live.sdp6wzr")}
               className="h-9 rounded-lg text-sm flex-1"
               maxLength={200}
               disabled={sending}
@@ -408,7 +409,7 @@ function LiveChatInner({
         </div>
       ) : (
         <p className="shrink-0 p-3 text-center text-xs text-muted-foreground">
-          채팅하려면 로그인하세요
+          {t("live.s1vpyvyp")}
         </p>
       )}
     </div>
@@ -466,18 +467,18 @@ function SupportChatLine({ message }: { message: LiveChatMessage }) {
           : "border-yellow-400/35 bg-yellow-500/10";
   const label =
     kind === "tip"
-      ? "후원"
+      ? t("home.featureSupport")
       : kind === "mission"
-        ? "미션"
+        ? t("live.sx17k")
         : message.eventType === "ROULETTE"
-          ? "룰렛"
+          ? t("live.swgtn")
           : message.eventType === "TTS"
             ? "TTS"
             : message.eventType === "SOUND"
-              ? "사운드"
+              ? t("live.st6qtw")
               : message.eventType === "VOTE"
-                ? "투표"
-                : "응원";
+                ? t("live.s10wxc")
+                : t("live.syzrz");
 
   return (
     <div

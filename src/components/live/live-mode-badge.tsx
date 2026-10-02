@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +22,7 @@ export function LiveModeBadge({
       )}
     >
       <Video className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
-      라이브
+      {t("home.featureLive")}
     </span>
   );
 }

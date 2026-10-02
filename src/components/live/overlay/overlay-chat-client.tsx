@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useObsChatFeed } from "@/hooks/use-obs-chat-feed";
 import {
   UNIFIED_CHAT_SOURCE_LABEL,
@@ -13,6 +14,7 @@ export function OverlayChatClient({
   channelId: string;
   token: string;
 }) {
+  const { t } = useLocale();
   const { messages, meta, platformReady, platformError, state, error } = useObsChatFeed(
     channelId,
     token
@@ -21,10 +23,10 @@ export function OverlayChatClient({
   const waitingText =
     platformError ??
     (platformReady
-      ? "연결됨 · 채팅이 오면 여기에 표시됩니다"
+      ? t("live.s1yphknj")
       : meta
-        ? `${UNIFIED_CHAT_SOURCE_LABEL[meta.provider]} 채팅 연결 중…`
-        : "채팅 대기 중…");
+        ? t("live.sh1cmpi", { v0: UNIFIED_CHAT_SOURCE_LABEL[meta.provider] })
+        : t("live.se7nb0m"));
 
   return (
     <div
@@ -39,9 +41,9 @@ export function OverlayChatClient({
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      {state === "loading" ? <StatusLine text="채팅 연결 중…" /> : null}
-      {state === "error" ? <StatusLine text={error ?? "오류"} warn /> : null}
-      {state === "ended" ? <StatusLine text="방송이 종료되었습니다." dim /> : null}
+      {state === "loading" ? <StatusLine text={t("live.sh1cmpi")} /> : null}
+      {state === "error" ? <StatusLine text={error ?? t("live.sypx0")} warn /> : null}
+      {state === "ended" ? <StatusLine text={t("live.sa8v8bc")} dim /> : null}
       {state === "live" && messages.length === 0 ? (
         <StatusLine text={waitingText} warn={!!platformError} />
       ) : null}

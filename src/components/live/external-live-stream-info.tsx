@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import Link from "next/link";
 import { LiveRoomFollowButton } from "@/components/live/live-room-follow-button";
 import { LiveShareButton } from "@/components/live/live-share-button";
@@ -59,7 +60,7 @@ export function ExternalLiveStreamInfo({
             <Link href={`/u/${hostUsername}`} className="font-medium text-primary hover:underline">
               @{hostUsername}
             </Link>
-            <span className="text-folk-terracotta"> · 호스트</span>
+            <span className="text-folk-terracotta"> {t("live.s3pim77")}</span>
           </p>
           {!isHost ? (
             <div className="flex flex-wrap items-center gap-1.5">
@@ -77,14 +78,14 @@ export function ExternalLiveStreamInfo({
                   paymentsEnabled={!!paymentsEnabled}
                   channelId={channelId}
                   returnPath={`/voice/${channelId}`}
-                  triggerLabel="댓글 후원"
+                  triggerLabel={t("live.sbucfnj")}
                 />
               ) : null}
               <ReportButton
                 targetType="LIVE_CHANNEL"
                 targetId={channelId}
                 reportedUserId={hostUserId}
-                label="신고"
+                label={t("live.sy3gg")}
                 variant="ghost"
                 size="sm"
               />

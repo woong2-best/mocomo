@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useEffect, useState } from "react";
 import { Shield, Settings2, Users, MessageSquare, Ban, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export function LiveControlPanel({
   initialIsNsfw?: boolean;
   collabCoHostName?: string | null;
 }) {
+  const { t } = useLocale();
   const [perms, setPerms] = useState<Perms | null>(null);
   const [openSection, setOpenSection] = useState<string | null>(null);
 
@@ -69,7 +71,7 @@ export function LiveControlPanel({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            라이브 관리
+            {t("live.stulbco")}
           </DialogTitle>
         </DialogHeader>
 
@@ -77,7 +79,7 @@ export function LiveControlPanel({
           {(perms.canEditBroadcast || perms.role === "OWNER") && (
             <MenuTile
               icon={Settings2}
-              label="방송 설정"
+              label={t("live.s1duasqh")}
               active={openSection === "settings"}
               onClick={() => setOpenSection(openSection === "settings" ? null : "settings")}
             />
@@ -85,7 +87,7 @@ export function LiveControlPanel({
           {perms.canModerate && (
             <MenuTile
               icon={MessageSquare}
-              label="채팅 설정"
+              label={t("live.s17z56sw")}
               active={openSection === "chat"}
               onClick={() => setOpenSection(openSection === "chat" ? null : "chat")}
             />
@@ -93,7 +95,7 @@ export function LiveControlPanel({
           {perms.canManageRoles && (
             <MenuTile
               icon={UserCog}
-              label="역할 관리"
+              label={t("live.sjhcmop")}
               active={openSection === "roles"}
               onClick={() => setOpenSection(openSection === "roles" ? null : "roles")}
             />
@@ -101,12 +103,12 @@ export function LiveControlPanel({
           {perms.canModerate && (
             <MenuTile
               icon={Ban}
-              label="차단 사용자"
+              label={t("live.sgx09xv")}
               active={openSection === "bans"}
               onClick={() => setOpenSection(openSection === "bans" ? null : "bans")}
             />
           )}
-          <MenuTile icon={Users} label="시청자" disabled />
+          <MenuTile icon={Users} label={t("live.stjecf")} disabled />
         </div>
 
         <div className="pt-4 border-t border-border/60 mt-2">
@@ -139,7 +141,7 @@ export function LiveControlPanel({
           )}
           {!openSection && (
             <p className="text-sm text-muted-foreground text-center py-6">
-              위 메뉴에서 관리 항목을 선택하세요.
+              {t("live.ss7h3uz")}
             </p>
           )}
         </div>

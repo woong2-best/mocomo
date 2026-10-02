@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Film, Loader2 } from "lucide-react";
@@ -14,7 +15,9 @@ import {
 } from "@/components/ui/dialog";
 
 /** 결제 완료 후 ?videoDonation=xxx 쿼리로 YouTube URL 입력 */
-export function LiveVideoTipUrlPrompt({ channelId }: { channelId: string }) {
+export function LiveVideoTipUrlPrompt({
+  channelId }: { channelId: string }) {
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const router = useRouter();
   const donationId = searchParams.get("videoDonation");
@@ -48,7 +51,7 @@ export function LiveVideoTipUrlPrompt({ channelId }: { channelId: string }) {
       });
       const body = await res.json();
       if (!res.ok || !body.ok) {
-        setError(body.error ?? "등록에 실패했습니다.");
+        setError(body.error ?? t("live.s199o885"));
         return;
       }
       setDone(true);
@@ -57,7 +60,7 @@ export function LiveVideoTipUrlPrompt({ channelId }: { channelId: string }) {
         clearQuery();
       }, 1500);
     } catch {
-      setError("네트워크 오류");
+      setError(t("live.s10f9nog"));
     } finally {
       setLoading(false);
     }
@@ -77,15 +80,15 @@ export function LiveVideoTipUrlPrompt({ channelId }: { channelId: string }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Film className="h-5 w-5 text-red-500" />
-            영상 링크 입력
+            {t("live.s1txvd6d")}
           </DialogTitle>
           <DialogDescription>
-            결제가 완료되었습니다. YouTube 영상 URL을 입력해 주세요. 호스트 검수 후 방송에 재생됩니다.
+            {t("live.youtube_url")}
           </DialogDescription>
         </DialogHeader>
 
         {done ? (
-          <p className="text-sm text-emerald-600 font-medium">등록되었습니다. 검수를 기다려 주세요!</p>
+          <p className="text-sm text-emerald-600 font-medium">{t("live.s1syljlo")}</p>
         ) : (
           <>
             <Input
@@ -96,7 +99,7 @@ export function LiveVideoTipUrlPrompt({ channelId }: { channelId: string }) {
               autoFocus
             />
             <Button className="w-full rounded-xl" disabled={loading || !url.trim()} onClick={() => void submit()}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "대기열 등록"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("live.srsg4fc")}
             </Button>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </>

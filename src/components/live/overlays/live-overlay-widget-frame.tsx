@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import type { LiveOverlayWidget } from "@/lib/live-overlays/types";
@@ -137,7 +138,7 @@ export function LiveOverlayWidgetFrame({
             onPointerUp={onDragPointerUp}
             onPointerCancel={onDragPointerUp}
           >
-            이동
+            {t("live.sywv9")}
           </button>
           <button
             type="button"
@@ -147,7 +148,7 @@ export function LiveOverlayWidgetFrame({
               onRemove();
             }}
           >
-            삭제
+            {t("toast.delete")}
           </button>
         </div>
       )}
@@ -166,7 +167,7 @@ export function LiveOverlayWidgetFrame({
           onPointerMove={onDragPointerMove}
           onPointerUp={onDragPointerUp}
           onPointerCancel={onDragPointerUp}
-          aria-label="돌림판 이동"
+          aria-label={t("live.st4crc5")}
         />
       )}
       {editable && selected && !isWheel && (

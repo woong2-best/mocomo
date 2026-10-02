@@ -1,9 +1,12 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import type { LiveOverlayChosungQuizProps } from "@/lib/live-overlays/types";
 import { cn } from "@/lib/utils";
 
-export function LiveOverlayChosungQuiz({ props }: { props: LiveOverlayChosungQuizProps }) {
+export function LiveOverlayChosungQuiz({
+  props }: { props: LiveOverlayChosungQuizProps }) {
+  const { t } = useLocale();
   const active = props.phase === "active";
   const reveal = props.phase === "reveal";
   const topScores = [...props.scores].sort((a, b) => b.score - a.score).slice(0, 5);
@@ -23,7 +26,7 @@ export function LiveOverlayChosungQuiz({ props }: { props: LiveOverlayChosungQui
 
       {(active || reveal) && props.chosung && (
         <div className="rounded-lg bg-sky-500/15 border border-sky-400/30 px-3 py-3 mb-2 text-center">
-          <p className="text-[10px] text-sky-200/80 mb-1">초성</p>
+          <p className="text-[10px] text-sky-200/80 mb-1">{t("live.szxnt")}</p>
           <p className="text-2xl sm:text-3xl font-black tracking-[0.2em] text-sky-100 break-all leading-tight">
             {props.chosung}
           </p>
@@ -48,7 +51,7 @@ export function LiveOverlayChosungQuiz({ props }: { props: LiveOverlayChosungQui
 
       {active && (
         <p className="text-[10px] text-white/55 text-center mt-1">
-          채팅으로 정답 단어를 입력하세요
+          {t("live.s1ebz283")}
         </p>
       )}
 
@@ -70,7 +73,7 @@ export function LiveOverlayChosungQuiz({ props }: { props: LiveOverlayChosungQui
 
       {topScores.length > 0 && (
         <div className="mt-2 pt-2 border-t border-white/15 text-[10px] text-white/70 space-y-0.5">
-          <p className="font-bold text-white/90">점수</p>
+          <p className="font-bold text-white/90">{t("live.sz3ew")}</p>
           {topScores.map((s, i) => (
             <div key={s.username} className="flex justify-between gap-2">
               <span>{i + 1}. {s.username}</span>

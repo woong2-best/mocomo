@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,9 @@ type BanRow = {
   at: string;
 };
 
-export function LiveChatBansPanel({ channelId }: { channelId: string }) {
+export function LiveChatBansPanel({
+  channelId }: { channelId: string }) {
+  const { t } = useLocale();
   const [bans, setBans] = useState<BanRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +48,7 @@ export function LiveChatBansPanel({ channelId }: { channelId: string }) {
   }
 
   if (bans.length === 0) {
-    return <p className="text-sm text-muted-foreground text-center py-6">차단된 사용자가 없습니다.</p>;
+    return <p className="text-sm text-muted-foreground text-center py-6">{t("live.sjrqq38")}</p>;
   }
 
   return (
@@ -66,7 +69,7 @@ export function LiveChatBansPanel({ channelId }: { channelId: string }) {
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => void unban(b.userId)}>
-            해제
+            {t("live.s11elk")}
           </Button>
         </div>
       ))}

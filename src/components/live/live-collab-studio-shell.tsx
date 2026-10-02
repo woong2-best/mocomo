@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { Eye, Users } from "lucide-react";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveCollabPublishStudio } from "@/components/live/live-collab-publish-studio";
@@ -55,6 +56,7 @@ export function LiveCollabStudioShell({
   recentTips?: LiveTipAlert[];
   donationAlertsOnStream?: boolean;
 }) {
+  const { t } = useLocale();
   const router = useRouter();
   const mobilePortrait = useLiveMobilePortrait();
 
@@ -68,7 +70,7 @@ export function LiveCollabStudioShell({
       <div className="space-y-3 p-2">
         <LiveCollabPublishStudio channelId={channelId} />
         <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => void leaveCollab()}>
-          합방 나가기
+          {t("live.s12717rc")}
         </Button>
       </div>
     );
@@ -79,7 +81,7 @@ export function LiveCollabStudioShell({
       <header className="flex flex-wrap items-center gap-2 py-2 border-b border-border/60 sticky top-0 z-20 bg-background/95 backdrop-blur-sm">
         <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-700 dark:text-violet-300 flex items-center gap-1">
           <Users className="h-3 w-3" />
-          합방 스튜디오
+          {t("live.s1dzwmrs")}
         </span>
         <h1 className="text-base font-bold truncate flex-1 min-w-0">{channelName}</h1>
         <span className="text-sm text-muted-foreground flex items-center gap-1 tabular-nums">
@@ -87,7 +89,7 @@ export function LiveCollabStudioShell({
           {viewerCount}
         </span>
         <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => void leaveCollab()}>
-          합방 나가기
+          {t("live.s12717rc")}
         </Button>
       </header>
 

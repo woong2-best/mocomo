@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Loader2, MessageSquare, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
@@ -90,6 +91,7 @@ export function LiveBrowserStudio({
   /** 합방 6자리 (방송 생성 시 sessionStorage) */
   collabPassword?: string | null;
 }) {
+  const { t } = useLocale();
   const videoRef = useRef<HTMLVideoElement>(null);
   const reconnectAttemptRef = useRef(0);
   const previewHostRef = useRef<HTMLDivElement>(null);
@@ -176,7 +178,7 @@ export function LiveBrowserStudio({
       throw new Error(
         typeof (body as { error?: string }).error === "string"
           ? (body as { error?: string }).error
-          : "스튜디오 상태를 불러오지 못했습니다."
+          : t("live.s1n6isc3")
       );
     }
     const state = body.publishState ?? "idle";
@@ -194,12 +196,12 @@ export function LiveBrowserStudio({
       return null;
     }
     if (!res.ok) {
-      throw new Error(body.error ?? "방송 연결 정보를 불러오지 못했습니다.");
+      throw new Error(body.error ?? t("live.s1co8u3z"));
     }
     if (body.ingestEngine !== "cloudflare" || !body.whipPublishUrl) {
       throw new Error(
         body.message ??
-          "브라우저 방송은 Cloudflare Stream이 필요합니다. CLOUDFLARE_* 환경 변수를 확인하세요."
+          t("live.cloudflare_stream_cloudflare")
       );
     }
     setWhipUrl(body.whipPublishUrl);
@@ -219,10 +221,10 @@ export function LiveBrowserStudio({
       } catch (e) {
         if (!cancelled) {
           setPublishState("idle");
-          const msg = e instanceof Error ? e.message : "연결 실패";
+          const msg = e instanceof Error ? e.message : t("live.seed06c");
           setLoadError(
             msg === "Failed to fetch"
-              ? "방송 서버에 연결하지 못했습니다. 네트워크·로그인 상태를 확인해 주세요."
+              ? t("live.sr2ybql")
               : msg
           );
         }
@@ -346,7 +348,7 @@ export function LiveBrowserStudio({
         rawStreamRef.current = raw;
       }
 
-      if (!raw) throw new Error("카메라 스트림을 시작할 수 없습니다.");
+      if (!raw) throw new Error(t("live.s7vk3za"));
 
       if (useVtuber && !screenOn) {
         bindCameraFallbackPreview(null);
@@ -356,12 +358,12 @@ export function LiveBrowserStudio({
           await new Promise<void>((r) => requestAnimationFrame(() => r()));
           avatar = avatarPublishRef.current;
         }
-        if (!avatar) throw new Error("VTuber 아바타를 준비하지 못했습니다.");
+        if (!avatar) throw new Error(t("live.vtuber"));
         avatar.setLayout(layout);
         await avatar.attachCameraStream(raw);
         await avatar.waitForReady();
         const pub = avatar.getPublishStream();
-        if (!pub) throw new Error("VTuber 송출 스트림을 만들지 못했습니다.");
+        if (!pub) throw new Error(t("live.vtuber_2"));
         streamRef.current = pub;
         return pub;
       }
@@ -471,7 +473,7 @@ export function LiveBrowserStudio({
 
   const handleWhipDisconnect = useCallback(() => {
     setWhipConnected(false);
-    setLiveError("송출 연결이 끊겼습니다. 다시 연결 중…");
+    setLiveError(t("live.s4mi74d"));
   }, []);
 
   const restartWhipWithStream = useCallback(
@@ -535,7 +537,7 @@ export function LiveBrowserStudio({
     void ensureLocalStream()
       .then(() => attachPreviewCanvas())
       .catch((e) => {
-        setLiveError(e instanceof Error ? e.message : "카메라·마이크 권한이 필요합니다.");
+        setLiveError(e instanceof Error ? e.message : t("live.sr7k9zk"));
       });
   }, [ready, publishState, ensureLocalStream, attachPreviewCanvas]);
 
@@ -582,10 +584,10 @@ export function LiveBrowserStudio({
         } catch (e) {
           const msg =
             e instanceof Error && e.message === "Failed to fetch"
-              ? "방송 상태 저장 요청이 실패했습니다. 네트워크를 확인하고 다시 시도해 주세요."
+              ? t("live.s1423bvb")
               : e instanceof Error
                 ? e.message
-                : "방송 시작 실패";
+                : t("live.s9nugav");
           throw new Error(msg);
         }
         if ("error" in res && res.error) {
@@ -614,7 +616,7 @@ export function LiveBrowserStudio({
     try {
       await connectWhip(true);
     } catch (e) {
-      setLiveError(e instanceof Error ? e.message : "방송 시작 실패");
+      setLiveError(e instanceof Error ? e.message : t("live.s9nugav"));
       whipRef.current?.stop();
       setWhipConnected(false);
     } finally {
@@ -631,7 +633,7 @@ export function LiveBrowserStudio({
       await loadIngest();
       await connectWhip(false);
     } catch (e) {
-      setLiveError(e instanceof Error ? e.message : "송출 재연결 실패");
+      setLiveError(e instanceof Error ? e.message : t("live.s1yvj9ul"));
       whipRef.current?.stop();
       setWhipConnected(false);
     } finally {
@@ -725,7 +727,7 @@ export function LiveBrowserStudio({
         setCamOn(true);
         setLiveError("");
       } catch {
-        setLiveError("화면 공유가 취소되었습니다.");
+        setLiveError(t("live.s1edioqk"));
       }
       return;
     }
@@ -774,7 +776,7 @@ export function LiveBrowserStudio({
     return (
       <div className="aspect-video rounded-xl bg-black flex items-center justify-center text-white/70 gap-2">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="text-sm">스튜디오 준비 중…</span>
+        <span className="text-sm">{t("live.s60s7ll")}</span>
       </div>
     );
   }
@@ -801,7 +803,7 @@ export function LiveBrowserStudio({
     return (
       <div className="aspect-video rounded-xl bg-black flex items-center justify-center text-white/70 gap-2">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="text-sm">Cloudflare 방송 준비 중…</span>
+        <span className="text-sm">{t("live.cloudflare")}</span>
       </div>
     );
   }
@@ -855,23 +857,23 @@ export function LiveBrowserStudio({
         <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-gradient-to-b from-zinc-800 to-black text-white/80 px-4 text-center">
           {previewLoadTimedOut ? (
             <>
-              <p className="text-sm font-medium text-amber-200">2D 캐릭터를 불러오지 못했습니다</p>
+              <p className="text-sm font-medium text-amber-200">{t("live.s9ej12l")}</p>
               <p className="text-[11px] text-white/55">
-                라이브러리에서 캐릭터를 다시 더블클릭하거나 2D 스튜디오에서 재저장해 보세요.
+                {t("live.s1qgpq37")}
               </p>
             </>
           ) : (
             <>
               <Loader2 className="h-7 w-7 animate-spin opacity-80" />
-              <p className="text-sm font-medium">2D 캐릭터 불러오는 중…</p>
-              <p className="text-[11px] text-white/55">잠시 후 미리보기가 표시됩니다</p>
+              <p className="text-sm font-medium">{t("live.scpzsqu")}</p>
+              <p className="text-[11px] text-white/55">{t("live.s1h35vlh")}</p>
             </>
           )}
         </div>
       )}
       {screenOn && (
         <span className="absolute top-3 right-3 px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold z-10">
-          {vtuberMode ? "2D + 화면공유" : "화면 공유"}
+          {vtuberMode ? t("live.s1oaywni") : t("live.s96s11n")}
         </span>
       )}
       {chatOverlayEnabled && !immersive && (
@@ -890,14 +892,14 @@ export function LiveBrowserStudio({
         try {
           await equip2dCharacter(id);
         } catch (e) {
-          setLiveError(e instanceof Error ? e.message : "2D 아바타 적용 실패");
+          setLiveError(e instanceof Error ? e.message : t("live.su8vqji"));
         }
       }}
       onUnequip={async () => {
         try {
           await unequip2dCharacter();
         } catch (e) {
-          setLiveError(e instanceof Error ? e.message : "2D 아바타 해제 실패");
+          setLiveError(e instanceof Error ? e.message : t("live.sbzg7ni"));
         }
       }}
     />
@@ -929,7 +931,7 @@ export function LiveBrowserStudio({
           onClick={() => void toggleMic()}
         >
           {micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-          {micOn ? "마이크" : "음소거"}
+          {micOn ? t("live.ss6ou8") : t("live.su4r74")}
         </Button>
         <Button
           type="button"
@@ -941,11 +943,11 @@ export function LiveBrowserStudio({
           {camOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
           {screenOn && vtuberMode
             ? camOn
-              ? "2D 아바타 끔"
-              : "2D 아바타"
+              ? t("live.s1hv3z9y")
+              : t("live.spk0uxu")
             : camOn
-              ? "카메라 끔"
-              : "카메라"}
+              ? t("live.s1e4vqz4")
+              : t("live.sv5bmk")}
         </Button>
         <Button
           type="button"
@@ -955,7 +957,7 @@ export function LiveBrowserStudio({
           onClick={() => void toggleScreen()}
         >
           <MonitorUp className="h-4 w-4" />
-          {screenOn ? "화면공유 끔" : "화면 공유"}
+          {screenOn ? t("live.smldasf") : t("live.s96s11n")}
         </Button>
         <Button
           type="button"
@@ -965,7 +967,7 @@ export function LiveBrowserStudio({
           onClick={() => setChatOverlayEnabled(!chatOverlayEnabled)}
         >
           <MessageSquare className="h-4 w-4" />
-          {chatOverlayEnabled ? "채팅 오버레이 끔" : "채팅 오버레이"}
+          {chatOverlayEnabled ? t("live.s1xlyjwf") : t("live.s1xeipqj")}
         </Button>
       </div>
 
@@ -987,8 +989,8 @@ export function LiveBrowserStudio({
         <>
           <p className="text-xs text-amber-600 dark:text-amber-400">
             {goingLive
-              ? "송출을 다시 연결하는 중입니다…"
-              : "방송은 이 기기에 등록되어 있으나 송출 연결이 끊겼습니다. 자동 재연결에 실패하면 「송출 재연결」을 눌러 주세요."}
+              ? t("live.s1syju03")
+              : t("live.si72arp")}
           </p>
           <Button
             type="button"
@@ -1004,7 +1006,7 @@ export function LiveBrowserStudio({
 
       {whipConnected && !immersive && (
         <p className="text-xs text-muted-foreground">
-          이 기기·브라우저에서만 방송 중입니다. 종료는 상단 「방송 종료」.
+          {t("live.s34ypqj")}
         </p>
       )}
     </>

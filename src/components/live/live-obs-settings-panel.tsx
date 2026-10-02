@@ -1,5 +1,9 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Loader2, RefreshCw, Signal, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,15 +20,17 @@ async function fetchObsCredentials(channelId: string, refresh = false): Promise<
     body: refresh ? JSON.stringify({ refresh: true }) : undefined,
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(typeof body.error === "string" ? body.error : "OBS 키 실패");
+  if (!res.ok) throw new Error(typeof body.error === "string" ? body.error : t("live.obs_11"));
   const server = body.obsServer || body.url || "";
   const key = body.obsStreamKey || body.streamKey || "";
-  if (!server || !key) throw new Error("서버 또는 키가 비어 있습니다.");
+  if (!server || !key) throw new Error(t("live.sqs0hh"));
   return { obsServer: server, obsStreamKey: key };
 }
 
 /** 설정 다이얼로그 안 — OBS 서버·키·송출 상태 */
-export function LiveObsSettingsPanel({ channelId }: { channelId: string }) {
+export function LiveObsSettingsPanel({
+  channelId }: { channelId: string }) {
+  const { t } = useLocale();
   const [creds, setCreds] = useState<ObsCreds | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -86,7 +92,7 @@ export function LiveObsSettingsPanel({ channelId }: { channelId: string }) {
       <p className="text-sm text-destructive">
         OBS 정보를 불러오지 못했습니다.{" "}
         <button type="button" className="underline" onClick={() => void load(false)}>
-          다시 시도
+          {t("toast.retry")}
         </button>
       </p>
     );
@@ -95,7 +101,7 @@ export function LiveObsSettingsPanel({ channelId }: { channelId: string }) {
   return (
     <div className="space-y-3 text-sm border-b border-border pb-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-medium">OBS 연결</p>
+        <p className="font-medium">{t("live.obs_9")}</p>
         <Button
           type="button"
           variant="ghost"
@@ -109,12 +115,12 @@ export function LiveObsSettingsPanel({ channelId }: { channelId: string }) {
         </Button>
       </div>
       <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-500/10 rounded-lg px-2 py-1.5">
-        OBS 「서버」에는 아래 URL만, 「방송 키」에는 키만 넣으세요. URL+키를 한 칸에 넣으면 화면이 안 나옵니다.
+        {t("live.obs_url_url")}
       </p>
       <div className="space-y-2">
-        <p className="text-[10px] text-muted-foreground">서버 (Stream Server)</p>
+        <p className="text-[10px] text-muted-foreground">{t("live.stream_server")}</p>
         <code className="block text-[11px] bg-muted rounded-lg px-2 py-1.5 break-all">{creds.obsServer}</code>
-        <p className="text-[10px] text-muted-foreground">방송 키 (Stream Key)</p>
+        <p className="text-[10px] text-muted-foreground">{t("live.stream_key")}</p>
         <code className="block text-[11px] bg-muted rounded-lg px-2 py-1.5 break-all font-mono">
           {creds.obsStreamKey}
         </code>
@@ -126,7 +132,7 @@ export function LiveObsSettingsPanel({ channelId }: { channelId: string }) {
         className="w-full rounded-lg gap-1"
         onClick={() => {
           void navigator.clipboard.writeText(
-            `서버: ${creds.obsServer}\n방송 키: ${creds.obsStreamKey}`
+            t("live.s17yr8n2", { v0: creds.obsServer, v1: creds.obsStreamKey })
           );
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
@@ -141,7 +147,7 @@ export function LiveObsSettingsPanel({ channelId }: { channelId: string }) {
         }`}
       >
         {onAir ? <Signal className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
-        <span>{signalMsg || (onAir ? "송출 감지됨" : "다중 송출 대상 송출을 기다리는 중")}</span>
+        <span>{signalMsg || (onAir ? t("live.s1gr720j") : t("live.s1tv61ox"))}</span>
       </div>
       <Button
         type="button"
@@ -153,7 +159,7 @@ export function LiveObsSettingsPanel({ channelId }: { channelId: string }) {
           window.location.reload();
         }}
       >
-        OBS 연결 안내 화면 다시 보기
+        {t("live.obs_10")}
       </Button>
     </div>
   );

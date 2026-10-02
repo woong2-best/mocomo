@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import { youtubeEmbedUrl } from "@/lib/video-donation";
@@ -24,6 +25,7 @@ export function MocoDonationAlertWidget({
   channelId: string;
   token: string;
 }) {
+  const { t } = useLocale();
   const [current, setCurrent] = useState<MocoDonationPayload | null>(null);
   const queueRef = useRef<MocoDonationPayload[]>([]);
   const playingRef = useRef(false);
@@ -200,9 +202,9 @@ export function MocoDonationAlertWidget({
       >
         <p style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
           <span style={{ color: "#5dff6a" }}>{name}</span>
-          <span>님 </span>
+          <span>{t("live.szbs")} </span>
           <span style={{ color: "#ffe44d" }}>{current.mocoAmount.toLocaleString()} MOCO</span>
-          <span> 후원!</span>
+          <span> {t("live.swe9sl")}</span>
         </p>
 
         {current.message ? (
@@ -223,7 +225,7 @@ export function MocoDonationAlertWidget({
         {current.type === "VIDEO" && current.videoId ? (
           <div style={{ marginTop: 12, aspectRatio: "16/9", borderRadius: 12, overflow: "hidden" }}>
             <iframe
-              title="MOCO 영상 도네"
+              title={t("live.moco")}
               src={youtubeEmbedUrl(current.videoId, {
                 autoplay: true,
                 startSec: current.startSec,

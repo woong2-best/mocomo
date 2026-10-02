@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import {
   forwardRef,
   useCallback,
@@ -318,7 +319,7 @@ export const LiveAvatarPublishLayer = forwardRef<
           }
           await new Promise<void>((r) => requestAnimationFrame(() => r()));
         }
-        throw new Error("2D 아바타 준비 시간이 초과되었습니다.");
+        throw new Error(t("live.s18l71ub"));
       },
       attachCameraStream: async (stream: MediaStream) => {
         cameraStreamRef.current = stream;

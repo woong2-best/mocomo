@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import Link from "next/link";
 import { Heart, Smartphone } from "lucide-react";
 import { useTransition } from "react";
@@ -7,7 +8,9 @@ import { toggleStreamClipLike } from "@/actions/stream-clip";
 import type { LiveHubClip } from "@/lib/live-hub-data";
 import { FeedVideoPlayer } from "@/components/media/feed-video-player";
 
-export function LiveClipCard({ clip }: { clip: LiveHubClip }) {
+export function LiveClipCard({
+  clip }: { clip: LiveHubClip }) {
+  const { t } = useLocale();
   const [pending, startTransition] = useTransition();
 
   return (
@@ -27,7 +30,7 @@ export function LiveClipCard({ clip }: { clip: LiveHubClip }) {
         />
         {clip.isVertical && (
           <span className="pointer-events-none absolute top-2 left-2 z-[6] text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white flex items-center gap-0.5">
-            <Smartphone className="h-3 w-3" /> 쇼츠
+            <Smartphone className="h-3 w-3" /> {t("live.sy4kk")}
           </span>
         )}
         <p className="pointer-events-none absolute bottom-2 left-2 right-2 z-[6] text-xs font-semibold text-white line-clamp-2 drop-shadow">

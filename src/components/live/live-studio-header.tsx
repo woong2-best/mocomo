@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import Link from "next/link";
 import { Eye, Radio, Trophy, Users } from "lucide-react";
 import { LiveDonationBar } from "@/components/live/live-donation-bar";
@@ -52,6 +53,7 @@ export function LiveStudioHeader({
   paymentsEnabled?: boolean;
   hostFollowing?: boolean;
 }) {
+  const { t } = useLocale();
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -66,7 +68,7 @@ export function LiveStudioHeader({
         )}
         {isHost && (
           <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 shrink-0">
-            방송 중
+            {t("live.soir7nt")}
           </span>
         )}
         <h1 className="text-base sm:text-lg font-bold tracking-tight flex-1 min-w-0 truncate">
@@ -118,7 +120,7 @@ export function LiveStudioHeader({
           targetType="LIVE_CHANNEL"
           targetId={channelId}
           reportedUserId={hostUserId}
-          label="방송 신고"
+          label={t("live.s1duaxzc")}
           variant="outline"
           size="sm"
         />
@@ -130,7 +132,7 @@ export function LiveStudioHeader({
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="flex items-center gap-1 text-muted-foreground font-medium">
             <Trophy className="h-3.5 w-3.5 text-amber-500" />
-            이번 방송 후원 TOP
+            {t("live.top")}
           </span>
           {ensureArray<{ username: string; amount: number }>(tipRanking).map((t, i) => (
             <span key={`${t.username}-${i}`} className="px-2 py-0.5 rounded-full bg-muted">

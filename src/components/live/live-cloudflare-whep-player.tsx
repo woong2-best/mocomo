@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Play, Radio, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,13 +47,14 @@ export function LiveCloudflareWhepPlayer({
   /** 분할 합방 등 부모 aspect-ratio 컨테이너 안에 채울 때 */
   embedded?: boolean;
 }) {
+  const { t } = useLocale();
   const videoRef = useRef<HTMLVideoElement>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
   const hasMediaRef = useRef(false);
   const connectingRef = useRef(false);
   const lastNotReadyRef = useRef(false);
   const [status, setStatus] = useState<"loading" | "playing" | "waiting">("loading");
-  const [hint, setHint] = useState("실시간 방송 연결 중…");
+  const [hint, setHint] = useState(t("live.s1d6874x"));
   const [needsTap, setNeedsTap] = useState(false);
 
   const tryPlayVideo = useCallback(() => {
@@ -64,7 +66,7 @@ export function LiveCloudflareWhepPlayer({
       setHint("");
     }).catch(() => {
       setNeedsTap(true);
-      setHint("재생하려면 버튼을 눌러 주세요");
+      setHint(t("live.si7it1x"));
     });
   }, []);
 
@@ -77,7 +79,7 @@ export function LiveCloudflareWhepPlayer({
     cleanupRef.current?.();
     cleanupRef.current = null;
     setStatus("loading");
-    setHint("실시간 방송 연결 중…");
+    setHint(t("live.s1d6874x"));
     setNeedsTap(false);
 
     try {
@@ -91,12 +93,12 @@ export function LiveCloudflareWhepPlayer({
       if (video.paused && gotFrame) {
         setNeedsTap(true);
         setStatus("waiting");
-        setHint("재생하려면 버튼을 눌러 주세요");
+        setHint(t("live.si7it1x"));
       } else if (gotFrame) {
         setStatus("playing");
         setHint("");
       } else {
-        throw new Error("영상 신호를 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        throw new Error(t("live.s1640qcp"));
       }
     } catch (e) {
       hasMediaRef.current = false;
@@ -107,10 +109,10 @@ export function LiveCloudflareWhepPlayer({
           ? e.message
           : e instanceof Error
             ? e.message
-            : "실시간 재생 연결 실패";
+            : t("live.s1ozo5l");
       setHint(
         /parse sdp|missing termination/i.test(raw)
-          ? "실시간 연결을 다시 시도 중입니다…"
+          ? t("live.s1dejqye")
           : raw
       );
     } finally {
@@ -181,7 +183,7 @@ export function LiveCloudflareWhepPlayer({
               }}
             >
               <RefreshCw className="h-4 w-4 mr-1" />
-              다시 연결
+              {t("live.sdr4tig")}
             </Button>
           )}
         </div>
@@ -191,7 +193,7 @@ export function LiveCloudflareWhepPlayer({
           <p className="text-sm text-white/90 text-center px-4 max-w-md">{hint}</p>
           <Button type="button" className="rounded-xl gap-2" onClick={() => tryPlayVideo()}>
             <Play className="h-4 w-4" />
-            재생
+            {t("live.sz0s1")}
           </Button>
         </div>
       )}

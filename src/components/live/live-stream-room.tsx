@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { memo } from "react";
 import { useSession } from "next-auth/react";
 import { LiveBroadcastStudio } from "@/components/live/live-broadcast-studio";
@@ -78,7 +79,7 @@ function LiveStreamRoomInner({
         )}
         {isHost && (
           <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
-            방송 중 (호스트)
+            {t("live.s1j4cqzy")}
           </span>
         )}
         <h1 className="text-lg sm:text-xl font-bold tracking-tight flex-1 min-w-0 truncate text-foreground">
@@ -86,7 +87,7 @@ function LiveStreamRoomInner({
         </h1>
         <span className="text-sm text-muted-foreground flex items-center gap-1.5 tabular-nums">
           <Eye className="h-4 w-4 text-folk-terracotta" />
-          <strong className="text-foreground">{viewerCount}</strong> 시청
+          <strong className="text-foreground">{viewerCount}</strong> {t("live.sy9n5")}
         </span>
         {hostUsername && (
           <Link
@@ -117,7 +118,7 @@ function LiveStreamRoomInner({
           targetType="LIVE_CHANNEL"
           targetId={channelId}
           reportedUserId={hostUserId}
-          label="방송 신고"
+          label={t("live.s1duaxzc")}
           variant="outline"
           size="sm"
         />
@@ -129,7 +130,7 @@ function LiveStreamRoomInner({
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="flex items-center gap-1 text-muted-foreground font-medium">
             <Trophy className="h-3.5 w-3.5 text-amber-500" />
-            이번 방송 후원 TOP
+            {t("live.top")}
           </span>
           {ensureArray<{ username: string; amount: number }>(tipRanking).map((t, i) => (
             <span key={i} className="px-2 py-0.5 rounded-full bg-muted">
