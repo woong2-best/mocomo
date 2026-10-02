@@ -425,7 +425,7 @@ export async function recordAiModerationResult(params: {
       riskDelta: totalDelta,
       confidence: params.confidence ?? 0.8,
       recommendedAction: totalDelta >= 80 ? "read_only" : totalDelta >= 40 ? "limited" : "warning",
-      recommendedReason: top ? t("actions.sudgw", { v0: top.reason }) : "actions.s161jx88",
+      recommendedReason: top ? t("actions.sudgw", { v0: top.reason }) : "Possible AI policy violation",
       rawResult: params.categories as object,
     },
   });

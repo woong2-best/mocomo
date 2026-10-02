@@ -84,7 +84,7 @@ export async function groupMarketplaceCartLines(items: MarketplaceCartLine[]) {
     }
     const group = groups.get(listing.sellerId) ?? {
       sellerId: listing.sellerId,
-      sellerDisplayName: listing.sellerProfile?.displayName ?? "actions.svtn3w",
+      sellerDisplayName: listing.sellerProfile?.displayName ?? "Seller",
       lines: [],
       subtotal: 0,
       shippingAmount: 0,

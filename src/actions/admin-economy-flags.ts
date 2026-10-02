@@ -68,7 +68,7 @@ export async function adminKillAllEconomyFeatures(reason?: string) {
       fleaEnabled: false,
       iapEnabled: false,
     },
-    reason?.trim() || "actions.s5t8mxx",
+    reason?.trim() || "Emergency full block",
     ip
   );
   revalidate();
@@ -89,7 +89,7 @@ export async function adminRestoreAllEconomyFeatures(reason?: string) {
       fleaEnabled: true,
       iapEnabled: true,
     },
-    reason?.trim() || "actions.smt1tpu",
+    reason?.trim() || "All features restored",
     ip
   );
   revalidate();

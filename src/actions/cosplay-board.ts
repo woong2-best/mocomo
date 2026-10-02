@@ -191,7 +191,7 @@ export async function createCosplayBoardPost(data: {
   const priceLabel =
     data.priceLabel?.trim() ||
     formatCosplayBoardPriceLabel(data.mode, price) ||
-    (price == null ? "actions.s11i7b" : undefined);
+    (price == null ? "Negotiable" : undefined);
 
   try {
     const post = await db.cosplayBoardPost.create({

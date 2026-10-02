@@ -376,7 +376,7 @@ async function createMarketplaceCheckoutSession(
               price_data: {
                 currency: init.currency,
                 unit_amount: init.shippingAmount,
-                product_data: { name: "actions.ssiacz" },
+                product_data: { name: "Shipping" },
               },
               quantity: 1,
             },

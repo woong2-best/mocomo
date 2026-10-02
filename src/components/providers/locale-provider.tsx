@@ -125,18 +125,16 @@ export function LocaleProvider({
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
 
+const FALLBACK_LOCALE_CONTEXT: LocaleContextValue = {
+  locale: DEFAULT_GUEST_LOCALE,
+  countryCode: DEFAULT_GUEST_COUNTRY,
+  timeZone: DEFAULT_TIMEZONE,
+  setLocale: async () => {},
+  hydrateFromSession: () => {},
+  t: createTranslator(DEFAULT_GUEST_LOCALE),
+};
+
 export function useLocale() {
   const ctx = useContext(LocaleContext);
-  if (!ctx) {
-    const locale = DEFAULT_GUEST_LOCALE;
-    return {
-      locale,
-      countryCode: DEFAULT_GUEST_COUNTRY,
-      timeZone: DEFAULT_TIMEZONE,
-      setLocale: async () => {},
-      hydrateFromSession: () => {},
-      t: createTranslator(locale),
-    };
-  }
-  return ctx;
+  return ctx ?? FALLBACK_LOCALE_CONTEXT;
 }

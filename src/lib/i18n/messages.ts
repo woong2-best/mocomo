@@ -8,14 +8,18 @@ export const MESSAGE_KEYS = Object.keys(en) as MessageKey[];
 
 export type TranslateVars = Record<string, string | number | boolean | null | undefined>;
 
+/** Positional `{v0}` slots come from migrated strings; drop any the caller didn't fill. */
+const UNFILLED_POSITIONAL = /\{v\d+\}\s?/g;
+
 function applyVars(text: string, vars?: TranslateVars): string {
-  if (!vars) return text;
   let out = text;
-  for (const [key, value] of Object.entries(vars)) {
-    if (value === undefined || value === null) continue;
-    out = out.replaceAll(`{${key}}`, String(value));
+  if (vars) {
+    for (const [key, value] of Object.entries(vars)) {
+      if (value === undefined || value === null) continue;
+      out = out.replaceAll(`{${key}}`, String(value));
+    }
   }
-  return out;
+  return out.includes("{v") ? out.replace(UNFILLED_POSITIONAL, "") : out;
 }
 
 /** English-only UI catalog. */

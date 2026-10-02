@@ -94,7 +94,7 @@ export async function createCommunity(data: {
         attempt === 0 ? generateCommunitySlug(name) : `${generateCommunitySlug(name)}-${attempt}`;
       try {
         // Fast path only — channel/role seed runs after the response.
-        // Full provision in-request was ~12s and timed out on Vercel ("actions.s1w6bzz5" then idle).
+        // Full provision in-request was ~12s and timed out on Vercel ("Creating…" then idle).
         const community = await db.$transaction(async (tx) => {
           const row = await tx.community.create({
             data: {

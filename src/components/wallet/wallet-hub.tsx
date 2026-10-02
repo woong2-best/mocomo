@@ -1,5 +1,7 @@
 "use client";
 
+
+import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -16,8 +18,6 @@ import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import type { PaymentHistoryItem } from "@/lib/payment-history";
 import type { TipHistory } from "@/actions/support";
 import { cn } from "@/lib/utils";
-import { useLocale } from "@/components/providers/locale-provider";
-
 type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWallet>>;
 
 type Props = {
@@ -63,7 +63,6 @@ export function WalletHub({
   userImageUrl,
   settlement,
 }: Props) {
-  const { t } = useLocale();
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl");
@@ -106,7 +105,7 @@ export function WalletHub({
         const res = await confirmPaymentMethodSetup(sessionId);
         if (cancelled) return;
         if ("error" in res && res.error) {
-          setSetupMsg(res.error);
+          setSetupMsg(errorText(res.error));
         } else {
           setSetupMsg(t("wallet.hub.paymentMethodRegistered"));
           router.refresh();
@@ -126,7 +125,7 @@ export function WalletHub({
     return () => {
       cancelled = true;
     };
-  }, [params, router, t]);
+  }, [params, router]);
 
   const tabs = [
     { id: "wallet" as const, label: t("wallet.hub.tabWallet") },

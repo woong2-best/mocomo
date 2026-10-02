@@ -44,7 +44,7 @@ export async function markPayoutPaid(payoutId: string, adminNote?: string) {
         status: "PAID",
         processedById: admin.id,
         processedAt: new Date(),
-        adminNote: adminNote?.trim() || "actions.skr5rfp",
+        adminNote: adminNote?.trim() || "Deposit complete",
       },
     });
     await tx.wallet.update({
@@ -75,7 +75,7 @@ export async function rejectPayout(payoutId: string, reason: string) {
         status: "REJECTED",
         processedById: admin.id,
         processedAt: new Date(),
-        adminNote: reason.trim() || "actions.sx05o",
+        adminNote: reason.trim() || "Rejected",
       },
     });
     await tx.ledgerEntry.create({
@@ -86,7 +86,7 @@ export async function rejectPayout(payoutId: string, reason: string) {
         balanceAfter: wallet.availableBalance,
         referenceType: "payout",
         referenceId: payoutId,
-        memo: reason.trim() || "actions.s1a8a4up",
+        memo: reason.trim() || "Refund for rejected withdrawal",
       },
     });
   });

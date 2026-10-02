@@ -128,7 +128,7 @@ export async function createLiveStream(data: {
     const title =
       data.name?.trim() ||
       profileDefaults?.defaultTitle?.trim() ||
-      "actions.stunxr8";
+      "Live stream";
     const joinPassword = generateLiveJoinPassword();
     const joinPasswordHash = await hashLiveJoinPassword(joinPassword);
 

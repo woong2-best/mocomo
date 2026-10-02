@@ -203,7 +203,7 @@ export async function getDiscoveryDeck(): Promise<
     });
 
     if (!me?.enabled) {
-      return { enabled: false, reason: "actions.s5n41ig" };
+      return { enabled: false, reason: "Turn on matching to get recommendations." };
     }
 
     const [swipes, blocks, myAnime] = await Promise.all([

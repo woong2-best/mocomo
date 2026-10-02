@@ -212,7 +212,7 @@ export async function adminHoldMarketplaceSettlement(orderId: string, reason: st
   await holdSettlementForDispute(orderId, admin.id);
   await db.marketplaceOrder.update({
     where: { id: orderId },
-    data: { settlementHeldReason: reason.trim() || "actions.s46vrjh" },
+    data: { settlementHeldReason: reason.trim() || "Payout held by admin" },
   });
   await logMarketplaceAudit({
     orderId,

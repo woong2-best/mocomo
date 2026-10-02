@@ -37,7 +37,7 @@ export async function submitContentReport(data: {
   targetType: ReportTargetType;
   targetId: string;
   reason: ReportReasonId;
-  /** Hierarchical path label for admin review (e.g. "actions.s1b277zv") */
+  /** Hierarchical path label for admin review (e.g. "Scam/fraud › Spam") */
   reasonPath?: string;
   details?: string;
   reportedUserId?: string;

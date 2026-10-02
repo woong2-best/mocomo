@@ -26,7 +26,7 @@ export type StripeVerifyDashboard = {
 };
 
 const STRIPE_TEST_CARD =
-  "actions.4242_4242_4242_4242_cvc";
+  "4242 4242 4242 4242 · any expiry/CVC · any ZIP (Stripe test mode)";
 
 export async function getStripeVerifyDashboard(): Promise<StripeVerifyDashboard> {
   await requireAdmin({ action: "ADMIN_SECURITY_CHANGE", targetType: "stripe_verify", metadata: { view: true } });
@@ -113,7 +113,7 @@ export async function startStripeTipSmokeCheckout(input: {
       ...tipMetadataForCheckout({
         receiverId: receiver.id,
         username: receiver.username,
-        message: input.message?.trim() || "actions.stripe_2",
+        message: input.message?.trim() || "Stripe support test",
         returnPath: "/admin/finance/stripe-verify",
       }),
       stripeVerify: true,

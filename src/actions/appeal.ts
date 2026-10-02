@@ -192,7 +192,7 @@ export async function updateAppealStatus(
 
   if (status === "APPROVED") {
     const { restoreUserAccount } = await import("@/actions/admin");
-    await restoreUserAccount(appeal.userId, note ?? "actions.s1kupyjz");
+    await restoreUserAccount(appeal.userId, note ?? "Appeal approved");
   }
 
   const messages: Partial<Record<AppealStatus, string>> = {

@@ -52,7 +52,7 @@ export async function adminRejectFlowerRedeem(redeemId: string, note: string) {
     targetType: "flower_redeem",
     targetId: redeemId,
   });
-  const res = await rejectFlowerRedeem(redeemId, admin.id, note || "actions.s1jy60no");
+  const res = await rejectFlowerRedeem(redeemId, admin.id, note || "Rejected by admin");
   revalidatePath("/admin/flowers");
   return res;
 }

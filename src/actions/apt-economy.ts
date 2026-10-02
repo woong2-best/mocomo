@@ -183,7 +183,7 @@ export async function grantAptWalletRewards(delta: {
   const user = await getCachedCurrentUser();
   if (!user) return null;
   const ownerId = await resolveAptHomeOwnerId(user.id);
-  await adjustWallet(ownerId, delta, { type: "mission", memo: "actions.s1d21ij1" });
+  await adjustWallet(ownerId, delta, { type: "mission", memo: "Mission reward" });
   const economy = await loadEconomySnapshot(user.id);
   revalidateAptHub();
   return { ok: true, economy };
