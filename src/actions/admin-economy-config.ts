@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { headers } from "next/headers";
@@ -42,7 +39,7 @@ export async function adminPublishEconomyConfig(
   reason: string
 ) {
   const admin = await requireAdmin();
-  if (!reason.trim()) return { error: t("actions.so8sklx") };
+  if (!reason.trim()) return { error: "actions.so8sklx" };
   const ip = await clientIp();
   const res = await publishEconomyConfig(admin.id, draft, reason.trim(), ip);
   if ("ok" in res) revalidate();

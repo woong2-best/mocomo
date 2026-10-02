@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import bcrypt from "bcryptjs";
@@ -78,7 +75,7 @@ function parseSignupBirthDate(data: {
 }): { birthDate: Date } | { error: string } {
   const birthDate = parseBirthDateInput(data.birthYear, data.birthMonth, data.birthDay);
   if (!birthDate) {
-    return { error: t("actions.shi8acd") };
+    return { error: "actions.shi8acd" };
   }
   return { birthDate };
 }
@@ -189,7 +186,7 @@ export async function sendEmailAuthCode(
 
   if (!user) {
     if (mode === "reset") {
-      return { error: t("auth.unregisteredEmail"), code: "EMAIL_NOT_REGISTERED" as const };
+      return { error: "auth.unregisteredEmail", code: "EMAIL_NOT_REGISTERED" as const };
     }
     return {
       success: true,
@@ -198,11 +195,11 @@ export async function sendEmailAuthCode(
   }
 
   if (mode === "signup" && user.emailVerified) {
-    return { error: t("actions.s13hrg1m") };
+    return { error: "actions.s13hrg1m" };
   }
 
   if (!isEmailConfigured()) {
-    return { error: t("actions.resend_api_key") };
+    return { error: "actions.resend_api_key" };
   }
 
   const code = generateEmailCode();
@@ -237,7 +234,7 @@ export async function sendEmailAuthCode(
 export async function verifyAuthCodeOnly(email: string, code: string) {
   const record = await findAuthCodeRecord(email, code);
   if (!record || record.expires < new Date()) {
-    return { error: t("actions.su23yec") };
+    return { error: "actions.su23yec" };
   }
   return { success: true };
 }
@@ -262,12 +259,12 @@ export async function completeAuthWithCode(
   const normalized = email.trim().toLowerCase();
   const record = await findAuthCodeRecord(normalized, code);
   if (!record || record.expires < new Date()) {
-    return { error: t("actions.su23yec") };
+    return { error: "actions.su23yec" };
   }
 
   const user = await findUserIdByEmailFast(normalized);
   if (!user) {
-    return { error: t("auth.unregisteredEmail"), code: "EMAIL_NOT_REGISTERED" as const };
+    return { error: "auth.unregisteredEmail", code: "EMAIL_NOT_REGISTERED" as const };
   }
 
   const clearTokens = db.verificationToken.deleteMany({
@@ -285,7 +282,7 @@ export async function completeAuthWithCode(
   if (options.mode === "reset") {
     const password = options.newPassword?.trim() ?? "";
     if (password.length < 8) {
-      return { error: t("auth.passwordMinLength") };
+      return { error: "auth.passwordMinLength" };
     }
     const passwordHash = await bcrypt.hash(password, SIGNUP_BCRYPT_ROUNDS);
     await Promise.all([
@@ -324,24 +321,24 @@ export async function completeAuthWithCode(
 export async function checkUsernameAvailable(username: string) {
   const normalized = username.trim().toLowerCase();
   if (normalized.length < 3 || !/^[a-zA-Z0-9_]+$/.test(normalized)) {
-    return { available: false, error: t("actions.3_20") };
+    return { available: false, error: "actions.3_20" };
   }
   if (!validateUsernameAndName(normalized).ok) {
     return { available: false, error: FORBIDDEN_ADMIN_SEQUENCE_MESSAGE };
   }
   if (RESERVED_USERNAMES.has(normalized)) {
-    return { available: false, error: t("actions.s1rkgykd") };
+    return { available: false, error: "actions.s1rkgykd" };
   }
   const existing = await findUserByUsernameInsensitive(normalized);
   if (!existing) return { available: true };
   if (existing.deletedAt && existing.scheduledPurgeAt && canRecoverAccount(existing)) {
     return {
       available: false,
-      error: t("actions.sorrhbr"),
+      error: "actions.sorrhbr",
     };
   }
   if (!isEmailVerified(existing)) return { available: true, note: t("actions.sa2gtco") };
-  return { available: false, error: t("actions.s14wxcis") };
+  return { available: false, error: "actions.s14wxcis" };
 }
 
 export async function checkSignupAvailability(email: string, username: string, name?: string) {
@@ -368,7 +365,7 @@ export async function checkSignupAvailability(email: string, username: string, n
   }
 
   if (RESERVED_USERNAMES.has(normalizedUsername)) {
-    return { ok: false, error: t("actions.s1wkswy1"), reason: "username_reserved" as const };
+    return { ok: false, error: "actions.s1wkswy1", reason: "username_reserved" as const };
   }
 
   const taken = await findUserByUsernameInsensitive(normalizedUsername);
@@ -412,7 +409,7 @@ export async function prepareSignupVerify(data: z.input<typeof signupApplication
 
 export async function validateSignupApplication(data: z.input<typeof signupApplicationSchema>) {
   const parsed = signupApplicationSchema.safeParse(data);
-  if (!parsed.success) return { error: t("actions.s15q8461") };
+  if (!parsed.success) return { error: "actions.s15q8461" };
 
   const { email: rawEmail, username, name, website, countryCode, homeFloor: preferredFloor } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
@@ -421,7 +418,7 @@ export async function validateSignupApplication(data: z.input<typeof signupAppli
   if (countryBlock) return { error: countryBlock.error };
 
   if (website?.trim()) {
-    return { error: t("actions.swkz782") };
+    return { error: "actions.swkz782" };
   }
 
   const floorPick = await pickAvailableSignupFloor(countryCode, preferredFloor ?? APT_DEFAULT_FLOOR);
@@ -429,7 +426,7 @@ export async function validateSignupApplication(data: z.input<typeof signupAppli
   const homeFloor = floorPick.floor;
 
   if (RESERVED_USERNAMES.has(username)) {
-    return { error: t("actions.stg06cy") };
+    return { error: "actions.stg06cy" };
   }
 
   const forbiddenCheck = validateUsernameAndName(username, name);
@@ -440,8 +437,7 @@ export async function validateSignupApplication(data: z.input<typeof signupAppli
 
   if (!isEmailConfigured()) {
     return {
-      error:
-        t("actions.resend_api_key_vercel"),
+      error: "actions.resend_api_key_vercel",
     };
   }
 
@@ -460,7 +456,7 @@ export async function registerUser(
   opts?: { channel?: "web" | "mobile" }
 ) {
   const parsed = registerSchema.safeParse(data);
-  if (!parsed.success) return { error: t("actions.s15q8461") };
+  if (!parsed.success) return { error: "actions.s15q8461" };
   const {
     email: rawEmail,
     username,
@@ -490,7 +486,7 @@ export async function registerUser(
   if (countryBlock) return { error: countryBlock.error };
 
   if (website?.trim()) {
-    return { error: t("actions.swkz782") };
+    return { error: "actions.swkz782" };
   }
 
   if (opts?.channel !== "mobile" && isSignupHumanVerifyRequired()) {
@@ -508,7 +504,7 @@ export async function registerUser(
   }
 
   if (RESERVED_USERNAMES.has(username)) {
-    return { error: t("actions.stg06cy") };
+    return { error: "actions.stg06cy" };
   }
 
   const forbiddenCheck = validateUsernameAndName(username, name);
@@ -516,8 +512,7 @@ export async function registerUser(
 
   if (!isEmailConfigured()) {
     return {
-      error:
-        t("actions.resend_api_key_vercel"),
+      error: "actions.resend_api_key_vercel",
     };
   }
 
@@ -711,8 +706,7 @@ export async function registerUser(
 
       if (fields.some((f) => f.includes("email"))) {
         return {
-          error:
-            t("actions.s1d964i5"),
+          error: "actions.s1d964i5",
         };
       }
       if (fields.some((f) => f.includes("username"))) {
@@ -729,13 +723,12 @@ export async function registerUser(
       e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "";
     if (prismaCode === "P1001" || prismaCode === "P1017" || /connect|timeout/i.test(msg)) {
       return {
-        error:
-          t("actions.vercel_database_url_direct_url"),
+        error: "actions.vercel_database_url_direct_url",
       };
     }
 
     return {
-      error: t("actions.s1c1tzul"),
+      error: "actions.s1c1tzul",
     };
   }
 }
@@ -748,11 +741,11 @@ export async function verifyEmail(data: { email: string; token: string }) {
     where: { identifier: verifyId, token: data.token },
   });
   if (!record || record.expires < new Date()) {
-    return { error: t("actions.s1jv9gnl") };
+    return { error: "actions.s1jv9gnl" };
   }
 
   const user = await resolveUserByEmail(email);
-  if (!user) return { error: t("actions.s1hwfc9a") };
+  if (!user) return { error: "actions.s1hwfc9a" };
 
   await updateUserByResolvedEmail(email, { emailVerified: new Date() });
   await db.verificationToken.deleteMany({
@@ -813,18 +806,18 @@ export async function resetPasswordConfirm(data: {
   const resetId = resetTokenIdentifier(email);
   const { token, password } = data;
 
-  if (password.length < 8) return { error: t("auth.passwordMinLength") };
+  if (password.length < 8) return { error: "auth.passwordMinLength" };
 
   const record = await db.verificationToken.findFirst({
     where: { identifier: resetId, token },
   });
   if (!record || record.expires < new Date()) {
-    return { error: t("actions.s8x5m9m") };
+    return { error: "actions.s8x5m9m" };
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
   const updated = await updateUserByResolvedEmail(email, { passwordHash });
-  if (!updated) return { error: t("actions.s1hwfc9a") };
+  if (!updated) return { error: "actions.s1hwfc9a" };
   await db.verificationToken.deleteMany({
     where: {
       identifier: { in: [resetId, resetCodeIdentifier(email)] },

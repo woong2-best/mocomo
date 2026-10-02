@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { z } from "zod";
@@ -44,10 +41,10 @@ export async function updateWatermarkSettings(data: {
   placement?: WatermarkPlacement | null;
 }): Promise<{ ok: true } | { error: string }> {
   const parsed = patchSchema.safeParse(data);
-  if (!parsed.success) return { error: t("actions.slqeo1f") };
+  if (!parsed.success) return { error: "actions.slqeo1f" };
 
   const session = await auth();
-  if (!session?.user?.id) return { error: t("actions.s1mzxopt") };
+  if (!session?.user?.id) return { error: "actions.s1mzxopt" };
 
   await db.user.update({
     where: { id: session.user.id },

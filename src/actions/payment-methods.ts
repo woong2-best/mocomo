@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -55,7 +52,7 @@ export async function startAddPaymentMethod(returnPath?: string) {
     });
     if ("error" in res && res.error) return { error: res.error };
     if (!("checkoutUrl" in res) || !res.checkoutUrl) {
-      return { error: t("actions.s90ss29") };
+      return { error: "actions.s90ss29" };
     }
     return { checkoutUrl: res.checkoutUrl };
   } catch (e) {

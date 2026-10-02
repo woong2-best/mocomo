@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -66,7 +63,7 @@ export async function saveBankAccount(data: {
   const accountNumber = data.accountNumber.replace(/\D/g, "");
   const holderName = data.holderName.trim();
   if (!bankName || !accountNumber || !holderName) {
-    return { error: t("actions.s1h4k40u") };
+    return { error: "actions.s1h4k40u" };
   }
 
   try {
@@ -79,7 +76,7 @@ export async function saveBankAccount(data: {
     revalidatePath("/support");
     return { success: true };
   } catch {
-    return { error: t("actions.db_l") };
+    return { error: "actions.db_l" };
   }
 }
 
@@ -87,7 +84,6 @@ export async function saveBankAccount(data: {
 export async function requestPayout(_amount: number) {
   await requireAuth();
   return {
-    error:
-      t("actions.moco_reward"),
+    error: "actions.moco_reward",
   };
 }

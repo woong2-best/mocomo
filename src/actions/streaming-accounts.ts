@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -24,7 +21,7 @@ export async function getMyStreamingAccounts() {
 export async function connectStreamingAccountOAuth(platform: string) {
   const user = await requireAuthMinimal();
   if (!isConnectablePlatform(platform)) {
-    return { error: t("actions.sz6neik") };
+    return { error: "actions.sz6neik" };
   }
   return startOAuthConnect(user.id, platform);
 }
@@ -32,7 +29,7 @@ export async function connectStreamingAccountOAuth(platform: string) {
 export async function connectStreamingAccountManual(platform: string, channelInput: string) {
   const user = await requireAuthMinimal();
   if (!isConnectablePlatform(platform)) {
-    return { error: t("actions.sz6neik") };
+    return { error: "actions.sz6neik" };
   }
   const result = await startManualConnect(user.id, platform, channelInput);
   if (!result.ok) return { error: result.error };

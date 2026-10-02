@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { db } from "@/lib/db";
@@ -57,7 +54,7 @@ export async function toggleLike(postId: string) {
     where: { id: postId },
     select: { authorId: true, communityId: true },
   });
-  if (!post) return { error: t("actions.sgr97ft") };
+  if (!post) return { error: "actions.sgr97ft" };
   const blocked = qnaEngagementError(post.communityId);
   if (blocked) return { error: blocked };
   const blockErr = await assertUserBlockInteractionAllowed(user.id, post.authorId);
@@ -82,7 +79,7 @@ export async function repost(postId: string) {
     where: { id: postId },
     select: { communityId: true, authorId: true },
   });
-  if (!post) return { error: t("actions.sgr97ft") };
+  if (!post) return { error: "actions.sgr97ft" };
   const blocked = qnaEngagementError(post.communityId);
   if (blocked) return { error: blocked };
   const blockErr = await assertUserBlockInteractionAllowed(user.id, post.authorId);

@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { db } from "@/lib/db";
@@ -20,8 +17,8 @@ export async function fulfillPostMediaPurchase(
       },
     },
   });
-  if (!media) return { error: t("actions.sbz5e1p") };
-  if (media.post.authorId === buyerId) return { error: t("actions.s1i85y9b") };
+  if (!media) return { error: "actions.sbz5e1p" };
+  if (media.post.authorId === buyerId) return { error: "actions.s1i85y9b" };
 
   const isInstantUnlock =
     media.post.instantPurchasePriceKrw > 0 &&
@@ -30,10 +27,10 @@ export async function fulfillPostMediaPurchase(
 
   if (!isInstantUnlock) {
     if (media.priceKrw <= 0 && media.post.instantPurchasePriceKrw !== amount) {
-      return { error: t("actions.s1siyy5j") };
+      return { error: "actions.s1siyy5j" };
     }
     if (media.priceKrw > 0 && media.priceKrw !== amount && media.post.instantPurchasePriceKrw !== amount) {
-      return { error: t("actions.s5c55hc") };
+      return { error: "actions.s5c55hc" };
     }
   }
 

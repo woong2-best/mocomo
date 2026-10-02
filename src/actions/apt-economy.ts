@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -81,7 +78,7 @@ export async function purchaseAptShopItem(itemId: string): Promise<
   | { error: string }
 > {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   const economy = await loadEconomySnapshot(user.id);
   const owned = economy.inventory.find((i) => i.itemId === itemId && i.quantity > 0);
@@ -90,12 +87,12 @@ export async function purchaseAptShopItem(itemId: string): Promise<
   }
 
   const priceInfo = await resolveGoldShopPrice(itemId);
-  if (!priceInfo) return { error: t("actions.s1ydu7ra") };
+  if (!priceInfo) return { error: "actions.s1ydu7ra" };
   if (
     priceInfo.limitedStock != null &&
     priceInfo.soldCount >= priceInfo.limitedStock
   ) {
-    return { error: t("actions.s12h4yl1") };
+    return { error: "actions.s12h4yl1" };
   }
 
   const price = priceInfo.goldPrice;
@@ -136,7 +133,7 @@ export async function consumeAptStorageItem(
   opId?: string
 ): Promise<AptEconomyActionResult | { ok: true; skipped: true }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
   if (!shouldConsumeStorage(itemId)) return { ok: true, skipped: true };
 
   const res = await consumeStorageItem(user.id, itemId, amount, opId);
@@ -152,7 +149,7 @@ export async function returnAptStorageItem(
   opId?: string
 ): Promise<AptEconomyActionResult | { ok: true; skipped: true }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
   if (!shouldConsumeStorage(itemId)) return { ok: true, skipped: true };
 
   const res = await returnStorageItem(user.id, itemId, amount, opId);

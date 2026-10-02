@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -22,16 +19,16 @@ export async function markAuctionPaymentComplete(listingId: string) {
 
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.saleType !== "AUCTION") {
-    return { error: t("actions.s13bzg0h") };
+    return { error: "actions.s13bzg0h" };
   }
   if (listing.auctionState !== "PAYMENT_PENDING") {
-    return { error: t("actions.s10iyl0m") };
+    return { error: "actions.s10iyl0m" };
   }
   if (listing.winningBidderId !== user.id) {
-    return { error: t("actions.s1csu88a") };
+    return { error: "actions.s1csu88a" };
   }
   if (!listing.paymentDueAt || listing.paymentDueAt.getTime() < Date.now()) {
-    return { error: t("actions.sj0g8j9") };
+    return { error: "actions.sj0g8j9" };
   }
 
   await db.usedListing.update({

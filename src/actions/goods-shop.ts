@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -32,12 +29,12 @@ export async function resolveEmoticonPackForPurchase(slug: string) {
     await ensureEmoticonCatalog(db);
     const pack = await db.emoticonPack.findUnique({ where: { slug } });
     if (pack) return { pack, dbReady: true };
-    return { pack: null as null, dbReady: true, error: t("actions.sz3xqc9") };
+    return { pack: null as null, dbReady: true, error: "actions.sz3xqc9" };
   } catch {
     return {
       pack: null as null,
       dbReady: false,
-      error: t("actions.db_supabase_sql_j"),
+      error: "actions.db_supabase_sql_j",
     };
   }
 }
@@ -67,22 +64,22 @@ export async function getReceivedEmoticonGifts() {
 export async function sendEmoticonToStreamer(itemId: string, receiverUsername: string) {
   const user = await requireAuth();
   const receiverName = receiverUsername.trim().replace(/^@/, "");
-  if (!receiverName) return { error: t("actions.sbvu893") };
+  if (!receiverName) return { error: "actions.sbvu893" };
 
   const receiver = await db.user.findUnique({
     where: { username: receiverName },
     select: { id: true, username: true },
   });
-  if (!receiver) return { error: t("actions.s1qart2d") };
-  if (receiver.id === user.id) return { error: t("actions.s9jx1pn") };
+  if (!receiver) return { error: "actions.s1qart2d" };
+  if (receiver.id === user.id) return { error: "actions.s9jx1pn" };
 
   const item = await db.userEmoticon.findUnique({
     where: { id: itemId },
     include: { pack: true, gift: true },
   });
-  if (!item || item.userId !== user.id) return { error: t("actions.sz3xqc9") };
-  if (item.status !== "AVAILABLE") return { error: t("actions.sexkndy") };
-  if (item.gift) return { error: t("actions.s163ypza") };
+  if (!item || item.userId !== user.id) return { error: "actions.sz3xqc9" };
+  if (item.status !== "AVAILABLE") return { error: "actions.sexkndy" };
+  if (item.gift) return { error: "actions.s163ypza" };
 
   const { platformFee, creatorAmount } = calcShopFees(item.pricePaid);
 
@@ -129,7 +126,7 @@ export async function sendEmoticonToStreamer(itemId: string, receiverUsername: s
 
 export async function fulfillEmoticonPurchase(userId: string, packId: string) {
   const pack = await db.emoticonPack.findUnique({ where: { id: packId } });
-  if (!pack) return { error: t("actions.sz3xqc9") };
+  if (!pack) return { error: "actions.sz3xqc9" };
   await db.userEmoticon.create({
     data: { userId, packId, pricePaid: pack.price },
   });
@@ -144,8 +141,8 @@ export async function createGoodsListingRequest(data: {
   videoUrl?: string;
 }) {
   const user = await requireAuth();
-  if (!data.title.trim()) return { error: t("actions.s4m4qe4") };
-  if (!data.description.trim()) return { error: t("actions.s14e7pi0") };
+  if (!data.title.trim()) return { error: "actions.s4m4qe4" };
+  if (!data.description.trim()) return { error: "actions.s14e7pi0" };
   if (data.images.length === 0) {
     data.images = [];
   }
@@ -165,7 +162,7 @@ export async function createGoodsListingRequest(data: {
 
 export async function fulfillListingFee(requestId: string, sellerId: string) {
   const request = await db.goodsListingRequest.findUnique({ where: { id: requestId } });
-  if (!request || request.sellerId !== sellerId) return { error: t("actions.s1ygmq3u") };
+  if (!request || request.sellerId !== sellerId) return { error: "actions.s1ygmq3u" };
 
   const media = request.media as { images?: string[]; videoUrl?: string | null };
   const images = media.images ?? [];
@@ -195,9 +192,9 @@ export async function fulfillListingFee(requestId: string, sellerId: string) {
 
 export async function updatePhysicalProductPrice(productId: string, price: number, shippingFee?: number) {
   const user = await requireAuth();
-  if (price < 1000) return { error: t("actions.1_000") };
+  if (price < 1000) return { error: "actions.1_000" };
   const product = await db.physicalProduct.findUnique({ where: { id: productId } });
-  if (!product || product.sellerId !== user.id) return { error: t("actions.s1fhot7o") };
+  if (!product || product.sellerId !== user.id) return { error: "actions.s1fhot7o" };
 
   await db.physicalProduct.update({
     where: { id: productId },
@@ -242,8 +239,8 @@ export async function createPhysicalOrderDraft(input: {
 }) {
   const user = await requireAuth();
   const product = await db.physicalProduct.findUnique({ where: { id: input.productId } });
-  if (!product || !product.active) return { error: t("actions.s1fhot7o") };
-  if (product.sellerId === user.id) return { error: t("actions.suz2ksc") };
+  if (!product || !product.active) return { error: "actions.s1fhot7o" };
+  if (product.sellerId === user.id) return { error: "actions.suz2ksc" };
   const qty = Math.max(1, Math.min(input.quantity, product.stock));
   const productTotal = product.price * qty;
   const shippingFee = product.shippingFee;
@@ -279,11 +276,11 @@ export async function fulfillPhysicalGoodsPayment(orderId: string, buyerId: stri
     where: { id: orderId },
     include: { items: { include: { product: true } } },
   });
-  if (!order || order.buyerId !== buyerId) return { error: t("actions.sr119vd") };
+  if (!order || order.buyerId !== buyerId) return { error: "actions.sr119vd" };
   if (order.status !== "PENDING_PAYMENT") return { success: true, alreadyPaid: true };
 
   const item = order.items[0];
-  if (!item) return { error: t("actions.sbvelg7") };
+  if (!item) return { error: "actions.sbvelg7" };
 
   await db.$transaction([
     db.physicalOrder.update({
@@ -336,7 +333,7 @@ export async function getMySellOrders() {
 export async function updateOrderShipping(orderId: string, status: "PREPARING" | "SHIPPED" | "DELIVERED", trackingNo?: string) {
   const user = await requireAuth();
   const order = await db.physicalOrder.findUnique({ where: { id: orderId } });
-  if (!order || order.sellerId !== user.id) return { error: t("actions.sr119vd") };
+  if (!order || order.sellerId !== user.id) return { error: "actions.sr119vd" };
 
   await db.physicalOrder.update({
     where: { id: orderId },

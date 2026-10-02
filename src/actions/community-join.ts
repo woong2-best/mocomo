@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -85,13 +82,13 @@ export async function joinCommunityServer(
         joinPasswordHash: true,
       },
     });
-    if (!community) return { error: t("actions.s1foa8q5") };
+    if (!community) return { error: "actions.s1foa8q5" };
 
     const banned = await db.communityBan.findUnique({
       where: { communityId_userId: { communityId, userId: user.id } },
     });
     if (banned && (!banned.expiresAt || banned.expiresAt > new Date())) {
-      return { error: t("actions.s1im9z4z") };
+      return { error: "actions.s1im9z4z" };
     }
 
     const existing = await db.communityMember.findUnique({
@@ -116,24 +113,24 @@ export async function joinCommunityServer(
     if (community.joinPasswordHash) {
       const pin = joinPassword?.trim() ?? "";
       if (!isValidCommunityJoinPassword(pin)) {
-        return { error: t("actions.s8e796l") };
+        return { error: "actions.s8e796l" };
       }
       const ok = await verifyCommunityJoinPassword(pin, community.joinPasswordHash);
-      if (!ok) return { error: t("actions.sa72c6f") };
+      if (!ok) return { error: "actions.sa72c6f" };
     }
 
     if (community.joinMode === "INVITE_ONLY") {
       const code = inviteCode?.trim();
-      if (!code) return { error: t("actions.s107xdto") };
+      if (!code) return { error: "actions.s107xdto" };
       const invite = await db.communityInvite.findFirst({
         where: { communityId, code },
       });
-      if (!invite) return { error: t("actions.s1b8wpie") };
+      if (!invite) return { error: "actions.s1b8wpie" };
       if (invite.expiresAt && invite.expiresAt < new Date()) {
-        return { error: t("actions.sz7t1p8") };
+        return { error: "actions.sz7t1p8" };
       }
       if (invite.maxUses != null && invite.useCount >= invite.maxUses) {
-        return { error: t("actions.sm834fk") };
+        return { error: "actions.sm834fk" };
       }
       await db.communityInvite.update({
         where: { id: invite.id },
@@ -204,10 +201,10 @@ export async function updateCommunityJoinMode(communityId: string, joinMode: Com
       where: { id: communityId },
       select: { creatorId: true, slug: true },
     });
-    if (!community) return { error: t("actions.s1foa8q5") };
+    if (!community) return { error: "actions.s1foa8q5" };
     if (community.creatorId !== user.id) {
       const can = await loadMemberPermissions(communityId, user.id, false);
-      if (!can.setJoinMode) return { error: t("actions.smlv0id") };
+      if (!can.setJoinMode) return { error: "actions.smlv0id" };
     }
 
     await db.community.update({
@@ -232,10 +229,10 @@ export async function updateCommunityJoinPassword(
       where: { id: communityId },
       select: { creatorId: true, slug: true },
     });
-    if (!community) return { error: t("actions.s1foa8q5") };
+    if (!community) return { error: "actions.s1foa8q5" };
     if (community.creatorId !== user.id) {
       const can = await loadMemberPermissions(communityId, user.id, false);
-      if (!can.setJoinMode) return { error: t("actions.sxdufwd") };
+      if (!can.setJoinMode) return { error: "actions.sxdufwd" };
     }
 
     if (password === null || password === "") {
@@ -249,7 +246,7 @@ export async function updateCommunityJoinPassword(
 
     const pin = password.trim();
     if (!isValidCommunityJoinPassword(pin)) {
-      return { error: t("actions.skj7xjg") };
+      return { error: "actions.skj7xjg" };
     }
 
     const joinPasswordHash = await hashCommunityJoinPassword(pin);
@@ -268,7 +265,7 @@ export async function createCommunityInvite(communityId: string) {
   try {
     const user = await requireAuthForAction();
     const perms = await loadMemberPermissions(communityId, user.id, false);
-    if (!perms.inviteMembers) return { error: t("actions.sozb6fz") };
+    if (!perms.inviteMembers) return { error: "actions.sozb6fz" };
 
     const code = randomBytes(8).toString("hex");
     const invite = await db.communityInvite.create({
@@ -303,7 +300,7 @@ export async function getCommunityJoinRequests(communityId: string) {
     const user = await requireAuthForAction();
     const perms = await loadMemberPermissions(communityId, user.id, false);
     if (!perms.manageJoinRequests && !perms.approveMembers) {
-      return { requests: [], error: t("actions.st3onev") };
+      return { requests: [], error: "actions.st3onev" };
     }
 
     const rows = await db.communityJoinRequest.findMany({
@@ -347,12 +344,12 @@ export async function reviewCommunityJoinRequest(
       include: { community: { select: { id: true, slug: true, creatorId: true, memberCount: true } } },
     });
     if (!request || request.status !== "PENDING") {
-      return { error: t("actions.s16gsg46") };
+      return { error: "actions.s16gsg46" };
     }
 
     const perms = await loadMemberPermissions(request.communityId, user.id, false);
     if (!perms.manageJoinRequests && !perms.approveMembers) {
-      return { error: t("actions.st3onev") };
+      return { error: "actions.st3onev" };
     }
 
     if (action === "reject") {

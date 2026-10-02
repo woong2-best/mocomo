@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { db } from "@/lib/db";
@@ -60,7 +57,7 @@ export async function startStripePremiumSmokeCheckout(purchaseTermsAccepted?: bo
   });
 
   if (!isPaymentsConfigured()) {
-    return { error: t("actions.stripe") };
+    return { error: "actions.stripe" };
   }
 
   return createStripeCheckoutForUser({
@@ -89,16 +86,16 @@ export async function startStripeTipSmokeCheckout(input: {
   });
 
   if (!isPaymentsConfigured()) {
-    return { error: t("actions.stripe") };
+    return { error: "actions.stripe" };
   }
 
   const receiver = await db.user.findFirst({
     where: { username: input.receiverUsername.trim() },
     select: { id: true, username: true },
   });
-  if (!receiver) return { error: t("actions.sw72p7x") };
+  if (!receiver) return { error: "actions.sw72p7x" };
   if (receiver.id === admin.id) {
-    return { error: t("actions.sjpjjks") };
+    return { error: "actions.sjpjjks" };
   }
 
   const amount = Math.max(MIN_TIP_USD_CENTS, Math.floor(input.amountUsdCents ?? MIN_TIP_USD_CENTS));

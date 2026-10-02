@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -24,7 +21,7 @@ export async function getUsedMarketBanStats(userId: string) {
       auctionLastPaymentDefaultAt: true,
     },
   });
-  if (!user) return { error: t("actions.svypth4") };
+  if (!user) return { error: "actions.svypth4" };
 
   const defaultRate =
     user.auctionWinCount > 0

@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -19,11 +16,11 @@ async function assertModPermission(
     where: { id: communityId },
     select: { creatorId: true, slug: true },
   });
-  if (!community) return { error: t("actions.s1foa8q5") as const };
+  if (!community) return { error: "actions.s1foa8q5" as const };
   const isOwner = community.creatorId === userId;
   const perms = await loadMemberPermissions(communityId, userId, isOwner);
   if (!hasPermission(perms, key)) {
-    return { error: t("actions.st3onev") as const };
+    return { error: "actions.st3onev" as const };
   }
   return { community, perms };
 }
@@ -35,10 +32,10 @@ export async function kickCommunityMember(memberId: string) {
       where: { id: memberId },
       include: { community: { select: { id: true, slug: true, creatorId: true } } },
     });
-    if (!member) return { error: t("actions.sun5u5h") };
-    if (member.userId === user.id) return { error: t("actions.s1bc0nq2") };
+    if (!member) return { error: "actions.sun5u5h" };
+    if (member.userId === user.id) return { error: "actions.s1bc0nq2" };
     if (member.community.creatorId === member.userId) {
-      return { error: t("actions.s1t9l4dm") };
+      return { error: "actions.s1t9l4dm" };
     }
 
     const gate = await assertModPermission(member.communityId, user.id, "kickMembers");
@@ -69,10 +66,10 @@ export async function banCommunityMember(
       where: { id: memberId },
       include: { community: { select: { id: true, slug: true, creatorId: true } } },
     });
-    if (!member) return { error: t("actions.sun5u5h") };
-    if (member.userId === user.id) return { error: t("actions.sowvt8v") };
+    if (!member) return { error: "actions.sun5u5h" };
+    if (member.userId === user.id) return { error: "actions.sowvt8v" };
     if (member.community.creatorId === member.userId) {
-      return { error: t("actions.s16ug9wf") };
+      return { error: "actions.s16ug9wf" };
     }
 
     if (!opts?.skipPermCheck) {
@@ -120,7 +117,7 @@ export async function banCommunityMember(
 
 export async function timeoutCommunityMember(memberId: string, minutes: number) {
   if (!Number.isFinite(minutes) || minutes < 1 || minutes > 10_080) {
-    return { error: t("actions.1_7") };
+    return { error: "actions.1_7" };
   }
   try {
     const user = await requireAuth();
@@ -128,7 +125,7 @@ export async function timeoutCommunityMember(memberId: string, minutes: number) 
       where: { id: memberId },
       select: { communityId: true },
     });
-    if (!member) return { error: t("actions.sun5u5h") };
+    if (!member) return { error: "actions.sun5u5h" };
     const gate = await assertModPermission(member.communityId, user.id, "timeoutMembers");
     if ("error" in gate) return gate;
     return banCommunityMember(memberId, { reason: t("actions.sr61fpf"), minutes, skipPermCheck: true });

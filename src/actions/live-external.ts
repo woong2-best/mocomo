@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import type { LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
@@ -41,7 +38,7 @@ export async function createExternalLiveStream(data: {
   try {
     const { t } = await getServerTranslator();
     if (!isExternalLiveEnabled()) {
-      return { error: t("live.external.disabled") };
+      return { error: "live.external.disabled" };
     }
 
     const user = await requireAuthMinimal();
@@ -50,7 +47,7 @@ export async function createExternalLiveStream(data: {
 
     const accountId = data.connectedAccountId?.trim();
     if (!accountId) {
-      return { error: t("live.external.pickAccount") };
+      return { error: "live.external.pickAccount" };
     }
 
     const account = await db.connectedStreamingAccount.findUnique({
@@ -58,15 +55,15 @@ export async function createExternalLiveStream(data: {
     });
 
     if (!account || account.userId !== user.id) {
-      return { error: t("live.external.accountNotFound") };
+      return { error: "live.external.accountNotFound" };
     }
     if (!account.verified || account.revokedAt) {
-      return { error: t("live.external.accountUnverified") };
+      return { error: "live.external.accountUnverified" };
     }
 
     const liveProvider = platformToLiveExternal(account.platform);
     if (!liveProvider) {
-      return { error: t("live.external.platformUnsupported") };
+      return { error: "live.external.platformUnsupported" };
     }
 
     const resolved = await resolveVerifiedLiveSource(accountId, user.id);
@@ -84,8 +81,7 @@ export async function createExternalLiveStream(data: {
       if (!kids.ok) return { error: kids.error };
       if (kids.madeForKids) {
         return {
-          error:
-            t("actions.made_for_kids_youtube"),
+          error: "actions.made_for_kids_youtube",
         };
       }
     }
@@ -242,13 +238,13 @@ export async function mintLiveOverlayUrls(channelId: string) {
     },
   });
   if (!channel || channel.createdBy !== user.id) {
-    return { error: t("actions.url_2") };
+    return { error: "actions.url_2" };
   }
   const broadcastSid = overlayBroadcastSid(channel.createdAt);
   const chatToken = mintOverlayToken(channelId, "chat", { broadcastSid });
   const donationToken = mintOverlayToken(channelId, "donation", { broadcastSid });
   if (!chatToken || !donationToken) {
-    return { error: t("actions.live_overlay_secret_auth_secret") };
+    return { error: "actions.live_overlay_secret_auth_secret" };
   }
 
   const youtubeNative =
@@ -277,7 +273,7 @@ export async function mintStudioObsChatUrl() {
   });
   if (!channel) {
     const { t } = await getServerTranslator();
-    return { errorKey: "live.obsChat.noActiveBroadcast" as const, error: t("live.obsChat.noActiveBroadcast") };
+    return { errorKey: "live.obsChat.noActiveBroadcast" as const, error: "live.obsChat.noActiveBroadcast" };
   }
   return mintLiveOverlayUrls(channel.id);
 }

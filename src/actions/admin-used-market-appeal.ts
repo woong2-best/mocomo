@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -107,7 +104,7 @@ export async function getUsedMarketAppealDetail(appealId: string) {
       admin: { select: { username: true } },
     },
   });
-  if (!appeal) return { error: t("actions.s1uyjy12") as const };
+  if (!appeal) return { error: "actions.s1uyjy12" as const };
 
   const [sanctionLogs, bids] = await Promise.all([
     db.usedMarketSanctionLog.findMany({
@@ -180,7 +177,7 @@ export async function updateUsedMarketAppealStatus(
       },
     },
   });
-  if (!appeal) return { error: t("actions.s1uyjy12") };
+  if (!appeal) return { error: "actions.s1uyjy12" };
 
   const note = decisionNote?.trim() || undefined;
   const decided = status === "APPROVED" || status === "REJECTED" || status === "CLOSED";

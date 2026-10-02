@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -115,7 +112,7 @@ export async function adminExportCsTimeline(
     metadata: { format },
   });
   const detail = await getCsUserDetail(userId, { categories: filters?.length ? filters : undefined });
-  if (!detail) return { error: t("actions.svypth4") };
+  if (!detail) return { error: "actions.svypth4" };
   if (format === "json") {
     return {
       ok: true as const,

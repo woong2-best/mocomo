@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -53,16 +50,16 @@ export async function applyMarketplaceSeller(input: {
 }) {
   const user = await requireAuth();
   const displayName = input.displayName.trim().slice(0, 80);
-  if (!displayName) return { error: t("actions.s1k33opv") };
+  if (!displayName) return { error: "actions.s1k33opv" };
 
   const existing = await db.marketplaceSellerProfile.findUnique({
     where: { userId: user.id },
   });
   if (existing?.status === "APPROVED") {
-    return { error: t("actions.s1uejdai") };
+    return { error: "actions.s1uejdai" };
   }
   if (existing?.status === "PENDING") {
-    return { error: t("actions.s17tzezf") };
+    return { error: "actions.s17tzezf" };
   }
 
   const profile = await db.marketplaceSellerProfile.upsert({
@@ -160,7 +157,7 @@ export async function startMarketplaceConnectOnboarding(payoutCountry?: string) 
       marketplaceSeller: { select: { sellingMarket: true } },
     },
   });
-  if (!dbUser) return { error: t("actions.svypth4") };
+  if (!dbUser) return { error: "actions.svypth4" };
 
   const result = await startSellerConnectOnboarding({
     userId: dbUser.id,
@@ -241,17 +238,17 @@ export async function createMarketplaceListingForUser(
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     if (msg === "SELLER_PENDING_APPROVAL") {
-      return { error: t("actions.sa93zy6") };
+      return { error: "actions.sa93zy6" };
     }
     if (msg === "SELLER_REQUIRED") {
-      return { error: t("actions.s169spda") };
+      return { error: "actions.s169spda" };
     }
-    return { error: t("actions.s1i4ps9") };
+    return { error: "actions.s1i4ps9" };
   }
 
   const title = input.title.trim().slice(0, 120);
   const description = input.description.trim().slice(0, 10_000);
-  if (!title || !description) return { error: t("actions.smz62wg") };
+  if (!title || !description) return { error: "actions.smz62wg" };
 
   const sellerUser = await db.user.findUnique({
     where: { id: userId },
@@ -263,10 +260,10 @@ export async function createMarketplaceListingForUser(
   }
 
   if (!MARKETPLACE_CATEGORIES.includes(input.category as (typeof MARKETPLACE_CATEGORIES)[number])) {
-    return { error: t("actions.s172og7") };
+    return { error: "actions.s172og7" };
   }
   if (!Number.isFinite(input.priceAmount) || input.priceAmount < 0) {
-    return { error: t("actions.s1y2yueo") };
+    return { error: "actions.s1y2yueo" };
   }
 
   const listingRating = input.contentRating ?? (input.isNsfw ? "ADULT" : "GENERAL");
@@ -288,10 +285,10 @@ export async function createMarketplaceListingForUser(
   }
 
   if (input.type === "DIGITAL") {
-    return { error: t("actions.s1rdit1s") };
+    return { error: "actions.s1rdit1s" };
   }
   if (input.type === "CUSTOM_ORDER" && (!input.productionDays || input.productionDays < 1)) {
-    return { error: t("actions.s19bcrmj") };
+    return { error: "actions.s19bcrmj" };
   }
 
   const validated = validateShipToCountries(input.shipToCountries);

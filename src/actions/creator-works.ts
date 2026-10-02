@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -87,10 +84,10 @@ export async function getEpisodeAccess(userId: string | null, episodeId: string)
       series: { select: { id: true, title: true, kind: true, coverUrl: true, genre: true } },
     },
   });
-  if (!episode) return { error: t("actions.sv7siz8") as const };
+  if (!episode) return { error: "actions.sv7siz8" as const };
   const isAuthor = userId === episode.authorId;
   if (!isAuthor && episode.scheduledAt && episode.scheduledAt > new Date()) {
-    return { error: t("actions.s106x1tx") as const };
+    return { error: "actions.s106x1tx" as const };
   }
 
   const owned = userId ? await userOwnsEpisode(userId, episodeId) : episode.price <= 0;
@@ -126,8 +123,8 @@ export async function createCreatorSeries(input: {
   kind: CreatorWorkKind;
 }) {
   const user = await requireAuth();
-  if (!input.title.trim()) return { error: t("actions.sojdmy3") };
-  if (!input.coverUrl.trim()) return { error: t("actions.scuuh6h") };
+  if (!input.title.trim()) return { error: "actions.sojdmy3" };
+  if (!input.coverUrl.trim()) return { error: "actions.scuuh6h" };
 
   const series = await db.creatorSeries.create({
     data: {
@@ -157,23 +154,23 @@ export async function publishCreatorEpisode(input: {
 }) {
   const user = await requireAuth();
   const series = await db.creatorSeries.findUnique({ where: { id: input.seriesId } });
-  if (!series || series.authorId !== user.id) return { error: t("actions.s1wo3hx9") };
-  if (input.price < 0) return { error: t("actions.s1y2yueo") };
-  if (input.episodeNo < 1) return { error: t("actions.stoe11l") };
+  if (!series || series.authorId !== user.id) return { error: "actions.s1wo3hx9" };
+  if (input.price < 0) return { error: "actions.s1y2yueo" };
+  if (input.episodeNo < 1) return { error: "actions.stoe11l" };
 
   const previewUrls = input.previewUrls ?? [];
   const contentUrls = input.contentUrls ?? [];
 
   if (series.kind === "VIDEO") {
-    if (!input.videoUrl?.trim()) return { error: t("actions.url") };
+    if (!input.videoUrl?.trim()) return { error: "actions.url" };
   } else if (contentUrls.length === 0) {
-    return { error: t("actions.sapsw5x") };
+    return { error: "actions.sapsw5x" };
   }
 
   const existing = await db.creatorEpisode.findUnique({
     where: { seriesId_episodeNo: { seriesId: input.seriesId, episodeNo: input.episodeNo } },
   });
-  if (existing) return { error: t("actions.sjl7cmc") };
+  if (existing) return { error: "actions.sjl7cmc" };
 
   const scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : null;
   const isFuture = scheduledAt && scheduledAt > new Date();
@@ -225,9 +222,9 @@ export async function fulfillCreatorEpisodePurchase(
     where: { id: episodeId },
     include: { author: { select: { id: true } } },
   });
-  if (!episode) return { error: t("actions.s1mox0n5") };
-  if (episode.price !== amount) return { error: t("actions.s5c55hc") };
-  if (episode.authorId === buyerId) return { error: t("actions.s15qa9ak") };
+  if (!episode) return { error: "actions.s1mox0n5" };
+  if (episode.price !== amount) return { error: "actions.s5c55hc" };
+  if (episode.authorId === buyerId) return { error: "actions.s15qa9ak" };
 
   const existing = await db.creatorEpisodePurchase.findUnique({
     where: { buyerId_episodeId: { buyerId, episodeId } },

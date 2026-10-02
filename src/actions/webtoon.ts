@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { cookies } from "next/headers";
@@ -240,7 +237,7 @@ export async function updateWebtoonPublishDay(seriesId: string, publishDay: Webt
   const user = await requireAuth();
   const series = await db.creatorSeries.findUnique({ where: { id: seriesId } });
   if (!series || series.authorId !== user.id || series.kind !== "WEBTOON") {
-    return { error: t("actions.s1aqsoms") };
+    return { error: "actions.s1aqsoms" };
   }
   await db.creatorSeries.update({
     where: { id: seriesId },
@@ -255,7 +252,7 @@ export async function updateWebtoonGenre(seriesId: string, genre: WebtoonGenre) 
   const user = await requireAuth();
   const series = await db.creatorSeries.findUnique({ where: { id: seriesId } });
   if (!series || series.authorId !== user.id || series.kind !== "WEBTOON") {
-    return { error: t("actions.s1aqsoms") };
+    return { error: "actions.s1aqsoms" };
   }
   await db.creatorSeries.update({
     where: { id: seriesId },
@@ -274,8 +271,8 @@ export async function createWebtoonSeries(input: {
   genre: WebtoonGenre;
 }) {
   const user = await requireAuth();
-  if (!input.title.trim()) return { error: t("actions.sojdmy3") };
-  if (!input.coverUrl.trim()) return { error: t("actions.s1crylb1") };
+  if (!input.title.trim()) return { error: "actions.sojdmy3" };
+  if (!input.coverUrl.trim()) return { error: "actions.s1crylb1" };
 
   const series = await db.creatorSeries.create({
     data: {

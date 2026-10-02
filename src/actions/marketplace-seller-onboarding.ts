@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -181,7 +178,7 @@ async function limitSellerAction(bucket: string) {
   const ip = await getRequestIp();
   const { success } = await checkRateLimit(authLimiter, `seller:${bucket}:${ip}`);
   if (!success) {
-    return { ok: false as const, error: t("actions.s121u7h2") };
+    return { ok: false as const, error: "actions.s121u7h2" };
   }
   return { ok: true as const };
 }
@@ -191,11 +188,11 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
   if (!limited.ok) return { error: limited.error };
 
   const parsed = accountSchema.safeParse(input);
-  if (!parsed.success) return { error: t("actions.s15q8461") };
+  if (!parsed.success) return { error: "actions.s15q8461" };
   const data = parsed.data;
 
   if (data.password !== data.passwordConfirm) {
-    return { error: t("actions.sghcp87") };
+    return { error: "actions.sghcp87" };
   }
 
   const sellingMarket = normalizeSellerCountry(data.sellingMarket);
@@ -206,7 +203,7 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
   const existingSession = await getSessionUserId();
   if (existingSession) {
     return {
-      error: t("actions.stall24"),
+      error: "actions.stall24",
       alreadySignedIn: true,
     };
   }
@@ -229,7 +226,7 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
   });
 
   if (result.error) return { error: result.error };
-  if (!result.userId) return { error: t("actions.saws966") };
+  if (!result.userId) return { error: "actions.saws966" };
 
   await db.marketplaceSellerProfile.upsert({
     where: { userId: result.userId },
@@ -265,7 +262,7 @@ export async function saveSellerAgreements(input: z.infer<typeof agreementsSchem
   if (!limited.ok) return { error: limited.error };
 
   const parsed = agreementsSchema.safeParse(input);
-  if (!parsed.success) return { error: t("actions.s1tf9a4a") };
+  if (!parsed.success) return { error: "actions.s1tf9a4a" };
 
   const user = await requireAuthForAction();
   const now = new Date();
@@ -369,7 +366,7 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
   if (!limited.ok) return { error: limited.error };
 
   const parsed = sellerInfoSchema.safeParse(input);
-  if (!parsed.success) return { error: t("actions.szwvtu4") };
+  if (!parsed.success) return { error: "actions.szwvtu4" };
   const data = parsed.data;
 
   const user = await requireAuthForAction();
@@ -423,13 +420,13 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
 /** @deprecated Stripe Connect Hosted Onboarding으로 대체 */
 export async function submitSellerKyc(_input: unknown) {
   return {
-    error: t("actions.stripe_stripe"),
+    error: "actions.stripe_stripe",
   };
 }
 
 /** @deprecated */
 export async function submitSellerKycPrep(_mode: "defer" | "start") {
-  return { error: t("actions.stripe_connect_2") };
+  return { error: "actions.stripe_connect_2" };
 }
 
 export type StartStripeConnectInput = {
@@ -444,7 +441,7 @@ export async function startSellerStripeConnectOnboarding(input: StartStripeConne
     const user = await requireAuthForAction();
     const dbUser = await loadOnboardingUser(user.id);
     if (!dbUser?.marketplaceSeller?.sellerType) {
-      return { error: t("actions.sgoiiuv") };
+      return { error: "actions.sgoiiuv" };
     }
 
     const result = await startSellerConnectOnboarding({
@@ -511,12 +508,12 @@ export async function completeSellerOnboarding() {
     const user = await requireAuthForAction();
     const dbUser = await loadOnboardingUser(user.id);
 
-    if (!dbUser?.emailVerified) return { error: t("actions.s1phpiy6") };
+    if (!dbUser?.emailVerified) return { error: "actions.s1phpiy6" };
     if (!dbUser.marketplaceSeller?.agreedTermsAt || !dbUser.marketplaceSeller?.agreedPrivacyAt) {
-      return { error: t("actions.s1sfx92t") };
+      return { error: "actions.s1sfx92t" };
     }
     if (!dbUser.marketplaceSeller.sellerType) {
-      return { error: t("actions.svamqna") };
+      return { error: "actions.svamqna" };
     }
 
     if (dbUser.stripeConnectAccountId) {
@@ -534,7 +531,7 @@ export async function completeSellerOnboarding() {
       return { error: MARKET_UNAVAILABLE_KO };
     }
     if (!isSellerStripeConnectReady(profile)) {
-      return { error: t("actions.stripe_5") };
+      return { error: "actions.stripe_5" };
     }
 
     if (profile?.onboardingCompletedAt) {

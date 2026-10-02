@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -145,7 +142,7 @@ export async function getAptProfile(): Promise<AptProfileDto | null> {
 
 export async function completeAptMoveIn(payload: MoveInPayload) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   const housingType = "apartment";
   const floor = housingType === "apartment" ? clampFloor(payload.homeFloor ?? APT_DEFAULT_FLOOR) : 0;
@@ -197,13 +194,13 @@ export async function completeAptMoveIn(payload: MoveInPayload) {
     return { ok: true as const, housingType };
   } catch (e) {
     console.error("[completeAptMoveIn]", e);
-    return { error: t("actions.sf2ws33") };
+    return { error: "actions.sf2ws33" };
   }
 }
 
 export async function saveAptFloorPlan(floor: number, rooms: AptRoom[]) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   const existing = await db.aptProfile.findUnique({ where: { userId: user.id } });
   const plans = parseJson<Record<number, AptRoom[]>>(existing?.floorPlans, defaultPlans());
@@ -252,15 +249,15 @@ export async function saveAptSimulationState(payload: {
 
 export async function placeAptTv() {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   const profile = await getAptProfile();
-  if (!profile) return { error: t("actions.s1ok12y") };
+  if (!profile) return { error: "actions.s1ok12y" };
 
   const floor = profile.homeFloor;
   const rooms = getRoomsForFloor(profile.floorPlans, floor);
   const living = rooms.find((r) => r.type === "living");
-  if (!living) return { error: t("actions.ssdgwyr") };
+  if (!living) return { error: "actions.ssdgwyr" };
 
   const furniture: FurnitureItem[] = [
     ...profile.furniture.filter((f) => f.type !== "tv"),
@@ -279,7 +276,7 @@ export async function placeAptTv() {
 
 export async function saveAptHouseBuild(state: HouseBuildState) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   try {
     await db.aptProfile.upsert({
@@ -296,7 +293,7 @@ export async function saveAptHouseBuild(state: HouseBuildState) {
     return { ok: true as const };
   } catch (e) {
     console.error("[saveAptHouseBuild]", e);
-    return { error: t("actions.s1y34v5o") };
+    return { error: "actions.s1y34v5o" };
   }
 }
 
@@ -410,7 +407,7 @@ export async function pickAvailableSignupFloor(
   const taken = await loadOccupiedSignupFloors(countryCode);
   const floor = pickNearestFreeFloor(start, taken);
   if (floor == null) {
-    return { ok: false as const, error: t("actions.s12hab9i") };
+    return { ok: false as const, error: "actions.s12hab9i" };
   }
   return { ok: true as const, floor };
 }

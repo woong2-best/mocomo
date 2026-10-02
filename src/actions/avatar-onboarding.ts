@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { cookies } from "next/headers";
@@ -38,7 +35,7 @@ export async function completeAvatarOnboarding(input: {
   const user = await requireAuthForAction();
   const image = input.image?.trim() ?? "";
   if (!image) {
-    return { error: t("actions.s1s27zyz") };
+    return { error: "actions.s1s27zyz" };
   }
 
   const result = await applyProfileUpdateForUser(user.id, { image });

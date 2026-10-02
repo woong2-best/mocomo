@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -174,9 +171,9 @@ export async function createCosplayBoardPost(data: {
 
   const title = data.title.trim();
   const content = data.content.trim();
-  if (title.length < 2) return { error: t("actions.s1nza8w") };
-  if (title.length > 200) return { error: t("actions.200") };
-  if (content.length < 10) return { error: t("actions.s3z4sa9") };
+  if (title.length < 2) return { error: "actions.s1nza8w" };
+  if (title.length > 200) return { error: "actions.200" };
+  if (content.length < 10) return { error: "actions.s3z4sa9" };
 
   const price =
     data.price != null && Number.isFinite(data.price) && data.price > 0
@@ -225,15 +222,15 @@ export async function createCosplayBoardPost(data: {
 export async function createCosplayBoardComment(postId: string, content: string) {
   const user = await requireAuth();
   const text = content.trim();
-  if (text.length < 1) return { error: t("actions.syraox7") };
-  if (text.length > 2000) return { error: t("actions.2000") };
+  if (text.length < 1) return { error: "actions.syraox7" };
+  if (text.length > 2000) return { error: "actions.2000" };
 
   try {
     const post = await db.cosplayBoardPost.findUnique({
       where: { id: postId, status: "OPEN" },
       select: { id: true },
     });
-    if (!post) return { error: t("actions.s1v13ofx") };
+    if (!post) return { error: "actions.s1v13ofx" };
 
     await db.cosplayBoardComment.create({
       data: {

@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -25,21 +22,21 @@ export async function proposeUsedAuctionPrice(listingId: string, amount: number)
 
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.auctionState !== "PRICE_NEGOTIATION") {
-    return { error: t("actions.sjyqady") };
+    return { error: "actions.sjyqady" };
   }
 
   const price = Math.floor(amount);
   if (!Number.isFinite(price) || price <= 0 || price > maxUsedListingPrice(listing.currency)) {
-    return { error: t("actions.s4api9p") };
+    return { error: "actions.s4api9p" };
   }
   if (!isNegotiationParticipant(listing, user.id)) {
-    return { error: t("actions.st3onev") };
+    return { error: "actions.st3onev" };
   }
   if (!listing.activeNegotiationRoomId) {
-    return { error: t("actions.s14bligm") };
+    return { error: "actions.s14bligm" };
   }
   if (listing.negotiationDueAt && listing.negotiationDueAt.getTime() < Date.now()) {
-    return { error: t("actions.s2db9e9") };
+    return { error: "actions.s2db9e9" };
   }
 
   await db.$transaction(async (tx) => {
@@ -99,17 +96,17 @@ export async function acceptUsedAuctionPrice(offerId: string) {
     include: { listing: true },
   });
   if (!offer || offer.status !== "PENDING") {
-    return { error: t("actions.s489u0p") };
+    return { error: "actions.s489u0p" };
   }
   const listing = offer.listing;
   if (listing.auctionState !== "PRICE_NEGOTIATION") {
-    return { error: t("actions.sd121ao") };
+    return { error: "actions.sd121ao" };
   }
   if (!isNegotiationParticipant(listing, user.id)) {
-    return { error: t("actions.st3onev") };
+    return { error: "actions.st3onev" };
   }
   if (offer.proposerId === user.id) {
-    return { error: t("actions.s1w3upmy") };
+    return { error: "actions.s1w3upmy" };
   }
 
   await db.$transaction(async (tx) => {
@@ -162,9 +159,9 @@ export async function rejectUsedAuctionPrice(offerId: string) {
     where: { id: offerId },
     include: { listing: true },
   });
-  if (!offer || offer.status !== "PENDING") return { error: t("actions.s489u0p") };
-  if (!isNegotiationParticipant(offer.listing, user.id)) return { error: t("actions.st3onev") };
-  if (offer.proposerId === user.id) return { error: t("actions.s1eyjtyv") };
+  if (!offer || offer.status !== "PENDING") return { error: "actions.s489u0p" };
+  if (!isNegotiationParticipant(offer.listing, user.id)) return { error: "actions.st3onev" };
+  if (offer.proposerId === user.id) return { error: "actions.s1eyjtyv" };
 
   await db.usedPriceOffer.update({
     where: { id: offerId },
@@ -197,10 +194,10 @@ export async function declineUsedAuctionNegotiation(listingId: string) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.auctionState !== "PRICE_NEGOTIATION") {
-    return { error: t("actions.s1cyzlot") };
+    return { error: "actions.s1cyzlot" };
   }
   if (listing.negotiationBuyerId !== user.id) {
-    return { error: t("actions.s102fc5s") };
+    return { error: "actions.s102fc5s" };
   }
 
   await db.usedAuctionBid.updateMany({

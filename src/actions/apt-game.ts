@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -96,14 +93,14 @@ export async function purchaseAptSticker(typeId: string) {
   if ("error" in res && res.error) return { error: res.error };
   if ("alreadyOwned" in res && res.alreadyOwned) {
     const user = await getCachedCurrentUser();
-    if (!user) return { error: t("actions.s1mzxopt") as const };
+    if (!user) return { error: "actions.s1mzxopt" as const };
     const game = await loadRawGame(user.id);
     return { ok: true as const, alreadyOwned: true as const, game };
   }
-  if (!("economy" in res)) return { error: t("actions.sg2lmut") as const };
+  if (!("economy" in res)) return { error: "actions.sg2lmut" as const };
 
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") as const };
+  if (!user) return { error: "actions.s1mzxopt" as const };
 
   await mirrorEconomyToGameState(user.id);
   const game = await loadRawGame(user.id);
@@ -119,13 +116,13 @@ export async function purchaseAptSticker(typeId: string) {
 
 export async function claimAptMission(missionId: string) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") as const };
+  if (!user) return { error: "actions.s1mzxopt" as const };
 
   const game = await loadRawGame(user.id);
   const mission = game.missions.find((m) => m.id === missionId);
-  if (!mission) return { error: t("actions.sxn16fx") as const };
-  if (!mission.completed) return { error: t("actions.sdh5a3g") as const };
-  if (mission.claimed) return { error: t("actions.s5zq80v") as const };
+  if (!mission) return { error: "actions.sxn16fx" as const };
+  if (!mission.completed) return { error: "actions.sdh5a3g" as const };
+  if (mission.claimed) return { error: "actions.s5zq80v" as const };
 
   mission.claimed = true;
   await grantAptWalletRewards({
@@ -149,7 +146,7 @@ export async function claimAptMission(missionId: string) {
 
 export async function boostAptEnergy() {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") as const };
+  if (!user) return { error: "actions.s1mzxopt" as const };
 
   const game = await loadRawGame(user.id);
   game.energy = Math.min(game.maxEnergy, game.energy + ENERGY_REWARD_AD);

@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -37,17 +34,17 @@ export async function createEventDraft(data: {
   const user = await requireAuth();
   const title = data.title?.trim();
   const description = data.description?.trim();
-  if (!title || title.length < 2) return { error: t("actions.sojdmy3") };
+  if (!title || title.length < 2) return { error: "actions.sojdmy3" };
   if (!description || description.length < 10) {
-    return { error: t("actions.swvvgax") };
+    return { error: "actions.swvvgax" };
   }
 
   const startsAt = new Date(data.startsAt);
   const endsAt = new Date(data.endsAt);
   if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
-    return { error: t("actions.s1hmc1h3") };
+    return { error: "actions.s1hmc1h3" };
   }
-  if (endsAt <= startsAt) return { error: t("actions.s1yi5u57") };
+  if (endsAt <= startsAt) return { error: "actions.s1yi5u57" };
   const days = eventDurationDays(startsAt, endsAt);
   if (days > EVENT_REGISTRATION_MAX_DAYS) {
     return { error: t("actions.s1nb9s3y", { v0: EVENT_REGISTRATION_MAX_DAYS }) };
@@ -55,7 +52,7 @@ export async function createEventDraft(data: {
 
   const images = (data.images ?? []).filter(Boolean).slice(0, 8);
   const cover = data.imageUrl?.trim() || null;
-  if (!cover) return { error: t("actions.1_1") };
+  if (!cover) return { error: "actions.1_1" };
   const links = (data.links ?? [])
     .map((l) => ({ label: l.label?.trim() || t("actions.swqmj"), url: l.url?.trim() }))
     .filter((l) => l.url.length > 0)
@@ -86,7 +83,7 @@ export async function createEventDraft(data: {
 export async function fulfillEventRegistration(eventId: string, userId: string) {
   const event = await db.event.findUnique({ where: { id: eventId } });
   if (!event || event.createdById !== userId) {
-    return { error: t("actions.s17qrmml") };
+    return { error: "actions.s17qrmml" };
   }
   if (event.registrationFeePaid) return { success: true as const };
 
@@ -118,16 +115,16 @@ export async function updateEventAdCreative(
   const user = await requireAuth();
   const event = await db.event.findUnique({ where: { id: eventId } });
   if (!event || event.createdById !== user.id) {
-    return { error: t("actions.sx0eshg") };
+    return { error: "actions.sx0eshg" };
   }
   if (!event.registrationFeePaid) {
-    return { error: t("actions.s16787d9") };
+    return { error: "actions.s16787d9" };
   }
 
   const imageUrl = data.imageUrl?.trim() || event.imageUrl;
   const linkUrl = data.linkUrl?.trim() || event.linkUrl;
-  if (!imageUrl) return { error: t("actions.s1851cc5") };
-  if (!linkUrl) return { error: t("actions.s12emptw") };
+  if (!imageUrl) return { error: "actions.s1851cc5" };
+  if (!linkUrl) return { error: "actions.s12emptw" };
 
   await db.event.update({
     where: { id: eventId },

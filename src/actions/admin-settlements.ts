@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -43,7 +40,7 @@ export async function adminGetSettlementAction(id: string) {
   try {
     await requireAdminPermission("settlements");
     const data = await getSettlementDetail(id);
-    if (!data) return { ok: false as const, error: t("actions.s1u9lt88") };
+    if (!data) return { ok: false as const, error: "actions.s1u9lt88" };
     return { ok: true as const, data };
   } catch (e) {
     return { ok: false as const, error: errMsg(e) };

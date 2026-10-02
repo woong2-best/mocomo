@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -59,15 +56,15 @@ export async function createCommunity(data: {
     const user = await requireAuthForAction();
     const name = data.name?.trim();
     if (!name || name.length < 2) {
-      return { error: t("actions.sqh0pnf") };
+      return { error: "actions.sqh0pnf" };
     }
     if (name.length > 80) {
-      return { error: t("actions.s1v27d0a") };
+      return { error: "actions.s1v27d0a" };
     }
 
     const category = data.category as CommunityCategory;
     if (!isCommunityCategory(category)) {
-      return { error: t("actions.s172og7") };
+      return { error: "actions.s172og7" };
     }
 
     let customCategoryLabel: string | null = null;
@@ -167,7 +164,7 @@ export async function createCommunity(data: {
       }
     }
 
-    return { error: t("actions.s1qn8dms") };
+    return { error: "actions.s1qn8dms" };
   } catch (e) {
     console.error("[createCommunity]", e);
     return { error: prismaErrorMessage(e) };
@@ -288,7 +285,7 @@ export async function leaveCommunity(communityId: string) {
     });
     if (!member) return { success: true as const };
     if (member.role === "owner" || member.community.creatorId === user.id) {
-      return { error: t("actions.sv8feu1") };
+      return { error: "actions.sv8feu1" };
     }
 
     await db.$transaction([
@@ -352,43 +349,43 @@ export async function updateCommunity(
   try {
     const user = await requireAuth();
     const community = await db.community.findUnique({ where: { id: communityId } });
-    if (!community) return { error: t("actions.s1foa8q5") };
+    if (!community) return { error: "actions.s1foa8q5" };
 
     const { loadMemberPermissions } = await import("@/lib/community-server/member-permissions");
     const { hasPermission } = await import("@/lib/community-server/permissions");
     const isOwner = community.creatorId === user.id;
     const perms = await loadMemberPermissions(communityId, user.id, isOwner);
     if (!isOwner && !hasPermission(perms, "editServerInfo") && !hasPermission(perms, "manageServer")) {
-      return { error: t("actions.scc17hg") };
+      return { error: "actions.scc17hg" };
     }
     if (data.isPublic !== undefined && !isOwner && !hasPermission(perms, "setVisibility")) {
-      return { error: t("actions.s1ekg1ei") };
+      return { error: "actions.s1ekg1ei" };
     }
     if (
       (data.iconUrl !== undefined || data.coverUrl !== undefined) &&
       !isOwner &&
       !hasPermission(perms, "editIcon")
     ) {
-      return { error: t("actions.sblsq8d") };
+      return { error: "actions.sblsq8d" };
     }
     if (
       (data.bannerUrl !== undefined || data.bannerVideoUrl !== undefined) &&
       !isOwner &&
       !hasPermission(perms, "editBanner")
     ) {
-      return { error: t("actions.s1vuyf70") };
+      return { error: "actions.s1vuyf70" };
     }
 
     const name = data.name?.trim();
     if (name !== undefined && (name.length < 2 || name.length > 80)) {
-      return { error: t("actions.2_80") };
+      return { error: "actions.2_80" };
     }
 
     let category: CommunityCategory | undefined;
     let customCategoryLabel: string | null | undefined;
     if (data.category) {
       if (!isCommunityCategory(data.category)) {
-        return { error: t("actions.s24v07h") };
+        return { error: "actions.s24v07h" };
       }
       category = data.category;
       if (category === "CUSTOM") {
@@ -442,14 +439,14 @@ export async function deleteCommunity(communityId: string) {
       where: { id: communityId },
       select: { id: true, slug: true, creatorId: true },
     });
-    if (!community) return { error: t("actions.s1foa8q5") };
+    if (!community) return { error: "actions.s1foa8q5" };
 
     const { loadMemberPermissions } = await import("@/lib/community-server/member-permissions");
     const { hasPermission } = await import("@/lib/community-server/permissions");
     const isOwner = community.creatorId === user.id;
     const perms = await loadMemberPermissions(communityId, user.id, isOwner);
     if (!isOwner && !hasPermission(perms, "deleteServer")) {
-      return { error: t("actions.snt4xx2") };
+      return { error: "actions.snt4xx2" };
     }
 
     await db.community.delete({ where: { id: communityId } });

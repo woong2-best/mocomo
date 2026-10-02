@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -51,7 +48,7 @@ async function checkoutRateLimit(userId: string, bucket: string) {
   const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
   const limited = await checkRateLimit(authLimiter, `${bucket}:${userId}`);
   if (!limited.success) {
-    return { error: t("actions.s121u7h2") };
+    return { error: "actions.s121u7h2" };
   }
   return null;
 }
@@ -77,7 +74,7 @@ export async function payWithMoco(orderId: string, purchaseTermsAccepted?: boole
   const limited = await checkoutRateLimit(user.id, "moco-pay");
   if (limited) return limited;
   if (!orderId || typeof orderId !== "string" || orderId.length > 64) {
-    return { error: t("actions.s5oooc3") };
+    return { error: "actions.s5oooc3" };
   }
   const result = await payCheckoutWithMoco(user.id, orderId, {
     purchaseTermsAccepted,
@@ -124,7 +121,7 @@ export async function payWithGems(orderId: string, purchaseTermsAccepted?: boole
   const limited = await checkoutRateLimit(user.id, "gem-pay");
   if (limited) return limited;
   if (!orderId || typeof orderId !== "string" || orderId.length > 64) {
-    return { error: t("actions.s5oooc3") };
+    return { error: "actions.s5oooc3" };
   }
 
   const result = await payCheckoutWithGemsFromOrder(user.id, orderId, {
@@ -150,7 +147,7 @@ export async function payWithGems(orderId: string, purchaseTermsAccepted?: boole
     };
   }
 
-  return { error: t("actions.shqh9l1") };
+  return { error: "actions.shqh9l1" };
 }
 
 export async function createStripeCheckoutRedirect(input: {

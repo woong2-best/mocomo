@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -53,8 +50,8 @@ export async function registerEventSponsoredAd(data: {
   const user = await requireAuth();
   const imageUrl = data.imageUrl?.trim();
   const linkUrl = data.linkUrl?.trim();
-  if (!imageUrl) return { ok: false as const, error: t("actions.s15062kd") };
-  if (!linkUrl) return { ok: false as const, error: t("actions.sxfb8bl") };
+  if (!imageUrl) return { ok: false as const, error: "actions.s15062kd" };
+  if (!linkUrl) return { ok: false as const, error: "actions.sxfb8bl" };
 
   const isOperator = isOperatorIdentity({
     username: user.username,
@@ -90,15 +87,15 @@ export async function registerEventSponsoredAd(data: {
     try {
       mocoCost = calcSponsoredAdMoco(days);
     } catch {
-      return { ok: false as const, error: t("actions.sz02khy") };
+      return { ok: false as const, error: "actions.sz02khy" };
     }
 
     const purchasedMoco = await getPurchasedMoco(user.id);
     if (purchasedMoco < 1) {
-      return { ok: false as const, error: t("actions.moco_5") };
+      return { ok: false as const, error: "actions.moco_5" };
     }
     if (purchasedMoco < mocoCost) {
-      return { ok: false as const, error: t("actions.moco_6") };
+      return { ok: false as const, error: "actions.moco_6" };
     }
   }
 

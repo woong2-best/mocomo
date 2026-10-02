@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -46,7 +43,7 @@ export async function getCosplayerApplyContext() {
 export async function applyAsCosplayer(data: z.infer<typeof applySchema>) {
   const user = await requireAuth();
   const parsed = applySchema.safeParse(data);
-  if (!parsed.success) return { error: t("actions.s161j9bt") };
+  if (!parsed.success) return { error: "actions.s161j9bt" };
 
   const result = await applyAsCosplayerForUser(user.id, parsed.data);
   if ("error" in result) return { error: result.error };
@@ -64,7 +61,7 @@ export async function updateCosplayerProfile(data: {
     where: { userId: user.id },
     include: { photos: true, animeLinks: true },
   });
-  if (!profile) return { error: t("actions.s6tmd3u") };
+  if (!profile) return { error: "actions.s6tmd3u" };
 
   if (data.bio && data.bio.length > BIO_MAX) {
     return { error: t("actions.svebzp", { v0: BIO_MAX }) };
@@ -79,7 +76,7 @@ export async function updateCosplayerProfile(data: {
 
   if (data.photoUrl) {
     if (!isPersistablePhotoUrl(data.photoUrl)) {
-      return { error: t("actions.s1mpyx3b") };
+      return { error: "actions.s1mpyx3b" };
     }
     await db.cosplayPhoto.deleteMany({ where: { profileId: profile.id } });
     await db.cosplayPhoto.create({

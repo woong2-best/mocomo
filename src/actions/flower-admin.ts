@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -67,8 +64,8 @@ export async function adminRevokeFlowerAsset(assetId: string, reason: string) {
     targetId: assetId,
   });
   const asset = await db.flowerAsset.findUnique({ where: { id: assetId } });
-  if (!asset) return { error: t("actions.s15scfbx") };
-  if (asset.status === "REDEEMED") return { error: t("actions.s1euwijd") };
+  if (!asset) return { error: "actions.s15scfbx" };
+  if (asset.status === "REDEEMED") return { error: "actions.s1euwijd" };
 
   await db.flowerAsset.update({
     where: { id: assetId },
@@ -91,7 +88,7 @@ export async function adminLookupFlowerUser(username: string) {
     where: { username: username.replace(/^@/, "") },
     select: { id: true, username: true },
   });
-  if (!user) return { error: t("actions.svypth4") };
+  if (!user) return { error: "actions.svypth4" };
 
   const [assets, ledger, redeems] = await Promise.all([
     db.flowerAsset.findMany({

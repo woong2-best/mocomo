@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -44,7 +41,7 @@ export async function restoreAptIapPurchases(
   }>
 ): Promise<{ ok: true; restored: number } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   let restored = 0;
   for (const p of purchases) {
@@ -78,7 +75,7 @@ export async function fulfillAptIapPurchase(input: {
   | { error: string }
 > {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   await seedShopProducts();
   const res = await fulfillIapPurchase(user.id, input);
@@ -98,7 +95,7 @@ export async function fulfillAptIapPurchase(input: {
     };
   }
 
-  if (!("gemsGranted" in res)) return { error: t("actions.s1deo221") };
+  if (!("gemsGranted" in res)) return { error: "actions.s1deo221" };
 
   return {
     ok: true,
@@ -110,7 +107,7 @@ export async function fulfillAptIapPurchase(input: {
 
 export async function exchangeAptGemsForGold(gems: number) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") as const };
+  if (!user) return { error: "actions.s1mzxopt" as const };
 
   const res = await exchangeGemsForGold(user.id, gems);
   if ("error" in res) return res;

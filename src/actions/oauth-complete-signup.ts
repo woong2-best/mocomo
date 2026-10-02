@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { redirect } from "next/navigation";
@@ -35,7 +32,7 @@ export async function completeWebOAuthSignup(input: {
 }): Promise<{ error?: string }> {
   const ticket = await readWebOAuthPendingSignup();
   if (!ticket) {
-    return { error: t("actions.spgny2l") };
+    return { error: "actions.spgny2l" };
   }
 
   const parsed = parseOAuthSignupCompletion(input);
@@ -83,7 +80,7 @@ export async function completeWebOAuthSignup(input: {
         }
         const sessionOk = await establishWebSessionForUser(existing);
         await clearWebOAuthPendingSignupCookie();
-        if (!sessionOk) return { error: t("actions.sa48s0g") };
+        if (!sessionOk) return { error: "actions.sa48s0g" };
         await markSignupNeedsIdentity();
         redirect(signupIdentityEntryPath(safeDest));
       }
@@ -114,7 +111,7 @@ export async function completeWebOAuthSignup(input: {
 
     const sessionOk = await establishWebSessionForUser(user);
     await clearWebOAuthPendingSignupCookie();
-    if (!sessionOk) return { error: t("actions.sa48s0g") };
+    if (!sessionOk) return { error: "actions.sa48s0g" };
 
     revalidatePath("/");
     await markSignupNeedsIdentity();

@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { requireAuth } from "@/lib/auth";
@@ -10,8 +7,7 @@ import { getCreatorSettlementStatusForUser } from "@/lib/settlement-register-ser
 export async function registerCreatorSettlement(_raw: unknown) {
   void _raw;
   return {
-    error:
-      t("actions.custom_connect_stripe_express"),
+    error: "actions.custom_connect_stripe_express",
     code: "CUSTOM_CONNECT_DEPRECATED" as const,
   };
 }

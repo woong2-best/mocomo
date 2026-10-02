@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { cache } from "react";
@@ -22,7 +19,7 @@ export async function tipCreatorAction(
   _amount: number,
   _message?: string
 ) {
-  return { error: t("actions.s1tfxq3u") };
+  return { error: "actions.s1tfxq3u" };
 }
 
 export const getCreatorSupportSummary = cache(async function getCreatorSupportSummary(creatorId: string) {

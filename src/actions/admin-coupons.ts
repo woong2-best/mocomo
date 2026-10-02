@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -42,7 +39,7 @@ export async function adminGetCouponAction(id: string) {
   try {
     await requireAdminPermission("coupons");
     const data = await getCouponDetail(id);
-    if (!data) return { ok: false as const, error: t("actions.swb7p1p") };
+    if (!data) return { ok: false as const, error: "actions.swb7p1p" };
     return { ok: true as const, data };
   } catch (e) {
     return { ok: false as const, error: errMsg(e) };

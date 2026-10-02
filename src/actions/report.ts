@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { db } from "@/lib/db";
@@ -54,7 +51,7 @@ export async function submitContentReport(data: {
     data.reason;
   const details = data.details?.trim();
 
-  if (!data.targetId.trim()) return { error: t("actions.s1wr72la") };
+  if (!data.targetId.trim()) return { error: "actions.s1wr72la" };
 
   const recent = await db.report.findFirst({
     where: {
@@ -64,7 +61,7 @@ export async function submitContentReport(data: {
       createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     },
   });
-  if (recent) return { error: t("actions.s1m45g3p") };
+  if (recent) return { error: "actions.s1m45g3p" };
 
   let moderationCaseId: string | undefined;
   let reportedUserId = data.reportedUserId;

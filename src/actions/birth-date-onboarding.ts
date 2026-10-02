@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { redirect } from "next/navigation";
@@ -19,7 +16,7 @@ export async function completeBirthDateOnboarding(input: {
   const user = await requireAuthForAction();
   const birthDate = parseBirthDateInput(input.birthYear, input.birthMonth, input.birthDay);
   if (!birthDate) {
-    return { error: t("actions.shi8acd") };
+    return { error: "actions.shi8acd" };
   }
 
   await db.user.update({

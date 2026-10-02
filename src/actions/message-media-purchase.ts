@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { db } from "@/lib/db";
@@ -21,15 +18,15 @@ export async function fulfillMessageMediaPurchase(
       },
     },
   });
-  if (!attachment) return { error: t("actions.sbz5e1p") };
+  if (!attachment) return { error: "actions.sbz5e1p" };
   if (!isPaidMedia(attachment.priceKrw)) {
-    return { error: t("actions.s1q0ka3") };
+    return { error: "actions.s1q0ka3" };
   }
   if (attachment.message.senderId === buyerId) {
-    return { error: t("actions.s1i85y9b") };
+    return { error: "actions.s1i85y9b" };
   }
   if (attachment.priceKrw !== amount) {
-    return { error: t("actions.s5c55hc") };
+    return { error: "actions.s5c55hc" };
   }
 
   const existing = await db.messageAttachmentPurchase.findUnique({

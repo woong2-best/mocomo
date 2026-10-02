@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -166,7 +163,7 @@ export async function placeUsedAuctionBid(
 
     const listing = await db.usedListing.findUnique({ where: { id: listingId } });
     if (!listing || listing.saleType !== "AUCTION") {
-      return { error: t("actions.s13bzg0h") };
+      return { error: "actions.s13bzg0h" };
     }
     const tradeErr = await assertUsedMarketTradeAccess({
       userId: user.id,
@@ -251,7 +248,7 @@ export async function placeUsedAuctionBid(
     return { success: true, amount: result.amount, extended: result.extended };
   } catch (e) {
     console.error("[placeUsedAuctionBid]", e);
-    return { error: t("actions.sp4jlrg") };
+    return { error: "actions.sp4jlrg" };
   }
 }
 
@@ -261,16 +258,16 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
   if (accessErr) return { error: accessErr };
 
   if (!termsAccepted) {
-    return { error: t("actions.s1abxyv8") };
+    return { error: "actions.s1abxyv8" };
   }
 
   try {
     await finalizeExpiredAuctionIfNeeded(listingId);
     const listing = await db.usedListing.findUnique({ where: { id: listingId } });
     if (!listing || listing.saleType !== "AUCTION") {
-      return { error: t("actions.s13bzg0h") };
+      return { error: "actions.s13bzg0h" };
     }
-    if (listing.sellerId === user.id) return { error: t("actions.suz2ksc") };
+    if (listing.sellerId === user.id) return { error: "actions.suz2ksc" };
     const tradeErr = await assertUsedMarketTradeAccess({
       userId: user.id,
       buyerCountry: user.countryCode,
@@ -278,7 +275,7 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
     });
     if (tradeErr) return { error: tradeErr };
     if (!isAuctionLive(listing)) {
-      return { error: t("actions.s1n2ycjk") };
+      return { error: "actions.s1n2ycjk" };
     }
     const adultErr = assertUsedAdultForRestricted(
       user,
@@ -288,7 +285,7 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
 
     const buyNow = listing.buyNowPrice;
     if (buyNow == null || buyNow <= 0) {
-      return { error: t("actions.s7l4arh") };
+      return { error: "actions.s7l4arh" };
     }
 
     await db.$transaction(async (tx) => {
@@ -335,7 +332,7 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
     return { success: true, amount: buyNow };
   } catch (e) {
     console.error("[buyNowUsedAuction]", e);
-    return { error: t("actions.s1r7pyee") };
+    return { error: "actions.s1r7pyee" };
   }
 }
 
@@ -380,10 +377,10 @@ export async function getMyUsedAuctionBids(userId: string) {
 export async function cancelUsedAuction(listingId: string) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
-  if (!listing || listing.sellerId !== user.id) return { error: t("actions.st3onev") };
-  if (listing.saleType !== "AUCTION") return { error: t("actions.s13bzg0h") };
+  if (!listing || listing.sellerId !== user.id) return { error: "actions.st3onev" };
+  if (listing.saleType !== "AUCTION") return { error: "actions.s13bzg0h" };
   if ((listing.bidCount ?? 0) > 0) {
-    return { error: t("actions.s1u7cgav") };
+    return { error: "actions.s1u7cgav" };
   }
 
   await db.usedListing.update({

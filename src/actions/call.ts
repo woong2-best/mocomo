@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { randomUUID } from "crypto";
@@ -78,7 +75,7 @@ export async function initiateCall(data: {
   callType?: CallType;
 }) {
   const user = await requireAuthMinimal();
-  if (user.id === data.calleeId) return { error: t("actions.s1bo67v7") };
+  if (user.id === data.calleeId) return { error: "actions.s1bo67v7" };
 
   await releaseCallerActiveCalls(user.id);
   const roomPromise = data.chatRoomId
@@ -92,17 +89,17 @@ export async function initiateCall(data: {
     isCallBlocked(user.id, data.calleeId),
     peerBusyWithSomeoneElse(user.id, data.calleeId),
   ]);
-  if (peerBusy) return { error: t("actions.slc5wpf") };
-  if (blocked) return { error: t("actions.szstt8f") };
+  if (peerBusy) return { error: "actions.slc5wpf" };
+  if (blocked) return { error: "actions.szstt8f" };
 
   if (data.chatRoomId) {
     const { isCallEligibleChatRoomType } = await import("@/lib/chat-call-room");
     if (!room || !isCallEligibleChatRoomType(room.type)) {
-      return { error: t("actions.s16ydugc") };
+      return { error: "actions.s16ydugc" };
     }
     const memberIds = room.members.map((m) => m.userId);
     if (!memberIds.includes(user.id) || !memberIds.includes(data.calleeId)) {
-      return { error: t("actions.scskvf7") };
+      return { error: "actions.scskvf7" };
     }
   }
 
@@ -140,13 +137,13 @@ export async function acceptCall(callId: string) {
       where: { id: callId },
       select: { calleeId: true, status: true },
     });
-    if (!existing) return { error: t("actions.st31vk4") };
-    if (existing.calleeId !== user.id) return { error: t("actions.s1k0a6o2") };
-    return { error: t("actions.s1ejxtr4") };
+    if (!existing) return { error: "actions.st31vk4" };
+    if (existing.calleeId !== user.id) return { error: "actions.s1k0a6o2" };
+    return { error: "actions.s1ejxtr4" };
   }
 
   const updated = await getCallWithUsers(callId);
-  if (!updated) return { error: t("actions.st31vk4") };
+  if (!updated) return { error: "actions.st31vk4" };
 
   return { call: serializeCall(updated) };
 }
@@ -170,7 +167,7 @@ export async function declineCall(callId: string) {
     where: { id: callId, OR: [{ callerId: user.id }, { calleeId: user.id }] },
     select: { id: true },
   });
-  if (!allowed) return { error: t("actions.st31vk4") };
+  if (!allowed) return { error: "actions.st31vk4" };
   return { ok: true as const };
 }
 
@@ -191,7 +188,7 @@ export async function endCall(callId: string) {
       where: { id: callId, OR: [{ callerId: user.id }, { calleeId: user.id }] },
       select: { id: true },
     });
-    if (!allowed) return { error: t("actions.st31vk4") };
+    if (!allowed) return { error: "actions.st31vk4" };
     return { ok: true as const };
   }
 
@@ -206,7 +203,7 @@ export async function endCall(callId: string) {
 export async function getCall(callId: string) {
   const user = await requireAuth();
   const call = await getCallWithUsers(callId);
-  if (!call) return { error: t("actions.st31vk4") };
-  if (call.callerId !== user.id && call.calleeId !== user.id) return { error: t("actions.st3onev") };
+  if (!call) return { error: "actions.st31vk4" };
+  if (call.callerId !== user.id && call.calleeId !== user.id) return { error: "actions.st3onev" };
   return { call: serializeCall(call) };
 }

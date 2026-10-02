@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import bcrypt from "bcryptjs";
@@ -33,13 +30,13 @@ export async function completeSignupProfileOnboarding(input: {
   const name = input.name.trim();
 
   if (!isValidUsername(username)) {
-    return { error: t("actions.3_20_2") };
+    return { error: "actions.3_20_2" };
   }
   if (RESERVED_USERNAMES.has(username)) {
-    return { error: t("actions.s18qr0hw") };
+    return { error: "actions.s18qr0hw" };
   }
   if (!name) {
-    return { error: t("actions.s6j9brb") };
+    return { error: "actions.s6j9brb" };
   }
   const check = validateUsernameAndName(username, name);
   if (!check.ok) return { error: check.error };
@@ -67,14 +64,14 @@ export async function completeSignupPasswordOnboarding(input: {
   const user = await requireAuthForAction();
   const password = input.password.trim();
   if (password.length < 8) {
-    return { error: t("auth.passwordMinLength") };
+    return { error: "auth.passwordMinLength" };
   }
 
   const row = await db.user.findUnique({
     where: { id: user.id },
     select: { passwordHash: true },
   });
-  if (!row) return { error: t("actions.svypth4") };
+  if (!row) return { error: "actions.svypth4" };
   if (row.passwordHash) {
     await clearSignupNeedsIdentity();
     redirect(signupIdentityContinuePath(input.dest));

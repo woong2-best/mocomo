@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import type { Prisma } from "@prisma/client";
@@ -40,7 +37,7 @@ export type MarketplaceCartCheckoutInput = Omit<MarketplaceCheckoutInput, "listi
 };
 
 export async function groupMarketplaceCartLines(items: MarketplaceCartLine[]) {
-  if (!items.length) return { error: t("actions.s1xxy7xc") as const };
+  if (!items.length) return { error: "actions.s1xxy7xc" as const };
 
   const listings = await db.marketplaceListing.findMany({
     where: { id: { in: items.map((i) => i.listingId) } },
@@ -76,7 +73,7 @@ export async function groupMarketplaceCartLines(items: MarketplaceCartLine[]) {
   for (const line of items) {
     const listing = byId.get(line.listingId);
     if (!listing || listing.status !== "ACTIVE") {
-      return { error: t("actions.s217ip7") as const };
+      return { error: "actions.s217ip7" as const };
     }
     const qty = Math.max(1, line.quantity);
     if (listing.type !== "DIGITAL" && listing.stock < qty) {
@@ -111,7 +108,7 @@ async function initMultiItemStripeCartOrder(
   const grouped = await groupMarketplaceCartLines(input.items);
   if ("error" in grouped) return grouped;
   const group = grouped.groups.find((g) => g.sellerId === sellerId);
-  if (!group) return { error: t("actions.spyep9e") };
+  if (!group) return { error: "actions.spyep9e" };
 
   const routing = resolveCheckoutRouting({
     userCountryCode: buyer.countryCode,
@@ -142,7 +139,7 @@ async function initMultiItemStripeCartOrder(
 
   if (needsShipping) {
     if (!input.shipName?.trim() || !input.shipCountry?.trim() || !input.shipAddress1?.trim()) {
-      return { error: t("actions.s1qpamyx") };
+      return { error: "actions.s1qpamyx" };
     }
     const dest = normalizeShipCountry(input.shipCountry);
     if (!dest) return { error: UNSUPPORTED_ADDRESS_COUNTRY_MESSAGE };
@@ -160,7 +157,7 @@ async function initMultiItemStripeCartOrder(
     select: { stripeConnectAccountId: true },
   });
   if (!seller?.stripeConnectAccountId) {
-    return { error: t("actions.stripe_connect") };
+    return { error: "actions.stripe_connect" };
   }
 
   const fees = computeFeesForCheckoutMode("STRIPE", group.subtotal, group.shippingAmount);
@@ -224,7 +221,7 @@ async function initMultiItemStripeCartOrder(
 
   if (!isStripeConfigured()) {
     await db.marketplaceOrder.delete({ where: { id: order.id } });
-    return { error: t("actions.stripe_4") };
+    return { error: "actions.stripe_4" };
   }
 
   const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);

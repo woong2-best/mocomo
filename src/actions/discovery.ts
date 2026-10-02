@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -107,9 +104,9 @@ export async function updateDiscoverySettings(data: {
 
   if (data.enabled) {
     const u = await db.user.findUnique({ where: { id: user.id }, select: { birthDate: true, isBanned: true } });
-    if (u?.isBanned) return { error: t("actions.s12qpsrn") };
+    if (u?.isBanned) return { error: "actions.s12qpsrn" };
     if (!u?.birthDate) {
-      return { error: t("actions.s1nvsnb8") };
+      return { error: "actions.s1nvsnb8" };
     }
     const age = usedAgeFromBirthDate(u.birthDate);
     if (age < DISCOVERY_MIN_AGE) {
@@ -172,7 +169,7 @@ export async function setDiscoveryMatchingMode(
 ): Promise<{ success: true } | { error: string }> {
   const user = await requireAuthMinimal();
   const me = await db.discoveryProfile.findUnique({ where: { userId: user.id } });
-  if (!me?.enabled) return { error: t("actions.sx4su87") };
+  if (!me?.enabled) return { error: "actions.sx4su87" };
 
   await db.discoveryProfile.update({
     where: { userId: user.id },
@@ -262,7 +259,7 @@ export async function getDiscoveryDeck(): Promise<
     return { enabled: true, cards, matchingMode: me.matchingMode };
   } catch (err) {
     console.error("[discovery] getDiscoveryDeck failed", err instanceof Error ? err.message : "unknown");
-    return { error: t("actions.stkypsc") };
+    return { error: "actions.stkypsc" };
   }
 }
 
@@ -271,18 +268,18 @@ export async function undoDiscoverySwipe(
   targetUserId: string
 ): Promise<{ ok: true } | { error: string }> {
   const user = await requireAuthMinimal();
-  if (user.id === targetUserId) return { error: t("actions.spe7d23") };
+  if (user.id === targetUserId) return { error: "actions.spe7d23" };
 
   const [a, b] = orderedPair(user.id, targetUserId);
   const existingMatch = await db.discoveryMatch.findUnique({
     where: { userAId_userBId: { userAId: a, userBId: b } },
   });
-  if (existingMatch) return { error: t("actions.sgtl0qs") };
+  if (existingMatch) return { error: "actions.sgtl0qs" };
 
   const swipe = await db.discoverySwipe.findUnique({
     where: { fromUserId_toUserId: { fromUserId: user.id, toUserId: targetUserId } },
   });
-  if (!swipe) return { error: t("actions.sd7no5z") };
+  if (!swipe) return { error: "actions.sd7no5z" };
 
   await db.discoverySwipe.delete({
     where: { fromUserId_toUserId: { fromUserId: user.id, toUserId: targetUserId } },
@@ -329,13 +326,13 @@ export async function discoverySwipe(
   action: DiscoverySwipeAction
 ): Promise<{ ok: true; matched?: boolean; following?: boolean } | { error: string }> {
   const user = await requireAuthMinimal();
-  if (user.id === targetUserId) return { error: t("actions.s1jx95b7") };
+  if (user.id === targetUserId) return { error: "actions.s1jx95b7" };
 
   const me = await db.discoveryProfile.findUnique({ where: { userId: user.id } });
-  if (!me?.enabled) return { error: t("actions.sx4su87") };
+  if (!me?.enabled) return { error: "actions.sx4su87" };
 
   const target = await db.discoveryProfile.findUnique({ where: { userId: targetUserId } });
-  if (!target?.enabled) return { error: t("actions.s1ol8cij") };
+  if (!target?.enabled) return { error: "actions.s1ol8cij" };
 
   await db.discoverySwipe.upsert({
     where: { fromUserId_toUserId: { fromUserId: user.id, toUserId: targetUserId } },
@@ -448,7 +445,7 @@ export async function openDiscoveryChat(otherUserId: string) {
   const match = await db.discoveryMatch.findUnique({
     where: { userAId_userBId: { userAId: a, userBId: b } },
   });
-  if (!match) return { error: t("actions.s13n7bnp") };
+  if (!match) return { error: "actions.s13n7bnp" };
   return getOrCreateDiscoveryDM(otherUserId);
 }
 

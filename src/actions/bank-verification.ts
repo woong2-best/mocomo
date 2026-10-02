@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -148,7 +145,7 @@ export async function verifyUsedMarketBankCode(
 export async function sendUsedMarketPhoneOtp(rawPhone: string) {
   const user = await requirePhoneVerificationUser();
   if (isKoreaUsedMarketCountry(user.countryCode)) {
-    return { error: t("actions.sbw3jma") };
+    return { error: "actions.sbw3jma" };
   }
   return sendUsedMarketPhoneOtpForUser(user, rawPhone);
 }
@@ -156,7 +153,7 @@ export async function sendUsedMarketPhoneOtp(rawPhone: string) {
 export async function verifyUsedMarketPhoneOtp(rawPhone: string, code: string) {
   const user = await requirePhoneVerificationUser();
   if (isKoreaUsedMarketCountry(user.countryCode)) {
-    return { error: t("actions.sbw3jma") };
+    return { error: "actions.sbw3jma" };
   }
   const result = await verifyUsedMarketPhoneOtpForUser(user, rawPhone, code);
   if ("success" in result && result.success) revalidateBankPaths();

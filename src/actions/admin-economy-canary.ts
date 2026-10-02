@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -50,7 +47,7 @@ export async function adminCreateConfigCanary(
 export async function adminPromoteCanary(canaryId: string, reason: string) {
   const admin = await requireAdmin();
   const canary = await getCanaryById(canaryId);
-  if (!canary) return { error: t("actions.canary") };
+  if (!canary) return { error: "actions.canary" };
   const preview = await buildPromotePreview(canary);
   const result = await promoteCanary(canaryId, admin.id, reason);
   revalidate();
@@ -81,7 +78,7 @@ export async function adminPreviewCanaryUser(canaryId: string, userId: string) {
 export async function adminGetPromotePreview(canaryId: string) {
   await requireAdmin();
   const canary = await getCanaryById(canaryId);
-  if (!canary) return { error: t("actions.canary") };
+  if (!canary) return { error: "actions.canary" };
   const preview = await buildPromotePreview(canary);
   return { ok: true as const, preview };
 }

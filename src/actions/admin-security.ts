@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { auth } from "@/lib/auth";
@@ -42,7 +39,7 @@ async function requireSessionUserId() {
 
 export async function adminMfaAfterPasswordAction() {
   const userId = await requireSessionUserId();
-  if (!userId) return { error: t("actions.s86p4xz") };
+  if (!userId) return { error: "actions.s86p4xz" };
   return advanceAdminMfaAfterPassword(userId);
 }
 
@@ -56,13 +53,13 @@ export async function adminMfaStageAction() {
 
 export async function adminPasskeyAuthOptionsAction(opts?: { stepUp?: boolean }) {
   const userId = await requireSessionUserId();
-  if (!userId) return { error: t("actions.sfv3j95") };
+  if (!userId) return { error: "actions.sfv3j95" };
   return startAdminPasskeyAuth(userId, opts);
 }
 
 export async function adminPasskeyAuthVerifyAction(response: AuthenticationResponseJSON) {
   const userId = await requireSessionUserId();
-  if (!userId) return { error: t("actions.sfv3j95") };
+  if (!userId) return { error: "actions.sfv3j95" };
   return completeAdminPasskeyAuth(userId, response);
 }
 
@@ -71,7 +68,7 @@ export async function adminTotpAuthVerifyAction(
   opts?: { trustDevice?: boolean; useRecovery?: boolean }
 ) {
   const userId = await requireSessionUserId();
-  if (!userId) return { error: t("actions.sfv3j95") };
+  if (!userId) return { error: "actions.sfv3j95" };
   return completeAdminTotpAuth(userId, code, opts);
 }
 
@@ -82,14 +79,14 @@ export async function adminLogoutMfaAction() {
 
 export async function adminEnrollmentStatusAction() {
   const userId = await requireSessionUserId();
-  if (!userId) return { error: t("actions.sfv3j95") };
+  if (!userId) return { error: "actions.sfv3j95" };
   const status = await getAdminEnrollmentStatus(userId);
   return { status };
 }
 
 export async function adminPasskeyRegisterOptionsAction() {
   const session = await auth();
-  if (!session?.user?.id) return { error: t("actions.sfv3j95") };
+  if (!session?.user?.id) return { error: "actions.sfv3j95" };
   return startPasskeyEnroll({
     id: session.user.id,
     username: session.user.username ?? "admin",
@@ -102,26 +99,26 @@ export async function adminPasskeyRegisterVerifyAction(
   name?: string
 ) {
   const userId = await requireSessionUserId();
-  if (!userId) return { error: t("actions.sfv3j95") };
+  if (!userId) return { error: "actions.sfv3j95" };
   return finishPasskeyEnroll(userId, response, name);
 }
 
 export async function adminTotpBeginAction() {
   const session = await auth();
-  if (!session?.user?.id) return { error: t("actions.sfv3j95") };
+  if (!session?.user?.id) return { error: "actions.sfv3j95" };
   const label = session.user.username || session.user.email || "admin";
   return beginTotpSetup(session.user.id, label);
 }
 
 export async function adminTotpVerifyAction(code: string) {
   const userId = await requireSessionUserId();
-  if (!userId) return { error: t("actions.sfv3j95") };
+  if (!userId) return { error: "actions.sfv3j95" };
   return verifyTotpSetup(userId, code);
 }
 
 export async function adminRecoveryGenerateAction() {
   const userId = await requireSessionUserId();
-  if (!userId) return { error: t("actions.sfv3j95") };
+  if (!userId) return { error: "actions.sfv3j95" };
   return regenerateRecoveryCodesForUser(userId);
 }
 
@@ -189,6 +186,6 @@ export async function adminStepUpCompleteAction(
   totpCode: string
 ) {
   const userId = await requireSessionUserId();
-  if (!userId) return { error: t("actions.sfv3j95") };
+  if (!userId) return { error: "actions.sfv3j95" };
   return completeAdminStepUp(userId, passkeyResponse, totpCode);
 }

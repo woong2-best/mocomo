@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { Prisma } from "@prisma/client";
@@ -24,13 +21,13 @@ export async function getAptDioramaLayout(
 ): Promise<AptDioramaLayoutResult> {
   const viewer = await getCachedCurrentUser();
   if (!viewer) {
-    return { instances: [], canEdit: false, hasLayout: false, error: t("actions.s1mzxopt") };
+    return { instances: [], canEdit: false, hasLayout: false, error: "actions.s1mzxopt" };
   }
 
   const canAccess =
     hostUserId === viewer.id || (await canVisitAptHome(hostUserId, viewer.id));
   if (!canAccess) {
-    return { instances: [], canEdit: false, hasLayout: false, error: t("actions.s1myi7pn") };
+    return { instances: [], canEdit: false, hasLayout: false, error: "actions.s1myi7pn" };
   }
 
   const ownerId = await resolveAptHomeOwnerId(hostUserId);
@@ -50,7 +47,7 @@ export async function getAptDioramaLayout(
 /** 집 주인만 저장 */
 export async function saveAptDioramaLayout(roomId: string, instances: StickerInstance[]) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") as const };
+  if (!user) return { error: "actions.s1mzxopt" as const };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const json = instances as unknown as Prisma.InputJsonValue;

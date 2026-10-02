@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -61,7 +58,7 @@ export async function suspendUserPermanently(targetId: string, reason: string) {
     where: { id: targetId },
     select: { accountStatus: true },
   });
-  if (!target) return { error: t("actions.svypth4") };
+  if (!target) return { error: "actions.svypth4" };
 
   await db.user.update({
     where: { id: targetId },
@@ -99,7 +96,7 @@ export async function suspendUserTemporary(targetId: string, reason: string, unt
     where: { id: targetId },
     select: { accountStatus: true },
   });
-  if (!target) return { error: t("actions.svypth4") };
+  if (!target) return { error: "actions.svypth4" };
 
   await db.user.update({
     where: { id: targetId },
@@ -135,7 +132,7 @@ export async function restoreUserAccount(targetId: string, note?: string) {
     where: { id: targetId },
     select: { accountStatus: true },
   });
-  if (!target) return { error: t("actions.svypth4") };
+  if (!target) return { error: "actions.svypth4" };
 
   await db.user.update({
     where: { id: targetId },
@@ -170,7 +167,7 @@ export async function banUser(targetId: string, reason: string, until?: Date) {
     where: { id: targetId },
     select: { accountStatus: true },
   });
-  if (!target) return { error: t("actions.svypth4") };
+  if (!target) return { error: "actions.svypth4" };
 
   await db.user.update({
     where: { id: targetId },
@@ -336,7 +333,7 @@ export async function adminForceDeleteEventMapRecommendation(
       lng: true,
     },
   });
-  if (!rec) return { error: t("actions.s19la0h0") };
+  if (!rec) return { error: "actions.s19la0h0" };
 
   await db.eventMapUserRecommendation.delete({ where: { id } });
   await db.modLog.create({
@@ -373,7 +370,7 @@ export async function adminForceDeletePost(postId: string, modReason?: string) {
     where: { id: postId },
     select: { id: true, authorId: true, title: true },
   });
-  if (!post) return { error: t("actions.sgr97ft") };
+  if (!post) return { error: "actions.sgr97ft" };
 
   await db.post.delete({ where: { id: postId } });
   await db.modLog.create({
@@ -398,7 +395,7 @@ export async function adminForceDeleteUsedListing(listingId: string, modReason?:
     where: { id: listingId },
     select: { id: true, sellerId: true, title: true },
   });
-  if (!listing) return { error: t("actions.s1frmqks") };
+  if (!listing) return { error: "actions.s1frmqks" };
 
   await db.usedListing.delete({ where: { id: listingId } });
   await db.modLog.create({
@@ -440,7 +437,7 @@ export async function adminForceDeleteByReport(
     await db.voiceMember.deleteMany({ where: { channelId: targetId } });
     result = { success: true };
   } else {
-    return { error: t("actions.s1y1i5zv") };
+    return { error: "actions.s1y1i5zv" };
   }
 
   if (result.error) return result;

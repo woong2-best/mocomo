@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { requireAuth } from "@/lib/auth";
@@ -52,7 +49,7 @@ export async function payUsedAuctionBidHoldAction(
   const holdListingId =
     (meta?.metadata as { listingId?: string } | null)?.listingId ?? listingId;
   if (holdListingId !== listingId) {
-    return { error: t("actions.s1tx50zn") };
+    return { error: "actions.s1tx50zn" };
   }
   return result;
 }

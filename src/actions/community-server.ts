@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -64,15 +61,15 @@ export async function createCommunityChannel(data: {
   try {
     const user = await requireAuth();
     const ctx = await getCommunityPerms(data.communityId, user.id);
-    if (!ctx) return { error: t("actions.s1foa8q5") };
+    if (!ctx) return { error: "actions.s1foa8q5" };
     if (!hasPermission(ctx.perms, "createChannel") && !hasPermission(ctx.perms, "manageChannels")) {
-      return { error: t("actions.s13gx6zr") };
+      return { error: "actions.s13gx6zr" };
     }
 
     const name = data.name.trim();
-    if (!name) return { error: t("actions.s1q2haiq") };
+    if (!name) return { error: "actions.s1q2haiq" };
     if (REMOVED_CHANNEL_TYPES.includes(data.type)) {
-      return { error: t("actions.s1wqcdzx") };
+      return { error: "actions.s1wqcdzx" };
     }
 
     const slug =
@@ -140,10 +137,10 @@ export async function updateCommunityChannel(
       where: { id: channelId },
       select: { id: true, communityId: true, type: true, slug: true, name: true },
     });
-    if (!channel) return { error: t("actions.s8fxex5") };
+    if (!channel) return { error: "actions.s8fxex5" };
 
     const ctx = await getCommunityPerms(channel.communityId, user.id);
-    if (!ctx) return { error: t("actions.s1foa8q5") };
+    if (!ctx) return { error: "actions.s1foa8q5" };
 
     const canRename = hasPermission(ctx.perms, "renameChannel") || hasPermission(ctx.perms, "manageChannels");
     const canSlow = hasPermission(ctx.perms, "setSlowMode") || hasPermission(ctx.perms, "manageChannels");
@@ -160,9 +157,9 @@ export async function updateCommunityChannel(
     } = {};
 
     if (data.name !== undefined) {
-      if (!canRename) return { error: t("actions.s1ga7lcw") };
+      if (!canRename) return { error: "actions.s1ga7lcw" };
       const name = data.name.trim();
-      if (!name) return { error: t("actions.s1q2haiq") };
+      if (!name) return { error: "actions.s1q2haiq" };
       patch.name = name;
       patch.slug =
         name
@@ -175,11 +172,11 @@ export async function updateCommunityChannel(
       patch.topic = data.topic.trim() || null;
     }
     if (data.slowModeSec !== undefined) {
-      if (!canSlow) return { error: t("actions.s1tab884") };
+      if (!canSlow) return { error: "actions.s1tab884" };
       patch.slowModeSec = Math.min(21600, Math.max(0, data.slowModeSec));
     }
     if (data.isLocked !== undefined) {
-      if (!canLock) return { error: t("actions.s1ua5icj") };
+      if (!canLock) return { error: "actions.s1ua5icj" };
       patch.isLocked = data.isLocked;
     }
     if (data.vipOnly !== undefined && canRename) {
@@ -189,7 +186,7 @@ export async function updateCommunityChannel(
       patch.maxUsers = data.maxUsers;
     }
 
-    if (Object.keys(patch).length === 0) return { error: t("actions.sg2x49x") };
+    if (Object.keys(patch).length === 0) return { error: "actions.sg2x49x" };
 
     await db.communityChannel.update({ where: { id: channelId }, data: patch });
     revalidatePath(`/c/${ctx.community.slug}`);
@@ -206,15 +203,15 @@ export async function deleteCommunityChannel(channelId: string) {
       where: { id: channelId },
       select: { id: true, communityId: true, type: true, isDefault: true, chatRoomId: true, voiceChannelId: true },
     });
-    if (!channel) return { error: t("actions.s8fxex5") };
+    if (!channel) return { error: "actions.s8fxex5" };
     if (channel.isDefault || PROTECTED_TYPES.includes(channel.type)) {
-      return { error: t("actions.s4athkk") };
+      return { error: "actions.s4athkk" };
     }
 
     const ctx = await getCommunityPerms(channel.communityId, user.id);
-    if (!ctx) return { error: t("actions.s1foa8q5") };
+    if (!ctx) return { error: "actions.s1foa8q5" };
     if (!hasPermission(ctx.perms, "deleteChannel") && !hasPermission(ctx.perms, "manageChannels")) {
-      return { error: t("actions.sn546q2") };
+      return { error: "actions.sn546q2" };
     }
 
     await db.communityChannel.delete({ where: { id: channelId } });
@@ -233,9 +230,9 @@ export async function reorderCommunityChannels(communityId: string, orderedIds: 
   try {
     const user = await requireAuth();
     const ctx = await getCommunityPerms(communityId, user.id);
-    if (!ctx) return { error: t("actions.s1foa8q5") };
+    if (!ctx) return { error: "actions.s1foa8q5" };
     if (!hasPermission(ctx.perms, "reorderChannels") && !hasPermission(ctx.perms, "manageChannels")) {
-      return { error: t("actions.s1g77t2o") };
+      return { error: "actions.s1g77t2o" };
     }
 
     await db.$transaction(
@@ -258,12 +255,12 @@ export async function createChannelCategory(communityId: string, name: string) {
   try {
     const user = await requireAuth();
     const ctx = await getCommunityPerms(communityId, user.id);
-    if (!ctx) return { error: t("actions.s1foa8q5") };
+    if (!ctx) return { error: "actions.s1foa8q5" };
     if (!hasPermission(ctx.perms, "editCategory") && !hasPermission(ctx.perms, "manageChannels")) {
-      return { error: t("actions.st3onev") };
+      return { error: "actions.st3onev" };
     }
     const trimmed = name.trim();
-    if (!trimmed) return { error: t("actions.s4m55m2") };
+    if (!trimmed) return { error: "actions.s4m55m2" };
     const maxPos = await db.communityChannelCategory.aggregate({
       where: { communityId },
       _max: { position: true },
@@ -286,11 +283,11 @@ export async function deleteChannelCategory(categoryId: string) {
       where: { id: categoryId },
       include: { community: { select: { id: true, slug: true } } },
     });
-    if (!cat) return { error: t("actions.s1nb5vmx") };
+    if (!cat) return { error: "actions.s1nb5vmx" };
     const ctx = await getCommunityPerms(cat.communityId, user.id);
-    if (!ctx) return { error: t("actions.st3onev") };
+    if (!ctx) return { error: "actions.st3onev" };
     if (!hasPermission(ctx.perms, "editCategory") && !hasPermission(ctx.perms, "manageChannels")) {
-      return { error: t("actions.st3onev") };
+      return { error: "actions.st3onev" };
     }
     await db.communityChannel.updateMany({
       where: { categoryId },
@@ -357,7 +354,7 @@ export async function reportCommunityContent(data: {
   try {
     const user = await requireAuth();
     const reason = data.reason.trim();
-    if (!reason) return { error: t("actions.s1nfd3zu") };
+    if (!reason) return { error: "actions.s1nfd3zu" };
 
     if (data.targetType === "post") {
       await db.report.create({

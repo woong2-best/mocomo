@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -36,9 +33,9 @@ export async function getFinanceDashboard() {
 export async function markPayoutPaid(payoutId: string, adminNote?: string) {
   const admin = await requireAdmin();
   const payout = await db.payoutRequest.findUnique({ where: { id: payoutId } });
-  if (!payout) return { error: t("actions.segpd8q") };
+  if (!payout) return { error: "actions.segpd8q" };
   if (payout.status === "PAID") return { success: true };
-  if (payout.status === "REJECTED") return { error: t("actions.s7opesi") };
+  if (payout.status === "REJECTED") return { error: "actions.s7opesi" };
 
   await db.$transaction(async (tx) => {
     await tx.payoutRequest.update({
@@ -64,8 +61,8 @@ export async function markPayoutPaid(payoutId: string, adminNote?: string) {
 export async function rejectPayout(payoutId: string, reason: string) {
   const admin = await requireAdmin();
   const payout = await db.payoutRequest.findUnique({ where: { id: payoutId } });
-  if (!payout) return { error: t("actions.segpd8q") };
-  if (payout.status === "PAID") return { error: t("actions.sptwx4d") };
+  if (!payout) return { error: "actions.segpd8q" };
+  if (payout.status === "PAID") return { error: "actions.sptwx4d" };
 
   await db.$transaction(async (tx) => {
     const wallet = await tx.wallet.update({

@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import type { BroadcastRole, SupportTierLevel } from "@prisma/client";
@@ -44,7 +41,7 @@ export async function listBroadcastRolesAction(channelId: string) {
   const perm = await requireBroadcastPermission(user.id, channelId, "roles.manage");
   const permMod = await requireBroadcastPermission(user.id, channelId, "roles.assign_moderator");
   if (!perm.ok && !permMod.ok) {
-    return { error: t("actions.s1opa7ty") };
+    return { error: "actions.s1opa7ty" };
   }
   const members = await listBroadcastRoleMembers(channelId);
   const logs = await listBroadcastRoleLogs(channelId, 30);
@@ -56,7 +53,7 @@ export async function searchBroadcastRoleUsersAction(channelId: string, query: s
   const perm = await requireBroadcastPermission(user.id, channelId, "roles.manage");
   const permMod = await requireBroadcastPermission(user.id, channelId, "roles.assign_moderator");
   if (!perm.ok && !permMod.ok) {
-    return { error: t("actions.s1miw3i5") };
+    return { error: "actions.s1miw3i5" };
   }
   const users = await searchUsersForBroadcastRole(user.id, channelId, query);
   return { users };

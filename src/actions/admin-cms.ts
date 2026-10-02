@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -72,7 +69,7 @@ export async function adminLoadUserDetail(userId: string) {
       targetId: userId,
     });
     const data = await getAdminUserDetail(userId);
-    if (!data) return { ok: false as const, error: t("actions.svypth4") };
+    if (!data) return { ok: false as const, error: "actions.svypth4" };
     return { ok: true as const, data };
   } catch (e) {
     return { ok: false as const, error: errMsg(e) };

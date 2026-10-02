@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -22,7 +19,7 @@ const appealSchema = z.object({
 
 export async function getUsedMarketAppealContext() {
   const session = await auth();
-  if (!session?.user?.id) return { error: t("actions.s1mzxopt") as const };
+  if (!session?.user?.id) return { error: "actions.s1mzxopt" as const };
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
@@ -33,9 +30,9 @@ export async function getUsedMarketAppealContext() {
       usedMarketBanListingId: true,
     },
   });
-  if (!user) return { error: t("actions.svypth4") as const };
+  if (!user) return { error: "actions.svypth4" as const };
   if (!isUsedMarketBanned(user)) {
-    return { error: t("actions.s444f0c") as const };
+    return { error: "actions.s444f0c" as const };
   }
 
   const listing = user.usedMarketBanListingId
@@ -76,7 +73,7 @@ export async function getUsedMarketAppealContext() {
 export async function submitUsedMarketAppeal(data: z.infer<typeof appealSchema>) {
   const user = await requireAuth();
   const parsed = appealSchema.safeParse(data);
-  if (!parsed.success) return { error: t("actions.slqeo1f") };
+  if (!parsed.success) return { error: "actions.slqeo1f" };
 
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
@@ -86,7 +83,7 @@ export async function submitUsedMarketAppeal(data: z.infer<typeof appealSchema>)
     },
   });
   if (!dbUser || !isUsedMarketBanned(dbUser)) {
-    return { error: t("actions.s444f0c") };
+    return { error: "actions.s444f0c" };
   }
 
   const existing = await db.usedMarketAppeal.findFirst({
@@ -95,7 +92,7 @@ export async function submitUsedMarketAppeal(data: z.infer<typeof appealSchema>)
       status: { in: OPEN_APPEAL_STATUSES },
     },
   });
-  if (existing) return { error: t("actions.s1acx4hx") };
+  if (existing) return { error: "actions.s1acx4hx" };
 
   const latestSanction = await db.usedMarketSanctionLog.findFirst({
     where: { userId: user.id },

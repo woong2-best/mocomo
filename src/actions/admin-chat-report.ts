@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { db } from "@/lib/db";
@@ -50,7 +47,7 @@ export async function getChatReportEvidence(reportId: string) {
   });
 
   if (!report || report.targetType !== "CHAT_ROOM" || !report.chatRoomId) {
-    return { error: t("actions.sgnfacr") as const };
+    return { error: "actions.sgnfacr" as const };
   }
 
   const roomId = report.chatRoomId;

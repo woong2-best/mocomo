@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -56,7 +53,7 @@ export async function sendFlowerGift(input: {
     revalidatePath("/support");
     return { success: true as const, transferId: "transferId" in res ? res.transferId : undefined };
   } catch {
-    return { error: t("actions.szto7t7") };
+    return { error: "actions.szto7t7" };
   }
 }
 
@@ -81,7 +78,7 @@ export async function redeemFlowerGift(input: {
       netAmountKrw: "netAmountKrw" in res ? res.netAmountKrw : undefined,
     };
   } catch {
-    return { error: t("actions.s1kr4atg") };
+    return { error: "actions.s1kr4atg" };
   }
 }
 

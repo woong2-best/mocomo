@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { requireAuth } from "@/lib/auth";
@@ -24,6 +21,6 @@ export async function verifyUsedAdultAge(_data: {
   agreeTerms: boolean;
 }) {
   return {
-    error: t("actions.sebgqum"),
+    error: "actions.sebgqum",
   };
 }

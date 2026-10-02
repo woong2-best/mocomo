@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -28,17 +25,17 @@ function revalidateProfile(username: string, postId: string) {
 /** 본인 게시물을 프로필 메인에 고정 (기존 isPinned + profileMainPostId) */
 export async function pinPostToProfile(postId: string): Promise<{ ok?: true; error?: string }> {
   const userId = await getAuthUserId();
-  if (!userId) return { error: t("actions.s1mzxopt") };
+  if (!userId) return { error: "actions.s1mzxopt" };
 
   const post = await assertOwnPost(postId, userId);
-  if (!post) return { error: t("actions.sq8pidk") };
-  if (post.isAnonymous) return { error: t("actions.s1w3bf6y") };
+  if (!post) return { error: "actions.sq8pidk" };
+  if (post.isAnonymous) return { error: "actions.s1w3bf6y" };
 
   const me = await db.user.findUnique({
     where: { id: userId },
     select: { username: true },
   });
-  if (!me) return { error: t("actions.svypth4") };
+  if (!me) return { error: "actions.svypth4" };
 
   await db.$transaction([
     db.post.updateMany({
@@ -61,16 +58,16 @@ export async function pinPostToProfile(postId: string): Promise<{ ok?: true; err
 
 export async function unpinPostFromProfile(postId: string): Promise<{ ok?: true; error?: string }> {
   const userId = await getAuthUserId();
-  if (!userId) return { error: t("actions.s1mzxopt") };
+  if (!userId) return { error: "actions.s1mzxopt" };
 
   const post = await assertOwnPost(postId, userId);
-  if (!post) return { error: t("actions.s1yc3fyi") };
+  if (!post) return { error: "actions.s1yc3fyi" };
 
   const me = await db.user.findUnique({
     where: { id: userId },
     select: { username: true, profileMainPostId: true },
   });
-  if (!me) return { error: t("actions.svypth4") };
+  if (!me) return { error: "actions.svypth4" };
 
   await db.$transaction([
     db.post.updateMany({
@@ -96,20 +93,20 @@ export async function featurePostOnMyProfile(
   postId: string
 ): Promise<{ ok?: true; error?: string }> {
   const userId = await getAuthUserId();
-  if (!userId) return { error: t("actions.s1mzxopt") };
+  if (!userId) return { error: "actions.s1mzxopt" };
 
   const post = await db.post.findUnique({
     where: { id: postId },
     select: { id: true, authorId: true, isAnonymous: true },
   });
-  if (!post) return { error: t("actions.sgr97ft") };
-  if (post.isAnonymous) return { error: t("actions.so79hzz") };
+  if (!post) return { error: "actions.sgr97ft" };
+  if (post.isAnonymous) return { error: "actions.so79hzz" };
 
   const me = await db.user.findUnique({
     where: { id: userId },
     select: { username: true, profileMainPostId: true },
   });
-  if (!me) return { error: t("actions.svypth4") };
+  if (!me) return { error: "actions.svypth4" };
 
   const prevMainId = me.profileMainPostId;
 
@@ -158,15 +155,15 @@ export async function unfeaturePostFromMyProfile(
   postId: string
 ): Promise<{ ok?: true; error?: string }> {
   const userId = await getAuthUserId();
-  if (!userId) return { error: t("actions.s1mzxopt") };
+  if (!userId) return { error: "actions.s1mzxopt" };
 
   const me = await db.user.findUnique({
     where: { id: userId },
     select: { username: true, profileMainPostId: true },
   });
-  if (!me) return { error: t("actions.svypth4") };
+  if (!me) return { error: "actions.svypth4" };
   if (me.profileMainPostId !== postId) {
-    return { error: t("actions.s69yi49") };
+    return { error: "actions.s69yi49" };
   }
 
   await clearProfileMainPost(userId, postId);

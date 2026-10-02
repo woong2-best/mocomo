@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -43,7 +40,7 @@ export async function toggleStreamClipLike(clipId: string) {
 export async function addStreamClipComment(clipId: string, content: string) {
   const user = await requireAuth();
   const text = content.trim().slice(0, 500);
-  if (!text) return { error: t("actions.syraox7") };
+  if (!text) return { error: "actions.syraox7" };
   const clip = await db.streamClip.findUnique({
     where: { id: clipId },
     select: { authorId: true },
@@ -68,7 +65,7 @@ export async function createStreamClip(data: {
   const user = await requireAuth();
   const title = data.title.trim().slice(0, 120);
   const videoUrl = data.videoUrl.trim();
-  if (!title || !videoUrl) return { error: t("actions.url_4") };
+  if (!title || !videoUrl) return { error: "actions.url_4" };
 
   const clip = await db.streamClip.create({
     data: {

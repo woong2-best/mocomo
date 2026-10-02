@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -31,8 +28,8 @@ export async function createProfileMediaPost(input: {
   const user = await requireAuth();
   const content = input.content?.trim();
   const mediaUrl = input.mediaUrl?.trim();
-  if (!content) return { error: t("actions.s1xl2qqb") };
-  if (!mediaUrl) return { error: t("actions.st9khj2") };
+  if (!content) return { error: "actions.s1xl2qqb" };
+  if (!mediaUrl) return { error: "actions.st9khj2" };
 
   const visibility = parseContentVisibility(input.visibility);
   const mediaPrice = Math.max(0, Math.floor(input.priceKrw ?? 0));

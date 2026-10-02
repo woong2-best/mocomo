@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -31,7 +28,7 @@ const appealSchema = z.object({
 
 export async function getAppealContext() {
   const session = await auth();
-  if (!session?.user?.id) return { error: t("actions.s1mzxopt") as const };
+  if (!session?.user?.id) return { error: "actions.s1mzxopt" as const };
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
@@ -47,9 +44,9 @@ export async function getAppealContext() {
       isBanned: true,
     },
   });
-  if (!user) return { error: t("actions.svypth4") as const };
+  if (!user) return { error: "actions.svypth4" as const };
   if (!isReadOnlySuspended(user.accountStatus) && !isServiceBanned(user)) {
-    return { error: t("actions.sdjz9fu") as const };
+    return { error: "actions.sdjz9fu" as const };
   }
 
   const openAppeal = await db.accountAppeal.findFirst({
@@ -67,15 +64,15 @@ export async function getAppealContext() {
 export async function submitAccountAppeal(data: z.infer<typeof appealSchema>) {
   const user = await requireAuth({ writeKind: "appeal" });
   const parsed = appealSchema.safeParse(data);
-  if (!parsed.success) return { error: t("actions.slqeo1f") };
+  if (!parsed.success) return { error: "actions.slqeo1f" };
 
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
     select: { accountStatus: true, suspensionReason: true, isBanned: true },
   });
-  if (!dbUser) return { error: t("actions.svypth4") };
+  if (!dbUser) return { error: "actions.svypth4" };
   if (!isReadOnlySuspended(dbUser.accountStatus) && !isServiceBanned(dbUser)) {
-    return { error: t("actions.sdjz9fu") };
+    return { error: "actions.sdjz9fu" };
   }
 
   const existing = await db.accountAppeal.findFirst({
@@ -84,7 +81,7 @@ export async function submitAccountAppeal(data: z.infer<typeof appealSchema>) {
       status: { in: [...OPEN_APPEAL_STATUSES] },
     },
   });
-  if (existing) return { error: t("actions.sqrzgtm") };
+  if (existing) return { error: "actions.sqrzgtm" };
 
   const appeal = await db.accountAppeal.create({
     data: {

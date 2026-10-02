@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -33,8 +30,8 @@ export async function addCosplayPhoto(data: {
 }) {
   const user = await requireAuth();
   const cosProfile = await db.cosplayerProfile.findUnique({ where: { userId: user.id } });
-  if (!cosProfile) return { error: t("actions.s1yv6i7b") };
-  if (!isPersistablePhotoUrl(data.url)) return { error: t("actions.s1mpyx3b") };
+  if (!cosProfile) return { error: "actions.s1yv6i7b" };
+  if (!isPersistablePhotoUrl(data.url)) return { error: "actions.s1mpyx3b" };
 
   const photo = await db.cosplayPhoto.create({
     data: {
@@ -59,7 +56,7 @@ export async function deleteCosplayPhoto(photoId: string) {
     where: { id: photoId },
     include: { profile: { select: { userId: true } } },
   });
-  if (!photo || photo.profile.userId !== user.id) return { error: t("actions.s1a6zmoc") };
+  if (!photo || photo.profile.userId !== user.id) return { error: "actions.s1a6zmoc" };
 
   await db.cosplayPhoto.delete({ where: { id: photoId } });
 

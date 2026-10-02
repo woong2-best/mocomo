@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -46,7 +43,7 @@ export async function adminGetPromotionAction(id: string) {
   try {
     await requireAdminPermission("coupons");
     const data = await getPromotionDetail(id);
-    if (!data) return { ok: false as const, error: t("actions.s1spuww5") };
+    if (!data) return { ok: false as const, error: "actions.s1spuww5" };
     return { ok: true as const, data };
   } catch (e) {
     return { ok: false as const, error: errMsg(e) };
@@ -117,7 +114,7 @@ export async function adminAssignPromotionAction(promotionId: string, targets: s
       });
       if (u) ids.push(u.id);
     }
-    if (ids.length === 0) return { error: t("actions.s1faxhl9") };
+    if (ids.length === 0) return { error: "actions.s1faxhl9" };
     const res = await assignPromotion(actor, promotionId, ids, {
       skipRules: true,
       notify: true,

@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -72,7 +69,7 @@ export async function adminSetMarketplaceOrderStatus(
   });
 
   const order = await db.marketplaceOrder.findUnique({ where: { id: orderId } });
-  if (!order) return { error: t("actions.sr119vd") };
+  if (!order) return { error: "actions.sr119vd" };
 
   if (status === "DELIVERED") {
     const delivered = await markMarketplaceOrderDelivered({
@@ -153,7 +150,7 @@ export async function adminClearMarketplaceReview(orderId: string) {
     where: { id: orderId },
     include: { items: true },
   });
-  if (!order) return { error: t("actions.sr119vd") };
+  if (!order) return { error: "actions.sr119vd" };
 
   const needsShip = order.items.some((i) => i.listingType !== "DIGITAL");
   await db.marketplaceOrder.update({
@@ -264,7 +261,7 @@ export async function reportMarketplaceListing(input: {
     where: { id: input.listingId },
     select: { id: true, sellerId: true, sellerProfileId: true },
   });
-  if (!listing) return { error: t("actions.s1fhot7o") };
+  if (!listing) return { error: "actions.s1fhot7o" };
 
   const profile =
     listing.sellerProfileId
@@ -395,9 +392,9 @@ export async function approveMarketplaceSeller(profileId: string) {
   });
 
   const profile = await db.marketplaceSellerProfile.findUnique({ where: { id: profileId } });
-  if (!profile) return { error: t("actions.s1iqcuip") };
+  if (!profile) return { error: "actions.s1iqcuip" };
   if (!profile.onboardingCompletedAt) {
-    return { error: t("actions.si33ydi") };
+    return { error: "actions.si33ydi" };
   }
 
   const now = new Date();
@@ -439,10 +436,10 @@ export async function rejectMarketplaceSeller(profileId: string, reason: string)
   });
 
   const note = reason.trim().slice(0, 500);
-  if (!note) return { error: t("actions.soypale") };
+  if (!note) return { error: "actions.soypale" };
 
   const profile = await db.marketplaceSellerProfile.findUnique({ where: { id: profileId } });
-  if (!profile) return { error: t("actions.s1iqcuip") };
+  if (!profile) return { error: "actions.s1iqcuip" };
 
   const now = new Date();
   await db.marketplaceSellerProfile.update({
@@ -489,7 +486,7 @@ export async function exportMarketplaceDisputeLegalBundle(disputeId: string) {
     where: { id: disputeId },
     include: { order: { select: { id: true, tradeLegalRecord: true } } },
   });
-  if (!dispute) return { error: t("actions.s1hvx3ui") };
+  if (!dispute) return { error: "actions.s1hvx3ui" };
 
   if (!dispute.tradeEvidenceSnapshot) {
     await refreshTradeLegalRecord(dispute.orderId);

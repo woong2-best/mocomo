@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { after } from "next/server";
@@ -170,7 +167,7 @@ export async function createLiveStream(data: {
     }
 
     if (data.broadcastMode === "VOICE") {
-      return { error: t("actions.s1j24gfh") };
+      return { error: "actions.s1j24gfh" };
     }
 
     if (!isScheduled) {
@@ -275,10 +272,10 @@ export async function startScheduledLiveStream(channelId: string) {
     select: { createdBy: true, liveStatus: true, name: true },
   });
   if (!channel || channel.createdBy !== user.id) {
-    return { error: t("actions.s7g1tki") };
+    return { error: "actions.s7g1tki" };
   }
   if (channel.liveStatus !== "SCHEDULED") {
-    return { error: t("actions.suuax4e") };
+    return { error: "actions.suuax4e" };
   }
   const joinPassword = generateLiveJoinPassword();
   const joinPasswordHash = await hashLiveJoinPassword(joinPassword);
@@ -358,12 +355,12 @@ export async function enterLiveAsHost(channelId: string) {
     select: { createdBy: true, liveStatus: true },
   });
 
-  if (!channel) return { error: t("actions.smc02ba") };
+  if (!channel) return { error: "actions.smc02ba" };
   if (channel.createdBy !== user.id) {
-    return { error: t("actions.s1i7tjgl") };
+    return { error: "actions.s1i7tjgl" };
   }
   if (channel.liveStatus === "ENDED") {
-    return { error: t("actions.sm7zety") };
+    return { error: "actions.sm7zety" };
   }
 
   void autoEndAbandonedLiveChannels();
@@ -385,7 +382,7 @@ export async function startBrowserLiveBroadcast(
 
   const tabId = publisherTabId?.trim();
   if (!tabId || tabId.length > 64) {
-    return { error: t("actions.sba5111") };
+    return { error: "actions.sba5111" };
   }
 
   const channel = await db.voiceChannel.findUnique({
@@ -400,10 +397,10 @@ export async function startBrowserLiveBroadcast(
     },
   });
   if (!channel || channel.createdBy !== user.id) {
-    return { error: t("actions.sdidqz8") };
+    return { error: "actions.sdidqz8" };
   }
   if (channel.liveStatus === "ENDED") {
-    return { error: t("actions.sm7zety") };
+    return { error: "actions.sm7zety" };
   }
 
   const owner = channel.livePublisherTabId?.trim() || null;
@@ -413,7 +410,7 @@ export async function startBrowserLiveBroadcast(
   }
 
   if (channel.broadcastMode === "VOICE") {
-    return { error: t("actions.api") };
+    return { error: "actions.api" };
   }
 
   const wasLive = channel.isLive;
@@ -441,7 +438,7 @@ export async function startBrowserLiveBroadcast(
 
 /** 보이스 라이브 — 기능 종료 */
 export async function startVoiceLiveBroadcast(_channelId: string) {
-  return { error: t("actions.s1j24gfh") };
+  return { error: "actions.s1j24gfh" };
 }
 
 /** 시청 입장 — LIVE 또는 준비(SCHEDULED) 중 대기실 */
@@ -452,7 +449,7 @@ export async function enterLiveAsViewer(channelId: string) {
     select: { isLive: true, liveStatus: true, createdBy: true, maxUsers: true },
   });
 
-  if (!channel) return { error: t("actions.smc02ba") };
+  if (!channel) return { error: "actions.smc02ba" };
   if (channel.createdBy === user.id) {
     return enterLiveAsHost(channelId);
   }
@@ -480,16 +477,16 @@ export async function enterLiveAsViewer(channelId: string) {
     }
     if (access.reason === "ADULT_VERIFICATION_REQUIRED") {
       return {
-        error: t("actions.s1ys1tfq"),
+        error: "actions.s1ys1tfq",
         code: "ADULT_VERIFICATION_REQUIRED" as const,
       };
     }
-    return { error: t("actions.skbjbt6") };
+    return { error: "actions.skbjbt6" };
   }
 
   const active = await countActiveLiveViewers(channelId);
   if (active >= channel.maxUsers) {
-    return { error: t("actions.s8ixmw9") };
+    return { error: "actions.s8ixmw9" };
   }
 
   await upsertLiveMember(channelId, user.id, "VIEWER");
@@ -510,21 +507,21 @@ export async function applyLiveCollabPassword(channelId: string, password: strin
     },
   });
 
-  if (!channel || !channel.isLive) return { error: t("actions.smc02ba") };
+  if (!channel || !channel.isLive) return { error: "actions.smc02ba" };
   if (channel.createdBy === user.id) {
-    return { error: t("actions.s15ts5lg") };
+    return { error: "actions.s15ts5lg" };
   }
 
   if (!channel.joinPasswordHash) {
-    return { error: t("actions.s12b78wr") };
+    return { error: "actions.s12b78wr" };
   }
 
   const ok = await verifyLiveJoinPassword(password, channel.joinPasswordHash);
-  if (!ok) return { error: t("actions.s3em03b") };
+  if (!ok) return { error: "actions.s3em03b" };
 
   const active = await countActiveLiveViewers(channelId);
   if (active >= channel.maxUsers) {
-    return { error: t("actions.seq8s89") };
+    return { error: "actions.seq8s89" };
   }
 
   await upsertLiveMember(channelId, user.id, "CO_HOST");
@@ -542,7 +539,7 @@ export async function joinLiveStreamWithPassword(channelId: string, password: st
     where: { id: channelId },
     select: { createdBy: true, isLive: true, liveStatus: true },
   });
-  if (!channel) return { error: t("actions.smc02ba") };
+  if (!channel) return { error: "actions.smc02ba" };
   if (channel.createdBy === user.id) {
     return enterLiveAsHost(channelId);
   }
@@ -612,13 +609,13 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
   const user = await requireAuth({ writeKind: "live" });
 
   const access = await resolveLiveChannelAccess(channelId, user.id);
-  if (!access.allowed) return { error: t("actions.s16rsb28") };
+  if (!access.allowed) return { error: "actions.s16rsb28" };
 
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
     select: { slowModeSeconds: true, chatBannedWords: true },
   });
-  if (!channel) return { error: t("actions.s1f2gsut") };
+  if (!channel) return { error: "actions.s1f2gsut" };
 
   const filtered = filterLiveChatContent(content, ensureStringArray(channel.chatBannedWords));
   if (!filtered.ok) return { error: filtered.error };
@@ -652,7 +649,7 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
         return { error: t("actions.s1ekuvbf", { v0: Math.ceil(channel.slowModeSeconds - elapsed) }) };
       }
       if (looksLikeSpamDuplicate(last.content, text)) {
-        return { error: t("actions.si5t0ub") };
+        return { error: "actions.si5t0ub" };
       }
     }
   }
@@ -670,11 +667,10 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
     const msg = e instanceof Error ? e.message : "";
     if (/LiveChatMessage|does not exist|relation/i.test(msg)) {
       return {
-        error:
-          t("actions.db_supabase_sql_editor_supabase"),
+        error: "actions.db_supabase_sql_editor_supabase",
       };
     }
-    return { error: t("actions.s1d22o25") };
+    return { error: "actions.s1d22o25" };
   }
 }
 
@@ -748,7 +744,7 @@ export async function deleteLiveChatMessage(channelId: string, messageId: string
   });
   const isSiteMod = dbUser?.role === "MODERATOR" || dbUser?.role === "ADMIN";
   if (!perm.ok && !isSiteMod) {
-    return { error: t("actions.s5gbayd") };
+    return { error: "actions.s5gbayd" };
   }
 
   await db.liveChatMessage.deleteMany({
@@ -776,10 +772,10 @@ export async function ensureObsIngress(channelId: string, force = false) {
 
 export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcastMode) {
   if (mode === "VOICE") {
-    return { error: t("actions.sxsbfvm") };
+    return { error: "actions.sxsbfvm" };
   }
   if (mode === "EXTERNAL") {
-    return { error: t("actions.sjbv6ih") };
+    return { error: "actions.sjbv6ih" };
   }
   const fp = assertFirstPartyLiveEnabled();
   if (!fp.ok) return { error: fp.error };
@@ -790,7 +786,7 @@ export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcas
     select: { createdBy: true, isLive: true },
   });
   if (!channel || channel.createdBy !== user.id) {
-    return { error: t("actions.s12ky2rv") };
+    return { error: "actions.s12ky2rv" };
   }
   await db.voiceChannel.update({
     where: { id: channelId },
@@ -805,7 +801,7 @@ export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcas
 export async function endLiveStream(channelId: string) {
   const user = await requireAuth();
   const perm = await requireBroadcastPermission(user.id, channelId, "broadcast.end");
-  if (!perm.ok) return { error: t("actions.s1ih9c62") };
+  if (!perm.ok) return { error: "actions.s1ih9c62" };
 
   await endHostBroadcastChannel(channelId, user.id);
 
@@ -906,7 +902,7 @@ export async function updateLiveStreamSettings(
   const permEdit = await requireBroadcastPermission(user.id, channelId, "broadcast.edit");
   const permChat = await requireBroadcastPermission(user.id, channelId, "chat.settings");
   if (!permEdit.ok && !permChat.ok) {
-    return { error: t("actions.s3qggj9") };
+    return { error: "actions.s3qggj9" };
   }
 
   const contentRating =

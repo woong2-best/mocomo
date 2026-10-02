@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -206,8 +203,8 @@ export async function applyModerationSanction(
   reason: string
 ) {
   const admin = await requireStaff("MODERATOR");
-  if (!canApplySanction(admin.role, sanction)) return { error: t("actions.st3onev") };
-  if (!reason.trim()) return { error: t("actions.s1dcx65m") };
+  if (!canApplySanction(admin.role, sanction)) return { error: "actions.st3onev" };
+  if (!reason.trim()) return { error: "actions.s1dcx65m" };
 
   const target = await db.user.findUnique({
     where: { id: targetUserId },
@@ -218,7 +215,7 @@ export async function applyModerationSanction(
       priorSanctionCount: true,
     },
   });
-  if (!target) return { error: t("actions.svypth4") };
+  if (!target) return { error: "actions.svypth4" };
 
   const before = {
     accountStatus: target.accountStatus,
@@ -345,15 +342,15 @@ export async function createStaffMember(input: {
   displayName?: string;
 }) {
   const creator = await requireStaff("SUPER_ADMIN");
-  if (!canCreateStaff(creator.role)) return { error: t("actions.st3onev") };
-  if (!canCreateRole(creator.role, input.role)) return { error: t("actions.s1tqj1jc") };
-  if (!input.reason.trim()) return { error: t("actions.sxs95y2") };
+  if (!canCreateStaff(creator.role)) return { error: "actions.st3onev" };
+  if (!canCreateRole(creator.role, input.role)) return { error: "actions.s1tqj1jc" };
+  if (!input.reason.trim()) return { error: "actions.sxs95y2" };
 
   const target = await db.user.findUnique({
     where: { id: input.userId },
     select: { id: true, email: true, name: true, role: true },
   });
-  if (!target) return { error: t("actions.svypth4") };
+  if (!target) return { error: "actions.svypth4" };
 
   await db.user.update({
     where: { id: input.userId },

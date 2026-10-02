@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -80,13 +77,13 @@ export async function createAptMarketListing(input: {
   flea?: boolean;
 }): Promise<{ ok: true; economy: EconomySnapshot } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   let fleaEventId: string | null = null;
   if (input.flea) {
     const flea = await getActiveFleaEvent();
-    if (!flea) return { error: t("actions.sjvx0n7") };
+    if (!flea) return { error: "actions.sjvx0n7" };
     fleaEventId = flea.id;
   }
 
@@ -108,7 +105,7 @@ export async function buyAptMarketListing(
   listingId: string
 ): Promise<{ ok: true; economy: EconomySnapshot; stickerTypeId: string } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const res = await buyMarketListing(ownerId, listingId);
@@ -124,7 +121,7 @@ export async function buyAptFleaNpcOffer(
   offerId: string
 ): Promise<{ ok: true; economy: EconomySnapshot } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const res = await buyFromFleaNpc(ownerId, offerId);
@@ -140,7 +137,7 @@ export async function sellAptToFleaNpc(
   offerId: string
 ): Promise<{ ok: true; economy: EconomySnapshot } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const res = await sellToFleaNpc(ownerId, offerId);
@@ -156,7 +153,7 @@ export async function cancelAptMarketListing(
   listingId: string
 ): Promise<{ ok: true; economy: EconomySnapshot } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: t("actions.s1mzxopt") };
+  if (!user) return { error: "actions.s1mzxopt" };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const res = await cancelMarketListing(ownerId, listingId);

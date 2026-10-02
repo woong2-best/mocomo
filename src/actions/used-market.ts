@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -520,18 +517,18 @@ export async function createUsedListing(data: {
     const adultErr = assertUsedAdultForRestricted(user, restricted);
     if (adultErr) return { error: USED_ADULT_SELLER_MSG };
   }
-  if (!data.title.trim()) return { error: t("actions.sojdmy3") };
+  if (!data.title.trim()) return { error: "actions.sojdmy3" };
   const currency = normalizeUsedCurrency(data.currency);
   const price = Math.floor(Number(data.price) || 0);
-  if (data.price < 0 || price < 0) return { error: t("actions.s1y2yueo") };
+  if (data.price < 0 || price < 0) return { error: "actions.s1y2yueo" };
   const maxPrice = maxUsedListingPrice(currency);
   if (price > maxPrice) {
     return { error: t("actions.snppf3n", { v0: maxUsedListingPriceLabel(currency) }) };
   }
-  if (!data.region.trim()) return { error: t("actions.s1qzsrwg") };
+  if (!data.region.trim()) return { error: "actions.s1qzsrwg" };
   const listingCountry = normalizeMeetCountry(data.meetCountry || user.countryCode);
   if (!validateUsedRegion(data.region, listingCountry)) {
-    return { error: t("actions.sj1ybzk") };
+    return { error: "actions.sj1ybzk" };
   }
 
   const parsedCats = parseUsedSellCategories(data.categories, data.category);
@@ -539,7 +536,7 @@ export async function createUsedListing(data: {
 
   const isAuction = data.saleType === "AUCTION";
   if (USED_AUCTION_RETIRED && isAuction) return { error: USED_AUCTION_RETIRED_MSG };
-  if (isAuction && price <= 0) return { error: t("actions.sti0vaw") };
+  if (isAuction && price <= 0) return { error: "actions.sti0vaw" };
   if (isAuction) {
     const balance = await getMocoBalanceSnapshot(user.id);
     if (!canParticipateInAuction(balance)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
@@ -556,10 +553,10 @@ export async function createUsedListing(data: {
       : null;
 
   if (buyNowPrice != null && buyNowPrice <= price) {
-    return { error: t("actions.sd3luth") };
+    return { error: "actions.sd3luth" };
   }
   if (reservePrice != null && reservePrice > price && reservePrice > (buyNowPrice ?? Infinity)) {
-    return { error: t("actions.s123o4yt") };
+    return { error: "actions.s123o4yt" };
   }
 
   const listingRating = data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL");
@@ -585,8 +582,7 @@ export async function createUsedListing(data: {
   );
   if (ephemeral.length > 0) {
     return {
-      error:
-        t("actions.s6t0t2p"),
+      error: "actions.s6t0t2p",
     };
   }
 
@@ -683,12 +679,11 @@ export async function createUsedListing(data: {
     if (mapDepositError(e)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === "P2021") {
-        return { error: t("actions.db_supabase_sql_k") };
+        return { error: "actions.db_supabase_sql_k" };
       }
       if (e.code === "P2022") {
         return {
-          error:
-            t("actions.db_meetcountry_supabase_alter_table"),
+          error: "actions.db_meetcountry_supabase_alter_table",
         };
       }
     }
@@ -696,13 +691,11 @@ export async function createUsedListing(data: {
     const detail = e instanceof Error ? e.message : "";
     if (/meetCountry/i.test(detail) || /column .* does not exist/i.test(detail)) {
       return {
-        error:
-          t("actions.db_meetcountry_supabase_sql_meetcountry"),
+        error: "actions.db_meetcountry_supabase_sql_meetcountry",
       };
     }
     return {
-      error:
-        t("actions.s178nboa"),
+      error: "actions.s178nboa",
     };
   }
 }
@@ -710,7 +703,7 @@ export async function createUsedListing(data: {
 export async function updateUsedListingStatus(listingId: string, status: UsedListingStatus) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
-  if (!listing || listing.sellerId !== user.id) return { error: t("actions.st3onev") };
+  if (!listing || listing.sellerId !== user.id) return { error: "actions.st3onev" };
   const accessErr = assertAuctionPostAccess(user);
   if (accessErr) return { error: accessErr };
 
@@ -736,7 +729,7 @@ export async function updateUsedListingStatus(listingId: string, status: UsedLis
 export async function deleteUsedListing(listingId: string) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
-  if (!listing || listing.sellerId !== user.id) return { error: t("actions.st3onev") };
+  if (!listing || listing.sellerId !== user.id) return { error: "actions.st3onev" };
   const accessErr = assertAuctionPostAccess(user);
   if (accessErr) return { error: accessErr };
 
@@ -755,7 +748,7 @@ export async function toggleUsedListingStar(listingId: string) {
     where: { id: listingId },
     select: { id: true, sellerId: true, meetCountry: true, region: true },
   });
-  if (!listing) return { error: t("actions.s1cdkrl9") };
+  if (!listing) return { error: "actions.s1cdkrl9" };
   const visibleErr = await assertUsedMarketListingVisible({
     userId: user.id,
     listing,
@@ -785,7 +778,7 @@ export async function toggleUsedFavorite(listingId: string) {
     where: { id: listingId },
     select: { sellerId: true, title: true, meetCountry: true, region: true },
   });
-  if (!listing) return { error: t("actions.s1cdkrl9") };
+  if (!listing) return { error: "actions.s1cdkrl9" };
   const tradeErr = await assertUsedMarketTradeAccess({
     userId: user.id,
     buyerCountry: user.countryCode,
@@ -876,27 +869,27 @@ export async function startUsedTradeChat(listingId: string) {
     where: { id: listingId },
     include: { seller: { select: { id: true, username: true } } },
   });
-  if (!listing) return { error: t("actions.s1cdkrl9") };
-  if (listing.sellerId === user.id) return { error: t("actions.sscry5a") };
+  if (!listing) return { error: "actions.s1cdkrl9" };
+  if (listing.sellerId === user.id) return { error: "actions.sscry5a" };
   const tradeErr = await assertUsedMarketTradeAccess({
     userId: user.id,
     buyerCountry: user.countryCode,
     listing,
   });
   if (tradeErr) return { error: tradeErr };
-  if (listing.status === "SOLD") return { error: t("actions.s1mmunw") };
+  if (listing.status === "SOLD") return { error: "actions.s1mmunw" };
   if (
     listing.saleType === "AUCTION" &&
     listing.auctionEndsAt &&
     listing.auctionEndsAt.getTime() > Date.now() &&
     listing.auctionState !== "ENDED"
   ) {
-    return { error: t("actions.socghxo") };
+    return { error: "actions.socghxo" };
   }
 
   const dm = await getOrCreateDM(listing.sellerId);
   if ("error" in dm && dm.error) return { error: dm.error };
-  if (!("room" in dm) || !dm.room) return { error: t("actions.s1k5cvor") };
+  if (!("room" in dm) || !dm.room) return { error: "actions.s1k5cvor" };
 
   try {
     await db.usedListingChat.upsert({
@@ -927,7 +920,7 @@ export async function getUsedListingChatRooms(listingId: string) {
     where: { id: listingId },
     select: { sellerId: true },
   });
-  if (!listing || listing.sellerId !== user.id) return { error: t("actions.st3onev") };
+  if (!listing || listing.sellerId !== user.id) return { error: "actions.st3onev" };
 
   try {
     const rows = await db.usedListingChat.findMany({

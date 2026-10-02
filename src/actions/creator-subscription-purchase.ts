@@ -15,10 +15,10 @@ export async function fulfillCreatorSubscriptionPurchase(
     where: { id: creatorId },
     select: { id: true, username: true, creatorSubscriptionPriceKrw: true },
   });
-  if (!creator) return { error: t("actions.sbsk5n5") };
-  if (creator.id === subscriberId) return { error: t("actions.s1ahhnm") };
+  if (!creator) return { error: "actions.sbsk5n5" };
+  if (creator.id === subscriberId) return { error: "actions.s1ahhnm" };
   if (creator.creatorSubscriptionPriceKrw !== amount) {
-    return { error: t("actions.s1e5byuf") };
+    return { error: "actions.s1e5byuf" };
   }
 
   const periodEnd = new Date();

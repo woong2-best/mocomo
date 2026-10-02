@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { requireAuthForAction } from "@/lib/auth";
@@ -17,11 +14,11 @@ export async function requestAccountDeletion(
     const sessionUser = await requireAuthForAction();
     userId = sessionUser.id;
   } catch {
-    return { error: t("actions.s1mzxopt") };
+    return { error: "actions.s1mzxopt" };
   }
 
   const full = await loadAccountDeletionUser(userId);
-  if (!full) return { error: t("actions.s1hwfc9a") };
+  if (!full) return { error: "actions.s1hwfc9a" };
 
   return requestAccountDeletionForUser(full, data);
 }

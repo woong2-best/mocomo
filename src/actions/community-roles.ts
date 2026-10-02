@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -49,10 +46,10 @@ export async function updateRolePermissions(
       where: { id: roleId },
       include: { community: { select: { slug: true } } },
     });
-    if (!role) return { error: t("actions.s8nj7yo") };
-    if (role.type === "OWNER") return { error: t("actions.owner_2") };
+    if (!role) return { error: "actions.s8nj7yo" };
+    if (role.type === "OWNER") return { error: "actions.owner_2" };
     if (!(await canManageRoles(role.communityId, user.id))) {
-      return { error: t("actions.srffv9c") };
+      return { error: "actions.srffv9c" };
     }
 
     const current = parsePermissions(role.permissions);
@@ -77,14 +74,14 @@ export async function assignMemberRole(memberId: string, roleId: string) {
       where: { id: memberId },
       include: { community: { select: { id: true, slug: true, creatorId: true } } },
     });
-    if (!member) return { error: t("actions.sun5u5h") };
+    if (!member) return { error: "actions.sun5u5h" };
     if (!(await canManageRoles(member.communityId, user.id))) {
-      return { error: t("actions.srffv9c") };
+      return { error: "actions.srffv9c" };
     }
 
     const role = await db.communityRole.findUnique({ where: { id: roleId } });
     if (!role || role.communityId !== member.communityId) {
-      return { error: t("actions.s8nj7yo") };
+      return { error: "actions.s8nj7yo" };
     }
 
     if (role.type === "OWNER") {
@@ -114,11 +111,11 @@ export async function createCommunityRole(data: {
   try {
     const user = await requireAuth();
     if (!(await canManageRoles(data.communityId, user.id))) {
-      return { error: t("actions.srffv9c") };
+      return { error: "actions.srffv9c" };
     }
 
     const name = data.name.trim();
-    if (!name) return { error: t("actions.s1wm9au3") };
+    if (!name) return { error: "actions.s1wm9au3" };
 
     const maxPos = await db.communityRole.aggregate({
       where: { communityId: data.communityId },

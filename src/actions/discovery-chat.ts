@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { db } from "@/lib/db";
@@ -15,7 +12,7 @@ export async function getOrCreateDiscoveryDM(otherUserId: string) {
   const match = await db.discoveryMatch.findUnique({
     where: { userAId_userBId: { userAId: a, userBId: b } },
   });
-  if (!match) return { error: t("actions.s13n7bnp") };
+  if (!match) return { error: "actions.s13n7bnp" };
 
   const existing = await db.chatRoom.findFirst({
     where: {

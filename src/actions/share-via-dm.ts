@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { db } from "@/lib/db";
@@ -94,7 +91,7 @@ export async function shareContentViaDm(data: {
 
   const uniqueIds = [...new Set(data.recipientIds.map((id) => id.trim()).filter(Boolean))];
   if (uniqueIds.length === 0) {
-    return { ok: false, error: t("actions.s9il86a") };
+    return { ok: false, error: "actions.s9il86a" };
   }
   if (uniqueIds.length > MAX_RECIPIENTS) {
     return { ok: false, error: t("actions.s6xjtg", { v0: MAX_RECIPIENTS }) };
@@ -106,20 +103,20 @@ export async function shareContentViaDm(data: {
   let content: string;
   if (postId) {
     if (postId.length > 40 || !/^[a-z0-9]+$/i.test(postId)) {
-      return { ok: false, error: t("actions.s7lym4y") };
+      return { ok: false, error: "actions.s7lym4y" };
     }
     const exists = await db.post.findFirst({
       where: { id: postId, visibility: "PUBLIC" },
       select: { id: true },
     });
     if (!exists) {
-      return { ok: false, error: t("actions.sgr97ft") };
+      return { ok: false, error: "actions.sgr97ft" };
     }
     content = encodePostShareMessage(postId, note);
   } else {
     const shareMessage = (data.shareMessage ?? "").trim().slice(0, MAX_SHARE_LEN);
     if (!shareMessage) {
-      return { ok: false, error: t("actions.suugoyf") };
+      return { ok: false, error: "actions.suugoyf" };
     }
     content = note ? `${note}\n\n${shareMessage}` : shareMessage;
   }

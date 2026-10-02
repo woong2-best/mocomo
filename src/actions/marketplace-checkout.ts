@@ -1,6 +1,3 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -140,17 +137,17 @@ async function initMarketplacePurchase(
   });
 
   if (!listing || listing.status !== "ACTIVE") {
-    return { error: t("actions.s1t0nl25") };
+    return { error: "actions.s1t0nl25" };
   }
   const listingRating = listing.contentRating ?? (listing.isNsfw ? "ADULT" : "GENERAL");
   const { assertPaymentNotForAdultContent } = await import("@/lib/adult-monetization-ban");
   const adultListingBlock = assertPaymentNotForAdultContent(listingRating);
   if (adultListingBlock) return adultListingBlock;
   if (listing.sellerId === buyer.id) {
-    return { error: t("actions.suz2ksc") };
+    return { error: "actions.suz2ksc" };
   }
   if (listing.sellerProfile?.status === "SUSPENDED" || listing.sellerProfile?.status === "REJECTED") {
-    return { error: t("actions.s1rknfwv") };
+    return { error: "actions.s1rknfwv" };
   }
 
   const needsShipping = listing.type !== "DIGITAL";
@@ -166,7 +163,7 @@ async function initMarketplacePurchase(
   }
 
   if (listing.type !== "DIGITAL" && listing.stock < quantity) {
-    return { error: t("actions.s18hc6oe") };
+    return { error: "actions.s18hc6oe" };
   }
 
   const sellerProfileCheck = await db.marketplaceSellerProfile.findUnique({
@@ -177,12 +174,12 @@ async function initMarketplacePurchase(
     sellerProfileCheck?.sanctionLevel === "PERMANENT_BAN" ||
     sellerProfileCheck?.sanctionLevel === "SALES_SUSPENDED"
   ) {
-    return { error: t("actions.s1d7xyb5") };
+    return { error: "actions.s1d7xyb5" };
   }
 
   if (needsShipping) {
     if (!input.shipName?.trim() || !input.shipCountry?.trim() || !input.shipAddress1?.trim()) {
-      return { error: t("actions.s1qpamyx") };
+      return { error: "actions.s1qpamyx" };
     }
     const dest = normalizeShipCountry(input.shipCountry);
     if (!dest) {
@@ -207,7 +204,7 @@ async function initMarketplacePurchase(
   const totalAmount = fees.totalAmount;
 
   if (!listing.seller.stripeConnectAccountId) {
-    return { error: t("actions.stripe_connect") };
+    return { error: "actions.stripe_connect" };
   }
 
   const shippingFields = {
@@ -408,7 +405,7 @@ async function createMarketplaceCheckoutSession(
   };
 
   const session = await stripe.checkout.sessions.create(sessionParams);
-  if (!session.url) return { error: t("actions.s6bk4av") };
+  if (!session.url) return { error: "actions.s6bk4av" };
 
   await db.marketplaceOrder.update({
     where: { id: init.order.id },
@@ -438,7 +435,7 @@ export async function prepareMarketplacePaymentForBuyer(
   if (adultBlock) return adultBlock;
 
   if (!isStripeConfigured()) {
-    return { error: t("actions.stripe_4") };
+    return { error: "actions.stripe_4" };
   }
 
   const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);
@@ -501,7 +498,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
   opts?: { purchaseTermsAccepted?: boolean }
 ) {
   if (!isStripeConfigured()) {
-    return { error: t("actions.stripe_4") };
+    return { error: "actions.stripe_4" };
   }
 
   const consentBlock = await assertAndRecordPurchaseTermsConsent({
@@ -519,20 +516,20 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
     where: { id: paymentIntentDbId },
   });
   if (!paymentIntent || paymentIntent.userId !== buyer.id) {
-    return { error: t("actions.s1am6wzc") };
+    return { error: "actions.s1am6wzc" };
   }
   if (paymentIntent.type !== "MARKETPLACE") {
-    return { error: t("actions.scn01bw") };
+    return { error: "actions.scn01bw" };
   }
   if (paymentIntent.status === "PAID") {
-    return { error: t("actions.s1batyd1") };
+    return { error: "actions.s1batyd1" };
   }
 
   const meta = paymentIntent.metadata as Record<string, string | undefined>;
   const marketplaceOrderId = meta.marketplaceOrderId;
   const listingId = meta.listingId;
   if (!marketplaceOrderId || !listingId) {
-    return { error: t("actions.s1ooy78e") };
+    return { error: "actions.s1ooy78e" };
   }
 
   const order = await db.marketplaceOrder.findUnique({
@@ -540,7 +537,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
     include: { items: true },
   });
   if (!order || order.buyerId !== buyer.id || order.status !== "AWAITING_PAYMENT") {
-    return { error: t("actions.sr119vd") };
+    return { error: "actions.sr119vd" };
   }
 
   const listing = await db.marketplaceListing.findUnique({
@@ -558,10 +555,10 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
       sellerProfile: { select: { id: true, status: true } },
     },
   });
-  if (!listing) return { error: t("actions.s1fhot7o") };
+  if (!listing) return { error: "actions.s1fhot7o" };
 
   if (listing.status !== "ACTIVE") {
-    return { error: t("actions.s8d3w03") };
+    return { error: "actions.s8d3w03" };
   }
 
   const item = order.items[0];
