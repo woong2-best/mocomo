@@ -145,7 +145,7 @@ export type CreateCouponInput = {
 
 export async function createCoupon(actor: AdminActor, input: CreateCouponInput) {
   const name = input.name.trim();
-  if (name.length < 2) return { error: "쿠폰명을 입력해 주세요." };
+  if (name.length < 2) return { error: "Enter a coupon name." };
 
   let code = (input.code?.trim() || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!code) {
@@ -155,21 +155,21 @@ export async function createCoupon(actor: AdminActor, input: CreateCouponInput) 
       if (!exists) break;
     }
   }
-  if (code.length < 4) return { error: "쿠폰 코드가 너무 짧습니다." };
+  if (code.length < 4) return { error: "Coupon code is too short." };
   const dup = await db.coupon.findUnique({ where: { code } });
-  if (dup) return { error: "이미 존재하는 쿠폰 코드입니다." };
+  if (dup) return { error: "This coupon code already exists." };
 
   if (input.benefitType === "FEE_WAIVER" && !(input.waiveUpToKrw && input.waiveUpToKrw > 0)) {
-    return { error: "수수료 면제 한도(원)를 입력해 주세요." };
+    return { error: "Enter the fee waiver limit (KRW)." };
   }
   if (
     input.benefitType === "FEE_PERCENT_OFF" &&
     !(input.percentOff && input.percentOff > 0 && input.percentOff <= 100)
   ) {
-    return { error: "할인율은 1–100%여야 합니다." };
+    return { error: "Discount rate must be 1–100%." };
   }
   if (input.benefitType === "FIXED_AMOUNT" && !(input.fixedDiscountKrw && input.fixedDiscountKrw > 0)) {
-    return { error: "고정 할인 금액을 입력해 주세요." };
+    return { error: "Enter a fixed discount amount." };
   }
 
   const coupon = await db.coupon.create({
@@ -217,7 +217,7 @@ export async function updateCoupon(
   }>
 ) {
   const existing = await db.coupon.findUnique({ where: { id: couponId } });
-  if (!existing) return { error: "쿠폰을 찾을 수 없습니다." };
+  if (!existing) return { error: "Coupon not found." };
 
   const coupon = await db.coupon.update({
     where: { id: couponId },
@@ -315,12 +315,12 @@ export async function assignCouponToUsers(
   usernamesOrIds: string[]
 ) {
   const coupon = await db.coupon.findUnique({ where: { id: couponId } });
-  if (!coupon) return { error: "쿠폰을 찾을 수 없습니다." };
-  if (!coupon.active) return { error: "비활성 쿠폰입니다." };
-  if (coupon.endsAt && coupon.endsAt.getTime() < Date.now()) return { error: "만료된 쿠폰입니다." };
+  if (!coupon) return { error: "Coupon not found." };
+  if (!coupon.active) return { error: "This coupon is inactive." };
+  if (coupon.endsAt && coupon.endsAt.getTime() < Date.now()) return { error: "This coupon has expired." };
 
   const userIds = await resolveUserIds(usernamesOrIds);
-  if (userIds.length === 0) return { error: "지급 대상 유저를 찾을 수 없습니다." };
+  if (userIds.length === 0) return { error: "Target user for assignment not found." };
 
   let created = 0;
   let skipped = 0;

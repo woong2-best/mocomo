@@ -52,13 +52,13 @@ export async function createSettlementDraft(input: {
     ...(input.lines ?? [
       {
         type: "OTHER" as const,
-        label: "총 수익",
+        label: "Gross revenue",
         amountKrw: input.grossAmountKrw,
       },
     ]),
     {
       type: "PLATFORM_FEE",
-      label: "플랫폼 수수료",
+      label: "Platform fee",
       amountKrw: -preview.feeBeforeKrw,
     },
   ];
@@ -67,7 +67,7 @@ export async function createSettlementDraft(input: {
       type: preview.appliedPromotion ? "PROMOTION_DISCOUNT" : "COUPON_DISCOUNT",
       label: preview.appliedPromotion
         ? `Promotion · ${preview.appliedPromotion.name}`
-        : "Coupon 할인",
+        : "Coupon discount",
       amountKrw: preview.discountAmountKrw,
     });
   }
@@ -76,7 +76,7 @@ export async function createSettlementDraft(input: {
     data: {
       userId: input.userId,
       status: "PENDING",
-      title: input.title ?? "정산 초안",
+      title: input.title ?? "Settlement draft",
       periodStart: input.periodStart,
       periodEnd: input.periodEnd,
       grossAmountKrw: preview.grossAmountKrw,
@@ -185,7 +185,7 @@ export async function transitionSettlement(
   note?: string
 ) {
   const s = await db.settlement.findUnique({ where: { id: settlementId } });
-  if (!s) return { error: "정산을 찾을 수 없습니다." };
+  if (!s) return { error: "Settlement not found." };
   const allowed = TRANSITIONS[s.status] ?? [];
   if (!allowed.includes(toStatus)) {
     return { error: `${s.status} → ${toStatus} 전이가 허용되지 않습니다.` };
@@ -212,11 +212,11 @@ export async function transitionSettlement(
   });
 
   const titles: Partial<Record<SettlementStatus, string>> = {
-    APPROVED: "정산이 승인되었습니다",
-    REJECTED: "정산이 거절되었습니다",
-    PAID: "정산 지급이 완료되었습니다",
-    FAILED: "정산 지급에 실패했습니다",
-    PROCESSING: "정산이 처리 중입니다",
+    APPROVED: "Settlement approved",
+    REJECTED: "Settlement rejected",
+    PAID: "Settlement payout completed",
+    FAILED: "Settlement payout failed",
+    PROCESSING: "Settlement processing",
   };
   if (titles[toStatus]) {
     await createNotification({

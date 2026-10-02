@@ -64,13 +64,13 @@ export async function assertUserCanAdminMfa(userId: string): Promise<
     },
   });
   if (!user || user.deletedAt || user.isBanned) {
-    return { ok: false, error: "계정을 사용할 수 없습니다." };
+    return { ok: false, error: "This account cannot be used." };
   }
   if (user.adminDisabledAt && !isSiteOperatorAccount(user)) {
-    return { ok: false, error: "비활성화된 관리자 계정입니다." };
+    return { ok: false, error: "This admin account is deactivated." };
   }
   if (!isStaffIdentity(user) && !isSiteOperatorAccount(user)) {
-    return { ok: false, error: "관리자 권한이 없는 계정입니다." };
+    return { ok: false, error: "This account does not have admin access." };
   }
   const lock = await assertNotLocked(user.id);
   if ("error" in lock) return { ok: false, error: lock.error };
@@ -142,13 +142,13 @@ export async function startAdminPasskeyAuth(userId: string, opts?: { stepUp?: bo
   if (!gate.ok) return { error: gate.error };
   if (opts?.stepUp) {
     if (!(await hasValidAdminMfa(userId))) {
-      return { error: "관리자 MFA 세션이 필요합니다." };
+      return { error: "An admin MFA session is required." };
     }
     return beginPasskeyAuthentication(userId);
   }
   const stage = await getAdminMfaStage(userId);
   if (stage !== "pw" && stage !== "pk") {
-    return { error: "비밀번호 인증을 먼저 완료해 주세요." };
+    return { error: "Complete password verification first." };
   }
   return beginPasskeyAuthentication(userId);
 }
@@ -161,7 +161,7 @@ export async function completeAdminPasskeyAuth(
   if (!gate.ok) return { error: gate.error };
   const stage = await getAdminMfaStage(userId);
   if (stage !== "pw") {
-    return { error: "비밀번호 인증을 먼저 완료해 주세요." };
+    return { error: "Complete password verification first." };
   }
 
   const result = await finishPasskeyAuthentication(userId, response);
@@ -198,7 +198,7 @@ export async function completeAdminTotpAuth(
   if (!gate.ok) return { error: gate.error };
   const stage = await getAdminMfaStage(userId);
   if (stage !== "pk") {
-    return { error: "Passkey 인증을 먼저 완료해 주세요." };
+    return { error: "Complete passkey verification first." };
   }
 
   let usedTotp = false;
@@ -224,7 +224,7 @@ export async function completeAdminTotpAuth(
         targetId: userId,
         metadata: { step: "recovery" },
       });
-      return { error: "Recovery Code가 올바르지 않거나 이미 사용되었습니다." };
+      return { error: "Recovery code is invalid or has already been used." };
     }
     usedRecovery = true;
     void logSiteAdminAudit({
@@ -236,7 +236,7 @@ export async function completeAdminTotpAuth(
   } else {
     const totp = await db.adminTotpCredential.findUnique({ where: { userId } });
     if (!totp?.enabled || !totp.verifiedAt) {
-      return { error: "Authenticator가 등록되어 있지 않습니다." };
+      return { error: "No authenticator is registered." };
     }
     const secret = decryptTotpSecret(totp);
     if (!verifyTotpCode(secret, code)) {
@@ -257,7 +257,7 @@ export async function completeAdminTotpAuth(
         targetId: userId,
         metadata: { step: "totp" },
       });
-      return { error: "인증 코드가 올바르지 않습니다." };
+      return { error: "Verification code is incorrect." };
     }
     usedTotp = true;
   }
@@ -324,17 +324,17 @@ export async function completeAdminStepUp(
   const gate = await assertUserCanAdminMfa(userId);
   if (!gate.ok) return { error: gate.error };
   if (!(await hasValidAdminMfa(userId))) {
-    return { error: "관리자 MFA 세션이 필요합니다." };
+    return { error: "An admin MFA session is required." };
   }
 
   const pk = await finishPasskeyAuthentication(userId, passkeyResponse);
   if ("error" in pk) return pk;
 
   const totp = await db.adminTotpCredential.findUnique({ where: { userId } });
-  if (!totp?.enabled) return { error: "Authenticator가 필요합니다." };
+  if (!totp?.enabled) return { error: "An authenticator is required." };
   const secret = decryptTotpSecret(totp);
   if (!verifyTotpCode(secret, totpCode)) {
-    return { error: "TOTP 코드가 올바르지 않습니다." };
+    return { error: "TOTP code is incorrect." };
   }
 
   await issueAdminStepUp(userId);

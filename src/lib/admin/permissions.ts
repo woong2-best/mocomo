@@ -126,14 +126,14 @@ export function pathPermission(pathname: string): AdminPermission | null {
 }
 
 export const ADMIN_ROLE_LABELS: Record<string, string> = {
-  USER: "일반",
-  VERIFIED: "인증",
-  MARKETING: "마케팅",
-  CUSTOMER_SUPPORT: "고객지원",
-  MODERATOR: "모더레이터",
-  SETTLEMENT_MANAGER: "정산 담당",
-  SENIOR_MODERATOR: "시니어 모더레이터",
-  ADMIN: "관리자",
-  SUPER_ADMIN: "최고 관리자",
-  OWNER: "소유자",
+  USER: "Normal",
+  VERIFIED: "Authentication",
+  MARKETING: "Marketing",
+  CUSTOMER_SUPPORT: "Support",
+  MODERATOR: "Moderator",
+  SETTLEMENT_MANAGER: "Settlement ops",
+  SENIOR_MODERATOR: "Senior moderator",
+  ADMIN: "Admin",
+  SUPER_ADMIN: "Super admin",
+  OWNER: "Owner",
 };

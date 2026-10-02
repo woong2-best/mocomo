@@ -157,8 +157,8 @@ export async function adminSuspendUser(
   until?: Date
 ) {
   const target = await db.user.findUnique({ where: { id: userId } });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
-  if (target.id === actor.id) return { error: "본인 계정은 정지할 수 없습니다." };
+  if (!target) return { error: "User not found." };
+  if (target.id === actor.id) return { error: "You cannot suspend your own account." };
 
   const status = mode === "permanent" ? "PERMANENT_SUSPENDED" : "TEMP_SUSPENDED";
   await db.user.update({
@@ -197,7 +197,7 @@ export async function adminSuspendUser(
 
 export async function adminRestoreUser(actor: AdminActor, userId: string, reason?: string) {
   const target = await db.user.findUnique({ where: { id: userId } });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: "User not found." };
 
   await db.user.update({
     where: { id: userId },
@@ -228,8 +228,8 @@ export async function adminRestoreUser(actor: AdminActor, userId: string, reason
 
 export async function adminSoftDeleteUser(actor: AdminActor, userId: string, reason: string) {
   const target = await db.user.findUnique({ where: { id: userId } });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
-  if (target.id === actor.id) return { error: "본인 계정은 삭제할 수 없습니다." };
+  if (!target) return { error: "User not found." };
+  if (target.id === actor.id) return { error: "You cannot delete your own account." };
 
   const purge = new Date();
   purge.setDate(purge.getDate() + 50);
@@ -289,15 +289,15 @@ export async function adminChangeUsername(
 ) {
   const cleaned = newUsername.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
   if (cleaned.length < 3 || cleaned.length > 24) {
-    return { error: "유저네임은 3–24자 (영문/숫자/_ )여야 합니다." };
+    return { error: "Username must be 3–24 characters (letters, numbers, _)." };
   }
   const exists = await db.user.findFirst({
     where: { username: cleaned, NOT: { id: userId } },
   });
-  if (exists) return { error: "이미 사용 중인 유저네임입니다." };
+  if (exists) return { error: "This username is already taken." };
 
   const target = await db.user.findUnique({ where: { id: userId } });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: "User not found." };
 
   await db.$transaction([
     db.user.update({ where: { id: userId }, data: { username: cleaned } }),
@@ -323,7 +323,7 @@ export async function adminChangeUsername(
 
 export async function adminAddUserMemo(actor: AdminActor, userId: string, body: string) {
   const text = body.trim();
-  if (!text) return { error: "메모를 입력해 주세요." };
+  if (!text) return { error: "Enter a note." };
   const memo = await db.adminUserMemo.create({
     data: { userId, authorId: actor.id, body: text.slice(0, 4000) },
   });
@@ -411,15 +411,15 @@ export async function setStaffRole(
   role: UserRole
 ) {
   if (actor.role !== "OWNER") {
-    return { error: "OWNER만 관리자 권한을 변경할 수 있습니다." };
+    return { error: "Only OWNER can change admin permissions." };
   }
   if (role === "OWNER") {
-    return { error: "OWNER 역할은 부여할 수 없습니다." };
+    return { error: "The OWNER role cannot be assigned." };
   }
   const target = await db.user.findUnique({ where: { id: userId } });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: "User not found." };
   if (isSiteOperatorAccount(target)) {
-    return { error: "사이트 오너 계정 권한은 변경할 수 없습니다." };
+    return { error: "Site owner account permissions cannot be changed." };
   }
 
   await db.user.update({ where: { id: userId }, data: { role } });
@@ -435,13 +435,13 @@ export async function setStaffRole(
 
 export async function setStaffDisabled(actor: AdminActor, userId: string, disabled: boolean) {
   if (actor.role !== "OWNER") {
-    return { error: "OWNER만 관리자를 활성화/비활성화할 수 있습니다." };
+    return { error: "Only OWNER can activate or deactivate admins." };
   }
-  if (userId === actor.id) return { error: "본인 계정은 비활성화할 수 없습니다." };
+  if (userId === actor.id) return { error: "You cannot deactivate your own account." };
   const target = await db.user.findUnique({ where: { id: userId } });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: "User not found." };
   if (isSiteOperatorAccount(target)) {
-    return { error: "사이트 오너 계정은 비활성화할 수 없습니다." };
+    return { error: "The site owner account cannot be deactivated." };
   }
   await db.user.update({
     where: { id: userId },
@@ -458,7 +458,7 @@ export async function setStaffDisabled(actor: AdminActor, userId: string, disabl
 
 export async function resetStaffPassword(actor: AdminActor, userId: string) {
   if (actor.role !== "OWNER") {
-    return { error: "OWNER만 관리자 비밀번호를 초기화할 수 있습니다." };
+    return { error: "Only OWNER can reset admin passwords." };
   }
   const temp = `Mc${Math.random().toString(36).slice(2, 10)}!A1`;
   const passwordHash = await bcrypt.hash(temp, 12);
@@ -478,20 +478,20 @@ export async function promoteUserToStaff(
   role: UserRole
 ) {
   if (actor.role !== "OWNER") {
-    return { error: "OWNER만 관리자 계정을 추가할 수 있습니다." };
+    return { error: "Only OWNER can add admin accounts." };
   }
   const user =
     (await db.user.findUnique({ where: { id: usernameOrId } })) ??
     (await db.user.findFirst({
       where: { username: { equals: usernameOrId.replace(/^@/, ""), mode: "insensitive" } },
     }));
-  if (!user) return { error: "사용자를 찾을 수 없습니다." };
-  if (role === "OWNER") return { error: "OWNER는 생성할 수 없습니다." };
+  if (!user) return { error: "User not found." };
+  if (role === "OWNER") return { error: "OWNER accounts cannot be created." };
   if (isSiteOperatorAccount(user)) {
-    return { error: "사이트 오너 계정은 이미 최고 권한입니다." };
+    return { error: "The site owner account already has the highest access." };
   }
   if (!isAdminCmsRole(role)) {
-    return { error: "유효하지 않은 관리자 역할입니다." };
+    return { error: "Invalid admin role." };
   }
 
   await db.user.update({
@@ -510,13 +510,13 @@ export async function promoteUserToStaff(
 
 export async function demoteStaff(actor: AdminActor, userId: string) {
   if (actor.role !== "OWNER") {
-    return { error: "OWNER만 관리자 권한을 삭제할 수 있습니다." };
+    return { error: "Only OWNER can remove admin permissions." };
   }
-  if (userId === actor.id) return { error: "본인 권한은 제거할 수 없습니다." };
+  if (userId === actor.id) return { error: "You cannot remove your own permissions." };
   const target = await db.user.findUnique({ where: { id: userId } });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: "User not found." };
   if (isSiteOperatorAccount(target) || target.role === "OWNER") {
-    return { error: "사이트 오너 계정은 삭제할 수 없습니다." };
+    return { error: "The site owner account cannot be deleted." };
   }
 
   // 관리자 역할 제거 → 일반 유저 (더 이상 /admin 진입 불가)

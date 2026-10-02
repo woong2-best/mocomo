@@ -116,7 +116,7 @@ export async function finishPasskeyRegistration(
 ): Promise<{ credentialId: string } | { error: string }> {
   const { rpID, origin } = rpConfig();
   const expectedChallenge = await consumeChallenge(challengeIdentifier("reg", userId));
-  if (!expectedChallenge) return { error: "Passkey 등록 세션이 만료되었습니다." };
+  if (!expectedChallenge) return { error: "Passkey registration session expired." };
 
   let verification;
   try {
@@ -128,11 +128,11 @@ export async function finishPasskeyRegistration(
       requireUserVerification: false,
     });
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Passkey 등록 검증 실패" };
+    return { error: e instanceof Error ? e.message : "Passkey registration verification failed" };
   }
 
   if (!verification.verified || !verification.registrationInfo) {
-    return { error: "Passkey 등록에 실패했습니다." };
+    return { error: "Passkey registration failed." };
   }
 
   const info = verification.registrationInfo;
@@ -171,7 +171,7 @@ export async function beginPasskeyAuthentication(userId: string) {
     select: { credentialId: true, transports: true },
   });
   if (!existing.length) {
-    return { error: "등록된 Passkey가 없습니다." as const };
+    return { error: "No passkeys registered." as const };
   }
 
   const options = await generateAuthenticationOptions({
@@ -196,13 +196,13 @@ export async function finishPasskeyAuthentication(
 ): Promise<{ ok: true } | { error: string }> {
   const { rpID, origin } = rpConfig();
   const expectedChallenge = await consumeChallenge(challengeIdentifier("auth", userId));
-  if (!expectedChallenge) return { error: "Passkey 인증 세션이 만료되었습니다." };
+  if (!expectedChallenge) return { error: "Passkey authentication session expired." };
 
   const cred = await db.adminWebAuthnCredential.findUnique({
     where: { credentialId: response.id },
   });
   if (!cred || cred.userId !== userId) {
-    return { error: "알 수 없는 Passkey입니다." };
+    return { error: "Unknown passkey." };
   }
 
   let verification;
@@ -223,10 +223,10 @@ export async function finishPasskeyAuthentication(
       requireUserVerification: false,
     });
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Passkey 인증 실패" };
+    return { error: e instanceof Error ? e.message : "Passkey authentication failed" };
   }
 
-  if (!verification.verified) return { error: "Passkey 인증에 실패했습니다." };
+  if (!verification.verified) return { error: "Passkey authentication failed." };
 
   await db.adminWebAuthnCredential.update({
     where: { id: cred.id },
