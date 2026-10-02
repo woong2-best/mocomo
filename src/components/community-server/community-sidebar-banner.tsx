@@ -237,8 +237,7 @@ export function CommunitySidebarBanner({ communityId, bannerUrl, bannerVideoUrl 
               ) : null}
             </div>
             <p className="text-[10px] leading-snug text-muted-foreground">
-              {BANNER_VIDEO_FORMAT_HINT} · 최대 {MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초
-              {uploadingVideo ? t("community-server.h_265") : ""}
+              {BANNER_VIDEO_FORMAT_HINT} · 최대 {MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}sec{uploadingVideo ? t("community-server.h_265") : ""}
             </p>
             <Button
               type="button"
