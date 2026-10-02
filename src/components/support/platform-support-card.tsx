@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { SupportTierLevel } from "@prisma/client";
 import { OreTierBadgePopover } from "@/components/support/ore-tier-button";
 import { formatTierMoco, getNextTierInfo, getTierInfo } from "@/lib/tiers";
@@ -16,7 +19,7 @@ export function PlatformSupportCard({
   if (compact) {
     return (
       <div className="flex flex-wrap gap-2 text-xs">
-        <span className="text-muted-foreground">전체 후원</span>
+        <span className="text-muted-foreground">{t("support.sqkc7lo")}</span>
         <OreTierBadgePopover tier={sentTier} size="sm" />
       </div>
     );
@@ -24,7 +27,7 @@ export function PlatformSupportCard({
 
   return (
     <div className="rounded-2xl border border-border/50 bg-muted/15 p-4 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">사이트 전체 누적 후원 (보낸 금액)</p>
+      <p className="text-xs font-medium text-muted-foreground">{t("support.s1tvkcff")}</p>
       <p className="text-lg font-bold">{formatTierMoco(sentTotal)}</p>
       <OreTierBadgePopover tier={sentTier} size="md" />
       {sentNext && (
