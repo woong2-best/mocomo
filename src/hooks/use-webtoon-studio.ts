@@ -287,7 +287,7 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
         ...p.layers,
         {
           id,
-          name: `레이어 ${p.layers.length + 1}`,
+          name: `Layers ${p.layers.length + 1}`,
           type: "raster",
           visible: true,
           locked: false,
