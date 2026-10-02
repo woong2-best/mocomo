@@ -69,7 +69,7 @@ export async function checkYoutubeMadeForKids(
       }
       return {
         ok: false,
-        error: `YouTube API 오류 (${res.status})`,
+        error: `Something went wrong. Please try again.${res.status})`,
         videoId,
       };
     }

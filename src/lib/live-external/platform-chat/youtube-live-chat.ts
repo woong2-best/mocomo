@@ -170,7 +170,7 @@ export async function fetchYoutubeLiveChatMessages(params: {
         errBody?.error?.message ??
         (res.status === 403
           ? "YouTube 채팅 API 권한이 없습니다. Google 계정을 다시 연결하세요."
-          : `YouTube API 오류 (${res.status})`);
+          : `Something went wrong. Please try again.${res.status})`);
       return {
         messages: [],
         nextPageToken: params.pageToken ?? null,
