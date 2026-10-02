@@ -6,15 +6,18 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const [folder, prefix, label] = process.argv.slice(2);
+const [folder, prefix, label, excludeFiles] = process.argv.slice(2);
 if (!folder || !prefix || !label) {
-  console.error("Usage: batch2-folder.mjs <folder> <keyPrefix> <commitLabel>");
+  console.error("Usage: batch2-folder.mjs <folder> <keyPrefix> <commitLabel> [exclude.csv]");
   process.exit(1);
 }
+const migrateArgs = excludeFiles
+  ? `node scripts/i18n/migrate-folder-hangul.mjs ${folder} ${prefix} ${excludeFiles}`
+  : `node scripts/i18n/migrate-folder-hangul.mjs ${folder} ${prefix}`;
 
 execSync("node scripts/i18n/build-ko-en-index.mjs", { stdio: "inherit" });
 try {
-  execSync(`node scripts/i18n/migrate-folder-hangul.mjs ${folder} ${prefix}`, { stdio: "inherit" });
+  execSync(migrateArgs, { stdio: "inherit" });
 } catch {
   console.error("migrate failed", folder);
   execSync(`git checkout -- ${folder}`, { stdio: "inherit" });
@@ -43,6 +46,13 @@ try {
 }
 
 if (tscOk) {
+  const changed = execSync(`git diff --name-only -- ${folder} src/lib/i18n/locales/en.json`, {
+    encoding: "utf8",
+  }).trim();
+  if (!changed) {
+    console.log("NO_CHANGES", folder);
+    process.exit(0);
+  }
   execSync(`git add ${folder} src/lib/i18n/locales/en.json`, { stdio: "inherit" });
   execSync(`git commit -m "fix(i18n): ${label} (step 5)"`, { stdio: "inherit" });
   console.log("COMMITTED", folder);

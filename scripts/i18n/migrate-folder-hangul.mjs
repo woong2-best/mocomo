@@ -12,8 +12,16 @@ import { execSync } from "node:child_process";
 const root = process.cwd();
 const targetRel = process.argv[2];
 const keyPrefix = process.argv[3] || "ui";
+const excludeNames = new Set(
+  (process.argv[4] || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+);
+const DEFAULT_EXCLUDE = new Set(["subculture-events-map.tsx"]);
+for (const n of DEFAULT_EXCLUDE) excludeNames.add(n);
 if (!targetRel) {
-  console.error("Usage: migrate-folder-hangul.mjs <folder> [keyPrefix]");
+  console.error("Usage: migrate-folder-hangul.mjs <folder> [keyPrefix] [excludeFile1,excludeFile2]");
   process.exit(1);
 }
 
@@ -182,18 +190,65 @@ function stripComments(line) {
   return s;
 }
 
-/** Replace quoted strings that contain Hangul (not already t("...")). */
-function replaceQuotedStrings(code, onReplace) {
+function stripCommentsForScan(code) {
+  return code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n\r]*/g, "");
+}
+
+/** End index of opening ` (handles nested ${ ... } and nested templates in expressions). */
+function closeTemplateLiteral(code, openIdx) {
+  let j = openIdx + 1;
+  while (j < code.length) {
+    const c = code[j];
+    if (c === "\\") {
+      j += 2;
+      continue;
+    }
+    if (c === "`") return j;
+    if (c === "$" && code[j + 1] === "{") {
+      j += 2;
+      let depth = 1;
+      while (j < code.length && depth > 0) {
+        if (code[j] === "\\") {
+          j += 2;
+          continue;
+        }
+        if (code[j] === "`") {
+          j = closeTemplateLiteral(code, j) + 1;
+          continue;
+        }
+        if (code[j] === "{") depth++;
+        else if (code[j] === "}") depth--;
+        j++;
+      }
+      continue;
+    }
+    j++;
+  }
+  return code.length - 1;
+}
+
+function replaceHangulInHtmlString(inner, onReplace) {
+  return inner.replace(/>([^<]*[가-힣][^<]*)</g, (seg, text) => {
+    const trimmed = text.trim();
+    if (!hangul.test(trimmed)) return seg;
+    const key = ensureEntry(trimmed);
+    onReplace(trimmed, key);
+    return `>\${i18n("${key}")}<`;
+  });
+}
+
+/** Replace Hangul in "..." / '...' only (for inside template literals). */
+function replaceQuotedInFragment(fragment, onReplace) {
   let out = "";
   let i = 0;
-  while (i < code.length) {
-    const ch = code[i];
-    if (ch === '"' || ch === "'" || ch === "`") {
+  while (i < fragment.length) {
+    const ch = fragment[i];
+    if (ch === '"' || ch === "'") {
       const quote = ch;
       let j = i + 1;
       let escaped = false;
-      while (j < code.length) {
-        const c = code[j];
+      while (j < fragment.length) {
+        const c = fragment[j];
         if (escaped) {
           escaped = false;
           j++;
@@ -207,50 +262,15 @@ function replaceQuotedStrings(code, onReplace) {
         if (c === quote) break;
         j++;
       }
-      const inner = code.slice(i + 1, j);
-      const full = code.slice(i, j + 1);
-      if (quote !== "`" && hangul.test(inner) && !/^\s*t\s*\(/.test(code.slice(Math.max(0, i - 8), i))) {
-        if (inner.includes("${")) {
-          out += full;
+      const inner = fragment.slice(i + 1, j);
+      const full = fragment.slice(i, j + 1);
+      if (hangul.test(inner)) {
+        if (inner.includes("<") && inner.includes(">")) {
+          out += replaceHangulInHtmlString(inner, onReplace);
         } else {
           const key = ensureEntry(inner);
-          const rep = `t("${key}")`;
           onReplace(inner, key);
-          out += rep;
-        }
-      } else if (quote === "`" && hangul.test(inner)) {
-        const tpl = inner.replace(/\$\{([^}]+)\}/g, (_, expr) => `{${expr.trim()}}`);
-        if (/\{[^}]+\}/.test(tpl)) {
-          const parts = inner.split(/\$\{([^}]+)\}/);
-          const staticKo = parts.filter((_, idx) => idx % 2 === 0).join("");
-          if (hangul.test(staticKo)) {
-            const key = ensureEntry(staticKo.replace(/\s+/g, " ").trim() || inner);
-            if (!en[key] || hangul.test(String(en[key])) || TODO_PREFIX.test(String(en[key]))) {
-              en[key] = englishForKo(staticKo.trim()) ?? provisionalEnglish(staticKo);
-            }
-            const vars = [];
-            let repl = "`";
-            for (let k = 0; k < parts.length; k++) {
-              if (k % 2 === 1) {
-                const varName = `v${vars.length}`;
-                vars.push([varName, parts[k].trim()]);
-                repl += `\${${parts[k]}}`;
-              } else if (parts[k] && hangul.test(parts[k])) {
-                repl += `\${t("${key}"${vars.length ? "" : ""})}`;
-              } else {
-                repl += parts[k];
-              }
-            }
-            repl += "`";
-            out += `t("${key}", { ${vars.map(([n, e]) => `${n}: ${e}`).join(", ")} })`;
-            onReplace(inner, key);
-          } else {
-            out += full;
-          }
-        } else {
-          const key = ensureEntry(inner);
           out += `t("${key}")`;
-          onReplace(inner, key);
         }
       } else {
         out += full;
@@ -264,9 +284,114 @@ function replaceQuotedStrings(code, onReplace) {
   return out;
 }
 
-/** JSX text nodes: > ... hangul ... < */
+/** Replace quoted strings that contain Hangul (not already t("...")). */
+function replaceQuotedStrings(code, onReplace) {
+  let out = "";
+  let i = 0;
+  while (i < code.length) {
+    const ch = code[i];
+    if (ch === "/" && code[i + 1] === "/") {
+      let j = i;
+      while (j < code.length && code[j] !== "\n" && code[j] !== "\r") j++;
+      out += code.slice(i, j);
+      i = j;
+      continue;
+    }
+    if (ch === "/" && code[i + 1] === "*") {
+      let j = i + 2;
+      while (j < code.length - 1 && !(code[j] === "*" && code[j + 1] === "/")) j++;
+      j = Math.min(code.length, j + 2);
+      out += code.slice(i, j);
+      i = j;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      const quote = ch;
+      const j =
+        quote === "`" ? closeTemplateLiteral(code, i) : (() => {
+          let k = i + 1;
+          let escaped = false;
+          while (k < code.length) {
+            const c = code[k];
+            if (escaped) {
+              escaped = false;
+              k++;
+              continue;
+            }
+            if (c === "\\") {
+              escaped = true;
+              k++;
+              continue;
+            }
+            if (c === quote) break;
+            k++;
+          }
+          return k;
+        })();
+      const inner = code.slice(i + 1, j);
+      const full = code.slice(i, j + 1);
+      if (quote !== "`" && hangul.test(inner) && !/^\s*t\s*\(/.test(code.slice(Math.max(0, i - 8), i))) {
+        const before = code.slice(Math.max(0, i - 40), i);
+        if (/useState\s*<[^>]*>\s*$/.test(before)) {
+          out += full;
+        } else if (inner.includes("<") && inner.includes(">")) {
+          out += "`" + replaceHangulInHtmlString(inner, onReplace) + "`";
+        } else if (inner.includes("${")) {
+          out += full;
+        } else {
+          const key = ensureEntry(inner);
+          const rep = `t("${key}")`;
+          onReplace(inner, key);
+          out += rep;
+        }
+      } else if (quote === "`" && hangul.test(inner)) {
+        if (inner.includes("${")) {
+          out += "`" + replaceQuotedInFragment(inner, onReplace) + "`";
+        } else if (/["']/.test(inner)) {
+          out += "`" + replaceQuotedInFragment(inner, onReplace) + "`";
+        } else {
+          const key = ensureEntry(inner);
+          onReplace(inner, key);
+          out += `t("${key}")`;
+        }
+      } else {
+        out += full;
+      }
+      i = j + 1;
+      continue;
+    }
+    out += ch;
+    i++;
+  }
+  return out;
+}
+
+/** JSX mixed text between `}` and `{` on one line (e.g. `{x} label {y}`). */
+function replaceJsxSiblingText(code, onReplace) {
+  return code.replace(/(\})\s*([^<>{}\r\n]*[가-힣][^<>{}\r\n]*?)\s*(\{(?!\/\*))/g, (match, close, text, open) => {
+    const trimmed = text.trim();
+    if (!trimmed || !hangul.test(trimmed)) return match;
+    const before = code.slice(0, code.indexOf(match));
+    const singles = (before.match(/'/g) || []).length;
+    const doubles = (before.match(/"/g) || []).length;
+    const backticks = (before.match(/`/g) || []).length;
+    if (singles % 2 === 1 || doubles % 2 === 1 || backticks % 2 === 1) return match;
+    const key = ensureEntry(trimmed);
+    onReplace(trimmed, key);
+    const lead = text.match(/^\s*/)[0];
+    const trail = text.match(/\s*$/)[0];
+    return `${close}${lead}{i18n("${key}")}${trail}${open}`;
+  });
+}
+
+/** JSX text nodes: > ... hangul ... < (single line only — never span TS generics/comments). */
 function replaceJsxText(code, onReplace) {
-  return code.replace(/>([^<>{}]*[가-힣][^<>{}]*)</g, (match, text) => {
+  return code.replace(/>([^<>\r\n{}]*[가-힣][^<>\r\n{}]*)</g, (match, text, offset) => {
+    const before = code.slice(Math.max(0, offset - 400), offset);
+    const singles = (before.match(/'/g) || []).length;
+    const doubles = (before.match(/"/g) || []).length;
+    const backticks = (before.match(/`/g) || []).length;
+    if (singles % 2 === 1 || doubles % 2 === 1 || backticks % 2 === 1) return match;
     const trimmed = text.trim();
     if (!trimmed || !hangul.test(trimmed)) return match;
     if (trimmed.includes("{")) return match;
@@ -279,14 +404,33 @@ function replaceJsxText(code, onReplace) {
 }
 
 function ensureClientHooks(src) {
-  if (!src.includes('"use client"') && !src.includes("'use client'")) return src;
-  if (/\bt\s*\(\s*"/.test(src) && !src.includes("createTranslator") && !/[\{,]\s*t\s*\}\s*=\s*useLocale/.test(src)) {
-    src = src.replace(
-      /^(["']use client["'];?\s*\n)/,
-      `$1import { createTranslator } from "@/lib/i18n/messages";\nconst t = createTranslator("en");\n\n`
-    );
+  if (!/["']use client["']/.test(src)) return src;
+  if (!/\bt\s*\(\s*["'`]/.test(src)) return src;
+  if (/\bfunction\s+t\s*\(/.test(src)) return src;
+  let out = src;
+  if (!/\bconst\s+i18n\s*=\s*createTranslator/.test(out)) {
+    if (out.includes("createTranslator")) {
+      if (!/import\s*\{[^}]*createTranslator/.test(out)) {
+        out = out.replace(
+          /^(\uFEFF?)(["']use client["'];?\r?\n)/,
+          `$1$2import { createTranslator } from "@/lib/i18n/messages";\n`
+        );
+      }
+      out = out.replace(
+        /^(\uFEFF?)(["']use client["'];?\r?\n(?:import[^\n]+\n)*)/,
+        `$1$2const i18n = createTranslator("en");\n\n`
+      );
+    } else {
+      out = out.replace(
+        /^(\uFEFF?)(["']use client["'];?\r?\n)/,
+        `$1$2import { createTranslator } from "@/lib/i18n/messages";\nconst i18n = createTranslator("en");\n\n`
+      );
+    }
   }
-  return src;
+  if (/\bconst\s+i18n\s*=\s*createTranslator/.test(out)) {
+    out = out.replace(/\bt\s*\(\s*"/g, 'i18n("');
+  }
+  return out;
 }
 
 function ensureModuleTranslator(src) {
@@ -296,7 +440,7 @@ function ensureModuleTranslator(src) {
   const importBlock =
     'import { createTranslator } from "@/lib/i18n/messages";\nconst t = createTranslator("en");\n\n';
   if (/^["']use server["']/m.test(src)) {
-    return src.replace(/^(["']use server["'];?\s*\n)/, `$1${importBlock}`);
+    return src.replace(/^(["']use server["'];?\r?\n)/, `$1${importBlock}`);
   }
   return `${importBlock}${src}`;
 }
@@ -305,7 +449,7 @@ function walk(dir, files = []) {
   for (const name of fs.readdirSync(dir)) {
     const p = path.join(dir, name);
     if (fs.statSync(p).isDirectory()) walk(p, files);
-    else if (/\.(tsx|ts)$/.test(name)) files.push(p);
+    else if (/\.(tsx|ts)$/.test(name) && !excludeNames.has(name)) files.push(p);
   }
   return files;
 }
@@ -315,26 +459,22 @@ let changed = 0;
 const addedKeys = new Set();
 
 for (const file of files) {
-  let src = fs.readFileSync(file, "utf8");
-  const lines = src.split(/\r?\n/);
-  let hasHangulCode = false;
-  for (const line of lines) {
-    if (hangul.test(stripComments(line))) {
-      hasHangulCode = true;
-      break;
-    }
-  }
-  if (!hasHangulCode) continue;
+  let src = fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "");
+  if (!hangul.test(stripCommentsForScan(src))) continue;
 
   let modified = src;
   const onReplace = (_, key) => addedKeys.add(key);
 
   modified = replaceJsxText(modified, onReplace);
+  modified = replaceJsxSiblingText(modified, onReplace);
   modified = replaceQuotedStrings(modified, onReplace);
 
   if (modified !== src) {
-    modified = modified.replace(/([a-zA-Z0-9_-]+=\s*)t\("([^"]+)"\)/g, '$1{t("$2")}');
-    modified = modified.replace(/([a-zA-Z0-9_-]+=\s*)t\("([^"]+)",\s*(\{[^}]+\})\)/g, '$1{t("$2", $3)}');
+    modified = modified.replace(/([a-zA-Z0-9_-]+=\s*)(t|i18n)\("([^"]+)"\)/g, '$1{$2("$3")}');
+    modified = modified.replace(
+      /([a-zA-Z0-9_-]+=\s*)(t|i18n)\("([^"]+)",\s*(\{[^}]+\})\)/g,
+      '$1{$2("$3", $4)}'
+    );
     modified = ensureClientHooks(modified);
     modified = ensureModuleTranslator(modified);
     fs.writeFileSync(file, modified, "utf8");
@@ -343,5 +483,7 @@ for (const file of files) {
   }
 }
 
-fs.writeFileSync(enPath, JSON.stringify(en, null, 2) + "\n", "utf8");
+if (addedKeys.size > 0) {
+  fs.writeFileSync(enPath, JSON.stringify(en, null, 2) + "\n", "utf8");
+}
 console.log(`Done: ${changed} files, ${addedKeys.size} keys touched, en.json ${Object.keys(en).length} keys`);
