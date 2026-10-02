@@ -60,9 +60,9 @@ export function buildSubcultureBadges(input: {
   if (productLabel) badges.push({ key: "product", label: productLabel, tone: "accent" });
 
   if (input.tradeMode === "TRADE") {
-    badges.push({ key: "trade", label: "교환 (WTT)", tone: "trade" });
+    badges.push({ key: "trade", label: "Trade (WTT)", tone: "trade" });
   } else if (input.tradeMode === "SELL_OR_TRADE") {
-    badges.push({ key: "trade", label: "판매·교환", tone: "trade" });
+    badges.push({ key: "trade", label: "Sell & trade", tone: "trade" });
   }
 
   const limited = limitedKindLabel(input.limitedKind);
@@ -89,7 +89,7 @@ export function buildSubcultureBadges(input: {
   if (origin && input.itemOrigin !== "OFFICIAL") {
     badges.push({ key: "origin", label: origin, tone: "muted" });
   } else if (input.itemOrigin === "OFFICIAL") {
-    badges.push({ key: "origin", label: "정품", tone: "muted" });
+    badges.push({ key: "origin", label: "Authentic", tone: "muted" });
   }
 
   if (input.characterName?.trim()) {

@@ -79,7 +79,7 @@ export async function notifyWtbAlertsForListing(listingId: string): Promise<numb
     await createNotification({
       userId: alert.userId,
       type: "subculture_wtb",
-      title: "WTB 조건 상품 등록",
+      title: "List WTB listing",
       body: `${listing.title} · ${formatUsedPrice(listing.price, listing.currency)}`,
       link: `/market/${listing.id}`,
       actorId: listing.sellerId,
@@ -105,7 +105,7 @@ export async function createWtbAlert(userId: string, input: WtbAlertInput) {
   const note = input.note?.trim().slice(0, 200) || null;
 
   if (!workTitle && !animeSlug && !productType && !characterName) {
-    return { error: "작품·상품종류·캐릭터 중 하나 이상을 입력해 주세요." as const };
+    return { error: "Enter at least one of series, product type, or character." as const };
   }
 
   const row = await db.subcultureWtbAlert.create({
@@ -133,7 +133,7 @@ export async function listMyWtbAlerts(userId: string) {
 
 export async function deactivateWtbAlert(userId: string, alertId: string) {
   const row = await db.subcultureWtbAlert.findUnique({ where: { id: alertId } });
-  if (!row || row.userId !== userId) return { error: "권한이 없습니다." as const };
+  if (!row || row.userId !== userId) return { error: "Permission denied." as const };
   await db.subcultureWtbAlert.update({
     where: { id: alertId },
     data: { active: false },
