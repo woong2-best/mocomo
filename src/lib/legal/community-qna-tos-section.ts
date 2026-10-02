@@ -92,7 +92,7 @@ export const COMMUNITY_QNA_TOS_BLOCKS_KO: LegalBlock[] = [
   },
   {
     type: "p",
-    text: "이용자는 본인이 게시한 Q&A 콘텐츠에 대한 책임을 부담하며, 제3자 청구로 인한 회사 손해에 대해 면책·배상에 동의합니다. Q&A 게시 시 회사에 전 세계적·영구적·무상·재라이선스 가능·양도 가능한 이용 허락을 부여합니다. Q&A 관련 간접·특별·결과·징벌적 손해에 대한 회사 책임은 관련 법령이 허용하는 최대 한도 내에서 제한됩니다.",
+    text: "You don't have permission to do that.",
   },
   {
     type: "p",
