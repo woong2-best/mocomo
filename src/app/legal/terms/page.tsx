@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { TERMS_OF_SERVICE } from "@/lib/legal-content";
 import { LegalDocumentView } from "@/components/legal/legal-document";
 import { resolveLegalCountryCode } from "@/lib/legal-country";
@@ -5,7 +8,7 @@ import { getTermsSupplementalBlocks } from "@/lib/legal-supplemental-clauses";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "이용약관 — MoCoMo",
+  title: t("app.terms.mocomo"),
 };
 
 export default async function TermsPage() {

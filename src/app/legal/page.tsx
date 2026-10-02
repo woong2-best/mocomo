@@ -1,18 +1,21 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { LEGAL_PAGES } from "@/lib/legal-content";
 import type { Metadata } from "next";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 export const metadata: Metadata = {
-  title: "약관 및 정책 — MoCoMo",
-  description: "MoCoMo 이용약관, 개인정보처리방침, 운영정책",
+  title: t("app.legal.mocomo_8"),
+  description: t("app.legal.mocomo_9"),
 };
 
 export default function LegalIndexPage() {
   return (
     <AppPageChrome maxWidth="3xl">
       <NativePageTitle>
-        <h1 className="text-2xl font-bold">약관 및 정책</h1>
+        <h1 className="text-2xl font-bold">{t("settings.legalTitle")}</h1>
       </NativePageTitle>
       <p className="text-sm text-muted-foreground">
         MoCoMo 서비스 이용에 관한 약관과 커뮤니티 운영 정책입니다.
