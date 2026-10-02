@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import {
@@ -35,19 +38,19 @@ import { uploadImageBlob } from "@/lib/client-upload";
 import { cn } from "@/lib/utils";
 
 const ROADMAP_DONE = new Set([
-  "클라우드 저장",
-  "브러시 동기화",
-  "팔레트 동기화",
-  "자동 백업",
-  "예약 업로드",
-  "조회·구독 통계",
+  t("webtoon-studio.ss1tc41"),
+  t("webtoon-studio.s1uvo3yx"),
+  t("webtoon-studio.s12e2069"),
+  t("webtoon-studio.slnkmaz"),
+  t("webtoon-studio.s1lhr2hm"),
+  t("webtoon-studio.s1nmyal7"),
 ]);
 
 const ROADMAP_SECTIONS = [
-  { title: "클라우드 · 동기화", items: ["클라우드 저장", "브러시 동기화", "팔레트 동기화", "자동 백업"] },
-  { title: "협업", items: ["공동 작업", "권한 관리", "댓글", "작업 요청"] },
-  { title: "연재 · 통계", items: ["예약 업로드", "연재 캘린더", "조회·구독 통계", "국가별 통계"] },
-  { title: "파일", items: ["PSD 가져오기", "MDP 가져오기", "PSD 내보내기"] },
+  { title: t("webtoon-studio.sk0yhk8"), items: [t("webtoon-studio.ss1tc41"), t("webtoon-studio.s1uvo3yx"), t("webtoon-studio.s12e2069"), t("webtoon-studio.slnkmaz")] },
+  { title: t("webtoon-studio.s11hw4"), items: [t("webtoon-studio.s1novyi8"), t("webtoon-studio.s1u7y7i4"), t("lib.notifications.s6d4e9bd3a9"), t("webtoon-studio.snxjrol")] },
+  { title: t("webtoon-studio.szdt6l8"), items: [t("webtoon-studio.s1lhr2hm"), t("webtoon-studio.s1ipbvmg"), t("webtoon-studio.s1nmyal7"), t("webtoon-studio.s1gqs7y6")] },
+  { title: t("lib.community-server.s10zqo"), items: [t("webtoon-studio.psd"), t("webtoon-studio.mdp"), t("webtoon-studio.psd_2")] },
 ];
 
 export function WebtoonDrawStudio() {
@@ -82,7 +85,7 @@ export function WebtoonDrawStudio() {
       await uploadImageBlob(blob, `${studio.project.name}-${episodeNo}.png`);
       setMsg(`${episodeNo}화 PNG 업로드 완료. 연재·등록 스튜디오에서 회차로 등록하세요.`);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "업로드 실패");
+      setMsg(e instanceof Error ? e.message : t("webtoon-studio.s1vgkz0f"));
     }
   }, [episodeNo, studio]);
 
@@ -90,9 +93,9 @@ export function WebtoonDrawStudio() {
     setCloudMsg("");
     try {
       await studio.saveCloud();
-      setCloudMsg("클라우드에 저장되었습니다.");
+      setCloudMsg(t("webtoon-studio.silqqty"));
     } catch (e) {
-      setCloudMsg(e instanceof Error ? e.message : "클라우드 저장 실패");
+      setCloudMsg(e instanceof Error ? e.message : t("webtoon-studio.s16bneer"));
     }
   }, [studio]);
 
@@ -112,7 +115,7 @@ export function WebtoonDrawStudio() {
   return (
     <div className={shellClass}>
       <header className="shrink-0 flex flex-wrap items-center gap-2 border-b border-border/60 px-3 py-2 bg-card/80">
-        <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => setScreen("home")} title="프로젝트 홈">
+        <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => setScreen("home")} title={t("webtoon-studio.sur1bv")}>
           <Home className="h-4 w-4" />
         </Button>
         <Input
@@ -182,17 +185,17 @@ export function WebtoonDrawStudio() {
       {publishOpen && (
         <div className="shrink-0 flex flex-wrap items-end gap-2 px-3 py-2 bg-muted/40 border-b text-xs">
           <label className="space-y-1">
-            <span className="text-muted-foreground">회차</span>
+            <span className="text-muted-foreground">{t("lib.wallet.labels.s2626a8b182")}</span>
             <Input type="number" min={1} value={episodeNo} onChange={(e) => setEpisodeNo(Number(e.target.value))} className="h-8 w-20" />
           </label>
           <label className="space-y-1">
-            <span className="text-muted-foreground">가격(원)</span>
+            <span className="text-muted-foreground">{t("webtoon-studio.s1j1ifjs")}</span>
             <Input type="number" min={0} value={price} onChange={(e) => setPrice(Number(e.target.value))} className="h-8 w-24" />
           </label>
           <Button type="button" size="sm" className="h-8" onClick={() => void uploadForEpisode()}>
             PNG 업로드
           </Button>
-          <p className="text-muted-foreground w-full">시리즈 연결은 웹툰 스튜디오에서 회차 등록 시 선택하세요.</p>
+          <p className="text-muted-foreground w-full">{t("webtoon-studio.s1eagkie")}</p>
         </div>
       )}
       {msg && <p className="text-xs px-3 py-1 text-emerald-600 shrink-0">{msg}</p>}
@@ -220,11 +223,11 @@ export function WebtoonDrawStudio() {
           <div className="flex border-b border-border/40 text-[10px]">
             {(
               [
-                ["layers", Layers, "레이어"],
-                ["color", Palette, "색"],
-                ["brush", Save, "브러시"],
-                ["manga", Cloud, "만화"],
-                ["roadmap", BarChart3, "로드맵"],
+                ["layers", Layers, t("webtoon-studio.srxeiw")],
+                ["color", Palette, t("webtoon-studio.s122x")],
+                ["brush", Save, t("lib.media-editor.ssqgsc")],
+                ["manga", Cloud, t("webtoon-studio.sws20")],
+                ["roadmap", BarChart3, t("webtoon-studio.srvwmt")],
               ] as const
             ).map(([id, Icon, label]) => (
               <button
@@ -329,7 +332,7 @@ export function WebtoonDrawStudio() {
                   }}
                   className="h-7 font-mono text-[10px]"
                 />
-                <p className="font-semibold text-muted-foreground">최근 색상</p>
+                <p className="font-semibold text-muted-foreground">{t("webtoon-studio.s17kxmoo")}</p>
                 <div className="flex flex-wrap gap-1">
                   {studio.recentColors.map((c) => (
                     <button key={c} type="button" className="w-6 h-6 rounded border" style={{ background: c }} onClick={() => studio.pickColor(c)} />
@@ -337,7 +340,7 @@ export function WebtoonDrawStudio() {
                 </div>
                 {studio.savedPalette.length > 0 && (
                   <>
-                    <p className="font-semibold text-muted-foreground pt-1">클라우드 팔레트</p>
+                    <p className="font-semibold text-muted-foreground pt-1">{t("webtoon-studio.sh8hopk")}</p>
                     <div className="flex flex-wrap gap-1">
                       {studio.savedPalette.map((c) => (
                         <button key={c} type="button" className="w-6 h-6 rounded border" style={{ background: c }} onClick={() => studio.pickColor(c)} />
@@ -381,7 +384,7 @@ export function WebtoonDrawStudio() {
             )}
             {panel === "manga" && (
               <>
-                <p className="font-semibold">말풍선</p>
+                <p className="font-semibold">{t("lib.webtoon-studio.ss8zyb")}</p>
                 {SPEECH_BUBBLE_TEMPLATES.map((t) => (
                   <button
                     key={t.id}
@@ -395,7 +398,7 @@ export function WebtoonDrawStudio() {
                     {t.label}
                   </button>
                 ))}
-                <p className="font-semibold pt-2">필터 (활성 레이어)</p>
+                <p className="font-semibold pt-2">{t("webtoon-studio.s1nxael4")}</p>
                 {LAYER_FILTERS.map((f) => (
                   <button key={f.id} type="button" className="w-full rounded border px-2 py-1 text-left" onClick={() => studio.applyFilterToActive(f.id)}>
                     {f.label}
@@ -404,7 +407,7 @@ export function WebtoonDrawStudio() {
                 <Button type="button" size="sm" variant="outline" className="w-full mt-2 h-7" onClick={() => studio.setTool("speedLines")}>
                   속도선 배치
                 </Button>
-                <p className="font-semibold pt-2">스크린톤</p>
+                <p className="font-semibold pt-2">{t("lib.webtoon-studio.spf84zg")}</p>
                 {SCREENTONE_PATTERNS.map((p) => (
                   <button
                     key={p.id}
@@ -418,7 +421,7 @@ export function WebtoonDrawStudio() {
                     {p.label}
                   </button>
                 ))}
-                <p className="font-semibold pt-2">대사 스크립트</p>
+                <p className="font-semibold pt-2">{t("webtoon-studio.s93jcuv")}</p>
                 <StudioDialoguePanel studio={studio} />
               </>
             )}
@@ -440,7 +443,7 @@ export function WebtoonDrawStudio() {
                       {s.items.map((i) => (
                         <li key={i} className={ROADMAP_DONE.has(i) ? "text-emerald-600" : undefined}>
                           {i}
-                          {ROADMAP_DONE.has(i) ? " · 완료" : " · 준비 중"}
+                          {ROADMAP_DONE.has(i) ? t("webtoon-studio.sltnw1") : t("webtoon-studio.sep77ku")}
                         </li>
                       ))}
                     </ul>
@@ -454,7 +457,7 @@ export function WebtoonDrawStudio() {
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           <StudioCanvas studio={studio} />
           <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-t border-border/40 bg-muted/20 text-[10px] overflow-x-auto">
-            <span>줌</span>
+            <span>{t("webtoon-studio.s13po")}</span>
             <input
               type="range"
               min={0.15}

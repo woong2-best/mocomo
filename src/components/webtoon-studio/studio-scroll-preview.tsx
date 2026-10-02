@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef } from "react";
 import type { WebtoonStudioState } from "@/hooks/use-webtoon-studio";
 
@@ -34,7 +37,7 @@ export function StudioScrollPreview({ studio }: { studio: WebtoonStudioState }) 
 
   return (
     <div className="rounded-lg border border-border/60 bg-muted/30 p-2">
-      <p className="text-[10px] font-semibold text-muted-foreground mb-2">세로 스크롤 미리보기</p>
+      <p className="text-[10px] font-semibold text-muted-foreground mb-2">{t("webtoon-studio.s1bffddc")}</p>
       <div className="max-h-48 overflow-y-auto rounded bg-neutral-900 p-2">
         <canvas
           ref={ref}
