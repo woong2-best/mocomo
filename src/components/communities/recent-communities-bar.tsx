@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
@@ -55,7 +58,7 @@ export function RecentCommunitiesBar() {
 
   return (
     <div className="flex items-center gap-2 overflow-x-auto border border-border/70 bg-muted/25 rounded-md px-2.5 py-1.5 text-xs">
-      <span className="shrink-0 font-semibold text-muted-foreground">최근 방문</span>
+      <span className="shrink-0 font-semibold text-muted-foreground">{t("communities.s17kwt9r")}</span>
       <div className="flex items-center gap-1 min-w-0">
         {items.map((item) => (
           <span
@@ -67,7 +70,7 @@ export function RecentCommunitiesBar() {
             </Link>
             <button
               type="button"
-              aria-label={`${item.name} 최근 방문에서 제거`}
+              aria-label={t("communities.s2sxowp", { v0: item.name })}
               className="p-0.5 text-muted-foreground hover:text-foreground"
               onClick={() => {
                 removeRecentCommunity(item.slug);

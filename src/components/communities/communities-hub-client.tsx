@@ -90,7 +90,7 @@ function CommunityRow({ community, locale }: { community: CommunityHubItem; loca
           )}
         </div>
         <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-          {community.description?.trim() || "소개가 아직 없습니다."}
+          {community.description?.trim() || t("communities.s1u8pz2o")}
         </p>
       </div>
 
@@ -203,22 +203,22 @@ export function CommunitiesHubClient({
       {loadError ? (
         <div className="px-4 py-14 text-center space-y-2">
           <p className="text-sm text-destructive">{loadError}</p>
-          <p className="text-xs text-muted-foreground">페이지를 새로고침하면 다시 불러옵니다.</p>
+          <p className="text-xs text-muted-foreground">{t("communities.soe9yp5")}</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="px-4 py-14 text-center space-y-3">
           <p className="text-sm text-muted-foreground">
             {query
-              ? `"${searchParams.get("q")}"에 맞는 커뮤니티가 없습니다.`
+              ? t("communities.s8gq76p", { v0: searchParams.get("q") })
               : tab === "ALL"
-                ? "아직 커뮤니티가 없습니다. 첫 커뮤니티를 만들어보세요!"
-                : "이 카테고리에 커뮤니티가 없습니다."}
+                ? t("communities.s1u2klt0")
+                : t("communities.s16mj8t7")}
           </p>
           <Link
             href="/communities/new"
             className="inline-flex items-center justify-center h-9 px-4 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            커뮤니티 만들기
+            {t("communities.sy1kmao")}
           </Link>
         </div>
       ) : (

@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -50,17 +53,17 @@ export function CommunitySettingsForm({
         isNsfw: form.get("isNsfw") === "on",
       });
       if (!result) {
-        setError("서버 응답이 없습니다.");
+        setError(t("communities.s10pm8gr"));
         return;
       }
       if ("error" in result && result.error) {
         setError(errorText(result.error));
         return;
       }
-      setOk("저장되었습니다.");
+      setOk(t("profile.s12la3bm"));
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "저장에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("events.sog10vg"));
     } finally {
       setLoading(false);
     }
@@ -69,14 +72,14 @@ export function CommunitySettingsForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-border bg-card p-6">
       <p className="text-sm text-muted-foreground">
-        주소: <span className="text-foreground font-mono">/c/{slug}</span>
+        {t("communities.sucpii")} <span className="text-foreground font-mono">/c/{slug}</span>
       </p>
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">이름</label>
+        <label className="text-sm font-medium">{t("market.name")}</label>
         <Input name="name" defaultValue={initial.name} required minLength={2} maxLength={80} />
       </div>
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">설명</label>
+        <label className="text-sm font-medium">{t("community-server.sxvj5")}</label>
         <textarea
           name="description"
           defaultValue={initial.description ?? ""}
@@ -84,7 +87,7 @@ export function CommunitySettingsForm({
         />
       </div>
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">카테고리</label>
+        <label className="text-sm font-medium">{t("games.categories")}</label>
         <select
           name="category"
           value={category}
@@ -97,13 +100,13 @@ export function CommunitySettingsForm({
               {c.emoji} {c.label}
             </option>
           ))}
-          <option value="CUSTOM">➕ 직접 입력</option>
+          <option value="CUSTOM">{t("communities.s1280jvp")}</option>
         </select>
         {category === "CUSTOM" && (
           <Input
             value={customCategoryLabel}
             onChange={(e) => setCustomCategoryLabel(e.target.value)}
-            placeholder="카테고리 이름 (2~24자)"
+            placeholder={t("communities.2_24")}
             maxLength={24}
             required
           />
@@ -111,12 +114,12 @@ export function CommunitySettingsForm({
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="isNsfw" defaultChecked={initial.isNsfw} />
-        NSFW 커뮤니티
+        {t("communities.nsfw")}
       </label>
       {error && <p className="text-sm text-destructive">{error}</p>}
       {ok && <p className="text-sm text-green-600 dark:text-green-400">{ok}</p>}
       <Button type="submit" disabled={loading} className="w-full rounded-xl">
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "저장"}
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("settings.save")}
       </Button>
     </form>
   );

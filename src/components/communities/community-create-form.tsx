@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
@@ -110,11 +113,11 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
     setError("");
 
     if (!category) {
-      setError("QnA가 속할 카테고리를 선택해 주세요.");
+      setError(t("communities.qna_2"));
       return;
     }
     if (name.trim().length < 2) {
-      setError("질문은 2자 이상 입력해 주세요.");
+      setError(t("communities.s1f9tfcz"));
       return;
     }
 
@@ -132,7 +135,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
       });
 
       if (!result) {
-        setError("서버 응답이 없습니다. 로그인 후 다시 시도해 주세요.");
+        setError(t("communities.s1l6s9v1"));
         return;
       }
       if ("error" in result && result.error) {
@@ -144,12 +147,12 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
         return;
       }
 
-      setError("QnA가 생성되었지만 이동에 실패했습니다. QnA 목록에서 확인해 주세요.");
+      setError(t("communities.qna_qna"));
     } catch (err) {
       const msg =
         err instanceof Error && err.message.trim()
           ? err.message
-          : "요청 중 오류가 발생했습니다. 네트워크와 로그인 상태를 확인해 주세요.";
+          : t("communities.spxpheq");
       setError(msg);
     } finally {
       setLoading(false);
@@ -168,16 +171,16 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
 
       <Card className="rounded-md border-[#d5d5d5] shadow-sm">
         <CardHeader className="border-b border-[#e8e8e8] bg-[#f7f7f7] dark:bg-muted/30 dark:border-border">
-          <CardTitle className="text-lg">새 QnA</CardTitle>
+          <CardTitle className="text-lg">{t("communities.qna")}</CardTitle>
         </CardHeader>
         <CardContent className="pt-5">
           <form onSubmit={(ev) => void handleSubmit(ev)} className="space-y-5">
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-2">
                 <label className="text-sm font-semibold">
-                  카테고리 <span className="text-[#c80000]">*</span>
+                  {t("games.categories")} <span className="text-[#c80000]">*</span>
                 </label>
-                <span className="text-[11px] text-muted-foreground">필수 · 하나 선택</span>
+                <span className="text-[11px] text-muted-foreground">{t("communities.s1mmalns")}</span>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 {CREATE_CATEGORY_OPTIONS.map((opt) => {
@@ -248,7 +251,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
                   className="inline-flex items-center gap-1 text-sm font-bold text-[#1e3a8a] hover:underline disabled:opacity-60"
                 >
                   <ImagePlus className="h-4 w-4" />
-                  첨부
+                  {t("communities.szumw")}
                 </button>
                 <input
                   ref={fileInputRef}
@@ -282,7 +285,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
                         disabled={loading}
                         onClick={() => removeDetailImage(block.id)}
                         className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white shadow flex items-center justify-center text-[#c80000] disabled:opacity-60"
-                        aria-label="첨부 사진 삭제"
+                        aria-label={t("communities.seyfvin")}
                       >
                         <Minus className="h-4 w-4" />
                       </button>
@@ -328,10 +331,10 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  생성 중…
+                  {t("communities.s1w6bzz5")}
                 </>
               ) : (
-                "QnA 만들기"
+                t("communities.qna_3")
               )}
             </Button>
           </form>

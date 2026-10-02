@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -14,9 +17,9 @@ export function CommunitySubnav({
   const pathname = usePathname();
   const base = `/c/${slug}`;
   const tabs = [
-    { href: base, label: "게시글" },
-    { href: `${base}/members`, label: "멤버" },
-    ...(showSettings ? [{ href: `${base}/settings`, label: "설정" }] : []),
+    { href: base, label: t("lib.flower.sq7xo0") },
+    { href: `${base}/members`, label: t("lib.community-server.swqlc") },
+    ...(showSettings ? [{ href: `${base}/settings`, label: t("settings.title") }] : []),
   ];
 
   return (

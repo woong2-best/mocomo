@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -134,7 +137,7 @@ export function QnaHubClient() {
         const json = (await res.json()) as FeedPage;
         if (id !== requestIdRef.current) return;
         if (!res.ok || !Array.isArray(json.items)) {
-          setLoadError(errorText(json.error ?? "QnA를 불러오지 못했습니다."));
+          setLoadError(errorText(json.error ?? t("communities.qna_5")));
           if (mode === "replace") setItems([]);
           return;
         }
@@ -155,7 +158,7 @@ export function QnaHubClient() {
         setDone(!json.nextCursor);
       } catch {
         if (id !== requestIdRef.current) return;
-        setLoadError("네트워크 오류가 발생했습니다.");
+        setLoadError(t("profile.s18n7wbo"));
         if (mode === "replace") setItems([]);
       } finally {
         if (id === requestIdRef.current) {
@@ -225,7 +228,7 @@ export function QnaHubClient() {
         <Link href="/communities/new">
           <Button size="sm">
             <Plus className="h-4 w-4" />
-            QnA 만들기
+            {t("communities.qna_3")}
           </Button>
         </Link>
       </div>
@@ -235,7 +238,7 @@ export function QnaHubClient() {
         <input
           value={qInput}
           onChange={(e) => setQInput(e.target.value)}
-          placeholder="QnA 검색"
+          placeholder={t("communities.qna_6")}
           className="h-11 w-full rounded-full border border-border bg-background pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
@@ -275,25 +278,25 @@ export function QnaHubClient() {
         <div className="px-4 py-14 text-center space-y-3">
           <p className="text-sm text-destructive">{loadError}</p>
           <Button type="button" variant="secondary" size="sm" onClick={() => void fetchPage(null, "replace")}>
-            다시 시도
+            {t("toast.retry")}
           </Button>
         </div>
       ) : items.length === 0 ? (
         <div className="px-4 py-14 text-center space-y-3">
           <p className="text-sm text-muted-foreground">
             {qFromUrl
-              ? `"${qFromUrl}"에 맞는 QnA가 없습니다.`
+              ? t("communities.qna_7", { v0: qFromUrl })
               : tab === QNA_MY_CATEGORY_ID
-                ? "아직 작성한 QnA가 없습니다."
+                ? t("communities.qna_8")
                 : tab === "ALL"
-                  ? "아직 QnA가 없습니다. 첫 글을 남겨보세요!"
-                  : "이 카테고리에 QnA가 없습니다."}
+                  ? t("communities.qna_9")
+                  : t("communities.qna_10")}
           </p>
           <Link
             href="/communities/new"
             className="inline-flex items-center justify-center h-9 px-4 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            QnA 만들기
+            {t("communities.qna_3")}
           </Link>
         </div>
       ) : (
@@ -317,12 +320,12 @@ export function QnaHubClient() {
               <>
                 <p className="text-sm text-destructive">{loadError}</p>
                 <Button type="button" variant="secondary" size="sm" onClick={loadMore}>
-                  다시 시도
+                  {t("toast.retry")}
                 </Button>
               </>
             )}
             {done && items.length > 0 && !loadError && (
-              <p className="text-sm text-muted-foreground">QnA 끝</p>
+              <p className="text-sm text-muted-foreground">{t("communities.qna_4")}</p>
             )}
           </div>
         </FeedVideoViewerProvider>

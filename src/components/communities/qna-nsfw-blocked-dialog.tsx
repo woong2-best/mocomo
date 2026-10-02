@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   Dialog,
   DialogContent,
@@ -25,7 +28,7 @@ export function QnaNsfwBlockedDialog({
           <DialogDescription>{QNA_NSFW_BLOCKED_MSG}</DialogDescription>
         </DialogHeader>
         <Button className="w-full rounded-full" onClick={() => onOpenChange(false)}>
-          확인
+          {t("auth.confirmAction")}
         </Button>
       </DialogContent>
     </Dialog>
