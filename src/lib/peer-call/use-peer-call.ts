@@ -220,7 +220,7 @@ export function usePeerCall({
         onConnectedRef.current?.();
       } else if (cs === "failed") {
         setState("failed");
-        onFailedRef.current?.("통화 연결이 끊겼습니다. 같은 와이파이가 아니면 잠시 후 다시 걸어 주세요.");
+        onFailedRef.current?.("Call disconnected. If you are not on the same Wi‑Fi, try again in a moment.");
         onConnectionLostRef.current?.();
       }
     };
@@ -333,7 +333,7 @@ export function usePeerCall({
         emitSignal({ type: "offer", sdp: offer });
       } catch (e) {
         offered.current = false;
-        fail(e instanceof Error ? e.message : "미디어 연결에 실패했습니다.");
+        fail(e instanceof Error ? e.message : "Media connection failed.");
       } finally {
         makingOfferRef.current = false;
       }
@@ -359,7 +359,7 @@ export function usePeerCall({
               return;
             }
             void handleRemoteSignalRef.current(signal).catch(() => {
-              fail("시그널 처리 중 오류가 발생했습니다.");
+              fail("An error occurred while processing signaling.");
             });
           },
         });
@@ -371,7 +371,7 @@ export function usePeerCall({
         if (session) {
           sessionSendRef.current = session.send;
         } else if (!socketRef.current?.connected) {
-          fail("시그널링 서버에 연결할 수 없습니다.");
+          fail("Could not connect to the signaling server.");
           return;
         }
 
@@ -391,7 +391,7 @@ export function usePeerCall({
           void handleRemoteSignalRef.current(queued.payload);
         }
       } catch (e) {
-        fail(e instanceof Error ? e.message : "미디어 연결에 실패했습니다.");
+        fail(e instanceof Error ? e.message : "Media connection failed.");
       }
     })();
 
@@ -421,7 +421,7 @@ export function usePeerCall({
     const onSignal = (data: CallSignalEvent) => {
       if (data.callId !== callIdRef.current || data.fromUserId !== peerUserIdRef.current) return;
       void handleRemoteSignalRef.current(data.payload).catch(() => {
-        onFailedRef.current?.("시그널 처리 중 오류가 발생했습니다.");
+        onFailedRef.current?.("An error occurred while processing signaling.");
       });
     };
     socket.on("call_signal", onSignal);
