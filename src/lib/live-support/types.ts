@@ -11,22 +11,22 @@ export const SUPPORT_MIN_AMOUNT: Record<LiveSupportEventType, number> = {
 };
 
 export const DEFAULT_ROULETTE_ITEMS = [
-  "노래 부르기",
-  "물 마시기",
-  "춤추기",
-  "벌칙 수행",
-  "감사 인사",
-  "랜덤 게임 1판",
+  "Sing a song",
+  "Drink water",
+  "Dance",
+  "Do a penalty",
+  "Say thanks",
+  "One random game",
 ] as const;
 
 export type SoundPresetId = "clap" | "boom" | "boo" | "meow" | "fanfare";
 
 export const SOUND_PRESETS: { id: SoundPresetId; label: string; emoji: string }[] = [
-  { id: "clap", label: "박수", emoji: "👏" },
-  { id: "boom", label: "폭발", emoji: "💥" },
-  { id: "boo", label: "야유", emoji: "😤" },
-  { id: "meow", label: "고양이", emoji: "🐱" },
-  { id: "fanfare", label: "팡파레", emoji: "🎺" },
+  { id: "clap", label: "Applause", emoji: "👏" },
+  { id: "boom", label: "Explosion", emoji: "💥" },
+  { id: "boo", label: "Boo", emoji: "😤" },
+  { id: "meow", label: "Cat", emoji: "🐱" },
+  { id: "fanfare", label: "Fanfare", emoji: "🎺" },
 ];
 
 export type LiveSupportEventPayload = {

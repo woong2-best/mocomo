@@ -32,7 +32,7 @@ export function formatSupportChatContent(params: {
   const name = displayName(params.username);
 
   if (params.kind === "mission") {
-    const title = params.missionTitle?.trim() || "미션";
+    const title = params.missionTitle?.trim() || "Mission";
     const reward =
       params.missionReward != null ? ` · ${params.missionReward.toLocaleString()} CP` : "";
     switch (params.missionStatus) {
