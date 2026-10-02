@@ -99,7 +99,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
     setMsg("");
     const res = await publishCreatorEpisode({
       seriesId,
-      title: episodeTitle.trim() || `작품 ${episodeNo}`,
+      title: episodeTitle.trim() || `Work ${episodeNo}`,
       episodeNo,
       price,
       contentUrls,
