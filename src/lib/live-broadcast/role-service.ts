@@ -149,30 +149,30 @@ export async function assignBroadcastRole(input: {
   const { channelId, actorId, targetUserId, role } = input;
 
   if (role !== "MANAGER") {
-    return { error: "관리자 역할만 지정할 수 있습니다." };
+    return { error: "Only moderator roles can be assigned." };
   }
 
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
     select: { createdBy: true },
   });
-  if (!channel) return { error: "방송을 찾을 수 없습니다." };
+  if (!channel) return { error: "Stream not found." };
   if (targetUserId === channel.createdBy) {
-    return { error: "방송 소유자의 역할은 변경할 수 없습니다." };
+    return { error: "The broadcast owner's role cannot be changed." };
   }
 
   const actorRole = await getEffectiveBroadcastRole(channelId, actorId);
   const targetRole = await getEffectiveBroadcastRole(channelId, targetUserId);
 
   if (!canAssignBroadcastRole(actorRole, targetRole, role)) {
-    return { error: "이 사용자에게 해당 역할을 부여할 권한이 없습니다." };
+    return { error: "You cannot grant that role to this user." };
   }
 
   const target = await db.user.findUnique({
     where: { id: targetUserId, deletedAt: null },
     select: { id: true },
   });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: "User not found." };
 
   const existing = await db.broadcastRoleAssignment.findUnique({
     where: { channelId_userId: { channelId, userId: targetUserId } },
@@ -236,16 +236,16 @@ export async function removeBroadcastRole(input: {
     where: { id: channelId },
     select: { createdBy: true },
   });
-  if (!channel) return { error: "방송을 찾을 수 없습니다." };
+  if (!channel) return { error: "Stream not found." };
   if (targetUserId === channel.createdBy) {
-    return { error: "방송 소유자는 제거할 수 없습니다." };
+    return { error: "The broadcast owner cannot be removed." };
   }
 
   const actorRole = await getEffectiveBroadcastRole(channelId, actorId);
   const targetRole = await getEffectiveBroadcastRole(channelId, targetUserId);
 
   if (!canAssignBroadcastRole(actorRole, targetRole, null)) {
-    return { error: "이 사용자의 역할을 제거할 권한이 없습니다." };
+    return { error: "You cannot remove this user's role." };
   }
 
   const existing = await db.broadcastRoleAssignment.findUnique({

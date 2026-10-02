@@ -197,7 +197,7 @@ export async function requireBroadcastPermission(
 ): Promise<{ ok: true; role: EffectiveBroadcastRole } | { ok: false; error: string }> {
   const role = await getEffectiveBroadcastRole(channelId, userId);
   if (!hasBroadcastPermission(role, permission)) {
-    return { ok: false, error: "이 방송에 대한 권한이 없습니다." };
+    return { ok: false, error: "You do not have permission for this broadcast." };
   }
   return { ok: true, role };
 }

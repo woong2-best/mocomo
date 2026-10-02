@@ -60,7 +60,7 @@ export async function assertCanSendLiveChat(input: {
   }
 
   if (await isLiveChatBanned(channelId, userId)) {
-    return { ok: false, error: "이 방송에서 차단되어 채팅할 수 없습니다." };
+    return { ok: false, error: "You are blocked from chatting in this broadcast." };
   }
 
   const timeoutUntil = await getActiveLiveChatTimeout(channelId, userId);
@@ -77,7 +77,7 @@ export async function assertCanSendLiveChat(input: {
       chatMinTierExempt: true,
     },
   });
-  if (!channel) return { ok: false, error: "방송을 찾을 수 없습니다." };
+  if (!channel) return { ok: false, error: "Stream not found." };
 
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -101,7 +101,7 @@ export async function assertCanSendLiveChat(input: {
       select: { id: true },
     });
     if (!sub) {
-      return { ok: false, error: "구독자만 채팅할 수 있습니다." };
+      return { ok: false, error: "Only subscribers can chat." };
     }
   }
 
@@ -113,7 +113,7 @@ export async function assertCanSendLiveChat(input: {
       select: { id: true },
     });
     if (!follow) {
-      return { ok: false, error: "팔로워만 채팅할 수 있습니다." };
+      return { ok: false, error: "Only followers can chat." };
     }
   }
 
@@ -133,14 +133,14 @@ export async function timeoutLiveChatUser(input: {
     where: { id: input.channelId },
     select: { createdBy: true },
   });
-  if (!channel) return { error: "방송을 찾을 수 없습니다." };
+  if (!channel) return { error: "Stream not found." };
   if (input.targetUserId === channel.createdBy) {
-    return { error: "방송 소유자에게 타임아웃을 적용할 수 없습니다." };
+    return { error: "You cannot time out the broadcast owner." };
   }
 
   const targetRole = await getEffectiveBroadcastRole(input.channelId, input.targetUserId);
   if (roleRank(targetRole) >= roleRank(perm.role)) {
-    return { error: "자신보다 높거나 같은 역할의 사용자에게 타임아웃을 적용할 수 없습니다." };
+    return { error: "You cannot time out a user with an equal or higher role." };
   }
 
   const sec = Math.min(3600, Math.max(30, input.durationSeconds));
@@ -171,14 +171,14 @@ export async function banLiveChatUser(input: {
     where: { id: input.channelId },
     select: { createdBy: true },
   });
-  if (!channel) return { error: "방송을 찾을 수 없습니다." };
+  if (!channel) return { error: "Stream not found." };
   if (input.targetUserId === channel.createdBy) {
-    return { error: "방송 소유자를 차단할 수 없습니다." };
+    return { error: "You cannot block the broadcast owner." };
   }
 
   const targetRole = await getEffectiveBroadcastRole(input.channelId, input.targetUserId);
   if (roleRank(targetRole) >= roleRank(perm.role)) {
-    return { error: "자신보다 높거나 같은 역할의 사용자를 차단할 수 없습니다." };
+    return { error: "You cannot block a user with an equal or higher role." };
   }
 
   await db.liveChatBan.upsert({

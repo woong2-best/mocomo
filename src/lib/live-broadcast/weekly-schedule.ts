@@ -6,7 +6,7 @@ export type WeeklySchedule = {
   note: string | null;
 };
 
-const WEEKDAY_KO = ["일", "월", "화", "수", "목", "금", "토"] as const;
+const WEEKDAY_KO = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 export function parseScheduleTime(raw: string | null | undefined): string | null {
   const t = raw?.trim() ?? "";
@@ -35,14 +35,14 @@ export function formatScheduleMemo(schedule: WeeklySchedule): string {
   const days =
     schedule.weekdays.length > 0
       ? schedule.weekdays.map((d) => `매주 ${WEEKDAY_KO[d]}`).join(" · ")
-      : "매주";
+      : "Weekly {v0}";
   const time = schedule.time ? `${schedule.time}` : "";
   const head = [days, time].filter(Boolean).join(" ");
   const note = schedule.note?.trim();
   if (note && head) return `📺 방송 ${head}\n${note}`;
   if (note) return `📺 방송\n${note}`;
   if (head) return `📺 방송 ${head}`;
-  return "📺 방송 일정";
+  return "📺 Stream schedule";
 }
 
 /** Expand weekly slots into dateKey → memo for one calendar month. */
