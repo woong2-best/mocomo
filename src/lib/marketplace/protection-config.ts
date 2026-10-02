@@ -70,31 +70,31 @@ export const MARKETPLACE_PAYOUT_DELAY_DAYS = 2;
 export const MARKETPLACE_SETTLEMENT_BLOCKED_GRACE_DAYS = 5;
 
 export const MARKETPLACE_DISPUTE_REASONS = [
-  { id: "NOT_RECEIVED", label: "물품 미발송·미도착" },
-  { id: "COUNTERFEIT", label: "가품·위조품" },
-  { id: "NOT_AS_DESCRIBED", label: "설명과 다른 상품" },
-  { id: "DAMAGED", label: "파손·훼손" },
-  { id: "MISSING_PARTS", label: "구성품 누락" },
-  { id: "SELLER_NO_RESPONSE", label: "연락 두절" },
-  { id: "SCAM_FRAUD_ACCOUNT", label: "사기 계좌·허위 입금" },
-  { id: "OTHER", label: "기타 사기·피해" },
+  { id: "NOT_RECEIVED", label: "Not shipped / not received" },
+  { id: "COUNTERFEIT", label: "Counterfeit goods" },
+  { id: "NOT_AS_DESCRIBED", label: "Not as described" },
+  { id: "DAMAGED", label: "Damaged" },
+  { id: "MISSING_PARTS", label: "Missing parts" },
+  { id: "SELLER_NO_RESPONSE", label: "No contact" },
+  { id: "SCAM_FRAUD_ACCOUNT", label: "Fraudulent account / fake payment" },
+  { id: "OTHER", label: "Other fraud or harm" },
 ] as const;
 
 export const MARKETPLACE_REPORT_REASONS = [
-  { id: "FRAUD", label: "사기" },
-  { id: "COUNTERFEIT", label: "가품" },
-  { id: "COPYRIGHT", label: "저작권 침해" },
-  { id: "ILLEGAL", label: "불법 상품" },
-  { id: "SPAM", label: "스팸" },
-  { id: "ADULT", label: "음란물" },
-  { id: "OTHER", label: "기타" },
+  { id: "FRAUD", label: "Fraud" },
+  { id: "COUNTERFEIT", label: "Counterfeit" },
+  { id: "COPYRIGHT", label: "Copyright infringement" },
+  { id: "ILLEGAL", label: "Illegal product" },
+  { id: "SPAM", label: "Spam" },
+  { id: "ADULT", label: "Adult content" },
+  { id: "OTHER", label: "Other" },
 ] as const;
 
 export const MARKETPLACE_SANCTION_LABELS: Record<string, string> = {
-  NONE: "정상",
-  WARNING: "1차 경고",
-  LISTING_RESTRICTED: "2차 상품 등록 제한",
-  SALES_SUSPENDED: "3차 판매 일시 정지",
-  SETTLEMENT_HELD: "4차 정산 보류",
-  PERMANENT_BAN: "5차 영구 판매 금지",
+  NONE: "Normal",
+  WARNING: "First warning",
+  LISTING_RESTRICTED: "Second offense — listing restricted",
+  SALES_SUSPENDED: "Third offense — selling suspended",
+  SETTLEMENT_HELD: "Fourth offense — settlement on hold",
+  PERMANENT_BAN: "Stage 5 — permanent sales ban",
 };

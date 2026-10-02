@@ -28,13 +28,13 @@ export const MARKET_UNAVAILABLE_EN =
   "Marketplace is available in Stripe-supported regions only. Community features remain available.";
 
 export const MARKET_STRIPE_DISCLAIMER_KO =
-  "Stripe 안전 결제 · 입점비 무료 · 플랫폼 수수료 10% · 판매자와 같은 국가 내 거래만 · 배송·물류 책임은 판매자에게 있습니다.";
+  "Stripe secure checkout · Free seller onboarding · 10% platform fee · Same-country sales only · Sellers handle shipping and logistics.";
 
 export const MARKET_STRIPE_DISCLAIMER_EN =
   "Stripe secure checkout · Free seller onboarding · 10% platform fee · Domestic trades only (same country as seller) · Sellers are responsible for shipping.";
 
 export const MARKET_DOMESTIC_ONLY_KO =
-  "스타 마켓은 판매자와 같은 국가 내 거래만 지원합니다.";
+  "Star Market supports transactions only within the seller's country.";
 
 export const MARKET_DOMESTIC_ONLY_EN =
   "Star Market supports domestic trades only — buyer and seller must be in the same country.";
@@ -76,7 +76,7 @@ export function resolveMarketCountry(input: {
 function marketBlockedMessage(countryCode: string): { message: string; messageEn: string } {
   if (isStarMarketProductExcluded(countryCode)) {
     return {
-      message: "Star Market은 현재 해당 국가에서 제공되지 않습니다. 중고·커뮤니티는 이용 가능합니다.",
+      message: "Star Market is not available in this country yet. Used market and community features remain available.",
       messageEn: "Star Market is not available in your country yet. Used market and community remain available.",
     };
   }
@@ -116,7 +116,7 @@ export function assertSameCountryMarketTrade(input: {
     return {
       allowed: false,
       countryCode: buyerSide,
-      message: "판매자 국가 정보를 확인할 수 없습니다.",
+      message: "Could not verify seller country.",
       messageEn: "Seller country could not be verified.",
     };
   }
@@ -155,7 +155,7 @@ export function assertMarketAccess(input: {
       countryCode: shipCountry,
       message: msg.message.startsWith("Star")
         ? msg.message
-        : "배송지 국가는 Stripe 지원 지역이어야 합니다.",
+        : "Shipping country must be a Stripe-supported region.",
       messageEn: msg.messageEn.startsWith("Star")
         ? msg.messageEn
         : "Shipping country must be in a Stripe-supported region.",
@@ -170,7 +170,7 @@ export function assertMarketAccess(input: {
     return {
       allowed: false,
       countryCode: seller,
-      message: "해당 판매자 국가에서는 마켓 거래를 지원하지 않습니다.",
+      message: "Marketplace transactions are not supported for this seller's country.",
       messageEn: msg.messageEn,
     };
   }

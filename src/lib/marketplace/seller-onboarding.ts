@@ -25,22 +25,22 @@ export type SellerOnboardingUiStep =
 
 export const SELLER_ONBOARDING_STEP_LABELS: Record<SellerOnboardingStepId, string> = {
   ACCOUNT: "계정",
-  AGREEMENTS: "약관",
+  AGREEMENTS: "Terms",
   EMAIL: "이메일",
-  PHONE: "휴대폰",
-  SELLER_INFO: "판매자 정보",
-  KYC: "본인 인증",
+  PHONE: "Mobile phone",
+  SELLER_INFO: "Seller information",
+  KYC: "Identity verification",
   SETTLEMENT: "Stripe",
-  COMPLETE: "완료",
+  COMPLETE: "Done.",
 };
 
 export const SELLER_ONBOARDING_UI_LABELS: Record<SellerOnboardingUiStep, string> = {
   ACCOUNT: "계정",
-  AGREEMENTS: "약관",
+  AGREEMENTS: "Terms",
   EMAIL: "이메일",
-  SELLER_INFO: "판매자 정보",
+  SELLER_INFO: "Seller information",
   STRIPE: "Stripe",
-  COMPLETE: "완료",
+  COMPLETE: "Done.",
 };
 
 export function visibleSellerOnboardingUiSteps(): SellerOnboardingUiStep[] {
@@ -60,18 +60,18 @@ export function toSellerOnboardingUiStep(step: SellerOnboardingStepId): SellerOn
 import { isStripeMarketCountry } from "@/lib/marketplace/market-access";
 
 export const SELLER_MARKETS = [
-  { code: "KR", labelKo: "한국", labelEn: "Korea" },
-  { code: "US", labelKo: "미국", labelEn: "United States" },
-  { code: "JP", labelKo: "일본", labelEn: "Japan" },
-  { code: "CN", labelKo: "중국", labelEn: "China" },
-  { code: "HK", labelKo: "홍콩", labelEn: "Hong Kong" },
-  { code: "TW", labelKo: "대만", labelEn: "Taiwan" },
-  { code: "SG", labelKo: "싱가포르", labelEn: "Singapore" },
-  { code: "GB", labelKo: "영국", labelEn: "United Kingdom" },
-  { code: "DE", labelKo: "독일", labelEn: "Germany" },
-  { code: "FR", labelKo: "프랑스", labelEn: "France" },
-  { code: "AU", labelKo: "호주", labelEn: "Australia" },
-  { code: "CA", labelKo: "캐나다", labelEn: "Canada" },
+  { code: "KR", labelKo: "Korea", labelEn: "Korea" },
+  { code: "US", labelKo: "United States", labelEn: "United States" },
+  { code: "JP", labelKo: "Japan", labelEn: "Japan" },
+  { code: "CN", labelKo: "China", labelEn: "China" },
+  { code: "HK", labelKo: "Hong Kong", labelEn: "Hong Kong" },
+  { code: "TW", labelKo: "Taiwan", labelEn: "Taiwan" },
+  { code: "SG", labelKo: "Singapore", labelEn: "Singapore" },
+  { code: "GB", labelKo: "United Kingdom", labelEn: "United Kingdom" },
+  { code: "DE", labelKo: "Germany", labelEn: "Germany" },
+  { code: "FR", labelKo: "France", labelEn: "France" },
+  { code: "AU", labelKo: "Australia", labelEn: "Australia" },
+  { code: "CA", labelKo: "Canada", labelEn: "Canada" },
 ] as const;
 
 /** Stripe Connect 지원 판매 국가 (synced list ∩ policy) */
@@ -79,8 +79,8 @@ export const STRIPE_SELLER_MARKETS = SELLER_MARKETS.filter((m) => isStripeMarket
 
 /** @deprecated Stripe Connect KYC로 대체 */
 export const SELLER_KYC_ID_TYPES = [
-  { code: "NATIONAL_ID", labelKo: "주민등록증/국가신분증", labelEn: "National ID" },
-  { code: "PASSPORT", labelKo: "여권", labelEn: "Passport" },
-  { code: "DRIVERS_LICENSE", labelKo: "운전면허증", labelEn: "Driver's license" },
-  { code: "RESIDENT_CARD", labelKo: "외국인등록증/체류카드", labelEn: "Residence card" },
+  { code: "NATIONAL_ID", labelKo: "Resident registration card / national ID", labelEn: "National ID" },
+  { code: "PASSPORT", labelKo: "Passport", labelEn: "Passport" },
+  { code: "DRIVERS_LICENSE", labelKo: "Driver's license", labelEn: "Driver's license" },
+  { code: "RESIDENT_CARD", labelKo: "Alien registration card / residence card", labelEn: "Residence card" },
 ] as const;

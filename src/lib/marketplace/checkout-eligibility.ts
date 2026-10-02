@@ -49,7 +49,7 @@ export async function getMarketplaceCheckoutEligibility(input: {
   });
 
   if (!listing || listing.status !== "ACTIVE") {
-    return { error: "판매 중인 상품이 아닙니다." };
+    return { error: "This listing is not for sale." };
   }
 
   let userCountry: string | null = null;

@@ -35,31 +35,31 @@ export function canBuyerManuallyConfirmOrder(order: {
 }): { ok: true } | { error: string } {
   if (orderNeedsPhysicalShipment(order.items)) {
     if (order.status !== "DELIVERED") {
-      return { error: "배송 완료 후에만 구매 확정할 수 있습니다." };
+      return { error: "You can confirm purchase only after delivery is complete." };
     }
 
     const delivered =
       order.shipment?.status === "DELIVERED" || order.shipment?.deliveredAt != null;
     if (!delivered) {
       return {
-        error: "배송 추적상 배송 완료가 확인된 후 구매 확정할 수 있습니다.",
+        error: "Confirm purchase only after tracking shows delivery complete.",
       };
     }
 
     const source = order.shipment?.deliverySignalSource;
     if (source === "fallback") {
       return {
-        error: `배송 추적 자동 처리 주문은 분쟁 기간(72시간) 후 자동 구매확정됩니다.`,
+        error: `Tracked orders auto-confirm after the dispute window (72 hours).`,
       };
     }
     if (source === "manual") {
       return {
-        error: "판매자 수동 배송완료 주문은 구매 확정할 수 없습니다. 고객센터에 문의해 주세요.",
+        error: "Seller-marked delivered orders cannot be confirmed here. Contact support.",
       };
     }
     if (!isPhysicalManualConfirmSource(source)) {
       return {
-        error: "배송사 배송완료 확인 후에만 구매 확정할 수 있습니다.",
+        error: "Confirm purchase only after the carrier marks delivery complete.",
       };
     }
 
@@ -67,7 +67,7 @@ export function canBuyerManuallyConfirmOrder(order: {
   }
 
   if (order.status !== "DELIVERED") {
-    return { error: "확정할 수 있는 상태가 아닙니다." };
+    return { error: "Cannot confirm in the current status." };
   }
   return { ok: true };
 }

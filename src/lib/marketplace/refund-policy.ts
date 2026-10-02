@@ -52,7 +52,7 @@ export function computeRefundQuote(input: {
       refundAmount: 0,
       orderTotal,
       shippingDeduction: 0,
-      policyLabel: "현재 상태에서는 환불할 수 없습니다.",
+      policyLabel: "Refunds are not available in the current status.",
       policyLabelEn: "Refund is not available in the current order state.",
     };
   }
@@ -63,7 +63,7 @@ export function computeRefundQuote(input: {
       refundAmount: orderTotal,
       orderTotal,
       shippingDeduction: 0,
-      policyLabel: "발송 전 취소 — 전액 환불 (Stripe)",
+      policyLabel: "Pre-shipment cancellation — full refund (Stripe)",
       policyLabelEn: "Pre-shipment cancellation — full refund via Stripe",
     };
   }
@@ -82,7 +82,7 @@ export function computeRefundQuote(input: {
     policyLabel:
       shippingDeduction > 0
         ? `발송 후 반품 — 배송비 ${shippingDeduction} 차감 후 환불`
-        : "발송 후 반품 — 전액 환불 (판매자 승인 필요)",
+        : "Post-shipment return — full refund (seller approval required)",
     policyLabelEn:
       shippingDeduction > 0
         ? "Post-shipment return — refund minus return shipping"
@@ -99,7 +99,7 @@ export function assertShipmentTrackingForSeller(input: {
   if (!tracking || tracking.length < 4) {
     return {
       error:
-        "차지백·분쟁 대응을 위해 유효한 송장(트래킹) 번호가 필요합니다.",
+        "A valid tracking number is required to respond to chargebacks and disputes.",
     };
   }
   return { ok: true };

@@ -130,7 +130,7 @@ export async function syncStripeConnectAccountToDb(account: Stripe.Account): Pro
     await createNotification({
       userId,
       type: "system",
-      title: "판매자 등록 완료",
+      title: "Seller registration complete",
       body: `${MARKET_BRAND_FULL} Stripe 본인 확인 및 정산 설정이 완료되었습니다. 이제 상품을 등록할 수 있습니다.`,
       link: "/market/seller",
     }).catch(() => null);
@@ -138,8 +138,8 @@ export async function syncStripeConnectAccountToDb(account: Stripe.Account): Pro
     await createNotification({
       userId,
       type: "system",
-      title: "Stripe 추가 정보 필요",
-      body: "정산을 계속하려면 Stripe에서 추가 정보를 제출해 주세요.",
+      title: "Stripe — additional information required",
+      body: "Submit additional information in Stripe to continue payouts.",
       link: "/market/seller",
     }).catch(() => null);
   }
@@ -155,16 +155,16 @@ export function stripeConnectStatusLabel(
   requirementsDue: boolean
 ): string {
   if (status === "COMPLETE") {
-    return "Stripe 본인 확인 및 정산 계좌 등록이 완료되었습니다.";
+    return "Stripe identity verification and payout account registration are complete.";
   }
   if (status === "DISABLED") {
-    return "Stripe 계정이 일시 중지되었습니다. Stripe 온보딩에서 확인해 주세요.";
+    return "Your Stripe account is paused. Check Stripe onboarding.";
   }
   if (status === "REQUIREMENTS_DUE" || requirementsDue) {
-    return "Stripe에서 추가 정보 제출이 필요합니다.";
+    return "Stripe requires additional information.";
   }
   if (status === "IN_PROGRESS") {
-    return "Stripe 온보딩을 이어서 진행해 주세요.";
+    return "Continue Stripe onboarding.";
   }
-  return "Stripe로 안전하게 본인 확인 및 정산 계좌를 등록해 주세요.";
+  return "Complete identity verification and register your payout account securely with Stripe.";
 }

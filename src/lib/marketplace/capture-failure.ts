@@ -62,15 +62,15 @@ export async function handleMarketplaceCaptureFailure(
   await createNotification({
     userId: order.buyerId,
     type: "SYSTEM",
-    title: "주문 결제 승인 확인 필요",
-    body: "구매 확정 후 정산 처리에 실패했습니다. 주문 페이지에서 결제 수단을 확인해 주세요.",
+    title: "Order payment authorization confirmation required",
+    body: "Settlement failed after purchase confirmation. Check your payment method on the order page.",
     link: `/market/orders/${orderId}`,
   });
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: "정산 지연 — 구매자 결제 확인 필요",
-    body: "구매자 카드 승인 갱신이 필요해 정산이 일시 보류되었습니다.",
+    title: "Settlement delayed — buyer payment confirmation required",
+    body: "Settlement is on hold because the buyer must renew card authorization.",
     link: `/market/orders/${orderId}`,
   });
 
@@ -139,15 +139,15 @@ export async function processStalePaymentBlockedOrdersBatch(limit = 20): Promise
     await createNotification({
       userId: order.buyerId,
       type: "SYSTEM",
-      title: "주문이 취소되었습니다",
-      body: "기한 내 결제 승인을 갱신하지 않아 주문이 취소되었습니다. 카드 청구는 되지 않았을 수 있습니다.",
+      title: "Order canceled",
+      body: "The order was canceled because payment authorization was not renewed in time. Your card may not have been charged.",
       link: `/market/orders/${order.id}`,
     });
     await createNotification({
       userId: order.sellerId,
       type: "SYSTEM",
-      title: "주문 취소 — 결제 정산 실패",
-      body: "구매자 카드 승인 갱신이 없어 주문이 취소되었습니다. 배송·분쟁이 있었다면 고객센터로 문의해 주세요.",
+      title: "Order canceled — payment settlement failed",
+      body: "The order was canceled with no buyer card renewal. Contact support if shipment or a dispute was in progress.",
       link: `/market/orders/${order.id}`,
     });
 

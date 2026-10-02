@@ -60,21 +60,21 @@ function validateIdNumber(
     // 한국만 주민등록번호 체크섬 — 해외 국가신분증은 길이만 확인
     if (sellerRequiresPhoneVerification(countryCode)) {
       if (!validateKoreanResidentId(compact)) {
-        return { ok: false, error: "주민등록번호 형식이 올바르지 않습니다." };
+        return { ok: false, error: "National ID number format is invalid." };
       }
     } else if (compact.length < 4) {
-      return { ok: false, error: "신분증 번호를 입력해 주세요." };
+      return { ok: false, error: "Enter your ID document number." };
     }
     return { ok: true };
   }
   if (idType === "RESIDENT_CARD") {
     if (compact.replace(/\D/g, "").length < 6) {
-      return { ok: false, error: "외국인등록번호를 확인해 주세요." };
+      return { ok: false, error: "Please verify your alien registration number." };
     }
     return { ok: true };
   }
   if (compact.length < 4) {
-    return { ok: false, error: "신분증 번호를 입력해 주세요." };
+    return { ok: false, error: "Enter your ID document number." };
   }
   return { ok: true };
 }
@@ -98,7 +98,7 @@ export function verifySellerKyc(input: SellerKycVerifyInput): SellerKycVerifyRes
   if (!idCheck.ok) {
     return {
       status: "FAILED",
-      notes: idCheck.error ?? "신분증 정보를 확인할 수 없습니다.",
+      notes: idCheck.error ?? "We could not verify your ID information.",
       flags: ["INVALID_ID_FORMAT"],
       autoApproved: false,
     };

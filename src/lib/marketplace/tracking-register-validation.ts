@@ -38,7 +38,7 @@ export async function assertTrackingNumberNotReused(
   if (duplicate) {
     return {
       error:
-        "이 송장번호는 다른 진행 중인 주문에 이미 등록되어 있습니다. 본인 발송 송장인지 확인해 주세요.",
+        "This tracking number is already registered on another open order. Confirm it is your shipment's tracking number.",
     };
   }
 
@@ -89,7 +89,7 @@ export async function validateTrackingAfterRegister(input: {
     );
     return {
       error:
-        "등록한 송장이 이미 배송완료 상태입니다. 다른 주문의 송장번호가 아닌지 확인해 주세요. 주문이 관리자 검토로 전환되었습니다.",
+        "The tracking you registered is already marked delivered. Confirm it is not another order's tracking number. The order was sent for admin review.",
     };
   }
 

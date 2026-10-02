@@ -41,17 +41,17 @@ export async function releaseMarketplaceEscrow(
     },
   });
 
-  if (!order) return { error: "주문을 찾을 수 없습니다." };
+  if (!order) return { error: "Order not found." };
   if (order.settlementStatus === "SETTLED") return { ok: true };
   if (order.status === "REFUNDED" || order.status === "CANCELLED") {
-    return { error: "환불·취소된 주문은 정산할 수 없습니다." };
+    return { error: "Refunded or canceled orders cannot be settled." };
   }
   if (order.disputes.length > 0 && !opts?.force) {
     await db.marketplaceOrder.update({
       where: { id: orderId },
       data: {
         settlementStatus: "BLOCKED",
-        settlementHeldReason: "열린 분쟁으로 정산 보류",
+        settlementHeldReason: "Settlement on hold due to open dispute",
       },
     });
     await logMarketplaceAudit({
@@ -60,7 +60,7 @@ export async function releaseMarketplaceEscrow(
       action: MarketplaceAuditActions.SETTLEMENT_BLOCKED,
       detail: "open_dispute",
     });
-    return { error: "분쟁 중이라 정산이 보류되었습니다.", deferred: true };
+    return { error: "Settlement is on hold while a dispute is open.", deferred: true };
   }
 
   if (
@@ -68,7 +68,7 @@ export async function releaseMarketplaceEscrow(
     order.status !== "SETTLED" &&
     !opts?.force
   ) {
-    return { error: "구매 확정 후에만 정산할 수 있습니다." };
+    return { error: "Settlement is available only after purchase confirmation." };
   }
 
   const profile = order.sellerProfile;
@@ -77,13 +77,13 @@ export async function releaseMarketplaceEscrow(
       where: { id: orderId },
       data: {
         settlementStatus: "BLOCKED",
-        settlementHeldReason: "판매자 정산 보류 제재",
+        settlementHeldReason: "Seller settlement hold sanction",
       },
     });
-    return { error: "판매자 정산이 제재로 보류되었습니다.", deferred: true };
+    return { error: "Seller settlement is on hold due to a sanction.", deferred: true };
   }
   if (profile?.sanctionLevel === "PERMANENT_BAN") {
-    return { error: "영구 판매 금지 계정입니다." };
+    return { error: "This account is permanently banned from selling." };
   }
 
   if (order.adminReviewRequired && !opts?.force) {
@@ -91,10 +91,10 @@ export async function releaseMarketplaceEscrow(
       where: { id: orderId },
       data: {
         settlementStatus: "BLOCKED",
-        settlementHeldReason: "관리자 검토 필요",
+        settlementHeldReason: "Admin review required",
       },
     });
-    return { error: "관리자 검토가 필요한 주문입니다.", deferred: true };
+    return { error: "This order requires admin review.", deferred: true };
   }
 
   const connectReady = await isStripeConnectPayoutReady(order.seller.stripeConnectAccountId);
@@ -104,11 +104,11 @@ export async function releaseMarketplaceEscrow(
       where: { id: orderId },
       data: {
         settlementStatus: "HELD",
-        settlementHeldReason: "Stripe Connect 정산 설정 미완료 — 판매자센터에서 Connect 온보딩을 완료해 주세요.",
+        settlementHeldReason: "Stripe Connect payout setup incomplete — finish Connect onboarding in Seller Center.",
       },
     });
     return {
-      error: "Stripe Connect 정산이 활성화되지 않아 정산을 보류했습니다.",
+      error: "Settlement is on hold because Stripe Connect payouts are not active.",
       deferred: true,
     };
   }
@@ -195,7 +195,7 @@ export async function releaseMarketplaceEscrow(
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: "정산이 완료되었습니다",
+    title: "Settlement completed",
     body: `${formatUsd(order.sellerEarnAmount)}이 정산되었습니다.`,
     link: `/market/orders/${order.id}`,
   });
@@ -212,7 +212,7 @@ export async function confirmAndMaybeSettle(
     where: { id: orderId },
     include: { sellerProfile: true },
   });
-  if (!order) return { error: "주문을 찾을 수 없습니다." };
+  if (!order) return { error: "Order not found." };
 
   await db.marketplaceOrder.update({
     where: { id: orderId },
@@ -263,7 +263,7 @@ export async function holdSettlementForDispute(orderId: string, actorId?: string
     where: { id: orderId },
     data: {
       settlementStatus: "BLOCKED",
-      settlementHeldReason: "분쟁 접수 — 정산 보류",
+      settlementHeldReason: "Dispute filed — settlement on hold",
       escrowHeld: true,
     },
   });

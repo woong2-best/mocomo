@@ -67,46 +67,46 @@ export function getStripeSupportedCountryList(): string[] {
 
 /** Stripe Connect Express 셀프서브 가입이 되는 정산 계좌 국가. */
 export const STRIPE_EXPRESS_SUPPORTED_COUNTRIES = [
-  { code: "US", name: "미국 (US)" },
-  { code: "JP", name: "일본 (JP)" },
-  { code: "CA", name: "캐나다 (CA)" },
-  { code: "GB", name: "영국 (GB)" },
-  { code: "AU", name: "호주 (AU)" },
-  { code: "NZ", name: "뉴질랜드 (NZ)" },
-  { code: "SG", name: "싱가포르 (SG)" },
-  { code: "HK", name: "홍콩 (HK)" },
-  { code: "MY", name: "말레이시아 (MY)" },
-  { code: "MX", name: "멕시코 (MX)" },
-  { code: "BR", name: "브라질 (BR)" },
-  { code: "DE", name: "독일 (DE)" },
-  { code: "FR", name: "프랑스 (FR)" },
-  { code: "IT", name: "이탈리아 (IT)" },
-  { code: "ES", name: "스페인 (ES)" },
-  { code: "NL", name: "네덜란드 (NL)" },
-  { code: "BE", name: "벨기에 (BE)" },
-  { code: "AT", name: "오스트리아 (AT)" },
-  { code: "CH", name: "스위스 (CH)" },
-  { code: "SE", name: "스웨덴 (SE)" },
-  { code: "NO", name: "노르웨이 (NO)" },
-  { code: "FI", name: "핀란드 (FI)" },
-  { code: "IE", name: "아일랜드 (IE)" },
-  { code: "DK", name: "덴마크 (DK)" },
-  { code: "PT", name: "포르투갈 (PT)" },
-  { code: "PL", name: "폴란드 (PL)" },
-  { code: "CZ", name: "체코 (CZ)" },
-  { code: "HU", name: "헝가리 (HU)" },
-  { code: "RO", name: "루마니아 (RO)" },
-  { code: "GR", name: "그리스 (GR)" },
-  { code: "HR", name: "크로아티아 (HR)" },
-  { code: "SK", name: "슬로바키아 (SK)" },
-  { code: "SI", name: "슬로베니아 (SI)" },
-  { code: "BG", name: "불가리아 (BG)" },
-  { code: "LT", name: "리투아니아 (LT)" },
-  { code: "LV", name: "라트비아 (LV)" },
-  { code: "EE", name: "에스토니아 (EE)" },
-  { code: "LU", name: "룩셈부르크 (LU)" },
-  { code: "CY", name: "키프러스 (CY)" },
-  { code: "MT", name: "몰타 (MT)" },
+  { code: "US", name: "United States (US)" },
+  { code: "JP", name: "Japan (JP)" },
+  { code: "CA", name: "Canada (CA)" },
+  { code: "GB", name: "United Kingdom (GB)" },
+  { code: "AU", name: "Australia (AU)" },
+  { code: "NZ", name: "New Zealand (NZ)" },
+  { code: "SG", name: "Singapore (SG)" },
+  { code: "HK", name: "Hong Kong (HK)" },
+  { code: "MY", name: "Malaysia (MY)" },
+  { code: "MX", name: "Mexico (MX)" },
+  { code: "BR", name: "Brazil (BR)" },
+  { code: "DE", name: "Germany (DE)" },
+  { code: "FR", name: "France (FR)" },
+  { code: "IT", name: "Italy (IT)" },
+  { code: "ES", name: "Spain (ES)" },
+  { code: "NL", name: "Netherlands (NL)" },
+  { code: "BE", name: "Belgium (BE)" },
+  { code: "AT", name: "Austria (AT)" },
+  { code: "CH", name: "Switzerland (CH)" },
+  { code: "SE", name: "Sweden (SE)" },
+  { code: "NO", name: "Norway (NO)" },
+  { code: "FI", name: "Finland (FI)" },
+  { code: "IE", name: "Ireland (IE)" },
+  { code: "DK", name: "Denmark (DK)" },
+  { code: "PT", name: "Portugal (PT)" },
+  { code: "PL", name: "Poland (PL)" },
+  { code: "CZ", name: "Czech Republic (CZ)" },
+  { code: "HU", name: "Hungary (HU)" },
+  { code: "RO", name: "Romania (RO)" },
+  { code: "GR", name: "Greece (GR)" },
+  { code: "HR", name: "Croatia (HR)" },
+  { code: "SK", name: "Slovakia (SK)" },
+  { code: "SI", name: "Slovenia (SI)" },
+  { code: "BG", name: "Bulgaria (BG)" },
+  { code: "LT", name: "Lithuania (LT)" },
+  { code: "LV", name: "Latvia (LV)" },
+  { code: "EE", name: "Estonia (EE)" },
+  { code: "LU", name: "Luxembourg (LU)" },
+  { code: "CY", name: "Cyprus (CY)" },
+  { code: "MT", name: "Malta (MT)" },
 ] as const;
 
 const EXPRESS_PAYOUT_COUNTRY_CODES = new Set<string>(
@@ -132,16 +132,16 @@ export function isExpressPayoutCountry(countryCode: string | null | undefined): 
 export function resolveExpressPayoutCountry(raw: unknown): { country: string } | { error: string } {
   const country = typeof raw === "string" ? raw.trim().toUpperCase() : "";
   if (!/^[A-Z]{2}$/.test(country)) {
-    return { error: "정산받을 계좌의 국가를 선택해 주세요." };
+    return { error: "Select the country of the account that will receive payouts." };
   }
   if (country === "KR") {
     return {
       error:
-        "한국(KR) 계정으로는 정산 연동을 만들 수 없습니다. 정산 계좌가 있는 국가(미국 US 등)를 선택해 주세요.",
+        "Payout connections cannot be created with a Korea (KR) account. Select a country where you have a payout account (e.g., United States US).",
     };
   }
   if (!isExpressPayoutCountry(country)) {
-    return { error: "Stripe Express 정산을 지원하지 않는 국가입니다." };
+    return { error: "Stripe Express payouts are not supported in this country." };
   }
   return { country };
 }

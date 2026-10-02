@@ -73,7 +73,7 @@ export async function evaluateMarketplaceDisputeRule(
     const res = await executeMarketplaceDisputeResolution({
       disputeId,
       decision: "seller",
-      note: "배송 완료 추적 신호 — 미수령 주장 기각",
+      note: "Delivery-complete tracking signal — not-received claim denied",
       autoRule: "NOT_RECEIVED_DELIVERED_PROOF",
     });
     return "error" in res ? null : { action: "seller_win_delivered" };
@@ -102,7 +102,7 @@ export async function evaluateMarketplaceDisputeRule(
         await createNotification({
           userId: dispute.order.buyerId,
           type: "SYSTEM",
-          title: "분쟁 증빙 보완 필요",
+          title: "Dispute evidence needs more detail",
           body: `사진 ${MARKETPLACE_AUTO_DISPUTE_MIN_BUYER_PHOTOS}장 이상이 필요합니다. 관리자 검토 대기 중입니다.`,
           link: `/market/orders/${dispute.orderId}`,
         });
@@ -118,7 +118,7 @@ export async function evaluateMarketplaceDisputeRule(
       await createNotification({
         userId: dispute.order.sellerId,
         type: "SYSTEM",
-        title: "분쟁 반박 증빙 요청",
+        title: "Dispute rebuttal evidence requested",
         body: `${MARKETPLACE_AUTO_DISPUTE_SELLER_RESPONSE_DAYS}일 내 반박 증빙을 제출하지 않으면 규칙에 따라 자동 환불될 수 있습니다.`,
         link: `/market/orders/${dispute.orderId}`,
       });
@@ -132,7 +132,7 @@ export async function evaluateMarketplaceDisputeRule(
       const res = await executeMarketplaceDisputeResolution({
         disputeId,
         decision: "buyer",
-        note: "구매자 사진 증빙 충족 · 판매자 반박 없음",
+        note: "Buyer photo evidence satisfied · no seller rebuttal",
         autoRule: "EVIDENCE_BUYER_NO_SELLER_RESPONSE",
       });
       return "error" in res ? null : { action: "buyer_win_evidence" };
@@ -154,7 +154,7 @@ export async function evaluateMarketplaceDisputeRule(
       const res = await executeMarketplaceDisputeResolution({
         disputeId,
         decision: "buyer",
-        note: "판매자 무응답 기한 초과",
+        note: "Seller response deadline exceeded",
         autoRule: "SELLER_NO_RESPONSE_TIMEOUT",
       });
       return "error" in res ? null : { action: "buyer_win_no_response" };
