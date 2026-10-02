@@ -39,15 +39,15 @@ export function formatSupportChatContent(params: {
       case "PENDING":
         return `${name}님이 미션 등록${reward}: ${title}`;
       case "ACCEPTED":
-        return `✅ 호스트가 미션 수락: ${title}`;
+        return `✅ Host accepted mission: {v0} ${title}`;
       case "COMPLETED":
-        return `🎉 미션 완료! ${title}${reward}`;
+        return `🎉 Mission complete! {v0} ({v1} CP) ${title}${reward}`;
       case "FAILED":
-        return `미션 실패: ${title}`;
+        return `Mission failed: {v0} ${title}`;
       case "CANCELLED":
-        return `미션 취소: ${title}`;
+        return `Mission canceled: {v0} ${title}`;
       default:
-        return `미션 · ${title}`;
+        return `Mission · {v0} ${title}`;
     }
   }
 
