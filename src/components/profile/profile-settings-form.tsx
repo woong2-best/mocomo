@@ -190,7 +190,7 @@ export function ProfileSettingsForm({
         <CardHeader>
           <CardTitle>{t("settings.editProfile")}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            사진·동영상 배너는 마이페이지와 앱 왼쪽 메뉴에 표시됩니다. 동영상은 무음 자동 재생, 최대 10초.
+            사진·동Video 배너는 마이페이지와 앱 왼쪽 메뉴에 표시됩니다. 동Video은 무음 자동 재생, 최대 10초.
           </p>
         </CardHeader>
         <CardContent>

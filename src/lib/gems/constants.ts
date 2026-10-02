@@ -1,6 +1,6 @@
 import { quoteMocoTopupLedger } from "@/lib/moco/stripe-pass-through";
 
-/** 구매 MOCO 1개 = $5 USD (경매·결제와 동일) */
+/** 구매 MOCO 1개 = $5 USD (Auction·결제와 동일) */
 export const MOCO_USD_VALUE = 5;
 
 /** Stripe USD cents per 1 purchased MOCO */

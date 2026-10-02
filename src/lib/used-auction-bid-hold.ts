@@ -637,7 +637,7 @@ export async function reauthorizeExpiringBidHoldsBatch(limit = 30) {
           userId: bid.bidderId,
           type: "outbid",
           title: "Bid hold renewal needed",
-          body: `Something went wrong. Please try again.${result.reason}). 경매 페이지에서 동일 금액으로 다시 입찰해 주세요.`,
+          body: `Something went wrong. Please try again.${result.reason}). Auction 페이지에서 동일 금액으로 다시 입찰해 주세요.`,
           link: `/market/${bid.listingId}`,
         });
         reauthorized += 1;

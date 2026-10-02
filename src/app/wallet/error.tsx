@@ -20,10 +20,9 @@ export default function WalletError({
 
   return (
     <div className="max-w-lg mx-auto py-16 px-4 text-center space-y-4">
-      <h1 className="text-xl font-black">지갑을 불러오지 못했습니다</h1>
+      <h1 className="text-xl font-black">Couldn`t load wallet</h1>
       <p className="text-sm text-muted-foreground leading-relaxed">
-        MOCO 잔액이 부족했거나 일시적인 오류일 수 있습니다. 새로고침하거나 지갑에서 잔액을 확인해
-        주세요.
+        Something went wrong. Please try again.
       </p>
       <div className="flex flex-wrap justify-center gap-2 pt-2">
         <Button type="button" onClick={() => reset()}>

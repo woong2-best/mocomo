@@ -39,7 +39,7 @@ function buildPrompt(input: UsedListingAiInput): string {
   const categoryLabel = input.category ? usedCategoryLabel(input.category) : "Undecided";
   const productLabel = usedProductTypeLabel(input.productType) || "Undecided";
   const saleLabel =
-    input.isFree ? "나눔(무료)" : input.saleType === "AUCTION" ? "경매" : "General sale";
+    input.isFree ? "Free giveaway" : input.saleType === "AUCTION" ? "Auction" : "General sale";
 
   return [
     "You help write listings for a Korean used-market app (Karrot Market, MoCoMo).",

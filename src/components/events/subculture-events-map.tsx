@@ -365,9 +365,9 @@ export function SubcultureEventsMap({
       //       : format(new Date(pin.startsAt), "M/d", { locale: ko });
       //   const official =
       //     pin.source === "official" || pin.source === "auto"
-      //       ? '<span style="font-size:10px;color:#7c3aed">공식 자동</span><br/>'
+      //       ? '<span style="font-size:10px;color:#7c3aed">Official auto</span><br/>'
       //       : pin.category === "maid_cafe"
-      //         ? '<span style="font-size:10px;color:#ec4899">메이드 카페</span><br/>'
+      //         ? '<span style="font-size:10px;color:#ec4899">Maid cafe</span><br/>'
       //         : "";
       //   const countryLabel = eventCountryFlag(pin.country);
       //   const popup = `${official}<strong>${pin.title}</strong><br/><span style="font-size:11px">${countryLabel} ${dateStr} · ${pin.venueName ?? ""}</span>`;

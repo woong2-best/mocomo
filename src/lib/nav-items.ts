@@ -34,7 +34,7 @@ export const moneyHubNavItem: NavItem = {
 };
 
 /** 매칭(/discover)은 사이드바 미포함 — 프로필 우측 패널·모바일 하단 탭에서 진입 */
-/** 릴스(/reels)는 사이드바·모바일 드로어 미포함 — 피드 영상·탐색에서 진입 */
+/** 릴스(/reels)는 사이드바·모바일 드로어 미포함 — 피드 Video·탐색에서 진입 */
 export const mainNavItems: NavItem[] = [
   { href: "/my-page", icon: User, labelKey: "nav.myPage" },
   { href: "/communities", icon: Users, labelKey: "nav.communities" },

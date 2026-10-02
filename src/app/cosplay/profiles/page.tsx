@@ -60,7 +60,7 @@ export default async function CosplayProfilesPage() {
         </NativePageTitle>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="rounded-xl" asChild>
-            <Link href="/cosplay">마켓 게시판</Link>
+            <Link href="/cosplay">Market board</Link>
           </Button>
           {session?.user && !hasCosplayerProfile && (
             <Link href="/cosplay/apply">

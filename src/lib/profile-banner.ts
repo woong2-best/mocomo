@@ -1,6 +1,6 @@
 import { reencodeBannerVideoBlob } from "@/lib/video-editor/process-video";
 
-/** 프로필 배너 동영상 최대 길이(초) */
+/** 프로필 배너 동Video 최대 길이(초) */
 export const MAX_PROFILE_BANNER_VIDEO_DURATION_SEC = 10;
 
 export const BANNER_VIDEO_FORMAT_HINT =
@@ -120,7 +120,7 @@ function bannerOutputFilename(originalName: string, mime: string): string {
 }
 
 /**
- * 배너 업로드용 영상 준비.
+ * 배너 업로드용 Video 준비.
  * H.265(HEVC)는 브라우저에서 디코드 가능할 때 H.264 MP4로 재인코딩해 모든 브라우저에서 재생되게 한다.
  */
 export async function prepareBannerVideoForUpload(

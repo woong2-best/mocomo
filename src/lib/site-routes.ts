@@ -15,7 +15,7 @@ export function sanitizeMainSiteCallbackPath(
 /** 탐색 · 발견 */
 export const EXPLORE_PATH = "/explore";
 
-/** 세로 숏폼 영상 피드 (Reels) */
+/** 세로 숏폼 Video 피드 (Reels) */
 export const REELS_PATH = "/reels";
 
 /** 커뮤니티 피드 경로 (과거 /feed — revalidate·탭 매칭용) */

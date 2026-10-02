@@ -68,7 +68,7 @@ export async function incomingContactDecision(
     return {
       allowed: false,
       code: kind === "call" ? CALL_NOT_ALLOWED : MESSAGE_NOT_ALLOWED,
-      error: kind === "call" ? "자기 자신에게는 전화할 수 없습니다." : "You can't DM yourself.",
+      error: kind === "call" ? "You can't call yourself." : "You can't DM yourself.",
     };
   }
 

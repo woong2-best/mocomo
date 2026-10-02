@@ -134,7 +134,7 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
         {!isNativeApp ? (
           <h1 className="font-bold text-lg">Create group chat</h1>
         ) : (
-          <h1 className="sr-only">단체대화방 만들기</h1>
+          <h1 className="sr-only">Create group chat</h1>
         )}
       </header>
 
@@ -169,7 +169,7 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
           <Users className="h-5 w-5 text-primary" />
           <div>
             <p className="font-semibold">Social group chat</p>
-            <p className="text-xs text-muted-foreground">단체 통화 · 비밀번호 선택/해제</p>
+            <p className="text-xs text-muted-foreground">Group calls · optional password</p>
           </div>
         </div>
         <form onSubmit={createSocial} className="space-y-3">

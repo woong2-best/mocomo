@@ -82,7 +82,7 @@ type ProcessVideoOptions = {
   preferMp4?: boolean;
 };
 
-/** 편집 상태를 적용해 영상을 재인코딩한다 (오디오 포함) */
+/** 편집 상태를 적용해 Video을 재인코딩한다 (오디오 포함) */
 export async function processVideoBlob(
   blob: Blob,
   edit: VideoEditState,

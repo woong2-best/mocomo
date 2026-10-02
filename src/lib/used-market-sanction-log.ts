@@ -37,7 +37,7 @@ export async function recordAuctionPaymentTimeoutSanction(
       USED_MARKET_BAN_MESSAGE,
       "",
       `Item: ${listing.title}`,
-      `경매 마감: ${listing.auctionEndsAt?.toISOString() ?? "—"}`,
+      `Auction 마감: ${listing.auctionEndsAt?.toISOString() ?? "—"}`,
       `결제 기한: ${listing.paymentDueAt?.toISOString() ?? "—"}`,
       `제재 적용: ${now.toISOString()}`,
       `낙찰가: ${winningBidAmount}`,

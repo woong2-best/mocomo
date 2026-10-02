@@ -28,7 +28,7 @@ export default async function WorksHomePage() {
   return (
     <div className="space-y-8">
       <p className="text-sm text-muted-foreground leading-relaxed">
-        일러스트·사진·영상을 MoCoMo 안에서 판매할 수 있습니다. 크리에이터는{" "}
+        일러스트·사진·Video을 MoCoMo 안에서 판매할 수 있습니다. 크리에이터는{" "}
         <Link href="/works/studio" className="text-primary font-medium hover:underline">
           판매 등록
         </Link>

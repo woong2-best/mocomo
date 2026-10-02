@@ -204,7 +204,7 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
         creatorDisplayName = post.author.name;
         contentTitle =
           media?.type === "VIDEO"
-            ? `${snippet(post.content)} · 영상`
+            ? `${snippet(post.content)} · Video`
             : `${snippet(post.content)} · 미디어`;
         href = `/post/${post.id}`;
       } else if (creatorUsername) {

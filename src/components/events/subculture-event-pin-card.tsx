@@ -89,7 +89,7 @@ export function SubcultureEventPinCard({
             )}
           >
             {isUserRec ? (
-              <span className="text-emerald-500 font-medium">유저 추천</span>
+              <span className="text-emerald-500 font-medium">User pick</span>
             ) : isMaid ? (
               <span className="text-pink-500 font-medium">{i18n("events.s1vqpuht")}</span>
             ) : (

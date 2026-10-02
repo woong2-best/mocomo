@@ -169,7 +169,7 @@ export function VoiceLiveHostStudio({
           <p className="text-lg font-bold">{hostDisplayName}</p>
         )}
         <p className="text-xs text-muted-foreground text-center max-w-xs">
-          영상 없이 목소리만 송출합니다. 수요가 몰려도 영상 CDN 부담 없이 안정적으로 시청됩니다.
+          Video 없이 목소리만 송출합니다. 수요가 몰려도 Video CDN 부담 없이 안정적으로 시청됩니다.
         </p>
 
         <LiveKitRoom

@@ -36,8 +36,8 @@ export default async function AdminUsersPage({
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">회원 관리</h1>
-        <p className="text-sm text-muted-foreground">검색 · 정렬 · 페이지네이션 · CSV</p>
+        <h1 className="text-2xl font-bold tracking-tight">Members</h1>
+        <p className="text-sm text-muted-foreground">Search · sort · pagination · CSV</p>
       </div>
       <Suspense fallback={<p className="text-sm text-muted-foreground">{t("app.admin.srv43d")}</p>}>
         <AdminUsersTable

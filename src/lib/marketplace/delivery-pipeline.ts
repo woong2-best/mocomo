@@ -107,7 +107,7 @@ export async function markMarketplaceOrderDelivered(input: {
       title: "Delivery completed",
       body:
         input.source === "fallback"
-          ? `배송 추적 신호가 없어 ${MARKETPLACE_DELIVERY_FALLBACK_DAYS}일 후 자동 배송완료 처리되었습니다. ${MARKETPLACE_DISPUTE_WINDOW_HOURS}시간 내 이의제기 가능합니다.`
+          ? `배송 추적 신호가 없어 ${MARKETPLACE_DELIVERY_FALLBACK_DAYS}Done.{MARKETPLACE_DISPUTE_WINDOW_HOURS}시간 내 이의제기 가능합니다.`
           : `수령 후 ${MARKETPLACE_DISPUTE_WINDOW_HOURS}시간 내 이의제기할 수 있습니다. 이후 자동 구매확정됩니다.`,
       link: `/market/orders/${order.id}`,
     });

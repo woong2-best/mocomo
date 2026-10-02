@@ -54,7 +54,7 @@ export function buildPostQuoteDraft(input: {
     input.title?.trim() ||
     input.content?.trim().replace(/\s+/g, " ").slice(0, 120) ||
     "Post";
-  const prefix = input.hasVideo ? "🎬 영상 게시물 공유" : "📎 Share post";
+  const prefix = input.hasVideo ? "🎬 Video 게시물 공유" : "📎 Share post";
   return `${prefix}\n\n${preview}\n\n@${input.authorUsername}\n${url}`;
 }
 

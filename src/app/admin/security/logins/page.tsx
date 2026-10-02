@@ -26,7 +26,7 @@ export default async function AdminLoginLogsPage() {
               <th className="p-2">{t("settings.country")}</th>
               <th className="p-2">Browser</th>
               <th className="p-2">OS</th>
-              <th className="p-2">기기</th>
+              <th className="p-2">Device</th>
               <th className="p-2">Passkey</th>
               <th className="p-2">TOTP</th>
               <th className="p-2">Results</th>

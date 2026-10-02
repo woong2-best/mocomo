@@ -12,7 +12,7 @@ import { MocoVideoDonationDialog } from "@/components/live/moco-video-donation-d
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import { cn } from "@/lib/utils";
 
-/** External live viewer — YouTube 영상 · MOCO 효과음 · 미션 */
+/** External live viewer — YouTube Video · MOCO 효과음 · 미션 */
 export function ExternalLiveDonationBar({
   channelId,
   hostDisplayName,

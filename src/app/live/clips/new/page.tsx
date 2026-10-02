@@ -87,7 +87,7 @@ export default function NewClipPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={i18n("app.live.s1l5t7t0")} required />
             <label className="block text-xs text-muted-foreground">
-              영상 파일 (R2) 또는 URL
+              Video 파일 (R2) 또는 URL
               <input type="file" accept="video/*" className="mt-1 block w-full text-sm" onChange={onVideoFile} />
             </label>
             <Input

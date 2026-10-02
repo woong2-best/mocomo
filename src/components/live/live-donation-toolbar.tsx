@@ -8,7 +8,7 @@ import { MocoVideoDonationDialog } from "@/components/live/moco-video-donation-d
 
 
 
-/** 라이브 채팅 하단 — YouTube 영상 후원 · MOCO 효과음 후원 */
+/** 라이브 채팅 하단 — YouTube Video 후원 · MOCO 효과음 후원 */
 
 export function LiveDonationToolbar({
 

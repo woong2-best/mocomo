@@ -26,7 +26,7 @@ export type CameraCaptureDialogProps = {
   onOpenChange: (open: boolean) => void;
   mode: CameraCaptureMode;
   onCapture: (blob: Blob, mimeType: string) => void;
-  /** 라이브·게시물·영상 촬영용. 중고거래 등 상품 사진은 false */
+  /** 라이브·게시물·Video 촬영용. 중고거래 등 상품 사진은 false */
   enableFaceFilter?: boolean;
 };
 
@@ -268,7 +268,7 @@ function PlainCameraCaptureDialog({
   );
 }
 
-/** 라이브·게시물·영상 — 얼굴 필터 파이프라인 */
+/** 라이브·게시물·Video — 얼굴 필터 파이프라인 */
 function FilteredCameraCaptureDialog({
   open,
   onOpenChange,

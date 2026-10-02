@@ -157,7 +157,7 @@ export class VirtualAvatar3DScene {
     }
   }
 
-  /** WHIP VTuber 송출 — 투명 배경·고정 카메라·그리드 비활성 */
+  /** WHIP VTuber 송출 — 투명 Background·고정 카메라·그리드 비활성 */
   setLiveCaptureMode(on: boolean) {
     this.liveCaptureMode = on;
     if (on) {

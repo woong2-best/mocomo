@@ -179,7 +179,7 @@ export function syncSettlementAccountToast(active: boolean, href?: string) {
   clearPersistentWarning(SETTLEMENT_TOAST_ID);
 }
 
-/** 유료 가격만 있고 사진·영상 없음 */
+/** 유료 가격만 있고 사진·Video 없음 */
 export function syncPaidMediaRequiredToast(active: boolean) {
   if (active) {
     applyPersistentWarning({

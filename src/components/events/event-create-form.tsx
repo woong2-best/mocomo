@@ -193,7 +193,7 @@ export function EventCreateForm({
           {isOperator ? (
             <>
               <strong className="text-foreground">{i18n("events.sn8f9gu")}</strong> — MOCO 차감 없이,{" "}
-              <strong className="text-foreground">삭제할 때까지</strong> 계속 노출됩니다.
+              <strong className="text-foreground">until you delete it</strong> 계속 노출됩니다.
             </>
           ) : (
             <>
@@ -235,7 +235,7 @@ export function EventCreateForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">클릭 시 이동 링크</label>
+          <label className="text-xs font-medium text-muted-foreground">Link on click</label>
           <Input
             placeholder="https://"
             value={linkUrl}

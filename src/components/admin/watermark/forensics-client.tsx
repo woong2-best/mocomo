@@ -28,7 +28,7 @@ function humanizeDetectionError(message: string, contentId: string, creatorUsern
   }
   if (message === "No watermark sessions recorded for this creator") {
     return [
-      `@${creatorUsername.trim().replace(/^@+/, "") || t("admin.s1y2nkvl")}의 유료 사진·영상 시청 세션이 없습니다.`,
+      `@${creatorUsername.trim().replace(/^@+/, "") || t("admin.s1y2nkvl")}의 유료 사진·Video 시청 세션이 없습니다.`,
       t("admin.sjqi8hb"),
     ].join(" ");
   }
@@ -235,7 +235,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
         </dl>
         {systemStatus.sessionCount === 0 ? (
           <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
-            시청 세션이 0건이면 분석을 시작할 수 없습니다. 다른 계정으로 유료 사진·영상을
+            시청 세션이 0건이면 분석을 시작할 수 없습니다. 다른 계정으로 유료 사진·Video을
             열어 세션을 만든 뒤 다시 시도하세요.
           </p>
         ) : (
@@ -245,7 +245,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
             DevTools <code className="rounded bg-muted px-1">exportPng()</code>는 개발용 진단입니다.
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
-            유료 사진·영상이 화면에 완전히 표시된 뒤 캡처하세요. 판매 크리에이터 @아이디만으로도 분석할 수 있습니다.
+            유료 사진·Video이 화면에 완전히 표시된 뒤 캡처하세요. 판매 크리에이터 @아이디만으로도 분석할 수 있습니다.
           </p>
           </>
         )}
@@ -254,7 +254,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       <div className="rounded-xl border bg-white p-6 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
         <h1 className="text-xl font-semibold">Watermark Forensics</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          노트북·폰 스크린샷, 또는 다른 기기로 화면을 촬영한 사진·영상을 업로드하세요. 유료 미디어가
+          노트북·폰 스크린샷, 또는 다른 기기로 화면을 촬영한 사진·Video을 업로드하세요. 유료 미디어가
           완전히 로드된 뒤 캡처한 샘플과 시청 세션을 비교합니다.
         </p>
 
@@ -280,7 +280,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
               className="mt-1 block w-full rounded-lg border px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
             />
             <span className="mt-1 block text-xs text-muted-foreground">
-              유출된 사진·영상을 <strong>{t("admin.s1j2exrs")}</strong>의 프로필 username (@ 없이 또는 @ 포함 모두 가능).
+              유출된 사진·Video을 <strong>{t("admin.s1j2exrs")}</strong>의 프로필 username (@ 없이 또는 @ 포함 모두 가능).
               이 크리에이터 유료 콘텐츠 시청 세션만 검색합니다.
             </span>
           </label>

@@ -109,7 +109,7 @@ export async function prepareMocoVideoDonation(
   if (mocoAmount < rates.minMoco) {
     return {
       ok: false,
-      error: `영상 도네는 최소 ${rates.minMoco} MOCO부터 가능합니다.`,
+      error: `Video 도네는 최소 ${rates.minMoco} MOCO부터 가능합니다.`,
       code: "BELOW_MIN_MOCO",
     };
   }

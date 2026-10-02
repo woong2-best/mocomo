@@ -12,7 +12,7 @@ export default async function StudioHomePage() {
   return (
     <div className="space-y-10">
       <section className="rounded-3xl border border-pink-100 bg-gradient-to-br from-pink-50 via-white to-violet-50 p-8 md:p-12">
-        <p className="text-sm font-medium text-pink-500">제작 공간 · MoCoMo와 독립</p>
+        <p className="text-sm font-medium text-pink-500">Creator space · separate from MoCoMo</p>
         <h1 className="mt-2 font-display text-4xl font-bold text-pink-700 md:text-5xl">
           Bondee 스타일 3D를
           <br />
@@ -25,10 +25,10 @@ export default async function StudioHomePage() {
           {session?.user ? (
             <>
               <Button asChild>
-                <Link href="/studio/create">자산 만들기</Link>
+                <Link href="/studio/create">Create asset</Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href="/studio/market">마켓 둘러보기</Link>
+                <Link href="/studio/market">Browse market</Link>
               </Button>
             </>
           ) : (

@@ -8,7 +8,7 @@ export type TipPaymentMetadata = {
   returnPath?: string;
   tipKind?: "standard" | "video" | "letter" | "superchat";
   roomId?: string;
-  /** 영상 후원 — 결제 전 위저드에서 수집 */
+  /** Video 후원 — 결제 전 위저드에서 수집 */
   videoUrl?: string;
   videoTitle?: string;
   thumbnailUrl?: string;

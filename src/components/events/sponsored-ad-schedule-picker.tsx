@@ -377,7 +377,7 @@ export function SponsoredAdSchedulePicker({
             <span className="font-medium tabular-nums text-right">{summary.startLabel}</span>
           </div>
           <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">종료</span>
+            <span className="text-muted-foreground">Ended</span>
             <span className="font-medium tabular-nums text-right">{summary.endLabel}</span>
           </div>
           <div className="flex justify-between gap-3 pt-1.5 border-t border-border/40">

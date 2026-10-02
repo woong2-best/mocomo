@@ -115,7 +115,7 @@ export class FaceFilterPipeline {
     });
   }
 
-  /** 미리보기·송출용 (영상=필터, 오디오=원본) */
+  /** 미리보기·송출용 (Video=필터, 오디오=원본) */
   buildCompositeStream(): MediaStream | null {
     if (!this.rawStream) return null;
     if (!this.usesFilteredVideo()) return this.rawStream;

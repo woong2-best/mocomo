@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
-/** DM 거래방에 연결된 경매 가격 협상 컨텍스트 */
+/** DM 거래방에 연결된 Auction 가격 협상 컨텍스트 */
 export async function getUsedNegotiationForChat(roomId: string, listingId?: string) {
   const session = await auth();
   if (!session?.user?.id) return null;

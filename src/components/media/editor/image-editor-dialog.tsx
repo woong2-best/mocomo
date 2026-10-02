@@ -256,7 +256,7 @@ export function ImageEditorDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, editor]);
 
-  // 배경(사진)은 항상 캔버스 전체를 덮는다. 줌/회전은 캔버스 중심을 피벗으로 하고,
+  // Background(사진)은 항상 캔버스 전체를 덮는다. 줌/회전은 캔버스 중심을 피벗으로 하고,
   // 캔버스를 덮는 최소 배율 아래로는 내려가지 않게 클램프한다(흰 여백 방지).
   const bg = bgLayer && bgLayer.type === "background" ? bgLayer : null;
   const MAX_ZOOM = 4; // 커버 기준 100% → 최대 400%

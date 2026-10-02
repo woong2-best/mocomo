@@ -868,7 +868,7 @@ export async function leaveLiveStream(channelId: string) {
   return { success: true as const };
 }
 
-/** 최근 채팅 히스토리 (입장 시) */
+/** 최근 채팅 History (입장 시) */
 export async function loadLiveChatHistory(channelId: string) {
   const user = await requireAuth();
   const access = await resolveLiveChannelAccess(channelId, user.id);

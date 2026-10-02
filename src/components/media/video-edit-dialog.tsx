@@ -130,7 +130,7 @@ export function VideoEditDialog({
       reset(0, maxDurationSec);
       return;
     }
-    // 새 영상마다 trim/필터 상태를 처음부터 맞춤 (이전 영상 길이·편집값 잔존 방지)
+    // 새 Video마다 trim/필터 상태를 처음부터 맞춤 (이전 Video 길이·편집값 잔존 방지)
     durationInitRef.current = false;
     setDuration(0);
     setThumbnails([]);
@@ -161,7 +161,7 @@ export function VideoEditDialog({
       if (v) void loadThumbnails(v, dur);
       return;
     }
-    // 메타데이터가 늦게 보정되면(이전 영상 길이 잔존 등) trim 상한을 맞춤
+    // 메타데이터가 늦게 보정되면(이전 Video 길이 잔존 등) trim 상한을 맞춤
     if (edit.endSec > dur + 0.05 || edit.endSec <= 0.05) {
       patch(
         (s) => ({

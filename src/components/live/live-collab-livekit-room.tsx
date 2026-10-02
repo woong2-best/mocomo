@@ -13,7 +13,7 @@ import { fetchLivekitCredentials } from "@/lib/livekit-token-fetch";
 import { VIDEO_CALL_CAPTURE, VIDEO_CALL_ROOM_OPTIONS, VOICE_CALL_CAPTURE } from "@/lib/livekit-audio-options";
 import "@livekit/components-styles";
 
-/** 시청자 — CO_HOST LiveKit 영상만 (분할 우측) */
+/** 시청자 — CO_HOST LiveKit Video만 (분할 우측) */
 export function LiveCollabCoHostPanel({
   channelId,
   coHostUserId,

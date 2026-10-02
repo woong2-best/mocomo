@@ -48,7 +48,7 @@ export function LiveCollabPublishStudio({
   );
 }
 
-/** 호스트 스튜디오 — 합방자 영상 우측 미리보기 */
+/** 호스트 스튜디오 — 합방자 Video 우측 미리보기 */
 export function LiveHostCollabPreview({
   channelId,
   coHostUserId,

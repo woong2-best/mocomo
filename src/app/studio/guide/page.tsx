@@ -13,8 +13,8 @@ export default function StudioGuidePage() {
           <li><strong>Cute design</strong> — restrained cartoon proportions</li>
           <li><strong>Rounded shapes</strong> — avoid sharp corners</li>
           <li><strong>Low poly</strong> — 50,000 polygons or fewer</li>
-          <li><strong>카툰 렌더링</strong> — PBR 과다·사실 조명 지양</li>
-          <li><strong>Cozy mood</strong> — APT·홈 씬과 조화</li>
+          <li><strong>Cartoon rendering</strong> — avoid heavy PBR and realistic lighting</li>
+          <li><strong>Cozy mood</strong> — fits APT and home scenes</li>
         </ul>
       </section>
 

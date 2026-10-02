@@ -21,7 +21,7 @@ export function createImageLayer(
     flipX: false,
     flipY: false,
     effects: {},
-  }, { name: opts?.name ?? (type === "background" ? "배경" : "Image") });
+  }, { name: opts?.name ?? (type === "background" ? "Background" : "Image") });
 }
 
 export function createTextLayer(text = "Text", x = 40, y = 40): EditorLayer {
@@ -128,7 +128,7 @@ export function minCoverScale(
 }
 
 /**
- * 배경 이미지를 중심 피벗으로 박스 중앙에 배치하고, 최소 커버 배율 이상으로 맞춘다.
+ * Background 이미지를 중심 피벗으로 박스 중앙에 배치하고, 최소 커버 배율 이상으로 맞춘다.
  * offsetX/offsetY 를 이미지 중심으로 두는 렌더링과 짝을 이룬다(회전/줌이 항상 중앙 기준).
  */
 export function coverBackgroundTransform(

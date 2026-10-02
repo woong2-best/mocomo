@@ -55,7 +55,7 @@ function SharedPostMediaPreview({ media }: { media: ShareCardMedia }) {
       )}
       {isVideo ? (
         <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-          동영상
+          동Video
         </span>
       ) : null}
     </div>

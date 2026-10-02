@@ -25,7 +25,7 @@ export default async function UsedMarketAppealPage() {
           </Link>
           <h1 className="text-2xl font-bold mt-2">{t("app.market.s1pnrdkb")}</h1>
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-            경매 낙찰 후 결제 미이행 등으로 중고거래 이용이 제한된 경우, 정당한 사유가 있으면
+            Auction 낙찰 후 결제 미이행 등으로 중고거래 이용이 제한된 경우, 정당한 사유가 있으면
             소명 자료와 함께 이의를 제출할 수 있습니다.
           </p>
         </div>

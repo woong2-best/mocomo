@@ -94,12 +94,12 @@ export default async function AdminUserAccessLogsPage({
           <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
             <tr>
               <th className="p-2">{t("reels.sy36w")}</th>
-              <th className="p-2">회원</th>
+              <th className="p-2">Members</th>
               <th className="p-2">IP</th>
               <th className="p-2">{t("app.admin.spcsbw1")}</th>
               <th className="p-2">Channel</th>
               <th className="p-2">{t("app.admin.sx2ok")}</th>
-              <th className="p-2">브라우저</th>
+              <th className="p-2">Browser</th>
               <th className="p-2">OS</th>
               <th className="p-2">{t("app.admin.sul1c")}</th>
               <th className="p-2">{t("app.admin.subm4")}</th>

@@ -28,7 +28,7 @@ export function assertUsedMarketNotBanned(user: UsedMarketUserSlice): string | n
   return null;
 }
 
-/** 직거래·경매 공통 — KR 정산 계좌 불필요, 해외 휴대폰 인증, 경매 보증금은 MOCO 별도 */
+/** 직거래·Auction 공통 — KR 정산 계좌 불필요, 해외 휴대폰 인증, Auction 보증금은 MOCO 별도 */
 function assertUsedListingActivityAccess(user: UsedMarketUserSlice): string | null {
   const banErr = assertUsedMarketNotBanned(user);
   if (banErr) return banErr;

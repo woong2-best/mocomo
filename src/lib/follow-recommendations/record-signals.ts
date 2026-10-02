@@ -47,7 +47,7 @@ export async function recordPostViewEvent(
   });
 }
 
-/** 영상 시청 이력 */
+/** Video 시청 이력 */
 export async function recordVideoWatch(opts: {
   userId: string;
   postId: string;

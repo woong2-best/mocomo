@@ -1,7 +1,7 @@
 import type { UsedAuctionState, UsedSaleType } from "@prisma/client";
 import { translate } from "@/lib/i18n/messages";
 
-/** 경매 최소 입찰 단위 기본값 (원). 달러 상품은 1달러(100센트). */
+/** Auction 최소 입찰 단위 기본값 (원). 달러 상품은 1달러(100센트). */
 export const DEFAULT_BID_INCREMENT = 1_000;
 
 export function defaultBidIncrement(currency?: string | null): number {
@@ -11,7 +11,7 @@ export function defaultBidIncrement(currency?: string | null): number {
 /** 마감 직전 입찰 시 최대 연장 횟수 (회당 antiSnipeMinutes) */
 export const MAX_ANTI_SNIPE_EXTENSIONS = 5;
 
-/** 모든 경매는 등록 시점부터 3일. 클라이언트가 보낸 기간은 쓰지 않는다. */
+/** 모든 Auction는 등록 시점부터 3일. 클라이언트가 보낸 기간은 쓰지 않는다. */
 export const AUCTION_DURATION_HOURS = 72;
 
 export const AUCTION_DURATION_OPTIONS = [
@@ -27,7 +27,7 @@ export const BID_INCREMENT_PRESETS = [
   { value: 100_000, label: "₩100,000" },
 ] as const;
 
-/** 저가 카드·lot 경매용 */
+/** 저가 카드·lot Auction용 */
 export const BID_INCREMENT_PRESETS_TCG_KRW = [
   { value: 100, label: "₩100" },
   { value: 500, label: "₩500" },
@@ -77,7 +77,7 @@ export function auctionEndsAtMs(endsAt: Date | string | null | undefined): numbe
   return Number.isFinite(ms) ? ms : null;
 }
 
-/** 경매가 아직 진행 중인지 (시간 + 상태) */
+/** Auction가 아직 진행 중인지 (시간 + 상태) */
 export function isAuctionLive(l: AuctionListingSlice, now = Date.now()): boolean {
   if (!isAuctionListing(l)) return false;
   if (l.status !== "SELLING") return false;

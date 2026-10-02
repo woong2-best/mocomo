@@ -27,7 +27,7 @@ import {
 import { finalizeUsedAuctionWinner, activateUsedAuctionStripeOrder } from "@/lib/used-auction-marketplace-order";
 import { USED_AUCTION_RETIRED, USED_AUCTION_RETIRED_MSG } from "@/lib/retired-product-features";
 
-/** 만료된 경매 마감 처리 (조회 시 호출) */
+/** 만료된 Auction 마감 처리 (조회 시 호출) */
 export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
   try {
     const listing = await db.usedListing.findUnique({ where: { id: listingId } });
@@ -127,7 +127,7 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
   }
 }
 
-/** 크론·배치 — 만료된 경매 일괄 마감 + 결제·협상 타임아웃 */
+/** 크론·배치 — 만료된 Auction 일괄 마감 + 결제·협상 타임아웃 */
 export async function finalizeAllExpiredAuctions(take = 50) {
   try {
     const rows = await db.usedListing.findMany({
@@ -376,7 +376,7 @@ export async function getMyUsedAuctionBids(userId: string) {
   }
 }
 
-/** 판매자 — 입찰 없을 때만 경매 취소 */
+/** 판매자 — 입찰 없을 때만 Auction 취소 */
 export async function cancelUsedAuction(listingId: string) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });

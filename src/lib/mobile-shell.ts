@@ -47,7 +47,7 @@ export function mainScrollPaddingClass(pathname: string): string {
   return "pb-nav lg:pb-0";
 }
 
-/** 중고거래 섹션 헤더(경매·글쓰기 버튼) 숨김 */
+/** 중고거래 섹션 헤더(Auction·글쓰기 버튼) 숨김 */
 export function shouldHideUsedSectionHeader(pathname: string): boolean {
   return isUsedDetailPath(pathname);
 }

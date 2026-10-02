@@ -24,7 +24,7 @@ export async function quickCameraCheck(): Promise<CameraCheckResult> {
   return ensureCameraAccess();
 }
 
-/** 영상 통화 전 카메라 권한·연결 확인 (스트림 즉시 해제) */
+/** Video 통화 전 카메라 권한·연결 확인 (스트림 즉시 해제) */
 export async function ensureCameraAccess(): Promise<CameraCheckResult> {
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
     return {

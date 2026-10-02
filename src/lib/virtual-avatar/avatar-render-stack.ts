@@ -45,7 +45,7 @@ export class AvatarRenderStack {
     this.rebuildComposer();
   }
 
-  /** WHIP VTuber — 투명 배경이어도 블룸·톤매핑 유지 */
+  /** WHIP VTuber — 투명 Background이어도 블룸·톤매핑 유지 */
   setLiveCaptureQuality(on: boolean) {
     this.liveCaptureQuality = on;
     if (on) {

@@ -59,7 +59,7 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
       message: probe.playable
         ? "LiveKit 방송이 연결되었습니다."
         : probe.onAir
-          ? "영상 준비 중…"
+          ? "Video 준비 중…"
           : "The preview appears after you click 「Go live」 in OBS.",
     };
   }

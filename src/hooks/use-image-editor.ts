@@ -364,7 +364,7 @@ export function useImageEditor(initialProject: EditorProject | null) {
     [project, commit]
   );
 
-  // 배경은 항상 캔버스 전체를 덮고, 크롭 프레임만 그 위에서 이동/리사이즈한다.
+  // Background은 항상 캔버스 전체를 덮고, 크롭 프레임만 그 위에서 이동/리사이즈한다.
   // 따라서 비율 변경은 크롭 사각형만 바꾸면 되고 흰 여백이 생기지 않는다.
   const applyCropAspect = useCallback(
     (aspect: number | undefined) => {
@@ -393,7 +393,7 @@ export function useImageEditor(initialProject: EditorProject | null) {
   );
 
   /**
-   * 초기 업로드 상태로 완전 리셋: 추가 레이어 전부 제거, 배경 캔버스 커버·회전 0·크롭 재설정.
+   * 초기 업로드 상태로 완전 리셋: 추가 레이어 전부 제거, Background 캔버스 커버·회전 0·크롭 재설정.
    */
   const resetBackgroundTransform = useCallback(
     (aspect: number | undefined) => {

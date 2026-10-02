@@ -14,7 +14,13 @@ const HANGUL_ALLOWLIST = new Set([
   "src/lib/world-countries.ts",
   "src/lib/legal-content.ts",
   "src/lib/anime-wiki-infobox.ts",
+  "src/lib/anime-wiki-seeds.ts",
   "src/lib/i18n/countries.ts",
+  "src/lib/subculture-event-seeds.ts",
+  "src/lib/subculture-event-seeds-international.ts",
+  "src/lib/subculture-maid-cafe-seeds.ts",
+  "src/lib/subculture-maid-cafe-seeds-international.ts",
+  "src/lib/cosplay-board-seed.ts",
 ]);
 
 function stripComments(line) {

@@ -15,7 +15,7 @@ type Props = {
   channelId?: string;
   channelName?: string;
   onEndStream?: () => void;
-  /** true: 영상 칸만 오류 표시, 스튜디오 전체는 유지 */
+  /** true: Video 칸만 오류 표시, 스튜디오 전체는 유지 */
   inline?: boolean;
   /** inline 오류 시 브라우저 방송 패널로 대체 */
   hostObsFallback?: boolean;

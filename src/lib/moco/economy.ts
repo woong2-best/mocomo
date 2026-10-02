@@ -5,7 +5,7 @@
  * - earnedMoco (PlatformWallet.settlementMocoPoints): 다른 사용자에게 받은 MOCO.
  *   보유 잔액에 넣지 않는다. 정산 등급·월간 Reward만 이 잔액으로 산정하고, 등급 차감 후 잔여는 이월.
  * 1 MOCO = 10 KRW 표시 단위 (체크아웃·탑업).
- * 경매 입찰 보증금 가치: 1 MOCO = $5 — src/lib/auction-deposit/constants.ts
+ * Auction 입찰 보증금 가치: 1 MOCO = $5 — src/lib/auction-deposit/constants.ts
  */
 
 /** 1 모코 = 10 KRW */

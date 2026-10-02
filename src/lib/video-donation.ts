@@ -1,4 +1,4 @@
-/** YouTube 영상 후원 — 치지직 스타일 설정·계산 */
+/** YouTube Video 후원 — 치지직 스타일 설정·계산 */
 
 const YOUTUBE_ID = /^[a-zA-Z0-9_-]{11}$/;
 

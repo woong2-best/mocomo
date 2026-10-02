@@ -1,6 +1,6 @@
 import type { MocoDonationType } from "@prisma/client";
 
-/** OBS 위젯에서 재생할 영상 최대 길이(초) — abuse 방지 */
+/** OBS 위젯에서 재생할 Video 최대 길이(초) — abuse 방지 */
 export const MOCO_DONATION_DEFAULT_MAX_PLAY_SEC = 60;
 
 export const MOCO_DONATION_MAX_PLAY_SEC_CAP = 120;

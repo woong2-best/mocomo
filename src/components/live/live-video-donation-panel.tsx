@@ -191,7 +191,7 @@ function VideoDonationPlayer({
   );
 }
 
-/** 방송 영상 위 YouTube PiP + 설명 */
+/** 방송 Video 위 YouTube PiP + 설명 */
 export function LiveVideoDonationOverlay({ channelId }: { channelId: string }) {
   const [playing, setPlaying] = useState<LiveVideoDonationPayload | null>(null);
 

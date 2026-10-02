@@ -5,7 +5,7 @@ import { resolveDonateApiUser } from "@/lib/moco-donation/api-auth";
 import { resolveStreamerTarget } from "@/lib/moco-donation/resolve-streamer";
 import { prepareMocoVideoDonation } from "@/lib/moco-donation/prepare-video-donation";
 
-/** 영상 도네 — URL·구간 검증 + MOCO 견적 (결제 전) */
+/** Video 도네 — URL·구간 검증 + MOCO 견적 (결제 전) */
 export async function POST(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "v1-donate-video-preview", 40);
   if (limited) return limited;

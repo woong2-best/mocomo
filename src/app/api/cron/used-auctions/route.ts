@@ -7,7 +7,7 @@ import { isProduction, verifyInternalSecret } from "@/lib/api-security";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-/** Vercel Cron — 만료 경매 자동 마감 + 입찰 hold 갱신 알림 */
+/** Vercel Cron — 만료 Auction 자동 마감 + 입찰 hold 갱신 알림 */
 export async function GET(req: NextRequest) {
   if (isProduction() && !verifyInternalSecret(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -35,7 +35,7 @@ export default async function AdminDashboardPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">대시보드</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("app.admin.s143xy01")}</p>
       </div>
 
@@ -90,7 +90,7 @@ export default async function AdminDashboardPage() {
         <DashboardCard title={t("admin.s17ku92k")}>
           <ul className="space-y-2 text-sm">
             {recentPayments.length === 0 ? (
-              <li className="text-muted-foreground">결제 없음</li>
+              <li className="text-muted-foreground">No payments</li>
             ) : (
               recentPayments.map((p) => (
                 <li key={p.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">

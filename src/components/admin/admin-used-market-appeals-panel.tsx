@@ -173,7 +173,7 @@ export function AdminUsedMarketAppealsPanel({
                   </p>
                   {appeal.listing && (
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                      경매: {appeal.listing.title}
+                      Auction: {appeal.listing.title}
                     </p>
                   )}
                 </button>
@@ -225,7 +225,7 @@ export function AdminUsedMarketAppealsPanel({
                             {fmt(log.bidTermsAcceptedAt)} · 보존 ~{fmt(log.retainUntil)}
                           </p>
                           <p className="text-muted-foreground">
-                            경매 마감 {fmt(log.auctionEndsAt)} · 결제 기한 {fmt(log.paymentDueAt)}
+                            Auction 마감 {fmt(log.auctionEndsAt)} · 결제 기한 {fmt(log.paymentDueAt)}
                           </p>
                         </li>
                       ))}

@@ -525,7 +525,7 @@ export async function processPaymentReminders(listingId: string) {
   }
 }
 
-/** 3일 경매 — 하루 남음 / 1시간 남음을 판매자와 입찰자에게 한 번씩 */
+/** 3일 Auction — 하루 남음 / 1시간 남음을 판매자와 입찰자에게 한 번씩 */
 export async function processAuctionClockReminders(take = 50) {
   const now = Date.now();
   const in24h = new Date(now + 24 * 60 * 60 * 1000);

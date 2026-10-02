@@ -6,7 +6,7 @@ import { getAccountTokens } from "./service";
 export type DonationGuardResult = { ok: true } | { ok: false; error: string };
 
 /**
- * 라이브 후원·영상 후원 전 검증:
+ * 라이브 후원·Video 후원 전 검증:
  * - 외부 방송: 인증된 ConnectedStreamingAccount 필수 + 채널 ID 일치
  * - 자체 방송: LIVE 상태면 허용
  */

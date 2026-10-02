@@ -20,6 +20,13 @@ const ALLOWLIST_FILES = new Set([
   "korea-regions.ts",
   "world-countries.ts",
   "anime-wiki-infobox.ts",
+  "anime-wiki-seeds.ts",
+  "countries.ts",
+  "subculture-event-seeds.ts",
+  "subculture-event-seeds-international.ts",
+  "subculture-maid-cafe-seeds.ts",
+  "subculture-maid-cafe-seeds-international.ts",
+  "cosplay-board-seed.ts",
 ]);
 
 const skippedLog = path.join(root, ".build-tmp/inline-hangul-skipped.txt");
@@ -64,6 +71,25 @@ function englishFor(ko) {
   ];
   for (const [re, msg] of rules) {
     if (re.test(ko)) return msg;
+  }
+  return provisionalEnglish(ko);
+}
+
+function provisionalEnglish(ko) {
+  const exact = {
+    "상품을 준비 중입니다": "We're preparing your order",
+    "상품이 발송되었습니다": "Your order has shipped",
+    "코드 입력형 혜택 ·": "Code-based perks ·",
+    "프로모션(자동 적용)": "Promotions (auto-apply)",
+    "과 병행 · 실DB CRUD": " alongside live DB CRUD",
+  };
+  if (exact[ko]) return exact[ko];
+  const trimmed = ko.replace(/\s+/g, " ").trim();
+  if (exact[trimmed]) return exact[trimmed];
+  if (/준비/.test(ko) && /상품/.test(ko)) return "We're preparing your order";
+  if (/발송|배송/.test(ko) && /상품|주문/.test(ko)) return "Your order has shipped";
+  if (ko.length <= 120 && !/(===|!==|includes|startsWith|indexOf)/.test(ko)) {
+    return null;
   }
   return null;
 }
@@ -240,6 +266,18 @@ function replaceQuotedStrings(code, rel, lineStarts, onChange) {
             onChange();
             return q + escapeForQuote(en, q) + q;
           });
+          rebuilt = rebuilt.replace(/([^`\\]*[가-힣][^`\\]*?)(?=\$\{)/g, (seg) => {
+            if (!hangul.test(seg)) return seg;
+            const en = englishFor(seg.trim());
+            if (!en) {
+              logSkip(rel, line, "no-english-template", seg.slice(0, 80));
+              return seg;
+            }
+            onChange();
+            const lead = seg.match(/^\s*/)[0];
+            const trail = seg.match(/\s*$/)[0];
+            return `${lead}${en}${trail}`;
+          });
           out += "`" + rebuilt + "`";
         } else {
           const en = englishFor(inner);
@@ -265,11 +303,7 @@ function replaceQuotedStrings(code, rel, lineStarts, onChange) {
 
 function replaceJsxText(code, rel, getLine, onChange) {
   return code.replace(/>([^<>\r\n{}]*[가-힣][^<>\r\n{}]*)</g, (match, text, offset) => {
-    const before = code.slice(Math.max(0, offset - 400), offset);
-    const singles = (before.match(/'/g) || []).length;
-    const doubles = (before.match(/"/g) || []).length;
-    const backticks = (before.match(/`/g) || []).length;
-    if (singles % 2 === 1 || doubles % 2 === 1 || backticks % 2 === 1) return match;
+    if (/['"`]/.test(text)) return match;
     const trimmed = text.trim();
     if (!trimmed || !hangul.test(trimmed)) return match;
     const en = englishFor(trimmed);
@@ -286,10 +320,7 @@ function replaceJsxText(code, rel, getLine, onChange) {
 
 function replaceJsxSibling(code, rel, getLine, onChange) {
   return code.replace(/(\})\s*([^<>{}\r\n]*[가-힣][^<>{}\r\n]*?)\s*(\{(?!\/\*))/g, (match, close, text, open, offset) => {
-    const before = code.slice(0, offset);
-    if ((before.match(/'/g) || []).length % 2 === 1) return match;
-    if ((before.match(/"/g) || []).length % 2 === 1) return match;
-    if ((before.match(/`/g) || []).length % 2 === 1) return match;
+    if (/['"`]/.test(text)) return match;
     const trimmed = text.trim();
     if (!hangul.test(trimmed)) return match;
     const en = englishFor(trimmed);
@@ -305,6 +336,10 @@ function replaceJsxSibling(code, rel, getLine, onChange) {
 }
 
 const SKIP_DIRS = new Set(["__tests__", "seed"]);
+const SKIP_PATH_SUFFIXES = [
+  "src/app/api/live/[channelId]/whip/route.ts",
+  "src/app/api/live/session/route.ts",
+];
 
 function walk(dir, files = []) {
   for (const name of fs.readdirSync(dir)) {
@@ -326,6 +361,7 @@ let changedFiles = 0;
 for (const file of files) {
   let src = fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "");
   const rel = path.relative(root, file).replace(/\\/g, "/");
+  if (SKIP_PATH_SUFFIXES.some((s) => rel.endsWith(s.replace(/\//g, path.sep)) || rel === s)) continue;
   const lineStarts = [];
   let pos = 0;
   for (const line of src.split(/\r?\n/)) {

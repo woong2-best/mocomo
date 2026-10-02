@@ -178,7 +178,7 @@ export function AdminUsedMarketPanel({
           </ul>
           {stats && (
             <div className="rounded-lg bg-muted/40 p-3 text-sm space-y-1">
-              <p className="font-medium">@{stats.user.username} 경매 기록</p>
+              <p className="font-medium">@{stats.user.username} Auction 기록</p>
               <p>총 낙찰: {stats.user.auctionWinCount}</p>
               <p>미결제: {stats.user.auctionPaymentDefaultCount}</p>
               <p>미결제 비율: {stats.defaultRate}%</p>

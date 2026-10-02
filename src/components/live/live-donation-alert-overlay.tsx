@@ -159,7 +159,7 @@ function alertDuration(tip: LiveTipAlert) {
   return ALERT_MS.tip;
 }
 
-/** 트witch/치지직 스타일 — 영상 오른쪽 알림 (라이브 페이지 후원·CP·채팅) */
+/** 트witch/치지직 스타일 — Video 오른쪽 알림 (라이브 페이지 후원·CP·채팅) */
 export function LiveDonationAlertOverlay({
   tips }: { tips: LiveTipAlert[] }) {
   const seenRef = useRef<Set<string>>(new Set());

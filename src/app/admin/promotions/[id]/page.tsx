@@ -34,7 +34,7 @@ export default async function AdminPromotionDetailPage({
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">혜택 · 우선순위</CardTitle>
+            <CardTitle className="text-base">Benefits · Priority</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
             <p>{p.benefitLabel}</p>

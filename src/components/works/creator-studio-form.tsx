@@ -247,7 +247,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
         {activeKind === "VIDEO" && (
           <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
             <Upload className="h-4 w-4" />
-            영상 업로드
+            Video 업로드
             <input
               type="file"
               accept="video/*"

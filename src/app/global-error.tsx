@@ -45,7 +45,7 @@ export default function GlobalError({
               ? "새 버전을 불러오는 중입니다."
               : stale
                 ? "배포 직후 브라우저 캐시가 꼬였을 수 있습니다. 아래 버튼으로 새로고침해 주세요."
-                : "일시적인 오류일 수 있습니다."}
+                : "This may be a temporary error."}
           </p>
           {!recovering && (
             <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 20 }}>

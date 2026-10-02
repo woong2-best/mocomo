@@ -71,7 +71,7 @@ export default async function SupportTiersPage() {
       {session?.user?.id && progress ? (
         <section className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
           <div className="flex justify-between text-sm items-center gap-3">
-            <span className="text-muted-foreground">내 누적 후원</span>
+            <span className="text-muted-foreground">My lifetime tips</span>
             {nextTier ? (
               <span className="shrink-0" title={nextTier.labelKo}>
                 <OreIcon tier={nextTier.level} size={32} />
@@ -97,13 +97,13 @@ export default async function SupportTiersPage() {
         <section className="rounded-2xl border border-border/60 bg-muted/20 p-4 text-center text-sm text-muted-foreground">
           <p>{t("app.support.s74l8tp")}</p>
           <Button variant="secondary" size="sm" className="mt-3" asChild>
-            <Link href="/auth/signin?callbackUrl=%2Fsupport%2Ftiers">로그인</Link>
+            <Link href="/auth/signin?callbackUrl=%2Fsupport%2Ftiers">Please sign in to continue.</Link>
           </Button>
         </section>
       )}
 
       <section className="space-y-2 pt-2">
-        <p className="text-sm font-semibold text-muted-foreground px-1">전체 등급</p>
+        <p className="text-sm font-semibold text-muted-foreground px-1">All tiers</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {SUPPORT_TIERS.map((t) => (
             <OreTierButton

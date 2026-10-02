@@ -146,7 +146,7 @@ export async function fulfillCallBookingPayment(params: {
 
   await recordPaymentGross(params.amount, params.paymentIntentId, `call_booking:${booking.id}`);
 
-  const callTypeLabel = booking.callType === "VIDEO" ? "영상" : "Voice";
+  const callTypeLabel = booking.callType === "VIDEO" ? "Video" : "Voice";
   const body = buildCallBookingMessageBody(booking.id, callTypeLabel);
   await sendMobileDmMessage(booking.fanId, {
     roomId: booking.chatRoomId,

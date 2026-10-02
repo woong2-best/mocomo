@@ -20,7 +20,7 @@ function playSfx(src: string | null, onDone: () => void) {
   void audio.play().catch(() => onDone());
 }
 
-/** OBS Browser Source — MOCO 영상·SFX 도네이션 순차 재생 */
+/** OBS Browser Source — MOCO Video·SFX 도네이션 순차 재생 */
 export function MocoDonationAlertWidget({
   channelId,
   token,

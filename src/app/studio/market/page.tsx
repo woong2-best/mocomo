@@ -51,7 +51,7 @@ export default async function StudioMarketPage({
           <AssetCard key={a.id} asset={a} href={`/studio/market/${a.id}`} />
         ))}
       </div>
-      {!assets.length && <p className="text-muted-foreground">표시할 자산이 없습니다.</p>}
+      {!assets.length && <p className="text-muted-foreground">No assets to show.</p>}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { prepareMocoVideoDonation } from "@/lib/moco-donation/prepare-video-donation";
 
-/** Mobile — YouTube 영상 도네 견적 (Bearer) */
+/** Mobile — YouTube Video 도네 견적 (Bearer) */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

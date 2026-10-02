@@ -190,7 +190,7 @@ export async function fulfillMarketplaceOrder(params: {
       ? "안전 검토 후 주문 처리가 이어집니다."
       : order.usedListingId
         ? "주문 내역에서 배송·추적을 확인하세요. 배송 완료 후 72시간 뒤 자동 구매확정됩니다."
-        : "주문 내역에서 배송·다운로드를 확인하세요. 구매 확정 전까지 결제 승인(보류) 상태입니다.",
+        : "Your order has shipped",
     link: `/market/orders/${order.id}`,
   });
 

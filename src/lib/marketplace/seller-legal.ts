@@ -57,7 +57,7 @@ export const SELLER_TERMS: LegalDocument = {
     { type: "h3", text: "Article 5 (Product listings)" },
     {
       type: "p",
-      text: "판매자는 판매자센터를 통해 상품을 등록할 수 있으며, 상품 정보(명칭, 가격, 재고, 배송·제작 조건, 디지털 제공 방식 등)를 정확하고 최신 상태로 유지해야 합니다.",
+      text: "Your order has shipped",
     },
     { type: "h3", text: "Article 6 (Seller obligations)" },
     {

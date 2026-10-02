@@ -20,7 +20,7 @@ export default async function MarketSellPage() {
       <section className="space-y-3">
         <h2 className="font-bold text-lg">Merch seller inquiry</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          사진·설명·영상을 올리고 등록비 {formatUsd(LISTING_FEE_USD_CENTS)}를 결제하면 상품을 등록할 수 있습니다. 판매·배송·결제는
+          사진·설명·Video을 올리고 등록비 {formatUsd(LISTING_FEE_USD_CENTS)}를 결제하면 상품을 등록할 수 있습니다. 판매·배송·결제는
           MoCoMo 굿즈샵에서 처리됩니다 (플랫폼 수수료 10%).
         </p>
         <GoodsListingForm paymentsEnabled={paymentsEnabled} />

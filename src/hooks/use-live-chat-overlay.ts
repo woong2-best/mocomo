@@ -4,7 +4,7 @@ import { useLiveChatOptional } from "@/components/live/live-chat-provider";
 import { useLiveSocket } from "@/hooks/use-live-socket";
 import { useCallback, useEffect, useState } from "react";
 
-/** 라이브 영상 위 채팅 오버레이 표시 여부 — LiveChatProvider 우선, 없으면 단독 소켓 */
+/** 라이브 Video 위 채팅 오버레이 표시 여부 — LiveChatProvider 우선, 없으면 단독 소켓 */
 export function useLiveChatOverlay(
   channelId: string,
   userId: string | undefined,

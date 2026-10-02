@@ -106,7 +106,7 @@ export async function sendIncomingCallPush(payload: IncomingCallPushPayload): Pr
   if (!configureWebPush()) return;
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://mocomo.net").replace(/\/$/, "");
-  const kind = payload.callType === "VIDEO" ? "영상" : "Voice";
+  const kind = payload.callType === "VIDEO" ? "Video" : "Voice";
   const openUrl = `${appUrl}/?incomingCall=${encodeURIComponent(payload.callId)}`;
 
   const body = JSON.stringify({

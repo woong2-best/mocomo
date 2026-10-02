@@ -9,17 +9,17 @@ export default function AdminForbiddenPage() {
         <ShieldOff className="mx-auto h-12 w-12 text-muted-foreground" />
         <div className="space-y-1">
           <p className="text-2xl font-bold">403</p>
-          <p className="text-lg font-semibold">관리자 권한이 없습니다</p>
+          <p className="text-lg font-semibold">You do not have admin access</p>
           <p className="text-sm text-muted-foreground">
             이 페이지는 지정된 관리자 역할이 있는 계정만 접근할 수 있습니다.
           </p>
         </div>
         <div className="flex flex-wrap justify-center gap-2">
           <Button asChild variant="outline">
-            <Link href="/">홈으로</Link>
+            <Link href="/">Home</Link>
           </Button>
           <Button asChild>
-            <Link href="/admin/login">관리자 로그인</Link>
+            <Link href="/admin/login">Admin sign-in</Link>
           </Button>
         </div>
       </div>

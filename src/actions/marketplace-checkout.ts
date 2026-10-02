@@ -816,7 +816,7 @@ export async function sellerUpdateShipment(input: {
     title:
       status === "PREPARING"
         ? "상품을 준비 중입니다"
-        : "상품이 발송되었습니다",
+        : "Your order has shipped",
     body: carrierLabel ? `${carrierLabel} ${trackingNumber}` : trackingNumber,
     link: `/market/orders/${order.id}`,
     actorId: user.id,

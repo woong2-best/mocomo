@@ -21,7 +21,7 @@ export default async function AdminPromotionStatsPage() {
         <Link href="/admin/promotions" className="text-sm text-muted-foreground hover:underline">
           ← 프로모션
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight">프로모션 통계</h1>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight">Promotion stats</h1>
         <p className="text-sm text-muted-foreground">
           API: <code className="text-xs">GET /api/admin/promotions/statistics</code>
         </p>

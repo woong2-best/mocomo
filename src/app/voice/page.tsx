@@ -39,7 +39,7 @@ export default async function VoicePage() {
             </Button>
           </Link>
           <Link href="/voice/new">
-            <Button size="sm">방 만들기</Button>
+            <Button size="sm">Create room</Button>
           </Link>
         </div>
       </div>
@@ -58,7 +58,7 @@ export default async function VoicePage() {
                   <Link href="/voice/new">{t("app.voice.sdfvh9h")}</Link>
                 </Button>
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/live">라이브 시청하기</Link>
+                  <Link href="/live">Watch live</Link>
                 </Button>
               </div>
             </CardContent>

@@ -9,7 +9,7 @@ type Props = {
   className?: string;
 };
 
-/** NSFW 토글 — 둥근 직사각형 (PNG 검은 배경 없음) */
+/** NSFW 토글 — 둥근 직사각형 (PNG 검은 Background 없음) */
 export function NsfwToggleButton({ active, onToggle, disabled, className }: Props) {
   return (
     <button

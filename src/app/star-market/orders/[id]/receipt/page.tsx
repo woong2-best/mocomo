@@ -68,7 +68,7 @@ export default async function MarketReceiptPage({
             <td className="py-2 text-right font-bold">{formatUsd(total)}</td>
           </tr>
           <tr>
-            <td className="py-2 text-xs text-muted-foreground">플랫폼 수수료(참고)</td>
+            <td className="py-2 text-xs text-muted-foreground">Platform fee (reference)</td>
             <td className="py-2 text-right text-xs text-muted-foreground">
               {formatUsd(order.platformFeeAmount)}
             </td>

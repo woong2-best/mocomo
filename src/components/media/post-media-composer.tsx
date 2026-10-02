@@ -54,9 +54,9 @@ type PostMediaComposerProps = {
   maxImages?: number;
   maxVideos?: number;
   allowVideo?: boolean;
-  /** false면 영상 촬영 버튼 숨김 */
+  /** false면 Video 촬영 버튼 숨김 */
   allowVideoCapture?: boolean;
-  /** default 레이아웃 — 영상 파일 버튼 바로 옆 (유료 판매 금액 등) */
+  /** default 레이아웃 — Video 파일 버튼 바로 옆 (유료 판매 금액 등) */
   afterVideoButton?: ReactNode;
   layout?: "default" | "toolbar";
   /** toolbar 레이아웃 하단 우측 (게시하기 등) */

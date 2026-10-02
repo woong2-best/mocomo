@@ -38,7 +38,7 @@ export async function POST(
   const result = await addChatMemberByUsername(authResult.user.id, roomId, parsed.data.username);
   if ("error" in result) {
     const status = result.error === "NOT_MEMBER" ? 403 : 400;
-    const message = result.error === "NOT_MEMBER" ? "대화 멤버만 추가할 수 있습니다." : result.error;
+    const message = result.error === "NOT_MEMBER" ? "Only chat members can add people." : result.error;
     return NextResponse.json({ error: message }, { status });
   }
   return NextResponse.json(result);

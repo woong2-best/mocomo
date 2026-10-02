@@ -49,13 +49,13 @@ export default async function AdminSearchPage() {
             </li>
           ))}
           {!stats.volumeByDay.length ? (
-            <li className="text-sm text-muted-foreground">데이터 없음</li>
+            <li className="text-sm text-muted-foreground">No data</li>
           ) : null}
         </ul>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">최근 검색 / 실시간</h2>
+        <h2 className="text-lg font-semibold">Recent search / live</h2>
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
@@ -64,7 +64,7 @@ export default async function AdminSearchPage() {
                 <th className="p-2">{t("lib.video-editor.syuqw")}</th>
                 <th className="p-2">Normalized</th>
                 <th className="p-2">Topic</th>
-                <th className="p-2">결과</th>
+                <th className="p-2">Results</th>
                 <th className="p-2">국가</th>
                 <th className="p-2">{t("admin.s11l1g")}</th>
               </tr>
@@ -130,7 +130,7 @@ function RankTable({
           </li>
         ))}
         {!rows.length ? (
-          <li className="p-3 text-sm text-muted-foreground">데이터 없음</li>
+          <li className="p-3 text-sm text-muted-foreground">No data</li>
         ) : null}
       </ol>
     </div>

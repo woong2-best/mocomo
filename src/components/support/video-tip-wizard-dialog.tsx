@@ -224,10 +224,10 @@ export function VideoTipWizardDialog({
         <DialogHeader className="px-4 pt-4 pb-2 border-b border-white/10">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Film className="h-5 w-5 text-emerald-400" />
-            {displayName} 영상 후원
+            {displayName} Video 후원
           </DialogTitle>
           <p className="text-xs text-white/50">
-            {step}/4 · YouTube 영상을 등록하고 재생 구간·금액을 설정한 뒤 후원합니다.
+            {step}/4 · YouTube Video을 등록하고 재생 구간·금액을 설정한 뒤 후원합니다.
           </p>
         </DialogHeader>
 
@@ -275,7 +275,7 @@ export function VideoTipWizardDialog({
 
             {previewLoading && (
               <p className="text-xs text-white/50 flex items-center gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" /> 영상 확인 중…
+                <Loader2 className="h-3 w-3 animate-spin" /> Video 확인 중…
               </p>
             )}
             {previewError && <p className="text-xs text-red-400">{previewError}</p>}
@@ -561,14 +561,14 @@ export function VideoTipWizardDialog({
                 className="mt-0.5 rounded border-white/30"
               />
               <span>
-                결제 및 영상 후원 유의사항에 동의합니다. 호스트 검수 후 방송에 재생됩니다.
+                결제 및 Video 후원 유의사항에 동의합니다. 호스트 검수 후 방송에 재생됩니다.
               </span>
             </label>
 
             <PayButton
               type="TIP"
               amount={effectiveAmount}
-              orderName={`${displayName} 영상 후원`}
+              orderName={`${displayName} Video 후원`}
               metadata={tipMetadataForCheckout({
                 receiverId: creatorId,
                 message: description.trim() || undefined,

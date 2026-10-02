@@ -127,7 +127,7 @@ export function EventAdEditPanel({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">클릭 시 이동 링크</label>
+        <label className="text-xs font-medium text-muted-foreground">Link on click</label>
         <Input
           placeholder="https://"
           value={linkUrl}
@@ -139,7 +139,7 @@ export function EventAdEditPanel({
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {saved && <p className="text-sm text-emerald-600">저장되었습니다.</p>}
+      {saved && <p className="text-sm text-emerald-600">Saved.</p>}
 
       <Button
         type="submit"

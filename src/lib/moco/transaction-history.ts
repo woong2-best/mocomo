@@ -95,7 +95,7 @@ export async function burnPurchasedMocoWithHistory(
   return { recorded: true };
 }
 
-/** lockedMocoBalance에서 Burn + 원장 기록 (경매 페널티 등, 멱등) */
+/** lockedMocoBalance에서 Burn + 원장 기록 (Auction 페널티 등, 멱등) */
 export async function burnLockedMocoWithHistory(
   tx: Tx,
   input: RecordMocoBurnInput

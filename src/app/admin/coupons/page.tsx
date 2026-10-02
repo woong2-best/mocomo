@@ -29,7 +29,7 @@ export default async function AdminCouponsPage({
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">쿠폰</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Coupons</h1>
         <p className="text-sm text-muted-foreground">
           코드 입력형 혜택 ·{" "}
           <Link href="/admin/promotions" className="underline">

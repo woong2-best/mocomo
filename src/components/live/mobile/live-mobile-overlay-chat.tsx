@@ -15,7 +15,7 @@ import type { LiveChatMessage } from "@/components/live/live-chat";
 import { CommentDonationDialog } from "@/components/live/comment-donation-dialog";
 import type { SupportTierLevel } from "@prisma/client";
 
-/** 인스타 라이브 스타일 — 영상 위 채팅 오버레이 + 입력 */
+/** 인스타 라이브 스타일 — Video 위 채팅 오버레이 + 입력 */
 export function LiveMobileOverlayChat({
   channelId,
   hostUserId,

@@ -23,7 +23,7 @@ export default async function CosplayBoardPostPage({
 
   if (!post) notFound();
 
-  const modeLabel = post.mode === "rental" ? "코스프레 대여" : "Buy";
+  const modeLabel = post.mode === "rental" ? "Cosplay rental" : "Buy";
   const isAuthor = session?.user?.id === post.author.id;
   const canMessage = session?.user?.id
     ? (await contactPermissions(session.user.id, post.author.id)).canMessage

@@ -24,7 +24,7 @@ export default async function MarketOrdersPage({
         <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <div>
             <h1 className="text-2xl font-bold">Order</h1>
-            <p className="text-sm text-muted-foreground">구매 · 판매 주문 관리</p>
+            <p className="text-sm text-muted-foreground">Manage buy & sell orders</p>
           </div>
           <div className="flex gap-2 text-sm">
             <Link

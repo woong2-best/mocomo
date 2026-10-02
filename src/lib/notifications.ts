@@ -561,7 +561,7 @@ export async function notifyIncomingCall(
   chatRoomId?: string | null
 ) {
   const caller = await getActor(callerId);
-  const kind = callType === "VIDEO" ? "영상" : "Voice";
+  const kind = callType === "VIDEO" ? "Video" : "Voice";
   const label = actorLabel(caller);
   scheduleNotification({
     userId: calleeId,

@@ -147,7 +147,7 @@ export async function validatePaymentInput(
       const expected = calcVideoDonationAmount(durationSec, settings);
       if (input.amount < expected) {
         return {
-          error: `영상 후원 최소 금액은 ${formatMoney(expected)}입니다.`,
+          error: `Video 후원 최소 금액은 ${formatMoney(expected)}입니다.`,
         };
       }
     } else {
