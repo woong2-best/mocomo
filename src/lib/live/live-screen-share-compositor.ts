@@ -44,7 +44,7 @@ export class LiveScreenShareCompositor {
     this.avatarCanvas = opts?.avatarCanvas ?? null;
 
     const screenTrack = screenStream.getVideoTracks()[0];
-    if (!screenTrack) throw new Error("화면 공유 영상이 없습니다.");
+    if (!screenTrack) throw new Error("No screen-share video available.");
 
     const screenVideo = document.createElement("video");
     screenVideo.srcObject = new MediaStream([screenTrack]);
