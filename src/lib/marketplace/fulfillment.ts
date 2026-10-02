@@ -240,7 +240,7 @@ export async function autoConfirmMarketplaceOrdersBatch() {
       userId: row.buyerId,
       type: "SYSTEM",
       title: "구매가 자동 확정되었습니다",
-      body: `배송 완료 후 ${MARKETPLACE_DISPUTE_WINDOW_HOURS}시간이 지나 자동 구매확정되었습니다.`,
+      body: `Done. ${MARKETPLACE_DISPUTE_WINDOW_HOURS}시간이 지나 자동 구매확정되었습니다.`,
       link: `/market/orders/${row.id}`,
     });
     confirmed += 1;

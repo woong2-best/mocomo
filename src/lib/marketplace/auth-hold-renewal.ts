@@ -275,7 +275,7 @@ export async function reauthorizeExpiringMarketplaceHoldsBatch(limit = 30) {
             : "Reconfirm your card on the order page. Settlement may be delayed if you do not renew.";
         await markPaymentSettlementBlocked(
           row.id,
-          `카드 승인 갱신 필요 (${result.reason})`
+          `Please check your input and try again.${result.reason})`
         );
         await createNotification({
           userId: row.buyerId,

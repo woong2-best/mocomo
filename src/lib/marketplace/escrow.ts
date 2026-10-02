@@ -128,7 +128,7 @@ export async function releaseMarketplaceEscrow(
         });
       }
     }
-    return { error: `정산 캡처 실패: ${captureRes.error}` };
+    return { error: `Settlement capture failed: {v0} ${captureRes.error}` };
   }
 
   const settlementRef = captureRes.chargeId ?? (await resolveMarketplaceStripePaymentIntentId(storedRef));

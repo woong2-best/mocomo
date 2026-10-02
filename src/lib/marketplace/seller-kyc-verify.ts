@@ -131,7 +131,7 @@ export function verifySellerKyc(input: SellerKycVerifyInput): SellerKycVerifyRes
   if (isKycDevAutoPass() && flags.length === 0) {
     return {
       status: "VERIFIED",
-      notes: `자동 검증 완료 · ${input.idType} · dev`,
+      notes: `Done. ${input.idType} · dev`,
       flags: [],
       autoApproved: true,
     };
@@ -140,7 +140,7 @@ export function verifySellerKyc(input: SellerKycVerifyInput): SellerKycVerifyRes
   if (flags.length === 0) {
     return {
       status: "VERIFIED",
-      notes: `자동 검증 완료 · ${input.idType} · OCR·명의 일치`,
+      notes: `Done. ${input.idType} · OCR·명의 일치`,
       flags: [],
       autoApproved: true,
     };

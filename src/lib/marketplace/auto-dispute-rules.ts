@@ -103,7 +103,7 @@ export async function evaluateMarketplaceDisputeRule(
           userId: dispute.order.buyerId,
           type: "SYSTEM",
           title: "Dispute evidence needs more detail",
-          body: `사진 ${MARKETPLACE_AUTO_DISPUTE_MIN_BUYER_PHOTOS}장 이상이 필요합니다. 관리자 검토 대기 중입니다.`,
+          body: `Photo ${MARKETPLACE_AUTO_DISPUTE_MIN_BUYER_PHOTOS}장 이상이 필요합니다. 관리자 검토 대기 중입니다.`,
           link: `/market/orders/${dispute.orderId}`,
         });
       }

@@ -53,7 +53,7 @@ export async function handleMarketplaceCaptureFailure(
     where: { id: orderId },
     data: {
       settlementStatus: "BLOCKED",
-      settlementHeldReason: `정산 캡처 실패 — 카드 승인 갱신 또는 재결제 필요 (${reason})`,
+      settlementHeldReason: `Something went wrong. Please try again.${reason})`,
       settlementBlockedAt: new Date(),
       escrowHeld: true,
     },
@@ -126,7 +126,7 @@ export async function processStalePaymentBlockedOrdersBatch(limit = 20): Promise
         settlementStatus: "REVERSED",
         escrowHeld: false,
         authHoldExpiresAt: null,
-        settlementHeldReason: `결제 정산 실패 — ${MARKETPLACE_SETTLEMENT_BLOCKED_GRACE_DAYS}일 내 카드 갱신 없음`,
+        settlementHeldReason: `Something went wrong. Please try again. ${MARKETPLACE_SETTLEMENT_BLOCKED_GRACE_DAYS}일 내 카드 갱신 없음`,
       },
     });
 
