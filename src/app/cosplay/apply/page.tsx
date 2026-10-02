@@ -26,13 +26,13 @@ export default async function CosplayerApplyPage() {
         </Link>
         <Card className="rounded-2xl">
           <CardContent className="p-6 space-y-4 text-center">
-            <p className="font-semibold">You're already registered as a cosplayer.</p>
+            <p className="font-semibold">You`re already registered as a cosplayer.</p>
             <p className="text-sm text-muted-foreground">
-              코스프레 사진 추가·삭제는 프로필 수정에서 할 수 있습니다.
+              Add or remove cosplay photos in profile settings.
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               <Link href="/settings/profile">
-                <Button>프로필 수정 · 갤러리 관리</Button>
+                <Button>Edit profile · Manage gallery</Button>
               </Link>
               <Link href={`/cosplay/${ctx.username}`}>
                 <Button variant="outline">My cosplayer page</Button>
@@ -52,7 +52,7 @@ export default async function CosplayerApplyPage() {
       <Link href="/cosplay">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
-          코스어 목록
+          Cosplayer list
         </Button>
       </Link>
       <CosplayerApplyForm username={ctx.username} />
