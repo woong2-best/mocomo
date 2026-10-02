@@ -190,7 +190,7 @@ export async function addCharacterToLibrary(
 ): Promise<string> {
   const index = ensureLibraryIndex();
   const id = crypto.randomUUID();
-  const name = `캐릭터 ${index.characters.length + 1}`;
+  const name = `Character ${index.characters.length + 1}`;
   await putBlob(charBlobKey(id), pngBlob);
   await putBlob(thumbBlobKey(id), await createThumbnail(pngBlob));
   index.characters.unshift({
