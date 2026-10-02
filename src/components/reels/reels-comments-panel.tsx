@@ -623,7 +623,7 @@ function CommentRow({
             <span className="inline-block h-px w-6 bg-white/30" aria-hidden />
             {expanded
               ? i18n("reels.s1wpsoxf")
-              : `답글 ${formatNumber(replyCount)}개 모두 보기`}
+              : `Replies ${formatNumber(replyCount)}개 모두 보기`}
           </button>
         )}
 
