@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { db } from "@/lib/db";
 import type { AdultVerificationScope } from "@prisma/client";
 import { ipFingerprint } from "@/lib/bank-account-fingerprint";
@@ -17,14 +20,14 @@ export async function confirmPortOneAdultVerification(input: {
 }) {
   const id = input.identityVerificationId.trim();
   if (!id || id.length > 128) {
-    return { error: "잘못된 인증 요청입니다." };
+    return { error: t("lib.adult-verification.s6cgjmi") };
   }
 
   const user = await db.user.findUnique({
     where: { id: input.userId },
     select: { id: true, adultVerifiedAt: true },
   });
-  if (!user) return { error: "사용자를 찾을 수 없습니다." };
+  if (!user) return { error: t("lib.live-support.svypth4") };
 
   if (isAdultVerified(user)) {
     void import("@/lib/creator-dm-marketing")
@@ -38,25 +41,25 @@ export async function confirmPortOneAdultVerification(input: {
     select: { userId: true },
   });
   if (reused && reused.userId !== user.id) {
-    return { error: "이미 사용된 인증입니다." };
+    return { error: t("lib.adult-verification.s1teqskv") };
   }
 
   let verification;
   try {
     verification = await fetchPortOneIdentityVerification(id);
   } catch {
-    return { error: "본인인증 확인에 실패했습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: t("lib.adult-verification.s14sev3z") };
   }
 
   if (verification.status !== "VERIFIED") {
-    return { error: "본인인증이 완료되지 않았습니다." };
+    return { error: t("lib.adult-verification.sogh7pm") };
   }
 
   const birthRaw = verification.verifiedCustomer?.birthDate;
-  if (!birthRaw) return { error: "생년월일 정보를 확인할 수 없습니다." };
+  if (!birthRaw) return { error: t("lib.adult-verification.svy4xk4") };
 
   const birthDate = parsePortOneBirthDate(birthRaw);
-  if (!birthDate) return { error: "생년월일 형식이 올바르지 않습니다." };
+  if (!birthDate) return { error: t("lib.adult-verification.s5y9f9c") };
 
   const age = ageFromBirthDate(birthDate);
   if (age < 19) {
@@ -88,7 +91,7 @@ export async function confirmPortOneAdultVerification(input: {
     });
   } catch (e) {
     console.error("[confirmPortOneAdultVerification]", e);
-    return { error: "성인 인증 저장에 실패했습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: t("lib.adult-verification.s1uex9go") };
   }
 
   void import("@/lib/creator-dm-marketing")
