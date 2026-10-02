@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -21,7 +24,7 @@ export default async function MyCouponsPage() {
   return (
     <SettingsPageChrome>
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">내 쿠폰 · 프로모션</h1>
+        <h1 className="text-2xl font-bold">{t("app.coupons.s1g6au45")}</h1>
         <Link href="/settings" className="text-sm text-muted-foreground hover:underline">
           설정으로
         </Link>
@@ -32,7 +35,7 @@ export default async function MyCouponsPage() {
 
       <CouponRedeemForm />
 
-      <h2 className="text-lg font-semibold pt-2">프로모션</h2>
+      <h2 className="text-lg font-semibold pt-2">{t("lib.admin.srn4ya0")}</h2>
       {promotions.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center text-sm text-muted-foreground">
@@ -60,12 +63,11 @@ export default async function MyCouponsPage() {
                   남은 혜택:{" "}
                   {a.remainingBenefitKrw != null
                     ? `₩${a.remainingBenefitKrw.toLocaleString()}`
-                    : "할인형"}
-                  {" · "}
-                  만료:{" "}
+                    : t("app.coupons.sw883h")}
+                  {" · "}{i18n("app.coupons.ss34xm")}{" "}
                   {a.promotion.endsAt
                     ? a.promotion.endsAt.toISOString().slice(0, 10)
-                    : "없음"}
+                    : t("lib.creator.subscription.sd58fa73adc")}
                 </p>
               </CardContent>
             </Card>
@@ -101,22 +103,19 @@ export default async function MyCouponsPage() {
                   남은 혜택:{" "}
                   {a.remainingBenefitKrw != null
                     ? `₩${a.remainingBenefitKrw.toLocaleString()}`
-                    : "할인형"}
-                  {" · "}
-                  만료:{" "}
+                    : t("app.coupons.sw883h")}
+                  {" · "}{i18n("app.coupons.ss34xm")}{" "}
                   {a.coupon.endsAt
                     ? a.coupon.endsAt.toISOString().slice(0, 10)
-                    : "없음"}
+                    : t("lib.creator.subscription.sd58fa73adc")}
                 </p>
                 {a.usages.length > 0 ? (
                   <div className="pt-2 border-t border-border/50">
-                    <p className="text-xs font-medium mb-1">사용 내역</p>
+                    <p className="text-xs font-medium mb-1">{t("app.coupons.s1w44s3g")}</p>
                     <ul className="space-y-1 text-xs text-muted-foreground">
                       {a.usages.map((u) => (
                         <li key={u.id}>
-                          {u.createdAt.toISOString().slice(0, 16).replace("T", " ")} · 정산 ₩
-                          {u.grossAmountKrw.toLocaleString()} · 혜택 ₩
-                          {u.benefitAppliedKrw.toLocaleString()}
+                          {u.createdAt.toISOString().slice(0, 16).replace("T", " ")}{i18n("app.coupons.s164gatp")}{u.grossAmountKrw.toLocaleString()}{i18n("app.coupons.s17yijbn")}{u.benefitAppliedKrw.toLocaleString()}
                         </li>
                       ))}
                     </ul>
