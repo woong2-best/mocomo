@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { formatMocoDisplay, ledgerCentsToMoco } from "@/lib/gems/display";
@@ -38,14 +41,14 @@ export function WalletEarningsExportPanel({
   }));
 
   const selectedMonthLabel =
-    selectedMonth != null ? months.find((m) => m.month === selectedMonth)?.label ?? `${selectedMonth}월` : "";
+    selectedMonth != null ? months.find((m) => m.month === selectedMonth)?.label ?? t("wallet.s139w", { v0: selectedMonth }) : "";
 
   return (
     <div className={cn("space-y-3", className)}>
       <div className="rounded-2xl border border-border/60 bg-card/80 p-4 space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-foreground">수익 내역 Excel</p>
+            <p className="text-sm font-semibold text-foreground">{t("wallet.excel")}</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               {year}년 연간·월별 거래 내역을 Excel(CSV)로 내려받습니다.
             </p>
@@ -94,8 +97,8 @@ export function WalletEarningsExportPanel({
 
       <div className="rounded-2xl border border-border/60 bg-card/80 px-2 py-3 space-y-2">
         <div className="flex items-center justify-between px-2 pb-1">
-          <p className="text-[11px] font-semibold text-muted-foreground">월별 Excel</p>
-          <p className="text-[10px] text-muted-foreground">월 탭 → 상세 보기 · Excel 다운로드</p>
+          <p className="text-[11px] font-semibold text-muted-foreground">{t("wallet.excel_2")}</p>
+          <p className="text-[10px] text-muted-foreground">{t("wallet.excel_3")}</p>
         </div>
         <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5">
           {months.map((m) => {
@@ -106,7 +109,7 @@ export function WalletEarningsExportPanel({
                 <button
                   type="button"
                   aria-pressed={active}
-                  aria-label={`${m.label} 거래 내역`}
+                  aria-label={t("wallet.s1m4ns1d", { v0: m.label })}
                   onClick={() => setSelectedMonth((prev) => (prev === m.month ? null : m.month))}
                   className={cn(
                     "relative flex flex-col items-center justify-center rounded-xl py-2.5 text-xs font-bold transition-all duration-200 ease-out",
@@ -125,8 +128,8 @@ export function WalletEarningsExportPanel({
                       )}
                     />
                   ) : null}
-                  <span>{m.label.replace("월", "")}</span>
-                  <span className="text-[9px] opacity-70 mt-0.5">월</span>
+                  <span>{m.label.replace(t("wallet.s139w"), "")}</span>
+                  <span className="text-[9px] opacity-70 mt-0.5">{t("wallet.s139w")}</span>
                 </button>
                 {hasActivity ? (
                   <button

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
@@ -86,7 +89,7 @@ function ZeroAddCard({ adding, onAdd }: { adding: boolean; onAdd: () => void }) 
       ) : (
         <>
           <Plus className="h-5 w-5" strokeWidth={2.5} />
-          <span className="text-[10px] font-black tracking-tight">카드 등록</span>
+          <span className="text-[10px] font-black tracking-tight">{t("wallet.s1cq1rk4")}</span>
         </>
       )}
     </button>
@@ -137,7 +140,7 @@ function DraggableZeroCard({
     >
       <ZeroCardFace pm={pm} selected={selected} onSelect={onSelect} />
       {selected ? (
-        <p className="mt-1 text-center text-[9px] font-semibold text-[#9ca3af]">아래로 밀어 넣기</p>
+        <p className="mt-1 text-center text-[9px] font-semibold text-[#9ca3af]">{t("wallet.s6iztc1")}</p>
       ) : null}
     </motion.div>
   );
@@ -172,7 +175,7 @@ export function WalletZeroPaymentCards({
       window.location.assign(res.checkoutUrl);
       return;
     }
-    setMsg("카드 등록 페이지로 이동하지 못했습니다.");
+    setMsg(t("wallet.s90ss29"));
   }
 
   function handleInsertComplete() {
@@ -206,7 +209,7 @@ export function WalletZeroPaymentCards({
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9ca3af]">결제 카드</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9ca3af]">{t("wallet.s1p6z9cs")}</p>
       <div className="flex gap-2 overflow-x-auto pb-1 pt-0.5">
         <ZeroAddCard adding={adding} onAdd={() => void addCard()} />
         {methods.map((pm) =>
@@ -234,7 +237,7 @@ export function WalletZeroPaymentCards({
               onClick={() => setDefault(selected.id)}
               className="rounded-md border border-[#6b7280]/50 bg-[#374151]/40 px-2 py-1 text-[10px] font-bold text-[#d1d5db]"
             >
-              기본으로
+              {t("wallet.smrkew8")}
             </button>
           ) : null}
           <button
@@ -244,15 +247,15 @@ export function WalletZeroPaymentCards({
             className="inline-flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-bold text-red-300"
           >
             <Trash2 className="h-3 w-3" />
-            삭제
+            {t("toast.delete")}
           </button>
         </div>
       ) : methods.length === 0 ? (
         <p className="text-[11px] leading-relaxed text-[#9ca3af]">
-          ZERO 카드 등록 후 리더기 슬롯 방향으로 밀어 결제합니다.
+          {t("wallet.zero")}
         </p>
       ) : (
-        <p className="text-[11px] text-[#9ca3af]">카드를 탭해 선택한 뒤 리더기 쪽으로 밀어 넣으세요.</p>
+        <p className="text-[11px] text-[#9ca3af]">{t("wallet.som5fv6")}</p>
       )}
 
       {msg ? <p className="text-[11px] text-red-300">{msg}</p> : null}

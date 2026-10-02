@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -51,14 +54,14 @@ function TransactionRow({ tx }: { tx: WalletEnrichedTransaction }) {
   const isIncome = tx.net > 0;
   const title =
     tx.category === "WITHDRAWAL"
-      ? "출금"
+      ? t("wallet.szxf0")
       : tx.label || EARNING_CATEGORY_LABELS[tx.category];
   const subtitle =
     tx.category === "WITHDRAWAL"
-      ? "출금 신청"
+      ? t("wallet.s18kcjnl")
       : tx.payerUsername
         ? `@${tx.payerUsername}`
-        : "전자지급";
+        : t("wallet.sq2ekid");
 
   return (
     <motion.div
@@ -119,7 +122,7 @@ function CategoryBlock({
           {spent > 0 ? (
             <span className="text-red-600 font-bold">-{formatMocoDisplay(ledgerCentsToMoco(spent))}</span>
           ) : null}
-          {earned === 0 && spent === 0 ? `${items.length}건` : null}
+          {earned === 0 && spent === 0 ? t("wallet.sy2c", { v0: items.length }) : null}
         </p>
       </div>
       <div className="px-4 max-h-56 overflow-y-auto overscroll-contain">
@@ -190,13 +193,13 @@ export function WalletMonthDetailPanel({ year, month, monthLabel, transactions, 
                 onClick={onClose}
                 className="text-xs font-bold px-3 py-1.5 rounded-full border border-border/60 hover:bg-muted/50 active:scale-95 transition-all"
               >
-                닫기
+                {t("common.close")}
               </button>
             </div>
 
             <div className="p-3 space-y-3 max-h-[min(72vh,560px)] overflow-y-auto overscroll-contain">
               {monthTx.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-10">이 달 금융 거래가 없습니다.</p>
+                <p className="text-sm text-muted-foreground text-center py-10">{t("wallet.s1n79cyw")}</p>
               ) : (
                 <>
                   {INCOME_CATEGORIES.map((cat) => (

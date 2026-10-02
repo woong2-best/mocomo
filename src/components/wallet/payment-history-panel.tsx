@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatUsd } from "@/lib/money";
@@ -25,12 +28,12 @@ export function PaymentHistoryPanel({ items }: Props) {
   return (
     <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
       <div className="px-4 py-3 border-b border-border/50">
-        <p className="font-bold">결제 내역</p>
-        <p className="text-xs text-muted-foreground mt-0.5">구매한 크리에이터 · 영상 · 상품</p>
+        <p className="font-bold">{t("wallet.s1p6uajx")}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{t("wallet.s1brs6yf")}</p>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground px-4 py-8 text-center">결제 내역이 없습니다.</p>
+        <p className="text-sm text-muted-foreground px-4 py-8 text-center">{t("wallet.sjw7scq")}</p>
       ) : (
         <ul className="max-h-[min(70vh,480px)] overflow-y-auto overscroll-contain divide-y divide-border/40">
           {items.map((item) => {

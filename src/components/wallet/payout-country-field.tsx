@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useMemo } from "react";
 import {
   DEFAULT_EXPRESS_PAYOUT_COUNTRY,
@@ -29,7 +32,7 @@ export function PayoutCountryField({
 
   return (
     <label htmlFor={id} className="block space-y-1.5">
-      <span className="text-sm font-semibold">정산받을 계좌 국가</span>
+      <span className="text-sm font-semibold">{t("wallet.s6oa0vj")}</span>
       <select
         id={id}
         value={selected}
@@ -43,7 +46,7 @@ export function PayoutCountryField({
         ))}
       </select>
       <span className="block text-xs text-muted-foreground leading-relaxed">
-        은행 계좌가 있는 국가를 선택하세요. 한국에 거주해도 미국(US) 등 해외 계좌로 정산받을 수 있습니다.
+        {t("wallet.smzk6qg")}
       </span>
     </label>
   );

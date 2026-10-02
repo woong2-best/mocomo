@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -13,9 +16,9 @@ type Props = {
 export function ReceivedTipsPanel({ tips }: Props) {
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
-      <p className="font-bold">받은 후원</p>
+      <p className="font-bold">{t("wallet.s1ec86pz")}</p>
       {tips.length === 0 ? (
-        <p className="text-sm text-muted-foreground">받은 후원이 없습니다.</p>
+        <p className="text-sm text-muted-foreground">{t("wallet.syjuz8w")}</p>
       ) : (
         <ul className="divide-y divide-border/40">
           {tips.map((tip) => (

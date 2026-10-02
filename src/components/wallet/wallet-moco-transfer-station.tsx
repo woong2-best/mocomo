@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -100,12 +103,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
   const [balance, setBalance] = useState(purchasedMoco);
   const [username, setUsername] = useState("");
   const [recipientLabel, setRecipientLabel] = useState("");
-  const [recipientPayoutsEnabled, setRecipientPayoutsEnabled] = useState<boolean | null>(null);
-  const [amount, setAmount] = useState("");
-  const [letter, setLetter] = useState("");
-  const [error, setError] = useState("");
-  const [statusLine, setStatusLine] = useState("받는 사람 아이디와 보낼 MOCO를 입력해 주세요.");
-  const [atmOverlay, setAtmOverlay] = useState<AtmOverlay>(null);
+  const [recipientPayoutsEnabled, setRecipientPayoutsEnabled] = useState<boolean | null>{t("wallet.null_const_amount_setamount_usestate")}<AtmOverlay>(null);
   const [pending, startTransition] = useTransition();
 
   const parsed = /^\d+$/.test(amount) ? Number(amount) : null;
@@ -144,26 +142,26 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
     if (next === amount && digit === "0" && !amount) return;
     setAmount(next);
     if (error) setError("");
-    setStatusLine("수량과 아이디를 확인한 뒤 [전달]을 눌러 주세요.");
+    setStatusLine(t("wallet.sceowmi"));
   }
 
   function backspace() {
     if (pending || atmOverlay || !amount) return;
     setAmount(amount.slice(0, -1));
-    setStatusLine("보낼 MOCO 수량을 입력해 주세요.");
+    setStatusLine(t("wallet.moco_6"));
   }
 
   function send() {
     if (pending || atmOverlay) return;
     if (!username.trim() || parsed == null || parsed < 1) {
-      const msg = "아이디와 1 MOCO 이상을 입력해 주세요.";
+      const msg = t("wallet.1_moco");
       setError(msg);
       setStatusLine(msg);
       setAtmOverlay("failure");
       return;
     }
     if (parsed > balance) {
-      const msg = "보유 MOCO가 부족합니다. 결제로 충전한 MOCO만 보낼 수 있습니다.";
+      const msg = t("wallet.moco_moco");
       setError(msg);
       setStatusLine(msg);
       setAtmOverlay("failure");
@@ -176,7 +174,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
       return;
     }
     setError("");
-    setStatusLine("전달하는 중…");
+    setStatusLine(t("wallet.s58so4x"));
     startTransition(async () => {
       const res = await transferMocoToUser(username, parsed, letter);
       if ("error" in res && res.error) {
@@ -195,13 +193,13 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
         setBalance(res.senderPurchasedAfter);
         setAmount("");
         setLetter("");
-        setStatusLine(`@${res.recipientUsername}의 정산에 ${res.amount.toLocaleString()} MOCO를 기록했습니다.`);
+        setStatusLine(t("wallet.moco_7", { v0: res.recipientUsername, v1: res.amount.toLocaleString() }));
         setAtmOverlay("success");
         router.refresh();
         return;
       }
-      setError("전달에 실패했습니다.");
-      setStatusLine("전달에 실패했습니다.");
+      setError(t("wallet.ss8i0cp"));
+      setStatusLine(t("wallet.ss8i0cp"));
       setAtmOverlay("failure");
     });
   }
@@ -213,8 +211,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
   return (
     <div className="space-y-3">
       <p className="text-sm leading-relaxed text-muted-foreground">
-        보낼 수 있는 것은 결제로 충전한 보유 MOCO입니다. 받는 사람의 정산에 기록되고, 메시지에는 편지가
-        도착합니다.
+        {t("wallet.moco_4")}
       </p>
 
       <div className="overflow-hidden rounded-[1.35rem] border-2 border-[#6b7280] bg-gradient-to-b from-[#d1d5db] via-[#aeb4bd] to-[#8b939e] p-1.5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.5)]">
@@ -267,21 +264,21 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
                       atmOverlay === "success" ? "text-emerald-200" : "text-red-200",
                     )}
                   >
-                    {atmOverlay === "success" ? "전달 완료" : "전달 실패"}
+                    {atmOverlay === "success" ? t("wallet.snb72dc") : t("wallet.snb6mws")}
                   </p>
-                  <p className="mt-2 text-xs text-slate-400">닫기</p>
+                  <p className="mt-2 text-xs text-slate-400">{t("common.close")}</p>
                 </motion.button>
               ) : null}
             </AnimatePresence>
 
             <MocoEarthTransferHero userImageUrl={userImageUrl} transferActive={pending}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">보낼 수 있는 보유 MOCO</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">{t("wallet.moco_5")}</p>
               <p className="mt-0.5 font-mono text-xl font-bold tabular-nums text-neutral-900">
                 {formatMocoDisplay(balance)}
               </p>
 
               <label className="mt-3 block space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500">받는 사람 아이디</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500">{t("wallet.s1s4qtn")}</span>
                 <input
                   value={username}
                   disabled={pending || !!atmOverlay}
@@ -305,13 +302,13 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
               ) : null}
 
               <label className="mt-2 block space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500">편지</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500">{t("wallet.s114aw")}</span>
                 <textarea
                   value={letter}
                   disabled={pending || !!atmOverlay}
                   maxLength={ATM_LETTER_MESSAGE_MAX}
                   rows={2}
-                  placeholder="편지에 적을 말"
+                  placeholder={t("wallet.s18gtinf")}
                   onChange={(e) => {
                     setLetter(e.target.value.slice(0, ATM_LETTER_MESSAGE_MAX));
                     if (error) setError("");
@@ -337,7 +334,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
               {pending ? (
                 <span className="inline-flex items-center gap-2">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  처리 중…
+                  {t("post.menu.blockReportSubmitting")}
                 </span>
               ) : (
                 statusLine
@@ -351,7 +348,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
               <AtmNumKey label="2" disabled={pending || !!atmOverlay} onPress={() => appendDigit("2")} className="col-start-2 row-start-1" />
               <AtmNumKey label="3" disabled={pending || !!atmOverlay} onPress={() => appendDigit("3")} className="col-start-3 row-start-1" />
               <AtmActionKey
-                label="지우기"
+                label={t("wallet.suikow")}
                 subLabel="←"
                 tone="clear"
                 disabled={pending || !!atmOverlay || !amount}
@@ -367,7 +364,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
               <AtmNumKey label="8" disabled={pending || !!atmOverlay} onPress={() => appendDigit("8")} className="col-start-2 row-start-3" />
               <AtmNumKey label="9" disabled={pending || !!atmOverlay} onPress={() => appendDigit("9")} className="col-start-3 row-start-3" />
               <AtmActionKey
-                label="전달"
+                label={t("wallet.sz04o")}
                 subLabel="SEND"
                 tone="confirm"
                 disabled={
@@ -398,7 +395,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
               </p>
             ) : (
               <p className="text-[11px] leading-relaxed text-slate-500">
-                예: 보유 100 MOCO를 보내면 상대 정산에 100이 바로 쌓입니다. 상대 보유 MOCO는 그대로입니다.
+                {t("wallet.100_moco_100_moco")}
               </p>
             )}
           </div>

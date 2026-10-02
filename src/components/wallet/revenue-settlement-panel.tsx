@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, useTransition } from "react";
 import { WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
 import { WalletEarningsExportPanel } from "@/components/wallet/wallet-earnings-export-panel";
@@ -63,14 +66,14 @@ export function RevenueSettlementPanel({
     <div className="space-y-4">
       <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
         <div>
-          <p className="text-sm text-muted-foreground">정산 MOCO · 다른 사용자에게 받은 수량</p>
+          <p className="text-sm text-muted-foreground">{t("wallet.moco")}</p>
           <p className="text-3xl font-black tabular-nums">{earned.toLocaleString()} MOCO</p>
         </div>
         <div className="space-y-1.5">
           <div className="flex items-baseline justify-between gap-3 text-sm">
             <p className="font-bold">정산 등급 {progress.currentLabel}</p>
             {progress.atMaxTier ? (
-              <p className="text-xs font-semibold text-muted-foreground">최고 등급</p>
+              <p className="text-xs font-semibold text-muted-foreground">{t("wallet.s17fu66s")}</p>
             ) : (
               <p className="text-xs font-semibold tabular-nums">
                 {progress.nextLabel}까지 {progress.mocoRemaining.toLocaleString()} MOCO
@@ -85,8 +88,8 @@ export function RevenueSettlementPanel({
           </div>
           <p className="text-xs leading-relaxed text-muted-foreground">
             {progress.atMaxTier
-              ? `${progress.currentLabel} 등급입니다.`
-              : `${progress.nextLabel} 등급이 되려면 정산 MOCO를 ${progress.mocoRemaining.toLocaleString()} 더 받아야 합니다.`}
+              ? t("wallet.s1ecavxh", { v0: progress.currentLabel })
+              : t("wallet.moco_2", { v0: progress.nextLabel, v1: progress.mocoRemaining.toLocaleString() })}
           </p>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -111,8 +114,8 @@ export function RevenueSettlementPanel({
         ))}
         {data.recent.length === 0 ? (
           <WalletMembershipStrip
-            title="아직 활동 보상 내역이 없습니다"
-            subtitle="후원·판매·구독 수익이 정산 MOCO로 적립됩니다"
+            title={t("wallet.s1a73mo3")}
+            subtitle={t("wallet.moco_3")}
           />
         ) : null}
       </div>
@@ -133,7 +136,7 @@ export function RevenueSettlementPanel({
 
       {settlement.recentRewards.length > 0 ? (
         <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-2">
-          <p className="font-bold">Reward 지급 내역</p>
+          <p className="font-bold">{t("wallet.reward")}</p>
           {settlement.recentRewards.map((batch) => (
             <WalletMembershipStrip
               key={batch.id}
@@ -147,7 +150,7 @@ export function RevenueSettlementPanel({
       ) : null}
 
       <div className={cn("space-y-4 pt-2 border-t border-border/50", pending && "opacity-70 pointer-events-none")}>
-        <p className="text-sm font-bold px-1">연간 활동 분석</p>
+        <p className="text-sm font-bold px-1">{t("wallet.s10el2q8")}</p>
         <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
           {earnings.years.map((y) => (
             <button
