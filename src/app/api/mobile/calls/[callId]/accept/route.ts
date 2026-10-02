@@ -30,9 +30,9 @@ export async function POST(
       return NextResponse.json({ error: "Not found." }, { status: 404 });
     }
     if (existing.calleeId !== user.id) {
-      return NextResponse.json({ error: "수신자만 받을 수 있습니다." }, { status: 403 });
+      return NextResponse.json({ error: "Only the recipient can accept." }, { status: 403 });
     }
-    return NextResponse.json({ error: "이미 처리된 통화입니다." }, { status: 409 });
+    return NextResponse.json({ error: "This call was already handled." }, { status: 409 });
   }
 
   const call = await db.voiceCall.findUnique({

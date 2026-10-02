@@ -90,7 +90,7 @@ export async function POST(
 
   const content = body.content?.trim();
   if (!content || content.length > 4000) {
-    return NextResponse.json({ error: "댓글 내용을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Check your comment content." }, { status: 400 });
   }
 
   const parentId =

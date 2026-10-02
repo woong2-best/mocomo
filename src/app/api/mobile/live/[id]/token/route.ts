@@ -25,7 +25,7 @@ export async function GET(
   }
 
   if (!isLivekitConfigured()) {
-    return NextResponse.json({ error: "라이브 서버가 설정되지 않았습니다." }, { status: 503 });
+    return NextResponse.json({ error: "Live server is not configured." }, { status: 503 });
   }
 
   const access = await resolveLiveChannelAccess(id, authResult.user.id);

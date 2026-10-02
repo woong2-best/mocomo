@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: "채팅/TTS 후원은 종료되었습니다. SFX(효과음) 후원을 이용해 주세요.",
+        error: "Chat/TTS donations are closed. Please use SFX donations.",
         code: "LEGACY_TYPE_DEPRECATED",
       },
       { status: 400 }
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   }
   if (!VALID_TYPES.has(typeRaw)) {
     return NextResponse.json(
-      { success: false, error: "type은 SFX 또는 VIDEO입니다." },
+      { success: false, error: "type must be SFX or VIDEO." },
       { status: 400 }
     );
   }

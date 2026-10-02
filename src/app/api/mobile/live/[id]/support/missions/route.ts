@@ -41,7 +41,7 @@ export async function POST(
   const { id: channelId } = await params;
   const access = await resolveLiveChannelAccess(channelId, authResult.user.id);
   if (!access.allowed) {
-    return NextResponse.json({ error: "방송에 참여한 뒤 미션을 등록할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Join the stream before adding missions." }, { status: 403 });
   }
 
   let body: { title?: string; rewardAmount?: number; deadlineMinutes?: number };

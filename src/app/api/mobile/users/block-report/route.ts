@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     },
   });
   if (recent) {
-    return NextResponse.json({ error: "이미 최근에 신고한 콘텐츠입니다." }, { status: 400 });
+    return NextResponse.json({ error: "You already reported this content recently." }, { status: 400 });
   }
 
   const { scoreAfter } = await addRiskScore({
@@ -142,6 +142,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     blocked: true,
-    message: "신고가 접수되었고 사용자를 차단했습니다.",
+    message: "Report submitted and user blocked.",
   });
 }

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   const usernameCheck = await checkUsernameAvailable(parsed.data.username);
   if (!usernameCheck.available) {
     return NextResponse.json(
-      { ok: false, error: errorText(usernameCheck.error ?? "사용할 수 없는 닉네임입니다.") },
+      { ok: false, error: errorText(usernameCheck.error ?? "This username is not available.") },
       { status: 409 }
     );
   }

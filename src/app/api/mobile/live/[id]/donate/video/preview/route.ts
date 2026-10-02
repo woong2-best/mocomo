@@ -19,7 +19,7 @@ export async function POST(
   const { id: channelId } = await params;
   const access = await resolveLiveChannelAccess(channelId, authResult.user.id);
   if (!access.allowed) {
-    return NextResponse.json({ ok: false, error: "방송에 참여한 뒤 미리보기할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ ok: false, error: "Join the stream before previewing." }, { status: 403 });
   }
 
   let body: {

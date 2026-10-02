@@ -16,7 +16,7 @@ export async function POST(
   const body = await req.json().catch(() => ({}));
   const normalized = normalizeYoutubeUrl(String(body.url ?? ""));
   if (!normalized) {
-    return NextResponse.json({ error: "YouTube URL만 등록할 수 있습니다." }, { status: 400 });
+    return NextResponse.json({ error: "Only YouTube URLs can be registered." }, { status: 400 });
   }
 
   const row = await db.liveVideoDonation.findUnique({
@@ -31,7 +31,7 @@ export async function POST(
     return NextResponse.json({ error: "Permission denied." }, { status: 403 });
   }
   if (row.status !== "AWAITING_URL") {
-    return NextResponse.json({ error: "이미 URL이 등록되었습니다." }, { status: 400 });
+    return NextResponse.json({ error: "A URL is already registered." }, { status: 400 });
   }
 
   const updated = await db.liveVideoDonation.update({

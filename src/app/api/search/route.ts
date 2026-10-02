@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
   if (q.length > 80) {
-    return NextResponse.json({ error: "검색어가 너무 깁니다." }, { status: 400 });
+    return NextResponse.json({ error: "Search query is too long." }, { status: 400 });
   }
 
   try {

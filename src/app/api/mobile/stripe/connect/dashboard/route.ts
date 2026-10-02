@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   const status = await getWalletStripeConnectStatus(auth.user.id);
   if (!status.stripeConnectAccountId) {
-    return NextResponse.json({ error: "Stripe 정산 계좌를 먼저 연결해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Connect your Stripe payout account first." }, { status: 400 });
   }
 
   const link = await createWalletConnectDashboardLink(status.stripeConnectAccountId);

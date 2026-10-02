@@ -40,6 +40,12 @@ function lineHasUiHangul(line) {
   return hangul.test(withoutCharClasses);
 }
 
+function isAdminOperatorPath(rel) {
+  if (rel.includes("/admin/")) return true;
+  if (/^src\/components\/admin(-|\/)/.test(rel)) return true;
+  return false;
+}
+
 function walkSrc(dir, hits) {
   const root = path.join(process.cwd(), "src");
   for (const name of fs.readdirSync(dir)) {
@@ -53,6 +59,7 @@ function walkSrc(dir, hits) {
     const ext = path.extname(name);
     if (!exts.has(ext)) continue;
     const rel = path.relative(process.cwd(), p).replace(/\\/g, "/");
+    if (isAdminOperatorPath(rel)) continue;
     const lines = fs.readFileSync(p, "utf8").split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];

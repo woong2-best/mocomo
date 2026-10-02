@@ -60,7 +60,7 @@ export async function GET(
     return NextResponse.json({ error: "Stream not found." }, { status: 404 });
   }
   if (channel.createdBy !== session.user.id) {
-    return NextResponse.json({ error: "호스트만 확인할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Only the host can view this." }, { status: 403 });
   }
 
   const publishState = resolveHostPublishState(channel, tabId);

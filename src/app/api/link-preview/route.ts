@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (!isSafePreviewUrl(raw)) {
-    return NextResponse.json({ error: "지원하지 않는 URL입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Unsupported URL." }, { status: 400 });
   }
 
   const preview = await buildLinkPreview(raw);

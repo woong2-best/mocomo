@@ -36,7 +36,7 @@ export async function POST(
 
   const viewer = await loadViewer();
   if (!viewer || !isCommentAdmin(viewer)) {
-    return NextResponse.json({ error: "관리자만 숨길 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Only admins can hide comments." }, { status: 403 });
   }
 
   const comment = await db.comment.findFirst({
@@ -81,7 +81,7 @@ export async function DELETE(
 
   const viewer = await loadViewer();
   if (!viewer || !isCommentAdmin(viewer)) {
-    return NextResponse.json({ error: "관리자만 해제할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Only admins can unhide comments." }, { status: 403 });
   }
 
   const comment = await db.comment.findFirst({

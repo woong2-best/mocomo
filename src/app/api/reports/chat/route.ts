@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "신고 정보를 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Check your report details." }, { status: 400 });
   }
 
   const reporterIp = getClientIpFromRequest(req);
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!isReportReasonId(parsed.data.reason)) {
-    return NextResponse.json({ error: "신고 사유를 선택해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Select a report reason." }, { status: 400 });
   }
 
   const result = await submitChatRoomReport({

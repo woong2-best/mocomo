@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     if (result.error === "INSUFFICIENT_MOCO_BALANCE") {
       const balance = await getUserGemBalance(auth.user.id);
       return NextResponse.json(
-        { error: "MOCO 잔액이 부족합니다. 지갑에서 충전해 주세요.", balance },
+        { error: "Insufficient MOCO. Top up in your wallet.", balance },
         { status: 400 }
       );
     }

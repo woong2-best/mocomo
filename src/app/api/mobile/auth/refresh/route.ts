@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     platform: parsed.data.platform,
   });
   if (!rotated) {
-    return NextResponse.json({ error: "세션이 만료되었습니다.", code: "invalid_refresh" }, { status: 401 });
+    return NextResponse.json({ error: "Session expired.", code: "invalid_refresh" }, { status: 401 });
   }
 
   const accessToken = await signMobileAccessToken(rotated.userId);

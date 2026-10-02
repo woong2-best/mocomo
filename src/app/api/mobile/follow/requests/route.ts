@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "요청을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Check your request." }, { status: 400 });
   }
 
   const result =

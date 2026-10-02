@@ -103,7 +103,7 @@ export async function POST(
     select: { id: true },
   });
   if (!member) {
-    return NextResponse.json({ error: "커뮤니티 가입 후 이용할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Join the community first." }, { status: 403 });
   }
 
   const channel = await db.communityChannel.findFirst({

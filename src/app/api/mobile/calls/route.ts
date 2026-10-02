@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   ]);
 
   if (peerBusy) {
-    return NextResponse.json({ error: "상대방이 다른 통화 중입니다." }, { status: 409 });
+    return NextResponse.json({ error: "They are on another call." }, { status: 409 });
   }
   if (blocked) {
     return NextResponse.json({ error: "Not found." }, { status: 403 });
@@ -77,11 +77,11 @@ export async function POST(req: NextRequest) {
 
   if (chatRoomId) {
     if (!room || !isCallEligibleChatRoomType(room.type)) {
-      return NextResponse.json({ error: "DM 방에서만 통화할 수 있습니다." }, { status: 400 });
+      return NextResponse.json({ error: "Calls are only available in DM chats." }, { status: 400 });
     }
     const memberIds = room.members.map((m) => m.userId);
     if (!memberIds.includes(user.id) || !memberIds.includes(calleeId)) {
-      return NextResponse.json({ error: "이 대화방에 참여 중이 아닙니다." }, { status: 403 });
+      return NextResponse.json({ error: "You are not in this chat." }, { status: 403 });
     }
   }
 

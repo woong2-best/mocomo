@@ -17,7 +17,7 @@ async function checkAiRateLimit(userId: string): Promise<NextResponse | null> {
   });
   if (count >= HOURLY_LIMIT) {
     return NextResponse.json(
-      { error: "AI 글쓰기는 시간당 12회까지 이용할 수 있습니다." },
+      { error: "AI drafting is limited to 12 uses per hour." },
       { status: 429 }
     );
   }

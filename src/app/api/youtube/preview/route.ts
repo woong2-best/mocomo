@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const raw = req.nextUrl.searchParams.get("url") ?? "";
   const normalized = normalizeYoutubeUrl(raw);
   if (!normalized) {
-    return NextResponse.json({ error: "YouTube URL만 지원합니다." }, { status: 400 });
+    return NextResponse.json({ error: "Only YouTube URLs are supported." }, { status: 400 });
   }
 
   const videoId = extractYoutubeVideoId(normalized);

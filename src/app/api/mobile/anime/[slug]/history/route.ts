@@ -49,7 +49,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
   if (!revisionId || revisionId.startsWith("created-")) {
-    return NextResponse.json({ error: "복구할 기록을 선택해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Select a record to restore." }, { status: 400 });
   }
 
   const result = await restoreAnimeRevisionForUser(auth.user.id, revisionId);

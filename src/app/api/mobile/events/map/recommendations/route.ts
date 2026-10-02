@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     });
     if (count >= 30) {
       return NextResponse.json(
-        { error: "추천 장소는 최대 30개까지 등록할 수 있습니다." },
+        { error: "You can register up to 30 recommended places." },
         { status: 400 }
       );
     }

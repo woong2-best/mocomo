@@ -27,7 +27,7 @@ export async function POST(
 
   const optionId = body.optionId?.trim();
   if (!optionId) {
-    return NextResponse.json({ error: "선택지를 지정해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Select an option." }, { status: 400 });
   }
 
   const result = await castPostPollVote(postId, userId, optionId);

@@ -25,10 +25,10 @@ export async function GET(
     return NextResponse.json({ error: "You don't have permission to do that." }, { status: 403 });
   }
   if (row.expiresAt && row.expiresAt.getTime() < Date.now()) {
-    return NextResponse.json({ error: "다운로드 기간이 만료되었습니다." }, { status: 410 });
+    return NextResponse.json({ error: "The download period has expired." }, { status: 410 });
   }
   if (row.downloadCount >= row.maxDownloads) {
-    return NextResponse.json({ error: "다운로드 횟수를 초과했습니다." }, { status: 429 });
+    return NextResponse.json({ error: "Download limit exceeded." }, { status: 429 });
   }
 
   await db.marketplaceDigitalDownload.update({

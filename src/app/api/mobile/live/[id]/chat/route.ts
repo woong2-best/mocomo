@@ -104,12 +104,12 @@ export async function POST(
   }
 
   if (!content || content.length > 200) {
-    return NextResponse.json({ error: "메시지는 1~200자입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Messages must be 1–200 characters." }, { status: 400 });
   }
 
   const access = await resolveLiveChannelAccess(channelId, authResult.user.id);
   if (!access.allowed) {
-    return NextResponse.json({ error: "방송에 참여한 뒤 채팅할 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Join the stream before chatting." }, { status: 403 });
   }
 
   const channel = await db.voiceChannel.findUnique({

@@ -82,7 +82,7 @@ export async function POST(
       });
       break;
     default:
-      return NextResponse.json({ error: "알 수 없는 action입니다." }, { status: 400 });
+      return NextResponse.json({ error: "Unknown action." }, { status: 400 });
   }
 
   if ("error" in result && result.error) {

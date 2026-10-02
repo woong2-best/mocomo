@@ -196,7 +196,7 @@ export async function PATCH(req: NextRequest) {
 
   const data = parsed.data;
   if (data.locale && !isLocale(data.locale)) {
-    return NextResponse.json({ error: "지원하지 않는 언어입니다." }, { status: 400 });
+    return NextResponse.json({ error: "Unsupported language." }, { status: 400 });
   }
   if (data.username !== undefined && !isValidUsername(normalizeUsername(data.username))) {
     return NextResponse.json(
@@ -286,7 +286,7 @@ export async function PATCH(req: NextRequest) {
       data.usedServiceRegion &&
       !isValidUsedRegion(data.usedServiceRegion, nextCountry)
     ) {
-      return NextResponse.json({ error: "올바른 서비스 지역을 선택해 주세요." }, { status: 400 });
+      return NextResponse.json({ error: "Select a valid service region." }, { status: 400 });
     }
     await db.user.update({
       where: { id: auth.user.id },

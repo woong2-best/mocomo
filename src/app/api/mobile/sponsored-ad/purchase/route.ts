@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
   if (!Number.isInteger(days) || (days ?? 0) < 1) {
-    return NextResponse.json({ error: "광고 일수를 선택해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Select how many days to advertise." }, { status: 400 });
   }
 
   const result = await purchaseSponsoredAd({

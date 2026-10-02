@@ -125,10 +125,10 @@ export async function POST(
         return NextResponse.json({ error: "Invalid request." }, { status: 400 });
       }
       if (invite.expiresAt && invite.expiresAt < new Date()) {
-        return NextResponse.json({ error: "만료된 초대 링크입니다." }, { status: 400 });
+        return NextResponse.json({ error: "This invite link has expired." }, { status: 400 });
       }
       if (invite.maxUses != null && invite.useCount >= invite.maxUses) {
-        return NextResponse.json({ error: "초대 링크 사용 횟수가 초과되었습니다." }, { status: 400 });
+        return NextResponse.json({ error: "Invite link use limit exceeded." }, { status: 400 });
       }
       await db.communityInvite.update({
         where: { id: invite.id },
@@ -154,7 +154,7 @@ export async function POST(
       return NextResponse.json({
         success: true,
         pending: true,
-        message: "가입 요청이 접수되었습니다. 승인 후 알림을 받게 됩니다.",
+        message: "Join request received. You will be notified when approved.",
       });
     }
 

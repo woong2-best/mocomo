@@ -51,7 +51,7 @@ export async function GET(
     },
   });
   if (!channel || channel.createdBy !== session.user.id) {
-    return NextResponse.json({ error: "호스트만 방송 설정을 받을 수 있습니다." }, { status: 403 });
+    return NextResponse.json({ error: "Only the host can receive broadcast settings." }, { status: 403 });
   }
   if (channel.liveStatus === "ENDED") {
     return NextResponse.json({ error: "This broadcast has ended." }, { status: 400 });
@@ -102,7 +102,7 @@ export async function GET(
       whipPublishUrl,
       hlsUrl,
       liveInputUid: cfUid,
-      message: "브라우저에서 방송 시작 → Cloudflare CDN으로 송출됩니다.",
+      message: "Start from the browser; output goes to Cloudflare CDN.",
     });
   }
 

@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
   if (!isExternalLiveEnabled()) {
     return NextResponse.json(
-      { error: "외부 방송 연동이 비활성화되어 있습니다." },
+      { error: "External stream linking is disabled." },
       { status: 503 }
     );
   }
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     const liveProvider = platformToLiveExternal(account.platform);
     if (!liveProvider) {
       return NextResponse.json(
-        { error: "이 플랫폼은 외부 라이브 임베드를 아직 지원하지 않습니다." },
+        { error: "External live embed is not supported for this platform yet." },
         { status: 400 }
       );
     }

@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "출금 MOCO 수량을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Check the MOCO amount to withdraw." }, { status: 400 });
   }
 
   return handleOnDemandWithdrawPost(

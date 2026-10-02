@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "가입 정보를 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "Check your sign-up details." }, { status: 400 });
   }
 
   const ip = await getRequestIp();
