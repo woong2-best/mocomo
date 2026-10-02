@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -97,14 +100,14 @@ export function AdminSettlementsPanel({
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-border p-4 space-y-3">
-        <h2 className="font-semibold">정산 미리보기 · 초안 생성</h2>
+        <h2 className="font-semibold">{t("admin.syjwke8")}</h2>
         <div className="grid gap-2 sm:grid-cols-2">
           <div>
-            <Label>유저 ID</Label>
+            <Label>{t("admin.smgkriz")}</Label>
             <Input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="cuid" />
           </div>
           <div>
-            <Label>총 수익(원)</Label>
+            <Label>{t("admin.s17akldt")}</Label>
             <Input value={gross} onChange={(e) => setGross(e.target.value)} type="number" />
           </div>
         </div>
@@ -120,9 +123,9 @@ export function AdminSettlementsPanel({
               <strong>
                 {preview.appliedPromotions?.length
                   ? preview.appliedPromotions.map((p) => p.name).join(" + ")
-                  : preview.appliedPromotion?.name ?? "없음"}
+                  : preview.appliedPromotion?.name ?? t("lib.creator.subscription.sd58fa73adc")}
               </strong>
-              {preview.appliedCoupon ? " · Coupon 병행" : ""}
+              {preview.appliedCoupon ? t("admin.coupon") : ""}
             </p>
             <p>
               절감 금액{" "}
@@ -146,7 +149,7 @@ export function AdminSettlementsPanel({
             ) : null}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">유저 ID와 금액을 입력하면 실시간 계산됩니다.</p>
+          <p className="text-xs text-muted-foreground">{t("admin.s164bpjx")}</p>
         )}
 
         <Button
@@ -157,7 +160,7 @@ export function AdminSettlementsPanel({
               const res = await adminCreateSettlementAction({
                 userId: userId.trim(),
                 grossAmountKrw: Number(gross),
-                title: "관리자 정산 초안",
+                title: t("admin.s46ykcp"),
               });
               if (res.error) setMsg(errorText(res.error));
               else {
@@ -200,12 +203,12 @@ export function AdminSettlementsPanel({
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left">
             <tr>
-              <th className="p-3">유저</th>
-              <th className="p-3">상태</th>
-              <th className="p-3">총수익</th>
-              <th className="p-3">절감</th>
-              <th className="p-3">지급액</th>
-              <th className="p-3">액션</th>
+              <th className="p-3">{t("community-server.syyu8")}</th>
+              <th className="p-3">{t("admin.sxxkr")}</th>
+              <th className="p-3">{t("admin.suznzu")}</th>
+              <th className="p-3">{t("admin.syyvc")}</th>
+              <th className="p-3">{t("admin.sueibc")}</th>
+              <th className="p-3">{t("lib.webtoon.symtz")}</th>
             </tr>
           </thead>
           <tbody>

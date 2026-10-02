@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { adminToggleFeatureFlagAction } from "@/actions/admin-feature-flags";
@@ -19,7 +22,7 @@ export function FeatureFlagsPanel({ flags }: { flags: Flag[] }) {
     <div className="rounded-xl border border-border p-4 space-y-3">
       <div>
         <h2 className="font-semibold">Feature Flags</h2>
-        <p className="text-xs text-muted-foreground">재배포 없이 ON/OFF · DB FeatureFlag</p>
+        <p className="text-xs text-muted-foreground">{t("admin.on_off_db_featureflag")}</p>
       </div>
       <ul className="space-y-2">
         {flags.map((f) => (

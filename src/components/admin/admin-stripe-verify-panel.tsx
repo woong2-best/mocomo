@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -46,18 +49,18 @@ export function AdminStripeVerifyPanel({ data }: { data: StripeVerifyDashboard }
         return;
       }
       if (res.checkoutUrl) window.location.href = res.checkoutUrl;
-      else setError("Checkout URL을 받지 못했습니다.");
+      else setError(t("admin.checkout_url"));
     });
   }
 
   const modeLabel =
     d.keyMode === "test"
-      ? "테스트 (sk_test / pk_test)"
+      ? t("admin.sk_test_pk_test")
       : d.keyMode === "live"
-        ? "라이브 — 실제 결제"
+        ? t("admin.smqaqm4")
         : d.keyMode === "mismatch"
-          ? "키 불일치"
-          : "미설정";
+          ? t("admin.sz95b3c")
+          : t("admin.ssh3s9");
 
   return (
     <div className="space-y-6">
@@ -77,23 +80,23 @@ export function AdminStripeVerifyPanel({ data }: { data: StripeVerifyDashboard }
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">연결 상태</CardTitle>
+          <CardTitle className="text-lg">{t("admin.seecmmz")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <StatusRow ok={d.configured} label="환경 변수" detail={`모드: ${modeLabel}`} />
+          <StatusRow ok={d.configured} label={t("admin.s7is06r")} detail={`모드: ${modeLabel}`} />
           <StatusRow
             ok={d.webhookSecretPresent}
             label="STRIPE_WEBHOOK_SECRET"
             detail={
               d.webhookSecretPresent
-                ? "설정됨 (비동기 fulfillment)"
-                : "미설정 — /payments/success 에서도 확인 가능"
+                ? t("admin.fulfillment")
+                : t("admin.payments_success")
             }
           />
           <StatusRow
             ok={d.apiOk}
             label="Stripe API"
-            detail={d.apiError ?? (d.apiOk ? "Balance API 응답 OK" : undefined)}
+            detail={d.apiError ?? (d.apiOk ? t("admin.balance_api_ok") : undefined)}
           />
           {d.apiOk ? (
             <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-1 text-muted-foreground">
@@ -108,7 +111,7 @@ export function AdminStripeVerifyPanel({ data }: { data: StripeVerifyDashboard }
           {d.keyMode === "live" ? (
             <div className="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
               <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-              <p>라이브 키입니다. 테스트 카드가 아닌 실제 카드로 청구됩니다.</p>
+              <p>{t("admin.s1aqi04n")}</p>
             </div>
           ) : null}
         </CardContent>
@@ -116,7 +119,7 @@ export function AdminStripeVerifyPanel({ data }: { data: StripeVerifyDashboard }
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">테스트 카드</CardTitle>
+          <CardTitle className="text-lg">{t("admin.sgzzpd4")}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm font-mono">{data.stripeTestCardHint}</p>
@@ -126,7 +129,7 @@ export function AdminStripeVerifyPanel({ data }: { data: StripeVerifyDashboard }
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">실결제 시뮬레이션</CardTitle>
+          <CardTitle className="text-lg">{t("admin.s13fpzkc")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <label className="flex items-center gap-2 text-sm">
@@ -152,10 +155,10 @@ export function AdminStripeVerifyPanel({ data }: { data: StripeVerifyDashboard }
           </div>
 
           <div className="border-t pt-4 space-y-3">
-            <p className="text-sm font-medium">후원(TIP) 테스트</p>
+            <p className="text-sm font-medium">{t("admin.tip")}</p>
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label htmlFor="tip-receiver">수신 크리에이터 (@username)</Label>
+                <Label htmlFor="tip-receiver">{t("admin.username")}</Label>
                 <Input
                   id="tip-receiver"
                   list="stripe-verify-creators"
@@ -170,7 +173,7 @@ export function AdminStripeVerifyPanel({ data }: { data: StripeVerifyDashboard }
                 </datalist>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="tip-amount">금액 (USD cents, 최소 100 = $1)</Label>
+                <Label htmlFor="tip-amount">{t("admin.usd_cents_100_1")}</Label>
                 <Input
                   id="tip-amount"
                   inputMode="numeric"

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import {
   adminUnbanUsedMarket,
@@ -46,7 +49,7 @@ export function AdminUsedMarketPanel({
     if (!config) return;
     setMsg("");
     const res = await updateUsedAuctionAdminConfig(config);
-    if ("success" in res) setMsg("설정이 저장되었습니다.");
+    if ("success" in res) setMsg(t("admin.s1hj0jhr"));
   }
 
   async function searchUsers() {
@@ -64,21 +67,21 @@ export function AdminUsedMarketPanel({
   async function unban(userId: string) {
     await adminUnbanUsedMarket(userId);
     setBannedUsers((prev) => prev.filter((u) => u.id !== userId));
-    setMsg("차단이 해제되었습니다.");
+    setMsg(t("admin.s1bircld"));
   }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">경매 설정</CardTitle>
+          <CardTitle className="text-base">{t("admin.s1nli73e")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {config && (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="space-y-1 text-sm">
-                  <span>결제 제한 (시간)</span>
+                  <span>{t("admin.s1el58n9")}</span>
                   <Input
                     type="number"
                     value={config.paymentDeadlineHours}
@@ -88,7 +91,7 @@ export function AdminUsedMarketPanel({
                   />
                 </label>
                 <label className="space-y-1 text-sm">
-                  <span>협상 제한 (시간)</span>
+                  <span>{t("admin.swppend")}</span>
                   <Input
                     type="number"
                     value={config.negotiationDeadlineHours}
@@ -99,7 +102,7 @@ export function AdminUsedMarketPanel({
                 </label>
               </div>
               <div className="rounded-lg border p-3 space-y-2 bg-muted/30">
-                <p className="text-sm font-medium">입찰 보증금 (향후 확장)</p>
+                <p className="text-sm font-medium">{t("admin.s1y9ogsq")}</p>
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -111,7 +114,7 @@ export function AdminUsedMarketPanel({
                   보증금 활성화 (현재 비활성 권장)
                 </label>
                 <label className="space-y-1 text-sm block">
-                  <span>보증금 비율 (0~1)</span>
+                  <span>{t("admin.0_1")}</span>
                   <Input
                     type="number"
                     step="0.01"
@@ -134,12 +137,12 @@ export function AdminUsedMarketPanel({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">중고거래 차단 사용자</CardTitle>
+          <CardTitle className="text-base">{t("admin.s1qxvsqk")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">
             <Input
-              placeholder="username 검색"
+              placeholder={t("admin.username_2")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -149,7 +152,7 @@ export function AdminUsedMarketPanel({
           </div>
           <ul className="divide-y rounded-xl border text-sm">
             {bannedUsers.length === 0 ? (
-              <li className="p-4 text-muted-foreground text-center">차단된 사용자 없음</li>
+              <li className="p-4 text-muted-foreground text-center">{t("admin.s14ecd3")}</li>
             ) : (
               bannedUsers.map((u) => (
                 <li key={u.id} className="p-3 flex flex-wrap items-center justify-between gap-2">

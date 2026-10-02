@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { startAuthentication } from "@simplewebauthn/browser";
@@ -44,7 +47,7 @@ export function AdminStepUpDialog({
     }
     if (!("options" in opts) || !opts.options) {
       setLoading(false);
-      setError("Passkey 옵션 없음");
+      setError(t("admin.passkey_9"));
       return;
     }
     try {
@@ -53,13 +56,13 @@ export function AdminStepUpDialog({
       setLoading(false);
     } catch (e) {
       setLoading(false);
-      setError(e instanceof Error ? e.message : "Passkey 취소");
+      setError(e instanceof Error ? e.message : t("admin.passkey_10"));
     }
   }
 
   async function submit() {
     if (!passkeyDone) {
-      setError("Passkey 인증을 먼저 완료하세요.");
+      setError(t("admin.passkey_11"));
       return;
     }
     setLoading(true);
@@ -76,19 +79,19 @@ export function AdminStepUpDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md space-y-4 rounded-xl border bg-card p-6 shadow-lg">
-        <h2 className="text-lg font-semibold">중요 작업 재인증</h2>
+        <h2 className="text-lg font-semibold">{t("admin.s1o9j28y")}</h2>
         <p className="text-sm text-muted-foreground">
           이 작업은 Passkey와 Authenticator 코드를 다시 확인해야 합니다.
         </p>
         <Button className="w-full" disabled={loading} onClick={runPasskey}>
-          {passkeyDone ? "Passkey 완료 · 다시 시도" : "1. Passkey 인증"}
+          {passkeyDone ? t("admin.passkey_12") : t("admin.1_passkey_2")}
         </Button>
         <Input
           inputMode="numeric"
           maxLength={6}
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          placeholder="2. TOTP 6자리"
+          placeholder={t("admin.2_totp_6")}
           className="text-center font-mono tracking-widest"
         />
         {error ? <p className="text-sm text-destructive">{error}</p> : null}

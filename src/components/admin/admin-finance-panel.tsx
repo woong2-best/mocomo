@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,12 +14,12 @@ import { formatUsd } from "@/lib/money";
 type Dashboard = Awaited<ReturnType<typeof import("@/actions/admin-finance").getFinanceDashboard>>;
 
 const TYPE_LABELS: Record<string, string> = {
-  TIP: "후원",
-  PREMIUM: "프리미엄",
-  EMOTICON: "이모티콘",
-  LISTING_FEE: "등록비",
-  PHYSICAL_GOODS: "실물굿즈",
-  PRODUCT: "디지털",
+  TIP: t("lib.wallet.labels.s202dc467ce"),
+  PREMIUM: t("lib.payment.history.sbc6dd7236b"),
+  EMOTICON: t("lib.wallet.labels.sa33c320215"),
+  LISTING_FEE: t("admin.srei48"),
+  PHYSICAL_GOODS: t("admin.spd75xd"),
+  PRODUCT: t("lib.marketplace.sriaa4"),
 };
 
 export function AdminFinancePanel({ data }: { data: Dashboard }) {
@@ -32,7 +35,7 @@ export function AdminFinancePanel({ data }: { data: Dashboard }) {
   }
 
   async function reject(id: string) {
-    const reason = prompt("반려 사유");
+    const reason = prompt(t("admin.s1cdv8g8"));
     if (!reason) return;
     setBusy(id);
     await rejectPayout(id, reason);
@@ -45,25 +48,25 @@ export function AdminFinancePanel({ data }: { data: Dashboard }) {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">총 결제액 (장부)</p>
+            <p className="text-xs text-muted-foreground">{t("admin.seyz6tw")}</p>
             <p className="text-xl font-bold">{formatUsd(stats.totalGross)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">플랫폼 수익 (수수료·등록비·프리미엄)</p>
+            <p className="text-xs text-muted-foreground">{t("admin.sbe4qn7")}</p>
             <p className="text-xl font-bold text-primary">{formatUsd(stats.platformRevenue)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">판매자 미지급 잔액</p>
+            <p className="text-xs text-muted-foreground">{t("admin.s13o5re8")}</p>
             <p className="text-xl font-bold">{formatUsd(stats.sellerBalances)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">출금 대기</p>
+            <p className="text-xs text-muted-foreground">{t("admin.s18k9of8")}</p>
             <p className="text-xl font-bold">
               {formatUsd(stats.pendingPayoutAmount)} ({stats.pendingPayoutCount}건)
             </p>
@@ -71,7 +74,7 @@ export function AdminFinancePanel({ data }: { data: Dashboard }) {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">완료 결제 건수</p>
+            <p className="text-xs text-muted-foreground">{t("admin.swnr5mo")}</p>
             <p className="text-xl font-bold">{stats.paidPaymentCount.toLocaleString()}</p>
           </CardContent>
         </Card>
@@ -87,11 +90,11 @@ export function AdminFinancePanel({ data }: { data: Dashboard }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>출금 대기열</CardTitle>
+          <CardTitle>{t("admin.svv82og")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {pendingPayouts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">대기 중인 출금이 없습니다.</p>
+            <p className="text-sm text-muted-foreground">{t("admin.sj14k5e")}</p>
           ) : (
             pendingPayouts.map((p) => (
               <div key={p.id} className="border rounded-lg p-3 text-sm space-y-2">
@@ -117,11 +120,11 @@ export function AdminFinancePanel({ data }: { data: Dashboard }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>최근 결제</CardTitle>
+          <CardTitle>{t("admin.s17ku92k")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           {recentPayments.length === 0 ? (
-            <p className="text-muted-foreground">결제 내역이 없습니다.</p>
+            <p className="text-muted-foreground">{t("admin.sjw7scq")}</p>
           ) : (
             recentPayments.map((pi) => (
               <div key={pi.id} className="flex justify-between py-1 border-b border-border/40 last:border-0">

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useTransition } from "react";
 import { resolveReport, suspendUserPermanently, adminForceDeleteByReport } from "@/actions/admin";
@@ -62,8 +65,8 @@ export function AdminReportActions({
       )}
       {canDelete && (
         <InlineConfirm
-          message="신고된 콘텐츠를 강제 삭제하고 신고를 해결 처리할까요?"
-          confirmLabel="강제 삭제"
+          message={t("admin.s18lpi2b")}
+          confirmLabel={t("moderation.s1mtowtk")}
           pending={pending}
           onConfirm={forceDelete}
           renderTrigger={(open) => (
@@ -87,7 +90,7 @@ export function AdminReportActions({
           disabled={pending}
           onClick={() =>
             startTransition(() => {
-              void suspendUserPermanently(reportedUserId, "관리자 조치 (신고) — 운영원칙 위반");
+              void suspendUserPermanently(reportedUserId, t("admin.s94wnov"));
             })
           }
         >

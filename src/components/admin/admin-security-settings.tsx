@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useState } from "react";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -43,7 +46,7 @@ export function AdminSecuritySettingsPanel() {
   }, [reload]);
 
   if (!data || "error" in data) {
-    return <p className="text-sm text-muted-foreground">보안 설정을 불러오는 중…</p>;
+    return <p className="text-sm text-muted-foreground">{t("admin.s10ho2rs")}</p>;
   }
 
   async function addPasskey() {
@@ -59,7 +62,7 @@ export function AdminSecuritySettingsPanel() {
       const attestation = await startRegistration(
         options as Parameters<typeof startRegistration>[0]
       );
-      const name = window.prompt("Passkey 이름", "Passkey") || "Passkey";
+      const name = window.prompt(t("admin.passkey_8"), "Passkey") || "Passkey";
       const result = await adminPasskeyRegisterVerifyAction(attestation, name);
       setLoading(false);
       if ("error" in result && result.error) {
@@ -69,7 +72,7 @@ export function AdminSecuritySettingsPanel() {
       await reload();
     } catch (e) {
       setLoading(false);
-      setError(e instanceof Error ? e.message : "등록 취소");
+      setError(e instanceof Error ? e.message : t("admin.skg6k6w"));
     }
   }
 
@@ -157,7 +160,7 @@ export function AdminSecuritySettingsPanel() {
             </li>
           ))}
           {!data.passkeys.length ? (
-            <li className="p-3 text-sm text-muted-foreground">등록된 Passkey 없음</li>
+            <li className="p-3 text-sm text-muted-foreground">{t("admin.passkey_7")}</li>
           ) : null}
         </ul>
       </section>
@@ -196,10 +199,10 @@ export function AdminSecuritySettingsPanel() {
         <p className="text-sm text-muted-foreground">
           상태:{" "}
           {data.totp?.enabled
-            ? "활성"
+            ? t("settings.twoFactorOn")
             : data.totp?.verifiedAt
-              ? "비활성"
-              : "미등록"}
+              ? t("settings.twoFactorOff")
+              : t("admin.ssexz8")}
           {data.totp?.verifiedAt
             ? ` · 검증 ${new Date(data.totp.verifiedAt).toLocaleString()}`
             : ""}
@@ -215,7 +218,7 @@ export function AdminSecuritySettingsPanel() {
               <Input
                 value={totpCode}
                 onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="6자리 코드"
+                placeholder={t("admin.s1byjevq")}
                 className="font-mono"
               />
               <Button
@@ -273,7 +276,7 @@ export function AdminSecuritySettingsPanel() {
               key={c.index}
               className={c.used ? "line-through opacity-50" : "font-medium text-foreground"}
             >
-              #{c.index} {c.used ? "사용됨" : "유효"}
+              #{c.index} {c.used ? t("admin.st6qff") : t("admin.sz1qg")}
             </li>
           ))}
         </ul>
@@ -306,7 +309,7 @@ export function AdminSecuritySettingsPanel() {
             </li>
           ))}
           {!data.trusted.length ? (
-            <li className="p-3 text-sm text-muted-foreground">신뢰 기기 없음</li>
+            <li className="p-3 text-sm text-muted-foreground">{t("admin.sz2nkly")}</li>
           ) : null}
         </ul>
       </section>

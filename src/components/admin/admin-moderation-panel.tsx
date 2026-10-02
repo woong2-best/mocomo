@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -52,7 +55,7 @@ export function AdminModerationPanel({ initialQueue }: { initialQueue: QueueItem
   const [queue, setQueue] = useState(initialQueue);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<UserDetail | null>(null);
-  const [reason, setReason] = useState("운영원칙 위반");
+  const [reason, setReason] = useState(t("admin.swbk926"));
   const [sanction, setSanction] = useState<ModerationSanctionType>("warning");
   const [pending, startTransition] = useTransition();
 
@@ -142,7 +145,7 @@ export function AdminModerationPanel({ initialQueue }: { initialQueue: QueueItem
                         </span>
                       )}
                       {item.sanctionPendingApproval && (
-                        <span className="text-xs text-orange-600">제재 승인 대기</span>
+                        <span className="text-xs text-orange-600">{t("admin.s5hq58h")}</span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -168,9 +171,9 @@ export function AdminModerationPanel({ initialQueue }: { initialQueue: QueueItem
                   <div className="border-t border-border/60 p-4 space-y-4 text-sm">
                     <div className="grid gap-4 md:grid-cols-2">
                       <section className="space-y-2">
-                        <h3 className="font-medium">최근 게시물</h3>
+                        <h3 className="font-medium">{t("admin.s1cw5t8")}</h3>
                         {detail.recentPosts.length === 0 ? (
-                          <p className="text-muted-foreground text-xs">없음</p>
+                          <p className="text-muted-foreground text-xs">{t("lib.creator.subscription.sd58fa73adc")}</p>
                         ) : (
                           detail.recentPosts.map((p) => (
                             <div key={p.id} className="rounded-lg border border-border/50 p-2 text-xs">
@@ -183,9 +186,9 @@ export function AdminModerationPanel({ initialQueue }: { initialQueue: QueueItem
                         )}
                       </section>
                       <section className="space-y-2">
-                        <h3 className="font-medium">최근 댓글</h3>
+                        <h3 className="font-medium">{t("admin.s17kv70t")}</h3>
                         {detail.recentComments.length === 0 ? (
-                          <p className="text-muted-foreground text-xs">없음</p>
+                          <p className="text-muted-foreground text-xs">{t("lib.creator.subscription.sd58fa73adc")}</p>
                         ) : (
                           detail.recentComments.map((c) => (
                             <div key={c.id} className="rounded-lg border border-border/50 p-2 text-xs">
@@ -207,7 +210,7 @@ export function AdminModerationPanel({ initialQueue }: { initialQueue: QueueItem
 
                     {detail.suspensionLogs.length > 0 && (
                       <section className="space-y-1">
-                        <h3 className="font-medium">제재 이력</h3>
+                        <h3 className="font-medium">{t("admin.sqam62p")}</h3>
                         {detail.suspensionLogs.map((log) => (
                           <p key={log.id} className="text-xs text-muted-foreground">
                             {accountStatusLabel(log.previousStatus as AccountStatus)} →{" "}
@@ -221,7 +224,7 @@ export function AdminModerationPanel({ initialQueue }: { initialQueue: QueueItem
 
                     {detail.riskEvents.length > 0 && (
                       <section className="space-y-1">
-                        <h3 className="font-medium">위험도 이벤트</h3>
+                        <h3 className="font-medium">{t("admin.s17i13vc")}</h3>
                         {detail.riskEvents.map((ev) => (
                           <p key={ev.id} className="text-xs text-muted-foreground">
                             {ev.delta > 0 ? "+" : ""}
@@ -233,7 +236,7 @@ export function AdminModerationPanel({ initialQueue }: { initialQueue: QueueItem
                     )}
 
                     <section className="space-y-2 rounded-xl border border-border/60 p-3">
-                      <h3 className="font-medium">제재 적용</h3>
+                      <h3 className="font-medium">{t("admin.sqamcbc")}</h3>
                       <div className="flex flex-wrap gap-2">
                         <select
                           className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
@@ -249,7 +252,7 @@ export function AdminModerationPanel({ initialQueue }: { initialQueue: QueueItem
                         <Input
                           value={reason}
                           onChange={(e) => setReason(e.target.value)}
-                          placeholder="제재 사유 (필수)"
+                          placeholder={t("admin.s1tharpl")}
                           className="min-w-[200px] flex-1"
                         />
                         <Button

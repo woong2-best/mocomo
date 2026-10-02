@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -80,42 +83,42 @@ export function PromotionCreateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>프로모션 생성</DialogTitle>
+          <DialogTitle>{t("admin.s16p88ek")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div>
-            <Label htmlFor="name">이름</Label>
+            <Label htmlFor="name">{t("market.name")}</Label>
             <Input id="name" name="name" required placeholder="Creator Welcome" />
           </div>
           <div>
-            <Label htmlFor="slug">slug (선택)</Label>
+            <Label htmlFor="slug">{t("admin.slug_2")}</Label>
             <Input id="slug" name="slug" placeholder="creator-welcome" />
           </div>
           <div>
-            <Label htmlFor="description">설명</Label>
+            <Label htmlFor="description">{t("community-server.sxvj5")}</Label>
             <Input id="description" name="description" />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label>혜택 유형</Label>
+              <Label>{t("admin.sb5var8")}</Label>
               <select
                 className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                 value={benefitType}
                 onChange={(e) => setBenefitType(e.target.value as CouponBenefitType)}
               >
-                <option value="FEE_WAIVER">수수료 면제</option>
-                <option value="FEE_PERCENT_OFF">수수료 %</option>
-                <option value="FIXED_AMOUNT">고정 할인</option>
+                <option value="FEE_WAIVER">{t("admin.sfmsbgc")}</option>
+                <option value="FEE_PERCENT_OFF">{t("admin.s2sm1u9")}</option>
+                <option value="FIXED_AMOUNT">{t("admin.s1pxa6zn")}</option>
               </select>
             </div>
             <div>
-              <Label htmlFor="priority">우선순위 (낮을수록 우선)</Label>
+              <Label htmlFor="priority">{t("admin.syq3z84")}</Label>
               <Input id="priority" name="priority" type="number" defaultValue={100} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label htmlFor="maxStackPerSettlement">최대 스택 개수</Label>
+              <Label htmlFor="maxStackPerSettlement">{t("admin.s1tyxc93")}</Label>
               <Input
                 id="maxStackPerSettlement"
                 name="maxStackPerSettlement"
@@ -132,47 +135,47 @@ export function PromotionCreateDialog({
           </label>
           {benefitType === "FEE_WAIVER" ? (
             <div>
-              <Label htmlFor="waiveUpToKrw">면제 한도(원)</Label>
+              <Label htmlFor="waiveUpToKrw">{t("admin.s171pyn5")}</Label>
               <Input id="waiveUpToKrw" name="waiveUpToKrw" type="number" defaultValue={100000} />
             </div>
           ) : null}
           {benefitType === "FEE_PERCENT_OFF" ? (
             <div>
-              <Label htmlFor="percentOff">할인 %</Label>
+              <Label htmlFor="percentOff">{t("admin.srq2kv1")}</Label>
               <Input id="percentOff" name="percentOff" type="number" defaultValue={50} />
             </div>
           ) : null}
           {benefitType === "FIXED_AMOUNT" ? (
             <div>
-              <Label htmlFor="fixedDiscountKrw">고정 할인(원)</Label>
+              <Label htmlFor="fixedDiscountKrw">{t("admin.s1e3o0ji")}</Label>
               <Input id="fixedDiscountKrw" name="fixedDiscountKrw" type="number" defaultValue={10000} />
             </div>
           ) : null}
           <div>
-            <Label>자동 지급 트리거</Label>
+            <Label>{t("admin.s14uncrg")}</Label>
             <select
               className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
               value={trigger}
               onChange={(e) => setTrigger(e.target.value as PromotionTrigger)}
             >
-              <option value="MANUAL">수동</option>
-              <option value="ON_SIGNUP">가입 시</option>
-              <option value="ON_FIRST_LIVE">첫 라이브</option>
-              <option value="ON_FIRST_SALE">첫 판매</option>
-              <option value="ON_EVENT">이벤트</option>
-              <option value="SCHEDULED_DATE">예약 날짜</option>
-              <option value="CRON_RULE">Cron 규칙</option>
+              <option value="MANUAL">{t("admin.sy01t")}</option>
+              <option value="ON_SIGNUP">{t("admin.smi8nwh")}</option>
+              <option value="ON_FIRST_LIVE">{t("admin.sjp2kdb")}</option>
+              <option value="ON_FIRST_SALE">{t("admin.spud2ll")}</option>
+              <option value="ON_EVENT">{t("lib.payment.history.sbff20dc3bb")}</option>
+              <option value="SCHEDULED_DATE">{t("admin.shw2wg7")}</option>
+              <option value="CRON_RULE">{t("admin.cron")}</option>
             </select>
           </div>
           {trigger === "SCHEDULED_DATE" ? (
             <div>
-              <Label htmlFor="scheduledAt">예약 시각</Label>
+              <Label htmlFor="scheduledAt">{t("admin.shw5u7k")}</Label>
               <Input id="scheduledAt" name="scheduledAt" type="datetime-local" />
             </div>
           ) : null}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label htmlFor="startsAt">시작</Label>
+              <Label htmlFor="startsAt">{t("explore.start")}</Label>
               <Input
                 id="startsAt"
                 name="startsAt"
@@ -181,14 +184,14 @@ export function PromotionCreateDialog({
               />
             </div>
             <div>
-              <Label htmlFor="endsAt">종료</Label>
+              <Label htmlFor="endsAt">{t("lib.subculture.event.phase.scafdc61bbf")}</Label>
               <Input id="endsAt" name="endsAt" type="datetime-local" />
             </div>
           </div>
           <div className="space-y-2 rounded-lg border border-border p-3">
-            <p className="text-xs font-medium">조건부 지급 규칙</p>
+            <p className="text-xs font-medium">{t("admin.s1gv613k")}</p>
             <div>
-              <Label htmlFor="minFollowers">최소 팔로워</Label>
+              <Label htmlFor="minFollowers">{t("admin.s6yz7o4")}</Label>
               <Input
                 id="minFollowers"
                 value={minFollowers}
@@ -205,16 +208,16 @@ export function PromotionCreateDialog({
             </label>
           </div>
           <div>
-            <Label htmlFor="maxUsesPerUser">1인 최대 사용</Label>
+            <Label htmlFor="maxUsesPerUser">{t("admin.syezaww")}</Label>
             <Input id="maxUsesPerUser" name="maxUsesPerUser" type="number" defaultValue={1} />
           </div>
           <div>
-            <Label htmlFor="adminMemo">관리자 메모</Label>
+            <Label htmlFor="adminMemo">{t("admin.s1jy8b2o")}</Label>
             <Input id="adminMemo" name="adminMemo" />
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <Button type="submit" disabled={pending} className="w-full">
-            {pending ? "생성 중…" : "생성"}
+            {pending ? t("communities.s1w6bzz5") : t("community-server.sxv5g")}
           </Button>
         </form>
       </DialogContent>

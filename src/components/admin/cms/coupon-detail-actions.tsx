@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -47,12 +50,12 @@ export function CouponDetailActions({
             onClick={() =>
               start(async () => {
                 const res = await adminUpdateCouponAction(couponId, { active: !active });
-                setMsg(errorText(res.error ?? (active ? "비활성화됨" : "활성화됨")));
+                setMsg(errorText(res.error ?? (active ? t("admin.s1ph62zx") : t("admin.srunt61"))));
                 router.refresh();
               })
             }
           >
-            {active ? "비활성화" : "활성화"}
+            {active ? t("admin.sow9lnf") : t("admin.swcckf")}
           </Button>
         ) : null}
         {canWrite ? (
@@ -64,7 +67,7 @@ export function CouponDetailActions({
             onClick={() =>
               start(async () => {
                 await adminDeactivateCouponAction(couponId);
-                setMsg("비활성화됨");
+                setMsg(t("admin.s1ph62zx"));
                 router.refresh();
               })
             }
@@ -80,7 +83,7 @@ export function CouponDetailActions({
             disabled={pending}
             onClick={() =>
               start(async () => {
-                if (!confirm("쿠폰을 삭제할까요? 사용 내역도 함께 삭제됩니다.")) return;
+                if (!confirm(t("admin.s18ou9q"))) return;
                 const res = await adminDeleteCouponAction(couponId);
                 if (res.error) setMsg(errorText(res.error));
                 else router.push("/admin/coupons");
@@ -94,12 +97,12 @@ export function CouponDetailActions({
 
       {canAssign ? (
         <div className="rounded-2xl border border-border/70 p-4 space-y-3">
-          <h3 className="text-sm font-semibold">특정 크리에이터 / 회원 지급</h3>
+          <h3 className="text-sm font-semibold">{t("admin.s1labcsc")}</h3>
           <div className="flex gap-2">
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="닉네임 · UID 검색"
+              placeholder={t("admin.uid_2")}
             />
             <Button
               type="button"
@@ -138,7 +141,7 @@ export function CouponDetailActions({
           </ul>
 
           <label className="block space-y-1 text-sm">
-            <span>대량 지급 (줄바꿈 / 쉼표로 username·UID)</span>
+            <span>{t("admin.username_uid")}</span>
             <textarea
               className="min-h-[80px] w-full rounded-lg border border-border bg-background p-2 text-sm"
               value={bulk}

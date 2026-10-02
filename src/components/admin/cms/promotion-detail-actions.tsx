@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -39,7 +42,7 @@ export function PromotionDetailActions({
       {canWrite ? (
         <div className="flex flex-wrap items-end gap-2">
           <div>
-            <Label>우선순위</Label>
+            <Label>{t("admin.spved3s")}</Label>
             <Input
               value={prio}
               onChange={(e) => setPrio(e.target.value)}
@@ -72,7 +75,7 @@ export function PromotionDetailActions({
               })
             }
           >
-            {active ? "비활성화" : "활성화"}
+            {active ? t("admin.sow9lnf") : t("admin.swcckf")}
           </Button>
           {canDelete ? (
             <Button
@@ -81,7 +84,7 @@ export function PromotionDetailActions({
               disabled={pending}
               onClick={() =>
                 start(async () => {
-                  if (!confirm("프로모션을 삭제할까요?")) return;
+                  if (!confirm(t("admin.sy7xdhm"))) return;
                   const res = await adminDeletePromotionAction(promotionId);
                   if (res.error) setMsg(errorText(res.error));
                   else router.push("/admin/promotions");
@@ -96,7 +99,7 @@ export function PromotionDetailActions({
 
       {canAssign ? (
         <div className="space-y-2">
-          <Label>수동 지급 (username 또는 id, 줄바꿈/쉼표)</Label>
+          <Label>{t("admin.username_id")}</Label>
           <textarea
             className="min-h-24 w-full rounded-lg border border-border bg-background p-2 text-sm"
             value={targets}

@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -61,7 +64,7 @@ export function AdminRolesPanel({
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-border/70 p-4 space-y-3">
-        <h2 className="text-sm font-semibold">관리자 추가 (기존 회원 승격)</h2>
+        <h2 className="text-sm font-semibold">{t("admin.s1xs549")}</h2>
         <p className="text-xs text-muted-foreground">
           삭제 시 role이 USER로 돌아가며 더 이상 /admin에 들어갈 수 없습니다.
         </p>
@@ -69,7 +72,7 @@ export function AdminRolesPanel({
           <Input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="username 또는 user id"
+            placeholder={t("admin.username_user_id")}
             className="max-w-xs"
           />
           <select
@@ -89,7 +92,7 @@ export function AdminRolesPanel({
             onClick={() =>
               start(async () => {
                 const res = await adminPromoteStaffAction(username.trim(), role);
-                setMsg(errorText(res.error ?? "관리자가 추가되었습니다."));
+                setMsg(errorText(res.error ?? t("admin.s8arsnx")));
                 if (!res.error) {
                   setUsername("");
                   router.refresh();
@@ -106,10 +109,10 @@ export function AdminRolesPanel({
         <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="bg-muted/40 text-xs text-muted-foreground">
             <tr>
-              <th className="px-3 py-2">계정</th>
-              <th className="px-3 py-2">권한</th>
-              <th className="px-3 py-2">상태</th>
-              <th className="px-3 py-2">작업</th>
+              <th className="px-3 py-2">{t("settings.account")}</th>
+              <th className="px-3 py-2">{t("admin.suouo")}</th>
+              <th className="px-3 py-2">{t("admin.sxxkr")}</th>
+              <th className="px-3 py-2">{t("admin.sz13o")}</th>
             </tr>
           </thead>
           <tbody>
@@ -123,7 +126,7 @@ export function AdminRolesPanel({
                   </td>
                   <td className="px-3 py-2">
                     {isOwnerRow ? (
-                      <span className="text-xs font-semibold">OWNER (사이트 오너)</span>
+                      <span className="text-xs font-semibold">{t("admin.owner")}</span>
                     ) : (
                       <select
                         className="rounded-md border border-border bg-background px-2 py-1 text-xs"
@@ -135,7 +138,7 @@ export function AdminRolesPanel({
                               s.id,
                               e.target.value as UserRole
                             );
-                            setMsg(errorText(res.error ?? "권한이 변경되었습니다."));
+                            setMsg(errorText(res.error ?? t("admin.s1ut5cfa")));
                             router.refresh();
                           })
                         }
@@ -149,7 +152,7 @@ export function AdminRolesPanel({
                     )}
                   </td>
                   <td className="px-3 py-2 text-xs">
-                    {s.adminDisabledAt ? "비활성" : "활성"}
+                    {s.adminDisabledAt ? t("settings.twoFactorOff") : t("settings.twoFactorOn")}
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-1">
@@ -167,12 +170,12 @@ export function AdminRolesPanel({
                                   !s.adminDisabledAt
                                 );
                                 setMsg(errorText(res.error ??
-                                    (s.adminDisabledAt ? "활성화됨" : "비활성화됨")));
+                                    (s.adminDisabledAt ? t("admin.srunt61") : t("admin.s1ph62zx"))));
                                 router.refresh();
                               })
                             }
                           >
-                            {s.adminDisabledAt ? "활성화" : "비활성화"}
+                            {s.adminDisabledAt ? t("admin.swcckf") : t("admin.sow9lnf")}
                           </Button>
                           <Button
                             type="button"
@@ -184,7 +187,7 @@ export function AdminRolesPanel({
                                 const res = await adminResetStaffPasswordAction(s.id);
                                 if ("temporaryPassword" in res && res.temporaryPassword) {
                                   setMsg(`임시 비밀번호: ${res.temporaryPassword}`);
-                                } else setMsg(errorText(res.error ?? "실패"));
+                                } else setMsg(errorText(res.error ?? t("reels.syb44")));
                               })
                             }
                           >
@@ -205,7 +208,7 @@ export function AdminRolesPanel({
                                   return;
                                 }
                                 const res = await adminDemoteStaffAction(s.id);
-                                setMsg(errorText(res.error ?? "관리자 권한이 제거되었습니다."));
+                                setMsg(errorText(res.error ?? t("admin.s1ltk54p")));
                                 router.refresh();
                               })
                             }
@@ -214,7 +217,7 @@ export function AdminRolesPanel({
                           </Button>
                         </>
                       ) : (
-                        <span className="text-xs text-muted-foreground">변경 불가</span>
+                        <span className="text-xs text-muted-foreground">{t("admin.s1dig4u3")}</span>
                       )}
                     </div>
                   </td>

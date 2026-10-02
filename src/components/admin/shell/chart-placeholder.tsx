@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { cn } from "@/lib/utils";
 
 /** 차트 자리만 — 실제 데이터 연동은 이후 단계 */
@@ -22,7 +25,7 @@ export function ChartPlaceholder({
       <div className="mb-4 flex items-center justify-between gap-2">
         <div>
           <p className="text-sm font-semibold">{title}</p>
-          <p className="text-[11px] text-muted-foreground">더미 차트 · 연동 예정</p>
+          <p className="text-[11px] text-muted-foreground">{t("admin.snope5j")}</p>
         </div>
         <span className="rounded-full border border-dashed border-border px-2 py-0.5 text-[10px] text-muted-foreground">
           Placeholder

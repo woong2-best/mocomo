@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -67,7 +70,7 @@ export function AdminEnrollForm() {
       setPhase("totp");
     } catch (e) {
       setLoading(false);
-      setError(e instanceof Error ? e.message : "Passkey 등록이 취소되었습니다.");
+      setError(e instanceof Error ? e.message : t("admin.passkey"));
     }
   }
 
@@ -135,7 +138,7 @@ export function AdminEnrollForm() {
           <div className="flex justify-center">
             <BrandLogo className="h-10 w-auto" />
           </div>
-          <h1 className="text-xl font-bold">관리자 보안 등록</h1>
+          <h1 className="text-xl font-bold">{t("admin.swabicc")}</h1>
           <p className="text-sm text-muted-foreground">
             Passkey와 Authenticator 등록을 완료해야 관리자 페이지에 접근할 수 있습니다.
           </p>
@@ -143,20 +146,20 @@ export function AdminEnrollForm() {
 
         {phase === "passkey" ? (
           <div className="space-y-3">
-            <h2 className="font-semibold">1. Passkey 등록</h2>
+            <h2 className="font-semibold">{t("admin.1_passkey")}</h2>
             <p className="text-sm text-muted-foreground">
               Windows Hello / Face ID / Touch ID / 보안 키를 등록합니다.
             </p>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button className="w-full" disabled={loading} onClick={registerPasskey}>
-              {loading ? "등록 중…" : "Passkey 등록"}
+              {loading ? t("events.skg4uo9") : t("admin.passkey_2")}
             </Button>
           </div>
         ) : null}
 
         {phase === "totp" ? (
           <div className="space-y-3">
-            <h2 className="font-semibold">2. Authenticator 등록</h2>
+            <h2 className="font-semibold">{t("admin.2_authenticator")}</h2>
             <p className="text-sm text-muted-foreground">
               Google Authenticator, Microsoft Authenticator, Authy 등으로 QR을 스캔하세요.
             </p>
@@ -178,7 +181,7 @@ export function AdminEnrollForm() {
                   maxLength={6}
                   value={totpCode}
                   onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="앱의 6자리 코드"
+                  placeholder={t("admin.sa4zl8v")}
                   className="text-center font-mono tracking-widest"
                   required
                 />
@@ -194,7 +197,7 @@ export function AdminEnrollForm() {
 
         {phase === "recovery" ? (
           <div className="space-y-3">
-            <h2 className="font-semibold">3. Recovery Code 생성</h2>
+            <h2 className="font-semibold">{t("admin.3_recovery_code")}</h2>
             <p className="text-sm text-muted-foreground">
               Authenticator 분실 시 사용할 1회용 코드 10개를 생성합니다. 안전한 곳에 보관하세요.
             </p>
@@ -207,7 +210,7 @@ export function AdminEnrollForm() {
 
         {phase === "done" ? (
           <div className="space-y-3">
-            <h2 className="font-semibold">등록 완료</h2>
+            <h2 className="font-semibold">{t("admin.skg57oc")}</h2>
             {recoveryCodes ? (
               <div className="rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-6">
                 {recoveryCodes.map((c) => (

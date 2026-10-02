@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { format } from "date-fns";
@@ -93,7 +96,7 @@ export function AdminEventsMapPanel({ initialRecommendations }: { initialRecomme
                   </Button>
                   <InlineConfirm
                     message={`「${row.title}」 추천 핀을 강제 삭제할까요?`}
-                    confirmLabel="강제 삭제"
+                    confirmLabel={t("moderation.s1mtowtk")}
                     pending={pending}
                     onConfirm={() => deleteRecommendation(row.id)}
                     renderTrigger={(open) => (

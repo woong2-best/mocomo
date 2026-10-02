@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
@@ -69,7 +72,7 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
   }
 
   function onRevoke(accountId: string) {
-    const reason = prompt("해제 사유를 입력하세요:");
+    const reason = prompt(t("admin.s1tc52s6"));
     if (!reason?.trim()) return;
     startTransition(async () => {
       await adminRevokeStreamingAccount(accountId, reason);
@@ -78,7 +81,7 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
   }
 
   function onDelete(accountId: string) {
-    if (!confirm("연결을 완전히 삭제할까요?")) return;
+    if (!confirm(t("admin.s1hjf72y"))) return;
     startTransition(async () => {
       await adminDeleteStreamingAccount(accountId);
       window.location.reload();
@@ -101,7 +104,7 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
           name="q"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="채널명 · ID · 사용자명"
+          placeholder={t("admin.skfduhc")}
           className="max-w-xs"
         />
         <select
@@ -109,10 +112,10 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
           defaultValue={query.verified ?? "all"}
           className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
         >
-          <option value="all">전체</option>
-          <option value="yes">인증됨</option>
-          <option value="no">미인증</option>
-          <option value="revoked">해제됨</option>
+          <option value="all">{t("lib.live.categories.s934dd25ec5")}</option>
+          <option value="yes">{t("streaming-accounts.su72qr")}</option>
+          <option value="no">{t("streaming-accounts.ssi6u5")}</option>
+          <option value="revoked">{t("streaming-accounts.sw8k5c")}</option>
         </select>
         <Button type="submit" size="sm">
           검색
@@ -125,12 +128,12 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
         <table className="w-full text-left text-sm">
           <thead className="border-b bg-muted/40">
             <tr>
-              <th className="px-3 py-2 font-medium">플랫폼</th>
-              <th className="px-3 py-2 font-medium">채널</th>
-              <th className="px-3 py-2 font-medium">MoCoMo 사용자</th>
-              <th className="px-3 py-2 font-medium">상태</th>
-              <th className="px-3 py-2 font-medium">로그</th>
-              <th className="px-3 py-2 text-right font-medium">작업</th>
+              <th className="px-3 py-2 font-medium">{t("admin.sw3sn1")}</th>
+              <th className="px-3 py-2 font-medium">{t("community-server.szpsc")}</th>
+              <th className="px-3 py-2 font-medium">{t("admin.mocomo_2")}</th>
+              <th className="px-3 py-2 font-medium">{t("admin.sxxkr")}</th>
+              <th className="px-3 py-2 font-medium">{t("admin.swba4")}</th>
+              <th className="px-3 py-2 text-right font-medium">{t("admin.sz13o")}</th>
             </tr>
           </thead>
           <tbody>
@@ -155,11 +158,11 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
                 </td>
                 <td className="px-3 py-2">
                   {row.revokedAt ? (
-                    <Badge variant="destructive">해제</Badge>
+                    <Badge variant="destructive">{t("community-server.s11elk")}</Badge>
                   ) : row.verified ? (
-                    <Badge>인증</Badge>
+                    <Badge>{t("lib.admin.sz19h")}</Badge>
                   ) : (
-                    <Badge variant="secondary">대기</Badge>
+                    <Badge variant="secondary">{t("lib.direct-trade.svei8")}</Badge>
                   )}
                   {row.verificationMethod ? (
                     <span className="ml-1 text-xs text-muted-foreground">
@@ -231,7 +234,7 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
       {logsFor ? (
         <div className="rounded-xl border border-border p-4">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="font-medium">검증 로그</h3>
+            <h3 className="font-medium">{t("admin.s1onb667")}</h3>
             <Button size="sm" variant="ghost" onClick={() => setLogsFor(null)}>
               닫기
             </Button>

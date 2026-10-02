@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { getChatReportEvidence } from "@/actions/admin-chat-report";
 import { AdminReportActions } from "@/components/admin/admin-report-actions";
 import { Button } from "@/components/ui/button";
@@ -36,7 +39,7 @@ export function AdminChatReportEvidence({ data }: { data: Evidence }) {
       `}</style>
 
       <div className="no-print flex flex-wrap gap-2 justify-between items-center">
-        <h1 className="text-xl font-bold">채팅 신고 채증</h1>
+        <h1 className="text-xl font-bold">{t("admin.s5361y2")}</h1>
         <Button type="button" onClick={() => window.print()}>
           Export for Law Enforcement
         </Button>
