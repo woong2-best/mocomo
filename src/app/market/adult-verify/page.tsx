@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
@@ -26,7 +29,7 @@ export default async function UsedAdultVerifyPage({
   if (isUsedAdultVerified(user)) redirect(next);
 
   const label =
-    kind === "ALCOHOL" ? "술·주류" : kind === "TOBACCO" ? "담배" : kind === "ADULT" ? "성인용품" : undefined;
+    kind === "ALCOHOL" ? t("lib.used.youth.protection.sccada8949d") : kind === "TOBACCO" ? t("lib.used.youth.protection.s2b92ea06c4") : kind === "ADULT" ? t("lib.used.youth.protection.s293f7b60bf") : undefined;
 
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
@@ -38,9 +41,9 @@ export default async function UsedAdultVerifyPage({
         돌아가기
       </Link>
       <NativePageTitle>
-        <h1 className="text-xl font-bold">성인 인증</h1>
+        <h1 className="text-xl font-bold">{t("app.market.s1y91hfi")}</h1>
       </NativePageTitle>
-      <p className="text-sm text-muted-foreground">중고거래 청소년 보호 (만 19세 이상)</p>
+      <p className="text-sm text-muted-foreground">{t("app.market.s12ywxhk")}</p>
       <UsedAdultVerifyForm callbackUrl={next} restrictedLabel={label} />
     </AppPageChrome>
   );
