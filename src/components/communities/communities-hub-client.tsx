@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -110,7 +113,7 @@ export function CommunitiesHubClient({
   communities: CommunityHubItem[];
   loadError?: string | null;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const searchParams = useSearchParams();
   const query = (searchParams.get("q") ?? "").trim().toLowerCase();
   const [tab, setTab] = useState<TabId>("ALL");

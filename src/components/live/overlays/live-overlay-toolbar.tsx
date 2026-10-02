@@ -1,6 +1,8 @@
 "use client";
 
-import { useLocale } from "@/components/providers/locale-provider";
+import { createTranslator } from "@/lib/i18n/messages";
+
+const t = createTranslator("en");
 import { CircleDot, Gift, Type, RotateCw, Sparkles, HelpCircle, MessageSquareText, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +18,10 @@ import type {
 import { toChosung } from "@/lib/live-overlays/chosung";
 
 export function LiveOverlayToolbar({
-  compact = false }: { compact?: boolean }) {
-  const { t } = useLocale();
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
   const ctx = useLiveOverlayContextOptional();
   if (!ctx?.isHost) return null;
 

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import { Eye, Radio, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,6 +51,8 @@ export function LiveMobilePortraitHost({
   donationAlertsOnStream = false,
   isNsfw = false,
 }: LiveMobilePortraitHostProps) {
+  const { t } = useLocale();
+
   const { chatOverlayEnabled } = useLiveChat();
 
   return (

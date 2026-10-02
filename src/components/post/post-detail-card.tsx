@@ -15,7 +15,9 @@ import { PostDetailMedia } from "@/components/post/post-detail-media";
 import { QuotePostPreviewCard } from "@/components/post/quote-post-preview-card";
 import { BlockedQuotedPostCard } from "@/components/post/blocked-quoted-post-card";
 import { readQuotedPost } from "@/lib/quoted-post";
+import { createTranslator } from "@/lib/i18n/messages";
 
+const t = createTranslator("en");
 
 export function PostDetailCard({
   post,

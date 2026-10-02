@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";

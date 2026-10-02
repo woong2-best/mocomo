@@ -1,12 +1,15 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export function OfflineBanner({ className }: { className?: string }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {

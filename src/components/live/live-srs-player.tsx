@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type HlsType from "hls.js";
@@ -77,7 +80,7 @@ export function LiveSrsPlayer({
           setHint(
             head.status === 404
               ? t("live.flv_obs")
-              : t("live.flv_2", { v0: head.status })
+              : t("live.flv_2", { v0: String(head.status) })
           );
           return;
         }

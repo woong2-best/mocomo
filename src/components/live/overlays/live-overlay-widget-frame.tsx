@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
@@ -16,6 +19,8 @@ type Props = {
 };
 
 function squareHeightPercent(parentWidth: number, parentHeight: number, wPercent: number) {
+  const { t } = useLocale();
+
   if (parentHeight <= 0) return wPercent;
   return ((wPercent / 100) * parentWidth / parentHeight) * 100;
 }

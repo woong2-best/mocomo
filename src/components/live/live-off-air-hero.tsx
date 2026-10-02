@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { LIVE_HERO_CARD_ASPECT, OFF_AIR_TV_SRC } from "@/components/live/live-off-air-tv-asset";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";

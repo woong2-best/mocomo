@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -53,7 +56,7 @@ export function PostEngagementBar({
   const session = sessionState?.data;
   const status = sessionState?.status ?? "unauthenticated";
   const router = useRouter();
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const { liked, likeCount } = like;
   const { starred } = star;
   const displayError = actionError || like.error || star.error;

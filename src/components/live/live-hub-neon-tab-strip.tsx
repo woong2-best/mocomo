@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
 import { LiveHubNeonTabsGraphic } from "@/components/live/live-hub-neon-tabs-graphic";
 import { LIVE_HUB_NEON_THEME } from "@/components/live/live-hub-neon-theme";

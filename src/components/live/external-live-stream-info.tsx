@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import Link from "next/link";
 import { LiveRoomFollowButton } from "@/components/live/live-room-follow-button";
@@ -39,6 +42,8 @@ export function ExternalLiveStreamInfo({
   paymentsEnabled,
   hostFollowing,
 }: Props) {
+  const { t } = useLocale();
+
   return (
     <div className="mt-3 space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

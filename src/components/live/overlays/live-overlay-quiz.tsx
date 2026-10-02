@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import type { LiveOverlayQuizProps } from "@/lib/live-overlays/types";
 import { cn } from "@/lib/utils";
@@ -43,7 +46,7 @@ export function LiveOverlayQuiz({
               )}
             >
               <span className="shrink-0 text-violet-300">{LABELS[i]}</span>
-              <span className="break-words leading-tight">{opt || t("live.sxzul", { v0: i + 1 })}</span>
+              <span className="break-words leading-tight">{opt || t("live.sxzul", { v0: String(i + 1) })}</span>
             </div>
           );
         })}

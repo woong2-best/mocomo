@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -19,7 +22,6 @@ import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { EmailAddressField } from "@/components/auth/email-address-field";
 import { BRAND } from "@/lib/brand";
 import { DEFAULT_GUEST_LOCALE, LOCALE_LABELS, LOCALES, type Locale } from "@/lib/i18n/config";
-import { createTranslator } from "@/lib/i18n/messages";
 import { CountrySelect } from "@/components/i18n/country-select";
 import { useLocale } from "@/components/providers/locale-provider";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";

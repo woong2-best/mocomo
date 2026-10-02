@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, ShoppingBag, X } from "lucide-react";
@@ -24,7 +27,7 @@ export function ChatUsedTradeRequestCard({
   selfUserId: string;
   onUpdated?: () => void;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const [request, setRequest] = useState<TradeRequest | null>(null);
   const [busy, setBusy] = useState(false);
 

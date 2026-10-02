@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useLocale } from "@/components/providers/locale-provider";
 import { LegalEntityFooterNotice } from "@/components/legal/legal-entity-notice";

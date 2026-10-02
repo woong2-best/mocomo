@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { Button } from "@/components/ui/button";
@@ -7,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export function UsedWriteFab() {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const { isNativeApp } = useClientPlatform();
 
   return (

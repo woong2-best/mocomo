@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import type { SidebarSearchRankingScope } from "@/lib/scoped-search-rank-shared";
 import { searchRankingHref, SIDEBAR_SEARCH_RANKING_LIMIT } from "@/lib/scoped-search-rank-shared";

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { LEGAL_DMCA_AGENT_EMAIL } from "@/lib/legal-content";

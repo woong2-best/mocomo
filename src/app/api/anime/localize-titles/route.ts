@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { LOCALES } from "@/lib/i18n/config";
-import { resolveAnimeTitlesForLocale } from "@/lib/anime-title-auto-translate";
-
 const bodySchema = z.object({
   locale: z.enum(LOCALES),
   items: z
@@ -24,14 +22,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Invalid input" }, { status: 400 });
     }
 
-    const { locale, items } = parsed.data;
-    if (locale !== "ja" && locale !== "zh") {
-      return NextResponse.json({ ok: true, titles: {} });
-    }
-
-    const titles = await resolveAnimeTitlesForLocale(items, locale);
     return NextResponse.json(
-      { ok: true, titles },
+      { ok: true, titles: {} },
       { headers: { "Cache-Control": "private, max-age=3600" } }
     );
   } catch (e) {

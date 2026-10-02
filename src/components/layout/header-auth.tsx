@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import type { SupportTierLevel } from "@prisma/client";
 import { Button } from "@/components/ui/button";

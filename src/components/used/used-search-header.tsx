@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
@@ -18,7 +21,7 @@ export function UsedSearchHeader({
   viewerCountryCode,
   viewerServiceRegion,
 }: UsedSearchHeaderProps) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();

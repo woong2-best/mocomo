@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import type { LegalDocument } from "@/lib/legal-content";
 import { LEGAL_CONTACT_EMAIL, LEGAL_PAGES } from "@/lib/legal-content";
-import { getServerTranslator } from "@/lib/i18n/server";
+import { createTranslator } from "@/lib/i18n/messages";
+
+const t = createTranslator("en");
 
 function renderBlock(block: LegalDocument["blocks"][number], key: number) {
   switch (block.type) {
@@ -90,14 +94,13 @@ function renderBlock(block: LegalDocument["blocks"][number], key: number) {
   }
 }
 
-export async function LegalDocumentView({
+export function LegalDocumentView({
   document,
   supplementalBlocks = [],
 }: {
   document: LegalDocument;
   supplementalBlocks?: LegalDocument["blocks"];
 }) {
-  const { t } = await getServerTranslator();
   const blocks = [...document.blocks, ...supplementalBlocks];
 
   return (

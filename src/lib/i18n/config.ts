@@ -1,7 +1,14 @@
 /** Site UI is English-only; other languages via browser translation. */
 export const LOCALES = ["en"] as const;
 
-export type Locale = (typeof LOCALES)[number];
+export type Locale =
+  | (typeof LOCALES)[number]
+  /** Legacy / browser codes — UI resolves to `en`; kept for type-checking old branches. */
+  | "ko"
+  | "ja"
+  | "zh"
+  | "zh-TW"
+  | "pt-BR";
 
 export const LOCALE_COOKIE = "mocomo_locale";
 export const COUNTRY_COOKIE = "mocomo_country";
@@ -15,7 +22,14 @@ export function localeDisplayLabel(code: Locale): string {
   return code === "en" ? "English" : code;
 }
 
-export const LOCALE_LABELS: Record<Locale, string> = { en: "English" };
+export const LOCALE_LABELS: Record<Locale, string> = {
+  en: "English",
+  ko: "Korean",
+  ja: "Japanese",
+  zh: "Chinese (Simplified)",
+  "zh-TW": "Chinese (Traditional)",
+  "pt-BR": "Portuguese (Brazil)",
+};
 
 export {
   COUNTRIES,

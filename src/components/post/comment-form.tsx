@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, type KeyboardEvent } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";

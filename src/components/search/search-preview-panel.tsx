@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   Film,
   Hash,

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { Flag, MoreVertical } from "lucide-react";
 import {
@@ -24,7 +27,7 @@ export function ChatRoomMenu({
   readOnly?: boolean;
   onReportSubmitted?: () => void;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const [reportOpen, setReportOpen] = useState(false);
 
   if (readOnly) return null;

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { Clapperboard, Gamepad2, Radio, Search, Tags } from "lucide-react";
 import { cn } from "@/lib/utils";

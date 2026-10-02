@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
@@ -352,7 +355,7 @@ function MarketplaceDisputeForm({
   orderId: string;
   disabled?: boolean;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const [pending, startTransition] = useTransition();
   const [disputeCode, setDisputeCode] = useState<MarketplaceDisputeReason>("NOT_RECEIVED");
   const [detail, setDetail] = useState("");

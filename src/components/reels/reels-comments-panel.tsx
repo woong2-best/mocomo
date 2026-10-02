@@ -1,5 +1,6 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
 import {
   useCallback,
   useEffect,
@@ -8,6 +9,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+
+const t = createTranslator("en");
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {

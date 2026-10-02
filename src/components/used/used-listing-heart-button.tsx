@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
@@ -18,7 +21,7 @@ export function UsedListingHeartButton({
   className?: string;
   size?: "md" | "sm";
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const router = useRouter();
   const [favorited, setFavorited] = useState(initialFavorited);
   const [busy, setBusy] = useState(false);

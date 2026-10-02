@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { ReactNode } from "react";
 import { Radio } from "lucide-react";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";

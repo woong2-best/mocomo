@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -17,7 +20,7 @@ export function ChatUsedTradeMeetCompletionCard({
   sellerMeetConfirmedAt: string | null;
   onUpdated?: () => void;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const [busy, setBusy] = useState(false);
   const selfConfirmed = isBuyer ? buyerMeetConfirmedAt : sellerMeetConfirmedAt;
   const peerConfirmed = isBuyer ? sellerMeetConfirmedAt : buyerMeetConfirmedAt;

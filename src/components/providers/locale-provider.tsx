@@ -22,6 +22,7 @@ import {
   loadLocaleTableAsync,
   prefetchLocaleTable,
   type MessageKey,
+  type TranslateVars,
 } from "@/lib/i18n/messages";
 import { updateUserLocale } from "@/actions/locale";
 import { readClientCookie, setClientLocaleCookies } from "@/lib/i18n/client-cookies";
@@ -33,7 +34,7 @@ type LocaleContextValue = {
   timeZone: string;
   setLocale: (locale: Locale, countryCode?: string, timeZone?: string) => Promise<void>;
   hydrateFromSession: (locale: Locale, countryCode: string, timeZone: string) => void;
-  t: (key: MessageKey, vars?: Record<string, string>) => string;
+  t: (key: MessageKey | string, vars?: TranslateVars) => string;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);

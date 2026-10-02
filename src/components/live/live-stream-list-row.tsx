@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { memo } from "react";
 import { Radio, User } from "lucide-react";
@@ -30,7 +33,7 @@ function LiveStreamListRowInner({
   ch: LiveHubChannel;
   host?: LiveHubHost;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const thumb = ch.thumbnailUrl ?? host?.image;
   const tags = (ch.tags ?? []).slice(0, 2);
 

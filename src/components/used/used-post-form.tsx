@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUsedListing } from "@/actions/used-market";
@@ -29,13 +32,10 @@ import {
 import { defaultUsedRegionForCountry } from "@/lib/used-regions-global";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { createTranslator } from "@/lib/i18n/messages";
-
-const tStatic = createTranslator("en");
 
 function priceOverLimitMsg(currency: UsedCurrency) {
   const max = maxUsedListingPriceLabel(currency);
-  return tStatic("used.maxInputHint", { max });
+  return t("used.maxInputHint", { max });
 }
 
 function parseFormPrice(raw: string, currency: UsedCurrency): number {
@@ -46,11 +46,11 @@ function parseFormPrice(raw: string, currency: UsedCurrency): number {
 function listingCurrencyChoices(country: string): { id: UsedCurrency; label: string }[] {
   if (isKoreaUsedMarketCountry(country)) {
     return [
-      { id: "krw", label: tStatic("ui.krw") },
-      { id: "usd", label: tStatic("ui.usd") },
+      { id: "krw", label: t("ui.krw") },
+      { id: "usd", label: t("ui.usd") },
     ];
   }
-  return [{ id: "usd", label: tStatic("ui.usd") }];
+  return [{ id: "usd", label: t("ui.usd") }];
 }
 
 function sellKindLabel(id: string): string {
@@ -62,7 +62,7 @@ function sellKindLabel(id: string): string {
     DIGITAL: "used.sellKind.digital",
   };
   const key = map[id];
-  if (key) return tStatic(key);
+  if (key) return t(key);
   return USED_SELL_KINDS.find((p) => p.id === id)?.label ?? id;
 }
 
@@ -114,7 +114,7 @@ export function UsedPostForm({
   sellerCountryCode?: string;
 }) {
   const router = useRouter();
-  const { locale } = useLocale();
+  const { t } = useLocale();
   const sellerCountry = sellerCountryCode.toUpperCase();
   const korea = isKoreaUsedMarketCountry(sellerCountry);
   const parsedDefault = defaultRegion ? parseUsedRegion(defaultRegion) : null;

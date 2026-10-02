@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 /**
  * External platform iframe player — clean embed without title/avatar overlay.
@@ -37,6 +40,8 @@ export function ExternalLivePlayer({
   isHost = false,
   onPlatformEnded,
 }: Props) {
+  const { t } = useLocale();
+
   const containerRef = useRef<HTMLDivElement>(null);
   const sawLiveRef = useRef(false);
   const endedRef = useRef(false);

@@ -1,9 +1,11 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Input } from "@/components/ui/input";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { Locale } from "@/lib/i18n/config";
-import { createTranslator } from "@/lib/i18n/messages";
 
 type EmailAddressFieldProps = {
   name?: string;

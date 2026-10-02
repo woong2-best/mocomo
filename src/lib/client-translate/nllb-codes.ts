@@ -4,7 +4,8 @@ import type { Locale } from "@/lib/i18n/config";
 export type NllbCode = string;
 
 /** MoCoMo UI locale → NLLB target language code. */
-export const LOCALE_TO_NLLB: Record<Locale, NllbCode> = {
+/** Includes browser / legacy locale codes beyond site UI `Locale`. */
+export const LOCALE_TO_NLLB: Record<string, NllbCode> = {
   ko: "kor_Hang",
   en: "eng_Latn",
   ja: "jpn_Jpan",
@@ -184,8 +185,8 @@ const NLLB_TO_LOCALE: Partial<Record<NllbCode, Locale>> = Object.fromEntries(
   Object.entries(LOCALE_TO_NLLB).map(([locale, nllb]) => [nllb, locale as Locale])
 );
 
-export function localeToNllb(locale: Locale): NllbCode {
-  return LOCALE_TO_NLLB[locale];
+export function localeToNllb(locale: Locale | string): NllbCode {
+  return LOCALE_TO_NLLB[locale] ?? LOCALE_TO_NLLB.en;
 }
 
 export function nllbToLocale(code: NllbCode): Locale | null {

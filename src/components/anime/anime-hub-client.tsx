@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Suspense } from "react";
 import { Tv } from "lucide-react";
 import type { AnimeGenre } from "@prisma/client";

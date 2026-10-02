@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { ChatUsedTradeMeetCompletionCard } from "@/components/chat/chat-used-trade-meet-completion-card";
 import { useLocale } from "@/components/providers/locale-provider";
 import { parseMeetTimeInput } from "@/lib/used-trade-meet";

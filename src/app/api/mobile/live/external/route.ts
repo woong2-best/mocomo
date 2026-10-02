@@ -99,8 +99,14 @@ export async function POST(req: NextRequest) {
     }
 
     const resolved = await resolveVerifiedLiveSource(accountId, user.id);
-    if ("error" in resolved) {
+    if ("errorKey" in resolved && resolved.errorKey) {
+      return NextResponse.json({ error: String(resolved.errorKey) }, { status: 400 });
+    }
+    if ("error" in resolved && resolved.error) {
       return NextResponse.json({ error: resolved.error }, { status: 400 });
+    }
+    if (!("provider" in resolved)) {
+      return NextResponse.json({ error: "live.external.resolveFailed" }, { status: 400 });
     }
     const parsed = resolved;
 

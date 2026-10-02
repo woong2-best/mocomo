@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useState } from "react";
 import { AlertTriangle, Check, Copy, Youtube } from "lucide-react";

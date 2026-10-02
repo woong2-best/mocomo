@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { BRAND } from "@/lib/brand";

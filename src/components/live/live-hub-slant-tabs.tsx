@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";

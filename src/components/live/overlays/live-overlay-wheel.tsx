@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import { useId } from "react";
 import { useLiveOverlayContextOptional } from "@/components/live/overlays/live-overlay-context";

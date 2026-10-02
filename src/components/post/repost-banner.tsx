@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { Repeat2 } from "lucide-react";
 import { userDisplayName } from "@/lib/user-public-select";
@@ -10,7 +13,7 @@ export function RepostBanner({
 }: {
   user: { username: string; name?: string | null };
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const label = userDisplayName(user);
   return (
     <p className="mb-2 flex items-center gap-1.5 pl-1 text-[13px] font-medium text-muted-foreground">

@@ -80,7 +80,7 @@ export async function groupMarketplaceCartLines(items: MarketplaceCartLine[]) {
     }
     const qty = Math.max(1, line.quantity);
     if (listing.type !== "DIGITAL" && listing.stock < qty) {
-      return { error: t("actions.s1uk9n72", { v0: listing.title }) as const };
+      return { error: "actions.s1uk9n72" as const };
     }
     const group = groups.get(listing.sellerId) ?? {
       sellerId: listing.sellerId,

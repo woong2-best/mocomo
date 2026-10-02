@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -10,7 +13,6 @@ import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { finishAddAccountFlow } from "@/lib/account-switch/add-account-flow";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { type Locale } from "@/lib/i18n/config";
-import { createTranslator } from "@/lib/i18n/messages";
 import {
   clearSignupLocaleStorage,
   resolveEmailVerifyLocale,

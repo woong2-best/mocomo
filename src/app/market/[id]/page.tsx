@@ -55,9 +55,11 @@ import { isUsedRestrictedKind } from "@/lib/used-youth-protection";
 
 import type { UsedListingStatus } from "@prisma/client";
 import { getServerTranslator } from "@/lib/i18n/server";
+import { createTranslator } from "@/lib/i18n/messages";
 
+const t = createTranslator("en");
 
-function localizedListingStatus(locale: string | undefined, status: UsedListingStatus) {
+function localizedListingStatus(_locale: string | undefined, status: UsedListingStatus) {
   if (status === "RESERVED") return t("ui.reserved");
   if (status === "SOLD") return t("ui.sold");
   if (status === "SELLING") return t("ui.for_sale");

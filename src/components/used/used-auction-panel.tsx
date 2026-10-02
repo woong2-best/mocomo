@@ -15,6 +15,9 @@ import { UsedAuctionCountdown } from "@/components/used/used-auction-countdown";
 import { UsedAuctionPaymentCountdown } from "@/components/used/used-auction-payment-countdown";
 import { Gavel, Shield, Zap } from "lucide-react";
 import { getServerTranslator } from "@/lib/i18n/server";
+import { createTranslator } from "@/lib/i18n/messages";
+
+const t = createTranslator("en");
 
 import type { UsedAuctionState } from "@prisma/client";
 

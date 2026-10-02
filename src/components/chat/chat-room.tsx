@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Trash2 } from "lucide-react";
@@ -79,7 +82,7 @@ export function ChatRoomClient({
   /** SSR 메시지가 있으면 소켓 연결 전 전체 sync 생략 */
   skipInitialSync?: boolean;
 }) {
-  const { t } = useLocale();
+  const { locale } = useLocale();
   const filterWarningCopy = t("chat.dmContentFilterWarning");
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");

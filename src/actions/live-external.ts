@@ -71,9 +71,12 @@ export async function createExternalLiveStream(data: {
 
     const resolved = await resolveVerifiedLiveSource(accountId, user.id);
     if ("errorKey" in resolved && resolved.errorKey) {
-      return { error: t(resolved.errorKey as MessageKey) };
+      return { error: String(resolved.errorKey) };
     }
     if ("error" in resolved && resolved.error) return { error: resolved.error };
+    if (!("provider" in resolved)) {
+      return { error: "live.external.resolveFailed" };
+    }
     const parsed = resolved;
 
     if (parsed.provider === "YOUTUBE") {

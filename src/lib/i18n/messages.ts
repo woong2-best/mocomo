@@ -6,11 +6,14 @@ export type { MessageKey } from "@/lib/i18n/message-keys";
 
 export const MESSAGE_KEYS = Object.keys(en) as MessageKey[];
 
-function applyVars(text: string, vars?: Record<string, string>): string {
+export type TranslateVars = Record<string, string | number | boolean | null | undefined>;
+
+function applyVars(text: string, vars?: TranslateVars): string {
   if (!vars) return text;
   let out = text;
   for (const [key, value] of Object.entries(vars)) {
-    out = out.replaceAll(`{${key}}`, value);
+    if (value === undefined || value === null) continue;
+    out = out.replaceAll(`{${key}}`, String(value));
   }
   return out;
 }
@@ -18,15 +21,15 @@ function applyVars(text: string, vars?: Record<string, string>): string {
 /** English-only UI catalog. */
 export function translate(
   _locale: Locale,
-  key: MessageKey,
-  vars?: Record<string, string>
+  key: MessageKey | string,
+  vars?: TranslateVars
 ): string {
-  const text = (en as Record<MessageKey, string>)[key] ?? key;
+  const text = (en as Record<string, string>)[key] ?? key;
   return applyVars(text, vars);
 }
 
 export function createTranslator(_locale: Locale = "en") {
-  return (key: MessageKey, vars?: Record<string, string>) => translate("en", key, vars);
+  return (key: MessageKey | string, vars?: TranslateVars) => translate("en", key, vars);
 }
 
 export function loadLocaleTableSync(_locale: Locale): Record<MessageKey, string> {

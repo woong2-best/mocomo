@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { History, Radio, Trophy, Users } from "lucide-react";

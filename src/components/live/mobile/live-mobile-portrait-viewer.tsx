@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -56,6 +59,8 @@ export function LiveMobilePortraitViewer({
   recentTips = [],
   donationAlertsOnStream = false,
 }: LiveMobilePortraitViewerProps) {
+  const { t } = useLocale();
+
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const { chatOverlayEnabled } = useLiveChat();

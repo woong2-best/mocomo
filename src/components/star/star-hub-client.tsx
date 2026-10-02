@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { Loader2, Play, Star } from "lucide-react";
 import type { StarHubCreator, StarMarketListing, StarWikiEntry } from "@/lib/star-bookmarks";

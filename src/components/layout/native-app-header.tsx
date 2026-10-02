@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Suspense } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";

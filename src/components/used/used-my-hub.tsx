@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Heart, Scale, ShoppingBag, DollarSign } from "lucide-react";
@@ -59,7 +62,7 @@ export function UsedMyHub({
   userId: string;
   initialLane?: UsedHubLane;
 }) {
-  const { locale } = useLocale();
+  const { locale , t } = useLocale();
   const [lane, setLane] = useState<UsedHubLane>(() => parseInitialLane(initialLane));
   const [items, setItems] = useState<HubItem[]>([]);
   const [loading, setLoading] = useState(true);

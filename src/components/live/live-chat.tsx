@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import { memo, useEffect, useRef, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
@@ -155,6 +158,8 @@ function LiveChatInner({
   }, [displayMessages]);
 
   function onScroll() {
+  const { t } = useLocale();
+
     const el = scrollRef.current;
     if (!el) return;
     stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;

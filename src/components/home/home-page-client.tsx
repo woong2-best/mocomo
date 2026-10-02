@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useSession } from "next-auth/react";
 import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import { FeedInfinite } from "@/components/feed/feed-infinite";

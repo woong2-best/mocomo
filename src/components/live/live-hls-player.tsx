@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type HlsType from "hls.js";
@@ -225,22 +228,22 @@ export function LiveHlsPlayer({
   useEffect(() => {
     if (status !== "waiting") return;
     void refreshSignalHint();
-    const t = setInterval(() => {
+    const retryInterval = setInterval(() => {
       retryRef.current += 1;
       void refreshSignalHint();
       void loadPlayback();
     }, 4000);
-    return () => clearInterval(t);
+    return () => clearInterval(retryInterval);
   }, [status, loadPlayback, refreshSignalHint]);
 
   useEffect(() => {
     if (status !== "loading" || !hlsUrl) return;
-    const t = setTimeout(() => {
+    const waitTimer = setTimeout(() => {
       setStatus("waiting");
       setWaitHint(t("live.hls_obs"));
       void loadPlayback();
     }, 22000);
-    return () => clearTimeout(t);
+    return () => clearTimeout(waitTimer);
   }, [status, hlsUrl, loadPlayback]);
 
   if (status === "error") {

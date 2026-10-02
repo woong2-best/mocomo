@@ -1,6 +1,6 @@
 import type { Locale } from "@/lib/i18n/config";
 
-const SPECIAL: Partial<Record<Locale, string>> = {
+const SPECIAL: Record<string, string> = {
   ko: "Korean",
   en: "American English",
   ja: "Japanese",

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -30,6 +33,8 @@ export function Live2dLibraryPanel({
   vtuberActive,
   compact = false,
 }: Live2dLibraryPanelProps) {
+  const { t } = useLocale();
+
   const [loading, setLoading] = useState(true);
   const [characters, setCharacters] = useState<
     (Flat2dLibraryCharacterEntry & { thumbUrl: string })[]

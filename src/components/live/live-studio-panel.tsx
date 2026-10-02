@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import type { LiveStreamCategory } from "@prisma/client";
