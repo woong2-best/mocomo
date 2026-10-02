@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAnimeRevisions } from "@/actions/anime";
@@ -17,7 +20,7 @@ export default async function AnimeHistoryPage({ params }: { params: Promise<{ s
       <div className="flex items-center justify-between gap-2">
         <NativePageTitle>
           <div>
-            <h1 className="text-xl font-bold">수정 기록</h1>
+            <h1 className="text-xl font-bold">{t("app.anime.s2tlr8w")}</h1>
             <p className="text-sm text-muted-foreground">{anime.title}</p>
           </div>
         </NativePageTitle>
